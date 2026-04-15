@@ -17,10 +17,57 @@ function daysToExpiry(expirationDate) {
   return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 }
 
+async function getAvailableExpirations(symbol) {
+  const base = await yahooFinance.options(symbol);
+  const expirations = Array.isArray(base?.expirationDates)
+    ? base.expirationDates
+    : Array.isArray(base?.options)
+      ? base.options.map((o) => o?.expirationDate).filter(Boolean)
+      : [];
+
+  return [...new Set(expirations)];
+}
+
+async function getResolvedChain(symbol, expiration) {
+  let selectedExpiration = expiration;
+
+  if (!selectedExpiration) {
+    const expirations = await getAvailableExpirations(symbol);
+    if (!expirations.length) {
+      throw new Error("No option expirations found.");
+    }
+    selectedExpiration = expirations[0];
+  }
+
+  const chain = await yahooFinance.options(symbol, { date: selectedExpiration });
+
+  return {
+    chain,
+    selectedExpiration
+  };
+}
+
+function mapContract(contract, fallbackExpiration) {
+  return {
+    contractSymbol: contract.contractSymbol ?? null,
+    strike: safeNumber(contract.strike),
+    lastPrice: safeNumber(contract.lastPrice),
+    bid: safeNumber(contract.bid),
+    ask: safeNumber(contract.ask),
+    change: safeNumber(contract.change),
+    percentChange: safeNumber(contract.percentChange),
+    volume: safeNumber(contract.volume),
+    openInterest: safeNumber(contract.openInterest),
+    impliedVolatility: safeNumber(contract.impliedVolatility),
+    inTheMoney: contract.inTheMoney ?? null,
+    expiration: contract.expiration ?? fallbackExpiration ?? null
+  };
+}
+
 function createMcpServer() {
   const server = new McpServer({
     name: "wheel-live-data",
-    version: "1.1.0"
+    version: "1.2.0"
   });
 
   server.registerTool(
@@ -77,6 +124,55 @@ function createMcpServer() {
   );
 
   server.registerTool(
+    "get_option_expirations",
+    {
+      title: "Get option expirations",
+      description: "Get available option expiration dates for a ticker",
+      inputSchema: {
+        ticker: z.string()
+      }
+    },
+    async ({ ticker }) => {
+      try {
+        const symbol = ticker.toUpperCase().trim();
+        const expirations = await getAvailableExpirations(symbol);
+
+        const payload = {
+          ticker: symbol,
+          expirations,
+          timestamp: new Date().toISOString()
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload, null, 2)
+            }
+          ],
+          structuredContent: payload
+        };
+      } catch (e) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "option_expirations_failed",
+                  message: e.message
+                },
+                null,
+                2
+              )
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     "get_option_chain",
     {
       title: "Get option chain",
@@ -89,51 +185,19 @@ function createMcpServer() {
     async ({ ticker, expiration }) => {
       try {
         const symbol = ticker.toUpperCase().trim();
-        const chain = expiration
-          ? await yahooFinance.options(symbol, { date: expiration })
-          : await yahooFinance.options(symbol);
+        const { chain, selectedExpiration } = await getResolvedChain(symbol, expiration);
 
         const quotePrice =
           safeNumber(chain?.quote?.regularMarketPrice) ??
-          safeNumber(chain?.underlyingSymbol ? null : null);
+          safeNumber(chain?.underlyingPrice) ??
+          null;
 
-        const calls = (chain.calls ?? []).map((c) => ({
-          contractSymbol: c.contractSymbol ?? null,
-          strike: safeNumber(c.strike),
-          lastPrice: safeNumber(c.lastPrice),
-          bid: safeNumber(c.bid),
-          ask: safeNumber(c.ask),
-          change: safeNumber(c.change),
-          percentChange: safeNumber(c.percentChange),
-          volume: safeNumber(c.volume),
-          openInterest: safeNumber(c.openInterest),
-          impliedVolatility: safeNumber(c.impliedVolatility),
-          inTheMoney: c.inTheMoney ?? null,
-          expiration: c.expiration ?? expiration ?? null
-        }));
-
-        const puts = (chain.puts ?? []).map((p) => ({
-          contractSymbol: p.contractSymbol ?? null,
-          strike: safeNumber(p.strike),
-          lastPrice: safeNumber(p.lastPrice),
-          bid: safeNumber(p.bid),
-          ask: safeNumber(p.ask),
-          change: safeNumber(p.change),
-          percentChange: safeNumber(p.percentChange),
-          volume: safeNumber(p.volume),
-          openInterest: safeNumber(p.openInterest),
-          impliedVolatility: safeNumber(p.impliedVolatility),
-          inTheMoney: p.inTheMoney ?? null,
-          expiration: p.expiration ?? expiration ?? null
-        }));
+        const calls = (chain.calls ?? []).map((c) => mapContract(c, selectedExpiration));
+        const puts = (chain.puts ?? []).map((p) => mapContract(p, selectedExpiration));
 
         const payload = {
           ticker: symbol,
-          expiration:
-            expiration ??
-            calls[0]?.expiration ??
-            puts[0]?.expiration ??
-            null,
+          expiration: selectedExpiration,
           underlyingPrice: quotePrice,
           calls,
           puts,
@@ -183,22 +247,11 @@ function createMcpServer() {
       try {
         const symbol = ticker.toUpperCase().trim();
         const quote = await yahooFinance.quote(symbol);
-        const chain = expiration
-          ? await yahooFinance.options(symbol, { date: expiration })
-          : await yahooFinance.options(symbol);
+        const { chain, selectedExpiration } = await getResolvedChain(symbol, expiration);
 
         const price = safeNumber(quote.regularMarketPrice);
         if (!price) {
           throw new Error("Unable to get underlying price.");
-        }
-
-        const expiry =
-          expiration ??
-          chain.calls?.[0]?.expiration ??
-          chain.puts?.[0]?.expiration;
-
-        if (!expiry) {
-          throw new Error("Unable to determine expiration date.");
         }
 
         const calls = chain.calls ?? [];
@@ -206,6 +259,7 @@ function createMcpServer() {
         const allContracts = [...calls, ...puts].filter(
           (c) =>
             typeof c.strike === "number" &&
+            Number.isFinite(c.strike) &&
             typeof c.impliedVolatility === "number" &&
             Number.isFinite(c.impliedVolatility)
         );
@@ -219,13 +273,17 @@ function createMcpServer() {
         )[0];
 
         const iv = safeNumber(atm.impliedVolatility);
-        const dte = daysToExpiry(expiry);
+        if (!iv) {
+          throw new Error("Unable to determine ATM implied volatility.");
+        }
+
+        const dte = daysToExpiry(selectedExpiration);
         const expectedMove = price * iv * Math.sqrt(dte / 365);
 
         const payload = {
           ticker: symbol,
           underlyingPrice: price,
-          expiration: expiry,
+          expiration: selectedExpiration,
           dte,
           atmStrike: safeNumber(atm.strike),
           impliedVolatility: iv,
@@ -281,20 +339,12 @@ function createMcpServer() {
       try {
         const symbol = ticker.toUpperCase().trim();
         const quote = await yahooFinance.quote(symbol);
-        const chain = expiration
-          ? await yahooFinance.options(symbol, { date: expiration })
-          : await yahooFinance.options(symbol);
+        const { chain, selectedExpiration } = await getResolvedChain(symbol, expiration);
 
         const price = safeNumber(quote.regularMarketPrice);
         if (!price) {
           throw new Error("Unable to get underlying price.");
         }
-
-        const expiry =
-          expiration ??
-          chain.calls?.[0]?.expiration ??
-          chain.puts?.[0]?.expiration ??
-          null;
 
         const contracts = bias === "bullish" ? chain.calls ?? [] : chain.puts ?? [];
 
@@ -302,12 +352,16 @@ function createMcpServer() {
           (c) =>
             typeof c.strike === "number" &&
             Number.isFinite(c.strike) &&
-            safeNumber(c.volume) !== null &&
-            safeNumber(c.openInterest) !== null
+            (
+              safeNumber(c.volume) !== null ||
+              safeNumber(c.openInterest) !== null ||
+              safeNumber(c.bid) !== null ||
+              safeNumber(c.ask) !== null
+            )
         );
 
         if (!filtered.length) {
-          throw new Error("No liquid contracts found.");
+          throw new Error("No usable contracts found.");
         }
 
         const ranked = filtered
@@ -315,8 +369,10 @@ function createMcpServer() {
             const strike = safeNumber(c.strike);
             const volume = safeNumber(c.volume) ?? 0;
             const openInterest = safeNumber(c.openInterest) ?? 0;
+            const bid = safeNumber(c.bid) ?? 0;
+            const ask = safeNumber(c.ask) ?? 0;
             const distance = Math.abs(strike - price);
-            const liquidityScore = volume + openInterest;
+            const liquidityScore = volume + openInterest + (bid > 0 ? 50 : 0) + (ask > 0 ? 25 : 0);
 
             return {
               contract: c,
@@ -335,7 +391,7 @@ function createMcpServer() {
           ticker: symbol,
           bias,
           underlyingPrice: price,
-          expiration: expiry,
+          expiration: selectedExpiration,
           bestStrike: safeNumber(best.strike),
           lastPrice: safeNumber(best.lastPrice),
           bid: safeNumber(best.bid),

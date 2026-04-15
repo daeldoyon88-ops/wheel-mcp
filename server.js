@@ -3,9 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const yahooFinance = new YahooFinance({
-  queue: { concurrency: 2, timeout: 30000 },
-});
+const yahooFinance = new YahooFinance();
 
 const server = new McpServer({
   name: "wheel-mcp",

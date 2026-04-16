@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import YahooFinance from "yahoo-finance2";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -11,6 +12,17 @@ const yahooFinance = new YahooFinance();
 const SERVER_STARTED_AT = new Date();
 
 app.use(express.json({ limit: "1mb" }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://wheel-mcp.onrender.com",
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 
 /* --------------------------- request timing --------------------------- */
 

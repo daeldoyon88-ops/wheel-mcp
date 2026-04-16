@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.1.1";
 const yahooFinance = new YahooFinance();
 const SERVER_STARTED_AT = new Date();
 
@@ -235,16 +235,62 @@ function normalizeHistoricalRow(row) {
   };
 }
 
+function getHistoricalStartDate(range) {
+  const now = new Date();
+  const start = new Date(now);
+
+  switch (String(range || "1y").toLowerCase()) {
+    case "1mo":
+      start.setMonth(start.getMonth() - 1);
+      break;
+    case "3mo":
+      start.setMonth(start.getMonth() - 3);
+      break;
+    case "6mo":
+      start.setMonth(start.getMonth() - 6);
+      break;
+    case "1y":
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+    case "2y":
+      start.setFullYear(start.getFullYear() - 2);
+      break;
+    case "5y":
+      start.setFullYear(start.getFullYear() - 5);
+      break;
+    case "ytd":
+      return new Date(now.getFullYear(), 0, 1);
+    case "max":
+      start.setFullYear(start.getFullYear() - 20);
+      break;
+    default:
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+  }
+
+  return start;
+}
+
 async function fetchHistoricalPrices(symbol, range = "1y", interval = "1d") {
   const parsedSymbol = parseSymbol(symbol);
 
-  const rows = await yahooFinance.chart(parsedSymbol, {
-    range,
-    interval,
+  const normalizedInterval = String(interval || "1d").toLowerCase();
+  if (!["1d", "1wk", "1mo"].includes(normalizedInterval)) {
+    throw badRequest("Invalid interval. Use 1d, 1wk, or 1mo.");
+  }
+
+  const period1 = getHistoricalStartDate(range);
+  const period2 = new Date();
+
+  const rows = await yahooFinance.historical(parsedSymbol, {
+    period1,
+    period2,
+    interval: normalizedInterval,
   });
 
-  const quoteRows = Array.isArray(rows?.quotes) ? rows.quotes : [];
-  return quoteRows.map(normalizeHistoricalRow).filter(Boolean);
+  return (Array.isArray(rows) ? rows : [])
+    .map(normalizeHistoricalRow)
+    .filter(Boolean);
 }
 
 function getCloses(rows) {
@@ -261,7 +307,8 @@ function sma(values, period) {
 function emaSeries(values, period) {
   if (!Array.isArray(values) || values.length < period) return [];
   const multiplier = 2 / (period + 1);
-  const seed = values.slice(0, period).reduce((acc, value) => acc + value, 0) / period;
+  const seed =
+    values.slice(0, period).reduce((acc, value) => acc + value, 0) / period;
 
   const result = [seed];
   for (let i = period; i < values.length; i += 1) {

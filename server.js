@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "2.4.0";
 const yahooFinance = new YahooFinance();
 const SERVER_STARTED_AT = new Date();
 
@@ -212,6 +212,11 @@ function createTimingTracker() {
   };
 }
 
+function percentDistance(current, reference) {
+  if (current === null || reference === null || reference === 0) return null;
+  return ((current - reference) / reference) * 100;
+}
+
 async function fetchOptions(symbol, expiration = null) {
   const parsedSymbol = parseSymbol(symbol);
   const date = parseExpirationInput(expiration);
@@ -406,11 +411,6 @@ function atr(rows, period = 14) {
   return atrValue;
 }
 
-function percentDistance(current, reference) {
-  if (current === null || reference === null || reference === 0) return null;
-  return ((current - reference) / reference) * 100;
-}
-
 function rangePosition(current, low, high) {
   if (current === null || low === null || high === null || high === low) {
     return null;
@@ -469,6 +469,103 @@ function classifySupportResistancePosition(currentPrice, support, resistance) {
   if (currentPrice <= supportThreshold) return "near_support";
   if (currentPrice >= resistanceThreshold) return "near_resistance";
   return "mid_range";
+}
+
+function analyzeSetupLabel({
+  optionType,
+  strike,
+  currentPrice,
+  lowerExpected,
+  upperExpected,
+}) {
+  if (
+    strike === null ||
+    currentPrice === null ||
+    lowerExpected === null ||
+    upperExpected === null
+  ) {
+    return "unknown";
+  }
+
+  if (optionType === "put") {
+    if (strike < lowerExpected) return "conservative";
+    if (strike <= currentPrice) return "balanced";
+    return "aggressive";
+  }
+
+  if (optionType === "call") {
+    if (strike > upperExpected) return "conservative";
+    if (strike >= currentPrice) return "balanced";
+    return "aggressive";
+  }
+
+  return "unknown";
+}
+
+function buildTradeSetupCommentary({
+  optionType,
+  strike,
+  currentPrice,
+  lowerExpected,
+  upperExpected,
+  technicalTrend,
+  support20,
+  resistance20,
+  srPosition20,
+}) {
+  const notes = [];
+
+  if (currentPrice !== null && strike !== null) {
+    if (optionType === "put") {
+      if (strike < currentPrice) {
+        notes.push("Le strike put est sous le prix spot.");
+      } else if (strike > currentPrice) {
+        notes.push("Le strike put est au-dessus du prix spot, donc setup plus agressif.");
+      } else {
+        notes.push("Le strike put est très proche du prix spot.");
+      }
+
+      if (lowerExpected !== null) {
+        if (strike < lowerExpected) {
+          notes.push("Le strike put est sous la borne basse du move attendu.");
+        } else {
+          notes.push("Le strike put reste dans la zone du move attendu.");
+        }
+      }
+    } else if (optionType === "call") {
+      if (strike > currentPrice) {
+        notes.push("Le strike call est au-dessus du prix spot.");
+      } else if (strike < currentPrice) {
+        notes.push("Le strike call est sous le prix spot, donc setup plus agressif.");
+      } else {
+        notes.push("Le strike call est très proche du prix spot.");
+      }
+
+      if (upperExpected !== null) {
+        if (strike > upperExpected) {
+          notes.push("Le strike call est au-dessus de la borne haute du move attendu.");
+        } else {
+          notes.push("Le strike call reste dans la zone du move attendu.");
+        }
+      }
+    }
+  }
+
+  if (technicalTrend) {
+    notes.push(`Contexte technique actuel: ${technicalTrend}.`);
+  }
+
+  if (srPosition20 && srPosition20 !== "unknown") {
+    notes.push(`Position 20 jours: ${srPosition20}.`);
+  }
+
+  if (support20 !== null && resistance20 !== null) {
+    notes.push(
+      `Zone 20 jours observée entre ${round(support20, 2)} et ${round(resistance20, 2)}.`
+    );
+  }
+
+  return notes;
 }
 
 /* ------------------------------ tools ------------------------------ */
@@ -948,6 +1045,160 @@ async function getSupportResistanceTool({
   };
 }
 
+async function analyzeTradeSetupTool({
+  symbol,
+  expiration,
+  option_type = "put",
+  strike,
+}) {
+  const timing = createTimingTracker();
+
+  const validateStarted = Date.now();
+  const parsedSymbol = parseSymbol(symbol);
+  const parsedExpiration = parseExpirationInput(expiration);
+  const normalizedType = String(option_type || "").trim().toLowerCase();
+  const parsedStrike = toNumber(strike);
+
+  if (!parsedExpiration) {
+    throw badRequest("Parameter 'expiration' is required for analyze_trade_setup.");
+  }
+
+  if (!["call", "put"].includes(normalizedType)) {
+    throw badRequest("Parameter 'option_type' must be 'call' or 'put'.");
+  }
+
+  if (parsedStrike === null) {
+    throw badRequest("Parameter 'strike' is required and must be a number.");
+  }
+  timing.mark("validateMs", Date.now() - validateStarted);
+
+  const expectedMoveStarted = Date.now();
+  const expectedMoveData = await getExpectedMoveTool({
+    symbol: parsedSymbol,
+    expiration: parsedExpiration,
+  });
+  timing.mark("expectedMoveMs", Date.now() - expectedMoveStarted);
+
+  const technicalsStarted = Date.now();
+  const technicalsData = await getTechnicalsTool({
+    symbol: parsedSymbol,
+    range: "1y",
+    interval: "1d",
+  });
+  timing.mark("technicalsMs", Date.now() - technicalsStarted);
+
+  const supportResistanceStarted = Date.now();
+  const srData = await getSupportResistanceTool({
+    symbol: parsedSymbol,
+    range: "1y",
+    interval: "1d",
+  });
+  timing.mark("supportResistanceMs", Date.now() - supportResistanceStarted);
+
+  const computeStarted = Date.now();
+
+  const currentPrice = toNumber(expectedMoveData.currentPrice);
+  const expectedMove = toNumber(expectedMoveData.expectedMove);
+  const lowerExpected = toNumber(expectedMoveData?.oneSigmaRange?.lower);
+  const upperExpected = toNumber(expectedMoveData?.oneSigmaRange?.upper);
+
+  const technicalTrend = technicalsData?.trend ?? null;
+
+  const support20 = toNumber(srData?.supportResistance?.days20?.support);
+  const resistance20 = toNumber(srData?.supportResistance?.days20?.resistance);
+  const support50 = toNumber(srData?.supportResistance?.days50?.support);
+  const resistance50 = toNumber(srData?.supportResistance?.days50?.resistance);
+
+  const srPosition20 = srData?.supportResistance?.days20?.position ?? "unknown";
+  const srPosition50 = srData?.supportResistance?.days50?.position ?? "unknown";
+
+  const strikeDistanceFromSpotPercent = percentDistance(parsedStrike, currentPrice);
+
+  let strikeVsExpectedMove = "unknown";
+  if (normalizedType === "put" && lowerExpected !== null) {
+    strikeVsExpectedMove =
+      parsedStrike < lowerExpected ? "below_lower_bound" : "inside_expected_range";
+  } else if (normalizedType === "call" && upperExpected !== null) {
+    strikeVsExpectedMove =
+      parsedStrike > upperExpected ? "above_upper_bound" : "inside_expected_range";
+  }
+
+  const setupLabel = analyzeSetupLabel({
+    optionType: normalizedType,
+    strike: parsedStrike,
+    currentPrice,
+    lowerExpected,
+    upperExpected,
+  });
+
+  const commentary = buildTradeSetupCommentary({
+    optionType: normalizedType,
+    strike: parsedStrike,
+    currentPrice,
+    lowerExpected,
+    upperExpected,
+    technicalTrend,
+    support20,
+    resistance20,
+    srPosition20,
+  });
+
+  timing.mark("computeMs", Date.now() - computeStarted);
+
+  const formatStarted = Date.now();
+  const result = {
+    symbol: parsedSymbol,
+    expiration: toISODate(parsedExpiration),
+    optionType: normalizedType,
+    strike: round(parsedStrike, 4),
+    spot: round(currentPrice, 4),
+    expectedMove: {
+      amount: round(expectedMove, 4),
+      percent: round(expectedMoveData?.expectedMovePercent, 4),
+      range: {
+        lower: round(lowerExpected, 4),
+        upper: round(upperExpected, 4),
+      },
+      method: expectedMoveData?.method ?? null,
+    },
+    technicals: {
+      trend: technicalTrend,
+      rsi14: round(technicalsData?.indicators?.rsi14, 4),
+      sma20: round(technicalsData?.indicators?.sma20, 4),
+      sma50: round(technicalsData?.indicators?.sma50, 4),
+      sma200: round(technicalsData?.indicators?.sma200, 4),
+      ema8: round(technicalsData?.indicators?.ema8, 4),
+      ema21: round(technicalsData?.indicators?.ema21, 4),
+    },
+    supportResistance: {
+      days20: {
+        support: round(support20, 4),
+        resistance: round(resistance20, 4),
+        position: srPosition20,
+      },
+      days50: {
+        support: round(support50, 4),
+        resistance: round(resistance50, 4),
+        position: srPosition50,
+      },
+    },
+    strikeAnalysis: {
+      distanceFromSpotPercent: round(strikeDistanceFromSpotPercent, 4),
+      relativeToExpectedMove: strikeVsExpectedMove,
+    },
+    setupAssessment: {
+      label: setupLabel,
+      commentary,
+    },
+  };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
+}
+
 const tools = {
   get_quote: getQuoteTool,
   get_option_expirations: getOptionExpirationsTool,
@@ -956,6 +1207,7 @@ const tools = {
   get_best_strike: getBestStrikeTool,
   get_technicals: getTechnicalsTool,
   get_support_resistance: getSupportResistanceTool,
+  analyze_trade_setup: analyzeTradeSetupTool,
 };
 
 /* --------------------------- http fallback -------------------------- */
@@ -1027,6 +1279,15 @@ app.get("/tools", (_req, res) => {
           symbol: "string",
           range: "1mo | 3mo | 6mo | 1y | 2y | 5y | ytd | max | optional",
           interval: "1d | 1wk | 1mo | optional",
+        },
+      },
+      {
+        name: "analyze_trade_setup",
+        input: {
+          symbol: "string",
+          expiration: "YYYY-MM-DD",
+          option_type: "call | put",
+          strike: "number",
         },
       },
     ],
@@ -1206,6 +1467,34 @@ function createMcpServer() {
     },
     async ({ symbol, range, interval }) => {
       const result = await getSupportResistanceTool({ symbol, range, interval });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "analyze_trade_setup",
+    "Analyze an option trade setup using expected move, technicals, and support/resistance.",
+    {
+      symbol: z.string().min(1),
+      expiration: z.string().min(1),
+      option_type: z.enum(["call", "put"]).default("put"),
+      strike: z.number(),
+    },
+    async ({ symbol, expiration, option_type, strike }) => {
+      const result = await analyzeTradeSetupTool({
+        symbol,
+        expiration,
+        option_type,
+        strike,
+      });
+
       return {
         content: [
           {

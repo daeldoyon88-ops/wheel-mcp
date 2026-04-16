@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = "2.1.1";
+const APP_VERSION = "2.2.0";
 const yahooFinance = new YahooFinance();
 const SERVER_STARTED_AT = new Date();
 
@@ -193,6 +193,23 @@ function pickClosestStrike(contracts, referenceStrike, optionType) {
     });
 
   return sorted[0] || null;
+}
+
+function createTimingTracker() {
+  const startedAt = Date.now();
+  const marks = {};
+
+  return {
+    mark(name, ms) {
+      marks[name] = round(ms, 2);
+    },
+    finish() {
+      return {
+        ...marks,
+        totalMs: round(Date.now() - startedAt, 2),
+      };
+    },
+  };
 }
 
 async function fetchOptions(symbol, expiration = null) {
@@ -433,10 +450,15 @@ function classifyTrend({
 /* ------------------------------ tools ------------------------------ */
 
 async function getQuoteTool({ symbol }) {
+  const timing = createTimingTracker();
+
+  const fetchStarted = Date.now();
   const parsedSymbol = parseSymbol(symbol);
   const quote = await yahooFinance.quote(parsedSymbol);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
 
-  return {
+  const formatStarted = Date.now();
+  const result = {
     symbol: quote.symbol ?? parsedSymbol,
     shortName: quote.shortName ?? null,
     longName: quote.longName ?? null,
@@ -457,13 +479,24 @@ async function getQuoteTool({ symbol }) {
     fiftyTwoWeekHigh: toNumber(quote.fiftyTwoWeekHigh),
     fiftyTwoWeekLow: toNumber(quote.fiftyTwoWeekLow),
   };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
 }
 
 async function getOptionExpirationsTool({ symbol }) {
+  const timing = createTimingTracker();
+
+  const fetchStarted = Date.now();
   const parsedSymbol = parseSymbol(symbol);
   const optionsData = await fetchOptions(parsedSymbol);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
 
-  return {
+  const formatStarted = Date.now();
+  const result = {
     symbol: optionsData.underlyingSymbol ?? parsedSymbol,
     currentPrice: getCurrentPrice(optionsData.quote),
     expirationDates: Array.isArray(optionsData.expirationDates)
@@ -474,11 +507,23 @@ async function getOptionExpirationsTool({ symbol }) {
       : [],
     hasMiniOptions: Boolean(optionsData.hasMiniOptions),
   };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
 }
 
 async function getOptionChainTool({ symbol, expiration = null }) {
+  const timing = createTimingTracker();
+
+  const fetchStarted = Date.now();
   const parsedSymbol = parseSymbol(symbol);
   const optionsData = await fetchOptions(parsedSymbol, expiration);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
+
+  const parseStarted = Date.now();
   const selected = Array.isArray(optionsData.options) ? optionsData.options[0] : null;
 
   if (!selected) {
@@ -493,7 +538,10 @@ async function getOptionChainTool({ symbol, expiration = null }) {
     ? selected.puts.map(parseOptionContract).sort((a, b) => a.strike - b.strike)
     : [];
 
-  return {
+  timing.mark("parseMs", Date.now() - parseStarted);
+
+  const formatStarted = Date.now();
+  const result = {
     symbol: optionsData.underlyingSymbol ?? parsedSymbol,
     currentPrice: getCurrentPrice(optionsData.quote),
     expiration: toISODate(selected.expirationDate),
@@ -506,17 +554,31 @@ async function getOptionChainTool({ symbol, expiration = null }) {
     calls,
     puts,
   };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
 }
 
 async function getExpectedMoveTool({ symbol, expiration }) {
+  const timing = createTimingTracker();
+
+  const validateStarted = Date.now();
   const parsedSymbol = parseSymbol(symbol);
   const parsedExpiration = parseExpirationInput(expiration);
 
   if (!parsedExpiration) {
     throw badRequest("Parameter 'expiration' is required for get_expected_move.");
   }
+  timing.mark("validateMs", Date.now() - validateStarted);
 
+  const fetchStarted = Date.now();
   const optionsData = await fetchOptions(parsedSymbol, parsedExpiration);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
+
+  const computeStarted = Date.now();
   const selected = Array.isArray(optionsData.options) ? optionsData.options[0] : null;
 
   if (!selected) {
@@ -565,8 +627,10 @@ async function getExpectedMoveTool({ symbol, expiration }) {
 
   const lowerBound = currentPrice - expectedMove;
   const upperBound = currentPrice + expectedMove;
+  timing.mark("computeMs", Date.now() - computeStarted);
 
-  return {
+  const formatStarted = Date.now();
+  const result = {
     symbol: optionsData.underlyingSymbol ?? parsedSymbol,
     expiration: toISODate(parsedExpiration),
     currentPrice: round(currentPrice, 4),
@@ -582,6 +646,12 @@ async function getExpectedMoveTool({ symbol, expiration }) {
       put: atmPut ? parseOptionContract(atmPut) : null,
     },
   };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
 }
 
 async function getBestStrikeTool({
@@ -591,6 +661,9 @@ async function getBestStrikeTool({
   target_price = null,
   percent_otm = 0,
 }) {
+  const timing = createTimingTracker();
+
+  const validateStarted = Date.now();
   const parsedSymbol = parseSymbol(symbol);
   const parsedExpiration = parseExpirationInput(expiration);
 
@@ -606,8 +679,13 @@ async function getBestStrikeTool({
 
   const otm = toNumber(percent_otm) ?? 0;
   const manualTarget = toNumber(target_price);
+  timing.mark("validateMs", Date.now() - validateStarted);
 
+  const fetchStarted = Date.now();
   const optionsData = await fetchOptions(parsedSymbol, parsedExpiration);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
+
+  const computeStarted = Date.now();
   const selected = Array.isArray(optionsData.options) ? optionsData.options[0] : null;
 
   if (!selected) {
@@ -642,8 +720,10 @@ async function getBestStrikeTool({
   if (!best) {
     throw badRequest("Unable to find a matching strike.");
   }
+  timing.mark("computeMs", Date.now() - computeStarted);
 
-  return {
+  const formatStarted = Date.now();
+  const result = {
     symbol: optionsData.underlyingSymbol ?? parsedSymbol,
     expiration: toISODate(parsedExpiration),
     optionType: normalizedType,
@@ -652,16 +732,27 @@ async function getBestStrikeTool({
     percentOTMUsed: round(otm, 4),
     bestStrike: parseOptionContract(best),
   };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
 }
 
 async function getTechnicalsTool({ symbol, range = "1y", interval = "1d" }) {
+  const timing = createTimingTracker();
+
+  const fetchStarted = Date.now();
   const parsedSymbol = parseSymbol(symbol);
   const rows = await fetchHistoricalPrices(parsedSymbol, range, interval);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
 
   if (!rows.length) {
     throw badRequest("No historical price data found for this symbol.");
   }
 
+  const computeStarted = Date.now();
   const closes = getCloses(rows);
   const latest = rows[rows.length - 1];
   const previous = rows.length > 1 ? rows[rows.length - 2] : null;
@@ -700,7 +791,19 @@ async function getTechnicalsTool({ symbol, range = "1y", interval = "1d" }) {
       ? (absoluteChange / previousClose) * 100
       : null;
 
-  return {
+  const trend = classifyTrend({
+    currentPrice,
+    sma20,
+    sma50,
+    sma200,
+    ema8,
+    ema21,
+    rsi14,
+  });
+  timing.mark("computeMs", Date.now() - computeStarted);
+
+  const formatStarted = Date.now();
+  const result = {
     symbol: parsedSymbol,
     range,
     interval,
@@ -738,15 +841,13 @@ async function getTechnicalsTool({ symbol, range = "1y", interval = "1d" }) {
         positionPercent: round(rangePosition(currentPrice, low52w, high52w), 4),
       },
     },
-    trend: classifyTrend({
-      currentPrice,
-      sma20,
-      sma50,
-      sma200,
-      ema8,
-      ema21,
-      rsi14,
-    }),
+    trend,
+  };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
   };
 }
 

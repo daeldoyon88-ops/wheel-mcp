@@ -6,9 +6,26 @@ import { z } from "zod";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const APP_VERSION = "2.1.0";
 const yahooFinance = new YahooFinance();
+const SERVER_STARTED_AT = new Date();
 
 app.use(express.json({ limit: "1mb" }));
+
+/* --------------------------- request timing --------------------------- */
+
+app.use((req, res, next) => {
+  const started = Date.now();
+
+  res.on("finish", () => {
+    const durationMs = Date.now() - started;
+    console.log(
+      `[HTTP] ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs}ms`
+    );
+  });
+
+  next();
+});
 
 /* ----------------------------- helpers ----------------------------- */
 
@@ -187,6 +204,183 @@ async function fetchOptions(symbol, expiration = null) {
   }
 
   return yahooFinance.options(parsedSymbol);
+}
+
+/* ------------------------- technical helpers ------------------------- */
+
+function normalizeHistoricalRow(row) {
+  const close =
+    toNumber(row?.close) ??
+    toNumber(row?.adjClose) ??
+    toNumber(row?.adjclose) ??
+    null;
+
+  const high = toNumber(row?.high);
+  const low = toNumber(row?.low);
+  const open = toNumber(row?.open);
+  const volume = toNumber(row?.volume);
+
+  const date = row?.date ? new Date(row.date) : null;
+  if (!date || Number.isNaN(date.getTime()) || close === null) {
+    return null;
+  }
+
+  return {
+    date,
+    open,
+    high,
+    low,
+    close,
+    volume,
+  };
+}
+
+async function fetchHistoricalPrices(symbol, range = "1y", interval = "1d") {
+  const parsedSymbol = parseSymbol(symbol);
+
+  const rows = await yahooFinance.chart(parsedSymbol, {
+    range,
+    interval,
+  });
+
+  const quoteRows = Array.isArray(rows?.quotes) ? rows.quotes : [];
+  return quoteRows.map(normalizeHistoricalRow).filter(Boolean);
+}
+
+function getCloses(rows) {
+  return rows.map((r) => r.close).filter((v) => typeof v === "number");
+}
+
+function sma(values, period) {
+  if (!Array.isArray(values) || values.length < period) return null;
+  const slice = values.slice(-period);
+  const sum = slice.reduce((acc, value) => acc + value, 0);
+  return sum / period;
+}
+
+function emaSeries(values, period) {
+  if (!Array.isArray(values) || values.length < period) return [];
+  const multiplier = 2 / (period + 1);
+  const seed = values.slice(0, period).reduce((acc, value) => acc + value, 0) / period;
+
+  const result = [seed];
+  for (let i = period; i < values.length; i += 1) {
+    const prev = result[result.length - 1];
+    result.push((values[i] - prev) * multiplier + prev);
+  }
+  return result;
+}
+
+function ema(values, period) {
+  const series = emaSeries(values, period);
+  return series.length ? series[series.length - 1] : null;
+}
+
+function rsi(values, period = 14) {
+  if (!Array.isArray(values) || values.length < period + 1) return null;
+
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i <= period; i += 1) {
+    const change = values[i] - values[i - 1];
+    if (change >= 0) gains += change;
+    else losses += Math.abs(change);
+  }
+
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+
+  for (let i = period + 1; i < values.length; i += 1) {
+    const change = values[i] - values[i - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? Math.abs(change) : 0;
+
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+  }
+
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - 100 / (1 + rs);
+}
+
+function atr(rows, period = 14) {
+  if (!Array.isArray(rows) || rows.length < period + 1) return null;
+
+  const trueRanges = [];
+  for (let i = 1; i < rows.length; i += 1) {
+    const current = rows[i];
+    const previous = rows[i - 1];
+
+    if (
+      current.high === null ||
+      current.low === null ||
+      previous.close === null
+    ) {
+      continue;
+    }
+
+    const tr = Math.max(
+      current.high - current.low,
+      Math.abs(current.high - previous.close),
+      Math.abs(current.low - previous.close)
+    );
+
+    trueRanges.push(tr);
+  }
+
+  if (trueRanges.length < period) return null;
+
+  let atrValue =
+    trueRanges.slice(0, period).reduce((acc, value) => acc + value, 0) / period;
+
+  for (let i = period; i < trueRanges.length; i += 1) {
+    atrValue = ((atrValue * (period - 1)) + trueRanges[i]) / period;
+  }
+
+  return atrValue;
+}
+
+function percentDistance(current, reference) {
+  if (current === null || reference === null || reference === 0) return null;
+  return ((current - reference) / reference) * 100;
+}
+
+function rangePosition(current, low, high) {
+  if (
+    current === null ||
+    low === null ||
+    high === null ||
+    high === low
+  ) {
+    return null;
+  }
+
+  return ((current - low) / (high - low)) * 100;
+}
+
+function classifyTrend({
+  currentPrice,
+  sma20,
+  sma50,
+  sma200,
+  ema8,
+  ema21,
+  rsi14,
+}) {
+  let score = 0;
+
+  if (currentPrice !== null && sma20 !== null && currentPrice > sma20) score += 1;
+  if (currentPrice !== null && sma50 !== null && currentPrice > sma50) score += 1;
+  if (currentPrice !== null && sma200 !== null && currentPrice > sma200) score += 1;
+  if (ema8 !== null && ema21 !== null && ema8 > ema21) score += 1;
+  if (rsi14 !== null && rsi14 >= 55) score += 1;
+  if (rsi14 !== null && rsi14 <= 45) score -= 1;
+
+  if (score >= 4) return "bullish";
+  if (score <= 1) return "bearish";
+  return "neutral";
 }
 
 /* ------------------------------ tools ------------------------------ */
@@ -413,12 +607,109 @@ async function getBestStrikeTool({
   };
 }
 
+async function getTechnicalsTool({ symbol, range = "1y", interval = "1d" }) {
+  const parsedSymbol = parseSymbol(symbol);
+  const rows = await fetchHistoricalPrices(parsedSymbol, range, interval);
+
+  if (!rows.length) {
+    throw badRequest("No historical price data found for this symbol.");
+  }
+
+  const closes = getCloses(rows);
+  const latest = rows[rows.length - 1];
+  const previous = rows.length > 1 ? rows[rows.length - 2] : null;
+
+  const currentPrice = toNumber(latest?.close);
+  const previousClose = toNumber(previous?.close);
+
+  const sma20 = sma(closes, 20);
+  const sma50 = sma(closes, 50);
+  const sma200 = sma(closes, 200);
+  const ema8 = ema(closes, 8);
+  const ema21 = ema(closes, 21);
+  const rsi14 = rsi(closes, 14);
+  const atr14 = atr(rows, 14);
+
+  const recent20 = rows.slice(-20);
+  const low20 = recent20.length
+    ? Math.min(...recent20.map((r) => r.low).filter((v) => v !== null))
+    : null;
+  const high20 = recent20.length
+    ? Math.max(...recent20.map((r) => r.high).filter((v) => v !== null))
+    : null;
+
+  const lows52w = rows.map((r) => r.low).filter((v) => v !== null);
+  const highs52w = rows.map((r) => r.high).filter((v) => v !== null);
+  const low52w = lows52w.length ? Math.min(...lows52w) : null;
+  const high52w = highs52w.length ? Math.max(...highs52w) : null;
+
+  const absoluteChange =
+    currentPrice !== null && previousClose !== null
+      ? currentPrice - previousClose
+      : null;
+
+  const percentChange =
+    absoluteChange !== null && previousClose
+      ? (absoluteChange / previousClose) * 100
+      : null;
+
+  return {
+    symbol: parsedSymbol,
+    range,
+    interval,
+    bars: rows.length,
+    asOfDate: latest?.date ? latest.date.toISOString() : null,
+    currentPrice: round(currentPrice, 4),
+    previousClose: round(previousClose, 4),
+    change: round(absoluteChange, 4),
+    changePercent: round(percentChange, 4),
+    indicators: {
+      sma20: round(sma20, 4),
+      sma50: round(sma50, 4),
+      sma200: round(sma200, 4),
+      ema8: round(ema8, 4),
+      ema21: round(ema21, 4),
+      rsi14: round(rsi14, 4),
+      atr14: round(atr14, 4),
+    },
+    distancePercent: {
+      vsSma20: round(percentDistance(currentPrice, sma20), 4),
+      vsSma50: round(percentDistance(currentPrice, sma50), 4),
+      vsSma200: round(percentDistance(currentPrice, sma200), 4),
+      vsEma8: round(percentDistance(currentPrice, ema8), 4),
+      vsEma21: round(percentDistance(currentPrice, ema21), 4),
+    },
+    ranges: {
+      last20Days: {
+        low: round(low20, 4),
+        high: round(high20, 4),
+        positionPercent: round(rangePosition(currentPrice, low20, high20), 4),
+      },
+      last52Weeks: {
+        low: round(low52w, 4),
+        high: round(high52w, 4),
+        positionPercent: round(rangePosition(currentPrice, low52w, high52w), 4),
+      },
+    },
+    trend: classifyTrend({
+      currentPrice,
+      sma20,
+      sma50,
+      sma200,
+      ema8,
+      ema21,
+      rsi14,
+    }),
+  };
+}
+
 const tools = {
   get_quote: getQuoteTool,
   get_option_expirations: getOptionExpirationsTool,
   get_option_chain: getOptionChainTool,
   get_expected_move: getExpectedMoveTool,
   get_best_strike: getBestStrikeTool,
+  get_technicals: getTechnicalsTool,
 };
 
 /* --------------------------- http fallback -------------------------- */
@@ -427,14 +718,29 @@ app.get("/", (_req, res) => {
   res.json({
     ok: true,
     service: "wheel-mcp",
-    version: "2.0.0",
+    version: APP_VERSION,
     mcp: "/mcp",
     tools: Object.keys(tools),
   });
 });
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  const mem = process.memoryUsage();
+
+  res.json({
+    ok: true,
+    service: "wheel-mcp",
+    version: APP_VERSION,
+    uptimeSeconds: round(process.uptime(), 2),
+    startedAt: SERVER_STARTED_AT.toISOString(),
+    memory: {
+      rssMB: round(mem.rss / 1024 / 1024, 2),
+      heapTotalMB: round(mem.heapTotal / 1024 / 1024, 2),
+      heapUsedMB: round(mem.heapUsed / 1024 / 1024, 2),
+      externalMB: round(mem.external / 1024 / 1024, 2),
+    },
+    tools: Object.keys(tools),
+  });
 });
 
 app.get("/tools", (_req, res) => {
@@ -443,8 +749,14 @@ app.get("/tools", (_req, res) => {
     tools: [
       { name: "get_quote", input: { symbol: "string" } },
       { name: "get_option_expirations", input: { symbol: "string" } },
-      { name: "get_option_chain", input: { symbol: "string", expiration: "YYYY-MM-DD | optional" } },
-      { name: "get_expected_move", input: { symbol: "string", expiration: "YYYY-MM-DD" } },
+      {
+        name: "get_option_chain",
+        input: { symbol: "string", expiration: "YYYY-MM-DD | optional" },
+      },
+      {
+        name: "get_expected_move",
+        input: { symbol: "string", expiration: "YYYY-MM-DD" },
+      },
       {
         name: "get_best_strike",
         input: {
@@ -453,6 +765,14 @@ app.get("/tools", (_req, res) => {
           option_type: "call | put",
           target_price: "number | optional",
           percent_otm: "number | optional",
+        },
+      },
+      {
+        name: "get_technicals",
+        input: {
+          symbol: "string",
+          range: "1mo | 3mo | 6mo | 1y | 2y | 5y | ytd | max | optional",
+          interval: "1d | 1wk | 1mo | optional",
         },
       },
     ],
@@ -468,8 +788,11 @@ app.post("/tools/:toolName", async (req, res) => {
       throw badRequest(`Unknown tool '${toolName}'.`);
     }
 
+    const started = Date.now();
     const result = await handler(req.body || {});
-    res.json({ ok: true, tool: toolName, result });
+    const durationMs = Date.now() - started;
+
+    res.json({ ok: true, tool: toolName, durationMs, result });
   } catch (error) {
     const status = error?.status || 500;
     res.status(status).json({
@@ -487,7 +810,7 @@ const transports = new Map();
 function createMcpServer() {
   const server = new McpServer({
     name: "wheel-mcp",
-    version: "2.0.0",
+    version: APP_VERSION,
   });
 
   server.tool(
@@ -587,6 +910,27 @@ function createMcpServer() {
         percent_otm,
       });
 
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "get_technicals",
+    "Get technical indicators and trend context from historical prices.",
+    {
+      symbol: z.string().min(1),
+      range: z.string().optional(),
+      interval: z.string().optional(),
+    },
+    async ({ symbol, range, interval }) => {
+      const result = await getTechnicalsTool({ symbol, range, interval });
       return {
         content: [
           {

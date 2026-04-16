@@ -1,11 +1,16 @@
 import express from "express";
 import YahooFinance from "yahoo-finance2";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { z } from "zod";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const yahooFinance = new YahooFinance();
 
 app.use(express.json({ limit: "1mb" }));
+
+/* ----------------------------- helpers ----------------------------- */
 
 function badRequest(message, details = null) {
   const err = new Error(message);
@@ -29,7 +34,6 @@ function parseExpirationInput(expiration) {
   }
 
   if (typeof expiration === "number") {
-    // support seconds or milliseconds
     const ms = expiration < 1e12 ? expiration * 1000 : expiration;
     const d = new Date(ms);
     if (Number.isNaN(d.getTime())) {
@@ -41,7 +45,6 @@ function parseExpirationInput(expiration) {
   if (typeof expiration === "string") {
     const trimmed = expiration.trim();
 
-    // YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
       const d = new Date(`${trimmed}T00:00:00.000Z`);
       if (Number.isNaN(d.getTime())) {
@@ -50,7 +53,6 @@ function parseExpirationInput(expiration) {
       return d;
     }
 
-    // unix timestamp as string
     if (/^\d+$/.test(trimmed)) {
       const n = Number(trimmed);
       const ms = n < 1e12 ? n * 1000 : n;
@@ -160,9 +162,6 @@ function pickClosestStrike(contracts, referenceStrike, optionType) {
 
       if (da !== db) return da - db;
 
-      // tie-breaker:
-      // calls -> prefer >= reference
-      // puts  -> prefer <= reference
       if (optionType === "call") {
         const aPref = a.strike >= referenceStrike ? 0 : 1;
         const bPref = b.strike >= referenceStrike ? 0 : 1;
@@ -189,6 +188,8 @@ async function fetchOptions(symbol, expiration = null) {
 
   return yahooFinance.options(parsedSymbol);
 }
+
+/* ------------------------------ tools ------------------------------ */
 
 async function getQuoteTool({ symbol }) {
   const parsedSymbol = parseSymbol(symbol);
@@ -356,9 +357,7 @@ async function getBestStrikeTool({
     throw badRequest("Parameter 'expiration' is required for get_best_strike.");
   }
 
-  const normalizedType = String(option_type || "")
-    .trim()
-    .toLowerCase();
+  const normalizedType = String(option_type || "").trim().toLowerCase();
 
   if (!["call", "put"].includes(normalizedType)) {
     throw badRequest("Parameter 'option_type' must be 'call' or 'put'.");
@@ -379,9 +378,10 @@ async function getBestStrikeTool({
     throw badRequest("Unable to determine current underlying price.");
   }
 
-  const contracts = normalizedType === "call"
-    ? (Array.isArray(selected.calls) ? selected.calls : [])
-    : (Array.isArray(selected.puts) ? selected.puts : []);
+  const contracts =
+    normalizedType === "call"
+      ? (Array.isArray(selected.calls) ? selected.calls : [])
+      : (Array.isArray(selected.puts) ? selected.puts : []);
 
   if (contracts.length === 0) {
     throw badRequest(`No ${normalizedType} contracts found for this expiration.`);
@@ -421,11 +421,14 @@ const tools = {
   get_best_strike: getBestStrikeTool,
 };
 
+/* --------------------------- http fallback -------------------------- */
+
 app.get("/", (_req, res) => {
   res.json({
     ok: true,
-    service: "yahoo-finance2-tools",
-    version: "1.0.0",
+    service: "wheel-mcp",
+    version: "2.0.0",
+    mcp: "/mcp",
     tools: Object.keys(tools),
   });
 });
@@ -438,22 +441,10 @@ app.get("/tools", (_req, res) => {
   res.json({
     ok: true,
     tools: [
-      {
-        name: "get_quote",
-        input: { symbol: "string" },
-      },
-      {
-        name: "get_option_expirations",
-        input: { symbol: "string" },
-      },
-      {
-        name: "get_option_chain",
-        input: { symbol: "string", expiration: "YYYY-MM-DD | optional" },
-      },
-      {
-        name: "get_expected_move",
-        input: { symbol: "string", expiration: "YYYY-MM-DD" },
-      },
+      { name: "get_quote", input: { symbol: "string" } },
+      { name: "get_option_expirations", input: { symbol: "string" } },
+      { name: "get_option_chain", input: { symbol: "string", expiration: "YYYY-MM-DD | optional" } },
+      { name: "get_expected_move", input: { symbol: "string", expiration: "YYYY-MM-DD" } },
       {
         name: "get_best_strike",
         input: {
@@ -488,6 +479,174 @@ app.post("/tools/:toolName", async (req, res) => {
     });
   }
 });
+
+/* ------------------------------ MCP ------------------------------ */
+
+const transports = new Map();
+
+function createMcpServer() {
+  const server = new McpServer({
+    name: "wheel-mcp",
+    version: "2.0.0",
+  });
+
+  server.tool(
+    "get_quote",
+    "Get a live stock quote from Yahoo Finance.",
+    {
+      symbol: z.string().min(1),
+    },
+    async ({ symbol }) => {
+      const result = await getQuoteTool({ symbol });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "get_option_expirations",
+    "Get available option expirations and strikes for a ticker.",
+    {
+      symbol: z.string().min(1),
+    },
+    async ({ symbol }) => {
+      const result = await getOptionExpirationsTool({ symbol });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "get_option_chain",
+    "Get the full option chain for a ticker and expiration.",
+    {
+      symbol: z.string().min(1),
+      expiration: z.string().optional(),
+    },
+    async ({ symbol, expiration }) => {
+      const result = await getOptionChainTool({ symbol, expiration });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "get_expected_move",
+    "Get the expected move for a ticker using the ATM straddle mid price.",
+    {
+      symbol: z.string().min(1),
+      expiration: z.string().min(1),
+    },
+    async ({ symbol, expiration }) => {
+      const result = await getExpectedMoveTool({ symbol, expiration });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "get_best_strike",
+    "Find the best strike nearest a target or percent OTM.",
+    {
+      symbol: z.string().min(1),
+      expiration: z.string().min(1),
+      option_type: z.enum(["call", "put"]).default("call"),
+      target_price: z.number().optional(),
+      percent_otm: z.number().optional(),
+    },
+    async ({ symbol, expiration, option_type, target_price, percent_otm }) => {
+      const result = await getBestStrikeTool({
+        symbol,
+        expiration,
+        option_type,
+        target_price,
+        percent_otm,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  return server;
+}
+
+// SSE endpoint for MCP clients to connect
+app.get("/mcp", async (req, res) => {
+  const transport = new SSEServerTransport("/messages", res);
+  const server = createMcpServer();
+
+  transports.set(transport.sessionId, { transport, server });
+
+  res.on("close", async () => {
+    transports.delete(transport.sessionId);
+    try {
+      await server.close();
+    } catch {}
+  });
+
+  await server.connect(transport);
+});
+
+// Message endpoint for the connected SSE session
+app.post("/messages", async (req, res) => {
+  const sessionId = req.query.sessionId;
+  if (!sessionId || typeof sessionId !== "string") {
+    return res.status(400).json({
+      ok: false,
+      error: "Missing sessionId query parameter.",
+    });
+  }
+
+  const record = transports.get(sessionId);
+  if (!record) {
+    return res.status(404).json({
+      ok: false,
+      error: "Session not found.",
+    });
+  }
+
+  try {
+    await record.transport.handlePostMessage(req, res, req.body);
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "Failed to handle MCP message.",
+    });
+  }
+});
+
+/* ---------------------------- errors ---------------------------- */
 
 app.use((error, _req, res, _next) => {
   const status = error?.status || 500;

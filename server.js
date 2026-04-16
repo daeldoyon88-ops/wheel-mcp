@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 const yahooFinance = new YahooFinance();
 const SERVER_STARTED_AT = new Date();
 
@@ -412,12 +412,7 @@ function percentDistance(current, reference) {
 }
 
 function rangePosition(current, low, high) {
-  if (
-    current === null ||
-    low === null ||
-    high === null ||
-    high === low
-  ) {
+  if (current === null || low === null || high === null || high === low) {
     return null;
   }
 
@@ -445,6 +440,35 @@ function classifyTrend({
   if (score >= 4) return "bullish";
   if (score <= 1) return "bearish";
   return "neutral";
+}
+
+function computeHighLow(rows) {
+  const lows = rows.map((r) => r.low).filter((v) => v !== null);
+  const highs = rows.map((r) => r.high).filter((v) => v !== null);
+
+  return {
+    low: lows.length ? Math.min(...lows) : null,
+    high: highs.length ? Math.max(...highs) : null,
+  };
+}
+
+function classifySupportResistancePosition(currentPrice, support, resistance) {
+  if (
+    currentPrice === null ||
+    support === null ||
+    resistance === null ||
+    resistance <= support
+  ) {
+    return "unknown";
+  }
+
+  const band = resistance - support;
+  const supportThreshold = support + band * 0.2;
+  const resistanceThreshold = resistance - band * 0.2;
+
+  if (currentPrice <= supportThreshold) return "near_support";
+  if (currentPrice >= resistanceThreshold) return "near_resistance";
+  return "mid_range";
 }
 
 /* ------------------------------ tools ------------------------------ */
@@ -851,6 +875,79 @@ async function getTechnicalsTool({ symbol, range = "1y", interval = "1d" }) {
   };
 }
 
+async function getSupportResistanceTool({
+  symbol,
+  range = "1y",
+  interval = "1d",
+}) {
+  const timing = createTimingTracker();
+
+  const fetchStarted = Date.now();
+  const parsedSymbol = parseSymbol(symbol);
+  const rows = await fetchHistoricalPrices(parsedSymbol, range, interval);
+  timing.mark("fetchMs", Date.now() - fetchStarted);
+
+  if (!rows.length) {
+    throw badRequest("No historical price data found for this symbol.");
+  }
+
+  const computeStarted = Date.now();
+  const latest = rows[rows.length - 1];
+  const currentPrice = toNumber(latest?.close);
+
+  const window20 = rows.slice(-20);
+  const window50 = rows.slice(-50);
+
+  const sr20 = computeHighLow(window20);
+  const sr50 = computeHighLow(window50);
+
+  const position20 = classifySupportResistancePosition(
+    currentPrice,
+    sr20.low,
+    sr20.high
+  );
+
+  const position50 = classifySupportResistancePosition(
+    currentPrice,
+    sr50.low,
+    sr50.high
+  );
+
+  timing.mark("computeMs", Date.now() - computeStarted);
+
+  const formatStarted = Date.now();
+  const result = {
+    symbol: parsedSymbol,
+    range,
+    interval,
+    bars: rows.length,
+    asOfDate: latest?.date ? latest.date.toISOString() : null,
+    currentPrice: round(currentPrice, 4),
+    supportResistance: {
+      days20: {
+        support: round(sr20.low, 4),
+        resistance: round(sr20.high, 4),
+        distanceToSupportPercent: round(percentDistance(currentPrice, sr20.low), 4),
+        distanceToResistancePercent: round(percentDistance(currentPrice, sr20.high), 4),
+        position: position20,
+      },
+      days50: {
+        support: round(sr50.low, 4),
+        resistance: round(sr50.high, 4),
+        distanceToSupportPercent: round(percentDistance(currentPrice, sr50.low), 4),
+        distanceToResistancePercent: round(percentDistance(currentPrice, sr50.high), 4),
+        position: position50,
+      },
+    },
+  };
+  timing.mark("formatMs", Date.now() - formatStarted);
+
+  return {
+    ...result,
+    timing: timing.finish(),
+  };
+}
+
 const tools = {
   get_quote: getQuoteTool,
   get_option_expirations: getOptionExpirationsTool,
@@ -858,6 +955,7 @@ const tools = {
   get_expected_move: getExpectedMoveTool,
   get_best_strike: getBestStrikeTool,
   get_technicals: getTechnicalsTool,
+  get_support_resistance: getSupportResistanceTool,
 };
 
 /* --------------------------- http fallback -------------------------- */
@@ -917,6 +1015,14 @@ app.get("/tools", (_req, res) => {
       },
       {
         name: "get_technicals",
+        input: {
+          symbol: "string",
+          range: "1mo | 3mo | 6mo | 1y | 2y | 5y | ytd | max | optional",
+          interval: "1d | 1wk | 1mo | optional",
+        },
+      },
+      {
+        name: "get_support_resistance",
         input: {
           symbol: "string",
           range: "1mo | 3mo | 6mo | 1y | 2y | 5y | ytd | max | optional",
@@ -1079,6 +1185,27 @@ function createMcpServer() {
     },
     async ({ symbol, range, interval }) => {
       const result = await getTechnicalsTool({ symbol, range, interval });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "get_support_resistance",
+    "Get simple support and resistance levels from historical prices.",
+    {
+      symbol: z.string().min(1),
+      range: z.string().optional(),
+      interval: z.string().optional(),
+    },
+    async ({ symbol, range, interval }) => {
+      const result = await getSupportResistanceTool({ symbol, range, interval });
       return {
         content: [
           {

@@ -285,6 +285,106 @@ async function getExpectedMove(symbol, expiration) {
   };
 }
 
+async function getTechnicals(symbol) {
+  try {
+    const result = await yahooFinance.chart(symbol, {
+      period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
+      interval: "1d",
+    });
+
+    const quotes = result?.quotes ?? [];
+    const closes = quotes
+      .map((q) => toNumber(q?.close))
+      .filter((v) => v > 0);
+
+    if (closes.length < 50) {
+      return {
+        symbol,
+        rsi: null,
+        trend: "unknown",
+        momentum: "unknown",
+        sma20: null,
+        sma50: null,
+        currentPrice: closes.length ? round(closes[closes.length - 1], 3) : null,
+      };
+    }
+
+    const currentPrice = closes[closes.length - 1];
+
+    function sma(values, period) {
+      if (values.length < period) return null;
+      const slice = values.slice(-period);
+      const sum = slice.reduce((acc, val) => acc + val, 0);
+      return sum / period;
+    }
+
+    function computeRSI(values, period = 14) {
+      if (!Array.isArray(values) || values.length < period + 1) return null;
+
+      let gains = 0;
+      let losses = 0;
+
+      for (let i = 1; i <= period; i += 1) {
+        const change = values[i] - values[i - 1];
+        if (change >= 0) gains += change;
+        else losses += Math.abs(change);
+      }
+
+      let avgGain = gains / period;
+      let avgLoss = losses / period;
+
+      for (let i = period + 1; i < values.length; i += 1) {
+        const change = values[i] - values[i - 1];
+        const gain = change > 0 ? change : 0;
+        const loss = change < 0 ? Math.abs(change) : 0;
+
+        avgGain = ((avgGain * (period - 1)) + gain) / period;
+        avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+      }
+
+      if (avgLoss === 0) return 100;
+      const rs = avgGain / avgLoss;
+      return 100 - (100 / (1 + rs));
+    }
+
+    const sma20 = sma(closes, 20);
+    const sma50 = sma(closes, 50);
+    const rsi = computeRSI(closes, 14);
+
+    let trend = "neutral";
+    if (sma20 != null && sma50 != null) {
+      if (currentPrice > sma20 && sma20 > sma50) trend = "bullish";
+      else if (currentPrice < sma20 && sma20 < sma50) trend = "bearish";
+    }
+
+    let momentum = "neutral";
+    if (rsi != null) {
+      if (rsi >= 60) momentum = "positive";
+      else if (rsi <= 40) momentum = "negative";
+    }
+
+    return {
+      symbol,
+      rsi: round(rsi, 2),
+      trend,
+      momentum,
+      sma20: round(sma20, 3),
+      sma50: round(sma50, 3),
+      currentPrice: round(currentPrice, 3),
+    };
+  } catch (_error) {
+    return {
+      symbol,
+      rsi: null,
+      trend: "unknown",
+      momentum: "unknown",
+      sma20: null,
+      sma50: null,
+      currentPrice: null,
+    };
+  }
+}
+
 async function scanTicker(symbol, expiration) {
   const expirations = await getOptionExpirations(symbol);
   if (!expirations.availableExpirations.includes(expiration)) {
@@ -295,10 +395,11 @@ async function scanTicker(symbol, expiration) {
     };
   }
 
-  const [quote, expectedMove, optionChain] = await Promise.all([
+  const [quote, expectedMove, optionChain, technicals] = await Promise.all([
     getQuote(symbol),
     getExpectedMove(symbol, expiration),
     getOptionChain(symbol, expiration),
+    getTechnicals(symbol),
   ]);
 
   const spot =
@@ -374,6 +475,13 @@ async function scanTicker(symbol, expiration) {
     targetPremium: round(targetPremium, 3),
     safeStrike,
     maxPremiumStrike: aggressiveStrike,
+    technicals: {
+      rsi: technicals?.rsi ?? null,
+      trend: technicals?.trend ?? "unknown",
+      momentum: technicals?.momentum ?? "unknown",
+      sma20: technicals?.sma20 ?? null,
+      sma50: technicals?.sma50 ?? null,
+    },
     passesFilter,
     debug: {
       eligibleCount: strikeSelection.eligible.length,
@@ -397,6 +505,7 @@ app.get("/tools", (_req, res) => {
       "get_option_expirations",
       "get_expected_move",
       "get_option_chain",
+      "get_technicals",
       "scan_shortlist",
     ],
   });
@@ -439,6 +548,16 @@ app.post("/tools/get_expected_move", async (req, res) => {
     res.json({ ok: true, result });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "get_expected_move failed" });
+  }
+});
+
+app.post("/tools/get_technicals", async (req, res) => {
+  try {
+    const { symbol } = req.body;
+    const result = await getTechnicals(symbol);
+    res.json({ ok: true, result });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "get_technicals failed" });
   }
 });
 

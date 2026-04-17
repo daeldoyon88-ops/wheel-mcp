@@ -1,1582 +1,547 @@
 import express from "express";
 import cors from "cors";
 import YahooFinance from "yahoo-finance2";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { z } from "zod";
+
+const yahooFinance = new YahooFinance();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const APP_VERSION = "2.4.0";
-const yahooFinance = new YahooFinance();
-const SERVER_STARTED_AT = new Date();
+const PORT = process.env.PORT || 3001;
 
+app.use(cors());
 app.use(express.json({ limit: "1mb" }));
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "https://wheel-mcp.onrender.com",
-    ],
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
 
-/* --------------------------- request timing --------------------------- */
+const WEEKLY_TARGET_PCT = 0.5;
+const ANNUAL_FACTOR = 52;
+const SAFE_STRIKE_FLOOR_RATIO = 0.85;
+const MAX_SCAN_TICKERS = 200;
 
-app.use((req, res, next) => {
-  const started = Date.now();
-
-  res.on("finish", () => {
-    const durationMs = Date.now() - started;
-    console.log(
-      `[HTTP] ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs}ms`
-    );
-  });
-
-  next();
-});
-
-/* ----------------------------- helpers ----------------------------- */
-
-function badRequest(message, details = null) {
-  const err = new Error(message);
-  err.status = 400;
-  err.details = details;
-  return err;
-}
-
-function parseSymbol(symbol) {
-  if (!symbol || typeof symbol !== "string") {
-    throw badRequest("Parameter 'symbol' is required and must be a string.");
-  }
-  return symbol.trim().toUpperCase();
-}
-
-function parseExpirationInput(expiration) {
-  if (!expiration) return null;
-
-  if (expiration instanceof Date && !Number.isNaN(expiration.getTime())) {
-    return expiration;
-  }
-
-  if (typeof expiration === "number") {
-    const ms = expiration < 1e12 ? expiration * 1000 : expiration;
-    const d = new Date(ms);
-    if (Number.isNaN(d.getTime())) {
-      throw badRequest("Invalid numeric expiration date.");
-    }
-    return d;
-  }
-
-  if (typeof expiration === "string") {
-    const trimmed = expiration.trim();
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      const d = new Date(`${trimmed}T00:00:00.000Z`);
-      if (Number.isNaN(d.getTime())) {
-        throw badRequest("Invalid expiration date string.");
-      }
-      return d;
-    }
-
-    if (/^\d+$/.test(trimmed)) {
-      const n = Number(trimmed);
-      const ms = n < 1e12 ? n * 1000 : n;
-      const d = new Date(ms);
-      if (Number.isNaN(d.getTime())) {
-        throw badRequest("Invalid expiration timestamp string.");
-      }
-      return d;
-    }
-
-    const d = new Date(trimmed);
-    if (!Number.isNaN(d.getTime())) {
-      return d;
-    }
-  }
-
-  throw badRequest(
-    "Invalid 'expiration'. Use YYYY-MM-DD, a unix timestamp, or an ISO date string."
-  );
-}
-
-function toISODate(dateLike) {
-  if (!dateLike) return null;
-  const d = new Date(dateLike);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
-}
+const EARNINGS_SYMBOLS = new Set(["NFLX"]);
 
 function round(value, digits = 4) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return null;
-  }
-  return Number(Number(value).toFixed(digits));
+  if (value == null || Number.isNaN(value)) return null;
+  return Number(value.toFixed(digits));
 }
 
 function toNumber(value) {
-  if (value === null || value === undefined || value === "") return null;
+  if (value == null) return 0;
   const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? n : 0;
 }
 
-function safeMid(bid, ask, lastPrice) {
-  const b = toNumber(bid);
-  const a = toNumber(ask);
-  const l = toNumber(lastPrice);
-
-  if (b !== null && a !== null && b > 0 && a > 0) {
-    return (b + a) / 2;
-  }
-  if (l !== null && l > 0) {
-    return l;
-  }
-  if (b !== null && b > 0) return b;
-  if (a !== null && a > 0) return a;
-  return null;
+function minPremiumForSpot(spot) {
+  if (!spot || spot <= 0) return 0;
+  return spot * 0.005;
 }
 
-function parseOptionContract(contract) {
+function weeklyYieldDecimal(mid, strike, dteDays) {
+  if (!mid || !strike || !dteDays) return 0;
+  return (mid / strike) * (7 / dteDays);
+}
+
+function strikeDistancePct(strike, spot) {
+  if (!strike || !spot || spot <= 0) return 0;
+  return ((strike - spot) / spot) * 100;
+}
+
+function getDteDays(expiration) {
+  const now = new Date();
+  const exp = new Date(`${expiration}T00:00:00`);
+  const diff = exp - now;
+  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+}
+
+function pickReliablePremium(row) {
+  const midField = toNumber(row?.mid);
+  const bid = toNumber(row?.bid);
+  const ask = toNumber(row?.ask);
+  const lastPrice = toNumber(row?.lastPrice);
+
+  const hasBid = bid > 0;
+  const hasAsk = ask > 0;
+  const bidAskMid = hasBid && hasAsk ? (bid + ask) / 2 : 0;
+
+  if (hasBid && hasAsk) {
+    if (midField > 0) {
+      const spread = Math.abs(midField - bidAskMid);
+      const tolerance = Math.max(0.03, bidAskMid * 0.35);
+      if (spread <= tolerance) return midField;
+    }
+    return bidAskMid;
+  }
+
+  if (midField > 0 && !hasBid && !hasAsk) {
+    return midField;
+  }
+
+  if (midField > 0 && hasAsk && !hasBid) {
+    if (midField <= ask * 1.15) return midField;
+  }
+
+  if (midField > 0 && hasBid && !hasAsk) {
+    if (midField >= bid * 0.85) return midField;
+  }
+
+  if (lastPrice > 0) return lastPrice;
+  if (midField > 0) return midField;
+  if (hasBid) return bid;
+  if (hasAsk) return ask;
+
+  return 0;
+}
+
+function normalizePutForSelection(put, spot, targetPremium) {
+  const strike = toNumber(put?.strike);
+  const premium = pickReliablePremium(put);
+
   return {
-    contractSymbol: contract?.contractSymbol ?? null,
-    strike: toNumber(contract?.strike),
-    lastPrice: toNumber(contract?.lastPrice),
-    bid: toNumber(contract?.bid),
-    ask: toNumber(contract?.ask),
-    mid: round(safeMid(contract?.bid, contract?.ask, contract?.lastPrice), 4),
-    change: toNumber(contract?.change),
-    percentChange: toNumber(contract?.percentChange),
-    volume: toNumber(contract?.volume),
-    openInterest: toNumber(contract?.openInterest),
-    impliedVolatility: toNumber(contract?.impliedVolatility),
-    inTheMoney: Boolean(contract?.inTheMoney),
-    contractSize: contract?.contractSize ?? null,
-    currency: contract?.currency ?? null,
-    lastTradeDate: contract?.lastTradeDate
-      ? new Date(contract.lastTradeDate).toISOString()
-      : null,
-    expiration: contract?.expiration
-      ? new Date(contract.expiration).toISOString()
-      : null,
+    strike,
+    bid: toNumber(put?.bid),
+    ask: toNumber(put?.ask),
+    lastPrice: toNumber(put?.lastPrice),
+    mid: premium,
+    volume: toNumber(put?.volume),
+    openInterest: toNumber(put?.openInterest),
+    impliedVolatility: toNumber(put?.impliedVolatility),
+    targetPremium,
+    qualifiesTarget: premium >= targetPremium,
+    distanceToTarget: Math.abs(premium - targetPremium),
+    distancePct: strikeDistancePct(strike, spot),
   };
 }
 
-function getCurrentPrice(quote) {
-  return (
-    toNumber(quote?.regularMarketPrice) ??
-    toNumber(quote?.postMarketPrice) ??
-    toNumber(quote?.preMarketPrice) ??
-    toNumber(quote?.bid) ??
-    toNumber(quote?.ask)
-  );
-}
+function selectPutStrikes({ puts, spot, lowerBoundForSelection }) {
+  const targetPremium = minPremiumForSpot(spot);
 
-function daysToExpiration(expirationDate) {
-  if (!expirationDate) return null;
-  const now = new Date();
-  const exp = new Date(expirationDate);
-  const ms = exp.getTime() - now.getTime();
-  return Math.max(ms / (1000 * 60 * 60 * 24), 0);
-}
+  const eligible = (puts || [])
+    .map((put) => normalizePutForSelection(put, spot, targetPremium))
+    .filter((put) => put.strike > 0)
+    .filter((put) => put.strike < lowerBoundForSelection)
+    .filter((put) => put.mid > 0)
+    .sort((a, b) => a.strike - b.strike);
 
-function pickClosestStrike(contracts, referenceStrike, optionType) {
-  const sorted = [...contracts]
-    .filter((c) => typeof c.strike === "number")
+  const aggressiveStrike =
+    eligible.length > 0
+      ? [...eligible].sort((a, b) => b.strike - a.strike)[0]
+      : null;
+
+  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
+
+  const safeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
+
+  const safeCandidates = safeZone
+    .filter((put) => put.mid >= targetPremium)
     .sort((a, b) => {
-      const da = Math.abs(a.strike - referenceStrike);
-      const db = Math.abs(b.strike - referenceStrike);
-
-      if (da !== db) return da - db;
-
-      if (optionType === "call") {
-        const aPref = a.strike >= referenceStrike ? 0 : 1;
-        const bPref = b.strike >= referenceStrike ? 0 : 1;
-        if (aPref !== bPref) return aPref - bPref;
-      } else {
-        const aPref = a.strike <= referenceStrike ? 0 : 1;
-        const bPref = b.strike <= referenceStrike ? 0 : 1;
-        if (aPref !== bPref) return aPref - bPref;
-      }
-
-      return a.strike - b.strike;
+      const diff = a.distanceToTarget - b.distanceToTarget;
+      if (diff !== 0) return diff;
+      return b.strike - a.strike;
     });
 
-  return sorted[0] || null;
-}
-
-function createTimingTracker() {
-  const startedAt = Date.now();
-  const marks = {};
+  const safeStrike = safeCandidates.length > 0 ? safeCandidates[0] : null;
 
   return {
-    mark(name, ms) {
-      marks[name] = round(ms, 2);
-    },
-    finish() {
-      return {
-        ...marks,
-        totalMs: round(Date.now() - startedAt, 2),
-      };
-    },
+    targetPremium,
+    eligible,
+    safeZone,
+    safeCandidates,
+    safeStrike,
+    aggressiveStrike,
+    safeStrikeFloor,
   };
 }
 
-function percentDistance(current, reference) {
-  if (current === null || reference === null || reference === 0) return null;
-  return ((current - reference) / reference) * 100;
-}
-
-async function fetchOptions(symbol, expiration = null) {
-  const parsedSymbol = parseSymbol(symbol);
-  const date = parseExpirationInput(expiration);
-
-  if (date) {
-    return yahooFinance.options(parsedSymbol, { date });
-  }
-
-  return yahooFinance.options(parsedSymbol);
-}
-
-/* ------------------------- technical helpers ------------------------- */
-
-function normalizeHistoricalRow(row) {
-  const close =
-    toNumber(row?.close) ??
-    toNumber(row?.adjClose) ??
-    toNumber(row?.adjclose) ??
-    null;
-
-  const high = toNumber(row?.high);
-  const low = toNumber(row?.low);
-  const open = toNumber(row?.open);
-  const volume = toNumber(row?.volume);
-
-  const date = row?.date ? new Date(row.date) : null;
-  if (!date || Number.isNaN(date.getTime()) || close === null) {
-    return null;
-  }
-
+async function getQuote(symbol) {
+  const quote = await yahooFinance.quote(symbol);
   return {
-    date,
-    open,
-    high,
-    low,
-    close,
-    volume,
+    symbol,
+    regularMarketPrice:
+      quote?.regularMarketPrice ??
+      quote?.postMarketPrice ??
+      quote?.preMarketPrice ??
+      quote?.regularMarketPreviousClose ??
+      null,
+    shortName: quote?.shortName ?? symbol,
+    currency: quote?.currency ?? "USD",
   };
 }
 
-function getHistoricalStartDate(range) {
-  const now = new Date();
-  const start = new Date(now);
-
-  switch (String(range || "1y").toLowerCase()) {
-    case "1mo":
-      start.setMonth(start.getMonth() - 1);
-      break;
-    case "3mo":
-      start.setMonth(start.getMonth() - 3);
-      break;
-    case "6mo":
-      start.setMonth(start.getMonth() - 6);
-      break;
-    case "1y":
-      start.setFullYear(start.getFullYear() - 1);
-      break;
-    case "2y":
-      start.setFullYear(start.getFullYear() - 2);
-      break;
-    case "5y":
-      start.setFullYear(start.getFullYear() - 5);
-      break;
-    case "ytd":
-      return new Date(now.getFullYear(), 0, 1);
-    case "max":
-      start.setFullYear(start.getFullYear() - 20);
-      break;
-    default:
-      start.setFullYear(start.getFullYear() - 1);
-      break;
-  }
-
-  return start;
-}
-
-async function fetchHistoricalPrices(symbol, range = "1y", interval = "1d") {
-  const parsedSymbol = parseSymbol(symbol);
-
-  const normalizedInterval = String(interval || "1d").toLowerCase();
-  if (!["1d", "1wk", "1mo"].includes(normalizedInterval)) {
-    throw badRequest("Invalid interval. Use 1d, 1wk, or 1mo.");
-  }
-
-  const period1 = getHistoricalStartDate(range);
-  const period2 = new Date();
-
-  const rows = await yahooFinance.historical(parsedSymbol, {
-    period1,
-    period2,
-    interval: normalizedInterval,
-  });
-
-  return (Array.isArray(rows) ? rows : [])
-    .map(normalizeHistoricalRow)
-    .filter(Boolean);
-}
-
-function getCloses(rows) {
-  return rows.map((r) => r.close).filter((v) => typeof v === "number");
-}
-
-function sma(values, period) {
-  if (!Array.isArray(values) || values.length < period) return null;
-  const slice = values.slice(-period);
-  const sum = slice.reduce((acc, value) => acc + value, 0);
-  return sum / period;
-}
-
-function emaSeries(values, period) {
-  if (!Array.isArray(values) || values.length < period) return [];
-  const multiplier = 2 / (period + 1);
-  const seed =
-    values.slice(0, period).reduce((acc, value) => acc + value, 0) / period;
-
-  const result = [seed];
-  for (let i = period; i < values.length; i += 1) {
-    const prev = result[result.length - 1];
-    result.push((values[i] - prev) * multiplier + prev);
-  }
-  return result;
-}
-
-function ema(values, period) {
-  const series = emaSeries(values, period);
-  return series.length ? series[series.length - 1] : null;
-}
-
-function rsi(values, period = 14) {
-  if (!Array.isArray(values) || values.length < period + 1) return null;
-
-  let gains = 0;
-  let losses = 0;
-
-  for (let i = 1; i <= period; i += 1) {
-    const change = values[i] - values[i - 1];
-    if (change >= 0) gains += change;
-    else losses += Math.abs(change);
-  }
-
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
-
-  for (let i = period + 1; i < values.length; i += 1) {
-    const change = values[i] - values[i - 1];
-    const gain = change > 0 ? change : 0;
-    const loss = change < 0 ? Math.abs(change) : 0;
-
-    avgGain = (avgGain * (period - 1) + gain) / period;
-    avgLoss = (avgLoss * (period - 1) + loss) / period;
-  }
-
-  if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - 100 / (1 + rs);
-}
-
-function atr(rows, period = 14) {
-  if (!Array.isArray(rows) || rows.length < period + 1) return null;
-
-  const trueRanges = [];
-  for (let i = 1; i < rows.length; i += 1) {
-    const current = rows[i];
-    const previous = rows[i - 1];
-
-    if (
-      current.high === null ||
-      current.low === null ||
-      previous.close === null
-    ) {
-      continue;
-    }
-
-    const tr = Math.max(
-      current.high - current.low,
-      Math.abs(current.high - previous.close),
-      Math.abs(current.low - previous.close)
-    );
-
-    trueRanges.push(tr);
-  }
-
-  if (trueRanges.length < period) return null;
-
-  let atrValue =
-    trueRanges.slice(0, period).reduce((acc, value) => acc + value, 0) / period;
-
-  for (let i = period; i < trueRanges.length; i += 1) {
-    atrValue = ((atrValue * (period - 1)) + trueRanges[i]) / period;
-  }
-
-  return atrValue;
-}
-
-function rangePosition(current, low, high) {
-  if (current === null || low === null || high === null || high === low) {
-    return null;
-  }
-
-  return ((current - low) / (high - low)) * 100;
-}
-
-function classifyTrend({
-  currentPrice,
-  sma20,
-  sma50,
-  sma200,
-  ema8,
-  ema21,
-  rsi14,
-}) {
-  let score = 0;
-
-  if (currentPrice !== null && sma20 !== null && currentPrice > sma20) score += 1;
-  if (currentPrice !== null && sma50 !== null && currentPrice > sma50) score += 1;
-  if (currentPrice !== null && sma200 !== null && currentPrice > sma200) score += 1;
-  if (ema8 !== null && ema21 !== null && ema8 > ema21) score += 1;
-  if (rsi14 !== null && rsi14 >= 55) score += 1;
-  if (rsi14 !== null && rsi14 <= 45) score -= 1;
-
-  if (score >= 4) return "bullish";
-  if (score <= 1) return "bearish";
-  return "neutral";
-}
-
-function computeHighLow(rows) {
-  const lows = rows.map((r) => r.low).filter((v) => v !== null);
-  const highs = rows.map((r) => r.high).filter((v) => v !== null);
-
-  return {
-    low: lows.length ? Math.min(...lows) : null,
-    high: highs.length ? Math.max(...highs) : null,
-  };
-}
-
-function classifySupportResistancePosition(currentPrice, support, resistance) {
-  if (
-    currentPrice === null ||
-    support === null ||
-    resistance === null ||
-    resistance <= support
-  ) {
-    return "unknown";
-  }
-
-  const band = resistance - support;
-  const supportThreshold = support + band * 0.2;
-  const resistanceThreshold = resistance - band * 0.2;
-
-  if (currentPrice <= supportThreshold) return "near_support";
-  if (currentPrice >= resistanceThreshold) return "near_resistance";
-  return "mid_range";
-}
-
-function analyzeSetupLabel({
-  optionType,
-  strike,
-  currentPrice,
-  lowerExpected,
-  upperExpected,
-}) {
-  if (
-    strike === null ||
-    currentPrice === null ||
-    lowerExpected === null ||
-    upperExpected === null
-  ) {
-    return "unknown";
-  }
-
-  if (optionType === "put") {
-    if (strike < lowerExpected) return "conservative";
-    if (strike <= currentPrice) return "balanced";
-    return "aggressive";
-  }
-
-  if (optionType === "call") {
-    if (strike > upperExpected) return "conservative";
-    if (strike >= currentPrice) return "balanced";
-    return "aggressive";
-  }
-
-  return "unknown";
-}
-
-function buildTradeSetupCommentary({
-  optionType,
-  strike,
-  currentPrice,
-  lowerExpected,
-  upperExpected,
-  technicalTrend,
-  support20,
-  resistance20,
-  srPosition20,
-}) {
-  const notes = [];
-
-  if (currentPrice !== null && strike !== null) {
-    if (optionType === "put") {
-      if (strike < currentPrice) {
-        notes.push("Le strike put est sous le prix spot.");
-      } else if (strike > currentPrice) {
-        notes.push("Le strike put est au-dessus du prix spot, donc setup plus agressif.");
-      } else {
-        notes.push("Le strike put est très proche du prix spot.");
-      }
-
-      if (lowerExpected !== null) {
-        if (strike < lowerExpected) {
-          notes.push("Le strike put est sous la borne basse du move attendu.");
-        } else {
-          notes.push("Le strike put reste dans la zone du move attendu.");
-        }
-      }
-    } else if (optionType === "call") {
-      if (strike > currentPrice) {
-        notes.push("Le strike call est au-dessus du prix spot.");
-      } else if (strike < currentPrice) {
-        notes.push("Le strike call est sous le prix spot, donc setup plus agressif.");
-      } else {
-        notes.push("Le strike call est très proche du prix spot.");
-      }
-
-      if (upperExpected !== null) {
-        if (strike > upperExpected) {
-          notes.push("Le strike call est au-dessus de la borne haute du move attendu.");
-        } else {
-          notes.push("Le strike call reste dans la zone du move attendu.");
-        }
-      }
-    }
-  }
-
-  if (technicalTrend) {
-    notes.push(`Contexte technique actuel: ${technicalTrend}.`);
-  }
-
-  if (srPosition20 && srPosition20 !== "unknown") {
-    notes.push(`Position 20 jours: ${srPosition20}.`);
-  }
-
-  if (support20 !== null && resistance20 !== null) {
-    notes.push(
-      `Zone 20 jours observée entre ${round(support20, 2)} et ${round(resistance20, 2)}.`
-    );
-  }
-
-  return notes;
-}
-
-/* ------------------------------ tools ------------------------------ */
-
-async function getQuoteTool({ symbol }) {
-  const timing = createTimingTracker();
-
-  const fetchStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const quote = await yahooFinance.quote(parsedSymbol);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: quote.symbol ?? parsedSymbol,
-    shortName: quote.shortName ?? null,
-    longName: quote.longName ?? null,
-    currency: quote.currency ?? null,
-    exchange: quote.fullExchangeName ?? quote.exchange ?? null,
-    marketState: quote.marketState ?? null,
-    regularMarketPrice: toNumber(quote.regularMarketPrice),
-    regularMarketChange: toNumber(quote.regularMarketChange),
-    regularMarketChangePercent: toNumber(quote.regularMarketChangePercent),
-    regularMarketOpen: toNumber(quote.regularMarketOpen),
-    regularMarketDayHigh: toNumber(quote.regularMarketDayHigh),
-    regularMarketDayLow: toNumber(quote.regularMarketDayLow),
-    regularMarketPreviousClose: toNumber(quote.regularMarketPreviousClose),
-    regularMarketVolume: toNumber(quote.regularMarketVolume),
-    marketCap: toNumber(quote.marketCap),
-    bid: toNumber(quote.bid),
-    ask: toNumber(quote.ask),
-    fiftyTwoWeekHigh: toNumber(quote.fiftyTwoWeekHigh),
-    fiftyTwoWeekLow: toNumber(quote.fiftyTwoWeekLow),
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
-  };
-}
-
-async function getOptionExpirationsTool({ symbol }) {
-  const timing = createTimingTracker();
-
-  const fetchStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const optionsData = await fetchOptions(parsedSymbol);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: optionsData.underlyingSymbol ?? parsedSymbol,
-    currentPrice: getCurrentPrice(optionsData.quote),
-    expirationDates: Array.isArray(optionsData.expirationDates)
-      ? optionsData.expirationDates.map(toISODate).filter(Boolean)
-      : [],
-    strikes: Array.isArray(optionsData.strikes)
-      ? optionsData.strikes.map((s) => toNumber(s)).filter((s) => s !== null)
-      : [],
-    hasMiniOptions: Boolean(optionsData.hasMiniOptions),
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
-  };
-}
-
-async function getOptionChainTool({ symbol, expiration = null }) {
-  const timing = createTimingTracker();
-
-  const fetchStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const optionsData = await fetchOptions(parsedSymbol, expiration);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  const parseStarted = Date.now();
-  const selected = Array.isArray(optionsData.options) ? optionsData.options[0] : null;
-
-  if (!selected) {
-    throw badRequest("No option chain found for this symbol / expiration.");
-  }
-
-  const calls = Array.isArray(selected.calls)
-    ? selected.calls.map(parseOptionContract).sort((a, b) => a.strike - b.strike)
+async function getOptionExpirations(symbol) {
+  const chain = await yahooFinance.options(symbol);
+  const dates = Array.isArray(chain?.expirationDates)
+    ? chain.expirationDates.map((d) => {
+        const dt = new Date(d);
+        return dt.toISOString().slice(0, 10);
+      })
     : [];
 
-  const puts = Array.isArray(selected.puts)
-    ? selected.puts.map(parseOptionContract).sort((a, b) => a.strike - b.strike)
+  return {
+    symbol,
+    availableExpirations: dates,
+  };
+}
+
+async function getOptionChain(symbol, expiration) {
+  const chain = await yahooFinance.options(symbol, { date: expiration });
+  const options = chain?.options?.[0] ?? {};
+
+  const calls = Array.isArray(options.calls)
+    ? options.calls.map((row) => ({
+        contractSymbol: row.contractSymbol,
+        strike: row.strike,
+        lastPrice: row.lastPrice,
+        bid: row.bid,
+        ask: row.ask,
+        mid:
+          row.bid != null && row.ask != null
+            ? (Number(row.bid) + Number(row.ask)) / 2
+            : row.lastPrice ?? null,
+        volume: row.volume,
+        openInterest: row.openInterest,
+        impliedVolatility: row.impliedVolatility,
+        inTheMoney: row.inTheMoney,
+        expiration,
+      }))
     : [];
 
-  timing.mark("parseMs", Date.now() - parseStarted);
+  const puts = Array.isArray(options.puts)
+    ? options.puts.map((row) => ({
+        contractSymbol: row.contractSymbol,
+        strike: row.strike,
+        lastPrice: row.lastPrice,
+        bid: row.bid,
+        ask: row.ask,
+        mid:
+          row.bid != null && row.ask != null
+            ? (Number(row.bid) + Number(row.ask)) / 2
+            : row.lastPrice ?? null,
+        volume: row.volume,
+        openInterest: row.openInterest,
+        impliedVolatility: row.impliedVolatility,
+        inTheMoney: row.inTheMoney,
+        expiration,
+      }))
+    : [];
 
-  const formatStarted = Date.now();
-  const result = {
-    symbol: optionsData.underlyingSymbol ?? parsedSymbol,
-    currentPrice: getCurrentPrice(optionsData.quote),
-    expiration: toISODate(selected.expirationDate),
-    availableExpirations: Array.isArray(optionsData.expirationDates)
-      ? optionsData.expirationDates.map(toISODate).filter(Boolean)
-      : [],
-    strikes: Array.isArray(optionsData.strikes)
-      ? optionsData.strikes.map((s) => toNumber(s)).filter((s) => s !== null)
-      : [],
+  return {
+    symbol,
+    currentPrice:
+      chain?.quote?.regularMarketPrice ??
+      chain?.quote?.postMarketPrice ??
+      chain?.quote?.preMarketPrice ??
+      null,
+    expiration,
     calls,
     puts,
   };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
-  };
 }
 
-async function getExpectedMoveTool({ symbol, expiration }) {
-  const timing = createTimingTracker();
+async function getExpectedMove(symbol, expiration) {
+  const chain = await getOptionChain(symbol, expiration);
+  const price = toNumber(chain?.currentPrice);
 
-  const validateStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const parsedExpiration = parseExpirationInput(expiration);
-
-  if (!parsedExpiration) {
-    throw badRequest("Parameter 'expiration' is required for get_expected_move.");
-  }
-  timing.mark("validateMs", Date.now() - validateStarted);
-
-  const fetchStarted = Date.now();
-  const optionsData = await fetchOptions(parsedSymbol, parsedExpiration);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  const computeStarted = Date.now();
-  const selected = Array.isArray(optionsData.options) ? optionsData.options[0] : null;
-
-  if (!selected) {
-    throw badRequest("No option chain found for this symbol / expiration.");
+  if (!price || !Array.isArray(chain.calls) || !Array.isArray(chain.puts)) {
+    return {
+      symbol,
+      expiration,
+      expectedMove: null,
+      expectedMovePercent: null,
+      oneSigmaRange: null,
+    };
   }
 
-  const currentPrice = getCurrentPrice(optionsData.quote);
-  if (currentPrice === null) {
-    throw badRequest("Unable to determine current underlying price.");
+  const allStrikes = [...new Set([...chain.calls, ...chain.puts].map((x) => toNumber(x.strike)).filter(Boolean))];
+  if (!allStrikes.length) {
+    return {
+      symbol,
+      expiration,
+      expectedMove: null,
+      expectedMovePercent: null,
+      oneSigmaRange: null,
+    };
   }
 
-  const calls = Array.isArray(selected.calls) ? selected.calls : [];
-  const puts = Array.isArray(selected.puts) ? selected.puts : [];
+  const atmStrike = allStrikes.reduce((best, strike) => {
+    if (best == null) return strike;
+    return Math.abs(strike - price) < Math.abs(best - price) ? strike : best;
+  }, null);
 
-  const atmCall = pickClosestStrike(calls, currentPrice, "call");
-  const atmPut = pickClosestStrike(puts, currentPrice, "put");
+  const call = chain.calls.find((c) => toNumber(c.strike) === atmStrike);
+  const put = chain.puts.find((p) => toNumber(p.strike) === atmStrike);
 
-  const callMid = atmCall ? safeMid(atmCall.bid, atmCall.ask, atmCall.lastPrice) : null;
-  const putMid = atmPut ? safeMid(atmPut.bid, atmPut.ask, atmPut.lastPrice) : null;
+  const callMid = pickReliablePremium(call);
+  const putMid = pickReliablePremium(put);
+  const expectedMove = callMid + putMid;
+  const expectedMovePercent = price > 0 ? (expectedMove / price) * 100 : null;
 
-  let expectedMove = null;
-  let method = null;
-
-  if (callMid !== null && putMid !== null) {
-    expectedMove = callMid + putMid;
-    method = "atm_straddle_mid";
-  } else {
-    const ivs = [];
-    if (atmCall?.impliedVolatility != null) ivs.push(Number(atmCall.impliedVolatility));
-    if (atmPut?.impliedVolatility != null) ivs.push(Number(atmPut.impliedVolatility));
-
-    const avgIv =
-      ivs.length > 0 ? ivs.reduce((sum, v) => sum + v, 0) / ivs.length : null;
-
-    const dte = daysToExpiration(parsedExpiration);
-
-    if (avgIv !== null && dte !== null) {
-      expectedMove = currentPrice * avgIv * Math.sqrt(dte / 365);
-      method = "iv_fallback";
-    }
-  }
-
-  if (expectedMove === null) {
-    throw badRequest("Unable to compute expected move from available option data.");
-  }
-
-  const lowerBound = currentPrice - expectedMove;
-  const upperBound = currentPrice + expectedMove;
-  timing.mark("computeMs", Date.now() - computeStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: optionsData.underlyingSymbol ?? parsedSymbol,
-    expiration: toISODate(parsedExpiration),
-    currentPrice: round(currentPrice, 4),
+  return {
+    symbol,
+    expiration,
+    currentPrice: price,
+    atmStrike,
     expectedMove: round(expectedMove, 4),
-    expectedMovePercent: round((expectedMove / currentPrice) * 100, 4),
+    expectedMovePercent: round(expectedMovePercent, 4),
     oneSigmaRange: {
-      lower: round(lowerBound, 4),
-      upper: round(upperBound, 4),
+      lower: round(price - expectedMove, 4),
+      upper: round(price + expectedMove, 4),
     },
-    method,
-    atm: {
-      call: atmCall ? parseOptionContract(atmCall) : null,
-      put: atmPut ? parseOptionContract(atmPut) : null,
-    },
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
   };
 }
 
-async function getBestStrikeTool({
-  symbol,
-  expiration,
-  option_type = "call",
-  target_price = null,
-  percent_otm = 0,
-}) {
-  const timing = createTimingTracker();
-
-  const validateStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const parsedExpiration = parseExpirationInput(expiration);
-
-  if (!parsedExpiration) {
-    throw badRequest("Parameter 'expiration' is required for get_best_strike.");
+async function scanTicker(symbol, expiration) {
+  const expirations = await getOptionExpirations(symbol);
+  if (!expirations.availableExpirations.includes(expiration)) {
+    return {
+      symbol,
+      ok: false,
+      reason: "expiration_not_available",
+    };
   }
 
-  const normalizedType = String(option_type || "").trim().toLowerCase();
+  const [quote, expectedMove, optionChain] = await Promise.all([
+    getQuote(symbol),
+    getExpectedMove(symbol, expiration),
+    getOptionChain(symbol, expiration),
+  ]);
 
-  if (!["call", "put"].includes(normalizedType)) {
-    throw badRequest("Parameter 'option_type' must be 'call' or 'put'.");
+  const spot =
+    toNumber(quote?.regularMarketPrice) ||
+    toNumber(optionChain?.currentPrice) ||
+    toNumber(expectedMove?.currentPrice);
+
+  if (!spot) {
+    return {
+      symbol,
+      ok: false,
+      reason: "no_spot_price",
+    };
   }
 
-  const otm = toNumber(percent_otm) ?? 0;
-  const manualTarget = toNumber(target_price);
-  timing.mark("validateMs", Date.now() - validateStarted);
+  const expectedMoveAbs = toNumber(expectedMove?.expectedMove);
+  const hasEarnings = EARNINGS_SYMBOLS.has(symbol);
+  const adjustedMove = hasEarnings ? expectedMoveAbs * 2 : expectedMoveAbs;
+  const lowerBound = spot - adjustedMove;
 
-  const fetchStarted = Date.now();
-  const optionsData = await fetchOptions(parsedSymbol, parsedExpiration);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  const computeStarted = Date.now();
-  const selected = Array.isArray(optionsData.options) ? optionsData.options[0] : null;
-
-  if (!selected) {
-    throw badRequest("No option chain found for this symbol / expiration.");
+  if (!lowerBound || lowerBound <= 0) {
+    return {
+      symbol,
+      ok: false,
+      reason: "invalid_lower_bound",
+    };
   }
 
-  const currentPrice = getCurrentPrice(optionsData.quote);
-  if (currentPrice === null) {
-    throw badRequest("Unable to determine current underlying price.");
+  const puts = Array.isArray(optionChain?.puts) ? optionChain.puts : [];
+  const strikeSelection = selectPutStrikes({
+    puts,
+    spot,
+    lowerBoundForSelection: lowerBound,
+  });
+
+  const dteDays = getDteDays(expiration);
+
+  function buildStrike(row) {
+    if (!row) return null;
+    const premium = toNumber(row.mid);
+    const weeklyYield = weeklyYieldDecimal(premium, row.strike, dteDays);
+    return {
+      strike: row.strike,
+      premium: round(premium, 3),
+      weeklyYield: round(weeklyYield, 4),
+      annualizedYield: round(weeklyYield * 52, 4),
+      distancePct: round(Math.abs(row.distancePct) / 100, 4),
+      volume: row.volume,
+      openInterest: row.openInterest,
+    };
   }
 
-  const contracts =
-    normalizedType === "call"
-      ? (Array.isArray(selected.calls) ? selected.calls : [])
-      : (Array.isArray(selected.puts) ? selected.puts : []);
+  const safeStrike = buildStrike(strikeSelection.safeStrike);
+  const aggressiveStrike = buildStrike(strikeSelection.aggressiveStrike);
+  const targetPremium = strikeSelection.targetPremium;
 
-  if (contracts.length === 0) {
-    throw badRequest(`No ${normalizedType} contracts found for this expiration.`);
-  }
-
-  let referenceStrike = manualTarget;
-
-  if (referenceStrike === null) {
-    if (normalizedType === "call") {
-      referenceStrike = currentPrice * (1 + otm / 100);
-    } else {
-      referenceStrike = currentPrice * (1 - otm / 100);
-    }
-  }
-
-  const best = pickClosestStrike(contracts, referenceStrike, normalizedType);
-  if (!best) {
-    throw badRequest("Unable to find a matching strike.");
-  }
-  timing.mark("computeMs", Date.now() - computeStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: optionsData.underlyingSymbol ?? parsedSymbol,
-    expiration: toISODate(parsedExpiration),
-    optionType: normalizedType,
-    currentPrice: round(currentPrice, 4),
-    referenceStrike: round(referenceStrike, 4),
-    percentOTMUsed: round(otm, 4),
-    bestStrike: parseOptionContract(best),
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
+  const passesFilter =
+    !!safeStrike &&
+    safeStrike.premium >= targetPremium &&
+    safeStrike.annualizedYield >= 0.26;
 
   return {
-    ...result,
-    timing: timing.finish(),
-  };
-}
-
-async function getTechnicalsTool({ symbol, range = "1y", interval = "1d" }) {
-  const timing = createTimingTracker();
-
-  const fetchStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const rows = await fetchHistoricalPrices(parsedSymbol, range, interval);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  if (!rows.length) {
-    throw badRequest("No historical price data found for this symbol.");
-  }
-
-  const computeStarted = Date.now();
-  const closes = getCloses(rows);
-  const latest = rows[rows.length - 1];
-  const previous = rows.length > 1 ? rows[rows.length - 2] : null;
-
-  const currentPrice = toNumber(latest?.close);
-  const previousClose = toNumber(previous?.close);
-
-  const sma20 = sma(closes, 20);
-  const sma50 = sma(closes, 50);
-  const sma200 = sma(closes, 200);
-  const ema8 = ema(closes, 8);
-  const ema21 = ema(closes, 21);
-  const rsi14 = rsi(closes, 14);
-  const atr14 = atr(rows, 14);
-
-  const recent20 = rows.slice(-20);
-  const low20 = recent20.length
-    ? Math.min(...recent20.map((r) => r.low).filter((v) => v !== null))
-    : null;
-  const high20 = recent20.length
-    ? Math.max(...recent20.map((r) => r.high).filter((v) => v !== null))
-    : null;
-
-  const lows52w = rows.map((r) => r.low).filter((v) => v !== null);
-  const highs52w = rows.map((r) => r.high).filter((v) => v !== null);
-  const low52w = lows52w.length ? Math.min(...lows52w) : null;
-  const high52w = highs52w.length ? Math.max(...highs52w) : null;
-
-  const absoluteChange =
-    currentPrice !== null && previousClose !== null
-      ? currentPrice - previousClose
-      : null;
-
-  const percentChange =
-    absoluteChange !== null && previousClose
-      ? (absoluteChange / previousClose) * 100
-      : null;
-
-  const trend = classifyTrend({
-    currentPrice,
-    sma20,
-    sma50,
-    sma200,
-    ema8,
-    ema21,
-    rsi14,
-  });
-  timing.mark("computeMs", Date.now() - computeStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: parsedSymbol,
-    range,
-    interval,
-    bars: rows.length,
-    asOfDate: latest?.date ? latest.date.toISOString() : null,
-    currentPrice: round(currentPrice, 4),
-    previousClose: round(previousClose, 4),
-    change: round(absoluteChange, 4),
-    changePercent: round(percentChange, 4),
-    indicators: {
-      sma20: round(sma20, 4),
-      sma50: round(sma50, 4),
-      sma200: round(sma200, 4),
-      ema8: round(ema8, 4),
-      ema21: round(ema21, 4),
-      rsi14: round(rsi14, 4),
-      atr14: round(atr14, 4),
-    },
-    distancePercent: {
-      vsSma20: round(percentDistance(currentPrice, sma20), 4),
-      vsSma50: round(percentDistance(currentPrice, sma50), 4),
-      vsSma200: round(percentDistance(currentPrice, sma200), 4),
-      vsEma8: round(percentDistance(currentPrice, ema8), 4),
-      vsEma21: round(percentDistance(currentPrice, ema21), 4),
-    },
-    ranges: {
-      last20Days: {
-        low: round(low20, 4),
-        high: round(high20, 4),
-        positionPercent: round(rangePosition(currentPrice, low20, high20), 4),
-      },
-      last52Weeks: {
-        low: round(low52w, 4),
-        high: round(high52w, 4),
-        positionPercent: round(rangePosition(currentPrice, low52w, high52w), 4),
-      },
-    },
-    trend,
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
-  };
-}
-
-async function getSupportResistanceTool({
-  symbol,
-  range = "1y",
-  interval = "1d",
-}) {
-  const timing = createTimingTracker();
-
-  const fetchStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const rows = await fetchHistoricalPrices(parsedSymbol, range, interval);
-  timing.mark("fetchMs", Date.now() - fetchStarted);
-
-  if (!rows.length) {
-    throw badRequest("No historical price data found for this symbol.");
-  }
-
-  const computeStarted = Date.now();
-  const latest = rows[rows.length - 1];
-  const currentPrice = toNumber(latest?.close);
-
-  const window20 = rows.slice(-20);
-  const window50 = rows.slice(-50);
-
-  const sr20 = computeHighLow(window20);
-  const sr50 = computeHighLow(window50);
-
-  const position20 = classifySupportResistancePosition(
-    currentPrice,
-    sr20.low,
-    sr20.high
-  );
-
-  const position50 = classifySupportResistancePosition(
-    currentPrice,
-    sr50.low,
-    sr50.high
-  );
-
-  timing.mark("computeMs", Date.now() - computeStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: parsedSymbol,
-    range,
-    interval,
-    bars: rows.length,
-    asOfDate: latest?.date ? latest.date.toISOString() : null,
-    currentPrice: round(currentPrice, 4),
-    supportResistance: {
-      days20: {
-        support: round(sr20.low, 4),
-        resistance: round(sr20.high, 4),
-        distanceToSupportPercent: round(percentDistance(currentPrice, sr20.low), 4),
-        distanceToResistancePercent: round(percentDistance(currentPrice, sr20.high), 4),
-        position: position20,
-      },
-      days50: {
-        support: round(sr50.low, 4),
-        resistance: round(sr50.high, 4),
-        distanceToSupportPercent: round(percentDistance(currentPrice, sr50.low), 4),
-        distanceToResistancePercent: round(percentDistance(currentPrice, sr50.high), 4),
-        position: position50,
-      },
-    },
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
-  };
-}
-
-async function analyzeTradeSetupTool({
-  symbol,
-  expiration,
-  option_type = "put",
-  strike,
-}) {
-  const timing = createTimingTracker();
-
-  const validateStarted = Date.now();
-  const parsedSymbol = parseSymbol(symbol);
-  const parsedExpiration = parseExpirationInput(expiration);
-  const normalizedType = String(option_type || "").trim().toLowerCase();
-  const parsedStrike = toNumber(strike);
-
-  if (!parsedExpiration) {
-    throw badRequest("Parameter 'expiration' is required for analyze_trade_setup.");
-  }
-
-  if (!["call", "put"].includes(normalizedType)) {
-    throw badRequest("Parameter 'option_type' must be 'call' or 'put'.");
-  }
-
-  if (parsedStrike === null) {
-    throw badRequest("Parameter 'strike' is required and must be a number.");
-  }
-  timing.mark("validateMs", Date.now() - validateStarted);
-
-  const expectedMoveStarted = Date.now();
-  const expectedMoveData = await getExpectedMoveTool({
-    symbol: parsedSymbol,
-    expiration: parsedExpiration,
-  });
-  timing.mark("expectedMoveMs", Date.now() - expectedMoveStarted);
-
-  const technicalsStarted = Date.now();
-  const technicalsData = await getTechnicalsTool({
-    symbol: parsedSymbol,
-    range: "1y",
-    interval: "1d",
-  });
-  timing.mark("technicalsMs", Date.now() - technicalsStarted);
-
-  const supportResistanceStarted = Date.now();
-  const srData = await getSupportResistanceTool({
-    symbol: parsedSymbol,
-    range: "1y",
-    interval: "1d",
-  });
-  timing.mark("supportResistanceMs", Date.now() - supportResistanceStarted);
-
-  const computeStarted = Date.now();
-
-  const currentPrice = toNumber(expectedMoveData.currentPrice);
-  const expectedMove = toNumber(expectedMoveData.expectedMove);
-  const lowerExpected = toNumber(expectedMoveData?.oneSigmaRange?.lower);
-  const upperExpected = toNumber(expectedMoveData?.oneSigmaRange?.upper);
-
-  const technicalTrend = technicalsData?.trend ?? null;
-
-  const support20 = toNumber(srData?.supportResistance?.days20?.support);
-  const resistance20 = toNumber(srData?.supportResistance?.days20?.resistance);
-  const support50 = toNumber(srData?.supportResistance?.days50?.support);
-  const resistance50 = toNumber(srData?.supportResistance?.days50?.resistance);
-
-  const srPosition20 = srData?.supportResistance?.days20?.position ?? "unknown";
-  const srPosition50 = srData?.supportResistance?.days50?.position ?? "unknown";
-
-  const strikeDistanceFromSpotPercent = percentDistance(parsedStrike, currentPrice);
-
-  let strikeVsExpectedMove = "unknown";
-  if (normalizedType === "put" && lowerExpected !== null) {
-    strikeVsExpectedMove =
-      parsedStrike < lowerExpected ? "below_lower_bound" : "inside_expected_range";
-  } else if (normalizedType === "call" && upperExpected !== null) {
-    strikeVsExpectedMove =
-      parsedStrike > upperExpected ? "above_upper_bound" : "inside_expected_range";
-  }
-
-  const setupLabel = analyzeSetupLabel({
-    optionType: normalizedType,
-    strike: parsedStrike,
-    currentPrice,
-    lowerExpected,
-    upperExpected,
-  });
-
-  const commentary = buildTradeSetupCommentary({
-    optionType: normalizedType,
-    strike: parsedStrike,
-    currentPrice,
-    lowerExpected,
-    upperExpected,
-    technicalTrend,
-    support20,
-    resistance20,
-    srPosition20,
-  });
-
-  timing.mark("computeMs", Date.now() - computeStarted);
-
-  const formatStarted = Date.now();
-  const result = {
-    symbol: parsedSymbol,
-    expiration: toISODate(parsedExpiration),
-    optionType: normalizedType,
-    strike: round(parsedStrike, 4),
-    spot: round(currentPrice, 4),
-    expectedMove: {
-      amount: round(expectedMove, 4),
-      percent: round(expectedMoveData?.expectedMovePercent, 4),
-      range: {
-        lower: round(lowerExpected, 4),
-        upper: round(upperExpected, 4),
-      },
-      method: expectedMoveData?.method ?? null,
-    },
-    technicals: {
-      trend: technicalTrend,
-      rsi14: round(technicalsData?.indicators?.rsi14, 4),
-      sma20: round(technicalsData?.indicators?.sma20, 4),
-      sma50: round(technicalsData?.indicators?.sma50, 4),
-      sma200: round(technicalsData?.indicators?.sma200, 4),
-      ema8: round(technicalsData?.indicators?.ema8, 4),
-      ema21: round(technicalsData?.indicators?.ema21, 4),
-    },
-    supportResistance: {
-      days20: {
-        support: round(support20, 4),
-        resistance: round(resistance20, 4),
-        position: srPosition20,
-      },
-      days50: {
-        support: round(support50, 4),
-        resistance: round(resistance50, 4),
-        position: srPosition50,
-      },
-    },
-    strikeAnalysis: {
-      distanceFromSpotPercent: round(strikeDistanceFromSpotPercent, 4),
-      relativeToExpectedMove: strikeVsExpectedMove,
-    },
-    setupAssessment: {
-      label: setupLabel,
-      commentary,
-    },
-  };
-  timing.mark("formatMs", Date.now() - formatStarted);
-
-  return {
-    ...result,
-    timing: timing.finish(),
-  };
-}
-
-const tools = {
-  get_quote: getQuoteTool,
-  get_option_expirations: getOptionExpirationsTool,
-  get_option_chain: getOptionChainTool,
-  get_expected_move: getExpectedMoveTool,
-  get_best_strike: getBestStrikeTool,
-  get_technicals: getTechnicalsTool,
-  get_support_resistance: getSupportResistanceTool,
-  analyze_trade_setup: analyzeTradeSetupTool,
-};
-
-/* --------------------------- http fallback -------------------------- */
-
-app.get("/", (_req, res) => {
-  res.json({
+    symbol,
     ok: true,
-    service: "wheel-mcp",
-    version: APP_VERSION,
-    mcp: "/mcp",
-    tools: Object.keys(tools),
-  });
-});
+    expiration,
+    hasEarnings,
+    currentPrice: round(spot, 3),
+    expectedMove: round(expectedMoveAbs, 3),
+    adjustedMove: round(adjustedMove, 3),
+    lowerBound: round(lowerBound, 3),
+    targetPremium: round(targetPremium, 3),
+    safeStrike,
+    maxPremiumStrike: aggressiveStrike,
+    passesFilter,
+    debug: {
+      eligibleCount: strikeSelection.eligible.length,
+      safeZoneCount: strikeSelection.safeZone.length,
+      safeCandidatesCount: strikeSelection.safeCandidates.length,
+      safeStrikeFloor: round(strikeSelection.safeStrikeFloor, 3),
+      reasonKept: passesFilter ? "passes_filters" : "filtered_out",
+    },
+  };
+}
 
 app.get("/health", (_req, res) => {
-  const mem = process.memoryUsage();
-
-  res.json({
-    ok: true,
-    service: "wheel-mcp",
-    version: APP_VERSION,
-    uptimeSeconds: round(process.uptime(), 2),
-    startedAt: SERVER_STARTED_AT.toISOString(),
-    memory: {
-      rssMB: round(mem.rss / 1024 / 1024, 2),
-      heapTotalMB: round(mem.heapTotal / 1024 / 1024, 2),
-      heapUsedMB: round(mem.heapUsed / 1024 / 1024, 2),
-      externalMB: round(mem.external / 1024 / 1024, 2),
-    },
-    tools: Object.keys(tools),
-  });
+  res.json({ ok: true, service: "wheel-mcp-backend" });
 });
 
 app.get("/tools", (_req, res) => {
   res.json({
     ok: true,
     tools: [
-      { name: "get_quote", input: { symbol: "string" } },
-      { name: "get_option_expirations", input: { symbol: "string" } },
-      {
-        name: "get_option_chain",
-        input: { symbol: "string", expiration: "YYYY-MM-DD | optional" },
-      },
-      {
-        name: "get_expected_move",
-        input: { symbol: "string", expiration: "YYYY-MM-DD" },
-      },
-      {
-        name: "get_best_strike",
-        input: {
-          symbol: "string",
-          expiration: "YYYY-MM-DD",
-          option_type: "call | put",
-          target_price: "number | optional",
-          percent_otm: "number | optional",
-        },
-      },
-      {
-        name: "get_technicals",
-        input: {
-          symbol: "string",
-          range: "1mo | 3mo | 6mo | 1y | 2y | 5y | ytd | max | optional",
-          interval: "1d | 1wk | 1mo | optional",
-        },
-      },
-      {
-        name: "get_support_resistance",
-        input: {
-          symbol: "string",
-          range: "1mo | 3mo | 6mo | 1y | 2y | 5y | ytd | max | optional",
-          interval: "1d | 1wk | 1mo | optional",
-        },
-      },
-      {
-        name: "analyze_trade_setup",
-        input: {
-          symbol: "string",
-          expiration: "YYYY-MM-DD",
-          option_type: "call | put",
-          strike: "number",
-        },
-      },
+      "get_quote",
+      "get_option_expirations",
+      "get_expected_move",
+      "get_option_chain",
+      "scan_shortlist",
     ],
   });
 });
 
-app.post("/tools/:toolName", async (req, res) => {
+app.post("/tools/get_quote", async (req, res) => {
   try {
-    const { toolName } = req.params;
-    const handler = tools[toolName];
-
-    if (!handler) {
-      throw badRequest(`Unknown tool '${toolName}'.`);
-    }
-
-    const started = Date.now();
-    const result = await handler(req.body || {});
-    const durationMs = Date.now() - started;
-
-    res.json({ ok: true, tool: toolName, durationMs, result });
+    const { symbol } = req.body;
+    const result = await getQuote(symbol);
+    res.json({ ok: true, result });
   } catch (error) {
-    const status = error?.status || 500;
-    res.status(status).json({
-      ok: false,
-      error: error?.message || "Internal server error",
-      details: error?.details || null,
-    });
+    res.status(500).json({ ok: false, error: error.message || "get_quote failed" });
   }
 });
 
-/* ------------------------------ MCP ------------------------------ */
-
-const transports = new Map();
-
-function createMcpServer() {
-  const server = new McpServer({
-    name: "wheel-mcp",
-    version: APP_VERSION,
-  });
-
-  server.tool(
-    "get_quote",
-    "Get a live stock quote from Yahoo Finance.",
-    {
-      symbol: z.string().min(1),
-    },
-    async ({ symbol }) => {
-      const result = await getQuoteTool({ symbol });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "get_option_expirations",
-    "Get available option expirations and strikes for a ticker.",
-    {
-      symbol: z.string().min(1),
-    },
-    async ({ symbol }) => {
-      const result = await getOptionExpirationsTool({ symbol });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "get_option_chain",
-    "Get the full option chain for a ticker and expiration.",
-    {
-      symbol: z.string().min(1),
-      expiration: z.string().optional(),
-    },
-    async ({ symbol, expiration }) => {
-      const result = await getOptionChainTool({ symbol, expiration });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "get_expected_move",
-    "Get the expected move for a ticker using the ATM straddle mid price.",
-    {
-      symbol: z.string().min(1),
-      expiration: z.string().min(1),
-    },
-    async ({ symbol, expiration }) => {
-      const result = await getExpectedMoveTool({ symbol, expiration });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "get_best_strike",
-    "Find the best strike nearest a target or percent OTM.",
-    {
-      symbol: z.string().min(1),
-      expiration: z.string().min(1),
-      option_type: z.enum(["call", "put"]).default("call"),
-      target_price: z.number().optional(),
-      percent_otm: z.number().optional(),
-    },
-    async ({ symbol, expiration, option_type, target_price, percent_otm }) => {
-      const result = await getBestStrikeTool({
-        symbol,
-        expiration,
-        option_type,
-        target_price,
-        percent_otm,
-      });
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "get_technicals",
-    "Get technical indicators and trend context from historical prices.",
-    {
-      symbol: z.string().min(1),
-      range: z.string().optional(),
-      interval: z.string().optional(),
-    },
-    async ({ symbol, range, interval }) => {
-      const result = await getTechnicalsTool({ symbol, range, interval });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "get_support_resistance",
-    "Get simple support and resistance levels from historical prices.",
-    {
-      symbol: z.string().min(1),
-      range: z.string().optional(),
-      interval: z.string().optional(),
-    },
-    async ({ symbol, range, interval }) => {
-      const result = await getSupportResistanceTool({ symbol, range, interval });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  server.tool(
-    "analyze_trade_setup",
-    "Analyze an option trade setup using expected move, technicals, and support/resistance.",
-    {
-      symbol: z.string().min(1),
-      expiration: z.string().min(1),
-      option_type: z.enum(["call", "put"]).default("put"),
-      strike: z.number(),
-    },
-    async ({ symbol, expiration, option_type, strike }) => {
-      const result = await analyzeTradeSetupTool({
-        symbol,
-        expiration,
-        option_type,
-        strike,
-      });
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-  );
-
-  return server;
-}
-
-// SSE endpoint for MCP clients to connect
-app.get("/mcp", async (req, res) => {
-  const transport = new SSEServerTransport("/messages", res);
-  const server = createMcpServer();
-
-  transports.set(transport.sessionId, { transport, server });
-
-  res.on("close", async () => {
-    transports.delete(transport.sessionId);
-    try {
-      await server.close();
-    } catch {}
-  });
-
-  await server.connect(transport);
-});
-
-// Message endpoint for the connected SSE session
-app.post("/messages", async (req, res) => {
-  const sessionId = req.query.sessionId;
-  if (!sessionId || typeof sessionId !== "string") {
-    return res.status(400).json({
-      ok: false,
-      error: "Missing sessionId query parameter.",
-    });
-  }
-
-  const record = transports.get(sessionId);
-  if (!record) {
-    return res.status(404).json({
-      ok: false,
-      error: "Session not found.",
-    });
-  }
-
+app.post("/tools/get_option_expirations", async (req, res) => {
   try {
-    await record.transport.handlePostMessage(req, res, req.body);
+    const { symbol } = req.body;
+    const result = await getOptionExpirations(symbol);
+    res.json({ ok: true, result });
   } catch (error) {
-    res.status(500).json({
-      ok: false,
-      error: error?.message || "Failed to handle MCP message.",
-    });
+    res.status(500).json({ ok: false, error: error.message || "get_option_expirations failed" });
   }
 });
 
-/* ---------------------------- errors ---------------------------- */
+app.post("/tools/get_option_chain", async (req, res) => {
+  try {
+    const { symbol, expiration } = req.body;
+    const result = await getOptionChain(symbol, expiration);
+    res.json({ ok: true, result });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "get_option_chain failed" });
+  }
+});
 
-app.use((error, _req, res, _next) => {
-  const status = error?.status || 500;
-  res.status(status).json({
-    ok: false,
-    error: error?.message || "Internal server error",
-    details: error?.details || null,
-  });
+app.post("/tools/get_expected_move", async (req, res) => {
+  try {
+    const { symbol, expiration } = req.body;
+    const result = await getExpectedMove(symbol, expiration);
+    res.json({ ok: true, result });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "get_expected_move failed" });
+  }
+});
+
+app.post("/scan_shortlist", async (req, res) => {
+  try {
+    const {
+      expiration,
+      tickers = [],
+      topN = 20,
+    } = req.body ?? {};
+
+    if (!expiration) {
+      return res.status(400).json({ ok: false, error: "expiration is required" });
+    }
+
+    if (!Array.isArray(tickers) || tickers.length === 0) {
+      return res.status(400).json({ ok: false, error: "tickers must be a non-empty array" });
+    }
+
+    if (tickers.length > MAX_SCAN_TICKERS) {
+      return res.status(400).json({
+        ok: false,
+        error: `max ${MAX_SCAN_TICKERS} tickers per scan`,
+      });
+    }
+
+    const cleanedTickers = [...new Set(
+      tickers
+        .map((t) => String(t || "").trim().toUpperCase())
+        .filter(Boolean)
+    )];
+
+    const shortlist = [];
+    const rejected = [];
+    const errors = [];
+
+    const BATCH_SIZE = 8;
+
+    for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
+      const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
+
+      const batchResults = await Promise.allSettled(
+        batch.map((symbol) => scanTicker(symbol, expiration))
+      );
+
+      for (let j = 0; j < batchResults.length; j += 1) {
+        const result = batchResults[j];
+        const symbol = batch[j];
+
+        if (result.status === "fulfilled") {
+          const item = result.value;
+
+          if (!item?.ok) {
+            rejected.push({
+              symbol,
+              reason: item?.reason || "not_ok",
+            });
+            continue;
+          }
+
+          if (item.passesFilter) {
+            shortlist.push(item);
+          } else {
+            rejected.push({
+              symbol,
+              reason: item?.debug?.reasonKept || "filtered_out",
+              targetPremium: item?.targetPremium ?? null,
+              safeStrike: item?.safeStrike ?? null,
+              aggressiveStrike: item?.maxPremiumStrike ?? null,
+            });
+          }
+        } else {
+          errors.push({
+            symbol,
+            error: result.reason?.message || "scan_failed",
+          });
+        }
+      }
+    }
+
+    shortlist.sort((a, b) => {
+      const ay = toNumber(a?.safeStrike?.annualizedYield);
+      const by = toNumber(b?.safeStrike?.annualizedYield);
+      return by - ay;
+    });
+
+    return res.json({
+      ok: true,
+      expiration,
+      scanned: cleanedTickers.length,
+      kept: shortlist.length,
+      returned: Math.min(topN, shortlist.length),
+      shortlist: shortlist.slice(0, topN),
+      rejected,
+      errors,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error.message || "scan_shortlist failed",
+    });
+  }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Wheel backend listening on port ${PORT}`);
 });

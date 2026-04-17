@@ -1,0 +1,327 @@
+[
+  {
+    "symbol": "AAPL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=AAPL"
+  },
+  {
+    "symbol": "ABT",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=ABT"
+  },
+  {
+    "symbol": "AFRM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=AFRM"
+  },
+  {
+    "symbol": "AMD",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=AMD"
+  },
+  {
+    "symbol": "AMZN",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=AMZN"
+  },
+  {
+    "symbol": "AVGO",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=AVGO"
+  },
+  {
+    "symbol": "BAC",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=BAC"
+  },
+  {
+    "symbol": "BITX",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=BITX"
+  },
+  {
+    "symbol": "CF",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=CF"
+  },
+  {
+    "symbol": "CSX",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=CSX"
+  },
+  {
+    "symbol": "CVS",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=CVS"
+  },
+  {
+    "symbol": "DECK",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=DECK"
+  },
+  {
+    "symbol": "DELL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=DELL"
+  },
+  {
+    "symbol": "DOCU",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=DOCU"
+  },
+  {
+    "symbol": "DUOL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=DUOL"
+  },
+  {
+    "symbol": "DXCM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=DXCM"
+  },
+  {
+    "symbol": "EXPE",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=EXPE"
+  },
+  {
+    "symbol": "F",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=F"
+  },
+  {
+    "symbol": "FSLR",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=FSLR"
+  },
+  {
+    "symbol": "GM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=GM"
+  },
+  {
+    "symbol": "GOOGL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=GOOGL"
+  },
+  {
+    "symbol": "HIMS",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=HIMS"
+  },
+  {
+    "symbol": "HOOD",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=HOOD"
+  },
+  {
+    "symbol": "IBKR",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=IBKR"
+  },
+  {
+    "symbol": "INCY",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=INCY"
+  },
+  {
+    "symbol": "KMI",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=KMI"
+  },
+  {
+    "symbol": "KO",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=KO"
+  },
+  {
+    "symbol": "LVS",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=LVS"
+  },
+  {
+    "symbol": "MRVL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=MRVL"
+  },
+  {
+    "symbol": "MSFT",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=MSFT"
+  },
+  {
+    "symbol": "MU",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=MU"
+  },
+  {
+    "symbol": "NBIX",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NBIX"
+  },
+  {
+    "symbol": "NDAQ",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NDAQ"
+  },
+  {
+    "symbol": "NEM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NEM"
+  },
+  {
+    "symbol": "NFLX",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NFLX"
+  },
+  {
+    "symbol": "NI",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NI"
+  },
+  {
+    "symbol": "NVDA",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NVDA"
+  },
+  {
+    "symbol": "NVO",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=NVO"
+  },
+  {
+    "symbol": "ORCL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=ORCL"
+  },
+  {
+    "symbol": "PATH",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=PATH"
+  },
+  {
+    "symbol": "PCG",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=PCG"
+  },
+  {
+    "symbol": "PDD",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=PDD"
+  },
+  {
+    "symbol": "PHM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=PHM"
+  },
+  {
+    "symbol": "PLTR",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=PLTR"
+  },
+  {
+    "symbol": "PYPL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=PYPL"
+  },
+  {
+    "symbol": "ROOT",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=ROOT"
+  },
+  {
+    "symbol": "RYAAY",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=RYAAY"
+  },
+  {
+    "symbol": "SBUX",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SBUX"
+  },
+  {
+    "symbol": "SCHW",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SCHW"
+  },
+  {
+    "symbol": "SHOP",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SHOP"
+  },
+  {
+    "symbol": "SLB",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SLB"
+  },
+  {
+    "symbol": "SNOW",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SNOW"
+  },
+  {
+    "symbol": "SOFI",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SOFI"
+  },
+  {
+    "symbol": "SOXL",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=SOXL"
+  },
+  {
+    "symbol": "TECK",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=TECK"
+  },
+  {
+    "symbol": "TGT",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=TGT"
+  },
+  {
+    "symbol": "TQQQ",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=TQQQ"
+  },
+  {
+    "symbol": "TSCO",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=TSCO"
+  },
+  {
+    "symbol": "TSM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=TSM"
+  },
+  {
+    "symbol": "TW",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=TW"
+  },
+  {
+    "symbol": "UBER",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=UBER"
+  },
+  {
+    "symbol": "USB",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=USB"
+  },
+  {
+    "symbol": "VST",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=VST"
+  },
+  {
+    "symbol": "WBD",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=WBD"
+  },
+  {
+    "symbol": "ZM",
+    "skipped": true,
+    "reason": "404 Not Found -> https://wheel-mcp.onrender.com/api/option-expirations?symbol=ZM"
+  }
+]

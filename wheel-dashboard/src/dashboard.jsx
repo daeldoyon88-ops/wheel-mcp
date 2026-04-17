@@ -13,163 +13,43 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
+import { wheelShortlist } from "./data/wheelShortlist";
 
 const API_BASE = "https://wheel-mcp.onrender.com";
+const WEEKLY_TARGET_PCT = 0.5;
+const ANNUAL_FACTOR = 52;
+const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 
-const stats = [
-  { title: "Watchlist", value: "66", sub: "tickers analysés", icon: Search },
-  { title: "Éligibles premium", value: "38", sub: "≥ 125 $ / action", icon: ShieldCheck },
-  { title: "Post-earnings", value: "7", sub: "finalistes sûrs", icon: CalendarDays },
-  { title: "Objectif", value: "0.5%+", sub: "/ semaine sur capital", icon: Target },
+const DEFAULT_EXPIRATIONS = [
+  "2026-04-24",
+  "2026-05-01",
+  "2026-05-08",
+  "2026-05-15",
+  "2026-05-22",
 ];
+
+const SOURCE_TICKERS = [
+  "CF", "SNOW", "KO", "SLB", "TSCO", "PCG", "DOCU", "PATH", "F", "WBD",
+  "BITX", "SOFI", "ABT", "SCHW", "CSX", "NDAQ", "BAC", "CVS", "GM", "HIMS",
+  "UBER", "TGT", "AFRM", "SBUX", "NFLX", "TQQQ", "EXPE", "SHOP", "AAPL", "SOXL",
+  "AMZN", "AMD", "ORCL", "PLTR", "NVDA", "MSFT", "GOOGL", "MU", "AVGO", "TSM",
+  "MRVL", "IBKR", "DUOL", "RYAAY", "NEM", "DELL", "KMI", "HOOD", "LVS", "TW",
+  "NI", "FSLR", "INCY", "NBIX", "ROOT", "VST", "TECK", "ZM", "PYPL", "DECK",
+  "NVO", "PHM", "DXCM", "USB", "PDD"
+];
+
+const EARNINGS_SYMBOLS = new Set(["NFLX"]);
 
 const alerts = [
   {
     type: "earnings",
-    title: "Alerte earnings — cette semaine",
-    body: "BAC, USB, SCHW, ABT et AXP ont des publications proches. Ces tickers sont exclus du short premium avant l'événement.",
+    title: "Règle earnings",
+    body: "Les dossiers earnings gardent la logique expected move x2 pour la sélection de la borne basse.",
   },
   {
     type: "rule",
-    title: "TQQQ",
-    body: "Interdit jusqu'à mi-mai 2026. Structure trop agressive pour le filtre conservateur.",
-  },
-];
-
-const candidates = [
-  {
-    rank: 0,
-    ticker: "NFLX",
-    name: "Netflix",
-    setup: "Mode earnings — entrée T-1 close / jour J intraday",
-    price: 0,
-    expectedMovePct: 0,
-    expectedMoveMultiplier: 2,
-    earningsMode: true,
-    expectedMoveLow: 0,
-    expectedMoveHigh: 0,
-    minPremium: 0,
-    safeStrike: null,
-    maxPremiumStrike: null,
-    premium: "—",
-    weeklyReturn: 0,
-    strikeDistance: 0,
-    earnings: "16 avril après clôture",
-    iv: 0,
-    rsi: 0,
-    macd: "—",
-    zone: "mode earnings défensif",
-    verdict: "balanced",
-    ok: true,
-    note: "Données volontairement dynamiques. Le modal va tenter de charger les vraies données live.",
-  },
-  {
-    rank: 1,
-    ticker: "SOFI",
-    name: "SoFi Technologies",
-    setup: "PUT scanner — semaine du 24 avr. 2026",
-    price: 18.91,
-    expectedMovePct: 6.35,
-    expectedMoveLow: 18.05,
-    expectedMoveHigh: 20.49,
-    minPremium: 0.09,
-    safeStrike: {
-      strike: 16.5,
-      mid: 0.1,
-      weeklyYield: 0.61,
-      annualizedYield: 31.5,
-      label: "plus défensif",
-    },
-    maxPremiumStrike: {
-      strike: 18.0,
-      mid: 0.27,
-      weeklyYield: 1.5,
-      annualizedYield: 78.0,
-      label: "prime max sous EM low",
-    },
-    premium: "0.10 / 0.27",
-    weeklyReturn: 0.61,
-    strikeDistance: -12.8,
-    earnings: "pas cette semaine",
-    iv: 68.4,
-    rsi: 52,
-    macd: "neutre à légèrement haussier",
-    zone: "sous borne basse attendue",
-    verdict: "balanced",
-    ok: true,
-    note: "Exemple parfait pour afficher les deux strikes : le strike sécuritaire qui valide 0.5% / semaine, et le strike max prime sous le low expected move.",
-  },
-  {
-    rank: 3,
-    ticker: "HIMS",
-    name: "Hims & Hers",
-    setup: "PUT 17.00 exp. 17 avril",
-    price: 19.43,
-    expectedMovePct: 8.6,
-    expectedMoveLow: 17.25,
-    expectedMoveHigh: 21.1,
-    minPremium: 0.09,
-    safeStrike: {
-      strike: 17.0,
-      mid: 0.12,
-      weeklyYield: 0.71,
-      annualizedYield: 36.9,
-      label: "safe mais nerveux",
-    },
-    maxPremiumStrike: {
-      strike: 17.0,
-      mid: 0.12,
-      weeklyYield: 0.71,
-      annualizedYield: 36.9,
-      label: "même strike disponible",
-    },
-    premium: "0.11 / 0.13",
-    weeklyReturn: 0.65,
-    strikeDistance: -12.5,
-    earnings: "4-5 mai",
-    iv: 88.3,
-    rsi: 45,
-    macd: "encore baissier",
-    zone: "zone basse",
-    verdict: "aggressive",
-    ok: true,
-    note: "Rendement excellent mais volatilité élevée. Ici un seul strike peut remplir les deux rôles.",
-  },
-  {
-    rank: 4,
-    ticker: "AMD",
-    name: "AMD",
-    setup: "PUT 145.00 exp. 17 avril",
-    price: 158.12,
-    expectedMovePct: 7.45,
-    expectedMoveLow: 146.3,
-    expectedMoveHigh: 169.9,
-    minPremium: 0.73,
-    safeStrike: {
-      strike: 145.0,
-      mid: 0.78,
-      weeklyYield: 0.54,
-      annualizedYield: 28.1,
-      label: "objectif validé",
-    },
-    maxPremiumStrike: {
-      strike: 145.0,
-      mid: 0.78,
-      weeklyYield: 0.54,
-      annualizedYield: 28.1,
-      label: "plus haut strike admissible",
-    },
-    premium: "0.72 / 0.84",
-    weeklyReturn: 0.56,
-    strikeDistance: -8.3,
-    earnings: "30 avril",
-    iv: 52.1,
-    rsi: 49,
-    macd: "neutre",
-    zone: "support proche",
-    verdict: "balanced",
-    ok: true,
-    note: "Bon compromis prime / distance / qualité technique.",
+    title: "Dashboard mixte",
+    body: "Le dashboard principal utilise une shortlist snapshot au chargement. Le bouton Refresh lance un vrai scan live.",
   },
 ];
 
@@ -187,6 +67,303 @@ const riskToProgress = {
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
+}
+
+function round(value, digits = 4) {
+  if (value == null || Number.isNaN(value)) return null;
+  return Number(value.toFixed(digits));
+}
+
+function weeklyYieldPct(mid, strike) {
+  if (!mid || !strike || strike <= 0) return 0;
+  return (mid / strike) * 100;
+}
+
+function annualizedYieldPct(weeklyPct) {
+  return weeklyPct * ANNUAL_FACTOR;
+}
+
+function strikeDistancePct(strike, spot) {
+  if (!strike || !spot || spot <= 0) return 0;
+  return ((strike - spot) / spot) * 100;
+}
+
+function getDteDays(expiration) {
+  const now = new Date();
+  const exp = new Date(`${expiration}T00:00:00`);
+  const diff = exp - now;
+  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+}
+
+function minPremiumForSpot(spot) {
+  if (!spot || spot <= 0) return 0;
+  return spot * (WEEKLY_TARGET_PCT / 100);
+}
+
+function toNumber(value) {
+  if (value == null) return 0;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function pickReliablePremium(row) {
+  const midField = toNumber(row?.mid);
+  const bid = toNumber(row?.bid);
+  const ask = toNumber(row?.ask);
+  const lastPrice = toNumber(row?.lastPrice);
+
+  const hasBid = bid > 0;
+  const hasAsk = ask > 0;
+  const bidAskMid = hasBid && hasAsk ? (bid + ask) / 2 : 0;
+
+  if (hasBid && hasAsk) {
+    if (midField > 0) {
+      const spread = Math.abs(midField - bidAskMid);
+      const tolerance = Math.max(0.03, bidAskMid * 0.35);
+      if (spread <= tolerance) return midField;
+    }
+    return bidAskMid;
+  }
+
+  if (midField > 0 && !hasBid && !hasAsk) {
+    return midField;
+  }
+
+  if (midField > 0 && hasAsk && !hasBid) {
+    if (midField <= ask * 1.15) return midField;
+  }
+
+  if (midField > 0 && hasBid && !hasAsk) {
+    if (midField >= bid * 0.85) return midField;
+  }
+
+  if (lastPrice > 0) return lastPrice;
+  if (midField > 0) return midField;
+  if (hasBid) return bid;
+  if (hasAsk) return ask;
+
+  return 0;
+}
+
+function normalizePutForSelection(put, spot, targetPremium) {
+  const strike = toNumber(put?.strike);
+  const premium = pickReliablePremium(put);
+
+  const weeklyPct = weeklyYieldPct(premium, strike);
+  const annualPct = annualizedYieldPct(weeklyPct);
+  const distancePct = strikeDistancePct(strike, spot);
+
+  return {
+    strike,
+    mid: premium,
+    bid: toNumber(put?.bid),
+    ask: toNumber(put?.ask),
+    lastPrice: toNumber(put?.lastPrice),
+    openInterest: toNumber(put?.openInterest),
+    volume: toNumber(put?.volume),
+    impliedVolatility: toNumber(put?.impliedVolatility),
+    weeklyYield: weeklyPct,
+    annualizedYield: annualPct,
+    distancePct,
+    targetPremium,
+    qualifiesTarget: premium >= targetPremium,
+    distanceToTarget: Math.abs(premium - targetPremium),
+  };
+}
+
+function selectPutStrikes({ puts, spot, lowerBoundForSelection }) {
+  const targetPremium = minPremiumForSpot(spot);
+
+  const eligible = (puts || [])
+    .map((put) => normalizePutForSelection(put, spot, targetPremium))
+    .filter((put) => put.strike > 0)
+    .filter((put) => put.strike < lowerBoundForSelection)
+    .filter((put) => put.mid > 0)
+    .sort((a, b) => a.strike - b.strike);
+
+  const aggressiveStrike =
+    eligible.length > 0
+      ? [...eligible].sort((a, b) => b.strike - a.strike)[0]
+      : null;
+
+  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
+
+  const safeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
+
+  const safeCandidates = safeZone
+    .filter((put) => put.mid >= targetPremium)
+    .sort((a, b) => {
+      const diff = a.distanceToTarget - b.distanceToTarget;
+      if (diff !== 0) return diff;
+      return b.strike - a.strike;
+    });
+
+  const safeStrike = safeCandidates.length > 0 ? safeCandidates[0] : null;
+
+  return {
+    eligible,
+    safeZone,
+    safeCandidates,
+    targetPremium,
+    safeStrike,
+    aggressiveStrike,
+    maxPremiumStrike: aggressiveStrike,
+    safeStrikeFloor,
+  };
+}
+
+function pickTargetExpiration(availableExpirations, targetExpiration) {
+  if (!Array.isArray(availableExpirations) || availableExpirations.length === 0) return null;
+  if (targetExpiration && availableExpirations.includes(targetExpiration)) return targetExpiration;
+  return availableExpirations[0] || null;
+}
+
+function toDashboardCandidate(item, index, selectedExpiration) {
+  const safe = item.safeStrike;
+  const aggressive = item.maxPremiumStrike;
+  const primaryStrike = safe || aggressive;
+
+  return {
+    rank: index + 1,
+    ticker: item.symbol,
+    name: item.symbol,
+    setup: item.hasEarnings
+      ? `Mode earnings — expiration ${selectedExpiration}`
+      : `PUT scanner — expiration ${selectedExpiration}`,
+    targetExpiration: selectedExpiration,
+    price: item.currentPrice ?? 0,
+    expectedMovePct:
+      item.currentPrice && item.adjustedMove
+        ? (item.adjustedMove / item.currentPrice) * 100
+        : 0,
+    expectedMoveMultiplier: item.hasEarnings ? 2 : 1,
+    earningsMode: !!item.hasEarnings,
+    expectedMoveLow: item.lowerBound ?? 0,
+    expectedMoveHigh:
+      item.currentPrice != null && item.adjustedMove != null
+        ? item.currentPrice + item.adjustedMove
+        : 0,
+    minPremium: item.targetPremium ?? (item.currentPrice ? item.currentPrice * 0.005 : 0),
+    safeStrike: safe
+      ? {
+          strike: safe.strike,
+          mid: safe.premium,
+          weeklyYield: (safe.weeklyYield ?? 0) * 100,
+          annualizedYield: (safe.annualizedYield ?? 0) * 100,
+          label: "prime la plus proche de la cible",
+        }
+      : null,
+    maxPremiumStrike: aggressive
+      ? {
+          strike: aggressive.strike,
+          mid: aggressive.premium,
+          weeklyYield: (aggressive.weeklyYield ?? 0) * 100,
+          annualizedYield: (aggressive.annualizedYield ?? 0) * 100,
+          label: "directement sous borne basse",
+        }
+      : null,
+    premium:
+      safe && aggressive
+        ? `${safe.premium?.toFixed(2) ?? "—"} / ${aggressive.premium?.toFixed(2) ?? "—"}`
+        : primaryStrike
+        ? `${primaryStrike.premium?.toFixed(2) ?? "—"}`
+        : "—",
+    weeklyReturn: primaryStrike ? (primaryStrike.weeklyYield ?? 0) * 100 : 0,
+    strikeDistance: primaryStrike ? -((primaryStrike.distancePct ?? 0) * 100) : 0,
+    capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
+    premiumPerContract: primaryStrike ? primaryStrike.premium * 100 : 0,
+    earnings: item.hasEarnings ? "earnings mode actif" : "pas cette semaine",
+    iv: 0,
+    rsi: 0,
+    macd: "—",
+    zone: "sous borne basse",
+    verdict: item.hasEarnings ? "balanced" : "conservative",
+    ok: !!item.passesFilter,
+    note: item.hasEarnings
+      ? "Cas earnings conservé avec expected move x2 et détail live dans la fiche complète."
+      : "Candidat issu du scanner, prêt à afficher dans le dashboard.",
+    raw: item,
+  };
+}
+
+function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions) {
+  const usableCapital = capital * (maxCapitalPct / 100);
+  const top = candidates
+    .filter((c) => c.capitalPerContract > 0 && c.weeklyReturn > 0)
+    .sort((a, b) => b.weeklyReturn - a.weeklyReturn);
+
+  if (!top.length) return [];
+
+  const aggressivePool = [...top]
+    .sort((a, b) => b.weeklyReturn - a.weeklyReturn)
+    .slice(0, Math.max(3, maxPositions + 1));
+
+  const balancedPool = [...top]
+    .sort((a, b) => {
+      const scoreA = a.weeklyReturn - Math.max(0, Math.abs(a.strikeDistance) - 12) * 0.02;
+      const scoreB = b.weeklyReturn - Math.max(0, Math.abs(b.strikeDistance) - 12) * 0.02;
+      return scoreB - scoreA;
+    })
+    .slice(0, Math.max(3, maxPositions + 1));
+
+  const conservativePool = [...top]
+    .sort((a, b) => Math.abs(b.strikeDistance) - Math.abs(a.strikeDistance))
+    .slice(0, Math.max(3, maxPositions + 1));
+
+  function makeCombo(label, pool) {
+    const picks = [];
+    let used = 0;
+
+    for (const candidate of pool) {
+      if (picks.length >= maxPositions) break;
+      if (candidate.capitalPerContract <= 0) continue;
+
+      const remaining = usableCapital - used;
+      if (remaining < candidate.capitalPerContract) continue;
+
+      const maxContracts = Math.max(1, Math.floor(remaining / candidate.capitalPerContract));
+      const contracts = Math.min(
+        maxContracts,
+        candidate.capitalPerContract < usableCapital * 0.2 ? 3 : 1
+      );
+
+      const capitalUsed = contracts * candidate.capitalPerContract;
+      const premiumCollected = contracts * candidate.premiumPerContract;
+
+      picks.push({
+        ticker: candidate.ticker,
+        strike: candidate.safeStrike?.strike ?? candidate.maxPremiumStrike?.strike ?? 0,
+        contracts,
+        capitalUsed,
+        premiumCollected,
+        weeklyReturn: candidate.weeklyReturn,
+      });
+
+      used += capitalUsed;
+    }
+
+    if (!picks.length) return null;
+
+    const avgWeekly =
+      picks.reduce((sum, p) => sum + p.weeklyReturn * p.capitalUsed, 0) /
+      picks.reduce((sum, p) => sum + p.capitalUsed, 0);
+
+    return {
+      label,
+      positions: picks.length,
+      totalCapital: used,
+      capitalPct: capital > 0 ? (used / capital) * 100 : 0,
+      avgWeeklyReturn: avgWeekly,
+      freeCapital: capital - used,
+      picks,
+    };
+  }
+
+  return [
+    makeCombo("Agressif", aggressivePool),
+    makeCombo("Équilibré", balancedPool),
+    makeCombo("Conservateur", conservativePool),
+  ].filter(Boolean);
 }
 
 function Card({ className = "", children }) {
@@ -209,6 +386,10 @@ function Input({ className = "", ...props }) {
   return <input {...props} className={cn("border bg-white px-3 py-2 outline-none", className)} />;
 }
 
+function Select({ className = "", children, ...props }) {
+  return <select {...props} className={cn("border bg-white px-3 py-2 outline-none", className)}>{children}</select>;
+}
+
 function Badge({ className = "", children }) {
   return (
     <span className={cn("inline-flex items-center border px-2.5 py-1 text-xs font-medium", className)}>
@@ -228,7 +409,7 @@ function Button({ className = "", variant = "default", size = "default", childre
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center rounded-xl text-sm font-medium transition hover:opacity-90",
+        "inline-flex items-center justify-center rounded-xl text-sm font-medium transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
         variantClass,
         sizeClass,
         className
@@ -332,6 +513,7 @@ function StrikeCard({
   annualizedYield,
   distancePct,
   label,
+  meetsTarget,
 }) {
   const distanceTone = distancePct <= -10 ? "good" : distancePct <= -5 ? "warn" : "bad";
   const yieldTone = weeklyYield >= 1 ? "good" : weeklyYield >= 0.5 ? "warn" : "bad";
@@ -344,9 +526,21 @@ function StrikeCard({
           <p className="text-sm font-semibold text-slate-900">{title}</p>
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
-        <Badge className="rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
-          {label}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge className="rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
+            {label}
+          </Badge>
+          <Badge
+            className={cn(
+              "rounded-full",
+              meetsTarget
+                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border border-rose-200 bg-rose-50 text-rose-700"
+            )}
+          >
+            {meetsTarget ? "objectif validé" : "objectif non atteint"}
+          </Badge>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
@@ -366,12 +560,13 @@ function StrikeOpportunities({ item }) {
     : item.expectedMovePct;
 
   const hasSafe = !!item.safeStrike;
-  const hasMax = !!item.maxPremiumStrike;
+  const hasAggressive = !!item.maxPremiumStrike;
 
   const safeDistance =
     hasSafe && item.price > 0 ? ((item.safeStrike.strike - item.price) / item.price) * 100 : 0;
-  const maxDistance =
-    hasMax && item.price > 0 ? ((item.maxPremiumStrike.strike - item.price) / item.price) * 100 : 0;
+
+  const aggressiveDistance =
+    hasAggressive && item.price > 0 ? ((item.maxPremiumStrike.strike - item.price) / item.price) * 100 : 0;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
@@ -382,6 +577,10 @@ function StrikeOpportunities({ item }) {
             Spot actuel <span className="font-medium text-slate-900">${item.price.toFixed(2)}</span> · borne basse attendue{" "}
             <span className="font-medium text-rose-700">${item.expectedMoveLow.toFixed(2)}</span> · borne haute attendue{" "}
             <span className="font-medium text-emerald-700">${item.expectedMoveHigh.toFixed(2)}</span>
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Prime minimale cible safe :{" "}
+            <span className="font-semibold text-slate-900">${Number(item.minPremium || 0).toFixed(2)}</span>
           </p>
           {item.earningsMode && (
             <p className="mt-2 text-sm text-violet-700">
@@ -394,42 +593,43 @@ function StrikeOpportunities({ item }) {
         </div>
 
         <Badge className="rounded-full border border-slate-300 bg-white text-slate-700">
-          objectif 0.5% / semaine
+          objectif 0.5% / semaine sur spot
         </Badge>
       </div>
 
-      {hasSafe || hasMax ? (
+      {hasSafe || hasAggressive ? (
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {hasSafe && (
             <StrikeCard
-              title="Strike sécuritaire"
-              subtitle="le plus prudent qui atteint la prime cible"
+              title="Strike safe"
+              subtitle="prime la plus proche de la cible minimale"
               strike={item.safeStrike.strike}
               mid={item.safeStrike.mid}
               weeklyYield={item.safeStrike.weeklyYield}
               annualizedYield={item.safeStrike.annualizedYield}
               distancePct={safeDistance}
               label={item.safeStrike.label}
+              meetsTarget={item.safeStrike.mid >= item.minPremium}
             />
           )}
-          {hasMax && (
+
+          {hasAggressive && (
             <StrikeCard
-              title="Strike max prime"
-              subtitle="le plus haut strike admissible sous la borne basse"
+              title="Strike agressif"
+              subtitle="directement sous la borne basse"
               strike={item.maxPremiumStrike.strike}
               mid={item.maxPremiumStrike.mid}
               weeklyYield={item.maxPremiumStrike.weeklyYield}
               annualizedYield={item.maxPremiumStrike.annualizedYield}
-              distancePct={maxDistance}
+              distancePct={aggressiveDistance}
               label={item.maxPremiumStrike.label}
+              meetsTarget={item.maxPremiumStrike.mid >= item.minPremium}
             />
           )}
         </div>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-          {item.earningsMode
-            ? "Cas earnings visible avec la règle mouvement attendu x2. Les strikes réels seront injectés dès le branchement live."
-            : "Aucun strike sous le bas du mouvement attendu n'atteint la prime minimale cible."}
+          Aucun strike local à afficher.
         </div>
       )}
     </div>
@@ -491,7 +691,7 @@ function CandidateCard({ item, onOpenDetail }) {
                 />
                 <Metric label="Prix plus bas" value={`$${item.expectedMoveLow.toFixed(2)}`} strong tone="bad" />
                 <Metric label="Prix supérieur" value={`$${item.expectedMoveHigh.toFixed(2)}`} strong tone="good" />
-                <Metric label="Prime bid/ask" value={item.premium} />
+                <Metric label="Prime safe mini" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
                 <Metric
                   label="Rendement"
                   value={`${item.weeklyReturn.toFixed(2)}% / sem`}
@@ -499,13 +699,8 @@ function CandidateCard({ item, onOpenDetail }) {
                   tone={item.weeklyReturn >= 0.5 ? "good" : "bad"}
                 />
                 <Metric label="Distance strike" value={`${item.strikeDistance.toFixed(1)}%`} />
-                <Metric label="Earnings" value={item.earnings} />
-                <Metric
-                  label="IV"
-                  value={`${item.iv.toFixed(1)}%`}
-                  strong={item.iv >= 60}
-                  tone={item.iv >= 70 ? "bad" : item.iv >= 50 ? "warn" : "default"}
-                />
+                <Metric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
+                <Metric label="IV" value={`${item.iv.toFixed(1)}%`} />
                 <Metric label="RSI" value={`${item.rsi}`} />
               </div>
 
@@ -532,36 +727,6 @@ function CandidateCard({ item, onOpenDetail }) {
   );
 }
 
-function RiskRow({ label, value, total }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-slate-700">{label}</span>
-        <span className="font-medium text-slate-900">
-          {value} / {total}
-        </span>
-      </div>
-      <div className="mt-3">
-        <Progress value={(value / total) * 100} />
-      </div>
-    </div>
-  );
-}
-
-function StepItem({ step, title, text }) {
-  return (
-    <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-        {step}
-      </div>
-      <div>
-        <p className="font-medium text-slate-900">{title}</p>
-        <p className="mt-1 leading-6 text-slate-600">{text}</p>
-      </div>
-    </div>
-  );
-}
-
 async function callTool(toolName, args) {
   const response = await fetch(`${API_BASE}/tools/${toolName}`, {
     method: "POST",
@@ -578,6 +743,105 @@ async function callTool(toolName, args) {
   }
 
   return payload.result;
+}
+
+async function scanTickerLive(symbol, expiration) {
+  const expirations = await callTool("get_option_expirations", { symbol });
+
+  const availableExpirations =
+    expirations?.availableExpirations ||
+    expirations?.expirationDates ||
+    expirations?.expirations ||
+    [];
+
+  if (!availableExpirations.includes(expiration)) {
+    return null;
+  }
+
+  const [quote, expectedMove, optionChain] = await Promise.all([
+    callTool("get_quote", { symbol }),
+    callTool("get_expected_move", { symbol, expiration }),
+    callTool("get_option_chain", { symbol, expiration }),
+  ]);
+
+  const price =
+    quote?.regularMarketPrice ??
+    quote?.currentPrice ??
+    optionChain?.currentPrice ??
+    expectedMove?.currentPrice ??
+    0;
+
+  const expectedMoveAbs = Number(expectedMove?.expectedMove ?? 0);
+  const hasEarnings = EARNINGS_SYMBOLS.has(symbol);
+  const adjustedMove = hasEarnings ? expectedMoveAbs * 2 : expectedMoveAbs;
+  const lowerBound = price - adjustedMove;
+
+  const dteDays = getDteDays(expiration);
+  const puts = Array.isArray(optionChain?.puts) ? optionChain.puts : [];
+
+  const strikeSelection =
+    puts.length > 0 && lowerBound > 0 && price > 0
+      ? selectPutStrikes({
+          puts,
+          spot: price,
+          lowerBoundForSelection: lowerBound,
+        })
+      : {
+          eligible: [],
+          safeZone: [],
+          safeCandidates: [],
+          targetPremium: minPremiumForSpot(price),
+          safeStrike: null,
+          aggressiveStrike: null,
+          maxPremiumStrike: null,
+          safeStrikeFloor: 0,
+        };
+
+  const safe = strikeSelection.safeStrike;
+  const aggressive = strikeSelection.aggressiveStrike;
+  const targetPremium = strikeSelection.targetPremium ?? minPremiumForSpot(price);
+
+  function normalizeStrike(strikeRow) {
+    if (!strikeRow) return null;
+    const premium = Number(strikeRow.mid ?? 0);
+    const weekly = premium > 0 && strikeRow.strike > 0
+      ? (premium / strikeRow.strike) * (7 / dteDays)
+      : 0;
+
+    return {
+      symbol,
+      strike: strikeRow.strike,
+      premium: round(premium, 3),
+      distancePct: round(Math.abs(strikeRow.distancePct) / 100, 4),
+      weeklyYield: round(weekly, 4),
+      annualizedYield: round(weekly * 52, 4),
+      lowerBound: round(lowerBound, 3),
+      distanceToTarget: round(Math.abs(premium - targetPremium), 4),
+    };
+  }
+
+  const normalizedSafe = normalizeStrike(safe);
+  const normalizedAggressive = normalizeStrike(aggressive);
+
+  const passesFilter =
+    !!normalizedSafe &&
+    (normalizedSafe.premium ?? 0) >= targetPremium &&
+    (normalizedSafe.annualizedYield ?? 0) >= 0.26;
+
+  return {
+    symbol,
+    expiration,
+    hasEarnings,
+    currentPrice: round(price, 3),
+    expectedMove: round(expectedMoveAbs, 3),
+    adjustedMove: round(adjustedMove, 3),
+    lowerBound: round(lowerBound, 3),
+    dteDays,
+    targetPremium: round(targetPremium, 3),
+    safeStrike: normalizedSafe,
+    maxPremiumStrike: normalizedAggressive,
+    passesFilter,
+  };
 }
 
 function DetailModal({ item, onClose }) {
@@ -599,14 +863,29 @@ function DetailModal({ item, onClose }) {
         const quote = await callTool("get_quote", { symbol: item.ticker });
         const expirations = await callTool("get_option_expirations", { symbol: item.ticker });
 
-        const firstExpiration = expirations?.expirationDates?.[0] || null;
+        const availableExpirations =
+          expirations?.availableExpirations ||
+          expirations?.expirationDates ||
+          expirations?.expirations ||
+          [];
+
+        const selectedExpiration = pickTargetExpiration(
+          availableExpirations,
+          item.targetExpiration
+        );
 
         let expectedMove = null;
+        let optionChain = null;
 
-        if (firstExpiration) {
+        if (selectedExpiration) {
           expectedMove = await callTool("get_expected_move", {
             symbol: item.ticker,
-            expiration: firstExpiration,
+            expiration: selectedExpiration,
+          });
+
+          optionChain = await callTool("get_option_chain", {
+            symbol: item.ticker,
+            expiration: selectedExpiration,
           });
         }
 
@@ -614,8 +893,9 @@ function DetailModal({ item, onClose }) {
           setLiveData({
             quote,
             expirations,
-            firstExpiration,
+            firstExpiration: selectedExpiration,
             expectedMove,
+            optionChain,
           });
         }
       } catch (err) {
@@ -643,15 +923,60 @@ function DetailModal({ item, onClose }) {
 
   if (!item) return null;
 
-  const livePrice = liveData?.quote?.regularMarketPrice ?? item.price;
-  const liveExpectedMovePct = liveData?.expectedMove?.expectedMovePercent ?? item.expectedMovePct;
-  const liveLow = liveData?.expectedMove?.oneSigmaRange?.lower ?? item.expectedMoveLow;
-  const liveHigh = liveData?.expectedMove?.oneSigmaRange?.upper ?? item.expectedMoveHigh;
+  const livePrice =
+    liveData?.quote?.regularMarketPrice ??
+    liveData?.quote?.currentPrice ??
+    item.price;
+
+  const liveExpectedMovePct =
+    liveData?.expectedMove?.expectedMovePercent ??
+    item.expectedMovePct;
+
+  const liveLow =
+    liveData?.expectedMove?.oneSigmaRange?.lower ??
+    item.expectedMoveLow;
+
+  const liveHigh =
+    liveData?.expectedMove?.oneSigmaRange?.upper ??
+    item.expectedMoveHigh;
+
+  const adjustedMovePct = item.earningsMode
+    ? liveExpectedMovePct * (item.expectedMoveMultiplier || 1)
+    : liveExpectedMovePct;
+
+  const lowerBoundForSelection =
+    item.earningsMode && livePrice > 0
+      ? livePrice * (1 - adjustedMovePct / 100)
+      : liveLow;
+
+  const normalizedPuts = Array.isArray(liveData?.optionChain?.puts) ? liveData.optionChain.puts : [];
+  const strikeSelection =
+    normalizedPuts.length > 0 && lowerBoundForSelection > 0 && livePrice > 0
+      ? selectPutStrikes({
+          puts: normalizedPuts,
+          spot: livePrice,
+          lowerBoundForSelection,
+        })
+      : {
+          eligible: [],
+          safeZone: [],
+          safeCandidates: [],
+          targetPremium: minPremiumForSpot(livePrice),
+          safeStrike: null,
+          aggressiveStrike: null,
+          maxPremiumStrike: null,
+          safeStrikeFloor: 0,
+        };
+
+  const safeStrike = strikeSelection.safeStrike;
+  const aggressiveStrike = strikeSelection.aggressiveStrike;
+  const displayedLowForSelection = lowerBoundForSelection > 0 ? lowerBoundForSelection : liveLow;
+  const minPremiumHint = strikeSelection.targetPremium ?? minPremiumForSpot(livePrice);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+    <div className="fixed inset-0 z-50 bg-black/40 p-4">
+      <div className="mx-auto flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">
               {item.ticker} — {item.name}
@@ -662,13 +987,13 @@ function DetailModal({ item, onClose }) {
             <Button variant="outline" size="icon" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={onClose}>
+            <Button variant="outline" size="icon" onClick={onClose} aria-label="Fermer">
               <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="space-y-6 px-6 py-5">
+        <div className="flex-1 overflow-y-auto space-y-6 px-6 py-5">
           {loading && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               Chargement des données live...
@@ -693,7 +1018,7 @@ function DetailModal({ item, onClose }) {
               label="Mouvement attendu"
               value={
                 item.earningsMode
-                  ? `${Number(liveExpectedMovePct || 0).toFixed(2)}% → ${(Number(liveExpectedMovePct || 0) * (item.expectedMoveMultiplier || 1)).toFixed(2)}%`
+                  ? `${Number(liveExpectedMovePct || 0).toFixed(2)}% → ${Number(adjustedMovePct || 0).toFixed(2)}%`
                   : `${Number(liveExpectedMovePct || 0).toFixed(2)}%`
               }
               strong
@@ -702,55 +1027,58 @@ function DetailModal({ item, onClose }) {
             <Metric label="Prix plus bas" value={`$${Number(liveLow || 0).toFixed(2)}`} strong tone="bad" />
             <Metric label="Prix supérieur" value={`$${Number(liveHigh || 0).toFixed(2)}`} strong tone="good" />
             <Metric label="Expiration" value={liveData?.firstExpiration || "—"} />
-            <Metric label="RSI" value={`${item.rsi}`} />
+            <Metric label="Prime cible safe" value={`$${Number(minPremiumHint || 0).toFixed(2)}`} />
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-900">Résumé</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{item.note}</p>
-            {item.earningsMode && (
-              <p className="mt-3 text-sm text-violet-700">
-                Mode earnings x{item.expectedMoveMultiplier || 2} conservé dans le modal.
-              </p>
-            )}
+            <p className="mt-2 text-sm text-slate-600">
+              Borne basse utilisée :{" "}
+              <span className="font-semibold text-rose-700">
+                ${Number(displayedLowForSelection || 0).toFixed(2)}
+              </span>
+              {" "}· cible safe :{" "}
+              <span className="font-semibold">${Number(minPremiumHint || 0).toFixed(2)}</span>
+              {" "}· zone safe mini strike :{" "}
+              <span className="font-semibold">${Number(strikeSelection.safeStrikeFloor || 0).toFixed(2)}</span>
+            </p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            {item.safeStrike ? (
+            {safeStrike ? (
               <StrikeCard
-                title="Strike sécuritaire"
-                subtitle="le plus prudent qui atteint la prime cible"
-                strike={item.safeStrike.strike}
-                mid={item.safeStrike.mid}
-                weeklyYield={item.safeStrike.weeklyYield}
-                annualizedYield={item.safeStrike.annualizedYield}
-                distancePct={
-                  livePrice > 0 ? ((item.safeStrike.strike - livePrice) / livePrice) * 100 : 0
-                }
-                label={item.safeStrike.label}
+                title="Strike safe live"
+                subtitle="prime la plus proche de la cible minimale"
+                strike={safeStrike.strike}
+                mid={safeStrike.mid}
+                weeklyYield={safeStrike.weeklyYield}
+                annualizedYield={safeStrike.annualizedYield}
+                distancePct={safeStrike.distancePct}
+                label="safe strike"
+                meetsTarget={safeStrike.mid >= minPremiumHint}
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-                Aucun strike sécuritaire disponible.
+                Aucun strike safe live ne paie la prime minimale cible dans la zone proche de la borne basse.
               </div>
             )}
 
-            {item.maxPremiumStrike ? (
+            {aggressiveStrike ? (
               <StrikeCard
-                title="Strike max prime"
-                subtitle="le plus haut strike admissible sous la borne basse"
-                strike={item.maxPremiumStrike.strike}
-                mid={item.maxPremiumStrike.mid}
-                weeklyYield={item.maxPremiumStrike.weeklyYield}
-                annualizedYield={item.maxPremiumStrike.annualizedYield}
-                distancePct={
-                  livePrice > 0 ? ((item.maxPremiumStrike.strike - livePrice) / livePrice) * 100 : 0
-                }
-                label={item.maxPremiumStrike.label}
+                title="Strike agressif live"
+                subtitle="directement sous la borne basse"
+                strike={aggressiveStrike.strike}
+                mid={aggressiveStrike.mid}
+                weeklyYield={aggressiveStrike.weeklyYield}
+                annualizedYield={aggressiveStrike.annualizedYield}
+                distancePct={aggressiveStrike.distancePct}
+                label="aggressive strike"
+                meetsTarget={aggressiveStrike.mid >= minPremiumHint}
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-                Aucun strike max prime disponible.
+                Aucun strike agressif live disponible.
               </div>
             )}
           </div>
@@ -760,23 +1088,112 @@ function DetailModal({ item, onClose }) {
   );
 }
 
+function PortfolioCombos({ combos, capital }) {
+  if (!combos.length) {
+    return (
+      <Card className="rounded-[28px] border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+            Pas assez de données pour générer des combinaisons.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="rounded-[28px] border-slate-200 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {combos.map((combo) => (
+          <div key={combo.label} className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-base font-semibold text-slate-900">{combo.label}</p>
+                <p className="text-sm text-slate-500">
+                  {combo.positions} positions · Capital {combo.totalCapital.toFixed(0)}$ ({combo.capitalPct.toFixed(0)}%) · Rend. moy ~{combo.avgWeeklyReturn.toFixed(2)}%
+                </p>
+              </div>
+              <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
+                Libre {combo.freeCapital.toFixed(0)}$
+              </Badge>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {combo.picks.map((pick) => (
+                <div
+                  key={`${combo.label}-${pick.ticker}`}
+                  className="grid grid-cols-5 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
+                >
+                  <div className="font-semibold text-slate-900">{pick.ticker}</div>
+                  <div>PUT {pick.strike}$</div>
+                  <div>×{pick.contracts}</div>
+                  <div>{pick.capitalUsed.toFixed(0)}$</div>
+                  <div>{pick.weeklyReturn.toFixed(2)}%</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 text-sm text-slate-600">
+              Prime totale estimée :{" "}
+              <span className="font-semibold text-slate-900">
+                {combo.picks.reduce((sum, p) => sum + p.premiumCollected, 0).toFixed(0)}$
+              </span>
+              {" "}· Capital du compte :{" "}
+              <span className="font-semibold text-slate-900">{capital.toFixed(0)}$</span>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [selectedItem, setSelectedItem] = useState(null);
 
+  const [selectedExpiration, setSelectedExpiration] = useState("2026-04-24");
+  const [topN, setTopN] = useState(10);
+  const [capital, setCapital] = useState(25500);
+  const [maxCapitalPct, setMaxCapitalPct] = useState(70);
+  const [maxPositions, setMaxPositions] = useState(3);
+
+  const [liveShortlist, setLiveShortlist] = useState(null);
+  const [loadingScan, setLoadingScan] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [scanProgress, setScanProgress] = useState({ done: 0, total: SOURCE_TICKERS.length });
+
+  const snapshotCandidates = useMemo(() => {
+    return wheelShortlist
+      .slice()
+      .sort((a, b) => {
+        const aYield = a?.safeStrike?.annualizedYield ?? 0;
+        const bYield = b?.safeStrike?.annualizedYield ?? 0;
+        return bYield - aYield;
+      })
+      .map((item, index) => toDashboardCandidate(item, index, selectedExpiration));
+  }, [selectedExpiration]);
+
+  const activeCandidates = useMemo(() => {
+    const source = Array.isArray(liveShortlist) && liveShortlist.length > 0
+      ? liveShortlist
+      : snapshotCandidates;
+
+    return source.slice(0, topN).map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
+  }, [liveShortlist, snapshotCandidates, topN]);
+
   const filtered = useMemo(() => {
-    return candidates.filter((item) => {
-      const passesYieldFilter = item.weeklyReturn >= 0.5;
-      const passesAnnualizedFilter =
-        (item.safeStrike && item.safeStrike.annualizedYield >= 26) ||
-        (item.maxPremiumStrike && item.maxPremiumStrike.annualizedYield >= 26) ||
-        item.weeklyReturn * 52 >= 26;
-
-      const passesDashboardGate = item.earningsMode
-        ? true
-        : passesYieldFilter && passesAnnualizedFilter;
-
+    return activeCandidates.filter((item) => {
       const matchesQuery =
         item.ticker.toLowerCase().includes(query.toLowerCase()) ||
         item.name.toLowerCase().includes(query.toLowerCase());
@@ -788,9 +1205,61 @@ export default function Dashboard() {
           ? item.ok
           : item.verdict === filter;
 
-      return passesDashboardGate && matchesQuery && matchesFilter;
+      return matchesQuery && matchesFilter;
     });
-  }, [query, filter]);
+  }, [activeCandidates, query, filter]);
+
+  const combos = useMemo(() => {
+    return buildPortfolioCombos(filtered, Number(capital), Number(maxCapitalPct), Number(maxPositions));
+  }, [filtered, capital, maxCapitalPct, maxPositions]);
+
+  const stats = useMemo(
+    () => [
+      { title: "Watchlist", value: String(SOURCE_TICKERS.length), sub: "tickers source", icon: Search },
+      { title: "Shortlist", value: String(filtered.length), sub: `top ${topN} affichés`, icon: ShieldCheck },
+      { title: "Expiration", value: selectedExpiration, sub: "sélection UI", icon: CalendarDays },
+      { title: "Objectif", value: "0.5%", sub: "prime mini sur spot", icon: Target },
+    ],
+    [filtered.length, selectedExpiration, topN]
+  );
+
+  async function handleRefreshShortlist() {
+    setLoadingScan(true);
+    setScanError("");
+    setScanProgress({ done: 0, total: SOURCE_TICKERS.length });
+
+    const next = [];
+
+    try {
+      for (let i = 0; i < SOURCE_TICKERS.length; i += 1) {
+        const symbol = SOURCE_TICKERS[i];
+
+        try {
+          const scanned = await scanTickerLive(symbol, selectedExpiration);
+          if (scanned && scanned.passesFilter) {
+            next.push(scanned);
+          }
+        } catch (e) {
+          // ignore individuel
+        }
+
+        setScanProgress({ done: i + 1, total: SOURCE_TICKERS.length });
+      }
+
+      next.sort((a, b) => {
+        const aYield = a?.safeStrike?.annualizedYield ?? 0;
+        const bYield = b?.safeStrike?.annualizedYield ?? 0;
+        return bYield - aYield;
+      });
+
+      const mapped = next.map((item, index) => toDashboardCandidate(item, index, selectedExpiration));
+      setLiveShortlist(mapped);
+    } catch (e) {
+      setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
+    } finally {
+      setLoadingScan(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -804,23 +1273,116 @@ export default function Dashboard() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
                 <Layers3 className="h-3.5 w-3.5" />
-                Wheel Strategy Dashboard — live-ready modal
+                Wheel Strategy Dashboard — snapshot + live refresh
               </div>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
                 Dashboard options lisible, premium et actionnable
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
-                Dashboard frontend séparé du backend. Le modal tente de charger les données live sans toucher à server.js.
+                Safe = prime la plus proche de spot × 0.5% dans une zone proche de la borne basse. Agressif = strike directement sous la borne basse.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:w-[560px]">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:w-[640px]">
               {stats.map((item) => (
                 <StatCard key={item.title} item={item} />
               ))}
             </div>
           </div>
         </motion.div>
+
+        <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Expiration</label>
+            <Select
+              value={selectedExpiration}
+              onChange={(e) => setSelectedExpiration(e.target.value)}
+              className="w-full rounded-xl border-slate-200"
+            >
+              {DEFAULT_EXPIRATIONS.map((exp) => (
+                <option key={exp} value={exp}>
+                  {exp}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Top candidats</label>
+            <Input
+              type="number"
+              min="1"
+              max="50"
+              value={topN}
+              onChange={(e) => setTopN(Number(e.target.value || 1))}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Capital compte</label>
+            <Input
+              type="number"
+              min="1000"
+              step="100"
+              value={capital}
+              onChange={(e) => setCapital(Number(e.target.value || 0))}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">% max utilisé</label>
+            <Input
+              type="number"
+              min="10"
+              max="100"
+              value={maxCapitalPct}
+              onChange={(e) => setMaxCapitalPct(Number(e.target.value || 0))}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Nb max positions</label>
+            <Input
+              type="number"
+              min="1"
+              max="10"
+              value={maxPositions}
+              onChange={(e) => setMaxPositions(Number(e.target.value || 1))}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <Button
+              className="w-full rounded-xl"
+              onClick={handleRefreshShortlist}
+              disabled={loadingScan}
+            >
+              Refresh shortlist <RefreshCw className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {loadingScan && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between text-sm text-slate-700">
+              <span>Scan live en cours...</span>
+              <span>{scanProgress.done} / {scanProgress.total}</span>
+            </div>
+            <div className="mt-3">
+              <Progress value={(scanProgress.done / Math.max(1, scanProgress.total)) * 100} />
+            </div>
+          </div>
+        )}
+
+        {scanError && (
+          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+            {scanError}
+          </div>
+        )}
 
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
           <div className="space-y-6">
@@ -830,7 +1392,7 @@ export default function Dashboard() {
                   <div>
                     <CardTitle className="text-xl text-slate-900">Shortlist hebdomadaire</CardTitle>
                     <p className="mt-1 text-sm text-slate-500">
-                      Les dossiers standards doivent passer 0.5% / semaine et 26% annualisé. Les cas earnings x2 restent visibles avec leur règle spéciale.
+                      Snapshot au chargement. Après refresh, shortlist live recalculée sur {SOURCE_TICKERS.length} tickers source.
                     </p>
                   </div>
 
@@ -883,6 +1445,8 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+
+            <PortfolioCombos combos={combos} capital={Number(capital)} />
           </div>
 
           <div className="space-y-6">
@@ -899,7 +1463,7 @@ export default function Dashboard() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="font-medium text-slate-900">Lecture rapide</p>
                   <p className="mt-2 leading-6">
-                    On garde le dashboard stable et on branche le live uniquement dans le modal pour réduire le risque.
+                    Le strike safe est maintenant filtré dans une zone proche de la borne basse pour éviter les strikes absurdes trop éloignés.
                   </p>
                 </div>
 
@@ -907,6 +1471,14 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Candidats affichés</span>
                     <span className="font-semibold text-slate-900">{filtered.length}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-slate-500">Tickers source</span>
+                    <span className="font-semibold text-slate-900">{SOURCE_TICKERS.length}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-slate-500">Capital compte</span>
+                    <span className="font-semibold text-slate-900">${Number(capital).toFixed(0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -920,21 +1492,41 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-slate-600">
-                <StepItem
-                  step="1"
-                  title="Dashboard lecture rapide"
-                  text="On garde ton backend intact et on améliore uniquement la présentation."
-                />
-                <StepItem
-                  step="2"
-                  title="Modal live"
-                  text="Le live est tenté uniquement à l’ouverture du détail."
-                />
-                <StepItem
-                  step="3"
-                  title="Brancher les strikes live"
-                  text="Ensuite seulement, on remplacera progressivement les mocks."
-                />
+                <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Top N réel</p>
+                    <p className="mt-1 leading-6 text-slate-600">
+                      Après refresh, le top 10 ou top 15 fonctionne sur la vraie shortlist live recalculée.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Combinaisons capital</p>
+                    <p className="mt-1 leading-6 text-slate-600">
+                      Les paniers se recalculent automatiquement sur la shortlist active.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Filtre pratique</p>
+                    <p className="mt-1 leading-6 text-slate-600">
+                      Le strike safe est cherché près de la borne basse pour éviter les quotes lointaines peu utiles.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

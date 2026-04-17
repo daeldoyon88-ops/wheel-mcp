@@ -1,0 +1,1647 @@
+[
+  {
+    "symbol": "AAPL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 263.59,
+    "expectedMove": 7.88,
+    "adjustedMove": 7.88,
+    "lowerBound": 255.71,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "AAPL",
+      "strike": 255,
+      "premium": 0.95,
+      "distancePct": 0.0326,
+      "weeklyYield": 0.0033,
+      "annualizedYield": 0.1695,
+      "lowerBound": 255.71
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "ABT",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 95.92,
+    "expectedMove": 2.525,
+    "adjustedMove": 2.525,
+    "lowerBound": 93.395,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "ABT",
+      "strike": 93,
+      "premium": 0.4,
+      "distancePct": 0.0304,
+      "weeklyYield": 0.0038,
+      "annualizedYield": 0.1957,
+      "lowerBound": 93.395
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "AFRM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 60.09,
+    "expectedMove": 4.86,
+    "adjustedMove": 4.86,
+    "lowerBound": 55.23,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "AFRM",
+      "strike": 55,
+      "premium": 0.71,
+      "distancePct": 0.0847,
+      "weeklyYield": 0.0113,
+      "annualizedYield": 0.5874,
+      "lowerBound": 55.23
+    },
+    "maxPremiumStrike": {
+      "symbol": "AFRM",
+      "strike": 55,
+      "premium": 0.71,
+      "distancePct": 0.0847,
+      "weeklyYield": 0.0113,
+      "annualizedYield": 0.5874,
+      "lowerBound": 55.23
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "AMD",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 275.518,
+    "expectedMove": 17.8,
+    "adjustedMove": 17.8,
+    "lowerBound": 257.718,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "AMD",
+      "strike": 257.5,
+      "premium": 2.935,
+      "distancePct": 0.0654,
+      "weeklyYield": 0.01,
+      "annualizedYield": 0.5186,
+      "lowerBound": 257.718
+    },
+    "maxPremiumStrike": {
+      "symbol": "AMD",
+      "strike": 257.5,
+      "premium": 2.935,
+      "distancePct": 0.0654,
+      "weeklyYield": 0.01,
+      "annualizedYield": 0.5186,
+      "lowerBound": 257.718
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "AMZN",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 248.92,
+    "expectedMove": 8.675,
+    "adjustedMove": 8.675,
+    "lowerBound": 240.245,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "AMZN",
+      "strike": 240,
+      "premium": 1.33,
+      "distancePct": 0.0358,
+      "weeklyYield": 0.0048,
+      "annualizedYield": 0.2521,
+      "lowerBound": 240.245
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "AVGO",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 398.67,
+    "expectedMove": 20.175,
+    "adjustedMove": 20.175,
+    "lowerBound": 378.495,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "AVGO",
+      "strike": 375,
+      "premium": 2.59,
+      "distancePct": 0.0594,
+      "weeklyYield": 0.006,
+      "annualizedYield": 0.3143,
+      "lowerBound": 378.495
+    },
+    "maxPremiumStrike": {
+      "symbol": "AVGO",
+      "strike": 375,
+      "premium": 2.59,
+      "distancePct": 0.0594,
+      "weeklyYield": 0.006,
+      "annualizedYield": 0.3143,
+      "lowerBound": 378.495
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "BAC",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 53.67,
+    "expectedMove": 1.525,
+    "adjustedMove": 1.525,
+    "lowerBound": 52.145,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "BAC",
+      "strike": 52,
+      "premium": 0.235,
+      "distancePct": 0.0311,
+      "weeklyYield": 0.004,
+      "annualizedYield": 0.2056,
+      "lowerBound": 52.145
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "BITX",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 17.98,
+    "expectedMove": 1.82,
+    "adjustedMove": 1.82,
+    "lowerBound": 16.16,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "BITX",
+      "strike": 16,
+      "premium": 0.235,
+      "distancePct": 0.1101,
+      "weeklyYield": 0.0129,
+      "annualizedYield": 0.6683,
+      "lowerBound": 16.16
+    },
+    "maxPremiumStrike": {
+      "symbol": "BITX",
+      "strike": 16,
+      "premium": 0.235,
+      "distancePct": 0.1101,
+      "weeklyYield": 0.0129,
+      "annualizedYield": 0.6683,
+      "lowerBound": 16.16
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "CF",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 124.21,
+    "expectedMove": 8,
+    "adjustedMove": 8,
+    "lowerBound": 116.21,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "CF",
+      "strike": 116,
+      "premium": 1.125,
+      "distancePct": 0.0661,
+      "weeklyYield": 0.0085,
+      "annualizedYield": 0.4413,
+      "lowerBound": 116.21
+    },
+    "maxPremiumStrike": {
+      "symbol": "CF",
+      "strike": 116,
+      "premium": 1.125,
+      "distancePct": 0.0661,
+      "weeklyYield": 0.0085,
+      "annualizedYield": 0.4413,
+      "lowerBound": 116.21
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "CSX",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 42.665,
+    "expectedMove": 2,
+    "adjustedMove": 2,
+    "lowerBound": 40.665,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "CSX",
+      "strike": 40.5,
+      "premium": 0.325,
+      "distancePct": 0.0507,
+      "weeklyYield": 0.007,
+      "annualizedYield": 0.3651,
+      "lowerBound": 40.665
+    },
+    "maxPremiumStrike": {
+      "symbol": "CSX",
+      "strike": 40.5,
+      "premium": 0.325,
+      "distancePct": 0.0507,
+      "weeklyYield": 0.007,
+      "annualizedYield": 0.3651,
+      "lowerBound": 40.665
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "CVS",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 76.38,
+    "expectedMove": 2.875,
+    "adjustedMove": 2.875,
+    "lowerBound": 73.505,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "CVS",
+      "strike": 73,
+      "premium": 0.485,
+      "distancePct": 0.0443,
+      "weeklyYield": 0.0058,
+      "annualizedYield": 0.3023,
+      "lowerBound": 73.505
+    },
+    "maxPremiumStrike": {
+      "symbol": "CVS",
+      "strike": 73,
+      "premium": 0.485,
+      "distancePct": 0.0443,
+      "weeklyYield": 0.0058,
+      "annualizedYield": 0.3023,
+      "lowerBound": 73.505
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "DECK",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 108.37,
+    "expectedMove": 5.05,
+    "adjustedMove": 5.05,
+    "lowerBound": 103.32,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "DECK",
+      "strike": 103,
+      "premium": 0.75,
+      "distancePct": 0.0496,
+      "weeklyYield": 0.0064,
+      "annualizedYield": 0.3313,
+      "lowerBound": 103.32
+    },
+    "maxPremiumStrike": {
+      "symbol": "DECK",
+      "strike": 103,
+      "premium": 0.75,
+      "distancePct": 0.0496,
+      "weeklyYield": 0.0064,
+      "annualizedYield": 0.3313,
+      "lowerBound": 103.32
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "DELL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 192.935,
+    "expectedMove": 10.95,
+    "adjustedMove": 10.95,
+    "lowerBound": 181.985,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "DELL",
+      "strike": 180,
+      "premium": 1.765,
+      "distancePct": 0.067,
+      "weeklyYield": 0.0086,
+      "annualizedYield": 0.4462,
+      "lowerBound": 181.985
+    },
+    "maxPremiumStrike": {
+      "symbol": "DELL",
+      "strike": 180,
+      "premium": 1.765,
+      "distancePct": 0.067,
+      "weeklyYield": 0.0086,
+      "annualizedYield": 0.4462,
+      "lowerBound": 181.985
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "DOCU",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 46.06,
+    "expectedMove": 3.02,
+    "adjustedMove": 3.02,
+    "lowerBound": 43.04,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "DOCU",
+      "strike": 43,
+      "premium": 0.45,
+      "distancePct": 0.0664,
+      "weeklyYield": 0.0092,
+      "annualizedYield": 0.4762,
+      "lowerBound": 43.04
+    },
+    "maxPremiumStrike": {
+      "symbol": "DOCU",
+      "strike": 43,
+      "premium": 0.45,
+      "distancePct": 0.0664,
+      "weeklyYield": 0.0092,
+      "annualizedYield": 0.4762,
+      "lowerBound": 43.04
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "DUOL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 103.38,
+    "expectedMove": 9.3,
+    "adjustedMove": 9.3,
+    "lowerBound": 94.08,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "DUOL",
+      "strike": 94,
+      "premium": 0.975,
+      "distancePct": 0.0907,
+      "weeklyYield": 0.0091,
+      "annualizedYield": 0.4719,
+      "lowerBound": 94.08
+    },
+    "maxPremiumStrike": {
+      "symbol": "DUOL",
+      "strike": 94,
+      "premium": 0.975,
+      "distancePct": 0.0907,
+      "weeklyYield": 0.0091,
+      "annualizedYield": 0.4719,
+      "lowerBound": 94.08
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "DXCM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 61.34,
+    "expectedMove": 2.45,
+    "adjustedMove": 2.45,
+    "lowerBound": 58.89,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "DXCM",
+      "strike": 58,
+      "premium": 0.475,
+      "distancePct": 0.0545,
+      "weeklyYield": 0.0072,
+      "annualizedYield": 0.3726,
+      "lowerBound": 58.89
+    },
+    "maxPremiumStrike": {
+      "symbol": "DXCM",
+      "strike": 58,
+      "premium": 0.475,
+      "distancePct": 0.0545,
+      "weeklyYield": 0.0072,
+      "annualizedYield": 0.3726,
+      "lowerBound": 58.89
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "EXPE",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 253.78,
+    "expectedMove": 15.3,
+    "adjustedMove": 15.3,
+    "lowerBound": 238.48,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "EXPE",
+      "strike": 237.5,
+      "premium": 1.675,
+      "distancePct": 0.0642,
+      "weeklyYield": 0.0062,
+      "annualizedYield": 0.3209,
+      "lowerBound": 238.48
+    },
+    "maxPremiumStrike": {
+      "symbol": "EXPE",
+      "strike": 237.5,
+      "premium": 1.675,
+      "distancePct": 0.0642,
+      "weeklyYield": 0.0062,
+      "annualizedYield": 0.3209,
+      "lowerBound": 238.48
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "F",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 12.49,
+    "expectedMove": 0.445,
+    "adjustedMove": 0.445,
+    "lowerBound": 12.045,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "F",
+      "strike": 12,
+      "premium": 0.075,
+      "distancePct": 0.0392,
+      "weeklyYield": 0.0055,
+      "annualizedYield": 0.2844,
+      "lowerBound": 12.045
+    },
+    "maxPremiumStrike": {
+      "symbol": "F",
+      "strike": 12,
+      "premium": 0.075,
+      "distancePct": 0.0392,
+      "weeklyYield": 0.0055,
+      "annualizedYield": 0.2844,
+      "lowerBound": 12.045
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "FSLR",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 189.81,
+    "expectedMove": 11.3,
+    "adjustedMove": 11.3,
+    "lowerBound": 178.51,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "FSLR",
+      "strike": 177.5,
+      "premium": 1.23,
+      "distancePct": 0.0649,
+      "weeklyYield": 0.0061,
+      "annualizedYield": 0.3153,
+      "lowerBound": 178.51
+    },
+    "maxPremiumStrike": {
+      "symbol": "FSLR",
+      "strike": 177.5,
+      "premium": 1.23,
+      "distancePct": 0.0649,
+      "weeklyYield": 0.0061,
+      "annualizedYield": 0.3153,
+      "lowerBound": 178.51
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "GM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 77.68,
+    "expectedMove": 3.115,
+    "adjustedMove": 3.115,
+    "lowerBound": 74.565,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "GM",
+      "strike": 74,
+      "premium": 0.485,
+      "distancePct": 0.0474,
+      "weeklyYield": 0.0057,
+      "annualizedYield": 0.2982,
+      "lowerBound": 74.565
+    },
+    "maxPremiumStrike": {
+      "symbol": "GM",
+      "strike": 74,
+      "premium": 0.485,
+      "distancePct": 0.0474,
+      "weeklyYield": 0.0057,
+      "annualizedYield": 0.2982,
+      "lowerBound": 74.565
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "GOOGL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 335.33,
+    "expectedMove": 12.2,
+    "adjustedMove": 12.2,
+    "lowerBound": 323.13,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "GOOGL",
+      "strike": 322.5,
+      "premium": 1.885,
+      "distancePct": 0.0383,
+      "weeklyYield": 0.0051,
+      "annualizedYield": 0.2659,
+      "lowerBound": 323.13
+    },
+    "maxPremiumStrike": {
+      "symbol": "GOOGL",
+      "strike": 322.5,
+      "premium": 1.885,
+      "distancePct": 0.0383,
+      "weeklyYield": 0.0051,
+      "annualizedYield": 0.2659,
+      "lowerBound": 323.13
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "HIMS",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 27.45,
+    "expectedMove": 3.475,
+    "adjustedMove": 3.475,
+    "lowerBound": 23.975,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "HIMS",
+      "strike": 23.5,
+      "premium": 0.37,
+      "distancePct": 0.1439,
+      "weeklyYield": 0.0138,
+      "annualizedYield": 0.7164,
+      "lowerBound": 23.975
+    },
+    "maxPremiumStrike": {
+      "symbol": "HIMS",
+      "strike": 23.5,
+      "premium": 0.37,
+      "distancePct": 0.1439,
+      "weeklyYield": 0.0138,
+      "annualizedYield": 0.7164,
+      "lowerBound": 23.975
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "HOOD",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 86.83,
+    "expectedMove": 6.7,
+    "adjustedMove": 6.7,
+    "lowerBound": 80.13,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "HOOD",
+      "strike": 80,
+      "premium": 0.975,
+      "distancePct": 0.0787,
+      "weeklyYield": 0.0107,
+      "annualizedYield": 0.5545,
+      "lowerBound": 80.13
+    },
+    "maxPremiumStrike": {
+      "symbol": "HOOD",
+      "strike": 80,
+      "premium": 0.975,
+      "distancePct": 0.0787,
+      "weeklyYield": 0.0107,
+      "annualizedYield": 0.5545,
+      "lowerBound": 80.13
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "IBKR",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 79.37,
+    "expectedMove": 4.725,
+    "adjustedMove": 4.725,
+    "lowerBound": 74.645,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "IBKR",
+      "strike": 74,
+      "premium": 0.8,
+      "distancePct": 0.0677,
+      "weeklyYield": 0.0095,
+      "annualizedYield": 0.4919,
+      "lowerBound": 74.645
+    },
+    "maxPremiumStrike": {
+      "symbol": "IBKR",
+      "strike": 74,
+      "premium": 0.8,
+      "distancePct": 0.0677,
+      "weeklyYield": 0.0095,
+      "annualizedYield": 0.4919,
+      "lowerBound": 74.645
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "INCY",
+    "skipped": true,
+    "reason": "expiration 2026-04-24 not available"
+  },
+  {
+    "symbol": "KMI",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 31.775,
+    "expectedMove": 1.12,
+    "adjustedMove": 1.12,
+    "lowerBound": 30.655,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "KMI",
+      "strike": 30.5,
+      "premium": 0.17,
+      "distancePct": 0.0401,
+      "weeklyYield": 0.0049,
+      "annualizedYield": 0.2536,
+      "lowerBound": 30.655
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "KO",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 75.235,
+    "expectedMove": 1.665,
+    "adjustedMove": 1.665,
+    "lowerBound": 73.57,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "KO",
+      "strike": 73,
+      "premium": 0.2,
+      "distancePct": 0.0297,
+      "weeklyYield": 0.0024,
+      "annualizedYield": 0.1247,
+      "lowerBound": 73.57
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "LVS",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 56.62,
+    "expectedMove": 4.495,
+    "adjustedMove": 4.495,
+    "lowerBound": 52.125,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "LVS",
+      "strike": 52,
+      "premium": 0.755,
+      "distancePct": 0.0816,
+      "weeklyYield": 0.0127,
+      "annualizedYield": 0.6606,
+      "lowerBound": 52.125
+    },
+    "maxPremiumStrike": {
+      "symbol": "LVS",
+      "strike": 52,
+      "premium": 0.755,
+      "distancePct": 0.0816,
+      "weeklyYield": 0.0127,
+      "annualizedYield": 0.6606,
+      "lowerBound": 52.125
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "MRVL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 133.82,
+    "expectedMove": 9.625,
+    "adjustedMove": 9.625,
+    "lowerBound": 124.195,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "MRVL",
+      "strike": 124,
+      "premium": 1.495,
+      "distancePct": 0.0734,
+      "weeklyYield": 0.0105,
+      "annualizedYield": 0.5486,
+      "lowerBound": 124.195
+    },
+    "maxPremiumStrike": {
+      "symbol": "MRVL",
+      "strike": 124,
+      "premium": 1.495,
+      "distancePct": 0.0734,
+      "weeklyYield": 0.0105,
+      "annualizedYield": 0.5486,
+      "lowerBound": 124.195
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "MSFT",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 418.73,
+    "expectedMove": 14.425,
+    "adjustedMove": 14.425,
+    "lowerBound": 404.305,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "MSFT",
+      "strike": 400,
+      "premium": 1.59,
+      "distancePct": 0.0447,
+      "weeklyYield": 0.0035,
+      "annualizedYield": 0.1809,
+      "lowerBound": 404.305
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "MU",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 456.942,
+    "expectedMove": 38.575,
+    "adjustedMove": 38.575,
+    "lowerBound": 418.367,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "MU",
+      "strike": 417.5,
+      "premium": 5.775,
+      "distancePct": 0.0863,
+      "weeklyYield": 0.0121,
+      "annualizedYield": 0.6294,
+      "lowerBound": 418.367
+    },
+    "maxPremiumStrike": {
+      "symbol": "MU",
+      "strike": 417.5,
+      "premium": 5.775,
+      "distancePct": 0.0863,
+      "weeklyYield": 0.0121,
+      "annualizedYield": 0.6294,
+      "lowerBound": 418.367
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "NBIX",
+    "skipped": true,
+    "reason": "expiration 2026-04-24 not available"
+  },
+  {
+    "symbol": "NDAQ",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 88.85,
+    "expectedMove": 1.945,
+    "adjustedMove": 1.945,
+    "lowerBound": 86.905,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "NDAQ",
+      "strike": 77,
+      "premium": 0.62,
+      "distancePct": 0.1334,
+      "weeklyYield": 0.007,
+      "annualizedYield": 0.3664,
+      "lowerBound": 86.905
+    },
+    "maxPremiumStrike": {
+      "symbol": "NDAQ",
+      "strike": 77,
+      "premium": 0.62,
+      "distancePct": 0.1334,
+      "weeklyYield": 0.007,
+      "annualizedYield": 0.3664,
+      "lowerBound": 86.905
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "NEM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 113.19,
+    "expectedMove": 8.95,
+    "adjustedMove": 8.95,
+    "lowerBound": 104.24,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "NEM",
+      "strike": 104,
+      "premium": 1.265,
+      "distancePct": 0.0812,
+      "weeklyYield": 0.0106,
+      "annualizedYield": 0.5534,
+      "lowerBound": 104.24
+    },
+    "maxPremiumStrike": {
+      "symbol": "NEM",
+      "strike": 104,
+      "premium": 1.265,
+      "distancePct": 0.0812,
+      "weeklyYield": 0.0106,
+      "annualizedYield": 0.5534,
+      "lowerBound": 104.24
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "NFLX",
+    "expiration": "2026-04-24",
+    "hasEarnings": true,
+    "currentPrice": 108.107,
+    "expectedMove": 8.55,
+    "adjustedMove": 17.1,
+    "lowerBound": 91.007,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "NFLX",
+      "strike": 91,
+      "premium": 0.12,
+      "distancePct": 0.1582,
+      "weeklyYield": 0.0012,
+      "annualizedYield": 0.06,
+      "lowerBound": 91.007
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "NI",
+    "skipped": true,
+    "reason": "expiration 2026-04-24 not available"
+  },
+  {
+    "symbol": "NVDA",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 198.325,
+    "expectedMove": 7.65,
+    "adjustedMove": 7.65,
+    "lowerBound": 190.675,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "NVDA",
+      "strike": 190,
+      "premium": 1.185,
+      "distancePct": 0.042,
+      "weeklyYield": 0.0055,
+      "annualizedYield": 0.2838,
+      "lowerBound": 190.675
+    },
+    "maxPremiumStrike": {
+      "symbol": "NVDA",
+      "strike": 190,
+      "premium": 1.185,
+      "distancePct": 0.042,
+      "weeklyYield": 0.0055,
+      "annualizedYield": 0.2838,
+      "lowerBound": 190.675
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "NVO",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 40.9,
+    "expectedMove": 1.89,
+    "adjustedMove": 1.89,
+    "lowerBound": 39.01,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "NVO",
+      "strike": 39,
+      "premium": 0.32,
+      "distancePct": 0.0465,
+      "weeklyYield": 0.0072,
+      "annualizedYield": 0.3733,
+      "lowerBound": 39.01
+    },
+    "maxPremiumStrike": {
+      "symbol": "NVO",
+      "strike": 39,
+      "premium": 0.32,
+      "distancePct": 0.0465,
+      "weeklyYield": 0.0072,
+      "annualizedYield": 0.3733,
+      "lowerBound": 39.01
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "ORCL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 177.81,
+    "expectedMove": 11.6,
+    "adjustedMove": 11.6,
+    "lowerBound": 166.21,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "ORCL",
+      "strike": 165,
+      "premium": 1.415,
+      "distancePct": 0.072,
+      "weeklyYield": 0.0075,
+      "annualizedYield": 0.3902,
+      "lowerBound": 166.21
+    },
+    "maxPremiumStrike": {
+      "symbol": "ORCL",
+      "strike": 165,
+      "premium": 1.415,
+      "distancePct": 0.072,
+      "weeklyYield": 0.0075,
+      "annualizedYield": 0.3902,
+      "lowerBound": 166.21
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "PATH",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 10.69,
+    "expectedMove": 0.805,
+    "adjustedMove": 0.805,
+    "lowerBound": 9.885,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "PATH",
+      "strike": 8,
+      "premium": 0.12,
+      "distancePct": 0.2516,
+      "weeklyYield": 0.0131,
+      "annualizedYield": 0.6825,
+      "lowerBound": 9.885
+    },
+    "maxPremiumStrike": {
+      "symbol": "PATH",
+      "strike": 9.5,
+      "premium": 0.04,
+      "distancePct": 0.1113,
+      "weeklyYield": 0.0037,
+      "annualizedYield": 0.1916,
+      "lowerBound": 9.885
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "PCG",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 17.34,
+    "expectedMove": 0.895,
+    "adjustedMove": 0.895,
+    "lowerBound": 16.445,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "PCG",
+      "strike": 16,
+      "premium": 0.095,
+      "distancePct": 0.0773,
+      "weeklyYield": 0.0052,
+      "annualizedYield": 0.2702,
+      "lowerBound": 16.445
+    },
+    "maxPremiumStrike": {
+      "symbol": "PCG",
+      "strike": 16,
+      "premium": 0.095,
+      "distancePct": 0.0773,
+      "weeklyYield": 0.0052,
+      "annualizedYield": 0.2702,
+      "lowerBound": 16.445
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "PDD",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 103.975,
+    "expectedMove": 4.735,
+    "adjustedMove": 4.735,
+    "lowerBound": 99.24,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "PDD",
+      "strike": 99,
+      "premium": 0.58,
+      "distancePct": 0.0478,
+      "weeklyYield": 0.0051,
+      "annualizedYield": 0.2666,
+      "lowerBound": 99.24
+    },
+    "maxPremiumStrike": {
+      "symbol": "PDD",
+      "strike": 99,
+      "premium": 0.58,
+      "distancePct": 0.0478,
+      "weeklyYield": 0.0051,
+      "annualizedYield": 0.2666,
+      "lowerBound": 99.24
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "PHM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 120.5,
+    "expectedMove": 7.15,
+    "adjustedMove": 7.15,
+    "lowerBound": 113.35,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "PHM",
+      "strike": 112,
+      "premium": 0.725,
+      "distancePct": 0.0705,
+      "weeklyYield": 0.0057,
+      "annualizedYield": 0.2945,
+      "lowerBound": 113.35
+    },
+    "maxPremiumStrike": {
+      "symbol": "PHM",
+      "strike": 112,
+      "premium": 0.725,
+      "distancePct": 0.0705,
+      "weeklyYield": 0.0057,
+      "annualizedYield": 0.2945,
+      "lowerBound": 113.35
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "PLTR",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 142,
+    "expectedMove": 8.325,
+    "adjustedMove": 8.325,
+    "lowerBound": 133.675,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "PLTR",
+      "strike": 133,
+      "premium": 1.165,
+      "distancePct": 0.0634,
+      "weeklyYield": 0.0077,
+      "annualizedYield": 0.3986,
+      "lowerBound": 133.675
+    },
+    "maxPremiumStrike": {
+      "symbol": "PLTR",
+      "strike": 133,
+      "premium": 1.165,
+      "distancePct": 0.0634,
+      "weeklyYield": 0.0077,
+      "annualizedYield": 0.3986,
+      "lowerBound": 133.675
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "PYPL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 49.695,
+    "expectedMove": 2.64,
+    "adjustedMove": 2.64,
+    "lowerBound": 47.055,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "PYPL",
+      "strike": 47,
+      "premium": 0.295,
+      "distancePct": 0.0542,
+      "weeklyYield": 0.0055,
+      "annualizedYield": 0.2856,
+      "lowerBound": 47.055
+    },
+    "maxPremiumStrike": {
+      "symbol": "PYPL",
+      "strike": 47,
+      "premium": 0.295,
+      "distancePct": 0.0542,
+      "weeklyYield": 0.0055,
+      "annualizedYield": 0.2856,
+      "lowerBound": 47.055
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "ROOT",
+    "skipped": true,
+    "reason": "expiration 2026-04-24 not available"
+  },
+  {
+    "symbol": "RYAAY",
+    "skipped": true,
+    "reason": "expiration 2026-04-24 not available"
+  },
+  {
+    "symbol": "SBUX",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 98.3,
+    "expectedMove": 3.435,
+    "adjustedMove": 3.435,
+    "lowerBound": 94.865,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "SBUX",
+      "strike": 94,
+      "premium": 0.475,
+      "distancePct": 0.0437,
+      "weeklyYield": 0.0044,
+      "annualizedYield": 0.2299,
+      "lowerBound": 94.865
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "SCHW",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 92.57,
+    "expectedMove": 3.475,
+    "adjustedMove": 3.475,
+    "lowerBound": 89.095,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "SCHW",
+      "strike": 89,
+      "premium": 0.47,
+      "distancePct": 0.0386,
+      "weeklyYield": 0.0046,
+      "annualizedYield": 0.2403,
+      "lowerBound": 89.095
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "SHOP",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 127.235,
+    "expectedMove": 8.575,
+    "adjustedMove": 8.575,
+    "lowerBound": 118.66,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "SHOP",
+      "strike": 118,
+      "premium": 1.425,
+      "distancePct": 0.0726,
+      "weeklyYield": 0.0106,
+      "annualizedYield": 0.5495,
+      "lowerBound": 118.66
+    },
+    "maxPremiumStrike": {
+      "symbol": "SHOP",
+      "strike": 118,
+      "premium": 1.425,
+      "distancePct": 0.0726,
+      "weeklyYield": 0.0106,
+      "annualizedYield": 0.5495,
+      "lowerBound": 118.66
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "SLB",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 51.8,
+    "expectedMove": 2.845,
+    "adjustedMove": 2.845,
+    "lowerBound": 48.955,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "SLB",
+      "strike": 48.5,
+      "premium": 0.34,
+      "distancePct": 0.0637,
+      "weeklyYield": 0.0061,
+      "annualizedYield": 0.319,
+      "lowerBound": 48.955
+    },
+    "maxPremiumStrike": {
+      "symbol": "SLB",
+      "strike": 48.5,
+      "premium": 0.34,
+      "distancePct": 0.0637,
+      "weeklyYield": 0.0061,
+      "annualizedYield": 0.319,
+      "lowerBound": 48.955
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "SNOW",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 143.9,
+    "expectedMove": 10.675,
+    "adjustedMove": 10.675,
+    "lowerBound": 133.225,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "SNOW",
+      "strike": 130,
+      "premium": 0.935,
+      "distancePct": 0.0966,
+      "weeklyYield": 0.0063,
+      "annualizedYield": 0.3272,
+      "lowerBound": 133.225
+    },
+    "maxPremiumStrike": {
+      "symbol": "SNOW",
+      "strike": 130,
+      "premium": 0.935,
+      "distancePct": 0.0966,
+      "weeklyYield": 0.0063,
+      "annualizedYield": 0.3272,
+      "lowerBound": 133.225
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "SOFI",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 19.124,
+    "expectedMove": 1.31,
+    "adjustedMove": 1.31,
+    "lowerBound": 17.814,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "SOFI",
+      "strike": 17.5,
+      "premium": 0.155,
+      "distancePct": 0.0849,
+      "weeklyYield": 0.0077,
+      "annualizedYield": 0.403,
+      "lowerBound": 17.814
+    },
+    "maxPremiumStrike": {
+      "symbol": "SOFI",
+      "strike": 17.5,
+      "premium": 0.155,
+      "distancePct": 0.0849,
+      "weeklyYield": 0.0077,
+      "annualizedYield": 0.403,
+      "lowerBound": 17.814
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "SOXL",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 88.105,
+    "expectedMove": 12.3,
+    "adjustedMove": 12.3,
+    "lowerBound": 75.805,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "SOXL",
+      "strike": 75,
+      "premium": 1.77,
+      "distancePct": 0.1487,
+      "weeklyYield": 0.0206,
+      "annualizedYield": 1.0738,
+      "lowerBound": 75.805
+    },
+    "maxPremiumStrike": {
+      "symbol": "SOXL",
+      "strike": 75,
+      "premium": 1.77,
+      "distancePct": 0.1487,
+      "weeklyYield": 0.0206,
+      "annualizedYield": 1.0738,
+      "lowerBound": 75.805
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "TECK",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 58.038,
+    "expectedMove": 3.45,
+    "adjustedMove": 3.45,
+    "lowerBound": 54.588,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "TECK",
+      "strike": 53,
+      "premium": 0.425,
+      "distancePct": 0.0868,
+      "weeklyYield": 0.007,
+      "annualizedYield": 0.3649,
+      "lowerBound": 54.588
+    },
+    "maxPremiumStrike": {
+      "symbol": "TECK",
+      "strike": 53,
+      "premium": 0.425,
+      "distancePct": 0.0868,
+      "weeklyYield": 0.007,
+      "annualizedYield": 0.3649,
+      "lowerBound": 54.588
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "TGT",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 123.913,
+    "expectedMove": 4.375,
+    "adjustedMove": 4.375,
+    "lowerBound": 119.538,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "TGT",
+      "strike": 119,
+      "premium": 0.735,
+      "distancePct": 0.0396,
+      "weeklyYield": 0.0054,
+      "annualizedYield": 0.281,
+      "lowerBound": 119.538
+    },
+    "maxPremiumStrike": {
+      "symbol": "TGT",
+      "strike": 119,
+      "premium": 0.735,
+      "distancePct": 0.0396,
+      "weeklyYield": 0.0054,
+      "annualizedYield": 0.281,
+      "lowerBound": 119.538
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "TQQQ",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 56.241,
+    "expectedMove": 3.62,
+    "adjustedMove": 3.62,
+    "lowerBound": 52.621,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "TQQQ",
+      "strike": 52.5,
+      "premium": 0.67,
+      "distancePct": 0.0665,
+      "weeklyYield": 0.0112,
+      "annualizedYield": 0.5807,
+      "lowerBound": 52.621
+    },
+    "maxPremiumStrike": {
+      "symbol": "TQQQ",
+      "strike": 52.5,
+      "premium": 0.67,
+      "distancePct": 0.0665,
+      "weeklyYield": 0.0112,
+      "annualizedYield": 0.5807,
+      "lowerBound": 52.621
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "TSCO",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 44.625,
+    "expectedMove": 3.05,
+    "adjustedMove": 3.05,
+    "lowerBound": 41.575,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "TSCO",
+      "strike": 41,
+      "premium": 0.275,
+      "distancePct": 0.0812,
+      "weeklyYield": 0.0059,
+      "annualizedYield": 0.3052,
+      "lowerBound": 41.575
+    },
+    "maxPremiumStrike": {
+      "symbol": "TSCO",
+      "strike": 41,
+      "premium": 0.275,
+      "distancePct": 0.0812,
+      "weeklyYield": 0.0059,
+      "annualizedYield": 0.3052,
+      "lowerBound": 41.575
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "TSM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 362.59,
+    "expectedMove": 17.525,
+    "adjustedMove": 17.525,
+    "lowerBound": 345.065,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "TSM",
+      "strike": 345,
+      "premium": 2.48,
+      "distancePct": 0.0485,
+      "weeklyYield": 0.0063,
+      "annualizedYield": 0.3271,
+      "lowerBound": 345.065
+    },
+    "maxPremiumStrike": {
+      "symbol": "TSM",
+      "strike": 345,
+      "premium": 2.48,
+      "distancePct": 0.0485,
+      "weeklyYield": 0.0063,
+      "annualizedYield": 0.3271,
+      "lowerBound": 345.065
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "TW",
+    "skipped": true,
+    "reason": "expiration 2026-04-24 not available"
+  },
+  {
+    "symbol": "UBER",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 76.48,
+    "expectedMove": 3.63,
+    "adjustedMove": 3.63,
+    "lowerBound": 72.85,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "UBER",
+      "strike": 72,
+      "premium": 0.325,
+      "distancePct": 0.0586,
+      "weeklyYield": 0.0039,
+      "annualizedYield": 0.2054,
+      "lowerBound": 72.85
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "USB",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 55.605,
+    "expectedMove": 1.665,
+    "adjustedMove": 1.665,
+    "lowerBound": 53.94,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "USB",
+      "strike": 49.5,
+      "premium": 0.48,
+      "distancePct": 0.1098,
+      "weeklyYield": 0.0085,
+      "annualizedYield": 0.4412,
+      "lowerBound": 53.94
+    },
+    "maxPremiumStrike": {
+      "symbol": "USB",
+      "strike": 53,
+      "premium": 0.17,
+      "distancePct": 0.0468,
+      "weeklyYield": 0.0028,
+      "annualizedYield": 0.1459,
+      "lowerBound": 53.94
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "VST",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 164.28,
+    "expectedMove": 10.725,
+    "adjustedMove": 10.725,
+    "lowerBound": 153.555,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "VST",
+      "strike": 152.5,
+      "premium": 1.605,
+      "distancePct": 0.0717,
+      "weeklyYield": 0.0092,
+      "annualizedYield": 0.4789,
+      "lowerBound": 153.555
+    },
+    "maxPremiumStrike": {
+      "symbol": "VST",
+      "strike": 152.5,
+      "premium": 1.605,
+      "distancePct": 0.0717,
+      "weeklyYield": 0.0092,
+      "annualizedYield": 0.4789,
+      "lowerBound": 153.555
+    },
+    "passesFilter": true
+  },
+  {
+    "symbol": "WBD",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 27.365,
+    "expectedMove": 0.445,
+    "adjustedMove": 0.445,
+    "lowerBound": 26.92,
+    "dteDays": 8,
+    "safeStrike": null,
+    "maxPremiumStrike": {
+      "symbol": "WBD",
+      "strike": 26,
+      "premium": 0.03,
+      "distancePct": 0.0499,
+      "weeklyYield": 0.001,
+      "annualizedYield": 0.0525,
+      "lowerBound": 26.92
+    },
+    "passesFilter": false
+  },
+  {
+    "symbol": "ZM",
+    "expiration": "2026-04-24",
+    "hasEarnings": false,
+    "currentPrice": 86.745,
+    "expectedMove": 4.485,
+    "adjustedMove": 4.485,
+    "lowerBound": 82.26,
+    "dteDays": 8,
+    "safeStrike": {
+      "symbol": "ZM",
+      "strike": 82,
+      "premium": 0.725,
+      "distancePct": 0.0547,
+      "weeklyYield": 0.0077,
+      "annualizedYield": 0.4023,
+      "lowerBound": 82.26
+    },
+    "maxPremiumStrike": {
+      "symbol": "ZM",
+      "strike": 82,
+      "premium": 0.725,
+      "distancePct": 0.0547,
+      "weeklyYield": 0.0077,
+      "annualizedYield": 0.4023,
+      "lowerBound": 82.26
+    },
+    "passesFilter": true
+  }
+]

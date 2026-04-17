@@ -11,13 +11,16 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const WEEKLY_TARGET_PCT = 0.5;
-const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 const MAX_SCAN_TICKERS = 200;
+
+// Zone safe préférée
+const SAFE_STRIKE_FLOOR_RATIO = 0.90;
 
 // Liquidité / exécution
 const MIN_VOLUME = 50;
 const MIN_OPEN_INTEREST = 100;
-const MAX_SPREAD_PCT = 0.25; // 25%
+const MAX_SPREAD_PCT = 0.60;
+const MAX_ABSOLUTE_SPREAD = 0.20;
 
 const EARNINGS_SYMBOLS = new Set(["NFLX"]);
 
@@ -107,7 +110,6 @@ function normalizePutForSelection(put, spot, targetPremium) {
     openInterest: toNumber(put?.openInterest),
     impliedVolatility: toNumber(put?.impliedVolatility),
     targetPremium,
-    qualifiesTarget: premium >= targetPremium,
     distanceToTarget: Math.abs(premium - targetPremium),
     distancePct: strikeDistancePct(strike, spot),
   };
@@ -121,20 +123,17 @@ function enrichLiquidity(row) {
   const openInterest = toNumber(row?.openInterest);
 
   const spread = bid > 0 && ask > 0 ? ask - bid : 0;
-
-  // Si pas de mid fiable, spreadPct doit être considéré mauvais
   const spreadPct = mid > 0 ? spread / mid : 1;
 
-  // On considère liquide uniquement si :
-  // - bid/ask présents
-  // - spread raisonnable
-  // - volume minimal
-  // - OI minimal
+  const spreadOk =
+    spreadPct <= MAX_SPREAD_PCT ||
+    spread <= MAX_ABSOLUTE_SPREAD;
+
   const isLiquid =
     bid > 0 &&
     ask > 0 &&
     mid > 0 &&
-    spreadPct <= MAX_SPREAD_PCT &&
+    spreadOk &&
     volume >= MIN_VOLUME &&
     openInterest >= MIN_OPEN_INTEREST;
 
@@ -142,12 +141,27 @@ function enrichLiquidity(row) {
     ...row,
     spread,
     spreadPct,
+    spreadOk,
     isLiquid,
   };
 }
 
+function selectClosestPremium(candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+
+  const sorted = [...candidates].sort((a, b) => {
+    const premiumDiff = a.distanceToTarget - b.distanceToTarget;
+    if (premiumDiff !== 0) return premiumDiff;
+
+    return b.strike - a.strike;
+  });
+
+  return sorted[0] ?? null;
+}
+
 function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
   const targetPremium = minPremiumForSpot(spot, dteDays);
+  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
 
   const eligible = (puts || [])
     .map((put) => normalizePutForSelection(put, spot, targetPremium))
@@ -157,41 +171,45 @@ function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
     .filter((put) => put.mid > 0)
     .sort((a, b) => a.strike - b.strike);
 
+  // Strike agressif = strike directement sous la borne basse attendue
   const aggressiveStrike =
     eligible.length > 0
       ? [...eligible].sort((a, b) => b.strike - a.strike)[0]
       : null;
 
-  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
+  // Zone safe préférée = sous la borne, mais pas trop loin
+  const preferredSafeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
+  const preferredLiquidCandidates = preferredSafeZone.filter((put) => put.isLiquid);
 
-  const safeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
+  // Fallback = tous les strikes liquides sous la borne
+  const fallbackLiquidCandidates = eligible.filter((put) => put.isLiquid);
 
-  // On privilégie les strikes liquides pour le SAFE
-  const liquidSafeZone = safeZone.filter((put) => put.isLiquid);
+  const safeStrikeFromPreferredZone = selectClosestPremium(preferredLiquidCandidates);
+  const safeStrikeFromFallbackZone = selectClosestPremium(fallbackLiquidCandidates);
 
-  // Fallback propre : si aucun strike liquide, on garde l’ancienne logique
-  const safeSelectionPool =
-    liquidSafeZone.length > 0 ? liquidSafeZone : safeZone;
+  const safeStrike = safeStrikeFromPreferredZone || safeStrikeFromFallbackZone || null;
 
-  const safeCandidates = safeSelectionPool
-    .filter((put) => put.mid >= targetPremium)
-    .sort((a, b) => {
-      const diff = a.distanceToTarget - b.distanceToTarget;
-      if (diff !== 0) return diff;
-      return b.strike - a.strike;
-    });
+  const safeCandidatesUsed = safeStrikeFromPreferredZone
+    ? preferredLiquidCandidates
+    : fallbackLiquidCandidates;
 
-  const safeStrike = safeCandidates.length > 0 ? safeCandidates[0] : null;
+  const selectionMode = safeStrikeFromPreferredZone
+    ? "preferred_safe_zone"
+    : safeStrikeFromFallbackZone
+      ? "fallback_all_liquid_below_bound"
+      : "no_safe_candidate";
 
   return {
     targetPremium,
     eligible,
-    safeZone,
-    liquidSafeZone,
-    safeCandidates,
+    preferredSafeZone,
+    preferredLiquidCandidates,
+    fallbackLiquidCandidates,
+    safeCandidatesUsed,
     safeStrike,
     aggressiveStrike,
     safeStrikeFloor,
+    selectionMode,
   };
 }
 
@@ -548,6 +566,7 @@ async function scanTicker(symbol, expiration) {
     return {
       strike: row.strike,
       premium: round(premium, 3),
+      premiumGapToTarget: round(premium - strikeSelection.targetPremium, 3),
       weeklyYield: round(weeklyYield, 4),
       annualizedYield: round(weeklyYield * 52, 4),
       distancePct: round(Math.abs(row.distancePct) / 100, 4),
@@ -557,6 +576,7 @@ async function scanTicker(symbol, expiration) {
       ask: round(row.ask, 3),
       spread: round(row.spread, 3),
       spreadPct: round(row.spreadPct, 4),
+      spreadOk: !!row.spreadOk,
       isLiquid: !!row.isLiquid,
     };
   }
@@ -587,7 +607,7 @@ async function scanTicker(symbol, expiration) {
 
   const passesFilter =
     !!safeStrike &&
-    (safeStrike.premium ?? 0) >= targetPremium &&
+    safeStrike.isLiquid === true &&
     (safeStrike.annualizedYield ?? 0) >= 0.26;
 
   return {
@@ -620,18 +640,28 @@ async function scanTicker(symbol, expiration) {
     passesFilter,
     debug: {
       eligibleCount: strikeSelection.eligible.length,
-      safeZoneCount: strikeSelection.safeZone.length,
-      liquidSafeZoneCount: strikeSelection.liquidSafeZone.length,
-      safeCandidatesCount: strikeSelection.safeCandidates.length,
+      preferredSafeZoneCount: strikeSelection.preferredSafeZone.length,
+      preferredLiquidCandidatesCount: strikeSelection.preferredLiquidCandidates.length,
+      fallbackLiquidCandidatesCount: strikeSelection.fallbackLiquidCandidates.length,
+      safeCandidatesUsedCount: strikeSelection.safeCandidatesUsed.length,
       safeStrikeFloor: round(strikeSelection.safeStrikeFloor, 3),
-      usedLiquidityFilter: strikeSelection.liquidSafeZone.length > 0,
+      safeFloorRatio: SAFE_STRIKE_FLOOR_RATIO,
+      selectionMode: strikeSelection.selectionMode,
+      usedLiquidityFilter: true,
+      safeTargetPremium: round(targetPremium, 3),
+      safePremiumSelected: safeStrike?.premium ?? null,
+      safePremiumGap: safeStrike?.premiumGapToTarget ?? null,
       reasonKept: passesFilter ? "passes_filters" : "filtered_out",
     },
   };
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "wheel-mcp-backend" });
+  res.json({
+    ok: true,
+    service: "wheel-mcp-backend",
+    version: "fallback-intelligent-v1",
+  });
 });
 
 app.get("/tools", (_req, res) => {

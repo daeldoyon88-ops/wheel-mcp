@@ -624,6 +624,7 @@ async function scanTicker(symbol, expiration) {
       spreadPct: round(row.spreadPct, 4),
       spreadOk: !!row.spreadOk,
       isLiquid: !!row.isLiquid,
+      impliedVolatility: round(row.impliedVolatility, 4),
     };
   }
 
@@ -697,16 +698,215 @@ async function scanTicker(symbol, expiration) {
       safeTargetPremium: round(targetPremium, 3),
       safePremiumSelected: safeStrike?.premium ?? null,
       safePremiumGap: safeStrike?.premiumGapToTarget ?? null,
+      safeIV: safeStrike?.impliedVolatility ?? null,
       reasonKept: passesFilter ? "passes_filters" : "filtered_out",
     },
   };
+}
+
+function createMcpToolList() {
+  return [
+    {
+      name: "get_quote",
+      description: "Get a live stock quote from Yahoo Finance.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_option_expirations",
+      description: "Get available option expirations and strikes for a ticker.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_option_chain",
+      description: "Get the full option chain for a ticker and expiration.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          expiration: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_expected_move",
+      description: "Get the expected move for a ticker using the ATM straddle mid price.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          expiration: { type: "string" },
+        },
+        required: ["symbol", "expiration"],
+      },
+    },
+    {
+      name: "get_technicals",
+      description: "Get technical indicators and trend context from historical prices.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_support_resistance",
+      description: "Get simple support and resistance levels from historical prices.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "scan_shortlist",
+      description: "Run the backend shortlist scan. Backend remains source of truth.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          expiration: { type: "string" },
+          tickers: {
+            type: "array",
+            items: { type: "string" },
+          },
+          topN: { type: "number" },
+        },
+        required: ["expiration", "tickers"],
+      },
+    },
+  ];
+}
+
+async function executeToolByName(name, args = {}) {
+  switch (name) {
+    case "get_quote":
+      return await getQuote(args.symbol);
+    case "get_option_expirations":
+      return await getOptionExpirations(args.symbol);
+    case "get_option_chain":
+      return await getOptionChain(args.symbol, args.expiration);
+    case "get_expected_move": {
+      const optionChain = await getOptionChain(args.symbol, args.expiration);
+      return await getExpectedMove(args.symbol, args.expiration, optionChain);
+    }
+    case "get_technicals":
+      return await getTechnicals(args.symbol);
+    case "get_support_resistance":
+      return await getSupportResistance(args.symbol);
+    case "scan_shortlist": {
+      const expiration = args.expiration;
+      const tickers = Array.isArray(args.tickers) ? args.tickers : [];
+      const topN = args.topN ?? 20;
+
+      if (!expiration) {
+        throw new Error("expiration is required");
+      }
+      if (!Array.isArray(tickers) || tickers.length === 0) {
+        throw new Error("tickers must be a non-empty array");
+      }
+      if (tickers.length > MAX_SCAN_TICKERS) {
+        throw new Error(`max ${MAX_SCAN_TICKERS} tickers per scan`);
+      }
+
+      const cleanedTickers = [...new Set(
+        tickers
+          .map((t) => String(t || "").trim().toUpperCase())
+          .filter(Boolean)
+      )];
+
+      const shortlist = [];
+      const rejected = [];
+      const errors = [];
+
+      for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
+        const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
+
+        const batchResults = await Promise.allSettled(
+          batch.map((symbol) => scanTicker(symbol, expiration))
+        );
+
+        for (let j = 0; j < batchResults.length; j += 1) {
+          const result = batchResults[j];
+          const symbol = batch[j];
+
+          if (result.status === "fulfilled") {
+            const item = result.value;
+
+            if (!item?.ok) {
+              rejected.push({
+                symbol,
+                reason: item?.reason || "not_ok",
+              });
+              continue;
+            }
+
+            if (item.passesFilter) {
+              shortlist.push(item);
+            } else {
+              rejected.push({
+                symbol,
+                reason: item?.debug?.reasonKept || "filtered_out",
+                targetPremium: item?.targetPremium ?? null,
+                safeStrike: item?.safeStrike ?? null,
+                aggressiveStrike: item?.maxPremiumStrike ?? null,
+              });
+            }
+          } else {
+            errors.push({
+              symbol,
+              error: result.reason?.message || "scan_failed",
+            });
+          }
+        }
+
+        if (i + BATCH_SIZE < cleanedTickers.length) {
+          await sleep(BATCH_DELAY_MS);
+        }
+      }
+
+      shortlist.sort((a, b) => {
+        const ay = toNumber(a?.safeStrike?.annualizedYield);
+        const by = toNumber(b?.safeStrike?.annualizedYield);
+        return by - ay;
+      });
+
+      return {
+        ok: true,
+        expiration,
+        scanned: cleanedTickers.length,
+        kept: shortlist.length,
+        returned: Math.min(topN, shortlist.length),
+        shortlist: shortlist.slice(0, topN),
+        rejected,
+        errors,
+      };
+    }
+    default:
+      throw new Error(`unknown tool: ${name}`);
+  }
 }
 
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "wheel-mcp-backend",
-    version: "fallback-intelligent-v2-anti429",
+    version: "fallback-intelligent-v3-mcp-restore",
   });
 });
 
@@ -723,6 +923,102 @@ app.get("/tools", (_req, res) => {
       "scan_shortlist",
     ],
   });
+});
+
+app.get("/mcp", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+
+  res.write(`event: ready\n`);
+  res.write(`data: ${JSON.stringify({
+    ok: true,
+    service: "wheel-mcp-backend",
+    protocol: "sse",
+    message: "MCP SSE endpoint available",
+  })}\n\n`);
+
+  const keepAlive = setInterval(() => {
+    res.write(`: keepalive\n\n`);
+  }, 15000);
+
+  req.on("close", () => {
+    clearInterval(keepAlive);
+  });
+});
+
+app.post("/mcp", async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const method = body.method;
+    const params = body.params ?? {};
+
+    if (method === "initialize") {
+      return res.json({
+        jsonrpc: "2.0",
+        id: body.id ?? null,
+        result: {
+          protocolVersion: "2024-11-05",
+          serverInfo: {
+            name: "wheel-mcp-backend",
+            version: "fallback-intelligent-v3-mcp-restore",
+          },
+          capabilities: {
+            tools: {},
+          },
+        },
+      });
+    }
+
+    if (method === "tools/list") {
+      return res.json({
+        jsonrpc: "2.0",
+        id: body.id ?? null,
+        result: {
+          tools: createMcpToolList(),
+        },
+      });
+    }
+
+    if (method === "tools/call") {
+      const toolName = params.name;
+      const args = params.arguments ?? {};
+      const result = await executeToolByName(toolName, args);
+
+      return res.json({
+        jsonrpc: "2.0",
+        id: body.id ?? null,
+        result: {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result),
+            },
+          ],
+          structuredContent: result,
+        },
+      });
+    }
+
+    return res.status(400).json({
+      jsonrpc: "2.0",
+      id: body.id ?? null,
+      error: {
+        code: -32601,
+        message: `Method not found: ${method}`,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      jsonrpc: "2.0",
+      id: req.body?.id ?? null,
+      error: {
+        code: -32000,
+        message: error.message || "mcp request failed",
+      },
+    });
+  }
 });
 
 app.post("/tools/get_quote", async (req, res) => {

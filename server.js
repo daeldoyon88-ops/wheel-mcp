@@ -24,6 +24,12 @@ const MAX_ABSOLUTE_SPREAD = 0.20;
 
 const EARNINGS_SYMBOLS = new Set(["NFLX"]);
 
+// Anti-429
+const REQUEST_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 1200;
+const BATCH_SIZE = 2;
+const BATCH_DELAY_MS = 1800;
+
 function round(value, digits = 4) {
   if (value == null || Number.isNaN(value)) return null;
   return Number(value.toFixed(digits));
@@ -33,6 +39,42 @@ function toNumber(value) {
   if (value == null) return 0;
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableYahooError(error) {
+  const msg = String(error?.message || error || "").toLowerCase();
+  return (
+    msg.includes("429") ||
+    msg.includes("too many requests") ||
+    msg.includes("failed to get crumb") ||
+    msg.includes("rate limit")
+  );
+}
+
+async function withRetry(label, fn) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= REQUEST_RETRIES; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableYahooError(error) || attempt === REQUEST_RETRIES) {
+        throw error;
+      }
+
+      const waitMs = RETRY_BASE_DELAY_MS * attempt;
+      console.warn(`${label} retry ${attempt}/${REQUEST_RETRIES} after ${waitMs}ms`);
+      await sleep(waitMs);
+    }
+  }
+
+  throw lastError;
 }
 
 function minPremiumForSpot(spot, dteDays) {
@@ -152,7 +194,6 @@ function selectClosestPremium(candidates) {
   const sorted = [...candidates].sort((a, b) => {
     const premiumDiff = a.distanceToTarget - b.distanceToTarget;
     if (premiumDiff !== 0) return premiumDiff;
-
     return b.strike - a.strike;
   });
 
@@ -171,17 +212,13 @@ function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
     .filter((put) => put.mid > 0)
     .sort((a, b) => a.strike - b.strike);
 
-  // Strike agressif = strike directement sous la borne basse attendue
   const aggressiveStrike =
     eligible.length > 0
       ? [...eligible].sort((a, b) => b.strike - a.strike)[0]
       : null;
 
-  // Zone safe préférée = sous la borne, mais pas trop loin
   const preferredSafeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
   const preferredLiquidCandidates = preferredSafeZone.filter((put) => put.isLiquid);
-
-  // Fallback = tous les strikes liquides sous la borne
   const fallbackLiquidCandidates = eligible.filter((put) => put.isLiquid);
 
   const safeStrikeFromPreferredZone = selectClosestPremium(preferredLiquidCandidates);
@@ -214,7 +251,7 @@ function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
 }
 
 async function getQuote(symbol) {
-  const quote = await yahooFinance.quote(symbol);
+  const quote = await withRetry(`getQuote:${symbol}`, () => yahooFinance.quote(symbol));
   return {
     symbol,
     regularMarketPrice:
@@ -229,7 +266,7 @@ async function getQuote(symbol) {
 }
 
 async function getOptionExpirations(symbol) {
-  const chain = await yahooFinance.options(symbol);
+  const chain = await withRetry(`getOptionExpirations:${symbol}`, () => yahooFinance.options(symbol));
   const dates = Array.isArray(chain?.expirationDates)
     ? chain.expirationDates.map((d) => {
         const dt = new Date(d);
@@ -244,7 +281,11 @@ async function getOptionExpirations(symbol) {
 }
 
 async function getOptionChain(symbol, expiration) {
-  const chain = await yahooFinance.options(symbol, { date: expiration });
+  const chain = await withRetry(
+    `getOptionChain:${symbol}:${expiration}`,
+    () => yahooFinance.options(symbol, { date: expiration })
+  );
+
   const options = chain?.options?.[0] ?? {};
 
   const calls = Array.isArray(options.calls)
@@ -298,8 +339,8 @@ async function getOptionChain(symbol, expiration) {
   };
 }
 
-async function getExpectedMove(symbol, expiration) {
-  const chain = await getOptionChain(symbol, expiration);
+async function getExpectedMove(symbol, expiration, optionChain = null) {
+  const chain = optionChain || await getOptionChain(symbol, expiration);
   const price = toNumber(chain?.currentPrice);
 
   if (!price || !Array.isArray(chain.calls) || !Array.isArray(chain.puts)) {
@@ -357,10 +398,12 @@ async function getExpectedMove(symbol, expiration) {
 
 async function getTechnicals(symbol) {
   try {
-    const result = await yahooFinance.chart(symbol, {
-      period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
-      interval: "1d",
-    });
+    const result = await withRetry(`getTechnicals:${symbol}`, () =>
+      yahooFinance.chart(symbol, {
+        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
+        interval: "1d",
+      })
+    );
 
     const quotes = result?.quotes ?? [];
     const closes = quotes
@@ -457,10 +500,12 @@ async function getTechnicals(symbol) {
 
 async function getSupportResistance(symbol) {
   try {
-    const result = await yahooFinance.chart(symbol, {
-      period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
-      interval: "1d",
-    });
+    const result = await withRetry(`getSupportResistance:${symbol}`, () =>
+      yahooFinance.chart(symbol, {
+        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
+        interval: "1d",
+      })
+    );
 
     const quotes = result?.quotes ?? [];
     const rows = quotes
@@ -514,13 +559,14 @@ async function scanTicker(symbol, expiration) {
     };
   }
 
-  const [quote, expectedMove, optionChain, technicals, supportResistance] = await Promise.all([
+  const [quote, optionChain, technicals, supportResistance] = await Promise.all([
     getQuote(symbol),
-    getExpectedMove(symbol, expiration),
     getOptionChain(symbol, expiration),
     getTechnicals(symbol),
     getSupportResistance(symbol),
   ]);
+
+  const expectedMove = await getExpectedMove(symbol, expiration, optionChain);
 
   const spot =
     toNumber(quote?.regularMarketPrice) ||
@@ -660,7 +706,7 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "wheel-mcp-backend",
-    version: "fallback-intelligent-v1",
+    version: "fallback-intelligent-v2-anti429",
   });
 });
 
@@ -712,7 +758,8 @@ app.post("/tools/get_option_chain", async (req, res) => {
 app.post("/tools/get_expected_move", async (req, res) => {
   try {
     const { symbol, expiration } = req.body;
-    const result = await getExpectedMove(symbol, expiration);
+    const optionChain = await getOptionChain(symbol, expiration);
+    const result = await getExpectedMove(symbol, expiration, optionChain);
     res.json({ ok: true, result });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "get_expected_move failed" });
@@ -772,8 +819,6 @@ app.post("/scan_shortlist", async (req, res) => {
     const rejected = [];
     const errors = [];
 
-    const BATCH_SIZE = 8;
-
     for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
       const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
 
@@ -813,6 +858,10 @@ app.post("/scan_shortlist", async (req, res) => {
             error: result.reason?.message || "scan_failed",
           });
         }
+      }
+
+      if (i + BATCH_SIZE < cleanedTickers.length) {
+        await sleep(BATCH_DELAY_MS);
       }
     }
 

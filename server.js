@@ -434,6 +434,117 @@ async function getSupportResistance(symbol) {
   }
 }
 
+async function getBestStrike(symbol, expiration, optionType = "call", targetPrice = null, percentOtm = null) {
+  const chain = await getOptionChain(symbol, expiration);
+  const currentPrice = toNumber(chain?.currentPrice);
+
+  const list = optionType === "put" ? chain.puts : chain.calls;
+  if (!Array.isArray(list) || !list.length) {
+    return {
+      symbol,
+      expiration,
+      optionType,
+      currentPrice,
+      bestStrike: null,
+    };
+  }
+
+  const normalized = list
+    .map((row) => ({
+      strike: toNumber(row?.strike),
+      bid: toNumber(row?.bid),
+      ask: toNumber(row?.ask),
+      lastPrice: toNumber(row?.lastPrice),
+      mid: pickReliablePremium(row),
+      volume: toNumber(row?.volume),
+      openInterest: toNumber(row?.openInterest),
+    }))
+    .filter((row) => row.strike > 0);
+
+  let targetStrike = null;
+
+  if (targetPrice != null) {
+    targetStrike = Number(targetPrice);
+  } else if (percentOtm != null && currentPrice > 0) {
+    if (optionType === "put") {
+      targetStrike = currentPrice * (1 - percentOtm / 100);
+    } else {
+      targetStrike = currentPrice * (1 + percentOtm / 100);
+    }
+  }
+
+  const best = targetStrike == null
+    ? normalized[0] ?? null
+    : normalized.sort((a, b) => Math.abs(a.strike - targetStrike) - Math.abs(b.strike - targetStrike))[0] ?? null;
+
+  return {
+    symbol,
+    expiration,
+    optionType,
+    currentPrice: round(currentPrice, 3),
+    targetStrike: targetStrike != null ? round(targetStrike, 3) : null,
+    bestStrike: best
+      ? {
+          strike: best.strike,
+          bid: round(best.bid, 3),
+          ask: round(best.ask, 3),
+          lastPrice: round(best.lastPrice, 3),
+          mid: round(best.mid, 3),
+          volume: best.volume,
+          openInterest: best.openInterest,
+        }
+      : null,
+  };
+}
+
+async function analyzeTradeSetup(symbol, expiration, optionType = "put", strike) {
+  const [quote, expectedMove, technicals, supportResistance] = await Promise.all([
+    getQuote(symbol),
+    getExpectedMove(symbol, expiration),
+    getTechnicals(symbol),
+    getSupportResistance(symbol),
+  ]);
+
+  const currentPrice = toNumber(quote?.regularMarketPrice) || toNumber(expectedMove?.currentPrice);
+  const strikeNumber = toNumber(strike);
+
+  const strikeVsSupportPct =
+    supportResistance?.support && strikeNumber > 0
+      ? ((strikeNumber - supportResistance.support) / supportResistance.support) * 100
+      : null;
+
+  let verdict = "neutral";
+
+  if (optionType === "put") {
+    if (
+      technicals?.trend === "bullish" &&
+      (technicals?.momentum === "positive" || technicals?.momentum === "neutral") &&
+      strikeVsSupportPct != null &&
+      strikeVsSupportPct >= 0
+    ) {
+      verdict = "constructive";
+    } else if (strikeVsSupportPct != null && strikeVsSupportPct < 0) {
+      verdict = "caution";
+    }
+  }
+
+  return {
+    symbol,
+    expiration,
+    optionType,
+    strike: strikeNumber,
+    currentPrice: round(currentPrice, 3),
+    expectedMove: expectedMove?.expectedMove ?? null,
+    expectedMovePercent: expectedMove?.expectedMovePercent ?? null,
+    technicals,
+    supportResistance: {
+      ...supportResistance,
+      strikeVsSupportPct: strikeVsSupportPct != null ? round(strikeVsSupportPct, 2) : null,
+    },
+    verdict,
+  };
+}
+
 async function scanTicker(symbol, expiration) {
   const expirations = await getOptionExpirations(symbol);
   if (!expirations.availableExpirations.includes(expiration)) {
@@ -570,6 +681,146 @@ async function scanTicker(symbol, expiration) {
   };
 }
 
+function buildToolList() {
+  return [
+    {
+      name: "get_quote",
+      description: "Get a live stock quote from Yahoo Finance.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_option_expirations",
+      description: "Get available option expirations and strikes for a ticker.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_option_chain",
+      description: "Get the full option chain for a ticker and expiration.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          expiration: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_expected_move",
+      description: "Get the expected move for a ticker using the ATM straddle mid price.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          expiration: { type: "string" },
+        },
+        required: ["symbol", "expiration"],
+      },
+    },
+    {
+      name: "get_best_strike",
+      description: "Find the best strike nearest a target or percent OTM.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          expiration: { type: "string" },
+          option_type: { type: "string", enum: ["call", "put"] },
+          target_price: { type: "number" },
+          percent_otm: { type: "number" },
+        },
+        required: ["symbol", "expiration"],
+      },
+    },
+    {
+      name: "get_technicals",
+      description: "Get technical indicators and trend context from historical prices.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          range: { type: "string" },
+          interval: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "get_support_resistance",
+      description: "Get simple support and resistance levels from historical prices.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          range: { type: "string" },
+          interval: { type: "string" },
+        },
+        required: ["symbol"],
+      },
+    },
+    {
+      name: "analyze_trade_setup",
+      description: "Analyze an option trade setup using expected move, technicals, and support/resistance.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string" },
+          expiration: { type: "string" },
+          option_type: { type: "string", enum: ["call", "put"] },
+          strike: { type: "number" },
+        },
+        required: ["symbol", "expiration", "strike"],
+      },
+    },
+  ];
+}
+
+async function runTool(toolName, args = {}) {
+  switch (toolName) {
+    case "get_quote":
+      return await getQuote(args.symbol);
+    case "get_option_expirations":
+      return await getOptionExpirations(args.symbol);
+    case "get_option_chain":
+      return await getOptionChain(args.symbol, args.expiration);
+    case "get_expected_move":
+      return await getExpectedMove(args.symbol, args.expiration);
+    case "get_best_strike":
+      return await getBestStrike(
+        args.symbol,
+        args.expiration,
+        args.option_type ?? "call",
+        args.target_price ?? null,
+        args.percent_otm ?? null
+      );
+    case "get_technicals":
+      return await getTechnicals(args.symbol);
+    case "get_support_resistance":
+      return await getSupportResistance(args.symbol);
+    case "analyze_trade_setup":
+      return await analyzeTradeSetup(
+        args.symbol,
+        args.expiration,
+        args.option_type ?? "put",
+        args.strike
+      );
+    default:
+      throw new Error(`Unknown tool: ${toolName}`);
+  }
+}
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "wheel-mcp-backend" });
 });
@@ -582,8 +833,10 @@ app.get("/tools", (_req, res) => {
       "get_option_expirations",
       "get_expected_move",
       "get_option_chain",
+      "get_best_strike",
       "get_technicals",
       "get_support_resistance",
+      "analyze_trade_setup",
       "scan_shortlist",
     ],
   });
@@ -629,6 +882,22 @@ app.post("/tools/get_expected_move", async (req, res) => {
   }
 });
 
+app.post("/tools/get_best_strike", async (req, res) => {
+  try {
+    const { symbol, expiration, option_type, target_price, percent_otm } = req.body;
+    const result = await getBestStrike(
+      symbol,
+      expiration,
+      option_type ?? "call",
+      target_price ?? null,
+      percent_otm ?? null
+    );
+    res.json({ ok: true, result });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "get_best_strike failed" });
+  }
+});
+
 app.post("/tools/get_technicals", async (req, res) => {
   try {
     const { symbol } = req.body;
@@ -646,6 +915,16 @@ app.post("/tools/get_support_resistance", async (req, res) => {
     res.json({ ok: true, result });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "get_support_resistance failed" });
+  }
+});
+
+app.post("/tools/analyze_trade_setup", async (req, res) => {
+  try {
+    const { symbol, expiration, option_type, strike } = req.body;
+    const result = await analyzeTradeSetup(symbol, expiration, option_type ?? "put", strike);
+    res.json({ ok: true, result });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "analyze_trade_setup failed" });
   }
 });
 
@@ -746,6 +1025,77 @@ app.post("/scan_shortlist", async (req, res) => {
     return res.status(500).json({
       ok: false,
       error: error.message || "scan_shortlist failed",
+    });
+  }
+});
+
+/*
+  MCP minimal compatibility layer
+  - GET /mcp: simple info endpoint
+  - POST /mcp: simple JSON-RPC-like handler for tools/list and tools/call
+*/
+
+app.get("/mcp", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "wheel-mcp-backend",
+    protocol: "mcp-minimal",
+    tools: buildToolList().map((t) => t.name),
+  });
+});
+
+app.post("/mcp", async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const method = body.method;
+    const params = body.params ?? {};
+    const id = body.id ?? null;
+
+    if (method === "tools/list") {
+      return res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          tools: buildToolList(),
+        },
+      });
+    }
+
+    if (method === "tools/call") {
+      const name = params.name;
+      const args = params.arguments ?? {};
+      const result = await runTool(name, args);
+
+      return res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          content: [
+            {
+              type: "json",
+              json: result,
+            },
+          ],
+        },
+      });
+    }
+
+    return res.status(400).json({
+      jsonrpc: "2.0",
+      id,
+      error: {
+        code: -32601,
+        message: `Method not found: ${method}`,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      jsonrpc: "2.0",
+      id: req.body?.id ?? null,
+      error: {
+        code: -32000,
+        message: error.message || "mcp handler failed",
+      },
     });
   }
 });

@@ -14,6 +14,11 @@ const WEEKLY_TARGET_PCT = 0.5;
 const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 const MAX_SCAN_TICKERS = 200;
 
+// Liquidité / exécution
+const MIN_VOLUME = 50;
+const MIN_OPEN_INTEREST = 100;
+const MAX_SPREAD_PCT = 0.25; // 25%
+
 const EARNINGS_SYMBOLS = new Set(["NFLX"]);
 
 function round(value, digits = 4) {
@@ -108,11 +113,45 @@ function normalizePutForSelection(put, spot, targetPremium) {
   };
 }
 
+function enrichLiquidity(row) {
+  const bid = toNumber(row?.bid);
+  const ask = toNumber(row?.ask);
+  const mid = toNumber(row?.mid);
+  const volume = toNumber(row?.volume);
+  const openInterest = toNumber(row?.openInterest);
+
+  const spread = bid > 0 && ask > 0 ? ask - bid : 0;
+
+  // Si pas de mid fiable, spreadPct doit être considéré mauvais
+  const spreadPct = mid > 0 ? spread / mid : 1;
+
+  // On considère liquide uniquement si :
+  // - bid/ask présents
+  // - spread raisonnable
+  // - volume minimal
+  // - OI minimal
+  const isLiquid =
+    bid > 0 &&
+    ask > 0 &&
+    mid > 0 &&
+    spreadPct <= MAX_SPREAD_PCT &&
+    volume >= MIN_VOLUME &&
+    openInterest >= MIN_OPEN_INTEREST;
+
+  return {
+    ...row,
+    spread,
+    spreadPct,
+    isLiquid,
+  };
+}
+
 function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
   const targetPremium = minPremiumForSpot(spot, dteDays);
 
   const eligible = (puts || [])
     .map((put) => normalizePutForSelection(put, spot, targetPremium))
+    .map((put) => enrichLiquidity(put))
     .filter((put) => put.strike > 0)
     .filter((put) => put.strike < lowerBoundForSelection)
     .filter((put) => put.mid > 0)
@@ -127,7 +166,14 @@ function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
 
   const safeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
 
-  const safeCandidates = safeZone
+  // On privilégie les strikes liquides pour le SAFE
+  const liquidSafeZone = safeZone.filter((put) => put.isLiquid);
+
+  // Fallback propre : si aucun strike liquide, on garde l’ancienne logique
+  const safeSelectionPool =
+    liquidSafeZone.length > 0 ? liquidSafeZone : safeZone;
+
+  const safeCandidates = safeSelectionPool
     .filter((put) => put.mid >= targetPremium)
     .sort((a, b) => {
       const diff = a.distanceToTarget - b.distanceToTarget;
@@ -141,6 +187,7 @@ function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
     targetPremium,
     eligible,
     safeZone,
+    liquidSafeZone,
     safeCandidates,
     safeStrike,
     aggressiveStrike,
@@ -247,7 +294,12 @@ async function getExpectedMove(symbol, expiration) {
     };
   }
 
-  const allStrikes = [...new Set([...chain.calls, ...chain.puts].map((x) => toNumber(x.strike)).filter(Boolean))];
+  const allStrikes = [...new Set(
+    [...chain.calls, ...chain.puts]
+      .map((x) => toNumber(x.strike))
+      .filter(Boolean)
+  )];
+
   if (!allStrikes.length) {
     return {
       symbol,
@@ -492,6 +544,7 @@ async function scanTicker(symbol, expiration) {
     if (!row) return null;
     const premium = toNumber(row.mid);
     const weeklyYield = weeklyYieldDecimal(premium, row.strike, dteDays);
+
     return {
       strike: row.strike,
       premium: round(premium, 3),
@@ -500,6 +553,11 @@ async function scanTicker(symbol, expiration) {
       distancePct: round(Math.abs(row.distancePct) / 100, 4),
       volume: row.volume,
       openInterest: row.openInterest,
+      bid: round(row.bid, 3),
+      ask: round(row.ask, 3),
+      spread: round(row.spread, 3),
+      spreadPct: round(row.spreadPct, 4),
+      isLiquid: !!row.isLiquid,
     };
   }
 
@@ -563,8 +621,10 @@ async function scanTicker(symbol, expiration) {
     debug: {
       eligibleCount: strikeSelection.eligible.length,
       safeZoneCount: strikeSelection.safeZone.length,
+      liquidSafeZoneCount: strikeSelection.liquidSafeZone.length,
       safeCandidatesCount: strikeSelection.safeCandidates.length,
       safeStrikeFloor: round(strikeSelection.safeStrikeFloor, 3),
+      usedLiquidityFilter: strikeSelection.liquidSafeZone.length > 0,
       reasonKept: passesFilter ? "passes_filters" : "filtered_out",
     },
   };

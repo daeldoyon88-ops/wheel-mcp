@@ -152,6 +152,11 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     momentum: item.technicals?.momentum ?? "unknown",
     sma20: item.technicals?.sma20 ?? null,
     sma50: item.technicals?.sma50 ?? null,
+    support: item.supportResistance?.support ?? null,
+    resistance: item.supportResistance?.resistance ?? null,
+    strikeVsSupportPct: item.supportResistance?.strikeVsSupportPct ?? null,
+    strikeVsResistancePct: item.supportResistance?.strikeVsResistancePct ?? null,
+    supportStatus: item.supportResistance?.supportStatus ?? "unknown",
     macd: "—",
     zone: "sous borne basse",
     verdict: item.hasEarnings ? "balanced" : "conservative",
@@ -511,6 +516,36 @@ function StrikeOpportunities({ item }) {
   );
 }
 
+function SupportStatusLine({ item }) {
+  if (item.strikeVsSupportPct == null) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+        Support: indisponible
+      </div>
+    );
+  }
+
+  const toneClass =
+    item.supportStatus === "room_above_support"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : item.supportStatus === "near_support"
+      ? "border-amber-200 bg-amber-50 text-amber-700"
+      : "border-rose-200 bg-rose-50 text-rose-700";
+
+  const label =
+    item.supportStatus === "room_above_support"
+      ? "support OK"
+      : item.supportStatus === "near_support"
+      ? "près du support"
+      : "sous le support";
+
+  return (
+    <div className={cn("rounded-xl border px-3 py-2 text-sm", toneClass)}>
+      Strike vs support: {label} ({item.strikeVsSupportPct > 0 ? "+" : ""}{item.strikeVsSupportPct.toFixed(1)}%)
+    </div>
+  );
+}
+
 function CandidateCard({ item, onOpenDetail }) {
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
@@ -616,6 +651,8 @@ function CandidateCard({ item, onOpenDetail }) {
                 />
               </div>
 
+              <SupportStatusLine item={item} />
+
               <StrikeOpportunities item={item} />
             </div>
 
@@ -711,6 +748,7 @@ function DetailModal({ item, onClose }) {
 
         let expectedMove = null;
         let optionChain = null;
+        let supportResistance = null;
 
         if (selectedExpiration) {
           expectedMove = await callTool("get_expected_move", {
@@ -724,6 +762,10 @@ function DetailModal({ item, onClose }) {
           });
         }
 
+        supportResistance = await callTool("get_support_resistance", {
+          symbol: item.ticker,
+        });
+
         if (!cancelled) {
           setLiveData({
             quote,
@@ -731,6 +773,7 @@ function DetailModal({ item, onClose }) {
             firstExpiration: selectedExpiration,
             expectedMove,
             optionChain,
+            supportResistance,
           });
         }
       } catch (err) {
@@ -774,6 +817,18 @@ function DetailModal({ item, onClose }) {
   const liveHigh =
     liveData?.expectedMove?.oneSigmaRange?.upper ??
     item.expectedMoveHigh;
+
+  const support = liveData?.supportResistance?.support ?? item.support ?? null;
+  const resistance = liveData?.supportResistance?.resistance ?? item.resistance ?? null;
+  const strikeVsSupportPct =
+    item.safeStrike && support
+      ? ((item.safeStrike.strike - support) / support) * 100
+      : item.strikeVsSupportPct;
+
+  const strikeVsResistancePct =
+    item.safeStrike && resistance
+      ? ((resistance - item.safeStrike.strike) / resistance) * 100
+      : item.strikeVsResistancePct;
 
   const adjustedMovePct = item.earningsMode
     ? liveExpectedMovePct * (item.expectedMoveMultiplier || 1)
@@ -834,6 +889,36 @@ function DetailModal({ item, onClose }) {
             <Metric label="Prix supérieur" value={`$${Number(liveHigh || 0).toFixed(2)}`} strong tone="good" />
             <Metric label="Expiration" value={liveData?.firstExpiration || "—"} />
             <Metric label="Prime cible safe" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Metric label="Support" value={support ? `$${Number(support).toFixed(2)}` : "—"} />
+            <Metric label="Résistance" value={resistance ? `$${Number(resistance).toFixed(2)}` : "—"} />
+            <Metric
+              label="Strike vs support"
+              value={
+                strikeVsSupportPct == null
+                  ? "—"
+                  : `${strikeVsSupportPct > 0 ? "+" : ""}${Number(strikeVsSupportPct).toFixed(2)}%`
+              }
+              tone={
+                strikeVsSupportPct == null
+                  ? "default"
+                  : strikeVsSupportPct >= 2
+                  ? "good"
+                  : strikeVsSupportPct >= 0
+                  ? "warn"
+                  : "bad"
+              }
+            />
+            <Metric
+              label="Strike vs résistance"
+              value={
+                strikeVsResistancePct == null
+                  ? "—"
+                  : `${Number(strikeVsResistancePct).toFixed(2)}%`
+              }
+            />
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

@@ -147,7 +147,11 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     premiumPerContract: primaryStrike ? primaryStrike.premium * 100 : 0,
     earnings: item.hasEarnings ? "earnings mode actif" : "pas cette semaine",
     iv: 0,
-    rsi: 0,
+    rsi: item.technicals?.rsi ?? "—",
+    trend: item.technicals?.trend ?? "unknown",
+    momentum: item.technicals?.momentum ?? "unknown",
+    sma20: item.technicals?.sma20 ?? null,
+    sma50: item.technicals?.sma50 ?? null,
     macd: "—",
     zone: "sous borne basse",
     verdict: item.hasEarnings ? "balanced" : "conservative",
@@ -572,7 +576,44 @@ function CandidateCard({ item, onOpenDetail }) {
                 <Metric label="Distance strike" value={`${item.strikeDistance.toFixed(1)}%`} />
                 <Metric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
                 <Metric label="IV" value={`${item.iv.toFixed(1)}%`} />
-                <Metric label="RSI" value={`${item.rsi}`} />
+                <Metric
+                  label="RSI"
+                  value={typeof item.rsi === "number" ? `${item.rsi}` : "—"}
+                  strong={typeof item.rsi === "number"}
+                  tone={
+                    typeof item.rsi !== "number"
+                      ? "default"
+                      : item.rsi >= 70
+                      ? "bad"
+                      : item.rsi <= 40
+                      ? "warn"
+                      : "good"
+                  }
+                />
+                <Metric
+                  label="Trend"
+                  value={item.trend || "unknown"}
+                  strong
+                  tone={
+                    item.trend === "bullish"
+                      ? "good"
+                      : item.trend === "bearish"
+                      ? "bad"
+                      : "warn"
+                  }
+                />
+                <Metric
+                  label="Momentum"
+                  value={item.momentum || "unknown"}
+                  strong
+                  tone={
+                    item.momentum === "positive"
+                      ? "good"
+                      : item.momentum === "negative"
+                      ? "bad"
+                      : "warn"
+                  }
+                />
               </div>
 
               <StrikeOpportunities item={item} />

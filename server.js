@@ -385,6 +385,55 @@ async function getTechnicals(symbol) {
   }
 }
 
+async function getSupportResistance(symbol) {
+  try {
+    const result = await yahooFinance.chart(symbol, {
+      period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
+      interval: "1d",
+    });
+
+    const quotes = result?.quotes ?? [];
+    const rows = quotes
+      .map((q) => ({
+        high: toNumber(q?.high),
+        low: toNumber(q?.low),
+        close: toNumber(q?.close),
+      }))
+      .filter((q) => q.high > 0 && q.low > 0 && q.close > 0);
+
+    if (rows.length < 20) {
+      return {
+        symbol,
+        support: null,
+        resistance: null,
+      };
+    }
+
+    const recent = rows.slice(-40);
+    const currentPrice = recent[recent.length - 1]?.close ?? null;
+
+    const lows = recent.map((r) => r.low).sort((a, b) => a - b);
+    const highs = recent.map((r) => r.high).sort((a, b) => b - a);
+
+    const support = lows[Math.floor(lows.length * 0.2)] ?? null;
+    const resistance = highs[Math.floor(highs.length * 0.2)] ?? null;
+
+    return {
+      symbol,
+      support: support ? round(support, 3) : null,
+      resistance: resistance ? round(resistance, 3) : null,
+      currentPrice: currentPrice ? round(currentPrice, 3) : null,
+    };
+  } catch (_error) {
+    return {
+      symbol,
+      support: null,
+      resistance: null,
+      currentPrice: null,
+    };
+  }
+}
+
 async function scanTicker(symbol, expiration) {
   const expirations = await getOptionExpirations(symbol);
   if (!expirations.availableExpirations.includes(expiration)) {
@@ -395,11 +444,12 @@ async function scanTicker(symbol, expiration) {
     };
   }
 
-  const [quote, expectedMove, optionChain, technicals] = await Promise.all([
+  const [quote, expectedMove, optionChain, technicals, supportResistance] = await Promise.all([
     getQuote(symbol),
     getExpectedMove(symbol, expiration),
     getOptionChain(symbol, expiration),
     getTechnicals(symbol),
+    getSupportResistance(symbol),
   ]);
 
   const spot =
@@ -457,6 +507,26 @@ async function scanTicker(symbol, expiration) {
   const aggressiveStrike = buildStrike(strikeSelection.aggressiveStrike);
   const targetPremium = strikeSelection.targetPremium;
 
+  const support = toNumber(supportResistance?.support) || null;
+  const resistance = toNumber(supportResistance?.resistance) || null;
+
+  const strikeVsSupportPct =
+    safeStrike && support && support > 0
+      ? ((safeStrike.strike - support) / support) * 100
+      : null;
+
+  const strikeVsResistancePct =
+    safeStrike && resistance && resistance > 0
+      ? ((resistance - safeStrike.strike) / resistance) * 100
+      : null;
+
+  let supportStatus = "unknown";
+  if (strikeVsSupportPct != null) {
+    if (strikeVsSupportPct >= 2) supportStatus = "room_above_support";
+    else if (strikeVsSupportPct >= 0) supportStatus = "near_support";
+    else supportStatus = "below_support";
+  }
+
   const passesFilter =
     !!safeStrike &&
     (safeStrike.premium ?? 0) >= targetPremium &&
@@ -482,6 +552,13 @@ async function scanTicker(symbol, expiration) {
       sma20: technicals?.sma20 ?? null,
       sma50: technicals?.sma50 ?? null,
     },
+    supportResistance: {
+      support: supportResistance?.support ?? null,
+      resistance: supportResistance?.resistance ?? null,
+      strikeVsSupportPct: strikeVsSupportPct != null ? round(strikeVsSupportPct, 2) : null,
+      strikeVsResistancePct: strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
+      supportStatus,
+    },
     passesFilter,
     debug: {
       eligibleCount: strikeSelection.eligible.length,
@@ -506,6 +583,7 @@ app.get("/tools", (_req, res) => {
       "get_expected_move",
       "get_option_chain",
       "get_technicals",
+      "get_support_resistance",
       "scan_shortlist",
     ],
   });
@@ -558,6 +636,16 @@ app.post("/tools/get_technicals", async (req, res) => {
     res.json({ ok: true, result });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "get_technicals failed" });
+  }
+});
+
+app.post("/tools/get_support_resistance", async (req, res) => {
+  try {
+    const { symbol } = req.body;
+    const result = await getSupportResistance(symbol);
+    res.json({ ok: true, result });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "get_support_resistance failed" });
   }
 });
 

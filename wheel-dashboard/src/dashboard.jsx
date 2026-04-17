@@ -16,9 +16,7 @@ import {
 import { wheelShortlist } from "./data/wheelShortlist";
 
 const API_BASE = "https://wheel-mcp.onrender.com";
-const WEEKLY_TARGET_PCT = 0.5;
 const ANNUAL_FACTOR = 52;
-const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 
 const DEFAULT_EXPIRATIONS = [
   "2026-04-24",
@@ -38,8 +36,6 @@ const SOURCE_TICKERS = [
   "NVO", "PHM", "DXCM", "USB", "PDD"
 ];
 
-const EARNINGS_SYMBOLS = new Set(["NFLX"]);
-
 const alerts = [
   {
     type: "earnings",
@@ -48,8 +44,8 @@ const alerts = [
   },
   {
     type: "rule",
-    title: "Dashboard mixte",
-    body: "Le dashboard principal utilise une shortlist snapshot au chargement. Le bouton Refresh lance un vrai scan live.",
+    title: "Dashboard backend-first",
+    body: "Le bouton Refresh shortlist appelle maintenant le backend /scan_shortlist. Le modal reste live au clic.",
   },
 ];
 
@@ -69,147 +65,14 @@ function cn(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function round(value, digits = 4) {
-  if (value == null || Number.isNaN(value)) return null;
-  return Number(value.toFixed(digits));
-}
-
-function weeklyYieldPct(mid, strike) {
-  if (!mid || !strike || strike <= 0) return 0;
-  return (mid / strike) * 100;
-}
-
-function annualizedYieldPct(weeklyPct) {
-  return weeklyPct * ANNUAL_FACTOR;
+function minPremiumForSpot(spot) {
+  if (!spot || spot <= 0) return 0;
+  return spot * 0.005;
 }
 
 function strikeDistancePct(strike, spot) {
   if (!strike || !spot || spot <= 0) return 0;
   return ((strike - spot) / spot) * 100;
-}
-
-function getDteDays(expiration) {
-  const now = new Date();
-  const exp = new Date(`${expiration}T00:00:00`);
-  const diff = exp - now;
-  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
-}
-
-function minPremiumForSpot(spot) {
-  if (!spot || spot <= 0) return 0;
-  return spot * (WEEKLY_TARGET_PCT / 100);
-}
-
-function toNumber(value) {
-  if (value == null) return 0;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function pickReliablePremium(row) {
-  const midField = toNumber(row?.mid);
-  const bid = toNumber(row?.bid);
-  const ask = toNumber(row?.ask);
-  const lastPrice = toNumber(row?.lastPrice);
-
-  const hasBid = bid > 0;
-  const hasAsk = ask > 0;
-  const bidAskMid = hasBid && hasAsk ? (bid + ask) / 2 : 0;
-
-  if (hasBid && hasAsk) {
-    if (midField > 0) {
-      const spread = Math.abs(midField - bidAskMid);
-      const tolerance = Math.max(0.03, bidAskMid * 0.35);
-      if (spread <= tolerance) return midField;
-    }
-    return bidAskMid;
-  }
-
-  if (midField > 0 && !hasBid && !hasAsk) {
-    return midField;
-  }
-
-  if (midField > 0 && hasAsk && !hasBid) {
-    if (midField <= ask * 1.15) return midField;
-  }
-
-  if (midField > 0 && hasBid && !hasAsk) {
-    if (midField >= bid * 0.85) return midField;
-  }
-
-  if (lastPrice > 0) return lastPrice;
-  if (midField > 0) return midField;
-  if (hasBid) return bid;
-  if (hasAsk) return ask;
-
-  return 0;
-}
-
-function normalizePutForSelection(put, spot, targetPremium) {
-  const strike = toNumber(put?.strike);
-  const premium = pickReliablePremium(put);
-
-  const weeklyPct = weeklyYieldPct(premium, strike);
-  const annualPct = annualizedYieldPct(weeklyPct);
-  const distancePct = strikeDistancePct(strike, spot);
-
-  return {
-    strike,
-    mid: premium,
-    bid: toNumber(put?.bid),
-    ask: toNumber(put?.ask),
-    lastPrice: toNumber(put?.lastPrice),
-    openInterest: toNumber(put?.openInterest),
-    volume: toNumber(put?.volume),
-    impliedVolatility: toNumber(put?.impliedVolatility),
-    weeklyYield: weeklyPct,
-    annualizedYield: annualPct,
-    distancePct,
-    targetPremium,
-    qualifiesTarget: premium >= targetPremium,
-    distanceToTarget: Math.abs(premium - targetPremium),
-  };
-}
-
-function selectPutStrikes({ puts, spot, lowerBoundForSelection }) {
-  const targetPremium = minPremiumForSpot(spot);
-
-  const eligible = (puts || [])
-    .map((put) => normalizePutForSelection(put, spot, targetPremium))
-    .filter((put) => put.strike > 0)
-    .filter((put) => put.strike < lowerBoundForSelection)
-    .filter((put) => put.mid > 0)
-    .sort((a, b) => a.strike - b.strike);
-
-  const aggressiveStrike =
-    eligible.length > 0
-      ? [...eligible].sort((a, b) => b.strike - a.strike)[0]
-      : null;
-
-  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
-
-  const safeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
-
-  const safeCandidates = safeZone
-    .filter((put) => put.mid >= targetPremium)
-    .sort((a, b) => {
-      const diff = a.distanceToTarget - b.distanceToTarget;
-      if (diff !== 0) return diff;
-      return b.strike - a.strike;
-    });
-
-  const safeStrike = safeCandidates.length > 0 ? safeCandidates[0] : null;
-
-  return {
-    eligible,
-    safeZone,
-    safeCandidates,
-    targetPremium,
-    safeStrike,
-    aggressiveStrike,
-    maxPremiumStrike: aggressiveStrike,
-    safeStrikeFloor,
-  };
 }
 
 function pickTargetExpiration(availableExpirations, targetExpiration) {
@@ -222,6 +85,12 @@ function toDashboardCandidate(item, index, selectedExpiration) {
   const safe = item.safeStrike;
   const aggressive = item.maxPremiumStrike;
   const primaryStrike = safe || aggressive;
+
+  const safeDistance =
+    safe && item.currentPrice > 0 ? strikeDistancePct(safe.strike, item.currentPrice) : 0;
+
+  const aggressiveDistance =
+    aggressive && item.currentPrice > 0 ? strikeDistancePct(aggressive.strike, item.currentPrice) : 0;
 
   return {
     rank: index + 1,
@@ -243,13 +112,14 @@ function toDashboardCandidate(item, index, selectedExpiration) {
       item.currentPrice != null && item.adjustedMove != null
         ? item.currentPrice + item.adjustedMove
         : 0,
-    minPremium: item.targetPremium ?? (item.currentPrice ? item.currentPrice * 0.005 : 0),
+    minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0),
     safeStrike: safe
       ? {
           strike: safe.strike,
           mid: safe.premium,
           weeklyYield: (safe.weeklyYield ?? 0) * 100,
           annualizedYield: (safe.annualizedYield ?? 0) * 100,
+          distancePct: safeDistance,
           label: "prime la plus proche de la cible",
         }
       : null,
@@ -259,6 +129,7 @@ function toDashboardCandidate(item, index, selectedExpiration) {
           mid: aggressive.premium,
           weeklyYield: (aggressive.weeklyYield ?? 0) * 100,
           annualizedYield: (aggressive.annualizedYield ?? 0) * 100,
+          distancePct: aggressiveDistance,
           label: "directement sous borne basse",
         }
       : null,
@@ -269,7 +140,9 @@ function toDashboardCandidate(item, index, selectedExpiration) {
         ? `${primaryStrike.premium?.toFixed(2) ?? "—"}`
         : "—",
     weeklyReturn: primaryStrike ? (primaryStrike.weeklyYield ?? 0) * 100 : 0,
-    strikeDistance: primaryStrike ? -((primaryStrike.distancePct ?? 0) * 100) : 0,
+    strikeDistance: primaryStrike
+      ? strikeDistancePct(primaryStrike.strike, item.currentPrice ?? 0)
+      : 0,
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract: primaryStrike ? primaryStrike.premium * 100 : 0,
     earnings: item.hasEarnings ? "earnings mode actif" : "pas cette semaine",
@@ -281,7 +154,7 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     ok: !!item.passesFilter,
     note: item.hasEarnings
       ? "Cas earnings conservé avec expected move x2 et détail live dans la fiche complète."
-      : "Candidat issu du scanner, prêt à afficher dans le dashboard.",
+      : "Candidat issu du scanner backend, prêt à afficher dans le dashboard.",
     raw: item,
   };
 }
@@ -387,7 +260,11 @@ function Input({ className = "", ...props }) {
 }
 
 function Select({ className = "", children, ...props }) {
-  return <select {...props} className={cn("border bg-white px-3 py-2 outline-none", className)}>{children}</select>;
+  return (
+    <select {...props} className={cn("border bg-white px-3 py-2 outline-none", className)}>
+      {children}
+    </select>
+  );
 }
 
 function Badge({ className = "", children }) {
@@ -562,12 +439,6 @@ function StrikeOpportunities({ item }) {
   const hasSafe = !!item.safeStrike;
   const hasAggressive = !!item.maxPremiumStrike;
 
-  const safeDistance =
-    hasSafe && item.price > 0 ? ((item.safeStrike.strike - item.price) / item.price) * 100 : 0;
-
-  const aggressiveDistance =
-    hasAggressive && item.price > 0 ? ((item.maxPremiumStrike.strike - item.price) / item.price) * 100 : 0;
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -607,7 +478,7 @@ function StrikeOpportunities({ item }) {
               mid={item.safeStrike.mid}
               weeklyYield={item.safeStrike.weeklyYield}
               annualizedYield={item.safeStrike.annualizedYield}
-              distancePct={safeDistance}
+              distancePct={item.safeStrike.distancePct}
               label={item.safeStrike.label}
               meetsTarget={item.safeStrike.mid >= item.minPremium}
             />
@@ -621,7 +492,7 @@ function StrikeOpportunities({ item }) {
               mid={item.maxPremiumStrike.mid}
               weeklyYield={item.maxPremiumStrike.weeklyYield}
               annualizedYield={item.maxPremiumStrike.annualizedYield}
-              distancePct={aggressiveDistance}
+              distancePct={item.maxPremiumStrike.distancePct}
               label={item.maxPremiumStrike.label}
               meetsTarget={item.maxPremiumStrike.mid >= item.minPremium}
             />
@@ -745,103 +616,26 @@ async function callTool(toolName, args) {
   return payload.result;
 }
 
-async function scanTickerLive(symbol, expiration) {
-  const expirations = await callTool("get_option_expirations", { symbol });
+async function callScanShortlist({ expiration, topN, tickers }) {
+  const response = await fetch(`${API_BASE}/scan_shortlist`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      expiration,
+      topN,
+      tickers,
+    }),
+  });
 
-  const availableExpirations =
-    expirations?.availableExpirations ||
-    expirations?.expirationDates ||
-    expirations?.expirations ||
-    [];
+  const payload = await response.json();
 
-  if (!availableExpirations.includes(expiration)) {
-    return null;
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
   }
 
-  const [quote, expectedMove, optionChain] = await Promise.all([
-    callTool("get_quote", { symbol }),
-    callTool("get_expected_move", { symbol, expiration }),
-    callTool("get_option_chain", { symbol, expiration }),
-  ]);
-
-  const price =
-    quote?.regularMarketPrice ??
-    quote?.currentPrice ??
-    optionChain?.currentPrice ??
-    expectedMove?.currentPrice ??
-    0;
-
-  const expectedMoveAbs = Number(expectedMove?.expectedMove ?? 0);
-  const hasEarnings = EARNINGS_SYMBOLS.has(symbol);
-  const adjustedMove = hasEarnings ? expectedMoveAbs * 2 : expectedMoveAbs;
-  const lowerBound = price - adjustedMove;
-
-  const dteDays = getDteDays(expiration);
-  const puts = Array.isArray(optionChain?.puts) ? optionChain.puts : [];
-
-  const strikeSelection =
-    puts.length > 0 && lowerBound > 0 && price > 0
-      ? selectPutStrikes({
-          puts,
-          spot: price,
-          lowerBoundForSelection: lowerBound,
-        })
-      : {
-          eligible: [],
-          safeZone: [],
-          safeCandidates: [],
-          targetPremium: minPremiumForSpot(price),
-          safeStrike: null,
-          aggressiveStrike: null,
-          maxPremiumStrike: null,
-          safeStrikeFloor: 0,
-        };
-
-  const safe = strikeSelection.safeStrike;
-  const aggressive = strikeSelection.aggressiveStrike;
-  const targetPremium = strikeSelection.targetPremium ?? minPremiumForSpot(price);
-
-  function normalizeStrike(strikeRow) {
-    if (!strikeRow) return null;
-    const premium = Number(strikeRow.mid ?? 0);
-    const weekly = premium > 0 && strikeRow.strike > 0
-      ? (premium / strikeRow.strike) * (7 / dteDays)
-      : 0;
-
-    return {
-      symbol,
-      strike: strikeRow.strike,
-      premium: round(premium, 3),
-      distancePct: round(Math.abs(strikeRow.distancePct) / 100, 4),
-      weeklyYield: round(weekly, 4),
-      annualizedYield: round(weekly * 52, 4),
-      lowerBound: round(lowerBound, 3),
-      distanceToTarget: round(Math.abs(premium - targetPremium), 4),
-    };
-  }
-
-  const normalizedSafe = normalizeStrike(safe);
-  const normalizedAggressive = normalizeStrike(aggressive);
-
-  const passesFilter =
-    !!normalizedSafe &&
-    (normalizedSafe.premium ?? 0) >= targetPremium &&
-    (normalizedSafe.annualizedYield ?? 0) >= 0.26;
-
-  return {
-    symbol,
-    expiration,
-    hasEarnings,
-    currentPrice: round(price, 3),
-    expectedMove: round(expectedMoveAbs, 3),
-    adjustedMove: round(adjustedMove, 3),
-    lowerBound: round(lowerBound, 3),
-    dteDays,
-    targetPremium: round(targetPremium, 3),
-    safeStrike: normalizedSafe,
-    maxPremiumStrike: normalizedAggressive,
-    passesFilter,
-  };
+  return payload;
 }
 
 function DetailModal({ item, onClose }) {
@@ -944,35 +738,6 @@ function DetailModal({ item, onClose }) {
     ? liveExpectedMovePct * (item.expectedMoveMultiplier || 1)
     : liveExpectedMovePct;
 
-  const lowerBoundForSelection =
-    item.earningsMode && livePrice > 0
-      ? livePrice * (1 - adjustedMovePct / 100)
-      : liveLow;
-
-  const normalizedPuts = Array.isArray(liveData?.optionChain?.puts) ? liveData.optionChain.puts : [];
-  const strikeSelection =
-    normalizedPuts.length > 0 && lowerBoundForSelection > 0 && livePrice > 0
-      ? selectPutStrikes({
-          puts: normalizedPuts,
-          spot: livePrice,
-          lowerBoundForSelection,
-        })
-      : {
-          eligible: [],
-          safeZone: [],
-          safeCandidates: [],
-          targetPremium: minPremiumForSpot(livePrice),
-          safeStrike: null,
-          aggressiveStrike: null,
-          maxPremiumStrike: null,
-          safeStrikeFloor: 0,
-        };
-
-  const safeStrike = strikeSelection.safeStrike;
-  const aggressiveStrike = strikeSelection.aggressiveStrike;
-  const displayedLowForSelection = lowerBoundForSelection > 0 ? lowerBoundForSelection : liveLow;
-  const minPremiumHint = strikeSelection.targetPremium ?? minPremiumForSpot(livePrice);
-
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
       <div className="mx-auto flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
@@ -1027,58 +792,56 @@ function DetailModal({ item, onClose }) {
             <Metric label="Prix plus bas" value={`$${Number(liveLow || 0).toFixed(2)}`} strong tone="bad" />
             <Metric label="Prix supérieur" value={`$${Number(liveHigh || 0).toFixed(2)}`} strong tone="good" />
             <Metric label="Expiration" value={liveData?.firstExpiration || "—"} />
-            <Metric label="Prime cible safe" value={`$${Number(minPremiumHint || 0).toFixed(2)}`} />
+            <Metric label="Prime cible safe" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-900">Résumé</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{item.note}</p>
             <p className="mt-2 text-sm text-slate-600">
-              Borne basse utilisée :{" "}
+              Borne basse snapshot :{" "}
               <span className="font-semibold text-rose-700">
-                ${Number(displayedLowForSelection || 0).toFixed(2)}
+                ${Number(item.expectedMoveLow || 0).toFixed(2)}
               </span>
-              {" "}· cible safe :{" "}
-              <span className="font-semibold">${Number(minPremiumHint || 0).toFixed(2)}</span>
-              {" "}· zone safe mini strike :{" "}
-              <span className="font-semibold">${Number(strikeSelection.safeStrikeFloor || 0).toFixed(2)}</span>
+              {" "}· cible safe snapshot :{" "}
+              <span className="font-semibold">${Number(item.minPremium || 0).toFixed(2)}</span>
             </p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            {safeStrike ? (
+            {item.safeStrike ? (
               <StrikeCard
-                title="Strike safe live"
-                subtitle="prime la plus proche de la cible minimale"
-                strike={safeStrike.strike}
-                mid={safeStrike.mid}
-                weeklyYield={safeStrike.weeklyYield}
-                annualizedYield={safeStrike.annualizedYield}
-                distancePct={safeStrike.distancePct}
+                title="Strike safe snapshot"
+                subtitle="issu du backend /scan_shortlist"
+                strike={item.safeStrike.strike}
+                mid={item.safeStrike.mid}
+                weeklyYield={item.safeStrike.weeklyYield}
+                annualizedYield={item.safeStrike.annualizedYield}
+                distancePct={item.safeStrike.distancePct}
                 label="safe strike"
-                meetsTarget={safeStrike.mid >= minPremiumHint}
+                meetsTarget={item.safeStrike.mid >= item.minPremium}
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-                Aucun strike safe live ne paie la prime minimale cible dans la zone proche de la borne basse.
+                Aucun strike safe snapshot.
               </div>
             )}
 
-            {aggressiveStrike ? (
+            {item.maxPremiumStrike ? (
               <StrikeCard
-                title="Strike agressif live"
-                subtitle="directement sous la borne basse"
-                strike={aggressiveStrike.strike}
-                mid={aggressiveStrike.mid}
-                weeklyYield={aggressiveStrike.weeklyYield}
-                annualizedYield={aggressiveStrike.annualizedYield}
-                distancePct={aggressiveStrike.distancePct}
+                title="Strike agressif snapshot"
+                subtitle="issu du backend /scan_shortlist"
+                strike={item.maxPremiumStrike.strike}
+                mid={item.maxPremiumStrike.mid}
+                weeklyYield={item.maxPremiumStrike.weeklyYield}
+                annualizedYield={item.maxPremiumStrike.annualizedYield}
+                distancePct={item.maxPremiumStrike.distancePct}
                 label="aggressive strike"
-                meetsTarget={aggressiveStrike.mid >= minPremiumHint}
+                meetsTarget={item.maxPremiumStrike.mid >= item.minPremium}
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-                Aucun strike agressif live disponible.
+                Aucun strike agressif snapshot.
               </div>
             )}
           </div>
@@ -1165,32 +928,32 @@ export default function Dashboard() {
   const [maxCapitalPct, setMaxCapitalPct] = useState(70);
   const [maxPositions, setMaxPositions] = useState(3);
 
-  const [liveShortlist, setLiveShortlist] = useState(null);
+  const [backendCandidates, setBackendCandidates] = useState(null);
   const [loadingScan, setLoadingScan] = useState(false);
   const [scanError, setScanError] = useState("");
-  const [scanProgress, setScanProgress] = useState({ done: 0, total: SOURCE_TICKERS.length });
+  const [scanMeta, setScanMeta] = useState({
+    scanned: SOURCE_TICKERS.length,
+    kept: 0,
+    returned: 0,
+  });
 
   const snapshotCandidates = useMemo(() => {
     return wheelShortlist
       .slice()
-      .sort((a, b) => {
-        const aYield = a?.safeStrike?.annualizedYield ?? 0;
-        const bYield = b?.safeStrike?.annualizedYield ?? 0;
-        return bYield - aYield;
-      })
       .map((item, index) => toDashboardCandidate(item, index, selectedExpiration));
   }, [selectedExpiration]);
 
   const activeCandidates = useMemo(() => {
-    const source = Array.isArray(liveShortlist) && liveShortlist.length > 0
-      ? liveShortlist
-      : snapshotCandidates;
+    const source =
+      Array.isArray(backendCandidates) && backendCandidates.length > 0
+        ? backendCandidates
+        : snapshotCandidates;
 
     return source.slice(0, topN).map((item, index) => ({
       ...item,
       rank: index + 1,
     }));
-  }, [liveShortlist, snapshotCandidates, topN]);
+  }, [backendCandidates, snapshotCandidates, topN]);
 
   const filtered = useMemo(() => {
     return activeCandidates.filter((item) => {
@@ -1215,45 +978,58 @@ export default function Dashboard() {
 
   const stats = useMemo(
     () => [
-      { title: "Watchlist", value: String(SOURCE_TICKERS.length), sub: "tickers source", icon: Search },
-      { title: "Shortlist", value: String(filtered.length), sub: `top ${topN} affichés`, icon: ShieldCheck },
-      { title: "Expiration", value: selectedExpiration, sub: "sélection UI", icon: CalendarDays },
-      { title: "Objectif", value: "0.5%", sub: "prime mini sur spot", icon: Target },
+      {
+        title: "Watchlist",
+        value: String(SOURCE_TICKERS.length),
+        sub: "tickers source",
+        icon: Search
+      },
+      {
+        title: "Shortlist",
+        value: String(filtered.length),
+        sub:
+          backendCandidates && backendCandidates.length > 0
+            ? `${scanMeta.kept} retenus backend`
+            : "snapshot local",
+        icon: ShieldCheck
+      },
+      {
+        title: "Expiration",
+        value: selectedExpiration,
+        sub: "scan backend",
+        icon: CalendarDays
+      },
+      {
+        title: "Objectif",
+        value: "0.5%",
+        sub: "prime mini sur spot",
+        icon: Target
+      },
     ],
-    [filtered.length, selectedExpiration, topN]
+    [filtered.length, selectedExpiration, backendCandidates, scanMeta]
   );
 
   async function handleRefreshShortlist() {
     setLoadingScan(true);
     setScanError("");
-    setScanProgress({ done: 0, total: SOURCE_TICKERS.length });
-
-    const next = [];
 
     try {
-      for (let i = 0; i < SOURCE_TICKERS.length; i += 1) {
-        const symbol = SOURCE_TICKERS[i];
-
-        try {
-          const scanned = await scanTickerLive(symbol, selectedExpiration);
-          if (scanned && scanned.passesFilter) {
-            next.push(scanned);
-          }
-        } catch (e) {
-          // ignore individuel
-        }
-
-        setScanProgress({ done: i + 1, total: SOURCE_TICKERS.length });
-      }
-
-      next.sort((a, b) => {
-        const aYield = a?.safeStrike?.annualizedYield ?? 0;
-        const bYield = b?.safeStrike?.annualizedYield ?? 0;
-        return bYield - aYield;
+      const payload = await callScanShortlist({
+        expiration: selectedExpiration,
+        topN,
+        tickers: SOURCE_TICKERS,
       });
 
-      const mapped = next.map((item, index) => toDashboardCandidate(item, index, selectedExpiration));
-      setLiveShortlist(mapped);
+      const mapped = (payload.shortlist || []).map((item, index) =>
+        toDashboardCandidate(item, index, selectedExpiration)
+      );
+
+      setBackendCandidates(mapped);
+      setScanMeta({
+        scanned: payload.scanned ?? SOURCE_TICKERS.length,
+        kept: payload.kept ?? mapped.length,
+        returned: payload.returned ?? mapped.length,
+      });
     } catch (e) {
       setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
     } finally {
@@ -1273,13 +1049,13 @@ export default function Dashboard() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
                 <Layers3 className="h-3.5 w-3.5" />
-                Wheel Strategy Dashboard — snapshot + live refresh
+                Wheel Strategy Dashboard — backend shortlist + modal live
               </div>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
                 Dashboard options lisible, premium et actionnable
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
-                Safe = prime la plus proche de spot × 0.5% dans une zone proche de la borne basse. Agressif = strike directement sous la borne basse.
+                Le bouton Refresh shortlist interroge maintenant le backend Render pour calculer les strikes safe et agressifs. Le modal reste live pour lecture détaillée.
               </p>
             </div>
 
@@ -1369,11 +1145,11 @@ export default function Dashboard() {
         {loadingScan && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between text-sm text-slate-700">
-              <span>Scan live en cours...</span>
-              <span>{scanProgress.done} / {scanProgress.total}</span>
+              <span>Scan backend en cours...</span>
+              <span>{SOURCE_TICKERS.length} tickers envoyés</span>
             </div>
             <div className="mt-3">
-              <Progress value={(scanProgress.done / Math.max(1, scanProgress.total)) * 100} />
+              <Progress value={65} />
             </div>
           </div>
         )}
@@ -1392,7 +1168,7 @@ export default function Dashboard() {
                   <div>
                     <CardTitle className="text-xl text-slate-900">Shortlist hebdomadaire</CardTitle>
                     <p className="mt-1 text-sm text-slate-500">
-                      Snapshot au chargement. Après refresh, shortlist live recalculée sur {SOURCE_TICKERS.length} tickers source.
+                      Snapshot au chargement. Après refresh, la shortlist vient du backend /scan_shortlist.
                     </p>
                   </div>
 
@@ -1463,7 +1239,7 @@ export default function Dashboard() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="font-medium text-slate-900">Lecture rapide</p>
                   <p className="mt-2 leading-6">
-                    Le strike safe est maintenant filtré dans une zone proche de la borne basse pour éviter les strikes absurdes trop éloignés.
+                    Le scan principal est maintenant calculé côté backend. Le frontend ne fait plus le scan ticker par ticker.
                   </p>
                 </div>
 
@@ -1473,8 +1249,12 @@ export default function Dashboard() {
                     <span className="font-semibold text-slate-900">{filtered.length}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-slate-500">Tickers source</span>
-                    <span className="font-semibold text-slate-900">{SOURCE_TICKERS.length}</span>
+                    <span className="text-slate-500">Scannés backend</span>
+                    <span className="font-semibold text-slate-900">{scanMeta.scanned}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-slate-500">Retenus backend</span>
+                    <span className="font-semibold text-slate-900">{scanMeta.kept}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Capital compte</span>
@@ -1488,7 +1268,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
                   <BarChart3 className="h-5 w-5" />
-                  Priorité UX proposée
+                  Architecture propre
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-slate-600">
@@ -1497,9 +1277,9 @@ export default function Dashboard() {
                     1
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Top N réel</p>
+                    <p className="font-medium text-slate-900">Scanner backend</p>
                     <p className="mt-1 leading-6 text-slate-600">
-                      Après refresh, le top 10 ou top 15 fonctionne sur la vraie shortlist live recalculée.
+                      Safe et agressif sont maintenant calculés sur Render via /scan_shortlist.
                     </p>
                   </div>
                 </div>
@@ -1509,9 +1289,9 @@ export default function Dashboard() {
                     2
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Combinaisons capital</p>
+                    <p className="font-medium text-slate-900">Frontend allégé</p>
                     <p className="mt-1 leading-6 text-slate-600">
-                      Les paniers se recalculent automatiquement sur la shortlist active.
+                      Le dashboard se concentre maintenant sur l’affichage, les filtres et les combinaisons de capital.
                     </p>
                   </div>
                 </div>
@@ -1521,9 +1301,9 @@ export default function Dashboard() {
                     3
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Filtre pratique</p>
+                    <p className="font-medium text-slate-900">Scalabilité</p>
                     <p className="mt-1 leading-6 text-slate-600">
-                      Le strike safe est cherché près de la borne basse pour éviter les quotes lointaines peu utiles.
+                      Cette architecture est beaucoup plus adaptée à une watchlist de 100 à 200 tickers.
                     </p>
                   </div>
                 </div>

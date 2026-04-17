@@ -11,7 +11,6 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const WEEKLY_TARGET_PCT = 0.5;
-const ANNUAL_FACTOR = 52;
 const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 const MAX_SCAN_TICKERS = 200;
 
@@ -28,9 +27,9 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function minPremiumForSpot(spot) {
-  if (!spot || spot <= 0) return 0;
-  return spot * 0.005;
+function minPremiumForSpot(spot, dteDays) {
+  if (!spot || spot <= 0 || !dteDays || dteDays <= 0) return 0;
+  return spot * (WEEKLY_TARGET_PCT / 100) * (dteDays / 7);
 }
 
 function weeklyYieldDecimal(mid, strike, dteDays) {
@@ -109,8 +108,8 @@ function normalizePutForSelection(put, spot, targetPremium) {
   };
 }
 
-function selectPutStrikes({ puts, spot, lowerBoundForSelection }) {
-  const targetPremium = minPremiumForSpot(spot);
+function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
+  const targetPremium = minPremiumForSpot(spot, dteDays);
 
   const eligible = (puts || [])
     .map((put) => normalizePutForSelection(put, spot, targetPremium))
@@ -328,14 +327,15 @@ async function scanTicker(symbol, expiration) {
     };
   }
 
+  const dteDays = getDteDays(expiration);
   const puts = Array.isArray(optionChain?.puts) ? optionChain.puts : [];
+
   const strikeSelection = selectPutStrikes({
     puts,
     spot,
     lowerBoundForSelection: lowerBound,
+    dteDays,
   });
-
-  const dteDays = getDteDays(expiration);
 
   function buildStrike(row) {
     if (!row) return null;
@@ -358,8 +358,8 @@ async function scanTicker(symbol, expiration) {
 
   const passesFilter =
     !!safeStrike &&
-    safeStrike.premium >= targetPremium &&
-    safeStrike.annualizedYield >= 0.26;
+    (safeStrike.premium ?? 0) >= targetPremium &&
+    (safeStrike.annualizedYield ?? 0) >= 0.26;
 
   return {
     symbol,
@@ -370,6 +370,7 @@ async function scanTicker(symbol, expiration) {
     expectedMove: round(expectedMoveAbs, 3),
     adjustedMove: round(adjustedMove, 3),
     lowerBound: round(lowerBound, 3),
+    dteDays,
     targetPremium: round(targetPremium, 3),
     safeStrike,
     maxPremiumStrike: aggressiveStrike,

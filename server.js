@@ -11,24 +11,10 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const WEEKLY_TARGET_PCT = 0.5;
+const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 const MAX_SCAN_TICKERS = 200;
 
-// Zone safe préférée
-const SAFE_STRIKE_FLOOR_RATIO = 0.90;
-
-// Liquidité / exécution
-const MIN_VOLUME = 50;
-const MIN_OPEN_INTEREST = 100;
-const MAX_SPREAD_PCT = 0.60;
-const MAX_ABSOLUTE_SPREAD = 0.20;
-
 const EARNINGS_SYMBOLS = new Set(["NFLX"]);
-
-// Anti-429
-const REQUEST_RETRIES = 3;
-const RETRY_BASE_DELAY_MS = 1200;
-const BATCH_SIZE = 2;
-const BATCH_DELAY_MS = 1800;
 
 function round(value, digits = 4) {
   if (value == null || Number.isNaN(value)) return null;
@@ -39,42 +25,6 @@ function toNumber(value) {
   if (value == null) return 0;
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isRetryableYahooError(error) {
-  const msg = String(error?.message || error || "").toLowerCase();
-  return (
-    msg.includes("429") ||
-    msg.includes("too many requests") ||
-    msg.includes("failed to get crumb") ||
-    msg.includes("rate limit")
-  );
-}
-
-async function withRetry(label, fn) {
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= REQUEST_RETRIES; attempt += 1) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-
-      if (!isRetryableYahooError(error) || attempt === REQUEST_RETRIES) {
-        throw error;
-      }
-
-      const waitMs = RETRY_BASE_DELAY_MS * attempt;
-      console.warn(`${label} retry ${attempt}/${REQUEST_RETRIES} after ${waitMs}ms`);
-      await sleep(waitMs);
-    }
-  }
-
-  throw lastError;
 }
 
 function minPremiumForSpot(spot, dteDays) {
@@ -152,61 +102,17 @@ function normalizePutForSelection(put, spot, targetPremium) {
     openInterest: toNumber(put?.openInterest),
     impliedVolatility: toNumber(put?.impliedVolatility),
     targetPremium,
+    qualifiesTarget: premium >= targetPremium,
     distanceToTarget: Math.abs(premium - targetPremium),
     distancePct: strikeDistancePct(strike, spot),
   };
 }
 
-function enrichLiquidity(row) {
-  const bid = toNumber(row?.bid);
-  const ask = toNumber(row?.ask);
-  const mid = toNumber(row?.mid);
-  const volume = toNumber(row?.volume);
-  const openInterest = toNumber(row?.openInterest);
-
-  const spread = bid > 0 && ask > 0 ? ask - bid : 0;
-  const spreadPct = mid > 0 ? spread / mid : 1;
-
-  const spreadOk =
-    spreadPct <= MAX_SPREAD_PCT ||
-    spread <= MAX_ABSOLUTE_SPREAD;
-
-  const isLiquid =
-    bid > 0 &&
-    ask > 0 &&
-    mid > 0 &&
-    spreadOk &&
-    volume >= MIN_VOLUME &&
-    openInterest >= MIN_OPEN_INTEREST;
-
-  return {
-    ...row,
-    spread,
-    spreadPct,
-    spreadOk,
-    isLiquid,
-  };
-}
-
-function selectClosestPremium(candidates) {
-  if (!Array.isArray(candidates) || candidates.length === 0) return null;
-
-  const sorted = [...candidates].sort((a, b) => {
-    const premiumDiff = a.distanceToTarget - b.distanceToTarget;
-    if (premiumDiff !== 0) return premiumDiff;
-    return b.strike - a.strike;
-  });
-
-  return sorted[0] ?? null;
-}
-
 function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
   const targetPremium = minPremiumForSpot(spot, dteDays);
-  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
 
   const eligible = (puts || [])
     .map((put) => normalizePutForSelection(put, spot, targetPremium))
-    .map((put) => enrichLiquidity(put))
     .filter((put) => put.strike > 0)
     .filter((put) => put.strike < lowerBoundForSelection)
     .filter((put) => put.mid > 0)
@@ -217,41 +123,33 @@ function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
       ? [...eligible].sort((a, b) => b.strike - a.strike)[0]
       : null;
 
-  const preferredSafeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
-  const preferredLiquidCandidates = preferredSafeZone.filter((put) => put.isLiquid);
-  const fallbackLiquidCandidates = eligible.filter((put) => put.isLiquid);
+  const safeStrikeFloor = lowerBoundForSelection * SAFE_STRIKE_FLOOR_RATIO;
 
-  const safeStrikeFromPreferredZone = selectClosestPremium(preferredLiquidCandidates);
-  const safeStrikeFromFallbackZone = selectClosestPremium(fallbackLiquidCandidates);
+  const safeZone = eligible.filter((put) => put.strike >= safeStrikeFloor);
 
-  const safeStrike = safeStrikeFromPreferredZone || safeStrikeFromFallbackZone || null;
+  const safeCandidates = safeZone
+    .filter((put) => put.mid >= targetPremium)
+    .sort((a, b) => {
+      const diff = a.distanceToTarget - b.distanceToTarget;
+      if (diff !== 0) return diff;
+      return b.strike - a.strike;
+    });
 
-  const safeCandidatesUsed = safeStrikeFromPreferredZone
-    ? preferredLiquidCandidates
-    : fallbackLiquidCandidates;
-
-  const selectionMode = safeStrikeFromPreferredZone
-    ? "preferred_safe_zone"
-    : safeStrikeFromFallbackZone
-      ? "fallback_all_liquid_below_bound"
-      : "no_safe_candidate";
+  const safeStrike = safeCandidates.length > 0 ? safeCandidates[0] : null;
 
   return {
     targetPremium,
     eligible,
-    preferredSafeZone,
-    preferredLiquidCandidates,
-    fallbackLiquidCandidates,
-    safeCandidatesUsed,
+    safeZone,
+    safeCandidates,
     safeStrike,
     aggressiveStrike,
     safeStrikeFloor,
-    selectionMode,
   };
 }
 
 async function getQuote(symbol) {
-  const quote = await withRetry(`getQuote:${symbol}`, () => yahooFinance.quote(symbol));
+  const quote = await yahooFinance.quote(symbol);
   return {
     symbol,
     regularMarketPrice:
@@ -266,7 +164,7 @@ async function getQuote(symbol) {
 }
 
 async function getOptionExpirations(symbol) {
-  const chain = await withRetry(`getOptionExpirations:${symbol}`, () => yahooFinance.options(symbol));
+  const chain = await yahooFinance.options(symbol);
   const dates = Array.isArray(chain?.expirationDates)
     ? chain.expirationDates.map((d) => {
         const dt = new Date(d);
@@ -281,11 +179,7 @@ async function getOptionExpirations(symbol) {
 }
 
 async function getOptionChain(symbol, expiration) {
-  const chain = await withRetry(
-    `getOptionChain:${symbol}:${expiration}`,
-    () => yahooFinance.options(symbol, { date: expiration })
-  );
-
+  const chain = await yahooFinance.options(symbol, { date: expiration });
   const options = chain?.options?.[0] ?? {};
 
   const calls = Array.isArray(options.calls)
@@ -339,8 +233,8 @@ async function getOptionChain(symbol, expiration) {
   };
 }
 
-async function getExpectedMove(symbol, expiration, optionChain = null) {
-  const chain = optionChain || await getOptionChain(symbol, expiration);
+async function getExpectedMove(symbol, expiration) {
+  const chain = await getOptionChain(symbol, expiration);
   const price = toNumber(chain?.currentPrice);
 
   if (!price || !Array.isArray(chain.calls) || !Array.isArray(chain.puts)) {
@@ -353,12 +247,7 @@ async function getExpectedMove(symbol, expiration, optionChain = null) {
     };
   }
 
-  const allStrikes = [...new Set(
-    [...chain.calls, ...chain.puts]
-      .map((x) => toNumber(x.strike))
-      .filter(Boolean)
-  )];
-
+  const allStrikes = [...new Set([...chain.calls, ...chain.puts].map((x) => toNumber(x.strike)).filter(Boolean))];
   if (!allStrikes.length) {
     return {
       symbol,
@@ -398,12 +287,10 @@ async function getExpectedMove(symbol, expiration, optionChain = null) {
 
 async function getTechnicals(symbol) {
   try {
-    const result = await withRetry(`getTechnicals:${symbol}`, () =>
-      yahooFinance.chart(symbol, {
-        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
-        interval: "1d",
-      })
-    );
+    const result = await yahooFinance.chart(symbol, {
+      period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
+      interval: "1d",
+    });
 
     const quotes = result?.quotes ?? [];
     const closes = quotes
@@ -500,12 +387,10 @@ async function getTechnicals(symbol) {
 
 async function getSupportResistance(symbol) {
   try {
-    const result = await withRetry(`getSupportResistance:${symbol}`, () =>
-      yahooFinance.chart(symbol, {
-        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
-        interval: "1d",
-      })
-    );
+    const result = await yahooFinance.chart(symbol, {
+      period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
+      interval: "1d",
+    });
 
     const quotes = result?.quotes ?? [];
     const rows = quotes
@@ -559,14 +444,13 @@ async function scanTicker(symbol, expiration) {
     };
   }
 
-  const [quote, optionChain, technicals, supportResistance] = await Promise.all([
+  const [quote, expectedMove, optionChain, technicals, supportResistance] = await Promise.all([
     getQuote(symbol),
+    getExpectedMove(symbol, expiration),
     getOptionChain(symbol, expiration),
     getTechnicals(symbol),
     getSupportResistance(symbol),
   ]);
-
-  const expectedMove = await getExpectedMove(symbol, expiration, optionChain);
 
   const spot =
     toNumber(quote?.regularMarketPrice) ||
@@ -608,23 +492,14 @@ async function scanTicker(symbol, expiration) {
     if (!row) return null;
     const premium = toNumber(row.mid);
     const weeklyYield = weeklyYieldDecimal(premium, row.strike, dteDays);
-
     return {
       strike: row.strike,
       premium: round(premium, 3),
-      premiumGapToTarget: round(premium - strikeSelection.targetPremium, 3),
       weeklyYield: round(weeklyYield, 4),
       annualizedYield: round(weeklyYield * 52, 4),
       distancePct: round(Math.abs(row.distancePct) / 100, 4),
       volume: row.volume,
       openInterest: row.openInterest,
-      bid: round(row.bid, 3),
-      ask: round(row.ask, 3),
-      spread: round(row.spread, 3),
-      spreadPct: round(row.spreadPct, 4),
-      spreadOk: !!row.spreadOk,
-      isLiquid: !!row.isLiquid,
-      impliedVolatility: round(row.impliedVolatility, 4),
     };
   }
 
@@ -654,7 +529,7 @@ async function scanTicker(symbol, expiration) {
 
   const passesFilter =
     !!safeStrike &&
-    safeStrike.isLiquid === true &&
+    (safeStrike.premium ?? 0) >= targetPremium &&
     (safeStrike.annualizedYield ?? 0) >= 0.26;
 
   return {
@@ -687,227 +562,16 @@ async function scanTicker(symbol, expiration) {
     passesFilter,
     debug: {
       eligibleCount: strikeSelection.eligible.length,
-      preferredSafeZoneCount: strikeSelection.preferredSafeZone.length,
-      preferredLiquidCandidatesCount: strikeSelection.preferredLiquidCandidates.length,
-      fallbackLiquidCandidatesCount: strikeSelection.fallbackLiquidCandidates.length,
-      safeCandidatesUsedCount: strikeSelection.safeCandidatesUsed.length,
+      safeZoneCount: strikeSelection.safeZone.length,
+      safeCandidatesCount: strikeSelection.safeCandidates.length,
       safeStrikeFloor: round(strikeSelection.safeStrikeFloor, 3),
-      safeFloorRatio: SAFE_STRIKE_FLOOR_RATIO,
-      selectionMode: strikeSelection.selectionMode,
-      usedLiquidityFilter: true,
-      safeTargetPremium: round(targetPremium, 3),
-      safePremiumSelected: safeStrike?.premium ?? null,
-      safePremiumGap: safeStrike?.premiumGapToTarget ?? null,
-      safeIV: safeStrike?.impliedVolatility ?? null,
       reasonKept: passesFilter ? "passes_filters" : "filtered_out",
     },
   };
 }
 
-function createMcpToolList() {
-  return [
-    {
-      name: "get_quote",
-      description: "Get a live stock quote from Yahoo Finance.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-        },
-        required: ["symbol"],
-      },
-    },
-    {
-      name: "get_option_expirations",
-      description: "Get available option expirations and strikes for a ticker.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-        },
-        required: ["symbol"],
-      },
-    },
-    {
-      name: "get_option_chain",
-      description: "Get the full option chain for a ticker and expiration.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          expiration: { type: "string" },
-        },
-        required: ["symbol"],
-      },
-    },
-    {
-      name: "get_expected_move",
-      description: "Get the expected move for a ticker using the ATM straddle mid price.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          expiration: { type: "string" },
-        },
-        required: ["symbol", "expiration"],
-      },
-    },
-    {
-      name: "get_technicals",
-      description: "Get technical indicators and trend context from historical prices.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-        },
-        required: ["symbol"],
-      },
-    },
-    {
-      name: "get_support_resistance",
-      description: "Get simple support and resistance levels from historical prices.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-        },
-        required: ["symbol"],
-      },
-    },
-    {
-      name: "scan_shortlist",
-      description: "Run the backend shortlist scan. Backend remains source of truth.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          expiration: { type: "string" },
-          tickers: {
-            type: "array",
-            items: { type: "string" },
-          },
-          topN: { type: "number" },
-        },
-        required: ["expiration", "tickers"],
-      },
-    },
-  ];
-}
-
-async function executeToolByName(name, args = {}) {
-  switch (name) {
-    case "get_quote":
-      return await getQuote(args.symbol);
-    case "get_option_expirations":
-      return await getOptionExpirations(args.symbol);
-    case "get_option_chain":
-      return await getOptionChain(args.symbol, args.expiration);
-    case "get_expected_move": {
-      const optionChain = await getOptionChain(args.symbol, args.expiration);
-      return await getExpectedMove(args.symbol, args.expiration, optionChain);
-    }
-    case "get_technicals":
-      return await getTechnicals(args.symbol);
-    case "get_support_resistance":
-      return await getSupportResistance(args.symbol);
-    case "scan_shortlist": {
-      const expiration = args.expiration;
-      const tickers = Array.isArray(args.tickers) ? args.tickers : [];
-      const topN = args.topN ?? 20;
-
-      if (!expiration) {
-        throw new Error("expiration is required");
-      }
-      if (!Array.isArray(tickers) || tickers.length === 0) {
-        throw new Error("tickers must be a non-empty array");
-      }
-      if (tickers.length > MAX_SCAN_TICKERS) {
-        throw new Error(`max ${MAX_SCAN_TICKERS} tickers per scan`);
-      }
-
-      const cleanedTickers = [...new Set(
-        tickers
-          .map((t) => String(t || "").trim().toUpperCase())
-          .filter(Boolean)
-      )];
-
-      const shortlist = [];
-      const rejected = [];
-      const errors = [];
-
-      for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
-        const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
-
-        const batchResults = await Promise.allSettled(
-          batch.map((symbol) => scanTicker(symbol, expiration))
-        );
-
-        for (let j = 0; j < batchResults.length; j += 1) {
-          const result = batchResults[j];
-          const symbol = batch[j];
-
-          if (result.status === "fulfilled") {
-            const item = result.value;
-
-            if (!item?.ok) {
-              rejected.push({
-                symbol,
-                reason: item?.reason || "not_ok",
-              });
-              continue;
-            }
-
-            if (item.passesFilter) {
-              shortlist.push(item);
-            } else {
-              rejected.push({
-                symbol,
-                reason: item?.debug?.reasonKept || "filtered_out",
-                targetPremium: item?.targetPremium ?? null,
-                safeStrike: item?.safeStrike ?? null,
-                aggressiveStrike: item?.maxPremiumStrike ?? null,
-              });
-            }
-          } else {
-            errors.push({
-              symbol,
-              error: result.reason?.message || "scan_failed",
-            });
-          }
-        }
-
-        if (i + BATCH_SIZE < cleanedTickers.length) {
-          await sleep(BATCH_DELAY_MS);
-        }
-      }
-
-      shortlist.sort((a, b) => {
-        const ay = toNumber(a?.safeStrike?.annualizedYield);
-        const by = toNumber(b?.safeStrike?.annualizedYield);
-        return by - ay;
-      });
-
-      return {
-        ok: true,
-        expiration,
-        scanned: cleanedTickers.length,
-        kept: shortlist.length,
-        returned: Math.min(topN, shortlist.length),
-        shortlist: shortlist.slice(0, topN),
-        rejected,
-        errors,
-      };
-    }
-    default:
-      throw new Error(`unknown tool: ${name}`);
-  }
-}
-
 app.get("/health", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "wheel-mcp-backend",
-    version: "fallback-intelligent-v3-mcp-restore",
-  });
+  res.json({ ok: true, service: "wheel-mcp-backend" });
 });
 
 app.get("/tools", (_req, res) => {
@@ -923,102 +587,6 @@ app.get("/tools", (_req, res) => {
       "scan_shortlist",
     ],
   });
-});
-
-app.get("/mcp", (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-
-  res.write(`event: ready\n`);
-  res.write(`data: ${JSON.stringify({
-    ok: true,
-    service: "wheel-mcp-backend",
-    protocol: "sse",
-    message: "MCP SSE endpoint available",
-  })}\n\n`);
-
-  const keepAlive = setInterval(() => {
-    res.write(`: keepalive\n\n`);
-  }, 15000);
-
-  req.on("close", () => {
-    clearInterval(keepAlive);
-  });
-});
-
-app.post("/mcp", async (req, res) => {
-  try {
-    const body = req.body ?? {};
-    const method = body.method;
-    const params = body.params ?? {};
-
-    if (method === "initialize") {
-      return res.json({
-        jsonrpc: "2.0",
-        id: body.id ?? null,
-        result: {
-          protocolVersion: "2024-11-05",
-          serverInfo: {
-            name: "wheel-mcp-backend",
-            version: "fallback-intelligent-v3-mcp-restore",
-          },
-          capabilities: {
-            tools: {},
-          },
-        },
-      });
-    }
-
-    if (method === "tools/list") {
-      return res.json({
-        jsonrpc: "2.0",
-        id: body.id ?? null,
-        result: {
-          tools: createMcpToolList(),
-        },
-      });
-    }
-
-    if (method === "tools/call") {
-      const toolName = params.name;
-      const args = params.arguments ?? {};
-      const result = await executeToolByName(toolName, args);
-
-      return res.json({
-        jsonrpc: "2.0",
-        id: body.id ?? null,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result),
-            },
-          ],
-          structuredContent: result,
-        },
-      });
-    }
-
-    return res.status(400).json({
-      jsonrpc: "2.0",
-      id: body.id ?? null,
-      error: {
-        code: -32601,
-        message: `Method not found: ${method}`,
-      },
-    });
-  } catch (error) {
-    return res.status(500).json({
-      jsonrpc: "2.0",
-      id: req.body?.id ?? null,
-      error: {
-        code: -32000,
-        message: error.message || "mcp request failed",
-      },
-    });
-  }
 });
 
 app.post("/tools/get_quote", async (req, res) => {
@@ -1054,8 +622,7 @@ app.post("/tools/get_option_chain", async (req, res) => {
 app.post("/tools/get_expected_move", async (req, res) => {
   try {
     const { symbol, expiration } = req.body;
-    const optionChain = await getOptionChain(symbol, expiration);
-    const result = await getExpectedMove(symbol, expiration, optionChain);
+    const result = await getExpectedMove(symbol, expiration);
     res.json({ ok: true, result });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "get_expected_move failed" });
@@ -1115,6 +682,8 @@ app.post("/scan_shortlist", async (req, res) => {
     const rejected = [];
     const errors = [];
 
+    const BATCH_SIZE = 8;
+
     for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
       const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
 
@@ -1154,10 +723,6 @@ app.post("/scan_shortlist", async (req, res) => {
             error: result.reason?.message || "scan_failed",
           });
         }
-      }
-
-      if (i + BATCH_SIZE < cleanedTickers.length) {
-        await sleep(BATCH_DELAY_MS);
       }
     }
 

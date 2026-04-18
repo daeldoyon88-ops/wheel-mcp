@@ -1,6 +1,11 @@
 import express from "express";
 import cors from "cors";
 import YahooFinance from "yahoo-finance2";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 const yahooFinance = new YahooFinance();
 
@@ -15,6 +20,9 @@ const SAFE_STRIKE_FLOOR_RATIO = 0.85;
 const MAX_SCAN_TICKERS = 200;
 
 const EARNINGS_SYMBOLS = new Set(["NFLX"]);
+
+// Map sessionId -> { transport, server }
+const mcpSessions = new Map();
 
 function round(value, digits = 4) {
   if (value == null || Number.isNaN(value)) return null;
@@ -247,7 +255,14 @@ async function getExpectedMove(symbol, expiration) {
     };
   }
 
-  const allStrikes = [...new Set([...chain.calls, ...chain.puts].map((x) => toNumber(x.strike)).filter(Boolean))];
+  const allStrikes = [
+    ...new Set(
+      [...chain.calls, ...chain.puts]
+        .map((x) => toNumber(x.strike))
+        .filter(Boolean)
+    ),
+  ];
+
   if (!allStrikes.length) {
     return {
       symbol,
@@ -293,9 +308,7 @@ async function getTechnicals(symbol) {
     });
 
     const quotes = result?.quotes ?? [];
-    const closes = quotes
-      .map((q) => toNumber(q?.close))
-      .filter((v) => v > 0);
+    const closes = quotes.map((q) => toNumber(q?.close)).filter((v) => v > 0);
 
     if (closes.length < 50) {
       return {
@@ -434,7 +447,13 @@ async function getSupportResistance(symbol) {
   }
 }
 
-async function getBestStrike(symbol, expiration, optionType = "call", targetPrice = null, percentOtm = null) {
+async function getBestStrike(
+  symbol,
+  expiration,
+  optionType = "call",
+  targetPrice = null,
+  percentOtm = null
+) {
   const chain = await getOptionChain(symbol, expiration);
   const currentPrice = toNumber(chain?.currentPrice);
 
@@ -473,9 +492,12 @@ async function getBestStrike(symbol, expiration, optionType = "call", targetPric
     }
   }
 
-  const best = targetStrike == null
-    ? normalized[0] ?? null
-    : normalized.sort((a, b) => Math.abs(a.strike - targetStrike) - Math.abs(b.strike - targetStrike))[0] ?? null;
+  const best =
+    targetStrike == null
+      ? normalized[0] ?? null
+      : normalized.sort(
+          (a, b) => Math.abs(a.strike - targetStrike) - Math.abs(b.strike - targetStrike)
+        )[0] ?? null;
 
   return {
     symbol,
@@ -505,7 +527,8 @@ async function analyzeTradeSetup(symbol, expiration, optionType = "put", strike)
     getSupportResistance(symbol),
   ]);
 
-  const currentPrice = toNumber(quote?.regularMarketPrice) || toNumber(expectedMove?.currentPrice);
+  const currentPrice =
+    toNumber(quote?.regularMarketPrice) || toNumber(expectedMove?.currentPrice);
   const strikeNumber = toNumber(strike);
 
   const strikeVsSupportPct =
@@ -667,7 +690,8 @@ async function scanTicker(symbol, expiration) {
       support: supportResistance?.support ?? null,
       resistance: supportResistance?.resistance ?? null,
       strikeVsSupportPct: strikeVsSupportPct != null ? round(strikeVsSupportPct, 2) : null,
-      strikeVsResistancePct: strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
+      strikeVsResistancePct:
+        strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
       supportStatus,
     },
     passesFilter,
@@ -686,139 +710,205 @@ function buildToolList() {
     {
       name: "get_quote",
       description: "Get a live stock quote from Yahoo Finance.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-        },
-        required: ["symbol"],
-      },
     },
     {
       name: "get_option_expirations",
       description: "Get available option expirations and strikes for a ticker.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-        },
-        required: ["symbol"],
-      },
     },
     {
       name: "get_option_chain",
       description: "Get the full option chain for a ticker and expiration.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          expiration: { type: "string" },
-        },
-        required: ["symbol"],
-      },
     },
     {
       name: "get_expected_move",
       description: "Get the expected move for a ticker using the ATM straddle mid price.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          expiration: { type: "string" },
-        },
-        required: ["symbol", "expiration"],
-      },
     },
     {
       name: "get_best_strike",
       description: "Find the best strike nearest a target or percent OTM.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          expiration: { type: "string" },
-          option_type: { type: "string", enum: ["call", "put"] },
-          target_price: { type: "number" },
-          percent_otm: { type: "number" },
-        },
-        required: ["symbol", "expiration"],
-      },
     },
     {
       name: "get_technicals",
       description: "Get technical indicators and trend context from historical prices.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          range: { type: "string" },
-          interval: { type: "string" },
-        },
-        required: ["symbol"],
-      },
     },
     {
       name: "get_support_resistance",
       description: "Get simple support and resistance levels from historical prices.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          range: { type: "string" },
-          interval: { type: "string" },
-        },
-        required: ["symbol"],
-      },
     },
     {
       name: "analyze_trade_setup",
-      description: "Analyze an option trade setup using expected move, technicals, and support/resistance.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          symbol: { type: "string" },
-          expiration: { type: "string" },
-          option_type: { type: "string", enum: ["call", "put"] },
-          strike: { type: "number" },
-        },
-        required: ["symbol", "expiration", "strike"],
-      },
+      description:
+        "Analyze an option trade setup using expected move, technicals, and support/resistance.",
     },
   ];
 }
 
-async function runTool(toolName, args = {}) {
-  switch (toolName) {
-    case "get_quote":
-      return await getQuote(args.symbol);
-    case "get_option_expirations":
-      return await getOptionExpirations(args.symbol);
-    case "get_option_chain":
-      return await getOptionChain(args.symbol, args.expiration);
-    case "get_expected_move":
-      return await getExpectedMove(args.symbol, args.expiration);
-    case "get_best_strike":
-      return await getBestStrike(
-        args.symbol,
-        args.expiration,
-        args.option_type ?? "call",
-        args.target_price ?? null,
-        args.percent_otm ?? null
+function toMcpToolResult(data) {
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
+    structuredContent: data,
+  };
+}
+
+function createMcpServer() {
+  const server = new McpServer({
+    name: "wheel-data-live",
+    version: "2.0.0",
+  });
+
+  server.registerTool(
+    "get_quote",
+    {
+      title: "Get Quote",
+      description: "Get a live stock quote from Yahoo Finance.",
+      inputSchema: {
+        symbol: z.string().min(1),
+      },
+    },
+    async ({ symbol }) => {
+      const result = await getQuote(String(symbol).trim().toUpperCase());
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "get_option_expirations",
+    {
+      title: "Get Option Expirations",
+      description: "Get available option expirations and strikes for a ticker.",
+      inputSchema: {
+        symbol: z.string().min(1),
+      },
+    },
+    async ({ symbol }) => {
+      const result = await getOptionExpirations(String(symbol).trim().toUpperCase());
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "get_option_chain",
+    {
+      title: "Get Option Chain",
+      description: "Get the full option chain for a ticker and expiration.",
+      inputSchema: {
+        symbol: z.string().min(1),
+        expiration: z.string().min(1),
+      },
+    },
+    async ({ symbol, expiration }) => {
+      const result = await getOptionChain(
+        String(symbol).trim().toUpperCase(),
+        String(expiration)
       );
-    case "get_technicals":
-      return await getTechnicals(args.symbol);
-    case "get_support_resistance":
-      return await getSupportResistance(args.symbol);
-    case "analyze_trade_setup":
-      return await analyzeTradeSetup(
-        args.symbol,
-        args.expiration,
-        args.option_type ?? "put",
-        args.strike
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "get_expected_move",
+    {
+      title: "Get Expected Move",
+      description: "Get the expected move for a ticker using the ATM straddle mid price.",
+      inputSchema: {
+        symbol: z.string().min(1),
+        expiration: z.string().min(1),
+      },
+    },
+    async ({ symbol, expiration }) => {
+      const result = await getExpectedMove(
+        String(symbol).trim().toUpperCase(),
+        String(expiration)
       );
-    default:
-      throw new Error(`Unknown tool: ${toolName}`);
-  }
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "get_best_strike",
+    {
+      title: "Get Best Strike",
+      description: "Find the best strike nearest a target or percent OTM.",
+      inputSchema: {
+        symbol: z.string().min(1),
+        expiration: z.string().min(1),
+        option_type: z.enum(["call", "put"]).optional(),
+        target_price: z.number().nullable().optional(),
+        percent_otm: z.number().nullable().optional(),
+      },
+    },
+    async ({ symbol, expiration, option_type, target_price, percent_otm }) => {
+      const result = await getBestStrike(
+        String(symbol).trim().toUpperCase(),
+        String(expiration),
+        option_type ?? "call",
+        target_price ?? null,
+        percent_otm ?? null
+      );
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "get_technicals",
+    {
+      title: "Get Technicals",
+      description: "Get technical indicators and trend context from historical prices.",
+      inputSchema: {
+        symbol: z.string().min(1),
+      },
+    },
+    async ({ symbol }) => {
+      const result = await getTechnicals(String(symbol).trim().toUpperCase());
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "get_support_resistance",
+    {
+      title: "Get Support Resistance",
+      description: "Get simple support and resistance levels from historical prices.",
+      inputSchema: {
+        symbol: z.string().min(1),
+      },
+    },
+    async ({ symbol }) => {
+      const result = await getSupportResistance(String(symbol).trim().toUpperCase());
+      return toMcpToolResult(result);
+    }
+  );
+
+  server.registerTool(
+    "analyze_trade_setup",
+    {
+      title: "Analyze Trade Setup",
+      description:
+        "Analyze an option trade setup using expected move, technicals, and support/resistance.",
+      inputSchema: {
+        symbol: z.string().min(1),
+        expiration: z.string().min(1),
+        option_type: z.enum(["call", "put"]).optional(),
+        strike: z.number(),
+      },
+    },
+    async ({ symbol, expiration, option_type, strike }) => {
+      const result = await analyzeTradeSetup(
+        String(symbol).trim().toUpperCase(),
+        String(expiration),
+        option_type ?? "put",
+        strike
+      );
+      return toMcpToolResult(result);
+    }
+  );
+
+  return server;
 }
 
 app.get("/health", (_req, res) => {
@@ -858,7 +948,10 @@ app.post("/tools/get_option_expirations", async (req, res) => {
     const result = await getOptionExpirations(symbol);
     res.json({ ok: true, result });
   } catch (error) {
-    res.status(500).json({ ok: false, error: error.message || "get_option_expirations failed" });
+    res.status(500).json({
+      ok: false,
+      error: error.message || "get_option_expirations failed",
+    });
   }
 });
 
@@ -914,14 +1007,22 @@ app.post("/tools/get_support_resistance", async (req, res) => {
     const result = await getSupportResistance(symbol);
     res.json({ ok: true, result });
   } catch (error) {
-    res.status(500).json({ ok: false, error: error.message || "get_support_resistance failed" });
+    res.status(500).json({
+      ok: false,
+      error: error.message || "get_support_resistance failed",
+    });
   }
 });
 
 app.post("/tools/analyze_trade_setup", async (req, res) => {
   try {
     const { symbol, expiration, option_type, strike } = req.body;
-    const result = await analyzeTradeSetup(symbol, expiration, option_type ?? "put", strike);
+    const result = await analyzeTradeSetup(
+      symbol,
+      expiration,
+      option_type ?? "put",
+      strike
+    );
     res.json({ ok: true, result });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "analyze_trade_setup failed" });
@@ -930,11 +1031,7 @@ app.post("/tools/analyze_trade_setup", async (req, res) => {
 
 app.post("/scan_shortlist", async (req, res) => {
   try {
-    const {
-      expiration,
-      tickers = [],
-      topN = 20,
-    } = req.body ?? {};
+    const { expiration, tickers = [], topN = 20 } = req.body ?? {};
 
     if (!expiration) {
       return res.status(400).json({ ok: false, error: "expiration is required" });
@@ -951,11 +1048,13 @@ app.post("/scan_shortlist", async (req, res) => {
       });
     }
 
-    const cleanedTickers = [...new Set(
-      tickers
-        .map((t) => String(t || "").trim().toUpperCase())
-        .filter(Boolean)
-    )];
+    const cleanedTickers = [
+      ...new Set(
+        tickers
+          .map((t) => String(t || "").trim().toUpperCase())
+          .filter(Boolean)
+      ),
+    ];
 
     const shortlist = [];
     const rejected = [];
@@ -1029,76 +1128,96 @@ app.post("/scan_shortlist", async (req, res) => {
   }
 });
 
-/*
-  MCP minimal compatibility layer
-  - GET /mcp: simple info endpoint
-  - POST /mcp: simple JSON-RPC-like handler for tools/list and tools/call
-*/
-
-app.get("/mcp", (_req, res) => {
+// Debug endpoint séparé pour éviter toute confusion avec le vrai endpoint MCP.
+app.get("/mcp-info", (_req, res) => {
   res.json({
     ok: true,
     service: "wheel-mcp-backend",
-    protocol: "mcp-minimal",
+    protocol: "streamable-http",
+    endpoint: "/mcp",
     tools: buildToolList().map((t) => t.name),
+    activeSessions: mcpSessions.size,
   });
 });
 
+// MCP endpoint officiel conservé sur /mcp
 app.post("/mcp", async (req, res) => {
   try {
-    const body = req.body ?? {};
-    const method = body.method;
-    const params = body.params ?? {};
-    const id = body.id ?? null;
+    const sessionId = req.headers["mcp-session-id"];
+    let transport = null;
 
-    if (method === "tools/list") {
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          tools: buildToolList(),
+    if (sessionId && typeof sessionId === "string" && mcpSessions.has(sessionId)) {
+      transport = mcpSessions.get(sessionId).transport;
+    } else if (!sessionId && isInitializeRequest(req.body)) {
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: (newSessionId) => {
+          const sessionData = mcpSessions.get(newSessionId);
+          if (!sessionData) {
+            mcpSessions.set(newSessionId, { transport, server });
+          }
         },
+      });
+
+      transport.onclose = async () => {
+        try {
+          if (transport?.sessionId && mcpSessions.has(transport.sessionId)) {
+            const existing = mcpSessions.get(transport.sessionId);
+            mcpSessions.delete(transport.sessionId);
+            await existing?.server?.close?.();
+          }
+        } catch (_error) {
+          // no-op
+        }
+      };
+
+      const server = createMcpServer();
+      await server.connect(transport);
+    } else {
+      return res.status(400).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32000,
+          message: "Bad Request: missing or invalid MCP session",
+        },
+        id: req.body?.id ?? null,
       });
     }
 
-    if (method === "tools/call") {
-      const name = params.name;
-      const args = params.arguments ?? {};
-      const result = await runTool(name, args);
-
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          content: [
-            {
-              type: "json",
-              json: result,
-            },
-          ],
-        },
-      });
-    }
-
-    return res.status(400).json({
-      jsonrpc: "2.0",
-      id,
-      error: {
-        code: -32601,
-        message: `Method not found: ${method}`,
-      },
-    });
+    await transport.handleRequest(req, res, req.body);
   } catch (error) {
-    return res.status(500).json({
-      jsonrpc: "2.0",
-      id: req.body?.id ?? null,
-      error: {
-        code: -32000,
-        message: error.message || "mcp handler failed",
-      },
-    });
+    if (!res.headersSent) {
+      return res.status(500).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32000,
+          message: error.message || "mcp post failed",
+        },
+        id: req.body?.id ?? null,
+      });
+    }
   }
 });
+
+async function handleMcpSessionRequest(req, res) {
+  try {
+    const sessionId = req.headers["mcp-session-id"];
+
+    if (!sessionId || typeof sessionId !== "string" || !mcpSessions.has(sessionId)) {
+      return res.status(400).send("Invalid or missing MCP session ID");
+    }
+
+    const { transport } = mcpSessions.get(sessionId);
+    await transport.handleRequest(req, res);
+  } catch (error) {
+    if (!res.headersSent) {
+      return res.status(500).send(error.message || "mcp session request failed");
+    }
+  }
+}
+
+app.get("/mcp", handleMcpSessionRequest);
+app.delete("/mcp", handleMcpSessionRequest);
 
 app.listen(PORT, () => {
   console.log(`Wheel backend listening on port ${PORT}`);

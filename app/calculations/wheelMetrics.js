@@ -75,7 +75,7 @@ export function computeAbsoluteSpread(row) {
 }
 
 function dynamicMaxSpreadPctFromBid(bid) {
-  return bid < 1 ? 30 : 20;
+  return bid < 1 ? 50 : 20;
 }
 
 export function evaluateTradability(row) {

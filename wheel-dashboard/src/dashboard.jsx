@@ -713,22 +713,15 @@ function CandidateCard({ item, onOpenDetail }) {
               </div>
 
               <SupportStatusLine item={item} />
-
-              <StrikeOpportunities item={item} />
+              <div className="pt-1">
+                <Button className="rounded-xl" onClick={() => onOpenDetail(item)}>
+                  Voir la fiche complète <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            <div className="min-w-[240px] max-w-[280px] rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">Risque</span>
-                <span className="text-sm capitalize text-slate-500">{item.verdict}</span>
-              </div>
-              <div className="mt-3">
-                <Progress value={riskToProgress[item.verdict]} />
-              </div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">{item.note}</p>
-              <Button className="mt-4 w-full rounded-xl" onClick={() => onOpenDetail(item)}>
-                Voir la fiche complète <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+            <div className="w-full xl:min-w-[420px] xl:max-w-[520px]">
+              <StrikeOpportunities item={item} />
             </div>
           </div>
         </CardContent>
@@ -1131,15 +1124,26 @@ function PortfolioCombos({ combos, capital }) {
 }
 
 export default function Dashboard() {
+  const readStoredNumber = (key, fallback) => {
+    const raw = window.localStorage.getItem(key);
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+  };
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("strikeDistance");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [selectedItem, setSelectedItem] = useState(null);
 
   const [selectedExpiration, setSelectedExpiration] = useState("2026-04-24");
-  const [topN, setTopN] = useState(10);
+  const [topN, setTopN] = useState(() => readStoredNumber("wheel.topN", 30));
   const [capital, setCapital] = useState(25500);
-  const [maxCapitalPct, setMaxCapitalPct] = useState(70);
-  const [maxPositions, setMaxPositions] = useState(3);
+  const [maxCapitalPct, setMaxCapitalPct] = useState(() =>
+    readStoredNumber("wheel.maxCapitalPct", 100)
+  );
+  const [maxPositions, setMaxPositions] = useState(() =>
+    readStoredNumber("wheel.maxPositions", 30)
+  );
 
   /** null = chargement initial ; tableau (éventuellement vide) = watchlist résolue. */
   const [watchlistTickers, setWatchlistTickers] = useState(null);
@@ -1177,7 +1181,7 @@ export default function Dashboard() {
   }, [backendCandidates, snapshotCandidates, topN]);
 
   const filtered = useMemo(() => {
-    return activeCandidates.filter((item) => {
+    const filteredItems = activeCandidates.filter((item) => {
       const matchesQuery =
         item.ticker.toLowerCase().includes(query.toLowerCase()) ||
         item.name.toLowerCase().includes(query.toLowerCase());
@@ -1191,7 +1195,29 @@ export default function Dashboard() {
 
       return matchesQuery && matchesFilter;
     });
-  }, [activeCandidates, query, filter]);
+    const getSortValue = (item) => {
+      if (sortBy === "weeklyReturn") return item.weeklyReturn ?? 0;
+      if (sortBy === "spread") {
+        const spread = item.safeStrike?.liquidity?.spreadPct ?? item.aggressiveStrike?.liquidity?.spreadPct;
+        return spread ?? Number.POSITIVE_INFINITY;
+      }
+      return item.strikeDistance ?? 0;
+    };
+    return filteredItems.slice().sort((a, b) => {
+      if (sortBy === "spread") {
+        const aSpread = a.safeStrike?.liquidity?.spreadPct ?? a.aggressiveStrike?.liquidity?.spreadPct;
+        const bSpread = b.safeStrike?.liquidity?.spreadPct ?? b.aggressiveStrike?.liquidity?.spreadPct;
+        const aMissing = aSpread == null;
+        const bMissing = bSpread == null;
+        if (aMissing && bMissing) return 0;
+        if (aMissing) return 1;
+        if (bMissing) return -1;
+      }
+      const aValue = getSortValue(a);
+      const bValue = getSortValue(b);
+      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    });
+  }, [activeCandidates, query, filter, sortBy, sortOrder]);
 
   const combos = useMemo(() => {
     return buildPortfolioCombos(filtered, Number(capital), Number(maxCapitalPct), Number(maxPositions));
@@ -1298,6 +1324,18 @@ export default function Dashboard() {
     if (watchlistLoading) return;
     handleRefreshShortlist();
   }, [watchlistLoading, selectedExpiration, topN, handleRefreshShortlist]);
+
+  useEffect(() => {
+    window.localStorage.setItem("wheel.topN", String(topN));
+  }, [topN]);
+
+  useEffect(() => {
+    window.localStorage.setItem("wheel.maxCapitalPct", String(maxCapitalPct));
+  }, [maxCapitalPct]);
+
+  useEffect(() => {
+    window.localStorage.setItem("wheel.maxPositions", String(maxPositions));
+  }, [maxPositions]);
 
   const stats = useMemo(
     () => [
@@ -1495,7 +1533,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="space-y-6">
           <div className="space-y-6">
             <Card className="rounded-[28px] border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
@@ -1538,6 +1576,23 @@ export default function Dashboard() {
                         </Button>
                       ))}
                     </div>
+                    <Select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="rounded-xl border-slate-200"
+                    >
+                      <option value="strikeDistance">Trier par: distance strike</option>
+                      <option value="weeklyReturn">Trier par: rendement hebdo</option>
+                      <option value="spread">Trier par: spread</option>
+                    </Select>
+                    <Select
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className="rounded-xl border-slate-200"
+                    >
+                      <option value="asc">Ordre: asc</option>
+                      <option value="desc">Ordre: desc</option>
+                    </Select>
                   </div>
                 </div>
               </CardHeader>
@@ -1602,52 +1657,6 @@ export default function Dashboard() {
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Capital compte</span>
                     <span className="font-semibold text-slate-900">${Number(capital).toFixed(0)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-[28px] border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
-                  <BarChart3 className="h-5 w-5" />
-                  Architecture propre
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm text-slate-600">
-                <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                    1
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Watchlist backend</p>
-                    <p className="mt-1 leading-6 text-slate-600">
-                      /universe/build filtre l’univers (core + growth, volume, weeklies, etc.).
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                    2
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Scanner backend</p>
-                    <p className="mt-1 leading-6 text-slate-600">
-                      Safe et agressif sont calculés via /scan_shortlist sur cette watchlist.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 rounded-2xl border border-slate-200 p-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                    3
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Frontend allégé</p>
-                    <p className="mt-1 leading-6 text-slate-600">
-                      Affichage, filtres et combinaisons de capital — secours liste statique si /universe/build échoue.
-                    </p>
                   </div>
                 </div>
               </CardContent>

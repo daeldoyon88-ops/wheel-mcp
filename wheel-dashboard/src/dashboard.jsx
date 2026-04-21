@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   ShieldCheck,
@@ -12,11 +12,11 @@ import {
   Layers3,
   X,
   RefreshCw,
+  Database,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 
-const API_BASE = "https://wheel-mcp.onrender.com";
-const ANNUAL_FACTOR = 52;
+const API_BASE = "http://127.0.0.1:3001";
 
 const DEFAULT_EXPIRATIONS = [
   "2026-04-24",
@@ -26,7 +26,8 @@ const DEFAULT_EXPIRATIONS = [
   "2026-05-22",
 ];
 
-const SOURCE_TICKERS = [
+/** Liste statique conservée uniquement en secours si /universe/build échoue ou est indisponible. */
+const FALLBACK_TICKERS = [
   "CF", "SNOW", "KO", "SLB", "TSCO", "PCG", "DOCU", "PATH", "F", "WBD",
   "BITX", "SOFI", "ABT", "SCHW", "CSX", "NDAQ", "BAC", "CVS", "GM", "HIMS",
   "UBER", "TGT", "AFRM", "SBUX", "NFLX", "TQQQ", "EXPE", "SHOP", "AAPL", "SOXL",
@@ -36,6 +37,15 @@ const SOURCE_TICKERS = [
   "NVO", "PHM", "DXCM", "USB", "PDD"
 ];
 
+/** Aligné sur ton backend (schema zod dans server.js) — à ajuster si tes critères changent. */
+const DEFAULT_BUILD_WATCHLIST_BODY = {
+  maxPrice: 125,
+  minVolume: 500000,
+  requireLiquidOptions: false,
+  requireWeeklyOptions: true,
+  categories: ["core", "growth"],
+};
+
 const alerts = [
   {
     type: "earnings",
@@ -44,8 +54,8 @@ const alerts = [
   },
   {
     type: "rule",
-    title: "Dashboard backend-first",
-    body: "Le bouton Refresh shortlist appelle maintenant le backend /scan_shortlist. Le modal reste live au clic.",
+    title: "Watchlist backend",
+    body: "Le compteur Watchlist et le scan utilisent /universe/build quand le backend répond ; la liste statique sert de secours.",
   },
 ];
 
@@ -83,7 +93,7 @@ function pickTargetExpiration(availableExpirations, targetExpiration) {
 
 function toDashboardCandidate(item, index, selectedExpiration) {
   const safe = item.safeStrike;
-  const aggressive = item.maxPremiumStrike;
+  const aggressive = item.aggressiveStrike ?? item.maxPremiumStrike ?? null;
   const primaryStrike = safe || aggressive;
 
   const safeDistance =
@@ -113,24 +123,31 @@ function toDashboardCandidate(item, index, selectedExpiration) {
         ? item.currentPrice + item.adjustedMove
         : 0,
     minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0),
+    targetWeeks: item.targetWeeks ?? 1,
     safeStrike: safe
       ? {
           strike: safe.strike,
           mid: safe.premium,
           weeklyYield: (safe.weeklyYield ?? 0) * 100,
+          weeklyNormalizedYield:
+            (safe.weeklyNormalizedYield ?? safe.weeklyYield ?? 0) * 100,
           annualizedYield: (safe.annualizedYield ?? 0) * 100,
           distancePct: safeDistance,
           label: "prime la plus proche de la cible",
+          liquidity: safe.liquidity ?? null,
         }
       : null,
-    maxPremiumStrike: aggressive
+    aggressiveStrike: aggressive
       ? {
           strike: aggressive.strike,
           mid: aggressive.premium,
           weeklyYield: (aggressive.weeklyYield ?? 0) * 100,
+          weeklyNormalizedYield:
+            (aggressive.weeklyNormalizedYield ?? aggressive.weeklyYield ?? 0) * 100,
           annualizedYield: (aggressive.annualizedYield ?? 0) * 100,
           distancePct: aggressiveDistance,
           label: "directement sous borne basse",
+          liquidity: aggressive.liquidity ?? null,
         }
       : null,
     premium:
@@ -214,7 +231,7 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions) 
 
       picks.push({
         ticker: candidate.ticker,
-        strike: candidate.safeStrike?.strike ?? candidate.maxPremiumStrike?.strike ?? 0,
+        strike: candidate.safeStrike?.strike ?? candidate.aggressiveStrike?.strike ?? 0,
         contracts,
         capitalUsed,
         premiumCollected,
@@ -391,22 +408,25 @@ function Metric({ label, value, strong = false, tone = "default" }) {
 }
 
 function StrikeCard({
+  className = "",
   title,
   subtitle,
   strike,
   mid,
-  weeklyYield,
+  tradeYield,
+  weeklyNormalizedYield,
   annualizedYield,
   distancePct,
   label,
   meetsTarget,
+  liquidity,
 }) {
   const distanceTone = distancePct <= -10 ? "good" : distancePct <= -5 ? "warn" : "bad";
-  const yieldTone = weeklyYield >= 1 ? "good" : weeklyYield >= 0.5 ? "warn" : "bad";
+  const yieldTone = tradeYield >= 1 ? "good" : tradeYield >= 0.5 ? "warn" : "bad";
   const midTone = mid >= 0.2 ? "good" : mid >= 0.09 ? "warn" : "bad";
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className={cn("rounded-2xl border border-slate-200 bg-white p-4 shadow-sm", className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-900">{title}</p>
@@ -426,6 +446,15 @@ function StrikeCard({
           >
             {meetsTarget ? "objectif validé" : "objectif non atteint"}
           </Badge>
+          {liquidity?.isLiquid ? (
+            <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
+              liquide
+            </Badge>
+          ) : (
+            <Badge className="rounded-full border border-amber-200 bg-amber-50 text-amber-700">
+              liquidité faible
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -433,8 +462,31 @@ function StrikeCard({
         <Metric label="Strike" value={`$${strike.toFixed(2)}`} strong />
         <Metric label="Mid" value={`$${mid.toFixed(2)}`} strong={mid >= 0.09} tone={midTone} />
         <Metric label="Distance" value={`${distancePct.toFixed(1)}%`} strong tone={distanceTone} />
-        <Metric label="Hebdo" value={`${weeklyYield.toFixed(2)}%`} strong tone={yieldTone} />
+        <Metric label="TRADE" value={`${tradeYield.toFixed(2)}%`} strong tone={yieldTone} />
+        <Metric
+          label="HEBDO (7j)"
+          value={`${weeklyNormalizedYield.toFixed(2)}%`}
+          strong
+          tone={yieldTone}
+        />
         <Metric label="Annualisé" value={`${annualizedYield.toFixed(1)}%`} tone={yieldTone} />
+        <Metric
+          label="Spread"
+          value={
+            liquidity?.spreadPct != null
+              ? `${Number(liquidity.spreadPct).toFixed(2)}%`
+              : "—"
+          }
+          tone={
+            liquidity?.spreadPct == null
+              ? "default"
+              : liquidity.spreadPct <= 4
+              ? "good"
+              : liquidity.spreadPct <= 8
+              ? "warn"
+              : "bad"
+          }
+        />
       </div>
     </div>
   );
@@ -446,7 +498,7 @@ function StrikeOpportunities({ item }) {
     : item.expectedMovePct;
 
   const hasSafe = !!item.safeStrike;
-  const hasAggressive = !!item.maxPremiumStrike;
+  const hasAggressive = !!item.aggressiveStrike;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
@@ -461,6 +513,8 @@ function StrikeOpportunities({ item }) {
           <p className="mt-2 text-sm text-slate-600">
             Prime minimale cible safe :{" "}
             <span className="font-semibold text-slate-900">${Number(item.minPremium || 0).toFixed(2)}</span>
+            {" "}· semaines cible :{" "}
+            <span className="font-semibold text-slate-900">{item.targetWeeks ?? 1}</span>
           </p>
           {item.earningsMode && (
             <p className="mt-2 text-sm text-violet-700">
@@ -478,32 +532,38 @@ function StrikeOpportunities({ item }) {
       </div>
 
       {hasSafe || hasAggressive ? (
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
           {hasSafe && (
             <StrikeCard
+              className="h-full"
               title="Strike safe"
               subtitle="prime la plus proche de la cible minimale"
               strike={item.safeStrike.strike}
               mid={item.safeStrike.mid}
-              weeklyYield={item.safeStrike.weeklyYield}
+              tradeYield={item.safeStrike.weeklyYield}
+              weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
               annualizedYield={item.safeStrike.annualizedYield}
               distancePct={item.safeStrike.distancePct}
               label={item.safeStrike.label}
               meetsTarget={item.safeStrike.mid >= item.minPremium}
+              liquidity={item.safeStrike.liquidity}
             />
           )}
 
           {hasAggressive && (
             <StrikeCard
+              className="h-full"
               title="Strike agressif"
               subtitle="directement sous la borne basse"
-              strike={item.maxPremiumStrike.strike}
-              mid={item.maxPremiumStrike.mid}
-              weeklyYield={item.maxPremiumStrike.weeklyYield}
-              annualizedYield={item.maxPremiumStrike.annualizedYield}
-              distancePct={item.maxPremiumStrike.distancePct}
-              label={item.maxPremiumStrike.label}
-              meetsTarget={item.maxPremiumStrike.mid >= item.minPremium}
+              strike={item.aggressiveStrike.strike}
+              mid={item.aggressiveStrike.mid}
+              tradeYield={item.aggressiveStrike.weeklyYield}
+              weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
+              annualizedYield={item.aggressiveStrike.annualizedYield}
+              distancePct={item.aggressiveStrike.distancePct}
+              label={item.aggressiveStrike.label}
+              meetsTarget={item.aggressiveStrike.mid >= item.minPremium}
+              liquidity={item.aggressiveStrike.liquidity}
             />
           )}
         </div>
@@ -555,8 +615,8 @@ function CandidateCard({ item, onOpenDetail }) {
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="border-slate-200 shadow-sm transition-all hover:shadow-md">
         <CardContent className="p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-3">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex-1 min-w-0 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
                   Choix #{item.rank}
@@ -602,6 +662,7 @@ function CandidateCard({ item, onOpenDetail }) {
                 <Metric label="Prix plus bas" value={`$${item.expectedMoveLow.toFixed(2)}`} strong tone="bad" />
                 <Metric label="Prix supérieur" value={`$${item.expectedMoveHigh.toFixed(2)}`} strong tone="good" />
                 <Metric label="Prime safe mini" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
+                <Metric label="Semaines cible" value={`${item.targetWeeks ?? 1}`} />
                 <Metric
                   label="Rendement"
                   value={`${item.weeklyReturn.toFixed(2)}% / sem`}
@@ -692,6 +753,24 @@ async function callTool(toolName, args) {
   }
 
   return payload.result;
+}
+
+async function callBuildWatchlist(body) {
+  const response = await fetch(`${API_BASE}/universe/build`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
+  }
+
+  return payload;
 }
 
 async function callScanShortlist({ expiration, topN, tickers }) {
@@ -931,21 +1010,26 @@ function DetailModal({ item, onClose }) {
               </span>
               {" "}· cible safe snapshot :{" "}
               <span className="font-semibold">${Number(item.minPremium || 0).toFixed(2)}</span>
+              {" "}· semaines cible :{" "}
+              <span className="font-semibold">{item.targetWeeks ?? 1}</span>
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
             {item.safeStrike ? (
               <StrikeCard
+                className="h-full"
                 title="Strike safe snapshot"
                 subtitle="issu du backend /scan_shortlist"
                 strike={item.safeStrike.strike}
                 mid={item.safeStrike.mid}
-                weeklyYield={item.safeStrike.weeklyYield}
+                tradeYield={item.safeStrike.weeklyYield}
+                weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
                 annualizedYield={item.safeStrike.annualizedYield}
                 distancePct={item.safeStrike.distancePct}
                 label="safe strike"
                 meetsTarget={item.safeStrike.mid >= item.minPremium}
+                liquidity={item.safeStrike.liquidity}
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
@@ -953,17 +1037,20 @@ function DetailModal({ item, onClose }) {
               </div>
             )}
 
-            {item.maxPremiumStrike ? (
+            {item.aggressiveStrike ? (
               <StrikeCard
+                className="h-full"
                 title="Strike agressif snapshot"
                 subtitle="issu du backend /scan_shortlist"
-                strike={item.maxPremiumStrike.strike}
-                mid={item.maxPremiumStrike.mid}
-                weeklyYield={item.maxPremiumStrike.weeklyYield}
-                annualizedYield={item.maxPremiumStrike.annualizedYield}
-                distancePct={item.maxPremiumStrike.distancePct}
+                strike={item.aggressiveStrike.strike}
+                mid={item.aggressiveStrike.mid}
+                tradeYield={item.aggressiveStrike.weeklyYield}
+                weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
+                annualizedYield={item.aggressiveStrike.annualizedYield}
+                distancePct={item.aggressiveStrike.distancePct}
                 label="aggressive strike"
-                meetsTarget={item.maxPremiumStrike.mid >= item.minPremium}
+                meetsTarget={item.aggressiveStrike.mid >= item.minPremium}
+                liquidity={item.aggressiveStrike.liquidity}
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
@@ -1054,11 +1141,19 @@ export default function Dashboard() {
   const [maxCapitalPct, setMaxCapitalPct] = useState(70);
   const [maxPositions, setMaxPositions] = useState(3);
 
+  /** null = chargement initial ; tableau (éventuellement vide) = watchlist résolue. */
+  const [watchlistTickers, setWatchlistTickers] = useState(null);
+  const [watchlistLoading, setWatchlistLoading] = useState(true);
+  const [watchlistSource, setWatchlistSource] = useState("loading");
+  const [watchlistStats, setWatchlistStats] = useState(null);
+  const [watchlistBuildError, setWatchlistBuildError] = useState("");
+
   const [backendCandidates, setBackendCandidates] = useState(null);
   const [loadingScan, setLoadingScan] = useState(false);
   const [scanError, setScanError] = useState("");
+  const [dataSource, setDataSource] = useState("snapshot");
   const [scanMeta, setScanMeta] = useState({
-    scanned: SOURCE_TICKERS.length,
+    scanned: 0,
     kept: 0,
     returned: 0,
   });
@@ -1071,9 +1166,9 @@ export default function Dashboard() {
 
   const activeCandidates = useMemo(() => {
     const source =
-      Array.isArray(backendCandidates) && backendCandidates.length > 0
-        ? backendCandidates
-        : snapshotCandidates;
+      backendCandidates === null
+        ? snapshotCandidates
+        : backendCandidates;
 
     return source.slice(0, topN).map((item, index) => ({
       ...item,
@@ -1102,40 +1197,19 @@ export default function Dashboard() {
     return buildPortfolioCombos(filtered, Number(capital), Number(maxCapitalPct), Number(maxPositions));
   }, [filtered, capital, maxCapitalPct, maxPositions]);
 
-  const stats = useMemo(
-    () => [
-      {
-        title: "Watchlist",
-        value: String(SOURCE_TICKERS.length),
-        sub: "tickers source",
-        icon: Search
-      },
-      {
-        title: "Shortlist",
-        value: String(filtered.length),
-        sub:
-          backendCandidates && backendCandidates.length > 0
-            ? `${scanMeta.kept} retenus backend`
-            : "snapshot local",
-        icon: ShieldCheck
-      },
-      {
-        title: "Expiration",
-        value: selectedExpiration,
-        sub: "scan backend",
-        icon: CalendarDays
-      },
-      {
-        title: "Objectif",
-        value: "0.5%",
-        sub: "prime mini sur spot",
-        icon: Target
-      },
-    ],
-    [filtered.length, selectedExpiration, backendCandidates, scanMeta]
-  );
+  const tickersForScan = watchlistTickers ?? FALLBACK_TICKERS;
 
-  async function handleRefreshShortlist() {
+  const handleRefreshShortlist = useCallback(async () => {
+    if (watchlistTickers !== null && watchlistTickers.length === 0) {
+      setScanError("Watchlist vide : rien à envoyer au scan.");
+      setBackendCandidates(null);
+      setDataSource("snapshot");
+      setScanMeta({ scanned: 0, kept: 0, returned: 0 });
+      return;
+    }
+
+    const tickers = watchlistTickers ?? FALLBACK_TICKERS;
+
     setLoadingScan(true);
     setScanError("");
 
@@ -1143,7 +1217,7 @@ export default function Dashboard() {
       const payload = await callScanShortlist({
         expiration: selectedExpiration,
         topN,
-        tickers: SOURCE_TICKERS,
+        tickers,
       });
 
       const mapped = (payload.shortlist || []).map((item, index) =>
@@ -1151,17 +1225,119 @@ export default function Dashboard() {
       );
 
       setBackendCandidates(mapped);
+      setDataSource("backend");
       setScanMeta({
-        scanned: payload.scanned ?? SOURCE_TICKERS.length,
+        scanned: payload.scanned ?? tickers.length,
         kept: payload.kept ?? mapped.length,
         returned: payload.returned ?? mapped.length,
       });
     } catch (e) {
       setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
+      setBackendCandidates(null);
+      setDataSource("snapshot");
+      setScanMeta({
+        scanned: tickers.length,
+        kept: 0,
+        returned: 0,
+      });
     } finally {
       setLoadingScan(false);
     }
-  }
+  }, [watchlistTickers, selectedExpiration, topN]);
+
+  const handleRebuildWatchlist = useCallback(async () => {
+    setWatchlistLoading(true);
+    setWatchlistBuildError("");
+    try {
+      const payload = await callBuildWatchlist(DEFAULT_BUILD_WATCHLIST_BODY);
+      setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
+      setWatchlistSource("backend");
+      setWatchlistStats(payload.stats ?? null);
+    } catch (err) {
+      setWatchlistTickers(FALLBACK_TICKERS);
+      setWatchlistSource("fallback");
+      setWatchlistStats(null);
+      setWatchlistBuildError(String(err?.message || err || "universe/build indisponible"));
+    } finally {
+      setWatchlistLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWatchlist() {
+      setWatchlistLoading(true);
+      setWatchlistBuildError("");
+      try {
+        const payload = await callBuildWatchlist(DEFAULT_BUILD_WATCHLIST_BODY);
+        if (cancelled) return;
+        setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
+        setWatchlistSource("backend");
+        setWatchlistStats(payload.stats ?? null);
+      } catch (err) {
+        if (cancelled) return;
+        setWatchlistTickers(FALLBACK_TICKERS);
+        setWatchlistSource("fallback");
+        setWatchlistStats(null);
+        setWatchlistBuildError(String(err?.message || err || "universe/build indisponible"));
+      } finally {
+        if (!cancelled) {
+          setWatchlistLoading(false);
+        }
+      }
+    }
+
+    loadWatchlist();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (watchlistLoading) return;
+    handleRefreshShortlist();
+  }, [watchlistLoading, selectedExpiration, topN, handleRefreshShortlist]);
+
+  const stats = useMemo(
+    () => [
+      {
+        title: "Watchlist",
+        value:
+          watchlistTickers === null
+            ? "…"
+            : String(watchlistTickers.length),
+        sub:
+          watchlistSource === "backend"
+            ? watchlistStats
+              ? `${watchlistStats.keptCount ?? watchlistTickers?.length ?? 0} tickers (backend)`
+              : "tickers backend"
+            : watchlistSource === "fallback"
+            ? `secours (${FALLBACK_TICKERS.length} statiques)`
+            : "chargement…",
+        icon: Search,
+      },
+      {
+        title: "Shortlist",
+        value: String(filtered.length),
+        sub: dataSource === "backend" ? `${scanMeta.kept} retenus backend` : "snapshot local",
+        icon: ShieldCheck,
+      },
+      {
+        title: "Expiration",
+        value: selectedExpiration,
+        sub: "scan backend",
+        icon: CalendarDays,
+      },
+      {
+        title: "Objectif",
+        value: "0.5%",
+        sub: "prime mini par semaine",
+        icon: Target,
+      },
+    ],
+    [filtered.length, selectedExpiration, dataSource, scanMeta, watchlistTickers, watchlistSource, watchlistStats]
+  );
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -1181,7 +1357,7 @@ export default function Dashboard() {
                 Dashboard options lisible, premium et actionnable
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
-                Le bouton Refresh shortlist interroge maintenant le backend Render pour calculer les strikes safe et agressifs. Le modal reste live pour lecture détaillée.
+                La watchlist est construite via /universe/build ; le bouton Refresh shortlist interroge /scan_shortlist avec cette liste. Le modal reste live pour lecture détaillée.
               </p>
             </div>
 
@@ -1257,26 +1433,59 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="flex items-end">
+          <div className="flex flex-col gap-2 justify-end">
             <Button
               className="w-full rounded-xl"
               onClick={handleRefreshShortlist}
-              disabled={loadingScan}
+              disabled={loadingScan || watchlistLoading}
             >
               Refresh shortlist <RefreshCw className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              className="w-full rounded-xl"
+              variant="outline"
+              onClick={handleRebuildWatchlist}
+              disabled={loadingScan || watchlistLoading}
+            >
+              Rebuild watchlist <Database className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {loadingScan && (
+        {watchlistBuildError && watchlistSource === "fallback" && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+            Watchlist : secours liste statique ({FALLBACK_TICKERS.length} tickers). Raison : {watchlistBuildError}
+          </div>
+        )}
+
+        {(watchlistLoading || loadingScan) && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between text-sm text-slate-700">
-              <span>Scan backend en cours...</span>
-              <span>{SOURCE_TICKERS.length} tickers envoyés</span>
+              <span>{watchlistLoading ? "Construction watchlist (/universe/build)…" : "Scan backend en cours…"}</span>
+              <span>
+                {watchlistLoading
+                  ? "…"
+                  : `${tickersForScan.length} tickers envoyés`}
+              </span>
             </div>
             <div className="mt-3">
-              <Progress value={65} />
+              <Progress value={watchlistLoading ? 40 : 65} />
             </div>
+          </div>
+        )}
+
+        {!loadingScan && !watchlistLoading && (
+          <div
+            className={cn(
+              "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
+              dataSource === "backend"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700"
+            )}
+          >
+            {dataSource === "backend"
+              ? `Source active : backend local /scan_shortlist — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés (watchlist ${watchlistSource === "backend" ? "backend" : "secours"}).`
+              : "Source active : snapshot local (fallback)."}
           </div>
         )}
 
@@ -1294,7 +1503,9 @@ export default function Dashboard() {
                   <div>
                     <CardTitle className="text-xl text-slate-900">Shortlist hebdomadaire</CardTitle>
                     <p className="mt-1 text-sm text-slate-500">
-                      Snapshot au chargement. Après refresh, la shortlist vient du backend /scan_shortlist.
+                      {dataSource === "backend"
+                        ? "Shortlist chargée automatiquement depuis le backend local /scan_shortlist."
+                        : "Snapshot local affiché en fallback tant que le backend n’a pas répondu."}
                     </p>
                   </div>
 
@@ -1365,12 +1576,18 @@ export default function Dashboard() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="font-medium text-slate-900">Lecture rapide</p>
                   <p className="mt-2 leading-6">
-                    Le scan principal est maintenant calculé côté backend. Le frontend ne fait plus le scan ticker par ticker.
+                    Le scan principal est calculé côté backend sur la watchlist chargée. Le frontend ne fait pas le scan ticker par ticker.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 p-4">
                   <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Source active</span>
+                    <span className="font-semibold text-slate-900">
+                      {dataSource === "backend" ? "backend local" : "snapshot"}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Candidats affichés</span>
                     <span className="font-semibold text-slate-900">{filtered.length}</span>
                   </div>
@@ -1403,9 +1620,9 @@ export default function Dashboard() {
                     1
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Scanner backend</p>
+                    <p className="font-medium text-slate-900">Watchlist backend</p>
                     <p className="mt-1 leading-6 text-slate-600">
-                      Safe et agressif sont maintenant calculés sur Render via /scan_shortlist.
+                      /universe/build filtre l’univers (core + growth, volume, weeklies, etc.).
                     </p>
                   </div>
                 </div>
@@ -1415,9 +1632,9 @@ export default function Dashboard() {
                     2
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Frontend allégé</p>
+                    <p className="font-medium text-slate-900">Scanner backend</p>
                     <p className="mt-1 leading-6 text-slate-600">
-                      Le dashboard se concentre maintenant sur l’affichage, les filtres et les combinaisons de capital.
+                      Safe et agressif sont calculés via /scan_shortlist sur cette watchlist.
                     </p>
                   </div>
                 </div>
@@ -1427,9 +1644,9 @@ export default function Dashboard() {
                     3
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Scalabilité</p>
+                    <p className="font-medium text-slate-900">Frontend allégé</p>
                     <p className="mt-1 leading-6 text-slate-600">
-                      Cette architecture est beaucoup plus adaptée à une watchlist de 100 à 200 tickers.
+                      Affichage, filtres et combinaisons de capital — secours liste statique si /universe/build échoue.
                     </p>
                   </div>
                 </div>

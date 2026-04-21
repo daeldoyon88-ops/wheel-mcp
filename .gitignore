@@ -1,0 +1,9 @@
+node_modules/
+wheel-dashboard/node_modules/
+.vite/
+wheel-dashboard/node_modules/.vite/
+dist/
+.env
+.env.*
+*.log
+.DS_Store

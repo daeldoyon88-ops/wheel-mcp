@@ -5,11 +5,48 @@ import {
   getConservativePremium,
   pickReliablePremium,
 } from "../calculations/wheelMetrics.js";
+import { deriveEarningsMoment } from "../utils/earningsMoment.js";
 import { round, toNumber } from "../utils/number.js";
 
 export function createMarketService(provider) {
+  /**
+   * @param {string | number | Date | null | undefined} value
+   * @param {string | null | undefined} timeZone IANA zone (e.g. America/New_York) for calendar day; if absent, UTC date (legacy).
+   */
+  function toIsoDate(value, timeZone) {
+    if (value == null) return null;
+    const numeric = Number(value);
+    const parsed =
+      Number.isFinite(numeric) && numeric > 0
+        ? new Date(numeric > 1e12 ? numeric : numeric * 1000)
+        : new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    if (timeZone && typeof timeZone === "string" && timeZone.trim()) {
+      try {
+        return new Intl.DateTimeFormat("en-CA", {
+          timeZone: timeZone.trim(),
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(parsed);
+      } catch (_err) {
+        return parsed.toISOString().slice(0, 10);
+      }
+    }
+    return parsed.toISOString().slice(0, 10);
+  }
+
   async function getQuote(symbol) {
     const quote = await provider.getQuote(symbol);
+    const listingTz = quote?.exchangeTimezoneName ?? null;
+    const earningsMoment = deriveEarningsMoment({
+      exchangeTimezoneName: listingTz,
+      earningsCallTimestampStart: quote?.earningsCallTimestampStart ?? null,
+      earningsTimestampStart: quote?.earningsTimestampStart ?? null,
+      earningsTimestamp: quote?.earningsTimestamp ?? null,
+      isEarningsDateEstimate:
+        typeof quote?.isEarningsDateEstimate === "boolean" ? quote.isEarningsDateEstimate : null,
+    });
     return {
       symbol,
       regularMarketPrice:
@@ -23,6 +60,26 @@ export function createMarketService(provider) {
       regularMarketVolume: toNumber(quote?.regularMarketVolume) || null,
       averageDailyVolume3Month: toNumber(quote?.averageDailyVolume3Month) || null,
       averageDailyVolume10Day: toNumber(quote?.averageDailyVolume10Day) || null,
+      earningsDate: toIsoDate(
+        quote?.earningsTimestamp ?? quote?.earningsTimestampStart ?? null,
+        listingTz
+      ),
+      nextEarningsDate: toIsoDate(
+        quote?.earningsTimestampStart ?? quote?.earningsTimestamp ?? null,
+        listingTz
+      ),
+      earningsCallTimestampStart: quote?.earningsCallTimestampStart ?? null,
+      earningsCallTimestampEnd: quote?.earningsCallTimestampEnd ?? null,
+      earningsTimestamp: quote?.earningsTimestamp ?? null,
+      earningsTimestampStart: quote?.earningsTimestampStart ?? null,
+      earningsTimestampEnd: quote?.earningsTimestampEnd ?? null,
+      exchangeTimezoneName: quote?.exchangeTimezoneName ?? null,
+      exchangeTimezoneShortName: quote?.exchangeTimezoneShortName ?? null,
+      isEarningsDateEstimate:
+        typeof quote?.isEarningsDateEstimate === "boolean"
+          ? quote.isEarningsDateEstimate
+          : null,
+      earningsMoment,
     };
   }
 

@@ -15,6 +15,7 @@ import {
   Database,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
+import { formatEarningsMomentWarning } from "./earningsDisplay.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 
@@ -91,10 +92,31 @@ function pickTargetExpiration(availableExpirations, targetExpiration) {
   return availableExpirations[0] || null;
 }
 
+function formatShortDate(value) {
+  if (!value) return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+    const [y, m, d] = value.trim().split("-").map(Number);
+    const localDay = new Date(y, m - 1, d);
+    if (!Number.isNaN(localDay.getTime())) {
+      return localDay.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    }
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
 function toDashboardCandidate(item, index, selectedExpiration) {
   const safe = item.safeStrike;
   const aggressive = item.aggressiveStrike ?? item.maxPremiumStrike ?? null;
   const primaryStrike = safe || aggressive;
+  const impliedVolatility = safe?.impliedVolatility ?? aggressive?.impliedVolatility ?? null;
+  const earningsDate = item.earningsDate ?? null;
+  const earningsRisk = !!(
+    earningsDate &&
+    selectedExpiration &&
+    String(earningsDate) <= String(selectedExpiration)
+  );
 
   const safeDistance =
     safe && item.currentPrice > 0 ? strikeDistancePct(safe.strike, item.currentPrice) : 0;
@@ -117,6 +139,10 @@ function toDashboardCandidate(item, index, selectedExpiration) {
         : 0,
     expectedMoveMultiplier: item.hasEarnings ? 2 : 1,
     earningsMode: !!item.hasEarnings,
+    earningsDate,
+    earningsMoment: item.earningsMoment ?? null,
+    nextEarningsDate: item.nextEarningsDate ?? null,
+    earningsRisk,
     expectedMoveLow: item.lowerBound ?? 0,
     expectedMoveHigh:
       item.currentPrice != null && item.adjustedMove != null
@@ -128,6 +154,7 @@ function toDashboardCandidate(item, index, selectedExpiration) {
       ? {
           strike: safe.strike,
           mid: safe.premium,
+          popEstimate: safe.popEstimate ?? null,
           weeklyYield: (safe.weeklyYield ?? 0) * 100,
           weeklyNormalizedYield:
             (safe.weeklyNormalizedYield ?? safe.weeklyYield ?? 0) * 100,
@@ -141,6 +168,7 @@ function toDashboardCandidate(item, index, selectedExpiration) {
       ? {
           strike: aggressive.strike,
           mid: aggressive.premium,
+          popEstimate: aggressive.popEstimate ?? null,
           weeklyYield: (aggressive.weeklyYield ?? 0) * 100,
           weeklyNormalizedYield:
             (aggressive.weeklyNormalizedYield ?? aggressive.weeklyYield ?? 0) * 100,
@@ -163,7 +191,9 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract: primaryStrike ? primaryStrike.premium * 100 : 0,
     earnings: item.hasEarnings ? "earnings mode actif" : "pas cette semaine",
-    iv: 0,
+    iv: typeof impliedVolatility === "number" && Number.isFinite(impliedVolatility)
+      ? impliedVolatility * 100
+      : null,
     rsi: item.technicals?.rsi ?? "—",
     trend: item.technicals?.trend ?? "unknown",
     momentum: item.technicals?.momentum ?? "unknown",
@@ -413,6 +443,7 @@ function StrikeCard({
   subtitle,
   strike,
   mid,
+  popEstimate,
   tradeYield,
   weeklyNormalizedYield,
   annualizedYield,
@@ -424,6 +455,8 @@ function StrikeCard({
   const distanceTone = distancePct <= -10 ? "good" : distancePct <= -5 ? "warn" : "bad";
   const yieldTone = tradeYield >= 1 ? "good" : tradeYield >= 0.5 ? "warn" : "bad";
   const midTone = mid >= 0.2 ? "good" : mid >= 0.09 ? "warn" : "bad";
+  const popTone =
+    popEstimate == null ? "default" : popEstimate >= 0.75 ? "good" : popEstimate >= 0.6 ? "warn" : "bad";
 
   return (
     <div className={cn("rounded-2xl border border-slate-200 bg-white p-4 shadow-sm", className)}>
@@ -462,14 +495,19 @@ function StrikeCard({
         <Metric label="Strike" value={`$${strike.toFixed(2)}`} strong />
         <Metric label="Mid" value={`$${mid.toFixed(2)}`} strong={mid >= 0.09} tone={midTone} />
         <Metric label="Distance" value={`${distancePct.toFixed(1)}%`} strong tone={distanceTone} />
-        <Metric label="TRADE" value={`${tradeYield.toFixed(2)}%`} strong tone={yieldTone} />
+        <Metric label="Rendement" value={`${tradeYield.toFixed(2)}%`} strong tone={yieldTone} />
         <Metric
-          label="HEBDO (7j)"
+          label="Rendement hebdo (7J)"
           value={`${weeklyNormalizedYield.toFixed(2)}%`}
           strong
           tone={yieldTone}
         />
         <Metric label="Annualisé" value={`${annualizedYield.toFixed(1)}%`} tone={yieldTone} />
+        <Metric
+          label="POP estimée"
+          value={popEstimate != null ? `${(popEstimate * 100).toFixed(1)}%` : "—"}
+          tone={popTone}
+        />
         <Metric
           label="Spread"
           value={
@@ -540,6 +578,7 @@ function StrikeOpportunities({ item }) {
               subtitle="prime la plus proche de la cible minimale"
               strike={item.safeStrike.strike}
               mid={item.safeStrike.mid}
+              popEstimate={item.safeStrike.popEstimate}
               tradeYield={item.safeStrike.weeklyYield}
               weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
               annualizedYield={item.safeStrike.annualizedYield}
@@ -557,6 +596,7 @@ function StrikeOpportunities({ item }) {
               subtitle="directement sous la borne basse"
               strike={item.aggressiveStrike.strike}
               mid={item.aggressiveStrike.mid}
+              popEstimate={item.aggressiveStrike.popEstimate}
               tradeYield={item.aggressiveStrike.weeklyYield}
               weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
               annualizedYield={item.aggressiveStrike.annualizedYield}
@@ -607,6 +647,19 @@ function SupportStatusLine({ item }) {
 }
 
 function CandidateCard({ item, onOpenDetail }) {
+  if (["NFLX", "TQQQ", "SOFI", "HOOD"].includes(item?.ticker)) {
+    console.log("CANDIDATE CARD DEBUG", {
+      ticker: item?.ticker,
+      item,
+      hasEarnings: item?.hasEarnings,
+      earningsDate: item?.earningsDate ?? null,
+      nextEarningsDate: item?.nextEarningsDate ?? null,
+      iv: item?.iv ?? null,
+      safeStrike: item?.safeStrike ?? null,
+      aggressiveStrike: item?.aggressiveStrike ?? null,
+    });
+  }
+
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
     : item.expectedMovePct;
@@ -645,6 +698,16 @@ function CandidateCard({ item, onOpenDetail }) {
                   {item.ticker} <span className="font-normal text-slate-500">— {item.name}</span>
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">{item.setup}</p>
+                {item.earningsDate && (
+                  <p className="mt-1 text-sm text-violet-700">
+                    Earnings: {formatShortDate(item.earningsDate) || item.earningsDate}
+                  </p>
+                )}
+                {item.earningsRisk && (
+                  <p className="mt-1 text-sm text-amber-700">
+                    ⚠️ {formatEarningsMomentWarning(item.earningsMoment)}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4 xl:grid-cols-5">
@@ -671,7 +734,10 @@ function CandidateCard({ item, onOpenDetail }) {
                 />
                 <Metric label="Distance strike" value={`${item.strikeDistance.toFixed(1)}%`} />
                 <Metric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
-                <Metric label="IV" value={`${item.iv.toFixed(1)}%`} />
+                <Metric
+                  label="IV"
+                  value={typeof item.iv === "number" ? `${item.iv.toFixed(1)}%` : "—"}
+                />
                 <Metric
                   label="RSI"
                   value={typeof item.rsi === "number" ? `${item.rsi}` : "—"}
@@ -709,6 +775,14 @@ function CandidateCard({ item, onOpenDetail }) {
                       ? "bad"
                       : "warn"
                   }
+                />
+                <Metric
+                  label="Support"
+                  value={item.support != null ? `$${Number(item.support).toFixed(2)}` : "—"}
+                />
+                <Metric
+                  label="Résistance"
+                  value={item.resistance != null ? `$${Number(item.resistance).toFixed(2)}` : "—"}
                 />
               </div>
 
@@ -873,6 +947,8 @@ function DetailModal({ item, onClose }) {
 
   if (!item) return null;
 
+  const modalEarningsMoment = liveData?.quote?.earningsMoment ?? item.earningsMoment ?? null;
+
   const livePrice =
     liveData?.quote?.regularMarketPrice ??
     liveData?.quote?.currentPrice ??
@@ -915,6 +991,16 @@ function DetailModal({ item, onClose }) {
               {item.ticker} — {item.name}
             </h2>
             <p className="mt-1 text-sm text-slate-500">{item.setup}</p>
+            {item.earningsDate && (
+              <p className="mt-1 text-sm text-violet-700">
+                Earnings: {formatShortDate(item.earningsDate) || item.earningsDate}
+              </p>
+            )}
+            {item.earningsRisk && (
+              <p className="mt-1 text-sm text-amber-700">
+                ⚠️ {formatEarningsMomentWarning(modalEarningsMoment)}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => window.location.reload()}>
@@ -1016,6 +1102,7 @@ function DetailModal({ item, onClose }) {
                 subtitle="issu du backend /scan_shortlist"
                 strike={item.safeStrike.strike}
                 mid={item.safeStrike.mid}
+                popEstimate={item.safeStrike.popEstimate}
                 tradeYield={item.safeStrike.weeklyYield}
                 weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
                 annualizedYield={item.safeStrike.annualizedYield}
@@ -1037,6 +1124,7 @@ function DetailModal({ item, onClose }) {
                 subtitle="issu du backend /scan_shortlist"
                 strike={item.aggressiveStrike.strike}
                 mid={item.aggressiveStrike.mid}
+                popEstimate={item.aggressiveStrike.popEstimate}
                 tradeYield={item.aggressiveStrike.weeklyYield}
                 weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
                 annualizedYield={item.aggressiveStrike.annualizedYield}

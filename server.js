@@ -11,6 +11,7 @@ import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
 import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
 import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
+import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -196,6 +197,23 @@ function createMcpServer() {
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "wheel-mcp-backend" });
+});
+
+app.get("/ibkr/health", async (_req, res) => {
+  try {
+    const body = await getIbkrHealthStatus();
+    res.json(body);
+  } catch (error) {
+    res.json({
+      ok: false,
+      provider: "IBKR",
+      mode: "readonly",
+      readOnly: true,
+      canTrade: false,
+      connected: false,
+      error: error?.message || String(error),
+    });
+  }
 });
 
 app.get("/tools", (_req, res) => {

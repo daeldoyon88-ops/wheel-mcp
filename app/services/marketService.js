@@ -134,8 +134,8 @@ export function createMarketService(provider) {
     const callStrike = strikes[callIndex];
     const put = chain.puts.find((p) => toNumber(p.strike) === putStrike);
     const call = chain.calls.find((c) => toNumber(c.strike) === callStrike);
-    const putMid = pickReliablePremium(put);
-    const callMid = pickReliablePremium(call);
+    const putMid = pickReliablePremium(put, true);
+    const callMid = pickReliablePremium(call, true);
     if (!(putMid > 0) || !(callMid > 0)) return null;
 
     return { offset, putStrike, callStrike, putMid, callMid, totalPremium: putMid + callMid };
@@ -184,13 +184,14 @@ export function createMarketService(provider) {
     const atmIndex = allStrikes.indexOf(atmStrike);
     const atmCall = chain.calls.find((c) => toNumber(c.strike) === atmStrike);
     const atmPut = chain.puts.find((p) => toNumber(p.strike) === atmStrike);
-    const atmCallMid = pickReliablePremium(atmCall);
-    const atmPutMid = pickReliablePremium(atmPut);
-    const atmStraddle = atmCallMid + atmPutMid;
+    const atmCallMid = pickReliablePremium(atmCall, true);
+    const atmPutMid = pickReliablePremium(atmPut, true);
+    const hasAtmComplete = atmCallMid > 0 && atmPutMid > 0;
+    const atmStraddle = hasAtmComplete ? atmCallMid + atmPutMid : null;
     const strangle1 = buildSymmetricStrangleFromOffsets(chain, allStrikes, atmIndex, 1);
     const strangle2 = buildSymmetricStrangleFromOffsets(chain, allStrikes, atmIndex, 2);
 
-    const hasAtm = atmStraddle > 0;
+    const hasAtm = hasAtmComplete;
     const hasStrangle1 = !!(strangle1?.totalPremium > 0);
     const hasStrangle2 = !!(strangle2?.totalPremium > 0);
     const canUseWeightedFormula = hasAtm && hasStrangle1 && hasStrangle2;
@@ -222,7 +223,7 @@ export function createMarketService(provider) {
           putMid: round(atmPutMid, 4),
           totalPremium: round(atmStraddle, 4),
           weight: 0.6,
-          used: atmStraddle > 0,
+          used: hasAtmComplete,
         },
         strangle1: strangle1
           ? {

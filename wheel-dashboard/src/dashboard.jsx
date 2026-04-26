@@ -15,7 +15,6 @@ import {
   Database,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
-import { formatEarningsMomentWarning } from "./earningsDisplay.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 
@@ -46,6 +45,7 @@ const DEFAULT_BUILD_WATCHLIST_BODY = {
   requireWeeklyOptions: true,
   categories: ["core", "growth"],
 };
+const LAST_GOOD_SCAN_KEY = "wheel.lastGoodScan.v1";
 
 const alerts = [
   {
@@ -106,23 +106,117 @@ function formatShortDate(value) {
   return parsed.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 }
 
+function isYmd(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function ymdTodayLocal() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function daysBetweenYmd(fromYmd, toYmd) {
+  if (!isYmd(fromYmd) || !isYmd(toYmd)) return null;
+  const [fromY, fromM, fromD] = fromYmd.split("-").map(Number);
+  const [toY, toM, toD] = toYmd.split("-").map(Number);
+  const fromUtc = Date.UTC(fromY, fromM - 1, fromD);
+  const toUtc = Date.UTC(toY, toM - 1, toD);
+  return Math.round((toUtc - fromUtc) / (1000 * 60 * 60 * 24));
+}
+
+function earningsMomentLabel(moment) {
+  if (moment === "morning") return "avant ouverture";
+  if (moment === "evening") return "après fermeture";
+  return "moment inconnu";
+}
+
+function buildEarningsWarning({ earningsDate, nextEarningsDate, earningsMoment, expiration }) {
+  const today = ymdTodayLocal();
+  const effectiveDate =
+    (isYmd(nextEarningsDate) && nextEarningsDate >= today ? nextEarningsDate : null) ??
+    (isYmd(earningsDate) ? earningsDate : null);
+  const earningsDaysUntil = effectiveDate ? daysBetweenYmd(today, effectiveDate) : null;
+  const shouldWarn =
+    earningsDaysUntil != null && earningsDaysUntil >= 0 && earningsDaysUntil <= 10;
+  const beforeExpiration =
+    !!(effectiveDate && isYmd(expiration) && String(effectiveDate) < String(expiration));
+  const earningsWarning = shouldWarn
+    ? `⚠ Earnings dans ${earningsDaysUntil} jours — ${earningsMomentLabel(earningsMoment)}${
+        beforeExpiration ? " — avant expiration" : ""
+      }`
+    : null;
+
+  return {
+    earningsDaysUntil,
+    earningsWarning,
+    earningsWarningLevel: shouldWarn ? "warning" : null,
+  };
+}
+
+function isUsMarketClosedNow(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const weekday = parts.find((p) => p.type === "weekday")?.value ?? "";
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  const totalMinutes = hour * 60 + minute;
+  const isWeekend = weekday === "Sat" || weekday === "Sun";
+  if (isWeekend) return true;
+  if (totalMinutes < 9 * 60 + 30) return true;
+  if (totalMinutes >= 16 * 60) return true;
+  return false;
+}
+
 function toDashboardCandidate(item, index, selectedExpiration) {
   const safe = item.safeStrike;
   const aggressive = item.aggressiveStrike ?? item.maxPremiumStrike ?? null;
   const primaryStrike = safe || aggressive;
   const impliedVolatility = safe?.impliedVolatility ?? aggressive?.impliedVolatility ?? null;
   const earningsDate = item.earningsDate ?? null;
-  const earningsRisk = !!(
-    earningsDate &&
-    selectedExpiration &&
-    String(earningsDate) <= String(selectedExpiration)
-  );
+  const fallbackWarning = buildEarningsWarning({
+    earningsDate: item.earningsDate ?? null,
+    nextEarningsDate: item.nextEarningsDate ?? null,
+    earningsMoment: item.earningsMoment ?? null,
+    expiration: selectedExpiration,
+  });
+  const earningsDaysUntil =
+    typeof item.earningsDaysUntil === "number" ? item.earningsDaysUntil : fallbackWarning.earningsDaysUntil;
+  const earningsWarning = item.earningsWarning ?? fallbackWarning.earningsWarning;
+  const earningsWarningLevel = item.earningsWarningLevel ?? fallbackWarning.earningsWarningLevel;
 
   const safeDistance =
     safe && item.currentPrice > 0 ? strikeDistancePct(safe.strike, item.currentPrice) : 0;
 
   const aggressiveDistance =
     aggressive && item.currentPrice > 0 ? strikeDistancePct(aggressive.strike, item.currentPrice) : 0;
+  const liquiditySpreadPct =
+    safe?.liquidity?.spreadPct ?? aggressive?.liquidity?.spreadPct ?? null;
+  const fallbackExecutionScore =
+    typeof liquiditySpreadPct === "number" && Number.isFinite(liquiditySpreadPct)
+      ? Math.max(0, Math.min(1, 1 - liquiditySpreadPct / 50))
+      : 0.5;
+  const fallbackDistanceScore = Math.min(
+    Math.abs((primaryStrike ? strikeDistancePct(primaryStrike.strike, item.currentPrice ?? 0) : 0) / 10),
+    1
+  );
+  const weeklyReturnPct = primaryStrike ? (primaryStrike.weeklyYield ?? 0) * 100 : 0;
+  const fallbackFinalScore = Math.max(0, weeklyReturnPct / 100);
+  const hasBackendScores =
+    Number.isFinite(item?.finalScore) &&
+    Number.isFinite(item?.executionScore) &&
+    Number.isFinite(item?.distanceScore);
+  const proFinalScore = hasBackendScores ? Number(item.finalScore) : fallbackFinalScore;
+  const proExecutionScore = hasBackendScores ? Number(item.executionScore) : fallbackExecutionScore;
+  const proDistanceScore = hasBackendScores ? Number(item.distanceScore) : fallbackDistanceScore;
+  const scoreSource = hasBackendScores ? "backend" : "fallback";
 
   return {
     rank: index + 1,
@@ -142,7 +236,13 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     earningsDate,
     earningsMoment: item.earningsMoment ?? null,
     nextEarningsDate: item.nextEarningsDate ?? null,
-    earningsRisk,
+    earningsDaysUntil,
+    earningsWarning,
+    earningsWarningLevel,
+    hasUpcomingEarningsBeforeExpiration:
+      item.hasUpcomingEarningsBeforeExpiration ?? false,
+    hasPastEarningsBeforeExpiration:
+      item.hasPastEarningsBeforeExpiration ?? false,
     expectedMoveLow: item.lowerBound ?? 0,
     expectedMoveHigh:
       item.currentPrice != null && item.adjustedMove != null
@@ -184,10 +284,14 @@ function toDashboardCandidate(item, index, selectedExpiration) {
         : primaryStrike
         ? `${primaryStrike.premium?.toFixed(2) ?? "—"}`
         : "—",
-    weeklyReturn: primaryStrike ? (primaryStrike.weeklyYield ?? 0) * 100 : 0,
+    weeklyReturn: weeklyReturnPct,
     strikeDistance: primaryStrike
       ? strikeDistancePct(primaryStrike.strike, item.currentPrice ?? 0)
       : 0,
+    proFinalScore,
+    proExecutionScore,
+    proDistanceScore,
+    scoreSource,
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract: primaryStrike ? primaryStrike.premium * 100 : 0,
     earnings: item.hasEarnings ? "earnings mode actif" : "pas cette semaine",
@@ -217,58 +321,217 @@ function toDashboardCandidate(item, index, selectedExpiration) {
 
 function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions) {
   const usableCapital = capital * (maxCapitalPct / 100);
-  const top = candidates
-    .filter((c) => c.capitalPerContract > 0 && c.weeklyReturn > 0)
-    .sort((a, b) => b.weeklyReturn - a.weeklyReturn);
+  const targetMinPct = 90;
+  const targetGoalPct = 95;
+  const basePool = candidates
+    .filter((c) => Number.isFinite(c.proFinalScore) && Number.isFinite(c.proExecutionScore))
+    .filter((c) => c.proFinalScore > 0)
+    .filter((c) => {
+      const spread = c.safeStrike?.liquidity?.spreadPct ?? c.aggressiveStrike?.liquidity?.spreadPct;
+      if (spread == null) return true;
+      return spread <= 35;
+    });
 
-  if (!top.length) return [];
+  if (!basePool.length) return [];
 
-  const aggressivePool = [...top]
-    .sort((a, b) => b.weeklyReturn - a.weeklyReturn)
-    .slice(0, Math.max(3, maxPositions + 1));
+  const modeConfigs = [
+    {
+      id: "aggressive",
+      label: "Agressif",
+      tickerCapPct: 0.25,
+      positionCapPct: 0.25,
+      maxContractsPerTicker: 4,
+      minWeeklyYield: 0.007,
+      minExecutionScore: 0.45,
+      maxSpreadPct: 35,
+      score: (c) =>
+        0.6 * (c.weeklyReturn / 100) + 0.25 * c.proFinalScore + 0.15 * c.proExecutionScore,
+    },
+    {
+      id: "balanced",
+      label: "Équilibré",
+      tickerCapPct: 0.2,
+      positionCapPct: 0.2,
+      maxContractsPerTicker: 3,
+      minWeeklyYield: 0,
+      minExecutionScore: 0,
+      maxSpreadPct: 35,
+      score: (c) => 0.4 * c.proFinalScore + 0.35 * c.proExecutionScore + 0.25 * c.proDistanceScore,
+    },
+    {
+      id: "conservative",
+      label: "Conservateur",
+      tickerCapPct: 0.15,
+      positionCapPct: 0.15,
+      maxContractsPerTicker: 2,
+      minWeeklyYield: 0,
+      minExecutionScore: 0,
+      maxSpreadPct: 35,
+      score: (c) => 0.5 * c.proExecutionScore + 0.3 * c.proDistanceScore + 0.2 * c.proFinalScore,
+    },
+  ];
 
-  const balancedPool = [...top]
-    .sort((a, b) => {
-      const scoreA = a.weeklyReturn - Math.max(0, Math.abs(a.strikeDistance) - 12) * 0.02;
-      const scoreB = b.weeklyReturn - Math.max(0, Math.abs(b.strikeDistance) - 12) * 0.02;
-      return scoreB - scoreA;
-    })
-    .slice(0, Math.max(3, maxPositions + 1));
+  function getModeStrike(candidate, modeId) {
+    const isAggressive = modeId === "aggressive";
+    const rawSafe = candidate.raw?.safeStrike ?? null;
+    const rawAggressive = candidate.raw?.aggressiveStrike ?? null;
+    const mappedSafe = candidate.safeStrike ?? null;
+    const mappedAggressive = candidate.aggressiveStrike ?? null;
 
-  const conservativePool = [...top]
-    .sort((a, b) => Math.abs(b.strikeDistance) - Math.abs(a.strikeDistance))
-    .slice(0, Math.max(3, maxPositions + 1));
+    const rawSelected = isAggressive
+      ? rawAggressive ?? rawSafe
+      : rawSafe ?? rawAggressive;
+    const mappedSelected = isAggressive
+      ? mappedAggressive ?? mappedSafe
+      : mappedSafe ?? mappedAggressive;
 
-  function makeCombo(label, pool) {
+    const strike = Number(rawSelected?.strike ?? mappedSelected?.strike ?? 0);
+    const premiumUnit = Number(
+      rawSelected?.conservativePremium ??
+        rawSelected?.bid ??
+        rawSelected?.premium ??
+        mappedSelected?.mid ??
+        0
+    );
+    const weeklyReturn =
+      rawSelected?.weeklyYield != null
+        ? Number(rawSelected.weeklyYield) * 100
+        : Number(mappedSelected?.weeklyYield ?? candidate.weeklyReturn ?? 0);
+
+    return {
+      strike: Number.isFinite(strike) ? strike : 0,
+      premiumUnit: Number.isFinite(premiumUnit) ? premiumUnit : 0,
+      weeklyReturn: Number.isFinite(weeklyReturn) ? weeklyReturn : 0,
+    };
+  }
+
+  function makeCombo(mode) {
+    const scoredPool = basePool
+      .map((candidate) => {
+        const selected = getModeStrike(candidate, mode.id);
+        return {
+          ...candidate,
+          selectedStrike: selected,
+          capitalPerContract: selected.strike > 0 ? selected.strike * 100 : 0,
+          premiumPerContract: selected.premiumUnit > 0 ? selected.premiumUnit * 100 : 0,
+          weeklyReturn: selected.weeklyReturn,
+          spreadPct:
+            candidate.safeStrike?.liquidity?.spreadPct ??
+            candidate.aggressiveStrike?.liquidity?.spreadPct ??
+            null,
+        };
+      })
+      .filter((candidate) => candidate.capitalPerContract > 0 && candidate.weeklyReturn > 0)
+      .filter((candidate) => candidate.weeklyReturn / 100 >= mode.minWeeklyYield)
+      .filter((candidate) => candidate.proExecutionScore >= mode.minExecutionScore)
+      .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= mode.maxSpreadPct)
+      .map((candidate) => ({
+        ...candidate,
+        allocScore: mode.score(candidate),
+      }))
+      .sort((a, b) => b.allocScore - a.allocScore);
+    if (!scoredPool.length) return null;
     const picks = [];
     let used = 0;
+    const pickMap = new Map();
+    const tickerCapDollars = usableCapital * mode.tickerCapPct;
+    const positionCapDollars = usableCapital * mode.positionCapPct;
 
-    for (const candidate of pool) {
+    function canAddContract(candidate, currentContracts, useSoftCaps = false) {
+      if (candidate.capitalPerContract <= 0) return false;
+      const maxContractsAllowed = useSoftCaps
+        ? mode.maxContractsPerTicker + 1
+        : mode.maxContractsPerTicker;
+      if (currentContracts >= maxContractsAllowed) return false;
+      if (used + candidate.capitalPerContract > usableCapital) return false;
+      const nextPositionCapital = (currentContracts + 1) * candidate.capitalPerContract;
+      const tickerCapLimit = useSoftCaps ? tickerCapDollars * 1.2 : tickerCapDollars;
+      const positionCapLimit = useSoftCaps ? positionCapDollars * 1.15 : positionCapDollars;
+      if (nextPositionCapital > tickerCapLimit) return false;
+      if (nextPositionCapital > positionCapLimit) return false;
+      return true;
+    }
+
+    // Pass 1: breadth first (max 1 contract per ticker)
+    for (const candidate of scoredPool) {
       if (picks.length >= maxPositions) break;
-      if (candidate.capitalPerContract <= 0) continue;
+      const existing = pickMap.get(candidate.ticker);
+      if (existing) continue;
+      if (!canAddContract(candidate, 0)) continue;
 
-      const remaining = usableCapital - used;
-      if (remaining < candidate.capitalPerContract) continue;
-
-      const maxContracts = Math.max(1, Math.floor(remaining / candidate.capitalPerContract));
-      const contracts = Math.min(
-        maxContracts,
-        candidate.capitalPerContract < usableCapital * 0.2 ? 3 : 1
-      );
-
-      const capitalUsed = contracts * candidate.capitalPerContract;
-      const premiumCollected = contracts * candidate.premiumPerContract;
-
-      picks.push({
+      const pick = {
         ticker: candidate.ticker,
-        strike: candidate.safeStrike?.strike ?? candidate.aggressiveStrike?.strike ?? 0,
-        contracts,
-        capitalUsed,
-        premiumCollected,
+        strike: candidate.selectedStrike.strike,
+        contracts: 1,
+        capitalUsed: candidate.capitalPerContract,
+        premiumCollected: candidate.premiumPerContract,
         weeklyReturn: candidate.weeklyReturn,
-      });
+      };
+      picks.push(pick);
+      pickMap.set(candidate.ticker, pick);
+      used += candidate.capitalPerContract;
+    }
 
-      used += capitalUsed;
+    // Pass 2: depth by score while respecting caps
+    let progressed = true;
+    while (progressed) {
+      progressed = false;
+      for (const candidate of scoredPool) {
+        const existing = pickMap.get(candidate.ticker);
+        if (!existing) continue;
+        if (!canAddContract(candidate, existing.contracts)) continue;
+
+        existing.contracts += 1;
+        existing.capitalUsed += candidate.capitalPerContract;
+        existing.premiumCollected += candidate.premiumPerContract;
+        used += candidate.capitalPerContract;
+        progressed = true;
+      }
+    }
+
+    // Pass 3: capital completion with soft caps.
+    const usablePct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
+    if (usablePct < targetMinPct) {
+      let softProgressed = true;
+      while (softProgressed) {
+        const currentPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
+        if (currentPct >= targetGoalPct) break;
+        softProgressed = false;
+        for (const candidate of scoredPool) {
+          const existing = pickMap.get(candidate.ticker);
+          if (!existing) continue;
+          if (!canAddContract(candidate, existing.contracts, true)) continue;
+
+          existing.contracts += 1;
+          existing.capitalUsed += candidate.capitalPerContract;
+          existing.premiumCollected += candidate.premiumPerContract;
+          used += candidate.capitalPerContract;
+          softProgressed = true;
+
+          const updatedPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
+          if (updatedPct >= targetGoalPct) break;
+        }
+      }
+    }
+
+    // Pass 4: targeted completion under soft caps.
+    let completionProgressed = true;
+    while (completionProgressed) {
+      const currentPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
+      if (currentPct >= targetGoalPct) break;
+      completionProgressed = false;
+      for (const candidate of scoredPool) {
+        const existing = pickMap.get(candidate.ticker);
+        if (!existing) continue;
+        if (!canAddContract(candidate, existing.contracts, true)) continue;
+        existing.contracts += 1;
+        existing.capitalUsed += candidate.capitalPerContract;
+        existing.premiumCollected += candidate.premiumPerContract;
+        used += candidate.capitalPerContract;
+        completionProgressed = true;
+        const updatedPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
+        if (updatedPct >= targetGoalPct) break;
+      }
     }
 
     if (!picks.length) return null;
@@ -276,23 +539,41 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions) 
     const avgWeekly =
       picks.reduce((sum, p) => sum + p.weeklyReturn * p.capitalUsed, 0) /
       picks.reduce((sum, p) => sum + p.capitalUsed, 0);
+    const usedPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
+    let capitalShortfallReason = null;
+    if (usedPct < targetMinPct) {
+      const hasAnyCandidate = scoredPool.length > 0;
+      const hasAnyPick = picks.length > 0;
+      const minContractCost = hasAnyCandidate
+        ? Math.min(...scoredPool.map((c) => c.capitalPerContract))
+        : Number.POSITIVE_INFINITY;
+      if (!hasAnyCandidate) {
+        capitalShortfallReason = "not_enough_candidates";
+      } else if (!hasAnyPick) {
+        capitalShortfallReason = "min_yield_or_execution_filter";
+      } else if (picks.length >= maxPositions) {
+        capitalShortfallReason = "max_positions_limit";
+      } else if (usableCapital - used < minContractCost) {
+        capitalShortfallReason = "contract_size_too_large";
+      } else {
+        capitalShortfallReason = "caps_too_strict";
+      }
+    }
 
     return {
-      label,
+      label: mode.label,
       positions: picks.length,
       totalCapital: used,
       capitalPct: capital > 0 ? (used / capital) * 100 : 0,
+      capitalTargetReached: usedPct >= targetMinPct,
+      capitalShortfallReason,
       avgWeeklyReturn: avgWeekly,
       freeCapital: capital - used,
       picks,
     };
   }
 
-  return [
-    makeCombo("Agressif", aggressivePool),
-    makeCombo("Équilibré", balancedPool),
-    makeCombo("Conservateur", conservativePool),
-  ].filter(Boolean);
+  return modeConfigs.map((mode) => makeCombo(mode)).filter(Boolean);
 }
 
 function Card({ className = "", children }) {
@@ -663,6 +944,14 @@ function CandidateCard({ item, onOpenDetail }) {
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
     : item.expectedMovePct;
+  const earningsDisplay =
+    item.earningsWarning ||
+    buildEarningsWarning({
+      earningsDate: item.earningsDate ?? null,
+      nextEarningsDate: item.nextEarningsDate ?? null,
+      earningsMoment: item.earningsMoment ?? null,
+      expiration: item.targetExpiration ?? null,
+    }).earningsWarning;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -698,16 +987,15 @@ function CandidateCard({ item, onOpenDetail }) {
                   {item.ticker} <span className="font-normal text-slate-500">— {item.name}</span>
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">{item.setup}</p>
-                {item.earningsDate && (
+                {earningsDisplay ? (
+                  <p className="mt-1 text-sm text-amber-700">
+                    {earningsDisplay}
+                  </p>
+                ) : item.earningsDate ? (
                   <p className="mt-1 text-sm text-violet-700">
                     Earnings: {formatShortDate(item.earningsDate) || item.earningsDate}
                   </p>
-                )}
-                {item.earningsRisk && (
-                  <p className="mt-1 text-sm text-amber-700">
-                    ⚠️ {formatEarningsMomentWarning(item.earningsMoment)}
-                  </p>
-                )}
+                ) : null}
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4 xl:grid-cols-5">
@@ -947,8 +1235,6 @@ function DetailModal({ item, onClose }) {
 
   if (!item) return null;
 
-  const modalEarningsMoment = liveData?.quote?.earningsMoment ?? item.earningsMoment ?? null;
-
   const livePrice =
     liveData?.quote?.regularMarketPrice ??
     liveData?.quote?.currentPrice ??
@@ -981,6 +1267,14 @@ function DetailModal({ item, onClose }) {
   const adjustedMovePct = item.earningsMode
     ? liveExpectedMovePct * (item.expectedMoveMultiplier || 1)
     : liveExpectedMovePct;
+  const earningsDisplay =
+    item.earningsWarning ||
+    buildEarningsWarning({
+      earningsDate: item.earningsDate ?? null,
+      nextEarningsDate: item.nextEarningsDate ?? null,
+      earningsMoment: item.earningsMoment ?? null,
+      expiration: item.targetExpiration ?? null,
+    }).earningsWarning;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
@@ -991,16 +1285,15 @@ function DetailModal({ item, onClose }) {
               {item.ticker} — {item.name}
             </h2>
             <p className="mt-1 text-sm text-slate-500">{item.setup}</p>
-            {item.earningsDate && (
+            {earningsDisplay ? (
+              <p className="mt-1 text-sm text-amber-700">
+                {earningsDisplay}
+              </p>
+            ) : item.earningsDate ? (
               <p className="mt-1 text-sm text-violet-700">
                 Earnings: {formatShortDate(item.earningsDate) || item.earningsDate}
               </p>
-            )}
-            {item.earningsRisk && (
-              <p className="mt-1 text-sm text-amber-700">
-                ⚠️ {formatEarningsMomentWarning(modalEarningsMoment)}
-              </p>
-            )}
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => window.location.reload()}>
@@ -1249,6 +1542,7 @@ export default function Dashboard() {
     kept: 0,
     returned: 0,
   });
+  const [marketClosedNotice, setMarketClosedNotice] = useState("");
 
   const snapshotCandidates = useMemo(() => {
     return wheelShortlist
@@ -1314,15 +1608,70 @@ export default function Dashboard() {
   const tickersForScan = watchlistTickers ?? FALLBACK_TICKERS;
 
   const handleRefreshShortlist = useCallback(async () => {
-    if (watchlistTickers !== null && watchlistTickers.length === 0) {
-      setScanError("Watchlist vide : rien à envoyer au scan.");
+    console.log("[SCAN_DEBUG] watchlistTickers.length", watchlistTickers?.length ?? null);
+    const marketClosed = isUsMarketClosedNow();
+    if (marketClosed) {
+      try {
+        const raw = window.localStorage.getItem(LAST_GOOD_SCAN_KEY);
+        const cached = raw ? JSON.parse(raw) : null;
+        const cachedShortlist = Array.isArray(cached?.shortlist) ? cached.shortlist : null;
+        if (cachedShortlist && cachedShortlist.length > 0) {
+          setBackendCandidates(cachedShortlist);
+          setDataSource("backend");
+          setScanMeta(cached?.scanMeta ?? {
+            scanned: cachedShortlist.length,
+            kept: cachedShortlist.length,
+            returned: cachedShortlist.length,
+          });
+          setScanError("");
+          setMarketClosedNotice("Marche ferme — dernier scan valide affiche");
+          return;
+        }
+      } catch (_e) {}
+      setMarketClosedNotice("Marche ferme — dernier scan valide affiche");
+      setScanError("Marche ferme et aucun scan valide en cache local.");
+      return;
+    }
+    setMarketClosedNotice("");
+
+    let tickers = watchlistTickers ?? FALLBACK_TICKERS;
+    if (Array.isArray(watchlistTickers) && watchlistTickers.length === 0) {
+      try {
+        const payload = await callBuildWatchlist(DEFAULT_BUILD_WATCHLIST_BODY);
+        const rebuilt = Array.isArray(payload.watchlist) ? payload.watchlist : [];
+        if (rebuilt.length > 0) {
+          setWatchlistTickers(rebuilt);
+          setWatchlistSource("backend");
+          setWatchlistStats(payload.stats ?? null);
+          setWatchlistBuildError("");
+          tickers = rebuilt;
+        } else {
+          console.log("[SCAN_DEBUG] scan_cancelled_reason", "watchlist_empty_after_rebuild");
+          setScanError("Watchlist vide après tentative de reconstruction backend.");
+          setBackendCandidates(null);
+          setDataSource("snapshot");
+          setScanMeta({ scanned: 0, kept: 0, returned: 0 });
+          return;
+        }
+      } catch (err) {
+        console.log("[SCAN_DEBUG] scan_cancelled_reason", "watchlist_rebuild_failed");
+        setScanError("Watchlist vide et reconstruction backend indisponible.");
+        setBackendCandidates(null);
+        setDataSource("snapshot");
+        setScanMeta({ scanned: 0, kept: 0, returned: 0 });
+        return;
+      }
+    }
+
+    if (!Array.isArray(tickers) || tickers.length === 0) {
+      console.log("[SCAN_DEBUG] scan_cancelled_reason", "no_tickers_to_scan");
+      setScanError("Aucun ticker disponible pour lancer le scan.");
       setBackendCandidates(null);
       setDataSource("snapshot");
       setScanMeta({ scanned: 0, kept: 0, returned: 0 });
       return;
     }
-
-    const tickers = watchlistTickers ?? FALLBACK_TICKERS;
+    console.log("[SCAN_DEBUG] tickers_sent_to_scan", tickers.length);
 
     setLoadingScan(true);
     setScanError("");
@@ -1345,6 +1694,23 @@ export default function Dashboard() {
         kept: payload.kept ?? mapped.length,
         returned: payload.returned ?? mapped.length,
       });
+      if (mapped.length > 0) {
+        try {
+          window.localStorage.setItem(
+            LAST_GOOD_SCAN_KEY,
+            JSON.stringify({
+              expiration: selectedExpiration,
+              scanMeta: {
+                scanned: payload.scanned ?? tickers.length,
+                kept: payload.kept ?? mapped.length,
+                returned: payload.returned ?? mapped.length,
+              },
+              shortlist: mapped,
+              savedAt: new Date().toISOString(),
+            })
+          );
+        } catch (_e) {}
+      }
     } catch (e) {
       setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
       setBackendCandidates(null);
@@ -1604,12 +1970,16 @@ export default function Dashboard() {
           <div
             className={cn(
               "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
-              dataSource === "backend"
+              marketClosedNotice
+                ? "border-amber-200 bg-amber-50 text-amber-700"
+                : dataSource === "backend"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-amber-200 bg-amber-50 text-amber-700"
             )}
           >
-            {dataSource === "backend"
+            {marketClosedNotice
+              ? "Marche ferme — dernier scan valide affiche"
+              : dataSource === "backend"
               ? `Source active : backend local /scan_shortlist — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés (watchlist ${watchlistSource === "backend" ? "backend" : "secours"}).`
               : "Source active : snapshot local (fallback)."}
           </div>

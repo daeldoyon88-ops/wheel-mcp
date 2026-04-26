@@ -41,11 +41,22 @@ export function getDteDays(expiration) {
   return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function pickReliablePremium(row) {
+export function pickReliablePremium(row, strictBidAsk = false) {
   const bid = toNumber(row?.bid);
   const ask = toNumber(row?.ask);
+  const explicitMid = toNumber(row?.mid);
+  const last = toNumber(row?.lastPrice);
+  if (strictBidAsk) {
+    if (bid > 0 && ask > 0) return (bid + ask) / 2;
+    return 0;
+  }
   if (bid > 0 && ask > 0) return (bid + ask) / 2;
+  if (explicitMid > 0) return explicitMid;
+  if (bid > 0 && last > 0) return (bid + last) / 2;
+  if (ask > 0 && last > 0) return (ask + last) / 2;
+  if (last > 0) return last;
   if (bid > 0) return bid;
+  if (ask > 0) return ask;
   return 0;
 }
 
@@ -81,48 +92,67 @@ function dynamicMaxSpreadPctFromBid(bid) {
 export function evaluateTradability(row) {
   const bid = toNumber(row?.bid);
   const ask = toNumber(row?.ask);
+  const last = toNumber(row?.lastPrice);
   const volume = toNumber(row?.volume);
   const openInterest = toNumber(row?.openInterest);
   const spreadPct = computeSpreadPct(row);
   const absoluteSpread = computeAbsoluteSpread(row);
-  const hasBidAsk = bid > 0 && ask > 0;
-  const absoluteSpreadOk = absoluteSpread != null && absoluteSpread <= MAX_ABSOLUTE_SPREAD;
+  const hasRealMarket = bid > 0 && ask > 0;
+  const hasLastFallback = last > 0 && volume >= 10 && openInterest >= 100;
+  const absoluteSpreadOk = absoluteSpread == null ? true : absoluteSpread <= MAX_ABSOLUTE_SPREAD;
   const maxSpreadPct = dynamicMaxSpreadPctFromBid(bid);
-  const spreadPctOk = spreadPct != null && spreadPct <= maxSpreadPct;
+  const spreadPctOk = spreadPct == null ? true : spreadPct <= maxSpreadPct;
 
   return {
-    isTradable: hasBidAsk && absoluteSpreadOk && spreadPctOk,
+    isTradable: hasRealMarket && absoluteSpreadOk && spreadPctOk,
     spreadPct: spreadPct != null ? round(spreadPct, 2) : null,
     absoluteSpread: absoluteSpread != null ? round(absoluteSpread, 3) : null,
     volume,
     openInterest,
-    checks: { hasBidAsk, absoluteSpreadOk, spreadPctOk },
+    checks: {
+      hasRealMarket,
+      hasLastFallback,
+      absoluteSpreadOk,
+      spreadPctOk,
+      rejectReason: hasRealMarket ? null : "no_real_bid_ask",
+    },
   };
 }
 
 export function evaluateLiquidity(row) {
   const bid = toNumber(row?.bid);
   const ask = toNumber(row?.ask);
+  const last = toNumber(row?.lastPrice);
   const volume = toNumber(row?.volume);
   const openInterest = toNumber(row?.openInterest);
   const spreadPct = computeSpreadPct(row);
   const absoluteSpread = computeAbsoluteSpread(row);
-  const hasBidAsk = bid > 0 && ask > 0;
-  const absoluteSpreadOk = absoluteSpread != null && absoluteSpread <= MAX_ABSOLUTE_SPREAD;
+  const hasRealMarket = bid > 0 && ask > 0;
+  const hasLastFallback = last > 0 && volume >= 10 && openInterest >= 100;
+  const absoluteSpreadOk = absoluteSpread == null ? true : absoluteSpread <= MAX_ABSOLUTE_SPREAD;
   const maxSpreadPct = dynamicMaxSpreadPctFromBid(bid);
-  const spreadPctOk = spreadPct != null && spreadPct <= maxSpreadPct;
+  const spreadPctOk = spreadPct == null ? true : spreadPct <= maxSpreadPct;
   const volumeOk = volume >= 1;
   // Baseline souple : le seuil final est renforcé ensuite dans selectPutStrikes
   // selon la profondeur du strike par rapport à l'agressif.
   const openInterestOk = openInterest >= 5;
+  const hasBookQuality = absoluteSpreadOk && spreadPctOk && volumeOk && openInterestOk;
 
   return {
-    isLiquid: hasBidAsk && absoluteSpreadOk && spreadPctOk && volumeOk && openInterestOk,
+    isLiquid: hasRealMarket && hasBookQuality,
     spreadPct: spreadPct != null ? round(spreadPct, 2) : null,
     absoluteSpread: absoluteSpread != null ? round(absoluteSpread, 3) : null,
     volume,
     openInterest,
-    checks: { hasBidAsk, absoluteSpreadOk, spreadPctOk, volumeOk, openInterestOk },
+    checks: {
+      hasRealMarket,
+      hasLastFallback,
+      absoluteSpreadOk,
+      spreadPctOk,
+      volumeOk,
+      openInterestOk,
+      rejectReason: hasRealMarket ? null : "no_real_bid_ask",
+    },
   };
 }
 
@@ -164,8 +194,8 @@ function normalizePutForSelection(put, spot, targetPremium) {
 
 export function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }) {
   const targetPremium = minPremiumForSpot(spot, dteDays);
-  const eligible = (puts || [])
-    .map((put) => normalizePutForSelection(put, spot, targetPremium))
+  const normalizedPuts = (puts || []).map((put) => normalizePutForSelection(put, spot, targetPremium));
+  const eligible = normalizedPuts
     .filter((put) => put.strike > 0)
     .filter((put) => put.strike < lowerBoundForSelection)
     .sort((a, b) => a.strike - b.strike);
@@ -190,7 +220,7 @@ export function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }
       : liquidEligibleAtOrAboveTarget
           .filter((put) => put.strike < aggressiveStrike.strike)
           .filter((put) => toNumber(put.openInterest) >= minOpenInterestForSafe(put, aggressiveStrike))
-          .sort((a, b) => a.strike - b.strike);
+          .sort((a, b) => b.strike - a.strike);
 
   const safeStrike =
     aggressiveStrike == null
@@ -198,6 +228,49 @@ export function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }
       : safeCandidatesBelowAggressive.length > 0
         ? safeCandidatesBelowAggressive[0]
         : aggressiveStrike;
+
+  const diagnosticsPutsBelowAggressive = aggressiveStrike
+    ? normalizedPuts
+        .filter((put) => put.strike > 0 && put.strike < aggressiveStrike.strike)
+        .sort((a, b) => b.strike - a.strike)
+        .slice(0, 10)
+        .map((put) => {
+          const isBelowLowerBound = put.strike < lowerBoundForSelection;
+          const meetsTargetPremium = premiumMeetsTarget(put.conservativePremium, targetPremium);
+          const liquidityOk = !!put?.liquidity?.isLiquid;
+          const spreadOk = !!(
+            put?.liquidity?.checks?.absoluteSpreadOk && put?.liquidity?.checks?.spreadPctOk
+          );
+          const oiRequired = minOpenInterestForSafe(put, aggressiveStrike);
+          const oiOk = toNumber(put.openInterest) >= oiRequired;
+          const finalValid =
+            isBelowLowerBound && meetsTargetPremium && liquidityOk && spreadOk && oiOk;
+          const rejectReasons = [];
+          if (!isBelowLowerBound) rejectReasons.push("not_below_lower_bound");
+          if (!meetsTargetPremium) rejectReasons.push("premium_below_target");
+          if (!liquidityOk) rejectReasons.push("liquidity_not_ok");
+          if (!spreadOk) rejectReasons.push("spread_not_ok");
+          if (!oiOk) rejectReasons.push("open_interest_below_safe_threshold");
+          return {
+            strike: put.strike,
+            bid: put.bid,
+            ask: put.ask,
+            lastPrice: put.lastPrice,
+            mid: put.mid,
+            spread: put?.liquidity?.absoluteSpread ?? null,
+            spreadPct: put?.liquidity?.spreadPct ?? null,
+            volume: put.volume,
+            openInterest: put.openInterest,
+            premiumUsed: put.conservativePremium,
+            meetsTargetPremium,
+            isBelowLowerBound,
+            liquidityOk,
+            spreadOk,
+            finalValid,
+            rejectReason: rejectReasons.length ? rejectReasons.join("|") : null,
+          };
+        })
+    : [];
 
   return {
     targetPremium,
@@ -207,6 +280,7 @@ export function selectPutStrikes({ puts, spot, lowerBoundForSelection, dteDays }
     safeCandidates: safeCandidatesBelowAggressive,
     safeStrike,
     aggressiveStrike,
+    diagnosticsPutsBelowAggressive,
     safeSelectionMode: safeStrike
       ? safeCandidatesBelowAggressive.length > 0
         ? "first_liquid_strike_below_aggressive_meeting_target"

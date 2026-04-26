@@ -6,7 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { DEFAULT_BACKEND_PORT } from "./app/config/constants.js";
-import { YahooMarketDataProvider } from "./app/data_providers/yahooMarketDataProvider.js";
+import { createMarketDataProvider } from "./app/data_providers/createMarketDataProvider.js";
 import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
 import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
@@ -18,7 +18,7 @@ const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-const provider = new YahooMarketDataProvider();
+const provider = createMarketDataProvider();
 const marketService = createMarketService(provider);
 const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
@@ -304,8 +304,8 @@ app.post("/tools/analyze_trade_setup", async (req, res) => {
 
 app.post("/scan_shortlist", async (req, res) => {
   try {
-    const { expiration, tickers = [], topN = 20 } = req.body ?? {};
-    const { status, payload } = await wheelScanner.scanShortlist({ expiration, tickers, topN });
+    const { expiration, tickers = [], topN = 20, sort = "yield" } = req.body ?? {};
+    const { status, payload } = await wheelScanner.scanShortlist({ expiration, tickers, topN, sort });
     res.status(status).json(payload);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "scan_shortlist failed" });

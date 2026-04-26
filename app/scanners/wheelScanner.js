@@ -54,6 +54,25 @@ function tomorrowYmdInZone(timeZone) {
   return today;
 }
 
+function isYmd(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function daysBetweenYmd(fromYmd, toYmd) {
+  if (!isYmd(fromYmd) || !isYmd(toYmd)) return null;
+  const [fromY, fromM, fromD] = fromYmd.split("-").map(Number);
+  const [toY, toM, toD] = toYmd.split("-").map(Number);
+  const fromUtc = Date.UTC(fromY, fromM - 1, fromD);
+  const toUtc = Date.UTC(toY, toM - 1, toD);
+  return Math.round((toUtc - fromUtc) / (1000 * 60 * 60 * 24));
+}
+
+function earningsMomentLabel(moment) {
+  if (moment === "morning") return "avant ouverture";
+  if (moment === "evening") return "après fermeture";
+  return "moment inconnu";
+}
+
 /**
  * True only if scheduled earnings are soon: tonight after regular close (>= 16:00 local)
  * or tomorrow morning before regular open (< 09:30 local), in the listing timezone.
@@ -104,7 +123,50 @@ function estimatePop({ spot, strike, premiumUsed, dteDays, impliedVolatility }) 
   return Math.max(0, Math.min(1, pop));
 }
 
+function robustOptionMid(row, strictBidAsk = false) {
+  const bid = toNumber(row?.bid);
+  const ask = toNumber(row?.ask);
+  const explicitMid = toNumber(row?.mid);
+  const last = toNumber(row?.lastPrice);
+  if (strictBidAsk) {
+    if (bid > 0 && ask > 0) return (bid + ask) / 2;
+    return 0;
+  }
+  if (bid > 0 && ask > 0) return (bid + ask) / 2;
+  if (explicitMid > 0) return explicitMid;
+  if (bid > 0 && last > 0) return (bid + last) / 2;
+  if (ask > 0 && last > 0) return (ask + last) / 2;
+  if (bid > 0) return bid;
+  if (ask > 0) return ask;
+  if (last > 0) return last;
+  return 0;
+}
+
 export function createWheelScanner(marketService) {
+  function computeProScore(safeStrike) {
+    if (!safeStrike) {
+      return { finalScore: 0, executionScore: 0, distanceScore: 0 };
+    }
+    const weeklyYield = toNumber(safeStrike.weeklyYield);
+    const spreadPct = toNumber(safeStrike?.liquidity?.spreadPct);
+    const volume = toNumber(safeStrike.volume);
+    const openInterest = toNumber(safeStrike.openInterest);
+    const distancePct = Math.abs(toNumber(safeStrike.distancePct));
+
+    const spreadScore = Math.max(0, 1 - spreadPct / 50);
+    const volumeScore = volume ? Math.min(volume / 200, 1) : 0;
+    const oiScore = openInterest ? Math.min(openInterest / 500, 1) : 0;
+    const executionScore = spreadScore * 0.5 + volumeScore * 0.3 + oiScore * 0.2;
+    const distanceScore = Math.min(distancePct / 0.1, 1);
+    const finalScore = weeklyYield * executionScore * distanceScore;
+
+    return {
+      finalScore: round(finalScore, 6),
+      executionScore: round(executionScore, 6),
+      distanceScore: round(distanceScore, 6),
+    };
+  }
+
   async function scanTicker(symbol, expiration) {
     const expirations = await marketService.getOptionExpirations(symbol);
     if (!expirations.availableExpirations.includes(expiration)) {
@@ -124,38 +186,70 @@ export function createWheelScanner(marketService) {
       toNumber(optionChain?.currentPrice) ||
       toNumber(expectedMove?.currentPrice);
     if (!spot) return { symbol, ok: false, reason: "no_spot_price" };
+    const serviceExpectedMove = toNumber(expectedMove?.expectedMove);
+    if (!(serviceExpectedMove > 0)) {
+      return { symbol, ok: false, reason: "expected_move_incomplete_option_chain" };
+    }
 
     const dteDays = getDteDays(expiration);
     const puts = Array.isArray(optionChain?.puts) ? optionChain.puts : [];
     const calls = Array.isArray(optionChain?.calls) ? optionChain.calls : [];
-    const allStrikes = [...puts, ...calls]
-      .map((row) => toNumber(row?.strike))
-      .filter((strike) => strike > 0);
+    const allStrikes = [
+      ...new Set(
+        [...puts, ...calls]
+          .map((row) => toNumber(row?.strike))
+          .filter((strike) => strike > 0)
+      ),
+    ].sort((a, b) => a - b);
     const atmStrike = allStrikes.length
       ? allStrikes.reduce((best, strike) =>
           Math.abs(strike - spot) < Math.abs(best - spot) ? strike : best
         )
       : null;
-    const atmCallRow = atmStrike
-      ? calls
-          .filter((row) => toNumber(row?.strike) > 0)
-          .sort(
-            (a, b) =>
-              Math.abs(toNumber(a.strike) - atmStrike) - Math.abs(toNumber(b.strike) - atmStrike)
-          )[0]
+    const atmIndex = atmStrike != null ? allStrikes.indexOf(atmStrike) : -1;
+    const atmCallRow = atmStrike != null
+      ? calls.find((row) => toNumber(row?.strike) === atmStrike) ?? null
       : null;
-    const atmPutRow = atmStrike
-      ? puts
-          .filter((row) => toNumber(row?.strike) > 0)
-          .sort(
-            (a, b) =>
-              Math.abs(toNumber(a.strike) - atmStrike) - Math.abs(toNumber(b.strike) - atmStrike)
-          )[0]
+    const atmPutRow = atmStrike != null
+      ? puts.find((row) => toNumber(row?.strike) === atmStrike) ?? null
       : null;
-    const atmCallMid = atmCallRow ? pickReliablePremium(atmCallRow) : 0;
-    const atmPutMid = atmPutRow ? pickReliablePremium(atmPutRow) : 0;
-    const straddleMoveAbs =
+    const atmCallBid = toNumber(atmCallRow?.bid);
+    const atmCallAsk = toNumber(atmCallRow?.ask);
+    const atmPutBid = toNumber(atmPutRow?.bid);
+    const atmPutAsk = toNumber(atmPutRow?.ask);
+    const atmCallMid = robustOptionMid(atmCallRow, true);
+    const atmPutMid = robustOptionMid(atmPutRow, true);
+    const atmStraddleMid =
       atmCallMid > 0 && atmPutMid > 0 ? atmCallMid + atmPutMid : null;
+
+    function buildStrangleMove(offset) {
+      if (atmIndex < 0) return null;
+      const putIndex = atmIndex - offset;
+      const callIndex = atmIndex + offset;
+      if (putIndex < 0 || callIndex >= allStrikes.length) return null;
+      const putStrike = allStrikes[putIndex];
+      const callStrike = allStrikes[callIndex];
+      const putRow = puts.find((row) => toNumber(row?.strike) === putStrike);
+      const callRow = calls.find((row) => toNumber(row?.strike) === callStrike);
+      const putMid = robustOptionMid(putRow, true);
+      const callMid = robustOptionMid(callRow, true);
+      if (!(putMid > 0) || !(callMid > 0)) return null;
+      return {
+        putStrike,
+        callStrike,
+        moveAbs: putMid + callMid,
+      };
+    }
+
+    const strangle1 = buildStrangleMove(1);
+    const strangle2 = buildStrangleMove(2);
+    const strangle1Move = toNumber(strangle1?.moveAbs);
+    const strangle2Move = toNumber(strangle2?.moveAbs);
+    const weightedOptionsMoveAbs =
+      atmStraddleMid > 0 && strangle1Move > 0 && strangle2Move > 0
+        ? atmStraddleMid * 0.6 + strangle1Move * 0.3 + strangle2Move * 0.1
+        : null;
+    const straddleMoveAbs = atmStraddleMid > 0 ? atmStraddleMid : null;
     const nearestPut = puts
       .map((put) => ({
         strike: toNumber(put?.strike),
@@ -163,21 +257,67 @@ export function createWheelScanner(marketService) {
       }))
       .filter((put) => put.strike > 0)
       .sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot))[0];
-    const ivFallback = toNumber(nearestPut?.impliedVolatility);
-    const serviceExpectedMove = toNumber(expectedMove?.expectedMove);
+    const ivFallbackRaw = toNumber(nearestPut?.impliedVolatility);
+    const ivFallback =
+      ivFallbackRaw >= 0.05 && ivFallbackRaw <= 5 ? ivFallbackRaw : null;
     const ivMoveAbs =
       spot > 0 && ivFallback > 0 && dteDays > 0
         ? spot * ivFallback * Math.sqrt(dteDays / 365)
         : null;
+    const minimumFallbackMoveAbs = spot > 0 ? Math.max(spot * 0.01, 0.25) : 0.25;
     const expectedMoveAbs =
       (serviceExpectedMove > 0 ? serviceExpectedMove : null) ??
+      (weightedOptionsMoveAbs != null && weightedOptionsMoveAbs > 0 ? weightedOptionsMoveAbs : null) ??
       (straddleMoveAbs != null && straddleMoveAbs > 0 ? straddleMoveAbs : null) ??
       (ivMoveAbs != null && ivMoveAbs > 0 ? ivMoveAbs : null) ??
-      serviceExpectedMove;
+      minimumFallbackMoveAbs;
+    const moveSource =
+      serviceExpectedMove > 0
+        ? "service_expected_move"
+        : weightedOptionsMoveAbs != null && weightedOptionsMoveAbs > 0
+        ? "weighted_options"
+        : straddleMoveAbs != null && straddleMoveAbs > 0
+        ? "atm_straddle"
+        : ivMoveAbs != null && ivMoveAbs > 0
+        ? "iv_fallback"
+        : "minimum_fallback";
     const earningsDate = quote?.earningsDate ?? null;
+    const exchangeTz = quote?.exchangeTimezoneName || "America/New_York";
+    const todayInExchange = ymdInTimeZone(new Date(), exchangeTz);
     const hasEarningsBeforeExpiration =
       !!(earningsDate && expiration && String(earningsDate) < String(expiration));
+    const hasUpcomingEarningsBeforeExpiration =
+      !!(
+        earningsDate &&
+        expiration &&
+        String(earningsDate) < String(expiration) &&
+        String(earningsDate) >= String(todayInExchange)
+      );
+    const hasPastEarningsBeforeExpiration =
+      !!(
+        earningsDate &&
+        expiration &&
+        String(earningsDate) < String(expiration) &&
+        String(earningsDate) < String(todayInExchange)
+      );
     const earningsMode = isEarningsImminent(quote);
+    const earningsMoment = quote?.earningsMoment ?? null;
+    const hasEarnings = isYmd(earningsDate) || isYmd(quote?.nextEarningsDate);
+    const effectiveEarningsDate =
+      (isYmd(quote?.nextEarningsDate) && String(quote.nextEarningsDate) >= String(todayInExchange)
+        ? quote.nextEarningsDate
+        : null) ??
+      (isYmd(earningsDate) ? earningsDate : null);
+    const earningsDaysUntil =
+      effectiveEarningsDate != null ? daysBetweenYmd(todayInExchange, effectiveEarningsDate) : null;
+    const earningsWithinWarningWindow =
+      earningsDaysUntil != null && earningsDaysUntil >= 0 && earningsDaysUntil <= 10;
+    const earningsWarning = earningsWithinWarningWindow
+      ? `⚠ Earnings dans ${earningsDaysUntil} jours — ${earningsMomentLabel(earningsMoment)}${
+          hasEarningsBeforeExpiration ? " — avant expiration" : ""
+        }`
+      : null;
+    const earningsWarningLevel = earningsWithinWarningWindow ? "warning" : null;
     const adjustedMove = earningsMode ? expectedMoveAbs * 1.8 : expectedMoveAbs;
     const lowerBound = spot - adjustedMove;
     if (!lowerBound || lowerBound <= 0) return { symbol, ok: false, reason: "invalid_lower_bound" };
@@ -192,9 +332,21 @@ export function createWheelScanner(marketService) {
         expiration,
         earningsDate,
         hasEarningsBeforeExpiration,
+        hasUpcomingEarningsBeforeExpiration,
+        hasPastEarningsBeforeExpiration,
         earningsMode,
         spot: round(spot, 4),
+        atmStrike,
+        atmCallBid: atmCallBid > 0 ? round(atmCallBid, 4) : null,
+        atmPutBid: atmPutBid > 0 ? round(atmPutBid, 4) : null,
+        atmCallAsk: atmCallAsk > 0 ? round(atmCallAsk, 4) : null,
+        atmPutAsk: atmPutAsk > 0 ? round(atmPutAsk, 4) : null,
+        atmStraddleMid: atmStraddleMid != null ? round(atmStraddleMid, 4) : null,
+        strangle1Move: strangle1Move > 0 ? round(strangle1Move, 4) : null,
+        strangle2Move: strangle2Move > 0 ? round(strangle2Move, 4) : null,
+        ivRaw: ivFallbackRaw,
         ivUsed,
+        moveSource,
         dteDays,
         t,
         expectedMoveAbsBeforeEarnings: round(expectedMoveAbs, 4),
@@ -209,7 +361,9 @@ export function createWheelScanner(marketService) {
         strike: toNumber(put?.strike),
         bid: toNumber(put?.bid),
         ask: toNumber(put?.ask),
+        lastPrice: toNumber(put?.lastPrice),
         mid: toNumber(put?.mid),
+        midUsed: pickReliablePremium(put),
       }))
       .filter((put) => put.strike > 0);
     const strikeSelection = selectPutStrikes({
@@ -225,7 +379,9 @@ export function createWheelScanner(marketService) {
         strike: round(put.strike, 3),
         bid: round(put.bid, 3),
         ask: round(put.ask, 3),
+        lastPrice: round(put.lastPrice, 3),
         mid: round(put.mid, 3),
+        midUsed: round(put.midUsed, 3),
         strikeVsLowerBound: round(put.strike - lowerBound, 3),
       }));
     const strikeDebug =
@@ -243,6 +399,15 @@ export function createWheelScanner(marketService) {
               (put) => put.strike < lowerBound && put.bid > 0
             ).length,
             nearestPutsAroundLowerBound: strikeWindow,
+            safeSelectionDiagnostics: {
+              symbol,
+              spot: round(spot, 4),
+              expectedMove: round(expectedMoveAbs, 4),
+              lowerBound: round(lowerBound, 4),
+              targetPremium: round(strikeSelection?.targetPremium, 4),
+              aggressiveStrike: strikeSelection?.aggressiveStrike?.strike ?? null,
+              putsBelowAggressiveTop10: strikeSelection?.diagnosticsPutsBelowAggressive ?? [],
+            },
           }
         : null;
 
@@ -282,6 +447,7 @@ export function createWheelScanner(marketService) {
 
     const safeStrike = buildStrike(strikeSelection.safeStrike);
     const aggressiveStrike = buildStrike(strikeSelection.aggressiveStrike);
+    const proScore = computeProScore(safeStrike);
     const targetPremium = strikeSelection.targetPremium;
     const support = toNumber(supportResistance?.support) || null;
     const resistance = toNumber(supportResistance?.resistance) || null;
@@ -299,17 +465,22 @@ export function createWheelScanner(marketService) {
       else supportStatus = "below_support";
     }
 
-    const passesPremiumTarget =
+    const aggressivePremiumOk =
+      !!aggressiveStrike &&
+      premiumMeetsTarget(aggressiveStrike.conservativePremium, targetPremium);
+    const safePremiumOk =
       !!safeStrike && premiumMeetsTarget(safeStrike.conservativePremium, targetPremium);
+    const passesPremiumTarget = aggressivePremiumOk && safePremiumOk;
     const passesYieldTarget = !!safeStrike && (safeStrike.annualizedYield ?? 0) >= 0.26;
-    const passesLiquidity = !!safeStrike && !!safeStrike.liquidity?.isLiquid;
+    const aggressiveLiquidityOk = !!aggressiveStrike && !!aggressiveStrike.liquidity?.isLiquid;
+    const safeLiquidityOk = !!safeStrike && !!safeStrike.liquidity?.isLiquid;
+    const passesLiquidity = aggressiveLiquidityOk && safeLiquidityOk;
     const passesFilter = !!safeStrike && passesPremiumTarget && passesYieldTarget && passesLiquidity;
 
     let reasonKept = "passes_filters";
     if (!strikeSelection.eligible.length) reasonKept = "no_put_with_bid_below_lower_bound";
     else if (!strikeSelection.liquidEligible.length) reasonKept = "no_liquid_strike_below_lower_bound";
     else if (!strikeSelection.safeCandidates.length) reasonKept = "no_safe_candidate_at_or_above_target_bid";
-    else if (!safeStrike) reasonKept = "no_safe_strike";
     else if (!passesLiquidity) reasonKept = "safe_strike_not_liquid";
     else if (!passesPremiumTarget) reasonKept = "premium_below_target";
     else if (!passesYieldTarget) reasonKept = "yield_below_target";
@@ -318,12 +489,17 @@ export function createWheelScanner(marketService) {
       symbol,
       ok: true,
       expiration,
-      hasEarnings: earningsMode,
+      hasEarnings,
       hasEarningsBeforeExpiration,
+      hasUpcomingEarningsBeforeExpiration,
+      hasPastEarningsBeforeExpiration,
       earningsMode,
       earningsDate,
-      earningsMoment: quote?.earningsMoment ?? null,
+      earningsMoment,
       nextEarningsDate: quote?.nextEarningsDate ?? null,
+      earningsDaysUntil,
+      earningsWarning,
+      earningsWarningLevel,
       currentPrice: round(spot, 3),
       expectedMove: round(expectedMoveAbs, 3),
       expectedMoveMethod: expectedMove?.method ?? "weighted_60_30_10",
@@ -337,6 +513,9 @@ export function createWheelScanner(marketService) {
       safeSelectionMode: strikeSelection.safeSelectionMode,
       safeStrike,
       aggressiveStrike,
+      finalScore: proScore.finalScore,
+      executionScore: proScore.executionScore,
+      distanceScore: proScore.distanceScore,
       technicals: {
         rsi: technicals?.rsi ?? null,
         trend: technicals?.trend ?? "unknown",
@@ -367,7 +546,7 @@ export function createWheelScanner(marketService) {
     };
   }
 
-  async function scanShortlist({ expiration, tickers = [], topN = 20 }) {
+  async function scanShortlist({ expiration, tickers = [], topN = 20, sort = "yield" }) {
     if (!expiration) return { status: 400, payload: { ok: false, error: "expiration is required" } };
     if (!Array.isArray(tickers) || tickers.length === 0) {
       return { status: 400, payload: { ok: false, error: "tickers must be a non-empty array" } };
@@ -455,9 +634,17 @@ export function createWheelScanner(marketService) {
       }
     }
 
-    shortlist.sort(
-      (a, b) => toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield)
-    );
+    if (sort === "score") {
+      shortlist.sort((a, b) => {
+        const scoreDiff = toNumber(b?.finalScore) - toNumber(a?.finalScore);
+        if (scoreDiff !== 0) return scoreDiff;
+        return toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield);
+      });
+    } else {
+      shortlist.sort(
+        (a, b) => toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield)
+      );
+    }
 
     return {
       status: 200,

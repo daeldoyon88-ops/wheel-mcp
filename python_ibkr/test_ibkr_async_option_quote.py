@@ -107,6 +107,8 @@ def main() -> int:
     right = _str_env("IBKR_OPTION_RIGHT", "P").upper()
     exchange = _str_env("IBKR_EXCHANGE", "SMART").upper()
     currency = _str_env("IBKR_CURRENCY", "USD").upper()
+    multiplier = _str_env("IBKR_OPTION_MULTIPLIER", "100")
+    trading_class = _str_env("IBKR_TRADING_CLASS", symbol)
     debug = _parse_bool(os.environ.get("DEBUG_IBKR"), False)
 
     base = {
@@ -160,7 +162,16 @@ def main() -> int:
             _emit({**base, "error": "Connexion refusée ou synchronisation incomplète (isConnected() == false)."})
             return 1
 
-        contract = Option(symbol, expiration, strike, right, exchange, currency)
+        contract = Option(
+            symbol=symbol,
+            lastTradeDateOrContractMonth=expiration,
+            strike=strike,
+            right=right,
+            exchange=exchange,
+            currency=currency,
+            multiplier=multiplier,
+            tradingClass=trading_class,
+        )
         qualified = ib.qualifyContracts(contract)
         qualified_contract = None
         if isinstance(qualified, list) and qualified:
@@ -184,6 +195,8 @@ def main() -> int:
                         "right": right,
                         "exchange": exchange,
                         "currency": currency,
+                        "multiplier": multiplier,
+                        "tradingClass": trading_class,
                     },
                     "error": "option_contract_not_qualified",
                 }
@@ -226,6 +239,8 @@ def main() -> int:
                 "right": _safe_attr(contract, "right") or right,
                 "exchange": _safe_attr(contract, "exchange") or exchange,
                 "currency": _safe_attr(contract, "currency") or currency,
+                "multiplier": _safe_attr(contract, "multiplier") or multiplier,
+                "tradingClass": _safe_attr(contract, "tradingClass") or trading_class,
             },
             "quote": quote,
         }

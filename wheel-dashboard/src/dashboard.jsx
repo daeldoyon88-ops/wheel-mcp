@@ -1182,6 +1182,26 @@ function formatIbkrPercent(value) {
   return value == null || !Number.isFinite(Number(value)) ? "—" : `${(Number(value) * 100).toFixed(2)}%`;
 }
 
+function formatIbkrReason(reason) {
+  const translations = {
+    directly_below_lower_bound: "Directement sous la borne basse",
+    below_aggressive_meets_min_premium: "Plus bas strike sous l’agressif qui respecte la prime cible",
+    aggressive_promoted_to_safe_no_lower_acceptable_strike:
+      "L’agressif devient aussi le safe : aucun strike plus bas ne respecte la prime cible",
+    premium_below_min: "Prime sous la cible minimale",
+    above_or_equal_lower_bound: "Rejeté : au-dessus ou égal à la borne basse",
+    option_contract_not_qualified: "Contrat option non qualifié par IBKR",
+    underlying_contract_not_qualified: "Symbole non reconnu ou contrat sous-jacent non qualifié par IBKR",
+    underlying_price_unavailable: "Prix du sous-jacent indisponible",
+    atm_straddle_unavailable: "Straddle ATM indisponible",
+    no_safe_candidate_meets_min_premium: "Aucun strike safe ne respecte la prime cible",
+    no_put_below_lower_bound: "Aucun put disponible sous la borne basse",
+  };
+
+  if (!reason) return "—";
+  return translations[reason] || String(reason).replaceAll("_", " ");
+}
+
 function IbkrStrikeBlock({ title, strike }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1195,7 +1215,7 @@ function IbkrStrikeBlock({ title, strike }) {
         <Metric label="Spread %" value={formatIbkrPercent(strike?.spreadPct)} />
         <Metric label="Prime utilisée" value={formatIbkrPrice(strike?.primeUsed)} strong />
         <Metric label="Prime vs cible" value={formatIbkrPrice(strike?.premiumVsTarget)} />
-        <Metric label="Raison" value={strike?.selectionReason || "—"} />
+        <Metric label="Raison" value={formatIbkrReason(strike?.selectionReason)} />
       </div>
     </div>
   );
@@ -1224,6 +1244,10 @@ function IbkrShadowCard({
             </CardTitle>
             <p className="mt-1 text-sm text-slate-500">
               Lecture seule. Aucun ordre envoyé. Yahoo reste la source principale.
+            </p>
+            <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-400">
+              IBKR Shadow utilise les données disponibles selon TWS/Gateway. Hors marché, les prix
+              peuvent être frozen/delayed. Ce panneau sert à valider la logique, pas à exécuter.
             </p>
           </div>
         </div>
@@ -1279,7 +1303,7 @@ function IbkrShadowCard({
             <p className="font-semibold">IBKR Shadow a retourné une erreur métier.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <Metric label="Symbol" value={result.symbol || "—"} tone="warn" />
-              <Metric label="Error" value={result.error || "—"} tone="warn" />
+              <Metric label="Error" value={formatIbkrReason(result.error)} tone="warn" />
               <Metric label="Mode" value={result.mode || "—"} tone="warn" />
               <Metric label="Read only" value={String(result.readOnly ?? "—")} tone="warn" />
               <Metric label="Can trade" value={String(result.canTrade ?? "—")} tone="warn" />

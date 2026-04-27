@@ -1150,6 +1150,175 @@ async function callScanShortlist({ expiration, topN, tickers }) {
   return payload;
 }
 
+async function callIbkrShadowWheel({ symbol, expiration, clientId }) {
+  const response = await fetch(`${API_BASE}/ibkr/shadow/wheel`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      symbol,
+      expiration,
+      clientId: Number(clientId),
+      marketDataType: 2,
+      maxStrikes: 25,
+    }),
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
+  }
+
+  return payload;
+}
+
+function formatIbkrPrice(value) {
+  return value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(2);
+}
+
+function formatIbkrPercent(value) {
+  return value == null || !Number.isFinite(Number(value)) ? "—" : `${(Number(value) * 100).toFixed(2)}%`;
+}
+
+function IbkrStrikeBlock({ title, strike }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <p className="mb-3 text-sm font-semibold text-slate-900">{title}</p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Metric label="Strike" value={formatIbkrPrice(strike?.strike)} strong />
+        <Metric label="Bid" value={formatIbkrPrice(strike?.bid)} />
+        <Metric label="Ask" value={formatIbkrPrice(strike?.ask)} />
+        <Metric label="Mid" value={formatIbkrPrice(strike?.mid)} />
+        <Metric label="Spread" value={formatIbkrPrice(strike?.spread)} />
+        <Metric label="Spread %" value={formatIbkrPercent(strike?.spreadPct)} />
+        <Metric label="Prime utilisée" value={formatIbkrPrice(strike?.primeUsed)} strong />
+        <Metric label="Prime vs cible" value={formatIbkrPrice(strike?.premiumVsTarget)} />
+        <Metric label="Raison" value={strike?.selectionReason || "—"} />
+      </div>
+    </div>
+  );
+}
+
+function IbkrShadowCard({
+  symbol,
+  setSymbol,
+  expiration,
+  setExpiration,
+  clientId,
+  setClientId,
+  loading,
+  error,
+  result,
+  onRun,
+}) {
+  return (
+    <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
+      <CardHeader className="pb-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+              IBKR Shadow — lecture seule
+            </CardTitle>
+            <p className="mt-1 text-sm text-slate-500">
+              Lecture seule. Aucun ordre envoyé. Yahoo reste la source principale.
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Symbole</label>
+            <Input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Expiration</label>
+            <Input
+              value={expiration}
+              onChange={(e) => setExpiration(e.target.value)}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Client ID</label>
+            <Input
+              type="number"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              className="w-full rounded-xl border-slate-200"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button className="w-full rounded-xl" onClick={onRun} disabled={loading}>
+              Tester IBKR Shadow
+            </Button>
+          </div>
+        </div>
+
+        {loading && (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            Analyse IBKR Shadow en cours…
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Erreur réseau IBKR Shadow : {error}
+          </div>
+        )}
+
+        {result?.ok === false && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">IBKR Shadow a retourné une erreur métier.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <Metric label="Symbol" value={result.symbol || "—"} tone="warn" />
+              <Metric label="Error" value={result.error || "—"} tone="warn" />
+              <Metric label="Mode" value={result.mode || "—"} tone="warn" />
+              <Metric label="Read only" value={String(result.readOnly ?? "—")} tone="warn" />
+              <Metric label="Can trade" value={String(result.canTrade ?? "—")} tone="warn" />
+            </div>
+          </div>
+        )}
+
+        {result?.ok === true && (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <Metric label="Mode" value={result.mode || "—"} tone="good" />
+              <Metric label="Read only" value={String(result.readOnly ?? "—")} tone="good" />
+              <Metric label="Can trade" value={String(result.canTrade ?? "—")} tone="good" />
+              <Metric
+                label="Startup fetch disabled"
+                value={String(result.startupFetchDisabled ?? "—")}
+                tone="good"
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              <Metric label="Symbol" value={result.symbol || "—"} strong />
+              <Metric label="Expiration" value={result.expiration || "—"} />
+              <Metric label="Prix actuel" value={formatIbkrPrice(result.underlyingPrice)} />
+              <Metric label="Expected move" value={formatIbkrPrice(result.expectedMove)} />
+              <Metric label="Borne basse" value={formatIbkrPrice(result.lowerBound)} />
+              <Metric label="Borne haute" value={formatIbkrPrice(result.upperBound)} />
+              <Metric label="Prime cible" value={formatIbkrPrice(result.targetPremium)} strong />
+            </div>
+
+            <IbkrStrikeBlock title="Strike agressif" strike={result.aggressiveStrike} />
+            <IbkrStrikeBlock title="Strike safe" strike={result.safeStrike} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function DetailModal({ item, onClose }) {
   const [loading, setLoading] = useState(false);
   const [liveData, setLiveData] = useState(null);
@@ -1543,6 +1712,12 @@ export default function Dashboard() {
     returned: 0,
   });
   const [marketClosedNotice, setMarketClosedNotice] = useState("");
+  const [ibkrShadowSymbol, setIbkrShadowSymbol] = useState("NVDA");
+  const [ibkrShadowExpiration, setIbkrShadowExpiration] = useState("20260501");
+  const [ibkrShadowClientId, setIbkrShadowClientId] = useState("240");
+  const [ibkrShadowLoading, setIbkrShadowLoading] = useState(false);
+  const [ibkrShadowError, setIbkrShadowError] = useState("");
+  const [ibkrShadowResult, setIbkrShadowResult] = useState(null);
 
   const snapshotCandidates = useMemo(() => {
     return wheelShortlist
@@ -1742,6 +1917,24 @@ export default function Dashboard() {
       setWatchlistLoading(false);
     }
   }, []);
+
+  const handleIbkrShadowTest = useCallback(async () => {
+    setIbkrShadowLoading(true);
+    setIbkrShadowError("");
+    setIbkrShadowResult(null);
+    try {
+      const payload = await callIbkrShadowWheel({
+        symbol: ibkrShadowSymbol,
+        expiration: ibkrShadowExpiration,
+        clientId: ibkrShadowClientId,
+      });
+      setIbkrShadowResult(payload);
+    } catch (err) {
+      setIbkrShadowError(String(err?.message || err || "IBKR Shadow indisponible"));
+    } finally {
+      setIbkrShadowLoading(false);
+    }
+  }, [ibkrShadowSymbol, ibkrShadowExpiration, ibkrShadowClientId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1943,6 +2136,19 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        <IbkrShadowCard
+          symbol={ibkrShadowSymbol}
+          setSymbol={setIbkrShadowSymbol}
+          expiration={ibkrShadowExpiration}
+          setExpiration={setIbkrShadowExpiration}
+          clientId={ibkrShadowClientId}
+          setClientId={setIbkrShadowClientId}
+          loading={ibkrShadowLoading}
+          error={ibkrShadowError}
+          result={ibkrShadowResult}
+          onRun={handleIbkrShadowTest}
+        />
 
         {watchlistBuildError && watchlistSource === "fallback" && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">

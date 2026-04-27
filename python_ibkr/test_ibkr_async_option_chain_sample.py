@@ -237,6 +237,7 @@ def main() -> int:
     ib = IB()
     requested_contracts = []
     warnings = []
+    rejected = []
 
     try:
         connect_kw = {
@@ -364,20 +365,11 @@ def main() -> int:
 
             if option_contract is None:
                 warnings.append(f"option_not_qualified_strike_{strike}")
-                option_rows.append(
+                rejected.append(
                     {
                         "strike": strike,
                         "right": right,
-                        "localSymbol": None,
-                        "bid": None,
-                        "ask": None,
-                        "last": None,
-                        "mid": None,
-                        "spread": None,
-                        "spreadPct": None,
-                        "close": None,
-                        "marketPrice": None,
-                        "volume": None,
+                        "reason": "option_contract_not_qualified",
                     }
                 )
                 continue
@@ -449,6 +441,7 @@ def main() -> int:
                 "strikes": chosen_strikes,
             },
             "options": option_rows,
+            "rejected": rejected,
             "warnings": sorted(set(warnings)),
         }
         _emit(out)

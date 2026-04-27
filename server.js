@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
+import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -24,6 +27,7 @@ const marketService = createMarketService(provider);
 const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
+const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 
 const buildWatchlistBodySchema = z.object({
   maxPrice: z.union([z.literal(100), z.literal(125), z.literal(150), z.literal(200)]),
@@ -211,6 +215,138 @@ app.get("/ibkr/health", async (_req, res) => {
       readOnly: true,
       canTrade: false,
       connected: false,
+      error: error?.message || String(error),
+    });
+  }
+});
+
+function pickIbkrShadowPython() {
+  const venvPython = path.join(process.cwd(), ".venv-ibkr", "Scripts", "python.exe");
+  return existsSync(venvPython) ? venvPython : "python";
+}
+
+function toPositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : fallback;
+}
+
+function parseLastJsonLine(stdout) {
+  const jsonLine = String(stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("{"))
+    .pop();
+
+  if (!jsonLine) return null;
+  return JSON.parse(jsonLine);
+}
+
+function runIbkrShadowWheel(body = {}) {
+  const symbol = String(body.symbol || "NVDA").trim().toUpperCase() || "NVDA";
+  const expiration = body.expiration == null ? "" : String(body.expiration).trim();
+  const clientId = toPositiveInt(body.clientId, toPositiveInt(process.env.IBKR_SHADOW_CLIENT_ID, 230));
+  const marketDataType = toPositiveInt(body.marketDataType, 2);
+  const maxStrikes = toPositiveInt(body.maxStrikes, 25);
+  const debug = body.debug === true;
+
+  const pythonExe = pickIbkrShadowPython();
+  const scriptPath = path.join(process.cwd(), "python_ibkr", "test_ibkr_async_wheel_safe_aggressive.py");
+  const childEnv = {
+    ...process.env,
+    IBKR_CLIENT_ID: String(clientId),
+    IBKR_READ_ONLY: "true",
+    IBKR_SYMBOL: symbol,
+    IBKR_EXCHANGE: "SMART",
+    IBKR_CURRENCY: "USD",
+    IBKR_OPTION_PARAMS_EXCHANGE: "",
+    IBKR_OPTION_RIGHT: "P",
+    IBKR_MARKET_DATA_TYPE: String(marketDataType),
+    IBKR_MAX_STRIKES: String(maxStrikes),
+    IBKR_OPTION_EXPIRATION: expiration,
+  };
+
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    let finished = false;
+    let timedOut = false;
+
+    const child = spawn(pythonExe, [scriptPath], {
+      cwd: process.cwd(),
+      env: childEnv,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, IBKR_SHADOW_TIMEOUT_MS);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+
+    child.on("close", (exitCode) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+
+      if (timedOut) {
+        return resolve({
+          status: 504,
+          payload: {
+            ok: false,
+            provider: "IBKR",
+            mode: "ibkr_readonly_shadow",
+            error: "ibkr_shadow_timeout",
+          },
+        });
+      }
+
+      let payload = null;
+      try {
+        payload = parseLastJsonLine(stdout);
+      } catch (error) {
+        return reject(error);
+      }
+
+      if (!payload) {
+        payload = {
+          ok: false,
+          provider: "IBKR",
+          mode: "ibkr_readonly_shadow",
+          error: "ibkr_shadow_no_json_output",
+        };
+        if (debug) payload._debug = { stdout, stderr, exitCode };
+        return resolve({ status: 500, payload });
+      }
+
+      if (debug) payload._debug = { stdout, stderr, exitCode };
+      return resolve({ status: 200, payload });
+    });
+  });
+}
+
+app.post("/ibkr/shadow/wheel", async (req, res) => {
+  try {
+    const { status, payload } = await runIbkrShadowWheel(req.body ?? {});
+    res.status(status).json(payload);
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: "IBKR",
+      mode: "ibkr_readonly_shadow",
       error: error?.message || String(error),
     });
   }

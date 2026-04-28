@@ -373,7 +373,39 @@ function buildWheelShadowComparison(yahoo, ibkr) {
   };
 }
 
+function isLocalIbkrRequest(req) {
+  if (process.env.RENDER) return false;
+
+  const hostname = String(req.hostname || "").toLowerCase();
+  const hostHeader = String(req.headers?.host || "").toLowerCase();
+  const ip = String(req.ip || "").toLowerCase();
+
+  const isLocalHostname = hostname === "localhost" || hostname === "127.0.0.1";
+  const isLocalHostHeader =
+    hostHeader === "localhost:3001" ||
+    hostHeader === "127.0.0.1:3001" ||
+    hostHeader === "localhost" ||
+    hostHeader === "127.0.0.1";
+  const isLocalIp = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
+  const isLocal = isLocalIp || (isLocalHostname && isLocalHostHeader);
+
+  if (process.env.NODE_ENV === "production" && !isLocal) return false;
+  return isLocal;
+}
+
+function requireLocalIbkrShadow(req, res) {
+  if (isLocalIbkrRequest(req)) return true;
+  res.status(403).json({
+    ok: false,
+    provider: "IBKR",
+    mode: "ibkr_readonly_shadow",
+    error: "ibkr_shadow_local_only",
+  });
+  return false;
+}
+
 app.post("/ibkr/shadow/wheel", async (req, res) => {
+  if (!requireLocalIbkrShadow(req, res)) return;
   try {
     const { status, payload } = await runIbkrShadowWheel(req.body ?? {});
     res.status(status).json(payload);
@@ -388,6 +420,7 @@ app.post("/ibkr/shadow/wheel", async (req, res) => {
 });
 
 app.post("/shadow/compare/wheel", async (req, res) => {
+  if (!requireLocalIbkrShadow(req, res)) return;
   try {
     const body = req.body ?? {};
     const symbol = String(body.symbol || "NVDA").trim().toUpperCase() || "NVDA";

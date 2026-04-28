@@ -11,6 +11,7 @@ import json
 import math
 import os
 import traceback
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone
 
 from ib_async import IB, Option, Stock
@@ -69,6 +70,10 @@ def _finite_number(value):
     if n < 0:
         return None
     return n
+
+
+def _round_money_half_up(value: float | int | str) -> float:
+    return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def _extract_market_price(ticker):
@@ -583,7 +588,8 @@ def main() -> int:
         expected_move = sum(p[0] * p[1] for p in parts) / w_sum
         lower_bound = float(underlying_price) - expected_move
         upper_bound = float(underlying_price) + expected_move
-        target_premium = float(underlying_price) * MIN_PREMIUM_YIELD
+        target_premium_raw = float(underlying_price) * MIN_PREMIUM_YIELD
+        target_premium = _round_money_half_up(target_premium_raw)
 
         em_components = {
             "atmStraddle": {
@@ -674,6 +680,7 @@ def main() -> int:
                     "spreadPct": q["spreadPct"],
                     "primeUsed": prime_used,
                     "premiumYield": premium_yield,
+                    "targetPremiumRaw": target_premium_raw,
                     "targetPremium": target_premium,
                     "premiumVsTarget": premium_vs_target,
                     "premiumYieldOnUnderlying": premium_yield_on_underlying,
@@ -756,6 +763,7 @@ def main() -> int:
                 "spreadPct": pc["spreadPct"],
                 "primeUsed": pc["primeUsed"],
                 "premiumYield": pc["premiumYield"],
+                "targetPremiumRaw": pc["targetPremiumRaw"],
                 "targetPremium": pc["targetPremium"],
                 "premiumVsTarget": pc["premiumVsTarget"],
                 "premiumYieldOnUnderlying": pc["premiumYieldOnUnderlying"],
@@ -794,6 +802,7 @@ def main() -> int:
             "upperBound": round(upper_bound, 4),
             "weightSumUsed": round(w_sum, 6),
             "minPremiumYield": MIN_PREMIUM_YIELD,
+            "targetPremiumRaw": target_premium_raw,
             "targetPremium": target_premium,
             "strikeValidation": strike_validation,
             "expectedMoveComponents": em_components,

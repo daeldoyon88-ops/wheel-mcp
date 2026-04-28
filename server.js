@@ -338,6 +338,41 @@ function runIbkrShadowWheel(body = {}) {
   });
 }
 
+function ymdDashedToCompact(value) {
+  const s = String(value || "").trim();
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[1]}${match[2]}${match[3]}` : s;
+}
+
+function numberOrNull(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function diffOrNull(left, right) {
+  const a = numberOrNull(left);
+  const b = numberOrNull(right);
+  return a == null || b == null ? null : a - b;
+}
+
+function sameStrikeOrNull(left, right) {
+  const a = numberOrNull(left?.strike);
+  const b = numberOrNull(right?.strike);
+  return a == null || b == null ? null : Math.abs(a - b) < 1e-9;
+}
+
+function buildWheelShadowComparison(yahoo, ibkr) {
+  return {
+    underlyingPriceDiff: diffOrNull(yahoo?.currentPrice, ibkr?.underlyingPrice),
+    expectedMoveDiff: diffOrNull(yahoo?.expectedMove, ibkr?.expectedMove),
+    lowerBoundDiff: diffOrNull(yahoo?.lowerBound, ibkr?.lowerBound),
+    aggressiveStrikeDiff: diffOrNull(yahoo?.aggressiveStrike?.strike, ibkr?.aggressiveStrike?.strike),
+    safeStrikeDiff: diffOrNull(yahoo?.safeStrike?.strike, ibkr?.safeStrike?.strike),
+    sameAggressiveStrike: sameStrikeOrNull(yahoo?.aggressiveStrike, ibkr?.aggressiveStrike),
+    sameSafeStrike: sameStrikeOrNull(yahoo?.safeStrike, ibkr?.safeStrike),
+  };
+}
+
 app.post("/ibkr/shadow/wheel", async (req, res) => {
   try {
     const { status, payload } = await runIbkrShadowWheel(req.body ?? {});
@@ -347,6 +382,72 @@ app.post("/ibkr/shadow/wheel", async (req, res) => {
       ok: false,
       provider: "IBKR",
       mode: "ibkr_readonly_shadow",
+      error: error?.message || String(error),
+    });
+  }
+});
+
+app.post("/shadow/compare/wheel", async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const symbol = String(body.symbol || "NVDA").trim().toUpperCase() || "NVDA";
+    const expiration = body.expiration == null ? "" : String(body.expiration).trim();
+    const ibkrExpiration =
+      body.ibkrExpiration == null || String(body.ibkrExpiration).trim() === ""
+        ? ymdDashedToCompact(expiration)
+        : String(body.ibkrExpiration).trim();
+    const warnings = [];
+
+    let yahoo = null;
+    try {
+      yahoo = await wheelScanner.scanTicker(symbol, expiration);
+      if (!yahoo?.ok) {
+        yahoo = { ok: false, symbol, expiration, error: yahoo?.reason || yahoo?.error || "yahoo_compare_failed" };
+        warnings.push("Yahoo compare failed");
+      }
+    } catch (error) {
+      yahoo = { ok: false, symbol, expiration, error: error?.message || String(error) };
+      warnings.push("Yahoo compare failed");
+    }
+
+    let ibkr = null;
+    try {
+      const ibkrResult = await runIbkrShadowWheel({
+        symbol,
+        expiration: ibkrExpiration,
+        clientId: body.clientId,
+        marketDataType: body.marketDataType,
+        maxStrikes: body.maxStrikes,
+        debug: body.debug,
+      });
+      ibkr = ibkrResult.payload;
+      if (!ibkr?.ok) warnings.push("IBKR Shadow compare failed");
+    } catch (error) {
+      ibkr = {
+        ok: false,
+        provider: "IBKR",
+        mode: "ibkr_readonly_shadow",
+        error: error?.message || String(error),
+      };
+      warnings.push("IBKR Shadow compare failed");
+    }
+
+    const ok = Boolean(yahoo?.ok || ibkr?.ok);
+    res.json({
+      ok,
+      mode: "wheel_compare_shadow",
+      symbol,
+      expiration,
+      ibkrExpiration,
+      yahoo,
+      ibkr,
+      comparison: buildWheelShadowComparison(yahoo, ibkr),
+      warnings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      mode: "wheel_compare_shadow",
       error: error?.message || String(error),
     });
   }

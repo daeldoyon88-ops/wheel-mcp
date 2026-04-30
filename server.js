@@ -46,6 +46,8 @@ function createEmptyIbkrCallMetrics() {
       totalOptionMarketDataRequests: 0,
       totalExpectedMoveOptionRequests: 0,
       totalPutCandidateOptionRequests: 0,
+      totalExpectedMoveContractsRequested: 0,
+      totalPutCandidateContractsRequested: 0,
       totalCancelMarketDataCalls: 0,
       totalMarketDataWaits: 0,
       totalTimeouts: 0,
@@ -55,8 +57,15 @@ function createEmptyIbkrCallMetrics() {
       totalApproxIbkrCalls: 0,
       totalDurationMs: 0,
       totalTickersObserved: 0,
+      totalOptionQualifyCacheHits: 0,
+      totalOptionMarketDataCacheHits: 0,
+      totalStockMarketDataCacheHits: 0,
+      totalOptionChainCacheHits: 0,
+      totalDuplicateOptionQualifyAvoided: 0,
+      totalDuplicateOptionMarketDataAvoided: 0,
     },
     bySymbol: {},
+    rejectionReasons: {},
   };
 }
 
@@ -84,6 +93,8 @@ function mergeIbkrCallMetricsIntoState(metrics) {
     "totalOptionMarketDataRequests",
     "totalExpectedMoveOptionRequests",
     "totalPutCandidateOptionRequests",
+    "totalExpectedMoveContractsRequested",
+    "totalPutCandidateContractsRequested",
     "totalCancelMarketDataCalls",
     "totalMarketDataWaits",
     "totalTimeouts",
@@ -93,8 +104,20 @@ function mergeIbkrCallMetricsIntoState(metrics) {
     "totalApproxIbkrCalls",
     "totalDurationMs",
     "totalTickersObserved",
+    "totalOptionQualifyCacheHits",
+    "totalOptionMarketDataCacheHits",
+    "totalStockMarketDataCacheHits",
+    "totalOptionChainCacheHits",
+    "totalDuplicateOptionQualifyAvoided",
+    "totalDuplicateOptionMarketDataAvoided",
   ];
   for (const key of totalKeys) incrementNumber(targetTotals, key, sourceTotals[key]);
+
+  const sourceRejectionReasons = metrics.rejectionReasons ?? {};
+  for (const [rawReason, count] of Object.entries(sourceRejectionReasons)) {
+    const reason = String(rawReason || "").trim() || "unknown";
+    incrementNumber(ibkrState.rejectionReasons, reason, count);
+  }
 
   const sourceBySymbol = metrics.bySymbol ?? {};
   for (const [rawSymbol, row] of Object.entries(sourceBySymbol)) {
@@ -109,6 +132,8 @@ function mergeIbkrCallMetricsIntoState(metrics) {
         optionMarketDataRequests: 0,
         expectedMoveOptionRequests: 0,
         putCandidateOptionRequests: 0,
+        expectedMoveContractsRequested: 0,
+        putCandidateContractsRequested: 0,
         cancelMarketDataCalls: 0,
         marketDataWaits: 0,
         timeouts: 0,
@@ -117,7 +142,18 @@ function mergeIbkrCallMetricsIntoState(metrics) {
         validPutStrikesCount: 0,
         durationMs: 0,
         approxIbkrCalls: 0,
+        approxCalls: 0,
+        optionQualifyCacheHits: 0,
+        optionMarketDataCacheHits: 0,
+        stockMarketDataCacheHits: 0,
+        optionChainCacheHits: 0,
+        duplicateOptionQualifyAvoided: 0,
+        duplicateOptionMarketDataAvoided: 0,
         runs: 0,
+        status: null,
+        reason: null,
+        lastDurationMs: null,
+        lastUpdatedAt: null,
       };
     }
     const targetSymbol = ibkrState.bySymbol[symbol];
@@ -129,6 +165,8 @@ function mergeIbkrCallMetricsIntoState(metrics) {
       "optionMarketDataRequests",
       "expectedMoveOptionRequests",
       "putCandidateOptionRequests",
+      "expectedMoveContractsRequested",
+      "putCandidateContractsRequested",
       "cancelMarketDataCalls",
       "marketDataWaits",
       "timeouts",
@@ -137,8 +175,19 @@ function mergeIbkrCallMetricsIntoState(metrics) {
       "validPutStrikesCount",
       "durationMs",
       "approxIbkrCalls",
+      "optionQualifyCacheHits",
+      "optionMarketDataCacheHits",
+      "stockMarketDataCacheHits",
+      "optionChainCacheHits",
+      "duplicateOptionQualifyAvoided",
+      "duplicateOptionMarketDataAvoided",
     ];
     for (const key of symbolKeys) incrementNumber(targetSymbol, key, row[key]);
+    targetSymbol.approxCalls = targetSymbol.approxIbkrCalls;
+    targetSymbol.status = row.status ?? targetSymbol.status;
+    targetSymbol.reason = row.reason ?? targetSymbol.reason;
+    targetSymbol.lastDurationMs = numberOrNull(row.durationMs) ?? targetSymbol.lastDurationMs;
+    targetSymbol.lastUpdatedAt = new Date().toISOString();
     targetSymbol.runs += 1;
   }
   ibkrState.lastUpdatedAt = new Date().toISOString();
@@ -611,6 +660,11 @@ function numberOrNull(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function diffOrNull(left, right) {
   const a = numberOrNull(left);
   const b = numberOrNull(right);
@@ -643,6 +697,66 @@ function getIbkrScanReason(row) {
   if (!row?.safeStrike) return row?.safeSelectionReason || "no_safe_candidate_meets_min_premium";
   if (!row?.aggressiveStrike) return "no_aggressive_strike";
   return null;
+}
+
+function getIbkrTickerStatus(row) {
+  const reason = getIbkrScanReason(row);
+  if (String(row?.reason || reason || "").toLowerCase().includes("timeout")) return "timeout";
+  if (row?.ok !== true) return "error";
+  return reason ? "rejected" : "kept";
+}
+
+function incrementReasonCount(target, reason) {
+  const key = String(reason || "unknown").trim() || "unknown";
+  target[key] = (target[key] || 0) + 1;
+}
+
+function buildIbkrRejectionReasons(rows) {
+  const rejectionReasons = {};
+  for (const row of rows) {
+    const status = getIbkrTickerStatus(row);
+    if (status === "kept") continue;
+    incrementReasonCount(rejectionReasons, getIbkrScanReason(row) || status);
+  }
+  return rejectionReasons;
+}
+
+function buildIbkrTickerMetricRow(row) {
+  const metrics = row?.ibkrCallMetrics && typeof row.ibkrCallMetrics === "object" ? row.ibkrCallMetrics : {};
+  const status = getIbkrTickerStatus(row);
+  const reason = getIbkrScanReason(row);
+  const approxIbkrCalls = numberOrNull(metrics.approxIbkrCalls ?? metrics.approxCalls) ?? 0;
+  return {
+    ...metrics,
+    symbol: String(row?.symbol || "").trim().toUpperCase(),
+    status,
+    reason: reason || (status === "kept" ? "OK" : status),
+    durationMs: numberOrNull(row?.durationMs ?? metrics.durationMs),
+    approxIbkrCalls,
+    approxCalls: approxIbkrCalls,
+  };
+}
+
+function enrichIbkrCallMetrics(metrics, rows, rejectionReasons) {
+  const source = metrics && typeof metrics === "object" ? metrics : {};
+  const bySymbol = { ...(source.bySymbol ?? {}) };
+  for (const row of rows) {
+    const symbol = String(row?.symbol || "").trim().toUpperCase();
+    if (!symbol) continue;
+    bySymbol[symbol] = {
+      ...(bySymbol[symbol] ?? {}),
+      ...buildIbkrTickerMetricRow(row),
+    };
+  }
+  return {
+    ...source,
+    totals: source.totals ?? {},
+    bySymbol,
+    rejectionReasons: {
+      ...(source.rejectionReasons ?? {}),
+      ...rejectionReasons,
+    },
+  };
 }
 
 function getIbkrStrikeYield(strike) {
@@ -682,6 +796,9 @@ function toIbkrScanCandidate(row) {
       row.aggressiveStrike ? "agressif IBKR disponible" : "agressif IBKR absent",
     ],
     durationMs: row.durationMs ?? null,
+    status: "kept",
+    reason: "OK",
+    ibkrCallMetrics: buildIbkrTickerMetricRow(row),
     source: "IBKR",
     raw: row,
   };
@@ -848,6 +965,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const sort = String(body.sort || "quality").trim().toLowerCase();
     const batchTimeoutMs = Math.min(300_000, 30_000 + tickers.length * 12_000);
     const startedAt = Date.now();
+    const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
+
+    console.log("[IBKR_SHADOW_SCAN_START]", expiration || "default", "tickers", tickers.length);
 
     const { payload } = await runIbkrShadowWheelBatch({
       ...body,
@@ -859,20 +979,40 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       perTickerTimeoutMs: body.perTickerTimeoutMs,
       batchTimeoutMs,
     });
-    mergeIbkrCallMetricsIntoState(payload?.ibkrCallMetrics);
-    scanMetricsState.lastRefreshAt = new Date().toISOString();
     const rows = Array.isArray(payload?.results) ? payload.results : [];
+    const rejectionReasons = buildIbkrRejectionReasons(rows);
+    const enrichedIbkrCallMetrics = enrichIbkrCallMetrics(
+      payload?.ibkrCallMetrics,
+      rows,
+      rejectionReasons
+    );
+    mergeIbkrCallMetricsIntoState(enrichedIbkrCallMetrics);
+    scanMetricsState.lastRefreshAt = new Date().toISOString();
     const shortlist = [];
     const rejected = [];
     const errors = [];
 
     for (const row of rows) {
       const reason = getIbkrScanReason(row);
+      const status = getIbkrTickerStatus(row);
+      const rowMetrics = buildIbkrTickerMetricRow(row);
+      if (ibkrDebug) {
+        const tag = status === "timeout" ? "[IBKR_TICKER_TIMEOUT]" : "[IBKR_TICKER_DONE]";
+        console.log(
+          tag,
+          row?.symbol || "UNKNOWN",
+          rowMetrics.durationMs ?? "duration_unknown",
+          status,
+          rowMetrics.approxCalls ?? 0
+        );
+      }
       if (reason) {
         rejected.push({
           symbol: row?.symbol ?? null,
+          status,
           reason,
           durationMs: row?.durationMs ?? null,
+          ibkrCallMetrics: rowMetrics,
           safeStrike: row?.safeStrike ?? null,
           aggressiveStrike: row?.aggressiveStrike ?? null,
           targetPremium: row?.targetPremium ?? null,
@@ -885,6 +1025,21 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     }
 
     shortlist.sort((a, b) => compareIbkrScanCandidates(a, b, sort));
+    console.log(
+      "[IBKR_SHADOW_SCAN_DONE]",
+      "scanned",
+      tickers.length,
+      "kept",
+      shortlist.length,
+      "rejected",
+      rejected.length,
+      "errors",
+      errors.length,
+      "durationMs",
+      Date.now() - startedAt,
+      "approxCalls",
+      enrichedIbkrCallMetrics?.totals?.totalApproxIbkrCalls ?? 0
+    );
 
     res.json({
       ok: true,
@@ -901,10 +1056,12 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       shortlist: shortlist.slice(0, topN),
       rejected,
       errors,
+      rejectionReasons,
       warnings: payload?.ok === false ? [payload?.error || "IBKR Shadow scan failed"] : [],
-      ibkrCallMetrics: payload?.ibkrCallMetrics ?? null,
+      ibkrCallMetrics: enrichedIbkrCallMetrics,
     });
   } catch (error) {
+    console.error("[IBKR_SHADOW_SCAN_DONE]", "error", error?.message || String(error));
     res.status(500).json({
       ok: false,
       mode: "ibkr_shadow_scan",

@@ -2027,10 +2027,34 @@ function formatIbkrReason(reason) {
     atm_straddle_unavailable: "Straddle ATM indisponible",
     no_safe_candidate_meets_min_premium: "Aucun strike safe ne respecte la prime cible",
     no_put_below_lower_bound: "Aucun put disponible sous la borne basse",
+    no_put_candidate_below_lower_bound: "Aucun put candidat sous la borne basse",
+    no_expected_move_contracts: "Aucun contrat expected move qualifiable",
+    no_safe_or_aggressive_strike: "Aucun strike safe ou agressif disponible",
+    no_aggressive_strike: "Aucun strike agressif disponible",
+    timeout: "Timeout IBKR",
+    ibkr_unavailable: "IBKR indisponible",
+    OK: "OK",
   };
 
   if (!reason) return "—";
   return translations[reason] || String(reason).replaceAll("_", " ");
+}
+
+function formatIbkrStatus(status) {
+  const translations = {
+    kept: "retenu",
+    rejected: "rejeté",
+    error: "erreur",
+    timeout: "timeout",
+  };
+  return translations[status] || status || "—";
+}
+
+function formatDurationShort(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n)) return "—";
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}s`;
+  return `${Math.round(n)} ms`;
 }
 
 function ibkrBatchStatusUi(status) {
@@ -2237,6 +2261,7 @@ function IbkrDirectScanPanel({
   const hasMissingIbkrDuration = result?.ok === true && result?.ibkrDurationMs == null;
   const isSuspiciousEmpty =
     result?.ok === true &&
+    !hasBatchTimeout &&
     Number(result?.scanned || 0) > 0 &&
     Number(result?.kept || 0) === 0 &&
     shortlist.length === 0 &&
@@ -3062,6 +3087,27 @@ export default function Dashboard() {
       .sort((a, b) => b.approxIbkrCalls - a.approxIbkrCalls)
       .slice(0, 5);
   }, [scanMetricsData]);
+  const ibkrTickerDetailRows = useMemo(() => {
+    const bySymbol =
+      ibkrDirectResult?.ibkrCallMetrics?.bySymbol ??
+      scanMetricsData?.ibkr?.bySymbol;
+    if (!bySymbol || typeof bySymbol !== "object") return [];
+    return Object.entries(bySymbol)
+      .map(([symbol, row]) => {
+        const durationMs = row?.lastDurationMs ?? row?.durationMs;
+        const approxCalls = row?.approxCalls ?? row?.approxIbkrCalls;
+        return {
+          symbol,
+          status: row?.status ?? "—",
+          durationMs,
+          approxCalls,
+          optionQualifyCalls: row?.optionQualifyCalls ?? 0,
+          optionMarketDataRequests: row?.optionMarketDataRequests ?? 0,
+          reason: row?.reason ?? "—",
+        };
+      })
+      .sort((a, b) => Number(b.approxCalls || 0) - Number(a.approxCalls || 0));
+  }, [ibkrDirectResult, scanMetricsData]);
   const candidateByTickerForPreIbkr = useMemo(
     () =>
       new Map(
@@ -3788,12 +3834,32 @@ export default function Dashboard() {
                         value={String(scanMetricsData?.ibkr?.totals?.totalOptionQualifyCalls ?? 0)}
                       />
                       <Metric
+                        label="IBKR EM contracts req"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalExpectedMoveContractsRequested ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR put contracts req"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalPutCandidateContractsRequested ?? 0)}
+                      />
+                      <Metric
                         label="IBKR cancel calls"
                         value={String(scanMetricsData?.ibkr?.totals?.totalCancelMarketDataCalls ?? 0)}
                       />
                       <Metric
                         label="IBKR timeouts"
                         value={String(scanMetricsData?.ibkr?.totals?.totalTimeouts ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR qualify cache hits"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionQualifyCacheHits ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR mktData cache hits"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionMarketDataCacheHits ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR duplicates évités"
+                        value={`${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionQualifyAvoided ?? 0} / ${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionMarketDataAvoided ?? 0}`}
                       />
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-3">
@@ -3812,7 +3878,85 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
+                    <details className="rounded-xl border border-slate-200 bg-white p-3">
+                      <summary className="cursor-pointer font-medium text-slate-900">
+                        Détail IBKR par ticker
+                      </summary>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
+                      </p>
+                      {ibkrTickerDetailRows.length === 0 ? (
+                        <p className="mt-2 text-slate-500">Aucun détail IBKR par ticker disponible.</p>
+                      ) : (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="min-w-full text-left text-xs text-slate-700">
+                            <thead className="border-b border-slate-200 text-slate-500">
+                              <tr>
+                                <th className="py-2 pr-4 font-medium">Ticker</th>
+                                <th className="py-2 pr-4 font-medium">Statut</th>
+                                <th className="py-2 pr-4 font-medium">Durée</th>
+                                <th className="py-2 pr-4 font-medium">Approx calls</th>
+                                <th className="py-2 pr-4 font-medium">Qualify opt</th>
+                                <th className="py-2 pr-4 font-medium">MktData opt</th>
+                                <th className="py-2 pr-4 font-medium">Raison</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ibkrTickerDetailRows.map((row) => (
+                                <tr key={`ibkr-detail-${row.symbol}`} className="border-b border-slate-100 last:border-0">
+                                  <td className="py-2 pr-4 font-semibold text-slate-900">{row.symbol}</td>
+                                  <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
+                                  <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
+                                  <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
+                                  <td className="py-2 pr-4">{String(row.optionQualifyCalls ?? 0)}</td>
+                                  <td className="py-2 pr-4">{String(row.optionMarketDataRequests ?? 0)}</td>
+                                  <td className="py-2 pr-4">{formatIbkrReason(row.reason)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </details>
                   </>
+                )}
+                {!scanMetricsData && ibkrTickerDetailRows.length > 0 && (
+                  <details className="rounded-xl border border-slate-200 bg-white p-3">
+                    <summary className="cursor-pointer font-medium text-slate-900">
+                      Détail IBKR par ticker
+                    </summary>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
+                    </p>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="min-w-full text-left text-xs text-slate-700">
+                        <thead className="border-b border-slate-200 text-slate-500">
+                          <tr>
+                            <th className="py-2 pr-4 font-medium">Ticker</th>
+                            <th className="py-2 pr-4 font-medium">Statut</th>
+                            <th className="py-2 pr-4 font-medium">Durée</th>
+                            <th className="py-2 pr-4 font-medium">Approx calls</th>
+                            <th className="py-2 pr-4 font-medium">Qualify opt</th>
+                            <th className="py-2 pr-4 font-medium">MktData opt</th>
+                            <th className="py-2 pr-4 font-medium">Raison</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ibkrTickerDetailRows.map((row) => (
+                            <tr key={`ibkr-detail-fallback-${row.symbol}`} className="border-b border-slate-100 last:border-0">
+                              <td className="py-2 pr-4 font-semibold text-slate-900">{row.symbol}</td>
+                              <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
+                              <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
+                              <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
+                              <td className="py-2 pr-4">{String(row.optionQualifyCalls ?? 0)}</td>
+                              <td className="py-2 pr-4">{String(row.optionMarketDataRequests ?? 0)}</td>
+                              <td className="py-2 pr-4">{formatIbkrReason(row.reason)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 )}
               </div>
             </details>

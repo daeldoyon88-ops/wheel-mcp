@@ -1167,6 +1167,31 @@ function ibkrSpreadIsVeryWide(strike) {
   return Number.isFinite(Number(strike?.spreadPct)) && Number(strike.spreadPct) > 0.5;
 }
 
+function buildCandidateLookupKeys(candidate) {
+  const rawKeys = [
+    candidate?.symbol,
+    candidate?.ticker,
+    candidate?.underlying,
+    candidate?.underlyingSymbol,
+    candidate?.raw?.symbol,
+  ];
+  return [...new Set(rawKeys.map((v) => String(v || "").trim().toUpperCase()).filter(Boolean))];
+}
+
+function technicalCompletenessScore(candidate) {
+  if (!candidate || typeof candidate !== "object") return 0;
+  let score = 0;
+  if (candidate.rsi != null && candidate.rsi !== "—") score += 1;
+  if (candidate.trend != null && candidate.trend !== "—" && candidate.trend !== "unknown") score += 1;
+  if (candidate.momentum != null && candidate.momentum !== "—" && candidate.momentum !== "unknown") score += 1;
+  if (candidate.support != null) score += 1;
+  if (candidate.resistance != null) score += 1;
+  if (candidate.qualityScore != null) score += 1;
+  if (Array.isArray(candidate.qualityReasons) && candidate.qualityReasons.length > 0) score += 1;
+  if (candidate.earningsWarning || candidate.earningsDate || candidate.nextEarningsDate) score += 1;
+  return score;
+}
+
 function mergeYahooAndIbkrCandidate(yahooCandidate, ibkrCandidate) {
   const symbol = String(ibkrCandidate?.symbol || yahooCandidate?.ticker || "").trim().toUpperCase();
   const safeStrike = ibkrCandidate?.safeStrike ?? null;
@@ -1203,7 +1228,7 @@ function mergeYahooAndIbkrCandidate(yahooCandidate, ibkrCandidate) {
     nextEarningsDate: yahooCandidate?.nextEarningsDate ?? null,
     earningsMoment: yahooCandidate?.earningsMoment ?? null,
     targetExpiration: yahooCandidate?.targetExpiration ?? null,
-    qualityReasons: [...yahooReasons, ...ibkrReasons].filter(Boolean),
+    qualityReasons: [...new Set([...yahooReasons, ...ibkrReasons].filter(Boolean))],
     yahoo: yahooCandidate ?? null,
     ibkr: ibkrCandidate ?? null,
   };
@@ -1329,7 +1354,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     scoreSource: yahooCandidate?.scoreSource ?? "ibkr_fallback",
     tier: yahooCandidate?.tier ?? "none",
     qualityScore: yahooCandidate?.qualityScore ?? null,
-    qualityReasons: [...yahooQualityReasons, ...ibkrQualityReasons].filter(Boolean),
+    qualityReasons: [...new Set([...yahooQualityReasons, ...ibkrQualityReasons].filter(Boolean))],
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract: primaryStrike ? Number(primaryStrike.primeUsed ?? primaryStrike.mid ?? 0) * 100 : 0,
     earnings: yahooCandidate?.earnings ?? "—",
@@ -2873,6 +2898,7 @@ export default function Dashboard() {
   const [loadingScan, setLoadingScan] = useState(false);
   const [scanError, setScanError] = useState("");
   const [dataSource, setDataSource] = useState("snapshot");
+  const [primaryIbkrSourceInfo, setPrimaryIbkrSourceInfo] = useState(null);
   const [scanMeta, setScanMeta] = useState({
     scanned: 0,
     kept: 0,
@@ -2905,6 +2931,7 @@ export default function Dashboard() {
   const [scanMetricsLoading, setScanMetricsLoading] = useState(false);
   const [scanMetricsError, setScanMetricsError] = useState("");
   const [scanMetricsData, setScanMetricsData] = useState(null);
+  const technicalCandidatesRef = useRef(new Map());
 
   const snapshotCandidates = useMemo(() => {
     return wheelShortlist
@@ -3118,6 +3145,69 @@ export default function Dashboard() {
     [enrichedCandidates]
   );
 
+  const rememberTechnicalCandidates = useCallback((items) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    const store = technicalCandidatesRef.current;
+    for (const item of items) {
+      if (!item || typeof item !== "object") continue;
+      const keys = buildCandidateLookupKeys(item);
+      if (!keys.length) continue;
+      for (const key of keys) {
+        const existing = store.get(key);
+        if (!existing) {
+          store.set(key, item);
+          continue;
+        }
+        const existingScore = technicalCompletenessScore(existing);
+        const incomingScore = technicalCompletenessScore(item);
+        if (incomingScore > existingScore) {
+          store.set(key, item);
+        }
+      }
+    }
+  }, []);
+
+  const applyIbkrDirectShortlistToPrimary = useCallback(
+    (payload) => {
+      if (payload?.ok !== true) return false;
+      const shortlist = Array.isArray(payload?.shortlist) ? payload.shortlist : [];
+      if (shortlist.length === 0) return false;
+      rememberTechnicalCandidates(activeCandidates);
+      rememberTechnicalCandidates(backendCandidates);
+      rememberTechnicalCandidates(mergedIbkrYahooCandidates);
+
+      const mapped = shortlist.map((ibkrCandidate, index) => {
+        const lookupKeys = buildCandidateLookupKeys(ibkrCandidate);
+        const yahooCandidate =
+          lookupKeys
+            .map((key) => technicalCandidatesRef.current.get(key) ?? yahooCandidateByTicker.get(key))
+            .find(Boolean) ?? null;
+        return mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, selectedExpiration);
+      });
+
+      setBackendCandidates(mapped);
+      setDataSource("ibkr_direct");
+      setScanMeta({
+        scanned: Number(payload?.scanned ?? shortlist.length),
+        kept: Number(payload?.kept ?? shortlist.length),
+        returned: Number(payload?.returned ?? shortlist.length),
+      });
+      setPrimaryIbkrSourceInfo({
+        twoPhaseEnabled: payload?.twoPhaseEnabled === true,
+      });
+      setScanError("");
+      return true;
+    },
+    [
+      selectedExpiration,
+      yahooCandidateByTicker,
+      activeCandidates,
+      backendCandidates,
+      mergedIbkrYahooCandidates,
+      rememberTechnicalCandidates,
+    ]
+  );
+
   const isRefreshingRef = useRef(false);
   const runAutoIbkrDirectScanRef = useRef(null);
 
@@ -3154,6 +3244,7 @@ export default function Dashboard() {
           topN: ibkrAutoTopN,
         });
         setIbkrDirectResult(payload);
+        applyIbkrDirectShortlistToPrimary(payload);
         const warnings = Array.isArray(payload?.warnings) ? payload.warnings : [];
         if (warnings.includes("ibkr_shadow_batch_timeout")) {
           setRefreshStage("Timeout IBKR : réduire Max IBKR à 10 ou moins. Yahoo/fallback conservé.");
@@ -3174,6 +3265,7 @@ export default function Dashboard() {
       ibkrAutoClientIdStart,
       candidateByTickerForPreIbkr,
       selectedExpiration,
+      applyIbkrDirectShortlistToPrimary,
     ]
   );
 
@@ -3203,8 +3295,10 @@ export default function Dashboard() {
           cachedExpiration === selectedExpiration &&
           !isPastYmd(cachedExpiration);
         if (cacheUsable) {
+          rememberTechnicalCandidates(cachedShortlist);
           setBackendCandidates(cachedShortlist);
           setDataSource("backend");
+          setPrimaryIbkrSourceInfo(null);
           setScanMeta(cached?.scanMeta ?? {
             scanned: cachedShortlist.length,
             kept: cachedShortlist.length,
@@ -3241,6 +3335,7 @@ export default function Dashboard() {
       setScanError("Aucun ticker disponible pour lancer le scan.");
       setBackendCandidates(null);
       setDataSource("snapshot");
+      setPrimaryIbkrSourceInfo(null);
       setScanMeta({ scanned: 0, kept: 0, returned: 0 });
       return;
     }
@@ -3260,9 +3355,11 @@ export default function Dashboard() {
       const mapped = (payload.shortlist || []).map((item, index) =>
         toDashboardCandidate(item, index, selectedExpiration)
       );
+      rememberTechnicalCandidates(mapped);
 
       setBackendCandidates(mapped);
       setDataSource("backend");
+      setPrimaryIbkrSourceInfo(null);
       setScanMeta({
         scanned: payload.scanned ?? tickers.length,
         kept: payload.kept ?? mapped.length,
@@ -3292,6 +3389,7 @@ export default function Dashboard() {
       setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
       setBackendCandidates(null);
       setDataSource("snapshot");
+      setPrimaryIbkrSourceInfo(null);
       setScanMeta({
         scanned: tickers.length,
         kept: 0,
@@ -3309,7 +3407,15 @@ export default function Dashboard() {
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [watchlistTickers, selectedExpiration, topN, autoIbkrDirectScan]);
+  }, [watchlistTickers, selectedExpiration, topN, autoIbkrDirectScan, rememberTechnicalCandidates]);
+
+  useEffect(() => {
+    rememberTechnicalCandidates(activeCandidates);
+  }, [activeCandidates, rememberTechnicalCandidates]);
+
+  useEffect(() => {
+    rememberTechnicalCandidates(mergedIbkrYahooCandidates);
+  }, [mergedIbkrYahooCandidates, rememberTechnicalCandidates]);
 
   const handleRebuildWatchlist = useCallback(async () => {
     setWatchlistLoading(true);
@@ -3401,6 +3507,7 @@ export default function Dashboard() {
         topN: ibkrDirectTopN,
       });
       setIbkrDirectResult(payload);
+      applyIbkrDirectShortlistToPrimary(payload);
     } catch (err) {
       setIbkrDirectError(String(err?.message || err || "IBKR Direct Scan indisponible"));
     } finally {
@@ -3413,6 +3520,7 @@ export default function Dashboard() {
     ibkrDirectClientIdStart,
     ibkrDirectMaxTickers,
     ibkrDirectTopN,
+    applyIbkrDirectShortlistToPrimary,
   ]);
 
   const handleIbkrDirectTestScan = useCallback(async () => {
@@ -3432,12 +3540,13 @@ export default function Dashboard() {
         topN: 3,
       });
       setIbkrDirectResult(payload);
+      applyIbkrDirectShortlistToPrimary(payload);
     } catch (err) {
       setIbkrDirectError(String(err?.message || err || "IBKR Direct Scan indisponible"));
     } finally {
       setIbkrDirectLoading(false);
     }
-  }, [selectedExpiration, ibkrDirectClientIdStart]);
+  }, [selectedExpiration, ibkrDirectClientIdStart, applyIbkrDirectShortlistToPrimary]);
 
   const handleRefreshScanMetrics = useCallback(async () => {
     setScanMetricsLoading(true);
@@ -3563,7 +3672,12 @@ export default function Dashboard() {
       {
         title: "Shortlist",
         value: String(filtered.length),
-        sub: dataSource === "backend" ? `${scanMeta.kept} retenus backend` : "snapshot local",
+        sub:
+          dataSource === "ibkr_direct"
+            ? `${scanMeta.kept} retenus IBKR Direct`
+            : dataSource === "backend"
+            ? `${scanMeta.kept} retenus backend`
+            : "snapshot local",
         icon: ShieldCheck,
       },
       {
@@ -4136,13 +4250,15 @@ export default function Dashboard() {
               "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
               marketClosedNotice
                 ? "border-amber-200 bg-amber-50 text-amber-700"
-                : dataSource === "backend"
+                : dataSource === "backend" || dataSource === "ibkr_direct"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-amber-200 bg-amber-50 text-amber-700"
             )}
           >
             {marketClosedNotice
               ? "Marche ferme — dernier scan valide affiche"
+              : dataSource === "ibkr_direct"
+              ? `Source active : IBKR Direct Scan — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés.${primaryIbkrSourceInfo?.twoPhaseEnabled ? " 2 phases officiel actif." : ""}`
               : dataSource === "backend"
               ? `Source active : backend local /scan_shortlist — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés (watchlist ${watchlistSource === "backend" ? "backend" : "secours"}).`
               : "Source active : snapshot local (fallback)."}
@@ -4163,10 +4279,18 @@ export default function Dashboard() {
                   <div>
                     <CardTitle className="text-xl text-slate-900">Shortlist hebdomadaire</CardTitle>
                     <p className="mt-1 text-sm text-slate-500">
-                      {dataSource === "backend"
+                      {dataSource === "ibkr_direct"
+                        ? "Shortlist chargée depuis IBKR Direct Scan."
+                        : dataSource === "backend"
                         ? "Shortlist chargée automatiquement depuis le backend local /scan_shortlist."
                         : "Snapshot local affiché en fallback tant que le backend n’a pas répondu."}
                     </p>
+                    {dataSource === "ibkr_direct" && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Source : IBKR Direct Scan — 2 phases officiel · twoPhaseEnabled:{" "}
+                        {String(primaryIbkrSourceInfo?.twoPhaseEnabled === true)}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
@@ -4263,7 +4387,11 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Source active</span>
                     <span className="font-semibold text-slate-900">
-                      {dataSource === "backend" ? "backend local" : "snapshot"}
+                      {dataSource === "ibkr_direct"
+                        ? "IBKR Direct Scan"
+                        : dataSource === "backend"
+                        ? "backend local"
+                        : "snapshot"}
                     </span>
                   </div>
                   <div className="mt-3 flex items-center justify-between">

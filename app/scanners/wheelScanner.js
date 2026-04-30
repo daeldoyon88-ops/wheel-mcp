@@ -10,7 +10,22 @@ import {
 import { round, roundMoney, toNumber } from "../utils/number.js";
 
 const STRIKE_DEBUG_SYMBOLS = new Set(["HOOD", "UBER", "SOFI", "U", "TQQQ"]);
+const MOVE_DEBUG_ENABLED = String(process.env.WHEEL_MOVE_DEBUG || "").trim() === "1";
 const MOVE_DEBUG_SYMBOLS = new Set(["INTC"]);
+const TIER_1_ULTRA_LIQUID = new Set([
+  "TQQQ", "SOXL", "QQQ", "SPY", "IWM",
+  "NVDA", "TSLA", "AMD", "PLTR", "SOFI",
+  "AFRM", "HOOD", "INTC", "UBER",
+]);
+const TIER_2_GOOD_WHEEL = new Set([
+  "DKNG", "SHOP", "RBLX", "SMCI", "COIN", "MSTR",
+  "PYPL", "ROKU", "SNAP", "NFLX", "LI", "NIO", "XPEV",
+  "SQ", "U", "UPST", "MRNA", "GM", "DAL",
+]);
+const TIER_3_SPECULATIVE = new Set([
+  "APLD", "ASTS", "BBAI", "ACHR", "IONQ", "RKLB",
+  "AI", "AA", "AG", "AGQ", "AMC", "ALT",
+]);
 
 /** Minutes from midnight in `timeZone` for this instant (local exchange clock). */
 function minutesSinceMidnightInZone(date, timeZone) {
@@ -143,6 +158,110 @@ function robustOptionMid(row, strictBidAsk = false) {
 }
 
 export function createWheelScanner(marketService) {
+  function getWheelTier(symbol) {
+    if (TIER_1_ULTRA_LIQUID.has(symbol)) return "T1";
+    if (TIER_2_GOOD_WHEEL.has(symbol)) return "T2";
+    if (TIER_3_SPECULATIVE.has(symbol)) return "T3";
+    return "none";
+  }
+
+  function buildQualitySort({ symbol, safeStrike, supportStatus, technicals, hasUpcomingEarningsBeforeExpiration, earningsDaysUntil }) {
+    let score = 0;
+    const good = [];
+    const penalties = [];
+    const tier = getWheelTier(symbol);
+    if (tier === "T1") {
+      score += 30;
+      good.push("Tier 1");
+    } else if (tier === "T2") {
+      score += 20;
+      good.push("Tier 2");
+    } else if (tier === "T3") {
+      score += 10;
+      good.push("Tier 3");
+    }
+
+    if (supportStatus === "room_above_support") {
+      score += 25;
+      good.push("support OK");
+    } else if (supportStatus === "near_support") {
+      score += 8;
+      good.push("près du support");
+    } else if (supportStatus === "below_support") {
+      score -= 35;
+      penalties.push("below support");
+    }
+
+    const trend = technicals?.trend ?? "unknown";
+    if (trend === "bullish") {
+      score += 20;
+      good.push("trend bullish");
+    } else if (trend === "neutral") {
+      score += 5;
+    } else if (trend === "bearish") {
+      score -= 25;
+      penalties.push("trend bearish");
+    }
+
+    const momentum = technicals?.momentum ?? "unknown";
+    if (momentum === "positive") {
+      score += 15;
+      good.push("momentum positive");
+    } else if (momentum === "neutral") {
+      score += 3;
+    } else if (momentum === "negative") {
+      score -= 20;
+      penalties.push("momentum negative");
+    }
+
+    if (hasUpcomingEarningsBeforeExpiration || (earningsDaysUntil != null && earningsDaysUntil <= 1)) {
+      score -= 40;
+      penalties.push("earnings proche");
+    }
+
+    const spreadPct = toNumber(safeStrike?.liquidity?.spreadPct);
+    if (spreadPct > 0) {
+      if (spreadPct < 15) {
+        score += 20;
+        good.push("spread faible");
+      } else if (spreadPct <= 30) {
+        score += 8;
+        good.push("spread acceptable");
+      } else if (spreadPct <= 50) {
+        score -= 10;
+        penalties.push("spread limite");
+      } else {
+        score -= 30;
+        penalties.push("spread élevé");
+      }
+    }
+
+    const weeklyYield = toNumber(safeStrike?.weeklyYield);
+    if (weeklyYield >= 0.005 && weeklyYield <= 0.015) score += 12;
+    else if (weeklyYield > 0.015 && weeklyYield <= 0.02) score += 6;
+    else if (weeklyYield > 0.02) {
+      score -= 8;
+      penalties.push("rendement très élevé à vérifier");
+    }
+
+    const pop = toNumber(safeStrike?.popEstimate);
+    if (pop >= 0.75) {
+      score += 10;
+      good.push("POP élevée");
+    } else if (pop >= 0.6) {
+      score += 5;
+    } else if (pop > 0 && pop < 0.5) {
+      score -= 8;
+      penalties.push("POP faible");
+    }
+
+    const qualityReasons = [
+      ...good.slice(0, 4),
+      ...penalties.map((reason) => `Pénalisé : ${reason}`).slice(0, 4),
+    ];
+    return { tier, qualityScore: round(score, 3), qualityReasons };
+  }
+
   function computeProScore(safeStrike) {
     if (!safeStrike) {
       return { finalScore: 0, executionScore: 0, distanceScore: 0 };
@@ -285,13 +404,18 @@ export function createWheelScanner(marketService) {
     const exchangeTz = quote?.exchangeTimezoneName || "America/New_York";
     const todayInExchange = ymdInTimeZone(new Date(), exchangeTz);
     const hasEarningsBeforeExpiration =
-      !!(earningsDate && expiration && String(earningsDate) < String(expiration));
+      !!(
+        earningsDate &&
+        expiration &&
+        String(earningsDate) >= String(todayInExchange) &&
+        String(earningsDate) <= String(expiration)
+      );
     const hasUpcomingEarningsBeforeExpiration =
       !!(
         earningsDate &&
         expiration &&
-        String(earningsDate) < String(expiration) &&
-        String(earningsDate) >= String(todayInExchange)
+        String(earningsDate) >= String(todayInExchange) &&
+        String(earningsDate) <= String(expiration)
       );
     const hasPastEarningsBeforeExpiration =
       !!(
@@ -300,18 +424,19 @@ export function createWheelScanner(marketService) {
         String(earningsDate) < String(expiration) &&
         String(earningsDate) < String(todayInExchange)
       );
-    const earningsMode = isEarningsImminent(quote);
+    const earningsMode = hasUpcomingEarningsBeforeExpiration && isEarningsImminent(quote);
     const earningsMoment = quote?.earningsMoment ?? null;
-    const hasEarnings = isYmd(earningsDate) || isYmd(quote?.nextEarningsDate);
+    const hasEarnings = hasUpcomingEarningsBeforeExpiration;
     const effectiveEarningsDate =
       (isYmd(quote?.nextEarningsDate) && String(quote.nextEarningsDate) >= String(todayInExchange)
+        && (!expiration || String(quote.nextEarningsDate) <= String(expiration))
         ? quote.nextEarningsDate
         : null) ??
-      (isYmd(earningsDate) ? earningsDate : null);
+      (hasUpcomingEarningsBeforeExpiration ? earningsDate : null);
     const earningsDaysUntil =
       effectiveEarningsDate != null ? daysBetweenYmd(todayInExchange, effectiveEarningsDate) : null;
     const earningsWithinWarningWindow =
-      earningsDaysUntil != null && earningsDaysUntil >= 0 && earningsDaysUntil <= 10;
+      earningsDaysUntil != null && earningsDaysUntil >= 0 && earningsDaysUntil <= 20;
     const earningsWarning = earningsWithinWarningWindow
       ? `⚠ Earnings dans ${earningsDaysUntil} jours — ${earningsMomentLabel(earningsMoment)}${
           hasEarningsBeforeExpiration ? " — avant expiration" : ""
@@ -323,7 +448,7 @@ export function createWheelScanner(marketService) {
     if (!lowerBound || lowerBound <= 0) return { symbol, ok: false, reason: "invalid_lower_bound" };
 
     const t = dteDays > 0 ? dteDays / 365 : null;
-    if (MOVE_DEBUG_SYMBOLS.has(symbol)) {
+    if (MOVE_DEBUG_ENABLED && MOVE_DEBUG_SYMBOLS.has(symbol)) {
       const ivUsed = ivFallback;
       const baseMovePct = spot > 0 && expectedMoveAbs > 0 ? (expectedMoveAbs / spot) * 100 : null;
       const finalMovePct = spot > 0 && adjustedMove > 0 ? (adjustedMove / spot) * 100 : null;
@@ -484,6 +609,14 @@ export function createWheelScanner(marketService) {
     else if (!passesLiquidity) reasonKept = "safe_strike_not_liquid";
     else if (!passesPremiumTarget) reasonKept = "premium_below_target";
     else if (!passesYieldTarget) reasonKept = "yield_below_target";
+    const qualitySort = buildQualitySort({
+      symbol,
+      safeStrike,
+      supportStatus,
+      technicals,
+      hasUpcomingEarningsBeforeExpiration,
+      earningsDaysUntil,
+    });
 
     return {
       symbol,
@@ -516,6 +649,9 @@ export function createWheelScanner(marketService) {
       finalScore: proScore.finalScore,
       executionScore: proScore.executionScore,
       distanceScore: proScore.distanceScore,
+      tier: qualitySort.tier,
+      qualityScore: qualitySort.qualityScore,
+      qualityReasons: qualitySort.qualityReasons,
       technicals: {
         rsi: technicals?.rsi ?? null,
         trend: technicals?.trend ?? "unknown",
@@ -634,7 +770,13 @@ export function createWheelScanner(marketService) {
       }
     }
 
-    if (sort === "score") {
+    if (sort === "quality") {
+      shortlist.sort((a, b) => {
+        const qualityDiff = toNumber(b?.qualityScore) - toNumber(a?.qualityScore);
+        if (qualityDiff !== 0) return qualityDiff;
+        return toNumber(b?.safeStrike?.annualizedYield) - toNumber(a?.safeStrike?.annualizedYield);
+      });
+    } else if (sort === "score") {
       shortlist.sort((a, b) => {
         const scoreDiff = toNumber(b?.finalScore) - toNumber(a?.finalScore);
         if (scoreDiff !== 0) return scoreDiff;

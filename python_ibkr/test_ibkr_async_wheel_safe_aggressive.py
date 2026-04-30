@@ -23,6 +23,7 @@ W_S1 = 0.30
 W_S2 = 0.10
 MAX_STRIKE_ATTEMPTS = 10
 MIN_PREMIUM_YIELD = 0.005
+TWO_PHASE_DEFAULT_PUT_WINDOW = 10
 
 
 def _parse_bool(v: str | None, default: bool) -> bool:
@@ -249,6 +250,63 @@ def _nearest_atm_index(strikes: list[float], price: float) -> int:
     return min(range(len(strikes)), key=lambda i: abs(strikes[i] - price))
 
 
+def _bounded_index(i: int, lo: int, hi: int) -> int:
+    return max(lo, min(hi, i))
+
+
+def _find_leg_with_fallback(
+    strikes: list[float],
+    target_index: int,
+    right: str,
+    one_option_fn,
+    max_attempts: int = MAX_STRIKE_ATTEMPTS,
+):
+    if not strikes:
+        return None, None, [], 0
+    n = len(strikes)
+    target_index = _bounded_index(int(target_index), 0, n - 1)
+    attempted_indices: list[int] = []
+    attempts = 0
+
+    def _try(idx: int):
+        nonlocal attempts
+        if idx < 0 or idx >= n or idx in attempted_indices or attempts >= max_attempts:
+            return None
+        attempted_indices.append(idx)
+        attempts += 1
+        st = strikes[idx]
+        qc = one_option_fn(st, right)
+        if qc is not None:
+            return st, qc
+        return None
+
+    first = _try(target_index)
+    if first is not None:
+        attempted = [strikes[i] for i in attempted_indices]
+        return first[0], first[1], attempted, attempts
+
+    step = 1
+    while attempts < max_attempts and len(attempted_indices) < n:
+        left = target_index - step
+        right_idx = target_index + step
+        if left >= 0:
+            got = _try(left)
+            if got is not None:
+                attempted = [strikes[i] for i in attempted_indices]
+                return got[0], got[1], attempted, attempts
+        if right_idx < n:
+            got = _try(right_idx)
+            if got is not None:
+                attempted = [strikes[i] for i in attempted_indices]
+                return got[0], got[1], attempted, attempts
+        if left < 0 and right_idx >= n:
+            break
+        step += 1
+
+    attempted = [strikes[i] for i in attempted_indices]
+    return None, None, attempted, attempts
+
+
 def main() -> int:
     started_at = time.monotonic()
     host = _str_env("IBKR_HOST", "127.0.0.1")
@@ -266,6 +324,10 @@ def main() -> int:
     right = _str_env("IBKR_OPTION_RIGHT", "P").upper()
     max_strikes_env = max(1, _int_env("IBKR_MAX_STRIKES", 20))
     max_strikes = max(20, max_strikes_env)
+    two_phase_enabled = _str_env("IBKR_TWO_PHASE_SCAN", "0") == "1"
+    two_phase_put_window = max(
+        1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", TWO_PHASE_DEFAULT_PUT_WINDOW)
+    )
     requested_expiration = os.environ.get("IBKR_OPTION_EXPIRATION")
     requested_expiration = (
         str(requested_expiration).strip() if requested_expiration is not None else ""
@@ -302,6 +364,8 @@ def main() -> int:
         "optionMarketDataRequests": 0,
         "expectedMoveOptionRequests": 0,
         "putCandidateOptionRequests": 0,
+        "expectedMoveContractsRequested": 0,
+        "putCandidateContractsRequested": 0,
         "cancelMarketDataCalls": 0,
         "marketDataWaits": 0,
         "timeouts": 0,
@@ -310,6 +374,7 @@ def main() -> int:
         "validPutStrikesCount": 0,
         "durationMs": 0,
         "approxIbkrCalls": 0,
+        "totalApproxCalls": 0,
     }
 
     def _safe_int(value):
@@ -439,103 +504,212 @@ def main() -> int:
 
         original_nearest_raw_index = _nearest_atm_index(strikes, float(underlying_price))
         original_nearest_raw_strike = strikes[original_nearest_raw_index]
-        validation_limit = min(40, len(strikes))
-        half_window = validation_limit // 2
-        start = max(0, original_nearest_raw_index - half_window)
-        end = min(len(strikes), start + validation_limit)
-        start = max(0, end - validation_limit)
-        validation_strikes = strikes[start:end]
-
+        validation_strikes: list[float] = []
         valid_call_contracts: dict[float, object] = {}
         valid_put_contracts: dict[float, object] = {}
-        for st in validation_strikes:
-            call_contract = _one_option(st, "C")
-            if call_contract is not None:
-                valid_call_contracts[st] = call_contract
-            else:
-                rejected.append(
-                    {
-                        "role": "strike_validation_call",
-                        "right": "C",
-                        "strike": st,
-                        "reason": "option_contract_not_qualified",
-                    }
-                )
-            put_contract = _one_option(st, "P")
-            if put_contract is not None:
-                valid_put_contracts[st] = put_contract
-            else:
-                rejected.append(
-                    {
-                        "role": "strike_validation_put",
-                        "right": "P",
-                        "strike": st,
-                        "reason": "option_contract_not_qualified",
-                    }
-                )
+        valid_call_strikes: list[float] = []
+        valid_put_strikes: list[float] = []
+        valid_straddle_strikes: list[float] = []
+        strike_validation: dict = {}
+        chosen_put_strikes: list[float] = []
 
-        valid_call_strikes = sorted(valid_call_contracts)
-        valid_put_strikes = sorted(valid_put_contracts)
-        valid_straddle_strikes = sorted(
-            set(valid_call_strikes).intersection(valid_put_strikes)
-        )
-        strike_validation = {
-            "rawStrikesChecked": len(validation_strikes),
-            "validCallStrikesCount": len(valid_call_strikes),
-            "validPutStrikesCount": len(valid_put_strikes),
-            "validStraddleStrikesCount": len(valid_straddle_strikes),
-            "validStraddleStrikesSample": valid_straddle_strikes[:10],
-        }
-        ibkr_call_metrics["rawStrikesChecked"] = len(validation_strikes)
-        ibkr_call_metrics["validCallStrikesCount"] = len(valid_call_strikes)
-        ibkr_call_metrics["validPutStrikesCount"] = len(valid_put_strikes)
+        s_atm_c = s_atm_p = None
+        c_atm_c = c_atm_p = None
+        _a1: list[float] = []
+        _a2: list[float] = []
+        n1 = n2 = 0
+        s_call_p1 = s_call_p2 = None
+        s_put_m1 = s_put_m2 = None
+        c_s1c = c_s2c = c_s1p = c_s2p = None
+        a_s1c: list[float] = []
+        a_s2c: list[float] = []
+        a_s1p: list[float] = []
+        a_s2p: list[float] = []
+        n_s1c = n_s2c = n_s1p = n_s2p = 0
+        atm_strike = None
 
-        if not valid_straddle_strikes:
-            _emit(
-                {
-                    **base,
-                    "connected": True,
-                    "expiration": expiration,
-                    "underlyingPrice": underlying_price,
-                    "error": "atm_straddle_unavailable",
-                    "strikeValidation": strike_validation,
-                    "rejected": rejected,
-                }
+        if not two_phase_enabled:
+            validation_limit = min(40, len(strikes))
+            half_window = validation_limit // 2
+            start = max(0, original_nearest_raw_index - half_window)
+            end = min(len(strikes), start + validation_limit)
+            start = max(0, end - validation_limit)
+            validation_strikes = strikes[start:end]
+
+            for st in validation_strikes:
+                call_contract = _one_option(st, "C")
+                if call_contract is not None:
+                    valid_call_contracts[st] = call_contract
+                else:
+                    rejected.append(
+                        {
+                            "role": "strike_validation_call",
+                            "right": "C",
+                            "strike": st,
+                            "reason": "option_contract_not_qualified",
+                        }
+                    )
+                put_contract = _one_option(st, "P")
+                if put_contract is not None:
+                    valid_put_contracts[st] = put_contract
+                else:
+                    rejected.append(
+                        {
+                            "role": "strike_validation_put",
+                            "right": "P",
+                            "strike": st,
+                            "reason": "option_contract_not_qualified",
+                        }
+                    )
+
+            valid_call_strikes = sorted(valid_call_contracts)
+            valid_put_strikes = sorted(valid_put_contracts)
+            valid_straddle_strikes = sorted(
+                set(valid_call_strikes).intersection(valid_put_strikes)
             )
-            return 1
+            strike_validation = {
+                "rawStrikesChecked": len(validation_strikes),
+                "validCallStrikesCount": len(valid_call_strikes),
+                "validPutStrikesCount": len(valid_put_strikes),
+                "validStraddleStrikesCount": len(valid_straddle_strikes),
+                "validStraddleStrikesSample": valid_straddle_strikes[:10],
+            }
+            ibkr_call_metrics["rawStrikesChecked"] = len(validation_strikes)
+            ibkr_call_metrics["validCallStrikesCount"] = len(valid_call_strikes)
+            ibkr_call_metrics["validPutStrikesCount"] = len(valid_put_strikes)
 
-        # =========================================================
-        # ÉTAPE 4 — Expected move (60/30/10), sur strikes validés
-        # =========================================================
-        atm_strike = min(valid_straddle_strikes, key=lambda st: abs(st - float(underlying_price)))
+            if not valid_straddle_strikes:
+                _emit(
+                    {
+                        **base,
+                        "connected": True,
+                        "expiration": expiration,
+                        "underlyingPrice": underlying_price,
+                        "error": "atm_straddle_unavailable",
+                        "strikeValidation": strike_validation,
+                        "rejected": rejected,
+                    }
+                )
+                return 1
 
-        s_atm_c = s_atm_p = atm_strike
-        c_atm_c = valid_call_contracts.get(atm_strike)
-        c_atm_p = valid_put_contracts.get(atm_strike)
-        _a1 = _a2 = [atm_strike]
-        n1 = n2 = 1
+            atm_strike = min(
+                valid_straddle_strikes, key=lambda st: abs(st - float(underlying_price))
+            )
 
-        calls_above = [st for st in valid_call_strikes if st > atm_strike]
-        puts_below = sorted([st for st in valid_put_strikes if st < atm_strike], reverse=True)
+            s_atm_c = s_atm_p = atm_strike
+            c_atm_c = valid_call_contracts.get(atm_strike)
+            c_atm_p = valid_put_contracts.get(atm_strike)
+            _a1 = _a2 = [atm_strike]
+            n1 = n2 = 1
 
-        s_call_p1 = calls_above[0] if len(calls_above) >= 1 else None
-        s_call_p2 = calls_above[1] if len(calls_above) >= 2 else None
-        s_put_m1 = puts_below[0] if len(puts_below) >= 1 else None
-        s_put_m2 = puts_below[1] if len(puts_below) >= 2 else None
+            calls_above = [st for st in valid_call_strikes if st > atm_strike]
+            puts_below = sorted(
+                [st for st in valid_put_strikes if st < atm_strike], reverse=True
+            )
 
-        c_s1c = valid_call_contracts.get(s_call_p1) if s_call_p1 is not None else None
-        c_s2c = valid_call_contracts.get(s_call_p2) if s_call_p2 is not None else None
-        c_s1p = valid_put_contracts.get(s_put_m1) if s_put_m1 is not None else None
-        c_s2p = valid_put_contracts.get(s_put_m2) if s_put_m2 is not None else None
+            s_call_p1 = calls_above[0] if len(calls_above) >= 1 else None
+            s_call_p2 = calls_above[1] if len(calls_above) >= 2 else None
+            s_put_m1 = puts_below[0] if len(puts_below) >= 1 else None
+            s_put_m2 = puts_below[1] if len(puts_below) >= 2 else None
 
-        a_s1c = [s_call_p1] if s_call_p1 is not None else []
-        a_s2c = [s_call_p2] if s_call_p2 is not None else []
-        a_s1p = [s_put_m1] if s_put_m1 is not None else []
-        a_s2p = [s_put_m2] if s_put_m2 is not None else []
-        n_s1c = 1 if s_call_p1 is not None else 0
-        n_s2c = 1 if s_call_p2 is not None else 0
-        n_s1p = 1 if s_put_m1 is not None else 0
-        n_s2p = 1 if s_put_m2 is not None else 0
+            c_s1c = valid_call_contracts.get(s_call_p1) if s_call_p1 is not None else None
+            c_s2c = valid_call_contracts.get(s_call_p2) if s_call_p2 is not None else None
+            c_s1p = valid_put_contracts.get(s_put_m1) if s_put_m1 is not None else None
+            c_s2p = valid_put_contracts.get(s_put_m2) if s_put_m2 is not None else None
+
+            a_s1c = [s_call_p1] if s_call_p1 is not None else []
+            a_s2c = [s_call_p2] if s_call_p2 is not None else []
+            a_s1p = [s_put_m1] if s_put_m1 is not None else []
+            a_s2p = [s_put_m2] if s_put_m2 is not None else []
+            n_s1c = 1 if s_call_p1 is not None else 0
+            n_s2c = 1 if s_call_p2 is not None else 0
+            n_s1p = 1 if s_put_m1 is not None else 0
+            n_s2p = 1 if s_put_m2 is not None else 0
+
+            puts_below_or_at = [s for s in valid_put_strikes if s <= float(underlying_price)]
+            puts_below_or_at.sort(reverse=True)
+            chosen_put_strikes = puts_below_or_at[:max_strikes]
+        else:
+            atm_index = _nearest_atm_index(strikes, float(underlying_price))
+            s_atm_c, c_atm_c, _a1, n1 = _find_leg_with_fallback(
+                strikes, atm_index, "C", _one_option
+            )
+            s_atm_p, c_atm_p, _a2, n2 = _find_leg_with_fallback(
+                strikes, atm_index, "P", _one_option
+            )
+            if c_atm_c is not None:
+                valid_call_contracts[float(s_atm_c)] = c_atm_c
+            if c_atm_p is not None:
+                valid_put_contracts[float(s_atm_p)] = c_atm_p
+            if c_atm_c is None or c_atm_p is None:
+                strike_validation = {
+                    "rawStrikesChecked": len(strikes),
+                    "validCallStrikesCount": len(valid_call_contracts),
+                    "validPutStrikesCount": len(valid_put_contracts),
+                    "validStraddleStrikesCount": 0,
+                    "validStraddleStrikesSample": [],
+                }
+                ibkr_call_metrics["rawStrikesChecked"] = len(strikes)
+                ibkr_call_metrics["validCallStrikesCount"] = len(valid_call_contracts)
+                ibkr_call_metrics["validPutStrikesCount"] = len(valid_put_contracts)
+                _emit(
+                    {
+                        **base,
+                        "connected": True,
+                        "expiration": expiration,
+                        "underlyingPrice": underlying_price,
+                        "error": "atm_straddle_unavailable",
+                        "strikeValidation": strike_validation,
+                        "rejected": rejected,
+                    }
+                )
+                return 1
+
+            atm_strike = float(s_atm_c)
+            s_call_p1, c_s1c, a_s1c, n_s1c = _find_leg_with_fallback(
+                strikes, _bounded_index(atm_index + 1, 0, len(strikes) - 1), "C", _one_option
+            )
+            s_put_m1, c_s1p, a_s1p, n_s1p = _find_leg_with_fallback(
+                strikes, _bounded_index(atm_index - 1, 0, len(strikes) - 1), "P", _one_option
+            )
+            s_call_p2, c_s2c, a_s2c, n_s2c = _find_leg_with_fallback(
+                strikes, _bounded_index(atm_index + 2, 0, len(strikes) - 1), "C", _one_option
+            )
+            s_put_m2, c_s2p, a_s2p, n_s2p = _find_leg_with_fallback(
+                strikes, _bounded_index(atm_index - 2, 0, len(strikes) - 1), "P", _one_option
+            )
+
+            for st, qc in (
+                (s_call_p1, c_s1c),
+                (s_call_p2, c_s2c),
+            ):
+                if st is not None and qc is not None:
+                    valid_call_contracts[float(st)] = qc
+            for st, qc in (
+                (s_put_m1, c_s1p),
+                (s_put_m2, c_s2p),
+            ):
+                if st is not None and qc is not None:
+                    valid_put_contracts[float(st)] = qc
+
+            valid_call_strikes = sorted(valid_call_contracts)
+            valid_put_strikes = sorted(valid_put_contracts)
+            valid_straddle_strikes = sorted(
+                set(valid_call_strikes).intersection(valid_put_strikes)
+            )
+            strike_validation = {
+                "rawStrikesChecked": len(strikes),
+                "validCallStrikesCount": len(valid_call_strikes),
+                "validPutStrikesCount": len(valid_put_strikes),
+                "validStraddleStrikesCount": len(valid_straddle_strikes),
+                "validStraddleStrikesSample": valid_straddle_strikes[:10],
+                "twoPhaseAtmAttemptedCallStrikes": _a1,
+                "twoPhaseAtmAttemptedPutStrikes": _a2,
+                "twoPhaseMode": True,
+            }
+            ibkr_call_metrics["rawStrikesChecked"] = len(strikes)
+            ibkr_call_metrics["validCallStrikesCount"] = len(valid_call_strikes)
+            ibkr_call_metrics["validPutStrikesCount"] = len(valid_put_strikes)
 
         leg_tickers: dict[tuple[str, str, float], object] = {}
         leg_meta: dict[tuple[str, str, float], dict] = {}
@@ -564,30 +738,29 @@ def main() -> int:
             _register_leg("strangle2_call", "C", s_call_p2, c_s2c, a_s2c, n_s2c)
         if c_s2p is not None and s_put_m2 is not None and n_s2p:
             _register_leg("strangle2_put", "P", s_put_m2, c_s2p, a_s2p, n_s2p)
-
-        # =========================================================
-        # ÉTAPE 5 — Sélection des puts wheel (qualification)
-        # =========================================================
-        puts_below_or_at = [s for s in valid_put_strikes if s <= float(underlying_price)]
-        puts_below_or_at.sort(reverse=True)
-        chosen_put_strikes = puts_below_or_at[:max_strikes]
+        ibkr_call_metrics["expectedMoveContractsRequested"] = len(leg_tickers)
 
         put_tickers: list[tuple[float, object]] = []
-        for strike in chosen_put_strikes:
-            qc = valid_put_contracts.get(strike)
-            if qc is None:
-                rejected.append(
-                    {
-                        "role": "wheel_put",
-                        "right": right,
-                        "strike": strike,
-                        "reason": "option_contract_not_qualified",
-                    }
-                )
-                continue
-            tk = _req_mkt_data(qc, option_kind="put_candidate")
-            requested_contracts.append(qc)
-            put_tickers.append((strike, tk))
+        if not two_phase_enabled:
+            ibkr_call_metrics["putCandidateContractsRequested"] = len(chosen_put_strikes)
+            for strike in chosen_put_strikes:
+                qc = valid_put_contracts.get(strike)
+                if qc is None:
+                    qc = _one_option(strike, "P")
+                if qc is None:
+                    rejected.append(
+                        {
+                            "role": "wheel_put",
+                            "right": right,
+                            "strike": strike,
+                            "reason": "option_contract_not_qualified",
+                        }
+                    )
+                    continue
+                valid_put_contracts[strike] = qc
+                tk = _req_mkt_data(qc, option_kind="put_candidate")
+                requested_contracts.append(qc)
+                put_tickers.append((strike, tk))
 
         _sleep(5.0)
 
@@ -654,6 +827,41 @@ def main() -> int:
         upper_bound = float(underlying_price) + expected_move
         target_premium_raw = float(underlying_price) * MIN_PREMIUM_YIELD
         target_premium = _round_money_half_up(target_premium_raw)
+
+        if two_phase_enabled:
+            puts_below_lower = sorted([s for s in strikes if s < lower_bound], reverse=True)
+            if puts_below_lower:
+                aggressive_reference_strike = puts_below_lower[0]
+                aggr_index = strikes.index(aggressive_reference_strike)
+                start_index = max(0, aggr_index - (two_phase_put_window - 1))
+                window_slice = strikes[start_index:aggr_index + 1]
+                chosen_put_strikes = sorted(
+                    [s for s in window_slice if s <= aggressive_reference_strike],
+                    reverse=True,
+                )
+            else:
+                chosen_put_strikes = []
+
+            ibkr_call_metrics["putCandidateContractsRequested"] = len(chosen_put_strikes)
+            for strike in chosen_put_strikes:
+                qc = valid_put_contracts.get(strike)
+                if qc is None:
+                    qc = _one_option(strike, "P")
+                if qc is None:
+                    rejected.append(
+                        {
+                            "role": "wheel_put",
+                            "right": right,
+                            "strike": strike,
+                            "reason": "option_contract_not_qualified",
+                        }
+                    )
+                    continue
+                valid_put_contracts[strike] = qc
+                tk = _req_mkt_data(qc, option_kind="put_candidate")
+                requested_contracts.append(qc)
+                put_tickers.append((strike, tk))
+            _sleep(2.0)
 
         em_components = {
             "atmStraddle": {
@@ -779,8 +987,18 @@ def main() -> int:
         safe_pc: dict | None = None
         safe_selection_reason: str | None = None
         if safe_pool:
-            safe_pc = min(safe_pool, key=lambda p: p["strike"])
-            safe_selection_reason = "below_aggressive_meets_min_premium"
+            if two_phase_enabled:
+                safe_pc = min(
+                    safe_pool,
+                    key=lambda p: (
+                        abs(float(p["primeUsed"]) - float(target_premium)),
+                        -float(p["strike"]),
+                    ),
+                )
+                safe_selection_reason = "below_aggressive_closest_premium_to_target"
+            else:
+                safe_pc = min(safe_pool, key=lambda p: p["strike"])
+                safe_selection_reason = "below_aggressive_meets_min_premium"
         elif aggressive_pc is not None and aggressive_pc.get("passesMinPremium"):
             safe_pc = aggressive_pc
             safe_selection_reason = (
@@ -808,7 +1026,11 @@ def main() -> int:
                     aggressive_pc["reason"] = "premium_below_min"
             if safe_pc is not None and safe_pc is not aggressive_pc:
                 safe_pc["status"] = "safe_selected"
-                safe_pc["reason"] = "below_aggressive_meets_min_premium"
+                safe_pc["reason"] = (
+                    "below_aggressive_closest_premium_to_target"
+                    if two_phase_enabled
+                    else "below_aggressive_meets_min_premium"
+                )
 
         if aggressive_pc is None:
             warnings.append("no_put_below_lower_bound")
@@ -861,6 +1083,7 @@ def main() -> int:
             "expiration": expiration,
             "underlyingPrice": underlying_price,
             "method": "wheel_safe_aggressive_ibkr_shadow",
+            "twoPhaseEnabled": two_phase_enabled,
             "expectedMove": round(expected_move, 4),
             "lowerBound": round(lower_bound, 4),
             "upperBound": round(upper_bound, 4),
@@ -868,6 +1091,8 @@ def main() -> int:
             "minPremiumYield": MIN_PREMIUM_YIELD,
             "targetPremiumRaw": target_premium_raw,
             "targetPremium": target_premium,
+            "expectedMoveContractsRequested": ibkr_call_metrics.get("expectedMoveContractsRequested", 0),
+            "putCandidateContractsRequested": ibkr_call_metrics.get("putCandidateContractsRequested", 0),
             "strikeValidation": strike_validation,
             "expectedMoveComponents": em_components,
             "expectedMoveOptions": em_options_out,
@@ -882,9 +1107,17 @@ def main() -> int:
                 "premiumRule": "primeUsed = bid; minimum = underlyingPrice * 0.5% par expiration",
                 "aggressiveRule": "strike put directement sous la borne basse",
                 "safeRule": (
-                    "safe = plus bas strike sous l'agressif qui respecte targetPremium; "
-                    "si aucun plus bas ne respecte et que l'agressif respecte, "
-                    "l'agressif devient safe"
+                    (
+                        "safe = candidat sous l'agressif avec primeUsed la plus proche de targetPremium "
+                        "(égalité -> strike le plus haut); si aucun et agressif respecte targetPremium, "
+                        "l'agressif devient safe"
+                    )
+                    if two_phase_enabled
+                    else (
+                        "safe = plus bas strike sous l'agressif qui respecte targetPremium; "
+                        "si aucun plus bas ne respecte et que l'agressif respecte, "
+                        "l'agressif devient safe"
+                    )
                 ),
                 "spreadRule": (
                     "spread affiché pour information; ne rejette pas à lui seul le "
@@ -902,6 +1135,7 @@ def main() -> int:
         )
         ibkr_call_metrics["durationMs"] = round((time.monotonic() - started_at) * 1000)
         ibkr_call_metrics["approxIbkrCalls"] = approx
+        ibkr_call_metrics["totalApproxCalls"] = approx
         out["ibkrCallMetrics"] = ibkr_call_metrics
         _emit(out)
         return 0

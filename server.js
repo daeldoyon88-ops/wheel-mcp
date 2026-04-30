@@ -38,6 +38,7 @@ function createEmptyIbkrCallMetrics() {
   return {
     startedAt: new Date().toISOString(),
     lastUpdatedAt: null,
+    twoPhaseEnabled: false,
     totals: {
       totalStockQualifyCalls: 0,
       totalOptionQualifyCalls: 0,
@@ -55,6 +56,7 @@ function createEmptyIbkrCallMetrics() {
       totalValidCallStrikesCount: 0,
       totalValidPutStrikesCount: 0,
       totalApproxIbkrCalls: 0,
+      totalApproxCalls: 0,
       totalDurationMs: 0,
       totalTickersObserved: 0,
       totalOptionQualifyCacheHits: 0,
@@ -83,6 +85,9 @@ function incrementNumber(target, key, value) {
 function mergeIbkrCallMetricsIntoState(metrics) {
   if (!metrics || typeof metrics !== "object") return;
   const ibkrState = scanMetricsState.ibkr;
+  if (typeof metrics.twoPhaseEnabled === "boolean") {
+    ibkrState.twoPhaseEnabled = metrics.twoPhaseEnabled;
+  }
   const sourceTotals = metrics.totals ?? {};
   const targetTotals = ibkrState.totals;
   const totalKeys = [
@@ -102,6 +107,7 @@ function mergeIbkrCallMetricsIntoState(metrics) {
     "totalValidCallStrikesCount",
     "totalValidPutStrikesCount",
     "totalApproxIbkrCalls",
+    "totalApproxCalls",
     "totalDurationMs",
     "totalTickersObserved",
     "totalOptionQualifyCacheHits",
@@ -143,6 +149,7 @@ function mergeIbkrCallMetricsIntoState(metrics) {
         durationMs: 0,
         approxIbkrCalls: 0,
         approxCalls: 0,
+        totalApproxCalls: 0,
         optionQualifyCacheHits: 0,
         optionMarketDataCacheHits: 0,
         stockMarketDataCacheHits: 0,
@@ -175,6 +182,7 @@ function mergeIbkrCallMetricsIntoState(metrics) {
       "validPutStrikesCount",
       "durationMs",
       "approxIbkrCalls",
+      "totalApproxCalls",
       "optionQualifyCacheHits",
       "optionMarketDataCacheHits",
       "stockMarketDataCacheHits",
@@ -553,6 +561,7 @@ function runIbkrShadowWheelBatch(body = {}) {
   const perTickerTimeoutMs = Math.max(1000, toPositiveInt(body.perTickerTimeoutMs, 7000));
   const requestedTimeoutMs = toPositiveInt(body.batchTimeoutMs, 0);
   const debug = body.debug === true;
+  const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "0" ? false : true;
 
   const pythonExe = pickIbkrShadowPython();
   const scriptPath = path.join(process.cwd(), "python_ibkr", "test_ibkr_async_wheel_safe_aggressive_batch.py");
@@ -569,6 +578,7 @@ function runIbkrShadowWheelBatch(body = {}) {
     IBKR_MAX_STRIKES: String(maxStrikes),
     IBKR_OPTION_EXPIRATION: expiration,
     IBKR_PER_TICKER_TIMEOUT_MS: String(perTickerTimeoutMs),
+    IBKR_TWO_PHASE_SCAN: twoPhaseScanEnabled ? "1" : "0",
   };
   const timeoutMs = requestedTimeoutMs > 0
     ? requestedTimeoutMs
@@ -643,6 +653,9 @@ function runIbkrShadowWheelBatch(body = {}) {
         return resolve({ status: 500, payload });
       }
 
+      if (typeof payload.twoPhaseEnabled !== "boolean") {
+        payload.twoPhaseEnabled = twoPhaseScanEnabled;
+      }
       if (debug) payload._debug = { stdout, stderr, exitCode };
       return resolve({ status: 200, payload });
     });
@@ -725,15 +738,17 @@ function buildIbkrTickerMetricRow(row) {
   const metrics = row?.ibkrCallMetrics && typeof row.ibkrCallMetrics === "object" ? row.ibkrCallMetrics : {};
   const status = getIbkrTickerStatus(row);
   const reason = getIbkrScanReason(row);
-  const approxIbkrCalls = numberOrNull(metrics.approxIbkrCalls ?? metrics.approxCalls) ?? 0;
+  const approxIbkrCalls = numberOrNull(metrics.approxIbkrCalls ?? metrics.totalApproxCalls ?? metrics.approxCalls) ?? 0;
   return {
     ...metrics,
     symbol: String(row?.symbol || "").trim().toUpperCase(),
+    twoPhaseEnabled: Boolean(row?.twoPhaseEnabled),
     status,
     reason: reason || (status === "kept" ? "OK" : status),
     durationMs: numberOrNull(row?.durationMs ?? metrics.durationMs),
     approxIbkrCalls,
     approxCalls: approxIbkrCalls,
+    totalApproxCalls: approxIbkrCalls,
   };
 }
 
@@ -966,8 +981,10 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const batchTimeoutMs = Math.min(300_000, 30_000 + tickers.length * 12_000);
     const startedAt = Date.now();
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
+    const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "0" ? false : true;
 
     console.log("[IBKR_SHADOW_SCAN_START]", expiration || "default", "tickers", tickers.length);
+    console.log("[IBKR_TWO_PHASE_SCAN]", `enabled=${twoPhaseScanEnabled}`);
 
     const { payload } = await runIbkrShadowWheelBatch({
       ...body,
@@ -980,12 +997,30 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       batchTimeoutMs,
     });
     const rows = Array.isArray(payload?.results) ? payload.results : [];
+    const responseTwoPhaseEnabled =
+      typeof payload?.twoPhaseEnabled === "boolean" ? payload.twoPhaseEnabled : twoPhaseScanEnabled;
     const rejectionReasons = buildIbkrRejectionReasons(rows);
     const enrichedIbkrCallMetrics = enrichIbkrCallMetrics(
       payload?.ibkrCallMetrics,
       rows,
       rejectionReasons
     );
+    enrichedIbkrCallMetrics.twoPhaseEnabled = responseTwoPhaseEnabled;
+    if (!enrichedIbkrCallMetrics.totals || typeof enrichedIbkrCallMetrics.totals !== "object") {
+      enrichedIbkrCallMetrics.totals = {};
+    }
+    if (!Number.isFinite(Number(enrichedIbkrCallMetrics.totals.totalExpectedMoveContractsRequested))) {
+      enrichedIbkrCallMetrics.totals.totalExpectedMoveContractsRequested = 0;
+    }
+    if (!Number.isFinite(Number(enrichedIbkrCallMetrics.totals.totalPutCandidateContractsRequested))) {
+      enrichedIbkrCallMetrics.totals.totalPutCandidateContractsRequested = 0;
+    }
+    if (!Number.isFinite(Number(enrichedIbkrCallMetrics.totals.totalApproxCalls))) {
+      enrichedIbkrCallMetrics.totals.totalApproxCalls = toNumber(
+        enrichedIbkrCallMetrics.totals.totalApproxIbkrCalls,
+        0
+      );
+    }
     mergeIbkrCallMetricsIntoState(enrichedIbkrCallMetrics);
     scanMetricsState.lastRefreshAt = new Date().toISOString();
     const shortlist = [];
@@ -1046,6 +1081,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       mode: "ibkr_shadow_scan",
       source: "IBKR",
       readOnly: true,
+      twoPhaseEnabled: responseTwoPhaseEnabled,
       expiration,
       scanned: tickers.length,
       kept: shortlist.length,
@@ -1058,6 +1094,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       errors,
       rejectionReasons,
       warnings: payload?.ok === false ? [payload?.error || "IBKR Shadow scan failed"] : [],
+      ibkr: {
+        twoPhaseEnabled: responseTwoPhaseEnabled,
+      },
       ibkrCallMetrics: enrichedIbkrCallMetrics,
     });
   } catch (error) {

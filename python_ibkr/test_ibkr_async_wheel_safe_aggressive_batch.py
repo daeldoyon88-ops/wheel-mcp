@@ -112,6 +112,8 @@ def _empty_ticker_metrics() -> dict:
         "optionMarketDataRequests": 0,
         "expectedMoveOptionRequests": 0,
         "putCandidateOptionRequests": 0,
+        "expectedMoveContractsRequested": 0,
+        "putCandidateContractsRequested": 0,
         "cancelMarketDataCalls": 0,
         "marketDataWaits": 0,
         "timeouts": 0,
@@ -120,6 +122,7 @@ def _empty_ticker_metrics() -> dict:
         "validPutStrikesCount": 0,
         "durationMs": 0,
         "approxIbkrCalls": 0,
+        "totalApproxCalls": 0,
     }
 
 
@@ -160,6 +163,7 @@ def main() -> int:
     underlying_wait = max(0.5, _float_env("IBKR_UNDERLYING_WAIT_SECONDS", 1.5))
     option_wait = max(1.0, _float_env("IBKR_OPTION_WAIT_SECONDS", 3.5))
     debug = _parse_bool(os.environ.get("DEBUG_IBKR"), False)
+    two_phase_enabled = _str_env("IBKR_TWO_PHASE_SCAN", "0") == "1"
     symbols = _parse_symbols()
 
     base = {
@@ -217,6 +221,8 @@ def main() -> int:
             "totalOptionMarketDataRequests": 0,
             "totalExpectedMoveOptionRequests": 0,
             "totalPutCandidateOptionRequests": 0,
+            "totalExpectedMoveContractsRequested": 0,
+            "totalPutCandidateContractsRequested": 0,
             "totalCancelMarketDataCalls": 0,
             "totalMarketDataWaits": 0,
             "totalTimeouts": 0,
@@ -224,13 +230,16 @@ def main() -> int:
             "totalValidCallStrikesCount": 0,
             "totalValidPutStrikesCount": 0,
             "totalApproxIbkrCalls": 0,
+            "totalApproxCalls": 0,
             "totalDurationMs": 0,
             "totalTickersObserved": 0,
         }
         for symbol in symbols:
             ticker_started = time.monotonic()
             previous_symbol = os.environ.get("IBKR_SYMBOL")
+            previous_two_phase = os.environ.get("IBKR_TWO_PHASE_SCAN")
             os.environ["IBKR_SYMBOL"] = symbol
+            os.environ["IBKR_TWO_PHASE_SCAN"] = "1" if two_phase_enabled else "0"
             try:
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf):
@@ -244,6 +253,7 @@ def main() -> int:
                 }
                 payload["symbol"] = symbol
                 payload["durationMs"] = round((time.monotonic() - ticker_started) * 1000)
+                payload["twoPhaseEnabled"] = bool(payload.get("twoPhaseEnabled", False))
                 if payload.get("ok") is not True:
                     payload["reason"] = _reason_for_payload(payload)
                     if payload["durationMs"] >= per_ticker_timeout_ms:
@@ -262,6 +272,15 @@ def main() -> int:
                         **row_metrics,
                     }
                 row_metrics["durationMs"] = payload.get("durationMs", row_metrics.get("durationMs", 0))
+                row_metrics["expectedMoveContractsRequested"] = int(
+                    row_metrics.get("expectedMoveContractsRequested", 0) or 0
+                )
+                row_metrics["putCandidateContractsRequested"] = int(
+                    row_metrics.get("putCandidateContractsRequested", 0) or 0
+                )
+                row_metrics["totalApproxCalls"] = int(
+                    row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
+                )
                 if payload.get("reason") == "timeout":
                     row_metrics["timeouts"] = int(row_metrics.get("timeouts", 0)) + 1
                 payload["ibkrCallMetrics"] = row_metrics
@@ -274,6 +293,12 @@ def main() -> int:
                 ibkr_totals["totalOptionMarketDataRequests"] += int(row_metrics.get("optionMarketDataRequests", 0) or 0)
                 ibkr_totals["totalExpectedMoveOptionRequests"] += int(row_metrics.get("expectedMoveOptionRequests", 0) or 0)
                 ibkr_totals["totalPutCandidateOptionRequests"] += int(row_metrics.get("putCandidateOptionRequests", 0) or 0)
+                ibkr_totals["totalExpectedMoveContractsRequested"] += int(
+                    row_metrics.get("expectedMoveContractsRequested", 0) or 0
+                )
+                ibkr_totals["totalPutCandidateContractsRequested"] += int(
+                    row_metrics.get("putCandidateContractsRequested", 0) or 0
+                )
                 ibkr_totals["totalCancelMarketDataCalls"] += int(row_metrics.get("cancelMarketDataCalls", 0) or 0)
                 ibkr_totals["totalMarketDataWaits"] += int(row_metrics.get("marketDataWaits", 0) or 0)
                 ibkr_totals["totalTimeouts"] += int(row_metrics.get("timeouts", 0) or 0)
@@ -281,6 +306,9 @@ def main() -> int:
                 ibkr_totals["totalValidCallStrikesCount"] += int(row_metrics.get("validCallStrikesCount", 0) or 0)
                 ibkr_totals["totalValidPutStrikesCount"] += int(row_metrics.get("validPutStrikesCount", 0) or 0)
                 ibkr_totals["totalApproxIbkrCalls"] += int(row_metrics.get("approxIbkrCalls", 0) or 0)
+                ibkr_totals["totalApproxCalls"] += int(
+                    row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
+                )
                 ibkr_totals["totalDurationMs"] += int(row_metrics.get("durationMs", 0) or 0)
                 ibkr_totals["totalTickersObserved"] += 1
                 results.append(payload)
@@ -312,21 +340,28 @@ def main() -> int:
                     + row_metrics.get("optionMarketDataRequests", 0)
                     + row_metrics.get("cancelMarketDataCalls", 0)
                 )
+                row_metrics["totalApproxCalls"] = int(row_metrics.get("approxIbkrCalls", 0) or 0)
                 ibkr_by_symbol[symbol] = row_metrics
                 ibkr_totals["totalTimeouts"] += int(row_metrics.get("timeouts", 0) or 0)
                 ibkr_totals["totalDurationMs"] += int(row_metrics.get("durationMs", 0) or 0)
                 ibkr_totals["totalApproxIbkrCalls"] += int(row_metrics.get("approxIbkrCalls", 0) or 0)
+                ibkr_totals["totalApproxCalls"] += int(row_metrics.get("totalApproxCalls", 0) or 0)
                 ibkr_totals["totalTickersObserved"] += 1
             finally:
                 if previous_symbol is None:
                     os.environ.pop("IBKR_SYMBOL", None)
                 else:
                     os.environ["IBKR_SYMBOL"] = previous_symbol
+                if previous_two_phase is None:
+                    os.environ.pop("IBKR_TWO_PHASE_SCAN", None)
+                else:
+                    os.environ["IBKR_TWO_PHASE_SCAN"] = previous_two_phase
 
         _emit({
             **base,
             "ok": True,
             "connected": True,
+            "twoPhaseEnabled": two_phase_enabled,
             "symbols": symbols,
             "total": len(symbols),
             "completed": len(results),

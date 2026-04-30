@@ -23,18 +23,48 @@ import { loadMergedUniverse } from "./universeLoader.js";
 const QUOTE_TTL_MS = 90_000;
 const EXP_TTL_MS = 300_000;
 const CHAIN_TTL_MS = 120_000;
+const TIER_1_ULTRA_LIQUID = [
+  "TQQQ", "SOXL", "QQQ", "SPY", "IWM",
+  "NVDA", "TSLA", "AMD", "PLTR", "SOFI",
+  "AFRM", "HOOD", "INTC", "UBER",
+];
+const TIER_2_GOOD_WHEEL = [
+  "DKNG", "SHOP", "RBLX", "SMCI", "COIN", "MSTR",
+  "PYPL", "ROKU", "SNAP", "NFLX", "LI", "NIO", "XPEV",
+  "SQ", "U", "UPST", "MRNA", "GM", "DAL",
+];
+const TIER_3_SPECULATIVE = [
+  "APLD", "ASTS", "BBAI", "ACHR", "IONQ", "RKLB",
+  "AI", "AA", "AG", "AGQ", "AMC", "ALT",
+];
+const PRIORITY_WHEEL_SYMBOLS = [
+  ...TIER_1_ULTRA_LIQUID,
+  ...TIER_2_GOOD_WHEEL,
+  ...TIER_3_SPECULATIVE,
+];
+const TIER_1_SET = new Set(TIER_1_ULTRA_LIQUID);
+const TIER_2_SET = new Set(TIER_2_GOOD_WHEEL);
+const TIER_3_SET = new Set(TIER_3_SPECULATIVE);
+const PRIORITY_WHEEL_SET = new Set(PRIORITY_WHEEL_SYMBOLS);
+const CATEGORY_PRIORITY = {
+  weekly: 1,
+  core: 2,
+  growth: 3,
+};
 
 /**
  * @template T
  * @param {T[]} items
  * @param {number} limit
  * @param {(item: T, index: number) => Promise<void>} fn
+ * @param {() => boolean} [shouldStop]
  */
-async function runPool(items, limit, fn) {
+async function runPool(items, limit, fn, shouldStop = undefined) {
   const concurrency = Math.max(1, Math.min(limit, items.length));
   let idx = 0;
   async function worker() {
     while (true) {
+      if (typeof shouldStop === "function" && shouldStop()) return;
       const i = idx;
       idx += 1;
       if (i >= items.length) return;
@@ -42,6 +72,29 @@ async function runPool(items, limit, fn) {
     }
   }
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
+}
+
+function getPriorityTier(symbol) {
+  if (TIER_1_SET.has(symbol)) return 0;
+  if (TIER_2_SET.has(symbol)) return 1;
+  if (TIER_3_SET.has(symbol)) return 2;
+  return 3;
+}
+
+/**
+ * @param {{ symbol: string, category: UniverseCategory }} a
+ * @param {{ symbol: string, category: UniverseCategory }} b
+ */
+function compareWatchlistPriority(a, b) {
+  const aTier = getPriorityTier(a.symbol);
+  const bTier = getPriorityTier(b.symbol);
+  if (aTier !== bTier) return aTier - bTier;
+
+  const aCategory = CATEGORY_PRIORITY[a.category] ?? 99;
+  const bCategory = CATEGORY_PRIORITY[b.category] ?? 99;
+  if (aCategory !== bCategory) return aCategory - bCategory;
+
+  return a.symbol.localeCompare(b.symbol);
 }
 
 /**
@@ -107,7 +160,9 @@ export function createWatchlistBuilder(deps) {
       MAX_SCAN_TICKERS * 10
     );
 
-    const source = loadMergedUniverse({ categories: criteria.categories }).filter((r) => r.enabled);
+    const source = loadMergedUniverse({ categories: criteria.categories })
+      .filter((r) => r.enabled)
+      .sort(compareWatchlistPriority);
 
     /** @type {string[]} */
     const watchlist = [];
@@ -121,6 +176,7 @@ export function createWatchlistBuilder(deps) {
 
     await runPool(source, concurrency, async (row) => {
       const { symbol, category } = row;
+      if (keptRows.length >= limit) return;
       try {
         const quote = await getQuoteCached(symbol);
         const spot = toNumber(quote?.regularMarketPrice);
@@ -140,6 +196,7 @@ export function createWatchlistBuilder(deps) {
         const today = new Date().toISOString().slice(0, 10);
 
         if (criteria.requireWeeklyOptions) {
+          if (keptRows.length >= limit) return;
           const exp = await getExpirationsCached(symbol);
           const dates = Array.isArray(exp?.availableExpirations) ? exp.availableExpirations : [];
           if (!dates.length) {
@@ -153,6 +210,7 @@ export function createWatchlistBuilder(deps) {
         }
 
         if (criteria.requireLiquidOptions) {
+          if (keptRows.length >= limit) return;
           const exp = await getExpirationsCached(symbol);
           const dates = Array.isArray(exp?.availableExpirations) ? exp.availableExpirations : [];
           const nearest = pickNearestExpiration(dates);
@@ -180,20 +238,30 @@ export function createWatchlistBuilder(deps) {
         errors.push({ symbol, message });
         rejected.push({ symbol, category, reason: "error", detail: { message } });
       }
-    });
+    }, () => keptRows.length >= limit);
 
-    keptRows.sort((a, b) => a.symbol.localeCompare(b.symbol));
+    keptRows.sort(compareWatchlistPriority);
     for (const r of keptRows) {
       if (watchlist.length >= limit) break;
       watchlist.push(r.symbol);
     }
 
     const overflow = keptRows.length - watchlist.length;
+    const priorityCount = watchlist.filter((symbol) => PRIORITY_WHEEL_SET.has(symbol)).length;
+    const tier1Count = watchlist.filter((symbol) => TIER_1_SET.has(symbol)).length;
+    const tier2Count = watchlist.filter((symbol) => TIER_2_SET.has(symbol)).length;
+    const tier3Count = watchlist.filter((symbol) => TIER_3_SET.has(symbol)).length;
     const stats = {
       sourceCount: source.length,
       keptCount: watchlist.length,
       rejectedCount: rejected.length,
       truncated: overflow > 0 ? overflow : 0,
+      limitApplied: limit,
+      priorityCount,
+      tier1Count,
+      tier2Count,
+      tier3Count,
+      top20Tickers: watchlist.slice(0, 20),
     };
 
     return {

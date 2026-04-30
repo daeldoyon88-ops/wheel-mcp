@@ -4,13 +4,14 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** @typedef {'core'|'growth'|'high_premium'|'etf'} UniverseCategory */
+/** @typedef {'core'|'growth'|'high_premium'|'etf'|'weekly'} UniverseCategory */
 
 const FILE_BY_CATEGORY = {
   core: "universe.core.json",
   growth: "universe.growth.json",
   high_premium: "universe.high_premium.json",
   etf: "universe.etf.json",
+  weekly: "weekly_eligible_tradingview.txt",
 };
 
 function universeDir() {
@@ -26,6 +27,7 @@ function readCategoryFile(category) {
   if (!filename) throw new Error(`unknown universe category: ${category}`);
   const path = join(universeDir(), filename);
   const raw = readFileSync(path, "utf8");
+  if (filename.endsWith(".txt")) return raw;
   return JSON.parse(raw);
 }
 
@@ -34,6 +36,14 @@ function readCategoryFile(category) {
  * @returns {{ symbol: string, enabled: boolean }[]}
  */
 function normalizeRows(data) {
+  if (typeof data === "string") {
+    return data
+      .split(/[\s,]+/)
+      .map((symbol) => symbol.trim().toUpperCase())
+      .filter(Boolean)
+      .map((symbol) => ({ symbol, enabled: true }));
+  }
+
   if (!Array.isArray(data)) return [];
   const out = [];
   for (const item of data) {

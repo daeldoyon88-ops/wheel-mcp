@@ -28,13 +28,155 @@ const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
+const SCAN_METRICS_NOTES = [
+  "Compteurs cumulés depuis le démarrage du serveur ou le dernier reset.",
+  "Compteurs Yahoo: appels réels upstream + cache hits/misses.",
+  "Compteurs IBKR: approx de coût API à partir des scripts shadow read-only.",
+];
+
+function createEmptyIbkrCallMetrics() {
+  return {
+    startedAt: new Date().toISOString(),
+    lastUpdatedAt: null,
+    totals: {
+      totalStockQualifyCalls: 0,
+      totalOptionQualifyCalls: 0,
+      totalOptionChainRequests: 0,
+      totalStockMarketDataRequests: 0,
+      totalOptionMarketDataRequests: 0,
+      totalExpectedMoveOptionRequests: 0,
+      totalPutCandidateOptionRequests: 0,
+      totalCancelMarketDataCalls: 0,
+      totalMarketDataWaits: 0,
+      totalTimeouts: 0,
+      totalRawStrikesChecked: 0,
+      totalValidCallStrikesCount: 0,
+      totalValidPutStrikesCount: 0,
+      totalApproxIbkrCalls: 0,
+      totalDurationMs: 0,
+      totalTickersObserved: 0,
+    },
+    bySymbol: {},
+  };
+}
+
+const scanMetricsState = {
+  lastRefreshAt: null,
+  ibkr: createEmptyIbkrCallMetrics(),
+};
+
+function incrementNumber(target, key, value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  target[key] = (target[key] || 0) + n;
+}
+
+function mergeIbkrCallMetricsIntoState(metrics) {
+  if (!metrics || typeof metrics !== "object") return;
+  const ibkrState = scanMetricsState.ibkr;
+  const sourceTotals = metrics.totals ?? {};
+  const targetTotals = ibkrState.totals;
+  const totalKeys = [
+    "totalStockQualifyCalls",
+    "totalOptionQualifyCalls",
+    "totalOptionChainRequests",
+    "totalStockMarketDataRequests",
+    "totalOptionMarketDataRequests",
+    "totalExpectedMoveOptionRequests",
+    "totalPutCandidateOptionRequests",
+    "totalCancelMarketDataCalls",
+    "totalMarketDataWaits",
+    "totalTimeouts",
+    "totalRawStrikesChecked",
+    "totalValidCallStrikesCount",
+    "totalValidPutStrikesCount",
+    "totalApproxIbkrCalls",
+    "totalDurationMs",
+    "totalTickersObserved",
+  ];
+  for (const key of totalKeys) incrementNumber(targetTotals, key, sourceTotals[key]);
+
+  const sourceBySymbol = metrics.bySymbol ?? {};
+  for (const [rawSymbol, row] of Object.entries(sourceBySymbol)) {
+    const symbol = String(rawSymbol || "").trim().toUpperCase();
+    if (!symbol || !row || typeof row !== "object") continue;
+    if (!ibkrState.bySymbol[symbol]) {
+      ibkrState.bySymbol[symbol] = {
+        stockQualifyCalls: 0,
+        optionQualifyCalls: 0,
+        optionChainRequests: 0,
+        stockMarketDataRequests: 0,
+        optionMarketDataRequests: 0,
+        expectedMoveOptionRequests: 0,
+        putCandidateOptionRequests: 0,
+        cancelMarketDataCalls: 0,
+        marketDataWaits: 0,
+        timeouts: 0,
+        rawStrikesChecked: 0,
+        validCallStrikesCount: 0,
+        validPutStrikesCount: 0,
+        durationMs: 0,
+        approxIbkrCalls: 0,
+        runs: 0,
+      };
+    }
+    const targetSymbol = ibkrState.bySymbol[symbol];
+    const symbolKeys = [
+      "stockQualifyCalls",
+      "optionQualifyCalls",
+      "optionChainRequests",
+      "stockMarketDataRequests",
+      "optionMarketDataRequests",
+      "expectedMoveOptionRequests",
+      "putCandidateOptionRequests",
+      "cancelMarketDataCalls",
+      "marketDataWaits",
+      "timeouts",
+      "rawStrikesChecked",
+      "validCallStrikesCount",
+      "validPutStrikesCount",
+      "durationMs",
+      "approxIbkrCalls",
+    ];
+    for (const key of symbolKeys) incrementNumber(targetSymbol, key, row[key]);
+    targetSymbol.runs += 1;
+  }
+  ibkrState.lastUpdatedAt = new Date().toISOString();
+}
+
+function getScanMetricsSnapshot() {
+  const yahooMetrics =
+    typeof provider?.getScanMetrics === "function"
+      ? provider.getScanMetrics()
+      : {
+          unavailable: true,
+          reason: "provider_has_no_metrics",
+          totals: {},
+          bySymbol: {},
+        };
+  return {
+    ok: true,
+    yahoo: yahooMetrics,
+    ibkr: scanMetricsState.ibkr,
+    lastRefreshAt: scanMetricsState.lastRefreshAt,
+    notes: SCAN_METRICS_NOTES,
+  };
+}
+
+function resetScanMetricsState() {
+  if (typeof provider?.resetScanMetrics === "function") {
+    provider.resetScanMetrics();
+  }
+  scanMetricsState.ibkr = createEmptyIbkrCallMetrics();
+  scanMetricsState.lastRefreshAt = new Date().toISOString();
+}
 
 const buildWatchlistBodySchema = z.object({
   maxPrice: z.union([z.literal(100), z.literal(125), z.literal(150), z.literal(200)]),
   minVolume: z.number().positive(),
   requireLiquidOptions: z.boolean(),
   requireWeeklyOptions: z.boolean(),
-  categories: z.array(z.enum(["core", "growth", "high_premium", "etf"])).min(1),
+  categories: z.array(z.enum(["core", "growth", "high_premium", "etf", "weekly"])).min(1),
   limit: z.number().int().positive().max(2000).optional(),
 });
 
@@ -203,6 +345,19 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "wheel-mcp-backend" });
 });
 
+app.get("/metrics/scan", (_req, res) => {
+  res.json(getScanMetricsSnapshot());
+});
+
+app.post("/metrics/scan/reset", (_req, res) => {
+  resetScanMetricsState();
+  res.json({
+    ok: true,
+    resetAt: new Date().toISOString(),
+    metrics: getScanMetricsSnapshot(),
+  });
+});
+
 app.get("/ibkr/health", async (_req, res) => {
   try {
     const body = await getIbkrHealthStatus();
@@ -338,6 +493,113 @@ function runIbkrShadowWheel(body = {}) {
   });
 }
 
+function runIbkrShadowWheelBatch(body = {}) {
+  const tickers = Array.isArray(body.tickers)
+    ? [...new Set(body.tickers.map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))]
+    : [];
+  const expiration = body.ibkrExpiration == null ? "" : String(body.ibkrExpiration).trim();
+  const clientId = toPositiveInt(body.clientIdStart, toPositiveInt(process.env.IBKR_SHADOW_CLIENT_ID, 300));
+  const marketDataType = toPositiveInt(body.marketDataType, 2);
+  const maxStrikes = toPositiveInt(body.maxStrikes, 25);
+  const perTickerTimeoutMs = Math.max(1000, toPositiveInt(body.perTickerTimeoutMs, 7000));
+  const requestedTimeoutMs = toPositiveInt(body.batchTimeoutMs, 0);
+  const debug = body.debug === true;
+
+  const pythonExe = pickIbkrShadowPython();
+  const scriptPath = path.join(process.cwd(), "python_ibkr", "test_ibkr_async_wheel_safe_aggressive_batch.py");
+  const childEnv = {
+    ...process.env,
+    IBKR_CLIENT_ID: String(clientId),
+    IBKR_READ_ONLY: "true",
+    IBKR_SYMBOLS_JSON: JSON.stringify(tickers),
+    IBKR_EXCHANGE: "SMART",
+    IBKR_CURRENCY: "USD",
+    IBKR_OPTION_PARAMS_EXCHANGE: "",
+    IBKR_OPTION_RIGHT: "P",
+    IBKR_MARKET_DATA_TYPE: String(marketDataType),
+    IBKR_MAX_STRIKES: String(maxStrikes),
+    IBKR_OPTION_EXPIRATION: expiration,
+    IBKR_PER_TICKER_TIMEOUT_MS: String(perTickerTimeoutMs),
+  };
+  const timeoutMs = requestedTimeoutMs > 0
+    ? requestedTimeoutMs
+    : Math.max(IBKR_SHADOW_TIMEOUT_MS, perTickerTimeoutMs * Math.max(tickers.length, 1) + 20_000);
+
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    let finished = false;
+    let timedOut = false;
+
+    const child = spawn(pythonExe, [scriptPath], {
+      cwd: process.cwd(),
+      env: childEnv,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+
+    child.on("close", (exitCode) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+
+      if (timedOut) {
+        return resolve({
+          status: 504,
+          payload: {
+            ok: false,
+            provider: "IBKR",
+            mode: "ibkr_readonly_shadow_batch",
+            error: "ibkr_shadow_batch_timeout",
+            results: [],
+          },
+        });
+      }
+
+      let payload = null;
+      try {
+        payload = parseLastJsonLine(stdout);
+      } catch (error) {
+        return reject(error);
+      }
+
+      if (!payload) {
+        payload = {
+          ok: false,
+          provider: "IBKR",
+          mode: "ibkr_readonly_shadow_batch",
+          error: "ibkr_shadow_batch_no_json_output",
+          results: [],
+        };
+        if (debug) payload._debug = { stdout, stderr, exitCode };
+        return resolve({ status: 500, payload });
+      }
+
+      if (debug) payload._debug = { stdout, stderr, exitCode };
+      return resolve({ status: 200, payload });
+    });
+  });
+}
+
 function ymdDashedToCompact(value) {
   const s = String(value || "").trim();
   const match = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -371,6 +633,73 @@ function buildWheelShadowComparison(yahoo, ibkr) {
     sameAggressiveStrike: sameStrikeOrNull(yahoo?.aggressiveStrike, ibkr?.aggressiveStrike),
     sameSafeStrike: sameStrikeOrNull(yahoo?.safeStrike, ibkr?.safeStrike),
   };
+}
+
+function getIbkrScanReason(row) {
+  if (!row?.ok) return row?.reason || row?.error || "ibkr_unavailable";
+  if (!row?.safeStrike && !row?.aggressiveStrike) {
+    return row?.safeSelectionReason || "no_safe_or_aggressive_strike";
+  }
+  if (!row?.safeStrike) return row?.safeSelectionReason || "no_safe_candidate_meets_min_premium";
+  if (!row?.aggressiveStrike) return "no_aggressive_strike";
+  return null;
+}
+
+function getIbkrStrikeYield(strike) {
+  const n = numberOrNull(strike?.premiumYieldOnUnderlying ?? strike?.premiumYield);
+  return n == null ? null : n;
+}
+
+function toIbkrScanCandidate(row) {
+  const safe = row?.safeStrike ?? null;
+  const aggressive = row?.aggressiveStrike ?? null;
+  const primary = safe ?? aggressive;
+  const weeklyYield = getIbkrStrikeYield(primary);
+  return {
+    symbol: row.symbol,
+    currentPrice: row.underlyingPrice ?? null,
+    underlyingPrice: row.underlyingPrice ?? null,
+    expectedMove: row.expectedMove ?? null,
+    lowerBound: row.lowerBound ?? null,
+    upperBound: row.upperBound ?? null,
+    targetPremium: row.targetPremium ?? null,
+    safeStrike: safe,
+    aggressiveStrike: aggressive,
+    spread: primary?.spread ?? null,
+    spreadPct: primary?.spreadPct ?? null,
+    premiumUsed: primary?.primeUsed ?? null,
+    weeklyYield,
+    annualizedYield: weeklyYield == null ? null : weeklyYield * 52,
+    putCandidates: Array.isArray(row.putCandidates) ? row.putCandidates : [],
+    putCandidatesSummary: {
+      total: Array.isArray(row.putCandidates) ? row.putCandidates.length : 0,
+      kept: Array.isArray(row.putCandidates)
+        ? row.putCandidates.filter((put) => put?.status === "kept" || String(put?.status || "").includes("selected")).length
+        : 0,
+    },
+    qualityReasons: [
+      row.safeStrike ? "safe IBKR disponible" : "safe IBKR absent",
+      row.aggressiveStrike ? "agressif IBKR disponible" : "agressif IBKR absent",
+    ],
+    durationMs: row.durationMs ?? null,
+    source: "IBKR",
+    raw: row,
+  };
+}
+
+function compareIbkrScanCandidates(a, b, sort) {
+  if (sort === "yield") {
+    return toNumber(b?.annualizedYield) - toNumber(a?.annualizedYield);
+  }
+  const aSafe = a?.safeStrike ? 1 : 0;
+  const bSafe = b?.safeStrike ? 1 : 0;
+  if (aSafe !== bSafe) return bSafe - aSafe;
+  const aSpread = numberOrNull(a?.spreadPct);
+  const bSpread = numberOrNull(b?.spreadPct);
+  if (aSpread != null && bSpread != null && aSpread !== bSpread) return aSpread - bSpread;
+  if (aSpread == null && bSpread != null) return 1;
+  if (aSpread != null && bSpread == null) return -1;
+  return toNumber(b?.annualizedYield) - toNumber(a?.annualizedYield);
 }
 
 function sleepMs(ms) {
@@ -489,6 +818,103 @@ app.post("/ibkr/shadow/wheel", async (req, res) => {
   }
 });
 
+app.post("/ibkr/shadow/scan", async (req, res) => {
+  if (!requireLocalIbkrShadow(req, res)) return;
+  try {
+    const body = req.body ?? {};
+    const rawTickers = Array.isArray(body.tickers) ? body.tickers : [];
+    const maxTickers = Math.min(toPositiveInt(body.maxTickers, 20), 100);
+    const topN = Math.min(toPositiveInt(body.topN, 10), 50);
+    const tickers = [
+      ...new Set(rawTickers.map((t) => String(t || "").trim().toUpperCase()).filter(Boolean)),
+    ].slice(0, maxTickers);
+    if (!tickers.length) {
+      return res.status(400).json({
+        ok: false,
+        mode: "ibkr_shadow_scan",
+        source: "IBKR",
+        readOnly: true,
+        error: "missing_tickers",
+      });
+    }
+
+    const expiration =
+      body.expiration == null || String(body.expiration).trim() === ""
+        ? ""
+        : ymdDashedToCompact(String(body.expiration).trim());
+    const clientIdStart = toPositiveInt(body.clientIdStart, 500);
+    const marketDataType = toPositiveInt(body.marketDataType, 2);
+    const maxStrikes = toPositiveInt(body.maxStrikes, 25);
+    const sort = String(body.sort || "quality").trim().toLowerCase();
+    const batchTimeoutMs = Math.min(300_000, 30_000 + tickers.length * 12_000);
+    const startedAt = Date.now();
+
+    const { payload } = await runIbkrShadowWheelBatch({
+      ...body,
+      tickers,
+      ibkrExpiration: expiration,
+      clientIdStart,
+      marketDataType,
+      maxStrikes,
+      perTickerTimeoutMs: body.perTickerTimeoutMs,
+      batchTimeoutMs,
+    });
+    mergeIbkrCallMetricsIntoState(payload?.ibkrCallMetrics);
+    scanMetricsState.lastRefreshAt = new Date().toISOString();
+    const rows = Array.isArray(payload?.results) ? payload.results : [];
+    const shortlist = [];
+    const rejected = [];
+    const errors = [];
+
+    for (const row of rows) {
+      const reason = getIbkrScanReason(row);
+      if (reason) {
+        rejected.push({
+          symbol: row?.symbol ?? null,
+          reason,
+          durationMs: row?.durationMs ?? null,
+          safeStrike: row?.safeStrike ?? null,
+          aggressiveStrike: row?.aggressiveStrike ?? null,
+          targetPremium: row?.targetPremium ?? null,
+          error: row?.error ?? null,
+        });
+        if (row?.ok !== true) errors.push({ symbol: row?.symbol ?? null, error: reason });
+        continue;
+      }
+      shortlist.push(toIbkrScanCandidate(row));
+    }
+
+    shortlist.sort((a, b) => compareIbkrScanCandidates(a, b, sort));
+
+    res.json({
+      ok: true,
+      mode: "ibkr_shadow_scan",
+      source: "IBKR",
+      readOnly: true,
+      expiration,
+      scanned: tickers.length,
+      kept: shortlist.length,
+      returned: Math.min(topN, shortlist.length),
+      durationMs: Date.now() - startedAt,
+      ibkrDurationMs: numberOrNull(payload?.durationMs),
+      batchTimeoutMs,
+      shortlist: shortlist.slice(0, topN),
+      rejected,
+      errors,
+      warnings: payload?.ok === false ? [payload?.error || "IBKR Shadow scan failed"] : [],
+      ibkrCallMetrics: payload?.ibkrCallMetrics ?? null,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      mode: "ibkr_shadow_scan",
+      source: "IBKR",
+      readOnly: true,
+      error: error?.message || String(error),
+    });
+  }
+});
+
 app.post("/shadow/compare/wheel", async (req, res) => {
   if (!requireLocalIbkrShadow(req, res)) return;
   try {
@@ -560,6 +986,26 @@ app.post("/shadow/compare/wheel/batch", async (req, res) => {
     const maxStrikes = toPositiveInt(body.maxStrikes, 25);
     const delayMs = Math.max(0, toPositiveInt(body.delayMs, 500));
 
+    const batchStartedAt = Date.now();
+    const ibkrBatchResult = await runIbkrShadowWheelBatch({
+      ...body,
+      tickers: cleanedTickers,
+      ibkrExpiration,
+      clientIdStart,
+      marketDataType,
+      maxStrikes,
+      perTickerTimeoutMs: body.perTickerTimeoutMs,
+    });
+    const ibkrBatchPayload = ibkrBatchResult.payload ?? {};
+    mergeIbkrCallMetricsIntoState(ibkrBatchPayload?.ibkrCallMetrics);
+    scanMetricsState.lastRefreshAt = new Date().toISOString();
+    const ibkrRows = Array.isArray(ibkrBatchPayload?.results) ? ibkrBatchPayload.results : [];
+    const ibkrBySymbol = new Map(
+      ibkrRows
+        .map((row) => [String(row?.symbol || "").trim().toUpperCase(), row])
+        .filter(([symbol]) => Boolean(symbol))
+    );
+
     const results = [];
     const summary = {
       confirmed: 0,
@@ -571,16 +1017,52 @@ app.post("/shadow/compare/wheel/batch", async (req, res) => {
 
     for (let i = 0; i < cleanedTickers.length; i += 1) {
       const symbol = cleanedTickers[i];
+      const rowStartedAt = Date.now();
       try {
-        const row = await compareWheelShadowForSymbol({
+        const warnings = [];
+        let yahoo = null;
+        try {
+          yahoo = await wheelScanner.scanTicker(symbol, expiration);
+          if (!yahoo?.ok) {
+            yahoo = { ok: false, symbol, expiration, error: yahoo?.reason || yahoo?.error || "yahoo_compare_failed" };
+            warnings.push("Yahoo compare failed");
+          }
+        } catch (error) {
+          yahoo = { ok: false, symbol, expiration, error: error?.message || String(error) };
+          warnings.push("Yahoo compare failed");
+        }
+
+        const ibkr = ibkrBySymbol.get(symbol) ?? {
+          ok: false,
+          provider: "IBKR",
+          mode: "ibkr_readonly_shadow",
           symbol,
-          expiration,
-          ibkrExpiration,
-          clientId: clientIdStart + i,
-          marketDataType,
-          maxStrikes,
-          debug: body.debug,
-        });
+          error: ibkrBatchPayload?.error || "ibkr_unavailable",
+          reason: ibkrBatchPayload?.error === "ibkr_shadow_batch_timeout" ? "timeout" : "ibkr_unavailable",
+          durationMs: null,
+        };
+        if (!ibkr?.ok) warnings.push("IBKR Shadow compare failed");
+
+        const comparison = buildWheelShadowComparison(yahoo, ibkr);
+        const yahooOk = yahoo?.ok === true;
+        const ibkrOk = ibkr?.ok === true;
+        let status = "different";
+        if (!yahooOk && !ibkrOk) status = "both_failed";
+        else if (yahooOk && !ibkrOk) status = "ibkr_unavailable";
+        else if (!yahooOk && ibkrOk) status = "yahoo_unavailable";
+        else if (comparison.sameAggressiveStrike === true && comparison.sameSafeStrike === true) status = "confirmed";
+        else status = "different";
+
+        const row = {
+          symbol,
+          ok: Boolean(yahooOk || ibkrOk),
+          yahoo,
+          ibkr,
+          comparison,
+          status,
+          warnings,
+          durationMs: numberOrNull(ibkr?.durationMs) ?? Date.now() - rowStartedAt,
+        };
         results.push(row);
         if (Object.prototype.hasOwnProperty.call(summary, row.status)) summary[row.status] += 1;
       } catch (error) {
@@ -605,6 +1087,7 @@ app.post("/shadow/compare/wheel/batch", async (req, res) => {
           },
           status: "both_failed",
           warnings: ["Yahoo compare failed", "IBKR Shadow compare failed"],
+          durationMs: Date.now() - rowStartedAt,
         };
         results.push(fallback);
         summary.both_failed += 1;
@@ -622,9 +1105,12 @@ app.post("/shadow/compare/wheel/batch", async (req, res) => {
       ibkrExpiration,
       total: cleanedTickers.length,
       completed: results.length,
+      durationMs: Date.now() - batchStartedAt,
+      ibkrDurationMs: numberOrNull(ibkrBatchPayload?.durationMs),
       results,
       summary,
-      warnings: [],
+      warnings: ibkrBatchPayload?.ok === false ? [ibkrBatchPayload?.error || "IBKR Shadow batch failed"] : [],
+      ibkrCallMetrics: ibkrBatchPayload?.ibkrCallMetrics ?? null,
     });
   } catch (error) {
     res.status(500).json({
@@ -743,6 +1229,7 @@ app.post("/scan_shortlist", async (req, res) => {
   try {
     const { expiration, tickers = [], topN = 20, sort = "yield" } = req.body ?? {};
     const { status, payload } = await wheelScanner.scanShortlist({ expiration, tickers, topN, sort });
+    scanMetricsState.lastRefreshAt = new Date().toISOString();
     res.status(status).json(payload);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "scan_shortlist failed" });

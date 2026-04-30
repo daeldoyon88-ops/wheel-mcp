@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import time
 import traceback
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone
@@ -249,6 +250,7 @@ def _nearest_atm_index(strikes: list[float], price: float) -> int:
 
 
 def main() -> int:
+    started_at = time.monotonic()
     host = _str_env("IBKR_HOST", "127.0.0.1")
     port = _int_env("IBKR_PORT", 4002)
     client_id = _int_env("IBKR_CLIENT_ID", 213)
@@ -292,6 +294,65 @@ def main() -> int:
     rejected: list[dict] = []
     em_options_out: list[dict] = []
     warnings: list[str] = []
+    ibkr_call_metrics = {
+        "stockQualifyCalls": 0,
+        "optionQualifyCalls": 0,
+        "optionChainRequests": 0,
+        "stockMarketDataRequests": 0,
+        "optionMarketDataRequests": 0,
+        "expectedMoveOptionRequests": 0,
+        "putCandidateOptionRequests": 0,
+        "cancelMarketDataCalls": 0,
+        "marketDataWaits": 0,
+        "timeouts": 0,
+        "rawStrikesChecked": 0,
+        "validCallStrikesCount": 0,
+        "validPutStrikesCount": 0,
+        "durationMs": 0,
+        "approxIbkrCalls": 0,
+    }
+
+    def _safe_int(value):
+        try:
+            return int(value)
+        except Exception:
+            return 0
+
+    def _metric_add(key: str, amount: int = 1):
+        ibkr_call_metrics[key] = _safe_int(ibkr_call_metrics.get(key, 0)) + int(amount)
+
+    def _qualify_stock(contract):
+        _metric_add("stockQualifyCalls")
+        return ib.qualifyContracts(contract)
+
+    def _qualify_option(contract):
+        _metric_add("optionQualifyCalls")
+        return ib.qualifyContracts(contract)
+
+    def _req_mkt_data(contract, option_kind=None):
+        if option_kind == "expected_move":
+            _metric_add("expectedMoveOptionRequests")
+            _metric_add("optionMarketDataRequests")
+        elif option_kind == "put_candidate":
+            _metric_add("putCandidateOptionRequests")
+            _metric_add("optionMarketDataRequests")
+        elif option_kind == "stock":
+            _metric_add("stockMarketDataRequests")
+        else:
+            _metric_add("optionMarketDataRequests")
+        return ib.reqMktData(contract, "", False, False)
+
+    def _cancel_mkt_data(contract):
+        _metric_add("cancelMarketDataCalls")
+        return ib.cancelMktData(contract)
+
+    def _sleep(seconds: float):
+        _metric_add("marketDataWaits")
+        return ib.sleep(seconds)
+
+    def _req_option_chain(symbol_in, exchange_in, sec_type, con_id):
+        _metric_add("optionChainRequests")
+        return ib.reqSecDefOptParams(symbol_in, exchange_in, sec_type, con_id)
 
     try:
         try:
@@ -320,7 +381,7 @@ def main() -> int:
             ib.reqMarketDataType(market_data_type)
 
         underlying = Stock(symbol, exchange, currency)
-        qu = ib.qualifyContracts(underlying)
+        qu = _qualify_stock(underlying)
         if not (isinstance(qu, list) and qu and qu[0]):
             _emit({**base, "connected": True, "error": "underlying_contract_not_qualified"})
             return 1
@@ -330,9 +391,9 @@ def main() -> int:
             _emit({**base, "connected": True, "error": "underlying_conid_missing"})
             return 1
 
-        u_tk = ib.reqMktData(underlying, "", False, False)
+        u_tk = _req_mkt_data(underlying, option_kind="stock")
         requested_contracts.append(underlying)
-        ib.sleep(2.0)
+        _sleep(2.0)
 
         u_b = _finite_number(_safe_attr(u_tk, "bid"))
         u_a = _finite_number(_safe_attr(u_tk, "ask"))
@@ -344,7 +405,7 @@ def main() -> int:
             _emit({**base, "connected": True, "error": "underlying_price_unavailable"})
             return 1
 
-        chains = ib.reqSecDefOptParams(symbol, option_params_exchange, "STK", int(con_id))
+        chains = _req_option_chain(symbol, option_params_exchange, "STK", int(con_id))
         chains = list(chains or [])
         if not chains:
             _emit({**base, "connected": True, "error": "option_params_not_found"})
@@ -373,7 +434,7 @@ def main() -> int:
                 multiplier="100",
                 tradingClass=trading_class,
             )
-            qo = ib.qualifyContracts(opt)
+            qo = _qualify_option(opt)
             return qo[0] if (isinstance(qo, list) and qo and qo[0]) else None
 
         original_nearest_raw_index = _nearest_atm_index(strikes, float(underlying_price))
@@ -425,6 +486,9 @@ def main() -> int:
             "validStraddleStrikesCount": len(valid_straddle_strikes),
             "validStraddleStrikesSample": valid_straddle_strikes[:10],
         }
+        ibkr_call_metrics["rawStrikesChecked"] = len(validation_strikes)
+        ibkr_call_metrics["validCallStrikesCount"] = len(valid_call_strikes)
+        ibkr_call_metrics["validPutStrikesCount"] = len(valid_put_strikes)
 
         if not valid_straddle_strikes:
             _emit(
@@ -479,7 +543,7 @@ def main() -> int:
         def _register_leg(role: str, rght: str, k: float | None, c, att: list, n: int) -> None:
             if c is None or k is None:
                 return
-            tk = ib.reqMktData(c, "", False, False)
+            tk = _req_mkt_data(c, option_kind="expected_move")
             requested_contracts.append(c)
             key = (role, rght, float(k))
             leg_tickers[key] = tk
@@ -521,11 +585,11 @@ def main() -> int:
                     }
                 )
                 continue
-            tk = ib.reqMktData(qc, "", False, False)
+            tk = _req_mkt_data(qc, option_kind="put_candidate")
             requested_contracts.append(qc)
             put_tickers.append((strike, tk))
 
-        ib.sleep(5.0)
+        _sleep(5.0)
 
         # ---------- expected move : extraction quotes ----------
         def _leg_row(role: str, rght: str, k: float):
@@ -813,6 +877,7 @@ def main() -> int:
             "putCandidates": put_data,
             "rejected": rejected,
             "warnings": warnings,
+            "ibkrCallMetrics": None,
             "explanations": {
                 "premiumRule": "primeUsed = bid; minimum = underlyingPrice * 0.5% par expiration",
                 "aggressiveRule": "strike put directement sous la borne basse",
@@ -827,10 +892,23 @@ def main() -> int:
                 ),
             },
         }
+        approx = (
+            _safe_int(ibkr_call_metrics.get("stockQualifyCalls"))
+            + _safe_int(ibkr_call_metrics.get("optionQualifyCalls"))
+            + _safe_int(ibkr_call_metrics.get("optionChainRequests"))
+            + _safe_int(ibkr_call_metrics.get("stockMarketDataRequests"))
+            + _safe_int(ibkr_call_metrics.get("optionMarketDataRequests"))
+            + _safe_int(ibkr_call_metrics.get("cancelMarketDataCalls"))
+        )
+        ibkr_call_metrics["durationMs"] = round((time.monotonic() - started_at) * 1000)
+        ibkr_call_metrics["approxIbkrCalls"] = approx
+        out["ibkrCallMetrics"] = ibkr_call_metrics
         _emit(out)
         return 0
     except Exception as e:
         err = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+        if "timeout" in str(err).lower():
+            ibkr_call_metrics["timeouts"] = 1
         if debug:
             err = err + " | " + traceback.format_exc().replace("\n", " ")
         _emit(
@@ -838,6 +916,18 @@ def main() -> int:
                 **base,
                 "connected": bool(getattr(ib, "isConnected", lambda: False)()),
                 "error": err,
+                "ibkrCallMetrics": {
+                    **ibkr_call_metrics,
+                    "durationMs": round((time.monotonic() - started_at) * 1000),
+                    "approxIbkrCalls": (
+                        _safe_int(ibkr_call_metrics.get("stockQualifyCalls"))
+                        + _safe_int(ibkr_call_metrics.get("optionQualifyCalls"))
+                        + _safe_int(ibkr_call_metrics.get("optionChainRequests"))
+                        + _safe_int(ibkr_call_metrics.get("stockMarketDataRequests"))
+                        + _safe_int(ibkr_call_metrics.get("optionMarketDataRequests"))
+                        + _safe_int(ibkr_call_metrics.get("cancelMarketDataCalls"))
+                    ),
+                },
             }
         )
         return 1
@@ -857,7 +947,7 @@ def main() -> int:
                         continue
                     seen.add(key)
                     try:
-                        ib.cancelMktData(c)
+                        _cancel_mkt_data(c)
                     except Exception:
                         pass
         except Exception:

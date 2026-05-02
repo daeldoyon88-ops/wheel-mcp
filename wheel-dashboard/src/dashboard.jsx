@@ -187,6 +187,69 @@ function computePreIbkrScore(symbol, candidate) {
   return { score, reasons: reasons.slice(0, 4) };
 }
 
+/**
+ * Tickers envoyés au scan IBKR manuel : Yahoo shortlist affichée en priorité, sinon liste watchlist.
+ * @returns {{ tickers: string[], source: "yahoo_shortlist" | "watchlist" }}
+ */
+function getManualIbkrTickersForSend({
+  ibkrDirectMaxTickers,
+  fallbackWatchlistTickers,
+  dataSource,
+  backendCandidates,
+  filteredDisplayedCandidates,
+}) {
+  const max = Number(ibkrDirectMaxTickers) || 10;
+
+  /** @returns {string[]} */
+  const watchlistSlice = () => {
+    const seen = new Set();
+    const out = [];
+    for (const t of fallbackWatchlistTickers || []) {
+      const u = String(t || "").trim().toUpperCase();
+      if (!u || seen.has(u)) continue;
+      seen.add(u);
+      out.push(u);
+      if (out.length >= max) break;
+    }
+    return out;
+  };
+
+  if (
+    dataSource === "backend" &&
+    Array.isArray(backendCandidates) &&
+    backendCandidates.length > 0
+  ) {
+    /** Symboles issus uniquement du dernier scan Yahoo (pas carte IBKR primaire). */
+    const backendOrder = backendCandidates
+      .map((c) => String(c?.ticker || "").trim().toUpperCase())
+      .filter(Boolean);
+    const backendSet = new Set(backendOrder);
+
+    const seen = new Set();
+    const out = [];
+
+    const rows = Array.isArray(filteredDisplayedCandidates) ? filteredDisplayedCandidates : [];
+    for (const item of rows) {
+      const sym = String(item?.ticker || "").trim().toUpperCase();
+      if (!sym || !backendSet.has(sym)) continue;
+      if (seen.has(sym)) continue;
+      seen.add(sym);
+      out.push(sym);
+      if (out.length >= max) return { tickers: out, source: "yahoo_shortlist" };
+    }
+
+    for (const sym of backendOrder) {
+      if (seen.has(sym)) continue;
+      seen.add(sym);
+      out.push(sym);
+      if (out.length >= max) break;
+    }
+    return { tickers: out, source: "yahoo_shortlist" };
+  }
+
+  return { tickers: watchlistSlice(), source: "watchlist" };
+}
+
 function strikeDistancePct(strike, spot) {
   if (!strike || !spot || spot <= 0) return 0;
   return ((strike - spot) / spot) * 100;
@@ -226,6 +289,46 @@ function ymdTodayLocal() {
 
 function isPastYmd(value, today = ymdTodayLocal()) {
   return isYmd(value) && String(value) < String(today);
+}
+
+/** YYYY-MM-DD ou YYYYMMDD → YYYY-MM-DD pour comparaisons. */
+function normalizeExpirationYmd(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return null;
+}
+
+/** Filtre d’affichage : aucune carte dont l’expiration explicite ne correspond pas à la sélection. */
+function candidateRowMatchesSelectedExpiration(item, selectedExp) {
+  const sel = normalizeExpirationYmd(selectedExp);
+  if (!sel) return true;
+  const fields = [
+    item?.targetExpiration,
+    item?.expiration,
+    item?.raw?.expiration,
+    item?.yahoo?.targetExpiration,
+  ];
+  for (const f of fields) {
+    const n = normalizeExpirationYmd(f);
+    if (n && n !== sel) return false;
+  }
+  return true;
+}
+
+function payloadExpirationMatchesSelected(payloadExpirationField, selectedExp) {
+  const p = normalizeExpirationYmd(payloadExpirationField);
+  const s = normalizeExpirationYmd(selectedExp);
+  if (!s) return true;
+  if (!p) return true;
+  return p === s;
+}
+
+function ibkrPayloadExpirationMatchesSelected(payload, selectedExp) {
+  return payloadExpirationMatchesSelected(payload?.expiration, selectedExp);
 }
 
 function pickDefaultExpiration(expirations, today = ymdTodayLocal()) {
@@ -1326,8 +1429,13 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     rank: index + 1,
     ticker: symbol,
     name: yahooCandidate?.name ?? symbol,
-    setup: yahooCandidate?.setup ?? `IBKR live — expiration ${selectedExpiration}`,
-    targetExpiration: yahooCandidate?.targetExpiration ?? selectedExpiration,
+    setup:
+      yahooCandidate?.earningsMode === true
+        ? `Mode earnings — expiration ${selectedExpiration}`
+        : yahooCandidate
+        ? `PUT scanner — expiration ${selectedExpiration}`
+        : `IBKR live — expiration ${selectedExpiration}`,
+    targetExpiration: selectedExpiration,
     price: Number(spot || 0),
     expectedMovePct:
       Number(spot) > 0 && Number(expectedMove) > 0 ? (Number(expectedMove) / Number(spot)) * 100 : yahooCandidate?.expectedMovePct ?? 0,
@@ -2877,6 +2985,12 @@ export default function Dashboard() {
   const [selectedExpiration, setSelectedExpiration] = useState(() =>
     pickDefaultExpiration(DEFAULT_EXPIRATIONS)
   );
+  const selectedExpirationRef = useRef(selectedExpiration);
+
+  useEffect(() => {
+    selectedExpirationRef.current = selectedExpiration;
+  }, [selectedExpiration]);
+
   const expirationOptions = useMemo(() => futureExpirations(DEFAULT_EXPIRATIONS), []);
   const [topN, setTopN] = useState(() => readStoredNumber("wheel.topN", 30));
   const [capital, setCapital] = useState(25500);
@@ -2932,6 +3046,18 @@ export default function Dashboard() {
   const [scanMetricsError, setScanMetricsError] = useState("");
   const [scanMetricsData, setScanMetricsData] = useState(null);
   const technicalCandidatesRef = useRef(new Map());
+
+  /** Changement d’expiration : purge shortlist/Yahoo persistée et résultats IBKR. */
+  useEffect(() => {
+    setIbkrDirectResult(null);
+    setPrimaryIbkrSourceInfo(null);
+    setIbkrDirectSentTickers([]);
+    setIbkrDirectError("");
+    setBackendCandidates(null);
+    setDataSource("snapshot");
+    setScanMeta({ scanned: 0, kept: 0, returned: 0 });
+    technicalCandidatesRef.current.clear();
+  }, [selectedExpiration]);
 
   const snapshotCandidates = useMemo(() => {
     return wheelShortlist
@@ -3008,21 +3134,24 @@ export default function Dashboard() {
       }
       return item.strikeDistance ?? 0;
     };
-    return filteredItems.slice().sort((a, b) => {
-      if (sortBy === "spread") {
-        const aSpread = a.safeStrike?.liquidity?.spreadPct ?? a.aggressiveStrike?.liquidity?.spreadPct;
-        const bSpread = b.safeStrike?.liquidity?.spreadPct ?? b.aggressiveStrike?.liquidity?.spreadPct;
-        const aMissing = aSpread == null;
-        const bMissing = bSpread == null;
-        if (aMissing && bMissing) return 0;
-        if (aMissing) return 1;
-        if (bMissing) return -1;
-      }
-      const aValue = getSortValue(a);
-      const bValue = getSortValue(b);
-      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
-    });
-  }, [enrichedCandidates, query, filter, sortBy, sortOrder]);
+    return filteredItems
+      .slice()
+      .sort((a, b) => {
+        if (sortBy === "spread") {
+          const aSpread = a.safeStrike?.liquidity?.spreadPct ?? a.aggressiveStrike?.liquidity?.spreadPct;
+          const bSpread = b.safeStrike?.liquidity?.spreadPct ?? b.aggressiveStrike?.liquidity?.spreadPct;
+          const aMissing = aSpread == null;
+          const bMissing = bSpread == null;
+          if (aMissing && bMissing) return 0;
+          if (aMissing) return 1;
+          if (bMissing) return -1;
+        }
+        const aValue = getSortValue(a);
+        const bValue = getSortValue(b);
+        return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+      })
+      .filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
+  }, [enrichedCandidates, query, filter, sortBy, sortOrder, selectedExpiration]);
 
   const ibkrBatchTickers = useMemo(
     () =>
@@ -3081,10 +3210,19 @@ export default function Dashboard() {
     () => [...new Set((tickersForScan || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))],
     [tickersForScan]
   );
-  const ibkrDirectTickersForSend = useMemo(
-    () => ibkrDirectTickers.slice(0, Number(ibkrDirectMaxTickers) || 10),
-    [ibkrDirectTickers, ibkrDirectMaxTickers]
+  const manualIbkrDirectSend = useMemo(
+    () =>
+      getManualIbkrTickersForSend({
+        ibkrDirectMaxTickers,
+        fallbackWatchlistTickers: ibkrDirectTickers,
+        dataSource,
+        backendCandidates,
+        filteredDisplayedCandidates: filtered,
+      }),
+    [ibkrDirectMaxTickers, ibkrDirectTickers, dataSource, backendCandidates, filtered]
   );
+  const ibkrDirectTickersForSend = manualIbkrDirectSend.tickers;
+  const ibkrManualSendSource = manualIbkrDirectSend.source;
   const yahooCandidateByTicker = useMemo(() => {
     return new Map(
       activeCandidates
@@ -3099,6 +3237,13 @@ export default function Dashboard() {
       return mergeYahooAndIbkrCandidate(yahooCandidateByTicker.get(symbol) ?? null, ibkrCandidate);
     });
   }, [ibkrDirectResult, yahooCandidateByTicker]);
+  const mergedIbkrYahooCandidatesForPanel = useMemo(
+    () =>
+      mergedIbkrYahooCandidates.filter((item) =>
+        candidateRowMatchesSelectedExpiration(item, selectedExpiration)
+      ),
+    [mergedIbkrYahooCandidates, selectedExpiration]
+  );
   const ibkrTopCostlySymbols = useMemo(() => {
     const bySymbol = scanMetricsData?.ibkr?.bySymbol;
     if (!bySymbol || typeof bySymbol !== "object") return [];
@@ -3170,6 +3315,13 @@ export default function Dashboard() {
   const applyIbkrDirectShortlistToPrimary = useCallback(
     (payload) => {
       if (payload?.ok !== true) return false;
+      if (!ibkrPayloadExpirationMatchesSelected(payload, selectedExpirationRef.current)) {
+        console.warn("Ignored stale scan payload: IBKR primary expiration mismatch vs selection", {
+          payloadExpiration: payload?.expiration,
+          selectedExpiration: selectedExpirationRef.current,
+        });
+        return false;
+      }
       const shortlist = Array.isArray(payload?.shortlist) ? payload.shortlist : [];
       if (shortlist.length === 0) return false;
       rememberTechnicalCandidates(activeCandidates);
@@ -3226,6 +3378,7 @@ export default function Dashboard() {
           if (a.tierBoost !== b.tierBoost) return a.tierBoost - b.tierBoost;
           return a.symbol.localeCompare(b.symbol);
         });
+      const expLocked = selectedExpirationRef.current;
       const tickersToSend = ranked.slice(0, Number(ibkrAutoMaxTickers) || 10).map((row) => row.symbol);
       setIbkrAutoRankDiagnostics(ranked.slice(0, 20));
       if (!tickersToSend.length) return;
@@ -3238,11 +3391,27 @@ export default function Dashboard() {
       try {
         const payload = await callIbkrDirectScan({
           tickers: tickersToSend,
-          expiration: ymdToIbkr(selectedExpiration),
+          expiration: ymdToIbkr(expLocked),
           clientIdStart: ibkrAutoClientIdStart,
           maxTickers: ibkrAutoMaxTickers,
           topN: ibkrAutoTopN,
         });
+        if (
+          normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)
+        ) {
+          console.warn(
+            "Ignored stale scan payload: IBKR Direct received after expiration changed during request",
+            { lockedExpiration: expLocked, current: selectedExpirationRef.current }
+          );
+          return;
+        }
+        if (!ibkrPayloadExpirationMatchesSelected(payload, expLocked)) {
+          console.warn(
+            "Ignored stale scan payload: IBKR Direct payload expiration mismatch vs selection",
+            { payloadExpiration: payload?.expiration, lockedExpiration: expLocked }
+          );
+          return;
+        }
         setIbkrDirectResult(payload);
         applyIbkrDirectShortlistToPrimary(payload);
         const warnings = Array.isArray(payload?.warnings) ? payload.warnings : [];
@@ -3288,12 +3457,15 @@ export default function Dashboard() {
         const raw = window.localStorage.getItem(LAST_GOOD_SCAN_KEY);
         const cached = raw ? JSON.parse(raw) : null;
         const cachedShortlist = Array.isArray(cached?.shortlist) ? cached.shortlist : null;
-        const cachedExpiration = String(cached?.expiration || "").trim();
+        const cachedExpirationNorm = normalizeExpirationYmd(String(cached?.expiration || "").trim());
+        const selectedExpirationNorm = normalizeExpirationYmd(selectedExpiration);
         const cacheUsable =
           cachedShortlist &&
           cachedShortlist.length > 0 &&
-          cachedExpiration === selectedExpiration &&
-          !isPastYmd(cachedExpiration);
+          cachedExpirationNorm &&
+          selectedExpirationNorm &&
+          cachedExpirationNorm === selectedExpirationNorm &&
+          !isPastYmd(cachedExpirationNorm);
         if (cacheUsable) {
           rememberTechnicalCandidates(cachedShortlist);
           setBackendCandidates(cachedShortlist);
@@ -3308,7 +3480,12 @@ export default function Dashboard() {
           setMarketClosedNotice("Marche ferme — dernier scan valide affiche");
           return;
         }
-        if (cached && (!cachedExpiration || cachedExpiration !== selectedExpiration || isPastYmd(cachedExpiration))) {
+        if (
+          cached &&
+          (!cachedExpirationNorm ||
+            cachedExpirationNorm !== selectedExpirationNorm ||
+            isPastYmd(cachedExpirationNorm))
+        ) {
           try {
             window.localStorage.removeItem(LAST_GOOD_SCAN_KEY);
           } catch (_e) {}
@@ -3345,15 +3522,34 @@ export default function Dashboard() {
     setScanError("");
 
     try {
+      const lockedExpiration = selectedExpirationRef.current;
       const payload = await callScanShortlist({
-        expiration: selectedExpiration,
+        expiration: lockedExpiration,
         topN,
         tickers,
         sort: "quality",
       });
 
+      if (
+        normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(lockedExpiration)
+      ) {
+        console.warn(
+          `Ignored stale scan payload: payload expiration ${lockedExpiration ?? "—"}, selected expiration ${selectedExpirationRef.current ?? "—"}`
+        );
+        return;
+      }
+      if (
+        payload?.expiration != null &&
+        !payloadExpirationMatchesSelected(payload.expiration, lockedExpiration)
+      ) {
+        console.warn(
+          `Ignored stale scan payload: payload expiration ${payload.expiration}, selected expiration ${lockedExpiration}`
+        );
+        return;
+      }
+
       const mapped = (payload.shortlist || []).map((item, index) =>
-        toDashboardCandidate(item, index, selectedExpiration)
+        toDashboardCandidate(item, index, lockedExpiration)
       );
       rememberTechnicalCandidates(mapped);
 
@@ -3370,7 +3566,7 @@ export default function Dashboard() {
           window.localStorage.setItem(
             LAST_GOOD_SCAN_KEY,
             JSON.stringify({
-              expiration: selectedExpiration,
+              expiration: lockedExpiration,
               scanMeta: {
                 scanned: payload.scanned ?? tickers.length,
                 kept: payload.kept ?? mapped.length,
@@ -3488,24 +3684,45 @@ export default function Dashboard() {
   ]);
 
   const handleIbkrDirectScan = useCallback(async () => {
-    if (!ibkrDirectTickers.length) {
-      setIbkrDirectError("Impossible de scanner IBKR : watchlist vide.");
+    const tickersToSend = ibkrDirectTickersForSend;
+    if (!tickersToSend.length) {
+      setIbkrDirectError("Impossible de scanner IBKR : aucun ticker disponible (shortlist Yahoo ou watchlist vide).");
       return;
     }
-    const tickersToSend = ibkrDirectTickersForSend;
+    console.warn("[IBKR_MANUAL_TICKERS]", {
+      source: ibkrManualSendSource,
+      tickers: tickersToSend,
+    });
 
     setIbkrDirectLoading(true);
     setIbkrDirectError("");
     setIbkrDirectResult(null);
     setIbkrDirectSentTickers(tickersToSend);
     try {
+      const expLocked = selectedExpirationRef.current;
       const payload = await callIbkrDirectScan({
         tickers: tickersToSend,
-        expiration: ymdToIbkr(selectedExpiration),
+        expiration: ymdToIbkr(expLocked),
         clientIdStart: ibkrDirectClientIdStart,
         maxTickers: ibkrDirectMaxTickers,
         topN: ibkrDirectTopN,
       });
+      if (
+        normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)
+      ) {
+        console.warn(
+          "Ignored stale scan payload: IBKR Direct manual received after expiration changed during request",
+          { lockedExpiration: expLocked, current: selectedExpirationRef.current }
+        );
+        return;
+      }
+      if (!ibkrPayloadExpirationMatchesSelected(payload, expLocked)) {
+        console.warn(
+          "Ignored stale scan payload: IBKR manual payload expiration mismatch vs selection",
+          { payloadExpiration: payload?.expiration, lockedExpiration: expLocked }
+        );
+        return;
+      }
       setIbkrDirectResult(payload);
       applyIbkrDirectShortlistToPrimary(payload);
     } catch (err) {
@@ -3514,8 +3731,8 @@ export default function Dashboard() {
       setIbkrDirectLoading(false);
     }
   }, [
-    ibkrDirectTickers,
     ibkrDirectTickersForSend,
+    ibkrManualSendSource,
     selectedExpiration,
     ibkrDirectClientIdStart,
     ibkrDirectMaxTickers,
@@ -3527,6 +3744,7 @@ export default function Dashboard() {
     const tickersToSend = ["TQQQ", "AFRM", "SOXL"];
     setIbkrDirectMaxTickers(3);
     setIbkrDirectTopN(3);
+    const expLocked = selectedExpirationRef.current;
     setIbkrDirectLoading(true);
     setIbkrDirectError("");
     setIbkrDirectResult(null);
@@ -3534,11 +3752,27 @@ export default function Dashboard() {
     try {
       const payload = await callIbkrDirectScan({
         tickers: tickersToSend,
-        expiration: ymdToIbkr(selectedExpiration),
+        expiration: ymdToIbkr(expLocked),
         clientIdStart: ibkrDirectClientIdStart,
         maxTickers: 3,
         topN: 3,
       });
+      if (
+        normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)
+      ) {
+        console.warn(
+          "Ignored stale scan payload: IBKR test scan vs changed expiration",
+          { lockedExpiration: expLocked, current: selectedExpirationRef.current }
+        );
+        return;
+      }
+      if (!ibkrPayloadExpirationMatchesSelected(payload, expLocked)) {
+        console.warn("Ignored stale scan payload: IBKR test payload expiration mismatch", {
+          payloadExpiration: payload?.expiration,
+          lockedExpiration: expLocked,
+        });
+        return;
+      }
       setIbkrDirectResult(payload);
       applyIbkrDirectShortlistToPrimary(payload);
     } catch (err) {
@@ -4216,7 +4450,7 @@ export default function Dashboard() {
             Diagnostic secondaire : ancienne vue fusionnée
           </summary>
           <div className="mt-4">
-            <MergedShortlistSection candidates={mergedIbkrYahooCandidates} />
+            <MergedShortlistSection candidates={mergedIbkrYahooCandidatesForPanel} />
           </div>
         </details>
           </div>

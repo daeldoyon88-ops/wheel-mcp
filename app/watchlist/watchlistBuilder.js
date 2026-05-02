@@ -99,6 +99,134 @@ function compareWatchlistPriority(a, b) {
   return a.symbol.localeCompare(b.symbol);
 }
 
+function normalizeMasterTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
+}
+
+function tierLabelFromIndex(tier) {
+  if (tier === 0) return "T1";
+  if (tier === 1) return "T2";
+  if (tier === 2) return "T3";
+  return "—";
+}
+
+/** Tie-break faible après le score dynamique (anciennes priorités). */
+function tierMicroBias(symbol) {
+  const s = String(symbol || "").trim().toUpperCase();
+  const t = getPriorityTier(s);
+  if (t === 0) return 2;
+  if (t === 1) return 1;
+  if (t === 2) return -2;
+  return 0;
+}
+
+/**
+ * Score watchlist dynamique (données déjà chargées dans buildWatchlist — pas d’API).
+ *
+ * @param {{ symbol: string, category: UniverseCategory, sources?: string[], tags?: unknown }} row
+ * @param {{
+ *   spot: number,
+ *   maxPrice: number,
+ *   minPrice: number,
+ *   minVolume: number,
+ *   volumeUsed: number,
+ *   hasWeeklyStyle: boolean,
+ *   optionLiquidityOk?: boolean,
+ *   atmSpreadPct?: number | null,
+ * }} ctx
+ */
+export function computeWatchlistCandidateScore(row, ctx) {
+  const reasons = [];
+  let score = 50;
+  const sym = String(row?.symbol || "").trim().toUpperCase();
+  const spot = toNumber(ctx.spot);
+  const maxP = toNumber(ctx.maxPrice);
+  const minP = toNumber(ctx.minPrice);
+  const minVol = toNumber(ctx.minVolume);
+  const volUsed = toNumber(ctx.volumeUsed);
+
+  const volRatio = minVol > 0 ? volUsed / minVol : 1;
+  if (volRatio >= 40) {
+    score += 18;
+    reasons.push("volume élevé vs seuil");
+  } else if (volRatio >= 15) {
+    score += 12;
+  } else if (volRatio >= 5) {
+    score += 7;
+  } else if (volRatio >= 2) {
+    score += 3;
+  } else if (volRatio < 1.35) {
+    score -= 8;
+    reasons.push("volume juste au-dessus du min");
+  }
+
+  const priceRatio = maxP > 0 ? spot / maxP : 0;
+  if (priceRatio >= 0.96) {
+    score -= 16;
+    reasons.push("prix très proche du maxPrice");
+  } else if (priceRatio >= 0.88) {
+    score -= 8;
+    reasons.push("prix proche du plafond");
+  } else if (priceRatio <= 0.55 && spot >= minP) {
+    score += 6;
+    reasons.push("marge sous le plafond");
+  }
+
+  const band = maxP - minP;
+  if (band > 0) {
+    const mid = (minP + maxP) / 2;
+    const distNorm = Math.abs(spot - mid) / band;
+    if (distNorm < 0.28) {
+      score += 8;
+      reasons.push("prix dans zone utile wheel");
+    }
+  }
+
+  const sources = Array.isArray(row.sources) ? row.sources : [];
+  if (sources.length >= 3) {
+    score += 5;
+    reasons.push("sources multiples");
+  } else if (sources.length === 2) {
+    score += 3;
+  }
+
+  const tgs = normalizeMasterTags(row.tags);
+  if (tgs.includes("weekly_options")) {
+    score += 3;
+    reasons.push("tag weekly_options");
+  }
+  if (tgs.includes("core")) score += 2;
+  if (tgs.includes("growth")) score += 1;
+  if (tgs.some((t) => t.includes("speculative") || t.includes("high_risk"))) {
+    score -= 5;
+    reasons.push("tag spéculatif");
+  }
+
+  if (ctx.hasWeeklyStyle) {
+    score += 4;
+    reasons.push("options style hebdo");
+  }
+
+  if (ctx.optionLiquidityOk === true && ctx.atmSpreadPct != null) {
+    const sp = Number(ctx.atmSpreadPct);
+    if (Number.isFinite(sp) && sp <= 0.15) {
+      score += 6;
+      reasons.push("spread ATM put serré");
+    } else if (Number.isFinite(sp) && sp <= 0.3) {
+      score += 3;
+    }
+  }
+
+  if (TIER_3_SET.has(sym)) {
+    score -= 3;
+    reasons.push("tier3 historique (léger malus)");
+  }
+
+  score = Math.max(0, Math.min(120, Math.round(score)));
+  return { score, reasons: reasons.slice(0, 6) };
+}
+
 /**
  * @param {{ marketService: { getQuote: Function, getOptionExpirations: Function, getOptionChain: Function }, cache: { get: Function, set: Function }, concurrency?: number }} deps
  */
@@ -164,7 +292,7 @@ export function createWatchlistBuilder(deps) {
 
     const source = loadMergedUniverse({ categories: criteria.categories })
       .filter((r) => r.enabled)
-      .sort(compareWatchlistPriority);
+      .sort((a, b) => a.symbol.localeCompare(b.symbol));
 
     /** @type {string[]} */
     const watchlist = [];
@@ -173,12 +301,11 @@ export function createWatchlistBuilder(deps) {
     /** @type {{ symbol: string, message: string }[]} */
     const errors = [];
 
-    /** @type {{ symbol: string, category: UniverseCategory }[]} */
+    /** @type {{ symbol: string, category: UniverseCategory, watchlistScore: number, watchlistScoreReasons: string[], tierLabel: string, tierBias: number, sortScore: number }[]} */
     const keptRows = [];
 
     await runPool(source, concurrency, async (row) => {
       const { symbol, category } = row;
-      if (keptRows.length >= limit) return;
       try {
         const quote = await getQuoteCached(symbol);
         const spot = toNumber(quote?.regularMarketPrice);
@@ -203,9 +330,11 @@ export function createWatchlistBuilder(deps) {
         }
 
         const today = new Date().toISOString().slice(0, 10);
+        let hasWeeklyStyle = false;
+        let atmSpreadPct = null;
+        let optionLiquidityOk = false;
 
         if (criteria.requireWeeklyOptions) {
-          if (keptRows.length >= limit) return;
           const exp = await getExpirationsCached(symbol);
           const dates = Array.isArray(exp?.availableExpirations) ? exp.availableExpirations : [];
           if (!dates.length) {
@@ -216,10 +345,10 @@ export function createWatchlistBuilder(deps) {
             rejected.push({ symbol, category, reason: "no_weekly_options", detail: { checkedExpirations: dates.length } });
             return;
           }
+          hasWeeklyStyle = true;
         }
 
         if (criteria.requireLiquidOptions) {
-          if (keptRows.length >= limit) return;
           const exp = await getExpirationsCached(symbol);
           const dates = Array.isArray(exp?.availableExpirations) ? exp.availableExpirations : [];
           const nearest = pickNearestExpiration(dates);
@@ -239,27 +368,60 @@ export function createWatchlistBuilder(deps) {
             });
             return;
           }
+          optionLiquidityOk = true;
+          atmSpreadPct = liq.detail?.liquidity?.spreadPct ?? null;
         }
 
-        keptRows.push({ symbol, category });
+        const volUsed = volCheck.detail?.volumeUsed ?? criteria.minVolume;
+        const { score: watchlistScore, reasons: watchlistScoreReasons } = computeWatchlistCandidateScore(row, {
+          spot,
+          maxPrice: criteria.maxPrice,
+          minPrice: minPx,
+          minVolume: criteria.minVolume,
+          volumeUsed: volUsed,
+          hasWeeklyStyle,
+          optionLiquidityOk,
+          atmSpreadPct,
+        });
+        const tierBias = tierMicroBias(symbol);
+        const tierLabel = tierLabelFromIndex(getPriorityTier(symbol));
+        keptRows.push({
+          symbol,
+          category,
+          watchlistScore,
+          watchlistScoreReasons,
+          tierLabel,
+          tierBias,
+          sortScore: watchlistScore + tierBias,
+        });
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         errors.push({ symbol, message });
         rejected.push({ symbol, category, reason: "error", detail: { message } });
       }
-    }, () => keptRows.length >= limit);
+    });
 
-    keptRows.sort(compareWatchlistPriority);
+    keptRows.sort((a, b) => {
+      if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+      return a.symbol.localeCompare(b.symbol);
+    });
+
     for (const r of keptRows) {
       if (watchlist.length >= limit) break;
       watchlist.push(r.symbol);
     }
 
-    const overflow = keptRows.length - watchlist.length;
+    const overflow = Math.max(0, keptRows.length - limit);
     const priorityCount = watchlist.filter((symbol) => PRIORITY_WHEEL_SET.has(symbol)).length;
     const tier1Count = watchlist.filter((symbol) => TIER_1_SET.has(symbol)).length;
     const tier2Count = watchlist.filter((symbol) => TIER_2_SET.has(symbol)).length;
     const tier3Count = watchlist.filter((symbol) => TIER_3_SET.has(symbol)).length;
+
+    const top30 = watchlist.slice(0, 30);
+    let top30HardcodedTierCount = 0;
+    for (const sym of top30) {
+      if (PRIORITY_WHEEL_SET.has(sym)) top30HardcodedTierCount += 1;
+    }
 
     /** @type {Record<string, number>} */
     const rejectedByReason = {};
@@ -268,9 +430,19 @@ export function createWatchlistBuilder(deps) {
       rejectedByReason[k] = (rejectedByReason[k] ?? 0) + 1;
     }
 
+    const watchlistDiagnostics = keptRows.slice(0, Math.min(30, limit)).map((r) => ({
+      symbol: r.symbol,
+      watchlistScore: r.watchlistScore,
+      watchlistScoreReasons: r.watchlistScoreReasons,
+      tierLabel: r.tierLabel,
+      tierBias: r.tierBias,
+      sortScore: r.sortScore,
+    }));
+
     const stats = {
       sourceCount: source.length,
       keptCount: watchlist.length,
+      retainedAfterFiltersCount: keptRows.length,
       rejectedCount: rejected.length,
       truncated: overflow > 0 ? overflow : 0,
       limitApplied: limit,
@@ -279,6 +451,8 @@ export function createWatchlistBuilder(deps) {
       tier2Count,
       tier3Count,
       top20Tickers: watchlist.slice(0, 20),
+      top30Tickers: top30,
+      top30HardcodedTierCount,
       rejectedByReason,
     };
 
@@ -290,6 +464,7 @@ export function createWatchlistBuilder(deps) {
       },
       stats,
       watchlist,
+      watchlistDiagnostics,
       rejected,
       errors,
     };

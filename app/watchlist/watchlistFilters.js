@@ -13,6 +13,20 @@ export function passesMaxPrice(spot, maxPrice) {
 }
 
 /**
+ * Prix spot minimal (prix absence → même règle que max : rejet price_unavailable).
+ *
+ * @param {number | null | undefined} minPrice si <= 0, filtre désactivé (aucun plancher).
+ */
+export function passesMinPrice(spot, minPrice) {
+  const floor = toNumber(minPrice);
+  if (!(floor > 0)) return { ok: true };
+  const s = toNumber(spot);
+  if (!(s > 0)) return { ok: false, reason: "price_unavailable" };
+  if (s < floor) return { ok: false, reason: "below_min_price", detail: { spot: s, minPrice: floor } };
+  return { ok: true };
+}
+
+/**
  * Priorité : moyenne 3 mois → moyenne 10 j → volume séance.
  *
  * @param {{ regularMarketVolume?: unknown, averageDailyVolume3Month?: unknown, averageDailyVolume10Day?: unknown }} quote

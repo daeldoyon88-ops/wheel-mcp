@@ -4,6 +4,7 @@ import {
   evaluateAtmPutLiquidity,
   hasWeeklyStyleExpirations,
   passesMaxPrice,
+  passesMinPrice,
   passesMinVolume,
 } from "./watchlistFilters.js";
 import { loadMergedUniverse } from "./universeLoader.js";
@@ -13,6 +14,7 @@ import { loadMergedUniverse } from "./universeLoader.js";
 /**
  * @typedef {Object} BuildWatchlistCriteria
  * @property {100|125|150|200} maxPrice
+ * @property {number} [minPrice] défaut côté API : 10 ; <= 0 désactive le plancher
  * @property {number} minVolume
  * @property {boolean} requireLiquidOptions
  * @property {boolean} requireWeeklyOptions
@@ -187,6 +189,13 @@ export function createWatchlistBuilder(deps) {
           return;
         }
 
+        const minPx = typeof criteria.minPrice === "number" ? criteria.minPrice : 10;
+        const minPriceCheck = passesMinPrice(spot, minPx);
+        if (!minPriceCheck.ok) {
+          rejected.push({ symbol, category, reason: minPriceCheck.reason, detail: minPriceCheck.detail });
+          return;
+        }
+
         const volCheck = passesMinVolume(quote, criteria.minVolume);
         if (!volCheck.ok) {
           rejected.push({ symbol, category, reason: volCheck.reason, detail: volCheck.detail });
@@ -251,6 +260,14 @@ export function createWatchlistBuilder(deps) {
     const tier1Count = watchlist.filter((symbol) => TIER_1_SET.has(symbol)).length;
     const tier2Count = watchlist.filter((symbol) => TIER_2_SET.has(symbol)).length;
     const tier3Count = watchlist.filter((symbol) => TIER_3_SET.has(symbol)).length;
+
+    /** @type {Record<string, number>} */
+    const rejectedByReason = {};
+    for (const r of rejected) {
+      const k = r.reason ?? "unknown";
+      rejectedByReason[k] = (rejectedByReason[k] ?? 0) + 1;
+    }
+
     const stats = {
       sourceCount: source.length,
       keptCount: watchlist.length,
@@ -262,6 +279,7 @@ export function createWatchlistBuilder(deps) {
       tier2Count,
       tier3Count,
       top20Tickers: watchlist.slice(0, 20),
+      rejectedByReason,
     };
 
     return {

@@ -40,7 +40,8 @@ const FALLBACK_TICKERS = [
 /** Aligné sur ton backend (schema zod dans server.js) — à ajuster si tes critères changent. */
 const DEFAULT_BUILD_WATCHLIST_BODY = {
   maxPrice: 125,
-  minVolume: 500000,
+  minPrice: 10,
+  minVolume: 1_000_000,
   requireLiquidOptions: false,
   requireWeeklyOptions: true,
   categories: ["weekly", "core", "growth"],
@@ -129,7 +130,7 @@ function computePreIbkrScore(symbol, candidate) {
   const price = Number(candidate?.price);
 
   if (IBKR_AUTO_PRIORITY_SYMBOLS.has(s)) {
-    score += 40;
+    score += 10;
     reasons.push("prioritaire");
   }
   if (IBKR_AUTO_SPECULATIVE_PENALTY.has(s)) {

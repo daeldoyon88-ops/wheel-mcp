@@ -28,6 +28,8 @@ const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
+const WHEEL_DEV_SCAN_WARNING =
+  "DEV TEST — données possiblement figées / non tradables";
 const SCAN_METRICS_NOTES = [
   "Compteurs cumulés depuis le démarrage du serveur ou le dernier reset.",
   "Compteurs Yahoo: appels réels upstream + cache hits/misses.",
@@ -475,6 +477,7 @@ function runIbkrShadowWheel(body = {}) {
     IBKR_MARKET_DATA_TYPE: String(marketDataType),
     IBKR_MAX_STRIKES: String(maxStrikes),
     IBKR_OPTION_EXPIRATION: expiration,
+    WHEEL_DEV_SCAN: process.env.WHEEL_DEV_SCAN === "1" ? "1" : "0",
   };
 
   return new Promise((resolve, reject) => {
@@ -579,6 +582,7 @@ function runIbkrShadowWheelBatch(body = {}) {
     IBKR_OPTION_EXPIRATION: expiration,
     IBKR_PER_TICKER_TIMEOUT_MS: String(perTickerTimeoutMs),
     IBKR_TWO_PHASE_SCAN: twoPhaseScanEnabled ? "1" : "0",
+    WHEEL_DEV_SCAN: process.env.WHEEL_DEV_SCAN === "1" ? "1" : "0",
   };
   const timeoutMs = requestedTimeoutMs > 0
     ? requestedTimeoutMs
@@ -779,12 +783,13 @@ function getIbkrStrikeYield(strike) {
   return n == null ? null : n;
 }
 
-function toIbkrScanCandidate(row) {
+function toIbkrScanCandidate(row, devScanEnabled = false) {
   const safe = row?.safeStrike ?? null;
   const aggressive = row?.aggressiveStrike ?? null;
   const primary = safe ?? aggressive;
   const weeklyYield = getIbkrStrikeYield(primary);
-  return {
+  /** @type {Record<string, unknown>} */
+  const cand = {
     symbol: row.symbol,
     currentPrice: row.underlyingPrice ?? null,
     underlyingPrice: row.underlyingPrice ?? null,
@@ -817,6 +822,40 @@ function toIbkrScanCandidate(row) {
     source: "IBKR",
     raw: row,
   };
+  if (devScanEnabled) {
+    cand.devScanEnabled = true;
+    cand.dataTradable = false;
+    if (row?.devIncompleteMarketData === true) cand.devIncompleteMarketData = true;
+    const devNote = "Données IBKR incomplètes — affichage DEV seulement";
+    const qual = cand.qualityReasons.filter(Boolean);
+    if (Array.isArray(row?.qualityReasons)) {
+      for (const qr of row.qualityReasons) {
+        const s = String(qr || "").trim();
+        if (s && !qual.includes(s)) qual.push(s);
+      }
+    }
+    if (!qual.some((x) => String(x).includes("DEV"))) {
+      qual.push(devNote);
+    }
+    cand.qualityReasons = qual;
+    cand.ibkrShadowCardMode = cand.devIncompleteMarketData === true ? "dev_incomplete" : "dev_nominal";
+  }
+  return cand;
+}
+
+function toIbkrScanDevCandidate(row, devScanEnabled = false) {
+  const mapped = { ...toIbkrScanCandidate(row, devScanEnabled) };
+  mapped.status = "dev_display";
+  const reasonText = getIbkrScanReason(row) ?? row?.error ?? row?.reason ?? "ibkr_dev_display";
+  mapped.reason =
+    typeof reasonText === "string" && reasonText.trim() !== ""
+      ? reasonText.trim()
+      : "ibkr_dev_display";
+  const qual = [...(mapped.qualityReasons ?? []).filter(Boolean)];
+  const tag = WHEEL_DEV_SCAN_WARNING;
+  if (!qual.some((x) => String(x).includes(tag))) qual.push(tag);
+  mapped.qualityReasons = qual;
+  return mapped;
 }
 
 function compareIbkrScanCandidates(a, b, sort) {
@@ -982,6 +1021,10 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const startedAt = Date.now();
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
     const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "0" ? false : true;
+    const devScanEnabled = process.env.WHEEL_DEV_SCAN === "1";
+    if (devScanEnabled) {
+      console.log("[WHEEL_DEV_SCAN]", "enabled=true");
+    }
 
     console.log("[IBKR_SHADOW_SCAN_START]", expiration || "default", "tickers", tickers.length);
     console.log("[IBKR_TWO_PHASE_SCAN]", `enabled=${twoPhaseScanEnabled}`);
@@ -1024,6 +1067,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     mergeIbkrCallMetricsIntoState(enrichedIbkrCallMetrics);
     scanMetricsState.lastRefreshAt = new Date().toISOString();
     const shortlist = [];
+    const shortlistDev = [];
     const rejected = [];
     const errors = [];
 
@@ -1054,18 +1098,30 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
           error: row?.error ?? null,
         });
         if (row?.ok !== true) errors.push({ symbol: row?.symbol ?? null, error: reason });
+        if (devScanEnabled && row?.ibkrDevDisplay === true) {
+          shortlistDev.push(toIbkrScanDevCandidate(row, devScanEnabled));
+        }
         continue;
       }
-      shortlist.push(toIbkrScanCandidate(row));
+      shortlist.push(toIbkrScanCandidate(row, devScanEnabled));
     }
 
     shortlist.sort((a, b) => compareIbkrScanCandidates(a, b, sort));
+    shortlistDev.sort((a, b) => compareIbkrScanCandidates(a, b, sort));
+    const responseWarnings =
+      payload?.ok === false ? [payload?.error || "IBKR Shadow scan failed"] : [];
+    if (devScanEnabled && !responseWarnings.includes(WHEEL_DEV_SCAN_WARNING)) {
+      responseWarnings.push(WHEEL_DEV_SCAN_WARNING);
+    }
+
     console.log(
       "[IBKR_SHADOW_SCAN_DONE]",
       "scanned",
       tickers.length,
       "kept",
       shortlist.length,
+      devScanEnabled ? "devDisplayed" : "dev_off",
+      devScanEnabled ? shortlistDev.length : 0,
       "rejected",
       rejected.length,
       "errors",
@@ -1082,6 +1138,16 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       source: "IBKR",
       readOnly: true,
       twoPhaseEnabled: responseTwoPhaseEnabled,
+      ...(devScanEnabled
+        ? {
+            devScanEnabled: true,
+            dataTradable: false,
+            warning: WHEEL_DEV_SCAN_WARNING,
+            shortlistDev: shortlistDev.slice(0, topN),
+            devDisplayed: shortlistDev.length,
+            devDisplayedReturned: Math.min(topN, shortlistDev.length),
+          }
+        : { devScanEnabled: false }),
       expiration,
       scanned: tickers.length,
       kept: shortlist.length,
@@ -1093,7 +1159,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       rejected,
       errors,
       rejectionReasons,
-      warnings: payload?.ok === false ? [payload?.error || "IBKR Shadow scan failed"] : [],
+      warnings: responseWarnings,
       ibkr: {
         twoPhaseEnabled: responseTwoPhaseEnabled,
       },

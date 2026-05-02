@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import sys
 import time
 import traceback
 from decimal import Decimal, ROUND_HALF_UP
@@ -308,6 +309,49 @@ def _find_leg_with_fallback(
 
 
 def main() -> int:
+    wheel_dev_scan = _parse_bool(os.environ.get("WHEEL_DEV_SCAN"), False)
+    if wheel_dev_scan:
+        print("[WHEEL_DEV_SCAN] enabled=true", file=sys.stderr, flush=True)
+
+    def _ibkr_dev_log(sym: str, message: str) -> None:
+        if wheel_dev_scan:
+            print(f"[IBKR_DEV] {sym} {message}", file=sys.stderr, flush=True)
+
+    def _apply_dev_overlay(
+        payload: dict,
+        *,
+        incomplete_md: bool,
+        dev_display: bool,
+        sym_hint: str,
+        log_suffix: str = "",
+    ) -> dict:
+        if not wheel_dev_scan:
+            return payload
+        p = dict(payload)
+        p["devScanEnabled"] = True
+        p["dataTradable"] = False
+        if dev_display:
+            p["ibkrDevDisplay"] = True
+        if incomplete_md:
+            p["devIncompleteMarketData"] = True
+            w = "DEV: données IBKR incomplètes"
+            warns = list(p.get("warnings") or [])
+            if w not in warns:
+                warns.append(w)
+            p["warnings"] = warns
+            qraw = p.get("qualityReasons")
+            qr = list(qraw) if isinstance(qraw, list) else ([] if qraw is None else [str(qraw)])
+            if w not in qr:
+                qr.append(w)
+            p["qualityReasons"] = qr
+            reason = (
+                log_suffix.strip()
+                or str(p.get("error") or p.get("reason") or "").strip()
+                or "incomplete_md"
+            )
+            _ibkr_dev_log(sym_hint or "?", f"incomplete market data, displaying for dev only reason={reason}")
+        return p
+
     started_at = time.monotonic()
     host = _str_env("IBKR_HOST", "127.0.0.1")
     port = _int_env("IBKR_PORT", 4002)
@@ -431,15 +475,27 @@ def main() -> int:
             )
         except Exception as e:
             _emit(
-                {
-                    **base,
-                    "error": f"connect_failed_startup_fetch_none_required: {type(e).__name__}: {e}",
-                }
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "error": f"connect_failed_startup_fetch_none_required: {type(e).__name__}: {e}",
+                    },
+                    incomplete_md=True,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
             )
             return 1
 
         if not ib.isConnected():
-            _emit({**base, "error": "Connexion refusée ou synchronisation incomplète"})
+            _emit(
+                _apply_dev_overlay(
+                    {**base, "error": "Connexion refusée ou synchronisation incomplète"},
+                    incomplete_md=True,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
 
         if hasattr(ib, "reqMarketDataType"):
@@ -448,12 +504,26 @@ def main() -> int:
         underlying = Stock(symbol, exchange, currency)
         qu = _qualify_stock(underlying)
         if not (isinstance(qu, list) and qu and qu[0]):
-            _emit({**base, "connected": True, "error": "underlying_contract_not_qualified"})
+            _emit(
+                _apply_dev_overlay(
+                    {**base, "connected": True, "error": "underlying_contract_not_qualified"},
+                    incomplete_md=False,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
         underlying = qu[0]
         con_id = _safe_attr(underlying, "conId")
         if not (isinstance(con_id, int) and con_id > 0):
-            _emit({**base, "connected": True, "error": "underlying_conid_missing"})
+            _emit(
+                _apply_dev_overlay(
+                    {**base, "connected": True, "error": "underlying_conid_missing"},
+                    incomplete_md=False,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
 
         u_tk = _req_mkt_data(underlying, option_kind="stock")
@@ -467,17 +537,53 @@ def main() -> int:
         u_mp = _extract_market_price(u_tk)
         underlying_price = _pick_underlying_price(u_b, u_a, u_l, u_c, u_mp)
         if underlying_price is None:
-            _emit({**base, "connected": True, "error": "underlying_price_unavailable"})
+            _emit(
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "connected": True,
+                        "error": "underlying_price_unavailable",
+                        "underlyingTickerHint": {"bid": u_b, "ask": u_a, "last": u_l, "close": u_c},
+                    },
+                    incomplete_md=True,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
 
         chains = _req_option_chain(symbol, option_params_exchange, "STK", int(con_id))
         chains = list(chains or [])
         if not chains:
-            _emit({**base, "connected": True, "error": "option_params_not_found"})
+            _emit(
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "connected": True,
+                        "underlyingPrice": underlying_price,
+                        "error": "option_params_not_found",
+                    },
+                    incomplete_md=False,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
         ch = _pick_chain(chains, symbol)
         if ch is None:
-            _emit({**base, "connected": True, "error": "option_chain_selection_failed"})
+            _emit(
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "connected": True,
+                        "underlyingPrice": underlying_price,
+                        "error": "option_chain_selection_failed",
+                    },
+                    incomplete_md=False,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
 
         trading_class = str(_safe_attr(ch, "tradingClass") or symbol).strip().upper()
@@ -485,7 +591,20 @@ def main() -> int:
         strikes = _normalize_strikes(_safe_attr(ch, "strikes"))
         expiration, _ = _pick_expiration(expirations, requested_expiration)
         if not expiration or not strikes:
-            _emit({**base, "connected": True, "error": "no_expiration_or_strikes"})
+            _emit(
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "connected": True,
+                        "underlyingPrice": underlying_price,
+                        "expiration": expiration,
+                        "error": "no_expiration_or_strikes",
+                    },
+                    incomplete_md=False,
+                    dev_display=True,
+                    sym_hint=symbol,
+                )
+            )
             return 1
 
         def _one_option(st: float, rght: str):
@@ -580,15 +699,26 @@ def main() -> int:
 
             if not valid_straddle_strikes:
                 _emit(
-                    {
-                        **base,
-                        "connected": True,
-                        "expiration": expiration,
-                        "underlyingPrice": underlying_price,
-                        "error": "atm_straddle_unavailable",
-                        "strikeValidation": strike_validation,
-                        "rejected": rejected,
-                    }
+                    _apply_dev_overlay(
+                        {
+                            **base,
+                            "connected": True,
+                            "expiration": expiration,
+                            "underlyingPrice": underlying_price,
+                            "targetPremiumRaw": float(underlying_price) * MIN_PREMIUM_YIELD,
+                            "targetPremium": _round_money_half_up(
+                                float(underlying_price) * MIN_PREMIUM_YIELD
+                            ),
+                            "error": "atm_straddle_unavailable",
+                            "strikeValidation": strike_validation,
+                            "rejected": rejected,
+                            "putCandidates": [],
+                        },
+                        incomplete_md=True,
+                        dev_display=True,
+                        sym_hint=symbol,
+                        log_suffix="atm_straddle_unavailable",
+                    )
                 )
                 return 1
 
@@ -653,15 +783,26 @@ def main() -> int:
                 ibkr_call_metrics["validCallStrikesCount"] = len(valid_call_contracts)
                 ibkr_call_metrics["validPutStrikesCount"] = len(valid_put_contracts)
                 _emit(
-                    {
-                        **base,
-                        "connected": True,
-                        "expiration": expiration,
-                        "underlyingPrice": underlying_price,
-                        "error": "atm_straddle_unavailable",
-                        "strikeValidation": strike_validation,
-                        "rejected": rejected,
-                    }
+                    _apply_dev_overlay(
+                        {
+                            **base,
+                            "connected": True,
+                            "expiration": expiration,
+                            "underlyingPrice": underlying_price,
+                            "targetPremiumRaw": float(underlying_price) * MIN_PREMIUM_YIELD,
+                            "targetPremium": _round_money_half_up(
+                                float(underlying_price) * MIN_PREMIUM_YIELD
+                            ),
+                            "error": "atm_straddle_unavailable",
+                            "strikeValidation": strike_validation,
+                            "rejected": rejected,
+                            "putCandidates": [],
+                        },
+                        incomplete_md=True,
+                        dev_display=True,
+                        sym_hint=symbol,
+                        log_suffix="atm_straddle_unavailable_two_phase",
+                    )
                 )
                 return 1
 
@@ -797,15 +938,27 @@ def main() -> int:
 
         if p_atm_c is None or p_atm_pu is None:
             _emit(
-                {
-                    **base,
-                    "connected": True,
-                    "expiration": expiration,
-                    "underlyingPrice": underlying_price,
-                    "error": "atm_straddle_unavailable",
-                    "strikeValidation": strike_validation,
-                    "rejected": rejected,
-                }
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "connected": True,
+                        "expiration": expiration,
+                        "underlyingPrice": underlying_price,
+                        "targetPremiumRaw": float(underlying_price) * MIN_PREMIUM_YIELD,
+                        "targetPremium": _round_money_half_up(
+                            float(underlying_price) * MIN_PREMIUM_YIELD
+                        ),
+                        "error": "atm_straddle_unavailable",
+                        "strikeValidation": strike_validation,
+                        "rejected": rejected,
+                        "expectedMoveOptions": em_options_out,
+                        "putCandidates": [],
+                    },
+                    incomplete_md=True,
+                    dev_display=True,
+                    sym_hint=symbol,
+                    log_suffix="atm_straddle_quotes_missing",
+                )
             )
             return 1
 
@@ -820,7 +973,27 @@ def main() -> int:
             parts.append((W_S2, s2_val))
         w_sum = sum(p[0] for p in parts)
         if w_sum <= 0:
-            _emit({**base, "connected": True, "error": "expected_move_unavailable"})
+            _emit(
+                _apply_dev_overlay(
+                    {
+                        **base,
+                        "connected": True,
+                        "expiration": expiration,
+                        "underlyingPrice": underlying_price,
+                        "targetPremiumRaw": float(underlying_price) * MIN_PREMIUM_YIELD,
+                        "targetPremium": _round_money_half_up(
+                            float(underlying_price) * MIN_PREMIUM_YIELD
+                        ),
+                        "error": "expected_move_unavailable",
+                        "expectedMoveOptions": em_options_out,
+                        "putCandidates": [],
+                    },
+                    incomplete_md=True,
+                    dev_display=True,
+                    sym_hint=symbol,
+                    log_suffix="expected_move_unavailable",
+                )
+            )
             return 1
         expected_move = sum(p[0] * p[1] for p in parts) / w_sum
         lower_bound = float(underlying_price) - expected_move
@@ -1137,6 +1310,31 @@ def main() -> int:
         ibkr_call_metrics["approxIbkrCalls"] = approx
         ibkr_call_metrics["totalApproxCalls"] = approx
         out["ibkrCallMetrics"] = ibkr_call_metrics
+        if wheel_dev_scan:
+            out["devScanEnabled"] = True
+            out["dataTradable"] = False
+            out["ibkrDevDisplay"] = True
+            put_missing = any(
+                p.get("reason") in ("invalid_bid", "invalid_ask", "invalid_mid")
+                for p in put_data
+            )
+            if aggressive_obj is None or safe_obj is None or put_missing:
+                out["devIncompleteMarketData"] = True
+                w = "DEV: données IBKR incomplètes"
+                warns = list(out.get("warnings") or [])
+                if w not in warns:
+                    warns.append(w)
+                out["warnings"] = warns
+                qraw = out.get("qualityReasons")
+                qr = list(qraw) if isinstance(qraw, list) else []
+                if w not in qr:
+                    qr.append(w)
+                out["qualityReasons"] = qr
+                sel = str(safe_selection_reason or "") or "scan_incomplete"
+                _ibkr_dev_log(
+                    symbol,
+                    f"incomplete market data, displaying for dev only reason={sel}",
+                )
         _emit(out)
         return 0
     except Exception as e:
@@ -1146,23 +1344,29 @@ def main() -> int:
         if debug:
             err = err + " | " + traceback.format_exc().replace("\n", " ")
         _emit(
-            {
-                **base,
-                "connected": bool(getattr(ib, "isConnected", lambda: False)()),
-                "error": err,
-                "ibkrCallMetrics": {
-                    **ibkr_call_metrics,
-                    "durationMs": round((time.monotonic() - started_at) * 1000),
-                    "approxIbkrCalls": (
-                        _safe_int(ibkr_call_metrics.get("stockQualifyCalls"))
-                        + _safe_int(ibkr_call_metrics.get("optionQualifyCalls"))
-                        + _safe_int(ibkr_call_metrics.get("optionChainRequests"))
-                        + _safe_int(ibkr_call_metrics.get("stockMarketDataRequests"))
-                        + _safe_int(ibkr_call_metrics.get("optionMarketDataRequests"))
-                        + _safe_int(ibkr_call_metrics.get("cancelMarketDataCalls"))
-                    ),
+            _apply_dev_overlay(
+                {
+                    **base,
+                    "connected": bool(getattr(ib, "isConnected", lambda: False)()),
+                    "error": err,
+                    "ibkrCallMetrics": {
+                        **ibkr_call_metrics,
+                        "durationMs": round((time.monotonic() - started_at) * 1000),
+                        "approxIbkrCalls": (
+                            _safe_int(ibkr_call_metrics.get("stockQualifyCalls"))
+                            + _safe_int(ibkr_call_metrics.get("optionQualifyCalls"))
+                            + _safe_int(ibkr_call_metrics.get("optionChainRequests"))
+                            + _safe_int(ibkr_call_metrics.get("stockMarketDataRequests"))
+                            + _safe_int(ibkr_call_metrics.get("optionMarketDataRequests"))
+                            + _safe_int(ibkr_call_metrics.get("cancelMarketDataCalls"))
+                        ),
+                    },
                 },
-            }
+                incomplete_md=True,
+                dev_display=True,
+                sym_hint=symbol,
+                log_suffix=err[:160],
+            )
         )
         return 1
     finally:

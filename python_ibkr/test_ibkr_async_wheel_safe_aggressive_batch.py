@@ -9,6 +9,7 @@ import contextlib
 import io
 import json
 import os
+import sys
 import time
 import traceback
 
@@ -154,6 +155,10 @@ class SharedIbProxy:
 
 
 def main() -> int:
+    wheel_dev_scan_batch = _parse_bool(os.environ.get("WHEEL_DEV_SCAN"), False)
+    if wheel_dev_scan_batch:
+        print("[WHEEL_DEV_SCAN] enabled=true", file=sys.stderr, flush=True)
+
     host = _str_env("IBKR_HOST", "127.0.0.1")
     port = _int_env("IBKR_PORT", 4002)
     client_id = _int_env("IBKR_CLIENT_ID", 300)
@@ -357,7 +362,13 @@ def main() -> int:
                 else:
                     os.environ["IBKR_TWO_PHASE_SCAN"] = previous_two_phase
 
-        _emit({
+        dev_displayed = sum(
+            1 for row in results if isinstance(row, dict) and row.get("ibkrDevDisplay") is True
+        )
+        dev_incomplete = sum(
+            1 for row in results if isinstance(row, dict) and row.get("devIncompleteMarketData") is True
+        )
+        _emit_payload = {
             **base,
             "ok": True,
             "connected": True,
@@ -372,7 +383,13 @@ def main() -> int:
                 "bySymbol": ibkr_by_symbol,
             },
             "results": results,
-        })
+        }
+        if wheel_dev_scan_batch:
+            _emit_payload["devScanEnabled"] = True
+            _emit_payload["dataTradable"] = False
+            _emit_payload["devDisplayed"] = dev_displayed
+            _emit_payload["devIncompleteTickers"] = dev_incomplete
+        _emit(_emit_payload)
         return 0
     except Exception as exc:
         err = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__

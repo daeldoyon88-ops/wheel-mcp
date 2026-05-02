@@ -1006,9 +1006,24 @@ function StrikeCard({
   liquidity,
 }) {
   const distanceTone = distancePct <= -10 ? "good" : distancePct <= -5 ? "warn" : "bad";
-  const yieldTone = tradeYield >= 1 ? "good" : tradeYield >= 0.5 ? "warn" : "bad";
-  const displayedPremium = Number.isFinite(Number(premiumUsed)) ? Number(premiumUsed) : Number(mid);
-  const premiumTone = displayedPremium >= 0.2 ? "good" : displayedPremium >= 0.09 ? "warn" : "bad";
+  const displayedPremium = Number.isFinite(Number(premiumUsed))
+    ? Number(premiumUsed)
+    : Number.isFinite(Number(mid))
+    ? Number(mid)
+    : null;
+  const hasPremiumNumber = displayedPremium != null;
+  const premiumTone =
+    displayedPremium == null
+      ? "default"
+      : displayedPremium >= 0.2
+      ? "good"
+      : displayedPremium >= 0.09
+      ? "warn"
+      : "bad";
+  const yieldOk = typeof tradeYield === "number" && Number.isFinite(tradeYield);
+  const yieldTone =
+    !yieldOk || tradeYield == null ? "default" : tradeYield >= 1 ? "good" : tradeYield >= 0.5 ? "warn" : "bad";
+  const objectiveResolved = meetsTarget && hasPremiumNumber && yieldOk;
   const mainPop = popProfitEstimated ?? popEstimate ?? null;
   const popTone =
     mainPop == null ? "default" : mainPop >= 0.75 ? "good" : mainPop >= 0.6 ? "warn" : "bad";
@@ -1027,12 +1042,16 @@ function StrikeCard({
           <Badge
             className={cn(
               "rounded-full",
-              meetsTarget
+              objectiveResolved
                 ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border border-rose-200 bg-rose-50 text-rose-700"
             )}
           >
-            {meetsTarget ? "objectif validé" : "objectif non atteint"}
+            {!hasPremiumNumber
+              ? "prime indisponible — DEV"
+              : objectiveResolved
+              ? "objectif validé"
+              : "objectif non atteint"}
           </Badge>
           {liquidity?.isLiquid ? (
             <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
@@ -1051,18 +1070,37 @@ function StrikeCard({
         <Metric
           label={premiumLabel || "Prime (mid)"}
           value={Number.isFinite(displayedPremium) ? `$${displayedPremium.toFixed(2)}` : "—"}
-          strong={displayedPremium >= 0.09}
+          strong={displayedPremium != null && displayedPremium >= 0.09}
           tone={premiumTone}
         />
         <Metric label="Distance" value={`${distancePct.toFixed(1)}%`} strong tone={distanceTone} />
-        <Metric label="Rendement" value={`${tradeYield.toFixed(2)}%`} strong tone={yieldTone} />
         <Metric
-          label="Rendement hebdo (7J)"
-          value={`${weeklyNormalizedYield.toFixed(2)}%`}
+          label="Rendement"
+          value={
+            yieldOk ? `${tradeYield.toFixed(2)}%` : "—"
+          }
           strong
           tone={yieldTone}
         />
-        <Metric label="Annualisé" value={`${annualizedYield.toFixed(1)}%`} tone={yieldTone} />
+        <Metric
+          label="Rendement hebdo (7J)"
+          value={
+            typeof weeklyNormalizedYield === "number" && Number.isFinite(weeklyNormalizedYield)
+              ? `${weeklyNormalizedYield.toFixed(2)}%`
+              : "—"
+          }
+          strong
+          tone={yieldTone}
+        />
+        <Metric
+          label="Annualisé"
+          value={
+            typeof annualizedYield === "number" && Number.isFinite(annualizedYield)
+              ? `${annualizedYield.toFixed(1)}%`
+              : "—"
+          }
+          tone={yieldTone}
+        />
         <Metric
           label="POP profit estimée"
           value={mainPop != null ? `${(mainPop * 100).toFixed(1)}%` : "—"}
@@ -1155,7 +1193,10 @@ function StrikeOpportunities({ item }) {
               annualizedYield={item.safeStrike.annualizedYield}
               distancePct={item.safeStrike.distancePct}
               label={item.safeStrike.label}
-              meetsTarget={item.safeStrike.mid >= item.minPremium}
+              meetsTarget={
+                Number.isFinite(Number(item.safeStrike.mid)) &&
+                Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
+              }
               liquidity={item.safeStrike.liquidity}
             />
           )}
@@ -1178,7 +1219,10 @@ function StrikeOpportunities({ item }) {
               annualizedYield={item.aggressiveStrike.annualizedYield}
               distancePct={item.aggressiveStrike.distancePct}
               label={item.aggressiveStrike.label}
-              meetsTarget={item.aggressiveStrike.mid >= item.minPremium}
+              meetsTarget={
+                Number.isFinite(Number(item.aggressiveStrike.mid)) &&
+                Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
+              }
               liquidity={item.aggressiveStrike.liquidity}
             />
           )}
@@ -1337,25 +1381,74 @@ function mergeYahooAndIbkrCandidate(yahooCandidate, ibkrCandidate) {
   };
 }
 
-function ibkrStrikeToDashboardStrike(strike, spot, label) {
+function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = false) {
   if (!strike) return null;
   const strikeValue = Number(strike.strike);
-  const yieldDecimal = Number(
-    strike.premiumYieldOnUnderlying ?? strike.premiumYield ?? 0
-  );
+  const primeFromQuote = strike.primeUsed ?? strike.bid ?? null;
+  const premiumUsed = Number.isFinite(Number(primeFromQuote))
+    ? Number(primeFromQuote)
+    : preserveNullQuotes
+    ? null
+    : Number(strike.mid ?? strike.primeUsed ?? strike.bid ?? 0);
+
+  const yieldDecimal = Number(strike.premiumYieldOnUnderlying ?? strike.premiumYield);
+  let weeklyYield;
+  let weeklyNormalizedYield;
+  let annualizedYield;
+  if (premiumUsed == null || !Number.isFinite(premiumUsed)) {
+    weeklyYield =
+      preserveNullQuotes && premiumUsed == null && !Number.isFinite(yieldDecimal) ? null : 0;
+    weeklyNormalizedYield = weeklyYield;
+    annualizedYield = weeklyYield == null ? null : 0;
+  } else if (Number.isFinite(yieldDecimal)) {
+    weeklyYield = yieldDecimal * 100;
+    weeklyNormalizedYield = yieldDecimal * 100;
+    annualizedYield = yieldDecimal * 52 * 100;
+  } else {
+    weeklyYield = 0;
+    weeklyNormalizedYield = 0;
+    annualizedYield = 0;
+  }
+
+  let midNum;
+  if (Number.isFinite(Number(strike.mid))) {
+    midNum = Number(strike.mid);
+  } else if (Number.isFinite(Number(strike.bid)) && Number.isFinite(Number(strike.ask))) {
+    midNum = (Number(strike.bid) + Number(strike.ask)) / 2;
+  } else if (premiumUsed != null && Number.isFinite(premiumUsed)) {
+    midNum = premiumUsed;
+  } else {
+    midNum = preserveNullQuotes ? null : Number(strike.mid ?? strike.primeUsed ?? strike.bid ?? 0);
+  }
+
   const spreadPctDecimal = Number(strike.spreadPct);
+  const resolvedMid =
+    midNum == null
+      ? preserveNullQuotes
+        ? null
+        : 0
+      : midNum;
+
+  const resolvedPremiumUsed =
+    premiumUsed == null ? (preserveNullQuotes ? null : 0) : premiumUsed;
+
   return {
     strike: Number.isFinite(strikeValue) ? strikeValue : 0,
-    mid: Number(strike.mid ?? strike.primeUsed ?? strike.bid ?? 0),
-    premiumUsed: Number(strike.primeUsed ?? strike.bid ?? strike.mid ?? 0),
-    premiumLabel: strike?.primeUsed != null ? "Prime utilisée" : "BID utilisé",
+    mid: resolvedMid,
+    premiumUsed: resolvedPremiumUsed,
+    premiumLabel:
+      strike?.primeUsed != null && strike?.primeUsed !== ""
+        ? "Prime utilisée"
+        : preserveNullQuotes
+        ? "Prime (bid) — DEV"
+        : "BID utilisé",
     popEstimate: null,
     popProfitEstimated: null,
     popOtmEstimated: null,
     popSource: null,
-    weeklyYield: Number.isFinite(yieldDecimal) ? yieldDecimal * 100 : 0,
-    weeklyNormalizedYield: Number.isFinite(yieldDecimal) ? yieldDecimal * 100 : 0,
-    annualizedYield: Number.isFinite(yieldDecimal) ? yieldDecimal * 52 * 100 : 0,
+    weeklyYield,
+    weeklyNormalizedYield,
+    annualizedYield,
     distancePct:
       Number.isFinite(strikeValue) && Number.isFinite(Number(spot)) && Number(spot) > 0
         ? strikeDistancePct(strikeValue, Number(spot))
@@ -1364,11 +1457,12 @@ function ibkrStrikeToDashboardStrike(strike, spot, label) {
     liquidity: {
       spread: strike.spread ?? null,
       spreadPct: Number.isFinite(spreadPctDecimal) ? spreadPctDecimal * 100 : null,
-      isLiquid: Number.isFinite(spreadPctDecimal) ? spreadPctDecimal <= 0.3 : false,
+      isLiquid: Number.isFinite(spreadPctDecimal) && spreadPctDecimal <= 0.3,
     },
     bid: strike.bid ?? null,
     ask: strike.ask ?? null,
-    primeUsed: strike.primeUsed ?? null,
+    primeUsed:
+      strike.primeUsed ?? (premiumUsed != null ? premiumUsed : preserveNullQuotes ? null : resolvedPremiumUsed),
     source: "IBKR live",
     raw: strike,
   };
@@ -1378,22 +1472,33 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
   const symbol = String(ibkrCandidate?.symbol || yahooCandidate?.ticker || "").trim().toUpperCase();
   const spot = ibkrCandidate?.currentPrice ?? ibkrCandidate?.underlyingPrice ?? yahooCandidate?.price ?? 0;
   const expectedMove = ibkrCandidate?.expectedMove ?? null;
-  const safeStrike = ibkrStrikeToDashboardStrike(ibkrCandidate?.safeStrike, spot, "safe IBKR live");
+  const preserveNullQuotes =
+    ibkrCandidate?.dataTradable === false &&
+    (ibkrCandidate?.devIncompleteMarketData === true || ibkrCandidate?.premiumUsed == null);
+  const safeStrike = ibkrStrikeToDashboardStrike(
+    ibkrCandidate?.safeStrike,
+    spot,
+    "safe IBKR live",
+    preserveNullQuotes
+  );
   const aggressiveStrike = ibkrStrikeToDashboardStrike(
     ibkrCandidate?.aggressiveStrike,
     spot,
-    "agressif IBKR live"
+    "agressif IBKR live",
+    preserveNullQuotes
   );
   const applyPop = (dashboardStrike, ibkrRawStrike, yahooFallbackStrike) => {
     if (!dashboardStrike) return null;
-    const premiumUsed = Number(
-      ibkrRawStrike?.primeUsed ?? ibkrRawStrike?.bid ?? dashboardStrike?.premiumUsed
-    );
-    const popProfitEstimated = estimateShortPutPopFromExpectedMove({
-      spot,
-      level: Number(ibkrRawStrike?.strike) - premiumUsed,
-      expectedMove,
-    });
+    const rawPu = ibkrRawStrike?.primeUsed ?? ibkrRawStrike?.bid ?? dashboardStrike?.premiumUsed;
+    const premiumUsed = Number.isFinite(Number(rawPu)) ? Number(rawPu) : null;
+    const popProfitEstimated =
+      premiumUsed == null
+        ? null
+        : estimateShortPutPopFromExpectedMove({
+            spot,
+            level: Number(ibkrRawStrike?.strike) - premiumUsed,
+            expectedMove,
+          });
     const popOtmEstimated = estimateShortPutPopFromExpectedMove({
       spot,
       level: Number(ibkrRawStrike?.strike),
@@ -1420,9 +1525,27 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     yahooCandidate?.aggressiveStrike
   );
   const primaryStrike = safeStrikeWithPop ?? aggressiveStrikeWithPop;
-  const weeklyYieldDecimal = Number(ibkrCandidate?.weeklyYield ?? primaryStrike?.raw?.premiumYieldOnUnderlying ?? 0);
+  const ibkrNonTradable = ibkrCandidate?.dataTradable === false;
+  const ibkrObjectiveBlock =
+    ibkrNonTradable &&
+    (ibkrCandidate?.devIncompleteMarketData === true || ibkrCandidate?.premiumUsed == null);
+  const suppressIbkrWheelReturn = ibkrObjectiveBlock;
+  const weeklyYieldDecimal = suppressIbkrWheelReturn
+    ? null
+    : Number(ibkrCandidate?.weeklyYield ?? primaryStrike?.raw?.premiumYieldOnUnderlying ?? 0);
   const ibkrQualityReasons = Array.isArray(ibkrCandidate?.qualityReasons) ? ibkrCandidate.qualityReasons : [];
   const yahooQualityReasons = Array.isArray(yahooCandidate?.qualityReasons) ? yahooCandidate.qualityReasons : [];
+  const weeklyReturnValue =
+    weeklyYieldDecimal == null || !Number.isFinite(weeklyYieldDecimal)
+      ? suppressIbkrWheelReturn
+        ? null
+        : yahooCandidate?.weeklyReturn ?? 0
+      : weeklyYieldDecimal * 100;
+  const primaryPremium = primaryStrike?.premiumUsed ?? primaryStrike?.primeUsed;
+  const premiumLabel =
+    primaryPremium != null && Number.isFinite(Number(primaryPremium))
+      ? Number(primaryPremium).toFixed(2)
+      : yahooCandidate?.premium ?? "—";
 
   return {
     ...(yahooCandidate ?? {}),
@@ -1453,8 +1576,8 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     targetWeeks: yahooCandidate?.targetWeeks ?? 1,
     safeStrike: safeStrikeWithPop,
     aggressiveStrike: aggressiveStrikeWithPop,
-    premium: primaryStrike?.primeUsed != null ? Number(primaryStrike.primeUsed).toFixed(2) : yahooCandidate?.premium ?? "—",
-    weeklyReturn: Number.isFinite(weeklyYieldDecimal) ? weeklyYieldDecimal * 100 : yahooCandidate?.weeklyReturn ?? 0,
+    premium: premiumLabel,
+    weeklyReturn: weeklyReturnValue,
     strikeDistance: primaryStrike ? primaryStrike.distancePct : yahooCandidate?.strikeDistance ?? 0,
     proFinalScore: yahooCandidate?.proFinalScore ?? 0,
     proExecutionScore: yahooCandidate?.proExecutionScore ?? 0,
@@ -1464,7 +1587,10 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     qualityScore: yahooCandidate?.qualityScore ?? null,
     qualityReasons: [...new Set([...yahooQualityReasons, ...ibkrQualityReasons].filter(Boolean))],
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
-    premiumPerContract: primaryStrike ? Number(primaryStrike.primeUsed ?? primaryStrike.mid ?? 0) * 100 : 0,
+    premiumPerContract:
+      primaryStrike && primaryPremium != null && Number.isFinite(Number(primaryPremium))
+        ? Number(primaryPremium) * 100
+        : 0,
     earnings: yahooCandidate?.earnings ?? "—",
     iv: yahooCandidate?.iv ?? null,
     rsi: yahooCandidate?.rsi ?? "—",
@@ -1480,12 +1606,14 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     macd: yahooCandidate?.macd ?? "—",
     zone: "sous borne basse IBKR",
     verdict: yahooCandidate?.verdict ?? "conservative",
-    ok: true,
+    ok: yahooCandidate?.ok ?? true,
     note: yahooCandidate?.note ?? "Candidat IBKR live ajouté sans contexte technique Yahoo.",
     techniqueSource: yahooCandidate ? "Yahoo" : "—",
     optionsSource: "IBKR live",
     ibkrDirect: ibkrCandidate,
     ibkrSpreadPct: ibkrCandidate?.spreadPct ?? primaryStrike?.raw?.spreadPct ?? null,
+    ibkrDevIncompleteSurface: ibkrCandidate?.devIncompleteMarketData === true,
+    ibkrDevObjectiveBlocked: ibkrObjectiveBlock,
     raw: yahooCandidate?.raw ?? null,
   };
 }
@@ -1796,7 +1924,7 @@ function CandidateCard({ item, onOpenDetail, ibkrBatchRow = null }) {
                     mode earnings x{item.expectedMoveMultiplier || 2}
                   </Badge>
                 )}
-                {item.ok ? (
+                {item.ok && !item.ibkrDevObjectiveBlocked ? (
                   <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
                     objectif validé
                   </Badge>
@@ -1813,6 +1941,16 @@ function CandidateCard({ item, onOpenDetail, ibkrBatchRow = null }) {
                 {item.optionsSource === "IBKR live" && (
                   <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
                     Options : IBKR live
+                  </Badge>
+                )}
+                {item.ibkrDirect?.devScanEnabled && (
+                  <Badge className="rounded-full border border-amber-400 bg-amber-50 text-amber-950">
+                    DEV TEST — données hors marché / non tradables
+                  </Badge>
+                )}
+                {item.ibkrDevIncompleteSurface && (
+                  <Badge className="rounded-full border border-amber-300 bg-amber-100 text-amber-950">
+                    Données IBKR incomplètes — affichage DEV seulement
                   </Badge>
                 )}
               </div>
@@ -1851,9 +1989,22 @@ function CandidateCard({ item, onOpenDetail, ibkrBatchRow = null }) {
                 <Metric label="Semaines cible" value={`${item.targetWeeks ?? 1}`} />
                 <Metric
                   label="Rendement"
-                  value={`${item.weeklyReturn.toFixed(2)}% / sem`}
-                  strong={item.weeklyReturn >= 0.5}
-                  tone={item.weeklyReturn >= 0.5 ? "good" : "bad"}
+                  value={
+                    item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn))
+                      ? `${Number(item.weeklyReturn).toFixed(2)}% / sem`
+                      : "—"
+                  }
+                  strong={
+                    Number.isFinite(Number(item.weeklyReturn)) &&
+                    Number(item.weeklyReturn) >= 0.5
+                  }
+                  tone={
+                    !Number.isFinite(Number(item.weeklyReturn))
+                      ? "default"
+                      : Number(item.weeklyReturn) >= 0.5
+                      ? "good"
+                      : "bad"
+                  }
                 />
                 <Metric label="Distance strike" value={`${item.strikeDistance.toFixed(1)}%`} />
                 <Metric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
@@ -2164,6 +2315,11 @@ function formatIbkrReason(reason) {
     no_expected_move_contracts: "Aucun contrat expected move qualifiable",
     no_safe_or_aggressive_strike: "Aucun strike safe ou agressif disponible",
     no_aggressive_strike: "Aucun strike agressif disponible",
+    no_bid_ask: "Bid/ask indisponible (souvent hors marché)",
+    invalid_bid: "Bid option indisponible ou invalide",
+    invalid_ask: "Ask option indisponible ou invalide",
+    invalid_mid: "Mid ou spread indisponible",
+    dev_display: "Carte DEV hors marché",
     timeout: "Timeout IBKR",
     ibkr_unavailable: "IBKR indisponible",
     OK: "OK",
@@ -2387,6 +2543,8 @@ function IbkrDirectScanPanel({
   onRunTest,
 }) {
   const shortlist = Array.isArray(result?.shortlist) ? result.shortlist : [];
+  const shortlistDev =
+    result?.devScanEnabled === true && Array.isArray(result?.shortlistDev) ? result.shortlistDev : [];
   const rejected = Array.isArray(result?.rejected) ? result.rejected : [];
   const errors = Array.isArray(result?.errors) ? result.errors : [];
   const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
@@ -2398,6 +2556,7 @@ function IbkrDirectScanPanel({
     Number(result?.scanned || 0) > 0 &&
     Number(result?.kept || 0) === 0 &&
     shortlist.length === 0 &&
+    shortlistDev.length === 0 &&
     rejected.length === 0 &&
     errors.length === 0;
   const rawPayload = result ? JSON.stringify(result, null, 2) : "";
@@ -2502,6 +2661,12 @@ function IbkrDirectScanPanel({
               Source active : IBKR Shadow Scan direct
             </div>
 
+            {Boolean(result.warning || result.devScanEnabled) && (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+                {result.warning || "DEV TEST — données possiblement figées / non tradables"}
+              </div>
+            )}
+
             {hasBatchTimeout && (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
                 Timeout IBKR : le batch a dépassé la limite avant de retourner les résultats. Réduire Max titres à 10 ou moins.
@@ -2531,6 +2696,13 @@ function IbkrDirectScanPanel({
               <Metric label="Rejetés" value={String(rejected.length)} tone={rejected.length ? "warn" : "good"} />
               <Metric label="Read only" value={String(result.readOnly ?? "—")} tone="good" />
               <Metric label="Timeout max" value={result.batchTimeoutMs == null ? "—" : `${result.batchTimeoutMs} ms`} />
+              {result.devScanEnabled && (
+                <Metric
+                  label="DEV affichés (max Top N)"
+                  value={String(result.devDisplayedReturned ?? shortlistDev.length ?? "—")}
+                  tone="warn"
+                />
+              )}
             </div>
 
             <div className="space-y-3">
@@ -2565,10 +2737,52 @@ function IbkrDirectScanPanel({
               ))}
               {shortlist.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-                  Aucun candidat IBKR direct retenu.
+                  Aucun candidat IBKR direct retenu (mode LIVE).
                 </div>
               )}
             </div>
+
+            {shortlistDev.length > 0 && (
+              <div className="space-y-3">
+                <p className="font-semibold text-amber-950">Shortlist DEV — affichage hors marché uniquement</p>
+                <p className="text-xs text-amber-900">
+                  Ces cartes servent à tester l’UI ; ne pas utiliser pour prendre des décisions réelles.
+                </p>
+                {shortlistDev.map((item) => (
+                  <div
+                    key={`ibkr-direct-dev-${item.symbol}`}
+                    className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="text-lg font-semibold text-slate-900">{item.symbol}</p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          statut {formatIbkrReason(item.status)} · {formatIbkrReason(item.reason)}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Spot {formatMoneyOrDash(item.currentPrice ?? item.underlyingPrice)} · Borne basse{" "}
+                          {formatMoneyOrDash(item.lowerBound)} · Prime cible{" "}
+                          {formatMoneyOrDash(item.targetPremium)}
+                        </p>
+                      </div>
+                      <div className="text-sm font-medium text-slate-700">
+                        Yield {formatIbkrPercent(item.weeklyYield)} · Spread{" "}
+                        {formatIbkrPercent(item.spreadPct)} · Prime {formatMoneyOrDash(item.premiumUsed)}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <IbkrMiniStrikeDetails title="Safe IBKR (DEV)" strike={item.safeStrike} />
+                      <IbkrMiniStrikeDetails title="Agressif IBKR (DEV)" strike={item.aggressiveStrike} />
+                    </div>
+                    {Array.isArray(item.qualityReasons) && item.qualityReasons.length > 0 && (
+                      <p className="mt-3 text-xs leading-5 text-amber-950">
+                        {item.qualityReasons.filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {rejected.length > 0 && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -2858,7 +3072,10 @@ function DetailModal({ item, onClose }) {
                 annualizedYield={item.safeStrike.annualizedYield}
                 distancePct={item.safeStrike.distancePct}
                 label="safe strike"
-                meetsTarget={item.safeStrike.mid >= item.minPremium}
+                meetsTarget={
+                Number.isFinite(Number(item.safeStrike.mid)) &&
+                Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
+              }
                 liquidity={item.safeStrike.liquidity}
               />
             ) : (
@@ -2885,7 +3102,10 @@ function DetailModal({ item, onClose }) {
                 annualizedYield={item.aggressiveStrike.annualizedYield}
                 distancePct={item.aggressiveStrike.distancePct}
                 label="aggressive strike"
-                meetsTarget={item.aggressiveStrike.mid >= item.minPremium}
+                meetsTarget={
+                Number.isFinite(Number(item.aggressiveStrike.mid)) &&
+                Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
+              }
                 liquidity={item.aggressiveStrike.liquidity}
               />
             ) : (
@@ -3067,11 +3287,20 @@ export default function Dashboard() {
 
   const ibkrDirectByTicker = useMemo(() => {
     const rows = Array.isArray(ibkrDirectResult?.shortlist) ? ibkrDirectResult.shortlist : [];
-    return new Map(
-      rows
-        .map((row) => [String(row?.symbol || "").trim().toUpperCase(), row])
-        .filter(([ticker]) => Boolean(ticker))
+    const rowsDevRaw = Array.isArray(ibkrDirectResult?.shortlistDev) ? ibkrDirectResult.shortlistDev : [];
+    const rowsDev = ibkrDirectResult?.devScanEnabled === true ? rowsDevRaw : [];
+    const shortNormSymbols = new Set(
+      rows.map((row) => String(row?.symbol || "").trim().toUpperCase()).filter(Boolean)
     );
+    const devOnly = rowsDev.filter((row) => {
+      const t = String(row?.symbol || "").trim().toUpperCase();
+      return Boolean(t) && !shortNormSymbols.has(t);
+    });
+    const entries = [...devOnly, ...rows].map((row) => [
+      String(row?.symbol || "").trim().toUpperCase(),
+      row,
+    ]);
+    return new Map(entries.filter(([ticker]) => Boolean(ticker)));
   }, [ibkrDirectResult]);
 
   const activeCandidates = useMemo(() => {
@@ -3322,13 +3551,25 @@ export default function Dashboard() {
         });
         return false;
       }
-      const shortlist = Array.isArray(payload?.shortlist) ? payload.shortlist : [];
-      if (shortlist.length === 0) return false;
+      const shortlistNorm = Array.isArray(payload?.shortlist) ? payload.shortlist : [];
+      const shortlistDev =
+        payload?.devScanEnabled === true && Array.isArray(payload?.shortlistDev)
+          ? payload.shortlistDev
+          : [];
+      const symNorm = new Set(
+        shortlistNorm.map((c) => String(c?.symbol || "").trim().toUpperCase()).filter(Boolean)
+      );
+      const devExtra = shortlistDev.filter((c) => {
+        const t = String(c?.symbol || "").trim().toUpperCase();
+        return Boolean(t) && !symNorm.has(t);
+      });
+      const mergedShortlist = [...shortlistNorm, ...devExtra];
+      if (mergedShortlist.length === 0) return false;
       rememberTechnicalCandidates(activeCandidates);
       rememberTechnicalCandidates(backendCandidates);
       rememberTechnicalCandidates(mergedIbkrYahooCandidates);
 
-      const mapped = shortlist.map((ibkrCandidate, index) => {
+      const mapped = mergedShortlist.map((ibkrCandidate, index) => {
         const lookupKeys = buildCandidateLookupKeys(ibkrCandidate);
         const yahooCandidate =
           lookupKeys
@@ -3340,12 +3581,14 @@ export default function Dashboard() {
       setBackendCandidates(mapped);
       setDataSource("ibkr_direct");
       setScanMeta({
-        scanned: Number(payload?.scanned ?? shortlist.length),
-        kept: Number(payload?.kept ?? shortlist.length),
-        returned: Number(payload?.returned ?? shortlist.length),
+        scanned: Number(payload?.scanned ?? mergedShortlist.length),
+        kept: Number(payload?.kept ?? shortlistNorm.length),
+        returned: mergedShortlist.length,
       });
       setPrimaryIbkrSourceInfo({
         twoPhaseEnabled: payload?.twoPhaseEnabled === true,
+        devScanEnabled: payload?.devScanEnabled === true,
+        devDisplayed: payload?.devDisplayedReturned ?? payload?.devDisplayed ?? shortlistDev.length,
       });
       setScanError("");
       return true;

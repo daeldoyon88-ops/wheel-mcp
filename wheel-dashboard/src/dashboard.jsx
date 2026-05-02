@@ -2564,9 +2564,14 @@ function IbkrDirectScanPanel({
   return (
     <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+        <CardTitle className="flex flex-wrap items-center gap-2 text-xl text-slate-900">
           <ShieldCheck className="h-5 w-5 text-emerald-600" />
           IBKR Direct Scan — lecture seule
+          {result?.configuredDevScanMode === "auto" ? (
+            <Badge className="rounded-full border border-slate-400 bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-800">
+              Mode auto
+            </Badge>
+          ) : null}
         </CardTitle>
         <p className="mt-1 text-sm text-slate-500">
           Scan IBKR indépendant. Yahoo sert seulement à construire la watchlist. Aucun ordre envoyé.

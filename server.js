@@ -29,12 +29,92 @@ const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 const WHEEL_DEV_SCAN_WARNING =
-  "DEV TEST — données possiblement figées / non tradables";
+  "DEV TEST — marché fermé / données possiblement figées / non tradables";
 const SCAN_METRICS_NOTES = [
   "Compteurs cumulés depuis le démarrage du serveur ou le dernier reset.",
   "Compteurs Yahoo: appels réels upstream + cache hits/misses.",
   "Compteurs IBKR: approx de coût API à partir des scripts shadow read-only.",
 ];
+
+/**
+ * Heure « murale » America/New_York (NYSE regular session).
+ * Hors jours fériés (non gérés dans cette phase).
+ */
+function getNyWallClockParts(now = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = formatter.formatToParts(now);
+  const map = {};
+  for (const p of parts) {
+    if (p.type !== "literal") map[p.type] = p.value;
+  }
+  const hour = Number.parseInt(String(map.hour ?? "0"), 10);
+  const minute = Number.parseInt(String(map.minute ?? "0"), 10);
+  return {
+    weekday: String(map.weekday || "").trim(),
+    hour: Number.isFinite(hour) ? hour : 0,
+    minute: Number.isFinite(minute) ? minute : 0,
+  };
+}
+
+/** @returns {"REGULAR" | "CLOSED_WEEKDAY" | "CLOSED_WEEKEND"} */
+function getNyMarketRegime(now = new Date()) {
+  const { weekday, hour, minute } = getNyWallClockParts(now);
+  if (weekday === "Saturday" || weekday === "Sunday") return "CLOSED_WEEKEND";
+
+  const weekdaySession = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].includes(weekday);
+  if (!weekdaySession) return "CLOSED_WEEKDAY";
+
+  const mins = hour * 60 + minute;
+  const openM = 9 * 60 + 30;
+  const closeM = 16 * 60;
+  if (mins >= openM && mins < closeM) return "REGULAR";
+  return "CLOSED_WEEKDAY";
+}
+
+/**
+ * Résout WHEEL_DEV_SCAN : 0 / absent → normal, 1 → DEV forcé, auto → DEV si marché fermé (NY).
+ */
+function getWheelDevScanMode(now = new Date()) {
+  const rawEnv = process.env.WHEEL_DEV_SCAN;
+  const raw = rawEnv == null ? "" : String(rawEnv).trim().toLowerCase();
+  const configuredMode =
+    raw === "1" || raw === "true" || raw === "yes" || raw === "on" ? "1" : raw === "auto" ? "auto" : "0";
+
+  const marketRegime = getNyMarketRegime(now);
+
+  if (configuredMode === "1") {
+    return {
+      configuredMode: "1",
+      devScanEnabled: true,
+      marketRegime,
+      dataTradable: false,
+      reason: "forced_dev",
+    };
+  }
+  if (configuredMode === "0") {
+    return {
+      configuredMode: "0",
+      devScanEnabled: false,
+      marketRegime,
+      dataTradable: true,
+      reason: "forced_normal",
+    };
+  }
+  const regular = marketRegime === "REGULAR";
+  return {
+    configuredMode: "auto",
+    devScanEnabled: !regular,
+    marketRegime,
+    dataTradable: regular,
+    reason: regular ? "auto_market_open" : "auto_market_closed",
+  };
+}
 
 function createEmptyIbkrCallMetrics() {
   return {
@@ -477,7 +557,7 @@ function runIbkrShadowWheel(body = {}) {
     IBKR_MARKET_DATA_TYPE: String(marketDataType),
     IBKR_MAX_STRIKES: String(maxStrikes),
     IBKR_OPTION_EXPIRATION: expiration,
-    WHEEL_DEV_SCAN: process.env.WHEEL_DEV_SCAN === "1" ? "1" : "0",
+    WHEEL_DEV_SCAN: getWheelDevScanMode().devScanEnabled ? "1" : "0",
   };
 
   return new Promise((resolve, reject) => {
@@ -582,7 +662,7 @@ function runIbkrShadowWheelBatch(body = {}) {
     IBKR_OPTION_EXPIRATION: expiration,
     IBKR_PER_TICKER_TIMEOUT_MS: String(perTickerTimeoutMs),
     IBKR_TWO_PHASE_SCAN: twoPhaseScanEnabled ? "1" : "0",
-    WHEEL_DEV_SCAN: process.env.WHEEL_DEV_SCAN === "1" ? "1" : "0",
+    WHEEL_DEV_SCAN: getWheelDevScanMode().devScanEnabled ? "1" : "0",
   };
   const timeoutMs = requestedTimeoutMs > 0
     ? requestedTimeoutMs
@@ -1021,10 +1101,16 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const startedAt = Date.now();
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
     const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "0" ? false : true;
-    const devScanEnabled = process.env.WHEEL_DEV_SCAN === "1";
-    if (devScanEnabled) {
-      console.log("[WHEEL_DEV_SCAN]", "enabled=true");
-    }
+    const devMode = getWheelDevScanMode();
+    const devScanEnabled = devMode.devScanEnabled;
+
+    console.log(
+      "[WHEEL_DEV_SCAN]",
+      `${devMode.configuredMode}`,
+      devScanEnabled ? "dev_on" : "dev_off",
+      `regime=${devMode.marketRegime}`,
+      devMode.reason
+    );
 
     console.log("[IBKR_SHADOW_SCAN_START]", expiration || "default", "tickers", tickers.length);
     console.log("[IBKR_TWO_PHASE_SCAN]", `enabled=${twoPhaseScanEnabled}`);
@@ -1138,16 +1224,18 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       source: "IBKR",
       readOnly: true,
       twoPhaseEnabled: responseTwoPhaseEnabled,
+      configuredDevScanMode: devMode.configuredMode,
+      devScanEnabled: devMode.devScanEnabled,
+      marketRegime: devMode.marketRegime,
+      dataTradable: devMode.dataTradable,
       ...(devScanEnabled
         ? {
-            devScanEnabled: true,
-            dataTradable: false,
             warning: WHEEL_DEV_SCAN_WARNING,
             shortlistDev: shortlistDev.slice(0, topN),
             devDisplayed: shortlistDev.length,
             devDisplayedReturned: Math.min(topN, shortlistDev.length),
           }
-        : { devScanEnabled: false }),
+        : {}),
       expiration,
       scanned: tickers.length,
       kept: shortlist.length,

@@ -1,13 +1,24 @@
 @echo off
 setlocal
 
-echo Demarrage du backend et du frontend Wheel Dashboard...
+echo ============================================
+echo   Demarrage Wheel Dashboard - MODE AUTO
+echo ============================================
+echo.
+echo Marche ouvert  = mode normal
+echo Hors marche    = mode DEV automatique
+echo.
 
-start "Wheel Backend" cmd /k "cd /d C:\Users\melan\Desktop\wheel-mcp-remote && npm run dev"
+start "Wheel Backend AUTO" cmd /k "cd /d C:\Users\melan\Desktop\wheel-mcp-remote && set WHEEL_DEV_SCAN=auto && npm run dev"
 
 timeout /t 3 /nobreak >nul
 
-start "Wheel Frontend" cmd /k "cd /d C:\Users\melan\Desktop\wheel-mcp-remote\wheel-dashboard && npm run dev"
+start "Wheel Frontend Dashboard" cmd /k "cd /d C:\Users\melan\Desktop\wheel-mcp-remote\wheel-dashboard && npm run dev"
 
-echo Les deux services sont en cours de demarrage.
+echo.
+echo Backend + Frontend lances.
+echo Cette fenetre va se fermer.
+timeout /t 2 /nobreak >nul
+
 endlocal
+exit

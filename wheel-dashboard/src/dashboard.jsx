@@ -319,6 +319,58 @@ function candidateRowMatchesSelectedExpiration(item, selectedExp) {
   return true;
 }
 
+/**
+ * Lit LAST_GOOD_SCAN_KEY et indique si le cache est utilisable pour la bannière / refresh marché fermé.
+ */
+function readLastGoodScanCache(selectedExpiration) {
+  const selectedExpirationNorm = normalizeExpirationYmd(selectedExpiration);
+  if (!selectedExpirationNorm || isPastYmd(selectedExpirationNorm)) {
+    return { valid: false, cached: null, cachedShortlist: null };
+  }
+  try {
+    if (typeof window === "undefined") {
+      return { valid: false, cached: null, cachedShortlist: null };
+    }
+    const raw = window.localStorage.getItem(LAST_GOOD_SCAN_KEY);
+    const cached = raw ? JSON.parse(raw) : null;
+    const cachedShortlist = Array.isArray(cached?.shortlist) ? cached.shortlist : null;
+    const cachedExpirationNorm = normalizeExpirationYmd(String(cached?.expiration || "").trim());
+    if (
+      !cachedShortlist ||
+      cachedShortlist.length === 0 ||
+      !cachedExpirationNorm ||
+      cachedExpirationNorm !== selectedExpirationNorm ||
+      isPastYmd(cachedExpirationNorm)
+    ) {
+      return { valid: false, cached, cachedShortlist };
+    }
+    const displayable = cachedShortlist.filter((item) =>
+      candidateRowMatchesSelectedExpiration(item, selectedExpirationNorm)
+    );
+    return {
+      valid: displayable.length > 0,
+      cached,
+      cachedShortlist,
+    };
+  } catch (_e) {
+    return { valid: false, cached: null, cachedShortlist: null };
+  }
+}
+
+function hasValidLastGoodScanForExpiration(selectedExpiration) {
+  return readLastGoodScanCache(selectedExpiration).valid;
+}
+
+/** Hors marché : marque les candidats /scan_shortlist comme indicatifs (non décision de trade). */
+function tagCandidatesOffMarketNonTradable(candidates, marketClosed) {
+  if (!marketClosed || !Array.isArray(candidates)) return candidates;
+  return candidates.map((c) => ({
+    ...c,
+    dataTradable: false,
+    indicativeShortlistSession: true,
+  }));
+}
+
 function payloadExpirationMatchesSelected(payloadExpirationField, selectedExp) {
   const p = normalizeExpirationYmd(payloadExpirationField);
   const s = normalizeExpirationYmd(selectedExp);
@@ -1948,6 +2000,11 @@ function CandidateCard({ item, onOpenDetail, ibkrBatchRow = null }) {
                     DEV TEST — données hors marché / non tradables
                   </Badge>
                 )}
+                {item.indicativeShortlistSession && !item.ibkrDirect?.devScanEnabled && (
+                  <Badge className="rounded-full border border-amber-400 bg-amber-50 text-amber-950">
+                    DEV TEST — marche ferme / donnees indicatives / non tradables
+                  </Badge>
+                )}
                 {item.ibkrDevIncompleteSurface && (
                   <Badge className="rounded-full border border-amber-300 bg-amber-100 text-amber-950">
                     Données IBKR incomplètes — affichage DEV seulement
@@ -3243,7 +3300,10 @@ export default function Dashboard() {
     kept: 0,
     returned: 0,
   });
-  const [marketClosedNotice, setMarketClosedNotice] = useState("");
+  /** Dernier /scan_shortlist : payload.devScanEnabled (absent du backend → reste false). */
+  const [backendShortlistDevScan, setBackendShortlistDevScan] = useState(false);
+  /** True seulement si la shortlist affichée vient du LAST_GOOD_SCAN_KEY après échec réseau/API. */
+  const [closedMarketCacheFallback, setClosedMarketCacheFallback] = useState(false);
   const [ibkrShadowSymbol, setIbkrShadowSymbol] = useState("NVDA");
   const [ibkrShadowExpiration, setIbkrShadowExpiration] = useState("20260501");
   const [ibkrShadowClientId, setIbkrShadowClientId] = useState("240");
@@ -3281,8 +3341,15 @@ export default function Dashboard() {
     setBackendCandidates(null);
     setDataSource("snapshot");
     setScanMeta({ scanned: 0, kept: 0, returned: 0 });
+    setBackendShortlistDevScan(false);
+    setClosedMarketCacheFallback(false);
     technicalCandidatesRef.current.clear();
   }, [selectedExpiration]);
+
+  const hasValidClosedMarketCache = useMemo(
+    () => hasValidLastGoodScanForExpiration(selectedExpiration),
+    [selectedExpiration, backendCandidates, dataSource]
+  );
 
   const snapshotCandidates = useMemo(() => {
     return wheelShortlist
@@ -3700,50 +3767,8 @@ export default function Dashboard() {
     const shouldRunAutoIbkr = options?.runIbkr !== false && autoIbkrDirectScan;
     console.log("[SCAN_DEBUG] watchlistTickers.length", watchlistTickers?.length ?? null);
     const marketClosed = isUsMarketClosedNow();
-    if (marketClosed) {
-      try {
-        const raw = window.localStorage.getItem(LAST_GOOD_SCAN_KEY);
-        const cached = raw ? JSON.parse(raw) : null;
-        const cachedShortlist = Array.isArray(cached?.shortlist) ? cached.shortlist : null;
-        const cachedExpirationNorm = normalizeExpirationYmd(String(cached?.expiration || "").trim());
-        const selectedExpirationNorm = normalizeExpirationYmd(selectedExpiration);
-        const cacheUsable =
-          cachedShortlist &&
-          cachedShortlist.length > 0 &&
-          cachedExpirationNorm &&
-          selectedExpirationNorm &&
-          cachedExpirationNorm === selectedExpirationNorm &&
-          !isPastYmd(cachedExpirationNorm);
-        if (cacheUsable) {
-          rememberTechnicalCandidates(cachedShortlist);
-          setBackendCandidates(cachedShortlist);
-          setDataSource("backend");
-          setPrimaryIbkrSourceInfo(null);
-          setScanMeta(cached?.scanMeta ?? {
-            scanned: cachedShortlist.length,
-            kept: cachedShortlist.length,
-            returned: cachedShortlist.length,
-          });
-          setScanError("");
-          setMarketClosedNotice("Marche ferme — dernier scan valide affiche");
-          return;
-        }
-        if (
-          cached &&
-          (!cachedExpirationNorm ||
-            cachedExpirationNorm !== selectedExpirationNorm ||
-            isPastYmd(cachedExpirationNorm))
-        ) {
-          try {
-            window.localStorage.removeItem(LAST_GOOD_SCAN_KEY);
-          } catch (_e) {}
-        }
-      } catch (_e) {}
-      setMarketClosedNotice("Marche ferme — dernier scan valide affiche");
-      setScanError("Marche ferme et aucun scan valide en cache local.");
-      return;
-    }
-    setMarketClosedNotice("");
+    setClosedMarketCacheFallback(false);
+    setBackendShortlistDevScan(false);
     setRefreshStage("Étape 1/2 : Yahoo/yfinance — contexte technique");
 
     let tickers = watchlistTickers ?? FALLBACK_TICKERS;
@@ -3796,14 +3821,17 @@ export default function Dashboard() {
         return;
       }
 
-      const mapped = (payload.shortlist || []).map((item, index) =>
+      const mappedRaw = (payload.shortlist || []).map((item, index) =>
         toDashboardCandidate(item, index, lockedExpiration)
       );
+      const mapped = tagCandidatesOffMarketNonTradable(mappedRaw, marketClosed);
       rememberTechnicalCandidates(mapped);
 
       setBackendCandidates(mapped);
       setDataSource("backend");
       setPrimaryIbkrSourceInfo(null);
+      const devFromPayload = payload.devScanEnabled === true;
+      setBackendShortlistDevScan(devFromPayload);
       setScanMeta({
         scanned: payload.scanned ?? tickers.length,
         kept: payload.kept ?? mapped.length,
@@ -3815,6 +3843,7 @@ export default function Dashboard() {
             LAST_GOOD_SCAN_KEY,
             JSON.stringify({
               expiration: lockedExpiration,
+              devScanEnabled: devFromPayload,
               scanMeta: {
                 scanned: payload.scanned ?? tickers.length,
                 kept: payload.kept ?? mapped.length,
@@ -3830,15 +3859,39 @@ export default function Dashboard() {
         await runAutoIbkrDirectScanRef.current(tickers);
       }
     } catch (e) {
-      setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
-      setBackendCandidates(null);
-      setDataSource("snapshot");
-      setPrimaryIbkrSourceInfo(null);
-      setScanMeta({
-        scanned: tickers.length,
-        kept: 0,
-        returned: 0,
-      });
+      const {
+        valid: cacheOk,
+        cached,
+        cachedShortlist,
+      } = readLastGoodScanCache(selectedExpirationRef.current);
+      if (cacheOk && cachedShortlist) {
+        const tagged = tagCandidatesOffMarketNonTradable(cachedShortlist, marketClosed);
+        rememberTechnicalCandidates(tagged);
+        setBackendCandidates(tagged);
+        setDataSource("backend");
+        setPrimaryIbkrSourceInfo(null);
+        setScanMeta(
+          cached?.scanMeta ?? {
+            scanned: tagged.length,
+            kept: tagged.length,
+            returned: tagged.length,
+          }
+        );
+        setBackendShortlistDevScan(cached?.devScanEnabled === true);
+        setClosedMarketCacheFallback(true);
+        setScanError("");
+      } else {
+        setScanError(String(e?.message || e || "Erreur lors du refresh shortlist"));
+        setBackendCandidates(null);
+        setDataSource("snapshot");
+        setPrimaryIbkrSourceInfo(null);
+        setScanMeta({
+          scanned: tickers.length,
+          kept: 0,
+          returned: 0,
+        });
+        setClosedMarketCacheFallback(false);
+      }
       if (shouldRunAutoIbkr && runAutoIbkrDirectScanRef.current) {
         await runAutoIbkrDirectScanRef.current(tickers);
       }
@@ -4177,6 +4230,19 @@ export default function Dashboard() {
     ],
     [filtered.length, selectedExpiration, dataSource, scanMeta, watchlistTickers, watchlistSource, watchlistStats]
   );
+
+  const marketClosedNow = isUsMarketClosedNow();
+  const showClosedValidBanner =
+    marketClosedNow && hasValidClosedMarketCache && closedMarketCacheFallback;
+  const showClosedNoCacheBanner =
+    marketClosedNow && !hasValidClosedMarketCache && !closedMarketCacheFallback;
+  const showSourceStatusBanner =
+    !marketClosedNow ||
+    ((dataSource === "backend" || dataSource === "ibkr_direct") && !showClosedValidBanner);
+  const showIndicativeClosedBanner =
+    marketClosedNow &&
+    (dataSource === "backend" || dataSource === "ibkr_direct") &&
+    !showClosedValidBanner;
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -4727,31 +4793,53 @@ export default function Dashboard() {
         )}
 
         {!loadingScan && !watchlistLoading && (
-          <div
-            className={cn(
-              "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
-              marketClosedNotice
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : dataSource === "backend" || dataSource === "ibkr_direct"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-amber-200 bg-amber-50 text-amber-700"
+          <>
+            {showClosedValidBanner && (
+              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 shadow-sm">
+                Marche ferme — dernier scan valide affiche (cache local). Donnees indicatives / non
+                tradables.
+              </div>
             )}
-          >
-            {marketClosedNotice
-              ? "Marche ferme — dernier scan valide affiche"
-              : dataSource === "ibkr_direct"
-              ? `Source active : IBKR Direct Scan — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés.${primaryIbkrSourceInfo?.twoPhaseEnabled ? " 2 phases officiel actif." : ""}`
-              : dataSource === "backend"
-              ? `Source active : backend local /scan_shortlist — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés (watchlist ${watchlistSource === "backend" ? "backend" : "secours"}).`
-              : "Source active : snapshot local (fallback)."}
-          </div>
+
+            {showIndicativeClosedBanner && (
+              <div className="mb-6 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900 shadow-sm">
+                <span className="font-semibold">DEV TEST</span> — marche ferme / donnees indicatives / non
+                tradables.
+                {backendShortlistDevScan ? " WHEEL_DEV_SCAN actif cote backend." : ""}
+              </div>
+            )}
+
+            {showSourceStatusBanner && (
+              <div
+                className={cn(
+                  "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
+                  dataSource === "backend" || dataSource === "ibkr_direct"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}
+              >
+                {dataSource === "ibkr_direct"
+                  ? `Source active : IBKR Direct Scan — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés.${primaryIbkrSourceInfo?.twoPhaseEnabled ? " 2 phases officiel actif." : ""}`
+                  : dataSource === "backend"
+                  ? `Source active : backend local /scan_shortlist — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés (watchlist ${watchlistSource === "backend" ? "backend" : "secours"}).`
+                  : "Source active : snapshot local (fallback)."}
+              </div>
+            )}
+
+            {showClosedNoCacheBanner && (
+              <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+                Marche ferme et aucun scan valide en cache local.
+              </div>
+            )}
+
+            {scanError && !showClosedNoCacheBanner && (
+              <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+                {scanError}
+              </div>
+            )}
+          </>
         )}
 
-        {scanError && (
-          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
-            {scanError}
-          </div>
-        )}
 
         <div className="space-y-6">
           <div className="space-y-6">

@@ -8,7 +8,7 @@ import { toNumber } from "../utils/number.js";
 export function passesMaxPrice(spot, maxPrice) {
   const s = toNumber(spot);
   if (!(s > 0)) return { ok: false, reason: "price_unavailable" };
-  if (s > maxPrice) return { ok: false, reason: "price_above_max", detail: { spot: s, maxPrice } };
+  if (s > maxPrice) return { ok: false, reason: "above_max_price", detail: { spot: s, maxPrice } };
   return { ok: true };
 }
 
@@ -41,9 +41,32 @@ export function passesMinVolume(quote, minVolume) {
     return { ok: false, reason: "volume_unavailable" };
   }
   if (vol < minVolume) {
-    return { ok: false, reason: "volume_below_min", detail: { volume: vol, minVolume } };
+    return { ok: false, reason: "below_min_volume", detail: { volume: vol, minVolume } };
   }
   return { ok: true, detail: { volumeUsed: vol } };
+}
+
+/**
+ * Capital nominal d’un contrat CSP (100 actions) : rejette si spot * 100 > plafond.
+ * Si maxContractCapital est absent, ≤ 0 ou non fini → filtre inactif (ok).
+ *
+ * @param {number | null | undefined} spot
+ * @param {number | null | undefined} maxContractCapital
+ */
+export function passesMaxContractCapital(spot, maxContractCapital) {
+  const cap = toNumber(maxContractCapital);
+  if (!(cap > 0)) return { ok: true };
+  const s = toNumber(spot);
+  if (!(s > 0)) return { ok: false, reason: "price_unavailable" };
+  const contractCapital = s * 100;
+  if (contractCapital > cap) {
+    return {
+      ok: false,
+      reason: "contract_capital_above_max",
+      detail: { spot: s, contractCapital, maxContractCapital: cap },
+    };
+  }
+  return { ok: true };
 }
 
 /**

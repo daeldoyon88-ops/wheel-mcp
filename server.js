@@ -314,6 +314,7 @@ const buildWatchlistBodySchema = z.object({
   maxPrice: z.union([z.literal(100), z.literal(125), z.literal(150), z.literal(200)]),
   minPrice: z.number().min(0).max(1000).optional().default(10),
   minVolume: z.number().positive(),
+  maxContractCapital: z.number().positive().optional(),
   requireLiquidOptions: z.boolean(),
   requireWeeklyOptions: z.boolean(),
   categories: z.array(z.enum(["core", "growth", "high_premium", "etf", "weekly"])).min(1),

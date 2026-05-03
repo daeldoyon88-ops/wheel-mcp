@@ -3,6 +3,7 @@ import { toNumber } from "../utils/number.js";
 import {
   evaluateAtmPutLiquidity,
   hasWeeklyStyleExpirations,
+  passesMaxContractCapital,
   passesMaxPrice,
   passesMinPrice,
   passesMinVolume,
@@ -18,6 +19,7 @@ import { loadMergedUniverse } from "./universeLoader.js";
  * @property {number} minVolume
  * @property {boolean} requireLiquidOptions
  * @property {boolean} requireWeeklyOptions
+ * @property {number} [maxContractCapital] si défini et > 0 : exige spot * 100 <= maxContractCapital
  * @property {UniverseCategory[]} categories
  * @property {number} [limit]
  */
@@ -329,6 +331,12 @@ export function createWatchlistBuilder(deps) {
           return;
         }
 
+        const capitalCheck = passesMaxContractCapital(spot, criteria.maxContractCapital);
+        if (!capitalCheck.ok) {
+          rejected.push({ symbol, category, reason: capitalCheck.reason, detail: capitalCheck.detail });
+          return;
+        }
+
         const today = new Date().toISOString().slice(0, 10);
         let hasWeeklyStyle = false;
         let atmSpreadPct = null;
@@ -363,7 +371,7 @@ export function createWatchlistBuilder(deps) {
             rejected.push({
               symbol,
               category,
-              reason: "options_not_liquid",
+              reason: "liquid_options_failed",
               detail: { code: liq.reason, ...liq.detail },
             });
             return;

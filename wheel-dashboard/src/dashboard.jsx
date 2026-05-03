@@ -42,6 +42,7 @@ const DEFAULT_BUILD_WATCHLIST_BODY = {
   maxPrice: 125,
   minPrice: 10,
   minVolume: 1_000_000,
+  maxContractCapital: 25_500,
   requireLiquidOptions: false,
   requireWeeklyOptions: true,
   categories: ["weekly", "core", "growth"],

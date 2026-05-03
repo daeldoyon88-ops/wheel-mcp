@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { MAX_SCAN_TICKERS } from "../config/constants.js";
 import { toNumber } from "../utils/number.js";
 import {
@@ -5,10 +9,13 @@ import {
   hasWeeklyStyleExpirations,
   passesMaxContractCapital,
   passesMaxPrice,
+  passesMinMarketCapB,
   passesMinPrice,
   passesMinVolume,
 } from "./watchlistFilters.js";
 import { loadMergedUniverse } from "./universeLoader.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** @typedef {import('./universeLoader.js').UniverseCategory} UniverseCategory */
 
@@ -20,6 +27,7 @@ import { loadMergedUniverse } from "./universeLoader.js";
  * @property {boolean} requireLiquidOptions
  * @property {boolean} requireWeeklyOptions
  * @property {number} [maxContractCapital] si défini et > 0 : exige spot * 100 <= maxContractCapital
+ * @property {number} [minMarketCapB] si défini et > 0 : rejette seulement si marketCapB connue < seuil (cache local)
  * @property {UniverseCategory[]} categories
  * @property {number} [limit]
  */
@@ -55,6 +63,35 @@ const CATEGORY_PRIORITY = {
   core: 2,
   growth: 3,
 };
+
+/**
+ * Chemin data/universe/fundamentals.cache.json (lecture seule, aucun HTTP).
+ */
+function fundamentalsCachePathAbs() {
+  return join(__dirname, "..", "..", "data", "universe", "fundamentals.cache.json");
+}
+
+/**
+ * @returns {Map<string, { marketCapB?: unknown, symbol?: string }>}
+ */
+function loadFundamentalsBySymbolMap() {
+  const pathAbs = fundamentalsCachePathAbs();
+  if (!existsSync(pathAbs)) return new Map();
+  try {
+    const raw = JSON.parse(readFileSync(pathAbs, "utf8"));
+    const items = raw?.items && typeof raw.items === "object" ? raw.items : {};
+    /** @type {Map<string, object>} */
+    const map = new Map();
+    for (const [key, val] of Object.entries(items)) {
+      const sym = String(key).trim().toUpperCase();
+      if (!sym || !val || typeof val !== "object") continue;
+      map.set(sym, val);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
 
 /**
  * @template T
@@ -292,6 +329,16 @@ export function createWatchlistBuilder(deps) {
       MAX_SCAN_TICKERS * 10
     );
 
+    const fundamentalsBySymbol = loadFundamentalsBySymbolMap();
+
+    /** @type {{ market_cap_unavailable_passed: number, market_cap_unavailable_etf_passed: number, market_cap_unavailable_equity_passed: number, market_cap_below_min_rejected: number }} */
+    const marketCapDiag = {
+      market_cap_unavailable_passed: 0,
+      market_cap_unavailable_etf_passed: 0,
+      market_cap_unavailable_equity_passed: 0,
+      market_cap_below_min_rejected: 0,
+    };
+
     const source = loadMergedUniverse({ categories: criteria.categories })
       .filter((r) => r.enabled)
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
@@ -335,6 +382,22 @@ export function createWatchlistBuilder(deps) {
         if (!capitalCheck.ok) {
           rejected.push({ symbol, category, reason: capitalCheck.reason, detail: capitalCheck.detail });
           return;
+        }
+
+        const fundRow = fundamentalsBySymbol.get(symbol);
+        const mcapCheck = passesMinMarketCapB(fundRow, criteria.minMarketCapB, row);
+        if (!mcapCheck.ok && mcapCheck.reason) {
+          marketCapDiag.market_cap_below_min_rejected += 1;
+          rejected.push({ symbol, category, reason: mcapCheck.reason, detail: mcapCheck.detail });
+          return;
+        }
+        if (mcapCheck.detail?.market_cap_unavailable_passed === true) {
+          marketCapDiag.market_cap_unavailable_passed += 1;
+          if (mcapCheck.diagnosticReason === "market_cap_unavailable_etf_passed") {
+            marketCapDiag.market_cap_unavailable_etf_passed += 1;
+          } else if (mcapCheck.diagnosticReason === "market_cap_unavailable_equity_passed") {
+            marketCapDiag.market_cap_unavailable_equity_passed += 1;
+          }
         }
 
         const today = new Date().toISOString().slice(0, 10);
@@ -462,6 +525,9 @@ export function createWatchlistBuilder(deps) {
       top30Tickers: top30,
       top30HardcodedTierCount,
       rejectedByReason,
+      fundamentalsCachePath: fundamentalsCachePathAbs(),
+      fundamentalsCacheLoaded: fundamentalsBySymbol.size,
+      marketCapDiagnostics: marketCapDiag,
     };
 
     return {

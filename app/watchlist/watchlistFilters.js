@@ -70,6 +70,64 @@ export function passesMaxContractCapital(spot, maxContractCapital) {
 }
 
 /**
+ * Filtre market cap (milliards USD) en mode souple : pas de rejet si marketCapB absent dans le cache.
+ *
+ * @param {{ marketCapB?: unknown } | null | undefined} fundamental entrée `items[sym]` du fundamentals.cache.json
+ * @param {number | null | undefined} minMarketCapB absent ou ≤ 0 → filtre désactivé (ok).
+ * @param {{ sources?: unknown, tags?: unknown }} meta ligne univers (sources/tags master).
+ * @returns {{ ok: true, diagnosticReason?: string | null, detail?: { market_cap_unavailable_passed?: boolean } } | { ok: false, reason: string, detail?: unknown }}
+ */
+export function passesMinMarketCapB(fundamental, minMarketCapB, meta) {
+  const floor = toNumber(minMarketCapB);
+  if (!(floor > 0)) {
+    return { ok: true, diagnosticReason: null };
+  }
+
+  const capBraw =
+    fundamental != null && typeof fundamental === "object"
+      ? toNumber(fundamental.marketCapB)
+      : null;
+
+  if (capBraw != null && Number.isFinite(capBraw) && capBraw > 0) {
+    if (capBraw < floor) {
+      return {
+        ok: false,
+        reason: "market_cap_below_min",
+        detail: { marketCapB: capBraw, minMarketCapB: floor },
+      };
+    }
+    return { ok: true, diagnosticReason: null };
+  }
+
+  const etfLike = isEtfOrEtpFromMasterMeta(meta);
+  const diagnosticReason = etfLike
+    ? "market_cap_unavailable_etf_passed"
+    : "market_cap_unavailable_equity_passed";
+
+  return {
+    ok: true,
+    diagnosticReason,
+    detail: { market_cap_unavailable_passed: true },
+  };
+}
+
+/**
+ * @param {{ sources?: unknown, tags?: unknown }} meta
+ */
+function isEtfOrEtpFromMasterMeta(meta) {
+  const sources = Array.isArray(meta?.sources) ? meta.sources : [];
+  const tags = Array.isArray(meta?.tags) ? meta.tags : [];
+  for (const x of sources) {
+    if (String(x).trim().toLowerCase() === "etf") return true;
+  }
+  for (const x of tags) {
+    const t = String(x).trim().toLowerCase();
+    if (t === "etf" || t === "leveraged_etf") return true;
+  }
+  return false;
+}
+
+/**
  * Détecte une chaîne "style hebdo" : au moins deux expirations futures dont l’écart est typique d’un cycle court (4–10 jours).
  *
  * @param {string[]} expirationIsoDates YYYY-MM-DD

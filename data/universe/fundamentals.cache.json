@@ -1,0 +1,6545 @@
+{
+  "asOf": "2026-05-03T08:56:22.567Z",
+  "source": "yahoo-finance2",
+  "count": 802,
+  "items": {
+    "A": {
+      "symbol": "A",
+      "marketCap": 32363614208,
+      "marketCapB": 32.363614208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:22.579Z"
+    },
+    "AA": {
+      "symbol": "AA",
+      "marketCap": 16525714432,
+      "marketCapB": 16.525714432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:22.584Z"
+    },
+    "AAL": {
+      "symbol": "AAL",
+      "marketCap": 7830800384,
+      "marketCapB": 7.830800384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:22.584Z"
+    },
+    "AAOI": {
+      "symbol": "AAOI",
+      "marketCap": 14689546240,
+      "marketCapB": 14.68954624,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:22.584Z"
+    },
+    "AAP": {
+      "symbol": "AAP",
+      "marketCap": 3555200256,
+      "marketCapB": 3.555200256,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.177Z"
+    },
+    "AAPL": {
+      "symbol": "AAPL",
+      "marketCap": 4109006274560,
+      "marketCapB": 4109.00627456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.206Z"
+    },
+    "ABAT": {
+      "symbol": "ABAT",
+      "marketCap": 430689248,
+      "marketCapB": 0.430689248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.264Z"
+    },
+    "ABBV": {
+      "symbol": "ABBV",
+      "marketCap": 365426311168,
+      "marketCapB": 365.426311168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.276Z"
+    },
+    "ABNB": {
+      "symbol": "ABNB",
+      "marketCap": 84220452864,
+      "marketCapB": 84.220452864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.285Z"
+    },
+    "ABR": {
+      "symbol": "ABR",
+      "marketCap": 1653651200,
+      "marketCapB": 1.6536512,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.346Z"
+    },
+    "ABT": {
+      "symbol": "ABT",
+      "marketCap": 155822604288,
+      "marketCapB": 155.822604288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.347Z"
+    },
+    "ACGL": {
+      "symbol": "ACGL",
+      "marketCap": 33137223680,
+      "marketCapB": 33.13722368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.364Z"
+    },
+    "ACHR": {
+      "symbol": "ACHR",
+      "marketCap": 4401702912,
+      "marketCapB": 4.401702912,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.369Z"
+    },
+    "ACI": {
+      "symbol": "ACI",
+      "marketCap": 8219169792,
+      "marketCapB": 8.219169792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.423Z"
+    },
+    "ACMR": {
+      "symbol": "ACMR",
+      "marketCap": 3453105664,
+      "marketCapB": 3.453105664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.438Z"
+    },
+    "ACN": {
+      "symbol": "ACN",
+      "marketCap": 110673698816,
+      "marketCapB": 110.673698816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.442Z"
+    },
+    "ADBE": {
+      "symbol": "ADBE",
+      "marketCap": 101336981504,
+      "marketCapB": 101.336981504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.463Z"
+    },
+    "ADI": {
+      "symbol": "ADI",
+      "marketCap": 194153906176,
+      "marketCapB": 194.153906176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.499Z"
+    },
+    "ADM": {
+      "symbol": "ADM",
+      "marketCap": 36113219584,
+      "marketCapB": 36.113219584,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.514Z"
+    },
+    "ADP": {
+      "symbol": "ADP",
+      "marketCap": 85627084800,
+      "marketCapB": 85.6270848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.566Z"
+    },
+    "ADSK": {
+      "symbol": "ADSK",
+      "marketCap": 51557851136,
+      "marketCapB": 51.557851136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.567Z"
+    },
+    "AEE": {
+      "symbol": "AEE",
+      "marketCap": 31416737792,
+      "marketCapB": 31.416737792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.575Z"
+    },
+    "AEHR": {
+      "symbol": "AEHR",
+      "marketCap": 2927354368,
+      "marketCapB": 2.927354368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.592Z"
+    },
+    "AEM": {
+      "symbol": "AEM",
+      "marketCap": 91961622528,
+      "marketCapB": 91.961622528,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.651Z"
+    },
+    "AEO": {
+      "symbol": "AEO",
+      "marketCap": 2823468800,
+      "marketCapB": 2.8234688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.662Z"
+    },
+    "AEP": {
+      "symbol": "AEP",
+      "marketCap": 74419273728,
+      "marketCapB": 74.419273728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.663Z"
+    },
+    "AES": {
+      "symbol": "AES",
+      "marketCap": 10182662144,
+      "marketCapB": 10.182662144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.736Z"
+    },
+    "AFL": {
+      "symbol": "AFL",
+      "marketCap": 57628622848,
+      "marketCapB": 57.628622848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.756Z"
+    },
+    "AFRM": {
+      "symbol": "AFRM",
+      "marketCap": 22498293760,
+      "marketCapB": 22.49829376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.787Z"
+    },
+    "AG": {
+      "symbol": "AG",
+      "marketCap": 9800768512,
+      "marketCapB": 9.800768512,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.811Z"
+    },
+    "AGNC": {
+      "symbol": "AGNC",
+      "marketCap": 12556932096,
+      "marketCapB": 12.556932096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.852Z"
+    },
+    "AI": {
+      "symbol": "AI",
+      "marketCap": 1330867456,
+      "marketCapB": 1.330867456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.878Z"
+    },
+    "AIG": {
+      "symbol": "AIG",
+      "marketCap": 41976532992,
+      "marketCapB": 41.976532992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.890Z"
+    },
+    "AIZ": {
+      "symbol": "AIZ",
+      "marketCap": 11526187008,
+      "marketCapB": 11.526187008,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.891Z"
+    },
+    "AJG": {
+      "symbol": "AJG",
+      "marketCap": 53472198656,
+      "marketCapB": 53.472198656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.948Z"
+    },
+    "AKAM": {
+      "symbol": "AKAM",
+      "marketCap": 15292057600,
+      "marketCapB": 15.2920576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.970Z"
+    },
+    "ALAB": {
+      "symbol": "ALAB",
+      "marketCap": 34715426816,
+      "marketCapB": 34.715426816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.972Z"
+    },
+    "ALB": {
+      "symbol": "ALB",
+      "marketCap": 22855911424,
+      "marketCapB": 22.855911424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:24.973Z"
+    },
+    "ALGN": {
+      "symbol": "ALGN",
+      "marketCap": 12813046784,
+      "marketCapB": 12.813046784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.051Z"
+    },
+    "ALL": {
+      "symbol": "ALL",
+      "marketCap": 55754797056,
+      "marketCapB": 55.754797056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.052Z"
+    },
+    "ALLE": {
+      "symbol": "ALLE",
+      "marketCap": 11643450368,
+      "marketCapB": 11.643450368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.053Z"
+    },
+    "ALT": {
+      "symbol": "ALT",
+      "marketCap": 548081600,
+      "marketCapB": 0.5480816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.070Z"
+    },
+    "AMAT": {
+      "symbol": "AMAT",
+      "marketCap": 308777713664,
+      "marketCapB": 308.777713664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.127Z"
+    },
+    "AMBA": {
+      "symbol": "AMBA",
+      "marketCap": 3133532160,
+      "marketCapB": 3.13353216,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.134Z"
+    },
+    "AMCR": {
+      "symbol": "AMCR",
+      "marketCap": 17442224128,
+      "marketCapB": 17.442224128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.148Z"
+    },
+    "AMD": {
+      "symbol": "AMD",
+      "marketCap": 587828363264,
+      "marketCapB": 587.828363264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.161Z"
+    },
+    "AME": {
+      "symbol": "AME",
+      "marketCap": 52826710016,
+      "marketCapB": 52.826710016,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.203Z"
+    },
+    "AMGN": {
+      "symbol": "AMGN",
+      "marketCap": 177999069184,
+      "marketCapB": 177.999069184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.208Z"
+    },
+    "AMP": {
+      "symbol": "AMP",
+      "marketCap": 42093817856,
+      "marketCapB": 42.093817856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.251Z"
+    },
+    "AMT": {
+      "symbol": "AMT",
+      "marketCap": 84610834432,
+      "marketCapB": 84.610834432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.256Z"
+    },
+    "AMZN": {
+      "symbol": "AMZN",
+      "marketCap": 2884935614464,
+      "marketCapB": 2884.935614464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.278Z"
+    },
+    "ANET": {
+      "symbol": "ANET",
+      "marketCap": 217458556928,
+      "marketCapB": 217.458556928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.289Z"
+    },
+    "ANF": {
+      "symbol": "ANF",
+      "marketCap": 3797914880,
+      "marketCapB": 3.79791488,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.354Z"
+    },
+    "AON": {
+      "symbol": "AON",
+      "marketCap": 66530304000,
+      "marketCapB": 66.530304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.355Z"
+    },
+    "AOS": {
+      "symbol": "AOS",
+      "marketCap": 8342772224,
+      "marketCapB": 8.342772224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.368Z"
+    },
+    "APA": {
+      "symbol": "APA",
+      "marketCap": 14181958656,
+      "marketCapB": 14.181958656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.433Z"
+    },
+    "APD": {
+      "symbol": "APD",
+      "marketCap": 67035041792,
+      "marketCapB": 67.035041792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.448Z"
+    },
+    "APH": {
+      "symbol": "APH",
+      "marketCap": 174947991552,
+      "marketCapB": 174.947991552,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.453Z"
+    },
+    "APLD": {
+      "symbol": "APLD",
+      "marketCap": 9587567616,
+      "marketCapB": 9.587567616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.478Z"
+    },
+    "APO": {
+      "symbol": "APO",
+      "marketCap": 75212677120,
+      "marketCapB": 75.21267712,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.507Z"
+    },
+    "APP": {
+      "symbol": "APP",
+      "marketCap": 154680033280,
+      "marketCapB": 154.68003328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.523Z"
+    },
+    "APTV": {
+      "symbol": "APTV",
+      "marketCap": 15191826432,
+      "marketCapB": 15.191826432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.548Z"
+    },
+    "AR": {
+      "symbol": "AR",
+      "marketCap": 12049521664,
+      "marketCapB": 12.049521664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.580Z"
+    },
+    "ARE": {
+      "symbol": "ARE",
+      "marketCap": 7213013504,
+      "marketCapB": 7.213013504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.597Z"
+    },
+    "ARES": {
+      "symbol": "ARES",
+      "marketCap": 39340527616,
+      "marketCapB": 39.340527616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.638Z"
+    },
+    "ARM": {
+      "symbol": "ARM",
+      "marketCap": 224272859136,
+      "marketCapB": 224.272859136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.735Z"
+    },
+    "ASAN": {
+      "symbol": "ASAN",
+      "marketCap": 1664235520,
+      "marketCapB": 1.66423552,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.738Z"
+    },
+    "ASML": {
+      "symbol": "ASML",
+      "marketCap": 549998690304,
+      "marketCapB": 549.998690304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.799Z"
+    },
+    "ASO": {
+      "symbol": "ASO",
+      "marketCap": 3472473088,
+      "marketCapB": 3.472473088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.826Z"
+    },
+    "ASPI": {
+      "symbol": "ASPI",
+      "marketCap": 648402752,
+      "marketCapB": 0.648402752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.831Z"
+    },
+    "ATO": {
+      "symbol": "ATO",
+      "marketCap": 31191857152,
+      "marketCapB": 31.191857152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.865Z"
+    },
+    "AU": {
+      "symbol": "AU",
+      "marketCap": 46845173760,
+      "marketCapB": 46.84517376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.875Z"
+    },
+    "AUR": {
+      "symbol": "AUR",
+      "marketCap": 12015833088,
+      "marketCapB": 12.015833088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.917Z"
+    },
+    "AVAV": {
+      "symbol": "AVAV",
+      "marketCap": 9360419840,
+      "marketCapB": 9.36041984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.919Z"
+    },
+    "AVB": {
+      "symbol": "AVB",
+      "marketCap": 25520107520,
+      "marketCapB": 25.52010752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.950Z"
+    },
+    "AVGO": {
+      "symbol": "AVGO",
+      "marketCap": 1994621059072,
+      "marketCapB": 1994.621059072,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:25.959Z"
+    },
+    "AVY": {
+      "symbol": "AVY",
+      "marketCap": 12539783168,
+      "marketCapB": 12.539783168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.014Z"
+    },
+    "AWK": {
+      "symbol": "AWK",
+      "marketCap": 24874833920,
+      "marketCapB": 24.87483392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.015Z"
+    },
+    "AXON": {
+      "symbol": "AXON",
+      "marketCap": 32415000576,
+      "marketCapB": 32.415000576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.024Z"
+    },
+    "AXP": {
+      "symbol": "AXP",
+      "marketCap": 218126123008,
+      "marketCapB": 218.126123008,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.045Z"
+    },
+    "AXTI": {
+      "symbol": "AXTI",
+      "marketCap": 6280625664,
+      "marketCapB": 6.280625664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.102Z"
+    },
+    "AZO": {
+      "symbol": "AZO",
+      "marketCap": 59546079232,
+      "marketCapB": 59.546079232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.112Z"
+    },
+    "B": {
+      "symbol": "B",
+      "marketCap": 65199681536,
+      "marketCapB": 65.199681536,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.112Z"
+    },
+    "BA": {
+      "symbol": "BA",
+      "marketCap": 179244187648,
+      "marketCapB": 179.244187648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.123Z"
+    },
+    "BABA": {
+      "symbol": "BABA",
+      "marketCap": 324486955008,
+      "marketCapB": 324.486955008,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.181Z"
+    },
+    "BAC": {
+      "symbol": "BAC",
+      "marketCap": 379596341248,
+      "marketCapB": 379.596341248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.203Z"
+    },
+    "BALL": {
+      "symbol": "BALL",
+      "marketCap": 16323167232,
+      "marketCapB": 16.323167232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.204Z"
+    },
+    "BAX": {
+      "symbol": "BAX",
+      "marketCap": 8884705280,
+      "marketCapB": 8.88470528,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.206Z"
+    },
+    "BB": {
+      "symbol": "BB",
+      "marketCap": 3186322432,
+      "marketCapB": 3.186322432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.256Z"
+    },
+    "BBWI": {
+      "symbol": "BBWI",
+      "marketCap": 3868557824,
+      "marketCapB": 3.868557824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.279Z"
+    },
+    "BBY": {
+      "symbol": "BBY",
+      "marketCap": 12582583296,
+      "marketCapB": 12.582583296,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.299Z"
+    },
+    "BDX": {
+      "symbol": "BDX",
+      "marketCap": 42473717760,
+      "marketCapB": 42.47371776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.301Z"
+    },
+    "BE": {
+      "symbol": "BE",
+      "marketCap": 82636627968,
+      "marketCapB": 82.636627968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.329Z"
+    },
+    "BEAM": {
+      "symbol": "BEAM",
+      "marketCap": 3154292992,
+      "marketCapB": 3.154292992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.354Z"
+    },
+    "BEKE": {
+      "symbol": "BEKE",
+      "marketCap": 19028850688,
+      "marketCapB": 19.028850688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.394Z"
+    },
+    "BEN": {
+      "symbol": "BEN",
+      "marketCap": 15505972224,
+      "marketCapB": 15.505972224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.398Z"
+    },
+    "BG": {
+      "symbol": "BG",
+      "marketCap": 24176596992,
+      "marketCapB": 24.176596992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.426Z"
+    },
+    "BHC": {
+      "symbol": "BHC",
+      "marketCap": 2110137472,
+      "marketCapB": 2.110137472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.482Z"
+    },
+    "BIDU": {
+      "symbol": "BIDU",
+      "marketCap": 42831003648,
+      "marketCapB": 42.831003648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.492Z"
+    },
+    "BIIB": {
+      "symbol": "BIIB",
+      "marketCap": 27616999424,
+      "marketCapB": 27.616999424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.503Z"
+    },
+    "BILI": {
+      "symbol": "BILI",
+      "marketCap": 9144889344,
+      "marketCapB": 9.144889344,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.529Z"
+    },
+    "BILL": {
+      "symbol": "BILL",
+      "marketCap": 3866384384,
+      "marketCapB": 3.866384384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.558Z"
+    },
+    "BITF": {
+      "symbol": "BITF",
+      "marketCap": 1199686528,
+      "marketCapB": 1.199686528,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.581Z"
+    },
+    "BK": {
+      "symbol": "BK",
+      "marketCap": 91823783936,
+      "marketCapB": 91.823783936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.649Z"
+    },
+    "BKNG": {
+      "symbol": "BKNG",
+      "marketCap": 131442638848,
+      "marketCapB": 131.442638848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.660Z"
+    },
+    "BKR": {
+      "symbol": "BKR",
+      "marketCap": 68571791360,
+      "marketCapB": 68.57179136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.671Z"
+    },
+    "BLDR": {
+      "symbol": "BLDR",
+      "marketCap": 8141262848,
+      "marketCapB": 8.141262848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.734Z"
+    },
+    "BLK": {
+      "symbol": "BLK",
+      "marketCap": 164947886080,
+      "marketCapB": 164.94788608,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.743Z"
+    },
+    "BLSH": {
+      "symbol": "BLSH",
+      "marketCap": 5909882880,
+      "marketCapB": 5.90988288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.751Z"
+    },
+    "BMNR": {
+      "symbol": "BMNR",
+      "marketCap": 12462340096,
+      "marketCapB": 12.462340096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.752Z"
+    },
+    "BMY": {
+      "symbol": "BMY",
+      "marketCap": 118869835776,
+      "marketCapB": 118.869835776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.813Z"
+    },
+    "BNTX": {
+      "symbol": "BNTX",
+      "marketCap": 24666331136,
+      "marketCapB": 24.666331136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.848Z"
+    },
+    "BP": {
+      "symbol": "BP",
+      "marketCap": 119505625088,
+      "marketCapB": 119.505625088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.888Z"
+    },
+    "BR": {
+      "symbol": "BR",
+      "marketCap": 17962424320,
+      "marketCapB": 17.96242432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.906Z"
+    },
+    "BRO": {
+      "symbol": "BRO",
+      "marketCap": 19533563904,
+      "marketCapB": 19.533563904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.949Z"
+    },
+    "BROS": {
+      "symbol": "BROS",
+      "marketCap": 9384415232,
+      "marketCapB": 9.384415232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.966Z"
+    },
+    "BSX": {
+      "symbol": "BSX",
+      "marketCap": 83968892928,
+      "marketCapB": 83.968892928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:26.980Z"
+    },
+    "BTBT": {
+      "symbol": "BTBT",
+      "marketCap": 512726240,
+      "marketCapB": 0.51272624,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.020Z"
+    },
+    "BTDR": {
+      "symbol": "BTDR",
+      "marketCap": 2877015552,
+      "marketCapB": 2.877015552,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.041Z"
+    },
+    "BTG": {
+      "symbol": "BTG",
+      "marketCap": 5824574464,
+      "marketCapB": 5.824574464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.047Z"
+    },
+    "BTU": {
+      "symbol": "BTU",
+      "marketCap": 3232257024,
+      "marketCapB": 3.232257024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.055Z"
+    },
+    "BUD": {
+      "symbol": "BUD",
+      "marketCap": 146426937344,
+      "marketCapB": 146.426937344,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.096Z"
+    },
+    "BURL": {
+      "symbol": "BURL",
+      "marketCap": 19980025856,
+      "marketCapB": 19.980025856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.116Z"
+    },
+    "BW": {
+      "symbol": "BW",
+      "marketCap": 1909887232,
+      "marketCapB": 1.909887232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.130Z"
+    },
+    "BX": {
+      "symbol": "BX",
+      "marketCap": 154432798720,
+      "marketCapB": 154.43279872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.138Z"
+    },
+    "BXP": {
+      "symbol": "BXP",
+      "marketCap": 10511201280,
+      "marketCapB": 10.51120128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.193Z"
+    },
+    "C": {
+      "symbol": "C",
+      "marketCap": 222933221376,
+      "marketCapB": 222.933221376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.193Z"
+    },
+    "CAG": {
+      "symbol": "CAG",
+      "marketCap": 6726826496,
+      "marketCapB": 6.726826496,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.205Z"
+    },
+    "CAH": {
+      "symbol": "CAH",
+      "marketCap": 45943099392,
+      "marketCapB": 45.943099392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.236Z"
+    },
+    "CAR": {
+      "symbol": "CAR",
+      "marketCap": 6554550784,
+      "marketCapB": 6.554550784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.267Z"
+    },
+    "CARR": {
+      "symbol": "CARR",
+      "marketCap": 56163848192,
+      "marketCapB": 56.163848192,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.277Z"
+    },
+    "CART": {
+      "symbol": "CART",
+      "marketCap": 9986802688,
+      "marketCapB": 9.986802688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.284Z"
+    },
+    "CAT": {
+      "symbol": "CAT",
+      "marketCap": 413952180224,
+      "marketCapB": 413.952180224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.333Z"
+    },
+    "CAVA": {
+      "symbol": "CAVA",
+      "marketCap": 10591199232,
+      "marketCapB": 10.591199232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.343Z"
+    },
+    "CB": {
+      "symbol": "CB",
+      "marketCap": 126527717376,
+      "marketCapB": 126.527717376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.359Z"
+    },
+    "CBOE": {
+      "symbol": "CBOE",
+      "marketCap": 34246533120,
+      "marketCapB": 34.24653312,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.418Z"
+    },
+    "CBRE": {
+      "symbol": "CBRE",
+      "marketCap": 41524318208,
+      "marketCapB": 41.524318208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.428Z"
+    },
+    "CC": {
+      "symbol": "CC",
+      "marketCap": 4162585344,
+      "marketCapB": 4.162585344,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.432Z"
+    },
+    "CCI": {
+      "symbol": "CCI",
+      "marketCap": 38950150144,
+      "marketCapB": 38.950150144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.434Z"
+    },
+    "CCJ": {
+      "symbol": "CCJ",
+      "marketCap": 52525277184,
+      "marketCapB": 52.525277184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.499Z"
+    },
+    "CCL": {
+      "symbol": "CCL",
+      "marketCap": 36927819776,
+      "marketCapB": 36.927819776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.510Z"
+    },
+    "CDE": {
+      "symbol": "CDE",
+      "marketCap": 18269470720,
+      "marketCapB": 18.26947072,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.523Z"
+    },
+    "CDNS": {
+      "symbol": "CDNS",
+      "marketCap": 94130831360,
+      "marketCapB": 94.13083136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.529Z"
+    },
+    "CDW": {
+      "symbol": "CDW",
+      "marketCap": 17546997760,
+      "marketCapB": 17.54699776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.579Z"
+    },
+    "CEG": {
+      "symbol": "CEG",
+      "marketCap": 111517917184,
+      "marketCapB": 111.517917184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.585Z"
+    },
+    "CELH": {
+      "symbol": "CELH",
+      "marketCap": 8665104384,
+      "marketCapB": 8.665104384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.622Z"
+    },
+    "CF": {
+      "symbol": "CF",
+      "marketCap": 18847201280,
+      "marketCapB": 18.84720128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.645Z"
+    },
+    "CFG": {
+      "symbol": "CFG",
+      "marketCap": 27444439040,
+      "marketCapB": 27.44443904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.659Z"
+    },
+    "CFLT": {
+      "symbol": "CFLT",
+      "marketCap": 11133729792,
+      "marketCapB": 11.133729792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.661Z"
+    },
+    "CGC": {
+      "symbol": "CGC",
+      "marketCap": 507460992,
+      "marketCapB": 0.507460992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.718Z"
+    },
+    "CHD": {
+      "symbol": "CHD",
+      "marketCap": 22744745984,
+      "marketCapB": 22.744745984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.734Z"
+    },
+    "CHPT": {
+      "symbol": "CHPT",
+      "marketCap": 156019744,
+      "marketCapB": 0.156019744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.747Z"
+    },
+    "CHRW": {
+      "symbol": "CHRW",
+      "marketCap": 21031473152,
+      "marketCapB": 21.031473152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.815Z"
+    },
+    "CHTR": {
+      "symbol": "CHTR",
+      "marketCap": 24245972992,
+      "marketCapB": 24.245972992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.816Z"
+    },
+    "CHWY": {
+      "symbol": "CHWY",
+      "marketCap": 10641930240,
+      "marketCapB": 10.64193024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.825Z"
+    },
+    "CI": {
+      "symbol": "CI",
+      "marketCap": 74826481664,
+      "marketCapB": 74.826481664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.841Z"
+    },
+    "CIEN": {
+      "symbol": "CIEN",
+      "marketCap": 75689164800,
+      "marketCapB": 75.6891648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.891Z"
+    },
+    "CIFR": {
+      "symbol": "CIFR",
+      "marketCap": 6916756992,
+      "marketCapB": 6.916756992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.903Z"
+    },
+    "CINF": {
+      "symbol": "CINF",
+      "marketCap": 25066985472,
+      "marketCapB": 25.066985472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.914Z"
+    },
+    "CL": {
+      "symbol": "CL",
+      "marketCap": 70008864768,
+      "marketCapB": 70.008864768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.920Z"
+    },
+    "CLF": {
+      "symbol": "CLF",
+      "marketCap": 5995058176,
+      "marketCapB": 5.995058176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.967Z"
+    },
+    "CLS": {
+      "symbol": "CLS",
+      "marketCap": 48165683200,
+      "marketCapB": 48.1656832,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:27.981Z"
+    },
+    "CLSK": {
+      "symbol": "CLSK",
+      "marketCap": 3112513024,
+      "marketCapB": 3.112513024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.012Z"
+    },
+    "CLX": {
+      "symbol": "CLX",
+      "marketCap": 10532632576,
+      "marketCapB": 10.532632576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.015Z"
+    },
+    "CMCSA": {
+      "symbol": "CMCSA",
+      "marketCap": 97128898560,
+      "marketCapB": 97.12889856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.059Z"
+    },
+    "CME": {
+      "symbol": "CME",
+      "marketCap": 104917532672,
+      "marketCapB": 104.917532672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.060Z"
+    },
+    "CMG": {
+      "symbol": "CMG",
+      "marketCap": 42392428544,
+      "marketCapB": 42.392428544,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.110Z"
+    },
+    "CMI": {
+      "symbol": "CMI",
+      "marketCap": 90895958016,
+      "marketCapB": 90.895958016,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.112Z"
+    },
+    "CMS": {
+      "symbol": "CMS",
+      "marketCap": 23487158272,
+      "marketCapB": 23.487158272,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.141Z"
+    },
+    "CNC": {
+      "symbol": "CNC",
+      "marketCap": 26339131392,
+      "marketCapB": 26.339131392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.141Z"
+    },
+    "CNP": {
+      "symbol": "CNP",
+      "marketCap": 28358246400,
+      "marketCapB": 28.3582464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.210Z"
+    },
+    "CNQ": {
+      "symbol": "CNQ",
+      "marketCap": 97997553664,
+      "marketCapB": 97.997553664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.222Z"
+    },
+    "COF": {
+      "symbol": "COF",
+      "marketCap": 121708535808,
+      "marketCapB": 121.708535808,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.224Z"
+    },
+    "COHR": {
+      "symbol": "COHR",
+      "marketCap": 61775269888,
+      "marketCapB": 61.775269888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.245Z"
+    },
+    "COIN": {
+      "symbol": "COIN",
+      "marketCap": 50504376320,
+      "marketCapB": 50.50437632,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.299Z"
+    },
+    "COO": {
+      "symbol": "COO",
+      "marketCap": 12167333888,
+      "marketCapB": 12.167333888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.300Z"
+    },
+    "COP": {
+      "symbol": "COP",
+      "marketCap": 150081650688,
+      "marketCapB": 150.081650688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.303Z"
+    },
+    "COR": {
+      "symbol": "COR",
+      "marketCap": 59137327104,
+      "marketCapB": 59.137327104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.374Z"
+    },
+    "CORZ": {
+      "symbol": "CORZ",
+      "marketCap": 6422354432,
+      "marketCapB": 6.422354432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.382Z"
+    },
+    "COST": {
+      "symbol": "COST",
+      "marketCap": 448843284480,
+      "marketCapB": 448.84328448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.398Z"
+    },
+    "CPAY": {
+      "symbol": "CPAY",
+      "marketCap": 20317071360,
+      "marketCapB": 20.31707136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.428Z"
+    },
+    "CPB": {
+      "symbol": "CPB",
+      "marketCap": 6180576768,
+      "marketCapB": 6.180576768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.449Z"
+    },
+    "CPNG": {
+      "symbol": "CPNG",
+      "marketCap": 37201858560,
+      "marketCapB": 37.20185856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.486Z"
+    },
+    "CPRT": {
+      "symbol": "CPRT",
+      "marketCap": 32049270784,
+      "marketCapB": 32.049270784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.488Z"
+    },
+    "CPT": {
+      "symbol": "CPT",
+      "marketCap": 10350012416,
+      "marketCapB": 10.350012416,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.527Z"
+    },
+    "CRCL": {
+      "symbol": "CRCL",
+      "marketCap": 26512728064,
+      "marketCapB": 26.512728064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.529Z"
+    },
+    "CRDO": {
+      "symbol": "CRDO",
+      "marketCap": 34008879104,
+      "marketCapB": 34.008879104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.562Z"
+    },
+    "CRH": {
+      "symbol": "CRH",
+      "marketCap": 77143728128,
+      "marketCapB": 77.143728128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.583Z"
+    },
+    "CRL": {
+      "symbol": "CRL",
+      "marketCap": 8179910144,
+      "marketCapB": 8.179910144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.607Z"
+    },
+    "CRM": {
+      "symbol": "CRM",
+      "marketCap": 150374645760,
+      "marketCapB": 150.37464576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.619Z"
+    },
+    "CRML": {
+      "symbol": "CRML",
+      "marketCap": 1644922368,
+      "marketCapB": 1.644922368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.637Z"
+    },
+    "CRSP": {
+      "symbol": "CRSP",
+      "marketCap": 4978830848,
+      "marketCapB": 4.978830848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.676Z"
+    },
+    "CRWD": {
+      "symbol": "CRWD",
+      "marketCap": 115556728832,
+      "marketCapB": 115.556728832,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.684Z"
+    },
+    "CRWV": {
+      "symbol": "CRWV",
+      "marketCap": 62861094912,
+      "marketCapB": 62.861094912,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.712Z"
+    },
+    "CSCO": {
+      "symbol": "CSCO",
+      "marketCap": 362797662208,
+      "marketCapB": 362.797662208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.744Z"
+    },
+    "CSGP": {
+      "symbol": "CSGP",
+      "marketCap": 14178110464,
+      "marketCapB": 14.178110464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.760Z"
+    },
+    "CSIQ": {
+      "symbol": "CSIQ",
+      "marketCap": 1134573696,
+      "marketCapB": 1.134573696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.777Z"
+    },
+    "CSX": {
+      "symbol": "CSX",
+      "marketCap": 83783483392,
+      "marketCapB": 83.783483392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.785Z"
+    },
+    "CTAS": {
+      "symbol": "CTAS",
+      "marketCap": 67858771968,
+      "marketCapB": 67.858771968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.838Z"
+    },
+    "CTRA": {
+      "symbol": "CTRA",
+      "marketCap": 26866036736,
+      "marketCapB": 26.866036736,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.840Z"
+    },
+    "CTSH": {
+      "symbol": "CTSH",
+      "marketCap": 24799389696,
+      "marketCapB": 24.799389696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.869Z"
+    },
+    "CTVA": {
+      "symbol": "CTVA",
+      "marketCap": 54279172096,
+      "marketCapB": 54.279172096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.879Z"
+    },
+    "CVNA": {
+      "symbol": "CVNA",
+      "marketCap": 84542029824,
+      "marketCapB": 84.542029824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.921Z"
+    },
+    "CVS": {
+      "symbol": "CVS",
+      "marketCap": 105206898688,
+      "marketCapB": 105.206898688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.938Z"
+    },
+    "CVX": {
+      "symbol": "CVX",
+      "marketCap": 379715682304,
+      "marketCapB": 379.715682304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.953Z"
+    },
+    "CWAN": {
+      "symbol": "CWAN",
+      "marketCap": 7210365440,
+      "marketCapB": 7.21036544,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.962Z"
+    },
+    "CZR": {
+      "symbol": "CZR",
+      "marketCap": 5780350976,
+      "marketCapB": 5.780350976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:28.995Z"
+    },
+    "D": {
+      "symbol": "D",
+      "marketCap": 56201003008,
+      "marketCapB": 56.201003008,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.025Z"
+    },
+    "DAL": {
+      "symbol": "DAL",
+      "marketCap": 45319475200,
+      "marketCapB": 45.3194752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.029Z"
+    },
+    "DASH": {
+      "symbol": "DASH",
+      "marketCap": 76621643776,
+      "marketCapB": 76.621643776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.055Z"
+    },
+    "DAVE": {
+      "symbol": "DAVE",
+      "marketCap": 3615229696,
+      "marketCapB": 3.615229696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.071Z"
+    },
+    "DBRG": {
+      "symbol": "DBRG",
+      "marketCap": 3027012608,
+      "marketCapB": 3.027012608,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.118Z"
+    },
+    "DBX": {
+      "symbol": "DBX",
+      "marketCap": 5949258752,
+      "marketCapB": 5.949258752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.149Z"
+    },
+    "DD": {
+      "symbol": "DD",
+      "marketCap": 18952722432,
+      "marketCapB": 18.952722432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.150Z"
+    },
+    "DDD": {
+      "symbol": "DDD",
+      "marketCap": 346159744,
+      "marketCapB": 0.346159744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.178Z"
+    },
+    "DDOG": {
+      "symbol": "DDOG",
+      "marketCap": 50020556800,
+      "marketCapB": 50.0205568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.218Z"
+    },
+    "DE": {
+      "symbol": "DE",
+      "marketCap": 155922137088,
+      "marketCapB": 155.922137088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.222Z"
+    },
+    "DECK": {
+      "symbol": "DECK",
+      "marketCap": 14319911936,
+      "marketCapB": 14.319911936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.241Z"
+    },
+    "DELL": {
+      "symbol": "DELL",
+      "marketCap": 136650162176,
+      "marketCapB": 136.650162176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.256Z"
+    },
+    "DG": {
+      "symbol": "DG",
+      "marketCap": 25200498688,
+      "marketCapB": 25.200498688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.298Z"
+    },
+    "DGX": {
+      "symbol": "DGX",
+      "marketCap": 21327882240,
+      "marketCapB": 21.32788224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.330Z"
+    },
+    "DHI": {
+      "symbol": "DHI",
+      "marketCap": 42531270656,
+      "marketCapB": 42.531270656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.336Z"
+    },
+    "DHR": {
+      "symbol": "DHR",
+      "marketCap": 123966021632,
+      "marketCapB": 123.966021632,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.347Z"
+    },
+    "DIS": {
+      "symbol": "DIS",
+      "marketCap": 182608265216,
+      "marketCapB": 182.608265216,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.405Z"
+    },
+    "DJT": {
+      "symbol": "DJT",
+      "marketCap": 2598507264,
+      "marketCapB": 2.598507264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.431Z"
+    },
+    "DKNG": {
+      "symbol": "DKNG",
+      "marketCap": 11402084352,
+      "marketCapB": 11.402084352,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.449Z"
+    },
+    "DLR": {
+      "symbol": "DLR",
+      "marketCap": 71271178240,
+      "marketCapB": 71.27117824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.474Z"
+    },
+    "DLTR": {
+      "symbol": "DLTR",
+      "marketCap": 18678222848,
+      "marketCapB": 18.678222848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.483Z"
+    },
+    "DNN": {
+      "symbol": "DNN",
+      "marketCap": 3390059776,
+      "marketCapB": 3.390059776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.524Z"
+    },
+    "DNUT": {
+      "symbol": "DNUT",
+      "marketCap": 658507328,
+      "marketCapB": 0.658507328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.526Z"
+    },
+    "DOC": {
+      "symbol": "DOC",
+      "marketCap": 11416114176,
+      "marketCapB": 11.416114176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.570Z"
+    },
+    "DOCN": {
+      "symbol": "DOCN",
+      "marketCap": 10729620480,
+      "marketCapB": 10.72962048,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.571Z"
+    },
+    "DOCU": {
+      "symbol": "DOCU",
+      "marketCap": 9318214656,
+      "marketCapB": 9.318214656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.600Z"
+    },
+    "DOV": {
+      "symbol": "DOV",
+      "marketCap": 30405197824,
+      "marketCapB": 30.405197824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.616Z"
+    },
+    "DOW": {
+      "symbol": "DOW",
+      "marketCap": 29038673920,
+      "marketCapB": 29.03867392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.644Z"
+    },
+    "DPZ": {
+      "symbol": "DPZ",
+      "marketCap": 11234861056,
+      "marketCapB": 11.234861056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.663Z"
+    },
+    "DRI": {
+      "symbol": "DRI",
+      "marketCap": 22306836480,
+      "marketCapB": 22.30683648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.684Z"
+    },
+    "DTE": {
+      "symbol": "DTE",
+      "marketCap": 30952501248,
+      "marketCapB": 30.952501248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.710Z"
+    },
+    "DUK": {
+      "symbol": "DUK",
+      "marketCap": 100078673920,
+      "marketCapB": 100.07867392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.719Z"
+    },
+    "DUOL": {
+      "symbol": "DUOL",
+      "marketCap": 5204500480,
+      "marketCapB": 5.20450048,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.756Z"
+    },
+    "DVA": {
+      "symbol": "DVA",
+      "marketCap": 10000459776,
+      "marketCapB": 10.000459776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.762Z"
+    },
+    "DVN": {
+      "symbol": "DVN",
+      "marketCap": 31420022784,
+      "marketCapB": 31.420022784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.794Z"
+    },
+    "DXCM": {
+      "symbol": "DXCM",
+      "marketCap": 23673307136,
+      "marketCapB": 23.673307136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.842Z"
+    },
+    "EA": {
+      "symbol": "EA",
+      "marketCap": 50573770752,
+      "marketCapB": 50.573770752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.868Z"
+    },
+    "EBAY": {
+      "symbol": "EBAY",
+      "marketCap": 46207078400,
+      "marketCapB": 46.2070784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.887Z"
+    },
+    "ECL": {
+      "symbol": "ECL",
+      "marketCap": 73291800576,
+      "marketCapB": 73.291800576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.895Z"
+    },
+    "ED": {
+      "symbol": "ED",
+      "marketCap": 40706863104,
+      "marketCapB": 40.706863104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.919Z"
+    },
+    "EFX": {
+      "symbol": "EFX",
+      "marketCap": 20972326912,
+      "marketCapB": 20.972326912,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:29.998Z"
+    },
+    "EG": {
+      "symbol": "EG",
+      "marketCap": 14072086528,
+      "marketCapB": 14.072086528,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.016Z"
+    },
+    "EGO": {
+      "symbol": "EGO",
+      "marketCap": 7779603456,
+      "marketCapB": 7.779603456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.017Z"
+    },
+    "EIX": {
+      "symbol": "EIX",
+      "marketCap": 26889400320,
+      "marketCapB": 26.88940032,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.074Z"
+    },
+    "EL": {
+      "symbol": "EL",
+      "marketCap": 28684955648,
+      "marketCapB": 28.684955648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.076Z"
+    },
+    "ELF": {
+      "symbol": "ELF",
+      "marketCap": 3572070144,
+      "marketCapB": 3.572070144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.089Z"
+    },
+    "ELV": {
+      "symbol": "ELV",
+      "marketCap": 80932077568,
+      "marketCapB": 80.932077568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.110Z"
+    },
+    "EMN": {
+      "symbol": "EMN",
+      "marketCap": 8865548288,
+      "marketCapB": 8.865548288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.157Z"
+    },
+    "EMR": {
+      "symbol": "EMR",
+      "marketCap": 77246898176,
+      "marketCapB": 77.246898176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.169Z"
+    },
+    "ENPH": {
+      "symbol": "ENPH",
+      "marketCap": 4461369856,
+      "marketCapB": 4.461369856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.170Z"
+    },
+    "ENVX": {
+      "symbol": "ENVX",
+      "marketCap": 1474866176,
+      "marketCapB": 1.474866176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.207Z"
+    },
+    "EOG": {
+      "symbol": "EOG",
+      "marketCap": 74437713920,
+      "marketCapB": 74.43771392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.236Z"
+    },
+    "EOSE": {
+      "symbol": "EOSE",
+      "marketCap": 2189793024,
+      "marketCapB": 2.189793024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.254Z"
+    },
+    "EPAM": {
+      "symbol": "EPAM",
+      "marketCap": 5926176768,
+      "marketCapB": 5.926176768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.269Z"
+    },
+    "EPD": {
+      "symbol": "EPD",
+      "marketCap": 82211758080,
+      "marketCapB": 82.21175808,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.297Z"
+    },
+    "EQIX": {
+      "symbol": "EQIX",
+      "marketCap": 107010269184,
+      "marketCapB": 107.010269184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.315Z"
+    },
+    "EQR": {
+      "symbol": "EQR",
+      "marketCap": 25177683968,
+      "marketCapB": 25.177683968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.336Z"
+    },
+    "EQT": {
+      "symbol": "EQT",
+      "marketCap": 36690538496,
+      "marketCapB": 36.690538496,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.363Z"
+    },
+    "ERIE": {
+      "symbol": "ERIE",
+      "marketCap": 11240229888,
+      "marketCapB": 11.240229888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.389Z"
+    },
+    "ES": {
+      "symbol": "ES",
+      "marketCap": 26711328768,
+      "marketCapB": 26.711328768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.389Z"
+    },
+    "ESS": {
+      "symbol": "ESS",
+      "marketCap": 18151712768,
+      "marketCapB": 18.151712768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.411Z"
+    },
+    "ESTC": {
+      "symbol": "ESTC",
+      "marketCap": 5031183872,
+      "marketCapB": 5.031183872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.458Z"
+    },
+    "ET": {
+      "symbol": "ET",
+      "marketCap": 68599873536,
+      "marketCapB": 68.599873536,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.468Z"
+    },
+    "ETN": {
+      "symbol": "ETN",
+      "marketCap": 165107154944,
+      "marketCapB": 165.107154944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.556Z"
+    },
+    "ETR": {
+      "symbol": "ETR",
+      "marketCap": 53305389056,
+      "marketCapB": 53.305389056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.567Z"
+    },
+    "ETSY": {
+      "symbol": "ETSY",
+      "marketCap": 5994594816,
+      "marketCapB": 5.994594816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.580Z"
+    },
+    "EVRG": {
+      "symbol": "EVRG",
+      "marketCap": 19023773696,
+      "marketCapB": 19.023773696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.616Z"
+    },
+    "EW": {
+      "symbol": "EW",
+      "marketCap": 48417972224,
+      "marketCapB": 48.417972224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.643Z"
+    },
+    "EXC": {
+      "symbol": "EXC",
+      "marketCap": 47577640960,
+      "marketCapB": 47.57764096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.796Z"
+    },
+    "EXE": {
+      "symbol": "EXE",
+      "marketCap": 23951593472,
+      "marketCapB": 23.951593472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.838Z"
+    },
+    "EXK": {
+      "symbol": "EXK",
+      "marketCap": 2723680000,
+      "marketCapB": 2.72368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.845Z"
+    },
+    "EXPD": {
+      "symbol": "EXPD",
+      "marketCap": 19579234304,
+      "marketCapB": 19.579234304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.864Z"
+    },
+    "EXPE": {
+      "symbol": "EXPE",
+      "marketCap": 30226360320,
+      "marketCapB": 30.22636032,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.886Z"
+    },
+    "EXR": {
+      "symbol": "EXR",
+      "marketCap": 31333888000,
+      "marketCapB": 31.333888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.927Z"
+    },
+    "F": {
+      "symbol": "F",
+      "marketCap": 47651655680,
+      "marketCapB": 47.65165568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.936Z"
+    },
+    "FANG": {
+      "symbol": "FANG",
+      "marketCap": 58414383104,
+      "marketCapB": 58.414383104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.941Z"
+    },
+    "FAST": {
+      "symbol": "FAST",
+      "marketCap": 51558256640,
+      "marketCapB": 51.55825664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:30.980Z"
+    },
+    "FCEL": {
+      "symbol": "FCEL",
+      "marketCap": 705135424,
+      "marketCapB": 0.705135424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.017Z"
+    },
+    "FCX": {
+      "symbol": "FCX",
+      "marketCap": 81177616384,
+      "marketCapB": 81.177616384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.029Z"
+    },
+    "FDS": {
+      "symbol": "FDS",
+      "marketCap": 8290996224,
+      "marketCapB": 8.290996224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.081Z"
+    },
+    "FDX": {
+      "symbol": "FDX",
+      "marketCap": 93932322816,
+      "marketCapB": 93.932322816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.081Z"
+    },
+    "FE": {
+      "symbol": "FE",
+      "marketCap": 27139989504,
+      "marketCapB": 27.139989504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.099Z"
+    },
+    "FFIV": {
+      "symbol": "FFIV",
+      "marketCap": 18342569984,
+      "marketCapB": 18.342569984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.156Z"
+    },
+    "FICO": {
+      "symbol": "FICO",
+      "marketCap": 24014182400,
+      "marketCapB": 24.0141824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.181Z"
+    },
+    "FIG": {
+      "symbol": "FIG",
+      "marketCap": 9875471360,
+      "marketCapB": 9.87547136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.212Z"
+    },
+    "FIS": {
+      "symbol": "FIS",
+      "marketCap": 24055093248,
+      "marketCapB": 24.055093248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.232Z"
+    },
+    "FISV": {
+      "symbol": "FISV",
+      "marketCap": 33231073280,
+      "marketCapB": 33.23107328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.264Z"
+    },
+    "FITB": {
+      "symbol": "FITB",
+      "marketCap": 45680652288,
+      "marketCapB": 45.680652288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.276Z"
+    },
+    "FLY": {
+      "symbol": "FLY",
+      "marketCap": 5411589632,
+      "marketCapB": 5.411589632,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.305Z"
+    },
+    "FNV": {
+      "symbol": "FNV",
+      "marketCap": 43657334784,
+      "marketCapB": 43.657334784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.307Z"
+    },
+    "FOX": {
+      "symbol": "FOX",
+      "marketCap": 24217798656,
+      "marketCapB": 24.217798656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.363Z"
+    },
+    "FOXA": {
+      "symbol": "FOXA",
+      "marketCap": 26948839424,
+      "marketCapB": 26.948839424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.366Z"
+    },
+    "FROG": {
+      "symbol": "FROG",
+      "marketCap": 6044537856,
+      "marketCapB": 6.044537856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.382Z"
+    },
+    "FRT": {
+      "symbol": "FRT",
+      "marketCap": 10023317504,
+      "marketCapB": 10.023317504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.404Z"
+    },
+    "FSLR": {
+      "symbol": "FSLR",
+      "marketCap": 22748874752,
+      "marketCapB": 22.748874752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.445Z"
+    },
+    "FSLY": {
+      "symbol": "FSLY",
+      "marketCap": 4389248000,
+      "marketCapB": 4.389248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.456Z"
+    },
+    "FTAI": {
+      "symbol": "FTAI",
+      "marketCap": 24614227968,
+      "marketCapB": 24.614227968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.461Z"
+    },
+    "FTNT": {
+      "symbol": "FTNT",
+      "marketCap": 63173083136,
+      "marketCapB": 63.173083136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.506Z"
+    },
+    "FTV": {
+      "symbol": "FTV",
+      "marketCap": 18017339392,
+      "marketCapB": 18.017339392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.524Z"
+    },
+    "FUBO": {
+      "symbol": "FUBO",
+      "marketCap": 406768640,
+      "marketCapB": 0.40676864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.533Z"
+    },
+    "FUTU": {
+      "symbol": "FUTU",
+      "marketCap": 21709119488,
+      "marketCapB": 21.709119488,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.560Z"
+    },
+    "GAP": {
+      "symbol": "GAP",
+      "marketCap": 9016596480,
+      "marketCapB": 9.01659648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.603Z"
+    },
+    "GD": {
+      "symbol": "GD",
+      "marketCap": 93525573632,
+      "marketCapB": 93.525573632,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.657Z"
+    },
+    "GDDY": {
+      "symbol": "GDDY",
+      "marketCap": 11512782848,
+      "marketCapB": 11.512782848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.674Z"
+    },
+    "GE": {
+      "symbol": "GE",
+      "marketCap": 299354161152,
+      "marketCapB": 299.354161152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.748Z"
+    },
+    "GEHC": {
+      "symbol": "GEHC",
+      "marketCap": 27762044928,
+      "marketCapB": 27.762044928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.749Z"
+    },
+    "GEN": {
+      "symbol": "GEN",
+      "marketCap": 11731706880,
+      "marketCapB": 11.73170688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.762Z"
+    },
+    "GEV": {
+      "symbol": "GEV",
+      "marketCap": 285635903488,
+      "marketCapB": 285.635903488,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.819Z"
+    },
+    "GILD": {
+      "symbol": "GILD",
+      "marketCap": 163404464128,
+      "marketCapB": 163.404464128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.829Z"
+    },
+    "GIS": {
+      "symbol": "GIS",
+      "marketCap": 18529413120,
+      "marketCapB": 18.52941312,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.840Z"
+    },
+    "GL": {
+      "symbol": "GL",
+      "marketCap": 11980052480,
+      "marketCapB": 11.98005248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.845Z"
+    },
+    "GLW": {
+      "symbol": "GLW",
+      "marketCap": 135954210816,
+      "marketCapB": 135.954210816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.910Z"
+    },
+    "GLXY": {
+      "symbol": "GLXY",
+      "marketCap": 10970182656,
+      "marketCapB": 10.970182656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.944Z"
+    },
+    "GM": {
+      "symbol": "GM",
+      "marketCap": 68319170560,
+      "marketCapB": 68.31917056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.957Z"
+    },
+    "GNRC": {
+      "symbol": "GNRC",
+      "marketCap": 15252236288,
+      "marketCapB": 15.252236288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:31.975Z"
+    },
+    "GOLD": {
+      "symbol": "GOLD",
+      "marketCap": 1199499136,
+      "marketCapB": 1.199499136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.009Z"
+    },
+    "GOOG": {
+      "symbol": "GOOG",
+      "marketCap": 4635812691968,
+      "marketCapB": 4635.812691968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.038Z"
+    },
+    "GOOGL": {
+      "symbol": "GOOGL",
+      "marketCap": 4672805404672,
+      "marketCapB": 4672.805404672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.039Z"
+    },
+    "GOOS": {
+      "symbol": "GOOS",
+      "marketCap": 1097551488,
+      "marketCapB": 1.097551488,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.050Z"
+    },
+    "GPC": {
+      "symbol": "GPC",
+      "marketCap": 14606430208,
+      "marketCapB": 14.606430208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.120Z"
+    },
+    "GPN": {
+      "symbol": "GPN",
+      "marketCap": 19916584960,
+      "marketCapB": 19.91658496,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.123Z"
+    },
+    "GRAB": {
+      "symbol": "GRAB",
+      "marketCap": 15048768512,
+      "marketCapB": 15.048768512,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.132Z"
+    },
+    "GRMN": {
+      "symbol": "GRMN",
+      "marketCap": 46752202752,
+      "marketCapB": 46.752202752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.148Z"
+    },
+    "GS": {
+      "symbol": "GS",
+      "marketCap": 274113658880,
+      "marketCapB": 274.11365888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.199Z"
+    },
+    "GSK": {
+      "symbol": "GSK",
+      "marketCap": 103012155392,
+      "marketCapB": 103.012155392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.217Z"
+    },
+    "GTLB": {
+      "symbol": "GTLB",
+      "marketCap": 4091674368,
+      "marketCapB": 4.091674368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.224Z"
+    },
+    "GTM": {
+      "symbol": "GTM",
+      "marketCap": 2030209536,
+      "marketCapB": 2.030209536,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.229Z"
+    },
+    "GWW": {
+      "symbol": "GWW",
+      "marketCap": 54364164096,
+      "marketCapB": 54.364164096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.275Z"
+    },
+    "HAL": {
+      "symbol": "HAL",
+      "marketCap": 34802671616,
+      "marketCapB": 34.802671616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.301Z"
+    },
+    "HAS": {
+      "symbol": "HAS",
+      "marketCap": 13482756096,
+      "marketCapB": 13.482756096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.312Z"
+    },
+    "HBAN": {
+      "symbol": "HBAN",
+      "marketCap": 33711179776,
+      "marketCapB": 33.711179776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.326Z"
+    },
+    "HCA": {
+      "symbol": "HCA",
+      "marketCap": 96076603392,
+      "marketCapB": 96.076603392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.349Z"
+    },
+    "HD": {
+      "symbol": "HD",
+      "marketCap": 322593423360,
+      "marketCapB": 322.59342336,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.377Z"
+    },
+    "HIG": {
+      "symbol": "HIG",
+      "marketCap": 37229707264,
+      "marketCapB": 37.229707264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.414Z"
+    },
+    "HII": {
+      "symbol": "HII",
+      "marketCap": 14199408640,
+      "marketCapB": 14.19940864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.452Z"
+    },
+    "HIMS": {
+      "symbol": "HIMS",
+      "marketCap": 6333656576,
+      "marketCapB": 6.333656576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.453Z"
+    },
+    "HIVE": {
+      "symbol": "HIVE",
+      "marketCap": 615413952,
+      "marketCapB": 0.615413952,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.453Z"
+    },
+    "HL": {
+      "symbol": "HL",
+      "marketCap": 12110419968,
+      "marketCapB": 12.110419968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.528Z"
+    },
+    "HLF": {
+      "symbol": "HLF",
+      "marketCap": 1683512832,
+      "marketCapB": 1.683512832,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.530Z"
+    },
+    "HLT": {
+      "symbol": "HLT",
+      "marketCap": 72531042304,
+      "marketCapB": 72.531042304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.540Z"
+    },
+    "HOG": {
+      "symbol": "HOG",
+      "marketCap": 2738101760,
+      "marketCapB": 2.73810176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.552Z"
+    },
+    "HON": {
+      "symbol": "HON",
+      "marketCap": 134651289600,
+      "marketCapB": 134.6512896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.611Z"
+    },
+    "HOOD": {
+      "symbol": "HOOD",
+      "marketCap": 66331209728,
+      "marketCapB": 66.331209728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.634Z"
+    },
+    "HPE": {
+      "symbol": "HPE",
+      "marketCap": 37908221952,
+      "marketCapB": 37.908221952,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.646Z"
+    },
+    "HPQ": {
+      "symbol": "HPQ",
+      "marketCap": 19121616896,
+      "marketCapB": 19.121616896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.691Z"
+    },
+    "HRL": {
+      "symbol": "HRL",
+      "marketCap": 11737562112,
+      "marketCapB": 11.737562112,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.718Z"
+    },
+    "HSBC": {
+      "symbol": "HSBC",
+      "marketCap": 315355496448,
+      "marketCapB": 315.355496448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.733Z"
+    },
+    "HSIC": {
+      "symbol": "HSIC",
+      "marketCap": 8483323392,
+      "marketCapB": 8.483323392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.742Z"
+    },
+    "HST": {
+      "symbol": "HST",
+      "marketCap": 14711134208,
+      "marketCapB": 14.711134208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.766Z"
+    },
+    "HSY": {
+      "symbol": "HSY",
+      "marketCap": 36958670848,
+      "marketCapB": 36.958670848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.811Z"
+    },
+    "HTZ": {
+      "symbol": "HTZ",
+      "marketCap": 1934425472,
+      "marketCapB": 1.934425472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.829Z"
+    },
+    "HUBB": {
+      "symbol": "HUBB",
+      "marketCap": 27028951040,
+      "marketCapB": 27.02895104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.837Z"
+    },
+    "HUBS": {
+      "symbol": "HUBS",
+      "marketCap": 12349124608,
+      "marketCapB": 12.349124608,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.841Z"
+    },
+    "HUM": {
+      "symbol": "HUM",
+      "marketCap": 28049969152,
+      "marketCapB": 28.049969152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.885Z"
+    },
+    "HUT": {
+      "symbol": "HUT",
+      "marketCap": 8664303616,
+      "marketCapB": 8.664303616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.915Z"
+    },
+    "HWM": {
+      "symbol": "HWM",
+      "marketCap": 96029155328,
+      "marketCapB": 96.029155328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:32.926Z"
+    },
+    "IBKR": {
+      "symbol": "IBKR",
+      "marketCap": 136797315072,
+      "marketCapB": 136.797315072,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.028Z"
+    },
+    "IBM": {
+      "symbol": "IBM",
+      "marketCap": 218241368064,
+      "marketCapB": 218.241368064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.037Z"
+    },
+    "IBRX": {
+      "symbol": "IBRX",
+      "marketCap": 7342625792,
+      "marketCapB": 7.342625792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.059Z"
+    },
+    "ICE": {
+      "symbol": "ICE",
+      "marketCap": 87655161856,
+      "marketCapB": 87.655161856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.112Z"
+    },
+    "IDXX": {
+      "symbol": "IDXX",
+      "marketCap": 45183455232,
+      "marketCapB": 45.183455232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.125Z"
+    },
+    "IEX": {
+      "symbol": "IEX",
+      "marketCap": 15908055040,
+      "marketCapB": 15.90805504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.222Z"
+    },
+    "IFF": {
+      "symbol": "IFF",
+      "marketCap": 18087550976,
+      "marketCapB": 18.087550976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.223Z"
+    },
+    "INCY": {
+      "symbol": "INCY",
+      "marketCap": 19360890880,
+      "marketCapB": 19.36089088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.315Z"
+    },
+    "INOD": {
+      "symbol": "INOD",
+      "marketCap": 1437473408,
+      "marketCapB": 1.437473408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.377Z"
+    },
+    "INTC": {
+      "symbol": "INTC",
+      "marketCap": 500690124800,
+      "marketCapB": 500.6901248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.400Z"
+    },
+    "INTU": {
+      "symbol": "INTU",
+      "marketCap": 111042494464,
+      "marketCapB": 111.042494464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.403Z"
+    },
+    "INVH": {
+      "symbol": "INVH",
+      "marketCap": 16946294784,
+      "marketCapB": 16.946294784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.408Z"
+    },
+    "IONQ": {
+      "symbol": "IONQ",
+      "marketCap": 16938804224,
+      "marketCapB": 16.938804224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.457Z"
+    },
+    "IOT": {
+      "symbol": "IOT",
+      "marketCap": 17706039296,
+      "marketCapB": 17.706039296,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.481Z"
+    },
+    "IOVA": {
+      "symbol": "IOVA",
+      "marketCap": 1518108160,
+      "marketCapB": 1.51810816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.495Z"
+    },
+    "IP": {
+      "symbol": "IP",
+      "marketCap": 16816482304,
+      "marketCapB": 16.816482304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.506Z"
+    },
+    "IQ": {
+      "symbol": "IQ",
+      "marketCap": 1177330176,
+      "marketCapB": 1.177330176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.556Z"
+    },
+    "IQV": {
+      "symbol": "IQV",
+      "marketCap": 26484273152,
+      "marketCapB": 26.484273152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.589Z"
+    },
+    "IR": {
+      "symbol": "IR",
+      "marketCap": 30520358912,
+      "marketCapB": 30.520358912,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.609Z"
+    },
+    "IREN": {
+      "symbol": "IREN",
+      "marketCap": 15148123136,
+      "marketCapB": 15.148123136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.610Z"
+    },
+    "IRM": {
+      "symbol": "IRM",
+      "marketCap": 37836333056,
+      "marketCapB": 37.836333056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.632Z"
+    },
+    "ISRG": {
+      "symbol": "ISRG",
+      "marketCap": 162128674816,
+      "marketCapB": 162.128674816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.689Z"
+    },
+    "IT": {
+      "symbol": "IT",
+      "marketCap": 9883491328,
+      "marketCapB": 9.883491328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.722Z"
+    },
+    "ITW": {
+      "symbol": "ITW",
+      "marketCap": 73626451968,
+      "marketCapB": 73.626451968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.723Z"
+    },
+    "IVZ": {
+      "symbol": "IVZ",
+      "marketCap": 11477037056,
+      "marketCapB": 11.477037056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.765Z"
+    },
+    "J": {
+      "symbol": "J",
+      "marketCap": 15141229568,
+      "marketCapB": 15.141229568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.842Z"
+    },
+    "JBHT": {
+      "symbol": "JBHT",
+      "marketCap": 23455039488,
+      "marketCapB": 23.455039488,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.864Z"
+    },
+    "JBL": {
+      "symbol": "JBL",
+      "marketCap": 36131483648,
+      "marketCapB": 36.131483648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.868Z"
+    },
+    "JBLU": {
+      "symbol": "JBLU",
+      "marketCap": 1808011776,
+      "marketCapB": 1.808011776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.908Z"
+    },
+    "JCI": {
+      "symbol": "JCI",
+      "marketCap": 88798560256,
+      "marketCapB": 88.798560256,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.945Z"
+    },
+    "JD": {
+      "symbol": "JD",
+      "marketCap": 40919986176,
+      "marketCapB": 40.919986176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:33.946Z"
+    },
+    "JKHY": {
+      "symbol": "JKHY",
+      "marketCap": 11148250112,
+      "marketCapB": 11.148250112,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.006Z"
+    },
+    "JMIA": {
+      "symbol": "JMIA",
+      "marketCap": 870683904,
+      "marketCapB": 0.870683904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.023Z"
+    },
+    "JNJ": {
+      "symbol": "JNJ",
+      "marketCap": 546895626240,
+      "marketCapB": 546.89562624,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.025Z"
+    },
+    "JOBY": {
+      "symbol": "JOBY",
+      "marketCap": 9094316032,
+      "marketCapB": 9.094316032,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.098Z"
+    },
+    "JPM": {
+      "symbol": "JPM",
+      "marketCap": 837263360000,
+      "marketCapB": 837.26336,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.099Z"
+    },
+    "KDP": {
+      "symbol": "KDP",
+      "marketCap": 39578677248,
+      "marketCapB": 39.578677248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.164Z"
+    },
+    "KEY": {
+      "symbol": "KEY",
+      "marketCap": 23779100672,
+      "marketCapB": 23.779100672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.170Z"
+    },
+    "KEYS": {
+      "symbol": "KEYS",
+      "marketCap": 60439195648,
+      "marketCapB": 60.439195648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.174Z"
+    },
+    "KGC": {
+      "symbol": "KGC",
+      "marketCap": 35285934080,
+      "marketCapB": 35.28593408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.197Z"
+    },
+    "KHC": {
+      "symbol": "KHC",
+      "marketCap": 26622418944,
+      "marketCapB": 26.622418944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.247Z"
+    },
+    "KIM": {
+      "symbol": "KIM",
+      "marketCap": 15767534592,
+      "marketCapB": 15.767534592,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.252Z"
+    },
+    "KKR": {
+      "symbol": "KKR",
+      "marketCap": 96020070400,
+      "marketCapB": 96.0200704,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.257Z"
+    },
+    "KLAC": {
+      "symbol": "KLAC",
+      "marketCap": 226817327104,
+      "marketCapB": 226.817327104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.276Z"
+    },
+    "KMB": {
+      "symbol": "KMB",
+      "marketCap": 32420614144,
+      "marketCapB": 32.420614144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.328Z"
+    },
+    "KMI": {
+      "symbol": "KMI",
+      "marketCap": 72373583872,
+      "marketCapB": 72.373583872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.350Z"
+    },
+    "KMX": {
+      "symbol": "KMX",
+      "marketCap": 5464352256,
+      "marketCapB": 5.464352256,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.352Z"
+    },
+    "KO": {
+      "symbol": "KO",
+      "marketCap": 338129747968,
+      "marketCapB": 338.129747968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.354Z"
+    },
+    "KR": {
+      "symbol": "KR",
+      "marketCap": 42888183808,
+      "marketCapB": 42.888183808,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.405Z"
+    },
+    "KSS": {
+      "symbol": "KSS",
+      "marketCap": 1645631232,
+      "marketCapB": 1.645631232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.449Z"
+    },
+    "KTOS": {
+      "symbol": "KTOS",
+      "marketCap": 11630558208,
+      "marketCapB": 11.630558208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.450Z"
+    },
+    "KVUE": {
+      "symbol": "KVUE",
+      "marketCap": 33464141824,
+      "marketCapB": 33.464141824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.483Z"
+    },
+    "L": {
+      "symbol": "L",
+      "marketCap": 22984251392,
+      "marketCapB": 22.984251392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.562Z"
+    },
+    "LAC": {
+      "symbol": "LAC",
+      "marketCap": 1983480448,
+      "marketCapB": 1.983480448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.563Z"
+    },
+    "LBRT": {
+      "symbol": "LBRT",
+      "marketCap": 5333095936,
+      "marketCapB": 5.333095936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.573Z"
+    },
+    "LCID": {
+      "symbol": "LCID",
+      "marketCap": 2394963712,
+      "marketCapB": 2.394963712,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.588Z"
+    },
+    "LDI": {
+      "symbol": "LDI",
+      "marketCap": 1017001344,
+      "marketCapB": 1.017001344,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.647Z"
+    },
+    "LDOS": {
+      "symbol": "LDOS",
+      "marketCap": 18861580288,
+      "marketCapB": 18.861580288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.662Z"
+    },
+    "LEN": {
+      "symbol": "LEN",
+      "marketCap": 21785083904,
+      "marketCapB": 21.785083904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.662Z"
+    },
+    "LEU": {
+      "symbol": "LEU",
+      "marketCap": 4064936960,
+      "marketCapB": 4.06493696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.667Z"
+    },
+    "LH": {
+      "symbol": "LH",
+      "marketCap": 21055631360,
+      "marketCapB": 21.05563136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.722Z"
+    },
+    "LHX": {
+      "symbol": "LHX",
+      "marketCap": 58379247616,
+      "marketCapB": 58.379247616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.748Z"
+    },
+    "LI": {
+      "symbol": "LI",
+      "marketCap": 17960919040,
+      "marketCapB": 17.96091904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.751Z"
+    },
+    "LII": {
+      "symbol": "LII",
+      "marketCap": 18316267520,
+      "marketCapB": 18.31626752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.764Z"
+    },
+    "LIN": {
+      "symbol": "LIN",
+      "marketCap": 234835443712,
+      "marketCapB": 234.835443712,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.796Z"
+    },
+    "LITE": {
+      "symbol": "LITE",
+      "marketCap": 67825000448,
+      "marketCapB": 67.825000448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.827Z"
+    },
+    "LKQ": {
+      "symbol": "LKQ",
+      "marketCap": 7264086528,
+      "marketCapB": 7.264086528,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.860Z"
+    },
+    "LLY": {
+      "symbol": "LLY",
+      "marketCap": 862005886976,
+      "marketCapB": 862.005886976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.871Z"
+    },
+    "LMND": {
+      "symbol": "LMND",
+      "marketCap": 4352666112,
+      "marketCapB": 4.352666112,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.885Z"
+    },
+    "LMT": {
+      "symbol": "LMT",
+      "marketCap": 118226108416,
+      "marketCapB": 118.226108416,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.900Z"
+    },
+    "LNG": {
+      "symbol": "LNG",
+      "marketCap": 56749572096,
+      "marketCapB": 56.749572096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.951Z"
+    },
+    "LNT": {
+      "symbol": "LNT",
+      "marketCap": 19127955456,
+      "marketCapB": 19.127955456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.959Z"
+    },
+    "LOW": {
+      "symbol": "LOW",
+      "marketCap": 130679480320,
+      "marketCapB": 130.67948032,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:34.979Z"
+    },
+    "LQDA": {
+      "symbol": "LQDA",
+      "marketCap": 3390402816,
+      "marketCapB": 3.390402816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.027Z"
+    },
+    "LRCX": {
+      "symbol": "LRCX",
+      "marketCap": 321046577152,
+      "marketCapB": 321.046577152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.052Z"
+    },
+    "LULU": {
+      "symbol": "LULU",
+      "marketCap": 15670419456,
+      "marketCapB": 15.670419456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.073Z"
+    },
+    "LUMN": {
+      "symbol": "LUMN",
+      "marketCap": 9601077248,
+      "marketCapB": 9.601077248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.102Z"
+    },
+    "LUV": {
+      "symbol": "LUV",
+      "marketCap": 18944868352,
+      "marketCapB": 18.944868352,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.127Z"
+    },
+    "LVS": {
+      "symbol": "LVS",
+      "marketCap": 35643260928,
+      "marketCapB": 35.643260928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.147Z"
+    },
+    "LW": {
+      "symbol": "LW",
+      "marketCap": 6055873024,
+      "marketCapB": 6.055873024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.169Z"
+    },
+    "LYB": {
+      "symbol": "LYB",
+      "marketCap": 24204468224,
+      "marketCapB": 24.204468224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.179Z"
+    },
+    "LYFT": {
+      "symbol": "LYFT",
+      "marketCap": 5510226944,
+      "marketCapB": 5.510226944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.206Z"
+    },
+    "LYV": {
+      "symbol": "LYV",
+      "marketCap": 37208502272,
+      "marketCapB": 37.208502272,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.226Z"
+    },
+    "M": {
+      "symbol": "M",
+      "marketCap": 5193464320,
+      "marketCapB": 5.19346432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.254Z"
+    },
+    "MA": {
+      "symbol": "MA",
+      "marketCap": 437637808128,
+      "marketCapB": 437.637808128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.263Z"
+    },
+    "MAA": {
+      "symbol": "MAA",
+      "marketCap": 15336544256,
+      "marketCapB": 15.336544256,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.278Z"
+    },
+    "MAR": {
+      "symbol": "MAR",
+      "marketCap": 94061568000,
+      "marketCapB": 94.061568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.333Z"
+    },
+    "MARA": {
+      "symbol": "MARA",
+      "marketCap": 4357488640,
+      "marketCapB": 4.35748864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.356Z"
+    },
+    "MAS": {
+      "symbol": "MAS",
+      "marketCap": 14371560448,
+      "marketCapB": 14.371560448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.362Z"
+    },
+    "MBLY": {
+      "symbol": "MBLY",
+      "marketCap": 7360706560,
+      "marketCapB": 7.36070656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.407Z"
+    },
+    "MCD": {
+      "symbol": "MCD",
+      "marketCap": 203751653376,
+      "marketCapB": 203.751653376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.415Z"
+    },
+    "MCHP": {
+      "symbol": "MCHP",
+      "marketCap": 50839678976,
+      "marketCapB": 50.839678976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.449Z"
+    },
+    "MCK": {
+      "symbol": "MCK",
+      "marketCap": 99707240448,
+      "marketCapB": 99.707240448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.501Z"
+    },
+    "MCO": {
+      "symbol": "MCO",
+      "marketCap": 79612272640,
+      "marketCapB": 79.61227264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.510Z"
+    },
+    "MDB": {
+      "symbol": "MDB",
+      "marketCap": 21174155264,
+      "marketCapB": 21.174155264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.514Z"
+    },
+    "MDLZ": {
+      "symbol": "MDLZ",
+      "marketCap": 78777589760,
+      "marketCapB": 78.77758976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.541Z"
+    },
+    "MDT": {
+      "symbol": "MDT",
+      "marketCap": 102710796288,
+      "marketCapB": 102.710796288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.590Z"
+    },
+    "MELI": {
+      "symbol": "MELI",
+      "marketCap": 93792329728,
+      "marketCapB": 93.792329728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.607Z"
+    },
+    "MET": {
+      "symbol": "MET",
+      "marketCap": 51763200000,
+      "marketCapB": 51.7632,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.633Z"
+    },
+    "META": {
+      "symbol": "META",
+      "marketCap": 1545252503552,
+      "marketCapB": 1545.252503552,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.674Z"
+    },
+    "MGM": {
+      "symbol": "MGM",
+      "marketCap": 9850095616,
+      "marketCapB": 9.850095616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.688Z"
+    },
+    "MHK": {
+      "symbol": "MHK",
+      "marketCap": 6115481600,
+      "marketCapB": 6.1154816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.720Z"
+    },
+    "MKC": {
+      "symbol": "MKC",
+      "marketCap": 13506682880,
+      "marketCapB": 13.50668288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.728Z"
+    },
+    "MKTX": {
+      "symbol": "MKTX",
+      "marketCap": 5378094592,
+      "marketCapB": 5.378094592,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.758Z"
+    },
+    "MLM": {
+      "symbol": "MLM",
+      "marketCap": 37061148672,
+      "marketCapB": 37.061148672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.807Z"
+    },
+    "MMM": {
+      "symbol": "MMM",
+      "marketCap": 74323337216,
+      "marketCapB": 74.323337216,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.824Z"
+    },
+    "MNSO": {
+      "symbol": "MNSO",
+      "marketCap": 4629421056,
+      "marketCapB": 4.629421056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.834Z"
+    },
+    "MNST": {
+      "symbol": "MNST",
+      "marketCap": 75416117248,
+      "marketCapB": 75.416117248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.882Z"
+    },
+    "MO": {
+      "symbol": "MO",
+      "marketCap": 124640010240,
+      "marketCapB": 124.64001024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.908Z"
+    },
+    "MOH": {
+      "symbol": "MOH",
+      "marketCap": 10039669760,
+      "marketCapB": 10.03966976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.909Z"
+    },
+    "MOS": {
+      "symbol": "MOS",
+      "marketCap": 7358150144,
+      "marketCapB": 7.358150144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.916Z"
+    },
+    "MP": {
+      "symbol": "MP",
+      "marketCap": 11837981696,
+      "marketCapB": 11.837981696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.956Z"
+    },
+    "MPC": {
+      "symbol": "MPC",
+      "marketCap": 72490401792,
+      "marketCapB": 72.490401792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:35.985Z"
+    },
+    "MPT": {
+      "symbol": "MPT",
+      "marketCap": 3018460928,
+      "marketCapB": 3.018460928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.004Z"
+    },
+    "MPWR": {
+      "symbol": "MPWR",
+      "marketCap": 77777371136,
+      "marketCapB": 77.777371136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.010Z"
+    },
+    "MRK": {
+      "symbol": "MRK",
+      "marketCap": 277021655040,
+      "marketCapB": 277.02165504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.030Z"
+    },
+    "MRNA": {
+      "symbol": "MRNA",
+      "marketCap": 17993144320,
+      "marketCapB": 17.99314432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.081Z"
+    },
+    "MRVL": {
+      "symbol": "MRVL",
+      "marketCap": 144241885184,
+      "marketCapB": 144.241885184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.104Z"
+    },
+    "MS": {
+      "symbol": "MS",
+      "marketCap": 301963378688,
+      "marketCapB": 301.963378688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.105Z"
+    },
+    "MSCI": {
+      "symbol": "MSCI",
+      "marketCap": 42825641984,
+      "marketCapB": 42.825641984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.158Z"
+    },
+    "MSFT": {
+      "symbol": "MSFT",
+      "marketCap": 3078640631808,
+      "marketCapB": 3078.640631808,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.180Z"
+    },
+    "MSI": {
+      "symbol": "MSI",
+      "marketCap": 72448155648,
+      "marketCapB": 72.448155648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.190Z"
+    },
+    "MSTR": {
+      "symbol": "MSTR",
+      "marketCap": 62078038016,
+      "marketCapB": 62.078038016,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.238Z"
+    },
+    "MT": {
+      "symbol": "MT",
+      "marketCap": 43270000640,
+      "marketCapB": 43.27000064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.254Z"
+    },
+    "MTB": {
+      "symbol": "MTB",
+      "marketCap": 32142338048,
+      "marketCapB": 32.142338048,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.291Z"
+    },
+    "MTD": {
+      "symbol": "MTD",
+      "marketCap": 25656270848,
+      "marketCapB": 25.656270848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.317Z"
+    },
+    "MTDR": {
+      "symbol": "MTDR",
+      "marketCap": 7745166848,
+      "marketCapB": 7.745166848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.352Z"
+    },
+    "MU": {
+      "symbol": "MU",
+      "marketCap": 611468705792,
+      "marketCapB": 611.468705792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.392Z"
+    },
+    "NAK": {
+      "symbol": "NAK",
+      "marketCap": 1147977856,
+      "marketCapB": 1.147977856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.442Z"
+    },
+    "NBIS": {
+      "symbol": "NBIS",
+      "marketCap": 39088594944,
+      "marketCapB": 39.088594944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.450Z"
+    },
+    "NCLH": {
+      "symbol": "NCLH",
+      "marketCap": 8568813056,
+      "marketCapB": 8.568813056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.468Z"
+    },
+    "NDAQ": {
+      "symbol": "NDAQ",
+      "marketCap": 51645186048,
+      "marketCapB": 51.645186048,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.484Z"
+    },
+    "NDSN": {
+      "symbol": "NDSN",
+      "marketCap": 15797916672,
+      "marketCapB": 15.797916672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.545Z"
+    },
+    "NEE": {
+      "symbol": "NEE",
+      "marketCap": 202173841408,
+      "marketCapB": 202.173841408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.547Z"
+    },
+    "NEM": {
+      "symbol": "NEM",
+      "marketCap": 115957587968,
+      "marketCapB": 115.957587968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.576Z"
+    },
+    "NET": {
+      "symbol": "NET",
+      "marketCap": 76858859520,
+      "marketCapB": 76.85885952,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.583Z"
+    },
+    "NFLX": {
+      "symbol": "NFLX",
+      "marketCap": 387646095360,
+      "marketCapB": 387.64609536,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.621Z"
+    },
+    "NI": {
+      "symbol": "NI",
+      "marketCap": 23007877120,
+      "marketCapB": 23.00787712,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.642Z"
+    },
+    "NIO": {
+      "symbol": "NIO",
+      "marketCap": 14808492032,
+      "marketCapB": 14.808492032,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.669Z"
+    },
+    "NKE": {
+      "symbol": "NKE",
+      "marketCap": 65751388160,
+      "marketCapB": 65.75138816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.698Z"
+    },
+    "NLY": {
+      "symbol": "NLY",
+      "marketCap": 16721953792,
+      "marketCapB": 16.721953792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.701Z"
+    },
+    "NN": {
+      "symbol": "NN",
+      "marketCap": 2636226304,
+      "marketCapB": 2.636226304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.733Z"
+    },
+    "NNE": {
+      "symbol": "NNE",
+      "marketCap": 1219267584,
+      "marketCapB": 1.219267584,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.766Z"
+    },
+    "NOC": {
+      "symbol": "NOC",
+      "marketCap": 80694902784,
+      "marketCapB": 80.694902784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.794Z"
+    },
+    "NOK": {
+      "symbol": "NOK",
+      "marketCap": 74247708672,
+      "marketCapB": 74.247708672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.825Z"
+    },
+    "NOW": {
+      "symbol": "NOW",
+      "marketCap": 94014046208,
+      "marketCapB": 94.014046208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.855Z"
+    },
+    "NRG": {
+      "symbol": "NRG",
+      "marketCap": 32572135424,
+      "marketCapB": 32.572135424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.858Z"
+    },
+    "NSC": {
+      "symbol": "NSC",
+      "marketCap": 70949240832,
+      "marketCapB": 70.949240832,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.886Z"
+    },
+    "NTAP": {
+      "symbol": "NTAP",
+      "marketCap": 22198603776,
+      "marketCapB": 22.198603776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.921Z"
+    },
+    "NTR": {
+      "symbol": "NTR",
+      "marketCap": 36193046528,
+      "marketCapB": 36.193046528,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.930Z"
+    },
+    "NTRS": {
+      "symbol": "NTRS",
+      "marketCap": 30481586176,
+      "marketCapB": 30.481586176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.951Z"
+    },
+    "NU": {
+      "symbol": "NU",
+      "marketCap": 70187048960,
+      "marketCapB": 70.18704896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:36.961Z"
+    },
+    "NUE": {
+      "symbol": "NUE",
+      "marketCap": 51477364736,
+      "marketCapB": 51.477364736,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.010Z"
+    },
+    "NVAX": {
+      "symbol": "NVAX",
+      "marketCap": 1321996544,
+      "marketCapB": 1.321996544,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.014Z"
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "marketCap": 4823327440896,
+      "marketCapB": 4823.327440896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.033Z"
+    },
+    "NVO": {
+      "symbol": "NVO",
+      "marketCap": 194572795904,
+      "marketCapB": 194.572795904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.042Z"
+    },
+    "NVR": {
+      "symbol": "NVR",
+      "marketCap": 16812046336,
+      "marketCapB": 16.812046336,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.086Z"
+    },
+    "NVTS": {
+      "symbol": "NVTS",
+      "marketCap": 4027333888,
+      "marketCapB": 4.027333888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.110Z"
+    },
+    "NWS": {
+      "symbol": "NWS",
+      "marketCap": 16658020352,
+      "marketCapB": 16.658020352,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.112Z"
+    },
+    "NWSA": {
+      "symbol": "NWSA",
+      "marketCap": 14373773312,
+      "marketCapB": 14.373773312,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.134Z"
+    },
+    "NXPI": {
+      "symbol": "NXPI",
+      "marketCap": 74539556864,
+      "marketCapB": 74.539556864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.160Z"
+    },
+    "O": {
+      "symbol": "O",
+      "marketCap": 59499675648,
+      "marketCapB": 59.499675648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.184Z"
+    },
+    "OCUL": {
+      "symbol": "OCUL",
+      "marketCap": 2052833536,
+      "marketCapB": 2.052833536,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.208Z"
+    },
+    "ODD": {
+      "symbol": "ODD",
+      "marketCap": 844351424,
+      "marketCapB": 0.844351424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.227Z"
+    },
+    "ODFL": {
+      "symbol": "ODFL",
+      "marketCap": 42896076800,
+      "marketCapB": 42.8960768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.234Z"
+    },
+    "OKE": {
+      "symbol": "OKE",
+      "marketCap": 56929767424,
+      "marketCapB": 56.929767424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.303Z"
+    },
+    "OKLO": {
+      "symbol": "OKLO",
+      "marketCap": 12243956736,
+      "marketCapB": 12.243956736,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.310Z"
+    },
+    "OKTA": {
+      "symbol": "OKTA",
+      "marketCap": 13404567552,
+      "marketCapB": 13.404567552,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.321Z"
+    },
+    "OMC": {
+      "symbol": "OMC",
+      "marketCap": 21922676736,
+      "marketCapB": 21.922676736,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.331Z"
+    },
+    "ON": {
+      "symbol": "ON",
+      "marketCap": 40524513280,
+      "marketCapB": 40.52451328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.390Z"
+    },
+    "ONON": {
+      "symbol": "ONON",
+      "marketCap": 11432654848,
+      "marketCapB": 11.432654848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.403Z"
+    },
+    "OPEN": {
+      "symbol": "OPEN",
+      "marketCap": 5247991808,
+      "marketCapB": 5.247991808,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.406Z"
+    },
+    "OR": {
+      "symbol": "OR",
+      "marketCap": 6908202496,
+      "marketCapB": 6.908202496,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.413Z"
+    },
+    "ORCL": {
+      "symbol": "ORCL",
+      "marketCap": 494191017984,
+      "marketCapB": 494.191017984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.464Z"
+    },
+    "ORLY": {
+      "symbol": "ORLY",
+      "marketCap": 80457736192,
+      "marketCapB": 80.457736192,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.486Z"
+    },
+    "OSCR": {
+      "symbol": "OSCR",
+      "marketCap": 5567738880,
+      "marketCapB": 5.56773888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.513Z"
+    },
+    "OTIS": {
+      "symbol": "OTIS",
+      "marketCap": 29576835072,
+      "marketCapB": 29.576835072,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.531Z"
+    },
+    "OUST": {
+      "symbol": "OUST",
+      "marketCap": 1684149504,
+      "marketCapB": 1.684149504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.539Z"
+    },
+    "OWL": {
+      "symbol": "OWL",
+      "marketCap": 15616742400,
+      "marketCapB": 15.6167424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.594Z"
+    },
+    "OXY": {
+      "symbol": "OXY",
+      "marketCap": 58222424064,
+      "marketCapB": 58.222424064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.607Z"
+    },
+    "PAA": {
+      "symbol": "PAA",
+      "marketCap": 15775689728,
+      "marketCapB": 15.775689728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.613Z"
+    },
+    "PAAS": {
+      "symbol": "PAAS",
+      "marketCap": 21860644864,
+      "marketCapB": 21.860644864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.625Z"
+    },
+    "PANW": {
+      "symbol": "PANW",
+      "marketCap": 146855886848,
+      "marketCapB": 146.855886848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.690Z"
+    },
+    "PATH": {
+      "symbol": "PATH",
+      "marketCap": 5590246400,
+      "marketCapB": 5.5902464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.697Z"
+    },
+    "PAYC": {
+      "symbol": "PAYC",
+      "marketCap": 7162142208,
+      "marketCapB": 7.162142208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.717Z"
+    },
+    "PAYX": {
+      "symbol": "PAYX",
+      "marketCap": 33328216064,
+      "marketCapB": 33.328216064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.721Z"
+    },
+    "PBR": {
+      "symbol": "PBR",
+      "marketCap": 141131612160,
+      "marketCapB": 141.13161216,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.769Z"
+    },
+    "PCAR": {
+      "symbol": "PCAR",
+      "marketCap": 61091307520,
+      "marketCapB": 61.09130752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.796Z"
+    },
+    "PCG": {
+      "symbol": "PCG",
+      "marketCap": 36226596864,
+      "marketCapB": 36.226596864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.817Z"
+    },
+    "PCT": {
+      "symbol": "PCT",
+      "marketCap": 1420500736,
+      "marketCapB": 1.420500736,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.826Z"
+    },
+    "PDD": {
+      "symbol": "PDD",
+      "marketCap": 141941096448,
+      "marketCapB": 141.941096448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.876Z"
+    },
+    "PEG": {
+      "symbol": "PEG",
+      "marketCap": 40007192576,
+      "marketCapB": 40.007192576,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.893Z"
+    },
+    "PENN": {
+      "symbol": "PENN",
+      "marketCap": 2311474944,
+      "marketCapB": 2.311474944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.912Z"
+    },
+    "PEP": {
+      "symbol": "PEP",
+      "marketCap": 215170170880,
+      "marketCapB": 215.17017088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.926Z"
+    },
+    "PFE": {
+      "symbol": "PFE",
+      "marketCap": 149774417920,
+      "marketCapB": 149.77441792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.986Z"
+    },
+    "PFG": {
+      "symbol": "PFG",
+      "marketCap": 21836691456,
+      "marketCapB": 21.836691456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:37.990Z"
+    },
+    "PG": {
+      "symbol": "PG",
+      "marketCap": 342909485056,
+      "marketCapB": 342.909485056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.010Z"
+    },
+    "PGR": {
+      "symbol": "PGR",
+      "marketCap": 116476764160,
+      "marketCapB": 116.47676416,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.053Z"
+    },
+    "PH": {
+      "symbol": "PH",
+      "marketCap": 111352004608,
+      "marketCapB": 111.352004608,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.065Z"
+    },
+    "PHM": {
+      "symbol": "PHM",
+      "marketCap": 22707877888,
+      "marketCapB": 22.707877888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.086Z"
+    },
+    "PINS": {
+      "symbol": "PINS",
+      "marketCap": 12957380608,
+      "marketCapB": 12.957380608,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.106Z"
+    },
+    "PKG": {
+      "symbol": "PKG",
+      "marketCap": 19453872128,
+      "marketCapB": 19.453872128,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.129Z"
+    },
+    "PL": {
+      "symbol": "PL",
+      "marketCap": 12772899840,
+      "marketCapB": 12.77289984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.176Z"
+    },
+    "PLD": {
+      "symbol": "PLD",
+      "marketCap": 131826737152,
+      "marketCapB": 131.826737152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.178Z"
+    },
+    "PLTR": {
+      "symbol": "PLTR",
+      "marketCap": 345358434304,
+      "marketCapB": 345.358434304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.200Z"
+    },
+    "PLUG": {
+      "symbol": "PLUG",
+      "marketCap": 4335200256,
+      "marketCapB": 4.335200256,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.205Z"
+    },
+    "PM": {
+      "symbol": "PM",
+      "marketCap": 259313025024,
+      "marketCapB": 259.313025024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.255Z"
+    },
+    "PNC": {
+      "symbol": "PNC",
+      "marketCap": 89027993600,
+      "marketCapB": 89.0279936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.270Z"
+    },
+    "PNR": {
+      "symbol": "PNR",
+      "marketCap": 12782997504,
+      "marketCapB": 12.782997504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.279Z"
+    },
+    "PNW": {
+      "symbol": "PNW",
+      "marketCap": 12530995200,
+      "marketCapB": 12.5309952,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.326Z"
+    },
+    "PODD": {
+      "symbol": "PODD",
+      "marketCap": 12123919360,
+      "marketCapB": 12.12391936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.329Z"
+    },
+    "POOL": {
+      "symbol": "POOL",
+      "marketCap": 7583424512,
+      "marketCapB": 7.583424512,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.359Z"
+    },
+    "PPG": {
+      "symbol": "PPG",
+      "marketCap": 23963979776,
+      "marketCapB": 23.963979776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.363Z"
+    },
+    "PPL": {
+      "symbol": "PPL",
+      "marketCap": 28281407488,
+      "marketCapB": 28.281407488,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.413Z"
+    },
+    "PR": {
+      "symbol": "PR",
+      "marketCap": 19400517632,
+      "marketCapB": 19.400517632,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.419Z"
+    },
+    "PRU": {
+      "symbol": "PRU",
+      "marketCap": 34319761408,
+      "marketCapB": 34.319761408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.441Z"
+    },
+    "PSA": {
+      "symbol": "PSA",
+      "marketCap": 52935815168,
+      "marketCapB": 52.935815168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.450Z"
+    },
+    "PSKY": {
+      "symbol": "PSKY",
+      "marketCap": 12329208832,
+      "marketCapB": 12.329208832,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.488Z"
+    },
+    "PSX": {
+      "symbol": "PSX",
+      "marketCap": 70640738304,
+      "marketCapB": 70.640738304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.512Z"
+    },
+    "PTC": {
+      "symbol": "PTC",
+      "marketCap": 16246539264,
+      "marketCapB": 16.246539264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.517Z"
+    },
+    "PUBM": {
+      "symbol": "PUBM",
+      "marketCap": 484957472,
+      "marketCapB": 0.484957472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.537Z"
+    },
+    "PWR": {
+      "symbol": "PWR",
+      "marketCap": 111373598720,
+      "marketCapB": 111.37359872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.569Z"
+    },
+    "PYPL": {
+      "symbol": "PYPL",
+      "marketCap": 45379555328,
+      "marketCapB": 45.379555328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.595Z"
+    },
+    "QCOM": {
+      "symbol": "QCOM",
+      "marketCap": 186568540160,
+      "marketCapB": 186.56854016,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.604Z"
+    },
+    "QS": {
+      "symbol": "QS",
+      "marketCap": 4465953280,
+      "marketCapB": 4.46595328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.650Z"
+    },
+    "QXO": {
+      "symbol": "QXO",
+      "marketCap": 14368071680,
+      "marketCapB": 14.36807168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.695Z"
+    },
+    "RACE": {
+      "symbol": "RACE",
+      "marketCap": 60200579072,
+      "marketCapB": 60.200579072,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.725Z"
+    },
+    "RBLX": {
+      "symbol": "RBLX",
+      "marketCap": 32303835136,
+      "marketCapB": 32.303835136,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.727Z"
+    },
+    "RBRK": {
+      "symbol": "RBRK",
+      "marketCap": 11333947392,
+      "marketCapB": 11.333947392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.743Z"
+    },
+    "RCL": {
+      "symbol": "RCL",
+      "marketCap": 71838793728,
+      "marketCapB": 71.838793728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.795Z"
+    },
+    "RDDT": {
+      "symbol": "RDDT",
+      "marketCap": 32036603904,
+      "marketCapB": 32.036603904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.805Z"
+    },
+    "RDW": {
+      "symbol": "RDW",
+      "marketCap": 1857900928,
+      "marketCapB": 1.857900928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.818Z"
+    },
+    "REG": {
+      "symbol": "REG",
+      "marketCap": 14701745152,
+      "marketCapB": 14.701745152,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.819Z"
+    },
+    "REGN": {
+      "symbol": "REGN",
+      "marketCap": 73536192512,
+      "marketCapB": 73.536192512,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.883Z"
+    },
+    "RF": {
+      "symbol": "RF",
+      "marketCap": 24083177472,
+      "marketCapB": 24.083177472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.893Z"
+    },
+    "RH": {
+      "symbol": "RH",
+      "marketCap": 2447929856,
+      "marketCapB": 2.447929856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.894Z"
+    },
+    "RIG": {
+      "symbol": "RIG",
+      "marketCap": 7570174464,
+      "marketCapB": 7.570174464,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.908Z"
+    },
+    "RIOT": {
+      "symbol": "RIOT",
+      "marketCap": 7013828096,
+      "marketCapB": 7.013828096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.963Z"
+    },
+    "RIVN": {
+      "symbol": "RIVN",
+      "marketCap": 19876155392,
+      "marketCapB": 19.876155392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.976Z"
+    },
+    "RJF": {
+      "symbol": "RJF",
+      "marketCap": 30396518400,
+      "marketCapB": 30.3965184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:38.992Z"
+    },
+    "RKLB": {
+      "symbol": "RKLB",
+      "marketCap": 45555666944,
+      "marketCapB": 45.555666944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.000Z"
+    },
+    "RKT": {
+      "symbol": "RKT",
+      "marketCap": 41417375744,
+      "marketCapB": 41.417375744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.037Z"
+    },
+    "RL": {
+      "symbol": "RL",
+      "marketCap": 21964652544,
+      "marketCapB": 21.964652544,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.058Z"
+    },
+    "RMD": {
+      "symbol": "RMD",
+      "marketCap": 29866985472,
+      "marketCapB": 29.866985472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.090Z"
+    },
+    "RNG": {
+      "symbol": "RNG",
+      "marketCap": 3859990272,
+      "marketCapB": 3.859990272,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.091Z"
+    },
+    "ROK": {
+      "symbol": "ROK",
+      "marketCap": 45808652288,
+      "marketCapB": 45.808652288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.109Z"
+    },
+    "ROKU": {
+      "symbol": "ROKU",
+      "marketCap": 18251993088,
+      "marketCapB": 18.251993088,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.131Z"
+    },
+    "ROL": {
+      "symbol": "ROL",
+      "marketCap": 26374578176,
+      "marketCapB": 26.374578176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.183Z"
+    },
+    "ROP": {
+      "symbol": "ROP",
+      "marketCap": 36870692864,
+      "marketCapB": 36.870692864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.186Z"
+    },
+    "ROST": {
+      "symbol": "ROST",
+      "marketCap": 74017136640,
+      "marketCapB": 74.01713664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.206Z"
+    },
+    "RR": {
+      "symbol": "RR",
+      "marketCap": 565697792,
+      "marketCapB": 0.565697792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.218Z"
+    },
+    "RRC": {
+      "symbol": "RRC",
+      "marketCap": 10044576768,
+      "marketCapB": 10.044576768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.275Z"
+    },
+    "RSG": {
+      "symbol": "RSG",
+      "marketCap": 63817990144,
+      "marketCapB": 63.817990144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.281Z"
+    },
+    "RTX": {
+      "symbol": "RTX",
+      "marketCap": 234309451776,
+      "marketCapB": 234.309451776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.332Z"
+    },
+    "RUM": {
+      "symbol": "RUM",
+      "marketCap": 1583597696,
+      "marketCapB": 1.583597696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.359Z"
+    },
+    "RUN": {
+      "symbol": "RUN",
+      "marketCap": 3075782144,
+      "marketCapB": 3.075782144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.367Z"
+    },
+    "RVTY": {
+      "symbol": "RVTY",
+      "marketCap": 9691112448,
+      "marketCapB": 9.691112448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.404Z"
+    },
+    "RXRX": {
+      "symbol": "RXRX",
+      "marketCap": 1790605824,
+      "marketCapB": 1.790605824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.409Z"
+    },
+    "RXT": {
+      "symbol": "RXT",
+      "marketCap": 437038496,
+      "marketCapB": 0.437038496,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.432Z"
+    },
+    "S": {
+      "symbol": "S",
+      "marketCap": 5070119424,
+      "marketCapB": 5.070119424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.460Z"
+    },
+    "SAP": {
+      "symbol": "SAP",
+      "marketCap": 201314484224,
+      "marketCapB": 201.314484224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.484Z"
+    },
+    "SATS": {
+      "symbol": "SATS",
+      "marketCap": 35583729664,
+      "marketCapB": 35.583729664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.506Z"
+    },
+    "SBAC": {
+      "symbol": "SBAC",
+      "marketCap": 23183251456,
+      "marketCapB": 23.183251456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.507Z"
+    },
+    "SBUX": {
+      "symbol": "SBUX",
+      "marketCap": 120694226944,
+      "marketCapB": 120.694226944,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.550Z"
+    },
+    "SCCO": {
+      "symbol": "SCCO",
+      "marketCap": 141405880320,
+      "marketCapB": 141.40588032,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.559Z"
+    },
+    "SCHW": {
+      "symbol": "SCHW",
+      "marketCap": 160397344768,
+      "marketCapB": 160.397344768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.639Z"
+    },
+    "SE": {
+      "symbol": "SE",
+      "marketCap": 52796166144,
+      "marketCapB": 52.796166144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.709Z"
+    },
+    "SEDG": {
+      "symbol": "SEDG",
+      "marketCap": 2609697280,
+      "marketCapB": 2.60969728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.730Z"
+    },
+    "SERV": {
+      "symbol": "SERV",
+      "marketCap": 711487616,
+      "marketCapB": 0.711487616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.734Z"
+    },
+    "SG": {
+      "symbol": "SG",
+      "marketCap": 843634368,
+      "marketCapB": 0.843634368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.785Z"
+    },
+    "SGML": {
+      "symbol": "SGML",
+      "marketCap": 2447523328,
+      "marketCapB": 2.447523328,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.786Z"
+    },
+    "SGMO": {
+      "symbol": "SGMO",
+      "marketCap": 55926996,
+      "marketCapB": 0.055926996,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.808Z"
+    },
+    "SHAK": {
+      "symbol": "SHAK",
+      "marketCap": 4208327168,
+      "marketCapB": 4.208327168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.828Z"
+    },
+    "SHEL": {
+      "symbol": "SHEL",
+      "marketCap": 248114397184,
+      "marketCapB": 248.114397184,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.860Z"
+    },
+    "SHOP": {
+      "symbol": "SHOP",
+      "marketCap": 165763645440,
+      "marketCapB": 165.76364544,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.881Z"
+    },
+    "SHW": {
+      "symbol": "SHW",
+      "marketCap": 78430126080,
+      "marketCapB": 78.43012608,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.922Z"
+    },
+    "SIG": {
+      "symbol": "SIG",
+      "marketCap": 3486656768,
+      "marketCapB": 3.486656768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.939Z"
+    },
+    "SIRI": {
+      "symbol": "SIRI",
+      "marketCap": 9160899584,
+      "marketCapB": 9.160899584,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:39.998Z"
+    },
+    "SITM": {
+      "symbol": "SITM",
+      "marketCap": 14746059776,
+      "marketCapB": 14.746059776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.015Z"
+    },
+    "SJM": {
+      "symbol": "SJM",
+      "marketCap": 10341687296,
+      "marketCapB": 10.341687296,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.069Z"
+    },
+    "SKYT": {
+      "symbol": "SKYT",
+      "marketCap": 1572546688,
+      "marketCapB": 1.572546688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.075Z"
+    },
+    "SLB": {
+      "symbol": "SLB",
+      "marketCap": 85098676224,
+      "marketCapB": 85.098676224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.091Z"
+    },
+    "SLS": {
+      "symbol": "SLS",
+      "marketCap": 909745600,
+      "marketCapB": 0.9097456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.112Z"
+    },
+    "SM": {
+      "symbol": "SM",
+      "marketCap": 7304934912,
+      "marketCapB": 7.304934912,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.166Z"
+    },
+    "SMCI": {
+      "symbol": "SMCI",
+      "marketCap": 16267055104,
+      "marketCapB": 16.267055104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.168Z"
+    },
+    "SMMT": {
+      "symbol": "SMMT",
+      "marketCap": 12506527744,
+      "marketCapB": 12.506527744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.220Z"
+    },
+    "SMR": {
+      "symbol": "SMR",
+      "marketCap": 3930132224,
+      "marketCapB": 3.930132224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.244Z"
+    },
+    "SNA": {
+      "symbol": "SNA",
+      "marketCap": 19704932352,
+      "marketCapB": 19.704932352,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.259Z"
+    },
+    "SNAP": {
+      "symbol": "SNAP",
+      "marketCap": 10623507456,
+      "marketCapB": 10.623507456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.294Z"
+    },
+    "SNDK": {
+      "symbol": "SNDK",
+      "marketCap": 175675998208,
+      "marketCapB": 175.675998208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.294Z"
+    },
+    "SNOW": {
+      "symbol": "SNOW",
+      "marketCap": 48743698432,
+      "marketCapB": 48.743698432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.321Z"
+    },
+    "SNPS": {
+      "symbol": "SNPS",
+      "marketCap": 93677666304,
+      "marketCapB": 93.677666304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.351Z"
+    },
+    "SO": {
+      "symbol": "SO",
+      "marketCap": 109021577216,
+      "marketCapB": 109.021577216,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.383Z"
+    },
+    "SOC": {
+      "symbol": "SOC",
+      "marketCap": 2076141568,
+      "marketCapB": 2.076141568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.395Z"
+    },
+    "SOFI": {
+      "symbol": "SOFI",
+      "marketCap": 21053558784,
+      "marketCapB": 21.053558784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.401Z"
+    },
+    "SOLV": {
+      "symbol": "SOLV",
+      "marketCap": 11559838720,
+      "marketCapB": 11.55983872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.445Z"
+    },
+    "SONY": {
+      "symbol": "SONY",
+      "marketCap": 116853669888,
+      "marketCapB": 116.853669888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.459Z"
+    },
+    "SPG": {
+      "symbol": "SPG",
+      "marketCap": 77057368064,
+      "marketCapB": 77.057368064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.489Z"
+    },
+    "SPGI": {
+      "symbol": "SPGI",
+      "marketCap": 126113759232,
+      "marketCapB": 126.113759232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.537Z"
+    },
+    "SPOT": {
+      "symbol": "SPOT",
+      "marketCap": 90783318016,
+      "marketCapB": 90.783318016,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.540Z"
+    },
+    "SRE": {
+      "symbol": "SRE",
+      "marketCap": 61850992640,
+      "marketCapB": 61.85099264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.613Z"
+    },
+    "SRPT": {
+      "symbol": "SRPT",
+      "marketCap": 2268723968,
+      "marketCapB": 2.268723968,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.621Z"
+    },
+    "STE": {
+      "symbol": "STE",
+      "marketCap": 21042718720,
+      "marketCapB": 21.04271872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.632Z"
+    },
+    "STLA": {
+      "symbol": "STLA",
+      "marketCap": 20659056640,
+      "marketCapB": 20.65905664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.643Z"
+    },
+    "STLD": {
+      "symbol": "STLD",
+      "marketCap": 33063665664,
+      "marketCapB": 33.063665664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.688Z"
+    },
+    "STT": {
+      "symbol": "STT",
+      "marketCap": 42068590592,
+      "marketCapB": 42.068590592,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.713Z"
+    },
+    "STUB": {
+      "symbol": "STUB",
+      "marketCap": 2721805056,
+      "marketCapB": 2.721805056,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.723Z"
+    },
+    "STX": {
+      "symbol": "STX",
+      "marketCap": 162998779904,
+      "marketCapB": 162.998779904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.725Z"
+    },
+    "STZ": {
+      "symbol": "STZ",
+      "marketCap": 26319376384,
+      "marketCapB": 26.319376384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.764Z"
+    },
+    "SU": {
+      "symbol": "SU",
+      "marketCap": 80432627712,
+      "marketCapB": 80.432627712,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.798Z"
+    },
+    "SW": {
+      "symbol": "SW",
+      "marketCap": 20651532288,
+      "marketCapB": 20.651532288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.811Z"
+    },
+    "SWK": {
+      "symbol": "SWK",
+      "marketCap": 12207925248,
+      "marketCapB": 12.207925248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.821Z"
+    },
+    "SWKS": {
+      "symbol": "SWKS",
+      "marketCap": 10438174720,
+      "marketCapB": 10.43817472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.839Z"
+    },
+    "SYF": {
+      "symbol": "SYF",
+      "marketCap": 25483409408,
+      "marketCapB": 25.483409408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.907Z"
+    },
+    "SYK": {
+      "symbol": "SYK",
+      "marketCap": 112876953600,
+      "marketCapB": 112.8769536,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.913Z"
+    },
+    "SYM": {
+      "symbol": "SYM",
+      "marketCap": 35468021760,
+      "marketCapB": 35.46802176,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.915Z"
+    },
+    "SYY": {
+      "symbol": "SYY",
+      "marketCap": 35409424384,
+      "marketCapB": 35.409424384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.949Z"
+    },
+    "T": {
+      "symbol": "T",
+      "marketCap": 181490614272,
+      "marketCapB": 181.490614272,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:40.991Z"
+    },
+    "TAP": {
+      "symbol": "TAP",
+      "marketCap": 7911192064,
+      "marketCapB": 7.911192064,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.001Z"
+    },
+    "TDG": {
+      "symbol": "TDG",
+      "marketCap": 65195905024,
+      "marketCapB": 65.195905024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.011Z"
+    },
+    "TDOC": {
+      "symbol": "TDOC",
+      "marketCap": 1165584896,
+      "marketCapB": 1.165584896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.072Z"
+    },
+    "TDY": {
+      "symbol": "TDY",
+      "marketCap": 29665937408,
+      "marketCapB": 29.665937408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.079Z"
+    },
+    "TE": {
+      "symbol": "TE",
+      "marketCap": 1437039232,
+      "marketCapB": 1.437039232,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.109Z"
+    },
+    "TEAM": {
+      "symbol": "TEAM",
+      "marketCap": 23441573888,
+      "marketCapB": 23.441573888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.145Z"
+    },
+    "TECH": {
+      "symbol": "TECH",
+      "marketCap": 8608060416,
+      "marketCapB": 8.608060416,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.155Z"
+    },
+    "TECK": {
+      "symbol": "TECK",
+      "marketCap": 28389376000,
+      "marketCapB": 28.389376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.202Z"
+    },
+    "TEL": {
+      "symbol": "TEL",
+      "marketCap": 60547944448,
+      "marketCapB": 60.547944448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.216Z"
+    },
+    "TEM": {
+      "symbol": "TEM",
+      "marketCap": 9867254784,
+      "marketCapB": 9.867254784,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.221Z"
+    },
+    "TER": {
+      "symbol": "TER",
+      "marketCap": 54078758912,
+      "marketCapB": 54.078758912,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.230Z"
+    },
+    "TEVA": {
+      "symbol": "TEVA",
+      "marketCap": 40696725504,
+      "marketCapB": 40.696725504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.296Z"
+    },
+    "TFC": {
+      "symbol": "TFC",
+      "marketCap": 63452618752,
+      "marketCapB": 63.452618752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.306Z"
+    },
+    "TGT": {
+      "symbol": "TGT",
+      "marketCap": 58538778624,
+      "marketCapB": 58.538778624,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.308Z"
+    },
+    "TIGR": {
+      "symbol": "TIGR",
+      "marketCap": 1208588288,
+      "marketCapB": 1.208588288,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.323Z"
+    },
+    "TJX": {
+      "symbol": "TJX",
+      "marketCap": 174154547200,
+      "marketCapB": 174.1545472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.372Z"
+    },
+    "TKO": {
+      "symbol": "TKO",
+      "marketCap": 13940238336,
+      "marketCapB": 13.940238336,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.385Z"
+    },
+    "TLN": {
+      "symbol": "TLN",
+      "marketCap": 17005854720,
+      "marketCapB": 17.00585472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.402Z"
+    },
+    "TLRY": {
+      "symbol": "TLRY",
+      "marketCap": 736761984,
+      "marketCapB": 0.736761984,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.420Z"
+    },
+    "TMC": {
+      "symbol": "TMC",
+      "marketCap": 3012604160,
+      "marketCapB": 3.01260416,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.483Z"
+    },
+    "TMO": {
+      "symbol": "TMO",
+      "marketCap": 174368456704,
+      "marketCapB": 174.368456704,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.498Z"
+    },
+    "TMUS": {
+      "symbol": "TMUS",
+      "marketCap": 212177043456,
+      "marketCapB": 212.177043456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.518Z"
+    },
+    "TOST": {
+      "symbol": "TOST",
+      "marketCap": 16875036672,
+      "marketCapB": 16.875036672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.529Z"
+    },
+    "TPL": {
+      "symbol": "TPL",
+      "marketCap": 29894434816,
+      "marketCapB": 29.894434816,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.561Z"
+    },
+    "TPR": {
+      "symbol": "TPR",
+      "marketCap": 29211707392,
+      "marketCapB": 29.211707392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.595Z"
+    },
+    "TRGP": {
+      "symbol": "TRGP",
+      "marketCap": 54657941504,
+      "marketCapB": 54.657941504,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.612Z"
+    },
+    "TRIP": {
+      "symbol": "TRIP",
+      "marketCap": 1351460352,
+      "marketCapB": 1.351460352,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.636Z"
+    },
+    "TRMB": {
+      "symbol": "TRMB",
+      "marketCap": 15879511040,
+      "marketCapB": 15.87951104,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.683Z"
+    },
+    "TROW": {
+      "symbol": "TROW",
+      "marketCap": 22224957440,
+      "marketCapB": 22.22495744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.689Z"
+    },
+    "TRV": {
+      "symbol": "TRV",
+      "marketCap": 64797089792,
+      "marketCapB": 64.797089792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.708Z"
+    },
+    "TSCO": {
+      "symbol": "TSCO",
+      "marketCap": 17806465024,
+      "marketCapB": 17.806465024,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.709Z"
+    },
+    "TSEM": {
+      "symbol": "TSEM",
+      "marketCap": 25940797440,
+      "marketCapB": 25.94079744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.761Z"
+    },
+    "TSLA": {
+      "symbol": "TSLA",
+      "marketCap": 1467812020224,
+      "marketCapB": 1467.812020224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.786Z"
+    },
+    "TSM": {
+      "symbol": "TSM",
+      "marketCap": 2062475853824,
+      "marketCapB": 2062.475853824,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.793Z"
+    },
+    "TSN": {
+      "symbol": "TSN",
+      "marketCap": 22420389888,
+      "marketCapB": 22.420389888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.804Z"
+    },
+    "TSSI": {
+      "symbol": "TSSI",
+      "marketCap": 432616896,
+      "marketCapB": 0.432616896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.841Z"
+    },
+    "TT": {
+      "symbol": "TT",
+      "marketCap": 107571470336,
+      "marketCapB": 107.571470336,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.867Z"
+    },
+    "TTD": {
+      "symbol": "TTD",
+      "marketCap": 11537683456,
+      "marketCapB": 11.537683456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.881Z"
+    },
+    "TTWO": {
+      "symbol": "TTWO",
+      "marketCap": 40003452928,
+      "marketCapB": 40.003452928,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.896Z"
+    },
+    "TWLO": {
+      "symbol": "TWLO",
+      "marketCap": 27826219008,
+      "marketCapB": 27.826219008,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.921Z"
+    },
+    "TXN": {
+      "symbol": "TXN",
+      "marketCap": 255754272768,
+      "marketCapB": 255.754272768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.947Z"
+    },
+    "TXRH": {
+      "symbol": "TXRH",
+      "marketCap": 10435290112,
+      "marketCapB": 10.435290112,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.976Z"
+    },
+    "TXT": {
+      "symbol": "TXT",
+      "marketCap": 16490647552,
+      "marketCapB": 16.490647552,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.987Z"
+    },
+    "TYL": {
+      "symbol": "TYL",
+      "marketCap": 14147181568,
+      "marketCapB": 14.147181568,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:41.997Z"
+    },
+    "U": {
+      "symbol": "U",
+      "marketCap": 11837632512,
+      "marketCapB": 11.837632512,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.023Z"
+    },
+    "UAL": {
+      "symbol": "UAL",
+      "marketCap": 30029191168,
+      "marketCapB": 30.029191168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.069Z"
+    },
+    "UAMY": {
+      "symbol": "UAMY",
+      "marketCap": 1738400896,
+      "marketCapB": 1.738400896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.073Z"
+    },
+    "UBER": {
+      "symbol": "UBER",
+      "marketCap": 154605682688,
+      "marketCapB": 154.605682688,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.078Z"
+    },
+    "UDR": {
+      "symbol": "UDR",
+      "marketCap": 13518666752,
+      "marketCapB": 13.518666752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.099Z"
+    },
+    "UEC": {
+      "symbol": "UEC",
+      "marketCap": 7323897856,
+      "marketCapB": 7.323897856,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.159Z"
+    },
+    "UHS": {
+      "symbol": "UHS",
+      "marketCap": 10191964160,
+      "marketCapB": 10.19196416,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.161Z"
+    },
+    "UL": {
+      "symbol": "UL",
+      "marketCap": 130509029376,
+      "marketCapB": 130.509029376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.170Z"
+    },
+    "ULTA": {
+      "symbol": "ULTA",
+      "marketCap": 23265701888,
+      "marketCapB": 23.265701888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.190Z"
+    },
+    "UMAC": {
+      "symbol": "UMAC",
+      "marketCap": 678103424,
+      "marketCapB": 0.678103424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.233Z"
+    },
+    "UNH": {
+      "symbol": "UNH",
+      "marketCap": 334930870272,
+      "marketCapB": 334.930870272,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.266Z"
+    },
+    "UNP": {
+      "symbol": "UNP",
+      "marketCap": 158117707776,
+      "marketCapB": 158.117707776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.293Z"
+    },
+    "UPS": {
+      "symbol": "UPS",
+      "marketCap": 91399315456,
+      "marketCapB": 91.399315456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.313Z"
+    },
+    "UPST": {
+      "symbol": "UPST",
+      "marketCap": 3133455872,
+      "marketCapB": 3.133455872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.341Z"
+    },
+    "URBN": {
+      "symbol": "URBN",
+      "marketCap": 6188743680,
+      "marketCapB": 6.18874368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.386Z"
+    },
+    "URI": {
+      "symbol": "URI",
+      "marketCap": 59465990144,
+      "marketCapB": 59.465990144,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.388Z"
+    },
+    "USAR": {
+      "symbol": "USAR",
+      "marketCap": 5739560960,
+      "marketCapB": 5.73956096,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.415Z"
+    },
+    "USB": {
+      "symbol": "USB",
+      "marketCap": 87546503168,
+      "marketCapB": 87.546503168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.453Z"
+    },
+    "UUUU": {
+      "symbol": "UUUU",
+      "marketCap": 5376732672,
+      "marketCapB": 5.376732672,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.533Z"
+    },
+    "UWMC": {
+      "symbol": "UWMC",
+      "marketCap": 5962017280,
+      "marketCapB": 5.96201728,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.549Z"
+    },
+    "V": {
+      "symbol": "V",
+      "marketCap": 623828992000,
+      "marketCapB": 623.828992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.560Z"
+    },
+    "VALE": {
+      "symbol": "VALE",
+      "marketCap": 70627573760,
+      "marketCapB": 70.62757376,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.577Z"
+    },
+    "VFC": {
+      "symbol": "VFC",
+      "marketCap": 7437916160,
+      "marketCapB": 7.43791616,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.644Z"
+    },
+    "VG": {
+      "symbol": "VG",
+      "marketCap": 31603097600,
+      "marketCapB": 31.6030976,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.668Z"
+    },
+    "VICI": {
+      "symbol": "VICI",
+      "marketCap": 30774376448,
+      "marketCapB": 30.774376448,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.705Z"
+    },
+    "VKTX": {
+      "symbol": "VKTX",
+      "marketCap": 3476818432,
+      "marketCapB": 3.476818432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.743Z"
+    },
+    "VLO": {
+      "symbol": "VLO",
+      "marketCap": 73820602368,
+      "marketCapB": 73.820602368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.761Z"
+    },
+    "VLTO": {
+      "symbol": "VLTO",
+      "marketCap": 21521862656,
+      "marketCapB": 21.521862656,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.762Z"
+    },
+    "VMC": {
+      "symbol": "VMC",
+      "marketCap": 38578724864,
+      "marketCapB": 38.578724864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.783Z"
+    },
+    "VOD": {
+      "symbol": "VOD",
+      "marketCap": 37224247296,
+      "marketCapB": 37.224247296,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.839Z"
+    },
+    "VRSK": {
+      "symbol": "VRSK",
+      "marketCap": 23729364992,
+      "marketCapB": 23.729364992,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.865Z"
+    },
+    "VRSN": {
+      "symbol": "VRSN",
+      "marketCap": 24792039424,
+      "marketCapB": 24.792039424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.916Z"
+    },
+    "VRT": {
+      "symbol": "VRT",
+      "marketCap": 126106763264,
+      "marketCapB": 126.106763264,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.933Z"
+    },
+    "VRTX": {
+      "symbol": "VRTX",
+      "marketCap": 107828183040,
+      "marketCapB": 107.82818304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.944Z"
+    },
+    "VST": {
+      "symbol": "VST",
+      "marketCap": 52569931776,
+      "marketCapB": 52.569931776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:42.945Z"
+    },
+    "VTR": {
+      "symbol": "VTR",
+      "marketCap": 42792656896,
+      "marketCapB": 42.792656896,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.027Z"
+    },
+    "VTRS": {
+      "symbol": "VTRS",
+      "marketCap": 17512890368,
+      "marketCapB": 17.512890368,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.039Z"
+    },
+    "VZ": {
+      "symbol": "VZ",
+      "marketCap": 200907358208,
+      "marketCapB": 200.907358208,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.122Z"
+    },
+    "W": {
+      "symbol": "W",
+      "marketCap": 8620774400,
+      "marketCapB": 8.6207744,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.132Z"
+    },
+    "WAB": {
+      "symbol": "WAB",
+      "marketCap": 44956012544,
+      "marketCapB": 44.956012544,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.161Z"
+    },
+    "WAT": {
+      "symbol": "WAT",
+      "marketCap": 30148583424,
+      "marketCapB": 30.148583424,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.187Z"
+    },
+    "WBD": {
+      "symbol": "WBD",
+      "marketCap": 67607539712,
+      "marketCapB": 67.607539712,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.231Z"
+    },
+    "WDAY": {
+      "symbol": "WDAY",
+      "marketCap": 32634939392,
+      "marketCapB": 32.634939392,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.235Z"
+    },
+    "WDC": {
+      "symbol": "WDC",
+      "marketCap": 147536379904,
+      "marketCapB": 147.536379904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.275Z"
+    },
+    "WEC": {
+      "symbol": "WEC",
+      "marketCap": 38256676864,
+      "marketCapB": 38.256676864,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.280Z"
+    },
+    "WELL": {
+      "symbol": "WELL",
+      "marketCap": 153119899648,
+      "marketCapB": 153.119899648,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.309Z"
+    },
+    "WEN": {
+      "symbol": "WEN",
+      "marketCap": 1276123776,
+      "marketCapB": 1.276123776,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.326Z"
+    },
+    "WFC": {
+      "symbol": "WFC",
+      "marketCap": 247293902848,
+      "marketCapB": 247.293902848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.350Z"
+    },
+    "WFRD": {
+      "symbol": "WFRD",
+      "marketCap": 7875104256,
+      "marketCapB": 7.875104256,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.356Z"
+    },
+    "WGS": {
+      "symbol": "WGS",
+      "marketCap": 1914897792,
+      "marketCapB": 1.914897792,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.383Z"
+    },
+    "WM": {
+      "symbol": "WM",
+      "marketCap": 91868487680,
+      "marketCapB": 91.86848768,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.414Z"
+    },
+    "WMB": {
+      "symbol": "WMB",
+      "marketCap": 92374614016,
+      "marketCapB": 92.374614016,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.434Z"
+    },
+    "WMT": {
+      "symbol": "WMT",
+      "marketCap": 1048982388736,
+      "marketCapB": 1048.982388736,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.444Z"
+    },
+    "WOLF": {
+      "symbol": "WOLF",
+      "marketCap": 1776928384,
+      "marketCapB": 1.776928384,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.464Z"
+    },
+    "WPM": {
+      "symbol": "WPM",
+      "marketCap": 57138597888,
+      "marketCapB": 57.138597888,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.511Z"
+    },
+    "WRB": {
+      "symbol": "WRB",
+      "marketCap": 25889460224,
+      "marketCapB": 25.889460224,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.511Z"
+    },
+    "WRBY": {
+      "symbol": "WRBY",
+      "marketCap": 2832267520,
+      "marketCapB": 2.83226752,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.537Z"
+    },
+    "WSM": {
+      "symbol": "WSM",
+      "marketCap": 21421699072,
+      "marketCapB": 21.421699072,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.540Z"
+    },
+    "WST": {
+      "symbol": "WST",
+      "marketCap": 21242316800,
+      "marketCapB": 21.2423168,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.585Z"
+    },
+    "WTW": {
+      "symbol": "WTW",
+      "marketCap": 24167198720,
+      "marketCapB": 24.16719872,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.608Z"
+    },
+    "WULF": {
+      "symbol": "WULF",
+      "marketCap": 10498048000,
+      "marketCapB": 10.498048,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.618Z"
+    },
+    "WY": {
+      "symbol": "WY",
+      "marketCap": 17297811456,
+      "marketCapB": 17.297811456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.629Z"
+    },
+    "WYNN": {
+      "symbol": "WYNN",
+      "marketCap": 11051943936,
+      "marketCapB": 11.051943936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.662Z"
+    },
+    "XEL": {
+      "symbol": "XEL",
+      "marketCap": 51543314432,
+      "marketCapB": 51.543314432,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.702Z"
+    },
+    "XOM": {
+      "symbol": "XOM",
+      "marketCap": 634914471936,
+      "marketCapB": 634.914471936,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:43.991Z"
+    },
+    "XP": {
+      "symbol": "XP",
+      "marketCap": 9879025664,
+      "marketCapB": 9.879025664,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.024Z"
+    },
+    "XPEV": {
+      "symbol": "XPEV",
+      "marketCap": 15129533440,
+      "marketCapB": 15.12953344,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.066Z"
+    },
+    "XYL": {
+      "symbol": "XYL",
+      "marketCap": 27422697472,
+      "marketCapB": 27.422697472,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.094Z"
+    },
+    "XYZ": {
+      "symbol": "XYZ",
+      "marketCap": 42774011904,
+      "marketCapB": 42.774011904,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.099Z"
+    },
+    "YUM": {
+      "symbol": "YUM",
+      "marketCap": 43775479808,
+      "marketCapB": 43.775479808,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.144Z"
+    },
+    "ZBH": {
+      "symbol": "ZBH",
+      "marketCap": 16046877696,
+      "marketCapB": 16.046877696,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.174Z"
+    },
+    "ZBRA": {
+      "symbol": "ZBRA",
+      "marketCap": 11170452480,
+      "marketCapB": 11.17045248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.191Z"
+    },
+    "ZETA": {
+      "symbol": "ZETA",
+      "marketCap": 4636014080,
+      "marketCapB": 4.63601408,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.197Z"
+    },
+    "ZIM": {
+      "symbol": "ZIM",
+      "marketCap": 3167252480,
+      "marketCapB": 3.16725248,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.219Z"
+    },
+    "ZM": {
+      "symbol": "ZM",
+      "marketCap": 30480343040,
+      "marketCapB": 30.48034304,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.254Z"
+    },
+    "ZS": {
+      "symbol": "ZS",
+      "marketCap": 22480148480,
+      "marketCapB": 22.48014848,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.290Z"
+    },
+    "ZTS": {
+      "symbol": "ZTS",
+      "marketCap": 48190099456,
+      "marketCapB": 48.190099456,
+      "currency": "USD",
+      "quoteType": "EQUITY",
+      "asOf": "2026-05-03T08:56:44.294Z"
+    }
+  },
+  "errors": {
+    "AGG": "market_cap_missing_or_invalid",
+    "ANSS": "Quote not found for symbol: ANSS",
+    "ARKF": "market_cap_missing_or_invalid",
+    "ARKG": "market_cap_missing_or_invalid",
+    "ARKK": "market_cap_missing_or_invalid",
+    "ARKW": "market_cap_missing_or_invalid",
+    "ASHR": "market_cap_missing_or_invalid",
+    "BF.B": "Failed Yahoo Schema validation",
+    "BITO": "market_cap_missing_or_invalid",
+    "BKLN": "market_cap_missing_or_invalid",
+    "BND": "market_cap_missing_or_invalid",
+    "BNO": "market_cap_missing_or_invalid",
+    "BRK.B": "Failed Yahoo Schema validation",
+    "CHK": "Failed Yahoo Schema validation",
+    "COPX": "market_cap_missing_or_invalid",
+    "DAY": "Quote not found for symbol: DAY",
+    "DIA": "market_cap_missing_or_invalid",
+    "DVY": "market_cap_missing_or_invalid",
+    "EEM": "market_cap_missing_or_invalid",
+    "EFA": "market_cap_missing_or_invalid",
+    "ETH": "market_cap_missing_or_invalid",
+    "ETHA": "market_cap_missing_or_invalid",
+    "ETHE": "market_cap_missing_or_invalid",
+    "EWG": "market_cap_missing_or_invalid",
+    "EWJ": "market_cap_missing_or_invalid",
+    "EWT": "market_cap_missing_or_invalid",
+    "EWU": "market_cap_missing_or_invalid",
+    "EWW": "market_cap_missing_or_invalid",
+    "EWY": "market_cap_missing_or_invalid",
+    "EWZ": "market_cap_missing_or_invalid",
+    "FBTC": "market_cap_missing_or_invalid",
+    "FEZ": "market_cap_missing_or_invalid",
+    "FI": "Quote not found for symbol: FI",
+    "FXI": "market_cap_missing_or_invalid",
+    "GBTC": "market_cap_missing_or_invalid",
+    "GDX": "market_cap_missing_or_invalid",
+    "GDXJ": "market_cap_missing_or_invalid",
+    "GLD": "market_cap_missing_or_invalid",
+    "HOLX": "Failed Yahoo Schema validation",
+    "HYG": "market_cap_missing_or_invalid",
+    "IAU": "market_cap_missing_or_invalid",
+    "IBB": "market_cap_missing_or_invalid",
+    "IBIT": "market_cap_missing_or_invalid",
+    "ICLN": "market_cap_missing_or_invalid",
+    "IEF": "market_cap_missing_or_invalid",
+    "IEFA": "market_cap_missing_or_invalid",
+    "IEMG": "market_cap_missing_or_invalid",
+    "IGV": "market_cap_missing_or_invalid",
+    "IJH": "market_cap_missing_or_invalid",
+    "IJR": "market_cap_missing_or_invalid",
+    "INDA": "market_cap_missing_or_invalid",
+    "IPG": "Quote not found for symbol: IPG",
+    "IVV": "market_cap_missing_or_invalid",
+    "IWM": "market_cap_missing_or_invalid",
+    "IYR": "market_cap_missing_or_invalid",
+    "JETS": "market_cap_missing_or_invalid",
+    "JNK": "market_cap_missing_or_invalid",
+    "K": "Quote not found for symbol: K",
+    "KRE": "market_cap_missing_or_invalid",
+    "KWEB": "market_cap_missing_or_invalid",
+    "LQD": "market_cap_missing_or_invalid",
+    "LTHM": "Failed Yahoo Schema validation",
+    "MAGS": "market_cap_missing_or_invalid",
+    "MCHI": "market_cap_missing_or_invalid",
+    "MDY": "market_cap_missing_or_invalid",
+    "MMC": "Failed Yahoo Schema validation",
+    "MRO": "Failed Yahoo Schema validation",
+    "MSOS": "market_cap_missing_or_invalid",
+    "MTCH": "market_cap_missing_or_invalid",
+    "MTUM": "market_cap_missing_or_invalid",
+    "NOBL": "market_cap_missing_or_invalid",
+    "OIH": "market_cap_missing_or_invalid",
+    "QQQ": "market_cap_missing_or_invalid",
+    "QUAL": "market_cap_missing_or_invalid",
+    "RSP": "market_cap_missing_or_invalid",
+    "SCHA": "market_cap_missing_or_invalid",
+    "SCHD": "market_cap_missing_or_invalid",
+    "SCHM": "market_cap_missing_or_invalid",
+    "SCHX": "market_cap_missing_or_invalid",
+    "SDY": "market_cap_missing_or_invalid",
+    "SHY": "market_cap_missing_or_invalid",
+    "SILJ": "market_cap_missing_or_invalid",
+    "SIZE": "market_cap_missing_or_invalid",
+    "SLV": "market_cap_missing_or_invalid",
+    "SMH": "market_cap_missing_or_invalid",
+    "SOXX": "market_cap_missing_or_invalid",
+    "SPY": "market_cap_missing_or_invalid",
+    "SWN": "Failed Yahoo Schema validation",
+    "TLT": "market_cap_missing_or_invalid",
+    "TQQQ": "market_cap_missing_or_invalid",
+    "UNG": "market_cap_missing_or_invalid",
+    "URA": "market_cap_missing_or_invalid",
+    "USMV": "market_cap_missing_or_invalid",
+    "USO": "market_cap_missing_or_invalid",
+    "UUP": "market_cap_missing_or_invalid",
+    "VB": "market_cap_missing_or_invalid",
+    "VEA": "market_cap_missing_or_invalid",
+    "VGK": "market_cap_missing_or_invalid",
+    "VO": "market_cap_missing_or_invalid",
+    "VOO": "market_cap_missing_or_invalid",
+    "VTI": "market_cap_missing_or_invalid",
+    "VTLE": "Quote not found for symbol: VTLE",
+    "VWO": "market_cap_missing_or_invalid",
+    "VYM": "market_cap_missing_or_invalid",
+    "WBA": "Quote not found for symbol: WBA",
+    "XBI": "market_cap_missing_or_invalid",
+    "XHB": "market_cap_missing_or_invalid",
+    "XLB": "market_cap_missing_or_invalid",
+    "XLC": "market_cap_missing_or_invalid",
+    "XLE": "market_cap_missing_or_invalid",
+    "XLF": "market_cap_missing_or_invalid",
+    "XLI": "market_cap_missing_or_invalid",
+    "XLK": "market_cap_missing_or_invalid",
+    "XLP": "market_cap_missing_or_invalid",
+    "XLRE": "market_cap_missing_or_invalid",
+    "XLU": "market_cap_missing_or_invalid",
+    "XLV": "market_cap_missing_or_invalid",
+    "XLY": "market_cap_missing_or_invalid",
+    "XOP": "market_cap_missing_or_invalid",
+    "XRT": "market_cap_missing_or_invalid"
+  }
+}

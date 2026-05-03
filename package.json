@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "refresh:fundamentals": "node scripts/refresh_fundamentals_cache.js"
   },
   "engines": {
     "node": ">=20"

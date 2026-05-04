@@ -975,7 +975,6 @@ function Select({ className = "", children, ...props }) {
     </select>
   );
 }
-
 function Badge({ className = "", children }) {
   return (
     <span className={cn("inline-flex items-center border px-2.5 py-1 text-xs font-medium", className)}>
@@ -2013,12 +2012,13 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
     resistanceValue < priceValue;
   const resistanceDisplay =
     item.resistance == null
-      ? "â€”"
+      ? "—"
       : resistanceUnderSpot
       ? "Résistance franchie"
       : `$${Number(item.resistance).toFixed(2)}`;
   const ibkrSpreadClass = classifySpreadPctPercent(item.ibkrSpreadPct);
   const hasIbkrSpread = normalizedIbkrSpreadPctPercent(item.ibkrSpreadPct) != null;
+  const ibkrActionability = getIbkrActionabilityStatus(item);
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -2060,6 +2060,11 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                 {item.optionsSource === "IBKR live" && (
                   <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
                     Options : IBKR live
+                  </Badge>
+                )}
+                {item.optionsSource === "IBKR live" && (
+                  <Badge className={cn("rounded-full border", ibkrActionability.className)}>
+                    {ibkrActionability.label}
                   </Badge>
                 )}
                 {item.ibkrDirect?.devScanEnabled && (
@@ -2512,6 +2517,124 @@ function classifySpreadPctPercent(raw) {
     badgeClass: "border-rose-200 bg-rose-50 text-rose-700",
     textClass: "text-rose-700",
     metricTone: "bad",
+  };
+}
+
+function hasEarningsBeforeExpirationUi(item) {
+  return (
+    item?.hasUpcomingEarningsBeforeExpiration === true ||
+    item?.hasEarningsBeforeExpiration === true ||
+    item?.hasEarnings === true
+  );
+}
+
+function premiumTargetMetUi(item) {
+  const safe = item?.safeStrike;
+  const premium = Number(safe?.premiumUsed ?? safe?.primeUsed ?? safe?.bid ?? safe?.mid);
+  const target = Number(item?.minPremium);
+  return Number.isFinite(premium) && Number.isFinite(target) && premium >= target;
+}
+
+function liveActionabilityScore(item) {
+  const safe = item?.safeStrike;
+  const spreadPct = normalizedIbkrSpreadPctPercent(safe?.liquidity?.spreadPct);
+  const noEarnings = !hasEarningsBeforeExpirationUi(item);
+  const spreadOk = spreadPct != null && spreadPct <= 10;
+  const primeOk = premiumTargetMetUi(item);
+  const distance = Math.abs(Number(safe?.distancePct ?? item?.strikeDistance ?? 0));
+  const pop = Number(safe?.popProfitEstimated ?? safe?.popEstimate ?? 0);
+  const weekly = Number(safe?.weeklyYield ?? item?.weeklyReturn ?? 0);
+  return (
+    (noEarnings ? 1_000_000 : 0) +
+    (spreadOk ? 100_000 : 0) +
+    (primeOk ? 10_000 : 0) +
+    Math.min(distance, 30) * 100 +
+    (Number.isFinite(pop) ? pop * 100 : 0) +
+    (Number.isFinite(weekly) ? weekly : 0)
+  );
+}
+
+function sortByLiveActionability(a, b) {
+  return liveActionabilityScore(b) - liveActionabilityScore(a);
+}
+
+function getIbkrActionabilityStatus(item) {
+  const safe = item?.safeStrike;
+  const spreadPct = normalizedIbkrSpreadPctPercent(safe?.liquidity?.spreadPct ?? item?.ibkrSpreadPct);
+  const rsi = Number(item?.rsi);
+  const safeEqualsAggressive =
+    safe?.strike != null &&
+    item?.aggressiveStrike?.strike != null &&
+    Number(safe.strike) === Number(item.aggressiveStrike.strike);
+  if (hasEarningsBeforeExpirationUi(item) || (spreadPct != null && spreadPct > 20)) {
+    return {
+      label: "Non actionnable",
+      tone: "bad",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+    };
+  }
+  if (
+    (spreadPct != null && spreadPct > 10 && spreadPct <= 20) ||
+    (Number.isFinite(rsi) && rsi >= 75) ||
+    safeEqualsAggressive
+  ) {
+    return {
+      label: "À surveiller",
+      tone: "warn",
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+  if (spreadPct != null && spreadPct <= 10 && !hasEarningsBeforeExpirationUi(item)) {
+    return {
+      label: "Actionnable",
+      tone: "good",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+  return {
+    label: "À surveiller",
+    tone: "warn",
+    className: "border-amber-200 bg-amber-50 text-amber-900",
+  };
+}
+
+function mergeIbkrProgressPayloads({ baseExpiration, payloads, testedSymbols, finalTarget, poolSize }) {
+  const shortlist = [];
+  const rejected = [];
+  const errors = [];
+  const shortlistDev = [];
+  const warnings = [];
+  const seenKept = new Set();
+
+  for (const payload of payloads) {
+    for (const item of Array.isArray(payload?.shortlist) ? payload.shortlist : []) {
+      const symbol = String(item?.symbol || "").trim().toUpperCase();
+      if (!symbol || seenKept.has(symbol) || shortlist.length >= finalTarget) continue;
+      seenKept.add(symbol);
+      shortlist.push(item);
+    }
+    rejected.push(...(Array.isArray(payload?.rejected) ? payload.rejected : []));
+    errors.push(...(Array.isArray(payload?.errors) ? payload.errors : []));
+    shortlistDev.push(...(Array.isArray(payload?.shortlistDev) ? payload.shortlistDev : []));
+    warnings.push(...(Array.isArray(payload?.warnings) ? payload.warnings : []));
+  }
+
+  return {
+    ok: true,
+    expiration: payloads.find((p) => p?.expiration)?.expiration ?? ymdToIbkr(baseExpiration),
+    scanned: testedSymbols.length,
+    kept: shortlist.length,
+    returned: shortlist.length,
+    shortlist,
+    rejected,
+    errors,
+    shortlistDev,
+    warnings: [...new Set(warnings.filter(Boolean))],
+    progressiveAutoIbkr: true,
+    finalTarget,
+    testedSymbols,
+    rejectedReplaced: Math.max(0, testedSymbols.length - shortlist.length),
+    nonTestedCandidates: Math.max(0, poolSize - testedSymbols.length),
   };
 }
 
@@ -3590,7 +3713,6 @@ export default function Dashboard() {
   const [ibkrDirectSentTickers, setIbkrDirectSentTickers] = useState([]);
   const [autoIbkrDirectScan, setAutoIbkrDirectScan] = useState(true);
   const [ibkrAutoMaxTickers, setIbkrAutoMaxTickers] = useState(10);
-  const [ibkrAutoTopN] = useState(10);
   const [ibkrAutoClientIdStart] = useState("500");
   const [refreshStage, setRefreshStage] = useState("");
   const [ibkrAutoRankDiagnostics, setIbkrAutoRankDiagnostics] = useState([]);
@@ -3795,6 +3917,14 @@ export default function Dashboard() {
         .filter(Boolean)
     );
   }, [ibkrDirectResult]);
+  const ibkrKeptSymbols = useMemo(() => {
+    const rows = Array.isArray(ibkrDirectResult?.shortlist) ? ibkrDirectResult.shortlist : [];
+    return new Set(
+      rows
+        .map((row) => String(row?.symbol || "").trim().toUpperCase())
+        .filter(Boolean)
+    );
+  }, [ibkrDirectResult]);
 
   const combos = useMemo(() => {
     return buildPortfolioCombos(
@@ -3832,6 +3962,18 @@ export default function Dashboard() {
     : Array.isArray(ibkrDirectResult?.shortlist)
     ? ibkrDirectResult.shortlist.length
     : 0;
+  const ibkrFinalTarget = Number.isFinite(Number(ibkrDirectResult?.finalTarget))
+    ? Number(ibkrDirectResult.finalTarget)
+    : Number(ibkrAutoMaxTickers) || 10;
+  const ibkrTestedCount = Array.isArray(ibkrDirectResult?.testedSymbols)
+    ? ibkrDirectResult.testedSymbols.length
+    : ibkrSentCount;
+  const ibkrRejectedReplaced = Number.isFinite(Number(ibkrDirectResult?.rejectedReplaced))
+    ? Number(ibkrDirectResult.rejectedReplaced)
+    : Math.max(0, ibkrTestedCount - ibkrKeptCount);
+  const ibkrNonTestedCount = Number.isFinite(Number(ibkrDirectResult?.nonTestedCandidates))
+    ? Number(ibkrDirectResult.nonTestedCandidates)
+    : Math.max(0, yahooReturnedCount - ibkrSentCount);
   const ibkrSentSet = useMemo(
     () => new Set((ibkrDirectSentTickers || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean)),
     [ibkrDirectSentTickers]
@@ -3849,14 +3991,16 @@ export default function Dashboard() {
       (item) => String(item?.ticker || "").trim().toUpperCase() === "SOFI"
     );
     const sent = ibkrSentSet.has("SOFI");
+    const objectiveFilled = ibkrDirectResult?.progressiveAutoIbkr === true && ibkrKeptCount >= ibkrFinalTarget;
     return {
       inWatchlist: watchlistIndex >= 0,
       watchlistRank: watchlistIndex >= 0 ? watchlistIndex + 1 : null,
       inYahoo: yahooIndex >= 0,
       yahooRank: yahooIndex >= 0 ? yahooIndex + 1 : null,
       sent,
+      objectiveFilled,
     };
-  }, [tickersForScan, yahooReturnedCandidates, ibkrSentSet]);
+  }, [tickersForScan, yahooReturnedCandidates, ibkrSentSet, ibkrDirectResult, ibkrKeptCount, ibkrFinalTarget]);
   const yahooActionabilityCounts = useMemo(() => {
     let actionable = 0;
     let watch = 0;
@@ -3877,6 +4021,17 @@ export default function Dashboard() {
     }
     return { actionable, watch, nonActionable };
   }, [yahooReturnedCandidates]);
+  const ibkrActionabilityCounts = useMemo(() => {
+    const counts = { actionable: 0, watch: 0, nonActionable: 0 };
+    for (const item of filtered || []) {
+      if (item?.optionsSource !== "IBKR live") continue;
+      const status = getIbkrActionabilityStatus(item);
+      if (status.label === "Actionnable") counts.actionable += 1;
+      else if (status.label === "Non actionnable") counts.nonActionable += 1;
+      else counts.watch += 1;
+    }
+    return counts;
+  }, [filtered]);
   const yahooCandidateByTicker = useMemo(() => {
     return new Map(
       activeCandidates
@@ -3993,7 +4148,7 @@ export default function Dashboard() {
             .map((key) => technicalCandidatesRef.current.get(key) ?? yahooCandidateByTicker.get(key))
             .find(Boolean) ?? null;
         return mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, selectedExpiration);
-      });
+      }).sort(sortByLiveActionability);
 
       setBackendCandidates(mapped);
       setDataSource("ibkr_direct");
@@ -4040,7 +4195,7 @@ export default function Dashboard() {
       /** @type {{ symbol: string, score?: number, reasons: string[], tierBoost?: number, rank?: number, selectionMode: "yahoo_shortlist" | "watchlist_fallback" }[]} */
       let diagnostics = [];
       /** @type {string[]} */
-      let tickersToSend = [];
+      let candidatePool = [];
       /** @type {"yahoo_shortlist" | "watchlist_fallback"} */
       let sourceTag = "watchlist_fallback";
 
@@ -4051,14 +4206,13 @@ export default function Dashboard() {
           const symbol = String(raw || "").trim().toUpperCase();
           if (!symbol || seen.has(symbol)) continue;
           seen.add(symbol);
-          tickersToSend.push(symbol);
+          candidatePool.push(symbol);
           diagnostics.push({
             symbol,
-            rank: tickersToSend.length,
+            rank: candidatePool.length,
             reasons: ["ordre shortlist Yahoo (qualité wheel)"],
             selectionMode: "yahoo_shortlist",
           });
-          if (tickersToSend.length >= maxN) break;
         }
       } else {
         const symList = [...new Set((orderedSymbols || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))];
@@ -4079,7 +4233,7 @@ export default function Dashboard() {
             if (a.tierBoost !== b.tierBoost) return a.tierBoost - b.tierBoost;
             return a.symbol.localeCompare(b.symbol);
           });
-        tickersToSend = ranked.slice(0, maxN).map((row) => row.symbol);
+        candidatePool = ranked.map((row) => row.symbol);
         diagnostics = ranked.slice(0, 20).map((row) => ({
           symbol: row.symbol,
           score: row.score,
@@ -4103,8 +4257,9 @@ export default function Dashboard() {
         decisionReason,
         mappedLength: yahooMappedLen ?? null,
         orderedSymbolsLength: Array.isArray(orderedSymbols) ? orderedSymbols.length : 0,
-        tickersSentToIbkr: tickersToSend,
+        candidatePoolLength: candidatePool.length,
         maxTickers: maxN,
+        progressiveTestLimit: Math.min(candidatePool.length, Math.max(maxN, 20)),
       });
 
       if (ibkrAutoInput.forceYahooShortlistOnly === true && sourceTag === "watchlist_fallback") {
@@ -4121,7 +4276,7 @@ export default function Dashboard() {
 
       setIbkrAutoTickerSource(sourceTag);
       setIbkrAutoRankDiagnostics(diagnostics.slice(0, 20));
-      if (!tickersToSend.length) {
+      if (!candidatePool.length) {
         console.warn("[IBKR_AUTO_SKIPPED]", { scanId, reason: "tickersToSend vide après sélection" });
         setTimeout(() => {
           setTimeout(() => logScanDisplayResult(scanId, displaySnapshotRef), 0);
@@ -4132,15 +4287,47 @@ export default function Dashboard() {
       setRefreshStage("Étape 2/2 : IBKR Direct Scan — options live");
       setIbkrDirectLoading(true);
       setIbkrDirectError("");
-      setIbkrDirectSentTickers(tickersToSend);
-      console.warn("[IBKR_AUTO_SEND]", { scanId, source: sourceTag, tickers: tickersToSend, expirationYmd: expLocked });
+      setIbkrDirectSentTickers([]);
+      console.warn("[IBKR_AUTO_SEND]", { scanId, source: sourceTag, pool: candidatePool, expirationYmd: expLocked });
       try {
-        const payload = await callIbkrDirectScan({
-          tickers: tickersToSend,
-          expiration: ymdToIbkr(expLocked),
-          clientIdStart: ibkrAutoClientIdStart,
-          maxTickers: ibkrAutoMaxTickers,
-          topN: ibkrAutoTopN,
+        const payloads = [];
+        const testedSymbols = [];
+        let cursor = 0;
+        let keptCount = 0;
+        const testedLimit = Math.min(candidatePool.length, Math.max(maxN, 20));
+        while (keptCount < maxN && cursor < testedLimit) {
+          const remainingNeeded = maxN - keptCount;
+          const batchSize = cursor === 0 ? Math.min(maxN, testedLimit) : Math.min(5, remainingNeeded, testedLimit - cursor);
+          const batch = candidatePool.slice(cursor, cursor + batchSize);
+          if (!batch.length) break;
+          testedSymbols.push(...batch);
+          setIbkrDirectSentTickers([...testedSymbols]);
+          setRefreshStage(
+            `Étape 2/2 : IBKR Direct Scan — ${testedSymbols.length} testés, ${keptCount}/${maxN} retenus`
+          );
+          const batchPayload = await callIbkrDirectScan({
+            tickers: batch,
+            expiration: ymdToIbkr(expLocked),
+            clientIdStart: Number(ibkrAutoClientIdStart) + cursor,
+            maxTickers: batch.length,
+            topN: remainingNeeded,
+          });
+          payloads.push(batchPayload);
+          keptCount = mergeIbkrProgressPayloads({
+            baseExpiration: expLocked,
+            payloads,
+            testedSymbols,
+            finalTarget: maxN,
+            poolSize: candidatePool.length,
+          }).shortlist.length;
+          cursor += batchSize;
+        }
+        const payload = mergeIbkrProgressPayloads({
+          baseExpiration: expLocked,
+          payloads,
+          testedSymbols,
+          finalTarget: maxN,
+          poolSize: candidatePool.length,
         });
         if (
           normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)
@@ -4182,7 +4369,7 @@ export default function Dashboard() {
           shortlistSymbolsKept: (payload?.shortlist || []).map((r) => r?.symbol).filter(Boolean),
           retainedSafeSpreadGt10Pct: spreadDiag.retainedSafeSpreadGt10Pct,
           retainedSafeSpreadGt20Pct: spreadDiag.retainedSafeSpreadGt20Pct,
-          tickersSent: tickersToSend,
+          tickersSent: testedSymbols,
         });
         const emptySuspicious = isIbkrDirectScanSuspiciousEmpty(payload);
         setIbkrDirectResult(payload);
@@ -4208,7 +4395,11 @@ export default function Dashboard() {
             setRefreshStage("Timeout IBKR : réduire Max IBKR à 10 ou moins. Yahoo/fallback conservé.");
           } else {
             setIbkrDirectError("");
-            setRefreshStage("Terminé : Shortlist enrichie disponible");
+            setRefreshStage(
+              payload.kept >= maxN
+                ? "Terminé : objectif IBKR rempli"
+                : `Seulement ${payload.kept} retenus IBKR disponibles dans le bassin Yahoo testé.`
+            );
           }
         }
       } catch (err) {
@@ -4224,7 +4415,6 @@ export default function Dashboard() {
     [
       autoIbkrDirectScan,
       ibkrAutoMaxTickers,
-      ibkrAutoTopN,
       ibkrAutoClientIdStart,
       candidateByTickerForPreIbkr,
       selectedExpiration,
@@ -5041,21 +5231,33 @@ export default function Dashboard() {
               <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
               <Metric label="Yahoo retenus" value={String(yahooScanMeta.kept || 0)} />
               <Metric label="Yahoo retournés" value={String(yahooReturnedCount)} />
+              <Metric label="Objectif cartes finales" value={String(ibkrFinalTarget)} />
+              <Metric label="IBKR testés" value={String(ibkrTestedCount)} />
               <Metric label="Envoyés à IBKR" value={String(ibkrSentCount)} />
               <Metric label="Retenus IBKR" value={String(ibkrKeptCount)} />
               <Metric label="Rejetés IBKR" value={String(ibkrRejectedCount)} />
+              <Metric label="Rejetés remplacés" value={String(ibkrRejectedReplaced)} tone={ibkrRejectedReplaced ? "warn" : "default"} />
+              <Metric label="Non testés IBKR" value={String(ibkrNonTestedCount)} />
               <Metric
                 label="Non envoyés à IBKR"
-                value={String(Math.max(0, Number(yahooScanMeta.kept || 0) - ibkrSentCount))}
-                tone={Number(yahooScanMeta.kept || 0) > ibkrSentCount ? "warn" : "default"}
+                value={String(Math.max(0, yahooReturnedCount - ibkrSentCount))}
+                tone={yahooReturnedCount > ibkrSentCount ? "warn" : "default"}
               />
-              <Metric label="Actionnables" value={String(yahooActionabilityCounts.actionable)} tone="good" />
-              <Metric label="À surveiller" value={String(yahooActionabilityCounts.watch)} tone="warn" />
-              <Metric label="Non actionnables" value={String(yahooActionabilityCounts.nonActionable)} tone="bad" />
+              <Metric label="Actionnables Yahoo" value={String(yahooActionabilityCounts.actionable)} tone="good" />
+              <Metric label="À surveiller Yahoo" value={String(yahooActionabilityCounts.watch)} tone="warn" />
+              <Metric label="Non actionnables Yahoo" value={String(yahooActionabilityCounts.nonActionable)} tone="bad" />
+              <Metric label="Actionnables IBKR" value={String(ibkrActionabilityCounts.actionable)} tone="good" />
+              <Metric label="À surveiller IBKR" value={String(ibkrActionabilityCounts.watch)} tone="warn" />
+              <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
             </div>
             <p className="mt-2 text-xs text-slate-500">
               Lecture visuelle seulement : actionnable = spread safe ≤ 10 % sans earnings avant expiration.
             </p>
+            {ibkrDirectResult?.progressiveAutoIbkr && ibkrKeptCount < ibkrFinalTarget && (
+              <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                Seulement {ibkrKeptCount} retenus IBKR disponibles dans le bassin Yahoo testé.
+              </p>
+            )}
           </div>
         )}
 
@@ -5079,7 +5281,11 @@ export default function Dashboard() {
             <div className={cn("mt-3 rounded-xl border px-3 py-2", sofiDiagnostic.sent ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900")}>
               SOFI : {sofiDiagnostic.inWatchlist ? `watchlist #${sofiDiagnostic.watchlistRank}` : "absent de la watchlist actuelle"} ·{" "}
               {sofiDiagnostic.inYahoo ? `Yahoo #${sofiDiagnostic.yahooRank}` : "absent de la shortlist Yahoo retournée"} ·{" "}
-              {sofiDiagnostic.sent ? "envoyé à IBKR" : "SOFI non envoyé à IBKR — hors Top Max IBKR actuel."}
+              {sofiDiagnostic.sent
+                ? "envoyé à IBKR"
+                : sofiDiagnostic.inYahoo && sofiDiagnostic.objectiveFilled
+                ? `non testé, objectif IBKR rempli après ${ibkrTestedCount} tests.`
+                : "SOFI non envoyé à IBKR — hors Top Max IBKR actuel."}
             </div>
           </div>
         )}
@@ -5087,7 +5293,7 @@ export default function Dashboard() {
         {ibkrAutoRankDiagnostics.length > 0 && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
             <p className="font-semibold text-slate-900">
-              Pré-sélection IBKR auto (Top {ibkrDirectSentTickers.length || ibkrAutoRankDiagnostics.length})
+              Rangs Yahoo — testés IBKR : {ibkrTestedCount} / {yahooReturnedCount}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               Source :{" "}
@@ -5100,13 +5306,27 @@ export default function Dashboard() {
               </span>
             </p>
             <div className="mt-2 space-y-1">
-              {ibkrAutoRankDiagnostics.map((row) => (
-                <div key={`pre-ibkr-${row.symbol}`}>
-                  {row.selectionMode === "yahoo_shortlist" && row.rank != null
-                    ? `${row.symbol} : rang Yahoo #${row.rank} · ${row.reasons.join(" · ") || "ordre shortlist"}`
-                    : `${row.symbol} : score ${Math.round(Number(row.score) || 0)} · ${row.reasons.join(" · ") || "base"}`}
-                </div>
-              ))}
+              {ibkrAutoRankDiagnostics.map((row) => {
+                const symbol = String(row.symbol || "").trim().toUpperCase();
+                const tested = ibkrSentSet.has(symbol);
+                const rejected = ibkrRejectedSymbols.has(symbol);
+                const kept = ibkrKeptSymbols.has(symbol);
+                const replacement = tested && Number(row.rank) > ibkrFinalTarget;
+                const status = rejected
+                  ? "rejeté"
+                  : replacement && kept
+                  ? "remplaçant retenu"
+                  : tested
+                  ? "testé"
+                  : "non testé";
+                return (
+                  <div key={`pre-ibkr-${row.symbol}`}>
+                    {row.selectionMode === "yahoo_shortlist" && row.rank != null
+                      ? `${row.symbol} : rang Yahoo #${row.rank} — ${status} — ${row.reasons.join(" · ") || "ordre shortlist"}`
+                      : `${row.symbol} : score ${Math.round(Number(row.score) || 0)} — ${status} — ${row.reasons.join(" · ") || "base"}`}
+                  </div>
+                );
+              })}
             </div>
             <p className="mt-2 text-xs text-slate-500">
               Tickers envoyés à IBKR auto : {(ibkrDirectSentTickers || []).join(", ") || "—"}

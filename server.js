@@ -1202,6 +1202,17 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     if (devScanEnabled && !responseWarnings.includes(WHEEL_DEV_SCAN_WARNING)) {
       responseWarnings.push(WHEEL_DEV_SCAN_WARNING);
     }
+    const suspiciousIbkrEmpty =
+      tickers.length > 0 &&
+      rows.length === 0 &&
+      rejected.length === 0 &&
+      errors.length === 0 &&
+      payload?.ok !== false;
+    if (suspiciousIbkrEmpty) {
+      responseWarnings.push(
+        "IBKR / TWS : aucun résultat par symbole (stdout Python vide ou connexion impossible). Ouvre TWS / IB Gateway puis relance."
+      );
+    }
 
     console.log(
       "[IBKR_SHADOW_SCAN_DONE]",
@@ -1251,6 +1262,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       errors,
       rejectionReasons,
       warnings: responseWarnings,
+      ibkrSuspiciousEmpty: suspiciousIbkrEmpty,
       ibkr: {
         twoPhaseEnabled: responseTwoPhaseEnabled,
       },

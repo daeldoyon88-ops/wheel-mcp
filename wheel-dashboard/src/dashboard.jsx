@@ -597,6 +597,7 @@ function toDashboardCandidate(item, index, selectedExpiration) {
       item.currentPrice != null && item.adjustedMove != null
         ? item.currentPrice + item.adjustedMove
         : 0,
+    dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
     minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0),
     targetWeeks: item.targetWeeks ?? 1,
     safeStrike: safe
@@ -604,10 +605,12 @@ function toDashboardCandidate(item, index, selectedExpiration) {
           strike: safe.strike,
           mid: safe.premium,
           popEstimate: safe.popEstimate ?? null,
+          periodYield: (safe.periodYield ?? safe.weeklyYield ?? 0) * 100,
           weeklyYield: (safe.weeklyYield ?? 0) * 100,
           weeklyNormalizedYield:
             (safe.weeklyNormalizedYield ?? safe.weeklyYield ?? 0) * 100,
           annualizedYield: (safe.annualizedYield ?? 0) * 100,
+          dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
           distancePct: safeDistance,
           label: "prime la plus proche de la cible",
           liquidity: safe.liquidity ?? null,
@@ -618,10 +621,12 @@ function toDashboardCandidate(item, index, selectedExpiration) {
           strike: aggressive.strike,
           mid: aggressive.premium,
           popEstimate: aggressive.popEstimate ?? null,
+          periodYield: (aggressive.periodYield ?? aggressive.weeklyYield ?? 0) * 100,
           weeklyYield: (aggressive.weeklyYield ?? 0) * 100,
           weeklyNormalizedYield:
             (aggressive.weeklyNormalizedYield ?? aggressive.weeklyYield ?? 0) * 100,
           annualizedYield: (aggressive.annualizedYield ?? 0) * 100,
+          dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
           distancePct: aggressiveDistance,
           label: "directement sous borne basse",
           liquidity: aggressive.liquidity ?? null,
@@ -1107,6 +1112,7 @@ function StrikeCard({
   popProfitEstimated,
   popOtmEstimated,
   popSource,
+  dteDays,
   tradeYield,
   weeklyNormalizedYield,
   annualizedYield,
@@ -1215,7 +1221,7 @@ function StrikeCard({
           tone={distanceTone}
         />
         <Metric
-          label="Rendement"
+          label="Rendement période"
           value={
             yieldOk ? `${tradeYieldNumber.toFixed(2)}%` : "—"
           }
@@ -1223,7 +1229,7 @@ function StrikeCard({
           tone={yieldTone}
         />
         <Metric
-          label="Rendement hebdo (7J)"
+          label="Rendement normalisé 7J"
           value={
             Number.isFinite(weeklyNormalizedYieldNumber)
               ? `${weeklyNormalizedYieldNumber.toFixed(2)}%`
@@ -1233,13 +1239,17 @@ function StrikeCard({
           tone={yieldTone}
         />
         <Metric
-          label="Annualisé"
+          label="Annualisé estimé"
           value={
             Number.isFinite(annualizedYieldNumber)
               ? `${annualizedYieldNumber.toFixed(1)}%`
               : "—"
           }
           tone={yieldTone}
+        />
+        <Metric
+          label="DTE"
+          value={Number.isFinite(Number(dteDays)) ? `${Number(dteDays)} jours` : "—"}
         />
         <Metric
           label="POP profit estimée"
@@ -1340,6 +1350,7 @@ function StrikeOpportunities({ item }) {
               tradeYield={item.safeStrike.weeklyYield}
               weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
               annualizedYield={item.safeStrike.annualizedYield}
+              dteDays={item.safeStrike.dteDays ?? item.dteDays}
               distancePct={item.safeStrike.distancePct}
               label={item.safeStrike.label}
               meetsTarget={
@@ -1366,6 +1377,7 @@ function StrikeOpportunities({ item }) {
               tradeYield={item.aggressiveStrike.weeklyYield}
               weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
               annualizedYield={item.aggressiveStrike.annualizedYield}
+              dteDays={item.aggressiveStrike.dteDays ?? item.dteDays}
               distancePct={item.aggressiveStrike.distancePct}
               label={item.aggressiveStrike.label}
               meetsTarget={
@@ -1534,7 +1546,7 @@ function mergeYahooAndIbkrCandidate(yahooCandidate, ibkrCandidate) {
   };
 }
 
-function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = false) {
+function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = false, dteDays = null) {
   if (!strike) return null;
   const strikeValue = Number(strike.strike);
   const primeFromQuote = strike.primeUsed ?? strike.bid ?? null;
@@ -1555,8 +1567,11 @@ function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = f
     annualizedYield = weeklyYield == null ? null : 0;
   } else if (Number.isFinite(yieldDecimal)) {
     weeklyYield = yieldDecimal * 100;
-    weeklyNormalizedYield = yieldDecimal * 100;
-    annualizedYield = yieldDecimal * 52 * 100;
+    const dte = Number(dteDays);
+    weeklyNormalizedYield =
+      Number.isFinite(dte) && dte > 0 ? yieldDecimal * (7 / dte) * 100 : yieldDecimal * 100;
+    annualizedYield =
+      Number.isFinite(dte) && dte > 0 ? yieldDecimal * (365 / dte) * 100 : yieldDecimal * 52 * 100;
   } else {
     weeklyYield = 0;
     weeklyNormalizedYield = 0;
@@ -1602,6 +1617,7 @@ function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = f
     weeklyYield,
     weeklyNormalizedYield,
     annualizedYield,
+    dteDays: Number.isFinite(Number(dteDays)) ? Number(dteDays) : null,
     distancePct:
       Number.isFinite(strikeValue) && Number.isFinite(Number(spot)) && Number(spot) > 0
         ? strikeDistancePct(strikeValue, Number(spot))
@@ -1628,17 +1644,20 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
   const preserveNullQuotes =
     ibkrCandidate?.dataTradable === false &&
     (ibkrCandidate?.devIncompleteMarketData === true || ibkrCandidate?.premiumUsed == null);
+  const resolvedDteDays = Number(ibkrCandidate?.dteDays ?? yahooCandidate?.dteDays);
   const safeStrike = ibkrStrikeToDashboardStrike(
     ibkrCandidate?.safeStrike,
     spot,
     "safe IBKR live",
-    preserveNullQuotes
+    preserveNullQuotes,
+    Number.isFinite(resolvedDteDays) ? resolvedDteDays : null
   );
   const aggressiveStrike = ibkrStrikeToDashboardStrike(
     ibkrCandidate?.aggressiveStrike,
     spot,
     "agressif IBKR live",
-    preserveNullQuotes
+    preserveNullQuotes,
+    Number.isFinite(resolvedDteDays) ? resolvedDteDays : null
   );
   const applyPop = (dashboardStrike, ibkrRawStrike, yahooFallbackStrike) => {
     if (!dashboardStrike) return null;
@@ -1727,6 +1746,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     expectedMoveHigh: ibkrCandidate?.upperBound ?? yahooCandidate?.expectedMoveHigh ?? 0,
     minPremium: ibkrCandidate?.targetPremium ?? yahooCandidate?.minPremium ?? minPremiumForSpot(spot),
     targetWeeks: yahooCandidate?.targetWeeks ?? 1,
+    dteDays: Number.isFinite(resolvedDteDays) ? resolvedDteDays : null,
     safeStrike: safeStrikeWithPop,
     aggressiveStrike: aggressiveStrikeWithPop,
     premium: premiumLabel,
@@ -2187,10 +2207,14 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                 <Metric label="Prime safe mini" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
                 <Metric label="Semaines cible" value={`${item.targetWeeks ?? 1}`} />
                 <Metric
-                  label="Rendement"
+                  label="DTE"
+                  value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
+                />
+                <Metric
+                  label="Rendement période"
                   value={
                     item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn))
-                      ? `${Number(item.weeklyReturn).toFixed(2)}% / sem`
+                      ? `${Number(item.weeklyReturn).toFixed(2)}% jusqu'à expiration`
                       : "—"
                   }
                   strong={
@@ -3631,6 +3655,10 @@ function DetailModal({ item, onClose }) {
             <Metric label="Prix plus bas" value={`$${Number(liveLow || 0).toFixed(2)}`} strong tone="bad" />
             <Metric label="Prix supérieur" value={`$${Number(liveHigh || 0).toFixed(2)}`} strong tone="good" />
             <Metric label="Expiration" value={liveData?.firstExpiration || "—"} />
+            <Metric
+              label="DTE"
+              value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
+            />
             <Metric label="Prime cible safe" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
           </div>
 
@@ -3693,10 +3721,11 @@ function DetailModal({ item, onClose }) {
                 popProfitEstimated={item.safeStrike.popProfitEstimated}
                 popOtmEstimated={item.safeStrike.popOtmEstimated}
                 popSource={item.safeStrike.popSource}
-                tradeYield={item.safeStrike.weeklyYield}
-                weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
-                annualizedYield={item.safeStrike.annualizedYield}
-                distancePct={item.safeStrike.distancePct}
+              tradeYield={item.safeStrike.weeklyYield}
+              weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
+              annualizedYield={item.safeStrike.annualizedYield}
+              dteDays={item.safeStrike.dteDays ?? item.dteDays}
+              distancePct={item.safeStrike.distancePct}
                 label="safe strike"
                 meetsTarget={
                 Number.isFinite(Number(item.safeStrike.mid)) &&
@@ -3723,10 +3752,11 @@ function DetailModal({ item, onClose }) {
                 popProfitEstimated={item.aggressiveStrike.popProfitEstimated}
                 popOtmEstimated={item.aggressiveStrike.popOtmEstimated}
                 popSource={item.aggressiveStrike.popSource}
-                tradeYield={item.aggressiveStrike.weeklyYield}
-                weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
-                annualizedYield={item.aggressiveStrike.annualizedYield}
-                distancePct={item.aggressiveStrike.distancePct}
+              tradeYield={item.aggressiveStrike.weeklyYield}
+              weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
+              annualizedYield={item.aggressiveStrike.annualizedYield}
+              dteDays={item.aggressiveStrike.dteDays ?? item.dteDays}
+              distancePct={item.aggressiveStrike.distancePct}
                 label="aggressive strike"
                 meetsTarget={
                 Number.isFinite(Number(item.aggressiveStrike.mid)) &&

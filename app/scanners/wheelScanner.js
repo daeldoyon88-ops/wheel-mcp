@@ -546,6 +546,7 @@ export function createWheelScanner(marketService) {
       const impliedVolatility = toNumber(row.impliedVolatility);
       const weeklyYield = weeklyYieldDecimal(bidPremium, row.strike, dteDays);
       const weeklyNormalizedYield = dteDays > 0 ? weeklyYield * (7 / dteDays) : 0;
+      const annualizedYield = dteDays > 0 ? weeklyYield * (365 / dteDays) : weeklyYield * 52;
       const popEstimate = estimatePop({
         spot,
         strike: row.strike,
@@ -558,9 +559,10 @@ export function createWheelScanner(marketService) {
         premium: round(marketPremium, 3),
         conservativePremium: round(bidPremium, 3),
         impliedVolatility,
+        periodYield: round(weeklyYield, 4),
         weeklyYield: round(weeklyYield, 4),
         weeklyNormalizedYield: round(weeklyNormalizedYield, 4),
-        annualizedYield: round(weeklyYield * 52, 4),
+        annualizedYield: round(annualizedYield, 4),
         popEstimate: popEstimate != null ? round(popEstimate, 4) : null,
         popModel: popEstimate != null ? "lognormal_iv_v1_bid" : null,
         distancePct: round(Math.abs(row.distancePct) / 100, 4),

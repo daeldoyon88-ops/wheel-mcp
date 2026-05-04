@@ -224,18 +224,18 @@ export function createWheelScanner(marketService) {
 
     const spreadPct = toNumber(safeStrike?.liquidity?.spreadPct);
     if (spreadPct > 0) {
-      if (spreadPct < 15) {
+      if (spreadPct <= 5) {
         score += 20;
         good.push("spread faible");
-      } else if (spreadPct <= 30) {
-        score += 8;
+      } else if (spreadPct <= 10) {
+        score += 10;
         good.push("spread acceptable");
-      } else if (spreadPct <= 50) {
-        score -= 10;
+      } else if (spreadPct <= 20) {
+        score -= 5;
         penalties.push("spread limite");
       } else {
         score -= 30;
-        penalties.push("spread élevé");
+        penalties.push("spread trop large");
       }
     }
 

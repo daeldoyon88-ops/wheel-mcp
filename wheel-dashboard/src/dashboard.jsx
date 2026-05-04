@@ -2606,8 +2606,8 @@ function classifySpreadPctPercent(raw) {
   }
   if (pct <= 10) {
     return {
-      label: "limite",
-      reason: "spread limite",
+      label: "spread acceptable",
+      reason: "spread acceptable",
       badgeClass: "border-yellow-200 bg-yellow-50 text-yellow-800",
       textClass: "text-yellow-800",
       metricTone: "warn",
@@ -2615,8 +2615,8 @@ function classifySpreadPctPercent(raw) {
   }
   if (pct <= 20) {
     return {
-      label: "spread large",
-      reason: "exécution risquée",
+      label: "spread limite",
+      reason: "spread limite",
       badgeClass: "border-amber-300 bg-amber-50 text-amber-900",
       textClass: "text-amber-900",
       metricTone: "warn",
@@ -2755,7 +2755,7 @@ function getRetainedNotDisplayedReason(item, displayedCutoffScore) {
   const profile = getIbkrActionabilityProfile(item || null);
   if (hasEarningsBeforeExpirationUi(item)) return "earnings avant expiration";
   if (profile?.spreadOver20) return "spread trop large";
-  if (profile?.spreadOver10) return "spread large";
+  if (profile?.spreadOver10) return "spread limite";
   const score = liveActionabilityScore(item);
   if (Number.isFinite(displayedCutoffScore) && score < displayedCutoffScore) {
     return "moins bon que les 10 finaux";
@@ -6179,3 +6179,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

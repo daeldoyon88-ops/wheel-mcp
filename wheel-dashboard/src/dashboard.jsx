@@ -1115,7 +1115,17 @@ function StrikeCard({
   meetsTarget,
   liquidity,
 }) {
-  const distanceTone = distancePct <= -10 ? "good" : distancePct <= -5 ? "warn" : "bad";
+  const strikeNumber = Number(strike);
+  const distanceNumber = Number(distancePct);
+  const hasStrikeNumber = Number.isFinite(strikeNumber);
+  const hasDistanceNumber = Number.isFinite(distanceNumber);
+  const distanceTone = !hasDistanceNumber
+    ? "default"
+    : distanceNumber <= -10
+    ? "good"
+    : distanceNumber <= -5
+    ? "warn"
+    : "bad";
   const displayedPremium = Number.isFinite(Number(premiumUsed))
     ? Number(premiumUsed)
     : Number.isFinite(Number(mid))
@@ -1130,13 +1140,30 @@ function StrikeCard({
       : displayedPremium >= 0.09
       ? "warn"
       : "bad";
-  const yieldOk = typeof tradeYield === "number" && Number.isFinite(tradeYield);
+  const tradeYieldNumber = Number(tradeYield);
+  const weeklyNormalizedYieldNumber = Number(weeklyNormalizedYield);
+  const annualizedYieldNumber = Number(annualizedYield);
+  const popOtmEstimatedNumber = Number(popOtmEstimated);
+  const yieldOk = Number.isFinite(tradeYieldNumber);
   const yieldTone =
-    !yieldOk || tradeYield == null ? "default" : tradeYield >= 1 ? "good" : tradeYield >= 0.5 ? "warn" : "bad";
+    !yieldOk || tradeYield == null
+      ? "default"
+      : tradeYieldNumber >= 1
+      ? "good"
+      : tradeYieldNumber >= 0.5
+      ? "warn"
+      : "bad";
   const objectiveResolved = meetsTarget && hasPremiumNumber && yieldOk;
   const mainPop = popProfitEstimated ?? popEstimate ?? null;
+  const mainPopNumber = Number(mainPop);
   const popTone =
-    mainPop == null ? "default" : mainPop >= 0.75 ? "good" : mainPop >= 0.6 ? "warn" : "bad";
+    !Number.isFinite(mainPopNumber)
+      ? "default"
+      : mainPopNumber >= 0.75
+      ? "good"
+      : mainPopNumber >= 0.6
+      ? "warn"
+      : "bad";
   const spreadClass = classifySpreadPctPercent(liquidity?.spreadPct);
 
   return (
@@ -1174,18 +1201,23 @@ function StrikeCard({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <Metric label="Strike" value={`$${strike.toFixed(2)}`} strong />
+        <Metric label="Strike" value={hasStrikeNumber ? `$${strikeNumber.toFixed(2)}` : "non disponible"} strong />
         <Metric
           label={premiumLabel || "Prime (mid)"}
           value={Number.isFinite(displayedPremium) ? `$${displayedPremium.toFixed(2)}` : "—"}
           strong={displayedPremium != null && displayedPremium >= 0.09}
           tone={premiumTone}
         />
-        <Metric label="Distance" value={`${distancePct.toFixed(1)}%`} strong tone={distanceTone} />
+        <Metric
+          label="Distance"
+          value={hasDistanceNumber ? `${distanceNumber.toFixed(1)}%` : "non disponible"}
+          strong
+          tone={distanceTone}
+        />
         <Metric
           label="Rendement"
           value={
-            yieldOk ? `${tradeYield.toFixed(2)}%` : "—"
+            yieldOk ? `${tradeYieldNumber.toFixed(2)}%` : "—"
           }
           strong
           tone={yieldTone}
@@ -1193,8 +1225,8 @@ function StrikeCard({
         <Metric
           label="Rendement hebdo (7J)"
           value={
-            typeof weeklyNormalizedYield === "number" && Number.isFinite(weeklyNormalizedYield)
-              ? `${weeklyNormalizedYield.toFixed(2)}%`
+            Number.isFinite(weeklyNormalizedYieldNumber)
+              ? `${weeklyNormalizedYieldNumber.toFixed(2)}%`
               : "—"
           }
           strong
@@ -1203,21 +1235,27 @@ function StrikeCard({
         <Metric
           label="Annualisé"
           value={
-            typeof annualizedYield === "number" && Number.isFinite(annualizedYield)
-              ? `${annualizedYield.toFixed(1)}%`
+            Number.isFinite(annualizedYieldNumber)
+              ? `${annualizedYieldNumber.toFixed(1)}%`
               : "—"
           }
           tone={yieldTone}
         />
         <Metric
           label="POP profit estimée"
-          value={mainPop != null ? `${(mainPop * 100).toFixed(1)}%` : "—"}
+          value={Number.isFinite(mainPopNumber) ? `${(mainPopNumber * 100).toFixed(1)}%` : "—"}
           tone={popTone}
         />
         <Metric
           label="POP OTM estimée"
-          value={popOtmEstimated != null ? `${(popOtmEstimated * 100).toFixed(1)}%` : "—"}
-          tone={popOtmEstimated == null ? "default" : popOtmEstimated >= 0.7 ? "good" : "warn"}
+          value={Number.isFinite(popOtmEstimatedNumber) ? `${(popOtmEstimatedNumber * 100).toFixed(1)}%` : "—"}
+          tone={
+            !Number.isFinite(popOtmEstimatedNumber)
+              ? "default"
+              : popOtmEstimatedNumber >= 0.7
+              ? "good"
+              : "warn"
+          }
         />
         <Metric label="Source POP" value={popSource || "—"} />
         <Metric
@@ -3481,6 +3519,13 @@ function DetailModal({ item, onClose }) {
   }, [item]);
 
   if (!item) return null;
+
+  const relevantEarningsDate = pickRelevantEarningsDate({
+    earningsDate: item.earningsDate ?? item.raw?.earningsDate ?? null,
+    nextEarningsDate: item.nextEarningsDate ?? item.raw?.nextEarningsDate ?? null,
+    earningsMoment: item.earningsMoment ?? item.raw?.earningsMoment ?? null,
+    expiration: item.targetExpiration ?? item.expiration ?? item.raw?.expiration ?? null,
+  });
 
   const livePrice =
     liveData?.quote?.regularMarketPrice ??

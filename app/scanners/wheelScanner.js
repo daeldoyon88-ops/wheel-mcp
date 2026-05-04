@@ -181,15 +181,18 @@ export function createWheelScanner(marketService) {
       good.push("Tier 3");
     }
 
-    if (supportStatus === "room_above_support") {
-      score += 25;
-      good.push("support OK");
-    } else if (supportStatus === "near_support") {
-      score += 8;
-      good.push("près du support");
-    } else if (supportStatus === "below_support") {
+    if (supportStatus === "current_below_support") {
       score -= 35;
-      penalties.push("below support");
+      penalties.push("prix sous support");
+    } else if (supportStatus === "strike_above_support" || supportStatus === "room_above_support") {
+      score -= 12;
+      penalties.push("strike au-dessus du support");
+    } else if (supportStatus === "strike_near_support" || supportStatus === "near_support") {
+      score += 2;
+      good.push("strike proche du support");
+    } else if (supportStatus === "strike_below_support" || supportStatus === "below_support") {
+      score += 8;
+      good.push("strike sous support - marge de securite");
     }
 
     const trend = technicals?.trend ?? "unknown";
@@ -584,10 +587,14 @@ export function createWheelScanner(marketService) {
         : null;
 
     let supportStatus = "unknown";
-    if (strikeVsSupportPct != null) {
-      if (strikeVsSupportPct >= 2) supportStatus = "room_above_support";
-      else if (strikeVsSupportPct >= 0) supportStatus = "near_support";
-      else supportStatus = "below_support";
+    const currentVsSupportPct =
+      Number.isFinite(spot) && support && support > 0 ? ((spot - support) / support) * 100 : null;
+    if (currentVsSupportPct != null && currentVsSupportPct < 0) {
+      supportStatus = "current_below_support";
+    } else if (strikeVsSupportPct != null) {
+      if (strikeVsSupportPct > 2) supportStatus = "strike_above_support";
+      else if (strikeVsSupportPct >= 0) supportStatus = "strike_near_support";
+      else supportStatus = "strike_below_support";
     }
 
     const aggressivePremiumOk =

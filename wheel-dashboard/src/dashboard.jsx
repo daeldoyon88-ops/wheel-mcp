@@ -170,12 +170,18 @@ function computePreIbkrScore(symbol, candidate) {
     score += 8;
     reasons.push("momentum positif");
   }
-  if (supportStatus === "below_support" || supportStatus === "near_support") {
-    score -= 15;
-    reasons.push("malus support fragile");
-  } else if (supportStatus === "room_above_support") {
-    score += 10;
-    reasons.push("support OK");
+  if (supportStatus === "current_below_support") {
+    score -= 30;
+    reasons.push("malus prix sous support");
+  } else if (supportStatus === "strike_above_support" || supportStatus === "room_above_support") {
+    score -= 12;
+    reasons.push("malus strike au-dessus support");
+  } else if (supportStatus === "strike_near_support" || supportStatus === "near_support") {
+    score += 2;
+    reasons.push("strike proche support");
+  } else if (supportStatus === "strike_below_support" || supportStatus === "below_support") {
+    score += 8;
+    reasons.push("strike sous support");
   }
   if (Number.isFinite(price)) {
     if (price >= 15 && price <= 150) {
@@ -1351,22 +1357,26 @@ function SupportStatusLine({ item }) {
   }
 
   const toneClass =
-    item.supportStatus === "room_above_support"
+    item.supportStatus === "strike_below_support" || item.supportStatus === "below_support"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : item.supportStatus === "near_support"
+      : item.supportStatus === "strike_near_support" || item.supportStatus === "near_support"
       ? "border-amber-200 bg-amber-50 text-amber-700"
+      : item.supportStatus === "strike_above_support" || item.supportStatus === "room_above_support"
+      ? "border-rose-200 bg-rose-50 text-rose-700"
       : "border-rose-200 bg-rose-50 text-rose-700";
 
   const label =
-    item.supportStatus === "room_above_support"
-      ? "support OK"
-      : item.supportStatus === "near_support"
-      ? "près du support"
-      : "sous le support";
+    item.supportStatus === "current_below_support"
+      ? "prix sous support"
+      : item.supportStatus === "strike_above_support" || item.supportStatus === "room_above_support"
+      ? "strike au-dessus du support"
+      : item.supportStatus === "strike_near_support" || item.supportStatus === "near_support"
+      ? "strike proche du support"
+      : "strike sous support — marge de sécurité";
 
   return (
     <div className={cn("rounded-xl border px-3 py-2 text-sm", toneClass)}>
-      Strike vs support: {label} ({item.strikeVsSupportPct > 0 ? "+" : ""}{item.strikeVsSupportPct.toFixed(1)}%)
+      Strike vs support: {label} ({Math.abs(item.strikeVsSupportPct).toFixed(1)}% {item.strikeVsSupportPct < 0 ? "sous" : "au-dessus du"} support)
     </div>
   );
 }
@@ -2010,12 +2020,34 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
     Number.isFinite(resistanceValue) &&
     Number.isFinite(priceValue) &&
     resistanceValue < priceValue;
+  const resistanceDistancePct =
+    Number.isFinite(resistanceValue) &&
+    Number.isFinite(priceValue) &&
+    priceValue > 0
+      ? ((resistanceValue - priceValue) / priceValue) * 100
+      : null;
+  const resistanceAbovePct =
+    Number.isFinite(resistanceValue) &&
+    Number.isFinite(priceValue) &&
+    resistanceValue > 0
+      ? ((priceValue - resistanceValue) / resistanceValue) * 100
+      : null;
   const resistanceDisplay =
     item.resistance == null
       ? "—"
-      : resistanceUnderSpot
-      ? "Résistance franchie"
       : `$${Number(item.resistance).toFixed(2)}`;
+  const resistanceStatusDisplay =
+    item.resistance == null
+      ? "—"
+      : resistanceUnderSpot
+      ? "franchie"
+      : "à surveiller";
+  const resistanceDistanceDisplay =
+    resistanceDistancePct == null
+      ? "—"
+      : resistanceDistancePct >= 0
+      ? `${resistanceDistancePct.toFixed(1)} %`
+      : `+${Math.abs(resistanceDistancePct).toFixed(1)} % au-dessus`;
   const ibkrSpreadClass = classifySpreadPctPercent(item.ibkrSpreadPct);
   const hasIbkrSpread = normalizedIbkrSpreadPctPercent(item.ibkrSpreadPct) != null;
   const ibkrActionability = getIbkrActionabilityStatus(item);
@@ -2189,8 +2221,18 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   tone={resistanceUnderSpot ? "warn" : "default"}
                 />
                 <Metric
-                  label="Qualité Wheel"
-                  value={item.qualityScore != null ? `${item.qualityScore}` : "—"}
+                  label="Statut résistance"
+                  value={resistanceStatusDisplay}
+                  tone={resistanceUnderSpot ? "warn" : "default"}
+                />
+                <Metric
+                  label="Distance spot/résistance"
+                  value={resistanceDistanceDisplay}
+                  tone={resistanceUnderSpot ? "warn" : "default"}
+                />
+                <Metric
+                  label="Score Yahoo pré-IBKR"
+                  value={item.qualityScore != null ? `${item.qualityScore} pts` : "—"}
                   strong={item.qualityScore != null}
                   tone={
                     item.qualityScore == null
@@ -2206,17 +2248,39 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
 
               {item.qualityReasons?.length > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  Qualité Wheel : {item.qualityReasons.join(" · ")}
+                  Score Yahoo pré-IBKR : {item.qualityReasons.join(" · ")}
                 </div>
               )}
+              <details className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <summary className="cursor-pointer font-medium text-slate-800">Détail du score</summary>
+                <p className="mt-2 leading-5">
+                  {item.qualityReasons?.length
+                    ? item.qualityReasons.join(" · ")
+                    : "Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée."}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée.
+                </p>
+              </details>
+              {resistanceUnderSpot &&
+                Number.isFinite(resistanceValue) &&
+                Number.isFinite(priceValue) &&
+                resistanceAbovePct != null && (
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">
+                  Ancienne résistance ${resistanceValue.toFixed(2)} franchie — spot ${priceValue.toFixed(2)} (+{Math.abs(resistanceAbovePct).toFixed(1)} % au-dessus).
+                </div>
+              )}
+              {!resistanceUnderSpot &&
+                Number.isFinite(resistanceValue) &&
+                Number.isFinite(priceValue) &&
+                resistanceDistancePct != null && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                    Résistance ${resistanceValue.toFixed(2)} — à {Math.abs(resistanceDistancePct).toFixed(1)} % du spot.
+                  </div>
+                )}
               {rsiHigh && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
                   RSI élevé : surachat court terme
-                </div>
-              )}
-              {resistanceUnderSpot && (
-                <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">
-                  Ancienne résistance sous le prix : niveau déjà franchi
                 </div>
               )}
               {item.optionsSource === "IBKR live" && (
@@ -2473,6 +2537,15 @@ function normalizedIbkrSpreadPctPercent(raw) {
   return x;
 }
 
+function getSafeSpreadPct(item) {
+  return normalizedIbkrSpreadPctPercent(
+    item?.safeStrike?.liquidity?.spreadPct ??
+      item?.safeStrike?.spreadPct ??
+      item?.ibkrSpreadPct ??
+      item?.spreadPct
+  );
+}
+
 function classifySpreadPctPercent(raw) {
   const pct = normalizedIbkrSpreadPctPercent(raw);
   if (pct == null) {
@@ -2496,7 +2569,7 @@ function classifySpreadPctPercent(raw) {
   if (pct <= 10) {
     return {
       label: "limite",
-      reason: "spread acceptable mais à surveiller",
+      reason: "spread limite",
       badgeClass: "border-yellow-200 bg-yellow-50 text-yellow-800",
       textClass: "text-yellow-800",
       metricTone: "warn",
@@ -2535,56 +2608,98 @@ function premiumTargetMetUi(item) {
   return Number.isFinite(premium) && Number.isFinite(target) && premium >= target;
 }
 
-function liveActionabilityScore(item) {
+function getIbkrActionabilityProfile(item) {
   const safe = item?.safeStrike;
-  const spreadPct = normalizedIbkrSpreadPctPercent(safe?.liquidity?.spreadPct);
+  const spreadPct = getSafeSpreadPct(item);
   const noEarnings = !hasEarningsBeforeExpirationUi(item);
+  const spreadOver20 = spreadPct != null && spreadPct > 20;
+  const spreadOver10 = spreadPct != null && spreadPct > 10 && spreadPct <= 20;
   const spreadOk = spreadPct != null && spreadPct <= 10;
   const primeOk = premiumTargetMetUi(item);
   const distance = Math.abs(Number(safe?.distancePct ?? item?.strikeDistance ?? 0));
   const pop = Number(safe?.popProfitEstimated ?? safe?.popEstimate ?? 0);
   const weekly = Number(safe?.weeklyYield ?? item?.weeklyReturn ?? 0);
-  return (
+  const safeEqualsAggressive =
+    safe?.strike != null &&
+    item?.aggressiveStrike?.strike != null &&
+    Number(safe.strike) === Number(item.aggressiveStrike.strike);
+
+  let bucket = 1;
+  let label = "À surveiller";
+  if (!noEarnings || spreadOver20) {
+    bucket = 2;
+    label = "Non actionnable";
+  } else if (spreadOver10 || safeEqualsAggressive) {
+    bucket = 1;
+    label = "À surveiller";
+  } else if (spreadOk && noEarnings) {
+    bucket = 0;
+    label = "Actionnable";
+  }
+
+  return {
+    bucket,
+    label,
+    score:
+      (2 - bucket) * 10_000_000 +
+      (
     (noEarnings ? 1_000_000 : 0) +
     (spreadOk ? 100_000 : 0) +
     (primeOk ? 10_000 : 0) +
     Math.min(distance, 30) * 100 +
     (Number.isFinite(pop) ? pop * 100 : 0) +
     (Number.isFinite(weekly) ? weekly : 0)
-  );
+      ),
+    spreadPct,
+    noEarnings,
+    spreadOver20,
+    spreadOver10,
+    safeEqualsAggressive,
+  };
+}
+
+function liveActionabilityScore(item) {
+  return getIbkrActionabilityProfile(item).score;
 }
 
 function sortByLiveActionability(a, b) {
-  return liveActionabilityScore(b) - liveActionabilityScore(a);
+  const pa = getIbkrActionabilityProfile(a || null);
+  const pb = getIbkrActionabilityProfile(b || null);
+  if (pa.bucket !== pb.bucket) return pa.bucket - pb.bucket;
+  return pb.score - pa.score;
 }
 
 function getIbkrActionabilityStatus(item) {
-  const safe = item?.safeStrike;
-  const spreadPct = normalizedIbkrSpreadPctPercent(safe?.liquidity?.spreadPct ?? item?.ibkrSpreadPct);
-  const rsi = Number(item?.rsi);
-  const safeEqualsAggressive =
-    safe?.strike != null &&
-    item?.aggressiveStrike?.strike != null &&
-    Number(safe.strike) === Number(item.aggressiveStrike.strike);
-  if (hasEarningsBeforeExpirationUi(item) || (spreadPct != null && spreadPct > 20)) {
-    return {
-      label: "Non actionnable",
-      tone: "bad",
-      className: "border-rose-200 bg-rose-50 text-rose-700",
-    };
-  }
-  if (
-    (spreadPct != null && spreadPct > 10 && spreadPct <= 20) ||
-    (Number.isFinite(rsi) && rsi >= 75) ||
-    safeEqualsAggressive
-  ) {
+  if (!item || typeof item !== "object") {
     return {
       label: "À surveiller",
       tone: "warn",
       className: "border-amber-200 bg-amber-50 text-amber-900",
     };
   }
-  if (spreadPct != null && spreadPct <= 10 && !hasEarningsBeforeExpirationUi(item)) {
+  const profile = getIbkrActionabilityProfile(item);
+  if (!profile || typeof profile !== "object") {
+    return {
+      label: "À surveiller",
+      tone: "warn",
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+  if (profile.bucket === 2) {
+    return {
+      label: "Non actionnable",
+      tone: "bad",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+    };
+  }
+  if (profile.bucket === 1) {
+    return {
+      label: "À surveiller",
+      tone: "warn",
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+  if (profile.bucket === 0) {
     return {
       label: "Actionnable",
       tone: "good",
@@ -2598,7 +2713,25 @@ function getIbkrActionabilityStatus(item) {
   };
 }
 
-function mergeIbkrProgressPayloads({ baseExpiration, payloads, testedSymbols, finalTarget, poolSize }) {
+function getRetainedNotDisplayedReason(item, displayedCutoffScore) {
+  const profile = getIbkrActionabilityProfile(item || null);
+  if (hasEarningsBeforeExpirationUi(item)) return "earnings avant expiration";
+  if (profile?.spreadOver20) return "spread trop large";
+  if (profile?.spreadOver10) return "spread large";
+  const score = liveActionabilityScore(item);
+  if (Number.isFinite(displayedCutoffScore) && score < displayedCutoffScore) {
+    return "moins bon que les 10 finaux";
+  }
+  return "moins prioritaire après tri live";
+}
+
+function mergeIbkrProgressPayloads({
+  baseExpiration,
+  payloads,
+  testedSymbols,
+  finalDisplayedTarget,
+  poolSize,
+}) {
   const shortlist = [];
   const rejected = [];
   const errors = [];
@@ -2609,7 +2742,7 @@ function mergeIbkrProgressPayloads({ baseExpiration, payloads, testedSymbols, fi
   for (const payload of payloads) {
     for (const item of Array.isArray(payload?.shortlist) ? payload.shortlist : []) {
       const symbol = String(item?.symbol || "").trim().toUpperCase();
-      if (!symbol || seenKept.has(symbol) || shortlist.length >= finalTarget) continue;
+      if (!symbol || seenKept.has(symbol)) continue;
       seenKept.add(symbol);
       shortlist.push(item);
     }
@@ -2631,7 +2764,9 @@ function mergeIbkrProgressPayloads({ baseExpiration, payloads, testedSymbols, fi
     shortlistDev,
     warnings: [...new Set(warnings.filter(Boolean))],
     progressiveAutoIbkr: true,
-    finalTarget,
+    finalDisplayedTarget,
+    totalKeptCollected: shortlist.length,
+    retainedNotDisplayed: Math.max(0, shortlist.length - finalDisplayedTarget),
     testedSymbols,
     rejectedReplaced: Math.max(0, testedSymbols.length - shortlist.length),
     nonTestedCandidates: Math.max(0, poolSize - testedSymbols.length),
@@ -2643,7 +2778,7 @@ function countIbkrRetainedSafeSpreadBuckets(shortlist) {
   let gt10 = 0;
   let gt20 = 0;
   for (const row of shortlist || []) {
-    const pct = normalizedIbkrSpreadPctPercent(row?.safeStrike?.spreadPct ?? row?.spreadPct);
+    const pct = getSafeSpreadPct(row);
     if (pct == null) continue;
     if (pct > 10) gt10 += 1;
     if (pct > 20) gt20 += 1;
@@ -3152,7 +3287,7 @@ function IbkrDirectScanPanel({
             </div>
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-900">Shortlist IBKR</p>
+              <p className="font-semibold text-slate-900">Retenus IBKR total — bassin testé</p>
               {shortlist.map((item) => (
                 <div key={`ibkr-direct-${item.symbol}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -3467,9 +3602,9 @@ function DetailModal({ item, onClose }) {
               tone={
                 strikeVsSupportPct == null
                   ? "default"
-                  : strikeVsSupportPct >= 2
+                  : strikeVsSupportPct < 0
                   ? "good"
-                  : strikeVsSupportPct >= 0
+                  : strikeVsSupportPct <= 2
                   ? "warn"
                   : "bad"
               }
@@ -3780,22 +3915,13 @@ export default function Dashboard() {
   }, [backendCandidates, snapshotCandidates, topN]);
 
   const enrichedCandidates = useMemo(() => {
-    const usedSymbols = new Set();
     const enriched = activeCandidates.map((item, index) => {
       const symbol = String(item?.ticker || "").trim().toUpperCase();
-      usedSymbols.add(symbol);
       const ibkrCandidate = ibkrDirectByTicker.get(symbol);
       return ibkrCandidate
         ? mergeIbkrIntoDashboardCandidate(item, ibkrCandidate, index, selectedExpiration)
         : item;
     });
-
-    for (const [symbol, ibkrCandidate] of ibkrDirectByTicker.entries()) {
-      if (usedSymbols.has(symbol)) continue;
-      enriched.push(
-        mergeIbkrIntoDashboardCandidate(null, ibkrCandidate, enriched.length, selectedExpiration)
-      );
-    }
 
     return enriched.map((item, index) => ({
       ...item,
@@ -3818,11 +3944,11 @@ export default function Dashboard() {
 
       return matchesQuery && matchesFilter;
     });
-    const getSortValue = (item) => {
+      const getSortValue = (item) => {
       if (sortBy === "quality") return item.qualityScore ?? Number.NEGATIVE_INFINITY;
       if (sortBy === "weeklyReturn") return item.weeklyReturn ?? 0;
       if (sortBy === "spread") {
-        const spread = item.safeStrike?.liquidity?.spreadPct ?? item.aggressiveStrike?.liquidity?.spreadPct;
+        const spread = getSafeSpreadPct(item);
         return spread ?? Number.POSITIVE_INFINITY;
       }
       return item.strikeDistance ?? 0;
@@ -3831,8 +3957,8 @@ export default function Dashboard() {
       .slice()
       .sort((a, b) => {
         if (sortBy === "spread") {
-          const aSpread = a.safeStrike?.liquidity?.spreadPct ?? a.aggressiveStrike?.liquidity?.spreadPct;
-          const bSpread = b.safeStrike?.liquidity?.spreadPct ?? b.aggressiveStrike?.liquidity?.spreadPct;
+          const aSpread = getSafeSpreadPct(a);
+          const bSpread = getSafeSpreadPct(b);
           const aMissing = aSpread == null;
           const bMissing = bSpread == null;
           if (aMissing && bMissing) return 0;
@@ -3925,6 +4051,14 @@ export default function Dashboard() {
         .filter(Boolean)
     );
   }, [ibkrDirectResult]);
+  const ibkrRetainedBySymbol = useMemo(() => {
+    const rows = Array.isArray(ibkrDirectResult?.shortlist) ? ibkrDirectResult.shortlist : [];
+    return new Map(
+      rows
+        .map((row) => [String(row?.symbol || "").trim().toUpperCase(), row])
+        .filter(([symbol]) => Boolean(symbol))
+    );
+  }, [ibkrDirectResult]);
 
   const combos = useMemo(() => {
     return buildPortfolioCombos(
@@ -3962,9 +4096,15 @@ export default function Dashboard() {
     : Array.isArray(ibkrDirectResult?.shortlist)
     ? ibkrDirectResult.shortlist.length
     : 0;
-  const ibkrFinalTarget = Number.isFinite(Number(ibkrDirectResult?.finalTarget))
-    ? Number(ibkrDirectResult.finalTarget)
+  const ibkrFinalTarget = Number.isFinite(Number(ibkrDirectResult?.finalDisplayedTarget))
+    ? Number(ibkrDirectResult.finalDisplayedTarget)
     : Number(ibkrAutoMaxTickers) || 10;
+  const ibkrTotalKeptCollected = Number.isFinite(Number(ibkrDirectResult?.totalKeptCollected))
+    ? Number(ibkrDirectResult.totalKeptCollected)
+    : ibkrKeptCount;
+  const ibkrRetainedNotDisplayed = Number.isFinite(Number(ibkrDirectResult?.retainedNotDisplayed))
+    ? Number(ibkrDirectResult.retainedNotDisplayed)
+    : Math.max(0, ibkrTotalKeptCollected - ibkrFinalTarget);
   const ibkrTestedCount = Array.isArray(ibkrDirectResult?.testedSymbols)
     ? ibkrDirectResult.testedSymbols.length
     : ibkrSentCount;
@@ -3973,17 +4113,33 @@ export default function Dashboard() {
     : Math.max(0, ibkrTestedCount - ibkrKeptCount);
   const ibkrNonTestedCount = Number.isFinite(Number(ibkrDirectResult?.nonTestedCandidates))
     ? Number(ibkrDirectResult.nonTestedCandidates)
-    : Math.max(0, yahooReturnedCount - ibkrSentCount);
+    : Math.max(0, yahooReturnedCount - ibkrTestedCount);
   const ibkrSentSet = useMemo(
     () => new Set((ibkrDirectSentTickers || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean)),
     [ibkrDirectSentTickers]
   );
+  const ibkrDisplayedSymbols = useMemo(
+    () =>
+      new Set(
+        (backendCandidates || [])
+          .map((row) => String(row?.ticker || row?.symbol || "").trim().toUpperCase())
+          .filter(Boolean)
+      ),
+    [backendCandidates]
+  );
+  const ibkrDisplayedScoreFloor = useMemo(() => {
+    const scores = (backendCandidates || [])
+      .map((row) => liveActionabilityScore(row))
+      .filter((s) => Number.isFinite(s));
+    if (!scores.length) return null;
+    return Math.min(...scores);
+  }, [backendCandidates]);
   const yahooNonSentCandidates = useMemo(() => {
-    const offset = ibkrSentCount > 0 ? ibkrSentCount : Number(ibkrAutoMaxTickers) || 10;
+    const offset = ibkrTestedCount > 0 ? ibkrTestedCount : Math.min(Number(ibkrAutoMaxTickers) || 10, 20);
     return (yahooReturnedCandidates || [])
       .slice(offset, 30)
       .filter((item) => !ibkrSentSet.has(String(item?.ticker || "").trim().toUpperCase()));
-  }, [yahooReturnedCandidates, ibkrSentSet, ibkrSentCount, ibkrAutoMaxTickers]);
+  }, [yahooReturnedCandidates, ibkrSentSet, ibkrTestedCount, ibkrAutoMaxTickers]);
   const sofiDiagnostic = useMemo(() => {
     const watchlist = Array.isArray(tickersForScan) ? tickersForScan : [];
     const watchlistIndex = watchlist.findIndex((t) => String(t || "").trim().toUpperCase() === "SOFI");
@@ -3991,22 +4147,50 @@ export default function Dashboard() {
       (item) => String(item?.ticker || "").trim().toUpperCase() === "SOFI"
     );
     const sent = ibkrSentSet.has("SOFI");
+    const rejected = ibkrRejectedSymbols.has("SOFI");
+    const kept = ibkrKeptSymbols.has("SOFI");
+    const displayed = ibkrDisplayedSymbols.has("SOFI");
     const objectiveFilled = ibkrDirectResult?.progressiveAutoIbkr === true && ibkrKeptCount >= ibkrFinalTarget;
+    let statusText = "non testé";
+    if (rejected) {
+      statusText = "testé puis rejeté";
+    } else if (kept && displayed) {
+      statusText = "retenu affiché";
+    } else if (kept && !displayed) {
+      statusText = "testé mais non affiché après tri";
+    } else if (!sent && yahooIndex >= 0 && ibkrNonTestedCount > 0) {
+      statusText = "non testé car cap IBKR atteint";
+    }
     return {
       inWatchlist: watchlistIndex >= 0,
       watchlistRank: watchlistIndex >= 0 ? watchlistIndex + 1 : null,
       inYahoo: yahooIndex >= 0,
       yahooRank: yahooIndex >= 0 ? yahooIndex + 1 : null,
       sent,
+      rejected,
+      kept,
+      displayed,
+      statusText,
       objectiveFilled,
     };
-  }, [tickersForScan, yahooReturnedCandidates, ibkrSentSet, ibkrDirectResult, ibkrKeptCount, ibkrFinalTarget]);
+  }, [
+    tickersForScan,
+    yahooReturnedCandidates,
+    ibkrSentSet,
+    ibkrDirectResult,
+    ibkrKeptCount,
+    ibkrFinalTarget,
+    ibkrRejectedSymbols,
+    ibkrKeptSymbols,
+    ibkrDisplayedSymbols,
+    ibkrNonTestedCount,
+  ]);
   const yahooActionabilityCounts = useMemo(() => {
     let actionable = 0;
     let watch = 0;
     let nonActionable = 0;
     for (const item of yahooReturnedCandidates || []) {
-      const spreadPct = normalizedIbkrSpreadPctPercent(item?.safeStrike?.liquidity?.spreadPct);
+      const spreadPct = getSafeSpreadPct(item);
       const hasEarningsBeforeExpiration =
         item?.hasUpcomingEarningsBeforeExpiration === true ||
         item?.hasEarningsBeforeExpiration === true ||
@@ -4141,7 +4325,7 @@ export default function Dashboard() {
       rememberTechnicalCandidates(backendCandidates);
       rememberTechnicalCandidates(mergedIbkrYahooCandidates);
 
-      const mapped = shortlistNorm.map((ibkrCandidate, index) => {
+      const mappedAll = shortlistNorm.map((ibkrCandidate, index) => {
         const lookupKeys = buildCandidateLookupKeys(ibkrCandidate);
         const yahooCandidate =
           lookupKeys
@@ -4149,18 +4333,28 @@ export default function Dashboard() {
             .find(Boolean) ?? null;
         return mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, selectedExpiration);
       }).sort(sortByLiveActionability);
+      const finalDisplayedTarget = Number.isFinite(Number(payload?.finalDisplayedTarget))
+        ? Math.max(1, Number(payload.finalDisplayedTarget))
+        : 10;
+      const mapped = mappedAll.slice(0, finalDisplayedTarget);
 
       setBackendCandidates(mapped);
       setDataSource("ibkr_direct");
       setScanMeta({
-        scanned: Number(payload?.scanned ?? shortlistNorm.length),
-        kept: Number(payload?.kept ?? shortlistNorm.length),
-        returned: shortlistNorm.length,
+        scanned: Number(payload?.scanned ?? mappedAll.length),
+        kept: mapped.length,
+        returned: mapped.length,
       });
       setPrimaryIbkrSourceInfo({
         twoPhaseEnabled: payload?.twoPhaseEnabled === true,
         devScanEnabled: payload?.devScanEnabled === true,
         devDisplayed: payload?.devDisplayedReturned ?? payload?.devDisplayed ?? shortlistDev.length,
+        totalKeptCollected: Number(payload?.totalKeptCollected ?? mappedAll.length),
+        finalDisplayedTarget,
+        retainedNotDisplayed: Math.max(
+          0,
+          Number(payload?.retainedNotDisplayed ?? (mappedAll.length - mapped.length))
+        ),
       });
       setScanError("");
       return true;
@@ -4191,7 +4385,7 @@ export default function Dashboard() {
         return;
       }
 
-      const maxN = Number(ibkrAutoMaxTickers) || 10;
+      const finalTarget = Number(ibkrAutoMaxTickers) || 10;
       /** @type {{ symbol: string, score?: number, reasons: string[], tierBoost?: number, rank?: number, selectionMode: "yahoo_shortlist" | "watchlist_fallback" }[]} */
       let diagnostics = [];
       /** @type {string[]} */
@@ -4210,7 +4404,7 @@ export default function Dashboard() {
           diagnostics.push({
             symbol,
             rank: candidatePool.length,
-            reasons: ["ordre shortlist Yahoo (qualité wheel)"],
+            reasons: ["ordre Yahoo avant validation IBKR"],
             selectionMode: "yahoo_shortlist",
           });
         }
@@ -4258,8 +4452,8 @@ export default function Dashboard() {
         mappedLength: yahooMappedLen ?? null,
         orderedSymbolsLength: Array.isArray(orderedSymbols) ? orderedSymbols.length : 0,
         candidatePoolLength: candidatePool.length,
-        maxTickers: maxN,
-        progressiveTestLimit: Math.min(candidatePool.length, Math.max(maxN, 20)),
+        maxTickers: finalTarget,
+        progressiveTestLimit: Math.min(candidatePool.length, 20),
       });
 
       if (ibkrAutoInput.forceYahooShortlistOnly === true && sourceTag === "watchlist_fallback") {
@@ -4293,40 +4487,31 @@ export default function Dashboard() {
         const payloads = [];
         const testedSymbols = [];
         let cursor = 0;
-        let keptCount = 0;
-        const testedLimit = Math.min(candidatePool.length, Math.max(maxN, 20));
-        while (keptCount < maxN && cursor < testedLimit) {
-          const remainingNeeded = maxN - keptCount;
-          const batchSize = cursor === 0 ? Math.min(maxN, testedLimit) : Math.min(5, remainingNeeded, testedLimit - cursor);
+        const evaluationCap = Math.min(candidatePool.length, 20);
+        while (cursor < evaluationCap) {
+          const batchSize = cursor === 0 ? Math.min(10, evaluationCap) : Math.min(5, evaluationCap - cursor);
           const batch = candidatePool.slice(cursor, cursor + batchSize);
           if (!batch.length) break;
           testedSymbols.push(...batch);
           setIbkrDirectSentTickers([...testedSymbols]);
           setRefreshStage(
-            `Étape 2/2 : IBKR Direct Scan — ${testedSymbols.length} testés, ${keptCount}/${maxN} retenus`
+            `Étape 2/2 : IBKR Direct Scan — ${testedSymbols.length}/${evaluationCap} testés`
           );
           const batchPayload = await callIbkrDirectScan({
             tickers: batch,
             expiration: ymdToIbkr(expLocked),
             clientIdStart: Number(ibkrAutoClientIdStart) + cursor,
             maxTickers: batch.length,
-            topN: remainingNeeded,
+            topN: batch.length,
           });
           payloads.push(batchPayload);
-          keptCount = mergeIbkrProgressPayloads({
-            baseExpiration: expLocked,
-            payloads,
-            testedSymbols,
-            finalTarget: maxN,
-            poolSize: candidatePool.length,
-          }).shortlist.length;
           cursor += batchSize;
         }
         const payload = mergeIbkrProgressPayloads({
           baseExpiration: expLocked,
           payloads,
           testedSymbols,
-          finalTarget: maxN,
+          finalDisplayedTarget: finalTarget,
           poolSize: candidatePool.length,
         });
         if (
@@ -4396,8 +4581,8 @@ export default function Dashboard() {
           } else {
             setIbkrDirectError("");
             setRefreshStage(
-              payload.kept >= maxN
-                ? "Terminé : objectif IBKR rempli"
+              payload.kept >= finalTarget
+                ? "Terminé : top trades finaux appliqués après tri live"
                 : `Seulement ${payload.kept} retenus IBKR disponibles dans le bassin Yahoo testé.`
             );
           }
@@ -5042,7 +5227,7 @@ export default function Dashboard() {
         value: String(filtered.length),
         sub:
           dataSource === "ibkr_direct"
-            ? `${scanMeta.kept} retenus IBKR Direct`
+            ? `${scanMeta.returned} cartes finales (retenus IBKR total: ${primaryIbkrSourceInfo?.totalKeptCollected ?? scanMeta.returned})`
             : dataSource === "backend"
             ? `${scanMeta.kept} retenus backend`
             : "snapshot local",
@@ -5061,7 +5246,7 @@ export default function Dashboard() {
         icon: Target,
       },
     ],
-    [filtered.length, selectedExpiration, dataSource, scanMeta, watchlistTickers, watchlistSource, watchlistStats]
+    [filtered.length, selectedExpiration, dataSource, scanMeta, primaryIbkrSourceInfo, watchlistTickers, watchlistSource, watchlistStats]
   );
 
   const marketClosedNow = isUsMarketClosedNow();
@@ -5234,7 +5419,9 @@ export default function Dashboard() {
               <Metric label="Objectif cartes finales" value={String(ibkrFinalTarget)} />
               <Metric label="IBKR testés" value={String(ibkrTestedCount)} />
               <Metric label="Envoyés à IBKR" value={String(ibkrSentCount)} />
-              <Metric label="Retenus IBKR" value={String(ibkrKeptCount)} />
+              <Metric label="Retenus IBKR total" value={String(ibkrTotalKeptCollected)} />
+              <Metric label="Cartes finales affichées" value={String(Math.min(ibkrFinalTarget, ibkrTotalKeptCollected))} />
+              <Metric label="Retenus non affichés après tri" value={String(ibkrRetainedNotDisplayed)} tone={ibkrRetainedNotDisplayed > 0 ? "warn" : "default"} />
               <Metric label="Rejetés IBKR" value={String(ibkrRejectedCount)} />
               <Metric label="Rejetés remplacés" value={String(ibkrRejectedReplaced)} tone={ibkrRejectedReplaced ? "warn" : "default"} />
               <Metric label="Non testés IBKR" value={String(ibkrNonTestedCount)} />
@@ -5253,9 +5440,9 @@ export default function Dashboard() {
             <p className="mt-2 text-xs text-slate-500">
               Lecture visuelle seulement : actionnable = spread safe ≤ 10 % sans earnings avant expiration.
             </p>
-            {ibkrDirectResult?.progressiveAutoIbkr && ibkrKeptCount < ibkrFinalTarget && (
+            {ibkrDirectResult?.progressiveAutoIbkr && ibkrTotalKeptCollected < ibkrFinalTarget && (
               <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-                Seulement {ibkrKeptCount} retenus IBKR disponibles dans le bassin Yahoo testé.
+                Seulement {ibkrTotalKeptCollected} retenus IBKR disponibles dans le bassin Yahoo testé.
               </p>
             )}
           </div>
@@ -5264,7 +5451,7 @@ export default function Dashboard() {
         {yahooReturnedCount > 0 && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
             <p className="font-semibold text-slate-900">Candidats Yahoo non envoyés à IBKR</p>
-            {yahooReturnedCount <= (ibkrSentCount || Number(ibkrAutoMaxTickers) || 10) ? (
+            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 10, 20)) ? (
               <p className="mt-2 text-slate-500">
                 Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
               </p>
@@ -5281,11 +5468,7 @@ export default function Dashboard() {
             <div className={cn("mt-3 rounded-xl border px-3 py-2", sofiDiagnostic.sent ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900")}>
               SOFI : {sofiDiagnostic.inWatchlist ? `watchlist #${sofiDiagnostic.watchlistRank}` : "absent de la watchlist actuelle"} ·{" "}
               {sofiDiagnostic.inYahoo ? `Yahoo #${sofiDiagnostic.yahooRank}` : "absent de la shortlist Yahoo retournée"} ·{" "}
-              {sofiDiagnostic.sent
-                ? "envoyé à IBKR"
-                : sofiDiagnostic.inYahoo && sofiDiagnostic.objectiveFilled
-                ? `non testé, objectif IBKR rempli après ${ibkrTestedCount} tests.`
-                : "SOFI non envoyé à IBKR — hors Top Max IBKR actuel."}
+              {sofiDiagnostic.statusText}
             </div>
           </div>
         )}
@@ -5311,19 +5494,39 @@ export default function Dashboard() {
                 const tested = ibkrSentSet.has(symbol);
                 const rejected = ibkrRejectedSymbols.has(symbol);
                 const kept = ibkrKeptSymbols.has(symbol);
-                const replacement = tested && Number(row.rank) > ibkrFinalTarget;
+                const displayed = ibkrDisplayedSymbols.has(symbol);
+                const retainedRow = ibkrRetainedBySymbol.get(symbol);
+                const preYahoo = candidateByTickerForPreIbkr.get(symbol) ?? null;
+                const mergedForReason =
+                  retainedRow != null
+                    ? {
+                        ...(preYahoo || {}),
+                        ...retainedRow,
+                        safeStrike: retainedRow?.safeStrike ?? preYahoo?.safeStrike,
+                        aggressiveStrike: retainedRow?.aggressiveStrike ?? preYahoo?.aggressiveStrike,
+                      }
+                    : preYahoo;
+                const nonTestedCapReached = !tested && Number(ibkrNonTestedCount) > 0;
                 const status = rejected
-                  ? "rejeté"
-                  : replacement && kept
-                  ? "remplaçant retenu"
+                  ? "testé puis rejeté"
+                  : kept && displayed
+                  ? "retenu affiché"
+                  : kept && !displayed
+                  ? "testé mais non affiché après tri"
+                  : nonTestedCapReached
+                  ? "non testé car cap IBKR atteint"
                   : tested
                   ? "testé"
                   : "non testé";
+                const exclusionReason =
+                  kept && !displayed && mergedForReason
+                    ? getRetainedNotDisplayedReason(mergedForReason, ibkrDisplayedScoreFloor)
+                    : null;
                 return (
                   <div key={`pre-ibkr-${row.symbol}`}>
                     {row.selectionMode === "yahoo_shortlist" && row.rank != null
-                      ? `${row.symbol} : rang Yahoo #${row.rank} — ${status} — ${row.reasons.join(" · ") || "ordre shortlist"}`
-                      : `${row.symbol} : score ${Math.round(Number(row.score) || 0)} — ${status} — ${row.reasons.join(" · ") || "base"}`}
+                      ? `${row.symbol} : rang Yahoo #${row.rank} — ${status}${exclusionReason ? ` (${exclusionReason})` : ""} — ${row.reasons.join(" · ") || "ordre shortlist"}`
+                      : `${row.symbol} : score ${Math.round(Number(row.score) || 0)} — ${status}${exclusionReason ? ` (${exclusionReason})` : ""} — ${row.reasons.join(" · ") || "base"}`}
                   </div>
                 );
               })}

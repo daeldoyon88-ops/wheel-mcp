@@ -8,3 +8,4 @@ dist/
 *.log
 .DS_Store__pycache__/
 *.pyc
+data/wheelValidationJournal.json

@@ -1936,6 +1936,7 @@ app.post("/journal/wheel-validation/capture", async (req, res) => {
     const result = await wheelValidationService.captureFromCandidates(candidates, {
       topN,
       scanTimestamp: body.scanTimestamp,
+      scanSessionId: body.scanSessionId,
     });
     res.json({
       ok: true,

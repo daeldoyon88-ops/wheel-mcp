@@ -289,6 +289,16 @@ function getManualIbkrTickersForSend({
   return { tickers: watchlistSlice(), source: "watchlist" };
 }
 
+function formatScanSessionId(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+}
+
 /**
  * Réponse HTTP 200 mais aucune ligne par symbole : souvent TWS fermé ou stdout Python vide.
  * @param {unknown} payload
@@ -2653,6 +2663,29 @@ async function callScanShortlist({ expiration, topN, tickers, sort = "quality" }
   return payload;
 }
 
+async function callWheelJournalCapture({ candidates, topN, scanTimestamp, scanSessionId }) {
+  const response = await fetch(`${API_BASE}/journal/wheel-validation/capture`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      candidates,
+      topN,
+      scanTimestamp,
+      scanSessionId,
+    }),
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
+  }
+
+  return payload;
+}
+
 async function callIbkrShadowWheel({ symbol, expiration, clientId }) {
   const response = await fetch(`${API_BASE}/ibkr/shadow/wheel`, {
     method: "POST",
@@ -4139,6 +4172,10 @@ export default function Dashboard() {
     const value = Number(raw);
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
+  const readStoredAutoJournalMode = () => {
+    const raw = String(window.localStorage.getItem("wheel.autoJournalPop") || "off").trim().toLowerCase();
+    return raw === "10" || raw === "30" || raw === "50" ? raw : "off";
+  };
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("quality");
@@ -4215,6 +4252,7 @@ export default function Dashboard() {
     readStoredNumber("wheel.ibkrAuditDepth", 20)
   );
   const [ibkrAutoClientIdStart] = useState("500");
+  const [autoJournalPop, setAutoJournalPop] = useState(() => readStoredAutoJournalMode());
   const [refreshStage, setRefreshStage] = useState("");
   const [ibkrAutoRankDiagnostics, setIbkrAutoRankDiagnostics] = useState([]);
   const yahooRankForIbkrBySymbol = useMemo(() => {
@@ -4742,7 +4780,7 @@ export default function Dashboard() {
         ),
       });
       setScanError("");
-      return true;
+      return mapped;
     },
     [
       selectedExpiration,
@@ -4757,6 +4795,58 @@ export default function Dashboard() {
   const isRefreshingRef = useRef(false);
   const runAutoIbkrDirectScanRef = useRef(null);
 
+  const captureWheelJournalSnapshot = useCallback(
+    async ({ candidates, scanSessionId, scanTimestamp, source }) => {
+      if (autoJournalPop === "off") {
+        console.log("[AUTO_JOURNAL_SKIP]", {
+          scanSessionId,
+          source,
+          reason: "off",
+        });
+        return null;
+      }
+
+      const captureTopN = Number(autoJournalPop);
+      const finalCandidates = Array.isArray(candidates) ? candidates.slice(0, captureTopN) : [];
+      if (finalCandidates.length === 0) {
+        console.log("[AUTO_JOURNAL_SKIP]", {
+          scanSessionId,
+          source,
+          reason: "no_final_candidates",
+          captureTopN,
+        });
+        return null;
+      }
+
+      try {
+        const payload = await callWheelJournalCapture({
+          candidates: finalCandidates,
+          topN: captureTopN,
+          scanTimestamp: scanTimestamp ?? new Date().toISOString(),
+          scanSessionId,
+        });
+        console.log("[AUTO_JOURNAL_OK]", {
+          scanSessionId,
+          source,
+          captureTopN,
+          candidatesSent: finalCandidates.length,
+          captured: payload?.captured ?? null,
+          duplicates: payload?.duplicates ?? null,
+        });
+        return payload;
+      } catch (error) {
+        console.warn("[AUTO_JOURNAL_ERROR]", {
+          scanSessionId,
+          source,
+          captureTopN,
+          error: error?.message || String(error),
+        });
+        return null;
+      }
+    },
+    [autoJournalPop]
+  );
+
   const runAutoIbkrDirectScan = useCallback(
     async (ibkrAutoInput) => {
       if (!autoIbkrDirectScan) return;
@@ -4764,6 +4854,8 @@ export default function Dashboard() {
 
       const scanId = ibkrAutoInput.scanId != null ? String(ibkrAutoInput.scanId) : "no-scan-id";
       const { mode, orderedSymbols, expirationYmd, candidateBySymbol } = ibkrAutoInput;
+      const scanTimestamp =
+        ibkrAutoInput.scanTimestamp != null ? String(ibkrAutoInput.scanTimestamp) : new Date().toISOString();
       const expLocked = expirationYmd != null ? String(expirationYmd).trim() : "";
       if (!expLocked) return;
       if (normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)) {
@@ -4966,6 +5058,12 @@ export default function Dashboard() {
             setIbkrDirectError("");
             setRefreshStage("Timeout IBKR : réduire IBKR Audit Depth. Yahoo/fallback conservé.");
           } else {
+            void captureWheelJournalSnapshot({
+              candidates: applied,
+              scanSessionId: scanId,
+              scanTimestamp,
+              source: "ibkr_auto_final",
+            });
             setIbkrDirectError("");
             setRefreshStage(
               payload.kept >= finalTarget
@@ -4991,6 +5089,7 @@ export default function Dashboard() {
       candidateByTickerForPreIbkr,
       selectedExpiration,
       applyIbkrDirectShortlistToPrimary,
+      captureWheelJournalSnapshot,
       displaySnapshotRef,
     ]
   );
@@ -5005,7 +5104,8 @@ export default function Dashboard() {
       return;
     }
     isRefreshingRef.current = true;
-    const scanId = Date.now().toString();
+    const scanId = formatScanSessionId(new Date());
+    const scanTimestamp = new Date().toISOString();
     try {
     const shouldRunAutoIbkr = options?.runIbkr !== false && autoIbkrDirectScan;
     console.log("[SCAN_START]", {
@@ -5138,6 +5238,7 @@ export default function Dashboard() {
         if (yahooOrdered.length > 0) {
           await runAutoIbkrDirectScanRef.current({
             scanId,
+            scanTimestamp,
             forceYahooShortlistOnly: true,
             mode: "yahoo_shortlist",
             orderedSymbols: yahooOrdered,
@@ -5160,6 +5261,12 @@ export default function Dashboard() {
           }, 0);
         }
       } else if (!shouldRunAutoIbkr) {
+        void captureWheelJournalSnapshot({
+          candidates: mapped,
+          scanSessionId: scanId,
+          scanTimestamp,
+          source: "yahoo_final",
+        });
         setTimeout(() => {
           setTimeout(() => logScanDisplayResult(scanId, displaySnapshotRef), 0);
         }, 0);
@@ -5238,6 +5345,7 @@ export default function Dashboard() {
           if (yahooOrdered.length > 0) {
             await runAutoIbkrDirectScanRef.current({
               scanId,
+              scanTimestamp,
               forceYahooShortlistOnly: true,
               mode: "yahoo_shortlist",
               orderedSymbols: yahooOrdered,
@@ -5280,7 +5388,7 @@ export default function Dashboard() {
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [watchlistTickers, selectedExpiration, topN, autoIbkrDirectScan, rememberTechnicalCandidates, displaySnapshotRef]);
+  }, [watchlistTickers, selectedExpiration, topN, autoIbkrDirectScan, rememberTechnicalCandidates, displaySnapshotRef, captureWheelJournalSnapshot]);
 
   useEffect(() => {
     rememberTechnicalCandidates(activeCandidates);
@@ -5375,6 +5483,8 @@ export default function Dashboard() {
     setIbkrDirectError("");
     setIbkrDirectSentTickers(tickersToSend);
     try {
+      const scanSessionId = formatScanSessionId(new Date());
+      const scanTimestamp = new Date().toISOString();
       const expLocked = selectedExpirationRef.current;
       const payload = await callIbkrDirectScan({
         tickers: tickersToSend,
@@ -5429,6 +5539,12 @@ export default function Dashboard() {
             );
           }
         } else {
+          void captureWheelJournalSnapshot({
+            candidates: applied,
+            scanSessionId,
+            scanTimestamp,
+            source: "ibkr_manual_final",
+          });
           setIbkrDirectError("");
         }
       }
@@ -5445,6 +5561,7 @@ export default function Dashboard() {
     ibkrDirectMaxTickers,
     ibkrDirectTopN,
     applyIbkrDirectShortlistToPrimary,
+    captureWheelJournalSnapshot,
   ]);
 
   const handleIbkrDirectTestScan = useCallback(async () => {
@@ -5610,6 +5727,10 @@ export default function Dashboard() {
     const clamped = Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
     window.localStorage.setItem("wheel.ibkrAuditDepth", String(clamped));
   }, [ibkrAutoMaxTickers]);
+
+  useEffect(() => {
+    window.localStorage.setItem("wheel.autoJournalPop", String(autoJournalPop));
+  }, [autoJournalPop]);
 
   useEffect(() => {
     window.localStorage.setItem("wheel.maxCapitalPct", String(maxCapitalPct));
@@ -5802,6 +5923,23 @@ export default function Dashboard() {
             </label>
             <p className="mt-2 text-xs leading-5 text-slate-500">
               Refresh lance Yahoo puis IBKR Direct Scan en lecture seule.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <label className="mb-2 block text-sm font-medium text-slate-700">Auto Journal POP</label>
+            <Select
+              value={autoJournalPop}
+              onChange={(e) => setAutoJournalPop(String(e.target.value || "off"))}
+              className="w-full rounded-xl border-slate-200"
+            >
+              <option value="off">OFF</option>
+              <option value="10">Top 10</option>
+              <option value="30">Top 30</option>
+              <option value="50">Top 50</option>
+            </Select>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              Etat actuel : {autoJournalPop === "off" ? "OFF" : `Top ${autoJournalPop}`}.
             </p>
           </div>
 

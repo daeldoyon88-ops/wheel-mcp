@@ -1,13 +1,1054 @@
 {
   "version": "1.0",
-  "updatedAt": "2026-05-05T19:22:48.649Z",
+  "updatedAt": "2026-05-05T20:01:57.038Z",
   "records": [
     {
-      "id": "SOFI_20260515_safe_13_2026-05-05",
-      "scanTimestamp": "2026-05-05T18:12:00.000Z",
+      "id": "TQQQ_20260508_safe_63_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
       "scanDate": "2026-05-05",
-      "symbol": "SOFI",
-      "expiration": "20260515",
+      "symbol": "TQQQ",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 2,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 95,
+        "finalScoreYahoo": 0.003365,
+        "eliteScore": 64.3,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 67.395,
+        "expectedMove": 2.656,
+        "lowerBound": 64.739
+      },
+      "strike": {
+        "strike": 63,
+        "premium": 0.34,
+        "bid": 0.34,
+        "ask": 0.36,
+        "mid": 0.35,
+        "spread": null,
+        "spreadPct": 5.714285714285704,
+        "annualizedYield": 92.06914459529641,
+        "targetPremium": 0.34,
+        "popEstimate": 0.926
+      },
+      "context": {
+        "support": 43.19,
+        "resistance": 60.73,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": null,
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 76.28
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "TQQQ_20260508_aggressive_64_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "TQQQ",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 2,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 95,
+        "finalScoreYahoo": 0.003365,
+        "eliteScore": 64.3,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 67.395,
+        "expectedMove": 2.656,
+        "lowerBound": 64.739
+      },
+      "strike": {
+        "strike": 64,
+        "premium": 0.48,
+        "bid": 0.48,
+        "ask": 0.49,
+        "mid": 0.485,
+        "spread": null,
+        "spreadPct": 2.061855670103095,
+        "annualizedYield": 129.97996884041842,
+        "targetPremium": 0.34,
+        "popEstimate": 0.9086
+      },
+      "context": {
+        "support": 43.19,
+        "resistance": 60.73,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": null,
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 76.28
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "INTC_20260508_safe_96_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "INTC",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 1,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 95,
+        "finalScoreYahoo": 0.008543,
+        "eliteScore": 58.4,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 108.155,
+        "expectedMove": 8.25,
+        "lowerBound": 99.905
+      },
+      "strike": {
+        "strike": 96,
+        "premium": 0.58,
+        "bid": 0.58,
+        "ask": 0.6,
+        "mid": 0.59,
+        "spread": null,
+        "spreadPct": 3.3898305084745797,
+        "annualizedYield": 97.86879940825666,
+        "targetPremium": 0.54,
+        "popEstimate": 0.9335
+      },
+      "context": {
+        "support": 43.92,
+        "resistance": 70.33,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-23",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 84.54
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "INTC_20260508_aggressive_99_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "INTC",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 1,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 95,
+        "finalScoreYahoo": 0.008543,
+        "eliteScore": 58.4,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 108.155,
+        "expectedMove": 8.25,
+        "lowerBound": 99.905
+      },
+      "strike": {
+        "strike": 99,
+        "premium": 1,
+        "bid": 1,
+        "ask": 1.04,
+        "mid": 1.02,
+        "spread": null,
+        "spreadPct": 3.921568627450984,
+        "annualizedYield": 168.73930932458046,
+        "targetPremium": 0.54,
+        "popEstimate": 0.9191
+      },
+      "context": {
+        "support": 43.92,
+        "resistance": 70.33,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-23",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 84.54
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HOOD_20260508_safe_73_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HOOD",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 4,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 58,
+        "finalScoreYahoo": 0.003277,
+        "eliteScore": 60.9,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 77.045,
+        "expectedMove": 3.3765,
+        "lowerBound": 73.6685
+      },
+      "strike": {
+        "strike": 73,
+        "premium": 0.53,
+        "bid": 0.53,
+        "ask": 0.57,
+        "mid": 0.55,
+        "spread": null,
+        "spreadPct": 7.272727272727258,
+        "annualizedYield": 125.54351353105329,
+        "targetPremium": 0.39,
+        "popEstimate": 0.9142
+      },
+      "context": {
+        "support": 68.71,
+        "resistance": 85.06,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-28",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 48.11
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HOOD_20260508_aggressive_73_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HOOD",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 4,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 58,
+        "finalScoreYahoo": 0.003277,
+        "eliteScore": 60.9,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 77.045,
+        "expectedMove": 3.3765,
+        "lowerBound": 73.6685
+      },
+      "strike": {
+        "strike": 73,
+        "premium": 0.53,
+        "bid": 0.53,
+        "ask": 0.57,
+        "mid": 0.55,
+        "spread": null,
+        "spreadPct": 7.272727272727258,
+        "annualizedYield": 125.54351353105329,
+        "targetPremium": 0.39,
+        "popEstimate": 0.9142
+      },
+      "context": {
+        "support": 68.71,
+        "resistance": 85.06,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-28",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 48.11
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "SLV_20260508_safe_63_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "SLV",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 18,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 12,
+        "finalScoreYahoo": 0.001691,
+        "eliteScore": 59,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 65.89,
+        "expectedMove": 2.055,
+        "lowerBound": 63.835
+      },
+      "strike": {
+        "strike": 63.5,
+        "premium": 0.36,
+        "bid": 0.36,
+        "ask": 0.39,
+        "mid": 0.375,
+        "spread": null,
+        "spreadPct": 8.000000000000007,
+        "annualizedYield": 99.71164061314312,
+        "targetPremium": 0.33,
+        "popEstimate": 0.8972
+      },
+      "context": {
+        "support": 63.49,
+        "resistance": 72.82,
+        "supportStatus": "strike_near_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": null,
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 44.15
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "SLV_20260508_aggressive_63_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "SLV",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 18,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 12,
+        "finalScoreYahoo": 0.001691,
+        "eliteScore": 59,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 65.89,
+        "expectedMove": 2.055,
+        "lowerBound": 63.835
+      },
+      "strike": {
+        "strike": 63.5,
+        "premium": 0.36,
+        "bid": 0.36,
+        "ask": 0.39,
+        "mid": 0.375,
+        "spread": null,
+        "spreadPct": 8.000000000000007,
+        "annualizedYield": 99.71164061314312,
+        "targetPremium": 0.33,
+        "popEstimate": 0.8972
+      },
+      "context": {
+        "support": 63.49,
+        "resistance": 72.82,
+        "supportStatus": "strike_near_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": null,
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 44.15
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "BMNR_20260508_safe_21_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "BMNR",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 12,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 28,
+        "finalScoreYahoo": 0.003571,
+        "eliteScore": 58.5,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 23.005,
+        "expectedMove": 1.1495,
+        "lowerBound": 21.8555
+      },
+      "strike": {
+        "strike": 21.5,
+        "premium": 0.17,
+        "bid": 0.17,
+        "ask": 0.19,
+        "mid": 0.18,
+        "spread": null,
+        "spreadPct": 11.111111111111107,
+        "annualizedYield": 134.86198652466857,
+        "targetPremium": 0.12,
+        "popEstimate": 0.9498
+      },
+      "context": {
+        "support": 20.155,
+        "resistance": 22.82,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-07-02",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 57.21
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "BMNR_20260508_aggressive_21_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "BMNR",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 12,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 28,
+        "finalScoreYahoo": 0.003571,
+        "eliteScore": 58.5,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 23.005,
+        "expectedMove": 1.1495,
+        "lowerBound": 21.8555
+      },
+      "strike": {
+        "strike": 21.5,
+        "premium": 0.17,
+        "bid": 0.17,
+        "ask": 0.19,
+        "mid": 0.18,
+        "spread": null,
+        "spreadPct": 11.111111111111107,
+        "annualizedYield": 134.86198652466857,
+        "targetPremium": 0.12,
+        "popEstimate": 0.9085
+      },
+      "context": {
+        "support": 20.155,
+        "resistance": 22.82,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-07-02",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 57.21
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "NOW_20260508_safe_87_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "NOW",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 20,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 3,
+        "finalScoreYahoo": 0.002809,
+        "eliteScore": 53.1,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 92.035,
+        "expectedMove": 4.1525,
+        "lowerBound": 87.8825
+      },
+      "strike": {
+        "strike": 87,
+        "premium": 0.55,
+        "bid": 0.55,
+        "ask": 0.65,
+        "mid": 0.6000000000000001,
+        "spread": null,
+        "spreadPct": 16.66666666666666,
+        "annualizedYield": 109.06176997881244,
+        "targetPremium": 0.46,
+        "popEstimate": 0.9148
+      },
+      "context": {
+        "support": 87.87,
+        "resistance": 113.25,
+        "supportStatus": "strike_below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-22",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 44.81
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "NOW_20260508_aggressive_87_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "NOW",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 20,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 3,
+        "finalScoreYahoo": 0.002809,
+        "eliteScore": 53.1,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 92.035,
+        "expectedMove": 4.1525,
+        "lowerBound": 87.8825
+      },
+      "strike": {
+        "strike": 87,
+        "premium": 0.55,
+        "bid": 0.55,
+        "ask": 0.65,
+        "mid": 0.6000000000000001,
+        "spread": null,
+        "spreadPct": 16.66666666666666,
+        "annualizedYield": 109.06176997881244,
+        "targetPremium": 0.46,
+        "popEstimate": 0.9148
+      },
+      "context": {
+        "support": 87.87,
+        "resistance": 113.25,
+        "supportStatus": "strike_below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-22",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 44.81
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "APLD_20260508_safe_34_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "APLD",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 3,
+        "ibkrRank": 5
+      },
+      "scores": {
+        "qualityScoreYahoo": 65,
+        "finalScoreYahoo": 0.011452,
+        "eliteScore": 51.5,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 39.835,
+        "expectedMove": 3.336,
+        "lowerBound": 36.499
+      },
+      "strike": {
+        "strike": 34,
+        "premium": 0.22,
+        "bid": 0.22,
+        "ask": 0.25,
+        "mid": 0.235,
+        "spread": null,
+        "spreadPct": 12.76595744680851,
+        "annualizedYield": 100.79076189280785,
+        "targetPremium": 0.2,
+        "popEstimate": 0.9147
+      },
+      "context": {
+        "support": 25.07,
+        "resistance": 33.1,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-08",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 69.12
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "APLD_20260508_aggressive_36_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "APLD",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 3,
+        "ibkrRank": 5
+      },
+      "scores": {
+        "qualityScoreYahoo": 65,
+        "finalScoreYahoo": 0.011452,
+        "eliteScore": 51.5,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 39.835,
+        "expectedMove": 3.336,
+        "lowerBound": 36.499
+      },
+      "strike": {
+        "strike": 36,
+        "premium": 0.47,
+        "bid": 0.47,
+        "ask": 0.59,
+        "mid": 0.53,
+        "spread": null,
+        "spreadPct": 22.641509433962263,
+        "annualizedYield": 215.32571858918038,
+        "targetPremium": 0.2,
+        "popEstimate": 0.8957
+      },
+      "context": {
+        "support": 25.07,
+        "resistance": 33.1,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-08",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 69.12
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "RIOT_20260508_safe_18_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "RIOT",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 5,
+        "ibkrRank": 6
+      },
+      "scores": {
+        "qualityScoreYahoo": 55,
+        "finalScoreYahoo": 0.008863,
+        "eliteScore": 51.2,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 20.375,
+        "expectedMove": 1.226,
+        "lowerBound": 19.149
+      },
+      "strike": {
+        "strike": 18.5,
+        "premium": 0.13,
+        "bid": 0.13,
+        "ask": 0.15,
+        "mid": 0.14,
+        "spread": null,
+        "spreadPct": 14.285714285714276,
+        "annualizedYield": 116.44171779141104,
+        "targetPremium": 0.1,
+        "popEstimate": 0.9252
+      },
+      "context": {
+        "support": 13.253,
+        "resistance": 18.53,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-30",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 66.14
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "RIOT_20260508_aggressive_19_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "RIOT",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 5,
+        "ibkrRank": 6
+      },
+      "scores": {
+        "qualityScoreYahoo": 55,
+        "finalScoreYahoo": 0.008863,
+        "eliteScore": 51.2,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 20.375,
+        "expectedMove": 1.226,
+        "lowerBound": 19.149
+      },
+      "strike": {
+        "strike": 19,
+        "premium": 0.23,
+        "bid": 0.23,
+        "ask": 0.24,
+        "mid": 0.235,
+        "spread": null,
+        "spreadPct": 4.255319148936162,
+        "annualizedYield": 206.01226993865032,
+        "targetPremium": 0.1,
+        "popEstimate": 0.8754
+      },
+      "context": {
+        "support": 13.253,
+        "resistance": 18.53,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-30",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 66.14
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HIMS_20260508_safe_24_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HIMS",
+      "expiration": "20260508",
       "strikeMode": "safe",
       "source": {
         "yahoo": true,
@@ -15,55 +1056,2460 @@
       },
       "ranks": {
         "yahooRank": 7,
-        "ibkrRank": 3
+        "ibkrRank": 7
       },
       "scores": {
-        "qualityScoreYahoo": 82.4,
-        "finalScoreYahoo": 79.1,
-        "eliteScore": 84.6,
-        "eliteBadge": "Elite"
+        "qualityScoreYahoo": 43,
+        "finalScoreYahoo": 0.004692,
+        "eliteScore": 50.9,
+        "eliteBadge": "Speculative"
       },
       "underlying": {
-        "spotAtScan": 14.22,
-        "expectedMove": 1.05,
-        "lowerBound": 13.17
+        "spotAtScan": 26.275,
+        "expectedMove": 1.6435,
+        "lowerBound": 24.6315
       },
       "strike": {
-        "strike": 13,
-        "premium": 0.11,
-        "bid": 0.11,
-        "ask": 0.12,
-        "mid": 0.115,
-        "spread": 0.01,
-        "spreadPct": 8.7,
-        "annualizedYield": 0.31,
-        "targetPremium": 0.07,
-        "popEstimate": 0.74
+        "strike": 24,
+        "premium": 0.14,
+        "bid": 0.14,
+        "ask": 0.16,
+        "mid": 0.15000000000000002,
+        "spread": null,
+        "spreadPct": 13.333333333333325,
+        "annualizedYield": 97.24072312083732,
+        "targetPremium": 0.13,
+        "popEstimate": 0.9504
       },
       "context": {
-        "support": 12.85,
-        "resistance": 15.4,
-        "supportStatus": "below_support",
+        "support": 19.3,
+        "resistance": 28.419,
+        "supportStatus": "strike_above_support",
         "hasEarningsBeforeExpiration": false,
-        "earningsDate": null,
+        "earningsDate": "2026-05-11",
         "earningsDaysUntil": null,
         "marketCap": null,
         "averageVolume": null,
         "quoteType": null,
-        "rsi": null
+        "rsi": 52.61
       },
       "resolution": {
-        "resolved": true,
-        "expirationClosePrice": 13.25,
-        "expiredWorthless": true,
-        "assigned": false,
-        "rolled": false,
-        "realizedPl": 11,
-        "premiumRealized": 11,
-        "popPredictionCorrect": true,
-        "outcomeStatus": "expired_worthless",
-        "resolutionDate": "2026-05-15",
-        "notes": "manual validation"
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HIMS_20260508_aggressive_24_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HIMS",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 7,
+        "ibkrRank": 7
+      },
+      "scores": {
+        "qualityScoreYahoo": 43,
+        "finalScoreYahoo": 0.004692,
+        "eliteScore": 50.9,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 26.275,
+        "expectedMove": 1.6435,
+        "lowerBound": 24.6315
+      },
+      "strike": {
+        "strike": 24.5,
+        "premium": 0.24,
+        "bid": 0.24,
+        "ask": 0.25,
+        "mid": 0.245,
+        "spread": null,
+        "spreadPct": 4.081632653061228,
+        "annualizedYield": 166.69838249286394,
+        "targetPremium": 0.13,
+        "popEstimate": 0.9128
+      },
+      "context": {
+        "support": 19.3,
+        "resistance": 28.419,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-05-11",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 52.61
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "RIVN_20260508_safe_14_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "RIVN",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 35,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": -33,
+        "finalScoreYahoo": 0.00214,
+        "eliteScore": 50.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 14.57,
+        "expectedMove": 0.472,
+        "lowerBound": 14.098
+      },
+      "strike": {
+        "strike": 14,
+        "premium": 0.09,
+        "bid": 0.09,
+        "ask": 0.11,
+        "mid": 0.1,
+        "spread": null,
+        "spreadPct": 20.000000000000004,
+        "annualizedYield": 112.73164035689773,
+        "targetPremium": 0.07,
+        "popEstimate": 0.8974
+      },
+      "context": {
+        "support": 14.81,
+        "resistance": 17.035,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-30",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 38.78
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "RIVN_20260508_aggressive_14_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "RIVN",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 35,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": -33,
+        "finalScoreYahoo": 0.00214,
+        "eliteScore": 50.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 14.57,
+        "expectedMove": 0.472,
+        "lowerBound": 14.098
+      },
+      "strike": {
+        "strike": 14,
+        "premium": 0.09,
+        "bid": 0.09,
+        "ask": 0.11,
+        "mid": 0.1,
+        "spread": null,
+        "spreadPct": 20.000000000000004,
+        "annualizedYield": 112.73164035689773,
+        "targetPremium": 0.07,
+        "popEstimate": 0.8974
+      },
+      "context": {
+        "support": 14.81,
+        "resistance": 17.035,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-30",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 38.78
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "AAL_20260508_safe_12_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "AAL",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 11,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 28,
+        "finalScoreYahoo": 0.002561,
+        "eliteScore": 48,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 12.385000000000002,
+        "expectedMove": 0.3545,
+        "lowerBound": 12.0305
+      },
+      "strike": {
+        "strike": 12,
+        "premium": 0.1,
+        "bid": 0.1,
+        "ask": 0.13,
+        "mid": 0.115,
+        "spread": null,
+        "spreadPct": 26.08695652173913,
+        "annualizedYield": 147.35567218409366,
+        "targetPremium": 0.06,
+        "popEstimate": 0.8571
+      },
+      "context": {
+        "support": 10.51,
+        "resistance": 12.2,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-23",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 58.9
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "AAL_20260508_aggressive_12_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "AAL",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 11,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 28,
+        "finalScoreYahoo": 0.002561,
+        "eliteScore": 48,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 12.385000000000002,
+        "expectedMove": 0.3545,
+        "lowerBound": 12.0305
+      },
+      "strike": {
+        "strike": 12,
+        "premium": 0.1,
+        "bid": 0.1,
+        "ask": 0.13,
+        "mid": 0.115,
+        "spread": null,
+        "spreadPct": 26.08695652173913,
+        "annualizedYield": 147.35567218409366,
+        "targetPremium": 0.06,
+        "popEstimate": 0.8571
+      },
+      "context": {
+        "support": 10.51,
+        "resistance": 12.2,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-23",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 58.9
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HPE_20260508_safe_29_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HPE",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 8,
+        "ibkrRank": 8
+      },
+      "scores": {
+        "qualityScoreYahoo": 40,
+        "finalScoreYahoo": 0.001078,
+        "eliteScore": 47.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 30.015,
+        "expectedMove": 0.8955,
+        "lowerBound": 29.1195
+      },
+      "strike": {
+        "strike": 29,
+        "premium": 0.18,
+        "bid": 0.18,
+        "ask": 0.23,
+        "mid": 0.20500000000000002,
+        "spread": null,
+        "spreadPct": 24.39024390243903,
+        "annualizedYield": 109.44527736131933,
+        "targetPremium": 0.15,
+        "popEstimate": 0.8812
+      },
+      "context": {
+        "support": 21.65,
+        "resistance": 28.47,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-03-09",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 73.36
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HPE_20260508_aggressive_29_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HPE",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 8,
+        "ibkrRank": 8
+      },
+      "scores": {
+        "qualityScoreYahoo": 40,
+        "finalScoreYahoo": 0.001078,
+        "eliteScore": 47.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 30.015,
+        "expectedMove": 0.8955,
+        "lowerBound": 29.1195
+      },
+      "strike": {
+        "strike": 29,
+        "premium": 0.18,
+        "bid": 0.18,
+        "ask": 0.23,
+        "mid": 0.20500000000000002,
+        "spread": null,
+        "spreadPct": 24.39024390243903,
+        "annualizedYield": 109.44527736131933,
+        "targetPremium": 0.15,
+        "popEstimate": 0.8812
+      },
+      "context": {
+        "support": 21.65,
+        "resistance": 28.47,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-03-09",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 73.36
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "OKLO_20260508_safe_61_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "OKLO",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 10,
+        "ibkrRank": 9
+      },
+      "scores": {
+        "qualityScoreYahoo": 28,
+        "finalScoreYahoo": 0.009656,
+        "eliteScore": 43.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 68.47999999999999,
+        "expectedMove": 5.123,
+        "lowerBound": 63.357
+      },
+      "strike": {
+        "strike": 61,
+        "premium": 0.5,
+        "bid": 0.5,
+        "ask": 0.65,
+        "mid": 0.575,
+        "spread": null,
+        "spreadPct": 26.086956521739136,
+        "annualizedYield": 133.25058411214954,
+        "targetPremium": 0.34,
+        "popEstimate": 0.9146
+      },
+      "context": {
+        "support": 48.1,
+        "resistance": 71.68,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-05-12",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 54.2
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "OKLO_20260508_aggressive_63_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "OKLO",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 10,
+        "ibkrRank": 9
+      },
+      "scores": {
+        "qualityScoreYahoo": 28,
+        "finalScoreYahoo": 0.009656,
+        "eliteScore": 43.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 68.47999999999999,
+        "expectedMove": 5.123,
+        "lowerBound": 63.357
+      },
+      "strike": {
+        "strike": 63,
+        "premium": 0.81,
+        "bid": 0.81,
+        "ask": 0.98,
+        "mid": 0.895,
+        "spread": null,
+        "spreadPct": 18.99441340782122,
+        "annualizedYield": 215.86594626168232,
+        "targetPremium": 0.34,
+        "popEstimate": 0.8931
+      },
+      "context": {
+        "support": 48.1,
+        "resistance": 71.68,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-05-12",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 54.2
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "RBLX_20260508_safe_41_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "RBLX",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 36,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": -68,
+        "finalScoreYahoo": 0.002606,
+        "eliteScore": 39.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 44.015,
+        "expectedMove": 2.238,
+        "lowerBound": 41.777
+      },
+      "strike": {
+        "strike": 41.5,
+        "premium": 0.28,
+        "bid": 0.28,
+        "ask": 0.4,
+        "mid": 0.34,
+        "spread": null,
+        "spreadPct": 35.29411764705882,
+        "annualizedYield": 116.09678518686812,
+        "targetPremium": 0.22,
+        "popEstimate": 0.9359
+      },
+      "context": {
+        "support": 53.204,
+        "resistance": 60.66,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-30",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 29.36
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "RBLX_20260508_aggressive_41_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "RBLX",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 36,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": -68,
+        "finalScoreYahoo": 0.002606,
+        "eliteScore": 39.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 44.015,
+        "expectedMove": 2.238,
+        "lowerBound": 41.777
+      },
+      "strike": {
+        "strike": 41.5,
+        "premium": 0.28,
+        "bid": 0.28,
+        "ask": 0.4,
+        "mid": 0.34,
+        "spread": null,
+        "spreadPct": 35.29411764705882,
+        "annualizedYield": 116.09678518686812,
+        "targetPremium": 0.22,
+        "popEstimate": 0.9108
+      },
+      "context": {
+        "support": 53.204,
+        "resistance": 60.66,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-04-30",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 29.36
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "LUV_20260508_safe_38_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "LUV",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 23,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 2,
+        "finalScoreYahoo": 0.001016,
+        "eliteScore": 39.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 39.715,
+        "expectedMove": 1.686,
+        "lowerBound": 38.029
+      },
+      "strike": {
+        "strike": 38,
+        "premium": 0.23,
+        "bid": 0.23,
+        "ask": 0.39,
+        "mid": 0.31,
+        "spread": null,
+        "spreadPct": 51.61290322580645,
+        "annualizedYield": 105.69054513408031,
+        "targetPremium": 0.2,
+        "popEstimate": 0.9179
+      },
+      "context": {
+        "support": 37.21,
+        "resistance": 42.02,
+        "supportStatus": "strike_near_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-07-22",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 50.11
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "LUV_20260508_aggressive_38_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "LUV",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 23,
+        "ibkrRank": 1
+      },
+      "scores": {
+        "qualityScoreYahoo": 2,
+        "finalScoreYahoo": 0.001016,
+        "eliteScore": 39.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 39.715,
+        "expectedMove": 1.686,
+        "lowerBound": 38.029
+      },
+      "strike": {
+        "strike": 38,
+        "premium": 0.23,
+        "bid": 0.23,
+        "ask": 0.39,
+        "mid": 0.31,
+        "spread": null,
+        "spreadPct": 51.61290322580645,
+        "annualizedYield": 105.69054513408031,
+        "targetPremium": 0.2,
+        "popEstimate": 0.8856
+      },
+      "context": {
+        "support": 37.21,
+        "resistance": 42.02,
+        "supportStatus": "strike_near_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-07-22",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 50.11
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "DOCU_20260508_safe_46_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "DOCU",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 22,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 2,
+        "finalScoreYahoo": 0.001277,
+        "eliteScore": 38.7,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 48.38,
+        "expectedMove": 2.086,
+        "lowerBound": 46.294
+      },
+      "strike": {
+        "strike": 46,
+        "premium": 0.25,
+        "bid": 0.25,
+        "ask": 0.44,
+        "mid": 0.345,
+        "spread": null,
+        "spreadPct": 55.072463768115945,
+        "annualizedYield": 94.30549813972715,
+        "targetPremium": 0.24,
+        "popEstimate": 0.9039
+      },
+      "context": {
+        "support": 45.14,
+        "resistance": 49.17,
+        "supportStatus": "strike_near_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-03-17",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 55.91
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "DOCU_20260508_aggressive_46_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "DOCU",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 22,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 2,
+        "finalScoreYahoo": 0.001277,
+        "eliteScore": 38.7,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 48.38,
+        "expectedMove": 2.086,
+        "lowerBound": 46.294
+      },
+      "strike": {
+        "strike": 46,
+        "premium": 0.25,
+        "bid": 0.25,
+        "ask": 0.44,
+        "mid": 0.345,
+        "spread": null,
+        "spreadPct": 55.072463768115945,
+        "annualizedYield": 94.30549813972715,
+        "targetPremium": 0.24,
+        "popEstimate": 0.9039
+      },
+      "context": {
+        "support": 45.14,
+        "resistance": 49.17,
+        "supportStatus": "strike_near_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-03-17",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 55.91
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HPQ_20260508_safe_20_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HPQ",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 16,
+        "ibkrRank": 4
+      },
+      "scores": {
+        "qualityScoreYahoo": 15,
+        "finalScoreYahoo": 0.001193,
+        "eliteScore": 38.7,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 21.165,
+        "expectedMove": 0.6595,
+        "lowerBound": 20.5055
+      },
+      "strike": {
+        "strike": 20.5,
+        "premium": 0.11,
+        "bid": 0.11,
+        "ask": 0.18,
+        "mid": 0.145,
+        "spread": null,
+        "spreadPct": 48.275862068965516,
+        "annualizedYield": 94.84998818804631,
+        "targetPremium": 0.11,
+        "popEstimate": 0.8704
+      },
+      "context": {
+        "support": 18.26,
+        "resistance": 20.32,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-02-24",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 64.8
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HPQ_20260508_aggressive_20_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HPQ",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 16,
+        "ibkrRank": 4
+      },
+      "scores": {
+        "qualityScoreYahoo": 15,
+        "finalScoreYahoo": 0.001193,
+        "eliteScore": 38.7,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 21.165,
+        "expectedMove": 0.6595,
+        "lowerBound": 20.5055
+      },
+      "strike": {
+        "strike": 20.5,
+        "premium": 0.11,
+        "bid": 0.11,
+        "ask": 0.18,
+        "mid": 0.145,
+        "spread": null,
+        "spreadPct": 48.275862068965516,
+        "annualizedYield": 94.84998818804631,
+        "targetPremium": 0.11,
+        "popEstimate": 0.8704
+      },
+      "context": {
+        "support": 18.26,
+        "resistance": 20.32,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": "2026-02-24",
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 64.8
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "IREN_20260508_safe_43_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "IREN",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 19,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 5,
+        "finalScoreYahoo": 0.02006,
+        "eliteScore": 56.7,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 54.79,
+        "expectedMove": 7.0975,
+        "lowerBound": 47.6925
+      },
+      "strike": {
+        "strike": 43,
+        "premium": 0.38,
+        "bid": 0.38,
+        "ask": 0.41,
+        "mid": 0.395,
+        "spread": null,
+        "spreadPct": 7.594936708860751,
+        "annualizedYield": 126.57419237087059,
+        "targetPremium": 0.27,
+        "popEstimate": 0.9134
+      },
+      "context": {
+        "support": 35.87,
+        "resistance": 48.86,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 65.45
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "IREN_20260508_aggressive_47_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "IREN",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 19,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 5,
+        "finalScoreYahoo": 0.02006,
+        "eliteScore": 56.7,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 54.79,
+        "expectedMove": 7.0975,
+        "lowerBound": 47.6925
+      },
+      "strike": {
+        "strike": 47.5,
+        "premium": 1,
+        "bid": 1,
+        "ask": 1.13,
+        "mid": 1.065,
+        "spread": null,
+        "spreadPct": 12.206572769953041,
+        "annualizedYield": 333.08997992334366,
+        "targetPremium": 0.27,
+        "popEstimate": 0.9009
+      },
+      "context": {
+        "support": 35.87,
+        "resistance": 48.86,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 65.45
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "AFRM_20260508_safe_52_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "AFRM",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 6,
+        "ibkrRank": 4
+      },
+      "scores": {
+        "qualityScoreYahoo": 49,
+        "finalScoreYahoo": 0.01251,
+        "eliteScore": 56.6,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 66.93,
+        "expectedMove": 8.7275,
+        "lowerBound": 58.2025
+      },
+      "strike": {
+        "strike": 52,
+        "premium": 0.35,
+        "bid": 0.35,
+        "ask": 0.37,
+        "mid": 0.36,
+        "spread": null,
+        "spreadPct": 5.555555555555561,
+        "annualizedYield": 95.43552965785146,
+        "targetPremium": 0.33,
+        "popEstimate": 0.929
+      },
+      "context": {
+        "support": 43.83,
+        "resistance": 65.44,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 67.07
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "AFRM_20260508_aggressive_58_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "AFRM",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 6,
+        "ibkrRank": 4
+      },
+      "scores": {
+        "qualityScoreYahoo": 49,
+        "finalScoreYahoo": 0.01251,
+        "eliteScore": 56.6,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 66.93,
+        "expectedMove": 8.7275,
+        "lowerBound": 58.2025
+      },
+      "strike": {
+        "strike": 58,
+        "premium": 1.13,
+        "bid": 1.13,
+        "ask": 1.3,
+        "mid": 1.2149999999999999,
+        "spread": null,
+        "spreadPct": 13.991769547325116,
+        "annualizedYield": 308.1204243239204,
+        "targetPremium": 0.33,
+        "popEstimate": 0.911
+      },
+      "context": {
+        "support": 43.83,
+        "resistance": 65.44,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 67.07
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "WULF_20260508_safe_20_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "WULF",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 15,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 15,
+        "finalScoreYahoo": 0.009273,
+        "eliteScore": 57,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 23.49,
+        "expectedMove": 2.101,
+        "lowerBound": 21.389
+      },
+      "strike": {
+        "strike": 20,
+        "premium": 0.15,
+        "bid": 0.15,
+        "ask": 0.16,
+        "mid": 0.155,
+        "spread": null,
+        "spreadPct": 6.451612903225811,
+        "annualizedYield": 116.53895274584931,
+        "targetPremium": 0.12,
+        "popEstimate": 0.9433
+      },
+      "context": {
+        "support": 14.55,
+        "resistance": 21.3,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-08",
+        "earningsDaysUntil": 3,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 68.17
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "WULF_20260508_aggressive_21_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "WULF",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 15,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": 15,
+        "finalScoreYahoo": 0.009273,
+        "eliteScore": 57,
+        "eliteBadge": "Moderate"
+      },
+      "underlying": {
+        "spotAtScan": 23.49,
+        "expectedMove": 2.101,
+        "lowerBound": 21.389
+      },
+      "strike": {
+        "strike": 21,
+        "premium": 0.29,
+        "bid": 0.29,
+        "ask": 0.33,
+        "mid": 0.31,
+        "spread": null,
+        "spreadPct": 12.903225806451623,
+        "annualizedYield": 225.30864197530863,
+        "targetPremium": 0.12,
+        "popEstimate": 0.9145
+      },
+      "context": {
+        "support": 14.55,
+        "resistance": 21.3,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-08",
+        "earningsDaysUntil": 3,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 68.17
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "LYFT_20260508_safe_12_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "LYFT",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 34,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": -32,
+        "finalScoreYahoo": 0.001903,
+        "eliteScore": 50.7,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 14.045,
+        "expectedMove": 1.6035,
+        "lowerBound": 12.4415
+      },
+      "strike": {
+        "strike": 12,
+        "premium": 0.14,
+        "bid": 0.14,
+        "ask": 0.17,
+        "mid": 0.15500000000000003,
+        "spread": null,
+        "spreadPct": 19.354838709677416,
+        "annualizedYield": 181.91527233891065,
+        "targetPremium": 0.07,
+        "popEstimate": 0.976
+      },
+      "context": {
+        "support": 13,
+        "resistance": 14.59,
+        "supportStatus": "strike_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 49.57
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "LYFT_20260508_aggressive_12_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "LYFT",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 34,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": -32,
+        "finalScoreYahoo": 0.001903,
+        "eliteScore": 50.7,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 14.045,
+        "expectedMove": 1.6035,
+        "lowerBound": 12.4415
+      },
+      "strike": {
+        "strike": 12,
+        "premium": 0.14,
+        "bid": 0.14,
+        "ask": 0.17,
+        "mid": 0.15500000000000003,
+        "spread": null,
+        "spreadPct": 19.354838709677416,
+        "annualizedYield": 181.91527233891065,
+        "targetPremium": 0.07,
+        "popEstimate": 0.9468
+      },
+      "context": {
+        "support": 13,
+        "resistance": 14.59,
+        "supportStatus": "strike_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 49.57
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "IONQ_20260508_safe_40_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "IONQ",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 14,
+        "ibkrRank": 4
+      },
+      "scores": {
+        "qualityScoreYahoo": 25,
+        "finalScoreYahoo": 0.013875,
+        "eliteScore": 46.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 48.1384,
+        "expectedMove": 5.73,
+        "lowerBound": 42.4084
+      },
+      "strike": {
+        "strike": 40,
+        "premium": 0.31,
+        "bid": 0.31,
+        "ask": 0.38,
+        "mid": 0.345,
+        "spread": null,
+        "spreadPct": 20.289855072463773,
+        "annualizedYield": 117.52571751449987,
+        "targetPremium": 0.24,
+        "popEstimate": 0.9264
+      },
+      "context": {
+        "support": 28.13,
+        "resistance": 45.48,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-06",
+        "earningsDaysUntil": 1,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 67.28
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "IONQ_20260508_aggressive_42_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "IONQ",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 14,
+        "ibkrRank": 4
+      },
+      "scores": {
+        "qualityScoreYahoo": 25,
+        "finalScoreYahoo": 0.013875,
+        "eliteScore": 46.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 48.1384,
+        "expectedMove": 5.73,
+        "lowerBound": 42.4084
+      },
+      "strike": {
+        "strike": 42,
+        "premium": 0.61,
+        "bid": 0.61,
+        "ask": 0.74,
+        "mid": 0.675,
+        "spread": null,
+        "spreadPct": 19.25925925925926,
+        "annualizedYield": 231.26028285111263,
+        "targetPremium": 0.24,
+        "popEstimate": 0.9083
+      },
+      "context": {
+        "support": 28.13,
+        "resistance": 45.48,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-06",
+        "earningsDaysUntil": 1,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 67.28
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "U_20260508_safe_22_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "U",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 9,
+        "ibkrRank": 10
+      },
+      "scores": {
+        "qualityScoreYahoo": 29,
+        "finalScoreYahoo": 0.014261,
+        "eliteScore": 42.1,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 27.375,
+        "expectedMove": 3.79,
+        "lowerBound": 23.585
+      },
+      "strike": {
+        "strike": 22,
+        "premium": 0.19,
+        "bid": 0.19,
+        "ask": 0.25,
+        "mid": 0.22,
+        "spread": null,
+        "spreadPct": 27.27272727272727,
+        "annualizedYield": 126.66666666666666,
+        "targetPremium": 0.14,
+        "popEstimate": 0.9327
+      },
+      "context": {
+        "support": 19.36,
+        "resistance": 26.69,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 64.6
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "U_20260508_aggressive_23_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "U",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 9,
+        "ibkrRank": 10
+      },
+      "scores": {
+        "qualityScoreYahoo": 29,
+        "finalScoreYahoo": 0.014261,
+        "eliteScore": 42.1,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 27.375,
+        "expectedMove": 3.79,
+        "lowerBound": 23.585
+      },
+      "strike": {
+        "strike": 23.5,
+        "premium": 0.42,
+        "bid": 0.42,
+        "ask": 0.55,
+        "mid": 0.485,
+        "spread": null,
+        "spreadPct": 26.80412371134022,
+        "annualizedYield": 280,
+        "targetPremium": 0.14,
+        "popEstimate": 0.9116
+      },
+      "context": {
+        "support": 19.36,
+        "resistance": 26.69,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 64.6
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "TTD_20260508_safe_19_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "TTD",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 33,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": -32,
+        "finalScoreYahoo": 0.005734,
+        "eliteScore": 37.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 24.65,
+        "expectedMove": 3.647,
+        "lowerBound": 21.003
+      },
+      "strike": {
+        "strike": 19,
+        "premium": 0.18,
+        "bid": 0.18,
+        "ask": 0.22,
+        "mid": 0.2,
+        "spread": null,
+        "spreadPct": 20.000000000000004,
+        "annualizedYield": 133.2657200811359,
+        "targetPremium": 0.12,
+        "popEstimate": 0.9573
+      },
+      "context": {
+        "support": 21.3,
+        "resistance": 24.72,
+        "supportStatus": "strike_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 56.36
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "TTD_20260508_aggressive_21_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "TTD",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 33,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": -32,
+        "finalScoreYahoo": 0.005734,
+        "eliteScore": 37.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 24.65,
+        "expectedMove": 3.647,
+        "lowerBound": 21.003
+      },
+      "strike": {
+        "strike": 21,
+        "premium": 0.51,
+        "bid": 0.51,
+        "ask": 0.61,
+        "mid": 0.56,
+        "spread": null,
+        "spreadPct": 17.85714285714285,
+        "annualizedYield": 377.5862068965518,
+        "targetPremium": 0.12,
+        "popEstimate": 0.9421
+      },
+      "context": {
+        "support": 21.3,
+        "resistance": 24.72,
+        "supportStatus": "strike_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 56.36
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "XYZ_20260508_safe_61_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "XYZ",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 24,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 0,
+        "finalScoreYahoo": 0.006519,
+        "eliteScore": 35,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 71.27,
+        "expectedMove": 7.047,
+        "lowerBound": 64.223
+      },
+      "strike": {
+        "strike": 61,
+        "premium": 0.39,
+        "bid": 0.39,
+        "ask": 0.64,
+        "mid": 0.515,
+        "spread": null,
+        "spreadPct": 48.54368932038835,
+        "annualizedYield": 99.86670408306442,
+        "targetPremium": 0.36,
+        "popEstimate": 0.9252
+      },
+      "context": {
+        "support": 59.11,
+        "resistance": 72.115,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 61.46
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "XYZ_20260508_aggressive_64_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "XYZ",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 24,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 0,
+        "finalScoreYahoo": 0.006519,
+        "eliteScore": 35,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 71.27,
+        "expectedMove": 7.047,
+        "lowerBound": 64.223
+      },
+      "strike": {
+        "strike": 64,
+        "premium": 1,
+        "bid": 1,
+        "ask": 1.11,
+        "mid": 1.0550000000000002,
+        "spread": null,
+        "spreadPct": 10.426540284360197,
+        "annualizedYield": 256.06847200785745,
+        "targetPremium": 0.36,
+        "popEstimate": 0.9055
+      },
+      "context": {
+        "support": 59.11,
+        "resistance": 72.115,
+        "supportStatus": "strike_above_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-07",
+        "earningsDaysUntil": 2,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 61.46
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "CDE_20260508_safe_15_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "CDE",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 39,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": -128,
+        "finalScoreYahoo": 0.001813,
+        "eliteScore": 35.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 17.13,
+        "expectedMove": 1.175,
+        "lowerBound": 15.955
+      },
+      "strike": {
+        "strike": 15.5,
+        "premium": 0.1,
+        "bid": 0.1,
+        "ask": 0.15,
+        "mid": 0.125,
+        "spread": null,
+        "spreadPct": 39.99999999999999,
+        "annualizedYield": 106.53823701109167,
+        "targetPremium": 0.09,
+        "popEstimate": 0.9396
+      },
+      "context": {
+        "support": 17.29,
+        "resistance": 20.97,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-06",
+        "earningsDaysUntil": 1,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 39.12
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "CDE_20260508_aggressive_15_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "CDE",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 39,
+        "ibkrRank": 2
+      },
+      "scores": {
+        "qualityScoreYahoo": -128,
+        "finalScoreYahoo": 0.001813,
+        "eliteScore": 35.3,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 17.13,
+        "expectedMove": 1.175,
+        "lowerBound": 15.955
+      },
+      "strike": {
+        "strike": 15.5,
+        "premium": 0.1,
+        "bid": 0.1,
+        "ask": 0.15,
+        "mid": 0.125,
+        "spread": null,
+        "spreadPct": 39.99999999999999,
+        "annualizedYield": 106.53823701109167,
+        "targetPremium": 0.09,
+        "popEstimate": 0.9396
+      },
+      "context": {
+        "support": 17.29,
+        "resistance": 20.97,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-06",
+        "earningsDaysUntil": 1,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 39.12
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HL_20260508_safe_15_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HL",
+      "expiration": "20260508",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 38,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": -128,
+        "finalScoreYahoo": 0.002977,
+        "eliteScore": 34.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 17.14,
+        "expectedMove": 1.229,
+        "lowerBound": 15.911
+      },
+      "strike": {
+        "strike": 15,
+        "premium": 0.09,
+        "bid": 0.09,
+        "ask": 0.14,
+        "mid": 0.115,
+        "spread": null,
+        "spreadPct": 43.478260869565226,
+        "annualizedYield": 95.82847141190197,
+        "targetPremium": 0.09,
+        "popEstimate": 0.9245
+      },
+      "context": {
+        "support": 17.16,
+        "resistance": 20.04,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-05",
+        "earningsDaysUntil": 0,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 37.56
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "HL_20260508_aggressive_15_5_2026-05-05",
+      "scanSessionId": "20260505_155715",
+      "scanTimestamp": "2026-05-05T19:57:15.604Z",
+      "scanDate": "2026-05-05",
+      "symbol": "HL",
+      "expiration": "20260508",
+      "strikeMode": "aggressive",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 38,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": -128,
+        "finalScoreYahoo": 0.002977,
+        "eliteScore": 34.8,
+        "eliteBadge": "Speculative"
+      },
+      "underlying": {
+        "spotAtScan": 17.14,
+        "expectedMove": 1.229,
+        "lowerBound": 15.911
+      },
+      "strike": {
+        "strike": 15.5,
+        "premium": 0.14,
+        "bid": 0.14,
+        "ask": 0.2,
+        "mid": 0.17,
+        "spread": null,
+        "spreadPct": 35.29411764705882,
+        "annualizedYield": 149.06651108518085,
+        "targetPremium": 0.09,
+        "popEstimate": 0.9245
+      },
+      "context": {
+        "support": 17.16,
+        "resistance": 20.04,
+        "supportStatus": "current_below_support",
+        "hasEarningsBeforeExpiration": true,
+        "earningsDate": "2026-05-05",
+        "earningsDaysUntil": 0,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": 37.56
+      },
+      "resolution": {
+        "resolved": false,
+        "expirationClosePrice": null,
+        "expiredWorthless": null,
+        "assigned": null,
+        "rolled": null,
+        "realizedPl": null,
+        "premiumRealized": null,
+        "popPredictionCorrect": null,
+        "outcomeStatus": null,
+        "resolutionDate": null,
+        "notes": null
       }
     }
   ]

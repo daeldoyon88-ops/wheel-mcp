@@ -121,7 +121,7 @@ function getQuoteType(candidate) {
   );
 }
 
-function normalizeRecord(candidate, strikeMode, scanTimestamp) {
+function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = null) {
   const strikeRow = getStrikeRow(candidate, strikeMode);
   const strike = toNumberOrNull(strikeRow?.strike);
   if (strike == null) return null;
@@ -137,6 +137,7 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp) {
 
   return {
     id: `${symbol}_${expiration}_${strikeMode}_${normalizeStrikeToken(strike)}_${scanDate}`,
+    scanSessionId: scanSessionId == null ? null : String(scanSessionId).trim() || null,
     scanTimestamp,
     scanDate,
     symbol,
@@ -261,13 +262,15 @@ export function createWheelValidationService(options = {}) {
 
   function buildRecordsFromCandidates(candidates, options = {}) {
     const scanTimestamp = normalizeIsoTimestamp(options.scanTimestamp);
+    const scanSessionId =
+      options.scanSessionId == null ? null : String(options.scanSessionId).trim() || null;
     const topN = Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30;
     const finalCandidates = Array.isArray(candidates) ? candidates.slice(0, topN) : [];
     const records = [];
     for (const candidate of finalCandidates) {
-      const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp);
+      const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp, scanSessionId);
       if (safeRecord) records.push(safeRecord);
-      const aggressiveRecord = normalizeRecord(candidate, "aggressive", scanTimestamp);
+      const aggressiveRecord = normalizeRecord(candidate, "aggressive", scanTimestamp, scanSessionId);
       if (aggressiveRecord) records.push(aggressiveRecord);
     }
     return records;

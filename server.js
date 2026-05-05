@@ -29,7 +29,7 @@ const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 const WHEEL_DEV_SCAN_WARNING =
-  "DEV TEST — marché fermé / données possiblement figées / non tradables";
+  "DEV TEST - marché fermé / données possiblement figées / non tradables";
 const SCAN_METRICS_NOTES = [
   "Compteurs cumulés depuis le démarrage du serveur ou le dernier reset.",
   "Compteurs Yahoo: appels réels upstream + cache hits/misses.",
@@ -37,7 +37,7 @@ const SCAN_METRICS_NOTES = [
 ];
 
 /**
- * Heure « murale » America/New_York (NYSE regular session).
+ * Heure "murale" America/New_York (NYSE regular session).
  * Hors jours fériés (non gérés dans cette phase).
  */
 function getNyWallClockParts(now = new Date()) {
@@ -78,7 +78,7 @@ function getNyMarketRegime(now = new Date()) {
 }
 
 /**
- * Résout WHEEL_DEV_SCAN : 0 / absent → normal, 1 → DEV forcé, auto → DEV si marché fermé (NY).
+ * Résout WHEEL_DEV_SCAN : 0 / absent -> normal, 1 -> DEV forcé, auto -> DEV si marché fermé (NY).
  */
 function getWheelDevScanMode(now = new Date()) {
   const rawEnv = process.env.WHEEL_DEV_SCAN;
@@ -866,6 +866,210 @@ function getIbkrStrikeYield(strike) {
   return n == null ? null : n;
 }
 
+const ELITE_STABLE_SECTORS = new Set([
+  "Utilities",
+  "Consumer Defensive",
+  "Healthcare",
+  "Communication Services",
+  "Financial Services",
+]);
+const ELITE_CYCLICAL_SECTORS = new Set([
+  "Energy",
+  "Basic Materials",
+  "Industrials",
+  "Consumer Cyclical",
+  "Real Estate",
+]);
+const ELITE_ETF_SYMBOLS = new Set([
+  "SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLV", "XLI", "XLP", "XLU", "SOXL", "TQQQ",
+]);
+
+function clamp01(value) {
+  const n = toNumber(value);
+  if (n <= 0) return 0;
+  if (n >= 1) return 1;
+  return n;
+}
+
+function normalizeSpreadPct(rawSpreadPct) {
+  const spread = numberOrNull(rawSpreadPct);
+  if (spread == null) return null;
+  return spread > 1 ? spread / 100 : spread;
+}
+
+function buildEliteFinalScore(cand, row) {
+  const reasonsUp = [];
+  const reasonsDown = [];
+  let score = 50;
+
+  const annualizedYield = numberOrNull(cand?.annualizedYield);
+  if (annualizedYield != null) {
+    const capped = Math.min(annualizedYield, 1.2);
+    const yieldBonus = clamp01(capped / 0.8) * 14;
+    score += yieldBonus;
+    if (annualizedYield >= 0.35) reasonsUp.push("premium annualisé élevé");
+    if (annualizedYield > 0.7) {
+      const toxicMildPenalty = clamp01((annualizedYield - 0.7) / 0.3) * 4;
+      score -= toxicMildPenalty;
+      reasonsDown.push("prime possiblement gonflée");
+    }
+    if (annualizedYield > 1.0) {
+      const toxicStrongPenalty = 4 + clamp01((annualizedYield - 1.0) / 0.4) * 6;
+      score -= toxicStrongPenalty;
+      reasonsDown.push("prime possiblement gonflée");
+    }
+  } else {
+    score -= 8;
+    reasonsDown.push("yield non disponible");
+  }
+
+  const spread = normalizeSpreadPct(cand?.spreadPct ?? cand?.safeStrike?.spreadPct);
+  if (spread != null) {
+    const spreadPenalty = clamp01(spread / 0.35) * 26;
+    score -= spreadPenalty;
+    if (spread <= 0.08) reasonsUp.push("spread faible");
+    if (spread > 0.2) reasonsDown.push("spread large");
+  } else {
+    score -= 10;
+    reasonsDown.push("spread non disponible");
+  }
+
+  const safeVolume = toNumber(cand?.safeStrike?.volume ?? 0);
+  const safeOi = toNumber(cand?.safeStrike?.openInterest ?? 0);
+  const liqScore = clamp01(safeVolume / 500) * 5 + clamp01(safeOi / 1200) * 7;
+  score += liqScore;
+  if (safeVolume >= 100 && safeOi >= 500) reasonsUp.push("liquidité option robuste");
+  if (safeVolume < 20 || safeOi < 80) reasonsDown.push("liquidité option faible");
+
+  const distancePctAbs = Math.abs(toNumber(cand?.safeStrike?.distancePct ?? 0));
+  if (distancePctAbs > 0) {
+    if (distancePctAbs >= 4 && distancePctAbs <= 12) {
+      score += 7;
+      reasonsUp.push("distance strike sécuritaire");
+    } else if (distancePctAbs > 18) {
+      score -= 4;
+      reasonsDown.push("distance strike excessive");
+    } else if (distancePctAbs < 2) {
+      score -= 6;
+      reasonsDown.push("strike trop proche du spot");
+    }
+  }
+
+  const lowerBound = numberOrNull(cand?.lowerBound);
+  const safeStrike = numberOrNull(cand?.safeStrike?.strike);
+  if (lowerBound != null && safeStrike != null) {
+    if (safeStrike <= lowerBound) {
+      score += 6;
+      reasonsUp.push("cohérence expected move");
+    } else {
+      score -= 6;
+      reasonsDown.push("strike au-dessus de la borne basse");
+    }
+  }
+
+  const hasEarningsRisk =
+    row?.hasUpcomingEarningsBeforeExpiration === true ||
+    row?.hasEarningsBeforeExpiration === true ||
+    (Number.isFinite(Number(row?.earningsDaysUntil)) && Number(row.earningsDaysUntil) <= 1);
+  if (hasEarningsRisk) {
+    score -= 18;
+    reasonsDown.push("earnings proches");
+  }
+
+  const spot = numberOrNull(cand?.underlyingPrice ?? cand?.currentPrice);
+  const expectedMove = numberOrNull(cand?.expectedMove);
+  if (spot != null && spot > 0 && expectedMove != null && expectedMove > 0) {
+    const emPct = expectedMove / spot;
+    if (emPct >= 0.14) {
+      score -= 10;
+      reasonsDown.push("volatilité excessive");
+    } else if (emPct <= 0.06) {
+      score += 4;
+      reasonsUp.push("volatilité maîtrisée");
+    }
+  }
+
+  const marketCap =
+    numberOrNull(row?.quote?.marketCap) ??
+    numberOrNull(row?.marketCap) ??
+    numberOrNull(cand?.raw?.quote?.marketCap);
+  if (marketCap != null) {
+    if (marketCap >= 50_000_000_000) {
+      score += 8;
+      reasonsUp.push("large cap");
+    } else if (marketCap < 5_000_000_000) {
+      score -= 12;
+      reasonsDown.push("small cap");
+    }
+  }
+
+  const avgVolume =
+    numberOrNull(row?.quote?.averageDailyVolume3Month) ??
+    numberOrNull(row?.quote?.regularMarketVolume) ??
+    numberOrNull(row?.volume);
+  if (avgVolume != null) {
+    if (avgVolume >= 8_000_000) {
+      score += 6;
+      reasonsUp.push("volume élevé");
+    } else if (avgVolume < 1_500_000) {
+      score -= 5;
+      reasonsDown.push("volume limité");
+    }
+  }
+
+  const sector = String(row?.quote?.sector || row?.sector || "").trim();
+  if (sector) {
+    if (ELITE_STABLE_SECTORS.has(sector)) {
+      score += 3;
+      reasonsUp.push("secteur stable");
+    } else if (ELITE_CYCLICAL_SECTORS.has(sector)) {
+      score -= 3;
+      reasonsDown.push("fragilité cyclique");
+    }
+  }
+
+  const quoteType = String(row?.quote?.quoteType || row?.quoteType || "").toUpperCase();
+  const symbol = String(cand?.symbol || row?.symbol || "").toUpperCase();
+  if (quoteType === "ETF" || ELITE_ETF_SYMBOLS.has(symbol)) {
+    score += 4;
+    reasonsUp.push("bonus ETF");
+  }
+
+  const supportStatus = String(row?.supportStatus || row?.supportResistance?.supportStatus || "");
+  if (supportStatus.includes("below_support") || supportStatus === "near_support") {
+    score += 6;
+    reasonsUp.push("support favorable");
+  } else if (supportStatus.includes("above_support") || supportStatus === "current_below_support") {
+    score -= 8;
+    reasonsDown.push("support fragile");
+  }
+
+  const eliteScore = Math.max(0, Math.min(100, Math.round(score * 10) / 10));
+  let eliteBadge = "Moderate";
+  if (eliteScore >= 82) eliteBadge = "Elite";
+  else if (eliteScore >= 68) eliteBadge = "Strong";
+  else if (eliteScore < 52) eliteBadge = "Speculative";
+
+  return {
+    eliteScore,
+    eliteBadge,
+    scoreBreakdown: {
+      annualizedYield: annualizedYield ?? null,
+      spreadPct: spread == null ? null : spread * 100,
+      optionVolume: safeVolume || null,
+      optionOpenInterest: safeOi || null,
+      distancePctAbs: distancePctAbs || null,
+      marketCap: marketCap ?? null,
+      averageVolume: avgVolume ?? null,
+      expectedMove: expectedMove ?? null,
+      earningsRisk: hasEarningsRisk,
+      sector: sector || null,
+    },
+    strengths: [...new Set(reasonsUp)].slice(0, 6),
+    weaknesses: [...new Set(reasonsDown)].slice(0, 6),
+  };
+}
+
 function toIbkrScanCandidate(row, devScanEnabled = false) {
   const safe = row?.safeStrike ?? null;
   const aggressive = row?.aggressiveStrike ?? null;
@@ -909,7 +1113,7 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
     cand.devScanEnabled = true;
     cand.dataTradable = false;
     if (row?.devIncompleteMarketData === true) cand.devIncompleteMarketData = true;
-    const devNote = "Données IBKR incomplètes — affichage DEV seulement";
+    const devNote = "Données IBKR incomplètes - affichage DEV seulement";
     const qual = cand.qualityReasons.filter(Boolean);
     if (Array.isArray(row?.qualityReasons)) {
       for (const qr of row.qualityReasons) {
@@ -923,6 +1127,12 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
     cand.qualityReasons = qual;
     cand.ibkrShadowCardMode = cand.devIncompleteMarketData === true ? "dev_incomplete" : "dev_nominal";
   }
+  const elite = buildEliteFinalScore(cand, row);
+  cand.eliteScore = elite.eliteScore;
+  cand.eliteBadge = elite.eliteBadge;
+  cand.scoreBreakdown = elite.scoreBreakdown;
+  cand.strengths = elite.strengths;
+  cand.weaknesses = elite.weaknesses;
   return cand;
 }
 
@@ -942,6 +1152,10 @@ function toIbkrScanDevCandidate(row, devScanEnabled = false) {
 }
 
 function compareIbkrScanCandidates(a, b, sort) {
+  if (sort === "elite") {
+    const eliteDiff = toNumber(b?.eliteScore) - toNumber(a?.eliteScore);
+    if (eliteDiff !== 0) return eliteDiff;
+  }
   if (sort === "yield") {
     return toNumber(b?.annualizedYield) - toNumber(a?.annualizedYield);
   }
@@ -1077,8 +1291,13 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
   try {
     const body = req.body ?? {};
     const rawTickers = Array.isArray(body.tickers) ? body.tickers : [];
-    const maxTickers = Math.min(toPositiveInt(body.maxTickers, 20), 100);
-    const topN = Math.min(toPositiveInt(body.topN, 10), 50);
+    const requestedAuditDepth = toPositiveInt(
+      body.auditDepth ?? body.ibkrValidationCount ?? body.maxTickers ?? body.topN,
+      20
+    );
+    const clampedAuditDepth = Math.min(Math.max(requestedAuditDepth, 10), 120);
+    const maxTickers = Math.min(Math.max(toPositiveInt(body.maxTickers, clampedAuditDepth), 10), 120);
+    const topN = Math.min(Math.max(toPositiveInt(body.topN, clampedAuditDepth), 10), 120);
     const tickers = [
       ...new Set(rawTickers.map((t) => String(t || "").trim().toUpperCase()).filter(Boolean)),
     ].slice(0, maxTickers);
@@ -1197,6 +1416,12 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
 
     shortlist.sort((a, b) => compareIbkrScanCandidates(a, b, sort));
     shortlistDev.sort((a, b) => compareIbkrScanCandidates(a, b, sort));
+    shortlist.forEach((item, idx) => {
+      item.ibkrRank = idx + 1;
+    });
+    shortlistDev.forEach((item, idx) => {
+      item.ibkrRank = idx + 1;
+    });
     const responseWarnings =
       payload?.ok === false ? [payload?.error || "IBKR Shadow scan failed"] : [];
     if (devScanEnabled && !responseWarnings.includes(WHEEL_DEV_SCAN_WARNING)) {
@@ -1251,6 +1476,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
           }
         : {}),
       expiration,
+      auditDepth: clampedAuditDepth,
       scanned: tickers.length,
       kept: shortlist.length,
       returned: Math.min(topN, shortlist.length),
@@ -1619,7 +1845,7 @@ async function handleBuildWatchlist(req, res) {
 }
 
 app.post("/build_watchlist", handleBuildWatchlist);
-/** Alias sans le segment "watchlist" dans le chemin (évite certains bloqueurs / filtres d’URL côté navigateur). */
+/** Alias sans le segment "watchlist" dans le chemin (évite certains bloqueurs / filtres d'URL côté navigateur). */
 app.post("/universe/build", handleBuildWatchlist);
 
 app.get("/mcp-info", (_req, res) => {
@@ -1700,3 +1926,5 @@ app.delete("/mcp", handleMcpSessionRequest);
 app.listen(PORT, () => {
   console.log(`Wheel backend listening on port ${PORT}`);
 });
+
+

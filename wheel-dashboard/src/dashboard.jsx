@@ -48,7 +48,7 @@ const DEFAULT_BUILD_WATCHLIST_BODY = {
   requireWeeklyOptions: true,
   categories: ["weekly", "core", "growth"],
   // Temporary Yahoo protection: scan first 100 symbols only
-  limit: 100,
+  limit: 120,
 };
 const LAST_GOOD_SCAN_KEY = "wheel.lastGoodScan.v1";
 const AUTO_REFRESH_SHORTLIST_ON_LOAD = false;
@@ -6326,4 +6326,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 

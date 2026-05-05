@@ -245,6 +245,64 @@ def _put_quotes(ticker) -> dict:
     }
 
 
+def has_valid_underlying_quote(ticker) -> bool:
+    bid = _finite_number(_safe_attr(ticker, "bid"))
+    ask = _finite_number(_safe_attr(ticker, "ask"))
+    last = _finite_number(_safe_attr(ticker, "last"))
+    close = _finite_number(_safe_attr(ticker, "close"))
+    market_price = _extract_market_price(ticker)
+    return _pick_underlying_price(bid, ask, last, close, market_price) is not None
+
+
+def has_valid_option_quote(ticker) -> bool:
+    bid = _finite_number(_safe_attr(ticker, "bid"))
+    ask = _finite_number(_safe_attr(ticker, "ask"))
+    if bid is None or ask is None:
+        return False
+    if ask < bid:
+        return False
+    mid = (bid + ask) / 2
+    return mid > 0
+
+
+def wait_for_quotes(ib, tickers, validator, timeout_s, poll_ms=100) -> bool:
+    valid_tickers = [tk for tk in list(tickers or []) if tk is not None]
+    if not valid_tickers:
+        return True
+    deadline = time.monotonic() + max(0.0, float(timeout_s or 0))
+    poll_s = max(0.05, float(poll_ms) / 1000.0)
+    while True:
+        try:
+            if all(bool(validator(tk)) for tk in valid_tickers):
+                return True
+        except Exception:
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        ib.sleep(poll_s)
+
+
+def cancel_market_data_safe(ib, contracts) -> None:
+    seen = set()
+    for contract in list(contracts or []):
+        if contract is None:
+            continue
+        cid = _safe_attr(contract, "conId")
+        key = (
+            cid,
+            _safe_attr(contract, "localSymbol"),
+            _safe_attr(contract, "secType"),
+            _safe_attr(contract, "strike"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            ib.cancelMktData(contract)
+        except Exception:
+            pass
+
+
 def _nearest_atm_index(strikes: list[float], price: float) -> int:
     if not strikes:
         return 0
@@ -528,7 +586,7 @@ def main() -> int:
 
         u_tk = _req_mkt_data(underlying, option_kind="stock")
         requested_contracts.append(underlying)
-        _sleep(2.0)
+        wait_for_quotes(ib, [u_tk], has_valid_underlying_quote, timeout_s=2.0, poll_ms=100)
 
         u_b = _finite_number(_safe_attr(u_tk, "bid"))
         u_a = _finite_number(_safe_attr(u_tk, "ask"))
@@ -903,7 +961,13 @@ def main() -> int:
                 requested_contracts.append(qc)
                 put_tickers.append((strike, tk))
 
-        _sleep(5.0)
+        wait_for_quotes(
+            ib,
+            [tk for tk in list(leg_tickers.values()) + [pt[1] for pt in put_tickers]],
+            has_valid_option_quote,
+            timeout_s=5.0,
+            poll_ms=100,
+        )
 
         # ---------- expected move : extraction quotes ----------
         def _leg_row(role: str, rght: str, k: float):
@@ -1034,7 +1098,13 @@ def main() -> int:
                 tk = _req_mkt_data(qc, option_kind="put_candidate")
                 requested_contracts.append(qc)
                 put_tickers.append((strike, tk))
-            _sleep(2.0)
+            wait_for_quotes(
+                ib,
+                [pt[1] for pt in put_tickers],
+                has_valid_option_quote,
+                timeout_s=2.0,
+                poll_ms=100,
+            )
 
         em_components = {
             "atmStraddle": {
@@ -1243,6 +1313,8 @@ def main() -> int:
         rejected.sort(
             key=lambda r: (r.get("strike") is None, -(r.get("strike") or 0))
         )
+        option_contracts_wait_set = [c for c in requested_contracts if c is not None and c is not underlying]
+        cancel_market_data_safe(ib, option_contracts_wait_set)
 
         out = {
             "ok": True,

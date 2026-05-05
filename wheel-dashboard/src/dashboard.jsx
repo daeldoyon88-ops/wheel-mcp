@@ -425,6 +425,97 @@ function hasValidLastGoodScanForExpiration(selectedExpiration) {
   return readLastGoodScanCache(selectedExpiration).valid;
 }
 
+function createEmptyYahooDiagnostics() {
+  return {
+    scanned: 0,
+    kept: 0,
+    returned: 0,
+    rejectedTotal: 0,
+    rejectionReasonCounts: {},
+    stageRejectCounts: {},
+    rejectedSample: [],
+    savedAt: null,
+  };
+}
+
+function normalizeCountMap(countsLike) {
+  const counts = {};
+  if (!countsLike || typeof countsLike !== "object") return counts;
+  for (const [rawKey, rawValue] of Object.entries(countsLike)) {
+    const key = String(rawKey || "").trim();
+    const n = Number(rawValue);
+    if (!key || !Number.isFinite(n) || n <= 0) continue;
+    counts[key] = Math.round(n);
+  }
+  return counts;
+}
+
+function topCountEntries(countsLike, limit = 10) {
+  return Object.entries(normalizeCountMap(countsLike))
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+function normalizeYahooDiagnosticsForState(diagnostics, fallbackMeta = {}) {
+  const base = createEmptyYahooDiagnostics();
+  const scanned = Number.isFinite(Number(diagnostics?.scanned))
+    ? Number(diagnostics.scanned)
+    : Number(fallbackMeta?.scanned || 0);
+  const kept = Number.isFinite(Number(diagnostics?.kept))
+    ? Number(diagnostics.kept)
+    : Number(fallbackMeta?.kept || 0);
+  const returned = Number.isFinite(Number(diagnostics?.returned))
+    ? Number(diagnostics.returned)
+    : Number(fallbackMeta?.returned || 0);
+  const rejectedTotal = Number.isFinite(Number(diagnostics?.rejectedTotal))
+    ? Number(diagnostics.rejectedTotal)
+    : Math.max(0, scanned - kept);
+  const rejectedSample = Array.isArray(diagnostics?.rejectedSample)
+    ? diagnostics.rejectedSample
+        .map((row) => ({
+          symbol: String(row?.symbol || "").trim().toUpperCase(),
+          reason: String(row?.reason || "").trim() || "unknown",
+        }))
+        .filter((row) => row.symbol)
+        .slice(0, 20)
+    : [];
+  return {
+    ...base,
+    scanned: Math.max(0, scanned),
+    kept: Math.max(0, kept),
+    returned: Math.max(0, returned),
+    rejectedTotal: Math.max(0, rejectedTotal),
+    rejectionReasonCounts: normalizeCountMap(diagnostics?.rejectionReasonCounts),
+    stageRejectCounts: normalizeCountMap(diagnostics?.stageRejectCounts),
+    rejectedSample,
+    savedAt:
+      diagnostics?.savedAt && !Number.isNaN(new Date(diagnostics.savedAt).getTime())
+        ? diagnostics.savedAt
+        : null,
+  };
+}
+
+function buildYahooDiagnosticsFromScanPayload(payload, fallbackMeta = {}) {
+  const rejectedRows = Array.isArray(payload?.rejected) ? payload.rejected : [];
+  return normalizeYahooDiagnosticsForState(
+    {
+      scanned: payload?.scanned,
+      kept: payload?.kept,
+      returned: payload?.returned,
+      rejectedTotal: rejectedRows.length,
+      rejectionReasonCounts: payload?.rejectionReasonCounts,
+      stageRejectCounts: payload?.stageRejectCounts,
+      rejectedSample: rejectedRows.slice(0, 20).map((row) => ({
+        symbol: row?.symbol,
+        reason: row?.reason ?? row?.status ?? "unknown",
+      })),
+      savedAt: new Date().toISOString(),
+    },
+    fallbackMeta
+  );
+}
+
 /** Hors marché : marque les candidats /scan_shortlist comme indicatifs (non décision de trade). */
 function tagCandidatesOffMarketNonTradable(candidates, marketClosed) {
   if (!marketClosed || !Array.isArray(candidates)) return candidates;
@@ -1773,6 +1864,18 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     scoreSource: yahooCandidate?.scoreSource ?? "ibkr_fallback",
     tier: yahooCandidate?.tier ?? "none",
     qualityScore: yahooCandidate?.qualityScore ?? null,
+    eliteScore: Number.isFinite(Number(ibkrCandidate?.eliteScore)) ? Number(ibkrCandidate.eliteScore) : null,
+    eliteBadge: ibkrCandidate?.eliteBadge ?? null,
+    yahooRank:
+      Number.isFinite(Number(yahooCandidate?.rank)) ? Number(yahooCandidate.rank) : null,
+    ibkrRank:
+      Number.isFinite(Number(ibkrCandidate?.ibkrRank)) ? Number(ibkrCandidate.ibkrRank) : index + 1,
+    scoreBreakdown:
+      ibkrCandidate?.scoreBreakdown && typeof ibkrCandidate.scoreBreakdown === "object"
+        ? ibkrCandidate.scoreBreakdown
+        : null,
+    strengths: Array.isArray(ibkrCandidate?.strengths) ? ibkrCandidate.strengths : [],
+    weaknesses: Array.isArray(ibkrCandidate?.weaknesses) ? ibkrCandidate.weaknesses : [],
     qualityReasons: [...new Set([...yahooQualityReasons, ...ibkrQualityReasons].filter(Boolean))],
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract:
@@ -1847,6 +1950,11 @@ function MergedCandidateCard({ item }) {
             <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
               Options : {item.optionsSource}
             </Badge>
+            {Number.isFinite(Number(item.eliteScore)) && (
+              <Badge className={cn("rounded-full border", classifyEliteBadge(item.eliteBadge))}>
+                Elite {Number(item.eliteScore).toFixed(1)} · {item.eliteBadge || "Speculative"}
+              </Badge>
+            )}
           </div>
 
           <div>
@@ -2367,11 +2475,53 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                       : "bad"
                   }
                 />
+                <Metric
+                  label="Elite Score"
+                  value={Number.isFinite(Number(item.eliteScore)) ? `${Number(item.eliteScore).toFixed(1)} / 100` : "—"}
+                  strong={Number.isFinite(Number(item.eliteScore))}
+                  tone={
+                    !Number.isFinite(Number(item.eliteScore))
+                      ? "default"
+                      : Number(item.eliteScore) >= 82
+                      ? "good"
+                      : Number(item.eliteScore) >= 68
+                      ? "warn"
+                      : "bad"
+                  }
+                />
+                <Metric
+                  label="Delta rang Yahoo → Elite"
+                  value={
+                    Number.isFinite(Number(item.yahooRank)) && Number.isFinite(Number(item.ibkrRank))
+                      ? `${Number(item.yahooRank) - Number(item.ibkrRank)}`
+                      : "—"
+                  }
+                />
+                <div className="col-span-1">
+                  <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Badge Elite</div>
+                  <Badge className={cn("mt-1 rounded-full border", classifyEliteBadge(item.eliteBadge))}>
+                    {item.eliteBadge || "Speculative"}
+                  </Badge>
+                </div>
               </div>
 
               {item.qualityReasons?.length > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                   Score Yahoo pré-IBKR : {item.qualityReasons.join(" · ")}
+                </div>
+              )}
+              {(item.strengths?.length > 0 || item.weaknesses?.length > 0) && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {item.strengths?.length > 0 && (
+                    <p>
+                      <span className="font-semibold text-emerald-700">Forces :</span> {item.strengths.join(" · ")}
+                    </p>
+                  )}
+                  {item.weaknesses?.length > 0 && (
+                    <p className="mt-1">
+                      <span className="font-semibold text-rose-700">Faiblesses :</span> {item.weaknesses.join(" · ")}
+                    </p>
+                  )}
                 </div>
               )}
               <details className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -2552,7 +2702,14 @@ async function callIbkrShadowBatch({ tickers, expiration, ibkrExpiration, client
   return payload;
 }
 
-async function callIbkrDirectScan({ tickers, expiration, clientIdStart, maxTickers, topN }) {
+async function callIbkrDirectScan({
+  tickers,
+  expiration,
+  clientIdStart,
+  maxTickers,
+  topN,
+  auditDepth,
+}) {
   const response = await fetch(`${API_BASE}/ibkr/shadow/scan`, {
     method: "POST",
     headers: {
@@ -2564,7 +2721,9 @@ async function callIbkrDirectScan({ tickers, expiration, clientIdStart, maxTicke
       clientIdStart: Number(clientIdStart),
       maxTickers: Number(maxTickers),
       topN: Number(topN),
-      sort: "quality",
+      auditDepth: Number(auditDepth ?? maxTickers ?? topN),
+      ibkrValidationCount: Number(auditDepth ?? maxTickers ?? topN),
+      sort: "elite",
     }),
   });
 
@@ -2715,6 +2874,14 @@ function classifySpreadPctPercent(raw) {
   };
 }
 
+function classifyEliteBadge(eliteBadge) {
+  const badge = String(eliteBadge || "");
+  if (badge === "Elite") return "border-emerald-300 bg-emerald-50 text-emerald-800";
+  if (badge === "Strong") return "border-cyan-300 bg-cyan-50 text-cyan-800";
+  if (badge === "Moderate") return "border-amber-300 bg-amber-50 text-amber-900";
+  return "border-rose-300 bg-rose-50 text-rose-800";
+}
+
 function hasEarningsBeforeExpirationUi(item) {
   return (
     item?.hasUpcomingEarningsBeforeExpiration === true ||
@@ -2741,6 +2908,7 @@ function getIbkrActionabilityProfile(item) {
   const distance = Math.abs(Number(safe?.distancePct ?? item?.strikeDistance ?? 0));
   const pop = Number(safe?.popProfitEstimated ?? safe?.popEstimate ?? 0);
   const weekly = Number(safe?.weeklyYield ?? item?.weeklyReturn ?? 0);
+  const eliteScore = Number(item?.eliteScore ?? 0);
   const safeEqualsAggressive =
     safe?.strike != null &&
     item?.aggressiveStrike?.strike != null &&
@@ -2770,7 +2938,8 @@ function getIbkrActionabilityProfile(item) {
     (primeOk ? 10_000 : 0) +
     Math.min(distance, 30) * 100 +
     (Number.isFinite(pop) ? pop * 100 : 0) +
-    (Number.isFinite(weekly) ? weekly : 0)
+    (Number.isFinite(weekly) ? weekly : 0) +
+    (Number.isFinite(eliteScore) ? eliteScore * 1000 : 0)
       ),
     spreadPct,
     noEarnings,
@@ -4017,6 +4186,7 @@ export default function Dashboard() {
     returned: 0,
   });
   const [yahooReturnedCandidates, setYahooReturnedCandidates] = useState([]);
+  const [yahooDiagnostics, setYahooDiagnostics] = useState(() => createEmptyYahooDiagnostics());
   /** Dernier /scan_shortlist : payload.devScanEnabled (absent du backend → reste false). */
   const [backendShortlistDevScan, setBackendShortlistDevScan] = useState(false);
   /** True seulement si la shortlist affichée vient du LAST_GOOD_SCAN_KEY après échec réseau/API. */
@@ -4039,7 +4209,9 @@ export default function Dashboard() {
   const [ibkrDirectResult, setIbkrDirectResult] = useState(null);
   const [ibkrDirectSentTickers, setIbkrDirectSentTickers] = useState([]);
   const [autoIbkrDirectScan, setAutoIbkrDirectScan] = useState(true);
-  const [ibkrAutoMaxTickers, setIbkrAutoMaxTickers] = useState(10);
+  const [ibkrAutoMaxTickers, setIbkrAutoMaxTickers] = useState(() =>
+    readStoredNumber("wheel.ibkrAuditDepth", 20)
+  );
   const [ibkrAutoClientIdStart] = useState("500");
   const [refreshStage, setRefreshStage] = useState("");
   const [ibkrAutoRankDiagnostics, setIbkrAutoRankDiagnostics] = useState([]);
@@ -4071,6 +4243,7 @@ export default function Dashboard() {
     setScanMeta({ scanned: 0, kept: 0, returned: 0 });
     setYahooScanMeta({ scanned: 0, kept: 0, returned: 0 });
     setYahooReturnedCandidates([]);
+    setYahooDiagnostics(createEmptyYahooDiagnostics());
     setBackendShortlistDevScan(false);
     setClosedMarketCacheFallback(false);
     technicalCandidatesRef.current.clear();
@@ -4282,6 +4455,22 @@ export default function Dashboard() {
   const ibkrManualSendSource = manualIbkrDirectSend.source;
   const ibkrSentCount = Array.isArray(ibkrDirectSentTickers) ? ibkrDirectSentTickers.length : 0;
   const yahooReturnedCount = Array.isArray(yahooReturnedCandidates) ? yahooReturnedCandidates.length : 0;
+  const yahooRejectedCount = Number(yahooDiagnostics?.rejectedTotal || 0);
+  const yahooTopRejectionReasons = useMemo(
+    () => topCountEntries(yahooDiagnostics?.rejectionReasonCounts, 10),
+    [yahooDiagnostics]
+  );
+  const yahooTopStageRejectCounts = useMemo(
+    () => topCountEntries(yahooDiagnostics?.stageRejectCounts, 10),
+    [yahooDiagnostics]
+  );
+  const yahooRejectedSampleRows = useMemo(
+    () =>
+      Array.isArray(yahooDiagnostics?.rejectedSample)
+        ? yahooDiagnostics.rejectedSample.slice(0, 20)
+        : [],
+    [yahooDiagnostics]
+  );
   const ibkrRejectedCount = Array.isArray(ibkrDirectResult?.rejected) ? ibkrDirectResult.rejected.length : 0;
   const ibkrKeptCount = Number.isFinite(Number(ibkrDirectResult?.kept))
     ? Number(ibkrDirectResult.kept)
@@ -4290,7 +4479,7 @@ export default function Dashboard() {
     : 0;
   const ibkrFinalTarget = Number.isFinite(Number(ibkrDirectResult?.finalDisplayedTarget))
     ? Number(ibkrDirectResult.finalDisplayedTarget)
-    : Number(ibkrAutoMaxTickers) || 10;
+    : Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
   const ibkrTotalKeptCollected = Number.isFinite(Number(ibkrDirectResult?.totalKeptCollected))
     ? Number(ibkrDirectResult.totalKeptCollected)
     : ibkrKeptCount;
@@ -4327,7 +4516,9 @@ export default function Dashboard() {
     return Math.min(...scores);
   }, [backendCandidates]);
   const yahooNonSentCandidates = useMemo(() => {
-    const offset = ibkrTestedCount > 0 ? ibkrTestedCount : Math.min(Number(ibkrAutoMaxTickers) || 10, 20);
+    const offset = ibkrTestedCount > 0
+      ? ibkrTestedCount
+      : Math.min(Number(ibkrAutoMaxTickers) || 20, 120);
     return (yahooReturnedCandidates || [])
       .slice(offset, 30)
       .filter((item) => !ibkrSentSet.has(String(item?.ticker || "").trim().toUpperCase()));
@@ -4577,7 +4768,8 @@ export default function Dashboard() {
         return;
       }
 
-      const finalTarget = Number(ibkrAutoMaxTickers) || 10;
+      const finalTargetRaw = Number(ibkrAutoMaxTickers) || 20;
+      const finalTarget = Math.min(120, Math.max(10, finalTargetRaw));
       /** @type {{ symbol: string, score?: number, reasons: string[], tierBoost?: number, rank?: number, selectionMode: "yahoo_shortlist" | "watchlist_fallback" }[]} */
       let diagnostics = [];
       /** @type {string[]} */
@@ -4620,7 +4812,7 @@ export default function Dashboard() {
             return a.symbol.localeCompare(b.symbol);
           });
         candidatePool = ranked.map((row) => row.symbol);
-        diagnostics = ranked.slice(0, 20).map((row) => ({
+        diagnostics = ranked.slice(0, finalTarget).map((row) => ({
           symbol: row.symbol,
           score: row.score,
           reasons: row.reasons,
@@ -4645,7 +4837,7 @@ export default function Dashboard() {
         orderedSymbolsLength: Array.isArray(orderedSymbols) ? orderedSymbols.length : 0,
         candidatePoolLength: candidatePool.length,
         maxTickers: finalTarget,
-        progressiveTestLimit: Math.min(candidatePool.length, 20),
+        progressiveTestLimit: Math.min(candidatePool.length, finalTarget),
       });
 
       if (ibkrAutoInput.forceYahooShortlistOnly === true && sourceTag === "watchlist_fallback") {
@@ -4661,7 +4853,7 @@ export default function Dashboard() {
       }
 
       setIbkrAutoTickerSource(sourceTag);
-      setIbkrAutoRankDiagnostics(diagnostics.slice(0, 20));
+      setIbkrAutoRankDiagnostics(diagnostics.slice(0, finalTarget));
       if (!candidatePool.length) {
         console.warn("[IBKR_AUTO_SKIPPED]", { scanId, reason: "tickersToSend vide après sélection" });
         setTimeout(() => {
@@ -4679,7 +4871,7 @@ export default function Dashboard() {
         const payloads = [];
         const testedSymbols = [];
         let cursor = 0;
-        const evaluationCap = Math.min(candidatePool.length, 20);
+        const evaluationCap = Math.min(candidatePool.length, finalTarget);
         while (cursor < evaluationCap) {
           const batchSize = cursor === 0 ? Math.min(10, evaluationCap) : Math.min(5, evaluationCap - cursor);
           const batch = candidatePool.slice(cursor, cursor + batchSize);
@@ -4695,6 +4887,7 @@ export default function Dashboard() {
             clientIdStart: Number(ibkrAutoClientIdStart) + cursor,
             maxTickers: batch.length,
             topN: batch.length,
+            auditDepth: finalTarget,
           });
           payloads.push(batchPayload);
           cursor += batchSize;
@@ -4769,7 +4962,7 @@ export default function Dashboard() {
             }
           } else if (warnings.includes("ibkr_shadow_batch_timeout")) {
             setIbkrDirectError("");
-            setRefreshStage("Timeout IBKR : réduire Max IBKR à 10 ou moins. Yahoo/fallback conservé.");
+            setRefreshStage("Timeout IBKR : réduire IBKR Audit Depth. Yahoo/fallback conservé.");
           } else {
             setIbkrDirectError("");
             setRefreshStage(
@@ -4898,6 +5091,12 @@ export default function Dashboard() {
         returned: payload.returned ?? mapped.length,
       });
       setYahooReturnedCandidates(mapped);
+      const nextYahooDiagnostics = buildYahooDiagnosticsFromScanPayload(payload, {
+        scanned: payload.scanned ?? tickers.length,
+        kept: payload.kept ?? mapped.length,
+        returned: payload.returned ?? mapped.length,
+      });
+      setYahooDiagnostics(nextYahooDiagnostics);
 
       const yahooTop20 = (payload.shortlist || []).slice(0, 20).map((it) => it.symbol);
       console.log("[SCAN_YAHOO_RESULT]", {
@@ -4923,6 +5122,7 @@ export default function Dashboard() {
                 kept: payload.kept ?? mapped.length,
                 returned: payload.returned ?? mapped.length,
               },
+              yahooDiagnostics: nextYahooDiagnostics,
               shortlist: mapped,
               savedAt: new Date().toISOString(),
             })
@@ -4993,6 +5193,13 @@ export default function Dashboard() {
           }
         );
         setYahooReturnedCandidates(tagged);
+        setYahooDiagnostics(
+          normalizeYahooDiagnosticsForState(cached?.yahooDiagnostics, {
+            scanned: cached?.scanMeta?.scanned ?? tagged.length,
+            kept: cached?.scanMeta?.kept ?? tagged.length,
+            returned: cached?.scanMeta?.returned ?? tagged.length,
+          })
+        );
         setBackendShortlistDevScan(cached?.devScanEnabled === true);
         setClosedMarketCacheFallback(true);
         setScanError("");
@@ -5012,6 +5219,13 @@ export default function Dashboard() {
           returned: 0,
         });
         setYahooReturnedCandidates([]);
+        setYahooDiagnostics(
+          normalizeYahooDiagnosticsForState(null, {
+            scanned: tickers.length,
+            kept: 0,
+            returned: 0,
+          })
+        );
         setClosedMarketCacheFallback(false);
       }
       if (shouldRunAutoIbkr && runAutoIbkrDirectScanRef.current) {
@@ -5166,6 +5380,7 @@ export default function Dashboard() {
         clientIdStart: ibkrDirectClientIdStart,
         maxTickers: ibkrDirectMaxTickers,
         topN: ibkrDirectTopN,
+        auditDepth: ibkrDirectMaxTickers,
       });
       if (
         normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)
@@ -5245,6 +5460,7 @@ export default function Dashboard() {
         clientIdStart: ibkrDirectClientIdStart,
         maxTickers: 3,
         topN: 3,
+        auditDepth: 10,
       });
       if (
         normalizeExpirationYmd(selectedExpirationRef.current) !== normalizeExpirationYmd(expLocked)
@@ -5389,6 +5605,11 @@ export default function Dashboard() {
   }, [topN]);
 
   useEffect(() => {
+    const clamped = Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20));
+    window.localStorage.setItem("wheel.ibkrAuditDepth", String(clamped));
+  }, [ibkrAutoMaxTickers]);
+
+  useEffect(() => {
     window.localStorage.setItem("wheel.maxCapitalPct", String(maxCapitalPct));
   }, [maxCapitalPct]);
 
@@ -5505,7 +5726,7 @@ export default function Dashboard() {
             <Input
               type="number"
               min="1"
-              max="100"
+              max="120"
               value={topN}
               onChange={(e) => setTopN(Number(e.target.value || 1))}
               className="w-full rounded-xl border-slate-200"
@@ -5564,16 +5785,18 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Max IBKR</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">IBKR Audit Depth</label>
             <Select
               value={String(ibkrAutoMaxTickers)}
               onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value))}
               className="w-full rounded-xl border-slate-200"
               disabled={!autoIbkrDirectScan}
             >
-              <option value="3">3</option>
               <option value="10">10</option>
               <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+              <option value="120">120</option>
             </Select>
           </div>
 
@@ -5640,10 +5863,70 @@ export default function Dashboard() {
           </div>
         )}
 
+        {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+            <details>
+              <summary className="cursor-pointer font-semibold text-slate-900">
+                Diagnostic Yahoo (dernier scan)
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Yahoo scanned" value={String(yahooScanMeta.scanned || 0)} />
+                <Metric label="Yahoo kept" value={String(yahooScanMeta.kept || 0)} />
+                <Metric label="Yahoo returned" value={String(yahooScanMeta.returned || 0)} />
+                <Metric label="Yahoo rejected" value={String(yahooRejectedCount)} />
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">Top rejectionReasonCounts</p>
+                  {yahooTopRejectionReasons.length === 0 ? (
+                    <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                      {yahooTopRejectionReasons.map((row) => (
+                        <div key={`yahoo-reason-${row.reason}`}>
+                          {formatIbkrReason(row.reason)} : {row.count}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">Top stageRejectCounts</p>
+                  {yahooTopStageRejectCounts.length === 0 ? (
+                    <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                      {yahooTopStageRejectCounts.map((row) => (
+                        <div key={`yahoo-stage-${row.reason}`}>
+                          {formatIbkrReason(row.reason)} : {row.count}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="font-medium text-slate-900">Exemples rejetés (max 20)</p>
+                {yahooRejectedSampleRows.length === 0 ? (
+                  <p className="mt-1 text-xs text-slate-500">Aucun exemple disponible.</p>
+                ) : (
+                  <div className="mt-2 space-y-1 text-xs text-slate-700">
+                    {yahooRejectedSampleRows.map((row, index) => (
+                      <div key={`yahoo-rejected-sample-${row.symbol}-${index}`}>
+                        {row.symbol} : {formatIbkrReason(row.reason)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
+        )}
+
         {yahooReturnedCount > 0 && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
             <p className="font-semibold text-slate-900">Candidats Yahoo non envoyés à IBKR</p>
-            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 10, 20)) ? (
+            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 120)) ? (
               <p className="mt-2 text-slate-500">
                 Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
               </p>

@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-05-05T19:22:48.649Z",
+  "records": [
+    {
+      "id": "SOFI_20260515_safe_13_2026-05-05",
+      "scanTimestamp": "2026-05-05T18:12:00.000Z",
+      "scanDate": "2026-05-05",
+      "symbol": "SOFI",
+      "expiration": "20260515",
+      "strikeMode": "safe",
+      "source": {
+        "yahoo": true,
+        "ibkrValidated": true
+      },
+      "ranks": {
+        "yahooRank": 7,
+        "ibkrRank": 3
+      },
+      "scores": {
+        "qualityScoreYahoo": 82.4,
+        "finalScoreYahoo": 79.1,
+        "eliteScore": 84.6,
+        "eliteBadge": "Elite"
+      },
+      "underlying": {
+        "spotAtScan": 14.22,
+        "expectedMove": 1.05,
+        "lowerBound": 13.17
+      },
+      "strike": {
+        "strike": 13,
+        "premium": 0.11,
+        "bid": 0.11,
+        "ask": 0.12,
+        "mid": 0.115,
+        "spread": 0.01,
+        "spreadPct": 8.7,
+        "annualizedYield": 0.31,
+        "targetPremium": 0.07,
+        "popEstimate": 0.74
+      },
+      "context": {
+        "support": 12.85,
+        "resistance": 15.4,
+        "supportStatus": "below_support",
+        "hasEarningsBeforeExpiration": false,
+        "earningsDate": null,
+        "earningsDaysUntil": null,
+        "marketCap": null,
+        "averageVolume": null,
+        "quoteType": null,
+        "rsi": null
+      },
+      "resolution": {
+        "resolved": true,
+        "expirationClosePrice": 13.25,
+        "expiredWorthless": true,
+        "assigned": false,
+        "rolled": false,
+        "realizedPl": 11,
+        "premiumRealized": 11,
+        "popPredictionCorrect": true,
+        "outcomeStatus": "expired_worthless",
+        "resolutionDate": "2026-05-15",
+        "notes": "manual validation"
+      }
+    }
+  ]
+}

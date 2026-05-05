@@ -15,6 +15,7 @@ import { createWheelScanner } from "./app/scanners/wheelScanner.js";
 import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
 import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
 import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
+import { createWheelValidationService } from "./app/journal/wheelValidationService.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -27,6 +28,7 @@ const marketService = createMarketService(provider);
 const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
+const wheelValidationService = createWheelValidationService();
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 const WHEEL_DEV_SCAN_WARNING =
   "DEV TEST - marché fermé / données possiblement figées / non tradables";
@@ -1901,6 +1903,71 @@ app.post("/scan_shortlist", async (req, res) => {
     res.status(status).json(payload);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "scan_shortlist failed" });
+  }
+});
+
+app.get("/journal/wheel-validation", async (_req, res) => {
+  try {
+    const journal = await wheelValidationService.listJournal();
+    res.json({
+      ok: true,
+      journal,
+      totalRecords: Array.isArray(journal?.records) ? journal.records.length : 0,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_get_failed",
+    });
+  }
+});
+
+app.post("/journal/wheel-validation/capture", async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const candidates = Array.isArray(body.candidates)
+      ? body.candidates
+      : Array.isArray(body.finalCandidates)
+      ? body.finalCandidates
+      : Array.isArray(body.items)
+      ? body.items
+      : [];
+    const topN = Math.min(Math.max(toPositiveInt(body.topN, 30), 1), 200);
+    const result = await wheelValidationService.captureFromCandidates(candidates, {
+      topN,
+      scanTimestamp: body.scanTimestamp,
+    });
+    res.json({
+      ok: true,
+      source: "final_candidates_snapshot",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_capture_failed",
+    });
+  }
+});
+
+app.patch("/journal/wheel-validation/:id/resolution", async (req, res) => {
+  try {
+    const record = await wheelValidationService.patchResolution(req.params.id, req.body ?? {});
+    res.json({
+      ok: true,
+      record,
+    });
+  } catch (error) {
+    if (error?.code === "NOT_FOUND") {
+      return res.status(404).json({
+        ok: false,
+        error: error.message,
+      });
+    }
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_patch_failed",
+    });
   }
 });
 

@@ -1924,6 +1924,21 @@ app.get("/journal/wheel-validation", async (_req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/stats", async (_req, res) => {
+  try {
+    const stats = await wheelValidationService.computeStats();
+    res.json({
+      ok: true,
+      stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_stats_failed",
+    });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

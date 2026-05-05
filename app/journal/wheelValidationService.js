@@ -360,6 +360,124 @@ export function createWheelValidationService(options = {}) {
     return store.load();
   }
 
+  async function computeStats() {
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+    const resolvedRecords = records.filter((record) => record?.resolution?.resolved === true);
+    const unresolvedRecords = records.length - resolvedRecords.length;
+
+    const avg = (values) => {
+      const nums = values.map((v) => toNumberOrNull(v)).filter((v) => v != null);
+      if (nums.length === 0) return null;
+      return nums.reduce((sum, n) => sum + n, 0) / nums.length;
+    };
+
+    const successCount = resolvedRecords.filter((record) => record?.resolution?.popPredictionCorrect === true).length;
+    const overall = {
+      successRate: resolvedRecords.length > 0 ? (successCount / resolvedRecords.length) * 100 : null,
+      avgPopEstimate: avg(resolvedRecords.map((record) => record?.strike?.popEstimate)),
+      avgEliteScore: avg(resolvedRecords.map((record) => record?.scores?.eliteScore)),
+    };
+
+    const groupResolved = (keyFn) => {
+      const map = new Map();
+      for (const record of resolvedRecords) {
+        const key = keyFn(record);
+        const normalizedKey = key == null || String(key).trim() === "" ? "unknown" : String(key).trim();
+        if (!map.has(normalizedKey)) map.set(normalizedKey, []);
+        map.get(normalizedKey).push(record);
+      }
+      return map;
+    };
+
+    const byDte = Array.from(groupResolved((record) => record?.dteAtScan).entries())
+      .map(([dteAtScan, rows]) => {
+        const success = rows.filter((record) => record?.resolution?.popPredictionCorrect === true).length;
+        return {
+          dteAtScan: toNumberOrNull(dteAtScan),
+          count: rows.length,
+          successCount: success,
+          failureCount: rows.length - success,
+          successRate: rows.length > 0 ? (success / rows.length) * 100 : null,
+          avgPopEstimate: avg(rows.map((record) => record?.strike?.popEstimate)),
+          avgEliteScore: avg(rows.map((record) => record?.scores?.eliteScore)),
+        };
+      })
+      .sort((a, b) => Number(a?.dteAtScan ?? 1e9) - Number(b?.dteAtScan ?? 1e9));
+
+    const byStrikeMode = Array.from(groupResolved((record) => record?.strikeMode).entries())
+      .map(([strikeMode, rows]) => {
+        const success = rows.filter((record) => record?.resolution?.popPredictionCorrect === true).length;
+        return {
+          strikeMode,
+          count: rows.length,
+          successRate: rows.length > 0 ? (success / rows.length) * 100 : null,
+          avgPopEstimate: avg(rows.map((record) => record?.strike?.popEstimate)),
+          avgPremium: avg(rows.map((record) => record?.strike?.premium)),
+          avgEliteScore: avg(rows.map((record) => record?.scores?.eliteScore)),
+        };
+      })
+      .sort((a, b) => String(a.strikeMode).localeCompare(String(b.strikeMode)));
+
+    const byEliteBadge = Array.from(groupResolved((record) => record?.scores?.eliteBadge).entries())
+      .map(([eliteBadge, rows]) => {
+        const success = rows.filter((record) => record?.resolution?.popPredictionCorrect === true).length;
+        return {
+          eliteBadge,
+          count: rows.length,
+          successRate: rows.length > 0 ? (success / rows.length) * 100 : null,
+          avgPopEstimate: avg(rows.map((record) => record?.strike?.popEstimate)),
+          avgEliteScore: avg(rows.map((record) => record?.scores?.eliteScore)),
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const byExpirationCohort = Array.from(
+      groupResolved((record) => record?.expirationCohort ?? toExpirationYmd(record?.expiration)).entries()
+    )
+      .map(([expirationCohort, rows]) => {
+        const success = rows.filter((record) => record?.resolution?.popPredictionCorrect === true).length;
+        const assignedCount = rows.filter((record) => record?.resolution?.assigned === true).length;
+        const expiredWorthlessCount = rows.filter(
+          (record) => record?.resolution?.expiredWorthless === true
+        ).length;
+        return {
+          expirationCohort,
+          count: rows.length,
+          successRate: rows.length > 0 ? (success / rows.length) * 100 : null,
+          resolvedCount: rows.length,
+          assignedCount,
+          expiredWorthlessCount,
+        };
+      })
+      .sort((a, b) => String(a.expirationCohort).localeCompare(String(b.expirationCohort)));
+
+    const byTickerTop = Array.from(groupResolved((record) => record?.symbol).entries())
+      .map(([symbol, rows]) => {
+        const success = rows.filter((record) => record?.resolution?.popPredictionCorrect === true).length;
+        return {
+          symbol,
+          count: rows.length,
+          successRate: rows.length > 0 ? (success / rows.length) * 100 : null,
+        };
+      })
+      .filter((row) => row.count >= 3)
+      .sort((a, b) => b.count - a.count || Number(b.successRate ?? -1) - Number(a.successRate ?? -1))
+      .slice(0, 20);
+
+    return {
+      totalRecords: records.length,
+      resolvedRecords: resolvedRecords.length,
+      unresolvedRecords,
+      overall,
+      byDte,
+      byStrikeMode,
+      byEliteBadge,
+      byExpirationCohort,
+      byTickerTop,
+    };
+  }
+
   async function captureFromCandidates(candidates, options = {}) {
     return withWriteLock(async () => {
       const journal = await store.load();
@@ -532,6 +650,7 @@ export function createWheelValidationService(options = {}) {
   return {
     buildRecordsFromCandidates,
     listJournal,
+    computeStats,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

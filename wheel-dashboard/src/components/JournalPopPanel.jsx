@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
 function numberOrNull(value) {
@@ -9,7 +9,7 @@ function numberOrNull(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return "-";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return String(value);
   return parsed.toISOString().slice(0, 10);
@@ -17,13 +17,13 @@ function formatDate(value) {
 
 function formatCompactExpiration(value) {
   const raw = String(value ?? "").trim();
-  if (!/^\d{8}$/.test(raw)) return raw || "—";
+  if (!/^\d{8}$/.test(raw)) return raw || "-";
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
 }
 
 function formatMoney(value) {
   const n = numberOrNull(value);
-  if (n == null) return "—";
+  if (n == null) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -34,13 +34,13 @@ function formatMoney(value) {
 
 function formatPercent(value, digits = 1) {
   const n = numberOrNull(value);
-  if (n == null) return "—";
+  if (n == null) return "-";
   return `${n.toFixed(digits)}%`;
 }
 
 function formatPop(value) {
   const n = numberOrNull(value);
-  if (n == null) return "—";
+  if (n == null) return "-";
   return `${(n * 100).toFixed(1)}%`;
 }
 
@@ -91,6 +91,9 @@ function JournalTable({ title, rows }) {
                 <th className="px-3 py-3 font-medium">Date scan</th>
                 <th className="px-3 py-3 font-medium">Ticker</th>
                 <th className="px-3 py-3 font-medium">Expiration</th>
+                <th className="px-3 py-3 font-medium">DTE</th>
+                <th className="px-3 py-3 font-medium">Rang</th>
+                <th className="px-3 py-3 font-medium">Source</th>
                 <th className="px-3 py-3 font-medium">Strike mode</th>
                 <th className="px-3 py-3 font-medium">Strike</th>
                 <th className="px-3 py-3 font-medium">Premium</th>
@@ -107,20 +110,23 @@ function JournalTable({ title, rows }) {
               {rows.map((record) => (
                 <tr key={record.id} className="border-b border-slate-100 last:border-b-0">
                   <td className="px-3 py-3">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
-                  <td className="px-3 py-3 font-semibold text-slate-900">{record?.symbol || "—"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-900">{record?.symbol || "-"}</td>
                   <td className="px-3 py-3">{formatCompactExpiration(record?.expiration)}</td>
-                  <td className="px-3 py-3">{record?.strikeMode || "—"}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.strike?.strike) ?? "—"}</td>
+                  <td className="px-3 py-3">{numberOrNull(record?.dteAtScan) ?? "-"}</td>
+                  <td className="px-3 py-3">{numberOrNull(record?.candidateRank) ?? "-"}</td>
+                  <td className="px-3 py-3">{record?.captureSource || "-"}</td>
+                  <td className="px-3 py-3">{record?.strikeMode || "-"}</td>
+                  <td className="px-3 py-3">{numberOrNull(record?.strike?.strike) ?? "-"}</td>
                   <td className="px-3 py-3">{formatMoney(record?.strike?.premium)}</td>
                   <td className="px-3 py-3">{formatPop(record?.strike?.popEstimate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.ranks?.yahooRank) ?? "—"}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.ranks?.ibkrRank) ?? "—"}</td>
+                  <td className="px-3 py-3">{numberOrNull(record?.ranks?.yahooRank) ?? "-"}</td>
+                  <td className="px-3 py-3">{numberOrNull(record?.ranks?.ibkrRank) ?? "-"}</td>
                   <td className="px-3 py-3">
                     {numberOrNull(record?.scores?.eliteScore) != null
                       ? Number(record.scores.eliteScore).toFixed(1)
-                      : "—"}
+                      : "-"}
                   </td>
-                  <td className="px-3 py-3">{record?.scores?.eliteBadge || "—"}</td>
+                  <td className="px-3 py-3">{record?.scores?.eliteBadge || "-"}</td>
                   <td className="px-3 py-3">{getResolutionLabel(record)}</td>
                   <td className="px-3 py-3">{formatMoney(record?.resolution?.realizedPl)}</td>
                 </tr>
@@ -313,7 +319,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             disabled={resolving || loading}
             className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Résoudre expirations échues
+            Resoudre expirations echues
           </button>
         </div>
 
@@ -324,7 +330,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         ) : null}
         {resolveSummary ? (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            Résolus : {resolveSummary.resolved} · Sans close : {resolveSummary.skippedNoClose} · Erreurs :{" "}
+            Resolus : {resolveSummary.resolved} - Sans close : {resolveSummary.skippedNoClose} - Erreurs :{" "}
             {resolveSummary.errors}
           </div>
         ) : null}
@@ -346,7 +352,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         <JournalMetric label="Average realized P/L" value={formatMoney(stats.averageRealizedPl)} />
         <JournalMetric
           label="Updated"
-          value={journal?.updatedAt ? formatDate(journal.updatedAt) : "—"}
+          value={journal?.updatedAt ? formatDate(journal.updatedAt) : "-"}
         />
       </section>
 
@@ -364,7 +370,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               <JournalMetric label="Unresolved records" value={String(calibrationStats?.unresolvedRecords ?? 0)} tone="warn" />
               <JournalMetric label="Success rate" value={formatPercent(calibrationStats?.overall?.successRate)} />
               <JournalMetric label="Avg POP estimate" value={formatPop(calibrationStats?.overall?.avgPopEstimate)} />
-              <JournalMetric label="Avg Elite score" value={numberOrNull(calibrationStats?.overall?.avgEliteScore)?.toFixed(1) ?? "—"} />
+              <JournalMetric label="Avg Elite score" value={numberOrNull(calibrationStats?.overall?.avgEliteScore)?.toFixed(1) ?? "-"} />
             </section>
 
             <CalibrationTable
@@ -372,13 +378,13 @@ export default function JournalPopPanel({ apiBase, active }) {
               headers={["DTE", "Count", "Success", "Failure", "Success rate", "Avg POP", "Avg Elite"]}
               rows={(calibrationStats?.byDte ?? []).map((row) => (
                 <tr key={`dte-${String(row?.dteAtScan ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{numberOrNull(row?.dteAtScan) ?? "—"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.dteAtScan) ?? "-"}</td>
                   <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
                   <td className="px-3 py-3">{numberOrNull(row?.successCount) ?? 0}</td>
                   <td className="px-3 py-3">{numberOrNull(row?.failureCount) ?? 0}</td>
                   <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
                   <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "—"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
                 </tr>
               ))}
             />
@@ -388,12 +394,12 @@ export default function JournalPopPanel({ apiBase, active }) {
               headers={["Mode", "Count", "Success rate", "Avg POP", "Avg Premium", "Avg Elite"]}
               rows={(calibrationStats?.byStrikeMode ?? []).map((row) => (
                 <tr key={`mode-${String(row?.strikeMode ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.strikeMode || "—"}</td>
+                  <td className="px-3 py-3">{row?.strikeMode || "-"}</td>
                   <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
                   <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
                   <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
                   <td className="px-3 py-3">{formatMoney(row?.avgPremium)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "—"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
                 </tr>
               ))}
             />
@@ -407,7 +413,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                   <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
                   <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
                   <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "—"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
                 </tr>
               ))}
             />
@@ -432,7 +438,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               headers={["Ticker", "Count", "Success rate"]}
               rows={(calibrationStats?.byTickerTop ?? []).map((row) => (
                 <tr key={`ticker-${String(row?.symbol ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3 font-semibold text-slate-900">{row?.symbol || "—"}</td>
+                  <td className="px-3 py-3 font-semibold text-slate-900">{row?.symbol || "-"}</td>
                   <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
                   <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
                 </tr>
@@ -447,3 +453,4 @@ export default function JournalPopPanel({ apiBase, active }) {
     </div>
   );
 }
+

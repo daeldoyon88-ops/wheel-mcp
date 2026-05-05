@@ -9,3 +9,7 @@ dist/
 .DS_Store__pycache__/
 *.pyc
 data/wheelValidationJournal.json
+data/wheelValidationJournal.sqlite
+data/wheelValidationJournal.sqlite-*
+data/*.sqlite
+data/*.sqlite-*

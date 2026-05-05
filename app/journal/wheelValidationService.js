@@ -313,7 +313,7 @@ function isExpiredExpiration(expiration, todayYmd) {
 }
 
 export function createWheelValidationService(options = {}) {
-  const store = createWheelValidationStore(options.journalPath);
+  const store = options.store ?? createWheelValidationStore(options.journalPath);
   const getHistoricalClose =
     typeof options.getHistoricalClose === "function" ? options.getHistoricalClose : null;
   let writeChain = Promise.resolve();

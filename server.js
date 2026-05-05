@@ -16,6 +16,7 @@ import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
 import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
 import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
 import { createWheelValidationService } from "./app/journal/wheelValidationService.js";
+import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -28,7 +29,12 @@ const marketService = createMarketService(provider);
 const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
+const useSqliteJournal = String(process.env.USE_SQLITE_JOURNAL || "false").trim().toLowerCase() === "true";
+const wheelValidationStore = useSqliteJournal
+  ? (await import("./app/journal/wheelValidationStoreSqlite.js")).createWheelValidationStoreSqlite()
+  : createWheelValidationStore();
 const wheelValidationService = createWheelValidationService({
+  store: wheelValidationStore,
   getHistoricalClose: (symbol, dateYmd) => marketService.getHistoricalClose(symbol, dateYmd),
 });
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;

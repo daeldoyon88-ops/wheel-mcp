@@ -363,7 +363,21 @@ export function createMarketService(provider) {
       const rows = (result?.quotes ?? [])
         .map((q) => ({ high: toNumber(q?.high), low: toNumber(q?.low), close: toNumber(q?.close) }))
         .filter((q) => q.high > 0 && q.low > 0 && q.close > 0);
-      if (rows.length < 20) return { symbol, support: null, resistance: null };
+      if (rows.length < 20) {
+        return {
+          symbol,
+          support: null,
+          resistance: null,
+          supportWide: null,
+          supportNear: null,
+          potentialSupportFromBrokenResistance: null,
+          resistanceAboveSpot: null,
+          resistanceCurrent: null,
+          resistanceStatus: "unavailable",
+          supportResistanceMethod: "quantile_40d_plus_near_levels",
+          currentPrice: null,
+        };
+      }
 
       const recent = rows.slice(-40);
       const currentPrice = recent[recent.length - 1]?.close ?? null;
@@ -371,15 +385,59 @@ export function createMarketService(provider) {
       const highs = recent.map((r) => r.high).sort((a, b) => b - a);
       const support = lows[Math.floor(lows.length * 0.2)] ?? null;
       const resistance = highs[Math.floor(highs.length * 0.2)] ?? null;
+      const spot = Number(currentPrice);
+      const hasSpot = Number.isFinite(spot) && spot > 0;
+      const underSpotLows = hasSpot
+        ? recent
+            .map((r) => Number(r.low))
+            .filter((v) => Number.isFinite(v) && v > 0 && v < spot * 0.999)
+        : [];
+      const aboveSpotHighs = hasSpot
+        ? recent
+            .map((r) => Number(r.high))
+            .filter((v) => Number.isFinite(v) && v > 0 && v > spot * 1.001)
+        : [];
+      const supportNear = underSpotLows.length ? Math.max(...underSpotLows) : null;
+      const resistanceAboveSpot = aboveSpotHighs.length ? Math.min(...aboveSpotHighs) : null;
+      const resistanceCurrent = resistance ?? null;
+      const resistanceStatus =
+        !Number.isFinite(Number(resistanceCurrent)) || !hasSpot
+          ? "unavailable"
+          : Number(resistanceCurrent) < spot
+          ? "broken"
+          : "above";
+      const potentialSupportFromBrokenResistance =
+        resistanceStatus === "broken" ? Number(resistanceCurrent) : null;
 
       return {
         symbol,
         support: support ? round(support, 3) : null,
         resistance: resistance ? round(resistance, 3) : null,
+        supportWide: support ? round(support, 3) : null,
+        supportNear: supportNear ? round(supportNear, 3) : null,
+        potentialSupportFromBrokenResistance: potentialSupportFromBrokenResistance
+          ? round(potentialSupportFromBrokenResistance, 3)
+          : null,
+        resistanceAboveSpot: resistanceAboveSpot ? round(resistanceAboveSpot, 3) : null,
+        resistanceCurrent: resistanceCurrent ? round(resistanceCurrent, 3) : null,
+        resistanceStatus,
+        supportResistanceMethod: "quantile_40d_plus_near_levels",
         currentPrice: currentPrice ? round(currentPrice, 3) : null,
       };
     } catch (_error) {
-      return { symbol, support: null, resistance: null, currentPrice: null };
+      return {
+        symbol,
+        support: null,
+        resistance: null,
+        supportWide: null,
+        supportNear: null,
+        potentialSupportFromBrokenResistance: null,
+        resistanceAboveSpot: null,
+        resistanceCurrent: null,
+        resistanceStatus: "unavailable",
+        supportResistanceMethod: "quantile_40d_plus_near_levels",
+        currentPrice: null,
+      };
     }
   }
 

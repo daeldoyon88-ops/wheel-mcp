@@ -671,6 +671,14 @@ export function createWheelScanner(marketService) {
       supportResistance: {
         support: supportResistance?.support ?? null,
         resistance: supportResistance?.resistance ?? null,
+        supportWide: supportResistance?.supportWide ?? supportResistance?.support ?? null,
+        supportNear: supportResistance?.supportNear ?? null,
+        potentialSupportFromBrokenResistance:
+          supportResistance?.potentialSupportFromBrokenResistance ?? null,
+        resistanceAboveSpot: supportResistance?.resistanceAboveSpot ?? null,
+        resistanceCurrent: supportResistance?.resistanceCurrent ?? supportResistance?.resistance ?? null,
+        resistanceStatus: supportResistance?.resistanceStatus ?? "unavailable",
+        supportResistanceMethod: supportResistance?.supportResistanceMethod ?? null,
         strikeVsSupportPct: strikeVsSupportPct != null ? round(strikeVsSupportPct, 2) : null,
         strikeVsResistancePct: strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
         supportStatus,

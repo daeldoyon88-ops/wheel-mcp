@@ -87,6 +87,11 @@ function cn(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+function isValidLevel(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0;
+}
+
 function minPremiumForSpot(spot) {
   if (!spot || spot <= 0) return 0;
   return spot * 0.005;
@@ -207,8 +212,8 @@ function dashboardCandidateHasYahooTechnicals(item) {
   if (t && t !== "—" && t !== "unknown") return true;
   const m = String(item.momentum ?? "").trim().toLowerCase();
   if (m && m !== "—" && m !== "unknown") return true;
-  if (item.support != null && Number.isFinite(Number(item.support))) return true;
-  if (item.resistance != null && Number.isFinite(Number(item.resistance))) return true;
+  if (isValidLevel(item.support)) return true;
+  if (isValidLevel(item.resistance)) return true;
   if (Number.isFinite(Number(item.qualityScore))) return true;
   if (Array.isArray(item.qualityReasons) && item.qualityReasons.length > 0) return true;
   return false;
@@ -662,6 +667,16 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     sma50: item.technicals?.sma50 ?? null,
     support: item.supportResistance?.support ?? null,
     resistance: item.supportResistance?.resistance ?? null,
+    supportWide: item.supportResistance?.supportWide ?? item.supportResistance?.support ?? null,
+    supportNear: item.supportResistance?.supportNear ?? null,
+    potentialSupportFromBrokenResistance:
+      item.supportResistance?.potentialSupportFromBrokenResistance ?? null,
+    resistanceAboveSpot: item.supportResistance?.resistanceAboveSpot ?? null,
+    resistanceCurrent:
+      item.supportResistance?.resistanceCurrent ?? item.supportResistance?.resistance ?? null,
+    resistanceStatus: item.supportResistance?.resistanceStatus ?? "unavailable",
+    supportResistanceMethod: item.supportResistance?.supportResistanceMethod ?? null,
+    supportResistance: item.supportResistance ?? null,
     strikeVsSupportPct: item.supportResistance?.strikeVsSupportPct ?? null,
     strikeVsResistancePct: item.supportResistance?.strikeVsResistancePct ?? null,
     supportStatus: item.supportResistance?.supportStatus ?? "unknown",
@@ -1773,6 +1788,15 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     sma50: yahooCandidate?.sma50 ?? null,
     support: yahooCandidate?.support ?? null,
     resistance: yahooCandidate?.resistance ?? null,
+    supportWide: yahooCandidate?.supportWide ?? yahooCandidate?.support ?? null,
+    supportNear: yahooCandidate?.supportNear ?? null,
+    potentialSupportFromBrokenResistance:
+      yahooCandidate?.potentialSupportFromBrokenResistance ?? null,
+    resistanceAboveSpot: yahooCandidate?.resistanceAboveSpot ?? null,
+    resistanceCurrent: yahooCandidate?.resistanceCurrent ?? yahooCandidate?.resistance ?? null,
+    resistanceStatus: yahooCandidate?.resistanceStatus ?? "unavailable",
+    supportResistanceMethod: yahooCandidate?.supportResistanceMethod ?? null,
+    supportResistance: yahooCandidate?.supportResistance ?? null,
     strikeVsSupportPct: yahooCandidate?.strikeVsSupportPct ?? null,
     strikeVsResistancePct: yahooCandidate?.strikeVsResistancePct ?? null,
     supportStatus: yahooCandidate?.supportStatus ?? "unknown",
@@ -2072,31 +2096,60 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
     : null;
   const shownRank = Number.isFinite(Number(displayRank)) ? Number(displayRank) : yahooRank;
   const rsiHigh = typeof item.rsi === "number" && item.rsi >= 75;
-  const resistanceValue = Number(item.resistance);
+  const supportWideRaw = item.supportWide ?? item.support;
+  const supportNearRaw = item.supportNear;
+  const potentialSupportRaw = item.potentialSupportFromBrokenResistance;
+  const resistanceRaw = item.resistanceCurrent ?? item.resistance;
+  const resistanceAboveSpotRaw = item.resistanceAboveSpot;
+  const supportWideValue = isValidLevel(supportWideRaw) ? Number(supportWideRaw) : null;
+  const supportNearValue = isValidLevel(supportNearRaw) ? Number(supportNearRaw) : null;
+  const potentialSupportValue = isValidLevel(potentialSupportRaw) ? Number(potentialSupportRaw) : null;
+  const resistanceValue = isValidLevel(resistanceRaw) ? Number(resistanceRaw) : null;
+  const resistanceAboveSpotValue = isValidLevel(resistanceAboveSpotRaw) ? Number(resistanceAboveSpotRaw) : null;
   const priceValue = Number(item.price);
   const resistanceUnderSpot =
-    Number.isFinite(resistanceValue) &&
+    isValidLevel(resistanceValue) &&
     Number.isFinite(priceValue) &&
     resistanceValue < priceValue;
   const resistanceDistancePct =
-    Number.isFinite(resistanceValue) &&
+    isValidLevel(resistanceValue) &&
     Number.isFinite(priceValue) &&
     priceValue > 0
       ? ((resistanceValue - priceValue) / priceValue) * 100
       : null;
   const resistanceAbovePct =
-    Number.isFinite(resistanceValue) &&
+    isValidLevel(resistanceValue) &&
     Number.isFinite(priceValue) &&
     resistanceValue > 0
       ? ((priceValue - resistanceValue) / resistanceValue) * 100
       : null;
+  const supportWideDisplay =
+    !isValidLevel(supportWideValue) ? "non disponible" : `$${supportWideValue.toFixed(2)}`;
+  const supportNearDisplay =
+    !isValidLevel(supportNearValue) ? "non disponible" : `$${supportNearValue.toFixed(2)}`;
+  const fallbackPotentialSupportValue =
+    !isValidLevel(potentialSupportValue) &&
+    item.resistanceStatus === "broken" &&
+    isValidLevel(resistanceValue)
+      ? resistanceValue
+      : potentialSupportValue;
+  const potentialSupportDisplay =
+    !isValidLevel(fallbackPotentialSupportValue)
+      ? "non disponible"
+      : `$${fallbackPotentialSupportValue.toFixed(2)}`;
+  const resistanceAboveSpotDisplay =
+    !isValidLevel(resistanceAboveSpotValue) ? "non disponible" : `$${resistanceAboveSpotValue.toFixed(2)}`;
   const resistanceDisplay =
-    item.resistance == null
+    !isValidLevel(resistanceValue)
       ? "—"
-      : `$${Number(item.resistance).toFixed(2)}`;
+      : `$${resistanceValue.toFixed(2)}`;
   const resistanceStatusDisplay =
-    item.resistance == null
+    !isValidLevel(resistanceValue)
       ? "—"
+      : item.resistanceStatus === "broken"
+      ? "franchie"
+      : item.resistanceStatus === "above"
+      ? "au-dessus"
       : resistanceUnderSpot
       ? "franchie"
       : "à surveiller";
@@ -2274,23 +2327,31 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   }
                 />
                 <Metric
-                  label="Support"
-                  value={item.support != null ? `$${Number(item.support).toFixed(2)}` : "—"}
+                  label="Support large"
+                  value={supportWideDisplay}
                 />
                 <Metric
-                  label="Résistance"
+                  label="Résistance actuelle"
                   value={resistanceDisplay}
-                  tone={resistanceUnderSpot ? "warn" : "default"}
+                  tone={resistanceStatusDisplay === "franchie" ? "warn" : "default"}
                 />
                 <Metric
-                  label="Statut résistance"
-                  value={resistanceStatusDisplay}
-                  tone={resistanceUnderSpot ? "warn" : "default"}
+                  label="Support proche"
+                  value={supportNearDisplay}
+                  tone="default"
                 />
                 <Metric
-                  label="Distance spot/résistance"
-                  value={resistanceDistanceDisplay}
-                  tone={resistanceUnderSpot ? "warn" : "default"}
+                  label="Support potentiel"
+                  value={potentialSupportDisplay}
+                  tone={
+                    item.resistanceStatus === "broken" || isValidLevel(fallbackPotentialSupportValue)
+                      ? "good"
+                      : "default"
+                  }
+                />
+                <Metric
+                  label="Résistance supérieure"
+                  value={resistanceAboveSpotDisplay}
                 />
                 <Metric
                   label="Score Yahoo pré-IBKR"
@@ -2324,16 +2385,15 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée.
                 </p>
               </details>
-              {resistanceUnderSpot &&
-                Number.isFinite(resistanceValue) &&
-                Number.isFinite(priceValue) &&
-                resistanceAbovePct != null && (
+              {(item.resistanceStatus === "broken" || resistanceUnderSpot) &&
+    isValidLevel(resistanceValue) &&
+                Number.isFinite(priceValue) && (
                 <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">
-                  Ancienne résistance ${resistanceValue.toFixed(2)} franchie — spot ${priceValue.toFixed(2)} (+{Math.abs(resistanceAbovePct).toFixed(1)} % au-dessus).
+                  Ancienne résistance ${resistanceValue.toFixed(2)} franchie — support potentiel.
                 </div>
               )}
               {!resistanceUnderSpot &&
-                Number.isFinite(resistanceValue) &&
+    isValidLevel(resistanceValue) &&
                 Number.isFinite(priceValue) &&
                 resistanceDistancePct != null && (
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
@@ -3568,8 +3628,36 @@ function DetailModal({ item, onClose }) {
     liveData?.expectedMove?.oneSigmaRange?.upper ??
     item.expectedMoveHigh;
 
-  const support = liveData?.supportResistance?.support ?? item.support ?? null;
-  const resistance = liveData?.supportResistance?.resistance ?? item.resistance ?? null;
+  const supportWide =
+    liveData?.supportResistance?.supportWide ??
+    liveData?.supportResistance?.support ??
+    item.supportWide ??
+    item.support ??
+    null;
+  const supportNear =
+    liveData?.supportResistance?.supportNear ??
+    item.supportNear ??
+    null;
+  const resistanceCurrent =
+    liveData?.supportResistance?.resistanceCurrent ??
+    liveData?.supportResistance?.resistance ??
+    item.resistanceCurrent ??
+    item.resistance ??
+    null;
+  const resistanceAboveSpot =
+    liveData?.supportResistance?.resistanceAboveSpot ??
+    item.resistanceAboveSpot ??
+    null;
+  const resistanceStatus =
+    liveData?.supportResistance?.resistanceStatus ??
+    item.resistanceStatus ??
+    "unavailable";
+  const potentialSupportFromBrokenResistance =
+    liveData?.supportResistance?.potentialSupportFromBrokenResistance ??
+    item.potentialSupportFromBrokenResistance ??
+    null;
+  const support = supportWide;
+  const resistance = resistanceCurrent;
   const strikeVsSupportPct =
     item.safeStrike && support
       ? ((item.safeStrike.strike - support) / support) * 100
@@ -3663,8 +3751,37 @@ function DetailModal({ item, onClose }) {
           </div>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Metric label="Support" value={support ? `$${Number(support).toFixed(2)}` : "—"} />
-            <Metric label="Résistance" value={resistance ? `$${Number(resistance).toFixed(2)}` : "—"} />
+            <Metric
+              label="Support large"
+              value={isValidLevel(supportWide) ? `$${Number(supportWide).toFixed(2)}` : "non disponible"}
+            />
+            <Metric
+              label="Support proche"
+              value={isValidLevel(supportNear) ? `$${Number(supportNear).toFixed(2)}` : "non disponible"}
+            />
+            <Metric
+              label="Support potentiel"
+              value={
+                isValidLevel(potentialSupportFromBrokenResistance) && resistanceStatus === "broken"
+                  ? `$${Number(potentialSupportFromBrokenResistance).toFixed(2)}`
+                  : resistanceStatus === "broken" && isValidLevel(resistanceCurrent)
+                  ? `$${Number(resistanceCurrent).toFixed(2)}`
+                  : "non disponible"
+              }
+              tone={resistanceStatus === "broken" ? "good" : "default"}
+            />
+            <Metric
+              label="Résistance supérieure"
+              value={
+                isValidLevel(resistanceAboveSpot)
+                  ? `$${Number(resistanceAboveSpot).toFixed(2)}`
+                  : "non disponible"
+              }
+            />
+            <Metric
+              label="Résistance actuelle"
+              value={isValidLevel(resistance) ? `$${Number(resistance).toFixed(2)}` : "non disponible"}
+            />
             <Metric
               label="Strike vs support"
               value={

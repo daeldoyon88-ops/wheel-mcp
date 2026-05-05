@@ -377,6 +377,19 @@ function normalizeExpirationYmd(value) {
   return null;
 }
 
+function computeDteAtScan(scanTimestamp, expirationYmd) {
+  const exp = normalizeExpirationYmd(expirationYmd);
+  if (!exp) return null;
+  const scanIso = scanTimestamp == null ? new Date().toISOString() : String(scanTimestamp);
+  const scanDate = new Date(scanIso);
+  if (Number.isNaN(scanDate.getTime())) return null;
+  const scanDayUtc = Date.UTC(scanDate.getUTCFullYear(), scanDate.getUTCMonth(), scanDate.getUTCDate());
+  const [y, m, d] = exp.split("-").map(Number);
+  const expDayUtc = Date.UTC(y, m - 1, d);
+  if (!Number.isFinite(scanDayUtc) || !Number.isFinite(expDayUtc)) return null;
+  return Math.round((expDayUtc - scanDayUtc) / 86400000);
+}
+
 /** Filtre d’affichage : aucune carte dont l’expiration explicite ne correspond pas à la sélection. */
 function candidateRowMatchesSelectedExpiration(item, selectedExp) {
   const sel = normalizeExpirationYmd(selectedExp);
@@ -2663,7 +2676,15 @@ async function callScanShortlist({ expiration, topN, tickers, sort = "quality" }
   return payload;
 }
 
-async function callWheelJournalCapture({ candidates, topN, scanTimestamp, scanSessionId }) {
+async function callWheelJournalCapture({
+  candidates,
+  topN,
+  scanTimestamp,
+  scanSessionId,
+  selectedExpiration,
+  captureSource,
+  dteAtScan,
+}) {
   const response = await fetch(`${API_BASE}/journal/wheel-validation/capture`, {
     method: "POST",
     headers: {
@@ -2674,6 +2695,9 @@ async function callWheelJournalCapture({ candidates, topN, scanTimestamp, scanSe
       topN,
       scanTimestamp,
       scanSessionId,
+      selectedExpiration,
+      captureSource,
+      dteAtScan,
     }),
   });
 
@@ -4818,12 +4842,17 @@ export default function Dashboard() {
         return null;
       }
 
+      const selectedExpiration = normalizeExpirationYmd(selectedExpirationRef.current);
+      const dteAtScan = computeDteAtScan(scanTimestamp ?? new Date().toISOString(), selectedExpiration);
       try {
         const payload = await callWheelJournalCapture({
           candidates: finalCandidates,
           topN: captureTopN,
           scanTimestamp: scanTimestamp ?? new Date().toISOString(),
           scanSessionId,
+          selectedExpiration,
+          captureSource: source,
+          dteAtScan,
         });
         console.log("[AUTO_JOURNAL_OK]", {
           scanSessionId,

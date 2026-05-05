@@ -38,6 +38,39 @@ function normalizeStrikeToken(value) {
   return String(strike).replace(".", "_");
 }
 
+function normalizeYmd(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const compact = raw.replace(/-/g, "");
+  return /^\d{8}$/.test(compact) ? compact : "";
+}
+
+function formatExpirationCohort(expirationYmd) {
+  const normalized = normalizeYmd(expirationYmd);
+  if (!normalized) return null;
+  return `${normalized.slice(0, 4)}-${normalized.slice(4, 6)}-${normalized.slice(6, 8)}`;
+}
+
+function computeDteAtScan(scanTimestamp, expirationYmd) {
+  const exp = normalizeYmd(expirationYmd);
+  if (!exp) return null;
+  const scanDate = normalizeIsoTimestamp(scanTimestamp).slice(0, 10);
+  const scanUtc = new Date(`${scanDate}T00:00:00.000Z`);
+  const expUtc = new Date(`${exp.slice(0, 4)}-${exp.slice(4, 6)}-${exp.slice(6, 8)}T00:00:00.000Z`);
+  if (Number.isNaN(scanUtc.getTime()) || Number.isNaN(expUtc.getTime())) return null;
+  return Math.round((expUtc.getTime() - scanUtc.getTime()) / 86400000);
+}
+
+function buildLegacyRecordId(symbol, expiration, strikeMode, strike, scanDate) {
+  return `${symbol}_${expiration}_${strikeMode}_${normalizeStrikeToken(strike)}_${scanDate}`;
+}
+
+function buildSessionRecordId(symbol, expiration, strikeMode, strike, scanSessionId, scanDate) {
+  const session = scanSessionId == null ? "" : String(scanSessionId).trim();
+  if (!session) return buildLegacyRecordId(symbol, expiration, strikeMode, strike, scanDate);
+  return `${session}_${symbol}_${expiration}_${strikeMode}_${normalizeStrikeToken(strike)}`;
+}
+
 function buildResolutionDefaults() {
   return {
     resolved: false,
@@ -121,7 +154,7 @@ function getQuoteType(candidate) {
   );
 }
 
-function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = null) {
+function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = null, options = {}) {
   const strikeRow = getStrikeRow(candidate, strikeMode);
   const strike = toNumberOrNull(strikeRow?.strike);
   if (strike == null) return null;
@@ -134,12 +167,32 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
       candidate?.raw?.expiration
   );
   const scanDate = scanTimestamp.slice(0, 10);
+  const selectedExpiration = normalizeExpiration(
+    options.selectedExpiration ?? candidate?.targetExpiration ?? candidate?.selectedExpiration ?? candidate?.expiration
+  );
+  const expirationCohort = formatExpirationCohort(expiration);
+  const dteAtScan =
+    toNumberOrNull(options.dteAtScan) ??
+    toNumberOrNull(candidate?.dteAtScan) ??
+    computeDteAtScan(scanTimestamp, expiration);
+  const candidateRank =
+    toNumberOrNull(options.candidateRank) ??
+    toNumberOrNull(candidate?.rank) ??
+    toNumberOrNull(candidate?.yahooRank) ??
+    null;
+  const captureSource =
+    options.captureSource == null ? null : String(options.captureSource).trim() || null;
 
   return {
-    id: `${symbol}_${expiration}_${strikeMode}_${normalizeStrikeToken(strike)}_${scanDate}`,
+    id: buildSessionRecordId(symbol, expiration, strikeMode, strike, scanSessionId, scanDate),
     scanSessionId: scanSessionId == null ? null : String(scanSessionId).trim() || null,
     scanTimestamp,
     scanDate,
+    selectedExpiration: selectedExpiration || null,
+    expirationCohort,
+    dteAtScan,
+    candidateRank,
+    captureSource,
     symbol,
     expiration,
     strikeMode,
@@ -267,10 +320,23 @@ export function createWheelValidationService(options = {}) {
     const topN = Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30;
     const finalCandidates = Array.isArray(candidates) ? candidates.slice(0, topN) : [];
     const records = [];
-    for (const candidate of finalCandidates) {
-      const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp, scanSessionId);
+    for (let index = 0; index < finalCandidates.length; index += 1) {
+      const candidate = finalCandidates[index];
+      const perCandidateOptions = {
+        selectedExpiration: options.selectedExpiration,
+        captureSource: options.captureSource,
+        dteAtScan: options.dteAtScan,
+        candidateRank: toNumberOrNull(candidate?.rank) ?? index + 1,
+      };
+      const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp, scanSessionId, perCandidateOptions);
       if (safeRecord) records.push(safeRecord);
-      const aggressiveRecord = normalizeRecord(candidate, "aggressive", scanTimestamp, scanSessionId);
+      const aggressiveRecord = normalizeRecord(
+        candidate,
+        "aggressive",
+        scanTimestamp,
+        scanSessionId,
+        perCandidateOptions
+      );
       if (aggressiveRecord) records.push(aggressiveRecord);
     }
     return records;

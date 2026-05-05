@@ -1937,6 +1937,9 @@ app.post("/journal/wheel-validation/capture", async (req, res) => {
       topN,
       scanTimestamp: body.scanTimestamp,
       scanSessionId: body.scanSessionId,
+      selectedExpiration: body.selectedExpiration,
+      captureSource: body.captureSource,
+      dteAtScan: body.dteAtScan,
     });
     res.json({
       ok: true,

@@ -441,6 +441,37 @@ export function createMarketService(provider) {
     }
   }
 
+  async function getHistoricalClose(symbol, dateYmd) {
+    const rawSymbol = String(symbol ?? "").trim().toUpperCase();
+    const rawDate = String(dateYmd ?? "").trim();
+    if (!rawSymbol || !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return null;
+    const endDate = new Date(`${rawDate}T23:59:59.999Z`);
+    if (Number.isNaN(endDate.getTime())) return null;
+    const lookbackStart = new Date(endDate.getTime() - 1000 * 60 * 60 * 24 * 10);
+    try {
+      const result = await provider.getChart(rawSymbol, {
+        period1: lookbackStart,
+        interval: "1d",
+      });
+      const quotes = Array.isArray(result?.quotes) ? result.quotes : [];
+      let best = null;
+      for (const q of quotes) {
+        const close = toNumber(q?.close);
+        if (!(close > 0)) continue;
+        const dt = q?.date != null ? new Date(q.date) : null;
+        if (!dt || Number.isNaN(dt.getTime())) continue;
+        const ymd = dt.toISOString().slice(0, 10);
+        if (ymd > rawDate) continue;
+        if (best == null || ymd > best.date) {
+          best = { date: ymd, close };
+        }
+      }
+      return best?.close ?? null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
   async function getBestStrike(
     symbol,
     expiration,
@@ -560,6 +591,7 @@ export function createMarketService(provider) {
     getExpectedMove,
     getTechnicals,
     getSupportResistance,
+    getHistoricalClose,
     getBestStrike,
     analyzeTradeSetup,
   };

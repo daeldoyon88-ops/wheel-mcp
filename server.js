@@ -28,7 +28,9 @@ const marketService = createMarketService(provider);
 const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
-const wheelValidationService = createWheelValidationService();
+const wheelValidationService = createWheelValidationService({
+  getHistoricalClose: (symbol, dateYmd) => marketService.getHistoricalClose(symbol, dateYmd),
+});
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 const WHEEL_DEV_SCAN_WARNING =
   "DEV TEST - marché fermé / données possiblement figées / non tradables";
@@ -1971,6 +1973,21 @@ app.patch("/journal/wheel-validation/:id/resolution", async (req, res) => {
     res.status(500).json({
       ok: false,
       error: error?.message || "wheel_validation_patch_failed",
+    });
+  }
+});
+
+app.post("/journal/wheel-validation/resolve-expired", async (_req, res) => {
+  try {
+    const result = await wheelValidationService.resolveExpiredRecords();
+    res.json({
+      ok: true,
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_resolve_expired_failed",
     });
   }
 });

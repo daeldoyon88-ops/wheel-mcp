@@ -136,8 +136,10 @@ function JournalTable({ title, rows }) {
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [resolveSummary, setResolveSummary] = useState(null);
 
   const loadJournal = useCallback(async () => {
     setLoading(true);
@@ -156,6 +158,30 @@ export default function JournalPopPanel({ apiBase, active }) {
       setLoading(false);
     }
   }, [apiBase]);
+
+  const resolveExpired = useCallback(async () => {
+    setResolving(true);
+    setError("");
+    try {
+      const response = await fetch(`${apiBase}/journal/wheel-validation/resolve-expired`, {
+        method: "POST",
+      });
+      const payload = await response.json();
+      if (!response.ok || payload?.ok !== true) {
+        throw new Error(payload?.error || "journal_resolve_expired_failed");
+      }
+      setResolveSummary({
+        resolved: Number(payload?.resolved ?? 0),
+        skippedNoClose: Number(payload?.skippedNoClose ?? 0),
+        errors: Array.isArray(payload?.errors) ? payload.errors.length : 0,
+      });
+      await loadJournal();
+    } catch (err) {
+      setError(String(err?.message || err || "journal_resolve_expired_failed"));
+    } finally {
+      setResolving(false);
+    }
+  }, [apiBase, loadJournal]);
 
   useEffect(() => {
     if (active && !hasLoaded && !loading) {
@@ -241,10 +267,26 @@ export default function JournalPopPanel({ apiBase, active }) {
             <RefreshCw className={`ml-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={resolveExpired}
+            disabled={resolving || loading}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Résoudre expirations échues
+          </button>
+        </div>
 
         {error ? (
           <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
+          </div>
+        ) : null}
+        {resolveSummary ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            Résolus : {resolveSummary.resolved} · Sans close : {resolveSummary.skippedNoClose} · Erreurs :{" "}
+            {resolveSummary.errors}
           </div>
         ) : null}
 

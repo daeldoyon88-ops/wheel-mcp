@@ -300,8 +300,22 @@ function normalizeResolutionPatch(patch) {
   };
 }
 
+function toExpirationYmd(value) {
+  const compact = normalizeYmd(value);
+  if (!compact) return null;
+  return `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
+}
+
+function isExpiredExpiration(expiration, todayYmd) {
+  const expYmd = toExpirationYmd(expiration);
+  if (!expYmd) return false;
+  return expYmd < todayYmd;
+}
+
 export function createWheelValidationService(options = {}) {
   const store = createWheelValidationStore(options.journalPath);
+  const getHistoricalClose =
+    typeof options.getHistoricalClose === "function" ? options.getHistoricalClose : null;
   let writeChain = Promise.resolve();
 
   function withWriteLock(task) {
@@ -415,11 +429,112 @@ export function createWheelValidationService(options = {}) {
     });
   }
 
+  async function resolveExpiredRecords(options = {}) {
+    return withWriteLock(async () => {
+      const todayYmd = normalizeIsoTimestamp(options.today ?? new Date()).slice(0, 10);
+      const journal = await store.load();
+      const records = Array.isArray(journal?.records) ? journal.records : [];
+      const errors = [];
+      let skippedNotExpired = 0;
+      let skippedNoClose = 0;
+      let resolved = 0;
+      if (!getHistoricalClose) {
+        return {
+          resolved,
+          skippedNotExpired: records.length,
+          skippedNoClose,
+          errors: ["historical_close_provider_unavailable"],
+          groupsChecked: 0,
+        };
+      }
+
+      const groups = new Map();
+      for (let i = 0; i < records.length; i += 1) {
+        const record = records[i];
+        if (record?.resolution?.resolved === true) continue;
+        const symbol = normalizeSymbol(record?.symbol);
+        const expirationYmd = toExpirationYmd(record?.expiration);
+        if (!symbol || !expirationYmd) {
+          skippedNotExpired += 1;
+          continue;
+        }
+        if (!(expirationYmd < todayYmd)) {
+          skippedNotExpired += 1;
+          continue;
+        }
+        const key = `${symbol}_${expirationYmd}`;
+        if (!groups.has(key)) groups.set(key, { symbol, expirationYmd, indices: [] });
+        groups.get(key).indices.push(i);
+      }
+
+      let groupsChecked = 0;
+      for (const group of groups.values()) {
+        groupsChecked += 1;
+        let close = null;
+        try {
+          close = await getHistoricalClose(group.symbol, group.expirationYmd);
+        } catch (error) {
+          errors.push(`${group.symbol} ${group.expirationYmd}: ${error?.message || String(error)}`);
+          continue;
+        }
+        const closeNum = toNumberOrNull(close);
+        if (closeNum == null) {
+          skippedNoClose += group.indices.length;
+          continue;
+        }
+
+        for (const index of group.indices) {
+          const existing = records[index];
+          const strike = toNumberOrNull(existing?.strike?.strike);
+          if (strike == null) {
+            skippedNoClose += 1;
+            continue;
+          }
+          const expiredWorthless = closeNum > strike;
+          const premium = toNumberOrNull(existing?.strike?.premium);
+          const premiumRealized = premium == null ? null : Number((premium * 100).toFixed(2));
+          const realizedPl = expiredWorthless === true ? premiumRealized : null;
+          records[index] = {
+            ...existing,
+            resolution: {
+              resolved: true,
+              expirationClosePrice: closeNum,
+              expiredWorthless,
+              assigned: expiredWorthless ? false : true,
+              rolled: false,
+              realizedPl,
+              premiumRealized,
+              popPredictionCorrect: expiredWorthless ? true : false,
+              outcomeStatus: expiredWorthless ? "expired_worthless" : "assigned_theoretical",
+              resolutionDate: todayYmd,
+              notes: `auto_resolved_from_yahoo_close_${group.expirationYmd}`,
+            },
+          };
+          resolved += 1;
+        }
+      }
+
+      if (resolved > 0) {
+        journal.updatedAt = new Date().toISOString();
+        await store.save(journal);
+      }
+
+      return {
+        resolved,
+        skippedNotExpired,
+        skippedNoClose,
+        errors,
+        groupsChecked,
+      };
+    });
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
     captureFromCandidates,
     patchResolution,
+    resolveExpiredRecords,
     store,
   };
 }

@@ -640,6 +640,8 @@ function runIbkrShadowWheelBatch(body = {}) {
   const tickers = Array.isArray(body.tickers)
     ? [...new Set(body.tickers.map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))]
     : [];
+  const abortSignal = body.abortSignal ?? null;
+  const onAbort = typeof body.onAbort === "function" ? body.onAbort : null;
   const expiration = body.ibkrExpiration == null ? "" : String(body.ibkrExpiration).trim();
   const clientId = toPositiveInt(body.clientIdStart, toPositiveInt(process.env.IBKR_SHADOW_CLIENT_ID, 300));
   const marketDataType = toPositiveInt(body.marketDataType, 2);
@@ -676,6 +678,7 @@ function runIbkrShadowWheelBatch(body = {}) {
     let stderr = "";
     let finished = false;
     let timedOut = false;
+    let aborted = false;
 
     const child = spawn(pythonExe, [scriptPath], {
       cwd: process.cwd(),
@@ -683,9 +686,43 @@ function runIbkrShadowWheelBatch(body = {}) {
       windowsHide: true,
     });
 
+    const killChild = (reason) => {
+      if (child.exitCode != null || child.killed) return;
+      console.warn("[IBKR_SHADOW_BATCH_CHILD_KILL]", reason, "pid", child.pid ?? "unknown");
+      try {
+        child.kill();
+      } catch {
+        // no-op: child may already be exiting
+      }
+    };
+
+    const handleAbort = () => {
+      if (finished || aborted) return;
+      aborted = true;
+      try {
+        onAbort?.();
+      } catch {
+        // no-op: abort callbacks are best-effort only
+      }
+      killChild("abort_signal");
+    };
+
+    let detachAbort = () => {};
+    if (abortSignal && typeof abortSignal.addEventListener === "function") {
+      if (abortSignal.aborted) {
+        handleAbort();
+      } else {
+        const abortListener = () => handleAbort();
+        abortSignal.addEventListener("abort", abortListener, { once: true });
+        detachAbort = () => {
+          abortSignal.removeEventListener("abort", abortListener);
+        };
+      }
+    }
+
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill();
+      killChild("global_timeout");
     }, timeoutMs);
 
     child.stdout.on("data", (chunk) => {
@@ -700,6 +737,7 @@ function runIbkrShadowWheelBatch(body = {}) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      detachAbort();
       reject(error);
     });
 
@@ -707,6 +745,20 @@ function runIbkrShadowWheelBatch(body = {}) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      detachAbort();
+
+      if (aborted) {
+        return resolve({
+          status: 499,
+          payload: {
+            ok: false,
+            provider: "IBKR",
+            mode: "ibkr_readonly_shadow_batch",
+            error: "ibkr_shadow_batch_aborted",
+            results: [],
+          },
+        });
+      }
 
       if (timedOut) {
         return resolve({
@@ -1288,6 +1340,20 @@ app.post("/ibkr/shadow/wheel", async (req, res) => {
 
 app.post("/ibkr/shadow/scan", async (req, res) => {
   if (!requireLocalIbkrShadow(req, res)) return;
+  const abortController = new AbortController();
+  let requestAborted = false;
+  const abortScan = (reason) => {
+    if (requestAborted) return;
+    requestAborted = true;
+    console.warn("[IBKR_SHADOW_SCAN_ABORT]", reason);
+    abortController.abort(reason);
+  };
+  const onReqAborted = () => abortScan("client_aborted");
+  const onResClose = () => {
+    if (!res.writableEnded) abortScan("response_closed_before_finish");
+  };
+  req.once("aborted", onReqAborted);
+  res.once("close", onResClose);
   try {
     const body = req.body ?? {};
     const rawTickers = Array.isArray(body.tickers) ? body.tickers : [];
@@ -1346,7 +1412,12 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       maxStrikes,
       perTickerTimeoutMs: body.perTickerTimeoutMs,
       batchTimeoutMs,
+      abortSignal: abortController.signal,
+      onAbort: () => console.warn("[IBKR_SHADOW_SCAN_CHILD_ABORT_REQUESTED]", tickers.length),
     });
+    if (requestAborted || abortController.signal.aborted || res.destroyed) {
+      return;
+    }
     const rows = Array.isArray(payload?.results) ? payload.results : [];
     const responseTwoPhaseEnabled =
       typeof payload?.twoPhaseEnabled === "boolean" ? payload.twoPhaseEnabled : twoPhaseScanEnabled;
@@ -1495,6 +1566,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       ibkrCallMetrics: enrichedIbkrCallMetrics,
     });
   } catch (error) {
+    if (requestAborted || abortController.signal.aborted || res.destroyed) {
+      return;
+    }
     console.error("[IBKR_SHADOW_SCAN_DONE]", "error", error?.message || String(error));
     res.status(500).json({
       ok: false,
@@ -1503,6 +1577,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       readOnly: true,
       error: error?.message || String(error),
     });
+  } finally {
+    req.removeListener("aborted", onReqAborted);
+    res.removeListener("close", onResClose);
   }
 });
 

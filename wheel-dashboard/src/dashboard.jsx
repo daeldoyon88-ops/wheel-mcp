@@ -17,6 +17,7 @@ import {
 import { wheelShortlist } from "./data/wheelShortlist";
 
 const API_BASE = "http://127.0.0.1:3001";
+const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
 
 const DEFAULT_EXPIRATIONS = [
   "2026-04-24",
@@ -4143,6 +4144,7 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState("quality");
   const [sortOrder, setSortOrder] = useState("desc");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [activeView, setActiveView] = useState("dashboard");
 
   const [selectedExpiration, setSelectedExpiration] = useState(() =>
     pickDefaultExpiration(DEFAULT_EXPIRATIONS)
@@ -5705,7 +5707,26 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
+        <div className="mb-6 flex items-center justify-end gap-2">
+          <Button
+            variant={activeView === "dashboard" ? "default" : "outline"}
+            className="rounded-xl"
+            onClick={() => setActiveView("dashboard")}
+          >
+            Dashboard
+          </Button>
+          <Button
+            variant={activeView === "journal" ? "default" : "outline"}
+            className="rounded-xl"
+            onClick={() => setActiveView("journal")}
+          >
+            Journal POP <Database className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+
+        {activeView === "dashboard" ? (
+          <>
+            <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Expiration</label>
             <Select
@@ -6602,7 +6623,19 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
+            </div>
+          </>
+        ) : (
+          <React.Suspense
+            fallback={
+              <div className="rounded-[28px] border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
+                Chargement du journal...
+              </div>
+            }
+          >
+            <JournalPopPanel apiBase={API_BASE} active={activeView === "journal"} />
+          </React.Suspense>
+        )}
       </div>
 
       <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />

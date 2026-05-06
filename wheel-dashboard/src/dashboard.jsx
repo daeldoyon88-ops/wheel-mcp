@@ -5007,6 +5007,11 @@ export default function Dashboard() {
 
       const finalTargetRaw = Number(ibkrAutoMaxTickers) || 20;
       const finalTarget = Math.min(120, Math.max(10, finalTargetRaw));
+      const hardEvaluationCap = finalTarget;
+      const desiredFromInput = Number(ibkrAutoInput?.finalDisplayedTarget);
+      const desiredFinalKept = Number.isFinite(desiredFromInput)
+        ? Math.max(1, Math.min(hardEvaluationCap, Math.trunc(desiredFromInput)))
+        : Math.min(30, hardEvaluationCap);
       /** @type {{ symbol: string, score?: number, reasons: string[], tierBoost?: number, rank?: number, selectionMode: "yahoo_shortlist" | "watchlist_fallback" }[]} */
       let diagnostics = [];
       /** @type {string[]} */
@@ -5074,7 +5079,8 @@ export default function Dashboard() {
         orderedSymbolsLength: Array.isArray(orderedSymbols) ? orderedSymbols.length : 0,
         candidatePoolLength: candidatePool.length,
         maxTickers: finalTarget,
-        progressiveTestLimit: Math.min(candidatePool.length, finalTarget),
+        desiredFinalKept,
+        hardEvaluationCap,
       });
 
       if (ibkrAutoInput.forceYahooShortlistOnly === true && sourceTag === "watchlist_fallback") {
@@ -5107,16 +5113,17 @@ export default function Dashboard() {
       try {
         const payloads = [];
         const testedSymbols = [];
+        const retainedSymbols = new Set();
         let cursor = 0;
-        const evaluationCap = Math.min(candidatePool.length, finalTarget);
-        while (cursor < evaluationCap) {
-          const batchSize = cursor === 0 ? Math.min(10, evaluationCap) : Math.min(5, evaluationCap - cursor);
+        while (cursor < hardEvaluationCap && retainedSymbols.size < desiredFinalKept) {
+          const remainingToEvaluate = hardEvaluationCap - cursor;
+          const batchSize = cursor === 0 ? Math.min(10, remainingToEvaluate) : Math.min(5, remainingToEvaluate);
           const batch = candidatePool.slice(cursor, cursor + batchSize);
           if (!batch.length) break;
           testedSymbols.push(...batch);
           setIbkrDirectSentTickers([...testedSymbols]);
           setRefreshStage(
-            `Étape 2/2 : IBKR Direct Scan — ${testedSymbols.length}/${evaluationCap} testés`
+            `Étape 2/2 : IBKR Direct Scan — ${testedSymbols.length}/${hardEvaluationCap} testés`
           );
           const batchPayload = await callIbkrDirectScan({
             tickers: batch,
@@ -5127,6 +5134,11 @@ export default function Dashboard() {
             auditDepth: finalTarget,
           });
           payloads.push(batchPayload);
+          for (const keptRow of Array.isArray(batchPayload?.shortlist) ? batchPayload.shortlist : []) {
+            const symbol = String(keptRow?.symbol || "").trim().toUpperCase();
+            if (!symbol) continue;
+            retainedSymbols.add(symbol);
+          }
           cursor += batchSize;
         }
         const payload = mergeIbkrProgressPayloads({

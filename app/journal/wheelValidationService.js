@@ -154,6 +154,47 @@ function getQuoteType(candidate) {
   );
 }
 
+function normalizeDiagnosticsV12(candidate) {
+  const diagnostics = candidate?.diagnosticsV12;
+  if (!diagnostics || typeof diagnostics !== "object") return null;
+  const challengerReasons = Array.isArray(diagnostics?.challengerReasons)
+    ? diagnostics.challengerReasons
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+    : [];
+  const normalized = {
+    hv10: toNumberOrNull(diagnostics?.hv10),
+    hv20: toNumberOrNull(diagnostics?.hv20),
+    hv30: toNumberOrNull(diagnostics?.hv30),
+    safeStrikeIv: toNumberOrNull(diagnostics?.safeStrikeIv),
+    atmIv: toNumberOrNull(diagnostics?.atmIv),
+    ivHvRatio: toNumberOrNull(diagnostics?.ivHvRatio),
+    ivHvEdge: typeof diagnostics?.ivHvEdge === "boolean" ? diagnostics.ivHvEdge : null,
+    dailyChangePct: toNumberOrNull(diagnostics?.dailyChangePct),
+    zScore20: toNumberOrNull(diagnostics?.zScore20),
+    volumeVsAvgRatio: toNumberOrNull(diagnostics?.volumeVsAvgRatio),
+    challengerCandidate:
+      typeof diagnostics?.challengerCandidate === "boolean"
+        ? diagnostics.challengerCandidate
+        : null,
+    challengerReasons,
+  };
+  const hasValue =
+    normalized.hv10 != null ||
+    normalized.hv20 != null ||
+    normalized.hv30 != null ||
+    normalized.safeStrikeIv != null ||
+    normalized.atmIv != null ||
+    normalized.ivHvRatio != null ||
+    normalized.ivHvEdge != null ||
+    normalized.dailyChangePct != null ||
+    normalized.zScore20 != null ||
+    normalized.volumeVsAvgRatio != null ||
+    normalized.challengerCandidate != null ||
+    normalized.challengerReasons.length > 0;
+  return hasValue ? normalized : null;
+}
+
 function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = null, options = {}) {
   const strikeRow = getStrikeRow(candidate, strikeMode);
   const strike = toNumberOrNull(strikeRow?.strike);
@@ -270,6 +311,7 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
         toNumberOrNull(candidate?.raw?.technicals?.rsi) ??
         null,
     },
+    diagnosticsV12: normalizeDiagnosticsV12(candidate),
     resolution: buildResolutionDefaults(),
   };
 }

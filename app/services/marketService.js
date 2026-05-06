@@ -9,6 +9,43 @@ import { deriveEarningsMoment } from "../utils/earningsMoment.js";
 import { round, toNumber } from "../utils/number.js";
 
 export function createMarketService(provider) {
+  function computeAnnualizedHv(closes, period) {
+    if (!Array.isArray(closes) || closes.length < period + 1) return null;
+    const slice = closes.slice(-(period + 1));
+    const returns = [];
+    for (let i = 1; i < slice.length; i += 1) {
+      const prev = toNumber(slice[i - 1]);
+      const next = toNumber(slice[i]);
+      if (!(prev > 0) || !(next > 0)) return null;
+      returns.push(Math.log(next / prev));
+    }
+    if (returns.length < period) return null;
+    const mean = returns.reduce((sum, value) => sum + value, 0) / returns.length;
+    const variance = returns.reduce((sum, value) => sum + (value - mean) ** 2, 0) / returns.length;
+    if (!(variance >= 0)) return null;
+    return Math.sqrt(variance) * Math.sqrt(252);
+  }
+
+  function computeZScore(closes, period) {
+    if (!Array.isArray(closes) || closes.length < period) return null;
+    const slice = closes.slice(-period);
+    const last = toNumber(slice[slice.length - 1]);
+    if (!(last > 0)) return null;
+    const mean = slice.reduce((sum, value) => sum + toNumber(value), 0) / slice.length;
+    const variance =
+      slice.reduce((sum, value) => sum + (toNumber(value) - mean) ** 2, 0) / slice.length;
+    const stdDev = Math.sqrt(variance);
+    if (!(stdDev > 0)) return null;
+    return (last - mean) / stdDev;
+  }
+
+  function computeRatio(numerator, denominator) {
+    const a = toNumber(numerator);
+    const b = toNumber(denominator);
+    if (!(a > 0) || !(b > 0)) return null;
+    return a / b;
+  }
+
   /**
    * @param {string | number | Date | null | undefined} value
    * @param {string | null | undefined} timeZone IANA zone (e.g. America/New_York) for calendar day; if absent, UTC date (legacy).
@@ -441,6 +478,74 @@ export function createMarketService(provider) {
     }
   }
 
+  async function getDiagnosticsV12Market(symbol) {
+    try {
+      const result = await provider.getChart(symbol, {
+        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 120),
+        interval: "1d",
+      });
+      const rows = Array.isArray(result?.quotes) ? result.quotes : [];
+      const normalized = rows
+        .map((row) => ({
+          close: toNumber(row?.close),
+          volume: toNumber(row?.volume),
+        }))
+        .filter((row) => row.close > 0);
+      const closes = normalized.map((row) => row.close);
+      const volumes = normalized.map((row) => row.volume);
+      const lastClose = closes.length > 0 ? closes[closes.length - 1] : null;
+      const prevClose = closes.length > 1 ? closes[closes.length - 2] : null;
+      const lastVolume = volumes.length > 0 ? volumes[volumes.length - 1] : null;
+      const volumeWindow = volumes.slice(-20).filter((value) => value > 0);
+      const avgVolume20 =
+        volumeWindow.length > 0
+          ? volumeWindow.reduce((sum, value) => sum + value, 0) / volumeWindow.length
+          : null;
+      const diagnostics = {
+        hv10: (() => {
+          const value = computeAnnualizedHv(closes, 10);
+          return value != null ? round(value, 6) : null;
+        })(),
+        hv20: (() => {
+          const value = computeAnnualizedHv(closes, 20);
+          return value != null ? round(value, 6) : null;
+        })(),
+        hv30: (() => {
+          const value = computeAnnualizedHv(closes, 30);
+          return value != null ? round(value, 6) : null;
+        })(),
+        dailyChangePct:
+          lastClose != null && prevClose != null && prevClose > 0
+            ? round(((lastClose / prevClose) - 1) * 100, 4)
+            : null,
+        zScore20: (() => {
+          const value = computeZScore(closes, 20);
+          return value != null ? round(value, 4) : null;
+        })(),
+        volumeVsAvgRatio: (() => {
+          const value = computeRatio(lastVolume, avgVolume20);
+          return value != null ? round(value, 4) : null;
+        })(),
+      };
+      return {
+        symbol,
+        diagnosticsV12Market: diagnostics,
+      };
+    } catch (_error) {
+      return {
+        symbol,
+        diagnosticsV12Market: {
+          hv10: null,
+          hv20: null,
+          hv30: null,
+          dailyChangePct: null,
+          zScore20: null,
+          volumeVsAvgRatio: null,
+        },
+      };
+    }
+  }
+
   async function getHistoricalClose(symbol, dateYmd) {
     const rawSymbol = String(symbol ?? "").trim().toUpperCase();
     const rawDate = String(dateYmd ?? "").trim();
@@ -589,6 +694,7 @@ export function createMarketService(provider) {
     getOptionExpirations,
     getOptionChain,
     getExpectedMove,
+    getDiagnosticsV12Market,
     getTechnicals,
     getSupportResistance,
     getHistoricalClose,

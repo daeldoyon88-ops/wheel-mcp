@@ -311,12 +311,15 @@ export function createWheelScanner(marketService) {
       return { symbol, ok: false, reason: "expiration_not_available" };
     }
 
-    const [quote, expectedMove, optionChain, technicals, supportResistance] = await Promise.all([
+    const [quote, expectedMove, optionChain, technicals, supportResistance, marketDiagnostics] = await Promise.all([
       marketService.getQuote(symbol),
       marketService.getExpectedMove(symbol, expiration),
       marketService.getOptionChain(symbol, expiration),
       marketService.getTechnicals(symbol),
       marketService.getSupportResistance(symbol),
+      typeof marketService.getDiagnosticsV12Market === "function"
+        ? marketService.getDiagnosticsV12Market(symbol)
+        : Promise.resolve({ symbol, diagnosticsV12Market: null }),
     ]);
 
     const spot =
@@ -593,6 +596,49 @@ export function createWheelScanner(marketService) {
 
     const safeStrike = buildStrike(strikeSelection.safeStrike);
     const aggressiveStrike = buildStrike(strikeSelection.aggressiveStrike);
+    const diagnosticsV12Market = marketDiagnostics?.diagnosticsV12Market ?? null;
+    const safeStrikeIvRaw = toNumber(safeStrike?.impliedVolatility);
+    const safeStrikeIv = safeStrikeIvRaw > 0 ? round(safeStrikeIvRaw, 6) : null;
+    const atmIv = ivFallback > 0 ? round(ivFallback, 6) : null;
+    const hv20Raw = toNumber(diagnosticsV12Market?.hv20);
+    const ivHvRatioRaw =
+      safeStrikeIvRaw > 0 && hv20Raw > 0 ? safeStrikeIvRaw / hv20Raw : null;
+    const ivHvRatio = ivHvRatioRaw != null ? round(ivHvRatioRaw, 6) : null;
+    const ivHvEdge = ivHvRatioRaw != null ? ivHvRatioRaw > 1 : null;
+    const challengerReasons = [];
+    const dailyChangePct = toNumber(diagnosticsV12Market?.dailyChangePct);
+    const zScore20 = toNumber(diagnosticsV12Market?.zScore20);
+    const volumeVsAvgRatio = toNumber(diagnosticsV12Market?.volumeVsAvgRatio);
+    if (dailyChangePct <= -7) challengerReasons.push("challenger_daily_drop");
+    if (zScore20 <= -2) challengerReasons.push("challenger_zscore");
+    if (volumeVsAvgRatio >= 1.5) challengerReasons.push("challenger_volume_spike");
+    const hasDiagnosticsV12 =
+      safeStrikeIv != null ||
+      atmIv != null ||
+      ivHvRatio != null ||
+      diagnosticsV12Market?.hv10 != null ||
+      diagnosticsV12Market?.hv20 != null ||
+      diagnosticsV12Market?.hv30 != null ||
+      diagnosticsV12Market?.dailyChangePct != null ||
+      diagnosticsV12Market?.zScore20 != null ||
+      diagnosticsV12Market?.volumeVsAvgRatio != null ||
+      challengerReasons.length > 0;
+    const diagnosticsV12 = hasDiagnosticsV12
+      ? {
+          hv10: diagnosticsV12Market?.hv10 ?? null,
+          hv20: diagnosticsV12Market?.hv20 ?? null,
+          hv30: diagnosticsV12Market?.hv30 ?? null,
+          safeStrikeIv,
+          atmIv,
+          ivHvRatio,
+          ivHvEdge,
+          dailyChangePct: diagnosticsV12Market?.dailyChangePct ?? null,
+          zScore20: diagnosticsV12Market?.zScore20 ?? null,
+          volumeVsAvgRatio: diagnosticsV12Market?.volumeVsAvgRatio ?? null,
+          challengerCandidate: challengerReasons.length > 0,
+          challengerReasons,
+        }
+      : null;
     const proScore = computeProScore(safeStrike);
     const targetPremium = strikeSelection.targetPremium;
     const support = toNumber(supportResistance?.support) || null;
@@ -700,6 +746,7 @@ export function createWheelScanner(marketService) {
         strikeVsResistancePct: strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
         supportStatus,
       },
+      diagnosticsV12,
       passesFilter,
       debug: {
         eligibleCount: strikeSelection.eligible.length,

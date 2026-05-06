@@ -340,14 +340,22 @@ export function createWheelValidationStoreSqlite(options = {}) {
         createdAt=COALESCE(wheel_validation_records.createdAt, excluded.createdAt),
         updatedAt=excluded.updatedAt
     `);
-    const tx = conn.transaction((items) => {
-      for (const record of items) {
+    conn.exec("BEGIN");
+    try {
+      for (const record of records) {
         const row = normalizeRecordToRow(record, nowIso);
         if (!row.id) continue;
         upsert.run(row);
       }
-    });
-    tx(records);
+      conn.exec("COMMIT");
+    } catch (error) {
+      try {
+        conn.exec("ROLLBACK");
+      } catch (_rollbackError) {
+        // Preserve the original failure if rollback itself also errors.
+      }
+      throw error;
+    }
     return {
       version: journal?.version ?? "1.0",
       updatedAt: journal?.updatedAt ?? nowIso,

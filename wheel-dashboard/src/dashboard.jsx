@@ -308,6 +308,142 @@ function computeIbkrPriorityScore(candidate) {
   return { score, reasons: reasons.slice(0, 6) };
 }
 
+function computeModeRecommendation({
+  safeStrike,
+  aggressiveStrike,
+  lowerBound,
+  spot,
+  hasUpcomingEarningsBeforeExpiration,
+  hasEarningsBeforeExpiration,
+  earningsDaysUntil,
+}) {
+  const safePremium = Number(
+    safeStrike?.premiumUsed ?? safeStrike?.bid ?? safeStrike?.mid ?? safeStrike?.premium
+  );
+  const aggressivePremium = Number(
+    aggressiveStrike?.premiumUsed ??
+      aggressiveStrike?.bid ??
+      aggressiveStrike?.mid ??
+      aggressiveStrike?.premium
+  );
+  const safeSpreadPct = Number(safeStrike?.liquidity?.spreadPct ?? safeStrike?.spreadPct);
+  const aggressiveSpreadPct = Number(
+    aggressiveStrike?.liquidity?.spreadPct ?? aggressiveStrike?.spreadPct
+  );
+  const aggressivePop = Number(
+    aggressiveStrike?.popProfitEstimated ?? aggressiveStrike?.popEstimate
+  );
+  const aggressiveStrikePrice = Number(aggressiveStrike?.strike);
+  const lb = Number(lowerBound);
+  const px = Number(spot);
+  const ratio =
+    Number.isFinite(aggressivePremium) &&
+    Number.isFinite(safePremium) &&
+    safePremium > 0
+      ? aggressivePremium / safePremium
+      : null;
+
+  const earningsRisk =
+    hasUpcomingEarningsBeforeExpiration === true ||
+    hasEarningsBeforeExpiration === true ||
+    (Number.isFinite(Number(earningsDaysUntil)) &&
+      Number(earningsDaysUntil) >= 0 &&
+      Number(earningsDaysUntil) <= 7);
+
+  const lowerBoundNearMax =
+    Number.isFinite(lb) && Number.isFinite(px) && px > 0 ? lb + px * 0.02 : null;
+  const lowerBoundOk =
+    Number.isFinite(aggressiveStrikePrice) &&
+    Number.isFinite(lb) &&
+    (aggressiveStrikePrice <= lb ||
+      (Number.isFinite(lowerBoundNearMax) && aggressiveStrikePrice <= lowerBoundNearMax));
+
+  const aggressiveDistancePct =
+    Number.isFinite(aggressiveStrikePrice) && Number.isFinite(px) && px > 0
+      ? ((px - aggressiveStrikePrice) / px) * 100
+      : null;
+  const tooCloseSpot = Number.isFinite(aggressiveDistancePct) && aggressiveDistancePct < 2;
+
+  let aggressiveOpportunityScore = 0;
+  const reasons = [];
+
+  if (Number.isFinite(ratio) && ratio >= 1.5) {
+    aggressiveOpportunityScore += 30;
+    reasons.push(`prime x${ratio.toFixed(2)}`);
+  }
+  if (Number.isFinite(ratio) && ratio >= 2.0) aggressiveOpportunityScore += 20;
+
+  if (Number.isFinite(aggressiveSpreadPct) && aggressiveSpreadPct <= 10) {
+    aggressiveOpportunityScore += 20;
+    reasons.push(`spread ${aggressiveSpreadPct.toFixed(1)}%`);
+  } else if (Number.isFinite(aggressiveSpreadPct) && aggressiveSpreadPct <= 15) {
+    aggressiveOpportunityScore += 10;
+    reasons.push(`spread ${aggressiveSpreadPct.toFixed(1)}%`);
+  } else if (Number.isFinite(aggressiveSpreadPct) && aggressiveSpreadPct > 20) {
+    aggressiveOpportunityScore -= 30;
+  }
+
+  if (Number.isFinite(aggressivePop) && aggressivePop >= 0.7) {
+    aggressiveOpportunityScore += 20;
+    reasons.push(`POP ${(aggressivePop * 100).toFixed(0)}%`);
+  } else if (Number.isFinite(aggressivePop) && aggressivePop >= 0.65) {
+    aggressiveOpportunityScore += 10;
+    reasons.push(`POP ${(aggressivePop * 100).toFixed(0)}%`);
+  }
+
+  if (lowerBoundOk) aggressiveOpportunityScore += 15;
+  if (earningsRisk) aggressiveOpportunityScore -= 25;
+  if (tooCloseSpot) aggressiveOpportunityScore -= 30;
+
+  const safeScoreBase = Number(
+    safeStrike?.popProfitEstimated ?? safeStrike?.popEstimate ?? 0
+  );
+  let safeScore = 50;
+  if (Number.isFinite(safeScoreBase)) safeScore += Math.max(-20, Math.min(20, safeScoreBase * 20));
+  if (Number.isFinite(safeSpreadPct) && safeSpreadPct <= 10) safeScore += 10;
+  else if (Number.isFinite(safeSpreadPct) && safeSpreadPct > 20) safeScore -= 15;
+  if (earningsRisk) safeScore -= 10;
+  safeScore = Math.max(0, Math.min(100, safeScore));
+
+  const aggressiveAllowedByRules =
+    Number.isFinite(ratio) &&
+    ratio >= 1.5 &&
+    Number.isFinite(aggressiveSpreadPct) &&
+    aggressiveSpreadPct <= 15 &&
+    !earningsRisk &&
+    lowerBoundOk &&
+    (!Number.isFinite(aggressivePop) || aggressivePop >= 0.65) &&
+    !tooCloseSpot;
+
+  const recommendedMode = aggressiveAllowedByRules ? "AGGRESSIVE" : "SAFE";
+  const recommendedReason =
+    recommendedMode === "AGGRESSIVE"
+      ? `prime x${ratio?.toFixed(2) ?? "—"}, spread ${
+          Number.isFinite(aggressiveSpreadPct) ? `${aggressiveSpreadPct.toFixed(1)}%` : "—"
+        }, POP ${Number.isFinite(aggressivePop) ? `${(aggressivePop * 100).toFixed(0)}%` : "—"}`
+      : earningsRisk
+      ? "SAFE — risque earnings"
+      : "SAFE — meilleur compromis risque/liquidité";
+
+  return {
+    safeScore: Math.round(safeScore),
+    aggressiveOpportunityScore: Math.round(aggressiveOpportunityScore),
+    recommendedMode,
+    recommendedReason,
+    recommendationDiagnostics: {
+      premiumRatio: Number.isFinite(ratio) ? Number(ratio.toFixed(4)) : null,
+      aggressiveSpreadPct: Number.isFinite(aggressiveSpreadPct) ? Number(aggressiveSpreadPct.toFixed(4)) : null,
+      aggressivePop: Number.isFinite(aggressivePop) ? Number(aggressivePop.toFixed(6)) : null,
+      lowerBoundOk,
+      earningsRisk,
+      aggressiveTooCloseSpot: tooCloseSpot,
+      aggressiveDistancePct:
+        Number.isFinite(aggressiveDistancePct) ? Number(aggressiveDistancePct.toFixed(4)) : null,
+      reasons,
+    },
+  };
+}
+
 /**
  * Yahoo / scan_shortlist : données techniques utiles au badge (pas d’invention).
  * @param {unknown} item candidat dashboard (carte)
@@ -902,6 +1038,27 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
       liquidity: strike.liquidity ?? null,
     };
   };
+  const safeStrikeMapped = mapStrikeForDashboard(
+    safe,
+    safeDistance,
+    "prime la plus proche de la cible",
+    safeBidPreferred
+  );
+  const aggressiveStrikeMapped = mapStrikeForDashboard(
+    aggressive,
+    aggressiveDistance,
+    "directement sous borne basse",
+    aggressiveBidPreferred
+  );
+  const modeRecommendation = computeModeRecommendation({
+    safeStrike: safeStrikeMapped,
+    aggressiveStrike: aggressiveStrikeMapped,
+    lowerBound: item.lowerBound ?? null,
+    spot: item.currentPrice ?? null,
+    hasUpcomingEarningsBeforeExpiration: item.hasUpcomingEarningsBeforeExpiration ?? false,
+    hasEarningsBeforeExpiration: item.hasEarningsBeforeExpiration ?? false,
+    earningsDaysUntil,
+  });
 
   return {
     ...item,
@@ -938,15 +1095,15 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
     minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0),
     targetWeeks: item.targetWeeks ?? 1,
-    safeStrike: mapStrikeForDashboard(safe, safeDistance, "prime la plus proche de la cible", safeBidPreferred),
-    aggressiveStrike: mapStrikeForDashboard(
-      aggressive,
-      aggressiveDistance,
-      "directement sous borne basse",
-      aggressiveBidPreferred
-    ),
+    safeStrike: safeStrikeMapped,
+    aggressiveStrike: aggressiveStrikeMapped,
     safeBid: safeBidPreferred,
     aggressiveBid: aggressiveBidPreferred,
+    safeScore: modeRecommendation.safeScore,
+    aggressiveOpportunityScore: modeRecommendation.aggressiveOpportunityScore,
+    recommendedMode: modeRecommendation.recommendedMode,
+    recommendedReason: modeRecommendation.recommendedReason,
+    recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
     premium:
       safe && aggressive
         ? `${safe.premium?.toFixed(2) ?? "—"} / ${aggressive.premium?.toFixed(2) ?? "—"}`
@@ -2026,6 +2183,18 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     yahooCandidate?.aggressiveStrike
   );
   const primaryStrike = safeStrikeWithPop ?? aggressiveStrikeWithPop;
+  const resolvedLowerBound = ibkrCandidate?.lowerBound ?? yahooCandidate?.expectedMoveLow ?? null;
+  const modeRecommendation = computeModeRecommendation({
+    safeStrike: safeStrikeWithPop,
+    aggressiveStrike: aggressiveStrikeWithPop,
+    lowerBound: resolvedLowerBound,
+    spot,
+    hasUpcomingEarningsBeforeExpiration:
+      yahooCandidate?.hasUpcomingEarningsBeforeExpiration ?? false,
+    hasEarningsBeforeExpiration:
+      yahooCandidate?.hasEarningsBeforeExpiration ?? false,
+    earningsDaysUntil: yahooCandidate?.earningsDaysUntil ?? null,
+  });
   const ibkrNonTradable = ibkrCandidate?.dataTradable === false;
   const ibkrObjectiveBlock =
     ibkrNonTradable &&
@@ -2071,13 +2240,18 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     earningsDaysUntil: yahooCandidate?.earningsDaysUntil ?? null,
     earningsWarning: yahooCandidate?.earningsWarning ?? null,
     earningsWarningLevel: yahooCandidate?.earningsWarningLevel ?? null,
-    expectedMoveLow: ibkrCandidate?.lowerBound ?? yahooCandidate?.expectedMoveLow ?? 0,
+    expectedMoveLow: resolvedLowerBound ?? 0,
     expectedMoveHigh: ibkrCandidate?.upperBound ?? yahooCandidate?.expectedMoveHigh ?? 0,
     minPremium: ibkrCandidate?.targetPremium ?? yahooCandidate?.minPremium ?? minPremiumForSpot(spot),
     targetWeeks: yahooCandidate?.targetWeeks ?? 1,
     dteDays: Number.isFinite(resolvedDteDays) ? resolvedDteDays : null,
     safeStrike: safeStrikeWithPop,
     aggressiveStrike: aggressiveStrikeWithPop,
+    safeScore: modeRecommendation.safeScore,
+    aggressiveOpportunityScore: modeRecommendation.aggressiveOpportunityScore,
+    recommendedMode: modeRecommendation.recommendedMode,
+    recommendedReason: modeRecommendation.recommendedReason,
+    recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
     premium: premiumLabel,
     weeklyReturn: weeklyReturnValue,
     strikeDistance: primaryStrike ? primaryStrike.distancePct : yahooCandidate?.strikeDistance ?? 0,
@@ -2569,6 +2743,15 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   {item.ticker} <span className="font-normal text-slate-500">— {item.name}</span>
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">{item.setup}</p>
+                {item.recommendedMode === "AGGRESSIVE" ? (
+                  <p className="mt-1 text-sm text-emerald-700">
+                    Mode recommandé : AGGRESSIVE — {item.recommendedReason}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-slate-600">
+                    Mode recommandé : SAFE
+                  </p>
+                )}
                 {earningsDisplay ? (
                   <p className="mt-1 text-sm text-amber-700">
                     {earningsDisplay}

@@ -901,6 +901,63 @@ function buildIbkrTickerMetricRow(row) {
   };
 }
 
+function computePercentile(sortedNumbers, percentile) {
+  if (!Array.isArray(sortedNumbers) || sortedNumbers.length === 0) return null;
+  const p = Math.max(0, Math.min(100, Number(percentile)));
+  const idx = Math.ceil((p / 100) * sortedNumbers.length) - 1;
+  const boundedIdx = Math.max(0, Math.min(sortedNumbers.length - 1, idx));
+  return sortedNumbers[boundedIdx];
+}
+
+function buildIbkrPerformanceSummary(rows, payloadDurationMs = null, serverDurationMs = null, limit = 10) {
+  const metricRows = (Array.isArray(rows) ? rows : [])
+    .map((row) => buildIbkrTickerMetricRow(row))
+    .filter((row) => row?.symbol);
+  const withDuration = metricRows.filter((row) => Number.isFinite(numberOrNull(row.durationMs)));
+  const durations = withDuration
+    .map((row) => numberOrNull(row.durationMs))
+    .filter((v) => v != null)
+    .sort((a, b) => a - b);
+  const avgDurationMs = durations.length
+    ? Math.round(durations.reduce((acc, value) => acc + value, 0) / durations.length)
+    : null;
+  const medianDurationMs = computePercentile(durations, 50);
+  const p95DurationMs = computePercentile(durations, 95);
+  const slowestTickers = [...withDuration]
+    .sort((a, b) => Number(b.durationMs || 0) - Number(a.durationMs || 0))
+    .slice(0, Math.max(1, limit))
+    .map((row) => ({
+      symbol: row.symbol,
+      status: row.status,
+      reason: row.reason,
+      durationMs: numberOrNull(row.durationMs),
+      approxCalls: numberOrNull(row.approxCalls),
+      timeouts: numberOrNull(row.timeouts) ?? 0,
+      kept: row.status === "kept",
+      rejected: row.status !== "kept",
+    }));
+  const keptCount = metricRows.filter((row) => row.status === "kept").length;
+  const rejectedCount = metricRows.length - keptCount;
+  const timeoutCount = metricRows.reduce(
+    (acc, row) =>
+      acc + (String(row.status || "").toLowerCase() === "timeout" ? 1 : (numberOrNull(row.timeouts) ?? 0) > 0 ? 1 : 0),
+    0
+  );
+  return {
+    scannedRows: metricRows.length,
+    rowsWithDuration: durations.length,
+    keptCount,
+    rejectedCount,
+    timeoutCount,
+    avgDurationMs,
+    medianDurationMs,
+    p95DurationMs,
+    batchDurationMs: numberOrNull(payloadDurationMs),
+    serverDurationMs: numberOrNull(serverDurationMs),
+    slowestTickers,
+  };
+}
+
 function enrichIbkrCallMetrics(metrics, rows, rejectionReasons) {
   const source = metrics && typeof metrics === "object" ? metrics : {};
   const bySymbol = { ...(source.bySymbol ?? {}) };
@@ -1547,6 +1604,13 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       "approxCalls",
       enrichedIbkrCallMetrics?.totals?.totalApproxIbkrCalls ?? 0
     );
+    const serverDurationMs = Date.now() - startedAt;
+    const ibkrPerfSummary = buildIbkrPerformanceSummary(
+      rows,
+      numberOrNull(payload?.durationMs),
+      serverDurationMs,
+      10
+    );
 
     res.json({
       ok: true,
@@ -1571,7 +1635,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       scanned: tickers.length,
       kept: shortlist.length,
       returned: Math.min(topN, shortlist.length),
-      durationMs: Date.now() - startedAt,
+      durationMs: serverDurationMs,
       ibkrDurationMs: numberOrNull(payload?.durationMs),
       batchTimeoutMs,
       shortlist: shortlist.slice(0, topN),
@@ -1583,6 +1647,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       ibkr: {
         twoPhaseEnabled: responseTwoPhaseEnabled,
       },
+      ibkrPerfSummary,
       ibkrCallMetrics: enrichedIbkrCallMetrics,
     });
   } catch (error) {

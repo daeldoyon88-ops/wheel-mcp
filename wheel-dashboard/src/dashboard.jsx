@@ -4168,6 +4168,13 @@ function IbkrDirectScanPanel({
       shortlistDev.length === 0 &&
       rejected.length === 0 &&
       errors.length === 0);
+  const perfSummary =
+    result?.ibkrPerfSummary && typeof result.ibkrPerfSummary === "object"
+      ? result.ibkrPerfSummary
+      : null;
+  const slowestTickers = Array.isArray(perfSummary?.slowestTickers)
+    ? perfSummary.slowestTickers
+    : [];
   const rawPayload = result ? JSON.stringify(result, null, 2) : "";
 
   return (
@@ -4345,6 +4352,36 @@ function IbkrDirectScanPanel({
                 />
               )}
             </div>
+
+            {perfSummary && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <p className="font-semibold text-slate-900">Instrumentation performance IBKR</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-4">
+                  <Metric label="Durée moyenne / ticker" value={perfSummary.avgDurationMs == null ? "—" : `${perfSummary.avgDurationMs} ms`} />
+                  <Metric label="Médiane / ticker" value={perfSummary.medianDurationMs == null ? "—" : `${perfSummary.medianDurationMs} ms`} />
+                  <Metric label="P95 / ticker" value={perfSummary.p95DurationMs == null ? "—" : `${perfSummary.p95DurationMs} ms`} />
+                  <Metric label="Timeouts" value={String(perfSummary.timeoutCount ?? 0)} tone={Number(perfSummary.timeoutCount || 0) > 0 ? "warn" : "good"} />
+                  <Metric label="Rows mesurées" value={`${perfSummary.rowsWithDuration ?? 0}/${perfSummary.scannedRows ?? 0}`} />
+                  <Metric label="Kept / Rejected" value={`${perfSummary.keptCount ?? 0} / ${perfSummary.rejectedCount ?? 0}`} />
+                  <Metric label="Durée batch IBKR" value={perfSummary.batchDurationMs == null ? "—" : `${perfSummary.batchDurationMs} ms`} />
+                  <Metric label="Durée endpoint" value={perfSummary.serverDurationMs == null ? "—" : `${perfSummary.serverDurationMs} ms`} />
+                </div>
+                <div className="mt-3">
+                  <p className="font-medium text-slate-900">Top 10 tickers les plus lents</p>
+                  {slowestTickers.length === 0 ? (
+                    <p className="mt-1 text-xs text-slate-500">Aucune donnée de latence ticker.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                      {slowestTickers.slice(0, 10).map((row, index) => (
+                        <div key={`ibkr-slowest-${row.symbol || index}-${index}`}>
+                          {index + 1}. {row.symbol || "—"} · {row.durationMs == null ? "durée ?" : `${row.durationMs} ms`} · {String(row.status || "unknown")} · {formatIbkrReason(row.reason)} · approx calls {row.approxCalls ?? 0} · timeouts {row.timeouts ?? 0}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <p className="font-semibold text-slate-900">Retenus IBKR total — bassin testé</p>

@@ -4437,11 +4437,16 @@ export default function Dashboard() {
         ? snapshotCandidates
         : backendCandidates;
 
-    return source.slice(0, topN).map((item, index) => ({
+    const limitedSource =
+      dataSource === "ibkr_direct"
+        ? source
+        : source.slice(0, topN);
+
+    return limitedSource.map((item, index) => ({
       ...item,
       rank: index + 1,
     }));
-  }, [backendCandidates, snapshotCandidates, topN]);
+  }, [backendCandidates, snapshotCandidates, dataSource, topN]);
 
   const enrichedCandidates = useMemo(() => {
     const enriched = activeCandidates.map((item, index) => {

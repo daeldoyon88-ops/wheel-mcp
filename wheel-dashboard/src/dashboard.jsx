@@ -769,6 +769,10 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     tier: item.tier ?? "none",
     qualityScore: Number.isFinite(item?.qualityScore) ? Number(item.qualityScore) : null,
     qualityReasons: Array.isArray(item.qualityReasons) ? item.qualityReasons : [],
+    diagnosticsV12:
+      item?.diagnosticsV12 && typeof item.diagnosticsV12 === "object"
+        ? { ...item.diagnosticsV12 }
+        : null,
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract: primaryStrike ? primaryStrike.premium * 100 : 0,
     earnings: item.hasEarnings ? "earnings mode actif" : "pas cette semaine",
@@ -1901,6 +1905,12 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     strengths: Array.isArray(ibkrCandidate?.strengths) ? ibkrCandidate.strengths : [],
     weaknesses: Array.isArray(ibkrCandidate?.weaknesses) ? ibkrCandidate.weaknesses : [],
     qualityReasons: [...new Set([...yahooQualityReasons, ...ibkrQualityReasons].filter(Boolean))],
+    diagnosticsV12:
+      yahooCandidate?.diagnosticsV12 && typeof yahooCandidate.diagnosticsV12 === "object"
+        ? { ...yahooCandidate.diagnosticsV12 }
+        : ibkrCandidate?.diagnosticsV12 && typeof ibkrCandidate.diagnosticsV12 === "object"
+        ? { ...ibkrCandidate.diagnosticsV12 }
+        : null,
     capitalPerContract: primaryStrike ? primaryStrike.strike * 100 : 0,
     premiumPerContract:
       primaryStrike && primaryPremium != null && Number.isFinite(Number(primaryPremium))

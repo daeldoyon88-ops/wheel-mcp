@@ -3583,16 +3583,29 @@ function getIbkrActionabilityProfile(item) {
     : spreadAcceptable
     ? 35_000
     : spreadNetMalus
-    ? 220_000
+    ? 360_000
     : spreadStrongMalus
-    ? 520_000
-    : 1_100_000;
+    ? 1_250_000
+    : 3_000_000;
   const primeOk = premiumTargetMetUi(item);
   const distance = Math.abs(Number(safe?.distancePct ?? item?.strikeDistance ?? 0));
   const pop = Number(safe?.popProfitEstimated ?? safe?.popEstimate ?? 0);
   const weekly = Number(safe?.weeklyYield ?? item?.weeklyReturn ?? 0);
   const eliteScore = Number(item?.eliteScore ?? 0);
   const finalTradeQualityScore = Number(item?.finalTradeQualityScore);
+  const hasExceptionalFtqs = Number.isFinite(finalTradeQualityScore) && finalTradeQualityScore >= 90;
+  const top10GuardrailPenalty =
+    spreadPct == null
+      ? 0
+      : spreadPct > 20
+      ? 6_000_000
+      : spreadPct > 15
+      ? hasExceptionalFtqs
+        ? 900_000
+        : 2_800_000
+      : spreadPct > 10
+      ? 950_000
+      : 0;
   const safeEqualsAggressive =
     safe?.strike != null &&
     item?.aggressiveStrike?.strike != null &&
@@ -3627,7 +3640,8 @@ function getIbkrActionabilityProfile(item) {
       (
     (noEarnings ? 1_000_000 : 0) +
     (spreadExcellent ? 180_000 : spreadAcceptable ? 60_000 : 0) -
-    spreadPenalty +
+    spreadPenalty -
+    top10GuardrailPenalty +
     (primeOk ? 10_000 : 0) +
     Math.min(distance, 30) * 100 +
     (Number.isFinite(pop) ? pop * 100 : 0) +
@@ -3637,6 +3651,7 @@ function getIbkrActionabilityProfile(item) {
     spreadPct,
     spreadBucket,
     spreadPenalty,
+    top10GuardrailPenalty,
     noEarnings,
     spreadOver20,
     spreadOver10,
@@ -3746,6 +3761,28 @@ function getRetainedNotDisplayedReason(item, displayedCutoffScore) {
     return "moins bon que les 10 finaux";
   }
   return "moins prioritaire après tri live";
+}
+
+function inferInstrumentType({ quoteType, category, sector, symbol }) {
+  const qt = String(quoteType || "").trim().toLowerCase();
+  const cat = String(category || "").trim().toLowerCase();
+  const sec = String(sector || "").trim();
+  const sym = String(symbol || "").trim().toUpperCase();
+  if (qt.includes("etf") || cat.includes("etf")) {
+    if (/\b(2x|3x|ultra|bear|bull)\b/i.test(cat) || /(U|X)$/.test(sym)) return "Leveraged ETF";
+    if (cat.includes("crypto") || /bitcoin|ethereum|crypto/i.test(cat)) return "Crypto ETF";
+    return "ETF";
+  }
+  if (qt.includes("equity") || qt.includes("stock")) {
+    if (/financial|bank|insurance|capital markets/i.test(sec)) return "Finance";
+    if (/energy|oil|gas/i.test(sec)) return "Energy";
+    if (/technology|software|semiconductor/i.test(sec)) return "Tech";
+    return "Stock";
+  }
+  if (/financial|bank|insurance|capital markets/i.test(sec)) return "Finance";
+  if (/energy|oil|gas/i.test(sec)) return "Energy";
+  if (/technology|software|semiconductor/i.test(sec)) return "Tech";
+  return "Stock";
 }
 
 function mergeIbkrProgressPayloads({
@@ -4580,6 +4617,38 @@ function DetailModal({ item, onClose }) {
       earningsMoment: item.earningsMoment ?? null,
       expiration: item.targetExpiration ?? null,
     }).earningsWarning;
+  const quote = liveData?.quote ?? {};
+  const companyName =
+    item?.companyName ??
+    item?.longName ??
+    item?.shortName ??
+    quote?.longName ??
+    quote?.shortName ??
+    item?.name ??
+    item?.ticker;
+  const sector =
+    item?.sector ??
+    item?.profile?.sector ??
+    quote?.sector ??
+    "non disponible";
+  const industry =
+    item?.industry ??
+    item?.profile?.industry ??
+    quote?.industry ??
+    "non disponible";
+  const businessSummary =
+    item?.businessSummary ??
+    item?.longBusinessSummary ??
+    item?.profile?.longBusinessSummary ??
+    quote?.longBusinessSummary ??
+    quote?.businessSummary ??
+    "Description non disponible.";
+  const instrumentType = inferInstrumentType({
+    quoteType: item?.quoteType ?? quote?.quoteType,
+    category: item?.category ?? quote?.category,
+    sector,
+    symbol: item?.ticker,
+  });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
@@ -4649,6 +4718,17 @@ function DetailModal({ item, onClose }) {
               value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
             />
             <Metric label="Prime cible safe" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Fiche entreprise</p>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-2">
+              <p><span className="font-semibold">Nom complet :</span> {companyName}</p>
+              <p><span className="font-semibold">Type :</span> {instrumentType}</p>
+              <p><span className="font-semibold">Secteur :</span> {sector}</p>
+              <p><span className="font-semibold">Industrie :</span> {industry}</p>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{businessSummary}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

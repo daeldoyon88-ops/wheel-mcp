@@ -1042,8 +1042,11 @@ function buildEliteFinalScore(cand, row) {
   const expectedMove = numberOrNull(cand?.expectedMove);
   if (spot != null && spot > 0 && expectedMove != null && expectedMove > 0) {
     const emPct = expectedMove / spot;
-    if (emPct >= 0.14) {
-      score -= 10;
+    if (emPct >= 0.2) {
+      score -= 20;
+      reasonsDown.push("volatilite extreme");
+    } else if (emPct >= 0.14) {
+      score -= 14;
       reasonsDown.push("volatilité excessive");
     } else if (emPct <= 0.06) {
       score += 4;
@@ -1051,6 +1054,10 @@ function buildEliteFinalScore(cand, row) {
     }
   }
 
+  const quoteTypeForMarketCap = String(row?.quote?.quoteType || row?.quoteType || "").toUpperCase();
+  const symbolForMarketCap = String(cand?.symbol || row?.symbol || "").toUpperCase();
+  const isEtfLikeForMarketCap =
+    quoteTypeForMarketCap === "ETF" || ELITE_ETF_SYMBOLS.has(symbolForMarketCap);
   const marketCap =
     numberOrNull(row?.quote?.marketCap) ??
     numberOrNull(row?.marketCap) ??
@@ -1063,6 +1070,9 @@ function buildEliteFinalScore(cand, row) {
       score -= 12;
       reasonsDown.push("small cap");
     }
+  } else if (!isEtfLikeForMarketCap) {
+    score -= 6;
+    reasonsDown.push("market cap inconnue");
   }
 
   const avgVolume =

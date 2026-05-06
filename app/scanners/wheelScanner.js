@@ -165,7 +165,15 @@ export function createWheelScanner(marketService) {
     return "none";
   }
 
-  function buildQualitySort({ symbol, safeStrike, supportStatus, technicals, hasUpcomingEarningsBeforeExpiration, earningsDaysUntil }) {
+  function buildQualitySort({
+    symbol,
+    safeStrike,
+    supportStatus,
+    technicals,
+    hasUpcomingEarningsBeforeExpiration,
+    earningsDaysUntil,
+    expectedMovePercent,
+  }) {
     let score = 0;
     const good = [];
     const penalties = [];
@@ -177,8 +185,7 @@ export function createWheelScanner(marketService) {
       score += 20;
       good.push("Tier 2");
     } else if (tier === "T3") {
-      score += 10;
-      good.push("Tier 3");
+      penalties.push("Tier 3 speculatif");
     }
 
     if (supportStatus === "current_below_support") {
@@ -256,6 +263,15 @@ export function createWheelScanner(marketService) {
     } else if (pop > 0 && pop < 0.5) {
       score -= 8;
       penalties.push("POP faible");
+    }
+
+    const emPct = toNumber(expectedMovePercent);
+    if (emPct >= 20) {
+      score -= 25;
+      penalties.push("expected move tres eleve");
+    } else if (emPct >= 14) {
+      score -= 15;
+      penalties.push("expected move eleve");
     }
 
     const qualityReasons = [
@@ -625,6 +641,7 @@ export function createWheelScanner(marketService) {
       technicals,
       hasUpcomingEarningsBeforeExpiration,
       earningsDaysUntil,
+      expectedMovePercent: spot > 0 && expectedMoveAbs > 0 ? (expectedMoveAbs / spot) * 100 : null,
     });
 
     return {
@@ -805,6 +822,9 @@ export function createWheelScanner(marketService) {
       );
     }
 
+    const challengerCount = sort === "quality" && topN >= 30 ? 10 : 0;
+    const returnLimit = topN + challengerCount;
+
     return {
       status: 200,
       payload: {
@@ -812,8 +832,10 @@ export function createWheelScanner(marketService) {
         expiration,
         scanned: cleanedTickers.length,
         kept: shortlist.length,
-        returned: Math.min(topN, shortlist.length),
-        shortlist: shortlist.slice(0, topN),
+        returned: Math.min(returnLimit, shortlist.length),
+        requestedTopN: topN,
+        challengerCount,
+        shortlist: shortlist.slice(0, returnLimit),
         rejected,
         errors,
         rejectionReasonCounts,

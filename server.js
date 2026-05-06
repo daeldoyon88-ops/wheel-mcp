@@ -494,7 +494,7 @@ function createMcpServer() {
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "wheel-mcp-backend" });
+  res.json({ ok: true, service: "wheel-mcp-backend", journalStore: useSqliteJournal ? "sqlite" : "json" });
 });
 
 app.get("/metrics/scan", (_req, res) => {

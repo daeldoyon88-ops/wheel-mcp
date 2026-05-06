@@ -203,6 +203,111 @@ function computePreIbkrScore(symbol, candidate) {
   return { score, reasons: reasons.slice(0, 4) };
 }
 
+function computeIbkrPriorityScore(candidate) {
+  let score = 0;
+  const reasons = [];
+  const safe = candidate?.safeStrike ?? null;
+  const aggressive = candidate?.aggressiveStrike ?? null;
+  const targetPremium = Number(candidate?.targetPremium ?? candidate?.minPremium);
+  const premiumSafe = Number(
+    safe?.premiumUsed ?? safe?.primeUsed ?? safe?.bid ?? safe?.mid
+  );
+  const premiumAgg = Number(
+    aggressive?.premiumUsed ?? aggressive?.primeUsed ?? aggressive?.bid ?? aggressive?.mid
+  );
+  const bestPremium = Math.max(
+    Number.isFinite(premiumSafe) ? premiumSafe : Number.NEGATIVE_INFINITY,
+    Number.isFinite(premiumAgg) ? premiumAgg : Number.NEGATIVE_INFINITY
+  );
+  if (Number.isFinite(targetPremium) && targetPremium > 0 && Number.isFinite(bestPremium)) {
+    if (bestPremium >= targetPremium) {
+      score += 30;
+      reasons.push("prime>=objectif");
+    }
+  }
+
+  const spreadPct = Number(
+    safe?.liquidity?.spreadPct ??
+      aggressive?.liquidity?.spreadPct ??
+      safe?.spreadPct ??
+      aggressive?.spreadPct
+  );
+  if (Number.isFinite(spreadPct)) {
+    if (spreadPct <= 10) {
+      score += 20;
+      reasons.push("spread<=10%");
+    } else if (spreadPct > 20) {
+      score -= 20;
+      reasons.push("spread>20%");
+    }
+  }
+
+  const iv = Number(
+    safe?.impliedVolatility ??
+      aggressive?.impliedVolatility ??
+      candidate?.diagnosticsV12?.safeStrikeIv ??
+      candidate?.diagnosticsV12?.atmIv
+  );
+  if (Number.isFinite(iv) && iv >= 0.35) {
+    score += 15;
+    reasons.push("iv>=0.35");
+  }
+
+  const trend = String(candidate?.trend ?? candidate?.technicals?.trend ?? "")
+    .trim()
+    .toLowerCase();
+  const momentum = String(candidate?.momentum ?? candidate?.technicals?.momentum ?? "")
+    .trim()
+    .toLowerCase();
+  if ((trend === "bullish" || trend === "neutral") && momentum !== "negative") {
+    score += 15;
+    reasons.push("trend/momentum ok");
+  }
+
+  const supportStatus = String(
+    candidate?.supportStatus ?? candidate?.supportResistance?.supportStatus ?? ""
+  )
+    .trim()
+    .toLowerCase();
+  if (
+    supportStatus === "strike_near_support" ||
+    supportStatus === "near_support" ||
+    supportStatus === "strike_below_support" ||
+    supportStatus === "below_support"
+  ) {
+    score += 10;
+    reasons.push("support cohérent");
+  }
+
+  const earningsDaysUntil = Number(candidate?.earningsDaysUntil);
+  const hasUpcomingEarnings =
+    candidate?.hasUpcomingEarningsBeforeExpiration === true ||
+    candidate?.hasEarningsBeforeExpiration === true ||
+    (Number.isFinite(earningsDaysUntil) && earningsDaysUntil >= 0 && earningsDaysUntil <= 7);
+  if (hasUpcomingEarnings) {
+    score -= 25;
+    reasons.push("earnings proche");
+  } else {
+    score += 10;
+    reasons.push("pas d earnings proche");
+  }
+
+  const expectedMoveIncomplete = candidate?.expectedMoveIncomplete === true;
+  const expectedMoveStatus = String(candidate?.expectedMoveStatus || "")
+    .trim()
+    .toUpperCase();
+  const optionDataIncomplete =
+    expectedMoveIncomplete ||
+    expectedMoveStatus.includes("MISSING") ||
+    (!Number.isFinite(Number(bestPremium)) && !Number.isFinite(spreadPct));
+  if (optionDataIncomplete) {
+    score -= 15;
+    reasons.push("options incomplètes");
+  }
+
+  return { score, reasons: reasons.slice(0, 6) };
+}
+
 /**
  * Yahoo / scan_shortlist : données techniques utiles au badge (pas d’invention).
  * @param {unknown} item candidat dashboard (carte)
@@ -5022,18 +5127,36 @@ export default function Dashboard() {
       if (mode === "yahoo_shortlist" && Array.isArray(orderedSymbols) && orderedSymbols.length > 0) {
         sourceTag = "yahoo_shortlist";
         const seen = new Set();
+        const rankedYahooPool = [];
         for (const raw of orderedSymbols) {
           const symbol = String(raw || "").trim().toUpperCase();
           if (!symbol || seen.has(symbol)) continue;
           seen.add(symbol);
-          candidatePool.push(symbol);
-          diagnostics.push({
+          const candidate = candidateByTickerForPreIbkr.get(symbol) ?? null;
+          const { score, reasons } = computeIbkrPriorityScore(candidate);
+          rankedYahooPool.push({
             symbol,
-            rank: candidatePool.length,
-            reasons: ["ordre Yahoo avant validation IBKR"],
+            yahooRank: rankedYahooPool.length + 1,
+            score,
+            reasons,
             selectionMode: "yahoo_shortlist",
           });
         }
+        rankedYahooPool.sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return a.yahooRank - b.yahooRank;
+        });
+        candidatePool = rankedYahooPool.map((row) => row.symbol);
+        diagnostics = rankedYahooPool.map((row, index) => ({
+          symbol: row.symbol,
+          rank: index + 1,
+          score: row.score,
+          reasons: row.reasons,
+          selectionMode: "yahoo_shortlist",
+          ibkrPriorityScore: row.score,
+          ibkrPriorityReasons: row.reasons,
+          yahooRank: row.yahooRank,
+        }));
       } else {
         const symList = [...new Set((orderedSymbols || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))];
         const preMap =

@@ -29,7 +29,7 @@ const marketService = createMarketService(provider);
 const wheelScanner = createWheelScanner(marketService);
 const watchlistCache = createWatchlistCache();
 const watchlistBuilder = createWatchlistBuilder({ marketService, cache: watchlistCache });
-const useSqliteJournal = String(process.env.USE_SQLITE_JOURNAL || "false").trim().toLowerCase() === "true";
+const useSqliteJournal = String(process.env.USE_SQLITE_JOURNAL || "true").trim().toLowerCase() === "true";
 const wheelValidationStore = useSqliteJournal
   ? (await import("./app/journal/wheelValidationStoreSqlite.js")).createWheelValidationStoreSqlite()
   : createWheelValidationStore();

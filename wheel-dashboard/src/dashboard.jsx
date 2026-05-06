@@ -3592,6 +3592,7 @@ function getIbkrActionabilityProfile(item) {
   const pop = Number(safe?.popProfitEstimated ?? safe?.popEstimate ?? 0);
   const weekly = Number(safe?.weeklyYield ?? item?.weeklyReturn ?? 0);
   const eliteScore = Number(item?.eliteScore ?? 0);
+  const finalTradeQualityScore = Number(item?.finalTradeQualityScore);
   const safeEqualsAggressive =
     safe?.strike != null &&
     item?.aggressiveStrike?.strike != null &&
@@ -3616,6 +3617,11 @@ function getIbkrActionabilityProfile(item) {
   return {
     bucket,
     label,
+    finalTradeQualityScore: Number.isFinite(finalTradeQualityScore)
+      ? finalTradeQualityScore
+      : null,
+    weeklyYield: Number.isFinite(weekly) ? weekly : null,
+    eliteScore: Number.isFinite(eliteScore) ? eliteScore : null,
     score:
       (2 - bucket) * 10_000_000 +
       (
@@ -3650,6 +3656,39 @@ function sortByLiveActionability(a, b) {
   const pa = getIbkrActionabilityProfile(a || null);
   const pb = getIbkrActionabilityProfile(b || null);
   if (pa.bucket !== pb.bucket) return pa.bucket - pb.bucket;
+
+  const aFtqs = Number(pa?.finalTradeQualityScore);
+  const bFtqs = Number(pb?.finalTradeQualityScore);
+  const aHasFtqs = Number.isFinite(aFtqs);
+  const bHasFtqs = Number.isFinite(bFtqs);
+  if (aHasFtqs && bHasFtqs && bFtqs !== aFtqs) return bFtqs - aFtqs;
+  if (aHasFtqs && !bHasFtqs) return -1;
+  if (!aHasFtqs && bHasFtqs) return 1;
+
+  const aSpread = Number(pa?.spreadPct);
+  const bSpread = Number(pb?.spreadPct);
+  const aHasSpread = Number.isFinite(aSpread);
+  const bHasSpread = Number.isFinite(bSpread);
+  if (aHasSpread && bHasSpread && aSpread !== bSpread) return aSpread - bSpread;
+  if (aHasSpread && !bHasSpread) return -1;
+  if (!aHasSpread && bHasSpread) return 1;
+
+  const aWeekly = Number(pa?.weeklyYield);
+  const bWeekly = Number(pb?.weeklyYield);
+  const aHasWeekly = Number.isFinite(aWeekly);
+  const bHasWeekly = Number.isFinite(bWeekly);
+  if (aHasWeekly && bHasWeekly && bWeekly !== aWeekly) return bWeekly - aWeekly;
+  if (aHasWeekly && !bHasWeekly) return -1;
+  if (!aHasWeekly && bHasWeekly) return 1;
+
+  const aElite = Number(pa?.eliteScore);
+  const bElite = Number(pb?.eliteScore);
+  const aHasElite = Number.isFinite(aElite);
+  const bHasElite = Number.isFinite(bElite);
+  if (aHasElite && bHasElite && bElite !== aElite) return bElite - aElite;
+  if (aHasElite && !bHasElite) return -1;
+  if (!aHasElite && bHasElite) return 1;
+
   return pb.score - pa.score;
 }
 

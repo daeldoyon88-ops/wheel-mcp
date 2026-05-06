@@ -444,6 +444,163 @@ function computeModeRecommendation({
   };
 }
 
+function clampNumber(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function computeFinalTradeQualityScore({
+  symbol,
+  safeStrike,
+  aggressiveStrike,
+  lowerBound,
+  spot,
+  dteDays,
+  minPremium,
+  recommendedMode,
+  aggressiveOpportunityScore,
+  hasUpcomingEarningsBeforeExpiration,
+  hasEarningsBeforeExpiration,
+  earningsDaysUntil,
+  eliteScore,
+}) {
+  const notes = [];
+  const safeSpreadPct = getSafeSpreadPct({ safeStrike });
+  let spreadScore = 0;
+  if (safeSpreadPct == null) {
+    spreadScore = -5;
+    notes.push("spread_safe_inconnu");
+  } else if (safeSpreadPct <= 7) spreadScore = 30;
+  else if (safeSpreadPct <= 10) spreadScore = 24;
+  else if (safeSpreadPct <= 15) spreadScore = 12;
+  else if (safeSpreadPct <= 20) spreadScore = 3;
+  else spreadScore = -15;
+
+  const earningsRisk =
+    hasUpcomingEarningsBeforeExpiration === true ||
+    hasEarningsBeforeExpiration === true ||
+    (Number.isFinite(Number(earningsDaysUntil)) &&
+      Number(earningsDaysUntil) >= 0 &&
+      Number(earningsDaysUntil) <= 7);
+  let earningsScore = 8;
+  if (earningsRisk) earningsScore = -20;
+  else earningsScore = 20;
+
+  const safePopRaw = Number(safeStrike?.popProfitEstimated ?? safeStrike?.popEstimate);
+  const safePopPct = Number.isFinite(safePopRaw) ? safePopRaw * 100 : null;
+  let popScore = 0;
+  if (safePopPct == null) {
+    popScore = 0;
+    notes.push("pop_safe_inconnu");
+  } else if (safePopPct >= 80) popScore = 15;
+  else if (safePopPct >= 75) popScore = 12;
+  else if (safePopPct >= 70) popScore = 8;
+  else if (safePopPct >= 65) popScore = 4;
+  else popScore = -5;
+
+  const safePremium = Number(
+    safeStrike?.premiumUsed ?? safeStrike?.primeUsed ?? safeStrike?.bid ?? safeStrike?.mid
+  );
+  const targetPremium = Number(minPremium);
+  let premiumScore = 0;
+  if (Number.isFinite(safePremium) && Number.isFinite(targetPremium) && targetPremium > 0) {
+    if (safePremium >= targetPremium) premiumScore = 10;
+    else if (safePremium >= targetPremium * 0.75) premiumScore = 5;
+    else premiumScore = -5;
+  } else {
+    premiumScore = -2;
+    notes.push("premium_safe_inconnu");
+  }
+
+  const safeStrikePrice = Number(safeStrike?.strike);
+  const px = Number(spot);
+  const lb = Number(lowerBound);
+  const safeDistancePct =
+    Number.isFinite(safeStrikePrice) && Number.isFinite(px) && px > 0
+      ? ((px - safeStrikePrice) / px) * 100
+      : null;
+  const safeBelowLowerBound =
+    Number.isFinite(safeStrikePrice) && Number.isFinite(lb) ? safeStrikePrice <= lb : null;
+  let distanceScore = 0;
+  if (safeDistancePct == null || safeBelowLowerBound == null) {
+    distanceScore = 0;
+    notes.push("distance_lowerbound_incomplet");
+  } else if (safeDistancePct >= 4 && safeBelowLowerBound) distanceScore = 10;
+  else if (safeDistancePct >= 2) distanceScore = 5;
+  else distanceScore = -10;
+
+  const dte = Number(dteDays);
+  let dteScore = 0;
+  if (!Number.isFinite(dte)) {
+    dteScore = 0;
+    notes.push("dte_inconnu");
+  } else if (dte >= 7 && dte <= 21) dteScore = 10;
+  else if (dte >= 22 && dte <= 35) dteScore = 6;
+  else if (dte < 7) dteScore = -8;
+  else dteScore = 2;
+
+  const elite = Number(eliteScore);
+  const eliteScoreBonus = Number.isFinite(elite)
+    ? clampNumber((elite / 100) * 5, 0, 5)
+    : 0;
+
+  const aggressiveSpreadPct = Number(
+    aggressiveStrike?.liquidity?.spreadPct ?? aggressiveStrike?.spreadPct
+  );
+  const aggrOpp = Number(aggressiveOpportunityScore);
+  let aggressiveBonus = 0;
+  const aggressiveAllowed =
+    !earningsRisk &&
+    (!Number.isFinite(aggressiveSpreadPct) || aggressiveSpreadPct <= 15) &&
+    (recommendedMode === "AGGRESSIVE" || (Number.isFinite(aggrOpp) && aggrOpp >= 50));
+  if (aggressiveAllowed) {
+    if (recommendedMode === "AGGRESSIVE" || aggrOpp >= 70) aggressiveBonus = 10;
+    else aggressiveBonus = 5;
+  }
+
+  const rawTotal =
+    spreadScore +
+    earningsScore +
+    popScore +
+    premiumScore +
+    distanceScore +
+    dteScore +
+    eliteScoreBonus +
+    aggressiveBonus;
+  const total = clampNumber(Math.round(rawTotal * 1000) / 1000, 0, 110);
+
+  return {
+    finalTradeQualityScore: total,
+    finalTradeQualityBreakdown: {
+      spreadScore,
+      earningsScore,
+      popScore,
+      premiumScore,
+      distanceScore,
+      dteScore,
+      eliteScoreBonus,
+      aggressiveBonus,
+      total,
+      notes,
+    },
+    logPayload: {
+      symbol,
+      finalTradeQualityScore: total,
+      finalTradeQualityBreakdown: {
+        spreadScore,
+        earningsScore,
+        popScore,
+        premiumScore,
+        distanceScore,
+        dteScore,
+        eliteScoreBonus,
+        aggressiveBonus,
+        total,
+        notes,
+      },
+    },
+  };
+}
+
 /**
  * Yahoo / scan_shortlist : données techniques utiles au badge (pas d’invention).
  * @param {unknown} item candidat dashboard (carte)
@@ -2229,6 +2386,23 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
       yahooCandidate?.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil: yahooCandidate?.earningsDaysUntil ?? null,
   });
+  const ftqs = computeFinalTradeQualityScore({
+    symbol,
+    safeStrike: safeStrikeWithPop,
+    aggressiveStrike: aggressiveStrikeWithPop,
+    lowerBound: resolvedLowerBound,
+    spot,
+    dteDays: resolvedDteDays,
+    minPremium: ibkrCandidate?.targetPremium ?? yahooCandidate?.minPremium ?? null,
+    recommendedMode: modeRecommendation.recommendedMode,
+    aggressiveOpportunityScore: modeRecommendation.aggressiveOpportunityScore,
+    hasUpcomingEarningsBeforeExpiration:
+      yahooCandidate?.hasUpcomingEarningsBeforeExpiration ?? false,
+    hasEarningsBeforeExpiration:
+      yahooCandidate?.hasEarningsBeforeExpiration ?? false,
+    earningsDaysUntil: yahooCandidate?.earningsDaysUntil ?? null,
+    eliteScore: ibkrCandidate?.eliteScore ?? null,
+  });
   const ibkrNonTradable = ibkrCandidate?.dataTradable === false;
   const ibkrObjectiveBlock =
     ibkrNonTradable &&
@@ -2250,6 +2424,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     primaryPremium != null && Number.isFinite(Number(primaryPremium))
       ? Number(primaryPremium).toFixed(2)
       : yahooCandidate?.premium ?? "—";
+  console.log("[FTQS_DIAG]", ftqs.logPayload);
 
   return {
     ...(yahooCandidate ?? {}),
@@ -2286,6 +2461,8 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     recommendedMode: modeRecommendation.recommendedMode,
     recommendedReason: modeRecommendation.recommendedReason,
     recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
+    finalTradeQualityScore: ftqs.finalTradeQualityScore,
+    finalTradeQualityBreakdown: ftqs.finalTradeQualityBreakdown,
     premium: premiumLabel,
     weeklyReturn: weeklyReturnValue,
     strikeDistance: primaryStrike ? primaryStrike.distancePct : yahooCandidate?.strikeDistance ?? 0,

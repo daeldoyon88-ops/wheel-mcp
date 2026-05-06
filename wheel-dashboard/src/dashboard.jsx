@@ -5585,7 +5585,7 @@ export default function Dashboard() {
       const desiredFromInput = Number(ibkrAutoInput?.finalDisplayedTarget);
       const desiredFinalKept = Number.isFinite(desiredFromInput)
         ? Math.max(1, Math.min(hardEvaluationCap, Math.trunc(desiredFromInput)))
-        : Math.min(30, hardEvaluationCap);
+        : hardEvaluationCap;
       /** @type {{ symbol: string, score?: number, reasons: string[], tierBoost?: number, rank?: number, selectionMode: "yahoo_shortlist" | "watchlist_fallback" }[]} */
       let diagnostics = [];
       /** @type {string[]} */
@@ -5701,6 +5701,16 @@ export default function Dashboard() {
       setIbkrDirectLoading(true);
       setIbkrDirectError("");
       setIbkrDirectSentTickers([]);
+      console.log("[IBKR_DEPTH_RESOLVE]", {
+        yahooReturned: candidatePool.length,
+        requestedAuditDepth: finalTargetRaw,
+        effectiveIbkrLimit: hardEvaluationCap,
+        sentToIbkr: Math.min(candidatePool.length, hardEvaluationCap),
+        reason:
+          Number.isFinite(desiredFromInput)
+            ? "finalDisplayedTarget_override"
+            : "audit_depth_cap",
+      });
       console.warn("[IBKR_AUTO_SEND]", { scanId, source: sourceTag, pool: candidatePool, expirationYmd: expLocked });
       try {
         const payloads = [];

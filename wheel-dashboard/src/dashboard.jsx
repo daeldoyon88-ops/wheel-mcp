@@ -632,6 +632,20 @@ function computeDteAtScan(scanTimestamp, expirationYmd) {
   return Math.round((expDayUtc - scanDayUtc) / 86400000);
 }
 
+function resolveMergedDteDays({ ibkrDte, yahooDte, expirationYmd, todayYmd = ymdTodayLocal() }) {
+  const ibkr = Number(ibkrDte);
+  if (Number.isFinite(ibkr) && ibkr >= 0) return Math.max(0, Math.ceil(ibkr));
+
+  const exp = normalizeExpirationYmd(expirationYmd);
+  const fallbackDiff = exp ? daysBetweenYmd(todayYmd, exp) : null;
+  if (Number.isFinite(fallbackDiff)) return Math.max(0, Math.ceil(fallbackDiff));
+
+  const yahoo = Number(yahooDte);
+  if (Number.isFinite(yahoo) && yahoo >= 0) return Math.max(0, Math.ceil(yahoo));
+
+  return null;
+}
+
 /** Filtre d’affichage : aucune carte dont l’expiration explicite ne correspond pas à la sélection. */
 function candidateRowMatchesSelectedExpiration(item, selectedExp) {
   const sel = normalizeExpirationYmd(selectedExp);
@@ -2130,7 +2144,27 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
   const preserveNullQuotes =
     ibkrCandidate?.dataTradable === false &&
     (ibkrCandidate?.devIncompleteMarketData === true || ibkrCandidate?.premiumUsed == null);
-  const resolvedDteDays = Number(ibkrCandidate?.dteDays ?? yahooCandidate?.dteDays);
+  const expirationForDte =
+    normalizeExpirationYmd(selectedExpiration) ??
+    normalizeExpirationYmd(yahooCandidate?.targetExpiration) ??
+    normalizeExpirationYmd(yahooCandidate?.expiration) ??
+    null;
+  const fallbackDte = expirationForDte
+    ? daysBetweenYmd(ymdTodayLocal(), expirationForDte)
+    : null;
+  const resolvedDteDays = resolveMergedDteDays({
+    ibkrDte: ibkrCandidate?.dteDays,
+    yahooDte: yahooCandidate?.dteDays,
+    expirationYmd: expirationForDte,
+  });
+  console.log("[DTE_RESOLVE]", {
+    symbol,
+    expiration: expirationForDte,
+    ibkrDte: ibkrCandidate?.dteDays ?? null,
+    yahooDte: yahooCandidate?.dteDays ?? null,
+    fallbackDte,
+    resolvedDte: resolvedDteDays,
+  });
   const safeStrike = ibkrStrikeToDashboardStrike(
     ibkrCandidate?.safeStrike,
     spot,

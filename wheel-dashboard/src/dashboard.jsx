@@ -26,6 +26,7 @@ const DEFAULT_EXPIRATIONS = [
   "2026-05-15",
   "2026-05-22",
 ];
+const DEBUG_COMPARE = true;
 
 /** Liste statique conservée uniquement en secours si /universe/build échoue ou est indisponible. */
 const FALLBACK_TICKERS = [
@@ -643,12 +644,89 @@ function isUsMarketClosedNow(now = new Date()) {
   return false;
 }
 
+function countOwnFields(value) {
+  if (!value || typeof value !== "object") return 0;
+  return Object.keys(value).length;
+}
+
+function missingOwnFields(source, target) {
+  if (!source || typeof source !== "object") return [];
+  const targetKeys = target && typeof target === "object" ? new Set(Object.keys(target)) : new Set();
+  return Object.keys(source).filter((key) => !targetKeys.has(key));
+}
+
+function comparableValue(value) {
+  if (value == null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return `array:${value.length}`;
+  return `object:${Object.keys(value).length}`;
+}
+
+function changedOwnFields(source, target) {
+  if (!source || typeof source !== "object" || !target || typeof target !== "object") return [];
+  return Object.keys(source).filter((key) => {
+    if (!(key in target)) return false;
+    return comparableValue(source[key]) !== comparableValue(target[key]);
+  });
+}
+
+function toDashboardCandidate_LEGACY(item, index, selectedExpiration) {
+  const source = item && typeof item === "object" ? item : {};
+  const { diagnosticsV12: _diagnosticsV12, ...raw } = source;
+  const ticker = raw.ticker ?? raw.symbol ?? "";
+
+  return {
+    ...raw,
+    rank: index + 1,
+    ticker,
+    name: raw.name ?? ticker,
+    targetExpiration: raw.targetExpiration ?? selectedExpiration ?? raw.expiration ?? null,
+    price: raw.price ?? raw.currentPrice ?? null,
+  };
+}
+
+function logCandidateCompare(item, v12, legacy) {
+  if (!DEBUG_COMPARE) return;
+
+  console.log("CANDIDATE_COMPARE", {
+    symbol: item?.symbol ?? item?.ticker ?? v12?.ticker ?? legacy?.ticker ?? null,
+    v12FieldCount: countOwnFields(v12),
+    legacyFieldCount: countOwnFields(legacy),
+    legacyMissingInV12: missingOwnFields(legacy, v12),
+    v12MissingInLegacy: missingOwnFields(v12, legacy),
+    changedFields: changedOwnFields(legacy, v12),
+    scoreDiff: {
+      legacyQualityScore: legacy?.qualityScore ?? null,
+      v12QualityScore: v12?.qualityScore ?? null,
+      legacyFinalScore: legacy?.finalScore ?? null,
+      v12ProFinalScore: v12?.proFinalScore ?? null,
+    },
+    strikeDiff: {
+      legacySafeStrike: legacy?.safeStrike?.strike ?? null,
+      v12SafeStrike: v12?.safeStrike?.strike ?? null,
+      legacyAggressiveStrike: legacy?.aggressiveStrike?.strike ?? legacy?.maxPremiumStrike?.strike ?? null,
+      v12AggressiveStrike: v12?.aggressiveStrike?.strike ?? null,
+    },
+    v12,
+    legacy,
+  });
+}
+
 function toDashboardCandidate(item, index, selectedExpiration) {
+  const v12 = toDashboardCandidate_V12(item, index, selectedExpiration);
+  const legacy = toDashboardCandidate_LEGACY(item, index, selectedExpiration);
+  logCandidateCompare(item, v12, legacy);
+  return v12;
+}
+
+function toDashboardCandidate_V12(item, index, selectedExpiration) {
   const activeEarningsMode = item?.earningsMode === true;
-  const safe = item.safeStrike;
-  const aggressive = item.aggressiveStrike ?? item.maxPremiumStrike ?? null;
+  const safe = item?.ibkrSafeStrike ?? item?.safeStrike ?? null;
+  const aggressive = item?.ibkrAggressiveStrike ?? item?.aggressiveStrike ?? item?.maxPremiumStrike ?? null;
   const primaryStrike = safe || aggressive;
   const impliedVolatility = safe?.impliedVolatility ?? aggressive?.impliedVolatility ?? null;
+  const preferredExpectedMove = item?.ibkrExpectedMove ?? item?.expectedMove ?? null;
+  const safeBidPreferred = item?.ibkrSafeBid ?? safe?.bid ?? null;
+  const aggressiveBidPreferred = item?.ibkrAggressiveBid ?? aggressive?.bid ?? null;
   const earningsDate = item.earningsDate ?? null;
   const fallbackWarning = buildEarningsWarning({
     earningsDate: item.earningsDate ?? null,
@@ -686,8 +764,42 @@ function toDashboardCandidate(item, index, selectedExpiration) {
   const proExecutionScore = hasBackendScores ? Number(item.executionScore) : fallbackExecutionScore;
   const proDistanceScore = hasBackendScores ? Number(item.distanceScore) : fallbackDistanceScore;
   const scoreSource = hasBackendScores ? "backend" : "fallback";
+  const mapStrikeForDashboard = (strike, distancePct, label, preferredBid) => {
+    if (!strike) return null;
+    const premiumBase =
+      strike?.premium ??
+      strike?.mid ??
+      strike?.primeUsed ??
+      strike?.premiumUsed ??
+      strike?.bid ??
+      null;
+    const bid = preferredBid ?? strike?.bid ?? null;
+    const ask = strike?.ask ?? null;
+    return {
+      strike: strike.strike,
+      mid: premiumBase,
+      bid,
+      ask,
+      premiumUsed: strike?.premiumUsed ?? strike?.primeUsed ?? bid ?? premiumBase ?? null,
+      premiumLabel: strike?.premiumLabel ?? (strike?.primeUsed != null ? "Prime utilisée" : "BID utilisée"),
+      popEstimate: strike.popEstimate ?? null,
+      popProfitEstimated: strike.popProfitEstimated ?? null,
+      popOtmEstimated: strike.popOtmEstimated ?? null,
+      popSource: strike.popSource ?? null,
+      periodYield: (strike.periodYield ?? strike.weeklyYield ?? 0) * 100,
+      weeklyYield: (strike.weeklyYield ?? 0) * 100,
+      weeklyNormalizedYield:
+        (strike.weeklyNormalizedYield ?? strike.weeklyYield ?? 0) * 100,
+      annualizedYield: (strike.annualizedYield ?? 0) * 100,
+      dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
+      distancePct,
+      label,
+      liquidity: strike.liquidity ?? null,
+    };
+  };
 
   return {
+    ...item,
     rank: index + 1,
     ticker: item.symbol,
     name: item.symbol,
@@ -696,6 +808,7 @@ function toDashboardCandidate(item, index, selectedExpiration) {
       : `PUT scanner — expiration ${selectedExpiration}`,
     targetExpiration: selectedExpiration,
     price: item.currentPrice ?? 0,
+    expectedMove: preferredExpectedMove,
     expectedMovePct:
       item.currentPrice && item.adjustedMove
         ? (item.adjustedMove / item.currentPrice) * 100
@@ -720,38 +833,15 @@ function toDashboardCandidate(item, index, selectedExpiration) {
     dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
     minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0),
     targetWeeks: item.targetWeeks ?? 1,
-    safeStrike: safe
-      ? {
-          strike: safe.strike,
-          mid: safe.premium,
-          popEstimate: safe.popEstimate ?? null,
-          periodYield: (safe.periodYield ?? safe.weeklyYield ?? 0) * 100,
-          weeklyYield: (safe.weeklyYield ?? 0) * 100,
-          weeklyNormalizedYield:
-            (safe.weeklyNormalizedYield ?? safe.weeklyYield ?? 0) * 100,
-          annualizedYield: (safe.annualizedYield ?? 0) * 100,
-          dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
-          distancePct: safeDistance,
-          label: "prime la plus proche de la cible",
-          liquidity: safe.liquidity ?? null,
-        }
-      : null,
-    aggressiveStrike: aggressive
-      ? {
-          strike: aggressive.strike,
-          mid: aggressive.premium,
-          popEstimate: aggressive.popEstimate ?? null,
-          periodYield: (aggressive.periodYield ?? aggressive.weeklyYield ?? 0) * 100,
-          weeklyYield: (aggressive.weeklyYield ?? 0) * 100,
-          weeklyNormalizedYield:
-            (aggressive.weeklyNormalizedYield ?? aggressive.weeklyYield ?? 0) * 100,
-          annualizedYield: (aggressive.annualizedYield ?? 0) * 100,
-          dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
-          distancePct: aggressiveDistance,
-          label: "directement sous borne basse",
-          liquidity: aggressive.liquidity ?? null,
-        }
-      : null,
+    safeStrike: mapStrikeForDashboard(safe, safeDistance, "prime la plus proche de la cible", safeBidPreferred),
+    aggressiveStrike: mapStrikeForDashboard(
+      aggressive,
+      aggressiveDistance,
+      "directement sous borne basse",
+      aggressiveBidPreferred
+    ),
+    safeBid: safeBidPreferred,
+    aggressiveBid: aggressiveBidPreferred,
     premium:
       safe && aggressive
         ? `${safe.premium?.toFixed(2) ?? "—"} / ${aggressive.premium?.toFixed(2) ?? "—"}`
@@ -4383,6 +4473,15 @@ export default function Dashboard() {
 
       return matchesQuery && matchesFilter;
     });
+    if (dataSource === "ibkr_direct") {
+      const hasBackendIbkrOrder = filteredItems.every((item) => Number.isFinite(Number(item?.ibkrRank)));
+      const ibkrFallbackScore = (item) =>
+        Number(item?.ibkrEliteScore ?? item?.eliteScore ?? item?.actionabilityScore ?? item?.score ?? Number.NEGATIVE_INFINITY);
+      const rankedItems = hasBackendIbkrOrder
+        ? filteredItems.slice()
+        : filteredItems.slice().sort((a, b) => ibkrFallbackScore(b) - ibkrFallbackScore(a));
+      return rankedItems.filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
+    }
       const getSortValue = (item) => {
       if (sortBy === "quality") return item.qualityScore ?? Number.NEGATIVE_INFINITY;
       if (sortBy === "weeklyReturn") return item.weeklyReturn ?? 0;
@@ -4409,7 +4508,7 @@ export default function Dashboard() {
         return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
       })
       .filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
-  }, [enrichedCandidates, query, filter, sortBy, sortOrder, selectedExpiration]);
+  }, [enrichedCandidates, query, filter, sortBy, sortOrder, selectedExpiration, dataSource]);
 
   useEffect(() => {
     const bc = backendCandidates;

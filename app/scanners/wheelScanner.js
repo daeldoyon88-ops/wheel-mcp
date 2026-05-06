@@ -82,6 +82,21 @@ function daysBetweenYmd(fromYmd, toYmd) {
   return Math.round((toUtc - fromUtc) / (1000 * 60 * 60 * 24));
 }
 
+function normalizeExpirationInput(value) {
+  if (value == null) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const compact = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (compact) return `${compact[1]}-${compact[2]}-${compact[3]}`;
+  return raw;
+}
+
+function isDevScanEnabled() {
+  const raw = String(process.env.WHEEL_DEV_SCAN || "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
 function earningsMomentLabel(moment) {
   if (moment === "morning") return "avant ouverture";
   if (moment === "evening") return "après fermeture";
@@ -306,15 +321,16 @@ export function createWheelScanner(marketService) {
   }
 
   async function scanTicker(symbol, expiration) {
+    const normalizedExpiration = normalizeExpirationInput(expiration);
     const expirations = await marketService.getOptionExpirations(symbol);
-    if (!expirations.availableExpirations.includes(expiration)) {
+    if (!expirations.availableExpirations.includes(normalizedExpiration)) {
       return { symbol, ok: false, reason: "expiration_not_available" };
     }
 
     const [quote, expectedMove, optionChain, technicals, supportResistance, marketDiagnostics] = await Promise.all([
       marketService.getQuote(symbol),
-      marketService.getExpectedMove(symbol, expiration),
-      marketService.getOptionChain(symbol, expiration),
+      marketService.getExpectedMove(symbol, normalizedExpiration),
+      marketService.getOptionChain(symbol, normalizedExpiration),
       marketService.getTechnicals(symbol),
       marketService.getSupportResistance(symbol),
       typeof marketService.getDiagnosticsV12Market === "function"
@@ -328,11 +344,16 @@ export function createWheelScanner(marketService) {
       toNumber(expectedMove?.currentPrice);
     if (!spot) return { symbol, ok: false, reason: "no_spot_price" };
     const serviceExpectedMove = toNumber(expectedMove?.expectedMove);
-    if (!(serviceExpectedMove > 0)) {
-      return { symbol, ok: false, reason: "expected_move_incomplete_option_chain" };
-    }
+    const expectedMoveIncomplete = !(serviceExpectedMove > 0);
+    const devScanEnabled = isDevScanEnabled();
+    const expectedMoveStatus =
+      expectedMoveIncomplete && !devScanEnabled
+        ? "YAHOO_MISSING_ALLOW_IBKR"
+        : expectedMoveIncomplete
+        ? "YAHOO_MISSING_DEV_MODE"
+        : "YAHOO_OK";
 
-    const dteDays = getDteDays(expiration);
+    const dteDays = getDteDays(normalizedExpiration);
     const puts = Array.isArray(optionChain?.puts) ? optionChain.puts : [];
     const calls = Array.isArray(optionChain?.calls) ? optionChain.calls : [];
     const allStrikes = [
@@ -428,22 +449,22 @@ export function createWheelScanner(marketService) {
     const hasEarningsBeforeExpiration =
       !!(
         earningsDate &&
-        expiration &&
+        normalizedExpiration &&
         String(earningsDate) >= String(todayInExchange) &&
-        String(earningsDate) <= String(expiration)
+        String(earningsDate) <= String(normalizedExpiration)
       );
     const hasUpcomingEarningsBeforeExpiration =
       !!(
         earningsDate &&
-        expiration &&
+        normalizedExpiration &&
         String(earningsDate) >= String(todayInExchange) &&
-        String(earningsDate) <= String(expiration)
+        String(earningsDate) <= String(normalizedExpiration)
       );
     const hasPastEarningsBeforeExpiration =
       !!(
         earningsDate &&
-        expiration &&
-        String(earningsDate) < String(expiration) &&
+        normalizedExpiration &&
+        String(earningsDate) < String(normalizedExpiration) &&
         String(earningsDate) < String(todayInExchange)
       );
     const earningsMode = hasUpcomingEarningsBeforeExpiration && isEarningsImminent(quote);
@@ -451,7 +472,7 @@ export function createWheelScanner(marketService) {
     const hasEarnings = hasUpcomingEarningsBeforeExpiration;
     const effectiveEarningsDate =
       (isYmd(quote?.nextEarningsDate) && String(quote.nextEarningsDate) >= String(todayInExchange)
-        && (!expiration || String(quote.nextEarningsDate) <= String(expiration))
+        && (!normalizedExpiration || String(quote.nextEarningsDate) <= String(normalizedExpiration))
         ? quote.nextEarningsDate
         : null) ??
       (hasUpcomingEarningsBeforeExpiration ? earningsDate : null);
@@ -476,7 +497,7 @@ export function createWheelScanner(marketService) {
       const finalMovePct = spot > 0 && adjustedMove > 0 ? (adjustedMove / spot) * 100 : null;
       console.log("[MOVE_DEBUG]", {
         symbol,
-        expiration,
+        expiration: normalizedExpiration,
         earningsDate,
         hasEarningsBeforeExpiration,
         hasUpcomingEarningsBeforeExpiration,
@@ -534,7 +555,7 @@ export function createWheelScanner(marketService) {
     const strikeDebug =
       STRIKE_DEBUG_SYMBOLS.has(symbol) || strikeSelection.eligible.length === 0
         ? {
-            expirationUsed: expiration,
+            expirationUsed: normalizedExpiration,
             currentPrice: round(spot, 3),
             expectedMove: round(expectedMoveAbs, 3),
             adjustedMove: round(adjustedMove, 3),
@@ -693,7 +714,7 @@ export function createWheelScanner(marketService) {
     return {
       symbol,
       ok: true,
-      expiration,
+      expiration: normalizedExpiration,
       hasEarnings,
       hasEarningsBeforeExpiration,
       hasUpcomingEarningsBeforeExpiration,
@@ -709,6 +730,9 @@ export function createWheelScanner(marketService) {
       expectedMove: round(expectedMoveAbs, 3),
       expectedMoveMethod: expectedMove?.method ?? "weighted_60_30_10",
       expectedMoveComponents: expectedMove?.components ?? null,
+      expectedMoveSource: expectedMove?.expectedMoveSource ?? "strict",
+      expectedMoveIncomplete,
+      expectedMoveStatus,
       adjustedMove: round(adjustedMove, 3),
       lowerBound: round(lowerBound, 3),
       dteDays,
@@ -764,7 +788,10 @@ export function createWheelScanner(marketService) {
   }
 
   async function scanShortlist({ expiration, tickers = [], topN = 20, sort = "yield" }) {
-    if (!expiration) return { status: 400, payload: { ok: false, error: "expiration is required" } };
+    const normalizedExpiration = normalizeExpirationInput(expiration);
+    if (!normalizedExpiration) {
+      return { status: 400, payload: { ok: false, error: "expiration is required" } };
+    }
     if (!Array.isArray(tickers) || tickers.length === 0) {
       return { status: 400, payload: { ok: false, error: "tickers must be a non-empty array" } };
     }
@@ -793,6 +820,20 @@ export function createWheelScanner(marketService) {
     };
     const BATCH_SIZE = 8;
 
+    function tagLiquiditySource(item, liquiditySource, noYahooLiquidity) {
+      const diagnosticsBase =
+        item?.diagnosticsV12 && typeof item.diagnosticsV12 === "object" ? item.diagnosticsV12 : {};
+      return {
+        ...item,
+        noYahooLiquidity: noYahooLiquidity === true,
+        liquiditySource,
+        diagnosticsV12: {
+          ...diagnosticsBase,
+          liquiditySource,
+        },
+      };
+    }
+
     function countReason(reason) {
       const key = reason || "unknown";
       rejectionReasonCounts[key] = (rejectionReasonCounts[key] || 0) + 1;
@@ -808,7 +849,9 @@ export function createWheelScanner(marketService) {
 
     for (let i = 0; i < cleanedTickers.length; i += BATCH_SIZE) {
       const batch = cleanedTickers.slice(i, i + BATCH_SIZE);
-      const batchResults = await Promise.allSettled(batch.map((symbol) => scanTicker(symbol, expiration)));
+      const batchResults = await Promise.allSettled(
+        batch.map((symbol) => scanTicker(symbol, normalizedExpiration))
+      );
       for (let j = 0; j < batchResults.length; j += 1) {
         const result = batchResults[j];
         const symbol = batch[j];
@@ -826,9 +869,15 @@ export function createWheelScanner(marketService) {
             });
             continue;
           }
-          if (item.passesFilter) shortlist.push(item);
+          if (item.passesFilter) {
+            shortlist.push(tagLiquiditySource(item, "yahoo_strict", false));
+          }
           else {
             const reason = item?.debug?.reasonKept || "filtered_out";
+            if (reason === "no_liquid_strike_below_lower_bound") {
+              shortlist.push(tagLiquiditySource(item, "yahoo_unreliable", true));
+              continue;
+            }
             countReason(reason);
             rejected.push({
               symbol,
@@ -876,7 +925,7 @@ export function createWheelScanner(marketService) {
       status: 200,
       payload: {
         ok: true,
-        expiration,
+        expiration: normalizedExpiration,
         scanned: cleanedTickers.length,
         kept: shortlist.length,
         returned: Math.min(returnLimit, shortlist.length),

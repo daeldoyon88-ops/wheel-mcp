@@ -3381,9 +3381,35 @@ function getIbkrActionabilityProfile(item) {
   const safe = item?.safeStrike;
   const spreadPct = getSafeSpreadPct(item);
   const noEarnings = !hasEarningsBeforeExpirationUi(item);
+  const spreadExcellent = spreadPct != null && spreadPct <= 7;
+  const spreadAcceptable = spreadPct != null && spreadPct > 7 && spreadPct <= 10;
+  const spreadNetMalus = spreadPct != null && spreadPct > 10 && spreadPct <= 15;
+  const spreadStrongMalus = spreadPct != null && spreadPct > 15 && spreadPct <= 20;
   const spreadOver20 = spreadPct != null && spreadPct > 20;
   const spreadOver10 = spreadPct != null && spreadPct > 10 && spreadPct <= 20;
   const spreadOk = spreadPct != null && spreadPct <= 10;
+  const spreadBucket = spreadPct == null
+    ? "unknown"
+    : spreadExcellent
+    ? "<=7"
+    : spreadAcceptable
+    ? ">7<=10"
+    : spreadNetMalus
+    ? ">10<=15"
+    : spreadStrongMalus
+    ? ">15<=20"
+    : ">20";
+  const spreadPenalty = spreadPct == null
+    ? 120_000
+    : spreadExcellent
+    ? 0
+    : spreadAcceptable
+    ? 35_000
+    : spreadNetMalus
+    ? 220_000
+    : spreadStrongMalus
+    ? 520_000
+    : 1_100_000;
   const primeOk = premiumTargetMetUi(item);
   const distance = Math.abs(Number(safe?.distancePct ?? item?.strikeDistance ?? 0));
   const pop = Number(safe?.popProfitEstimated ?? safe?.popEstimate ?? 0);
@@ -3399,7 +3425,10 @@ function getIbkrActionabilityProfile(item) {
   if (!noEarnings || spreadOver20) {
     bucket = 2;
     label = "Non actionnable";
-  } else if (spreadOver10 || safeEqualsAggressive) {
+  } else if (spreadStrongMalus || safeEqualsAggressive) {
+    bucket = 1;
+    label = "À surveiller";
+  } else if (spreadNetMalus) {
     bucket = 1;
     label = "À surveiller";
   } else if (spreadOk && noEarnings) {
@@ -3414,7 +3443,8 @@ function getIbkrActionabilityProfile(item) {
       (2 - bucket) * 10_000_000 +
       (
     (noEarnings ? 1_000_000 : 0) +
-    (spreadOk ? 100_000 : 0) +
+    (spreadExcellent ? 180_000 : spreadAcceptable ? 60_000 : 0) -
+    spreadPenalty +
     (primeOk ? 10_000 : 0) +
     Math.min(distance, 30) * 100 +
     (Number.isFinite(pop) ? pop * 100 : 0) +
@@ -3422,9 +3452,15 @@ function getIbkrActionabilityProfile(item) {
     (Number.isFinite(eliteScore) ? eliteScore * 1000 : 0)
       ),
     spreadPct,
+    spreadBucket,
+    spreadPenalty,
     noEarnings,
     spreadOver20,
     spreadOver10,
+    spreadStrongMalus,
+    spreadNetMalus,
+    spreadAcceptable,
+    spreadExcellent,
     safeEqualsAggressive,
   };
 }

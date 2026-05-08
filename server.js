@@ -36,6 +36,8 @@ const wheelValidationStore = useSqliteJournal
 const wheelValidationService = createWheelValidationService({
   store: wheelValidationStore,
   getHistoricalClose: (symbol, dateYmd) => marketService.getHistoricalClose(symbol, dateYmd),
+  getHistoricalWindowMetrics: (symbol, scanDateYmd, expirationDateYmd) =>
+    marketService.getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd),
 });
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 const WHEEL_DEV_SCAN_WARNING =

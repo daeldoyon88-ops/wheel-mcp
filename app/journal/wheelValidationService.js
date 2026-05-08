@@ -81,6 +81,9 @@ function buildResolutionDefaults() {
     minPriceBetweenScanAndExpiration: null,
     brokeLowerBound: null,
     maxItmDepth: null,
+    lowerBoundDistance: null,
+    supportBreak: null,
+    drawdownPct: null,
     rolled: null,
     realizedPl: null,
     premiumRealized: null,
@@ -332,6 +335,9 @@ function normalizeResolutionPatch(patch) {
     minPriceBetweenScanAndExpiration: toNumberOrNull(patch?.minPriceBetweenScanAndExpiration),
     brokeLowerBound: toBooleanOrNull(patch?.brokeLowerBound),
     maxItmDepth: toNumberOrNull(patch?.maxItmDepth),
+    lowerBoundDistance: toNumberOrNull(patch?.lowerBoundDistance),
+    supportBreak: toBooleanOrNull(patch?.supportBreak),
+    drawdownPct: toNumberOrNull(patch?.drawdownPct),
     rolled: toBooleanOrNull(patch?.rolled),
     realizedPl: toNumberOrNull(patch?.realizedPl),
     premiumRealized: toNumberOrNull(patch?.premiumRealized),
@@ -380,6 +386,9 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
     minPriceBetweenScanAndExpiration: null,
     brokeLowerBound: null,
     maxItmDepth: null,
+    lowerBoundDistance: null,
+    supportBreak: null,
+    drawdownPct: null,
     rolled: false,
     realizedPl,
     premiumRealized,
@@ -387,6 +396,49 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
     outcomeStatus: expiredWorthless ? "expired_worthless" : "assigned_theoretical",
     resolutionDate: todayYmd,
     notes: `auto_resolved_from_yahoo_close_${expirationYmd}`,
+  };
+}
+
+function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
+  const strike = toNumberOrNull(record?.strike?.strike);
+  const lowerBound = toNumberOrNull(record?.underlying?.lowerBound);
+  const support = toNumberOrNull(record?.context?.support);
+  const spotAtScan = toNumberOrNull(record?.underlying?.spotAtScan);
+  const minPrice = toNumberOrNull(historicalMetrics?.minPriceBetweenScanAndExpiration);
+  const historicalUnavailable = historicalMetrics?.historicalUnavailable !== false;
+
+  if (historicalUnavailable || minPrice == null || strike == null) {
+    return {
+      ...baseOutcome,
+      strikeTouched: null,
+      minPriceBetweenScanAndExpiration: null,
+      maxItmDepth: null,
+      brokeLowerBound: null,
+      lowerBoundDistance: null,
+      supportBreak: null,
+      drawdownPct: null,
+    };
+  }
+
+  const strikeTouched = minPrice <= strike;
+  const maxItmDepth = strikeTouched ? Number((strike - minPrice).toFixed(4)) : 0;
+  const brokeLowerBound = lowerBound != null ? minPrice < lowerBound : null;
+  const lowerBoundDistance = lowerBound != null ? Number((minPrice - lowerBound).toFixed(4)) : null;
+  const supportBreak = support != null ? minPrice < support : null;
+  const drawdownPct =
+    spotAtScan != null && spotAtScan > 0
+      ? Number((((spotAtScan - minPrice) / spotAtScan) * 100).toFixed(4))
+      : null;
+
+  return {
+    ...baseOutcome,
+    strikeTouched,
+    minPriceBetweenScanAndExpiration: Number(minPrice.toFixed(4)),
+    maxItmDepth,
+    brokeLowerBound,
+    lowerBoundDistance,
+    supportBreak,
+    drawdownPct,
   };
 }
 
@@ -498,6 +550,8 @@ export function createWheelValidationService(options = {}) {
   const store = options.store ?? createWheelValidationStore(options.journalPath);
   const getHistoricalClose =
     typeof options.getHistoricalClose === "function" ? options.getHistoricalClose : null;
+  const getHistoricalWindowMetrics =
+    typeof options.getHistoricalWindowMetrics === "function" ? options.getHistoricalWindowMetrics : null;
   let writeChain = Promise.resolve();
 
   function withWriteLock(task) {
@@ -919,6 +973,11 @@ export function createWheelValidationService(options = {}) {
       let skippedNoClose = 0;
       let skippedInvalidRecord = 0;
       let resolved = 0;
+      let touchedCount = 0;
+      let lowerBoundBreakCount = 0;
+      let supportBreakCount = 0;
+      let historicalUnavailableCount = 0;
+      let v2ResolvedCount = 0;
       if (!getHistoricalClose) {
         const skippedRecords = scannedRecords;
         return {
@@ -935,6 +994,11 @@ export function createWheelValidationService(options = {}) {
           skippedNotExpired: records.length,
           skippedNoClose,
           errors: ["historical_close_provider_unavailable"],
+          touchedCount,
+          lowerBoundBreakCount,
+          supportBreakCount,
+          historicalUnavailableCount: scannedRecords,
+          v2ResolvedCount,
           groupsChecked: 0,
         };
       }
@@ -977,18 +1041,49 @@ export function createWheelValidationService(options = {}) {
           continue;
         }
 
+        let historicalBySymbolExpiration = {
+          historicalUnavailable: true,
+          minPriceBetweenScanAndExpiration: null,
+        };
+        if (getHistoricalWindowMetrics) {
+          try {
+            for (const index of group.indices) {
+              const record = records[index];
+              const scanDate = String(record?.scanDate ?? "").trim();
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(scanDate)) continue;
+              historicalBySymbolExpiration = await getHistoricalWindowMetrics(
+                group.symbol,
+                scanDate,
+                group.expirationYmd
+              );
+              break;
+            }
+          } catch (_error) {
+            historicalBySymbolExpiration = {
+              historicalUnavailable: true,
+              minPriceBetweenScanAndExpiration: null,
+            };
+          }
+        }
+
         for (const index of group.indices) {
           const existing = records[index];
-          const outcome = buildAutoResolvedOutcomeV1(existing, closeNum, todayYmd, group.expirationYmd);
-          if (!outcome) {
+          const baseOutcome = buildAutoResolvedOutcomeV1(existing, closeNum, todayYmd, group.expirationYmd);
+          if (!baseOutcome) {
             skippedNoClose += 1;
             continue;
           }
+          const outcome = buildResolutionOutcomeV2(baseOutcome, existing, historicalBySymbolExpiration);
           records[index] = {
             ...existing,
             resolution: outcome,
           };
           resolved += 1;
+          v2ResolvedCount += 1;
+          if (outcome?.strikeTouched === true) touchedCount += 1;
+          if (outcome?.brokeLowerBound === true) lowerBoundBreakCount += 1;
+          if (outcome?.supportBreak === true) supportBreakCount += 1;
+          if (outcome?.minPriceBetweenScanAndExpiration == null) historicalUnavailableCount += 1;
         }
       }
 
@@ -1012,6 +1107,11 @@ export function createWheelValidationService(options = {}) {
         skippedNotExpired,
         skippedNoClose,
         errors,
+        touchedCount,
+        lowerBoundBreakCount,
+        supportBreakCount,
+        historicalUnavailableCount,
+        v2ResolvedCount,
         groupsChecked,
       };
     });

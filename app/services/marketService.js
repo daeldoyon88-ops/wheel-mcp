@@ -577,6 +577,71 @@ export function createMarketService(provider) {
     }
   }
 
+  async function getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd) {
+    const rawSymbol = String(symbol ?? "").trim().toUpperCase();
+    const rawScanDate = String(scanDateYmd ?? "").trim();
+    const rawExpirationDate = String(expirationDateYmd ?? "").trim();
+    if (
+      !rawSymbol ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(rawScanDate) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(rawExpirationDate)
+    ) {
+      return {
+        historicalUnavailable: true,
+        minPriceBetweenScanAndExpiration: null,
+      };
+    }
+
+    const scanDate = new Date(`${rawScanDate}T00:00:00.000Z`);
+    const expirationDate = new Date(`${rawExpirationDate}T23:59:59.999Z`);
+    if (Number.isNaN(scanDate.getTime()) || Number.isNaN(expirationDate.getTime())) {
+      return {
+        historicalUnavailable: true,
+        minPriceBetweenScanAndExpiration: null,
+      };
+    }
+    if (scanDate.getTime() > expirationDate.getTime()) {
+      return {
+        historicalUnavailable: true,
+        minPriceBetweenScanAndExpiration: null,
+      };
+    }
+
+    try {
+      const period1 = new Date(scanDate.getTime() - 1000 * 60 * 60 * 24);
+      const result = await provider.getChart(rawSymbol, {
+        period1,
+        interval: "1d",
+      });
+      const quotes = Array.isArray(result?.quotes) ? result.quotes : [];
+      const lows = quotes
+        .map((q) => {
+          const low = toNumber(q?.low);
+          const dt = q?.date != null ? new Date(q.date) : null;
+          if (!(low > 0) || !dt || Number.isNaN(dt.getTime())) return null;
+          const ymd = dt.toISOString().slice(0, 10);
+          if (ymd < rawScanDate || ymd > rawExpirationDate) return null;
+          return low;
+        })
+        .filter((value) => value != null);
+      if (lows.length === 0) {
+        return {
+          historicalUnavailable: true,
+          minPriceBetweenScanAndExpiration: null,
+        };
+      }
+      return {
+        historicalUnavailable: false,
+        minPriceBetweenScanAndExpiration: Math.min(...lows),
+      };
+    } catch (_error) {
+      return {
+        historicalUnavailable: true,
+        minPriceBetweenScanAndExpiration: null,
+      };
+    }
+  }
+
   async function getBestStrike(
     symbol,
     expiration,
@@ -698,6 +763,7 @@ export function createMarketService(provider) {
     getTechnicals,
     getSupportResistance,
     getHistoricalClose,
+    getHistoricalWindowMetrics,
     getBestStrike,
     analyzeTradeSetup,
   };

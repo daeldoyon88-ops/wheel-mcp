@@ -181,6 +181,18 @@ function JournalTable({ title, rows, showOutcomeV2 = false }) {
   );
 }
 
+function CalibrationV2Row({ cells }) {
+  return (
+    <tr className="border-b border-slate-100 last:border-b-0">
+      {cells.map((cell, idx) => (
+        <td key={idx} className="px-3 py-3">
+          {cell}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
 function CalibrationTable({ title, headers, rows }) {
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -518,6 +530,258 @@ export default function JournalPopPanel({ apiBase, active }) {
           </div>
         )}
       </section>
+
+      {hasProbabilisticCalibrationData ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-950">Calibration V2 avancee</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Analyses avancees — stress, modes de strike, FTQS, tickers, secteurs.
+          </p>
+          <div className="mt-6 space-y-6">
+
+            <CalibrationTable
+              title="POP Calibration avancee"
+              headers={[
+                "Bucket",
+                "N resolu",
+                "Avg POP",
+                "Win Rate",
+                "Strike touche %",
+                "Drawdown moy %",
+                "LowerBound casse %",
+                "Support casse %",
+                "Assignment %",
+                "Warning",
+              ]}
+              rows={(calibrationSummary?.v2?.popBucketsV2 ?? []).map((row) => (
+                <CalibrationV2Row
+                  key={`v2-pop-${String(row?.bucket ?? "na")}`}
+                  cells={[
+                    row?.bucket || "-",
+                    numberOrNull(row?.resolvedCount) ?? 0,
+                    formatPercent(row?.avgPop),
+                    formatPercent(row?.actualWinRate),
+                    formatPercent(row?.strikeTouchRate),
+                    formatPercent(row?.avgDrawdownPct),
+                    formatPercent(row?.lowerBoundBreakRate),
+                    formatPercent(row?.supportBreakRate),
+                    formatPercent(row?.assignmentRate),
+                    row?.confidenceWarning ? (
+                      <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
+                        {row.confidenceWarning}
+                      </span>
+                    ) : "-",
+                  ]}
+                />
+              ))}
+            />
+
+            <CalibrationTable
+              title="DTE Stress Analysis"
+              headers={[
+                "Bucket DTE",
+                "N resolu",
+                "Win Rate",
+                "Strike touche %",
+                "Drawdown moy %",
+                "Assignment %",
+                "LowerBound casse %",
+                "Warning",
+              ]}
+              rows={(calibrationSummary?.v2?.dteBucketsV2 ?? []).map((row) => (
+                <CalibrationV2Row
+                  key={`v2-dte-${String(row?.bucket ?? "na")}`}
+                  cells={[
+                    row?.bucket || "-",
+                    numberOrNull(row?.resolvedCount) ?? 0,
+                    formatPercent(row?.actualWinRate),
+                    formatPercent(row?.strikeTouchRate),
+                    formatPercent(row?.avgDrawdownPct),
+                    formatPercent(row?.assignmentRate),
+                    formatPercent(row?.lowerBoundBreakRate),
+                    row?.confidenceWarning ? (
+                      <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
+                        {row.confidenceWarning}
+                      </span>
+                    ) : "-",
+                  ]}
+                />
+              ))}
+            />
+
+            <CalibrationTable
+              title="SAFE vs AGGRESSIVE"
+              headers={[
+                "Mode",
+                "N resolu",
+                "Win Rate",
+                "Strike touche %",
+                "Drawdown moy %",
+                "Assignment %",
+                "Premium moy",
+                "Premium eff %",
+                "LowerBound %",
+                "Support %",
+                "Warning",
+              ]}
+              rows={(calibrationSummary?.v2?.strikeModeV2 ?? [])
+                .filter((row) => row?.bucket !== "unknown" || (row?.resolvedCount ?? 0) > 0)
+                .map((row) => (
+                  <CalibrationV2Row
+                    key={`v2-mode-${String(row?.bucket ?? "na")}`}
+                    cells={[
+                      <span
+                        key="mode"
+                        className={
+                          row?.bucket === "safe"
+                            ? "font-semibold text-emerald-700"
+                            : row?.bucket === "aggressive"
+                            ? "font-semibold text-rose-700"
+                            : "text-slate-500"
+                        }
+                      >
+                        {row?.bucket || "-"}
+                      </span>,
+                      numberOrNull(row?.resolvedCount) ?? 0,
+                      formatPercent(row?.actualWinRate),
+                      formatPercent(row?.strikeTouchRate),
+                      formatPercent(row?.avgDrawdownPct),
+                      formatPercent(row?.assignmentRate),
+                      formatMoney(row?.avgPremium),
+                      formatPercent(row?.premiumEfficiency),
+                      formatPercent(row?.lowerBoundBreakRate),
+                      formatPercent(row?.supportBreakRate),
+                      row?.confidenceWarning ? (
+                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
+                          {row.confidenceWarning}
+                        </span>
+                      ) : "-",
+                    ]}
+                  />
+                ))}
+            />
+
+            {(calibrationSummary?.v2?.hasFtqsV2Data ?? false) ? (
+              <CalibrationTable
+                title="FTQS reel"
+                headers={[
+                  "Bucket FTQS",
+                  "N resolu",
+                  "Win Rate",
+                  "Strike touche %",
+                  "Drawdown moy %",
+                  "Support casse %",
+                  "LowerBound casse %",
+                  "Warning",
+                ]}
+                rows={(calibrationSummary?.v2?.ftqsBucketsV2 ?? []).map((row) => (
+                  <CalibrationV2Row
+                    key={`v2-ftqs-${String(row?.bucket ?? "na")}`}
+                    cells={[
+                      row?.bucket || "-",
+                      numberOrNull(row?.resolvedCount) ?? 0,
+                      formatPercent(row?.actualWinRate),
+                      formatPercent(row?.strikeTouchRate),
+                      formatPercent(row?.avgDrawdownPct),
+                      formatPercent(row?.supportBreakRate),
+                      formatPercent(row?.lowerBoundBreakRate),
+                      row?.confidenceWarning ? (
+                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
+                          {row.confidenceWarning}
+                        </span>
+                      ) : "-",
+                    ]}
+                  />
+                ))}
+              />
+            ) : null}
+
+            {(calibrationSummary?.v2?.tickerCohorts ?? []).length > 0 ? (
+              <CalibrationTable
+                title="Top tickers calibres"
+                headers={[
+                  "Ticker",
+                  "N resolu",
+                  "Avg POP",
+                  "Win Rate",
+                  "Strike touche %",
+                  "Drawdown moy %",
+                  "Assignment %",
+                  "Support %",
+                  "LowerBound %",
+                  "Warning",
+                ]}
+                rows={(calibrationSummary?.v2?.tickerCohorts ?? []).map((row) => (
+                  <CalibrationV2Row
+                    key={`v2-ticker-${String(row?.ticker ?? "na")}`}
+                    cells={[
+                      <span key="tk" className="font-semibold text-slate-900">
+                        {row?.ticker || "-"}
+                      </span>,
+                      numberOrNull(row?.resolvedCount) ?? 0,
+                      formatPercent(row?.avgPop),
+                      formatPercent(row?.actualWinRate),
+                      formatPercent(row?.strikeTouchRate),
+                      formatPercent(row?.avgDrawdownPct),
+                      formatPercent(row?.assignmentRate),
+                      formatPercent(row?.supportBreakRate),
+                      formatPercent(row?.lowerBoundBreakRate),
+                      row?.confidenceWarning ? (
+                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
+                          {row.confidenceWarning}
+                        </span>
+                      ) : "-",
+                    ]}
+                  />
+                ))}
+              />
+            ) : null}
+
+            {(calibrationSummary?.v2?.hasSectorData ?? false) ? (
+              <CalibrationTable
+                title="Top secteurs calibres"
+                headers={[
+                  "Secteur",
+                  "N resolu",
+                  "Avg POP",
+                  "Win Rate",
+                  "Strike touche %",
+                  "Drawdown moy %",
+                  "Assignment %",
+                  "Warning",
+                ]}
+                rows={(calibrationSummary?.v2?.sectorCohorts ?? []).map((row) => (
+                  <CalibrationV2Row
+                    key={`v2-sector-${String(row?.sector ?? "na")}`}
+                    cells={[
+                      row?.sector || "-",
+                      numberOrNull(row?.resolvedCount) ?? 0,
+                      formatPercent(row?.avgPop),
+                      formatPercent(row?.actualWinRate),
+                      formatPercent(row?.strikeTouchRate),
+                      formatPercent(row?.avgDrawdownPct),
+                      formatPercent(row?.assignmentRate),
+                      row?.confidenceWarning ? (
+                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
+                          {row.confidenceWarning}
+                        </span>
+                      ) : "-",
+                    ]}
+                  />
+                ))}
+              />
+            ) : null}
+
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-950">Calibration V2 avancee</h3>
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+            Donnees insuffisantes jusqu'a resolution de davantage d'expirations.
+          </div>
+        </section>
+      )}
 
       <JournalTable title="A resoudre" rows={unresolvedRecords} />
       <JournalTable title="Resolus" rows={resolvedRecords} showOutcomeV2 />

@@ -546,6 +546,166 @@ function bucketizeCalibration(records, definitions, pickValue) {
   return buckets.map((bucket) => summarizeCalibrationBucket(bucket.bucket, bucket.rows));
 }
 
+function summarizeV2Metrics(rows) {
+  const resolvedRows = rows.filter((r) => r?.resolution?.resolved === true);
+  const n = resolvedRows.length;
+  const sampleSize = rows.length;
+  const confidenceWarning = n < 30 ? "sampleSize < 30" : null;
+
+  if (n === 0) {
+    return {
+      sampleSize,
+      resolvedCount: 0,
+      actualWinRate: null,
+      strikeTouchRate: null,
+      avgDrawdownPct: null,
+      lowerBoundBreakRate: null,
+      supportBreakRate: null,
+      assignmentRate: null,
+      avgPremium: null,
+      premiumEfficiency: null,
+      avgPop: null,
+      confidenceWarning,
+    };
+  }
+
+  const outcomes = resolvedRows
+    .map((r) => getCalibrationIsCorrect(r))
+    .filter((v) => typeof v === "boolean");
+  const correctCount = outcomes.filter((v) => v === true).length;
+  const actualWinRate = outcomes.length > 0 ? (correctCount / outcomes.length) * 100 : null;
+
+  const strikeTouchedKnown = resolvedRows.filter((r) => r?.resolution?.strikeTouched != null);
+  const strikeTouchRate =
+    strikeTouchedKnown.length > 0
+      ? (strikeTouchedKnown.filter((r) => r.resolution.strikeTouched === true).length /
+          strikeTouchedKnown.length) *
+        100
+      : null;
+
+  const drawdownValues = resolvedRows
+    .map((r) => toNumberOrNull(r?.resolution?.drawdownPct))
+    .filter((v) => v != null);
+  const avgDrawdownPct =
+    drawdownValues.length > 0
+      ? drawdownValues.reduce((s, v) => s + v, 0) / drawdownValues.length
+      : null;
+
+  const lbKnown = resolvedRows.filter((r) => r?.resolution?.brokeLowerBound != null);
+  const lowerBoundBreakRate =
+    lbKnown.length > 0
+      ? (lbKnown.filter((r) => r.resolution.brokeLowerBound === true).length / lbKnown.length) * 100
+      : null;
+
+  const sbKnown = resolvedRows.filter((r) => r?.resolution?.supportBreak != null);
+  const supportBreakRate =
+    sbKnown.length > 0
+      ? (sbKnown.filter((r) => r.resolution.supportBreak === true).length / sbKnown.length) * 100
+      : null;
+
+  const assignedKnown = resolvedRows.filter((r) => r?.resolution?.assigned != null);
+  const assignmentRate =
+    assignedKnown.length > 0
+      ? (assignedKnown.filter((r) => r.resolution.assigned === true).length / assignedKnown.length) *
+        100
+      : null;
+
+  const premiums = resolvedRows
+    .map((r) => toNumberOrNull(r?.strike?.premium))
+    .filter((v) => v != null);
+  const avgPremium =
+    premiums.length > 0 ? premiums.reduce((s, v) => s + v, 0) / premiums.length : null;
+
+  const strikes = resolvedRows
+    .map((r) => toNumberOrNull(r?.strike?.strike))
+    .filter((v) => v != null);
+  const avgStrikeVal =
+    strikes.length > 0 ? strikes.reduce((s, v) => s + v, 0) / strikes.length : null;
+
+  const premiumEfficiency =
+    avgPremium != null && avgStrikeVal != null && avgStrikeVal > 0
+      ? (avgPremium / avgStrikeVal) * 100
+      : null;
+
+  const pops = resolvedRows
+    .map((r) => normalizePopToProbability(r?.strike?.popEstimate))
+    .filter((v) => v != null);
+  const avgPop = pops.length > 0 ? (pops.reduce((s, v) => s + v, 0) / pops.length) * 100 : null;
+
+  return {
+    sampleSize,
+    resolvedCount: n,
+    actualWinRate,
+    strikeTouchRate,
+    avgDrawdownPct,
+    lowerBoundBreakRate,
+    supportBreakRate,
+    assignmentRate,
+    avgPremium,
+    premiumEfficiency,
+    avgPop,
+    confidenceWarning,
+  };
+}
+
+function bucketizeV2(records, definitions, pickValue) {
+  const buckets = definitions.map((def) => ({ bucket: def.bucket, rows: [] }));
+  for (const record of records) {
+    const value = pickValue(record);
+    let matched = false;
+    for (let i = 0; i < definitions.length; i += 1) {
+      if (definitions[i].match(value, record)) {
+        buckets[i].rows.push(record);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched && buckets.length > 0) {
+      buckets[buckets.length - 1].rows.push(record);
+    }
+  }
+  return buckets.map((b) => ({ bucket: b.bucket, ...summarizeV2Metrics(b.rows) }));
+}
+
+function computeTickerCohortsV2(resolvedRecords) {
+  const map = new Map();
+  for (const record of resolvedRecords) {
+    const ticker = normalizeSymbol(record?.symbol);
+    if (!ticker) continue;
+    if (!map.has(ticker)) map.set(ticker, []);
+    map.get(ticker).push(record);
+  }
+  return Array.from(map.entries())
+    .filter(([, rows]) => rows.length >= 3)
+    .map(([ticker, rows]) => ({ ticker, ...summarizeV2Metrics(rows) }))
+    .sort(
+      (a, b) =>
+        b.resolvedCount - a.resolvedCount ||
+        Number(b.actualWinRate ?? -1) - Number(a.actualWinRate ?? -1)
+    )
+    .slice(0, 20);
+}
+
+function computeSectorCohortsV2(resolvedRecords) {
+  const map = new Map();
+  for (const record of resolvedRecords) {
+    const sector =
+      record?.sector ??
+      record?.context?.sector ??
+      record?.scores?.sector ??
+      null;
+    if (!sector) continue;
+    const key = String(sector).trim();
+    if (!key) continue;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(record);
+  }
+  return Array.from(map.entries())
+    .filter(([, rows]) => rows.length >= 2)
+    .map(([sector, rows]) => ({ sector, ...summarizeV2Metrics(rows) }))
+    .sort((a, b) => b.resolvedCount - a.resolvedCount);
+}
+
 export function createWheelValidationService(options = {}) {
   const store = options.store ?? createWheelValidationStore(options.journalPath);
   const getHistoricalClose =
@@ -879,6 +1039,65 @@ export function createWheelValidationService(options = {}) {
       (record) => getFinalTradeQualityScore(record)
     );
 
+    const popBucketsV2 = bucketizeV2(
+      resolvedRecords,
+      [
+        { bucket: "<80", match: (value) => value != null && value < 80 },
+        { bucket: "80-85", match: (value) => value != null && value >= 80 && value < 85 },
+        { bucket: "85-90", match: (value) => value != null && value >= 85 && value < 90 },
+        { bucket: "90-95", match: (value) => value != null && value >= 90 && value < 95 },
+        { bucket: "95-98", match: (value) => value != null && value >= 95 && value < 98 },
+        { bucket: "98+", match: (value) => value != null && value >= 98 },
+      ],
+      (record) => {
+        const p = normalizePopToProbability(record?.strike?.popEstimate);
+        return p == null ? null : p * 100;
+      }
+    );
+
+    const dteBucketsV2 = bucketizeV2(
+      resolvedRecords,
+      [
+        { bucket: "0-3", match: (value) => value != null && value >= 0 && value <= 3 },
+        { bucket: "4-7", match: (value) => value != null && value >= 4 && value <= 7 },
+        { bucket: "8-14", match: (value) => value != null && value >= 8 && value <= 14 },
+        { bucket: "15-30", match: (value) => value != null && value >= 15 && value <= 30 },
+        { bucket: "31+", match: (value) => value != null && value >= 31 },
+      ],
+      (record) => toNumberOrNull(record?.dteAtScan)
+    );
+
+    const strikeModeV2 = bucketizeV2(
+      resolvedRecords,
+      [
+        {
+          bucket: "safe",
+          match: (_v, r) => String(r?.strikeMode ?? "").trim().toLowerCase() === "safe",
+        },
+        {
+          bucket: "aggressive",
+          match: (_v, r) => String(r?.strikeMode ?? "").trim().toLowerCase() === "aggressive",
+        },
+        { bucket: "unknown", match: () => true },
+      ],
+      () => null
+    );
+
+    const ftqsBucketsV2 = bucketizeV2(
+      resolvedRecords.filter((r) => getFinalTradeQualityScore(r) != null),
+      [
+        { bucket: "<60", match: (value) => value != null && value < 60 },
+        { bucket: "60-70", match: (value) => value != null && value >= 60 && value < 70 },
+        { bucket: "70-80", match: (value) => value != null && value >= 70 && value < 80 },
+        { bucket: "80-90", match: (value) => value != null && value >= 80 && value < 90 },
+        { bucket: "90+", match: (value) => value != null && value >= 90 },
+      ],
+      (record) => getFinalTradeQualityScore(record)
+    );
+
+    const tickerCohorts = computeTickerCohortsV2(resolvedRecords);
+    const sectorCohorts = computeSectorCohortsV2(resolvedRecords);
+
     return {
       totalRecords: records.length,
       totalResolved,
@@ -889,6 +1108,16 @@ export function createWheelValidationService(options = {}) {
       strikeModeBuckets,
       ftqsBuckets,
       hasFtqsData: ftqsBuckets.some((bucket) => bucket.sampleSize > 0),
+      v2: {
+        popBucketsV2,
+        dteBucketsV2,
+        strikeModeV2,
+        ftqsBucketsV2,
+        tickerCohorts,
+        sectorCohorts,
+        hasSectorData: sectorCohorts.length > 0,
+        hasFtqsV2Data: ftqsBucketsV2.some((b) => b.resolvedCount > 0),
+      },
     };
   }
 

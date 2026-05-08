@@ -178,6 +178,7 @@ function CalibrationTable({ title, headers, rows }) {
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [calibrationStats, setCalibrationStats] = useState(null);
+  const [calibrationSummary, setCalibrationSummary] = useState(null);
   const [cohortSummary, setCohortSummary] = useState([]);
   const [loading, setLoading] = useState(false);
   const [resolving, setResolving] = useState(false);
@@ -189,14 +190,16 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, statsResponse, cohortResponse] = await Promise.all([
+      const [journalResponse, statsResponse, cohortResponse, calibrationResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/stats`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
+        fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
       ]);
       const payload = await journalResponse.json();
       const statsPayload = await statsResponse.json();
       const cohortPayload = await cohortResponse.json();
+      const calibrationPayload = await calibrationResponse.json();
       if (!journalResponse.ok || payload?.ok !== true) {
         throw new Error(payload?.error || "journal_fetch_failed");
       }
@@ -206,9 +209,13 @@ export default function JournalPopPanel({ apiBase, active }) {
       if (!cohortResponse.ok || cohortPayload?.ok !== true) {
         throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       }
+      if (!calibrationResponse.ok || calibrationPayload?.ok !== true) {
+        throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
+      }
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
       setCalibrationStats(statsPayload.stats ?? null);
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
+      setCalibrationSummary(calibrationPayload.calibration ?? null);
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -300,6 +307,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   }, [records, resolvedRecords, unresolvedRecords]);
 
   const hasResolvedCalibrationData = Number(calibrationStats?.resolvedRecords ?? 0) > 0;
+  const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
   return (
     <div className="space-y-6">
@@ -398,6 +406,92 @@ export default function JournalPopPanel({ apiBase, active }) {
           </tr>
         ))}
       />
+
+      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-950">Calibration probabilistique</h3>
+        {!hasProbabilisticCalibrationData ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+            Aucun record résolu pour l’instant. La calibration commencera après expiration.
+          </div>
+        ) : (
+          <div className="mt-4 space-y-6">
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <JournalMetric label="Total resolved" value={String(calibrationSummary?.totalResolved ?? 0)} tone="good" />
+              <JournalMetric label="Total unresolved" value={String(calibrationSummary?.totalUnresolved ?? 0)} tone="warn" />
+            </section>
+
+            <CalibrationTable
+              title="POP buckets"
+              headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
+              rows={(calibrationSummary?.popBuckets ?? []).map((row) => (
+                <tr key={`prob-pop-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
+                  <td className="px-3 py-3">{row?.bucket || "-"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                  <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
+                  <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
+                  <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
+                </tr>
+              ))}
+            />
+
+            <CalibrationTable
+              title="DTE buckets"
+              headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
+              rows={(calibrationSummary?.dteBuckets ?? []).map((row) => (
+                <tr key={`prob-dte-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
+                  <td className="px-3 py-3">{row?.bucket || "-"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                  <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
+                  <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
+                  <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
+                </tr>
+              ))}
+            />
+
+            <CalibrationTable
+              title="Strike mode"
+              headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
+              rows={(calibrationSummary?.strikeModeBuckets ?? []).map((row) => (
+                <tr key={`prob-mode-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
+                  <td className="px-3 py-3">{row?.bucket || "-"}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                  <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
+                  <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                  <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
+                  <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
+                </tr>
+              ))}
+            />
+
+            {(calibrationSummary?.hasFtqsData ?? false) ? (
+              <CalibrationTable
+                title="FTQS buckets"
+                headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
+                rows={(calibrationSummary?.ftqsBuckets ?? []).map((row) => (
+                  <tr key={`prob-ftqs-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
+                    <td className="px-3 py-3">{row?.bucket || "-"}</td>
+                    <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                    <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
+                    <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
+                    <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
+                    <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                    <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
+                    <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
+                  </tr>
+                ))}
+              />
+            ) : null}
+          </div>
+        )}
+      </section>
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-950">Calibration</h3>

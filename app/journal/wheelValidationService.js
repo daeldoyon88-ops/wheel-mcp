@@ -390,6 +390,110 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
   };
 }
 
+function getCalibrationIsCorrect(record) {
+  if (record?.resolution?.popPredictionCorrect === true) return true;
+  if (record?.resolution?.popPredictionCorrect === false) return false;
+  if (record?.resolution?.expiredWorthless === true) return true;
+  if (record?.resolution?.expiredWorthless === false) return false;
+  return null;
+}
+
+function normalizePopToProbability(value) {
+  const n = toNumberOrNull(value);
+  if (n == null) return null;
+  if (n > 1) return Math.max(0, Math.min(1, n / 100));
+  return Math.max(0, Math.min(1, n));
+}
+
+function getFinalTradeQualityScore(record) {
+  return (
+    toNumberOrNull(record?.finalTradeQualityScore) ??
+    toNumberOrNull(record?.scores?.finalTradeQualityScore) ??
+    toNumberOrNull(record?.scoreBreakdown?.finalTradeQualityScore) ??
+    null
+  );
+}
+
+function summarizeCalibrationBucket(bucket, rows) {
+  const confidenceWarning = rows.length < 30 ? "sampleSize < 30" : null;
+  if (rows.length === 0) {
+    return {
+      bucket,
+      sampleSize: 0,
+      predictedAvgPop: null,
+      actualWinRate: null,
+      correctCount: 0,
+      incorrectCount: 0,
+      brierScore: null,
+      confidenceWarning,
+    };
+  }
+
+  const outcomes = rows
+    .map((record) => getCalibrationIsCorrect(record))
+    .filter((value) => typeof value === "boolean");
+  const correctCount = outcomes.filter((value) => value === true).length;
+  const incorrectCount = outcomes.filter((value) => value === false).length;
+  const actualWinRate =
+    outcomes.length > 0 ? (correctCount / outcomes.length) * 100 : null;
+
+  const predictedProbabilities = rows
+    .map((record) => normalizePopToProbability(record?.strike?.popEstimate))
+    .filter((value) => value != null);
+  const predictedAvgPop =
+    predictedProbabilities.length > 0
+      ? (predictedProbabilities.reduce((sum, value) => sum + value, 0) / predictedProbabilities.length) * 100
+      : null;
+
+  const brierPairs = rows
+    .map((record) => {
+      const predicted = normalizePopToProbability(record?.strike?.popEstimate);
+      const isCorrect = getCalibrationIsCorrect(record);
+      if (predicted == null || typeof isCorrect !== "boolean") return null;
+      return { predicted, actual: isCorrect ? 1 : 0 };
+    })
+    .filter(Boolean);
+  const brierScore =
+    brierPairs.length > 0
+      ? brierPairs.reduce((sum, pair) => sum + (pair.predicted - pair.actual) ** 2, 0) / brierPairs.length
+      : null;
+
+  return {
+    bucket,
+    sampleSize: rows.length,
+    predictedAvgPop,
+    actualWinRate,
+    correctCount,
+    incorrectCount,
+    brierScore,
+    confidenceWarning,
+  };
+}
+
+function bucketizeCalibration(records, definitions, pickValue) {
+  const buckets = definitions.map((definition) => ({
+    bucket: definition.bucket,
+    rows: [],
+  }));
+
+  for (const record of records) {
+    const value = pickValue(record);
+    let matched = false;
+    for (let i = 0; i < definitions.length; i += 1) {
+      if (definitions[i].match(value, record)) {
+        buckets[i].rows.push(record);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched && buckets.length > 0) {
+      buckets[buckets.length - 1].rows.push(record);
+    }
+  }
+
+  return buckets.map((bucket) => summarizeCalibrationBucket(bucket.bucket, bucket.rows));
+}
+
 export function createWheelValidationService(options = {}) {
   const store = options.store ?? createWheelValidationStore(options.journalPath);
   const getHistoricalClose =
@@ -660,6 +764,80 @@ export function createWheelValidationService(options = {}) {
       .sort((a, b) => String(a.expirationCohort).localeCompare(String(b.expirationCohort)));
   }
 
+  async function computeCalibrationSummary() {
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+    const resolvedRecords = records.filter((record) => record?.resolution?.resolved === true);
+    const totalResolved = resolvedRecords.length;
+    const totalUnresolved = records.length - totalResolved;
+
+    const popBuckets = bucketizeCalibration(
+      resolvedRecords,
+      [
+        { bucket: "<80", match: (value) => value != null && value < 80 },
+        { bucket: "80-85", match: (value) => value != null && value >= 80 && value < 85 },
+        { bucket: "85-90", match: (value) => value != null && value >= 85 && value < 90 },
+        { bucket: "90-95", match: (value) => value != null && value >= 90 && value < 95 },
+        { bucket: "95-98", match: (value) => value != null && value >= 95 && value < 98 },
+        { bucket: "98+", match: (value) => value != null && value >= 98 },
+      ],
+      (record) => {
+        const probability = normalizePopToProbability(record?.strike?.popEstimate);
+        return probability == null ? null : probability * 100;
+      }
+    );
+
+    const dteBuckets = bucketizeCalibration(
+      resolvedRecords,
+      [
+        { bucket: "0-3", match: (value) => value != null && value >= 0 && value <= 3 },
+        { bucket: "4-7", match: (value) => value != null && value >= 4 && value <= 7 },
+        { bucket: "8-14", match: (value) => value != null && value >= 8 && value <= 14 },
+        { bucket: "15-30", match: (value) => value != null && value >= 15 && value <= 30 },
+        { bucket: "31+", match: (value) => value != null && value >= 31 },
+      ],
+      (record) => toNumberOrNull(record?.dteAtScan)
+    );
+
+    const strikeModeBuckets = bucketizeCalibration(
+      resolvedRecords,
+      [
+        { bucket: "safe", match: (_value, record) => String(record?.strikeMode ?? "").trim().toLowerCase() === "safe" },
+        {
+          bucket: "aggressive",
+          match: (_value, record) =>
+            String(record?.strikeMode ?? "").trim().toLowerCase() === "aggressive",
+        },
+        { bucket: "unknown", match: () => true },
+      ],
+      () => null
+    );
+
+    const ftqsBuckets = bucketizeCalibration(
+      resolvedRecords.filter((record) => getFinalTradeQualityScore(record) != null),
+      [
+        { bucket: "<60", match: (value) => value != null && value < 60 },
+        { bucket: "60-70", match: (value) => value != null && value >= 60 && value < 70 },
+        { bucket: "70-80", match: (value) => value != null && value >= 70 && value < 80 },
+        { bucket: "80-90", match: (value) => value != null && value >= 80 && value < 90 },
+        { bucket: "90+", match: (value) => value != null && value >= 90 },
+      ],
+      (record) => getFinalTradeQualityScore(record)
+    );
+
+    return {
+      totalRecords: records.length,
+      totalResolved,
+      totalUnresolved,
+      hasResolvedRecords: totalResolved > 0,
+      popBuckets,
+      dteBuckets,
+      strikeModeBuckets,
+      ftqsBuckets,
+      hasFtqsData: ftqsBuckets.some((bucket) => bucket.sampleSize > 0),
+    };
+  }
+
   async function captureFromCandidates(candidates, options = {}) {
     return withWriteLock(async () => {
       const journal = await store.load();
@@ -844,6 +1022,7 @@ export function createWheelValidationService(options = {}) {
     listJournal,
     computeStats,
     computeCohortSummary,
+    computeCalibrationSummary,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

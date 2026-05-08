@@ -2036,6 +2036,21 @@ app.get("/journal/wheel-validation/cohort-summary", async (_req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/calibration-summary", async (_req, res) => {
+  try {
+    const calibration = await wheelValidationService.computeCalibrationSummary();
+    res.json({
+      ok: true,
+      calibration,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_calibration_summary_failed",
+    });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

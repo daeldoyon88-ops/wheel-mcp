@@ -520,6 +520,110 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computeCohortSummary() {
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+
+    const avg = (values) => {
+      const nums = values.map((v) => toNumberOrNull(v)).filter((v) => v != null);
+      if (nums.length === 0) return null;
+      return nums.reduce((sum, n) => sum + n, 0) / nums.length;
+    };
+
+    const summarizeRows = (rows) => {
+      const resolvedCount = rows.filter((record) => record?.resolution?.resolved === true).length;
+      const symbols = new Set(
+        rows.map((record) => normalizeSymbol(record?.symbol)).filter((symbol) => symbol)
+      );
+      return {
+        candidateCount: rows.length,
+        uniqueSymbols: symbols.size,
+        unresolvedCount: rows.length - resolvedCount,
+        resolvedCount,
+        avgPopEstimate: avg(rows.map((record) => record?.strike?.popEstimate)),
+        avgEliteScore: avg(rows.map((record) => record?.scores?.eliteScore)),
+      };
+    };
+
+    const cohorts = new Map();
+    for (const record of records) {
+      const expirationCohort =
+        record?.expirationCohort ?? toExpirationYmd(record?.expiration) ?? "unknown";
+      const cohortKey = String(expirationCohort || "unknown").trim() || "unknown";
+      if (!cohorts.has(cohortKey)) {
+        cohorts.set(cohortKey, {
+          expirationCohort: cohortKey,
+          rows: [],
+          dteBuckets: new Map(),
+          scanSessions: new Map(),
+        });
+      }
+
+      const cohort = cohorts.get(cohortKey);
+      cohort.rows.push(record);
+
+      const dteAtScan = toNumberOrNull(record?.dteAtScan);
+      const dteKey = dteAtScan == null ? "unknown" : String(dteAtScan);
+      if (!cohort.dteBuckets.has(dteKey)) {
+        cohort.dteBuckets.set(dteKey, { dteAtScan, rows: [] });
+      }
+      cohort.dteBuckets.get(dteKey).rows.push(record);
+
+      const sessionKey =
+        String(record?.scanSessionId ?? record?.scanTimestamp ?? record?.scanDate ?? "unknown").trim() ||
+        "unknown";
+      if (!cohort.scanSessions.has(sessionKey)) {
+        cohort.scanSessions.set(sessionKey, {
+          scanSessionId: record?.scanSessionId ?? null,
+          scanTimestamp: record?.scanTimestamp ?? null,
+          scanDate: record?.scanDate ?? null,
+          rows: [],
+        });
+      }
+      cohort.scanSessions.get(sessionKey).rows.push(record);
+    }
+
+    return Array.from(cohorts.values())
+      .map((cohort) => {
+        const dteValues = cohort.rows
+          .map((record) => toNumberOrNull(record?.dteAtScan))
+          .filter((value) => value != null);
+        const dteBuckets = Array.from(cohort.dteBuckets.values())
+          .map((bucket) => ({
+            dteAtScan: bucket.dteAtScan,
+            ...summarizeRows(bucket.rows),
+          }))
+          .sort((a, b) => {
+            const left = a.dteAtScan == null ? Number.POSITIVE_INFINITY : a.dteAtScan;
+            const right = b.dteAtScan == null ? Number.POSITIVE_INFINITY : b.dteAtScan;
+            return left - right;
+          });
+        const scanSessions = Array.from(cohort.scanSessions.values())
+          .map((session) => ({
+            scanSessionId: session.scanSessionId,
+            scanTimestamp: session.scanTimestamp,
+            scanDate: session.scanDate,
+            ...summarizeRows(session.rows),
+          }))
+          .sort((a, b) => {
+            const left = String(a.scanTimestamp ?? a.scanDate ?? "");
+            const right = String(b.scanTimestamp ?? b.scanDate ?? "");
+            return right.localeCompare(left);
+          });
+
+        return {
+          expirationCohort: cohort.expirationCohort,
+          scanCount: scanSessions.length,
+          ...summarizeRows(cohort.rows),
+          minDte: dteValues.length > 0 ? Math.min(...dteValues) : null,
+          maxDte: dteValues.length > 0 ? Math.max(...dteValues) : null,
+          dteBuckets,
+          scanSessions,
+        };
+      })
+      .sort((a, b) => String(a.expirationCohort).localeCompare(String(b.expirationCohort)));
+  }
+
   async function captureFromCandidates(candidates, options = {}) {
     return withWriteLock(async () => {
       const journal = await store.load();
@@ -693,6 +797,7 @@ export function createWheelValidationService(options = {}) {
     buildRecordsFromCandidates,
     listJournal,
     computeStats,
+    computeCohortSummary,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

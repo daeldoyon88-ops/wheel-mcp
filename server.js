@@ -2020,6 +2020,22 @@ app.get("/journal/wheel-validation/stats", async (_req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/cohort-summary", async (_req, res) => {
+  try {
+    const summary = await wheelValidationService.computeCohortSummary();
+    res.json({
+      ok: true,
+      summary,
+      totalCohorts: Array.isArray(summary) ? summary.length : 0,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_cohort_summary_failed",
+    });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

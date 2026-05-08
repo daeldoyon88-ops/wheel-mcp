@@ -44,6 +44,14 @@ function formatPop(value) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+function formatDteRange(minDte, maxDte) {
+  const min = numberOrNull(minDte);
+  const max = numberOrNull(maxDte);
+  if (min == null && max == null) return "-";
+  if (min != null && max != null) return `${min} / ${max}`;
+  return String(min ?? max);
+}
+
 function getResolutionLabel(record) {
   const resolution = record?.resolution ?? {};
   if (resolution?.resolved !== true) return "A resoudre";
@@ -170,6 +178,7 @@ function CalibrationTable({ title, headers, rows }) {
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [calibrationStats, setCalibrationStats] = useState(null);
+  const [cohortSummary, setCohortSummary] = useState([]);
   const [loading, setLoading] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
@@ -180,20 +189,26 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, statsResponse] = await Promise.all([
+      const [journalResponse, statsResponse, cohortResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/stats`),
+        fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
       ]);
       const payload = await journalResponse.json();
       const statsPayload = await statsResponse.json();
+      const cohortPayload = await cohortResponse.json();
       if (!journalResponse.ok || payload?.ok !== true) {
         throw new Error(payload?.error || "journal_fetch_failed");
       }
       if (!statsResponse.ok || statsPayload?.ok !== true) {
         throw new Error(statsPayload?.error || "journal_stats_fetch_failed");
       }
+      if (!cohortResponse.ok || cohortPayload?.ok !== true) {
+        throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
+      }
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
       setCalibrationStats(statsPayload.stats ?? null);
+      setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -355,6 +370,34 @@ export default function JournalPopPanel({ apiBase, active }) {
           value={journal?.updatedAt ? formatDate(journal.updatedAt) : "-"}
         />
       </section>
+
+      <CalibrationTable
+        title="Vue cohorte d’expiration"
+        headers={[
+          "Expiration",
+          "Scans",
+          "Candidats",
+          "Symboles uniques",
+          "DTE min/max",
+          "POP moyen",
+          "EliteScore moyen",
+          "Resolus / non resolus",
+        ]}
+        rows={cohortSummary.map((row) => (
+          <tr key={`cohort-summary-${String(row?.expirationCohort ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
+            <td className="px-3 py-3">{formatCompactExpiration(row?.expirationCohort)}</td>
+            <td className="px-3 py-3">{numberOrNull(row?.scanCount) ?? 0}</td>
+            <td className="px-3 py-3">{numberOrNull(row?.candidateCount) ?? 0}</td>
+            <td className="px-3 py-3">{numberOrNull(row?.uniqueSymbols) ?? 0}</td>
+            <td className="px-3 py-3">{formatDteRange(row?.minDte, row?.maxDte)}</td>
+            <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
+            <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
+            <td className="px-3 py-3">
+              {numberOrNull(row?.resolvedCount) ?? 0} / {numberOrNull(row?.unresolvedCount) ?? 0}
+            </td>
+          </tr>
+        ))}
+      />
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-950">Calibration</h3>

@@ -1,3 +1,5 @@
+import React from "react";
+
 /**
  * SeasonalityBadge — V1 read-only seasonal bias indicator.
  * Renders a compact inline badge for dashboard shortlist cards.

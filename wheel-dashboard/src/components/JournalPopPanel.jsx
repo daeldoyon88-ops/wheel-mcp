@@ -44,6 +44,12 @@ function formatPop(value) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+function formatYesNo(value) {
+  if (value === true) return "Oui";
+  if (value === false) return "Non";
+  return "-";
+}
+
 function formatDteRange(minDte, maxDte) {
   const min = numberOrNull(minDte);
   const max = numberOrNull(maxDte);
@@ -77,7 +83,7 @@ function JournalMetric({ label, value, tone = "default" }) {
   );
 }
 
-function JournalTable({ title, rows }) {
+function JournalTable({ title, rows, showOutcomeV2 = false }) {
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
@@ -112,6 +118,13 @@ function JournalTable({ title, rows }) {
                 <th className="px-3 py-3 font-medium">Elite Badge</th>
                 <th className="px-3 py-3 font-medium">Resultat</th>
                 <th className="px-3 py-3 font-medium">P/L</th>
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Strike touche</th> : null}
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Min prix</th> : null}
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Max ITM</th> : null}
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">LowerBound casse</th> : null}
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Drawdown %</th> : null}
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Support casse</th> : null}
+                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Distance LowerBound</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -137,6 +150,27 @@ function JournalTable({ title, rows }) {
                   <td className="px-3 py-3">{record?.scores?.eliteBadge || "-"}</td>
                   <td className="px-3 py-3">{getResolutionLabel(record)}</td>
                   <td className="px-3 py-3">{formatMoney(record?.resolution?.realizedPl)}</td>
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatYesNo(record?.resolution?.strikeTouched)}</td>
+                  ) : null}
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatMoney(record?.resolution?.minPriceBetweenScanAndExpiration)}</td>
+                  ) : null}
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatMoney(record?.resolution?.maxItmDepth)}</td>
+                  ) : null}
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatYesNo(record?.resolution?.brokeLowerBound)}</td>
+                  ) : null}
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatPercent(record?.resolution?.drawdownPct)}</td>
+                  ) : null}
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatYesNo(record?.resolution?.supportBreak)}</td>
+                  ) : null}
+                  {showOutcomeV2 ? (
+                    <td className="px-3 py-3">{formatMoney(record?.resolution?.lowerBoundDistance)}</td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -486,7 +520,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       </section>
 
       <JournalTable title="A resoudre" rows={unresolvedRecords} />
-      <JournalTable title="Resolus" rows={resolvedRecords} />
+      <JournalTable title="Resolus" rows={resolvedRecords} showOutcomeV2 />
     </div>
   );
 }

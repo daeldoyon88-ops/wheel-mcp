@@ -177,7 +177,6 @@ function CalibrationTable({ title, headers, rows }) {
 
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
-  const [calibrationStats, setCalibrationStats] = useState(null);
   const [calibrationSummary, setCalibrationSummary] = useState(null);
   const [cohortSummary, setCohortSummary] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -190,21 +189,16 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, statsResponse, cohortResponse, calibrationResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
-        fetch(`${apiBase}/journal/wheel-validation/stats`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
       ]);
       const payload = await journalResponse.json();
-      const statsPayload = await statsResponse.json();
       const cohortPayload = await cohortResponse.json();
       const calibrationPayload = await calibrationResponse.json();
       if (!journalResponse.ok || payload?.ok !== true) {
         throw new Error(payload?.error || "journal_fetch_failed");
-      }
-      if (!statsResponse.ok || statsPayload?.ok !== true) {
-        throw new Error(statsPayload?.error || "journal_stats_fetch_failed");
       }
       if (!cohortResponse.ok || cohortPayload?.ok !== true) {
         throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
@@ -213,7 +207,6 @@ export default function JournalPopPanel({ apiBase, active }) {
         throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
       }
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
-      setCalibrationStats(statsPayload.stats ?? null);
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setCalibrationSummary(calibrationPayload.calibration ?? null);
       setHasLoaded(true);
@@ -306,7 +299,6 @@ export default function JournalPopPanel({ apiBase, active }) {
     };
   }, [records, resolvedRecords, unresolvedRecords]);
 
-  const hasResolvedCalibrationData = Number(calibrationStats?.resolvedRecords ?? 0) > 0;
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
   return (
@@ -489,98 +481,6 @@ export default function JournalPopPanel({ apiBase, active }) {
                 ))}
               />
             ) : null}
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-950">Calibration</h3>
-        {!hasResolvedCalibrationData ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Pas encore assez de donnees resolues.
-          </div>
-        ) : (
-          <div className="mt-4 space-y-6">
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <JournalMetric label="Total records" value={String(calibrationStats?.totalRecords ?? 0)} />
-              <JournalMetric label="Resolved records" value={String(calibrationStats?.resolvedRecords ?? 0)} tone="good" />
-              <JournalMetric label="Unresolved records" value={String(calibrationStats?.unresolvedRecords ?? 0)} tone="warn" />
-              <JournalMetric label="Success rate" value={formatPercent(calibrationStats?.overall?.successRate)} />
-              <JournalMetric label="Avg POP estimate" value={formatPop(calibrationStats?.overall?.avgPopEstimate)} />
-              <JournalMetric label="Avg Elite score" value={numberOrNull(calibrationStats?.overall?.avgEliteScore)?.toFixed(1) ?? "-"} />
-            </section>
-
-            <CalibrationTable
-              title="Par DTE"
-              headers={["DTE", "Count", "Success", "Failure", "Success rate", "Avg POP", "Avg Elite"]}
-              rows={(calibrationStats?.byDte ?? []).map((row) => (
-                <tr key={`dte-${String(row?.dteAtScan ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{numberOrNull(row?.dteAtScan) ?? "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.successCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.failureCount) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
-                  <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
-                </tr>
-              ))}
-            />
-
-            <CalibrationTable
-              title="Par Strike Mode"
-              headers={["Mode", "Count", "Success rate", "Avg POP", "Avg Premium", "Avg Elite"]}
-              rows={(calibrationStats?.byStrikeMode ?? []).map((row) => (
-                <tr key={`mode-${String(row?.strikeMode ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.strikeMode || "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
-                  <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
-                  <td className="px-3 py-3">{formatMoney(row?.avgPremium)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
-                </tr>
-              ))}
-            />
-
-            <CalibrationTable
-              title="Par Elite Badge"
-              headers={["Badge", "Count", "Success rate", "Avg POP", "Avg Elite"]}
-              rows={(calibrationStats?.byEliteBadge ?? []).map((row) => (
-                <tr key={`badge-${String(row?.eliteBadge ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.eliteBadge || "unknown"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
-                  <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
-                </tr>
-              ))}
-            />
-
-            <CalibrationTable
-              title="Par Cohorte Expiration"
-              headers={["Cohorte", "Count", "Resolved", "Assigned", "Expired worthless", "Success rate"]}
-              rows={(calibrationStats?.byExpirationCohort ?? []).map((row) => (
-                <tr key={`cohort-${String(row?.expirationCohort ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.expirationCohort || "unknown"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.resolvedCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.assignedCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.expiredWorthlessCount) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
-                </tr>
-              ))}
-            />
-
-            <CalibrationTable
-              title="Top Tickers (>=3 resolus)"
-              headers={["Ticker", "Count", "Success rate"]}
-              rows={(calibrationStats?.byTickerTop ?? []).map((row) => (
-                <tr key={`ticker-${String(row?.symbol ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3 font-semibold text-slate-900">{row?.symbol || "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.count) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.successRate)}</td>
-                </tr>
-              ))}
-            />
           </div>
         )}
       </section>

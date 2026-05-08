@@ -5626,28 +5626,36 @@ export default function Dashboard() {
 
   const captureWheelJournalSnapshot = useCallback(
     async ({ candidates, scanSessionId, scanTimestamp, source }) => {
-      if (autoJournalPop === "off") {
-        console.log("[AUTO_JOURNAL_SKIP]", {
-          scanSessionId,
-          source,
-          reason: "off",
-        });
-        return null;
-      }
-
       const captureTopN = Number(autoJournalPop);
       const finalCandidates = Array.isArray(candidates) ? candidates.slice(0, captureTopN) : [];
-      if (finalCandidates.length === 0) {
+      const selectedExpiration = normalizeExpirationYmd(selectedExpirationRef.current);
+      console.log("[AUTO_JOURNAL_CAPTURE_ATTEMPT]", {
+        scanSessionId,
+        autoJournalPop,
+        finalCandidatesLength: finalCandidates.length,
+        selectedExpiration,
+        source,
+        captureTopN,
+      });
+
+      if (autoJournalPop === "off") {
         console.log("[AUTO_JOURNAL_SKIP]", {
+          reason: "off",
           scanSessionId,
           source,
-          reason: "no_final_candidates",
-          captureTopN,
         });
         return null;
       }
 
-      const selectedExpiration = normalizeExpirationYmd(selectedExpirationRef.current);
+      if (finalCandidates.length === 0) {
+        console.log("[AUTO_JOURNAL_SKIP]", {
+          reason: "no_final_candidates",
+          scanSessionId,
+          source,
+        });
+        return null;
+      }
+
       const dteAtScan = computeDteAtScan(scanTimestamp ?? new Date().toISOString(), selectedExpiration);
       try {
         const payload = await callWheelJournalCapture({
@@ -5659,13 +5667,13 @@ export default function Dashboard() {
           captureSource: source,
           dteAtScan,
         });
-        console.log("[AUTO_JOURNAL_OK]", {
+        console.log("[AUTO_JOURNAL_RESULT]", {
           scanSessionId,
-          source,
-          captureTopN,
-          candidatesSent: finalCandidates.length,
           captured: payload?.captured ?? null,
           duplicates: payload?.duplicates ?? null,
+          candidatesSent: finalCandidates.length,
+          totalReceived: Array.isArray(payload?.journal?.records) ? payload.journal.records.length : null,
+          backendTotal: payload?.totalRecords ?? payload?.journal?.totalRecords ?? null,
         });
         return payload;
       } catch (error) {

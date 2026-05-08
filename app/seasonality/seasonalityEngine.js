@@ -6,59 +6,146 @@
  * - Separate in-memory cache (no impact on scanner cache/metrics)
  * - Returns null on any failure — scanner continues normally
  * - No DB writes, no impact on EliteScore, IBKR, or ranking
+ *
+ * Data source: yahoo-finance2 chart() — same method used by the main scanner.
+ * historical() is deprecated in yahoo-finance2@3.x and must NOT be used.
  */
 
 import YahooFinance from "yahoo-finance2";
 
 // ─── Configuration ─────────────────────────────────────────────────────────────
-const WINDOW_SIZES_WEEKS   = [2, 4, 8, 12, 16];
-const HORIZONS             = { "3Y": 3, "5Y": 5, "10Y": 10, "15Y": 15 };
-const HORIZON_WEIGHTS      = { "3Y": 0.20, "5Y": 0.35, "10Y": 0.30, "15Y": 0.15 };
-const HISTORY_FETCH_YEARS  = 15;                            // always fetch max, slice per horizon
-const HISTORY_CACHE_TTL_MS = 6 * 60 * 60 * 1_000;         // 6 h — historical data is daily
-const RESULT_CACHE_TTL_MS  = 4 * 60 * 60 * 1_000;         // 4 h
-const MIN_SAMPLE_SIZE      = 3;                             // min occurrences per window
-const SCORE_NORMALIZER     = 0.05;                         // 5 % return → max raw score
-const BIAS_THRESHOLD       = 0.25;                         // |score| threshold for bias label
-const CONCURRENCY_LIMIT    = 3;                            // parallel fetches for scan-summary
+const WINDOW_SIZES_WEEKS    = [2, 4, 8, 12, 16];
+const HORIZONS              = { "3Y": 3, "5Y": 5, "10Y": 10, "15Y": 15 };
+const HORIZON_WEIGHTS       = { "3Y": 0.20, "5Y": 0.35, "10Y": 0.30, "15Y": 0.15 };
+const HISTORY_FETCH_YEARS   = 15;              // fetch max; slice per horizon
+const HISTORY_CACHE_TTL_MS  = 6 * 3_600_000;  // 6 h — history only changes daily
+const HISTORY_FAIL_TTL_MS   = 5 * 60_000;     // 5 min — short cache for fetch failures
+const RESULT_CACHE_TTL_MS   = 4 * 3_600_000;  // 4 h — result cache (never stores null)
+const MIN_SAMPLE_SIZE       = 3;
+const SCORE_NORMALIZER      = 0.05;            // 5 % return → raw score ~1
+const BIAS_THRESHOLD        = 0.25;
+const CONCURRENCY_LIMIT     = 3;
+
+// ─── Debug logging (controlled — set DEBUG_SEASONALITY=true to enable) ─────────
+const _debug = String(process.env.DEBUG_SEASONALITY ?? "").toLowerCase() === "true";
+function _log(...args) { if (_debug) console.log("[SEASONALITY]", ...args); }
+function _warn(...args) { console.warn("[SEASONALITY]", ...args); }
 
 // ─── Isolated in-memory caches ─────────────────────────────────────────────────
-const _histCache   = new Map();   // raw daily price rows
-const _resultCache = new Map();   // computed seasonality results
-const _inFlight    = new Map();   // dedup concurrent requests
+const _histCache   = new Map(); // sym → { value: rows|null, expiresAt }
+const _resultCache = new Map(); // sym → { value: result, expiresAt } — NEVER stores null
+const _inFlight    = new Map(); // key → Promise — dedup concurrent requests
 
 // ─── Lazy isolated Yahoo client ────────────────────────────────────────────────
 let _client = null;
 function _getClient() {
-  if (!_client) _client = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+  if (!_client) {
+    _client = new YahooFinance({
+      suppressNotices: ["yahooSurvey", "ripHistorical"],
+    });
+  }
   return _client;
 }
 
 // ─── Cache primitives ──────────────────────────────────────────────────────────
 function _getCached(map, key) {
   const e = map.get(key);
-  if (!e) return undefined;
+  if (!e) return undefined; // undefined = not in cache
   if (Date.now() >= e.expiresAt) { map.delete(key); return undefined; }
-  return e.value;
+  return e.value; // may be null (failure cached with short TTL in histCache)
 }
 
 function _setCached(map, key, value, ttlMs) {
   map.set(key, { value, expiresAt: Date.now() + ttlMs });
 }
 
-/** Deduplicates concurrent calls for the same key and caches the result. */
-async function _getOrFetch(map, key, ttlMs, fetcher) {
-  const cached = _getCached(map, key);
-  if (cached !== undefined) return cached;
+// ─── ISO week utilities (ISO 8601) ─────────────────────────────────────────────
+function _isoWeek(date) {
+  const d   = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;            // Mon=1 … Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - day);   // nearest Thursday
+  const jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return {
+    week: Math.ceil(((d - jan1) / 86_400_000 + 1) / 7),
+    year: d.getUTCFullYear(),
+  };
+}
+
+// ─── Raw row normalisation ─────────────────────────────────────────────────────
+function _normalizeQuote(q) {
+  if (!q) return null;
+  const close = Number(q.close ?? q.adjclose ?? q.adjClose);
+  if (!Number.isFinite(close) || close <= 0) return null;
+  const date = q.date instanceof Date ? q.date : new Date(q.date);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    date,
+    open:  Number(q.open  ?? close),
+    high:  Number(q.high  ?? close),
+    low:   Number(q.low   ?? close),
+    close,
+  };
+}
+
+// ─── Historical data fetch via chart() ────────────────────────────────────────
+/**
+ * Fetches up to HISTORY_FETCH_YEARS of daily OHLC via yahoo-finance2 chart().
+ * Caches success for 6 h, failures for 5 min.
+ * Returns normalized row array or null.
+ */
+async function _fetchHistory(symbol) {
+  const key     = `hist:${symbol}`;
+  const cached  = _getCached(_histCache, key);
+  if (cached !== undefined) {
+    _log(`hist cache ${cached ? "HIT" : "FAIL-HIT"} for ${symbol} (${cached?.length ?? 0} rows)`);
+    return cached;
+  }
 
   const flying = _inFlight.get(key);
   if (flying) return flying;
 
   const promise = (async () => {
     try {
-      const value = await fetcher();
-      _setCached(map, key, value, ttlMs);
-      return value;
+      const period1 = new Date();
+      period1.setFullYear(period1.getFullYear() - HISTORY_FETCH_YEARS);
+
+      _log(`fetching chart() for ${symbol} from ${period1.toISOString().slice(0, 10)}`);
+
+      const result = await _getClient().chart(symbol, {
+        period1,
+        period2: new Date(),  // explicit today — avoids schema validation issues
+        interval: "1d",
+      });
+
+      const quotes = result?.quotes;
+      if (!Array.isArray(quotes)) {
+        _warn(`chart() for ${symbol}: quotes not an array (got ${typeof quotes})`);
+        _setCached(_histCache, key, null, HISTORY_FAIL_TTL_MS);
+        return null;
+      }
+
+      _log(`chart() for ${symbol}: ${quotes.length} raw quotes received`);
+
+      const rows = quotes
+        .map(_normalizeQuote)
+        .filter(Boolean)
+        .sort((a, b) => a.date - b.date);
+
+      _log(`chart() for ${symbol}: ${rows.length} valid rows after normalisation`);
+
+      if (rows.length < 50) {
+        _warn(`chart() for ${symbol}: only ${rows.length} valid rows — insufficient (<50), caching as failure`);
+        _setCached(_histCache, key, null, HISTORY_FAIL_TTL_MS);
+        return null;
+      }
+
+      _setCached(_histCache, key, rows, HISTORY_CACHE_TTL_MS);
+      return rows;
+
+    } catch (err) {
+      _warn(`chart() for ${symbol} threw: ${err?.message ?? String(err)}`);
+      _setCached(_histCache, key, null, HISTORY_FAIL_TTL_MS);
+      return null;
     } finally {
       _inFlight.delete(key);
     }
@@ -68,56 +155,12 @@ async function _getOrFetch(map, key, ttlMs, fetcher) {
   return promise;
 }
 
-// ─── ISO week utilities (ISO 8601) ─────────────────────────────────────────────
-/**
- * Returns { week: 1–53, year: ISO week-year }.
- * ISO 8601: week 1 contains Jan 4th; weeks start Monday.
- * The ISO week-year can differ from the calendar year in early Jan / late Dec.
- */
-function _isoWeek(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = d.getUTCDay() || 7;        // Mon=1 … Sun=7
-  d.setUTCDate(d.getUTCDate() + 4 - day); // shift to nearest Thursday
-  const jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return {
-    week: Math.ceil(((d - jan1) / 86_400_000 + 1) / 7),
-    year: d.getUTCFullYear(),
-  };
-}
-
-// ─── Historical data ───────────────────────────────────────────────────────────
-async function _fetchHistory(symbol) {
-  const key = `hist:${symbol}`;
-  return _getOrFetch(_histCache, key, HISTORY_CACHE_TTL_MS, async () => {
-    try {
-      const period1 = new Date();
-      period1.setFullYear(period1.getFullYear() - HISTORY_FETCH_YEARS);
-
-      const rows = await _getClient().historical(symbol, { period1, interval: "1d" });
-      if (!Array.isArray(rows) || rows.length < 50) return null;
-
-      return rows
-        .filter(r => r?.close != null && r?.date != null)
-        .map(r => ({
-          date:  new Date(r.date),
-          open:  Number(r.open  ?? r.close),
-          high:  Number(r.high  ?? r.close),
-          low:   Number(r.low   ?? r.close),
-          close: Number(r.close),
-        }))
-        .sort((a, b) => a.date - b.date);
-    } catch {
-      return null;
-    }
-  });
-}
-
 // ─── Group rows by (isoWeekYear, isoWeek) ─────────────────────────────────────
 function _groupByWeek(rows) {
   const byYW = {};
   for (const r of rows) {
     const { week, year } = _isoWeek(r.date);
-    const w = week > 52 ? 52 : week; // normalize rare week-53 into week-52
+    const w = week > 52 ? 52 : week; // normalise rare week-53
     if (!byYW[year]) byYW[year] = {};
     if (!byYW[year][w]) byYW[year][w] = [];
     byYW[year][w].push(r);
@@ -125,7 +168,7 @@ function _groupByWeek(rows) {
   return byYW;
 }
 
-// ─── Statistics helpers ────────────────────────────────────────────────────────
+// ─── Statistics ────────────────────────────────────────────────────────────────
 function _median(arr) {
   if (!arr.length) return null;
   const s = [...arr].sort((a, b) => a - b);
@@ -146,23 +189,18 @@ const _r4 = n => Math.round(n * 10_000) / 10_000;
 const _r3 = n => Math.round(n * 1_000)  / 1_000;
 
 // ─── Window-level analysis ─────────────────────────────────────────────────────
-/**
- * Analyzes one (startWeek, sizeWeeks) window across all historical years.
- * Returns null when sample is too small.
- */
 function _analyzeWindow(byYW, startWeek, sizeWeeks, currentWeek, currentYear) {
-  const years   = Object.keys(byYW).map(Number).sort((a, b) => a - b);
-  const returns = [], drawdowns = [];
+  const years    = Object.keys(byYW).map(Number).sort((a, b) => a - b);
+  const returns  = [], drawdowns = [];
 
   for (const year of years) {
-    if (year >= currentYear) continue; // skip current incomplete year
+    if (year >= currentYear) continue;
 
     const entryRows = byYW[year]?.[startWeek];
     if (!entryRows?.length) continue;
     const entryOpen = entryRows[0].open;
     if (!Number.isFinite(entryOpen) || entryOpen <= 0) continue;
 
-    // Collect all closes across the multi-week window (handles year boundary)
     const windowPrices = [entryOpen];
     let complete = true;
     for (let wi = 0; wi < sizeWeeks; wi++) {
@@ -184,19 +222,17 @@ function _analyzeWindow(byYW, startWeek, sizeWeeks, currentWeek, currentYear) {
 
   if (returns.length < MIN_SAMPLE_SIZE) return null;
 
-  const n          = returns.length;
-  const avgReturn  = returns.reduce((s, r) => s + r, 0) / n;
-  const medReturn  = _median(returns);
-  const winRate    = returns.filter(r => r > 0).length / n;
-  const avgDd      = drawdowns.reduce((s, d) => s + d, 0) / n;
-  const worstDd    = Math.min(...drawdowns);
+  const n           = returns.length;
+  const avgReturn   = returns.reduce((s, r) => s + r, 0) / n;
+  const medReturn   = _median(returns);
+  const winRate     = returns.filter(r => r > 0).length / n;
+  const avgDd       = drawdowns.reduce((s, d) => s + d, 0) / n;
+  const worstDd     = Math.min(...drawdowns);
 
-  // confidenceScore: blend sample coverage (≥12 obs saturates) and directional consistency
   const sampleFactor    = Math.min(n / 12, 1.0);
-  const consistency     = Math.abs(winRate - 0.5) * 2; // 0 if 50/50, 1 if 100/0
+  const consistency     = Math.abs(winRate - 0.5) * 2;
   const confidenceScore = _r3(sampleFactor * 0.6 + consistency * 0.4);
 
-  // seasonalityScore: directional strength normalized to [-1, 1]
   const direction        = avgReturn >= 0 ? 1 : -1;
   const magnitude        = Math.abs(avgReturn);
   const rawScore         = direction * magnitude * consistency * sampleFactor / SCORE_NORMALIZER;
@@ -206,7 +242,6 @@ function _analyzeWindow(byYW, startWeek, sizeWeeks, currentWeek, currentYear) {
     :          seasonalityScore <= -BIAS_THRESHOLD ? "bearish"
     :                                                "neutral";
 
-  // Check whether the current week falls inside this window
   let isActive = false;
   for (let wi = 0; wi < sizeWeeks; wi++) {
     const w = ((startWeek - 1 + wi) % 52) + 1;
@@ -214,8 +249,8 @@ function _analyzeWindow(byYW, startWeek, sizeWeeks, currentWeek, currentYear) {
   }
 
   return {
-    windowStart:    startWeek,
-    windowEnd:      ((startWeek - 1 + sizeWeeks - 1) % 52) + 1,
+    windowStart:     startWeek,
+    windowEnd:       ((startWeek - 1 + sizeWeeks - 1) % 52) + 1,
     windowSizeWeeks: sizeWeeks,
     winRate:         _r3(winRate),
     avgReturn:       _r4(avgReturn),
@@ -235,7 +270,7 @@ function _analyzeHorizon(allRows, horizonYears) {
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - horizonYears);
   const rows = allRows.filter(r => r.date >= cutoff);
-  if (rows.length < 100) return null; // insufficient data for this horizon
+  if (rows.length < 100) return null;
 
   const today = new Date();
   const { week: currentWeek, year: currentYear } = _isoWeek(today);
@@ -267,29 +302,43 @@ function _analyzeHorizon(allRows, horizonYears) {
 // ─── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Computes full seasonality analysis for one ticker.
- * Returns null on any failure — callers must handle null gracefully.
+ * Computes full seasonality for one ticker.
+ * Returns null on failure — null is NEVER stored in result cache (always retried).
  */
 export async function computeSeasonality(symbol) {
   const sym = String(symbol ?? "").trim().toUpperCase();
   if (!sym) return null;
 
-  const cacheKey = `result:${sym}`;
-  return _getOrFetch(_resultCache, cacheKey, RESULT_CACHE_TTL_MS, async () => {
+  // Check result cache — only contains successful (non-null) results
+  const resultCacheKey = `result:${sym}`;
+  const cachedResult   = _getCached(_resultCache, resultCacheKey);
+  if (cachedResult !== undefined) {
+    _log(`result cache HIT for ${sym}`);
+    return cachedResult; // guaranteed non-null
+  }
+
+  // Dedup concurrent computations for same symbol
+  const flying = _inFlight.get(resultCacheKey);
+  if (flying) return flying;
+
+  const promise = (async () => {
     try {
       const rows = await _fetchHistory(sym);
-      if (!rows?.length) return null;
+      if (!rows?.length) {
+        _log(`no rows for ${sym} — returning null (not cached in result cache)`);
+        return null;
+      }
+
+      _log(`computing seasonality for ${sym} with ${rows.length} rows`);
 
       const today = new Date();
       const { week: currentWeek } = _isoWeek(today);
 
-      // Analyze all horizons (rows sliced inside _analyzeHorizon)
       const horizons = {};
       for (const [label, years] of Object.entries(HORIZONS)) {
         horizons[label] = _analyzeHorizon(rows, years);
       }
 
-      // Aggregate signal from active windows across horizons (weighted by horizon + confidence)
       let weightedScore = 0, totalWeight = 0;
       const allBullish = [], allBearish = [], allActive = [];
 
@@ -313,21 +362,19 @@ export async function computeSeasonality(symbol) {
         :                  seasonalityScore <= -BIAS_THRESHOLD ? "unfavorable"
         :                                                        "neutral";
 
-      // seasonalStrikeRisk: "unfavorable" window = higher assignment risk for put sellers
       const seasonalStrikeRisk = seasonalBias === "unfavorable" ? "high"
-        : seasonalBias === "favorable" ? "low"
-        : "medium";
+        :                        seasonalBias === "favorable"   ? "low"
+        :                                                         "medium";
 
-      // Pick the most extreme active window for quick display
       const activeWindowNow = allActive.length > 0
         ? [...allActive].sort((a, b) => Math.abs(b.seasonalityScore) - Math.abs(a.seasonalityScore))[0]
         : null;
 
-      return {
-        symbol:           sym,
-        generatedAt:      new Date().toISOString(),
+      const result = {
+        symbol:             sym,
+        generatedAt:        new Date().toISOString(),
         currentWeek,
-        dataPointCount:   rows.length,
+        dataPointCount:     rows.length,
         horizons,
         bestBullishWindows: allBullish.sort((a, b) => b.seasonalityScore - a.seasonalityScore).slice(0, 5),
         bestBearishWindows: allBearish.sort((a, b) => a.seasonalityScore - b.seasonalityScore).slice(0, 5),
@@ -336,14 +383,26 @@ export async function computeSeasonality(symbol) {
         seasonalBias,
         seasonalStrikeRisk,
       };
-    } catch {
-      return null; // fail silently — never propagate to main scanner
+
+      // Only cache successful (non-null) results
+      _setCached(_resultCache, resultCacheKey, result, RESULT_CACHE_TTL_MS);
+      _log(`seasonality computed for ${sym}: bias=${seasonalBias} score=${seasonalityScore}`);
+      return result;
+
+    } catch (err) {
+      _warn(`computeSeasonality threw for ${sym}: ${err?.message ?? String(err)}`);
+      return null; // NOT cached — allows retry on next request
+    } finally {
+      _inFlight.delete(resultCacheKey);
     }
-  });
+  })();
+
+  _inFlight.set(resultCacheKey, promise);
+  return promise;
 }
 
 /**
- * Computes seasonality for multiple tickers with bounded concurrency.
+ * Batch seasonality for multiple tickers with bounded concurrency.
  * Returns { symbols, results: { SYMBOL: data|null }, generatedAt }.
  */
 export async function computeSeasonalityScanSummary(symbols) {
@@ -369,7 +428,30 @@ export async function computeSeasonalityScanSummary(symbols) {
   return { symbols: syms, results, generatedAt: new Date().toISOString() };
 }
 
-/** Diagnostic — cache state for ops / monitoring. */
+/**
+ * Diagnostic — exposes cache state and data fetch status for a symbol.
+ * Useful for debugging without triggering a full computation.
+ */
+export async function getSeasonalityDiagnostic(symbol) {
+  const sym = String(symbol ?? "").trim().toUpperCase();
+  const histKey   = `hist:${sym}`;
+  const resultKey = `result:${sym}`;
+
+  const histEntry   = _histCache.get(histKey);
+  const resultEntry = _resultCache.get(resultKey);
+
+  const histStatus  = !histEntry   ? "miss" : Date.now() >= histEntry.expiresAt   ? "expired" : histEntry.value   ? "hit"  : "cached-null";
+  const resultStatus = !resultEntry ? "miss" : Date.now() >= resultEntry.expiresAt ? "expired" : "hit";
+
+  return {
+    symbol:      sym,
+    histCache:   { status: histStatus,   rowCount: histEntry?.value?.length ?? null, expiresAt: histEntry?.expiresAt  ?? null },
+    resultCache: { status: resultStatus, hasBias:  resultEntry?.value?.seasonalBias ?? null, expiresAt: resultEntry?.expiresAt ?? null },
+    inFlight:    { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey) },
+  };
+}
+
+/** Ops diagnostic — cache sizes and configuration. */
 export function getSeasonalityCacheStats() {
   return {
     histCacheSize:       _histCache.size,
@@ -377,5 +459,7 @@ export function getSeasonalityCacheStats() {
     inFlightCount:       _inFlight.size,
     histCacheTtlHours:   HISTORY_CACHE_TTL_MS  / 3_600_000,
     resultCacheTtlHours: RESULT_CACHE_TTL_MS   / 3_600_000,
+    histFailTtlMin:      HISTORY_FAIL_TTL_MS   / 60_000,
+    debugEnabled:        _debug,
   };
 }

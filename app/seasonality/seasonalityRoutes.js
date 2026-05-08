@@ -9,9 +9,11 @@ import {
   computeSeasonality,
   computeSeasonalityScanSummary,
   getSeasonalityCacheStats,
+  getSeasonalityDiagnostic,
 } from "./seasonalityEngine.js";
 
-const router = Router();
+const router   = Router();
+const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
 
 // NOTE: specific routes must be registered BEFORE the /:ticker param route
 // so Express matches them before the wildcard.
@@ -25,6 +27,24 @@ router.get("/cache-stats", (_req, res) => {
     res.json({ ok: true, ...getSeasonalityCacheStats() });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "cache_stats_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/diagnostic/:ticker
+ * Inspects cache state for a symbol without triggering computation.
+ * Useful for debugging null results.
+ */
+router.get("/diagnostic/:ticker", async (req, res) => {
+  try {
+    const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+    if (!symbol || !TICKER_RE.test(symbol)) {
+      return res.status(400).json({ ok: false, error: "invalid ticker" });
+    }
+    const diag = await getSeasonalityDiagnostic(symbol);
+    res.json({ ok: true, ...diag });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "diagnostic_failed") });
   }
 });
 
@@ -55,8 +75,6 @@ router.get("/scan-summary", async (req, res) => {
  * Full seasonality analysis for a single ticker.
  * Returns 404 when data is unavailable (new IPO, insufficient history, fetch failure).
  */
-const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
-
 router.get("/:ticker", async (req, res) => {
   try {
     const symbol = String(req.params.ticker ?? "").trim().toUpperCase();

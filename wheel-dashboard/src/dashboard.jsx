@@ -15,6 +15,7 @@ import {
   Database,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
+import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -2794,7 +2795,7 @@ function IbkrBatchCardDetails({ item, row }) {
   );
 }
 
-function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkrBatchRow = null }) {
+function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkrBatchRow = null, seasonality = null }) {
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
     : item.expectedMovePct;
@@ -2946,6 +2947,12 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   <Badge className="rounded-full border border-amber-300 bg-amber-100 text-amber-950">
                     Données IBKR incomplètes — affichage DEV seulement
                   </Badge>
+                )}
+                {seasonality?.seasonalBias && (
+                  <SeasonalityBadge
+                    bias={seasonality.seasonalBias}
+                    score={seasonality.seasonalityScore ?? null}
+                  />
                 )}
               </div>
 
@@ -5081,6 +5088,29 @@ export default function Dashboard() {
   const [scanMetricsLoading, setScanMetricsLoading] = useState(false);
   const [scanMetricsError, setScanMetricsError] = useState("");
   const [scanMetricsData, setScanMetricsData] = useState(null);
+
+  // ── Seasonality V1 — optional enrichment, never blocks main scan ───────────
+  const [seasonalityMap, setSeasonalityMap] = useState({});
+  const fetchSeasonalityBatch = useCallback(async (symbols) => {
+    if (!symbols?.length) return;
+    try {
+      const unique = [...new Set(
+        symbols.map(s => String(s ?? "").trim().toUpperCase()).filter(Boolean),
+      )].slice(0, 25);
+      if (!unique.length) return;
+      const resp = await fetch(
+        `${API_BASE}/seasonality/scan-summary?tickers=${encodeURIComponent(unique.join(","))}`,
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!data?.ok || !data?.results) return;
+      setSeasonalityMap(prev => ({ ...prev, ...data.results }));
+    } catch {
+      // silently ignore — seasonality is optional enrichment
+    }
+  }, []);
+  // ───────────────────────────────────────────────────────────────────────────
+
   const technicalCandidatesRef = useRef(new Map());
   /** Snapshot dernier rendu pour [DISPLAY_RESULT] (refs = pas de stale closure). */
   const displaySnapshotRef = useRef({});
@@ -5205,6 +5235,13 @@ export default function Dashboard() {
       })
       .filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
   }, [enrichedCandidates, query, filter, sortBy, sortOrder, selectedExpiration, dataSource]);
+
+  // Seasonality V1: auto-fetch for all visible shortlist tickers (non-blocking)
+  useEffect(() => {
+    if (!filtered?.length) return;
+    const symbols = filtered.map(item => String(item.ticker ?? item.symbol ?? "").toUpperCase()).filter(Boolean);
+    fetchSeasonalityBatch(symbols);
+  }, [filtered, fetchSeasonalityBatch]);
 
   useEffect(() => {
     const bc = backendCandidates;
@@ -7580,6 +7617,7 @@ export default function Dashboard() {
                     yahooRankForIbkr={yahooRankForIbkrBySymbol.get(String(item?.ticker || "").trim().toUpperCase())}
                     onOpenDetail={setSelectedItem}
                     ibkrBatchRow={ibkrBatchByTicker.get(String(item?.ticker || "").trim().toUpperCase()) || null}
+                    seasonality={seasonalityMap[String(item?.ticker ?? "").toUpperCase()] ?? null}
                   />
                 ))}
 

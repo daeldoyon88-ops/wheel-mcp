@@ -17,6 +17,7 @@ import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
 import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
 import { createWheelValidationService } from "./app/journal/wheelValidationService.js";
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
+import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -2141,6 +2142,9 @@ async function handleBuildWatchlist(req, res) {
 app.post("/build_watchlist", handleBuildWatchlist);
 /** Alias sans le segment "watchlist" dans le chemin (évite certains bloqueurs / filtres d'URL côté navigateur). */
 app.post("/universe/build", handleBuildWatchlist);
+
+// Seasonality Engine V1 — read-only, isolated, additive
+app.use("/seasonality", seasonalityRoutes);
 
 app.get("/mcp-info", (_req, res) => {
   res.json({

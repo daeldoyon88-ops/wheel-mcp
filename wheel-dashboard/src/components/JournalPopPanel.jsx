@@ -273,6 +273,40 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [resolveSummary, setResolveSummary] = useState(null);
 
+  // ── Seasonality V1 — on-demand, read-only ──────────────────────────────────
+  const [journalSeasonality, setJournalSeasonality] = useState(null);
+  const [seasonalityLoading, setSeasonalityLoading] = useState(false);
+
+  const uniqueJournalSymbols = useMemo(() => {
+    if (!Array.isArray(journal?.records)) return [];
+    const seen = new Set();
+    const result = [];
+    for (const r of journal.records) {
+      const sym = String(r?.symbol ?? "").trim().toUpperCase();
+      if (sym && !seen.has(sym)) { seen.add(sym); result.push(sym); }
+      if (result.length >= 25) break;
+    }
+    return result;
+  }, [journal]);
+
+  const fetchJournalSeasonality = useCallback(async () => {
+    if (!uniqueJournalSymbols.length) return;
+    setSeasonalityLoading(true);
+    try {
+      const resp = await fetch(
+        `${apiBase}/seasonality/scan-summary?tickers=${encodeURIComponent(uniqueJournalSymbols.join(","))}`,
+      );
+      if (!resp.ok) throw new Error("fetch_failed");
+      const data = await resp.json();
+      if (data?.ok) setJournalSeasonality(data);
+    } catch {
+      // silently ignore — V1 is informational only
+    } finally {
+      setSeasonalityLoading(false);
+    }
+  }, [apiBase, uniqueJournalSymbols]);
+  // ───────────────────────────────────────────────────────────────────────────
+
   const loadJournal = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -832,6 +866,131 @@ export default function JournalPopPanel({ apiBase, active }) {
           </div>
         </section>
       )}
+
+      {/* ── Seasonality V1 — read-only, on-demand ───────────────────────── */}
+      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-950">Saisonnalité V1 — Lecture seule</h3>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              Fenêtres saisonnières historiques (Yahoo, mise en cache 6h) pour les tickers du journal.
+              Aucun impact sur le scanner, EliteScore ou ranking. Calibration automatique prévue en V2.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={fetchJournalSeasonality}
+            disabled={seasonalityLoading || !hasLoaded || !uniqueJournalSymbols.length}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Charger saisonnalité
+            <RefreshCw className={`ml-2 h-4 w-4 ${seasonalityLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+
+        {!hasLoaded && (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+            Chargez d&apos;abord le journal pour activer l&apos;analyse saisonnière.
+          </div>
+        )}
+
+        {hasLoaded && !journalSeasonality && !seasonalityLoading && (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+            {uniqueJournalSymbols.length > 0
+              ? `${uniqueJournalSymbols.length} tickers détectés — cliquez sur "Charger saisonnalité" pour analyser.`
+              : "Aucun ticker dans le journal."}
+          </div>
+        )}
+
+        {seasonalityLoading && (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+            Calcul en cours — Yahoo Finance historique, résultat mis en cache 6h…
+          </div>
+        )}
+
+        {journalSeasonality && !seasonalityLoading && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-xs text-slate-700">
+              <thead className="border-b border-slate-200 text-[11px] uppercase tracking-[0.12em] text-slate-500">
+                <tr>
+                  <th className="px-3 py-3 font-medium">Ticker</th>
+                  <th className="px-3 py-3 font-medium">Biais actuel</th>
+                  <th className="px-3 py-3 font-medium">Score</th>
+                  <th className="px-3 py-3 font-medium">Risque strike</th>
+                  <th className="px-3 py-3 font-medium">Fenêtre active</th>
+                  <th className="px-3 py-3 font-medium">Win rate</th>
+                  <th className="px-3 py-3 font-medium">Données</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(journalSeasonality.symbols ?? []).map((sym) => {
+                  const d = journalSeasonality.results?.[sym];
+                  return (
+                    <tr key={`seas-${sym}`} className="border-b border-slate-100 last:border-b-0">
+                      <td className="px-3 py-3 font-semibold text-slate-900">{sym}</td>
+                      <td className="px-3 py-3">
+                        {d?.seasonalBias ? (
+                          <span className={
+                            d.seasonalBias === "favorable"   ? "font-medium text-emerald-700" :
+                            d.seasonalBias === "unfavorable" ? "font-medium text-rose-700"    :
+                                                               "text-slate-500"
+                          }>
+                            {d.seasonalBias === "favorable"   ? "↑ Favorable"   :
+                             d.seasonalBias === "unfavorable" ? "↓ Défavorable" :
+                                                                "→ Neutre"}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        {d?.seasonalityScore != null ? (
+                          <span className={
+                            d.seasonalityScore >= 0.25  ? "text-emerald-700" :
+                            d.seasonalityScore <= -0.25 ? "text-rose-700"    :
+                                                          "text-slate-500"
+                          }>
+                            {d.seasonalityScore >= 0 ? "+" : ""}
+                            {Math.round(d.seasonalityScore * 100)}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        {d?.seasonalStrikeRisk ? (
+                          <span className={
+                            d.seasonalStrikeRisk === "high" ? "font-medium text-rose-700"    :
+                            d.seasonalStrikeRisk === "low"  ? "font-medium text-emerald-700" :
+                                                              "text-amber-700"
+                          }>
+                            {d.seasonalStrikeRisk === "high" ? "Élevé" :
+                             d.seasonalStrikeRisk === "low"  ? "Faible" : "Moyen"}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-slate-600">
+                        {d?.activeWindowNow
+                          ? `S${d.activeWindowNow.windowStart}–S${d.activeWindowNow.windowEnd} · ${d.activeWindowNow.windowSizeWeeks}sem · ${d.activeWindowNow.bias}`
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        {d?.activeWindowNow?.winRate != null
+                          ? `${Math.round(d.activeWindowNow.winRate * 100)}%`
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-slate-400">
+                        {d?.dataPointCount != null ? `${d.dataPointCount} j` : "n/a"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="mt-3 text-xs text-slate-400">
+              V1 — lecture seule · aucun impact scanner · calibration saisonnière automatique prévue V2 ·
+              généré {journalSeasonality.generatedAt ? new Date(journalSeasonality.generatedAt).toLocaleTimeString() : "—"}
+            </p>
+          </div>
+        )}
+      </section>
+      {/* ─────────────────────────────────────────────────────────────────── */}
 
       <JournalTable title="A resoudre" rows={unresolvedRecords} />
       <JournalTable title="Resolus" rows={resolvedRecords} showOutcomeV2 />

@@ -87,8 +87,11 @@ function buildResolutionDefaults() {
     rolled: null,
     realizedPl: null,
     premiumRealized: null,
+    realizedReturnPct: null,
     popPredictionCorrect: null,
     outcomeStatus: null,
+    resultStatus: null,
+    resolvedAt: null,
     resolutionDate: null,
     notes: null,
   };
@@ -241,6 +244,7 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
     dteAtScan,
     candidateRank,
     captureSource,
+    captureClass: null,
     symbol,
     expiration,
     strikeMode,
@@ -326,6 +330,14 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
 function normalizeResolutionPatch(patch) {
   const resolved = typeof patch?.resolved === "boolean" ? patch.resolved : true;
   const expiredWorthless = toBooleanOrNull(patch?.expiredWorthless);
+  const resultStatus =
+    patch?.resultStatus == null ? null : String(patch.resultStatus).trim() || null;
+  const resolvedAt =
+    resolved === true
+      ? patch?.resolvedAt == null
+        ? new Date().toISOString()
+        : String(patch.resolvedAt).trim() || new Date().toISOString()
+      : null;
   return {
     resolved,
     expirationClosePrice: toNumberOrNull(patch?.expirationClosePrice),
@@ -341,6 +353,7 @@ function normalizeResolutionPatch(patch) {
     rolled: toBooleanOrNull(patch?.rolled),
     realizedPl: toNumberOrNull(patch?.realizedPl),
     premiumRealized: toNumberOrNull(patch?.premiumRealized),
+    realizedReturnPct: toNumberOrNull(patch?.realizedReturnPct),
     popPredictionCorrect:
       resolved === true
         ? expiredWorthless === true
@@ -350,6 +363,8 @@ function normalizeResolutionPatch(patch) {
           : null
         : null,
     outcomeStatus: patch?.outcomeStatus == null ? null : String(patch.outcomeStatus).trim() || null,
+    resultStatus,
+    resolvedAt,
     resolutionDate:
       patch?.resolutionDate == null ? null : String(patch.resolutionDate).trim() || null,
     notes: patch?.notes == null ? null : String(patch.notes),
@@ -372,16 +387,20 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
   const strike = toNumberOrNull(record?.strike?.strike);
   if (strike == null) return null;
   const expiredWorthless = closeNum > strike;
-  const assigned = expiredWorthless ? false : true;
+  const assigned = !expiredWorthless;
   const premium = toNumberOrNull(record?.strike?.premium);
   const premiumRealized = premium == null ? null : Number((premium * 100).toFixed(2));
   const realizedPl = expiredWorthless === true ? premiumRealized : null;
+  const realizedReturnPct =
+    expiredWorthless === true && premiumRealized != null && strike > 0
+      ? Number(((premiumRealized / (strike * 100)) * 100).toFixed(4))
+      : null;
+  const resultStatus = expiredWorthless ? "expired_worthless" : "assigned";
   return {
     resolved: true,
     expirationClosePrice: closeNum,
     expiredWorthless,
     assigned,
-    // Optional V1 diagnostics remain null unless intraperiod historical lows/highs are available.
     strikeTouched: null,
     minPriceBetweenScanAndExpiration: null,
     brokeLowerBound: null,
@@ -392,8 +411,11 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
     rolled: false,
     realizedPl,
     premiumRealized,
+    realizedReturnPct,
     popPredictionCorrect: expiredWorthless === true,
     outcomeStatus: expiredWorthless ? "expired_worthless" : "assigned_theoretical",
+    resultStatus,
+    resolvedAt: new Date().toISOString(),
     resolutionDate: todayYmd,
     notes: `auto_resolved_from_yahoo_close_${expirationYmd}`,
   };
@@ -985,8 +1007,14 @@ export function createWheelValidationService(options = {}) {
     const totalResolved = resolvedRecords.length;
     const totalUnresolved = records.length - totalResolved;
 
+    // Calibration uses primaryDaily only — legacy (null captureClass) treated as primary for backward compat
+    const calibrationRecords = resolvedRecords.filter(
+      (r) => (r?.captureClass ?? "primaryDaily") !== "intradayRetest"
+    );
+    const totalIntradayRetestResolved = totalResolved - calibrationRecords.length;
+
     const popBuckets = bucketizeCalibration(
-      resolvedRecords,
+      calibrationRecords,
       [
         { bucket: "<80", match: (value) => value != null && value < 80 },
         { bucket: "80-85", match: (value) => value != null && value >= 80 && value < 85 },
@@ -1002,7 +1030,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const dteBuckets = bucketizeCalibration(
-      resolvedRecords,
+      calibrationRecords,
       [
         { bucket: "0-3", match: (value) => value != null && value >= 0 && value <= 3 },
         { bucket: "4-7", match: (value) => value != null && value >= 4 && value <= 7 },
@@ -1014,7 +1042,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const strikeModeBuckets = bucketizeCalibration(
-      resolvedRecords,
+      calibrationRecords,
       [
         { bucket: "safe", match: (_value, record) => String(record?.strikeMode ?? "").trim().toLowerCase() === "safe" },
         {
@@ -1028,7 +1056,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const ftqsBuckets = bucketizeCalibration(
-      resolvedRecords.filter((record) => getFinalTradeQualityScore(record) != null),
+      calibrationRecords.filter((record) => getFinalTradeQualityScore(record) != null),
       [
         { bucket: "<60", match: (value) => value != null && value < 60 },
         { bucket: "60-70", match: (value) => value != null && value >= 60 && value < 70 },
@@ -1040,7 +1068,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const popBucketsV2 = bucketizeV2(
-      resolvedRecords,
+      calibrationRecords,
       [
         { bucket: "<80", match: (value) => value != null && value < 80 },
         { bucket: "80-85", match: (value) => value != null && value >= 80 && value < 85 },
@@ -1056,7 +1084,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const dteBucketsV2 = bucketizeV2(
-      resolvedRecords,
+      calibrationRecords,
       [
         { bucket: "0-3", match: (value) => value != null && value >= 0 && value <= 3 },
         { bucket: "4-7", match: (value) => value != null && value >= 4 && value <= 7 },
@@ -1068,7 +1096,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const strikeModeV2 = bucketizeV2(
-      resolvedRecords,
+      calibrationRecords,
       [
         {
           bucket: "safe",
@@ -1084,7 +1112,7 @@ export function createWheelValidationService(options = {}) {
     );
 
     const ftqsBucketsV2 = bucketizeV2(
-      resolvedRecords.filter((r) => getFinalTradeQualityScore(r) != null),
+      calibrationRecords.filter((r) => getFinalTradeQualityScore(r) != null),
       [
         { bucket: "<60", match: (value) => value != null && value < 60 },
         { bucket: "60-70", match: (value) => value != null && value >= 60 && value < 70 },
@@ -1095,13 +1123,15 @@ export function createWheelValidationService(options = {}) {
       (record) => getFinalTradeQualityScore(record)
     );
 
-    const tickerCohorts = computeTickerCohortsV2(resolvedRecords);
-    const sectorCohorts = computeSectorCohortsV2(resolvedRecords);
+    const tickerCohorts = computeTickerCohortsV2(calibrationRecords);
+    const sectorCohorts = computeSectorCohortsV2(calibrationRecords);
 
     return {
       totalRecords: records.length,
       totalResolved,
       totalUnresolved,
+      totalResolvedPrimary: calibrationRecords.length,
+      totalIntradayRetestResolved,
       hasResolvedRecords: totalResolved > 0,
       popBuckets,
       dteBuckets,
@@ -1130,6 +1160,8 @@ export function createWheelValidationService(options = {}) {
           captured: 0,
           duplicates: 0,
           skipped: 0,
+          primaryDailyCount: 0,
+          intradayRetestCount: 0,
           requestedTopN: Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30,
           records: [],
           journal,
@@ -1139,14 +1171,41 @@ export function createWheelValidationService(options = {}) {
       const existingIds = new Set(
         journal.records.map((record) => String(record?.id ?? "").trim()).filter(Boolean)
       );
+
+      // Build (scanDate|expirationCohort|captureSource) combinations already in journal
+      const existingCombinations = new Set();
+      for (const record of journal.records) {
+        const sd = String(record?.scanDate ?? "").trim();
+        const ec = String(record?.expirationCohort ?? "").trim();
+        const cs = String(record?.captureSource ?? "").trim();
+        if (sd) existingCombinations.add(`${sd}|${ec}|${cs}`);
+      }
+
+      const captureClassOverride =
+        options.captureClass == null ? null : String(options.captureClass).trim() || null;
+
       const uniqueRecords = [];
       let duplicates = 0;
+      let intradayRetestCount = 0;
+      let primaryDailyCount = 0;
       for (const record of records) {
         if (existingIds.has(record.id)) {
           duplicates += 1;
           continue;
         }
         existingIds.add(record.id);
+
+        let captureClass;
+        if (captureClassOverride) {
+          captureClass = captureClassOverride;
+        } else {
+          const key = `${record.scanDate}|${String(record.expirationCohort ?? "")}|${String(record.captureSource ?? "")}`;
+          captureClass = existingCombinations.has(key) ? "intradayRetest" : "primaryDaily";
+        }
+        record.captureClass = captureClass;
+        if (captureClass === "intradayRetest") intradayRetestCount += 1;
+        else primaryDailyCount += 1;
+
         uniqueRecords.push(record);
       }
 
@@ -1161,6 +1220,8 @@ export function createWheelValidationService(options = {}) {
         duplicates,
         skipped: records.length - uniqueRecords.length,
         requestedTopN: Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30,
+        primaryDailyCount,
+        intradayRetestCount,
         records: uniqueRecords,
         journal: uniqueRecords.length > 0 ? journal : await store.load(),
       };

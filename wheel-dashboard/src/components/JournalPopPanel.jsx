@@ -50,6 +50,28 @@ function formatYesNo(value) {
   return "-";
 }
 
+function CaptureClassBadge({ value }) {
+  if (value === "primaryDaily")
+    return (
+      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+        primary
+      </span>
+    );
+  if (value === "intradayRetest")
+    return (
+      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+        retest
+      </span>
+    );
+  if (value === "manualTest")
+    return (
+      <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+        manual
+      </span>
+    );
+  return <span className="text-slate-400">-</span>;
+}
+
 function formatDteRange(minDte, maxDte) {
   const min = numberOrNull(minDte);
   const max = numberOrNull(maxDte);
@@ -83,6 +105,18 @@ function JournalMetric({ label, value, tone = "default" }) {
   );
 }
 
+function formatResultStatus(value) {
+  if (!value) return "-";
+  const labels = {
+    expired_worthless: "Exp. worthless",
+    assigned: "Assigned",
+    assigned_theoretical: "Assigned (theo)",
+    rolled: "Rolled",
+    pending: "Pending",
+  };
+  return labels[value] ?? String(value);
+}
+
 function JournalTable({ title, rows, showOutcomeV2 = false }) {
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -103,6 +137,7 @@ function JournalTable({ title, rows, showOutcomeV2 = false }) {
             <thead className="border-b border-slate-200 text-[11px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
                 <th className="px-3 py-3 font-medium">Date scan</th>
+                <th className="px-3 py-3 font-medium">Classe</th>
                 <th className="px-3 py-3 font-medium">Ticker</th>
                 <th className="px-3 py-3 font-medium">Expiration</th>
                 <th className="px-3 py-3 font-medium">DTE</th>
@@ -117,7 +152,10 @@ function JournalTable({ title, rows, showOutcomeV2 = false }) {
                 <th className="px-3 py-3 font-medium">Elite Score</th>
                 <th className="px-3 py-3 font-medium">Elite Badge</th>
                 <th className="px-3 py-3 font-medium">Resultat</th>
+                <th className="px-3 py-3 font-medium">Status</th>
                 <th className="px-3 py-3 font-medium">P/L</th>
+                <th className="px-3 py-3 font-medium">Return %</th>
+                <th className="px-3 py-3 font-medium">Resolu le</th>
                 {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Strike touche</th> : null}
                 {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Min prix</th> : null}
                 {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Max ITM</th> : null}
@@ -131,6 +169,7 @@ function JournalTable({ title, rows, showOutcomeV2 = false }) {
               {rows.map((record) => (
                 <tr key={record.id} className="border-b border-slate-100 last:border-b-0">
                   <td className="px-3 py-3">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
+                  <td className="px-3 py-3"><CaptureClassBadge value={record?.captureClass} /></td>
                   <td className="px-3 py-3 font-semibold text-slate-900">{record?.symbol || "-"}</td>
                   <td className="px-3 py-3">{formatCompactExpiration(record?.expiration)}</td>
                   <td className="px-3 py-3">{numberOrNull(record?.dteAtScan) ?? "-"}</td>
@@ -149,7 +188,10 @@ function JournalTable({ title, rows, showOutcomeV2 = false }) {
                   </td>
                   <td className="px-3 py-3">{record?.scores?.eliteBadge || "-"}</td>
                   <td className="px-3 py-3">{getResolutionLabel(record)}</td>
+                  <td className="px-3 py-3">{formatResultStatus(record?.resolution?.resultStatus)}</td>
                   <td className="px-3 py-3">{formatMoney(record?.resolution?.realizedPl)}</td>
+                  <td className="px-3 py-3">{formatPercent(record?.resolution?.realizedReturnPct, 2)}</td>
+                  <td className="px-3 py-3">{formatDate(record?.resolution?.resolvedAt)}</td>
                   {showOutcomeV2 ? (
                     <td className="px-3 py-3">{formatYesNo(record?.resolution?.strikeTouched)}</td>
                   ) : null}
@@ -456,7 +498,15 @@ export default function JournalPopPanel({ apiBase, active }) {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <JournalMetric label="Total resolved" value={String(calibrationSummary?.totalResolved ?? 0)} tone="good" />
               <JournalMetric label="Total unresolved" value={String(calibrationSummary?.totalUnresolved ?? 0)} tone="warn" />
+              <JournalMetric label="Primary daily" value={String(calibrationSummary?.totalResolvedPrimary ?? calibrationSummary?.totalResolved ?? 0)} tone="good" />
+              <JournalMetric label="Intraday retest exclus" value={String(calibrationSummary?.totalIntradayRetestResolved ?? 0)} tone="warn" />
             </section>
+            {Number(calibrationSummary?.totalIntradayRetestResolved ?? 0) > 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Calibration basee sur {calibrationSummary?.totalResolvedPrimary ?? 0} records primaryDaily —{" "}
+                {calibrationSummary?.totalIntradayRetestResolved} retest(s) intrajournaliers exclus.
+              </div>
+            ) : null}
 
             <CalibrationTable
               title="POP buckets"

@@ -31,6 +31,14 @@ function toReal(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function safeExec(conn, sql) {
+  try {
+    conn.exec(sql);
+  } catch (_) {
+    // Idempotent: ignore errors (e.g. column already exists)
+  }
+}
+
 function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
   const source = record?.source ?? {};
   const ranks = record?.ranks ?? {};
@@ -50,6 +58,7 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     dteAtScan: toInt(record?.dteAtScan),
     candidateRank: toInt(record?.candidateRank),
     captureSource: record?.captureSource ?? null,
+    captureClass: record?.captureClass ?? null,
     symbol: record?.symbol ?? null,
     strikeMode: record?.strikeMode ?? null,
     yahooValidated: toIntBool(source?.yahoo),
@@ -84,11 +93,21 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     expirationClosePrice: toReal(resolution?.expirationClosePrice),
     expiredWorthless: toIntBool(resolution?.expiredWorthless),
     assigned: toIntBool(resolution?.assigned),
+    strikeTouched: toIntBool(resolution?.strikeTouched),
+    minPriceBetweenScanAndExpiration: toReal(resolution?.minPriceBetweenScanAndExpiration),
+    brokeLowerBound: toIntBool(resolution?.brokeLowerBound),
+    maxItmDepth: toReal(resolution?.maxItmDepth),
+    lowerBoundDistance: toReal(resolution?.lowerBoundDistance),
+    supportBreak: toIntBool(resolution?.supportBreak),
+    drawdownPct: toReal(resolution?.drawdownPct),
     rolled: toIntBool(resolution?.rolled),
     realizedPl: toReal(resolution?.realizedPl),
     premiumRealized: toReal(resolution?.premiumRealized),
+    realizedReturnPct: toReal(resolution?.realizedReturnPct),
     popPredictionCorrect: toIntBool(resolution?.popPredictionCorrect),
     outcomeStatus: resolution?.outcomeStatus ?? null,
+    resultStatus: resolution?.resultStatus ?? null,
+    resolvedAt: resolution?.resolvedAt ?? null,
     resolutionDate: resolution?.resolutionDate ?? null,
     notes: resolution?.notes ?? null,
     rawJson: JSON.stringify(record ?? {}),
@@ -129,6 +148,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         dteAtScan INTEGER,
         candidateRank INTEGER,
         captureSource TEXT,
+        captureClass TEXT,
         symbol TEXT,
         strikeMode TEXT,
         yahooValidated INTEGER,
@@ -163,11 +183,21 @@ export function createWheelValidationStoreSqlite(options = {}) {
         expirationClosePrice REAL,
         expiredWorthless INTEGER,
         assigned INTEGER,
+        strikeTouched INTEGER,
+        minPriceBetweenScanAndExpiration REAL,
+        brokeLowerBound INTEGER,
+        maxItmDepth REAL,
+        lowerBoundDistance REAL,
+        supportBreak INTEGER,
+        drawdownPct REAL,
         rolled INTEGER,
         realizedPl REAL,
         premiumRealized REAL,
+        realizedReturnPct REAL,
         popPredictionCorrect INTEGER,
         outcomeStatus TEXT,
+        resultStatus TEXT,
+        resolvedAt TEXT,
         resolutionDate TEXT,
         notes TEXT,
         rawJson TEXT,
@@ -185,24 +215,43 @@ export function createWheelValidationStoreSqlite(options = {}) {
       CREATE INDEX IF NOT EXISTS idx_wvr_scanSessionId ON wheel_validation_records(scanSessionId);
     `);
 
+    // Additive migrations — idempotent, safe for existing databases
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN captureClass TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN strikeTouched INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN minPriceBetweenScanAndExpiration REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN brokeLowerBound INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN maxItmDepth REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN lowerBoundDistance REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN supportBreak INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN drawdownPct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN realizedReturnPct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN resultStatus TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN resolvedAt TEXT`);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_wvr_captureClass ON wheel_validation_records(captureClass)`);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_wvr_resultStatus ON wheel_validation_records(resultStatus)`);
+
     const insertStmt = conn.prepare(`
       INSERT INTO wheel_validation_records (
         id, scanSessionId, scanTimestamp, scanDate, selectedExpiration, expiration, expirationCohort,
-        dteAtScan, candidateRank, captureSource, symbol, strikeMode, yahooValidated, ibkrValidated,
+        dteAtScan, candidateRank, captureSource, captureClass, symbol, strikeMode, yahooValidated, ibkrValidated,
         yahooRank, ibkrRank, qualityScoreYahoo, finalScoreYahoo, eliteScore, eliteBadge, spotAtScan,
         expectedMove, lowerBound, strike, premium, bid, ask, mid, spread, spreadPct, annualizedYield,
         targetPremium, popEstimate, support, resistance, supportStatus, hasEarningsBeforeExpiration,
         earningsDate, earningsDaysUntil, rsi, resolved, expirationClosePrice, expiredWorthless, assigned,
-        rolled, realizedPl, premiumRealized, popPredictionCorrect, outcomeStatus, resolutionDate, notes,
+        strikeTouched, minPriceBetweenScanAndExpiration, brokeLowerBound, maxItmDepth, lowerBoundDistance,
+        supportBreak, drawdownPct, rolled, realizedPl, premiumRealized, realizedReturnPct,
+        popPredictionCorrect, outcomeStatus, resultStatus, resolvedAt, resolutionDate, notes,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
-        @dteAtScan, @candidateRank, @captureSource, @symbol, @strikeMode, @yahooValidated, @ibkrValidated,
+        @dteAtScan, @candidateRank, @captureSource, @captureClass, @symbol, @strikeMode, @yahooValidated, @ibkrValidated,
         @yahooRank, @ibkrRank, @qualityScoreYahoo, @finalScoreYahoo, @eliteScore, @eliteBadge, @spotAtScan,
         @expectedMove, @lowerBound, @strike, @premium, @bid, @ask, @mid, @spread, @spreadPct, @annualizedYield,
         @targetPremium, @popEstimate, @support, @resistance, @supportStatus, @hasEarningsBeforeExpiration,
         @earningsDate, @earningsDaysUntil, @rsi, @resolved, @expirationClosePrice, @expiredWorthless, @assigned,
-        @rolled, @realizedPl, @premiumRealized, @popPredictionCorrect, @outcomeStatus, @resolutionDate, @notes,
+        @strikeTouched, @minPriceBetweenScanAndExpiration, @brokeLowerBound, @maxItmDepth, @lowerBoundDistance,
+        @supportBreak, @drawdownPct, @rolled, @realizedPl, @premiumRealized, @realizedReturnPct,
+        @popPredictionCorrect, @outcomeStatus, @resultStatus, @resolvedAt, @resolutionDate, @notes,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO NOTHING
     `);
@@ -269,21 +318,25 @@ export function createWheelValidationStoreSqlite(options = {}) {
     const upsert = conn.prepare(`
       INSERT INTO wheel_validation_records (
         id, scanSessionId, scanTimestamp, scanDate, selectedExpiration, expiration, expirationCohort,
-        dteAtScan, candidateRank, captureSource, symbol, strikeMode, yahooValidated, ibkrValidated,
+        dteAtScan, candidateRank, captureSource, captureClass, symbol, strikeMode, yahooValidated, ibkrValidated,
         yahooRank, ibkrRank, qualityScoreYahoo, finalScoreYahoo, eliteScore, eliteBadge, spotAtScan,
         expectedMove, lowerBound, strike, premium, bid, ask, mid, spread, spreadPct, annualizedYield,
         targetPremium, popEstimate, support, resistance, supportStatus, hasEarningsBeforeExpiration,
         earningsDate, earningsDaysUntil, rsi, resolved, expirationClosePrice, expiredWorthless, assigned,
-        rolled, realizedPl, premiumRealized, popPredictionCorrect, outcomeStatus, resolutionDate, notes,
+        strikeTouched, minPriceBetweenScanAndExpiration, brokeLowerBound, maxItmDepth, lowerBoundDistance,
+        supportBreak, drawdownPct, rolled, realizedPl, premiumRealized, realizedReturnPct,
+        popPredictionCorrect, outcomeStatus, resultStatus, resolvedAt, resolutionDate, notes,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
-        @dteAtScan, @candidateRank, @captureSource, @symbol, @strikeMode, @yahooValidated, @ibkrValidated,
+        @dteAtScan, @candidateRank, @captureSource, @captureClass, @symbol, @strikeMode, @yahooValidated, @ibkrValidated,
         @yahooRank, @ibkrRank, @qualityScoreYahoo, @finalScoreYahoo, @eliteScore, @eliteBadge, @spotAtScan,
         @expectedMove, @lowerBound, @strike, @premium, @bid, @ask, @mid, @spread, @spreadPct, @annualizedYield,
         @targetPremium, @popEstimate, @support, @resistance, @supportStatus, @hasEarningsBeforeExpiration,
         @earningsDate, @earningsDaysUntil, @rsi, @resolved, @expirationClosePrice, @expiredWorthless, @assigned,
-        @rolled, @realizedPl, @premiumRealized, @popPredictionCorrect, @outcomeStatus, @resolutionDate, @notes,
+        @strikeTouched, @minPriceBetweenScanAndExpiration, @brokeLowerBound, @maxItmDepth, @lowerBoundDistance,
+        @supportBreak, @drawdownPct, @rolled, @realizedPl, @premiumRealized, @realizedReturnPct,
+        @popPredictionCorrect, @outcomeStatus, @resultStatus, @resolvedAt, @resolutionDate, @notes,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO UPDATE SET
         scanSessionId=excluded.scanSessionId,
@@ -295,6 +348,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         dteAtScan=excluded.dteAtScan,
         candidateRank=excluded.candidateRank,
         captureSource=excluded.captureSource,
+        captureClass=excluded.captureClass,
         symbol=excluded.symbol,
         strikeMode=excluded.strikeMode,
         yahooValidated=excluded.yahooValidated,
@@ -329,11 +383,21 @@ export function createWheelValidationStoreSqlite(options = {}) {
         expirationClosePrice=excluded.expirationClosePrice,
         expiredWorthless=excluded.expiredWorthless,
         assigned=excluded.assigned,
+        strikeTouched=excluded.strikeTouched,
+        minPriceBetweenScanAndExpiration=excluded.minPriceBetweenScanAndExpiration,
+        brokeLowerBound=excluded.brokeLowerBound,
+        maxItmDepth=excluded.maxItmDepth,
+        lowerBoundDistance=excluded.lowerBoundDistance,
+        supportBreak=excluded.supportBreak,
+        drawdownPct=excluded.drawdownPct,
         rolled=excluded.rolled,
         realizedPl=excluded.realizedPl,
         premiumRealized=excluded.premiumRealized,
+        realizedReturnPct=excluded.realizedReturnPct,
         popPredictionCorrect=excluded.popPredictionCorrect,
         outcomeStatus=excluded.outcomeStatus,
+        resultStatus=excluded.resultStatus,
+        resolvedAt=excluded.resolvedAt,
         resolutionDate=excluded.resolutionDate,
         notes=excluded.notes,
         rawJson=excluded.rawJson,

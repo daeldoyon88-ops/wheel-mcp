@@ -77,6 +77,10 @@ function buildResolutionDefaults() {
     expirationClosePrice: null,
     expiredWorthless: null,
     assigned: null,
+    strikeTouched: null,
+    minPriceBetweenScanAndExpiration: null,
+    brokeLowerBound: null,
+    maxItmDepth: null,
     rolled: null,
     realizedPl: null,
     premiumRealized: null,
@@ -324,6 +328,10 @@ function normalizeResolutionPatch(patch) {
     expirationClosePrice: toNumberOrNull(patch?.expirationClosePrice),
     expiredWorthless,
     assigned: toBooleanOrNull(patch?.assigned),
+    strikeTouched: toBooleanOrNull(patch?.strikeTouched),
+    minPriceBetweenScanAndExpiration: toNumberOrNull(patch?.minPriceBetweenScanAndExpiration),
+    brokeLowerBound: toBooleanOrNull(patch?.brokeLowerBound),
+    maxItmDepth: toNumberOrNull(patch?.maxItmDepth),
     rolled: toBooleanOrNull(patch?.rolled),
     realizedPl: toNumberOrNull(patch?.realizedPl),
     premiumRealized: toNumberOrNull(patch?.premiumRealized),
@@ -352,6 +360,34 @@ function isExpiredExpiration(expiration, todayYmd) {
   const expYmd = toExpirationYmd(expiration);
   if (!expYmd) return false;
   return expYmd < todayYmd;
+}
+
+function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
+  const strike = toNumberOrNull(record?.strike?.strike);
+  if (strike == null) return null;
+  const expiredWorthless = closeNum > strike;
+  const assigned = expiredWorthless ? false : true;
+  const premium = toNumberOrNull(record?.strike?.premium);
+  const premiumRealized = premium == null ? null : Number((premium * 100).toFixed(2));
+  const realizedPl = expiredWorthless === true ? premiumRealized : null;
+  return {
+    resolved: true,
+    expirationClosePrice: closeNum,
+    expiredWorthless,
+    assigned,
+    // Optional V1 diagnostics remain null unless intraperiod historical lows/highs are available.
+    strikeTouched: null,
+    minPriceBetweenScanAndExpiration: null,
+    brokeLowerBound: null,
+    maxItmDepth: null,
+    rolled: false,
+    realizedPl,
+    premiumRealized,
+    popPredictionCorrect: expiredWorthless === true,
+    outcomeStatus: expiredWorthless ? "expired_worthless" : "assigned_theoretical",
+    resolutionDate: todayYmd,
+    notes: `auto_resolved_from_yahoo_close_${expirationYmd}`,
+  };
 }
 
 export function createWheelValidationService(options = {}) {
@@ -699,11 +735,24 @@ export function createWheelValidationService(options = {}) {
       const journal = await store.load();
       const records = Array.isArray(journal?.records) ? journal.records : [];
       const errors = [];
+      const scannedRecords = records.length;
+      let skippedResolved = 0;
       let skippedNotExpired = 0;
       let skippedNoClose = 0;
+      let skippedInvalidRecord = 0;
       let resolved = 0;
       if (!getHistoricalClose) {
+        const skippedRecords = scannedRecords;
         return {
+          scannedRecords,
+          resolvedRecords: resolved,
+          skippedRecords,
+          skippedBreakdown: {
+            alreadyResolved: skippedResolved,
+            notExpired: skippedNotExpired,
+            noClose: skippedNoClose,
+            invalidRecord: skippedInvalidRecord,
+          },
           resolved,
           skippedNotExpired: records.length,
           skippedNoClose,
@@ -715,11 +764,14 @@ export function createWheelValidationService(options = {}) {
       const groups = new Map();
       for (let i = 0; i < records.length; i += 1) {
         const record = records[i];
-        if (record?.resolution?.resolved === true) continue;
+        if (record?.resolution?.resolved === true) {
+          skippedResolved += 1;
+          continue;
+        }
         const symbol = normalizeSymbol(record?.symbol);
         const expirationYmd = toExpirationYmd(record?.expiration);
         if (!symbol || !expirationYmd) {
-          skippedNotExpired += 1;
+          skippedInvalidRecord += 1;
           continue;
         }
         if (!(expirationYmd < todayYmd)) {
@@ -749,30 +801,14 @@ export function createWheelValidationService(options = {}) {
 
         for (const index of group.indices) {
           const existing = records[index];
-          const strike = toNumberOrNull(existing?.strike?.strike);
-          if (strike == null) {
+          const outcome = buildAutoResolvedOutcomeV1(existing, closeNum, todayYmd, group.expirationYmd);
+          if (!outcome) {
             skippedNoClose += 1;
             continue;
           }
-          const expiredWorthless = closeNum > strike;
-          const premium = toNumberOrNull(existing?.strike?.premium);
-          const premiumRealized = premium == null ? null : Number((premium * 100).toFixed(2));
-          const realizedPl = expiredWorthless === true ? premiumRealized : null;
           records[index] = {
             ...existing,
-            resolution: {
-              resolved: true,
-              expirationClosePrice: closeNum,
-              expiredWorthless,
-              assigned: expiredWorthless ? false : true,
-              rolled: false,
-              realizedPl,
-              premiumRealized,
-              popPredictionCorrect: expiredWorthless ? true : false,
-              outcomeStatus: expiredWorthless ? "expired_worthless" : "assigned_theoretical",
-              resolutionDate: todayYmd,
-              notes: `auto_resolved_from_yahoo_close_${group.expirationYmd}`,
-            },
+            resolution: outcome,
           };
           resolved += 1;
         }
@@ -783,7 +819,17 @@ export function createWheelValidationService(options = {}) {
         await store.save(journal);
       }
 
+      const skippedRecords = scannedRecords - resolved;
       return {
+        scannedRecords,
+        resolvedRecords: resolved,
+        skippedRecords,
+        skippedBreakdown: {
+          alreadyResolved: skippedResolved,
+          notExpired: skippedNotExpired,
+          noClose: skippedNoClose,
+          invalidRecord: skippedInvalidRecord,
+        },
         resolved,
         skippedNotExpired,
         skippedNoClose,

@@ -5241,12 +5241,70 @@ function formatCapitalShortfallReason(reason) {
   return map[reason] ?? "Raison non déterminée.";
 }
 
+const LABEL_TO_MODE_ID = {
+  "Agressif": "aggressive",
+  "Équilibré": "balanced",
+  "Conservateur": "conservative",
+};
+
 function PortfolioCombos({ combos, capital }) {
+  const [snapshotStatus, setSnapshotStatus] = useState(null);
+  const [snapshotMsg, setSnapshotMsg] = useState("");
+
+  async function handleSaveSnapshot() {
+    if (!combos.length) return;
+    setSnapshotStatus("loading");
+    setSnapshotMsg("");
+    try {
+      const payload = { accountCapital: capital, source: "manual_button" };
+      for (const combo of combos) {
+        const modeKey = LABEL_TO_MODE_ID[combo.label];
+        if (!modeKey) continue;
+        payload[modeKey] = {
+          picks: combo.picks,
+          totalCapital: combo.totalCapital,
+          freeCapital: combo.freeCapital,
+          totalPremium: combo.picks.reduce((s, p) => s + p.premiumCollected, 0),
+        };
+      }
+      const res = await fetch(`${API_BASE}/capital-combinations/snapshot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setSnapshotStatus("ok");
+        setSnapshotMsg(`ID : ${data.snapshotId?.slice(0, 8) ?? "?"}`);
+      } else {
+        setSnapshotStatus("error");
+        setSnapshotMsg(data.error ?? "Erreur inconnue");
+      }
+    } catch (err) {
+      setSnapshotStatus("error");
+      setSnapshotMsg(err?.message ?? "Erreur réseau");
+    }
+  }
+
+  const snapshotHeader = (
+    <div className="flex items-center justify-between">
+      <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
+      <button
+        onClick={handleSaveSnapshot}
+        disabled={snapshotStatus === "loading" || !combos.length}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Database className="h-3.5 w-3.5" />
+        {snapshotStatus === "loading" ? "Sauvegarde…" : "Sauvegarder snapshot"}
+      </button>
+    </div>
+  );
+
   if (!combos.length) {
     return (
       <Card className="rounded-[28px] border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
+          {snapshotHeader}
         </CardHeader>
         <CardContent>
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
@@ -5260,7 +5318,13 @@ function PortfolioCombos({ combos, capital }) {
   return (
     <Card className="rounded-[28px] border-slate-200 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
+        {snapshotHeader}
+        {snapshotStatus === "ok" && (
+          <p className="mt-1.5 text-xs text-green-600">Snapshot sauvegardé dans SQLite. {snapshotMsg}</p>
+        )}
+        {snapshotStatus === "error" && (
+          <p className="mt-1.5 text-xs text-rose-600">Erreur : {snapshotMsg}</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {combos.map((combo) => (

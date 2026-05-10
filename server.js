@@ -19,6 +19,7 @@ import { createWheelValidationService } from "./app/journal/wheelValidationServi
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
+import createCapitalCombinationRoutes from "./app/capital/capitalCombinationRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -2150,6 +2151,10 @@ app.use("/seasonality", seasonalityRoutes);
 // Adaptive Calibration Engine — Phase 4B-PREP — read-only, dormant
 // appliedToScanner=false / appliedToRanking=false / appliedToEliteScore=false
 app.use("/calibration", createAdaptiveCalibrationRoutes({ store: wheelValidationStore }));
+
+// Capital Combination Audit — Phase 4D — passive, no scanner hook
+// appliedToScanner=false / appliedToRanking=false / appliedToEliteScore=false
+app.use("/capital-combinations", createCapitalCombinationRoutes());
 
 app.get("/mcp-info", (_req, res) => {
   res.json({

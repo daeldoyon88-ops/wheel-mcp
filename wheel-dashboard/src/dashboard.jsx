@@ -5661,41 +5661,51 @@ export default function Dashboard() {
 
       return matchesQuery && matchesFilter;
     });
+    // For ibkr_direct: establish ibkrRank base order (used as stable tie-breaker for equal sort values)
+    let baseItems;
     if (dataSource === "ibkr_direct") {
       const hasBackendIbkrOrder = filteredItems.every((item) => Number.isFinite(Number(item?.ibkrRank)));
       const ibkrFallbackScore = (item) =>
         Number(item?.ibkrEliteScore ?? item?.eliteScore ?? item?.actionabilityScore ?? item?.score ?? Number.NEGATIVE_INFINITY);
-      const rankedItems = hasBackendIbkrOrder
+      baseItems = hasBackendIbkrOrder
         ? filteredItems.slice()
         : filteredItems.slice().sort((a, b) => ibkrFallbackScore(b) - ibkrFallbackScore(a));
-      return rankedItems.filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
+    } else {
+      baseItems = filteredItems.slice();
     }
-      const getSortValue = (item) => {
-      if (sortBy === "quality") return item.qualityScore ?? Number.NEGATIVE_INFINITY;
-      if (sortBy === "weeklyReturn") return item.weeklyReturn ?? 0;
+
+    const getSortValue = (item) => {
+      if (sortBy === "quality")
+        return Number(item.qualityScore ?? item.eliteScore ?? Number.NEGATIVE_INFINITY);
+      if (sortBy === "weeklyReturn") return Number(item.weeklyReturn ?? 0);
       if (sortBy === "spread") {
         const spread = getSafeSpreadPct(item);
         return spread ?? Number.POSITIVE_INFINITY;
       }
-      return item.strikeDistance ?? 0;
+      return Number(item.strikeDistance ?? 0);
     };
-    return filteredItems
-      .slice()
-      .sort((a, b) => {
-        if (sortBy === "spread") {
-          const aSpread = getSafeSpreadPct(a);
-          const bSpread = getSafeSpreadPct(b);
-          const aMissing = aSpread == null;
-          const bMissing = bSpread == null;
-          if (aMissing && bMissing) return 0;
-          if (aMissing) return 1;
-          if (bMissing) return -1;
-        }
-        const aValue = getSortValue(a);
-        const bValue = getSortValue(b);
-        return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
-      })
-      .filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
+
+    const sorted = baseItems.sort((a, b) => {
+      if (sortBy === "spread") {
+        const aSpread = getSafeSpreadPct(a);
+        const bSpread = getSafeSpreadPct(b);
+        const aMissing = aSpread == null;
+        const bMissing = bSpread == null;
+        if (aMissing && bMissing) return Number(a.ibkrRank ?? a.rank ?? 0) - Number(b.ibkrRank ?? b.rank ?? 0);
+        if (aMissing) return 1;
+        if (bMissing) return -1;
+      }
+      const aValue = getSortValue(a);
+      const bValue = getSortValue(b);
+      if (aValue === bValue) return Number(a.ibkrRank ?? a.rank ?? 0) - Number(b.ibkrRank ?? b.rank ?? 0);
+      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    });
+
+    if (import.meta.env.DEV) {
+      console.debug("[SORT_UI]", { sortBy, sortOrder, dataSource, firstSymbols: sorted.slice(0, 5).map((i) => i.ticker) });
+    }
+
+    return sorted.filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
   }, [enrichedCandidates, query, filter, sortBy, sortOrder, selectedExpiration, dataSource]);
 
   // Seasonality V1: auto-fetch for all visible shortlist tickers (non-blocking)

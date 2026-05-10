@@ -1361,7 +1361,9 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       minExecutionScore: 0.45,
       maxSpreadPct: 35,
       score: (c) =>
-        0.6 * (c.weeklyReturn / 100) + 0.25 * c.proFinalScore + 0.15 * c.proExecutionScore,
+        0.6 * Math.min(Math.max(c.weeklyReturn / 3, 0), 1) +
+        0.25 * c.proFinalScore +
+        0.15 * c.proExecutionScore,
     },
     {
       id: "balanced",
@@ -4918,6 +4920,17 @@ function DetailModal({ item, onClose }) {
   );
 }
 
+function formatCapitalShortfallReason(reason) {
+  const map = {
+    caps_too_strict: "Caps de risque trop stricts pour ajouter un contrat sans dépasser la limite.",
+    contract_size_too_large: "Capital restant insuffisant pour le prochain contrat admissible.",
+    max_positions_limit: "Limite maximale de positions atteinte.",
+    not_enough_candidates: "Pas assez de candidats admissibles pour remplir davantage le capital.",
+    min_yield_or_execution_filter: "Filtres de rendement ou d'exécution trop stricts pour les candidats restants.",
+  };
+  return map[reason] ?? "Raison non déterminée.";
+}
+
 function PortfolioCombos({ combos, capital }) {
   if (!combos.length) {
     return (
@@ -4981,6 +4994,12 @@ function PortfolioCombos({ combos, capital }) {
               {" "}· Capital du compte :{" "}
               <span className="font-semibold text-slate-900">{capital.toFixed(0)}$</span>
             </div>
+
+            {!combo.capitalTargetReached && combo.capitalShortfallReason && (
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                Capital non utilisé — {formatCapitalShortfallReason(combo.capitalShortfallReason)}
+              </div>
+            )}
           </div>
         ))}
       </CardContent>

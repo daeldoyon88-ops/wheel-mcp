@@ -117,6 +117,62 @@ export function computePositionMetrics(position) {
     });
   }
 
+  // ── POP extraction ──────────────────────────────────────────────────────────
+  const rawPop =
+    position?.popEstimate ??
+    position?.pop_estimate ??
+    position?.pop ??
+    position?.probabilityOfProfit ??
+    position?.probability_of_profit ??
+    null;
+
+  let popEstimate = null;
+  if (rawPop != null) {
+    const numRaw = Number(rawPop);
+    if (Number.isFinite(numRaw)) {
+      const normalized = numRaw <= 1 ? numRaw * 100 : numRaw;
+      if (normalized < 0 || normalized > 100) {
+        warnings.push({
+          code: "POP_INVALID",
+          detail: `${ticker}: POP=${numRaw} normalizes to ${normalized.toFixed(2)}% — out of range [0,100]`,
+        });
+      } else {
+        popEstimate = normalized;
+      }
+    }
+  }
+
+  if (popEstimate === null) {
+    warnings.push({ code: "POP_MISSING", detail: `${ticker}: no valid POP estimate available` });
+  } else {
+    if (popEstimate < 80) {
+      warnings.push({ code: "POP_LOW_80", detail: `${ticker}: popEstimate=${popEstimate.toFixed(1)}% < 80%` });
+    }
+    if (popEstimate < 85) {
+      warnings.push({ code: "POP_LOW_85", detail: `${ticker}: popEstimate=${popEstimate.toFixed(1)}% < 85%` });
+    }
+  }
+
+  // ── Quality overlay fields (passed through from dashboard pick) ──────────────
+  const qualityTier = position?.qualityTier ?? null;
+  const qualityScore = position?.qualityScore ?? null;
+  const speculativePenalty = position?.speculativePenalty ?? null;
+  const premiumTrapPenalty = position?.premiumTrapPenalty ?? null;
+  const concentrationTheme = position?.concentrationTheme ?? null;
+  const qualityWarnings = Array.isArray(position?.qualityWarnings) ? position.qualityWarnings : [];
+
+  if (qualityTier === "avoid") {
+    warnings.push({ code: "QUALITY_AVOID", detail: `${ticker}: qualityTier=avoid — position ne devrait pas figurer ici` });
+  } else if (qualityTier === "speculative") {
+    warnings.push({ code: "QUALITY_SPECULATIVE", detail: `${ticker}: qualityTier=speculative` });
+  }
+  if (premiumTrapPenalty != null && premiumTrapPenalty >= 0.30) {
+    warnings.push({ code: "PREMIUM_TRAP", detail: `${ticker}: premiumTrapPenalty=${premiumTrapPenalty.toFixed(2)} ≥ 0.30` });
+  }
+  if (concentrationTheme === "crypto_miner") {
+    warnings.push({ code: "THEME_CRYPTO_MINER", detail: `${ticker}: concentrationTheme=crypto_miner` });
+  }
+
   return {
     ticker,
     strike,
@@ -128,6 +184,13 @@ export function computePositionMetrics(position) {
     premiumExpected: expectedPremium,
     weeklyReturn,
     yieldExpected: expectedYield,
+    popEstimate,
+    qualityTier,
+    qualityScore,
+    speculativePenalty,
+    premiumTrapPenalty,
+    concentrationTheme,
+    qualityWarnings,
     warnings,
     ok: warnings.length === 0,
   };
@@ -198,7 +261,46 @@ export function computeModeMetrics(modeData, accountCapital) {
   const yieldScore = Math.min(1, avgYieldPct / 2); // 2% weekly ≈ perfect
   const qualityScore = 0.5 * yieldScore + 0.5 * diversificationScore;
 
+  // ── POP metrics ─────────────────────────────────────────────────────────────
+  const posWithPop = positionMetrics.filter((pm) => pm.popEstimate != null);
+  let popAvg = null;
+  let popWeightedByCapital = null;
+  let popMin = null;
+  let popBelow80Count = null;
+  let popBelow85Count = null;
+  let yieldPerPopRisk = null;
+  let riskAdjustedPopScore = null;
+
+  if (posWithPop.length > 0) {
+    popAvg = posWithPop.reduce((s, pm) => s + pm.popEstimate, 0) / posWithPop.length;
+
+    const capWithPop = posWithPop.reduce((s, pm) => s + pm.capitalUsed, 0);
+    popWeightedByCapital = capWithPop > 0
+      ? posWithPop.reduce((s, pm) => s + pm.popEstimate * pm.capitalUsed, 0) / capWithPop
+      : null;
+
+    popMin = Math.min(...posWithPop.map((pm) => pm.popEstimate));
+
+    popBelow80Count = positionMetrics.filter(
+      (pm) => pm.popEstimate != null && pm.popEstimate < 80
+    ).length;
+    popBelow85Count = positionMetrics.filter(
+      (pm) => pm.popEstimate != null && pm.popEstimate < 85
+    ).length;
+
+    const refPop = popWeightedByCapital ?? popAvg ?? 0;
+    yieldPerPopRisk = avgYieldPct / Math.max(1, 100 - refPop);
+    riskAdjustedPopScore = avgYieldPct * (refPop / 100);
+  }
+
   const warnings = [];
+
+  if (posWithPop.length === 0 && positions.length > 0) {
+    warnings.push({
+      code: "POP_MODE_MISSING",
+      detail: "No POP estimates available for any position in this mode",
+    });
+  }
 
   // Capital total mismatch (tolerance: $5)
   if (capitalUsedPayload > 0 && Math.abs(capitalUsed - capitalUsedPayload) > 5) {
@@ -249,6 +351,27 @@ export function computeModeMetrics(modeData, accountCapital) {
     pm.warnings.map((w) => ({ ...w, ticker: pm.ticker }))
   );
 
+  // ── Quality overlay aggregate stats ─────────────────────────────────────────
+  const posWithQuality = positionMetrics.filter((pm) => pm.qualityTier != null);
+  let avgQualityScore = null;
+  let avoidCount = 0;
+  let speculativeCount = 0;
+  let premiumTrapCount = 0;
+  let cryptoMinerCount = 0;
+  let highBetaGrowthCount = 0;
+
+  if (posWithQuality.length > 0) {
+    avgQualityScore =
+      posWithQuality.reduce((s, pm) => s + (pm.qualityScore ?? 0), 0) / posWithQuality.length;
+  }
+  for (const pm of positionMetrics) {
+    if (pm.qualityTier === "avoid") avoidCount++;
+    if (pm.qualityTier === "speculative") speculativeCount++;
+    if ((pm.premiumTrapPenalty ?? 0) >= 0.30) premiumTrapCount++;
+    if (pm.concentrationTheme === "crypto_miner") cryptoMinerCount++;
+    if (pm.concentrationTheme === "high_beta_growth") highBetaGrowthCount++;
+  }
+
   return {
     positionCount: positions.length,
     capitalUsed,
@@ -262,6 +385,19 @@ export function computeModeMetrics(modeData, accountCapital) {
     diversificationScore,
     riskScore,
     qualityScore,
+    popAvg,
+    popWeightedByCapital,
+    popMin,
+    popBelow80Count,
+    popBelow85Count,
+    yieldPerPopRisk,
+    riskAdjustedPopScore,
+    avgQualityScore,
+    avoidCount,
+    speculativeCount,
+    premiumTrapCount,
+    cryptoMinerCount,
+    highBetaGrowthCount,
     warnings,
     positionWarnings,
     positionMetrics,
@@ -402,6 +538,150 @@ export function compareModes(conservative, balanced, aggressive) {
     conservative: Number((conservative?.premiumPer1000Capital ?? 0).toFixed(4)),
     balanced: Number((balanced?.premiumPer1000Capital ?? 0).toFixed(4)),
     aggressive: Number((aggressive?.premiumPer1000Capital ?? 0).toFixed(4)),
+  });
+
+  // ── POP cross-mode insights ───────────────────────────────────────────────
+  const conPop = conservative?.popWeightedByCapital ?? null;
+  const balPop = balanced?.popWeightedByCapital ?? null;
+  const aggPop = aggressive?.popWeightedByCapital ?? null;
+
+  insights.push({
+    metric: "pop_weighted_by_capital",
+    description: "Capital-weighted POP average per mode — higher is safer",
+    conservative: conPop != null ? Number(conPop.toFixed(2)) : null,
+    balanced: balPop != null ? Number(balPop.toFixed(2)) : null,
+    aggressive: aggPop != null ? Number(aggPop.toFixed(2)) : null,
+  });
+
+  const conRAS = conservative?.riskAdjustedPopScore ?? null;
+  const balRAS = balanced?.riskAdjustedPopScore ?? null;
+  const aggRAS = aggressive?.riskAdjustedPopScore ?? null;
+
+  insights.push({
+    metric: "risk_adjusted_pop_score",
+    description: "avgYieldPct × (popWeightedByCapital / 100) — higher is better",
+    conservative: conRAS != null ? Number(conRAS.toFixed(4)) : null,
+    balanced: balRAS != null ? Number(balRAS.toFixed(4)) : null,
+    aggressive: aggRAS != null ? Number(aggRAS.toFixed(4)) : null,
+  });
+
+  // Warning: aggressive yield higher but POP drops 8+ points vs balanced
+  if (aggPop != null && balPop != null && aggYield > balYield && balPop - aggPop > 8) {
+    warnings.push({
+      code: "AGGRESSIVE_POP_PREMIUM_TRADEOFF",
+      severity: "MEDIUM",
+      detail:
+        `Aggressive yield=${aggYield.toFixed(3)}% > Balanced=${balYield.toFixed(3)}% ` +
+        `but POP weighted drops ${(balPop - aggPop).toFixed(1)} pts ` +
+        `(${aggPop.toFixed(1)}% vs ${balPop.toFixed(1)}%). ` +
+        `High yield premium comes at significant probability cost.`,
+    });
+  }
+
+  // Warning: balanced similar/inferior yield vs conservative with similar/lower POP
+  if (balPop != null && conPop != null && balYield <= conYield + 0.15 && balPop <= conPop + 1) {
+    warnings.push({
+      code: "BALANCED_NO_ADVANTAGE_OVER_CONSERVATIVE",
+      severity: "MEDIUM",
+      detail:
+        `Balanced yield=${balYield.toFixed(3)}% vs Conservative=${conYield.toFixed(3)}% (similar or inferior) ` +
+        `with POP=${balPop.toFixed(1)}% vs ${conPop.toFixed(1)}% (similar or lower). ` +
+        `Balanced adds capital risk without return benefit.`,
+    });
+  }
+
+  // Warning: balanced POP much lower than conservative without significantly higher yield
+  if (balPop != null && conPop != null && conPop - balPop > 5 && balYield <= conYield + 0.30) {
+    warnings.push({
+      code: "BALANCED_POP_DEGRADATION_UNJUSTIFIED",
+      severity: "MEDIUM",
+      detail:
+        `Balanced POP=${balPop.toFixed(1)}% is ${(conPop - balPop).toFixed(1)} pts below ` +
+        `Conservative=${conPop.toFixed(1)}% without significantly higher yield ` +
+        `(${balYield.toFixed(3)}% vs ${conYield.toFixed(3)}%).`,
+    });
+  }
+
+  // Warning: conservative POP high but yield too low
+  if (conPop != null && conYield < 0.40) {
+    warnings.push({
+      code: "CONSERVATIVE_YIELD_TOO_LOW",
+      severity: "LOW",
+      detail:
+        `Conservative avgYieldPct=${conYield.toFixed(3)}% < 0.40% — ` +
+        `POP is high (${conPop.toFixed(1)}%) but the return may be insufficient relative to capital deployed.`,
+    });
+  }
+
+  // ── Quality overlay cross-mode warnings ──────────────────────────────────────
+  const aggCryptoMiner = aggressive?.cryptoMinerCount ?? 0;
+  const balSpeculative = balanced?.speculativeCount ?? 0;
+  const aggSpeculative = aggressive?.speculativeCount ?? 0;
+  const conSpeculative = conservative?.speculativeCount ?? 0;
+  const conAvoid = conservative?.avoidCount ?? 0;
+
+  if (aggCryptoMiner >= 3) {
+    warnings.push({
+      code: "AGGRESSIVE_TOO_MANY_CRYPTO_MINERS",
+      severity: "HIGH",
+      detail: `Aggressive contient ${aggCryptoMiner} positions crypto/miner — risque de corrélation extrême.`,
+    });
+  }
+
+  if (balanced && aggressive && balSpeculative > 0 && balSpeculative >= aggSpeculative) {
+    warnings.push({
+      code: "BALANCED_SPECULATIVE_NOT_DIFFERENTIATED",
+      severity: "MEDIUM",
+      detail: `Balanced speculativeCount=${balSpeculative} ≥ Aggressive=${aggSpeculative}. Différenciation insuffisante entre les modes.`,
+    });
+  }
+
+  if (conAvoid > 0) {
+    warnings.push({
+      code: "CONSERVATIVE_CONTAINS_AVOID_TIER",
+      severity: "HIGH",
+      detail: `Conservative contient ${conAvoid} position(s) qualityTier=avoid — ne devrait pas passer les filtres.`,
+    });
+  }
+
+  const conSpecLowPop = (conservative?.positionMetrics ?? []).filter(
+    (pm) => pm.qualityTier === "speculative" && (pm.popEstimate == null || pm.popEstimate < 88)
+  ).length;
+  if (conSpeculative > 0 && conSpecLowPop > 0) {
+    warnings.push({
+      code: "CONSERVATIVE_SPECULATIVE_LOW_POP",
+      severity: "MEDIUM",
+      detail: `Conservative: ${conSpecLowPop} position(s) speculative sans POP ≥ 88% — filtre trop permissif.`,
+    });
+  }
+
+  insights.push({
+    metric: "quality_overlay",
+    description: "Distribution des tiers qualité par mode",
+    conservative: {
+      avgQualityScore: conservative?.avgQualityScore ?? null,
+      avoidCount: conservative?.avoidCount ?? 0,
+      speculativeCount: conservative?.speculativeCount ?? 0,
+      premiumTrapCount: conservative?.premiumTrapCount ?? 0,
+      cryptoMinerCount: conservative?.cryptoMinerCount ?? 0,
+      highBetaGrowthCount: conservative?.highBetaGrowthCount ?? 0,
+    },
+    balanced: {
+      avgQualityScore: balanced?.avgQualityScore ?? null,
+      avoidCount: balanced?.avoidCount ?? 0,
+      speculativeCount: balanced?.speculativeCount ?? 0,
+      premiumTrapCount: balanced?.premiumTrapCount ?? 0,
+      cryptoMinerCount: balanced?.cryptoMinerCount ?? 0,
+      highBetaGrowthCount: balanced?.highBetaGrowthCount ?? 0,
+    },
+    aggressive: {
+      avgQualityScore: aggressive?.avgQualityScore ?? null,
+      avoidCount: aggressive?.avoidCount ?? 0,
+      speculativeCount: aggressive?.speculativeCount ?? 0,
+      premiumTrapCount: aggressive?.premiumTrapCount ?? 0,
+      cryptoMinerCount: aggressive?.cryptoMinerCount ?? 0,
+      highBetaGrowthCount: aggressive?.highBetaGrowthCount ?? 0,
+    },
   });
 
   // ── Structural risk conclusion ────────────────────────────────────────────

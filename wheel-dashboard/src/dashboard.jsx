@@ -1334,6 +1334,116 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
   };
 }
 
+// ─── Ticker Quality Overlay ───────────────────────────────────────────────────
+// Local computation only — no fetch, no scanner impact.
+
+const QUALITY_CRYPTO_MINER_TICKERS = new Set([
+  "RIOT", "CIFR", "WULF", "MARA", "CLSK", "HUT", "BITF", "IREN", "BTBT",
+]);
+
+const QUALITY_HIGH_BETA_TICKERS = new Map([
+  ["APLD", 0.25], ["OKLO", 0.25], ["IONQ", 0.20], ["SOUN", 0.20],
+  ["RGTI", 0.25], ["RKLB", 0.20], ["HOOD", 0.15], ["AFRM", 0.15],
+  ["PLTR", 0.10],
+]);
+
+function normalizeYield(yieldPct) {
+  return Math.min(Math.max(yieldPct / 3, 0), 1);
+}
+
+function normalizePop(pop) {
+  if (pop == null) return 0.75;
+  const n = Number(pop);
+  if (!Number.isFinite(n)) return 0.75;
+  return n > 1 ? n / 100 : n;
+}
+
+function computeTickerQualityOverlay(candidate) {
+  const ticker = String(candidate?.ticker ?? "").toUpperCase().trim();
+  const spreadPct = candidate?.spreadPct ?? null;
+  const earningsDaysUntil = candidate?.earningsDaysUntil ?? null;
+  const hasEarningsBeforeExpiration =
+    candidate?.hasEarningsBeforeExpiration ??
+    candidate?.hasUpcomingEarningsBeforeExpiration ??
+    false;
+  const weeklyReturn = candidate?.weeklyReturn ?? 0;
+  const popEstimate = candidate?._popForCombo ?? null;
+
+  let speculativePenalty = 0;
+  let liquidityPenalty = 0;
+  let earningsPenalty = 0;
+  let premiumTrapPenalty = 0;
+  let concentrationTheme = null;
+  const qualityWarnings = [];
+
+  if (QUALITY_CRYPTO_MINER_TICKERS.has(ticker)) {
+    concentrationTheme = "crypto_miner";
+    speculativePenalty += 0.25;
+    qualityWarnings.push("Crypto miner");
+  }
+
+  const highBetaPenalty = QUALITY_HIGH_BETA_TICKERS.get(ticker);
+  if (highBetaPenalty != null) {
+    if (concentrationTheme == null) concentrationTheme = "high_beta_growth";
+    speculativePenalty += highBetaPenalty;
+    qualityWarnings.push("High beta growth");
+  }
+
+  if (spreadPct != null) {
+    if (spreadPct > 35) {
+      liquidityPenalty += 0.35;
+      qualityWarnings.push("Spread très élevé (>35%)");
+    } else if (spreadPct > 20) {
+      liquidityPenalty += 0.25;
+      qualityWarnings.push("Spread élevé (>20%)");
+    }
+  }
+
+  if (hasEarningsBeforeExpiration || (earningsDaysUntil != null && earningsDaysUntil <= 7)) {
+    earningsPenalty += 0.25;
+    qualityWarnings.push("Earnings risk");
+  }
+
+  if (weeklyReturn > 2.0) {
+    premiumTrapPenalty += 0.20;
+    qualityWarnings.push("Prime élevée (>2%)");
+  }
+  if (weeklyReturn > 1.5 && popEstimate != null && popEstimate < 80) {
+    premiumTrapPenalty += 0.30;
+    qualityWarnings.push("Premium trap");
+  }
+
+  if (popEstimate != null) {
+    if (popEstimate < 75) {
+      speculativePenalty += 0.20;
+      qualityWarnings.push("POP très faible (<75%)");
+    } else if (popEstimate < 80) {
+      speculativePenalty += 0.20;
+      qualityWarnings.push("POP faible (<80%)");
+    }
+  }
+
+  const rawScore = 1.0 - speculativePenalty - liquidityPenalty - earningsPenalty - premiumTrapPenalty;
+  const qualityScore = Math.max(0, Math.min(1, rawScore));
+
+  let qualityTier;
+  if (qualityScore >= 0.80) qualityTier = "high";
+  else if (qualityScore >= 0.60) qualityTier = "medium";
+  else if (qualityScore >= 0.40) qualityTier = "speculative";
+  else qualityTier = "avoid";
+
+  return {
+    qualityTier,
+    qualityScore,
+    speculativePenalty,
+    liquidityPenalty,
+    earningsPenalty,
+    premiumTrapPenalty,
+    concentrationTheme,
+    qualityWarnings,
+  };
+}
+
 function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, rejectedIbkrSymbols = new Set()) {
   const usableCapital = capital * (maxCapitalPct / 100);
   const targetMinPct = 90;
@@ -1360,10 +1470,23 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       minWeeklyYield: 0.007,
       minExecutionScore: 0.45,
       maxSpreadPct: 35,
+      // Avant: 0.6*normalizeYield + 0.25*proFinalScore + 0.15*proExecutionScore
+      // Après: rendement dominant + POP + qualityScore - penalité premium trap
       score: (c) =>
-        0.6 * Math.min(Math.max(c.weeklyReturn / 3, 0), 1) +
-        0.25 * c.proFinalScore +
-        0.15 * c.proExecutionScore,
+        0.50 * normalizeYield(c.weeklyReturn) +
+        0.20 * c.proFinalScore +
+        0.15 * c.proExecutionScore +
+        0.10 * normalizePop(c._popForCombo) +
+        0.05 * (c._qualityOverlay?.qualityScore ?? 0.5) -
+        0.25 * (c._qualityOverlay?.premiumTrapPenalty ?? 0),
+      filterCandidate: (c) => {
+        const ov = c._qualityOverlay;
+        if (!ov) return true;
+        if (ov.qualityTier === "avoid") return false;
+        // Rejeter premium trap extrême sauf POP >= 82
+        if (ov.premiumTrapPenalty >= 0.45 && (c._popForCombo == null || c._popForCombo < 82)) return false;
+        return true;
+      },
     },
     {
       id: "balanced",
@@ -1374,7 +1497,27 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       minWeeklyYield: 0,
       minExecutionScore: 0,
       maxSpreadPct: 35,
-      score: (c) => 0.4 * c.proFinalScore + 0.35 * c.proExecutionScore + 0.25 * c.proDistanceScore,
+      // Avant: 0.4*proFinalScore + 0.35*proExecutionScore + 0.25*proDistanceScore
+      // Après: vrai compromis rendement/POP/qualité
+      score: (c) =>
+        0.25 * c.proFinalScore +
+        0.25 * c.proExecutionScore +
+        0.20 * normalizeYield(c.weeklyReturn) +
+        0.15 * normalizePop(c._popForCombo) +
+        0.15 * (c._qualityOverlay?.qualityScore ?? 0.5) -
+        0.20 * (c._qualityOverlay?.premiumTrapPenalty ?? 0) -
+        0.15 * (c._qualityOverlay?.speculativePenalty ?? 0),
+      filterCandidate: (c) => {
+        const ov = c._qualityOverlay;
+        if (!ov) return true;
+        if (ov.qualityTier === "avoid") return false;
+        if (ov.qualityTier === "speculative") {
+          if (c._popForCombo == null || c._popForCombo < 82) return false;
+          if (c.spreadPct != null && c.spreadPct > 20) return false;
+          if (c.weeklyReturn < 0.55) return false;
+        }
+        return true;
+      },
     },
     {
       id: "conservative",
@@ -1385,7 +1528,25 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       minWeeklyYield: 0,
       minExecutionScore: 0,
       maxSpreadPct: 35,
-      score: (c) => 0.5 * c.proExecutionScore + 0.3 * c.proDistanceScore + 0.2 * c.proFinalScore,
+      // Avant: 0.5*proExecutionScore + 0.3*proDistanceScore + 0.2*proFinalScore
+      // Après: favorise qualité + exécution + distance, pénalise speculative
+      score: (c) =>
+        0.35 * c.proExecutionScore +
+        0.25 * c.proDistanceScore +
+        0.20 * c.proFinalScore +
+        0.20 * (c._qualityOverlay?.qualityScore ?? 0.5) -
+        0.30 * (c._qualityOverlay?.speculativePenalty ?? 0),
+      filterCandidate: (c) => {
+        const ov = c._qualityOverlay;
+        if (!ov) return true;
+        if (ov.qualityTier === "avoid") return false;
+        if (ov.qualityTier === "speculative") {
+          if (c._popForCombo == null || c._popForCombo < 88) return false;
+          if (c.spreadPct != null && c.spreadPct > 15) return false;
+          if (ov.earningsPenalty > 0) return false;
+        }
+        return true;
+      },
     },
   ];
 
@@ -1447,7 +1608,20 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
     const scoredPool = basePool
       .map((candidate) => {
         const selected = getModeStrike(candidate, mode.id);
-        return {
+        const spreadPct =
+          candidate.safeStrike?.liquidity?.spreadPct ??
+          candidate.aggressiveStrike?.liquidity?.spreadPct ??
+          null;
+        const rawPop =
+          candidate.safeStrike?.popEstimate ??
+          candidate.aggressiveStrike?.popEstimate ??
+          null;
+        const popNum = rawPop != null ? Number(rawPop) : null;
+        const _popForCombo =
+          popNum != null && Number.isFinite(popNum)
+            ? popNum <= 1 ? popNum * 100 : popNum
+            : null;
+        const withSpread = {
           ...candidate,
           selectedStrike: selected,
           capitalPerContract: selected.strike > 0 ? selected.strike * 100 : 0,
@@ -1455,16 +1629,16 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
           weeklyReturn: selected.weeklyReturn,
           source: selected.source,
           premiumKind: selected.premiumKind,
-          spreadPct:
-            candidate.safeStrike?.liquidity?.spreadPct ??
-            candidate.aggressiveStrike?.liquidity?.spreadPct ??
-            null,
+          spreadPct,
+          _popForCombo,
         };
+        return { ...withSpread, _qualityOverlay: computeTickerQualityOverlay(withSpread) };
       })
       .filter((candidate) => candidate.capitalPerContract > 0 && candidate.weeklyReturn > 0)
       .filter((candidate) => candidate.weeklyReturn / 100 >= mode.minWeeklyYield)
       .filter((candidate) => candidate.proExecutionScore >= mode.minExecutionScore)
       .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= mode.maxSpreadPct)
+      .filter((candidate) => mode.filterCandidate ? mode.filterCandidate(candidate) : true)
       .map((candidate) => ({
         ...candidate,
         allocScore: mode.score(candidate),
@@ -1509,6 +1683,12 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
         capitalUsed: candidate.capitalPerContract,
         premiumCollected: candidate.premiumPerContract,
         weeklyReturn: candidate.weeklyReturn,
+        qualityTier: candidate._qualityOverlay?.qualityTier ?? null,
+        qualityScore: candidate._qualityOverlay?.qualityScore ?? null,
+        qualityWarnings: candidate._qualityOverlay?.qualityWarnings ?? [],
+        concentrationTheme: candidate._qualityOverlay?.concentrationTheme ?? null,
+        premiumTrapPenalty: candidate._qualityOverlay?.premiumTrapPenalty ?? 0,
+        popEstimate: candidate._popForCombo ?? null,
       };
       picks.push(pick);
       pickMap.set(candidate.ticker, pick);
@@ -1603,6 +1783,19 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       }
     }
 
+    const qualityStats = picks.reduce(
+      (acc, p) => {
+        if (p.qualityTier === "avoid") acc.avoidCount++;
+        if (p.qualityTier === "speculative") acc.speculativeCount++;
+        if ((p.premiumTrapPenalty ?? 0) >= 0.30) acc.premiumTrapCount++;
+        if (p.concentrationTheme === "crypto_miner") acc.cryptoMinerCount++;
+        if (p.concentrationTheme === "high_beta_growth") acc.highBetaGrowthCount++;
+        acc.totalQualityScore += p.qualityScore ?? 0.5;
+        return acc;
+      },
+      { avoidCount: 0, speculativeCount: 0, premiumTrapCount: 0, cryptoMinerCount: 0, highBetaGrowthCount: 0, totalQualityScore: 0 }
+    );
+
     return {
       label: mode.label,
       positions: picks.length,
@@ -1613,6 +1806,12 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       avgWeeklyReturn: avgWeekly,
       freeCapital: capital - used,
       picks,
+      avgQualityScore: picks.length > 0 ? qualityStats.totalQualityScore / picks.length : null,
+      qualityAvoidCount: qualityStats.avoidCount,
+      qualitySpeculativeCount: qualityStats.speculativeCount,
+      qualityPremiumTrapCount: qualityStats.premiumTrapCount,
+      qualityCryptoMinerCount: qualityStats.cryptoMinerCount,
+      qualityHighBetaGrowthCount: qualityStats.highBetaGrowthCount,
     };
   }
 
@@ -4961,6 +5160,22 @@ function PortfolioCombos({ combos, capital }) {
                 <p className="text-sm text-slate-500">
                   {combo.positions} positions · Capital {combo.totalCapital.toFixed(0)}$ ({combo.capitalPct.toFixed(0)}%) · Rend. moy ~{combo.avgWeeklyReturn.toFixed(2)}%
                 </p>
+                {(combo.avgQualityScore != null || combo.qualitySpeculativeCount > 0 || combo.qualityCryptoMinerCount > 0 || combo.qualityPremiumTrapCount > 0) && (
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {combo.avgQualityScore != null && (
+                      <span>Qualité moy. {Math.round(combo.avgQualityScore * 100)}/100</span>
+                    )}
+                    {combo.qualitySpeculativeCount > 0 && (
+                      <span className="ml-2 text-amber-500">{combo.qualitySpeculativeCount} spéculatif{combo.qualitySpeculativeCount > 1 ? "s" : ""}</span>
+                    )}
+                    {combo.qualityCryptoMinerCount > 0 && (
+                      <span className="ml-2 text-rose-500">{combo.qualityCryptoMinerCount} crypto/miner</span>
+                    )}
+                    {combo.qualityPremiumTrapCount > 0 && (
+                      <span className="ml-2 text-rose-400">{combo.qualityPremiumTrapCount} premium trap</span>
+                    )}
+                  </p>
+                )}
               </div>
               <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
                 Libre {combo.freeCapital.toFixed(0)}$
@@ -4971,17 +5186,40 @@ function PortfolioCombos({ combos, capital }) {
               {combo.picks.map((pick) => (
                 <div
                   key={`${combo.label}-${pick.ticker}`}
-                  className="grid grid-cols-7 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
                 >
-                  <div className="font-semibold text-slate-900">{pick.ticker}</div>
-                  <div>PUT {pick.strike}$</div>
-                  <div>{pick.source || "Yahoo fallback"}</div>
-                  <div>
-                    {pick.premiumKind || "prime"} {pick.premiumUnit != null ? `${Number(pick.premiumUnit).toFixed(2)}$` : "—"}
+                  <div className="grid grid-cols-7 gap-2">
+                    <div>
+                      <div className="font-semibold text-slate-900">{pick.ticker}</div>
+                      {pick.qualityTier && pick.qualityTier !== "high" && (
+                        <div className={cn(
+                          "mt-0.5 text-xs font-medium",
+                          pick.qualityTier === "medium" && "text-slate-400",
+                          pick.qualityTier === "speculative" && "text-amber-500",
+                          pick.qualityTier === "avoid" && "text-rose-600",
+                        )}>
+                          {pick.qualityTier}
+                        </div>
+                      )}
+                    </div>
+                    <div>PUT {pick.strike}$</div>
+                    <div>{pick.source || "Yahoo fallback"}</div>
+                    <div>
+                      {pick.premiumKind || "prime"} {pick.premiumUnit != null ? `${Number(pick.premiumUnit).toFixed(2)}$` : "—"}
+                    </div>
+                    <div>×{pick.contracts}</div>
+                    <div>{pick.capitalUsed.toFixed(0)}$</div>
+                    <div>{pick.weeklyReturn.toFixed(2)}%</div>
                   </div>
-                  <div>×{pick.contracts}</div>
-                  <div>{pick.capitalUsed.toFixed(0)}$</div>
-                  <div>{pick.weeklyReturn.toFixed(2)}%</div>
+                  {(pick.concentrationTheme || (pick.qualityWarnings?.length > 0 && pick.qualityTier !== "high" && pick.qualityTier !== "medium")) && (
+                    <div className="mt-1 text-xs text-amber-600">
+                      {pick.concentrationTheme && <span className="mr-2">thème: {pick.concentrationTheme}</span>}
+                      {pick.qualityWarnings
+                        ?.filter((w) => w !== "Crypto miner" && w !== "High beta growth")
+                        .slice(0, 2)
+                        .join(" · ")}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

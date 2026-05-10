@@ -112,6 +112,34 @@ export function createCapitalCombinationStore(options = {}) {
     safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_ccm_snapshot_id ON capital_combination_modes(snapshot_id)`);
     safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_ccm_mode        ON capital_combination_modes(mode)`);
 
+    // Phase 4D-3B — additive POP columns (idempotent via safeExec)
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN pop_avg REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN pop_weighted_by_capital REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN pop_min REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN pop_below_80_count INTEGER`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN pop_below_85_count INTEGER`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN yield_per_pop_risk REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN risk_adjusted_pop_score REAL`);
+
+    // Phase 4D-3B — guard for pop_estimate on positions (idempotent if already present)
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN pop_estimate REAL`);
+
+    // Phase 4D-3C — quality overlay columns for modes (idempotent)
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN avg_quality_score REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN avoid_count INTEGER`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN speculative_count INTEGER`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN premium_trap_count INTEGER`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN crypto_miner_count INTEGER`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN high_beta_growth_count INTEGER`);
+
+    // Phase 4D-3C — quality overlay columns for positions (idempotent)
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN quality_tier TEXT`);
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN quality_score REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN speculative_penalty REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN premium_trap_penalty REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN concentration_theme TEXT`);
+    safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN quality_warnings_json TEXT`);
+
     // Phase 4D — Table 3: individual position rows
     safeExec(conn, `
       CREATE TABLE IF NOT EXISTS capital_combination_positions (
@@ -226,11 +254,21 @@ export function createCapitalCombinationStore(options = {}) {
         INSERT INTO capital_combination_modes
           (id, snapshot_id, mode, position_count, capital_used, capital_free, capital_utilization_pct,
            total_premium, avg_yield_pct, estimated_return_pct, concentration_score, diversification_score,
-           risk_score, quality_score, audit_status, audit_warnings_json, created_at)
+           risk_score, quality_score, audit_status, audit_warnings_json,
+           pop_avg, pop_weighted_by_capital, pop_min, pop_below_80_count, pop_below_85_count,
+           yield_per_pop_risk, risk_adjusted_pop_score,
+           avg_quality_score, avoid_count, speculative_count, premium_trap_count,
+           crypto_miner_count, high_beta_growth_count,
+           created_at)
         VALUES
           (@id, @snapshot_id, @mode, @position_count, @capital_used, @capital_free, @capital_utilization_pct,
            @total_premium, @avg_yield_pct, @estimated_return_pct, @concentration_score, @diversification_score,
-           @risk_score, @quality_score, @audit_status, @audit_warnings_json, @created_at)
+           @risk_score, @quality_score, @audit_status, @audit_warnings_json,
+           @pop_avg, @pop_weighted_by_capital, @pop_min, @pop_below_80_count, @pop_below_85_count,
+           @yield_per_pop_risk, @risk_adjusted_pop_score,
+           @avg_quality_score, @avoid_count, @speculative_count, @premium_trap_count,
+           @crypto_miner_count, @high_beta_growth_count,
+           @created_at)
       `).run({
         id: modeId,
         snapshot_id: snapshotId,
@@ -248,6 +286,19 @@ export function createCapitalCombinationStore(options = {}) {
         quality_score: toReal(modeMetrics.qualityScore),
         audit_status: modeWarnings.length === 0 ? "ok" : "warnings",
         audit_warnings_json: JSON.stringify(modeWarnings),
+        pop_avg: toReal(modeMetrics.popAvg),
+        pop_weighted_by_capital: toReal(modeMetrics.popWeightedByCapital),
+        pop_min: toReal(modeMetrics.popMin),
+        pop_below_80_count: toInt(modeMetrics.popBelow80Count),
+        pop_below_85_count: toInt(modeMetrics.popBelow85Count),
+        yield_per_pop_risk: toReal(modeMetrics.yieldPerPopRisk),
+        risk_adjusted_pop_score: toReal(modeMetrics.riskAdjustedPopScore),
+        avg_quality_score: toReal(modeMetrics.avgQualityScore),
+        avoid_count: toInt(modeMetrics.avoidCount),
+        speculative_count: toInt(modeMetrics.speculativeCount),
+        premium_trap_count: toInt(modeMetrics.premiumTrapCount),
+        crypto_miner_count: toInt(modeMetrics.cryptoMinerCount),
+        high_beta_growth_count: toInt(modeMetrics.highBetaGrowthCount),
         created_at: now,
       });
 
@@ -264,11 +315,17 @@ export function createCapitalCombinationStore(options = {}) {
           INSERT INTO capital_combination_positions
             (id, snapshot_id, mode_id, mode, ticker, strike, expiration, contracts, capital_required,
              premium_unit, total_premium, yield_pct, source, strike_mode, ibkr_validated, yahoo_validated,
-             elite_score, pop_estimate, spread_pct, open_interest, volume, sector, risk_tags_json, created_at)
+             elite_score, pop_estimate, spread_pct, open_interest, volume, sector, risk_tags_json,
+             quality_tier, quality_score, speculative_penalty, premium_trap_penalty,
+             concentration_theme, quality_warnings_json,
+             created_at)
           VALUES
             (@id, @snapshot_id, @mode_id, @mode, @ticker, @strike, @expiration, @contracts, @capital_required,
              @premium_unit, @total_premium, @yield_pct, @source, @strike_mode, @ibkr_validated, @yahoo_validated,
-             @elite_score, @pop_estimate, @spread_pct, @open_interest, @volume, @sector, @risk_tags_json, @created_at)
+             @elite_score, @pop_estimate, @spread_pct, @open_interest, @volume, @sector, @risk_tags_json,
+             @quality_tier, @quality_score, @speculative_penalty, @premium_trap_penalty,
+             @concentration_theme, @quality_warnings_json,
+             @created_at)
         `).run({
           id: posId,
           snapshot_id: snapshotId,
@@ -287,12 +344,23 @@ export function createCapitalCombinationStore(options = {}) {
           ibkr_validated: raw?.ibkrValidated != null ? (raw.ibkrValidated ? 1 : 0) : null,
           yahoo_validated: raw?.yahooValidated != null ? (raw.yahooValidated ? 1 : 0) : null,
           elite_score: toReal(raw?.eliteScore ?? raw?.elite_score),
-          pop_estimate: toReal(raw?.popEstimate ?? raw?.pop_estimate),
+          pop_estimate: toReal(pm.popEstimate ?? raw?.popEstimate ?? raw?.pop_estimate),
           spread_pct: toReal(raw?.spreadPct ?? raw?.spread_pct),
           open_interest: toInt(raw?.openInterest ?? raw?.open_interest),
           volume: toInt(raw?.volume),
           sector: toText(raw?.sector),
           risk_tags_json: raw?.riskTags ? JSON.stringify(raw.riskTags) : null,
+          quality_tier: toText(pm.qualityTier ?? raw?.qualityTier),
+          quality_score: toReal(pm.qualityScore ?? raw?.qualityScore),
+          speculative_penalty: toReal(pm.speculativePenalty ?? raw?.speculativePenalty),
+          premium_trap_penalty: toReal(pm.premiumTrapPenalty ?? raw?.premiumTrapPenalty),
+          concentration_theme: toText(pm.concentrationTheme ?? raw?.concentrationTheme),
+          quality_warnings_json: (() => {
+            const warnings = pm.qualityWarnings?.length
+              ? pm.qualityWarnings
+              : raw?.qualityWarnings ?? null;
+            return warnings ? JSON.stringify(warnings) : null;
+          })(),
           created_at: now,
         });
       }
@@ -357,14 +425,18 @@ export function createCapitalCombinationStore(options = {}) {
     const modeStats = conn.prepare(`
       SELECT
         mode,
-        COUNT(*)                       AS sample_count,
-        AVG(avg_yield_pct)             AS avg_yield_pct,
-        AVG(capital_utilization_pct)   AS avg_capital_utilization_pct,
-        AVG(total_premium)             AS avg_total_premium,
-        AVG(risk_score)                AS avg_risk_score,
-        AVG(quality_score)             AS avg_quality_score,
-        AVG(concentration_score)       AS avg_concentration_score,
-        AVG(diversification_score)     AS avg_diversification_score
+        COUNT(*)                          AS sample_count,
+        AVG(avg_yield_pct)                AS avg_yield_pct,
+        AVG(capital_utilization_pct)      AS avg_capital_utilization_pct,
+        AVG(total_premium)                AS avg_total_premium,
+        AVG(risk_score)                   AS avg_risk_score,
+        AVG(quality_score)                AS avg_quality_score,
+        AVG(concentration_score)          AS avg_concentration_score,
+        AVG(diversification_score)        AS avg_diversification_score,
+        AVG(pop_weighted_by_capital)      AS avg_pop_weighted_by_capital,
+        AVG(pop_min)                      AS avg_pop_min,
+        AVG(risk_adjusted_pop_score)      AS avg_risk_adjusted_pop_score,
+        AVG(yield_per_pop_risk)           AS avg_yield_per_pop_risk
       FROM capital_combination_modes
       GROUP BY mode
     `).all();

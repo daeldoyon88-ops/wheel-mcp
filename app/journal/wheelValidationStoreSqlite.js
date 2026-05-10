@@ -897,6 +897,33 @@ export function createWheelValidationStoreSqlite(options = {}) {
     return conn.prepare(sql).all(params);
   }
 
+  // Phase 4B-PREP — read-only queries for calibration diagnostic endpoints
+
+  async function getJournalCounts() {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    const total = conn.prepare("SELECT COUNT(*) AS cnt FROM wheel_validation_records").get();
+    const resolved = conn.prepare("SELECT COUNT(*) AS cnt FROM wheel_validation_records WHERE resolved = 1").get();
+    const unresolved = conn.prepare("SELECT COUNT(*) AS cnt FROM wheel_validation_records WHERE resolved != 1 OR resolved IS NULL").get();
+    return {
+      total: total?.cnt ?? 0,
+      resolved: resolved?.cnt ?? 0,
+      unresolved: unresolved?.cnt ?? 0,
+    };
+  }
+
+  async function readCalibrationTickerSummary() {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    return conn.prepare("SELECT * FROM calibration_ticker_summary ORDER BY sample_size DESC").all();
+  }
+
+  async function readCalibrationMarketRegimeSummary() {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    return conn.prepare("SELECT * FROM calibration_market_regime_summary ORDER BY sample_size DESC").all();
+  }
+
   return {
     load,
     save,
@@ -906,5 +933,8 @@ export function createWheelValidationStoreSqlite(options = {}) {
     queryMarketContextSnapshot,
     upsertCalibrationTickerSummary,
     upsertCalibrationMarketRegimeSummary,
+    getJournalCounts,
+    readCalibrationTickerSummary,
+    readCalibrationMarketRegimeSummary,
   };
 }

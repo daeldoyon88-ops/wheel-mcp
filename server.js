@@ -18,6 +18,7 @@ import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
 import { createWheelValidationService } from "./app/journal/wheelValidationService.js";
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
+import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -2145,6 +2146,10 @@ app.post("/universe/build", handleBuildWatchlist);
 
 // Seasonality Engine V1 — read-only, isolated, additive
 app.use("/seasonality", seasonalityRoutes);
+
+// Adaptive Calibration Engine — Phase 4B-PREP — read-only, dormant
+// appliedToScanner=false / appliedToRanking=false / appliedToEliteScore=false
+app.use("/calibration", createAdaptiveCalibrationRoutes({ store: wheelValidationStore }));
 
 app.get("/mcp-info", (_req, res) => {
   res.json({

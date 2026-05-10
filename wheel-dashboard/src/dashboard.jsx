@@ -6126,12 +6126,28 @@ export default function Dashboard() {
   const captureWheelJournalSnapshot = useCallback(
     async ({ candidates, scanSessionId, scanTimestamp, source }) => {
       const captureTopN = Number(autoJournalPop);
-      const finalCandidates = Array.isArray(candidates) ? candidates.slice(0, captureTopN) : [];
       const selectedExpiration = normalizeExpirationYmd(selectedExpirationRef.current);
+
+      // Apply the same guards the dashboard uses:
+      // 1. Exclude IBKR-rejected symbols (ibkrRejectedSymbols mirrors ibkrDirectResult.rejected)
+      // 2. Exclude candidates whose embedded expiration fields don't match the active selection
+      // Slice to captureTopN AFTER filtering so Top 50 means 50 *admissible* candidates.
+      const rawCount = Array.isArray(candidates) ? candidates.length : 0;
+      const finalCandidates = (Array.isArray(candidates) ? candidates : [])
+        .filter((c) => {
+          const sym = String(c?.ticker || "").trim().toUpperCase();
+          if (sym && ibkrRejectedSymbols.has(sym)) return false;
+          if (!candidateRowMatchesSelectedExpiration(c, selectedExpiration)) return false;
+          return true;
+        })
+        .slice(0, captureTopN);
+
       console.log("[AUTO_JOURNAL_CAPTURE_ATTEMPT]", {
         scanSessionId,
         autoJournalPop,
+        rawCandidatesLength: rawCount,
         finalCandidatesLength: finalCandidates.length,
+        ibkrRejectedCount: ibkrRejectedSymbols.size,
         selectedExpiration,
         source,
         captureTopN,
@@ -6151,6 +6167,8 @@ export default function Dashboard() {
           reason: "no_final_candidates",
           scanSessionId,
           source,
+          rawCandidatesLength: rawCount,
+          ibkrRejectedCount: ibkrRejectedSymbols.size,
         });
         return null;
       }
@@ -6185,7 +6203,7 @@ export default function Dashboard() {
         return null;
       }
     },
-    [autoJournalPop]
+    [autoJournalPop, ibkrRejectedSymbols]
   );
 
   const runAutoIbkrDirectScan = useCallback(

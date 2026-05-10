@@ -1919,7 +1919,7 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
     else if (inAll.length >= 2 || overlapTickerPct > 50) crossModeConcentrationRisk = "MEDIUM";
     const crossModeWarnings = [];
     if (inAll.length >= 3) crossModeWarnings.push(`${inAll.length} tickers communs aux ${allTickerSets.length} modes : ${inAll.join(", ")}`);
-    if (overlapTickerPct > 50) crossModeWarnings.push(`${overlapTickerPct.toFixed(0)}% des tickers communs entre modes`);
+    if (overlapTickerPct > 50) crossModeWarnings.push(`Overlap entre modes : ${overlapTickerCount} ticker${overlapTickerCount > 1 ? "s" : ""} présent${overlapTickerCount > 1 ? "s" : ""} dans au moins 2 modes${inAtLeastTwo.length > 0 ? " : " + inAtLeastTwo.join(", ") : ""}`);
     return { overlapTickerCount, overlapTickerPct, commonTickers: inAtLeastTwo, inAllModes: inAll, crossModeConcentrationRisk, crossModeWarnings };
   }
 

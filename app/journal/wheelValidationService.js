@@ -134,6 +134,33 @@ function computeStressAtScan(spot, strike, premium, bid, ask, expectedMove, lowe
   };
 }
 
+// Phase 4A.3 — event_risk_score: 0-100, higher means higher event risk before expiration
+function computeEventRiskScore(hasEarningsBeforeExpiration, earningsDaysUntil) {
+  if (hasEarningsBeforeExpiration === true) return 100;
+  const daysUntil = toNumberOrNull(earningsDaysUntil);
+  if (daysUntil != null && daysUntil <= 7) return 80;
+  if (daysUntil != null && daysUntil <= 14) return 50;
+  return 0;
+}
+
+// Phase 4A.4 — liquidity_score: 0-100 based on spread quality and open interest
+function computeLiquidityScore(bid, ask, spreadPct, openInterest) {
+  if (bid == null && ask == null) return null;
+  let score = 100;
+  const sp = toNumberOrNull(spreadPct);
+  if (sp != null) {
+    if (sp > 0.3) score -= 40;
+    else if (sp > 0.2) score -= 25;
+    else if (sp > 0.1) score -= 10;
+  }
+  const oi = toNumberOrNull(openInterest);
+  if (oi != null) {
+    if (oi < 100) score -= 20;
+    else if (oi < 500) score -= 10;
+  }
+  return Math.max(0, score);
+}
+
 // Phase 1 — stale_quote_flag: 1 if bid+ask both absent, or spread is suspiciously wide (>50%)
 function computeStaleQuoteFlag(strikeRow) {
   const bid = toNumberOrNull(strikeRow?.bid);
@@ -454,6 +481,54 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
     snapshot: snapshotAtScan,
     // Phase 3 — stress at scan time (resolution-time stress fields stay in resolution object)
     stress: stressAtScan,
+    // Phase 4A.1 — seasonality snapshot (dormant: null until seasonality engine feeds it)
+    seasonality: {
+      seasonality_score_at_scan: null,
+      seasonality_win_rate_at_scan: null,
+      seasonality_best_window_start: null,
+      seasonality_best_window_end: null,
+      seasonality_direction: null,
+      seasonality_confidence: null,
+      seasonality_snapshot_version: null,
+    },
+    // Phase 4A.3 — earnings / event risk (partially populated from candidate data)
+    eventRisk: {
+      days_to_earnings: toNumberOrNull(candidate?.earningsDaysUntil),
+      earnings_risk_flag:
+        candidate?.hasUpcomingEarningsBeforeExpiration === true ||
+        candidate?.hasEarningsBeforeExpiration === true,
+      macro_event_risk_flag: null,
+      fed_event_risk_flag: null,
+      event_risk_score: computeEventRiskScore(
+        candidate?.hasUpcomingEarningsBeforeExpiration === true ||
+        candidate?.hasEarningsBeforeExpiration === true,
+        candidate?.earningsDaysUntil
+      ),
+    },
+    // Phase 4A.4 — IV / liquidity / options quality (populated where data is available)
+    ivSnapshot: {
+      iv_rank_at_scan: null,
+      iv_percentile_at_scan: null,
+      option_spread_pct_at_scan:
+        toNumberOrNull(strikeRow?.spreadPct) ??
+        toNumberOrNull(strikeRow?.liquidity?.spreadPct) ??
+        null,
+      open_interest_at_scan:
+        toNumberOrNull(strikeRow?.openInterest) ??
+        toNumberOrNull(strikeRow?.liquidity?.openInterest) ??
+        null,
+      volume_at_scan:
+        toNumberOrNull(strikeRow?.volume) ??
+        toNumberOrNull(strikeRow?.liquidity?.volume) ??
+        null,
+      liquidity_score: computeLiquidityScore(
+        toNumberOrNull(strikeRow?.bid),
+        toNumberOrNull(strikeRow?.ask),
+        toNumberOrNull(strikeRow?.spreadPct) ?? toNumberOrNull(strikeRow?.liquidity?.spreadPct),
+        toNumberOrNull(strikeRow?.openInterest) ?? toNumberOrNull(strikeRow?.liquidity?.openInterest)
+      ),
+      options_quality_score: null,
+    },
     resolution: buildResolutionDefaults(),
   };
 }

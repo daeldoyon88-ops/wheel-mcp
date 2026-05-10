@@ -145,6 +145,28 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     max_itm_depth_pct: toReal(resolution?.max_itm_depth_pct),
     lower_bound_distance_pct: toReal(resolution?.lower_bound_distance_pct),
     support_break_severity: toReal(resolution?.support_break_severity),
+    // Phase 4A.1 — Seasonality snapshot
+    seasonality_score_at_scan: toReal(record?.seasonality?.seasonality_score_at_scan),
+    seasonality_win_rate_at_scan: toReal(record?.seasonality?.seasonality_win_rate_at_scan),
+    seasonality_best_window_start: record?.seasonality?.seasonality_best_window_start ?? null,
+    seasonality_best_window_end: record?.seasonality?.seasonality_best_window_end ?? null,
+    seasonality_direction: record?.seasonality?.seasonality_direction ?? null,
+    seasonality_confidence: record?.seasonality?.seasonality_confidence ?? null,
+    seasonality_snapshot_version: record?.seasonality?.seasonality_snapshot_version ?? null,
+    // Phase 4A.3 — Earnings / Event Risk
+    days_to_earnings: toInt(record?.eventRisk?.days_to_earnings),
+    earnings_risk_flag: toIntBool(record?.eventRisk?.earnings_risk_flag),
+    macro_event_risk_flag: toIntBool(record?.eventRisk?.macro_event_risk_flag),
+    fed_event_risk_flag: toIntBool(record?.eventRisk?.fed_event_risk_flag),
+    event_risk_score: toReal(record?.eventRisk?.event_risk_score),
+    // Phase 4A.4 — IV / Liquidity / Options Quality
+    iv_rank_at_scan: toReal(record?.ivSnapshot?.iv_rank_at_scan),
+    iv_percentile_at_scan: toReal(record?.ivSnapshot?.iv_percentile_at_scan),
+    option_spread_pct_at_scan: toReal(record?.ivSnapshot?.option_spread_pct_at_scan),
+    open_interest_at_scan: toInt(record?.ivSnapshot?.open_interest_at_scan),
+    volume_at_scan: toInt(record?.ivSnapshot?.volume_at_scan),
+    liquidity_score: toReal(record?.ivSnapshot?.liquidity_score),
+    options_quality_score: toReal(record?.ivSnapshot?.options_quality_score),
     rawJson: JSON.stringify(record ?? {}),
     createdAt: nowIso,
     updatedAt: nowIso,
@@ -330,6 +352,71 @@ export function createWheelValidationStoreSqlite(options = {}) {
     safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_mcs_record_id ON market_context_snapshot(record_id)`);
     safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_mcs_ticker_date ON market_context_snapshot(ticker, scan_date)`);
 
+    // Phase 4A — Market Context Snapshot enriched columns (additive, dormant)
+    safeExec(conn, `ALTER TABLE market_context_snapshot ADD COLUMN spy_30d_return REAL`);
+    safeExec(conn, `ALTER TABLE market_context_snapshot ADD COLUMN qqq_30d_return REAL`);
+    safeExec(conn, `ALTER TABLE market_context_snapshot ADD COLUMN vix_percentile REAL`);
+    safeExec(conn, `ALTER TABLE market_context_snapshot ADD COLUMN market_volatility_regime TEXT`);
+    safeExec(conn, `ALTER TABLE market_context_snapshot ADD COLUMN broad_market_score REAL`);
+
+    // Phase 4A.1 — Seasonality snapshot (dormant, NULL until seasonality engine feeds it)
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_score_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_win_rate_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_best_window_start TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_best_window_end TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_direction TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_confidence TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_snapshot_version TEXT`);
+
+    // Phase 4A.3 — Earnings / Event Risk snapshot
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN days_to_earnings INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN earnings_risk_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN macro_event_risk_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN fed_event_risk_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN event_risk_score REAL`);
+
+    // Phase 4A.4 — IV / Liquidity / Options Quality snapshot
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN iv_rank_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN iv_percentile_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN option_spread_pct_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN open_interest_at_scan INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN volume_at_scan INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN liquidity_score REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN options_quality_score REAL`);
+
+    // Phase 4A.5 — Calibration summary tables (dormant, populated by adaptiveCalibrationEngine)
+    safeExec(conn, `
+      CREATE TABLE IF NOT EXISTS calibration_ticker_summary (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticker TEXT NOT NULL,
+        sample_size INTEGER,
+        safe_win_rate REAL,
+        aggressive_win_rate REAL,
+        avg_drawdown REAL,
+        avg_false_safety_rate REAL,
+        avg_strike_touch_rate REAL,
+        avg_assignment_rate REAL,
+        seasonality_correlation_score REAL,
+        data_quality_score REAL,
+        computed_at TEXT,
+        updated_at TEXT
+      )
+    `);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_cts_ticker ON calibration_ticker_summary(ticker)`);
+    safeExec(conn, `
+      CREATE TABLE IF NOT EXISTS calibration_market_regime_summary (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        market_regime TEXT NOT NULL,
+        sample_size INTEGER,
+        safe_performance REAL,
+        aggressive_performance REAL,
+        drawdown_profile REAL,
+        computed_at TEXT,
+        updated_at TEXT
+      )
+    `);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_cmrs_regime ON calibration_market_regime_summary(market_regime)`);
+
     const insertStmt = conn.prepare(`
       INSERT INTO wheel_validation_records (
         id, scanSessionId, scanTimestamp, scanDate, selectedExpiration, expiration, expirationCohort,
@@ -352,6 +439,12 @@ export function createWheelValidationStoreSqlite(options = {}) {
         strike_safety_margin, strike_safety_margin_pct, data_quality_score,
         false_safety_flag, strike_touch_recovery_flag, max_itm_depth_pct,
         lower_bound_distance_pct, support_break_severity,
+        seasonality_score_at_scan, seasonality_win_rate_at_scan,
+        seasonality_best_window_start, seasonality_best_window_end,
+        seasonality_direction, seasonality_confidence, seasonality_snapshot_version,
+        days_to_earnings, earnings_risk_flag, macro_event_risk_flag, fed_event_risk_flag, event_risk_score,
+        iv_rank_at_scan, iv_percentile_at_scan, option_spread_pct_at_scan,
+        open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -374,6 +467,12 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @strike_safety_margin, @strike_safety_margin_pct, @data_quality_score,
         @false_safety_flag, @strike_touch_recovery_flag, @max_itm_depth_pct,
         @lower_bound_distance_pct, @support_break_severity,
+        @seasonality_score_at_scan, @seasonality_win_rate_at_scan,
+        @seasonality_best_window_start, @seasonality_best_window_end,
+        @seasonality_direction, @seasonality_confidence, @seasonality_snapshot_version,
+        @days_to_earnings, @earnings_risk_flag, @macro_event_risk_flag, @fed_event_risk_flag, @event_risk_score,
+        @iv_rank_at_scan, @iv_percentile_at_scan, @option_spread_pct_at_scan,
+        @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO NOTHING
     `);
@@ -459,6 +558,12 @@ export function createWheelValidationStoreSqlite(options = {}) {
         strike_safety_margin, strike_safety_margin_pct, data_quality_score,
         false_safety_flag, strike_touch_recovery_flag, max_itm_depth_pct,
         lower_bound_distance_pct, support_break_severity,
+        seasonality_score_at_scan, seasonality_win_rate_at_scan,
+        seasonality_best_window_start, seasonality_best_window_end,
+        seasonality_direction, seasonality_confidence, seasonality_snapshot_version,
+        days_to_earnings, earnings_risk_flag, macro_event_risk_flag, fed_event_risk_flag, event_risk_score,
+        iv_rank_at_scan, iv_percentile_at_scan, option_spread_pct_at_scan,
+        open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -481,6 +586,12 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @strike_safety_margin, @strike_safety_margin_pct, @data_quality_score,
         @false_safety_flag, @strike_touch_recovery_flag, @max_itm_depth_pct,
         @lower_bound_distance_pct, @support_break_severity,
+        @seasonality_score_at_scan, @seasonality_win_rate_at_scan,
+        @seasonality_best_window_start, @seasonality_best_window_end,
+        @seasonality_direction, @seasonality_confidence, @seasonality_snapshot_version,
+        @days_to_earnings, @earnings_risk_flag, @macro_event_risk_flag, @fed_event_risk_flag, @event_risk_score,
+        @iv_rank_at_scan, @iv_percentile_at_scan, @option_spread_pct_at_scan,
+        @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO UPDATE SET
         scanSessionId=excluded.scanSessionId,
@@ -574,6 +685,25 @@ export function createWheelValidationStoreSqlite(options = {}) {
         max_itm_depth_pct=excluded.max_itm_depth_pct,
         lower_bound_distance_pct=excluded.lower_bound_distance_pct,
         support_break_severity=excluded.support_break_severity,
+        seasonality_score_at_scan=excluded.seasonality_score_at_scan,
+        seasonality_win_rate_at_scan=excluded.seasonality_win_rate_at_scan,
+        seasonality_best_window_start=excluded.seasonality_best_window_start,
+        seasonality_best_window_end=excluded.seasonality_best_window_end,
+        seasonality_direction=excluded.seasonality_direction,
+        seasonality_confidence=excluded.seasonality_confidence,
+        seasonality_snapshot_version=excluded.seasonality_snapshot_version,
+        days_to_earnings=excluded.days_to_earnings,
+        earnings_risk_flag=excluded.earnings_risk_flag,
+        macro_event_risk_flag=excluded.macro_event_risk_flag,
+        fed_event_risk_flag=excluded.fed_event_risk_flag,
+        event_risk_score=excluded.event_risk_score,
+        iv_rank_at_scan=excluded.iv_rank_at_scan,
+        iv_percentile_at_scan=excluded.iv_percentile_at_scan,
+        option_spread_pct_at_scan=excluded.option_spread_pct_at_scan,
+        open_interest_at_scan=excluded.open_interest_at_scan,
+        volume_at_scan=excluded.volume_at_scan,
+        liquidity_score=excluded.liquidity_score,
+        options_quality_score=excluded.options_quality_score,
         rawJson=excluded.rawJson,
         createdAt=COALESCE(wheel_validation_records.createdAt, excluded.createdAt),
         updatedAt=excluded.updatedAt
@@ -610,13 +740,19 @@ export function createWheelValidationStoreSqlite(options = {}) {
         spy_price, spy_ma50, spy_ma200,
         qqq_price, qqq_ma50, qqq_ma200,
         vix_level, market_regime, spy_trend_regime, qqq_trend_regime,
-        vix_regime, sector_regime, market_drawdown_regime, created_at
+        vix_regime, sector_regime, market_drawdown_regime,
+        spy_30d_return, qqq_30d_return, vix_percentile,
+        market_volatility_regime, broad_market_score,
+        created_at
       ) VALUES (
         @record_id, @scan_date, @ticker, @expiration,
         @spy_price, @spy_ma50, @spy_ma200,
         @qqq_price, @qqq_ma50, @qqq_ma200,
         @vix_level, @market_regime, @spy_trend_regime, @qqq_trend_regime,
-        @vix_regime, @sector_regime, @market_drawdown_regime, @created_at
+        @vix_regime, @sector_regime, @market_drawdown_regime,
+        @spy_30d_return, @qqq_30d_return, @vix_percentile,
+        @market_volatility_regime, @broad_market_score,
+        @created_at
       )
     `);
     return stmt.run({
@@ -637,8 +773,116 @@ export function createWheelValidationStoreSqlite(options = {}) {
       vix_regime: snapshot?.vix_regime ?? null,
       sector_regime: snapshot?.sector_regime ?? null,
       market_drawdown_regime: snapshot?.market_drawdown_regime ?? null,
+      spy_30d_return: toReal(snapshot?.spy_30d_return),
+      qqq_30d_return: toReal(snapshot?.qqq_30d_return),
+      vix_percentile: toReal(snapshot?.vix_percentile),
+      market_volatility_regime: snapshot?.market_volatility_regime ?? null,
+      broad_market_score: toReal(snapshot?.broad_market_score),
       created_at: new Date().toISOString(),
     });
+  }
+
+  async function upsertCalibrationTickerSummary(summary) {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    const nowIso = new Date().toISOString();
+    const existing = conn
+      .prepare("SELECT id FROM calibration_ticker_summary WHERE ticker = @ticker")
+      .get({ ticker: summary.ticker });
+    if (existing) {
+      conn.prepare(`
+        UPDATE calibration_ticker_summary SET
+          sample_size=@sample_size, safe_win_rate=@safe_win_rate,
+          aggressive_win_rate=@aggressive_win_rate, avg_drawdown=@avg_drawdown,
+          avg_false_safety_rate=@avg_false_safety_rate, avg_strike_touch_rate=@avg_strike_touch_rate,
+          avg_assignment_rate=@avg_assignment_rate,
+          seasonality_correlation_score=@seasonality_correlation_score,
+          data_quality_score=@data_quality_score, computed_at=@computed_at, updated_at=@updated_at
+        WHERE ticker=@ticker
+      `).run({
+        ticker: summary.ticker,
+        sample_size: toInt(summary.sample_size),
+        safe_win_rate: toReal(summary.safe_win_rate),
+        aggressive_win_rate: toReal(summary.aggressive_win_rate),
+        avg_drawdown: toReal(summary.avg_drawdown),
+        avg_false_safety_rate: toReal(summary.avg_false_safety_rate),
+        avg_strike_touch_rate: toReal(summary.avg_strike_touch_rate),
+        avg_assignment_rate: toReal(summary.avg_assignment_rate),
+        seasonality_correlation_score: toReal(summary.seasonality_correlation_score),
+        data_quality_score: toReal(summary.data_quality_score),
+        computed_at: summary.computed_at ?? nowIso,
+        updated_at: nowIso,
+      });
+    } else {
+      conn.prepare(`
+        INSERT INTO calibration_ticker_summary (
+          ticker, sample_size, safe_win_rate, aggressive_win_rate, avg_drawdown,
+          avg_false_safety_rate, avg_strike_touch_rate, avg_assignment_rate,
+          seasonality_correlation_score, data_quality_score, computed_at, updated_at
+        ) VALUES (
+          @ticker, @sample_size, @safe_win_rate, @aggressive_win_rate, @avg_drawdown,
+          @avg_false_safety_rate, @avg_strike_touch_rate, @avg_assignment_rate,
+          @seasonality_correlation_score, @data_quality_score, @computed_at, @updated_at
+        )
+      `).run({
+        ticker: summary.ticker,
+        sample_size: toInt(summary.sample_size),
+        safe_win_rate: toReal(summary.safe_win_rate),
+        aggressive_win_rate: toReal(summary.aggressive_win_rate),
+        avg_drawdown: toReal(summary.avg_drawdown),
+        avg_false_safety_rate: toReal(summary.avg_false_safety_rate),
+        avg_strike_touch_rate: toReal(summary.avg_strike_touch_rate),
+        avg_assignment_rate: toReal(summary.avg_assignment_rate),
+        seasonality_correlation_score: toReal(summary.seasonality_correlation_score),
+        data_quality_score: toReal(summary.data_quality_score),
+        computed_at: summary.computed_at ?? nowIso,
+        updated_at: nowIso,
+      });
+    }
+  }
+
+  async function upsertCalibrationMarketRegimeSummary(summary) {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    const nowIso = new Date().toISOString();
+    const existing = conn
+      .prepare("SELECT id FROM calibration_market_regime_summary WHERE market_regime = @market_regime")
+      .get({ market_regime: summary.market_regime });
+    if (existing) {
+      conn.prepare(`
+        UPDATE calibration_market_regime_summary SET
+          sample_size=@sample_size, safe_performance=@safe_performance,
+          aggressive_performance=@aggressive_performance, drawdown_profile=@drawdown_profile,
+          computed_at=@computed_at, updated_at=@updated_at
+        WHERE market_regime=@market_regime
+      `).run({
+        market_regime: summary.market_regime,
+        sample_size: toInt(summary.sample_size),
+        safe_performance: toReal(summary.safe_performance),
+        aggressive_performance: toReal(summary.aggressive_performance),
+        drawdown_profile: toReal(summary.drawdown_profile),
+        computed_at: summary.computed_at ?? nowIso,
+        updated_at: nowIso,
+      });
+    } else {
+      conn.prepare(`
+        INSERT INTO calibration_market_regime_summary (
+          market_regime, sample_size, safe_performance, aggressive_performance,
+          drawdown_profile, computed_at, updated_at
+        ) VALUES (
+          @market_regime, @sample_size, @safe_performance, @aggressive_performance,
+          @drawdown_profile, @computed_at, @updated_at
+        )
+      `).run({
+        market_regime: summary.market_regime,
+        sample_size: toInt(summary.sample_size),
+        safe_performance: toReal(summary.safe_performance),
+        aggressive_performance: toReal(summary.aggressive_performance),
+        drawdown_profile: toReal(summary.drawdown_profile),
+        computed_at: summary.computed_at ?? nowIso,
+        updated_at: nowIso,
+      });
+    }
   }
 
   async function queryMarketContextSnapshot(filter = {}) {
@@ -660,5 +904,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
     jsonPath,
     insertMarketContextSnapshot,
     queryMarketContextSnapshot,
+    upsertCalibrationTickerSummary,
+    upsertCalibrationMarketRegimeSummary,
   };
 }

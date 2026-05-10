@@ -140,6 +140,15 @@ export function createCapitalCombinationStore(options = {}) {
     safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN concentration_theme TEXT`);
     safeExec(conn, `ALTER TABLE capital_combination_positions ADD COLUMN quality_warnings_json TEXT`);
 
+    // Phase 4D-4 — concentration metrics per mode (idempotent)
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN crypto_miner_capital_pct REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN high_beta_capital_pct REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN largest_theme_capital_pct REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN largest_ticker_capital_pct REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN concentration_risk_score REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN diversification_health_score REAL`);
+    safeExec(conn, `ALTER TABLE capital_combination_modes ADD COLUMN cluster_warnings_json TEXT`);
+
     // Phase 4D — Table 3: individual position rows
     safeExec(conn, `
       CREATE TABLE IF NOT EXISTS capital_combination_positions (
@@ -259,6 +268,9 @@ export function createCapitalCombinationStore(options = {}) {
            yield_per_pop_risk, risk_adjusted_pop_score,
            avg_quality_score, avoid_count, speculative_count, premium_trap_count,
            crypto_miner_count, high_beta_growth_count,
+           crypto_miner_capital_pct, high_beta_capital_pct, largest_theme_capital_pct,
+           largest_ticker_capital_pct, concentration_risk_score, diversification_health_score,
+           cluster_warnings_json,
            created_at)
         VALUES
           (@id, @snapshot_id, @mode, @position_count, @capital_used, @capital_free, @capital_utilization_pct,
@@ -268,6 +280,9 @@ export function createCapitalCombinationStore(options = {}) {
            @yield_per_pop_risk, @risk_adjusted_pop_score,
            @avg_quality_score, @avoid_count, @speculative_count, @premium_trap_count,
            @crypto_miner_count, @high_beta_growth_count,
+           @crypto_miner_capital_pct, @high_beta_capital_pct, @largest_theme_capital_pct,
+           @largest_ticker_capital_pct, @concentration_risk_score, @diversification_health_score,
+           @cluster_warnings_json,
            @created_at)
       `).run({
         id: modeId,
@@ -299,6 +314,14 @@ export function createCapitalCombinationStore(options = {}) {
         premium_trap_count: toInt(modeMetrics.premiumTrapCount),
         crypto_miner_count: toInt(modeMetrics.cryptoMinerCount),
         high_beta_growth_count: toInt(modeMetrics.highBetaGrowthCount),
+        crypto_miner_capital_pct: toReal(modeMetrics.cryptoMinerCapitalPct),
+        high_beta_capital_pct: toReal(modeMetrics.highBetaCapitalPct),
+        largest_theme_capital_pct: toReal(modeMetrics.largestThemeCapitalPct),
+        largest_ticker_capital_pct: toReal(modeMetrics.largestTickerCapitalPct),
+        concentration_risk_score: toReal(modeMetrics.concentrationRiskScore),
+        diversification_health_score: toReal(modeMetrics.diversificationHealthScore),
+        cluster_warnings_json: Array.isArray(modeMetrics.clusterWarnings) && modeMetrics.clusterWarnings.length > 0
+          ? JSON.stringify(modeMetrics.clusterWarnings) : null,
         created_at: now,
       });
 

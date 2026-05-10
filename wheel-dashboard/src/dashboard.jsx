@@ -1464,41 +1464,51 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
     {
       id: "aggressive",
       label: "Agressif",
+      // Identity: high-return quality — pas de junk premium
       tickerCapPct: 0.25,
       positionCapPct: 0.25,
       maxContractsPerTicker: 4,
       minWeeklyYield: 0.007,
       minExecutionScore: 0.45,
       maxSpreadPct: 35,
-      // Avant: 0.6*normalizeYield + 0.25*proFinalScore + 0.15*proExecutionScore
-      // Après: rendement dominant + POP + qualityScore - penalité premium trap
+      // Composition limits — enforced in Pass 1 via canAddByComposition
+      maxCryptoMinerPositions: 1,
+      maxCryptoMinerExceptionCount: 2,      // 2ème autorisé si POP >= 82 + spread <= 20 + quality >= 0.65
+      maxCryptoMinerExceptionPopMin: 82,
+      maxCryptoMinerExceptionSpreadMax: 20,
+      maxCryptoMinerExceptionQualityMin: 0.65,
+      maxSpeculativePositions: 2,
+      // Score: high-return quality > junk premium
       score: (c) =>
-        0.50 * normalizeYield(c.weeklyReturn) +
+        0.45 * normalizeYield(c.weeklyReturn) +
         0.20 * c.proFinalScore +
         0.15 * c.proExecutionScore +
         0.10 * normalizePop(c._popForCombo) +
-        0.05 * (c._qualityOverlay?.qualityScore ?? 0.5) -
-        0.25 * (c._qualityOverlay?.premiumTrapPenalty ?? 0),
+        0.10 * (c._qualityOverlay?.qualityScore ?? 0.5) -
+        0.35 * (c._qualityOverlay?.premiumTrapPenalty ?? 0) -
+        0.20 * (c._qualityOverlay?.speculativePenalty ?? 0),
       filterCandidate: (c) => {
         const ov = c._qualityOverlay;
         if (!ov) return true;
         if (ov.qualityTier === "avoid") return false;
-        // Rejeter premium trap extrême sauf POP >= 82
-        if (ov.premiumTrapPenalty >= 0.45 && (c._popForCombo == null || c._popForCombo < 82)) return false;
+        // Rejeter premium trap fort sauf POP >= 82
+        if (ov.premiumTrapPenalty >= 0.40 && (c._popForCombo == null || c._popForCombo < 82)) return false;
+        // Rejeter speculative avec spread excessif
+        if (ov.qualityTier === "speculative" && c.spreadPct != null && c.spreadPct > 20) return false;
         return true;
       },
     },
     {
       id: "balanced",
       label: "Équilibré",
+      // Identity: controlled growth — compromis rendement / POP / qualité
       tickerCapPct: 0.2,
       positionCapPct: 0.2,
       maxContractsPerTicker: 3,
       minWeeklyYield: 0,
       minExecutionScore: 0,
       maxSpreadPct: 35,
-      // Avant: 0.4*proFinalScore + 0.35*proExecutionScore + 0.25*proDistanceScore
-      // Après: vrai compromis rendement/POP/qualité
+      // Score: vrai compromis rendement/POP/qualité
       score: (c) =>
         0.25 * c.proFinalScore +
         0.25 * c.proExecutionScore +
@@ -1522,14 +1532,14 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
     {
       id: "conservative",
       label: "Conservateur",
+      // Identity: capital defense — qualité + exécution + distance, pénalise speculative
       tickerCapPct: 0.15,
       positionCapPct: 0.15,
       maxContractsPerTicker: 2,
       minWeeklyYield: 0,
       minExecutionScore: 0,
       maxSpreadPct: 35,
-      // Avant: 0.5*proExecutionScore + 0.3*proDistanceScore + 0.2*proFinalScore
-      // Après: favorise qualité + exécution + distance, pénalise speculative
+      // Score: favorise qualité + exécution + distance
       score: (c) =>
         0.35 * c.proExecutionScore +
         0.25 * c.proDistanceScore +
@@ -1666,12 +1676,42 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       return true;
     }
 
+    function canAddByComposition(candidate) {
+      const maxCrypto = mode.maxCryptoMinerPositions;
+      const maxSpec = mode.maxSpeculativePositions;
+      if (maxCrypto == null && maxSpec == null) return true;
+      const ov = candidate._qualityOverlay;
+      const theme = ov?.concentrationTheme ?? null;
+      const tier = ov?.qualityTier ?? null;
+      if (maxCrypto != null && theme === "crypto_miner") {
+        const currentCrypto = picks.filter(p => p.concentrationTheme === "crypto_miner").length;
+        const hardMax = mode.maxCryptoMinerExceptionCount ?? maxCrypto;
+        if (currentCrypto >= hardMax) return false;
+        if (currentCrypto >= maxCrypto) {
+          const pop = candidate._popForCombo;
+          const spread = candidate.spreadPct;
+          const quality = ov?.qualityScore ?? 0;
+          const ok =
+            pop != null && pop >= (mode.maxCryptoMinerExceptionPopMin ?? 82) &&
+            (spread == null || spread <= (mode.maxCryptoMinerExceptionSpreadMax ?? 20)) &&
+            quality >= (mode.maxCryptoMinerExceptionQualityMin ?? 0.65);
+          if (!ok) return false;
+        }
+      }
+      if (maxSpec != null && tier === "speculative") {
+        const currentSpec = picks.filter(p => p.qualityTier === "speculative").length;
+        if (currentSpec >= maxSpec) return false;
+      }
+      return true;
+    }
+
     // Pass 1: breadth first (max 1 contract per ticker)
     for (const candidate of scoredPool) {
       if (picks.length >= maxPositions) break;
       const existing = pickMap.get(candidate.ticker);
       if (existing) continue;
       if (!canAddContract(candidate, 0)) continue;
+      if (!canAddByComposition(candidate)) continue;
 
       const pick = {
         ticker: candidate.ticker,
@@ -1796,6 +1836,40 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       { avoidCount: 0, speculativeCount: 0, premiumTrapCount: 0, cryptoMinerCount: 0, highBetaGrowthCount: 0, totalQualityScore: 0 }
     );
 
+    // Concentration metrics — Phase 4D-4
+    const clamp01 = (v) => Math.max(0, Math.min(1, v));
+    const tickerCapMapConc = new Map();
+    const themeCapMapConc = new Map();
+    const NEUTRAL_THEMES_SET = new Set(["unknown", "none", "no_theme", "other", ""]);
+    for (const p of picks) {
+      tickerCapMapConc.set(p.ticker, (tickerCapMapConc.get(p.ticker) ?? 0) + p.capitalUsed);
+      const theme = p.concentrationTheme;
+      if (theme != null && !NEUTRAL_THEMES_SET.has(theme)) {
+        themeCapMapConc.set(theme, (themeCapMapConc.get(theme) ?? 0) + p.capitalUsed);
+      }
+    }
+    const largestTickerCapitalPct = used > 0 && tickerCapMapConc.size > 0
+      ? (Math.max(...tickerCapMapConc.values()) / used) * 100 : 0;
+    const cryptoMinerCapitalPct = used > 0
+      ? ((themeCapMapConc.get("crypto_miner") ?? 0) / used) * 100 : 0;
+    const highBetaCapitalPct = used > 0
+      ? ((themeCapMapConc.get("high_beta_growth") ?? 0) / used) * 100 : 0;
+    const largestThemeCapitalPct = used > 0 && themeCapMapConc.size > 0
+      ? (Math.max(...themeCapMapConc.values()) / used) * 100 : 0;
+    const concentrationRiskScore = clamp01(
+      0.35 * clamp01(largestTickerCapitalPct / 25) +
+      0.35 * clamp01(largestThemeCapitalPct / 45) +
+      0.20 * clamp01(cryptoMinerCapitalPct / 35) +
+      0.10 * clamp01(highBetaCapitalPct / 40)
+    );
+    const diversificationHealthScore = clamp01(1 - concentrationRiskScore);
+    const clusterWarnings = [];
+    if (cryptoMinerCapitalPct > 35) clusterWarnings.push(`Crypto/miner ${cryptoMinerCapitalPct.toFixed(0)}% du capital`);
+    if (highBetaCapitalPct > 40) clusterWarnings.push(`High beta ${highBetaCapitalPct.toFixed(0)}% du capital`);
+    if (largestTickerCapitalPct > 25) clusterWarnings.push(`Ticker dominant ${largestTickerCapitalPct.toFixed(0)}% du capital`);
+    if (largestThemeCapitalPct > 45) clusterWarnings.push(`Thème dominant ${largestThemeCapitalPct.toFixed(0)}% du capital`);
+    if (qualityStats.speculativeCount >= 3) clusterWarnings.push(`${qualityStats.speculativeCount} positions spéculatives`);
+
     return {
       label: mode.label,
       positions: picks.length,
@@ -1812,10 +1886,47 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       qualityPremiumTrapCount: qualityStats.premiumTrapCount,
       qualityCryptoMinerCount: qualityStats.cryptoMinerCount,
       qualityHighBetaGrowthCount: qualityStats.highBetaGrowthCount,
+      largestTickerCapitalPct,
+      cryptoMinerCapitalPct,
+      highBetaCapitalPct,
+      largestThemeCapitalPct,
+      concentrationRiskScore,
+      diversificationHealthScore,
+      clusterWarnings,
     };
   }
 
-  return modeConfigs.map((mode) => makeCombo(mode)).filter(Boolean);
+  function computeCrossModeOverlapLocal(combosArr) {
+    if (!combosArr || combosArr.length < 2) return null;
+    const modeSets = combosArr.map(combo => ({
+      label: combo.label,
+      tickers: new Set((combo.picks ?? []).map(p => p.ticker)),
+    }));
+    const allTickerSets = modeSets.map(m => m.tickers);
+    const unionTickers = new Set(allTickerSets.flatMap(s => [...s]));
+    const inAtLeastTwo = [];
+    const inAll = [];
+    for (const ticker of unionTickers) {
+      const count = allTickerSets.filter(s => s.has(ticker)).length;
+      if (count >= 2) inAtLeastTwo.push(ticker);
+      if (count === allTickerSets.length) inAll.push(ticker);
+    }
+    const maxSetSize = Math.max(...modeSets.map(m => m.tickers.size));
+    const overlapTickerCount = inAtLeastTwo.length;
+    const overlapTickerPct = maxSetSize > 0 ? (overlapTickerCount / maxSetSize) * 100 : 0;
+    let crossModeConcentrationRisk = "LOW";
+    if (inAll.length >= 4) crossModeConcentrationRisk = "HIGH";
+    else if (inAll.length >= 2 || overlapTickerPct > 50) crossModeConcentrationRisk = "MEDIUM";
+    const crossModeWarnings = [];
+    if (inAll.length >= 3) crossModeWarnings.push(`${inAll.length} tickers communs aux ${allTickerSets.length} modes : ${inAll.join(", ")}`);
+    if (overlapTickerPct > 50) crossModeWarnings.push(`${overlapTickerPct.toFixed(0)}% des tickers communs entre modes`);
+    return { overlapTickerCount, overlapTickerPct, commonTickers: inAtLeastTwo, inAllModes: inAll, crossModeConcentrationRisk, crossModeWarnings };
+  }
+
+  const builtCombos = modeConfigs.map((mode) => makeCombo(mode)).filter(Boolean);
+  if (!builtCombos.length) return builtCombos;
+  const crossModeOverlap = computeCrossModeOverlapLocal(builtCombos);
+  return builtCombos.map(combo => ({ ...combo, crossModeOverlap }));
 }
 
 function Card({ className = "", children }) {
@@ -5175,6 +5286,36 @@ function PortfolioCombos({ combos, capital }) {
                       <span className="ml-2 text-rose-400">{combo.qualityPremiumTrapCount} premium trap</span>
                     )}
                   </p>
+                )}
+                {combo.concentrationRiskScore != null && (
+                  <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-slate-500">
+                    <span>Concentration : <span className={cn(
+                      "font-medium",
+                      combo.concentrationRiskScore > 0.65 ? "text-rose-600" :
+                      combo.concentrationRiskScore > 0.45 ? "text-amber-500" : "text-green-600"
+                    )}>{combo.concentrationRiskScore > 0.65 ? "élevée" : combo.concentrationRiskScore > 0.45 ? "moyenne" : "faible"}</span></span>
+                    {combo.cryptoMinerCapitalPct > 0 && (
+                      <span className={combo.cryptoMinerCapitalPct > 35 ? "text-rose-500" : ""}>Crypto/miner : {combo.cryptoMinerCapitalPct.toFixed(0)}%</span>
+                    )}
+                    {combo.highBetaCapitalPct > 0 && (
+                      <span className={combo.highBetaCapitalPct > 40 ? "text-rose-500" : ""}>High beta : {combo.highBetaCapitalPct.toFixed(0)}%</span>
+                    )}
+                    <span>Diversif. : {Math.round(combo.diversificationHealthScore * 100)}/100</span>
+                  </div>
+                )}
+                {combo.clusterWarnings?.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {combo.clusterWarnings.map((w, i) => (
+                      <p key={i} className="text-xs text-rose-600">Concentration élevée : {w}</p>
+                    ))}
+                  </div>
+                )}
+                {combo.crossModeOverlap?.crossModeWarnings?.length > 0 && (
+                  <div className="mt-0.5">
+                    {combo.crossModeOverlap.crossModeWarnings.map((w, i) => (
+                      <p key={i} className="text-xs text-slate-400">{w}</p>
+                    ))}
+                  </div>
                 )}
               </div>
               <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">

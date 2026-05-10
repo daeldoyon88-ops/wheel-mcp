@@ -14,7 +14,7 @@
  *   noDbWrite           : true  — pure computation, no persistence
  */
 
-const AUDIT_VERSION = "4D.1";
+const AUDIT_VERSION = "4D.4";
 
 // ─── Low-level helpers ────────────────────────────────────────────────────────
 
@@ -372,6 +372,51 @@ export function computeModeMetrics(modeData, accountCapital) {
     if (pm.concentrationTheme === "high_beta_growth") highBetaGrowthCount++;
   }
 
+  // Concentration metrics — Phase 4D-4
+  const concTickerMap = new Map();
+  const concThemeMap = new Map();
+  const NEUTRAL_THEMES_AUDIT = new Set(["unknown", "none", "no_theme", "other", ""]);
+  for (const pm of positionMetrics) {
+    concTickerMap.set(pm.ticker, (concTickerMap.get(pm.ticker) ?? 0) + pm.capitalUsed);
+    const theme = pm.concentrationTheme;
+    if (theme != null && !NEUTRAL_THEMES_AUDIT.has(theme)) {
+      concThemeMap.set(theme, (concThemeMap.get(theme) ?? 0) + pm.capitalUsed);
+    }
+  }
+  function clampConc(v) { return Math.max(0, Math.min(1, v)); }
+  const largestTickerCapitalPct = capitalUsed > 0 && concTickerMap.size > 0
+    ? (Math.max(...concTickerMap.values()) / capitalUsed) * 100 : 0;
+  const cryptoMinerCapitalPct = capitalUsed > 0
+    ? ((concThemeMap.get("crypto_miner") ?? 0) / capitalUsed) * 100 : 0;
+  const highBetaCapitalPct = capitalUsed > 0
+    ? ((concThemeMap.get("high_beta_growth") ?? 0) / capitalUsed) * 100 : 0;
+  const largestThemeCapitalPct = capitalUsed > 0 && concThemeMap.size > 0
+    ? (Math.max(...concThemeMap.values()) / capitalUsed) * 100 : 0;
+  const concentrationRiskScore = clampConc(
+    0.35 * clampConc(largestTickerCapitalPct / 25) +
+    0.35 * clampConc(largestThemeCapitalPct / 45) +
+    0.20 * clampConc(cryptoMinerCapitalPct / 35) +
+    0.10 * clampConc(highBetaCapitalPct / 40)
+  );
+  const diversificationHealthScore = clampConc(1 - concentrationRiskScore);
+  const clusterWarnings = [];
+  if (cryptoMinerCapitalPct > 35) {
+    warnings.push({ code: "MODE_CRYPTO_CONCENTRATION", detail: `cryptoMinerCapitalPct=${cryptoMinerCapitalPct.toFixed(1)}% > 35%` });
+    clusterWarnings.push("MODE_CRYPTO_CONCENTRATION");
+  }
+  if (highBetaCapitalPct > 40) {
+    warnings.push({ code: "MODE_HIGH_BETA_CONCENTRATION", detail: `highBetaCapitalPct=${highBetaCapitalPct.toFixed(1)}% > 40%` });
+    clusterWarnings.push("MODE_HIGH_BETA_CONCENTRATION");
+  }
+  if (largestTickerCapitalPct > 25) {
+    warnings.push({ code: "MODE_LARGEST_TICKER_CONCENTRATION", detail: `largestTickerCapitalPct=${largestTickerCapitalPct.toFixed(1)}% > 25%` });
+    clusterWarnings.push("MODE_LARGEST_TICKER_CONCENTRATION");
+  }
+  if (largestThemeCapitalPct > 45) {
+    warnings.push({ code: "MODE_THEME_CONCENTRATION", detail: `largestThemeCapitalPct=${largestThemeCapitalPct.toFixed(1)}% > 45%` });
+    clusterWarnings.push("MODE_THEME_CONCENTRATION");
+  }
+
   return {
     positionCount: positions.length,
     capitalUsed,
@@ -398,6 +443,13 @@ export function computeModeMetrics(modeData, accountCapital) {
     premiumTrapCount,
     cryptoMinerCount,
     highBetaGrowthCount,
+    largestTickerCapitalPct,
+    cryptoMinerCapitalPct,
+    highBetaCapitalPct,
+    largestThemeCapitalPct,
+    concentrationRiskScore,
+    diversificationHealthScore,
+    clusterWarnings,
     warnings,
     positionWarnings,
     positionMetrics,
@@ -493,6 +545,25 @@ export function compareModes(conservative, balanced, aggressive) {
       detail: `[${inAll.join(", ")}] are held in all modes. ` +
         `If multiple underlyings decline simultaneously, all three portfolio modes will be stressed at once.`,
     });
+  }
+
+  // ── Cross-mode concentration risk — Phase 4D-4 ───────────────────────────
+  if (inAll.length > 0) {
+    const allPms = [
+      ...(aggressive?.positionMetrics ?? []),
+      ...(balanced?.positionMetrics ?? []),
+      ...(conservative?.positionMetrics ?? []),
+    ];
+    const cryptoInAll = inAll.filter((t) =>
+      allPms.some((pm) => pm.ticker === t && pm.concentrationTheme === "crypto_miner")
+    );
+    if (cryptoInAll.length >= 2) {
+      warnings.push({
+        code: "CROSS_MODE_OVERLAP_RISK",
+        severity: "HIGH",
+        detail: `${cryptoInAll.length} crypto/miner tickers in all modes: [${cryptoInAll.join(", ")}]. Correlated drawdown risk across all modes.`,
+      });
+    }
   }
 
   // ── Risk-adjusted return ──────────────────────────────────────────────────

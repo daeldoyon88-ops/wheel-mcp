@@ -110,6 +110,41 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     resolvedAt: resolution?.resolvedAt ?? null,
     resolutionDate: resolution?.resolutionDate ?? null,
     notes: resolution?.notes ?? null,
+    // Phase 1 — Data Integrity
+    trade_signature: record?.trade_signature ?? null,
+    duplicate_candidate_flag: toIntBool(record?.duplicate_candidate_flag),
+    resolution_confidence: resolution?.resolution_confidence ?? null,
+    resolved_source: resolution?.resolved_source ?? null,
+    missing_close_flag: toIntBool(resolution?.missing_close_flag),
+    stale_quote_flag: toIntBool(record?.stale_quote_flag),
+    // Phase 2 — Raw Outcome
+    underlying_close_at_expiration: toReal(resolution?.underlying_close_at_expiration),
+    underlying_low_between_scan_and_expiration: toReal(resolution?.underlying_low_between_scan_and_expiration),
+    underlying_high_between_scan_and_expiration: toReal(resolution?.underlying_high_between_scan_and_expiration),
+    expired_otm: toIntBool(resolution?.expired_otm),
+    expired_itm: toIntBool(resolution?.expired_itm),
+    assigned_flag: toIntBool(resolution?.assigned_flag),
+    intrinsic_value_at_expiration: toReal(resolution?.intrinsic_value_at_expiration),
+    option_final_value: toReal(resolution?.option_final_value),
+    days_held: toInt(resolution?.days_held),
+    // Phase 2 — Snapshot au scan
+    underlying_price_at_scan: toReal(record?.snapshot?.underlying_price_at_scan),
+    distance_strike_from_spot_pct: toReal(record?.snapshot?.distance_strike_from_spot_pct),
+    distance_lower_bound_from_spot_pct: toReal(record?.snapshot?.distance_lower_bound_from_spot_pct),
+    premium_to_spot_pct: toReal(record?.snapshot?.premium_to_spot_pct),
+    // Phase 3 — Stress Metrics (scan-time)
+    stress_score: toReal(record?.stress?.stress_score),
+    premium_efficiency: toReal(record?.stress?.premium_efficiency),
+    risk_adjusted_return: toReal(record?.stress?.risk_adjusted_return),
+    strike_safety_margin: toReal(record?.stress?.strike_safety_margin),
+    strike_safety_margin_pct: toReal(record?.stress?.strike_safety_margin_pct),
+    data_quality_score: toReal(record?.stress?.data_quality_score),
+    // Phase 3 — Stress Metrics (resolution-time)
+    false_safety_flag: toIntBool(resolution?.false_safety_flag),
+    strike_touch_recovery_flag: toIntBool(resolution?.strike_touch_recovery_flag),
+    max_itm_depth_pct: toReal(resolution?.max_itm_depth_pct),
+    lower_bound_distance_pct: toReal(resolution?.lower_bound_distance_pct),
+    support_break_severity: toReal(resolution?.support_break_severity),
     rawJson: JSON.stringify(record ?? {}),
     createdAt: nowIso,
     updatedAt: nowIso,
@@ -230,6 +265,71 @@ export function createWheelValidationStoreSqlite(options = {}) {
     safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_wvr_captureClass ON wheel_validation_records(captureClass)`);
     safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_wvr_resultStatus ON wheel_validation_records(resultStatus)`);
 
+    // Phase 1 — Data Integrity / Resolution Safety
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN trade_signature TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN duplicate_candidate_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN resolution_confidence TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN resolved_source TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN missing_close_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN stale_quote_flag INTEGER`);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_wvr_trade_signature ON wheel_validation_records(trade_signature)`);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_wvr_duplicate_flag ON wheel_validation_records(duplicate_candidate_flag)`);
+
+    // Phase 2 — Raw Outcome + Snapshot au scan
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN underlying_close_at_expiration REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN underlying_low_between_scan_and_expiration REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN underlying_high_between_scan_and_expiration REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN expired_otm INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN expired_itm INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN assigned_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN intrinsic_value_at_expiration REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN option_final_value REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN days_held INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN underlying_price_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN distance_strike_from_spot_pct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN distance_lower_bound_from_spot_pct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN premium_to_spot_pct REAL`);
+
+    // Phase 3 — Stress Metrics
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN stress_score REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN premium_efficiency REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN risk_adjusted_return REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN strike_safety_margin REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN strike_safety_margin_pct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN false_safety_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN strike_touch_recovery_flag INTEGER`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN max_itm_depth_pct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN lower_bound_distance_pct REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN support_break_severity REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN data_quality_score REAL`);
+
+    // Phase 3 — Market Context Snapshot table (V0 read-only structure)
+    safeExec(conn, `
+      CREATE TABLE IF NOT EXISTS market_context_snapshot (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        record_id TEXT,
+        scan_date TEXT,
+        ticker TEXT,
+        expiration TEXT,
+        spy_price REAL,
+        spy_ma50 REAL,
+        spy_ma200 REAL,
+        qqq_price REAL,
+        qqq_ma50 REAL,
+        qqq_ma200 REAL,
+        vix_level REAL,
+        market_regime TEXT,
+        spy_trend_regime TEXT,
+        qqq_trend_regime TEXT,
+        vix_regime TEXT,
+        sector_regime TEXT,
+        market_drawdown_regime TEXT,
+        created_at TEXT
+      )
+    `);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_mcs_record_id ON market_context_snapshot(record_id)`);
+    safeExec(conn, `CREATE INDEX IF NOT EXISTS idx_mcs_ticker_date ON market_context_snapshot(ticker, scan_date)`);
+
     const insertStmt = conn.prepare(`
       INSERT INTO wheel_validation_records (
         id, scanSessionId, scanTimestamp, scanDate, selectedExpiration, expiration, expirationCohort,
@@ -241,6 +341,17 @@ export function createWheelValidationStoreSqlite(options = {}) {
         strikeTouched, minPriceBetweenScanAndExpiration, brokeLowerBound, maxItmDepth, lowerBoundDistance,
         supportBreak, drawdownPct, rolled, realizedPl, premiumRealized, realizedReturnPct,
         popPredictionCorrect, outcomeStatus, resultStatus, resolvedAt, resolutionDate, notes,
+        trade_signature, duplicate_candidate_flag, resolution_confidence, resolved_source,
+        missing_close_flag, stale_quote_flag,
+        underlying_close_at_expiration, underlying_low_between_scan_and_expiration,
+        underlying_high_between_scan_and_expiration, expired_otm, expired_itm, assigned_flag,
+        intrinsic_value_at_expiration, option_final_value, days_held,
+        underlying_price_at_scan, distance_strike_from_spot_pct,
+        distance_lower_bound_from_spot_pct, premium_to_spot_pct,
+        stress_score, premium_efficiency, risk_adjusted_return,
+        strike_safety_margin, strike_safety_margin_pct, data_quality_score,
+        false_safety_flag, strike_touch_recovery_flag, max_itm_depth_pct,
+        lower_bound_distance_pct, support_break_severity,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -252,6 +363,17 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @strikeTouched, @minPriceBetweenScanAndExpiration, @brokeLowerBound, @maxItmDepth, @lowerBoundDistance,
         @supportBreak, @drawdownPct, @rolled, @realizedPl, @premiumRealized, @realizedReturnPct,
         @popPredictionCorrect, @outcomeStatus, @resultStatus, @resolvedAt, @resolutionDate, @notes,
+        @trade_signature, @duplicate_candidate_flag, @resolution_confidence, @resolved_source,
+        @missing_close_flag, @stale_quote_flag,
+        @underlying_close_at_expiration, @underlying_low_between_scan_and_expiration,
+        @underlying_high_between_scan_and_expiration, @expired_otm, @expired_itm, @assigned_flag,
+        @intrinsic_value_at_expiration, @option_final_value, @days_held,
+        @underlying_price_at_scan, @distance_strike_from_spot_pct,
+        @distance_lower_bound_from_spot_pct, @premium_to_spot_pct,
+        @stress_score, @premium_efficiency, @risk_adjusted_return,
+        @strike_safety_margin, @strike_safety_margin_pct, @data_quality_score,
+        @false_safety_flag, @strike_touch_recovery_flag, @max_itm_depth_pct,
+        @lower_bound_distance_pct, @support_break_severity,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO NOTHING
     `);
@@ -326,6 +448,17 @@ export function createWheelValidationStoreSqlite(options = {}) {
         strikeTouched, minPriceBetweenScanAndExpiration, brokeLowerBound, maxItmDepth, lowerBoundDistance,
         supportBreak, drawdownPct, rolled, realizedPl, premiumRealized, realizedReturnPct,
         popPredictionCorrect, outcomeStatus, resultStatus, resolvedAt, resolutionDate, notes,
+        trade_signature, duplicate_candidate_flag, resolution_confidence, resolved_source,
+        missing_close_flag, stale_quote_flag,
+        underlying_close_at_expiration, underlying_low_between_scan_and_expiration,
+        underlying_high_between_scan_and_expiration, expired_otm, expired_itm, assigned_flag,
+        intrinsic_value_at_expiration, option_final_value, days_held,
+        underlying_price_at_scan, distance_strike_from_spot_pct,
+        distance_lower_bound_from_spot_pct, premium_to_spot_pct,
+        stress_score, premium_efficiency, risk_adjusted_return,
+        strike_safety_margin, strike_safety_margin_pct, data_quality_score,
+        false_safety_flag, strike_touch_recovery_flag, max_itm_depth_pct,
+        lower_bound_distance_pct, support_break_severity,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -337,6 +470,17 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @strikeTouched, @minPriceBetweenScanAndExpiration, @brokeLowerBound, @maxItmDepth, @lowerBoundDistance,
         @supportBreak, @drawdownPct, @rolled, @realizedPl, @premiumRealized, @realizedReturnPct,
         @popPredictionCorrect, @outcomeStatus, @resultStatus, @resolvedAt, @resolutionDate, @notes,
+        @trade_signature, @duplicate_candidate_flag, @resolution_confidence, @resolved_source,
+        @missing_close_flag, @stale_quote_flag,
+        @underlying_close_at_expiration, @underlying_low_between_scan_and_expiration,
+        @underlying_high_between_scan_and_expiration, @expired_otm, @expired_itm, @assigned_flag,
+        @intrinsic_value_at_expiration, @option_final_value, @days_held,
+        @underlying_price_at_scan, @distance_strike_from_spot_pct,
+        @distance_lower_bound_from_spot_pct, @premium_to_spot_pct,
+        @stress_score, @premium_efficiency, @risk_adjusted_return,
+        @strike_safety_margin, @strike_safety_margin_pct, @data_quality_score,
+        @false_safety_flag, @strike_touch_recovery_flag, @max_itm_depth_pct,
+        @lower_bound_distance_pct, @support_break_severity,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO UPDATE SET
         scanSessionId=excluded.scanSessionId,
@@ -400,6 +544,36 @@ export function createWheelValidationStoreSqlite(options = {}) {
         resolvedAt=excluded.resolvedAt,
         resolutionDate=excluded.resolutionDate,
         notes=excluded.notes,
+        trade_signature=excluded.trade_signature,
+        duplicate_candidate_flag=excluded.duplicate_candidate_flag,
+        resolution_confidence=excluded.resolution_confidence,
+        resolved_source=excluded.resolved_source,
+        missing_close_flag=excluded.missing_close_flag,
+        stale_quote_flag=excluded.stale_quote_flag,
+        underlying_close_at_expiration=excluded.underlying_close_at_expiration,
+        underlying_low_between_scan_and_expiration=excluded.underlying_low_between_scan_and_expiration,
+        underlying_high_between_scan_and_expiration=excluded.underlying_high_between_scan_and_expiration,
+        expired_otm=excluded.expired_otm,
+        expired_itm=excluded.expired_itm,
+        assigned_flag=excluded.assigned_flag,
+        intrinsic_value_at_expiration=excluded.intrinsic_value_at_expiration,
+        option_final_value=excluded.option_final_value,
+        days_held=excluded.days_held,
+        underlying_price_at_scan=excluded.underlying_price_at_scan,
+        distance_strike_from_spot_pct=excluded.distance_strike_from_spot_pct,
+        distance_lower_bound_from_spot_pct=excluded.distance_lower_bound_from_spot_pct,
+        premium_to_spot_pct=excluded.premium_to_spot_pct,
+        stress_score=excluded.stress_score,
+        premium_efficiency=excluded.premium_efficiency,
+        risk_adjusted_return=excluded.risk_adjusted_return,
+        strike_safety_margin=excluded.strike_safety_margin,
+        strike_safety_margin_pct=excluded.strike_safety_margin_pct,
+        data_quality_score=excluded.data_quality_score,
+        false_safety_flag=excluded.false_safety_flag,
+        strike_touch_recovery_flag=excluded.strike_touch_recovery_flag,
+        max_itm_depth_pct=excluded.max_itm_depth_pct,
+        lower_bound_distance_pct=excluded.lower_bound_distance_pct,
+        support_break_severity=excluded.support_break_severity,
         rawJson=excluded.rawJson,
         createdAt=COALESCE(wheel_validation_records.createdAt, excluded.createdAt),
         updatedAt=excluded.updatedAt
@@ -427,10 +601,64 @@ export function createWheelValidationStoreSqlite(options = {}) {
     };
   }
 
+  async function insertMarketContextSnapshot(snapshot) {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    const stmt = conn.prepare(`
+      INSERT INTO market_context_snapshot (
+        record_id, scan_date, ticker, expiration,
+        spy_price, spy_ma50, spy_ma200,
+        qqq_price, qqq_ma50, qqq_ma200,
+        vix_level, market_regime, spy_trend_regime, qqq_trend_regime,
+        vix_regime, sector_regime, market_drawdown_regime, created_at
+      ) VALUES (
+        @record_id, @scan_date, @ticker, @expiration,
+        @spy_price, @spy_ma50, @spy_ma200,
+        @qqq_price, @qqq_ma50, @qqq_ma200,
+        @vix_level, @market_regime, @spy_trend_regime, @qqq_trend_regime,
+        @vix_regime, @sector_regime, @market_drawdown_regime, @created_at
+      )
+    `);
+    return stmt.run({
+      record_id: snapshot?.record_id ?? null,
+      scan_date: snapshot?.scan_date ?? null,
+      ticker: snapshot?.ticker ?? null,
+      expiration: snapshot?.expiration ?? null,
+      spy_price: toReal(snapshot?.spy_price),
+      spy_ma50: toReal(snapshot?.spy_ma50),
+      spy_ma200: toReal(snapshot?.spy_ma200),
+      qqq_price: toReal(snapshot?.qqq_price),
+      qqq_ma50: toReal(snapshot?.qqq_ma50),
+      qqq_ma200: toReal(snapshot?.qqq_ma200),
+      vix_level: toReal(snapshot?.vix_level),
+      market_regime: snapshot?.market_regime ?? null,
+      spy_trend_regime: snapshot?.spy_trend_regime ?? null,
+      qqq_trend_regime: snapshot?.qqq_trend_regime ?? null,
+      vix_regime: snapshot?.vix_regime ?? null,
+      sector_regime: snapshot?.sector_regime ?? null,
+      market_drawdown_regime: snapshot?.market_drawdown_regime ?? null,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  async function queryMarketContextSnapshot(filter = {}) {
+    await ensureInitialized();
+    const conn = ensureDbSync();
+    let sql = "SELECT * FROM market_context_snapshot WHERE 1=1";
+    const params = {};
+    if (filter.record_id != null) { sql += " AND record_id = @record_id"; params.record_id = filter.record_id; }
+    if (filter.ticker != null) { sql += " AND ticker = @ticker"; params.ticker = filter.ticker; }
+    if (filter.scan_date != null) { sql += " AND scan_date = @scan_date"; params.scan_date = filter.scan_date; }
+    sql += " ORDER BY id DESC LIMIT 500";
+    return conn.prepare(sql).all(params);
+  }
+
   return {
     load,
     save,
     sqlitePath,
     jsonPath,
+    insertMarketContextSnapshot,
+    queryMarketContextSnapshot,
   };
 }

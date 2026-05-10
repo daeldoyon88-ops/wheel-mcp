@@ -71,6 +71,81 @@ function buildSessionRecordId(symbol, expiration, strikeMode, strike, scanSessio
   return `${session}_${symbol}_${expiration}_${strikeMode}_${normalizeStrikeToken(strike)}`;
 }
 
+// Phase 1 — trade_signature identifies a unique logical trade (symbol+expiration+mode+strike)
+// SAFE and AGGRESSIVE are distinct signatures — both can be legitimate simultaneously.
+function buildTradeSignature(symbol, expiration, strikeMode, strike) {
+  const strikeToken = normalizeStrikeToken(strike);
+  return `${symbol}_${expiration}_${strikeMode}_${strikeToken}`;
+}
+
+// Phase 2 — Snapshot fields computed at scan time from available candidate data
+function computeSnapshotAtScan(spot, strike, lowerBound, premium) {
+  const distanceStrikeFromSpotPct =
+    spot != null && spot > 0 && strike != null
+      ? Number((((spot - strike) / spot) * 100).toFixed(4))
+      : null;
+  const distanceLowerBoundFromSpotPct =
+    spot != null && spot > 0 && lowerBound != null
+      ? Number((((spot - lowerBound) / spot) * 100).toFixed(4))
+      : null;
+  const premiumToSpotPct =
+    spot != null && spot > 0 && premium != null
+      ? Number(((premium / spot) * 100).toFixed(4))
+      : null;
+  return {
+    underlying_price_at_scan: spot,
+    distance_strike_from_spot_pct: distanceStrikeFromSpotPct,
+    distance_lower_bound_from_spot_pct: distanceLowerBoundFromSpotPct,
+    premium_to_spot_pct: premiumToSpotPct,
+  };
+}
+
+// Phase 3 — Stress metrics computable at scan time
+function computeStressAtScan(spot, strike, premium, bid, ask, expectedMove, lowerBound, support, popEstimate) {
+  const strikeSafetyMargin =
+    spot != null && strike != null ? Number((spot - strike).toFixed(4)) : null;
+  const strikeSafetyMarginPct =
+    spot != null && spot > 0 && strike != null
+      ? Number((((spot - strike) / spot) * 100).toFixed(4))
+      : null;
+  const premiumEfficiency =
+    premium != null && strike != null && strike > 0
+      ? Number(((premium / strike) * 100).toFixed(4))
+      : null;
+
+  // data_quality_score: 100 minus deductions for missing key fields
+  let dataQuality = 100;
+  if (spot == null) dataQuality -= 20;
+  if (strike == null) dataQuality -= 20;
+  if (premium == null) dataQuality -= 15;
+  if (bid == null && ask == null) dataQuality -= 10;
+  if (expectedMove == null) dataQuality -= 10;
+  if (lowerBound == null) dataQuality -= 5;
+  if (support == null) dataQuality -= 5;
+  if (popEstimate == null) dataQuality -= 10;
+
+  return {
+    stress_score: null,
+    premium_efficiency: premiumEfficiency,
+    risk_adjusted_return: null,
+    strike_safety_margin: strikeSafetyMargin,
+    strike_safety_margin_pct: strikeSafetyMarginPct,
+    data_quality_score: Math.max(0, dataQuality),
+  };
+}
+
+// Phase 1 — stale_quote_flag: 1 if bid+ask both absent, or spread is suspiciously wide (>50%)
+function computeStaleQuoteFlag(strikeRow) {
+  const bid = toNumberOrNull(strikeRow?.bid);
+  const ask = toNumberOrNull(strikeRow?.ask);
+  if (bid == null && ask == null) return true;
+  const spreadPct =
+    toNumberOrNull(strikeRow?.spreadPct) ??
+    toNumberOrNull(strikeRow?.liquidity?.spreadPct);
+  if (spreadPct != null && spreadPct > 0.5) return true;
+  return false;
+}
+
 function buildResolutionDefaults() {
   return {
     resolved: false,
@@ -94,6 +169,26 @@ function buildResolutionDefaults() {
     resolvedAt: null,
     resolutionDate: null,
     notes: null,
+    // Phase 1 — Resolution integrity
+    resolved_source: null,
+    resolution_confidence: null,
+    missing_close_flag: null,
+    // Phase 2 — Raw outcome
+    underlying_close_at_expiration: null,
+    underlying_low_between_scan_and_expiration: null,
+    underlying_high_between_scan_and_expiration: null,
+    expired_otm: null,
+    expired_itm: null,
+    assigned_flag: null,
+    intrinsic_value_at_expiration: null,
+    option_final_value: null,
+    days_held: null,
+    // Phase 3 — Resolution-time stress metrics
+    false_safety_flag: null,
+    strike_touch_recovery_flag: null,
+    max_itm_depth_pct: null,
+    lower_bound_distance_pct: null,
+    support_break_severity: null,
   };
 }
 
@@ -234,8 +329,40 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
   const captureSource =
     options.captureSource == null ? null : String(options.captureSource).trim() || null;
 
+  // Phase 2 — snapshot at scan time
+  const spot = getSpotAtScan(candidate);
+  const lowerBound = getLowerBound(candidate);
+  const premium =
+    toNumberOrNull(strikeRow?.premium) ??
+    toNumberOrNull(strikeRow?.premiumUsed) ??
+    toNumberOrNull(strikeRow?.mid) ??
+    toNumberOrNull(strikeRow?.bid) ??
+    null;
+  const snapshotAtScan = computeSnapshotAtScan(spot, strike, lowerBound, premium);
+
+  // Phase 3 — stress at scan time
+  const expectedMove = getExpectedMove(candidate);
+  const support =
+    toNumberOrNull(candidate?.support) ??
+    toNumberOrNull(candidate?.supportResistance?.support) ??
+    null;
+  const popEstimate =
+    toNumberOrNull(strikeRow?.popEstimate) ??
+    toNumberOrNull(strikeRow?.popProfitEstimated) ??
+    null;
+  const stressAtScan = computeStressAtScan(
+    spot, strike, premium,
+    toNumberOrNull(strikeRow?.bid),
+    toNumberOrNull(strikeRow?.ask),
+    expectedMove, lowerBound, support, popEstimate
+  );
+
   return {
     id: buildSessionRecordId(symbol, expiration, strikeMode, strike, scanSessionId, scanDate),
+    // Phase 1 — trade identity & integrity
+    trade_signature: buildTradeSignature(symbol, expiration, strikeMode, strike),
+    duplicate_candidate_flag: false,
+    stale_quote_flag: computeStaleQuoteFlag(strikeRow),
     scanSessionId: scanSessionId == null ? null : String(scanSessionId).trim() || null,
     scanTimestamp,
     scanDate,
@@ -323,6 +450,10 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
         null,
     },
     diagnosticsV12: normalizeDiagnosticsV12(candidate),
+    // Phase 2 — snapshot at scan time
+    snapshot: snapshotAtScan,
+    // Phase 3 — stress at scan time (resolution-time stress fields stay in resolution object)
+    stress: stressAtScan,
     resolution: buildResolutionDefaults(),
   };
 }
@@ -330,6 +461,9 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
 function normalizeResolutionPatch(patch) {
   const resolved = typeof patch?.resolved === "boolean" ? patch.resolved : true;
   const expiredWorthless = toBooleanOrNull(patch?.expiredWorthless);
+  const assigned = toBooleanOrNull(patch?.assigned);
+  const expirationClosePrice = toNumberOrNull(patch?.expirationClosePrice);
+  const minPriceBetweenScanAndExpiration = toNumberOrNull(patch?.minPriceBetweenScanAndExpiration);
   const resultStatus =
     patch?.resultStatus == null ? null : String(patch.resultStatus).trim() || null;
   const resolvedAt =
@@ -338,13 +472,23 @@ function normalizeResolutionPatch(patch) {
         ? new Date().toISOString()
         : String(patch.resolvedAt).trim() || new Date().toISOString()
       : null;
+
+  // Phase 2 — intrinsic value for manual patches if close price provided
+  const strikeForPatch = toNumberOrNull(patch?.strike);
+  const intrinsicValueAtExpiration =
+    patch?.intrinsic_value_at_expiration != null
+      ? toNumberOrNull(patch.intrinsic_value_at_expiration)
+      : assigned === true && strikeForPatch != null && expirationClosePrice != null
+      ? Number(Math.max(0, strikeForPatch - expirationClosePrice).toFixed(4))
+      : null;
+
   return {
     resolved,
-    expirationClosePrice: toNumberOrNull(patch?.expirationClosePrice),
+    expirationClosePrice,
     expiredWorthless,
-    assigned: toBooleanOrNull(patch?.assigned),
+    assigned,
     strikeTouched: toBooleanOrNull(patch?.strikeTouched),
-    minPriceBetweenScanAndExpiration: toNumberOrNull(patch?.minPriceBetweenScanAndExpiration),
+    minPriceBetweenScanAndExpiration,
     brokeLowerBound: toBooleanOrNull(patch?.brokeLowerBound),
     maxItmDepth: toNumberOrNull(patch?.maxItmDepth),
     lowerBoundDistance: toNumberOrNull(patch?.lowerBoundDistance),
@@ -368,6 +512,32 @@ function normalizeResolutionPatch(patch) {
     resolutionDate:
       patch?.resolutionDate == null ? null : String(patch.resolutionDate).trim() || null,
     notes: patch?.notes == null ? null : String(patch.notes),
+    // Phase 1 — manual resolution always has high confidence
+    resolved_source: patch?.resolved_source ?? "manual",
+    resolution_confidence: patch?.resolution_confidence ?? "high",
+    missing_close_flag: expirationClosePrice == null,
+    // Phase 2 — raw outcome from manual patch
+    underlying_close_at_expiration:
+      toNumberOrNull(patch?.underlying_close_at_expiration) ?? expirationClosePrice,
+    underlying_low_between_scan_and_expiration:
+      toNumberOrNull(patch?.underlying_low_between_scan_and_expiration) ?? minPriceBetweenScanAndExpiration,
+    underlying_high_between_scan_and_expiration:
+      toNumberOrNull(patch?.underlying_high_between_scan_and_expiration),
+    expired_otm: expiredWorthless === true ? true : expiredWorthless === false ? false : null,
+    expired_itm: expiredWorthless === false ? true : expiredWorthless === true ? false : null,
+    assigned_flag: assigned,
+    intrinsic_value_at_expiration: intrinsicValueAtExpiration,
+    option_final_value: toNumberOrNull(patch?.option_final_value) ?? intrinsicValueAtExpiration,
+    days_held: toNumberOrNull(patch?.days_held),
+    // Phase 3 — resolution-time stress (pass through if provided in patch, otherwise null)
+    false_safety_flag: patch?.false_safety_flag != null ? toBooleanOrNull(patch.false_safety_flag) : null,
+    strike_touch_recovery_flag:
+      patch?.strike_touch_recovery_flag != null
+        ? toBooleanOrNull(patch.strike_touch_recovery_flag)
+        : null,
+    max_itm_depth_pct: toNumberOrNull(patch?.max_itm_depth_pct),
+    lower_bound_distance_pct: toNumberOrNull(patch?.lower_bound_distance_pct),
+    support_break_severity: toNumberOrNull(patch?.support_break_severity),
   };
 }
 
@@ -396,6 +566,24 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
       ? Number(((premiumRealized / (strike * 100)) * 100).toFixed(4))
       : null;
   const resultStatus = expiredWorthless ? "expired_worthless" : "assigned";
+
+  // Phase 2 — intrinsic value at expiration (put)
+  const intrinsicValueAtExpiration = assigned
+    ? Number(Math.max(0, strike - closeNum).toFixed(4))
+    : 0;
+  const optionFinalValue = assigned ? intrinsicValueAtExpiration : 0;
+
+  // Phase 2 — days held from scan date to expiration
+  const scanDate = String(record?.scanDate ?? "").trim();
+  let daysHeld = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(scanDate) && expirationYmd) {
+    const scanMs = new Date(`${scanDate}T00:00:00.000Z`).getTime();
+    const expMs = new Date(`${expirationYmd}T00:00:00.000Z`).getTime();
+    if (!Number.isNaN(scanMs) && !Number.isNaN(expMs)) {
+      daysHeld = Math.max(0, Math.round((expMs - scanMs) / 86400000));
+    }
+  }
+
   return {
     resolved: true,
     expirationClosePrice: closeNum,
@@ -418,6 +606,26 @@ function buildAutoResolvedOutcomeV1(record, closeNum, todayYmd, expirationYmd) {
     resolvedAt: new Date().toISOString(),
     resolutionDate: todayYmd,
     notes: `auto_resolved_from_yahoo_close_${expirationYmd}`,
+    // Phase 1 — resolution traceability
+    resolved_source: "auto_yahoo_close_v1",
+    resolution_confidence: "medium",
+    missing_close_flag: false,
+    // Phase 2 — raw outcome
+    underlying_close_at_expiration: closeNum,
+    underlying_low_between_scan_and_expiration: null,
+    underlying_high_between_scan_and_expiration: null,
+    expired_otm: expiredWorthless,
+    expired_itm: assigned,
+    assigned_flag: assigned,
+    intrinsic_value_at_expiration: intrinsicValueAtExpiration,
+    option_final_value: optionFinalValue,
+    days_held: daysHeld,
+    // Phase 3 — resolution-time stress (no window data at v1)
+    false_safety_flag: null,
+    strike_touch_recovery_flag: null,
+    max_itm_depth_pct: null,
+    lower_bound_distance_pct: null,
+    support_break_severity: null,
   };
 }
 
@@ -432,13 +640,23 @@ function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
   if (historicalUnavailable || minPrice == null || strike == null) {
     return {
       ...baseOutcome,
+      // Phase 1 — confidence stays medium when no window data
+      resolution_confidence: "medium",
+      resolved_source: baseOutcome.resolved_source ?? "auto_yahoo_close_v1",
       strikeTouched: null,
       minPriceBetweenScanAndExpiration: null,
+      underlying_low_between_scan_and_expiration: null,
       maxItmDepth: null,
       brokeLowerBound: null,
       lowerBoundDistance: null,
       supportBreak: null,
       drawdownPct: null,
+      // Phase 3 — stress unavailable without window data
+      false_safety_flag: null,
+      strike_touch_recovery_flag: null,
+      max_itm_depth_pct: null,
+      lower_bound_distance_pct: null,
+      support_break_severity: null,
     };
   }
 
@@ -452,8 +670,29 @@ function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
       ? Number((((spotAtScan - minPrice) / spotAtScan) * 100).toFixed(4))
       : null;
 
+  // Phase 3 — resolution-time stress metrics (only computable with window data)
+  const maxItmDepthPct =
+    strikeTouched && strike > 0
+      ? Number((((strike - minPrice) / strike) * 100).toFixed(4))
+      : null;
+  const lowerBoundDistancePct =
+    lowerBoundDistance != null && spotAtScan != null && spotAtScan > 0
+      ? Number(((lowerBoundDistance / spotAtScan) * 100).toFixed(4))
+      : null;
+  const supportBreakSeverity =
+    supportBreak === true && support != null && support > 0
+      ? Number((((support - minPrice) / support) * 100).toFixed(4))
+      : null;
+  const falseSafetyFlag = !strikeTouched && brokeLowerBound === true;
+  const strikeTouchRecoveryFlag = strikeTouched && baseOutcome.expiredWorthless === true;
+
   return {
     ...baseOutcome,
+    // Phase 1 — upgrade confidence when historical window data is available
+    resolution_confidence: "high",
+    resolved_source: "auto_yahoo_close_v2",
+    // Phase 2 — underlying low
+    underlying_low_between_scan_and_expiration: Number(minPrice.toFixed(4)),
     strikeTouched,
     minPriceBetweenScanAndExpiration: Number(minPrice.toFixed(4)),
     maxItmDepth,
@@ -461,6 +700,12 @@ function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
     lowerBoundDistance,
     supportBreak,
     drawdownPct,
+    // Phase 3 — resolution-time stress
+    false_safety_flag: falseSafetyFlag,
+    strike_touch_recovery_flag: strikeTouchRecoveryFlag,
+    max_itm_depth_pct: maxItmDepthPct,
+    lower_bound_distance_pct: lowerBoundDistancePct,
+    support_break_severity: supportBreakSeverity,
   };
 }
 
@@ -1203,8 +1448,13 @@ export function createWheelValidationService(options = {}) {
           captureClass = existingCombinations.has(key) ? "intradayRetest" : "primaryDaily";
         }
         record.captureClass = captureClass;
-        if (captureClass === "intradayRetest") intradayRetestCount += 1;
-        else primaryDailyCount += 1;
+        // Phase 1 — flag intraday retests as duplicate candidates (soft flag, not suppressed)
+        if (captureClass === "intradayRetest") {
+          record.duplicate_candidate_flag = true;
+          intradayRetestCount += 1;
+        } else {
+          primaryDailyCount += 1;
+        }
 
         uniqueRecords.push(record);
       }

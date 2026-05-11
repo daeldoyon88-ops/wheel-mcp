@@ -1,5 +1,7 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
+
+// ── Utilities ───────────────────────────────────────────────────────────────
 
 function numberOrNull(value) {
   if (value == null) return null;
@@ -9,7 +11,7 @@ function numberOrNull(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "-";
+  if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return String(value);
   return parsed.toISOString().slice(0, 10);
@@ -17,13 +19,13 @@ function formatDate(value) {
 
 function formatCompactExpiration(value) {
   const raw = String(value ?? "").trim();
-  if (!/^\d{8}$/.test(raw)) return raw || "-";
+  if (!/^\d{8}$/.test(raw)) return raw || "—";
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
 }
 
 function formatMoney(value) {
   const n = numberOrNull(value);
-  if (n == null) return "-";
+  if (n == null) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -34,48 +36,27 @@ function formatMoney(value) {
 
 function formatPercent(value, digits = 1) {
   const n = numberOrNull(value);
-  if (n == null) return "-";
+  if (n == null) return "—";
   return `${n.toFixed(digits)}%`;
 }
 
 function formatPop(value) {
   const n = numberOrNull(value);
-  if (n == null) return "-";
+  if (n == null) return "—";
+  if (n > 1) return `${n.toFixed(1)}%`;
   return `${(n * 100).toFixed(1)}%`;
 }
 
 function formatYesNo(value) {
   if (value === true) return "Oui";
   if (value === false) return "Non";
-  return "-";
-}
-
-function CaptureClassBadge({ value }) {
-  if (value === "primaryDaily")
-    return (
-      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
-        primary
-      </span>
-    );
-  if (value === "intradayRetest")
-    return (
-      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-        retest
-      </span>
-    );
-  if (value === "manualTest")
-    return (
-      <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-        manual
-      </span>
-    );
-  return <span className="text-slate-400">-</span>;
+  return "—";
 }
 
 function formatDteRange(minDte, maxDte) {
   const min = numberOrNull(minDte);
   const max = numberOrNull(maxDte);
-  if (min == null && max == null) return "-";
+  if (min == null && max == null) return "—";
   if (min != null && max != null) return `${min} / ${max}`;
   return String(min ?? max);
 }
@@ -90,23 +71,8 @@ function getResolutionLabel(record) {
   return "Resolu";
 }
 
-function JournalMetric({ label, value, tone = "default" }) {
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-700"
-      : tone === "warn"
-      ? "text-amber-700"
-      : "text-slate-900";
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold ${toneClass}`}>{value}</p>
-    </div>
-  );
-}
-
 function formatResultStatus(value) {
-  if (!value) return "-";
+  if (!value) return "—";
   const labels = {
     expired_worthless: "Exp. worthless",
     assigned: "Assigned",
@@ -117,104 +83,185 @@ function formatResultStatus(value) {
   return labels[value] ?? String(value);
 }
 
-function JournalTable({ title, rows, showOutcomeV2 = false }) {
+// ── Dark-mode design tokens ─────────────────────────────────────────────────
+// bg-[#020617] = slate-950 (panel root)
+// bg-slate-900 = cards
+// bg-slate-800/50 = KPI cards
+// border-slate-700/60 = borders
+// text-slate-100 = primary text
+// text-slate-400 = secondary
+// text-slate-500/600 = muted
+
+function confidenceLevel(sample) {
+  const n = numberOrNull(sample) ?? 0;
+  if (n === 0) return { key: "none",        label: "Aucune donnée",      cls: "bg-slate-800 text-slate-500 border-slate-700" };
+  if (n < 10)  return { key: "low",         label: `Faible (n=${n})`,    cls: "bg-rose-900/40 text-rose-400 border-rose-800/50" };
+  if (n < 30)  return { key: "preliminary", label: `Préliminaire (n=${n})`, cls: "bg-amber-900/40 text-amber-400 border-amber-800/50" };
+  if (n < 100) return { key: "usable",      label: `Utilisable (n=${n})`, cls: "bg-sky-900/40 text-sky-400 border-sky-800/50" };
+  return       { key: "robust",             label: `Robuste (n=${n})`,   cls: "bg-emerald-900/40 text-emerald-400 border-emerald-800/50" };
+}
+
+function ConfidenceBadge({ sample }) {
+  const c = confidenceLevel(sample);
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
+    <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${c.cls}`}>
+      {c.label}
+    </span>
+  );
+}
+
+function ProKpi({ label, value, tone = "default", sub, large }) {
+  const col = { good: "text-emerald-400", warn: "text-amber-400", risk: "text-rose-400", info: "text-sky-400", muted: "text-slate-500", default: "text-slate-100" }[tone] ?? "text-slate-100";
+  return (
+    <div className="rounded-2xl border border-slate-700/60 bg-slate-800/50 p-4">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <p className={`mt-2 ${large ? "text-3xl" : "text-2xl"} font-bold tabular-nums leading-none ${col}`}>
+        {value ?? <span className="text-slate-600 text-lg">N/D</span>}
+      </p>
+      {sub && <p className="mt-1.5 text-[11px] text-slate-500">{sub}</p>}
+    </div>
+  );
+}
+
+function ProSection({ title, badge, subtitle, children }) {
+  return (
+    <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+      <div className="mb-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{title}</h3>
+          {badge && (
+            <span className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
+              {badge}
+            </span>
+          )}
+        </div>
+        {subtitle && <p className="mt-1 text-[11px] text-slate-600">{subtitle}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function DarkTable({ title, headers, rows, empty = "Aucune donnée." }) {
+  return (
+    <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+      <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">{title}</h3>
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+          {empty}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-xs text-slate-300">
+            <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+              <tr>
+                {headers.map((h) => (
+                  <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/70">{rows}</tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CaptureClassBadgeDark({ value }) {
+  if (value === "primaryDaily")
+    return <span className="rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">primary</span>;
+  if (value === "intradayRetest")
+    return <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">retest</span>;
+  if (value === "manualTest")
+    return <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">manual</span>;
+  return <span className="text-slate-600">—</span>;
+}
+
+function DarkJournalTable({ title, rows, showOutcomeV2 = false }) {
+  return (
+    <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
-          <p className="mt-1 text-sm text-slate-500">{rows.length} record{rows.length > 1 ? "s" : ""}</p>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">{title}</h3>
+          <p className="mt-0.5 text-[11px] text-slate-600">{rows.length} record{rows.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
-
       {rows.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-sm text-slate-500">
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-8 text-sm text-slate-600">
           Aucun record.
         </div>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-xs text-slate-700">
-            <thead className="border-b border-slate-200 text-[11px] uppercase tracking-[0.12em] text-slate-500">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-xs text-slate-300">
+            <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
-                <th className="px-3 py-3 font-medium">Date scan</th>
-                <th className="px-3 py-3 font-medium">Classe</th>
-                <th className="px-3 py-3 font-medium">Ticker</th>
-                <th className="px-3 py-3 font-medium">Expiration</th>
-                <th className="px-3 py-3 font-medium">DTE</th>
-                <th className="px-3 py-3 font-medium">Rang</th>
-                <th className="px-3 py-3 font-medium">Source</th>
-                <th className="px-3 py-3 font-medium">Strike mode</th>
-                <th className="px-3 py-3 font-medium">Strike</th>
-                <th className="px-3 py-3 font-medium">Premium</th>
-                <th className="px-3 py-3 font-medium">POP estime</th>
-                <th className="px-3 py-3 font-medium">Yahoo Rank</th>
-                <th className="px-3 py-3 font-medium">IBKR Rank</th>
-                <th className="px-3 py-3 font-medium">Elite Score</th>
-                <th className="px-3 py-3 font-medium">Elite Badge</th>
-                <th className="px-3 py-3 font-medium">Resultat</th>
-                <th className="px-3 py-3 font-medium">Status</th>
-                <th className="px-3 py-3 font-medium">P/L</th>
-                <th className="px-3 py-3 font-medium">Return %</th>
-                <th className="px-3 py-3 font-medium">Resolu le</th>
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Strike touche</th> : null}
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Min prix</th> : null}
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Max ITM</th> : null}
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">LowerBound casse</th> : null}
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Drawdown %</th> : null}
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Support casse</th> : null}
-                {showOutcomeV2 ? <th className="px-3 py-3 font-medium">Distance LowerBound</th> : null}
+                <th className="px-3 py-3 font-semibold">Date scan</th>
+                <th className="px-3 py-3 font-semibold">Classe</th>
+                <th className="px-3 py-3 font-semibold">Ticker</th>
+                <th className="px-3 py-3 font-semibold">Expiration</th>
+                <th className="px-3 py-3 font-semibold">DTE</th>
+                <th className="px-3 py-3 font-semibold">Rang</th>
+                <th className="px-3 py-3 font-semibold">Source</th>
+                <th className="px-3 py-3 font-semibold">Mode</th>
+                <th className="px-3 py-3 font-semibold">Strike</th>
+                <th className="px-3 py-3 font-semibold">Premium</th>
+                <th className="px-3 py-3 font-semibold">POP est.</th>
+                <th className="px-3 py-3 font-semibold">EliteScore</th>
+                <th className="px-3 py-3 font-semibold">Badge</th>
+                <th className="px-3 py-3 font-semibold">Résultat</th>
+                <th className="px-3 py-3 font-semibold">Statut</th>
+                <th className="px-3 py-3 font-semibold">P/L</th>
+                <th className="px-3 py-3 font-semibold">Return %</th>
+                <th className="px-3 py-3 font-semibold">Résolu le</th>
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">Strike touché</th>}
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">Min prix</th>}
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">Max ITM</th>}
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">LB cassé</th>}
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">Drawdown %</th>}
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">Support cassé</th>}
+                {showOutcomeV2 && <th className="px-3 py-3 font-semibold">Dist. LB</th>}
               </tr>
             </thead>
-            <tbody>
-              {rows.map((record) => (
-                <tr key={record.id} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
-                  <td className="px-3 py-3"><CaptureClassBadge value={record?.captureClass} /></td>
-                  <td className="px-3 py-3 font-semibold text-slate-900">{record?.symbol || "-"}</td>
-                  <td className="px-3 py-3">{formatCompactExpiration(record?.expiration)}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.dteAtScan) ?? "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.candidateRank) ?? "-"}</td>
-                  <td className="px-3 py-3">{record?.captureSource || "-"}</td>
-                  <td className="px-3 py-3">{record?.strikeMode || "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.strike?.strike) ?? "-"}</td>
-                  <td className="px-3 py-3">{formatMoney(record?.strike?.premium)}</td>
-                  <td className="px-3 py-3">{formatPop(record?.strike?.popEstimate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.ranks?.yahooRank) ?? "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(record?.ranks?.ibkrRank) ?? "-"}</td>
-                  <td className="px-3 py-3">
-                    {numberOrNull(record?.scores?.eliteScore) != null
-                      ? Number(record.scores.eliteScore).toFixed(1)
-                      : "-"}
-                  </td>
-                  <td className="px-3 py-3">{record?.scores?.eliteBadge || "-"}</td>
-                  <td className="px-3 py-3">{getResolutionLabel(record)}</td>
-                  <td className="px-3 py-3">{formatResultStatus(record?.resolution?.resultStatus)}</td>
-                  <td className="px-3 py-3">{formatMoney(record?.resolution?.realizedPl)}</td>
-                  <td className="px-3 py-3">{formatPercent(record?.resolution?.realizedReturnPct, 2)}</td>
-                  <td className="px-3 py-3">{formatDate(record?.resolution?.resolvedAt)}</td>
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatYesNo(record?.resolution?.strikeTouched)}</td>
-                  ) : null}
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatMoney(record?.resolution?.minPriceBetweenScanAndExpiration)}</td>
-                  ) : null}
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatMoney(record?.resolution?.maxItmDepth)}</td>
-                  ) : null}
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatYesNo(record?.resolution?.brokeLowerBound)}</td>
-                  ) : null}
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatPercent(record?.resolution?.drawdownPct)}</td>
-                  ) : null}
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatYesNo(record?.resolution?.supportBreak)}</td>
-                  ) : null}
-                  {showOutcomeV2 ? (
-                    <td className="px-3 py-3">{formatMoney(record?.resolution?.lowerBoundDistance)}</td>
-                  ) : null}
-                </tr>
-              ))}
+            <tbody className="divide-y divide-slate-800/70">
+              {rows.map((record) => {
+                const pl = numberOrNull(record?.resolution?.realizedPl);
+                return (
+                  <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
+                    <td className="px-3 py-2.5"><CaptureClassBadgeDark value={record?.captureClass} /></td>
+                    <td className="px-3 py-2.5 font-bold text-slate-100">{record?.symbol || "—"}</td>
+                    <td className="px-3 py-2.5 text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={record?.strikeMode === "safe" ? "font-semibold text-emerald-400" : record?.strikeMode === "aggressive" ? "font-semibold text-rose-400" : "text-slate-500"}>
+                        {record?.strikeMode || "—"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums">{numberOrNull(record?.strike?.strike) ?? "—"}</td>
+                    <td className="px-3 py-2.5 tabular-nums text-sky-400">{formatMoney(record?.strike?.premium)}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{formatPop(record?.strike?.popEstimate)}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(record?.scores?.eliteScore) != null ? Number(record.scores.eliteScore).toFixed(1) : "—"}</td>
+                    <td className="px-3 py-2.5 text-slate-400">{record?.scores?.eliteBadge || "—"}</td>
+                    <td className="px-3 py-2.5">{getResolutionLabel(record)}</td>
+                    <td className="px-3 py-2.5">{formatResultStatus(record?.resolution?.resultStatus)}</td>
+                    <td className="px-3 py-2.5 tabular-nums">
+                      {pl == null ? "—" : <span className={pl >= 0 ? "text-emerald-400" : "text-rose-400"}>{formatMoney(pl)}</span>}
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums">{formatPercent(record?.resolution?.realizedReturnPct, 2)}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.resolution?.resolvedAt)}</td>
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatYesNo(record?.resolution?.strikeTouched)}</td>}
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatMoney(record?.resolution?.minPriceBetweenScanAndExpiration)}</td>}
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatMoney(record?.resolution?.maxItmDepth)}</td>}
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatYesNo(record?.resolution?.brokeLowerBound)}</td>}
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatPercent(record?.resolution?.drawdownPct)}</td>}
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatYesNo(record?.resolution?.supportBreak)}</td>}
+                    {showOutcomeV2 && <td className="px-3 py-2.5">{formatMoney(record?.resolution?.lowerBoundDistance)}</td>}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -223,45 +270,121 @@ function JournalTable({ title, rows, showOutcomeV2 = false }) {
   );
 }
 
-function CalibrationV2Row({ cells }) {
+function DarkCalibV2Row({ cells }) {
   return (
-    <tr className="border-b border-slate-100 last:border-b-0">
-      {cells.map((cell, idx) => (
-        <td key={idx} className="px-3 py-3">
-          {cell}
-        </td>
+    <tr className="hover:bg-slate-800/30 transition-colors">
+      {cells.map((cell, i) => (
+        <td key={i} className="px-3 py-2.5 whitespace-nowrap">{cell}</td>
       ))}
     </tr>
   );
 }
 
-function CalibrationTable({ title, headers, rows }) {
+// ── Ticker verdict helper ───────────────────────────────────────────────────
+
+const SPECULATIVE_TICKERS = new Set([
+  "RIOT", "CIFR", "WULF", "MARA", "CLSK", "APLD", "OKLO", "IONQ",
+  "SOUN", "RGTI", "IREN", "BITF", "HUT",
+]);
+
+// Rules: rc < 10 → "Données insuff." · rc 10–29 → Préliminaire max · rc >= 30 required for Core/Balanced
+// Speculative tickers blocked from "Core" regardless of sample size
+function tickerVerdict(ticker, resolvedCount, winRate, avgPremium) {
+  const rc = numberOrNull(resolvedCount) ?? 0;
+  const wr = numberOrNull(winRate) ?? 0;
+  const pr = numberOrNull(avgPremium) ?? 0;
+  const isSpec = SPECULATIVE_TICKERS.has(String(ticker ?? "").toUpperCase().trim());
+
+  if (rc < 10) return { label: "Données insuff.", cls: "text-slate-600" };
+
+  // 10–29 resolved: preliminary ceiling, no Core/Balanced
+  if (rc < 30) {
+    if (isSpec || pr > 1.2) return { label: "Spéculatif", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+    return { label: "Préliminaire", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
+  }
+
+  // rc >= 30: full verdict available
+  if (pr > 1.2) return { label: "Premium trap?", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+
+  if (isSpec) {
+    if (wr >= 85) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+    return { label: "Spéculatif", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+  }
+
+  if (wr >= 90 && pr <= 0.8) return { label: "Core", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+  if (wr >= 80 && pr <= 1.2) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
+  if (wr >= 70)              return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+  return { label: "À valider", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
+}
+
+function TickerVerdictBadge({ ticker, resolvedCount, winRate, avgPremium }) {
+  const v = tickerVerdict(ticker, resolvedCount, winRate, avgPremium);
+  return <span className={`text-[10px] ${v.cls}`}>{v.label}</span>;
+}
+
+// ── Premium bucket verdict ──────────────────────────────────────────────────
+// Per-bucket rules — "Core défensif" gated behind rc >= 30 + wr >= 90 + defensive bucket only
+// Buckets 0.80%+ never show "Core défensif" — higher premium = higher risk framing
+
+function premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate) {
+  const n = numberOrNull(count) ?? 0;
+  const r = numberOrNull(resolvedCount) ?? 0;
+  const wr = numberOrNull(winRate);
+
+  if (n < 5)      return { label: "Données insuff.", cls: "text-slate-600" };
+  if (r < 5)      return { label: "Non résolu", cls: "text-slate-600" };
+  if (wr == null) return { label: "—", cls: "text-slate-600" };
+
+  const lbl = String(bucketLabel ?? "");
+
+  // 0.40–0.60 %: "Core défensif" gate = rc >= 30 + wr >= 90
+  if (lbl.startsWith("0.40")) {
+    if (r >= 30 && wr >= 90) return { label: "Core défensif", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+    if (r >= 10 && wr >= 80) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
+    return { label: "Préliminaire", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
+  }
+
+  // 0.60–0.80 %: "Core défensif" gate = rc >= 30 + wr >= 90
+  if (lbl.startsWith("0.60")) {
+    if (r >= 30 && wr >= 90) return { label: "Core défensif", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+    if (r >= 10 && wr >= 75) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
+    return { label: "À valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+  }
+
+  // 0.80–1.00 %: never "Core défensif"
+  if (lbl.startsWith("0.80")) {
+    if (r >= 30 && wr >= 85) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+    return { label: "Préliminaire / À valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+  }
+
+  // 1.00–1.25 %: never "Core défensif"
+  if (lbl.startsWith("1.00")) {
+    if (r < 30) return { label: "Préliminaire — 1% à valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+    if (wr >= 85) return { label: "Opportuniste", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+    return { label: "À valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+  }
+
+  // 1.25 %+ : always speculative framing, never "Core défensif"
+  if (r < 30) return { label: "Préliminaire — risque élevé", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+  return { label: "Spéculatif / premium trap?", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+}
+
+function PremiumVerdictBadge({ bucketLabel, count, resolvedCount, winRate }) {
+  const v = premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate);
+  return <span className={`text-[10px] ${v.cls}`}>{v.label}</span>;
+}
+
+// ── Placeholder badge ───────────────────────────────────────────────────────
+
+function PlaceholderBadge({ label }) {
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
-      {rows.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-          Aucune donnee.
-        </div>
-      ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-xs text-slate-700">
-            <thead className="border-b border-slate-200 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-              <tr>
-                {headers.map((head) => (
-                  <th key={head} className="px-3 py-3 font-medium">
-                    {head}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>{rows}</tbody>
-          </table>
-        </div>
-      )}
-    </section>
+    <span className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-500">
+      {label}
+    </span>
   );
 }
+
+// ── Main component ──────────────────────────────────────────────────────────
 
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
@@ -272,8 +395,9 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [error, setError] = useState("");
   const [hasLoaded, setHasLoaded] = useState(false);
   const [resolveSummary, setResolveSummary] = useState(null);
+  const [showRawSections, setShowRawSections] = useState(false);
 
-  // ── Seasonality V1 — on-demand, read-only ──────────────────────────────────
+  // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
   const [seasonalityLoading, setSeasonalityLoading] = useState(false);
 
@@ -300,12 +424,11 @@ export default function JournalPopPanel({ apiBase, active }) {
       const data = await resp.json();
       if (data?.ok) setJournalSeasonality(data);
     } catch {
-      // silently ignore — V1 is informational only
+      // silently ignore — V1 informational only
     } finally {
       setSeasonalityLoading(false);
     }
   }, [apiBase, uniqueJournalSymbols]);
-  // ───────────────────────────────────────────────────────────────────────────
 
   const loadJournal = useCallback(async () => {
     setLoading(true);
@@ -319,15 +442,9 @@ export default function JournalPopPanel({ apiBase, active }) {
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
       const calibrationPayload = await calibrationResponse.json();
-      if (!journalResponse.ok || payload?.ok !== true) {
-        throw new Error(payload?.error || "journal_fetch_failed");
-      }
-      if (!cohortResponse.ok || cohortPayload?.ok !== true) {
-        throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
-      }
-      if (!calibrationResponse.ok || calibrationPayload?.ok !== true) {
-        throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
-      }
+      if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
+      if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
+      if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setCalibrationSummary(calibrationPayload.calibration ?? null);
@@ -343,13 +460,9 @@ export default function JournalPopPanel({ apiBase, active }) {
     setResolving(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/journal/wheel-validation/resolve-expired`, {
-        method: "POST",
-      });
+      const response = await fetch(`${apiBase}/journal/wheel-validation/resolve-expired`, { method: "POST" });
       const payload = await response.json();
-      if (!response.ok || payload?.ok !== true) {
-        throw new Error(payload?.error || "journal_resolve_expired_failed");
-      }
+      if (!response.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_resolve_expired_failed");
       setResolveSummary({
         resolved: Number(payload?.resolved ?? 0),
         skippedNoClose: Number(payload?.skippedNoClose ?? 0),
@@ -364,637 +477,909 @@ export default function JournalPopPanel({ apiBase, active }) {
   }, [apiBase, loadJournal]);
 
   useEffect(() => {
-    if (active && !hasLoaded && !loading) {
-      loadJournal();
-    }
+    if (active && !hasLoaded && !loading) loadJournal();
   }, [active, hasLoaded, loading, loadJournal]);
 
   const records = useMemo(() => {
     const rows = Array.isArray(journal?.records) ? journal.records.slice() : [];
-    return rows.sort((left, right) => {
-      const a = String(left?.scanTimestamp ?? "");
-      const b = String(right?.scanTimestamp ?? "");
-      return b.localeCompare(a);
-    });
+    return rows.sort((a, b) => String(b?.scanTimestamp ?? "").localeCompare(String(a?.scanTimestamp ?? "")));
   }, [journal]);
 
-  const unresolvedRecords = useMemo(
-    () => records.filter((record) => record?.resolution?.resolved !== true),
-    [records]
-  );
-  const resolvedRecords = useMemo(
-    () => records.filter((record) => record?.resolution?.resolved === true),
-    [records]
-  );
+  const unresolvedRecords = useMemo(() => records.filter((r) => r?.resolution?.resolved !== true), [records]);
+  const resolvedRecords = useMemo(() => records.filter((r) => r?.resolution?.resolved === true), [records]);
+
+  // ── Core stats ─────────────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
-    const expiredWorthlessCount = resolvedRecords.filter(
-      (record) => record?.resolution?.expiredWorthless === true
-    ).length;
-    const assignmentCount = resolvedRecords.filter(
-      (record) => record?.resolution?.assigned === true
-    ).length;
-    const popResolved = resolvedRecords.filter(
-      (record) => typeof record?.resolution?.popPredictionCorrect === "boolean"
-    );
-    const popAccuracy =
-      popResolved.length > 0
-        ? (popResolved.filter((record) => record.resolution.popPredictionCorrect === true).length /
-            popResolved.length) *
-          100
-        : null;
-    const realizedValues = resolvedRecords
-      .map((record) => numberOrNull(record?.resolution?.realizedPl))
-      .filter((value) => value != null);
-    const averageRealizedPl =
-      realizedValues.length > 0
-        ? realizedValues.reduce((sum, value) => sum + value, 0) / realizedValues.length
-        : null;
+    const expiredWorthlessCount = resolvedRecords.filter((r) => r?.resolution?.expiredWorthless === true).length;
+    const assignmentCount = resolvedRecords.filter((r) => r?.resolution?.assigned === true).length;
+    const winRate = resolvedRecords.length > 0 ? (expiredWorthlessCount / resolvedRecords.length) * 100 : null;
+
+    const avgOf = (arr, fn) => {
+      const vals = arr.map(fn).filter((v) => v != null);
+      return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+    };
+
+    const avgPop = avgOf(resolvedRecords, (r) => {
+      const n = numberOrNull(r?.strike?.popEstimate);
+      if (n == null) return null;
+      return n > 1 ? n : n * 100;
+    });
+
+    const popResolved = resolvedRecords.filter((r) => typeof r?.resolution?.popPredictionCorrect === "boolean");
+    const popAccuracy = popResolved.length > 0
+      ? (popResolved.filter((r) => r.resolution.popPredictionCorrect === true).length / popResolved.length) * 100
+      : null;
+
+    const realizedValues = resolvedRecords.map((r) => numberOrNull(r?.resolution?.realizedPl)).filter((v) => v != null);
+    const averageRealizedPl = realizedValues.length > 0 ? realizedValues.reduce((s, v) => s + v, 0) / realizedValues.length : null;
+
     return {
       totalRecords: records.length,
       resolvedCount: resolvedRecords.length,
       unresolvedCount: unresolvedRecords.length,
       expiredWorthlessCount,
       assignmentCount,
+      winRate,
+      avgPop,
       popAccuracy,
       averageRealizedPl,
     };
   }, [records, resolvedRecords, unresolvedRecords]);
 
+  // ── Premium return buckets (Section B) ────────────────────────────────────
+
+  const premiumReturnBuckets = useMemo(() => {
+    const defs = [
+      { label: "0.40–0.60 %", min: 0.40, max: 0.60 },
+      { label: "0.60–0.80 %", min: 0.60, max: 0.80 },
+      { label: "0.80–1.00 %", min: 0.80, max: 1.00 },
+      { label: "1.00–1.25 %", min: 1.00, max: 1.25 },
+      { label: "1.25 % +",    min: 1.25, max: Infinity },
+    ];
+    return defs.map((def) => {
+      const matching = records.filter((r) => {
+        const pct = numberOrNull(r?.snapshot?.premium_to_spot_pct) ??
+          (r?.strike?.premium != null && r?.underlying?.spotAtScan != null
+            ? (r.strike.premium / r.underlying.spotAtScan) * 100
+            : null);
+        if (pct == null) return false;
+        return pct >= def.min && (def.max === Infinity ? true : pct < def.max);
+      });
+      const resolved = matching.filter((r) => r?.resolution?.resolved === true);
+      const wins = resolved.filter((r) => r?.resolution?.expiredWorthless === true);
+      const safe = matching.filter((r) => r?.strikeMode === "safe");
+      const aggressive = matching.filter((r) => r?.strikeMode === "aggressive");
+      const avgPop = (() => {
+        const vals = resolved.map((r) => {
+          const n = numberOrNull(r?.strike?.popEstimate);
+          if (n == null) return null;
+          return n > 1 ? n : n * 100;
+        }).filter((v) => v != null);
+        return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+      })();
+      const avgPremium = (() => {
+        const vals = resolved.map((r) => numberOrNull(r?.strike?.premium)).filter((v) => v != null);
+        return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+      })();
+      const winRate = resolved.length > 0 ? (wins.length / resolved.length) * 100 : null;
+      return {
+        label: def.label,
+        count: matching.length,
+        resolvedCount: resolved.length,
+        winRate,
+        avgPop,
+        avgPremium,
+        safeCount: safe.length,
+        aggressiveCount: aggressive.length,
+      };
+    });
+  }, [records]);
+
+  // ── Safe vs Aggressive from calibration summary ────────────────────────────
+
+  const safeModeData = useMemo(() => {
+    const rows = calibrationSummary?.v2?.strikeModeV2 ?? [];
+    return rows.find((r) => r?.bucket === "safe") ?? null;
+  }, [calibrationSummary]);
+
+  const aggressiveModeData = useMemo(() => {
+    const rows = calibrationSummary?.v2?.strikeModeV2 ?? [];
+    return rows.find((r) => r?.bucket === "aggressive") ?? null;
+  }, [calibrationSummary]);
+
+  // ── Ticker leaderboard ─────────────────────────────────────────────────────
+
+  const tickerLeaderboard = useMemo(() => {
+    const cohorts = calibrationSummary?.v2?.tickerCohorts ?? [];
+    return cohorts.map((row) => {
+      const safeCount = records.filter((r) => r?.symbol === row.ticker && r?.strikeMode === "safe").length;
+      const aggressiveCount = records.filter((r) => r?.symbol === row.ticker && r?.strikeMode === "aggressive").length;
+      return { ...row, safeCount, aggressiveCount };
+    });
+  }, [calibrationSummary, records]);
+
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
+  // ── Objectif 1% status ─────────────────────────────────────────────────────
+
+  const objectif1pctStatus = useMemo(() => {
+    const above1pct = premiumReturnBuckets.filter((b) => b.label.startsWith("1.00") || b.label.startsWith("1.25"));
+    const totalAbove = above1pct.reduce((s, b) => s + b.count, 0);
+    const totalAll = premiumReturnBuckets.reduce((s, b) => s + b.count, 0);
+    if (totalAll === 0) return { label: "N/D", tone: "muted" };
+    const pct = (totalAbove / totalAll) * 100;
+    if (pct >= 30) return { label: `Atteint (${pct.toFixed(0)}% des records)`, tone: "good" };
+    if (pct >= 10) return { label: `En cours (${pct.toFixed(0)}% des records)`, tone: "warn" };
+    return { label: "En validation", tone: "muted" };
+  }, [premiumReturnBuckets]);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="bg-[#020617] min-h-screen space-y-4 p-4">
+
+      {/* ── SECTION A — HEADER PRO ──────────────────────────────────────────── */}
+      <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-6">
+        {/* Top bar */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-              Journal POP / Validation Wheel
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Journal POP Pro
+              </span>
+              <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-[10px] text-slate-500">
+                SQLite · Read-only · Calibration active OFF
+              </span>
             </div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
-              Lecture seule du journal backend
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-100">
+              Calibration réelle — Données historiques
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Chargement a la demande via <code>/journal/wheel-validation</code>, sans relancer le scan ni modifier la shortlist active.
+            <p className="mt-1.5 text-sm text-slate-500">
+              Journal POP Pro V1 · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={loadJournal}
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Refresh Journal
-            <RefreshCw className={`ml-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
+          <div className="flex flex-col gap-2 md:items-end">
+            <button
+              type="button"
+              onClick={loadJournal}
+              disabled={loading}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Refresh Journal
+              <RefreshCw className={`ml-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </button>
+            <button
+              type="button"
+              onClick={resolveExpired}
+              disabled={resolving || loading}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Résoudre expirations échues
+            </button>
+          </div>
         </div>
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={resolveExpired}
-            disabled={resolving || loading}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Resoudre expirations echues
-          </button>
-        </div>
 
-        {error ? (
-          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        {error && (
+          <div className="mt-4 rounded-2xl border border-rose-800/50 bg-rose-900/20 px-4 py-3 text-sm text-rose-400">
             {error}
           </div>
-        ) : null}
-        {resolveSummary ? (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            Resolus : {resolveSummary.resolved} - Sans close : {resolveSummary.skippedNoClose} - Erreurs :{" "}
-            {resolveSummary.errors}
+        )}
+        {resolveSummary && (
+          <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-400">
+            Résolus : <span className="text-emerald-400 font-semibold">{resolveSummary.resolved}</span>
+            {" · "}Sans close : {resolveSummary.skippedNoClose}
+            {" · "}Erreurs : {resolveSummary.errors}
           </div>
-        ) : null}
+        )}
+        {!hasLoaded && !loading && (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+            Ouvrez l'onglet puis chargez le journal à la demande.
+          </div>
+        )}
 
-        {!hasLoaded && !loading ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Ouvre l onglet puis charge le journal a la demande.
-          </div>
-        ) : null}
+        {/* KPI Grid */}
+        {hasLoaded && (
+          <>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ProKpi label="Records totaux" value={stats.totalRecords} large />
+              <ProKpi label="Records résolus" value={stats.resolvedCount} tone="good" large />
+              <ProKpi label="Non résolus" value={stats.unresolvedCount} tone={stats.unresolvedCount > 0 ? "warn" : "muted"} large />
+              <ProKpi
+                label="Win rate résolu"
+                value={stats.winRate != null ? `${stats.winRate.toFixed(1)} %` : null}
+                tone={stats.winRate != null && stats.winRate >= 80 ? "good" : "default"}
+                large
+                sub="Expired worthless / résolus"
+              />
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ProKpi
+                label="POP moyenne (résolus)"
+                value={stats.avgPop != null ? `${stats.avgPop.toFixed(1)} %` : null}
+                tone="info"
+                sub="Estimation scanner"
+              />
+              <ProKpi
+                label="Prime moy. SAFE"
+                value={safeModeData?.avgPremium != null ? formatMoney(safeModeData.avgPremium) : null}
+                tone="good"
+                sub={safeModeData ? `n=${safeModeData.resolvedCount}` : undefined}
+              />
+              <ProKpi
+                label="Prime moy. AGGRESSIVE"
+                value={aggressiveModeData?.avgPremium != null ? formatMoney(aggressiveModeData.avgPremium) : null}
+                tone="warn"
+                sub={aggressiveModeData ? `n=${aggressiveModeData.resolvedCount}` : undefined}
+              />
+              <ProKpi
+                label="Objectif 1 % / sem."
+                value={objectif1pctStatus.label}
+                tone={objectif1pctStatus.tone}
+              />
+            </div>
+
+            {/* Methodological warning */}
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-800/30 bg-amber-900/10 px-4 py-3">
+              <span className="mt-0.5 text-amber-500 text-sm">⚠</span>
+              <p className="text-[11px] text-amber-500/80 leading-relaxed">
+                Un win rate élevé doit être validé avec stress metrics, touch rate et régimes de marché.
+                Les résultats actuels reflètent un échantillon historique limité — interprétez avec prudence.
+              </p>
+            </div>
+          </>
+        )}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <JournalMetric label="Total records" value={String(stats.totalRecords)} />
-        <JournalMetric label="Resolved" value={String(stats.resolvedCount)} tone="good" />
-        <JournalMetric label="Unresolved" value={String(stats.unresolvedCount)} tone="warn" />
-        <JournalMetric label="Expired worthless" value={String(stats.expiredWorthlessCount)} tone="good" />
-        <JournalMetric label="Assignments" value={String(stats.assignmentCount)} tone="warn" />
-        <JournalMetric label="POP accuracy" value={formatPercent(stats.popAccuracy)} />
-        <JournalMetric label="Average realized P/L" value={formatMoney(stats.averageRealizedPl)} />
-        <JournalMetric
-          label="Updated"
-          value={journal?.updatedAt ? formatDate(journal.updatedAt) : "-"}
-        />
-      </section>
-
-      <CalibrationTable
-        title="Vue cohorte d’expiration"
-        headers={[
-          "Expiration",
-          "Scans",
-          "Candidats",
-          "Symboles uniques",
-          "DTE min/max",
-          "POP moyen",
-          "EliteScore moyen",
-          "Resolus / non resolus",
-        ]}
-        rows={cohortSummary.map((row) => (
-          <tr key={`cohort-summary-${String(row?.expirationCohort ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-            <td className="px-3 py-3">{formatCompactExpiration(row?.expirationCohort)}</td>
-            <td className="px-3 py-3">{numberOrNull(row?.scanCount) ?? 0}</td>
-            <td className="px-3 py-3">{numberOrNull(row?.candidateCount) ?? 0}</td>
-            <td className="px-3 py-3">{numberOrNull(row?.uniqueSymbols) ?? 0}</td>
-            <td className="px-3 py-3">{formatDteRange(row?.minDte, row?.maxDte)}</td>
-            <td className="px-3 py-3">{formatPop(row?.avgPopEstimate)}</td>
-            <td className="px-3 py-3">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "-"}</td>
-            <td className="px-3 py-3">
-              {numberOrNull(row?.resolvedCount) ?? 0} / {numberOrNull(row?.unresolvedCount) ?? 0}
-            </td>
-          </tr>
-        ))}
-      />
-
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-950">Calibration probabilistique</h3>
-        {!hasProbabilisticCalibrationData ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Aucun record résolu pour l’instant. La calibration commencera après expiration.
+      {/* ── SECTION B — OBJECTIF 1 % / SEMAINE ─────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Objectif 1 % / Semaine — Buckets de rendement prime"
+          badge="Premium / Spot"
+          subtitle="Distribution des records par rendement de prime (premium / cours sous-jacent au scan). Cible : 1.00–1.25 %."
+        >
+          <p className="mb-4 text-[10px] text-slate-600 italic">
+            Verdict basé sur échantillon résolu, win rate et prudence statistique —
+            "Core défensif" exige n≥30 résolu · buckets ≥0.80% ne peuvent pas afficher "Core défensif" · 1.25%+ toujours spéculatif.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                <tr>
+                  <th className="px-3 py-3 font-semibold text-left">Bucket</th>
+                  <th className="px-3 py-3 font-semibold text-right">Records</th>
+                  <th className="px-3 py-3 font-semibold text-right">Résolus</th>
+                  <th className="px-3 py-3 font-semibold text-right">Win rate</th>
+                  <th className="px-3 py-3 font-semibold text-right">POP moy.</th>
+                  <th className="px-3 py-3 font-semibold text-right">Prime moy.</th>
+                  <th className="px-3 py-3 font-semibold text-right">Safe</th>
+                  <th className="px-3 py-3 font-semibold text-right">Agressif</th>
+                  <th className="px-3 py-3 font-semibold">Confiance</th>
+                  <th className="px-3 py-3 font-semibold">Verdict</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/70">
+                {premiumReturnBuckets.map((b) => (
+                  <tr key={b.label} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-3 font-bold text-slate-100">{b.label}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{b.count || "—"}</td>
+                    <td className="px-3 py-3 text-right tabular-nums text-slate-400">{b.resolvedCount || "—"}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {b.winRate != null ? (
+                        <span className={b.winRate >= 80 ? "text-emerald-400 font-semibold" : b.winRate >= 60 ? "text-amber-400" : "text-rose-400"}>
+                          {b.winRate.toFixed(1)} %
+                        </span>
+                      ) : <span className="text-slate-600">N/D</span>}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums text-slate-400">
+                      {b.avgPop != null ? `${b.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                      {b.avgPremium != null ? formatMoney(b.avgPremium) : <span className="text-slate-600">N/D</span>}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{b.safeCount || 0}</td>
+                    <td className="px-3 py-3 text-right tabular-nums text-rose-400">{b.aggressiveCount || 0}</td>
+                    <td className="px-3 py-3"><ConfidenceBadge sample={b.resolvedCount} /></td>
+                    <td className="px-3 py-3"><PremiumVerdictBadge bucketLabel={b.label} count={b.count} resolvedCount={b.resolvedCount} winRate={b.winRate} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="mt-4 space-y-6">
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <JournalMetric label="Total resolved" value={String(calibrationSummary?.totalResolved ?? 0)} tone="good" />
-              <JournalMetric label="Total unresolved" value={String(calibrationSummary?.totalUnresolved ?? 0)} tone="warn" />
-              <JournalMetric label="Primary daily" value={String(calibrationSummary?.totalResolvedPrimary ?? calibrationSummary?.totalResolved ?? 0)} tone="good" />
-              <JournalMetric label="Intraday retest exclus" value={String(calibrationSummary?.totalIntradayRetestResolved ?? 0)} tone="warn" />
-            </section>
-            {Number(calibrationSummary?.totalIntradayRetestResolved ?? 0) > 0 ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Calibration basee sur {calibrationSummary?.totalResolvedPrimary ?? 0} records primaryDaily —{" "}
-                {calibrationSummary?.totalIntradayRetestResolved} retest(s) intrajournaliers exclus.
+          <p className="mt-3 text-[11px] text-slate-600">
+            Records sans premium_to_spot_pct calculé exclus de la distribution. Confiance : n&lt;10 faible · 10–29 préliminaire · 30–99 utilisable · 100+ robuste.
+          </p>
+        </ProSection>
+      )}
+
+      {/* ── SECTION C — SAFE vs AGGRESSIVE ─────────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Safe vs Aggressive — Comparaison mode strike"
+          badge="V2 calibration"
+          subtitle="Données issues de la calibration probabilistique V2. Stress metrics disponibles uniquement pour records avec window data."
+        >
+          {!hasProbabilisticCalibrationData ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Aucun record résolu — calibration Safe/Aggressive disponible après expiration des premières positions.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* SAFE */}
+                <div className="rounded-2xl border border-emerald-800/30 bg-emerald-900/10 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="rounded border border-emerald-700/50 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-400">Safe</span>
+                    <span className="text-[11px] text-slate-500">Strike défensif · POP haute attendue</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    {[
+                      ["Records résolus", safeModeData?.resolvedCount != null ? String(safeModeData.resolvedCount) : "N/D", "default"],
+                      ["Win rate", safeModeData?.actualWinRate != null ? formatPercent(safeModeData.actualWinRate) : "N/D", safeModeData?.actualWinRate >= 80 ? "good" : "default"],
+                      ["POP moyenne", safeModeData?.avgPop != null ? formatPercent(safeModeData.avgPop) : "N/D", "info"],
+                      ["Prime moyenne", safeModeData?.avgPremium != null ? formatMoney(safeModeData.avgPremium) : "N/D", "default"],
+                      ["Strike touch rate", safeModeData?.strikeTouchRate != null ? formatPercent(safeModeData.strikeTouchRate) : "N/D", "default"],
+                      ["Assignment rate", safeModeData?.assignmentRate != null ? formatPercent(safeModeData.assignmentRate) : "N/D", "default"],
+                      ["Drawdown moyen", safeModeData?.avgDrawdownPct != null ? formatPercent(safeModeData.avgDrawdownPct) : "N/D", "default"],
+                      ["LowerBound cassé", safeModeData?.lowerBoundBreakRate != null ? formatPercent(safeModeData.lowerBoundBreakRate) : "N/D", "default"],
+                    ].map(([lbl, val, tone]) => (
+                      <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
+                        <span className="text-slate-500">{lbl}</span>
+                        <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>
+                          {val}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="mt-2 pt-1">
+                      <ConfidenceBadge sample={safeModeData?.resolvedCount} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* AGGRESSIVE */}
+                <div className="rounded-2xl border border-rose-800/30 bg-rose-900/10 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="rounded border border-rose-700/50 bg-rose-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rose-400">Aggressive</span>
+                    <span className="text-[11px] text-slate-500">Strike agressif · Prime plus haute</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    {[
+                      ["Records résolus", aggressiveModeData?.resolvedCount != null ? String(aggressiveModeData.resolvedCount) : "N/D", "default"],
+                      ["Win rate", aggressiveModeData?.actualWinRate != null ? formatPercent(aggressiveModeData.actualWinRate) : "N/D", aggressiveModeData?.actualWinRate >= 80 ? "good" : "default"],
+                      ["POP moyenne", aggressiveModeData?.avgPop != null ? formatPercent(aggressiveModeData.avgPop) : "N/D", "info"],
+                      ["Prime moyenne", aggressiveModeData?.avgPremium != null ? formatMoney(aggressiveModeData.avgPremium) : "N/D", "default"],
+                      ["Strike touch rate", aggressiveModeData?.strikeTouchRate != null ? formatPercent(aggressiveModeData.strikeTouchRate) : "N/D", "default"],
+                      ["Assignment rate", aggressiveModeData?.assignmentRate != null ? formatPercent(aggressiveModeData.assignmentRate) : "N/D", "default"],
+                      ["Drawdown moyen", aggressiveModeData?.avgDrawdownPct != null ? formatPercent(aggressiveModeData.avgDrawdownPct) : "N/D", "default"],
+                      ["LowerBound cassé", aggressiveModeData?.lowerBoundBreakRate != null ? formatPercent(aggressiveModeData.lowerBoundBreakRate) : "N/D", "default"],
+                    ].map(([lbl, val, tone]) => (
+                      <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
+                        <span className="text-slate-500">{lbl}</span>
+                        <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>
+                          {val}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="mt-2 pt-1">
+                      <ConfidenceBadge sample={aggressiveModeData?.resolvedCount} />
+                    </div>
+                  </div>
+                </div>
               </div>
-            ) : null}
 
-            <CalibrationTable
-              title="POP buckets"
-              headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
-              rows={(calibrationSummary?.popBuckets ?? []).map((row) => (
-                <tr key={`prob-pop-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.bucket || "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
-                  <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
-                </tr>
-              ))}
-            />
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
+                <span className="text-slate-600 text-sm">ℹ</span>
+                <p className="text-[11px] text-slate-600">
+                  Stress metrics (touch rate, drawdown, assignment) uniquement disponibles pour records avec window data Yahoo.
+                  Prochaine phase : tracking manuel des stress outcomes.
+                </p>
+              </div>
+            </>
+          )}
+        </ProSection>
+      )}
 
-            <CalibrationTable
-              title="DTE buckets"
-              headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
-              rows={(calibrationSummary?.dteBuckets ?? []).map((row) => (
-                <tr key={`prob-dte-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.bucket || "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
-                  <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
-                </tr>
-              ))}
-            />
+      {/* ── SECTION D — TICKER LEADERBOARD ─────────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Ticker Leaderboard — Calibration par actif"
+          badge="≥ 3 résolus"
+          subtitle="Tickers avec au moins 3 records résolus. Verdict calculé à partir des données historiques disponibles."
+        >
+          <p className="mb-4 text-[10px] text-slate-600 italic">
+            Verdict basé sur échantillon résolu, win rate, rendement prime et prudence statistique —
+            "Core" exige n≥30 · "Balanced" exige n≥30 · tickers spéculatifs connus bloqués à "Agressif sain" maximum.
+          </p>
+          {tickerLeaderboard.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Aucun ticker avec assez de records résolus (minimum 3). Revenez après expiration de davantage de positions.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3 font-semibold text-left">Ticker</th>
+                    <th className="px-3 py-3 font-semibold text-right">Résolus</th>
+                    <th className="px-3 py-3 font-semibold text-right">Win rate</th>
+                    <th className="px-3 py-3 font-semibold text-right">POP moy.</th>
+                    <th className="px-3 py-3 font-semibold text-right">Prime moy.</th>
+                    <th className="px-3 py-3 font-semibold text-right">Safe</th>
+                    <th className="px-3 py-3 font-semibold text-right">Agressif</th>
+                    <th className="px-3 py-3 font-semibold">Confiance</th>
+                    <th className="px-3 py-3 font-semibold">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {tickerLeaderboard.map((row) => (
+                    <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-3 py-3 font-bold text-slate-100">{row.ticker}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">{row.resolvedCount ?? "—"}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {row.actualWinRate != null ? (
+                          <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : row.actualWinRate >= 60 ? "text-amber-400" : "text-rose-400"}>
+                            {row.actualWinRate.toFixed(1)} %
+                          </span>
+                        ) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums text-slate-400">
+                        {row.avgPop != null ? `${row.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                        {row.avgPremium != null ? formatMoney(row.avgPremium) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{row.safeCount || 0}</td>
+                      <td className="px-3 py-3 text-right tabular-nums text-rose-400">{row.aggressiveCount || 0}</td>
+                      <td className="px-3 py-3"><ConfidenceBadge sample={row.resolvedCount} /></td>
+                      <td className="px-3 py-3">
+                        <TickerVerdictBadge ticker={row.ticker} resolvedCount={row.resolvedCount} winRate={row.actualWinRate} avgPremium={row.avgPremium} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </ProSection>
+      )}
 
-            <CalibrationTable
-              title="Strike mode"
-              headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
-              rows={(calibrationSummary?.strikeModeBuckets ?? []).map((row) => (
-                <tr key={`prob-mode-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                  <td className="px-3 py-3">{row?.bucket || "-"}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
-                  <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
-                  <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
-                  <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
-                </tr>
-              ))}
-            />
+      {/* ── SECTION E — DATA CONFIDENCE ─────────────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Confiance statistique — État de la calibration"
+          badge="Read-only"
+          subtitle="Évaluation de la fiabilité des résultats actuels."
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sample total</p>
+              <p className="mt-2 text-xl font-bold text-slate-100">{stats.totalRecords}</p>
+              <p className="mt-1 text-[11px] text-slate-600">Tous records (safe + aggressive)</p>
+            </div>
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sample résolu</p>
+              <p className="mt-2 text-xl font-bold text-slate-100">{stats.resolvedCount}</p>
+              <div className="mt-1.5"><ConfidenceBadge sample={stats.resolvedCount} /></div>
+            </div>
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Non résolu</p>
+              <p className="mt-2 text-xl font-bold text-amber-400">{stats.unresolvedCount}</p>
+              <p className="mt-1 text-[11px] text-slate-600">En cours d'accumulation</p>
+            </div>
+          </div>
 
-            {(calibrationSummary?.hasFtqsData ?? false) ? (
-              <CalibrationTable
-                title="FTQS buckets"
-                headers={["Bucket", "Sample", "Predicted Avg POP", "Actual Win Rate", "Correct", "Incorrect", "Brier", "Warning"]}
-                rows={(calibrationSummary?.ftqsBuckets ?? []).map((row) => (
-                  <tr key={`prob-ftqs-${String(row?.bucket ?? "na")}`} className="border-b border-slate-100 last:border-b-0">
-                    <td className="px-3 py-3">{row?.bucket || "-"}</td>
-                    <td className="px-3 py-3">{numberOrNull(row?.sampleSize) ?? 0}</td>
-                    <td className="px-3 py-3">{formatPercent(row?.predictedAvgPop)}</td>
-                    <td className="px-3 py-3">{formatPercent(row?.actualWinRate)}</td>
-                    <td className="px-3 py-3">{numberOrNull(row?.correctCount) ?? 0}</td>
-                    <td className="px-3 py-3">{numberOrNull(row?.incorrectCount) ?? 0}</td>
-                    <td className="px-3 py-3">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "-"}</td>
-                    <td className="px-3 py-3">{row?.confidenceWarning || "-"}</td>
+          <div className="mt-4 space-y-2">
+            {[
+              stats.resolvedCount < 30 && "Échantillon résolu encore limité pour valider 1 % systématique.",
+              stats.winRate != null && stats.winRate >= 95 && "Le win rate élevé doit être interprété avec stress metrics et régimes de marché.",
+              "Les résultats doivent être segmentés par régime de marché (bull/bear/sideways) pour une validation complète.",
+              "Touch rate, assignment rate et LowerBound break rate nécessitent window data historique (V2 auto-resolve).",
+            ].filter(Boolean).map((msg, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-2.5">
+                <span className="text-slate-600 text-sm mt-0.5">›</span>
+                <p className="text-[11px] text-slate-500 leading-relaxed">{msg}</p>
+              </div>
+            ))}
+          </div>
+        </ProSection>
+      )}
+
+      {/* ── SECTION F — MÉTRIQUES V2 PRÉPARÉES ─────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Métriques avancées — Préparées pour V2"
+          badge="Prochaine phase"
+          subtitle="Placeholders visuels. Aucune donnée inventée — tracking requis pour activation."
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[
+              { label: "Clean Win Rate", note: "Sans lucky recoveries" },
+              { label: "Stressed Win Rate", note: "Avec strike touch" },
+              { label: "Lucky Win Rate", note: "Touch + expiration OTM" },
+              { label: "Strike Touch Rate", note: "% touches calculés" },
+              { label: "LowerBound Break Rate", note: "Fenêtre complète" },
+              { label: "Assignment Rate", note: "Résolutions réelles" },
+              { label: "Days to First Touch", note: "Tracking requis" },
+              { label: "Premium Efficiency", note: "Prime / Strike %" },
+              { label: "Market Regime", note: "Bull / Bear / Sideways" },
+              { label: "VIX Bucket", note: "Volatilité marché" },
+              { label: "Cluster Risk", note: "Secteur / corrélation" },
+              { label: "IV Rank at Scan", note: "IVR au moment scan" },
+            ].map(({ label, note }) => (
+              <div key={label} className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+                <p className="mt-2 text-lg font-bold text-slate-700">N/D</p>
+                <p className="mt-1 text-[10px] text-slate-700">{note}</p>
+                <div className="mt-2">
+                  <PlaceholderBadge label="À venir V2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </ProSection>
+      )}
+
+      {/* ── SECTION G — DÉTAILS AVANCÉS (preserved, togglable) ─────────────── */}
+      {hasLoaded && (
+        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+          <button
+            type="button"
+            onClick={() => setShowRawSections((s) => !s)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                Détails historiques — Calibration complète
+              </h3>
+              <p className="mt-0.5 text-[11px] text-slate-600">
+                Cohorts d'expiration · POP buckets · DTE stress · FTQS · Tickers calibrés · Secteurs · Tables raw
+              </p>
+            </div>
+            <span className="ml-4 text-slate-500 text-lg">{showRawSections ? "↑" : "↓"}</span>
+          </button>
+
+          {showRawSections && (
+            <div className="mt-5 space-y-4">
+
+              {/* Cohort summary */}
+              <DarkTable
+                title="Vue cohorte d'expiration"
+                headers={["Expiration", "Scans", "Candidats", "Symboles uniq.", "DTE min/max", "POP moy.", "EliteScore moy.", "Résolus / Non résolus"]}
+                rows={cohortSummary.map((row) => (
+                  <tr key={`cohort-${String(row?.expirationCohort ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">{formatCompactExpiration(row?.expirationCohort)}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.scanCount) ?? 0}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.candidateCount) ?? 0}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.uniqueSymbols) ?? 0}</td>
+                    <td className="px-3 py-2.5">{formatDteRange(row?.minDte, row?.maxDte)}</td>
+                    <td className="px-3 py-2.5 text-sky-400">{formatPop(row?.avgPopEstimate)}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="text-emerald-400">{numberOrNull(row?.resolvedCount) ?? 0}</span>
+                      <span className="text-slate-600"> / </span>
+                      <span className="text-amber-400">{numberOrNull(row?.unresolvedCount) ?? 0}</span>
+                    </td>
                   </tr>
                 ))}
               />
-            ) : null}
-          </div>
-        )}
-      </section>
 
-      {hasProbabilisticCalibrationData ? (
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">Calibration V2 avancee</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Analyses avancees — stress, modes de strike, FTQS, tickers, secteurs.
-          </p>
-          <div className="mt-6 space-y-6">
+              {/* Calibration probabilistique */}
+              {!hasProbabilisticCalibrationData ? (
+                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                  Aucun record résolu pour l'instant. La calibration commencera après expiration.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* V1 buckets */}
+                  {[
+                    { title: "POP buckets — Calibration V1", data: calibrationSummary?.popBuckets ?? [] },
+                    { title: "DTE buckets — Calibration V1", data: calibrationSummary?.dteBuckets ?? [] },
+                    { title: "Strike mode — Calibration V1", data: calibrationSummary?.strikeModeBuckets ?? [] },
+                  ].map(({ title, data }) => (
+                    <DarkTable
+                      key={title}
+                      title={title}
+                      headers={["Bucket", "Sample", "POP préd. moy.", "Win rate réel", "Correct", "Incorrect", "Brier", "Warning"]}
+                      rows={data.map((row) => (
+                        <tr key={`${title}-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket || "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.predictedAvgPop)}</td>
+                          <td className="px-3 py-2.5">
+                            {row?.actualWinRate != null ? (
+                              <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>
+                                {formatPercent(row.actualWinRate)}
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 text-emerald-500">{numberOrNull(row?.correctCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-rose-400">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "—"}</td>
+                          <td className="px-3 py-2.5">
+                            {row?.confidenceWarning ? (
+                              <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span>
+                            ) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    />
+                  ))}
 
-            <CalibrationTable
-              title="POP Calibration avancee"
-              headers={[
-                "Bucket",
-                "N resolu",
-                "Avg POP",
-                "Win Rate",
-                "Strike touche %",
-                "Drawdown moy %",
-                "LowerBound casse %",
-                "Support casse %",
-                "Assignment %",
-                "Warning",
-              ]}
-              rows={(calibrationSummary?.v2?.popBucketsV2 ?? []).map((row) => (
-                <CalibrationV2Row
-                  key={`v2-pop-${String(row?.bucket ?? "na")}`}
-                  cells={[
-                    row?.bucket || "-",
-                    numberOrNull(row?.resolvedCount) ?? 0,
-                    formatPercent(row?.avgPop),
-                    formatPercent(row?.actualWinRate),
-                    formatPercent(row?.strikeTouchRate),
-                    formatPercent(row?.avgDrawdownPct),
-                    formatPercent(row?.lowerBoundBreakRate),
-                    formatPercent(row?.supportBreakRate),
-                    formatPercent(row?.assignmentRate),
-                    row?.confidenceWarning ? (
-                      <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
-                        {row.confidenceWarning}
-                      </span>
-                    ) : "-",
-                  ]}
-                />
-              ))}
-            />
+                  {/* FTQS V1 */}
+                  {(calibrationSummary?.hasFtqsData ?? false) && (
+                    <DarkTable
+                      title="FTQS buckets — Calibration V1"
+                      headers={["Bucket", "Sample", "POP préd. moy.", "Win rate réel", "Correct", "Incorrect", "Brier", "Warning"]}
+                      rows={(calibrationSummary?.ftqsBuckets ?? []).map((row) => (
+                        <tr key={`ftqs-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket || "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.predictedAvgPop)}</td>
+                          <td className="px-3 py-2.5">{row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—"}</td>
+                          <td className="px-3 py-2.5 text-emerald-500">{numberOrNull(row?.correctCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-rose-400">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "—"}</td>
+                          <td className="px-3 py-2.5">{row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—"}</td>
+                        </tr>
+                      ))}
+                    />
+                  )}
 
-            <CalibrationTable
-              title="DTE Stress Analysis"
-              headers={[
-                "Bucket DTE",
-                "N resolu",
-                "Win Rate",
-                "Strike touche %",
-                "Drawdown moy %",
-                "Assignment %",
-                "LowerBound casse %",
-                "Warning",
-              ]}
-              rows={(calibrationSummary?.v2?.dteBucketsV2 ?? []).map((row) => (
-                <CalibrationV2Row
-                  key={`v2-dte-${String(row?.bucket ?? "na")}`}
-                  cells={[
-                    row?.bucket || "-",
-                    numberOrNull(row?.resolvedCount) ?? 0,
-                    formatPercent(row?.actualWinRate),
-                    formatPercent(row?.strikeTouchRate),
-                    formatPercent(row?.avgDrawdownPct),
-                    formatPercent(row?.assignmentRate),
-                    formatPercent(row?.lowerBoundBreakRate),
-                    row?.confidenceWarning ? (
-                      <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
-                        {row.confidenceWarning}
-                      </span>
-                    ) : "-",
-                  ]}
-                />
-              ))}
-            />
-
-            <CalibrationTable
-              title="SAFE vs AGGRESSIVE"
-              headers={[
-                "Mode",
-                "N resolu",
-                "Win Rate",
-                "Strike touche %",
-                "Drawdown moy %",
-                "Assignment %",
-                "Premium moy",
-                "Premium eff %",
-                "LowerBound %",
-                "Support %",
-                "Warning",
-              ]}
-              rows={(calibrationSummary?.v2?.strikeModeV2 ?? [])
-                .filter((row) => row?.bucket !== "unknown" || (row?.resolvedCount ?? 0) > 0)
-                .map((row) => (
-                  <CalibrationV2Row
-                    key={`v2-mode-${String(row?.bucket ?? "na")}`}
-                    cells={[
-                      <span
-                        key="mode"
-                        className={
-                          row?.bucket === "safe"
-                            ? "font-semibold text-emerald-700"
-                            : row?.bucket === "aggressive"
-                            ? "font-semibold text-rose-700"
-                            : "text-slate-500"
-                        }
-                      >
-                        {row?.bucket || "-"}
-                      </span>,
-                      numberOrNull(row?.resolvedCount) ?? 0,
-                      formatPercent(row?.actualWinRate),
-                      formatPercent(row?.strikeTouchRate),
-                      formatPercent(row?.avgDrawdownPct),
-                      formatPercent(row?.assignmentRate),
-                      formatMoney(row?.avgPremium),
-                      formatPercent(row?.premiumEfficiency),
-                      formatPercent(row?.lowerBoundBreakRate),
-                      formatPercent(row?.supportBreakRate),
-                      row?.confidenceWarning ? (
-                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
-                          {row.confidenceWarning}
-                        </span>
-                      ) : "-",
-                    ]}
+                  {/* V2 Advanced sections */}
+                  <DarkTable
+                    title="POP Calibration avancée — V2"
+                    headers={["Bucket", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "LowerBound cassé %", "Support cassé %", "Assignment %", "Warning"]}
+                    rows={(calibrationSummary?.v2?.popBucketsV2 ?? []).map((row) => (
+                      <DarkCalibV2Row
+                        key={`v2-pop-${String(row?.bucket ?? "na")}`}
+                        cells={[
+                          <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
+                          numberOrNull(row?.resolvedCount) ?? 0,
+                          <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
+                          row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                          formatPercent(row?.strikeTouchRate),
+                          formatPercent(row?.avgDrawdownPct),
+                          formatPercent(row?.lowerBoundBreakRate),
+                          formatPercent(row?.supportBreakRate),
+                          formatPercent(row?.assignmentRate),
+                          row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                        ]}
+                      />
+                    ))}
                   />
-                ))}
-            />
 
-            {(calibrationSummary?.v2?.hasFtqsV2Data ?? false) ? (
-              <CalibrationTable
-                title="FTQS reel"
-                headers={[
-                  "Bucket FTQS",
-                  "N resolu",
-                  "Win Rate",
-                  "Strike touche %",
-                  "Drawdown moy %",
-                  "Support casse %",
-                  "LowerBound casse %",
-                  "Warning",
-                ]}
-                rows={(calibrationSummary?.v2?.ftqsBucketsV2 ?? []).map((row) => (
-                  <CalibrationV2Row
-                    key={`v2-ftqs-${String(row?.bucket ?? "na")}`}
-                    cells={[
-                      row?.bucket || "-",
-                      numberOrNull(row?.resolvedCount) ?? 0,
-                      formatPercent(row?.actualWinRate),
-                      formatPercent(row?.strikeTouchRate),
-                      formatPercent(row?.avgDrawdownPct),
-                      formatPercent(row?.supportBreakRate),
-                      formatPercent(row?.lowerBoundBreakRate),
-                      row?.confidenceWarning ? (
-                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
-                          {row.confidenceWarning}
-                        </span>
-                      ) : "-",
-                    ]}
+                  <DarkTable
+                    title="DTE Stress Analysis — V2"
+                    headers={["Bucket DTE", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "LowerBound cassé %", "Warning"]}
+                    rows={(calibrationSummary?.v2?.dteBucketsV2 ?? []).map((row) => (
+                      <DarkCalibV2Row
+                        key={`v2-dte-${String(row?.bucket ?? "na")}`}
+                        cells={[
+                          <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
+                          numberOrNull(row?.resolvedCount) ?? 0,
+                          row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                          formatPercent(row?.strikeTouchRate),
+                          formatPercent(row?.avgDrawdownPct),
+                          formatPercent(row?.assignmentRate),
+                          formatPercent(row?.lowerBoundBreakRate),
+                          row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                        ]}
+                      />
+                    ))}
                   />
-                ))}
-              />
-            ) : null}
 
-            {(calibrationSummary?.v2?.tickerCohorts ?? []).length > 0 ? (
-              <CalibrationTable
-                title="Top tickers calibres"
-                headers={[
-                  "Ticker",
-                  "N resolu",
-                  "Avg POP",
-                  "Win Rate",
-                  "Strike touche %",
-                  "Drawdown moy %",
-                  "Assignment %",
-                  "Support %",
-                  "LowerBound %",
-                  "Warning",
-                ]}
-                rows={(calibrationSummary?.v2?.tickerCohorts ?? []).map((row) => (
-                  <CalibrationV2Row
-                    key={`v2-ticker-${String(row?.ticker ?? "na")}`}
-                    cells={[
-                      <span key="tk" className="font-semibold text-slate-900">
-                        {row?.ticker || "-"}
-                      </span>,
-                      numberOrNull(row?.resolvedCount) ?? 0,
-                      formatPercent(row?.avgPop),
-                      formatPercent(row?.actualWinRate),
-                      formatPercent(row?.strikeTouchRate),
-                      formatPercent(row?.avgDrawdownPct),
-                      formatPercent(row?.assignmentRate),
-                      formatPercent(row?.supportBreakRate),
-                      formatPercent(row?.lowerBoundBreakRate),
-                      row?.confidenceWarning ? (
-                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
-                          {row.confidenceWarning}
-                        </span>
-                      ) : "-",
-                    ]}
+                  <DarkTable
+                    title="SAFE vs AGGRESSIVE — V2 avancé"
+                    headers={["Mode", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Prime moy.", "Prime eff %", "LowerBound %", "Support %", "Warning"]}
+                    rows={(calibrationSummary?.v2?.strikeModeV2 ?? [])
+                      .filter((row) => row?.bucket !== "unknown" || (row?.resolvedCount ?? 0) > 0)
+                      .map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-mode-${String(row?.bucket ?? "na")}`}
+                          cells={[
+                            <span className={row?.bucket === "safe" ? "font-bold text-emerald-400" : row?.bucket === "aggressive" ? "font-bold text-rose-400" : "text-slate-500"}>
+                              {row?.bucket || "—"}
+                            </span>,
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.assignmentRate),
+                            <span className="text-sky-400">{formatMoney(row?.avgPremium)}</span>,
+                            formatPercent(row?.premiumEfficiency),
+                            formatPercent(row?.lowerBoundBreakRate),
+                            formatPercent(row?.supportBreakRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
                   />
-                ))}
-              />
-            ) : null}
 
-            {(calibrationSummary?.v2?.hasSectorData ?? false) ? (
-              <CalibrationTable
-                title="Top secteurs calibres"
-                headers={[
-                  "Secteur",
-                  "N resolu",
-                  "Avg POP",
-                  "Win Rate",
-                  "Strike touche %",
-                  "Drawdown moy %",
-                  "Assignment %",
-                  "Warning",
-                ]}
-                rows={(calibrationSummary?.v2?.sectorCohorts ?? []).map((row) => (
-                  <CalibrationV2Row
-                    key={`v2-sector-${String(row?.sector ?? "na")}`}
-                    cells={[
-                      row?.sector || "-",
-                      numberOrNull(row?.resolvedCount) ?? 0,
-                      formatPercent(row?.avgPop),
-                      formatPercent(row?.actualWinRate),
-                      formatPercent(row?.strikeTouchRate),
-                      formatPercent(row?.avgDrawdownPct),
-                      formatPercent(row?.assignmentRate),
-                      row?.confidenceWarning ? (
-                        <span className="rounded bg-amber-100 px-1 py-0.5 text-amber-700">
-                          {row.confidenceWarning}
-                        </span>
-                      ) : "-",
-                    ]}
-                  />
-                ))}
-              />
-            ) : null}
+                  {(calibrationSummary?.v2?.hasFtqsV2Data ?? false) && (
+                    <DarkTable
+                      title="FTQS réel — V2"
+                      headers={["Bucket FTQS", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Support cassé %", "LowerBound cassé %", "Warning"]}
+                      rows={(calibrationSummary?.v2?.ftqsBucketsV2 ?? []).map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-ftqs-${String(row?.bucket ?? "na")}`}
+                          cells={[
+                            <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.supportBreakRate),
+                            formatPercent(row?.lowerBoundBreakRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                    />
+                  )}
 
-          </div>
-        </section>
-      ) : (
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">Calibration V2 avancee</h3>
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Donnees insuffisantes jusqu'a resolution de davantage d'expirations.
-          </div>
+                  {(calibrationSummary?.v2?.tickerCohorts ?? []).length > 0 && (
+                    <DarkTable
+                      title="Top tickers calibrés — V2"
+                      headers={["Ticker", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Support %", "LowerBound %", "Warning"]}
+                      rows={(calibrationSummary?.v2?.tickerCohorts ?? []).map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-ticker-${String(row?.ticker ?? "na")}`}
+                          cells={[
+                            <span className="font-bold text-slate-100">{row?.ticker || "—"}</span>,
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
+                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.assignmentRate),
+                            formatPercent(row?.supportBreakRate),
+                            formatPercent(row?.lowerBoundBreakRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                    />
+                  )}
+
+                  {(calibrationSummary?.v2?.hasSectorData ?? false) && (
+                    <DarkTable
+                      title="Top secteurs calibrés — V2"
+                      headers={["Secteur", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Warning"]}
+                      rows={(calibrationSummary?.v2?.sectorCohorts ?? []).map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-sector-${String(row?.sector ?? "na")}`}
+                          cells={[
+                            row?.sector || "—",
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
+                            formatPercent(row?.actualWinRate),
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.assignmentRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
-      {/* ── Seasonality V1 — read-only, on-demand ───────────────────────── */}
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-950">Saisonnalité V1 — Lecture seule</h3>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Fenêtres saisonnières historiques (Yahoo, mise en cache 6h) pour les tickers du journal.
-              Aucun impact sur le scanner, EliteScore ou ranking. Calibration automatique prévue en V2.
-            </p>
+      {/* ── Seasonality V1 — read-only ──────────────────────────────────────── */}
+      {hasLoaded && (
+        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Saisonnalité V1 — Lecture seule</h3>
+              <p className="mt-1 text-[11px] text-slate-600">
+                Fenêtres saisonnières historiques (Yahoo, cache 6h). Aucun impact scanner, EliteScore, ranking.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchJournalSeasonality}
+              disabled={seasonalityLoading || !hasLoaded || !uniqueJournalSymbols.length}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Charger saisonnalité
+              <RefreshCw className={`ml-2 h-4 w-4 ${seasonalityLoading ? "animate-spin" : ""}`} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={fetchJournalSeasonality}
-            disabled={seasonalityLoading || !hasLoaded || !uniqueJournalSymbols.length}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Charger saisonnalité
-            <RefreshCw className={`ml-2 h-4 w-4 ${seasonalityLoading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
 
-        {!hasLoaded && (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Chargez d&apos;abord le journal pour activer l&apos;analyse saisonnière.
-          </div>
-        )}
+          {!hasLoaded && (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Chargez d&apos;abord le journal.
+            </div>
+          )}
+          {hasLoaded && !journalSeasonality && !seasonalityLoading && (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              {uniqueJournalSymbols.length > 0
+                ? `${uniqueJournalSymbols.length} tickers détectés — cliquez sur "Charger saisonnalité".`
+                : "Aucun ticker dans le journal."}
+            </div>
+          )}
+          {seasonalityLoading && (
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Calcul en cours — Yahoo Finance historique, résultat mis en cache 6h…
+            </div>
+          )}
+          {journalSeasonality && !seasonalityLoading && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3 font-semibold">Ticker</th>
+                    <th className="px-3 py-3 font-semibold">Biais actuel</th>
+                    <th className="px-3 py-3 font-semibold">Score</th>
+                    <th className="px-3 py-3 font-semibold">Risque strike</th>
+                    <th className="px-3 py-3 font-semibold">Fenêtre active</th>
+                    <th className="px-3 py-3 font-semibold">Win rate</th>
+                    <th className="px-3 py-3 font-semibold">Données</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {(journalSeasonality.symbols ?? []).map((sym) => {
+                    const d = journalSeasonality.results?.[sym];
+                    return (
+                      <tr key={`seas-${sym}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-slate-100">{sym}</td>
+                        <td className="px-3 py-2.5">
+                          {d?.seasonalBias ? (
+                            <span className={d.seasonalBias === "favorable" ? "font-medium text-emerald-400" : d.seasonalBias === "unfavorable" ? "font-medium text-rose-400" : "text-slate-500"}>
+                              {d.seasonalBias === "favorable" ? "↑ Favorable" : d.seasonalBias === "unfavorable" ? "↓ Défavorable" : "→ Neutre"}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {d?.seasonalityScore != null ? (
+                            <span className={d.seasonalityScore >= 0.25 ? "text-emerald-400" : d.seasonalityScore <= -0.25 ? "text-rose-400" : "text-slate-500"}>
+                              {d.seasonalityScore >= 0 ? "+" : ""}{Math.round(d.seasonalityScore * 100)}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {d?.seasonalStrikeRisk ? (
+                            <span className={d.seasonalStrikeRisk === "high" ? "font-medium text-rose-400" : d.seasonalStrikeRisk === "low" ? "font-medium text-emerald-400" : "text-amber-400"}>
+                              {d.seasonalStrikeRisk === "high" ? "Élevé" : d.seasonalStrikeRisk === "low" ? "Faible" : "Moyen"}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-500">
+                          {d?.activeWindowNow
+                            ? `S${d.activeWindowNow.windowStart}–S${d.activeWindowNow.windowEnd} · ${d.activeWindowNow.windowSizeWeeks}sem · ${d.activeWindowNow.bias}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {d?.activeWindowNow?.winRate != null ? `${Math.round(d.activeWindowNow.winRate * 100)}%` : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-600">
+                          {d?.dataPointCount != null ? `${d.dataPointCount} j` : "n/a"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <p className="mt-3 text-[10px] text-slate-600">
+                V1 — lecture seule · aucun impact scanner · calibration saisonnière automatique prévue V2 ·
+                généré {journalSeasonality.generatedAt ? new Date(journalSeasonality.generatedAt).toLocaleTimeString() : "—"}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
-        {hasLoaded && !journalSeasonality && !seasonalityLoading && (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            {uniqueJournalSymbols.length > 0
-              ? `${uniqueJournalSymbols.length} tickers détectés — cliquez sur "Charger saisonnalité" pour analyser.`
-              : "Aucun ticker dans le journal."}
-          </div>
-        )}
-
-        {seasonalityLoading && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-            Calcul en cours — Yahoo Finance historique, résultat mis en cache 6h…
-          </div>
-        )}
-
-        {journalSeasonality && !seasonalityLoading && (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left text-xs text-slate-700">
-              <thead className="border-b border-slate-200 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-                <tr>
-                  <th className="px-3 py-3 font-medium">Ticker</th>
-                  <th className="px-3 py-3 font-medium">Biais actuel</th>
-                  <th className="px-3 py-3 font-medium">Score</th>
-                  <th className="px-3 py-3 font-medium">Risque strike</th>
-                  <th className="px-3 py-3 font-medium">Fenêtre active</th>
-                  <th className="px-3 py-3 font-medium">Win rate</th>
-                  <th className="px-3 py-3 font-medium">Données</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(journalSeasonality.symbols ?? []).map((sym) => {
-                  const d = journalSeasonality.results?.[sym];
-                  return (
-                    <tr key={`seas-${sym}`} className="border-b border-slate-100 last:border-b-0">
-                      <td className="px-3 py-3 font-semibold text-slate-900">{sym}</td>
-                      <td className="px-3 py-3">
-                        {d?.seasonalBias ? (
-                          <span className={
-                            d.seasonalBias === "favorable"   ? "font-medium text-emerald-700" :
-                            d.seasonalBias === "unfavorable" ? "font-medium text-rose-700"    :
-                                                               "text-slate-500"
-                          }>
-                            {d.seasonalBias === "favorable"   ? "↑ Favorable"   :
-                             d.seasonalBias === "unfavorable" ? "↓ Défavorable" :
-                                                                "→ Neutre"}
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td className="px-3 py-3">
-                        {d?.seasonalityScore != null ? (
-                          <span className={
-                            d.seasonalityScore >= 0.25  ? "text-emerald-700" :
-                            d.seasonalityScore <= -0.25 ? "text-rose-700"    :
-                                                          "text-slate-500"
-                          }>
-                            {d.seasonalityScore >= 0 ? "+" : ""}
-                            {Math.round(d.seasonalityScore * 100)}
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td className="px-3 py-3">
-                        {d?.seasonalStrikeRisk ? (
-                          <span className={
-                            d.seasonalStrikeRisk === "high" ? "font-medium text-rose-700"    :
-                            d.seasonalStrikeRisk === "low"  ? "font-medium text-emerald-700" :
-                                                              "text-amber-700"
-                          }>
-                            {d.seasonalStrikeRisk === "high" ? "Élevé" :
-                             d.seasonalStrikeRisk === "low"  ? "Faible" : "Moyen"}
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-slate-600">
-                        {d?.activeWindowNow
-                          ? `S${d.activeWindowNow.windowStart}–S${d.activeWindowNow.windowEnd} · ${d.activeWindowNow.windowSizeWeeks}sem · ${d.activeWindowNow.bias}`
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-3">
-                        {d?.activeWindowNow?.winRate != null
-                          ? `${Math.round(d.activeWindowNow.winRate * 100)}%`
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-slate-400">
-                        {d?.dataPointCount != null ? `${d.dataPointCount} j` : "n/a"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-3 text-xs text-slate-400">
-              V1 — lecture seule · aucun impact scanner · calibration saisonnière automatique prévue V2 ·
-              généré {journalSeasonality.generatedAt ? new Date(journalSeasonality.generatedAt).toLocaleTimeString() : "—"}
-            </p>
-          </div>
-        )}
-      </section>
-      {/* ─────────────────────────────────────────────────────────────────── */}
-
-      <JournalTable title="A resoudre" rows={unresolvedRecords} />
-      <JournalTable title="Resolus" rows={resolvedRecords} showOutcomeV2 />
+      {/* ── Raw journal tables ──────────────────────────────────────────────── */}
+      {hasLoaded && (
+        <>
+          <DarkJournalTable title="À résoudre" rows={unresolvedRecords} />
+          <DarkJournalTable title="Résolus" rows={resolvedRecords} showOutcomeV2 />
+        </>
+      )}
     </div>
   );
 }
-

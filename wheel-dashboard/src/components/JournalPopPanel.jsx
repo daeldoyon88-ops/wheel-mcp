@@ -893,6 +893,111 @@ function computePrimeQualityStats(records) {
   };
 }
 
+function computeBucketTickerVerdict(resolvedCount, stressStats, avgSpreadPct) {
+  const rc = numberOrNull(resolvedCount) ?? 0;
+  const clean = numberOrNull(stressStats?.cleanWinRate);
+  const lucky = numberOrNull(stressStats?.luckyWinRate);
+  const lb = numberOrNull(stressStats?.lowerBoundBreakRate);
+  const touch = numberOrNull(stressStats?.strikeTouchRate);
+  const spread = numberOrNull(avgSpreadPct);
+
+  if (rc === 0) return "N/D";
+
+  if (rc < 10) {
+    if ((lucky != null && lucky >= 50) || (lb != null && lb >= 50) || (touch != null && touch >= 50)) {
+      return "Trop jeune / Stress élevé";
+    }
+    if (spread != null && spread > 20) return "Trop jeune / Spread risqué";
+    return "Trop jeune";
+  }
+
+  if ((lucky != null && lucky >= 30) || (lb != null && lb >= 30) || (touch != null && touch >= 30)) return "Stressé";
+  if (
+    clean != null && lucky != null && lb != null && touch != null &&
+    clean >= 70 && lucky <= 15 && lb <= 15 && touch <= 15
+  ) return "Propre";
+  return "À surveiller";
+}
+
+function computeBucketTickerBreakdown(records) {
+  const rows = Array.isArray(records) ? records : [];
+  const defs = [
+    { label: "0.40–0.60 %", min: 0.40, max: 0.60 },
+    { label: "0.60–0.80 %", min: 0.60, max: 0.80 },
+    { label: "0.80–1.00 %", min: 0.80, max: 1.00 },
+    { label: "1.00–1.25 %", min: 1.00, max: 1.25 },
+    { label: "1.25 % +", min: 1.25, max: Infinity },
+  ];
+
+  const getPremiumToSpotPct = (r) => {
+    const pct = numberOrNull(r?.snapshot?.premium_to_spot_pct);
+    if (pct != null) return pct;
+    const premium = numberOrNull(r?.strike?.premium);
+    const spot = numberOrNull(r?.underlying?.spotAtScan);
+    if (premium == null || spot == null || spot <= 0) return null;
+    return (premium / spot) * 100;
+  };
+
+  const avg = (vals) => (vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null);
+
+  return defs.map((def) => {
+    const bucketRows = rows.filter((r) => {
+      const pct = getPremiumToSpotPct(r);
+      if (pct == null) return false;
+      return pct >= def.min && (def.max === Infinity ? true : pct < def.max);
+    });
+
+    const byTicker = new Map();
+    for (const r of bucketRows) {
+      const ticker = String(r?.symbol ?? "").trim().toUpperCase();
+      if (!ticker) continue;
+      if (!byTicker.has(ticker)) byTicker.set(ticker, []);
+      byTicker.get(ticker).push(r);
+    }
+
+    const tickers = Array.from(byTicker.entries()).map(([ticker, tickerRecs]) => {
+      const resolved = tickerRecs.filter((r) => r?.resolution?.resolved === true);
+      const wins = resolved.filter((r) => r?.resolution?.expiredWorthless === true);
+      const winRate = resolved.length > 0 ? (wins.length / resolved.length) * 100 : null;
+      const modeKnown = tickerRecs.filter((r) => r?.strikeMode === "safe" || r?.strikeMode === "aggressive");
+      const safeCount = modeKnown.length > 0 ? modeKnown.filter((r) => r?.strikeMode === "safe").length : null;
+      const aggressiveCount = modeKnown.length > 0 ? modeKnown.filter((r) => r?.strikeMode === "aggressive").length : null;
+      const premiumVals = resolved.map((r) => numberOrNull(r?.strike?.premium)).filter((v) => v != null);
+      const stressStats = computeStressStats(tickerRecs);
+      const pq = computePrimeQualityStats(tickerRecs);
+
+      return {
+        ticker,
+        recordCount: tickerRecs.length,
+        resolvedCount: resolved.length,
+        safeCount,
+        aggressiveCount,
+        avgPremium: avg(premiumVals),
+        avgSpreadPct: pq.avgSpreadPct,
+        winRate,
+        cleanWinRate: stressStats?.cleanWinRate ?? null,
+        luckyWinRate: stressStats?.luckyWinRate ?? null,
+        lowerBoundBreakRate: stressStats?.lowerBoundBreakRate ?? null,
+        strikeTouchRate: stressStats?.strikeTouchRate ?? null,
+        verdict: computeBucketTickerVerdict(resolved.length, stressStats, pq.avgSpreadPct),
+      };
+    }).sort((a, b) => {
+      const rcGap = (b.resolvedCount ?? 0) - (a.resolvedCount ?? 0);
+      if (rcGap !== 0) return rcGap;
+      const tcGap = (b.recordCount ?? 0) - (a.recordCount ?? 0);
+      if (tcGap !== 0) return tcGap;
+      return String(a.ticker).localeCompare(String(b.ticker));
+    });
+
+    return {
+      label: def.label,
+      count: bucketRows.length,
+      tickerCount: tickers.length,
+      tickers,
+    };
+  });
+}
+
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [calibrationSummary, setCalibrationSummary] = useState(null);
@@ -903,6 +1008,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [resolveSummary, setResolveSummary] = useState(null);
   const [showRawSections, setShowRawSections] = useState(false);
+  const [bucketTickerVisibleCounts, setBucketTickerVisibleCounts] = useState({});
 
   // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
@@ -1123,6 +1229,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   }, [calibrationSummary, records]);
 
   const primeQualityStats = useMemo(() => computePrimeQualityStats(records), [records]);
+  const bucketTickerBreakdown = useMemo(() => computeBucketTickerBreakdown(records), [records]);
 
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
@@ -1619,6 +1726,134 @@ export default function JournalPopPanel({ apiBase, active }) {
           <p className="mt-3 text-[11px] text-slate-600">
             V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate. · Confiance : n&lt;10 faible · 10–29 préliminaire · 30–99 utilisable · 100+ robuste.
           </p>
+
+          <div className="mt-6 space-y-4">
+            <div>
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                Détail des buckets par ticker
+              </h4>
+              <p className="mt-1 text-[11px] text-slate-600">
+                Montre quels tickers composent chaque bucket de rendement et lesquels créent le stress.
+              </p>
+            </div>
+
+            {bucketTickerBreakdown.map((bucket) => {
+              const defaultVisible = 20;
+              const visibleLimit = numberOrNull(bucketTickerVisibleCounts?.[bucket.label]) ?? defaultVisible;
+              const shownCount = Math.min(visibleLimit, bucket.tickers.length);
+              const displayedTickers = bucket.tickers.slice(0, shownCount);
+              return (
+                <div key={`bucket-ticker-${bucket.label}`} className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-slate-200">{bucket.label}</p>
+                    <p className="text-[11px] text-slate-500">
+                      {bucket.tickerCount} ticker{bucket.tickerCount !== 1 ? "s" : ""} · {bucket.count} record{bucket.count !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+
+                  <p className="mb-3 text-[11px] text-slate-600">
+                    Affiche {shownCount} / {bucket.tickers.length} tickers — triés par records résolus puis records totaux.
+                  </p>
+
+                  {bucket.tickers.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 px-3 py-2 text-[11px] text-slate-600">
+                      Aucun ticker dans ce bucket.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs text-slate-300">
+                          <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                            <tr>
+                              <th className="px-3 py-2.5 text-left font-semibold whitespace-nowrap">Ticker</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Records</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Résolus</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Safe</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Agg</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Prime moy.</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Spread %</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Win</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Clean</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Lucky</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">LB Break</th>
+                              <th className="px-3 py-2.5 text-right font-semibold whitespace-nowrap">Touch</th>
+                              <th className="px-3 py-2.5 font-semibold whitespace-nowrap">Verdict</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/70">
+                            {displayedTickers.map((row) => (
+                              <tr key={`${bucket.label}-${row.ticker}`} className="hover:bg-slate-800/30 transition-colors">
+                                <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.recordCount}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.resolvedCount}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.safeCount != null ? row.safeCount : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.aggressiveCount != null ? row.aggressiveCount : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">{row.avgPremium != null ? formatMoney(row.avgPremium) : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {row.avgSpreadPct != null ? (
+                                    <span className={row.avgSpreadPct <= 10 ? "text-emerald-400" : row.avgSpreadPct <= 20 ? "text-amber-400" : "text-rose-400"}>
+                                      {row.avgSpreadPct.toFixed(1)}%
+                                    </span>
+                                  ) : <span className="text-slate-600">N/D</span>}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {row.winRate != null ? (
+                                    <span className={row.winRate >= 80 ? "text-emerald-400" : row.winRate >= 60 ? "text-amber-400" : "text-rose-400"}>
+                                      {row.winRate.toFixed(0)}%
+                                    </span>
+                                  ) : <span className="text-slate-600">N/D</span>}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.cleanWinRate != null ? <span className="text-emerald-400">{row.cleanWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.luckyWinRate != null ? <span className={row.luckyWinRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.luckyWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.lowerBoundBreakRate != null ? <span className={row.lowerBoundBreakRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.lowerBoundBreakRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{row.strikeTouchRate != null ? <span className={row.strikeTouchRate >= 25 ? "text-rose-400 font-semibold" : row.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>{row.strikeTouchRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}</td>
+                                <td className="px-3 py-2.5 whitespace-nowrap">
+                                  <span className={
+                                    row.verdict === "Propre" ? "text-emerald-400" :
+                                    row.verdict === "À surveiller" ? "text-amber-400" :
+                                    row.verdict === "Stressé" || row.verdict === "Trop jeune / Stress élevé" || row.verdict === "Trop jeune / Spread risqué" ? "text-rose-400 font-semibold" :
+                                    row.verdict === "Trop jeune" ? "text-sky-400" :
+                                    "text-slate-600"
+                                  }>
+                                    {row.verdict}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {bucket.tickers.length > defaultVisible && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {shownCount < bucket.tickers.length && (
+                            <button
+                              type="button"
+                              onClick={() => setBucketTickerVisibleCounts((prev) => ({
+                                ...prev,
+                                [bucket.label]: (numberOrNull(prev?.[bucket.label]) ?? defaultVisible) + 20,
+                              }))}
+                              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-700"
+                            >
+                              Afficher 20 de plus
+                            </button>
+                          )}
+                          {shownCount > defaultVisible && (
+                            <button
+                              type="button"
+                              onClick={() => setBucketTickerVisibleCounts((prev) => ({ ...prev, [bucket.label]: defaultVisible }))}
+                              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-700"
+                            >
+                              Réduire à 20
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </ProSection>
       )}
 

@@ -280,53 +280,63 @@ function DarkCalibV2Row({ cells }) {
   );
 }
 
-// ── Ticker verdict helper ───────────────────────────────────────────────────
+// ── Ticker verdict helper V2C ───────────────────────────────────────────────
 
 const SPECULATIVE_TICKERS = new Set([
   "RIOT", "CIFR", "WULF", "MARA", "CLSK", "APLD", "OKLO", "IONQ",
-  "SOUN", "RGTI", "IREN", "BITF", "HUT",
+  "SOUN", "RGTI", "IREN", "BITF", "HUT", "BMNR",
 ]);
 
-// Rules: rc < 10 → "Données insuff." · rc 10–29 → Préliminaire max · rc >= 30 required for Core/Balanced
-// Speculative tickers blocked from "Core" regardless of sample size
-function tickerVerdict(ticker, resolvedCount, winRate, avgPremium) {
-  const rc = numberOrNull(resolvedCount) ?? 0;
-  const wr = numberOrNull(winRate) ?? 0;
-  const pr = numberOrNull(avgPremium) ?? 0;
+// V2C rules: stress metrics gate verdicts. luckyWinRate/lbr/assignmentRate
+// trigger automatic downgrade regardless of win rate.
+function tickerVerdict(ticker, resolvedCount, winRate, avgPremium, stressStats) {
+  const rc  = numberOrNull(resolvedCount) ?? 0;
+  const pr  = numberOrNull(avgPremium) ?? 0;
   const isSpec = SPECULATIVE_TICKERS.has(String(ticker ?? "").toUpperCase().trim());
+
+  const lwr = numberOrNull(stressStats?.luckyWinRate) ?? 0;
+  const lbr = numberOrNull(stressStats?.lowerBoundBreakRate) ?? 0;
+  const ar  = numberOrNull(stressStats?.assignmentRate) ?? 0;
+  const cwr = numberOrNull(stressStats?.cleanWinRate) ?? 0;
+  const hasStress = stressStats?.resolvedCount >= 10;
+  const downgraded = hasStress && (lwr >= 25 || lbr >= 25 || ar > 5);
 
   if (rc < 10) return { label: "Données insuff.", cls: "text-slate-600" };
 
-  // 10–29 resolved: preliminary ceiling, no Core/Balanced
   if (rc < 30) {
     if (isSpec || pr > 1.2) return { label: "Spéculatif", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
     return { label: "Préliminaire", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
   }
 
-  // rc >= 30: full verdict available
-  if (pr > 1.2) return { label: "Premium trap?", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+  // rc >= 30 — stress gates active
+  if (pr > 1.2 && (lwr >= 20 || !hasStress)) return { label: "Premium trap potentiel", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+
+  if (downgraded) {
+    if (lwr >= 30 || lbr >= 30 || ar > 5) return { label: "À éviter / à limiter", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+    return { label: "Agressif stressé", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+  }
 
   if (isSpec) {
-    if (wr >= 85) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+    if (hasStress && cwr >= 60 && lwr < 20) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
     return { label: "Spéculatif", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
   }
 
-  if (wr >= 90 && pr <= 0.8) return { label: "Core", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
-  if (wr >= 80 && pr <= 1.2) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
-  if (wr >= 70)              return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
-  return { label: "À valider", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
+  if (hasStress && cwr >= 70 && lwr < 15 && pr <= 0.8) return { label: "Core", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+  if (hasStress && cwr >= 70 && lwr < 15) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
+  if (hasStress && cwr >= 60 && lwr < 20) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+  return { label: "Préliminaire", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
 }
 
-function TickerVerdictBadge({ ticker, resolvedCount, winRate, avgPremium }) {
-  const v = tickerVerdict(ticker, resolvedCount, winRate, avgPremium);
+function TickerVerdictBadge({ ticker, resolvedCount, winRate, avgPremium, stressStats }) {
+  const v = tickerVerdict(ticker, resolvedCount, winRate, avgPremium, stressStats);
   return <span className={`text-[10px] ${v.cls}`}>{v.label}</span>;
 }
 
-// ── Premium bucket verdict ──────────────────────────────────────────────────
-// Per-bucket rules — "Core défensif" gated behind rc >= 30 + wr >= 90 + defensive bucket only
-// Buckets 0.80%+ never show "Core défensif" — higher premium = higher risk framing
+// ── Premium bucket verdict V2C ──────────────────────────────────────────────
+// Rules updated: stress metrics gate "Core défensif" and can downgrade buckets.
+// 1.25%+ always speculative. Never shows "Core" for buckets ≥ 0.80%.
 
-function premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate) {
+function premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate, stressStats) {
   const n = numberOrNull(count) ?? 0;
   const r = numberOrNull(resolvedCount) ?? 0;
   const wr = numberOrNull(winRate);
@@ -336,41 +346,44 @@ function premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate) {
   if (wr == null) return { label: "—", cls: "text-slate-600" };
 
   const lbl = String(bucketLabel ?? "");
+  const lwr = numberOrNull(stressStats?.luckyWinRate) ?? 0;
+  const lbr = numberOrNull(stressStats?.lowerBoundBreakRate) ?? 0;
+  const ar  = numberOrNull(stressStats?.assignmentRate) ?? 0;
 
-  // 0.40–0.60 %: "Core défensif" gate = rc >= 30 + wr >= 90
   if (lbl.startsWith("0.40")) {
-    if (r >= 30 && wr >= 90) return { label: "Core défensif", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+    if (r >= 30 && lwr < 20 && lbr < 20) return { label: "Core défensif", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+    if (r >= 30 && (lwr >= 20 || lbr >= 20)) return { label: "Balanced stressé / À surveiller", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
     if (r >= 10 && wr >= 80) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
     return { label: "Préliminaire", cls: "rounded bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-slate-400" };
   }
 
-  // 0.60–0.80 %: "Core défensif" gate = rc >= 30 + wr >= 90
   if (lbl.startsWith("0.60")) {
-    if (r >= 30 && wr >= 90) return { label: "Core défensif", cls: "rounded bg-emerald-900/40 border border-emerald-800/50 px-1.5 py-0.5 font-bold text-emerald-400" };
+    if (r >= 30 && lwr < 20) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
+    if (r >= 30 && lwr >= 20) return { label: "Balanced stressé / À surveiller", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
     if (r >= 10 && wr >= 75) return { label: "Balanced", cls: "rounded bg-sky-900/40 border border-sky-800/50 px-1.5 py-0.5 font-bold text-sky-400" };
     return { label: "À valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
   }
 
-  // 0.80–1.00 %: never "Core défensif"
   if (lbl.startsWith("0.80")) {
-    if (r >= 30 && wr >= 85) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
-    return { label: "Préliminaire / À valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+    if (r >= 30 && lwr < 20 && ar <= 2) return { label: "Agressif sain", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
+    if (r >= 30 && lwr >= 20) return { label: "Agressif stressé", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+    return { label: "Préliminaire", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
   }
 
-  // 1.00–1.25 %: never "Core défensif"
   if (lbl.startsWith("1.00")) {
     if (r < 30) return { label: "Préliminaire — 1% à valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
-    if (wr >= 85) return { label: "Opportuniste", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
-    return { label: "À valider", cls: "rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 font-bold text-amber-400" };
+    if (lwr >= 20) return { label: "1% stressé — à limiter", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+    return { label: "Opportuniste", cls: "rounded bg-indigo-900/40 border border-indigo-800/50 px-1.5 py-0.5 font-bold text-indigo-400" };
   }
 
-  // 1.25 %+ : always speculative framing, never "Core défensif"
+  // 1.25%+ — always speculative, never Core
+  if (lwr >= 20 || lbr >= 20) return { label: "Premium trap probable", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
   if (r < 30) return { label: "Préliminaire — risque élevé", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
-  return { label: "Spéculatif / premium trap?", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
+  return { label: "Spéculatif / premium trap potentiel", cls: "rounded bg-rose-900/40 border border-rose-800/50 px-1.5 py-0.5 font-bold text-rose-400" };
 }
 
-function PremiumVerdictBadge({ bucketLabel, count, resolvedCount, winRate }) {
-  const v = premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate);
+function PremiumVerdictBadge({ bucketLabel, count, resolvedCount, winRate, stressStats }) {
+  const v = premiumBucketVerdict(bucketLabel, count, resolvedCount, winRate, stressStats);
   return <span className={`text-[10px] ${v.cls}`}>{v.label}</span>;
 }
 
@@ -458,6 +471,59 @@ function computeStressCoverage(resolvedRecords) {
   const verdict = globalCoverage < 30 ? "Faible" : globalCoverage <= 70 ? "Partiel" : "Bon";
 
   return { strikeTouchedCoverage, lowerBoundCoverage, drawdownCoverage, globalCoverage, verdict };
+}
+
+// ── computeStressStats V2C ──────────────────────────────────────────────────
+// Pure function — accepts any records slice (bucket / mode / ticker).
+// Rates are always computed over resolved wins+assignments only (no losses).
+
+function computeStressStats(records) {
+  const wq = computeWinQualityStats(records);
+  const resolvedAll = records.filter((r) => r?.resolution?.resolved === true);
+
+  const stKnown = resolvedAll.filter((r) => r?.resolution?.strikeTouched != null);
+  const strikeTouchRate = stKnown.length > 0
+    ? (stKnown.filter((r) => r.resolution.strikeTouched === true).length / stKnown.length) * 100
+    : null;
+
+  const lbKnown = resolvedAll.filter((r) => r?.resolution?.brokeLowerBound != null);
+  const lowerBoundBreakRate = lbKnown.length > 0
+    ? (lbKnown.filter((r) => r.resolution.brokeLowerBound === true).length / lbKnown.length) * 100
+    : null;
+
+  const ddVals = resolvedAll.map((r) => numberOrNull(r?.resolution?.drawdownPct)).filter((v) => v != null);
+  const avgDrawdownPct = ddVals.length > 0 ? ddVals.reduce((s, v) => s + v, 0) / ddVals.length : null;
+
+  const rc = wq.resolvedCount;
+  let stressVerdict = "N/D";
+  if (rc >= 10) {
+    const cwr = wq.cleanWinRate ?? 0;
+    const lwr = wq.luckyWinRate ?? 0;
+    const ar  = wq.assignmentRate ?? 0;
+    const lbr = lowerBoundBreakRate ?? 0;
+    if (lwr >= 30 || lbr >= 30 || ar > 5) stressVerdict = "Risque fort";
+    else if (lwr >= 20 || lbr >= 20)       stressVerdict = "Stress élevé";
+    else if (cwr >= 60 && lwr < 20)         stressVerdict = "Correct";
+    if (cwr >= 75 && lwr < 10 && ar === 0)  stressVerdict = "Très propre";
+  }
+
+  return {
+    resolvedCount: rc,
+    cleanWinCount: wq.cleanWinCount,
+    normalWinCount: wq.normalWinCount,
+    stressedWinCount: wq.stressedWinCount,
+    luckyWinCount: wq.luckyWinCount,
+    assignmentCount: wq.assignmentCount,
+    cleanWinRate: wq.cleanWinRate,
+    normalWinRate: wq.normalWinRate,
+    stressedWinRate: wq.stressedWinRate,
+    luckyWinRate: wq.luckyWinRate,
+    assignmentRate: wq.assignmentRate,
+    strikeTouchRate,
+    lowerBoundBreakRate,
+    avgDrawdownPct,
+    stressVerdict,
+  };
 }
 
 // ── 1% Readiness V2B ────────────────────────────────────────────────────────
@@ -802,6 +868,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
       })();
       const winRate = resolved.length > 0 ? (wins.length / resolved.length) * 100 : null;
+      const stressStats = computeStressStats(matching);
       return {
         label: def.label,
         count: matching.length,
@@ -811,6 +878,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         avgPremium,
         safeCount: safe.length,
         aggressiveCount: aggressive.length,
+        stressStats,
       };
     });
   }, [records]);
@@ -827,14 +895,26 @@ export default function JournalPopPanel({ apiBase, active }) {
     return rows.find((r) => r?.bucket === "aggressive") ?? null;
   }, [calibrationSummary]);
 
+  // ── Mode stress stats V2C ──────────────────────────────────────────────────
+  const safeModeStressStats = useMemo(
+    () => computeStressStats(records.filter((r) => r?.strikeMode === "safe")),
+    [records],
+  );
+  const aggressiveModeStressStats = useMemo(
+    () => computeStressStats(records.filter((r) => r?.strikeMode === "aggressive")),
+    [records],
+  );
+
   // ── Ticker leaderboard ─────────────────────────────────────────────────────
 
   const tickerLeaderboard = useMemo(() => {
     const cohorts = calibrationSummary?.v2?.tickerCohorts ?? [];
     return cohorts.map((row) => {
-      const safeCount = records.filter((r) => r?.symbol === row.ticker && r?.strikeMode === "safe").length;
-      const aggressiveCount = records.filter((r) => r?.symbol === row.ticker && r?.strikeMode === "aggressive").length;
-      return { ...row, safeCount, aggressiveCount };
+      const tickerRecs = records.filter((r) => r?.symbol === row.ticker);
+      const safeCount = tickerRecs.filter((r) => r?.strikeMode === "safe").length;
+      const aggressiveCount = tickerRecs.filter((r) => r?.strikeMode === "aggressive").length;
+      const stressStats = computeStressStats(tickerRecs);
+      return { ...row, safeCount, aggressiveCount, stressStats };
     });
   }, [calibrationSummary, records]);
 
@@ -919,7 +999,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               Calibration réelle — Données historiques
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Journal POP Pro V2B · Win Quality + Stress Coverage + 1% Readiness · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
+              Journal POP Pro V2C · Win Quality + Stress Coverage + 1% Readiness + Stress metrics par bucket/mode/ticker · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
             </p>
           </div>
           <div className="flex flex-col gap-2 md:items-end">
@@ -1249,55 +1329,89 @@ export default function JournalPopPanel({ apiBase, active }) {
           subtitle="Distribution des records par rendement de prime (premium / cours sous-jacent au scan). Cible : 1.00–1.25 %."
         >
           <p className="mb-4 text-[10px] text-slate-600 italic">
-            Verdict basé sur échantillon résolu, win rate et prudence statistique —
-            "Core défensif" exige n≥30 résolu · buckets ≥0.80% ne peuvent pas afficher "Core défensif" · 1.25%+ toujours spéculatif.
+            V2C : verdicts tenant compte de la qualité réelle des victoires (clean/lucky/LB break) — "Core défensif" exige n≥30 + stress faible · 1.25%+ toujours spéculatif.
           </p>
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs text-slate-300">
               <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                 <tr>
-                  <th className="px-3 py-3 font-semibold text-left">Bucket</th>
-                  <th className="px-3 py-3 font-semibold text-right">Records</th>
-                  <th className="px-3 py-3 font-semibold text-right">Résolus</th>
-                  <th className="px-3 py-3 font-semibold text-right">Win rate</th>
-                  <th className="px-3 py-3 font-semibold text-right">POP moy.</th>
-                  <th className="px-3 py-3 font-semibold text-right">Prime moy.</th>
-                  <th className="px-3 py-3 font-semibold text-right">Safe</th>
-                  <th className="px-3 py-3 font-semibold text-right">Agressif</th>
-                  <th className="px-3 py-3 font-semibold">Confiance</th>
-                  <th className="px-3 py-3 font-semibold">Verdict</th>
+                  <th className="px-3 py-3 font-semibold text-left whitespace-nowrap">Bucket</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Records</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Résolus</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Win rate</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">POP moy.</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Prime moy.</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Safe</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Agressif</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Clean</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Stress</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Lucky</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">LB break</th>
+                  <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Assign</th>
+                  <th className="px-3 py-3 font-semibold whitespace-nowrap">Confiance</th>
+                  <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/70">
-                {premiumReturnBuckets.map((b) => (
-                  <tr key={b.label} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-3 font-bold text-slate-100">{b.label}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">{b.count || "—"}</td>
-                    <td className="px-3 py-3 text-right tabular-nums text-slate-400">{b.resolvedCount || "—"}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {b.winRate != null ? (
-                        <span className={b.winRate >= 80 ? "text-emerald-400 font-semibold" : b.winRate >= 60 ? "text-amber-400" : "text-rose-400"}>
-                          {b.winRate.toFixed(1)} %
-                        </span>
-                      ) : <span className="text-slate-600">N/D</span>}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums text-slate-400">
-                      {b.avgPop != null ? `${b.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums text-sky-400">
-                      {b.avgPremium != null ? formatMoney(b.avgPremium) : <span className="text-slate-600">N/D</span>}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{b.safeCount || 0}</td>
-                    <td className="px-3 py-3 text-right tabular-nums text-rose-400">{b.aggressiveCount || 0}</td>
-                    <td className="px-3 py-3"><ConfidenceBadge sample={b.resolvedCount} /></td>
-                    <td className="px-3 py-3"><PremiumVerdictBadge bucketLabel={b.label} count={b.count} resolvedCount={b.resolvedCount} winRate={b.winRate} /></td>
-                  </tr>
-                ))}
+                {premiumReturnBuckets.map((b) => {
+                  const ss = b.stressStats;
+                  return (
+                    <tr key={b.label} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-3 py-3 font-bold text-slate-100 whitespace-nowrap">{b.label}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">{b.count || "—"}</td>
+                      <td className="px-3 py-3 text-right tabular-nums text-slate-400">{b.resolvedCount || "—"}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {b.winRate != null ? (
+                          <span className={b.winRate >= 80 ? "text-emerald-400 font-semibold" : b.winRate >= 60 ? "text-amber-400" : "text-rose-400"}>
+                            {b.winRate.toFixed(1)} %
+                          </span>
+                        ) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums text-slate-400">
+                        {b.avgPop != null ? `${b.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                        {b.avgPremium != null ? formatMoney(b.avgPremium) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{b.safeCount || 0}</td>
+                      <td className="px-3 py-3 text-right tabular-nums text-rose-400">{b.aggressiveCount || 0}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {ss?.cleanWinRate != null ? <span className="text-emerald-400">{ss.cleanWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {ss?.stressedWinRate != null ? <span className="text-amber-400">{ss.stressedWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {ss?.luckyWinRate != null ? (
+                          <span className={ss.luckyWinRate >= 20 ? "text-rose-400 font-semibold" : ss.luckyWinRate >= 10 ? "text-amber-400" : "text-slate-400"}>
+                            {ss.luckyWinRate.toFixed(0)}%
+                          </span>
+                        ) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {ss?.lowerBoundBreakRate != null ? (
+                          <span className={ss.lowerBoundBreakRate >= 20 ? "text-rose-400 font-semibold" : ss.lowerBoundBreakRate >= 10 ? "text-amber-400" : "text-slate-400"}>
+                            {ss.lowerBoundBreakRate.toFixed(0)}%
+                          </span>
+                        ) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        {ss?.assignmentRate != null ? (
+                          <span className={ss.assignmentRate > 5 ? "text-rose-400 font-semibold" : ss.assignmentRate > 0 ? "text-amber-400" : "text-slate-400"}>
+                            {ss.assignmentRate.toFixed(0)}%
+                          </span>
+                        ) : <span className="text-slate-600">N/D</span>}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap"><ConfidenceBadge sample={b.resolvedCount} /></td>
+                      <td className="px-3 py-3 whitespace-nowrap"><PremiumVerdictBadge bucketLabel={b.label} count={b.count} resolvedCount={b.resolvedCount} winRate={b.winRate} stressStats={ss} /></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
           <p className="mt-3 text-[11px] text-slate-600">
-            Records sans premium_to_spot_pct calculé exclus de la distribution. Confiance : n&lt;10 faible · 10–29 préliminaire · 30–99 utilisable · 100+ robuste.
+            V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate. · Confiance : n&lt;10 faible · 10–29 préliminaire · 30–99 utilisable · 100+ robuste.
           </p>
         </ProSection>
       )}
@@ -1317,70 +1431,141 @@ export default function JournalPopPanel({ apiBase, active }) {
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 {/* SAFE */}
-                <div className="rounded-2xl border border-emerald-800/30 bg-emerald-900/10 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="rounded border border-emerald-700/50 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-400">Safe</span>
-                    <span className="text-[11px] text-slate-500">Strike défensif · POP haute attendue</span>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    {[
-                      ["Records résolus", safeModeData?.resolvedCount != null ? String(safeModeData.resolvedCount) : "N/D", "default"],
-                      ["Win rate", safeModeData?.actualWinRate != null ? formatPercent(safeModeData.actualWinRate) : "N/D", safeModeData?.actualWinRate >= 80 ? "good" : "default"],
-                      ["POP moyenne", safeModeData?.avgPop != null ? formatPercent(safeModeData.avgPop) : "N/D", "info"],
-                      ["Prime moyenne", safeModeData?.avgPremium != null ? formatMoney(safeModeData.avgPremium) : "N/D", "default"],
-                      ["Strike touch rate", safeModeData?.strikeTouchRate != null ? formatPercent(safeModeData.strikeTouchRate) : "N/D", "default"],
-                      ["Assignment rate", safeModeData?.assignmentRate != null ? formatPercent(safeModeData.assignmentRate) : "N/D", "default"],
-                      ["Drawdown moyen", safeModeData?.avgDrawdownPct != null ? formatPercent(safeModeData.avgDrawdownPct) : "N/D", "default"],
-                      ["LowerBound cassé", safeModeData?.lowerBoundBreakRate != null ? formatPercent(safeModeData.lowerBoundBreakRate) : "N/D", "default"],
-                    ].map(([lbl, val, tone]) => (
-                      <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
-                        <span className="text-slate-500">{lbl}</span>
-                        <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>
-                          {val}
-                        </span>
+                {(() => {
+                  const ss = safeModeStressStats;
+                  const riskAdj = ss?.luckyWinRate != null && safeModeData?.avgPremium != null
+                    ? safeModeData.avgPremium * (1 - ss.luckyWinRate / 100)
+                    : null;
+                  const modeVerdict = (() => {
+                    const rc = ss?.resolvedCount ?? 0;
+                    const cwr = ss?.cleanWinRate ?? 0;
+                    const lwr = ss?.luckyWinRate ?? 0;
+                    if (rc < 30) return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
+                    if (lwr >= 20) return { label: "Défensif stressé", cls: "border-amber-800/50 bg-amber-900/30 text-amber-400" };
+                    if (cwr >= 70 && lwr < 15) return { label: "Défensif propre", cls: "border-emerald-800/50 bg-emerald-900/30 text-emerald-400" };
+                    return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
+                  })();
+                  return (
+                    <div className="rounded-2xl border border-emerald-800/30 bg-emerald-900/10 p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="rounded border border-emerald-700/50 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-400">Safe</span>
+                        <span className="text-[11px] text-slate-500">Strike défensif · POP haute attendue</span>
+                        <span className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-bold ${modeVerdict.cls}`}>{modeVerdict.label}</span>
                       </div>
-                    ))}
-                    <div className="mt-2 pt-1">
-                      <ConfidenceBadge sample={safeModeData?.resolvedCount} />
+                      <div className="space-y-2 text-xs">
+                        {[
+                          ["Records résolus", safeModeData?.resolvedCount != null ? String(safeModeData.resolvedCount) : "N/D", "default"],
+                          ["Win rate", safeModeData?.actualWinRate != null ? formatPercent(safeModeData.actualWinRate) : "N/D", safeModeData?.actualWinRate >= 80 ? "good" : "default"],
+                          ["POP moyenne", safeModeData?.avgPop != null ? formatPercent(safeModeData.avgPop) : "N/D", "info"],
+                          ["Prime moyenne", safeModeData?.avgPremium != null ? formatMoney(safeModeData.avgPremium) : "N/D", "default"],
+                          ["Strike touch rate", safeModeData?.strikeTouchRate != null ? formatPercent(safeModeData.strikeTouchRate) : "N/D", "default"],
+                          ["Assignment rate", safeModeData?.assignmentRate != null ? formatPercent(safeModeData.assignmentRate) : "N/D", "default"],
+                          ["Drawdown moyen", safeModeData?.avgDrawdownPct != null ? formatPercent(safeModeData.avgDrawdownPct) : "N/D", "default"],
+                          ["LowerBound cassé", safeModeData?.lowerBoundBreakRate != null ? formatPercent(safeModeData.lowerBoundBreakRate) : "N/D", "default"],
+                        ].map(([lbl, val, tone]) => (
+                          <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
+                            <span className="text-slate-500">{lbl}</span>
+                            <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>{val}</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-slate-700/40 pt-2 mt-1 space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">V2C — Qualité des victoires</p>
+                          {[
+                            ["Clean win %", ss?.cleanWinRate != null ? `${ss.cleanWinRate.toFixed(1)}%` : "N/D", "emerald"],
+                            ["Stressed win %", ss?.stressedWinRate != null ? `${ss.stressedWinRate.toFixed(1)}%` : "N/D", "amber"],
+                            ["Lucky win %", ss?.luckyWinRate != null ? `${ss.luckyWinRate.toFixed(1)}%` : "N/D", ss?.luckyWinRate >= 20 ? "rose" : "amber"],
+                            ["LB break %", ss?.lowerBoundBreakRate != null ? `${ss.lowerBoundBreakRate.toFixed(1)}%` : "N/D", ss?.lowerBoundBreakRate >= 20 ? "rose" : "default"],
+                            ["Assignment %", ss?.assignmentRate != null ? `${ss.assignmentRate.toFixed(1)}%` : "N/D", ss?.assignmentRate > 5 ? "rose" : "default"],
+                            ["Prime aj. risque", riskAdj != null ? formatMoney(riskAdj) : "N/D", "info"],
+                          ].map(([lbl, val, col]) => (
+                            <div key={lbl} className="flex justify-between items-center">
+                              <span className="text-slate-600">{lbl}</span>
+                              <span className={col === "emerald" ? "text-emerald-400" : col === "amber" ? "text-amber-400" : col === "rose" ? "text-rose-400 font-semibold" : col === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-700" : "text-slate-400"}>
+                                {val}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 pt-1">
+                          <ConfidenceBadge sample={safeModeData?.resolvedCount} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* AGGRESSIVE */}
-                <div className="rounded-2xl border border-rose-800/30 bg-rose-900/10 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="rounded border border-rose-700/50 bg-rose-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rose-400">Aggressive</span>
-                    <span className="text-[11px] text-slate-500">Strike agressif · Prime plus haute</span>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    {[
-                      ["Records résolus", aggressiveModeData?.resolvedCount != null ? String(aggressiveModeData.resolvedCount) : "N/D", "default"],
-                      ["Win rate", aggressiveModeData?.actualWinRate != null ? formatPercent(aggressiveModeData.actualWinRate) : "N/D", aggressiveModeData?.actualWinRate >= 80 ? "good" : "default"],
-                      ["POP moyenne", aggressiveModeData?.avgPop != null ? formatPercent(aggressiveModeData.avgPop) : "N/D", "info"],
-                      ["Prime moyenne", aggressiveModeData?.avgPremium != null ? formatMoney(aggressiveModeData.avgPremium) : "N/D", "default"],
-                      ["Strike touch rate", aggressiveModeData?.strikeTouchRate != null ? formatPercent(aggressiveModeData.strikeTouchRate) : "N/D", "default"],
-                      ["Assignment rate", aggressiveModeData?.assignmentRate != null ? formatPercent(aggressiveModeData.assignmentRate) : "N/D", "default"],
-                      ["Drawdown moyen", aggressiveModeData?.avgDrawdownPct != null ? formatPercent(aggressiveModeData.avgDrawdownPct) : "N/D", "default"],
-                      ["LowerBound cassé", aggressiveModeData?.lowerBoundBreakRate != null ? formatPercent(aggressiveModeData.lowerBoundBreakRate) : "N/D", "default"],
-                    ].map(([lbl, val, tone]) => (
-                      <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
-                        <span className="text-slate-500">{lbl}</span>
-                        <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>
-                          {val}
-                        </span>
+                {(() => {
+                  const ss = aggressiveModeStressStats;
+                  const riskAdj = ss?.luckyWinRate != null && aggressiveModeData?.avgPremium != null
+                    ? aggressiveModeData.avgPremium * (1 - ss.luckyWinRate / 100)
+                    : null;
+                  const modeVerdict = (() => {
+                    const rc = ss?.resolvedCount ?? 0;
+                    const cwr = ss?.cleanWinRate ?? 0;
+                    const lwr = ss?.luckyWinRate ?? 0;
+                    const lbr = ss?.lowerBoundBreakRate ?? 0;
+                    const ar  = ss?.assignmentRate ?? 0;
+                    if (rc < 30) return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
+                    if (lbr >= 25 || ar > 5) return { label: "À limiter", cls: "border-rose-800/50 bg-rose-900/30 text-rose-400" };
+                    if (lwr >= 20) return { label: "Agressif stressé", cls: "border-amber-800/50 bg-amber-900/30 text-amber-400" };
+                    if (cwr >= 60 && lwr < 20 && ar <= 2) return { label: "Agressif sain", cls: "border-indigo-800/50 bg-indigo-900/30 text-indigo-400" };
+                    return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
+                  })();
+                  return (
+                    <div className="rounded-2xl border border-rose-800/30 bg-rose-900/10 p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="rounded border border-rose-700/50 bg-rose-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rose-400">Aggressive</span>
+                        <span className="text-[11px] text-slate-500">Strike agressif · Prime plus haute</span>
+                        <span className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-bold ${modeVerdict.cls}`}>{modeVerdict.label}</span>
                       </div>
-                    ))}
-                    <div className="mt-2 pt-1">
-                      <ConfidenceBadge sample={aggressiveModeData?.resolvedCount} />
+                      <div className="space-y-2 text-xs">
+                        {[
+                          ["Records résolus", aggressiveModeData?.resolvedCount != null ? String(aggressiveModeData.resolvedCount) : "N/D", "default"],
+                          ["Win rate", aggressiveModeData?.actualWinRate != null ? formatPercent(aggressiveModeData.actualWinRate) : "N/D", aggressiveModeData?.actualWinRate >= 80 ? "good" : "default"],
+                          ["POP moyenne", aggressiveModeData?.avgPop != null ? formatPercent(aggressiveModeData.avgPop) : "N/D", "info"],
+                          ["Prime moyenne", aggressiveModeData?.avgPremium != null ? formatMoney(aggressiveModeData.avgPremium) : "N/D", "default"],
+                          ["Strike touch rate", aggressiveModeData?.strikeTouchRate != null ? formatPercent(aggressiveModeData.strikeTouchRate) : "N/D", "default"],
+                          ["Assignment rate", aggressiveModeData?.assignmentRate != null ? formatPercent(aggressiveModeData.assignmentRate) : "N/D", "default"],
+                          ["Drawdown moyen", aggressiveModeData?.avgDrawdownPct != null ? formatPercent(aggressiveModeData.avgDrawdownPct) : "N/D", "default"],
+                          ["LowerBound cassé", aggressiveModeData?.lowerBoundBreakRate != null ? formatPercent(aggressiveModeData.lowerBoundBreakRate) : "N/D", "default"],
+                        ].map(([lbl, val, tone]) => (
+                          <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
+                            <span className="text-slate-500">{lbl}</span>
+                            <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>{val}</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-slate-700/40 pt-2 mt-1 space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">V2C — Qualité des victoires</p>
+                          {[
+                            ["Clean win %", ss?.cleanWinRate != null ? `${ss.cleanWinRate.toFixed(1)}%` : "N/D", "emerald"],
+                            ["Stressed win %", ss?.stressedWinRate != null ? `${ss.stressedWinRate.toFixed(1)}%` : "N/D", "amber"],
+                            ["Lucky win %", ss?.luckyWinRate != null ? `${ss.luckyWinRate.toFixed(1)}%` : "N/D", ss?.luckyWinRate >= 20 ? "rose" : "amber"],
+                            ["LB break %", ss?.lowerBoundBreakRate != null ? `${ss.lowerBoundBreakRate.toFixed(1)}%` : "N/D", ss?.lowerBoundBreakRate >= 20 ? "rose" : "default"],
+                            ["Assignment %", ss?.assignmentRate != null ? `${ss.assignmentRate.toFixed(1)}%` : "N/D", ss?.assignmentRate > 5 ? "rose" : "default"],
+                            ["Prime aj. risque", riskAdj != null ? formatMoney(riskAdj) : "N/D", "info"],
+                          ].map(([lbl, val, col]) => (
+                            <div key={lbl} className="flex justify-between items-center">
+                              <span className="text-slate-600">{lbl}</span>
+                              <span className={col === "emerald" ? "text-emerald-400" : col === "amber" ? "text-amber-400" : col === "rose" ? "text-rose-400 font-semibold" : col === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-700" : "text-slate-400"}>
+                                {val}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 pt-1">
+                          <ConfidenceBadge sample={aggressiveModeData?.resolvedCount} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
                 <span className="text-slate-600 text-sm">ℹ</span>
                 <p className="text-[11px] text-slate-600">
-                  Les stress metrics sont disponibles pour les records résolus actuels. Prochaine phase : intégrer ces métriques dans les buckets, les modes et le score 1 % readiness.
+                  V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate. Safe et Aggressive peuvent avoir le même win rate — V2C montre lequel est plus propre.
                 </p>
               </div>
             </>
@@ -1396,8 +1581,7 @@ export default function JournalPopPanel({ apiBase, active }) {
           subtitle="Tickers avec au moins 3 records résolus. Verdict calculé à partir des données historiques disponibles."
         >
           <p className="mb-4 text-[10px] text-slate-600 italic">
-            Verdict basé sur échantillon résolu, win rate, rendement prime et prudence statistique —
-            "Core" exige n≥30 · "Balanced" exige n≥30 · tickers spéculatifs connus bloqués à "Agressif sain" maximum.
+            V2C : verdicts tenant compte du stress réel — luckyWinRate ≥ 25% / LB break ≥ 25% / assignment &gt; 5% entraînent un downgrade automatique.
           </p>
           {tickerLeaderboard.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
@@ -1408,47 +1592,81 @@ export default function JournalPopPanel({ apiBase, active }) {
               <table className="min-w-full text-xs text-slate-300">
                 <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                   <tr>
-                    <th className="px-3 py-3 font-semibold text-left">Ticker</th>
-                    <th className="px-3 py-3 font-semibold text-right">Résolus</th>
-                    <th className="px-3 py-3 font-semibold text-right">Win rate</th>
-                    <th className="px-3 py-3 font-semibold text-right">POP moy.</th>
-                    <th className="px-3 py-3 font-semibold text-right">Prime moy.</th>
-                    <th className="px-3 py-3 font-semibold text-right">Safe</th>
-                    <th className="px-3 py-3 font-semibold text-right">Agressif</th>
-                    <th className="px-3 py-3 font-semibold">Confiance</th>
-                    <th className="px-3 py-3 font-semibold">Verdict</th>
+                    <th className="px-3 py-3 font-semibold text-left whitespace-nowrap">Ticker</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Résolus</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Win rate</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">POP moy.</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Prime moy.</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Safe</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Agressif</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Clean</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Lucky</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">LB break</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Assign</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Confiance</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict V2C</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70">
-                  {tickerLeaderboard.map((row) => (
-                    <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-3 py-3 font-bold text-slate-100">{row.ticker}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">{row.resolvedCount ?? "—"}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">
-                        {row.actualWinRate != null ? (
-                          <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : row.actualWinRate >= 60 ? "text-amber-400" : "text-rose-400"}>
-                            {row.actualWinRate.toFixed(1)} %
-                          </span>
-                        ) : <span className="text-slate-600">N/D</span>}
-                      </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-slate-400">
-                        {row.avgPop != null ? `${row.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
-                      </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-sky-400">
-                        {row.avgPremium != null ? formatMoney(row.avgPremium) : <span className="text-slate-600">N/D</span>}
-                      </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{row.safeCount || 0}</td>
-                      <td className="px-3 py-3 text-right tabular-nums text-rose-400">{row.aggressiveCount || 0}</td>
-                      <td className="px-3 py-3"><ConfidenceBadge sample={row.resolvedCount} /></td>
-                      <td className="px-3 py-3">
-                        <TickerVerdictBadge ticker={row.ticker} resolvedCount={row.resolvedCount} winRate={row.actualWinRate} avgPremium={row.avgPremium} />
-                      </td>
-                    </tr>
-                  ))}
+                  {tickerLeaderboard.map((row) => {
+                    const ss = row.stressStats;
+                    return (
+                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-3 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.resolvedCount ?? "—"}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.actualWinRate != null ? (
+                            <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : row.actualWinRate >= 60 ? "text-amber-400" : "text-rose-400"}>
+                              {row.actualWinRate.toFixed(1)} %
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-slate-400">
+                          {row.avgPop != null ? `${row.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                          {row.avgPremium != null ? formatMoney(row.avgPremium) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{row.safeCount || 0}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-rose-400">{row.aggressiveCount || 0}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.cleanWinRate != null ? <span className="text-emerald-400">{ss.cleanWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.luckyWinRate != null ? (
+                            <span className={ss.luckyWinRate >= 25 ? "text-rose-400 font-semibold" : ss.luckyWinRate >= 10 ? "text-amber-400" : "text-slate-400"}>
+                              {ss.luckyWinRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.lowerBoundBreakRate != null ? (
+                            <span className={ss.lowerBoundBreakRate >= 25 ? "text-rose-400 font-semibold" : ss.lowerBoundBreakRate >= 10 ? "text-amber-400" : "text-slate-400"}>
+                              {ss.lowerBoundBreakRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.assignmentRate != null ? (
+                            <span className={ss.assignmentRate > 5 ? "text-rose-400 font-semibold" : ss.assignmentRate > 0 ? "text-amber-400" : "text-slate-400"}>
+                              {ss.assignmentRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap"><ConfidenceBadge sample={row.resolvedCount} /></td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <TickerVerdictBadge ticker={row.ticker} resolvedCount={row.resolvedCount} winRate={row.actualWinRate} avgPremium={row.avgPremium} stressStats={ss} />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
+          <p className="mt-3 text-[11px] text-slate-600">
+            V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate.
+          </p>
         </ProSection>
       )}
 
@@ -1482,7 +1700,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               stats.resolvedCount < 30 && "Échantillon résolu encore limité pour valider 1 % systématique.",
               stats.winRate != null && stats.winRate >= 95 && "Le win rate élevé doit être interprété avec stress metrics et régimes de marché.",
               "Les résultats doivent être segmentés par régime de marché (bull/bear/sideways) pour une validation complète.",
-              "Les stress metrics sont disponibles pour les records résolus actuels. Prochaine étape : intégrer clean/stressed/lucky wins, strike touch et LowerBound break directement dans les buckets, les modes et les tickers.",
+              "V2C actif : stress metrics intégrées dans les buckets de rendement, les modes Safe/Aggressive et le Ticker Leaderboard — verdicts plus prudents, aucun faux chiffre, read-only.",
             ].filter(Boolean).map((msg, i) => (
               <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-2.5">
                 <span className="text-slate-600 text-sm mt-0.5">›</span>

@@ -998,10 +998,463 @@ function computeBucketTickerBreakdown(records) {
   });
 }
 
+function firstDefinedText(...values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function firstDefinedNumber(...values) {
+  for (const value of values) {
+    const n = numberOrNull(value);
+    if (n != null) return n;
+  }
+  return null;
+}
+
+function isPlainObject(value) {
+  return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isCapitalModeMap(value) {
+  if (!isPlainObject(value)) return false;
+  return ["aggressive", "balanced", "conservative", "safe"].some((key) => {
+    const row = value?.[key];
+    return isPlainObject(row) && (Array.isArray(row?.picks) || Array.isArray(row?.positions));
+  });
+}
+
+function normalizeCapitalPosition(position, index) {
+  const ticker = String(
+    position?.ticker ??
+    position?.symbol ??
+    position?.underlying ??
+    position?.asset ??
+    "",
+  ).trim().toUpperCase();
+
+  return {
+    id: firstDefinedText(position?.id, position?.positionId, position?.position_id, `${ticker || "pos"}-${index + 1}`),
+    ticker,
+    capitalUsed: firstDefinedNumber(
+      position?.capitalUsed,
+      position?.capital_used,
+      position?.capitalRequired,
+      position?.capital_required,
+      position?.requiredCapital,
+      position?.required_capital,
+      position?.positionCapital,
+      position?.position_capital,
+    ),
+    allocation: firstDefinedNumber(
+      position?.allocation,
+      position?.allocationPct,
+      position?.allocation_pct,
+      position?.weightPct,
+      position?.weight_pct,
+      position?.capitalPct,
+      position?.capital_pct,
+    ),
+    positionSize: firstDefinedNumber(position?.positionSize, position?.position_size, position?.contracts, position?.qty),
+  };
+}
+
+function buildNormalizedCapitalCombination(entry, fallbackName) {
+  const positionsSource =
+    Array.isArray(entry?.picks) ? entry.picks :
+    Array.isArray(entry?.positions) ? entry.positions :
+    Array.isArray(entry?.capitalCombinationPositions) ? entry.capitalCombinationPositions :
+    Array.isArray(entry?.capital_combination_positions) ? entry.capital_combination_positions :
+    [];
+
+  const positions = positionsSource
+    .map((position, index) => normalizeCapitalPosition(position, index))
+    .filter((position) => position?.ticker);
+
+  return {
+    id: firstDefinedText(
+      entry?.id,
+      entry?.combinationId,
+      entry?.combination_id,
+      entry?.modeId,
+      entry?.mode_id,
+      fallbackName,
+    ) ?? fallbackName,
+    name: firstDefinedText(
+      entry?.combinationName,
+      entry?.combination_name,
+      entry?.name,
+      entry?.label,
+      entry?.modeLabel,
+      entry?.mode_label,
+      entry?.mode,
+      fallbackName,
+    ) ?? fallbackName,
+    positions,
+    capitalUsed: firstDefinedNumber(
+      entry?.totalCapital,
+      entry?.total_capital,
+      entry?.capitalUsed,
+      entry?.capital_used,
+      entry?.requiredCapital,
+      entry?.required_capital,
+    ),
+    concentrationRisk: firstDefinedNumber(
+      entry?.concentrationRiskScore,
+      entry?.concentration_risk_score,
+      entry?.largestTickerCapitalPct,
+      entry?.largest_ticker_capital_pct,
+    ),
+    avgScore: firstDefinedNumber(
+      entry?.avgQualityScore,
+      entry?.avg_quality_score,
+      entry?.overlayScore,
+      entry?.overlay_score,
+      entry?.riskAdjustedPopScore,
+      entry?.risk_adjusted_pop_score,
+    ),
+    avgYieldPct: firstDefinedNumber(
+      entry?.avgWeeklyReturn,
+      entry?.avg_weekly_return,
+      entry?.yieldPerPopRisk,
+      entry?.yield_per_pop_risk,
+    ),
+  };
+}
+
+function normalizeCapitalCombinationEntries(capitalData) {
+  if (capitalData == null) return [];
+
+  if (Array.isArray(capitalData)) {
+    return capitalData.flatMap((entry, index) => normalizeCapitalCombinationEntries({
+      ...entry,
+      __fallbackName: firstDefinedText(entry?.label, entry?.name, entry?.mode, `Combinaison ${index + 1}`),
+    }));
+  }
+
+  if (!isPlainObject(capitalData)) return [];
+
+  if (Array.isArray(capitalData?.modes)) {
+    const baseName = firstDefinedText(capitalData?.label, capitalData?.name, capitalData?.combinationName, capitalData?.snapshotLabel, "Snapshot");
+    return capitalData.modes.map((mode, index) => buildNormalizedCapitalCombination(
+      {
+        ...mode,
+        totalCapital: firstDefinedNumber(mode?.totalCapital, mode?.capitalUsed, capitalData?.totalCapital),
+      },
+      `${baseName} - ${firstDefinedText(mode?.label, mode?.mode, `Mode ${index + 1}`)}`,
+    ));
+  }
+
+  if (isCapitalModeMap(capitalData)) {
+    return Object.entries(capitalData)
+      .filter(([, value]) => isPlainObject(value) && (Array.isArray(value?.picks) || Array.isArray(value?.positions)))
+      .map(([modeKey, value]) => buildNormalizedCapitalCombination(
+        { ...value, mode: modeKey },
+        firstDefinedText(value?.label, value?.name, modeKey) ?? modeKey,
+      ));
+  }
+
+  const nestedCollections = [
+    capitalData?.capitalCombinations,
+    capitalData?.capitalCombinationSnapshots,
+    capitalData?.capitalCombinationModes,
+    capitalData?.capitalCombinationData,
+    capitalData?.capital_combination_snapshots,
+    capitalData?.capital_combination_modes,
+    capitalData?.combinations,
+    capitalData?.portfolioCombinations,
+    capitalData?.journal?.capitalCombinations,
+    capitalData?.journal?.capitalCombinationSnapshots,
+    capitalData?.journal?.capitalCombinationData,
+    capitalData?.journal?.capital_combination_snapshots,
+    capitalData?.journal?.combinations,
+    capitalData?.journal?.portfolioCombinations,
+  ];
+
+  for (const collection of nestedCollections) {
+    const normalized = normalizeCapitalCombinationEntries(collection);
+    if (normalized.length > 0) return normalized;
+  }
+
+  if (Array.isArray(capitalData?.picks) || Array.isArray(capitalData?.positions)) {
+    return [buildNormalizedCapitalCombination(
+      capitalData,
+      firstDefinedText(capitalData?.__fallbackName, capitalData?.label, capitalData?.name, capitalData?.mode, "Combinaison 1") ?? "Combinaison 1",
+    )];
+  }
+
+  return [];
+}
+
+function extractCapitalCombinationData(sources) {
+  const roots = Array.isArray(sources) ? sources : [sources];
+  for (const root of roots) {
+    if (!root) continue;
+    const directCandidates = [
+      root,
+      root?.journal,
+      root?.journal?.meta,
+      root?.journal?.summary,
+      root?.calibration,
+      root?.summary,
+    ];
+    for (const candidate of directCandidates) {
+      const normalized = normalizeCapitalCombinationEntries(candidate);
+      if (normalized.length > 0) return candidate;
+    }
+  }
+  return null;
+}
+
+function buildCapitalOverlayTickerStats(records) {
+  const rows = Array.isArray(records) ? records : [];
+  const grouped = new Map();
+
+  for (const record of rows) {
+    const ticker = String(record?.symbol ?? "").trim().toUpperCase();
+    if (!ticker) continue;
+    if (!grouped.has(ticker)) grouped.set(ticker, []);
+    grouped.get(ticker).push(record);
+  }
+
+  const byTicker = new Map();
+  for (const [ticker, tickerRecords] of grouped.entries()) {
+    const stressStats = computeStressStats(tickerRecords);
+    const primeQuality = computePrimeQualityStats(tickerRecords);
+    const resolvedCount = numberOrNull(stressStats?.resolvedCount) ?? 0;
+    const cleanWinRate = numberOrNull(stressStats?.cleanWinRate);
+    const luckyWinRate = numberOrNull(stressStats?.luckyWinRate);
+    const lowerBoundBreakRate = numberOrNull(stressStats?.lowerBoundBreakRate);
+    const strikeTouchRate = numberOrNull(stressStats?.strikeTouchRate);
+    const avgSpreadPct = numberOrNull(primeQuality?.avgSpreadPct);
+    const avgPremium = numberOrNull(primeQuality?.avgPremium);
+
+    byTicker.set(ticker, {
+      ticker,
+      resolvedCount,
+      cleanWinRate,
+      luckyWinRate,
+      lowerBoundBreakRate,
+      strikeTouchRate,
+      avgSpreadPct,
+      avgPremium,
+      isHighRisk:
+        (luckyWinRate != null && luckyWinRate >= 25) ||
+        (lowerBoundBreakRate != null && lowerBoundBreakRate >= 25) ||
+        (strikeTouchRate != null && strikeTouchRate >= 25) ||
+        (avgSpreadPct != null && avgSpreadPct > 20),
+      isClean:
+        cleanWinRate != null &&
+        cleanWinRate >= 70 &&
+        (luckyWinRate == null || luckyWinRate <= 15) &&
+        (lowerBoundBreakRate == null || lowerBoundBreakRate <= 15) &&
+        (strikeTouchRate == null || strikeTouchRate <= 15) &&
+        (avgSpreadPct == null || avgSpreadPct <= 10),
+    });
+  }
+
+  return byTicker;
+}
+
+function computeCapitalOverlayScore(metrics) {
+  const unknownRatio = metrics.tickerCount > 0 ? metrics.unknownTickerCount / metrics.tickerCount : 1;
+  const highRiskRatio = metrics.tickerCount > 0 ? metrics.highRiskTickerCount / metrics.tickerCount : 0;
+  let score = 100;
+
+  if (metrics.avgCleanRate != null) score -= Math.max(0, 70 - metrics.avgCleanRate) * 0.7;
+  if (metrics.avgLuckyRate != null) score -= Math.max(0, metrics.avgLuckyRate - 10) * 1.1;
+  if (metrics.avgLowerBoundBreakRate != null) score -= Math.max(0, metrics.avgLowerBoundBreakRate - 10) * 1.0;
+  if (metrics.avgStrikeTouchRate != null) score -= Math.max(0, metrics.avgStrikeTouchRate - 12) * 0.9;
+  if (metrics.avgSpreadPct != null) score -= Math.max(0, metrics.avgSpreadPct - 8) * 1.2;
+  if (metrics.concentrationRiskPct != null) score -= Math.max(0, metrics.concentrationRiskPct - 20) * 0.8;
+
+  score -= unknownRatio * 35;
+  score -= highRiskRatio * 22;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function computeCapitalOverlayVerdict(metrics) {
+  if (metrics.hasCapitalData !== true) return "Capital data N/D";
+  if ((metrics.tickerCount ?? 0) === 0) return "Donnees insuffisantes";
+
+  const unknownRatio = metrics.tickerCount > 0 ? metrics.unknownTickerCount / metrics.tickerCount : 1;
+  const highRiskRatio = metrics.tickerCount > 0 ? metrics.highRiskTickerCount / metrics.tickerCount : 0;
+
+  if (unknownRatio >= 0.5 || (metrics.resolvedSampleTotal ?? 0) < 6) return "Donnees insuffisantes";
+
+  if (
+    highRiskRatio >= 0.5 ||
+    (metrics.highRiskTickerCount ?? 0) >= 3 ||
+    (metrics.concentrationRiskPct != null && metrics.concentrationRiskPct >= 35) ||
+    (metrics.avgSpreadPct != null && metrics.avgSpreadPct > 25)
+  ) {
+    return "A limiter";
+  }
+
+  if (
+    (metrics.avgLuckyRate != null && metrics.avgLuckyRate >= 25) ||
+    (metrics.avgLowerBoundBreakRate != null && metrics.avgLowerBoundBreakRate >= 25) ||
+    (metrics.avgStrikeTouchRate != null && metrics.avgStrikeTouchRate >= 25) ||
+    (metrics.avgSpreadPct != null && metrics.avgSpreadPct > 20)
+  ) {
+    return "Agressif stresse";
+  }
+
+  if (
+    metrics.avgCleanRate != null &&
+    metrics.avgCleanRate >= 70 &&
+    (metrics.avgLuckyRate == null || metrics.avgLuckyRate <= 12) &&
+    (metrics.avgLowerBoundBreakRate == null || metrics.avgLowerBoundBreakRate <= 12) &&
+    (metrics.avgStrikeTouchRate == null || metrics.avgStrikeTouchRate <= 15) &&
+    (metrics.concentrationRiskPct == null || metrics.concentrationRiskPct <= 22)
+  ) {
+    return "Conservateur sain";
+  }
+
+  if (
+    (metrics.avgYieldPct != null && metrics.avgYieldPct >= 0.8) ||
+    (metrics.avgPremium != null && metrics.avgPremium >= 1)
+  ) {
+    return "Agressif sain";
+  }
+
+  return "Equilibre propre";
+}
+
+function computeCapitalCombinationOverlay(records, capitalData) {
+  const combinations = normalizeCapitalCombinationEntries(capitalData);
+  if (combinations.length === 0) {
+    return { hasCapitalData: false, rows: [] };
+  }
+
+  const tickerStatsMap = buildCapitalOverlayTickerStats(records);
+
+  const rows = combinations.map((combination, index) => {
+    const dedupedPositions = [];
+    const dedupedMap = new Map();
+
+    for (const position of combination.positions ?? []) {
+      if (!position?.ticker) continue;
+      const existing = dedupedMap.get(position.ticker);
+      if (existing) {
+        existing.capitalUsed = firstDefinedNumber(
+          (existing.capitalUsed ?? 0) + (position.capitalUsed ?? 0),
+          existing.capitalUsed,
+          position.capitalUsed,
+        );
+        existing.positionSize = firstDefinedNumber(
+          (existing.positionSize ?? 0) + (position.positionSize ?? 0),
+          existing.positionSize,
+          position.positionSize,
+        );
+        continue;
+      }
+      const copy = { ...position };
+      dedupedMap.set(position.ticker, copy);
+      dedupedPositions.push(copy);
+    }
+
+    const knownTickerStats = [];
+    let unknownTickerCount = 0;
+    let highRiskTickerCount = 0;
+    let cleanTickerCount = 0;
+
+    for (const position of dedupedPositions) {
+      const stats = tickerStatsMap.get(position.ticker);
+      if (!stats || (stats.resolvedCount ?? 0) === 0) {
+        unknownTickerCount += 1;
+        continue;
+      }
+      knownTickerStats.push({ ...stats, capitalUsed: position.capitalUsed });
+      if (stats.isHighRisk) highRiskTickerCount += 1;
+      if (stats.isClean) cleanTickerCount += 1;
+    }
+
+    const capitalFromPositions = dedupedPositions
+      .map((position) => numberOrNull(position?.capitalUsed))
+      .filter((value) => value != null)
+      .reduce((sum, value) => sum + value, 0);
+
+    const totalCapital = firstDefinedNumber(
+      combination.capitalUsed,
+      capitalFromPositions > 0 ? capitalFromPositions : null,
+    );
+
+    const capitalWeightBase = knownTickerStats
+      .map((row) => numberOrNull(row?.capitalUsed))
+      .filter((value) => value != null && value > 0)
+      .reduce((sum, value) => sum + value, 0);
+
+    const weightedAverage = (selector) => {
+      let weightedSum = 0;
+      let totalWeight = 0;
+      for (const stats of knownTickerStats) {
+        const value = numberOrNull(selector(stats));
+        if (value == null) continue;
+        const weight = capitalWeightBase > 0 ? (numberOrNull(stats?.capitalUsed) ?? 0) : 1;
+        const normalizedWeight = weight > 0 ? weight : 1;
+        weightedSum += value * normalizedWeight;
+        totalWeight += normalizedWeight;
+      }
+      return totalWeight > 0 ? weightedSum / totalWeight : null;
+    };
+
+    const largestTickerCapital = dedupedPositions
+      .map((position) => numberOrNull(position?.capitalUsed))
+      .filter((value) => value != null)
+      .reduce((max, value) => Math.max(max, value), 0);
+
+    const concentrationRiskPctRaw = firstDefinedNumber(
+      combination.concentrationRisk,
+      totalCapital != null && totalCapital > 0 && largestTickerCapital > 0
+        ? (largestTickerCapital / totalCapital) * 100
+        : null,
+    );
+    const concentrationRiskPct = concentrationRiskPctRaw != null && concentrationRiskPctRaw <= 1
+      ? concentrationRiskPctRaw * 100
+      : concentrationRiskPctRaw;
+
+    const row = {
+      id: combination.id ?? `combination-${index + 1}`,
+      combinationName: combination.name ?? `Combinaison ${index + 1}`,
+      tickerCount: dedupedPositions.length,
+      resolvedSampleTotal: knownTickerStats.length > 0
+        ? knownTickerStats.reduce((sum, stats) => sum + (numberOrNull(stats?.resolvedCount) ?? 0), 0)
+        : null,
+      avgCleanRate: weightedAverage((stats) => stats.cleanWinRate),
+      avgLuckyRate: weightedAverage((stats) => stats.luckyWinRate),
+      avgLowerBoundBreakRate: weightedAverage((stats) => stats.lowerBoundBreakRate),
+      avgStrikeTouchRate: weightedAverage((stats) => stats.strikeTouchRate),
+      avgSpreadPct: weightedAverage((stats) => stats.avgSpreadPct),
+      avgPremium: weightedAverage((stats) => stats.avgPremium),
+      highRiskTickerCount,
+      cleanTickerCount,
+      unknownTickerCount,
+      concentrationRiskPct,
+      capitalUsed: totalCapital,
+      avgScore: combination.avgScore ?? null,
+      avgYieldPct: combination.avgYieldPct ?? null,
+      hasCapitalData: true,
+    };
+
+    const overlayScore = computeCapitalOverlayScore(row);
+    return {
+      ...row,
+      overlayScore,
+      verdict: computeCapitalOverlayVerdict({ ...row, overlayScore }),
+    };
+  });
+
+  return { hasCapitalData: true, rows };
+}
+
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [calibrationSummary, setCalibrationSummary] = useState(null);
   const [cohortSummary, setCohortSummary] = useState([]);
+  const [capitalData, setCapitalData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
@@ -1061,6 +1514,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setCalibrationSummary(calibrationPayload.calibration ?? null);
+      setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload]));
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -1230,6 +1684,10 @@ export default function JournalPopPanel({ apiBase, active }) {
 
   const primeQualityStats = useMemo(() => computePrimeQualityStats(records), [records]);
   const bucketTickerBreakdown = useMemo(() => computeBucketTickerBreakdown(records), [records]);
+  const capitalCombinationOverlay = useMemo(
+    () => computeCapitalCombinationOverlay(records, capitalData),
+    [records, capitalData],
+  );
 
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
@@ -1858,6 +2316,133 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION C — SAFE vs AGGRESSIVE ─────────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Capital Combination Risk Overlay"
+          badge="V2E"
+          subtitle="Croise les combinaisons de capital avec les resultats reels du Journal POP. Read-only : aucun impact scanner ou SQLite."
+        >
+          {capitalCombinationOverlay.hasCapitalData !== true ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-slate-100">Capital data N/D</p>
+                  <span className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
+                    Read-only
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-slate-400">
+                  Les tables ou donnees de combinaisons capital ne sont pas encore exposees dans le payload actuel du Journal POP. V2E est prete cote UI/calcul, mais necessite un branchement read-only futur.
+                </p>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {[
+                    "Aucun appel backend ajoute",
+                    "Aucune ecriture SQLite",
+                    "Aucun impact scanner",
+                  ].map((line) => (
+                    <div key={line} className="rounded-xl border border-slate-700/50 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-400">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Ce que V2E mesurera
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-slate-400">
+                  <li>concentration sur tickers stresses</li>
+                  <li>exposition a lucky / lowerBound break</li>
+                  <li>exposition a spread eleve</li>
+                  <li>equilibre Safe vs Aggressive</li>
+                  <li>robustesse statistique de la combinaison</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">Combinaison</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Tickers</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Capital</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Resolus</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Clean</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Lucky</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">LB Break</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Touch</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Spread %</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Tickers a risque</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Inconnus</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {capitalCombinationOverlay.rows.map((row) => {
+                    const verdictClass =
+                      row.verdict === "Conservateur sain"
+                        ? "border-emerald-800/50 bg-emerald-900/20 text-emerald-400"
+                        : row.verdict === "Equilibre propre"
+                        ? "border-sky-800/50 bg-sky-900/20 text-sky-400"
+                        : row.verdict === "Agressif sain"
+                        ? "border-indigo-800/50 bg-indigo-900/20 text-indigo-400"
+                        : row.verdict === "Agressif stresse" || row.verdict === "A limiter"
+                        ? "border-rose-800/50 bg-rose-900/20 text-rose-400"
+                        : "border-slate-700 bg-slate-800 text-slate-400";
+                    return (
+                      <tr key={row.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-3">
+                          <div className="font-bold text-slate-100 whitespace-nowrap">{row.combinationName}</div>
+                          <div className="mt-1 text-[11px] text-slate-600">
+                            Score {row.overlayScore != null ? row.overlayScore : "N/D"}
+                            {row.concentrationRiskPct != null ? ` · concentration ${row.concentrationRiskPct.toFixed(0)}%` : ""}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.tickerCount}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                          {row.capitalUsed != null ? formatMoney(row.capitalUsed) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.resolvedSampleTotal != null ? row.resolvedSampleTotal : <span className="text-slate-600">N/D</span>}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgCleanRate != null ? <span className="text-emerald-400">{row.avgCleanRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgLuckyRate != null ? <span className={row.avgLuckyRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.avgLuckyRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgLowerBoundBreakRate != null ? <span className={row.avgLowerBoundBreakRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.avgLowerBoundBreakRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgStrikeTouchRate != null ? <span className={row.avgStrikeTouchRate >= 25 ? "text-rose-400 font-semibold" : row.avgStrikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>{row.avgStrikeTouchRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgSpreadPct != null ? <span className={row.avgSpreadPct > 20 ? "text-rose-400 font-semibold" : row.avgSpreadPct > 10 ? "text-amber-400" : "text-emerald-400"}>{row.avgSpreadPct.toFixed(1)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.highRiskTickerCount}
+                          <span className="text-slate-600"> / {row.tickerCount}</span>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.unknownTickerCount}
+                          <span className="text-slate-600"> / {row.tickerCount}</span>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={`rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${verdictClass}`}>
+                            {row.verdict}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </ProSection>
+      )}
+
       {hasLoaded && (
         <ProSection
           title="Safe vs Aggressive — Comparaison mode strike"

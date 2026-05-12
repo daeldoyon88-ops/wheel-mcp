@@ -526,6 +526,128 @@ function computeStressStats(records) {
   };
 }
 
+// ── Ticker mode split V2D-B ─────────────────────────────────────────────────
+// Pure function — computes per-mode (safe/aggressive) metrics for a ticker
+// and applies the V2D-B recommended-mode rules.
+
+function computeTickerModeSplit(ticker, recordsForTicker) {
+  const safeRecs = recordsForTicker.filter((r) => r?.strikeMode === "safe");
+  const aggRecs  = recordsForTicker.filter((r) => r?.strikeMode === "aggressive");
+
+  function modeMetrics(recs) {
+    const ss = computeStressStats(recs);
+    const resolvedRecs = recs.filter((r) => r?.resolution?.resolved === true);
+    const wins = resolvedRecs.filter((r) => r?.resolution?.expiredWorthless === true);
+    const winRate = resolvedRecs.length > 0 ? (wins.length / resolvedRecs.length) * 100 : null;
+
+    const premVals = resolvedRecs.map((r) => numberOrNull(r?.strike?.premium)).filter((v) => v != null);
+    const avgPremium = premVals.length > 0 ? premVals.reduce((s, v) => s + v, 0) / premVals.length : null;
+
+    const popVals = resolvedRecs
+      .map((r) => { const n = numberOrNull(r?.strike?.popEstimate); return n == null ? null : n > 1 ? n : n * 100; })
+      .filter((v) => v != null);
+    const avgPop = popVals.length > 0 ? popVals.reduce((s, v) => s + v, 0) / popVals.length : null;
+
+    return {
+      totalCount: recs.length,
+      resolvedCount: ss.resolvedCount,
+      avgPremium,
+      avgPop,
+      winRate,
+      strikeTouchRate:     ss.strikeTouchRate,
+      cleanWinRate:        ss.cleanWinRate,
+      luckyWinRate:        ss.luckyWinRate,
+      lowerBoundBreakRate: ss.lowerBoundBreakRate,
+      assignmentRate:      ss.assignmentRate,
+    };
+  }
+
+  const safe       = modeMetrics(safeRecs);
+  const aggressive = modeMetrics(aggRecs);
+  const globalSS   = computeStressStats(recordsForTicker);
+  const globalLwr  = globalSS.luckyWinRate ?? 0;
+  const globalLbr  = globalSS.lowerBoundBreakRate ?? 0;
+  const isSpec     = SPECULATIVE_TICKERS.has(String(ticker ?? "").toUpperCase().trim());
+
+  let recommendedMode;
+  let recommendationReason;
+
+  // Rules 1 & 2 — data insufficiency gates
+  if (globalSS.resolvedCount < 10 || (safe.resolvedCount < 5 && aggressive.resolvedCount < 5)) {
+    recommendedMode      = "Données insuff.";
+    recommendationReason = globalSS.resolvedCount < 10 ? "< 10 résolus global" : "< 5 résolus par mode";
+  }
+  // Rule 6 — global stress downgrade (overrides mode rules)
+  else if (globalLwr >= 25 || globalLbr >= 25) {
+    recommendedMode      = "Stress élevé";
+    recommendationReason = globalLwr >= 25
+      ? `Lucky rate global ${globalLwr.toFixed(0)}%`
+      : `LB break rate global ${globalLbr.toFixed(0)}%`;
+  }
+  else {
+    // Touch condition: agg touch not significantly worse than safe touch
+    const aggTouch  = aggressive.strikeTouchRate;
+    const safeTouch = safe.strikeTouchRate;
+    const touchOk   = aggTouch == null || safeTouch == null ? true : aggTouch <= safeTouch + 8;
+
+    const aggQualifies =
+      aggressive.resolvedCount >= 5 &&
+      (aggressive.cleanWinRate  ?? 0)   >= 70 &&
+      (aggressive.luckyWinRate  ?? 100) <  20 &&
+      touchOk;
+
+    const safeQualifies =
+      safe.resolvedCount >= 5 &&
+      (safe.cleanWinRate  ?? 0)   >= 70 &&
+      (safe.luckyWinRate  ?? 100) <  20;
+
+    const aggLimitTrigger =
+      (aggressive.avgPremium      ?? 0) > (safe.avgPremium      ?? 0) * 1.5 &&
+      (aggressive.strikeTouchRate ?? 0) > (safe.strikeTouchRate ?? 0) * 1.7;
+
+    const bothSimilar =
+      aggQualifies && safeQualifies &&
+      Math.abs((aggressive.cleanWinRate ?? 0) - (safe.cleanWinRate ?? 0)) < 10;
+
+    // Rule 7 — speculative cap
+    if (isSpec) {
+      if (aggQualifies) {
+        recommendedMode      = "Aggressive possible";
+        recommendationReason = "Spéculatif — max Aggressive possible";
+      } else {
+        recommendedMode      = "Spéculatif";
+        recommendationReason = "Ticker spéculatif — conditions non remplies";
+      }
+    }
+    // Rule 8 — balanced when both modes qualify with similar clean rate
+    else if (bothSimilar) {
+      recommendedMode      = "Balanced / à accumuler";
+      recommendationReason = "Safe et Aggressive similaires";
+    }
+    // Rule 3 — aggressive qualifies
+    else if (aggQualifies) {
+      recommendedMode      = "Aggressive possible";
+      recommendationReason = "Clean rate élevé, stress contenu";
+    }
+    // Rule 4 — safe qualifies
+    else if (safeQualifies) {
+      recommendedMode      = "Safe préféré";
+      recommendationReason = "Safe propre et stable";
+    }
+    // Rule 5 — aggressive premium high but stress disproportionate
+    else if (aggLimitTrigger) {
+      recommendedMode      = "Aggressive à limiter";
+      recommendationReason = "Prime agressive mais stress disproportionné";
+    }
+    else {
+      recommendedMode      = "Données insuff.";
+      recommendationReason = "Conditions non remplies";
+    }
+  }
+
+  return { safe, aggressive, recommendedMode, recommendationReason };
+}
+
 // ── 1% Readiness V2B ────────────────────────────────────────────────────────
 
 function computeOnePercentReadiness({
@@ -914,7 +1036,8 @@ export default function JournalPopPanel({ apiBase, active }) {
       const safeCount = tickerRecs.filter((r) => r?.strikeMode === "safe").length;
       const aggressiveCount = tickerRecs.filter((r) => r?.strikeMode === "aggressive").length;
       const stressStats = computeStressStats(tickerRecs);
-      return { ...row, safeCount, aggressiveCount, stressStats };
+      const modeSplit   = computeTickerModeSplit(row.ticker, tickerRecs);
+      return { ...row, safeCount, aggressiveCount, stressStats, modeSplit };
     });
   }, [calibrationSummary, records]);
 
@@ -999,7 +1122,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               Calibration réelle — Données historiques
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Journal POP Pro V2C · Win Quality + Stress Coverage + 1% Readiness + Stress metrics par bucket/mode/ticker · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
+              Journal POP Pro V2D-B · Win Quality + Stress Coverage + 1% Readiness + Stress metrics + Safe/Agg split par ticker · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
             </p>
           </div>
           <div className="flex flex-col gap-2 md:items-end">
@@ -1632,11 +1755,11 @@ export default function JournalPopPanel({ apiBase, active }) {
       {hasLoaded && (
         <ProSection
           title="Ticker Leaderboard — Calibration par actif"
-          badge="≥ 3 résolus"
-          subtitle="Tickers avec au moins 3 records résolus. Verdict calculé à partir des données historiques disponibles."
+          badge="V2D-B"
+          subtitle="Tickers avec au moins 3 records résolus. Split Safe / Aggressive par ticker — prime, touch rate, clean rate et mode recommandé."
         >
           <p className="mb-4 text-[10px] text-slate-600 italic">
-            V2C : verdicts tenant compte du stress réel — luckyWinRate ≥ 25% / LB break ≥ 25% / assignment &gt; 5% entraînent un downgrade automatique.
+            V2C + V2D-B : stress metrics intégrées · split Safe/Aggressive par ticker · luckyWinRate ≥ 25% / LB break ≥ 25% entraînent downgrade automatique.
           </p>
           {tickerLeaderboard.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
@@ -1647,26 +1770,54 @@ export default function JournalPopPanel({ apiBase, active }) {
               <table className="min-w-full text-xs text-slate-300">
                 <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                   <tr>
+                    {/* ── Global columns ── */}
                     <th className="px-3 py-3 font-semibold text-left whitespace-nowrap">Ticker</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Résolus</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Win rate</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">POP moy.</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Prime moy.</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Safe</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Agressif</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Safe total</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Agg total</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Clean</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Lucky</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">LB break</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Assign</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap">Confiance</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict V2C</th>
+                    {/* ── V2D-B split columns ── */}
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap border-l border-slate-700/60 text-emerald-600/70">S n</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Prime</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Touch</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Clean</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A n</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Prime</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Touch</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Clean</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Mode rec.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70">
                   {tickerLeaderboard.map((row) => {
-                    const ss = row.stressStats;
+                    const ss    = row.stressStats;
+                    const ms    = row.modeSplit;
+                    const sMs   = ms?.safe;
+                    const aMs   = ms?.aggressive;
+                    const recMode = ms?.recommendedMode ?? "Données insuff.";
+                    const recModeCls =
+                      recMode === "Safe préféré"
+                        ? "rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 font-bold text-emerald-400"
+                        : recMode === "Aggressive possible"
+                        ? "rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 font-bold text-amber-400"
+                        : recMode === "Aggressive à limiter" || recMode === "Stress élevé"
+                        ? "rounded border border-rose-800/50 bg-rose-900/30 px-1.5 py-0.5 font-bold text-rose-400"
+                        : recMode === "Spéculatif"
+                        ? "rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 font-bold text-amber-400"
+                        : recMode === "Balanced / à accumuler"
+                        ? "rounded border border-sky-800/50 bg-sky-900/30 px-1.5 py-0.5 font-bold text-sky-400"
+                        : "text-slate-600";
                     return (
                       <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors">
+                        {/* ── Global cells ── */}
                         <td className="px-3 py-3 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
                         <td className="px-3 py-3 text-right tabular-nums">{row.resolvedCount ?? "—"}</td>
                         <td className="px-3 py-3 text-right tabular-nums">
@@ -1712,6 +1863,52 @@ export default function JournalPopPanel({ apiBase, active }) {
                         <td className="px-3 py-3 whitespace-nowrap">
                           <TickerVerdictBadge ticker={row.ticker} resolvedCount={row.resolvedCount} winRate={row.actualWinRate} avgPremium={row.avgPremium} stressStats={ss} />
                         </td>
+                        {/* ── V2D-B split cells (Safe) ── */}
+                        <td className="px-3 py-3 text-right tabular-nums border-l border-slate-700/60">
+                          <span className={sMs?.resolvedCount ? "text-emerald-500 font-semibold" : "text-slate-700"}>{sMs?.resolvedCount ?? 0}</span>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {sMs?.avgPremium != null ? <span className="text-emerald-300">{formatMoney(sMs.avgPremium)}</span> : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {sMs?.strikeTouchRate != null ? (
+                            <span className={sMs.strikeTouchRate >= 25 ? "text-rose-400" : sMs.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {sMs.strikeTouchRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {sMs?.cleanWinRate != null ? (
+                            <span className={sMs.cleanWinRate >= 70 ? "text-emerald-400" : sMs.cleanWinRate >= 50 ? "text-amber-400" : "text-rose-400"}>
+                              {sMs.cleanWinRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        {/* ── V2D-B split cells (Aggressive) ── */}
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          <span className={aMs?.resolvedCount ? "text-rose-400 font-semibold" : "text-slate-700"}>{aMs?.resolvedCount ?? 0}</span>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {aMs?.avgPremium != null ? <span className="text-rose-300">{formatMoney(aMs.avgPremium)}</span> : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {aMs?.strikeTouchRate != null ? (
+                            <span className={aMs.strikeTouchRate >= 25 ? "text-rose-400 font-semibold" : aMs.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {aMs.strikeTouchRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {aMs?.cleanWinRate != null ? (
+                            <span className={aMs.cleanWinRate >= 70 ? "text-emerald-400" : aMs.cleanWinRate >= 50 ? "text-amber-400" : "text-rose-400"}>
+                              {aMs.cleanWinRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        {/* ── Mode recommandé ── */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={`text-[10px] ${recModeCls}`} title={ms?.recommendationReason ?? ""}>{recMode}</span>
+                        </td>
                       </tr>
                     );
                   })}
@@ -1720,7 +1917,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             </div>
           )}
           <p className="mt-3 text-[11px] text-slate-600">
-            V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate.
+            V2D-B : le leaderboard sépare maintenant Safe et Aggressive par ticker. La prime moyenne globale ne suffit pas à recommander un mode.
           </p>
         </ProSection>
       )}
@@ -1755,7 +1952,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               stats.resolvedCount < 30 && "Échantillon résolu encore limité pour valider 1 % systématique.",
               stats.winRate != null && stats.winRate >= 95 && "Le win rate élevé doit être interprété avec stress metrics et régimes de marché.",
               "Les résultats doivent être segmentés par régime de marché (bull/bear/sideways) pour une validation complète.",
-              "V2C actif : stress metrics intégrées dans les buckets de rendement, les modes Safe/Aggressive et le Ticker Leaderboard — verdicts plus prudents, aucun faux chiffre, read-only.",
+              "V2C + V2D-B actifs : stress metrics intégrées dans les buckets de rendement, les modes Safe/Aggressive et le Ticker Leaderboard · split Safe/Aggressive par ticker · verdicts prudents, aucun faux chiffre, read-only.",
             ].filter(Boolean).map((msg, i) => (
               <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-2.5">
                 <span className="text-slate-600 text-sm mt-0.5">›</span>

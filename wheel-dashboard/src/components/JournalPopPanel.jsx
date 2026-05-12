@@ -384,6 +384,82 @@ function PlaceholderBadge({ label }) {
   );
 }
 
+// ── Win Quality V2A ─────────────────────────────────────────────────────────
+
+function getWinQuality(record) {
+  const res = record?.resolution ?? {};
+  if (res.resolved !== true) return "pending";
+  if (res.assigned === true) return "assignment";
+  if (res.expiredWorthless !== true) return "managed_or_loss";
+  if (res.brokeLowerBound === true) return "lucky_win";
+  if (res.strikeTouched === true) return "stressed_win";
+  const drawdown = numberOrNull(res.drawdownPct);
+  if (drawdown != null && drawdown >= 5) return "stressed_win";
+  if (res.expiredWorthless === true) return "clean_win";
+  return "normal_win";
+}
+
+function computeWinQualityStats(records) {
+  let cleanWinCount = 0;
+  let normalWinCount = 0;
+  let stressedWinCount = 0;
+  let luckyWinCount = 0;
+  let assignmentCount = 0;
+  let pendingCount = 0;
+
+  for (const r of records) {
+    const q = getWinQuality(r);
+    if (q === "clean_win") cleanWinCount++;
+    else if (q === "normal_win") normalWinCount++;
+    else if (q === "stressed_win") stressedWinCount++;
+    else if (q === "lucky_win") luckyWinCount++;
+    else if (q === "assignment") assignmentCount++;
+    else if (q === "pending") pendingCount++;
+  }
+
+  const resolvedCount = cleanWinCount + normalWinCount + stressedWinCount + luckyWinCount + assignmentCount;
+  const cleanWinRate = resolvedCount > 0 ? (cleanWinCount / resolvedCount) * 100 : null;
+  const normalWinRate = resolvedCount > 0 ? (normalWinCount / resolvedCount) * 100 : null;
+  const stressedWinRate = resolvedCount > 0 ? (stressedWinCount / resolvedCount) * 100 : null;
+  const luckyWinRate = resolvedCount > 0 ? (luckyWinCount / resolvedCount) * 100 : null;
+  const assignmentRate = resolvedCount > 0 ? (assignmentCount / resolvedCount) * 100 : null;
+
+  return {
+    cleanWinCount,
+    normalWinCount,
+    stressedWinCount,
+    luckyWinCount,
+    assignmentCount,
+    pendingCount,
+    resolvedCount,
+    cleanWinRate,
+    normalWinRate,
+    stressedWinRate,
+    luckyWinRate,
+    assignmentRate,
+  };
+}
+
+function computeStressCoverage(resolvedRecords) {
+  const n = resolvedRecords.length;
+  if (n === 0) {
+    return { strikeTouchedCoverage: null, lowerBoundCoverage: null, drawdownCoverage: null, globalCoverage: null, verdict: "Faible" };
+  }
+
+  const withStrikeTouched = resolvedRecords.filter((r) => r?.resolution?.strikeTouched != null).length;
+  const withLowerBound = resolvedRecords.filter((r) => r?.resolution?.brokeLowerBound != null).length;
+  const withDrawdown = resolvedRecords.filter((r) => numberOrNull(r?.resolution?.drawdownPct) != null).length;
+
+  const strikeTouchedCoverage = (withStrikeTouched / n) * 100;
+  const lowerBoundCoverage = (withLowerBound / n) * 100;
+  const drawdownCoverage = (withDrawdown / n) * 100;
+  const globalCoverage = (strikeTouchedCoverage + lowerBoundCoverage + drawdownCoverage) / 3;
+
+  const verdict = globalCoverage < 30 ? "Faible" : globalCoverage <= 70 ? "Partiel" : "Bon";
+
+  return { strikeTouchedCoverage, lowerBoundCoverage, drawdownCoverage, globalCoverage, verdict };
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 export default function JournalPopPanel({ apiBase, active }) {
@@ -614,6 +690,12 @@ export default function JournalPopPanel({ apiBase, active }) {
     return { label: "En validation", tone: "muted" };
   }, [premiumReturnBuckets]);
 
+  // ── Win Quality V2A ────────────────────────────────────────────────────────
+
+  const winQualityStats = useMemo(() => computeWinQualityStats(records), [records]);
+
+  const stressCoverage = useMemo(() => computeStressCoverage(resolvedRecords), [resolvedRecords]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -636,7 +718,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               Calibration réelle — Données historiques
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Journal POP Pro V1 · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
+              Journal POP Pro V2A · Win Quality + Stress Coverage · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
             </p>
           </div>
           <div className="flex flex-col gap-2 md:items-end">
@@ -730,6 +812,120 @@ export default function JournalPopPanel({ apiBase, active }) {
           </>
         )}
       </section>
+
+      {/* ── SECTION V2A — WIN QUALITY ───────────────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="Win Quality — Qualité réelle des victoires"
+          badge="V2A"
+          subtitle="Classification des victoires selon les métriques de stress disponibles. Basé sur les records résolus uniquement."
+        >
+          {winQualityStats.resolvedCount === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Aucun record résolu. Les classifications apparaîtront après expiration des premières positions.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <ProKpi
+                  label="Clean wins"
+                  value={winQualityStats.cleanWinCount}
+                  tone="good"
+                  sub={winQualityStats.cleanWinRate != null ? `${winQualityStats.cleanWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Normal wins"
+                  value={winQualityStats.normalWinCount}
+                  tone="info"
+                  sub={winQualityStats.normalWinRate != null ? `${winQualityStats.normalWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Stressed wins"
+                  value={winQualityStats.stressedWinCount}
+                  tone="warn"
+                  sub={winQualityStats.stressedWinRate != null ? `${winQualityStats.stressedWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Lucky wins"
+                  value={winQualityStats.luckyWinCount}
+                  tone="warn"
+                  sub={winQualityStats.luckyWinRate != null ? `${winQualityStats.luckyWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Assignments"
+                  value={winQualityStats.assignmentCount}
+                  tone="risk"
+                  sub={winQualityStats.assignmentRate != null ? `${winQualityStats.assignmentRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Pending"
+                  value={winQualityStats.pendingCount}
+                  tone={winQualityStats.pendingCount > 0 ? "warn" : "muted"}
+                  sub="Non résolus"
+                />
+              </div>
+
+              <div className="mt-4 rounded-xl border border-slate-700/40 bg-slate-800/20 px-4 py-3 space-y-1">
+                <p className="text-[11px] text-slate-500"><span className="text-emerald-400 font-semibold">Clean win</span> — Expired worthless, aucun stress détecté.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-sky-400 font-semibold">Normal win</span> — Expired worthless, catégorie résiduelle.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-amber-400 font-semibold">Stressed win</span> — Strike touché OU drawdown ≥ 5%.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-amber-400 font-semibold">Lucky win</span> — LowerBound cassé mais expiré OTM.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-rose-400 font-semibold">Assignment</span> — Option assignée.</p>
+              </div>
+
+              {/* Stress Data Coverage */}
+              <div className="mt-5 rounded-2xl border border-slate-700/40 bg-slate-800/30 p-4">
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 mb-4">
+                  Stress Data Coverage
+                </h4>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Strike touch</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
+                      {stressCoverage.strikeTouchedCoverage != null ? `${stressCoverage.strikeTouchedCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-600">Records avec strikeTouched connu</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">LowerBound break</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
+                      {stressCoverage.lowerBoundCoverage != null ? `${stressCoverage.lowerBoundCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-600">Records avec brokeLowerBound connu</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Drawdown</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
+                      {stressCoverage.drawdownCoverage != null ? `${stressCoverage.drawdownCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-600">Records avec drawdownPct connu</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Coverage global</p>
+                    <p className={`mt-2 text-xl font-bold tabular-nums ${stressCoverage.globalCoverage == null ? "text-slate-600" : stressCoverage.globalCoverage > 70 ? "text-emerald-400" : stressCoverage.globalCoverage >= 30 ? "text-amber-400" : "text-rose-400"}`}>
+                      {stressCoverage.globalCoverage != null ? `${stressCoverage.globalCoverage.toFixed(0)}%` : <span className="text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1.5">
+                      <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${
+                        stressCoverage.verdict === "Bon"
+                          ? "border-emerald-800/50 bg-emerald-900/40 text-emerald-400"
+                          : stressCoverage.verdict === "Partiel"
+                          ? "border-amber-800/50 bg-amber-900/40 text-amber-400"
+                          : "border-rose-800/50 bg-rose-900/40 text-rose-400"
+                      }`}>
+                        {stressCoverage.verdict}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] text-slate-600">
+                  Coverage calculé sur {winQualityStats.resolvedCount} records résolus. &lt;30% : Faible · 30–70% : Partiel · &gt;70% : Bon.
+                </p>
+              </div>
+            </>
+          )}
+        </ProSection>
+      )}
 
       {/* ── SECTION B — OBJECTIF 1 % / SEMAINE ─────────────────────────────── */}
       {hasLoaded && (
@@ -870,8 +1066,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
                 <span className="text-slate-600 text-sm">ℹ</span>
                 <p className="text-[11px] text-slate-600">
-                  Stress metrics (touch rate, drawdown, assignment) uniquement disponibles pour records avec window data Yahoo.
-                  Prochaine phase : tracking manuel des stress outcomes.
+                  Les stress metrics sont disponibles pour les records résolus actuels. Prochaine phase : intégrer ces métriques dans les buckets, les modes et le score 1 % readiness.
                 </p>
               </div>
             </>
@@ -993,12 +1188,6 @@ export default function JournalPopPanel({ apiBase, active }) {
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[
-              { label: "Clean Win Rate", note: "Sans lucky recoveries" },
-              { label: "Stressed Win Rate", note: "Avec strike touch" },
-              { label: "Lucky Win Rate", note: "Touch + expiration OTM" },
-              { label: "Strike Touch Rate", note: "% touches calculés" },
-              { label: "LowerBound Break Rate", note: "Fenêtre complète" },
-              { label: "Assignment Rate", note: "Résolutions réelles" },
               { label: "Days to First Touch", note: "Tracking requis" },
               { label: "Premium Efficiency", note: "Prime / Strike %" },
               { label: "Market Regime", note: "Bull / Bear / Sideways" },

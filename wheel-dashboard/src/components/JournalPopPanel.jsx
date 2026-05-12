@@ -1458,7 +1458,6 @@ export default function JournalPopPanel({ apiBase, active }) {
                           ["Win rate", safeModeData?.actualWinRate != null ? formatPercent(safeModeData.actualWinRate) : "N/D", safeModeData?.actualWinRate >= 80 ? "good" : "default"],
                           ["POP moyenne", safeModeData?.avgPop != null ? formatPercent(safeModeData.avgPop) : "N/D", "info"],
                           ["Prime moyenne", safeModeData?.avgPremium != null ? formatMoney(safeModeData.avgPremium) : "N/D", "default"],
-                          ["Strike touch rate", safeModeData?.strikeTouchRate != null ? formatPercent(safeModeData.strikeTouchRate) : "N/D", "default"],
                           ["Assignment rate", safeModeData?.assignmentRate != null ? formatPercent(safeModeData.assignmentRate) : "N/D", "default"],
                           ["Drawdown moyen", safeModeData?.avgDrawdownPct != null ? formatPercent(safeModeData.avgDrawdownPct) : "N/D", "default"],
                           ["LowerBound cassé", safeModeData?.lowerBoundBreakRate != null ? formatPercent(safeModeData.lowerBoundBreakRate) : "N/D", "default"],
@@ -1468,6 +1467,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                             <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>{val}</span>
                           </div>
                         ))}
+                        <div className="flex justify-between items-center rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-2 py-1.5 mt-0.5">
+                          <span className="font-semibold text-emerald-400">Strike touch rate</span>
+                          <span className="font-bold text-emerald-300">
+                            {safeModeData?.strikeTouchRate != null ? formatPercent(safeModeData.strikeTouchRate) : "N/D"}
+                          </span>
+                        </div>
                         <div className="border-t border-slate-700/40 pt-2 mt-1 space-y-1.5">
                           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">V2C — Qualité des victoires</p>
                           {[
@@ -1525,7 +1530,6 @@ export default function JournalPopPanel({ apiBase, active }) {
                           ["Win rate", aggressiveModeData?.actualWinRate != null ? formatPercent(aggressiveModeData.actualWinRate) : "N/D", aggressiveModeData?.actualWinRate >= 80 ? "good" : "default"],
                           ["POP moyenne", aggressiveModeData?.avgPop != null ? formatPercent(aggressiveModeData.avgPop) : "N/D", "info"],
                           ["Prime moyenne", aggressiveModeData?.avgPremium != null ? formatMoney(aggressiveModeData.avgPremium) : "N/D", "default"],
-                          ["Strike touch rate", aggressiveModeData?.strikeTouchRate != null ? formatPercent(aggressiveModeData.strikeTouchRate) : "N/D", "default"],
                           ["Assignment rate", aggressiveModeData?.assignmentRate != null ? formatPercent(aggressiveModeData.assignmentRate) : "N/D", "default"],
                           ["Drawdown moyen", aggressiveModeData?.avgDrawdownPct != null ? formatPercent(aggressiveModeData.avgDrawdownPct) : "N/D", "default"],
                           ["LowerBound cassé", aggressiveModeData?.lowerBoundBreakRate != null ? formatPercent(aggressiveModeData.lowerBoundBreakRate) : "N/D", "default"],
@@ -1535,6 +1539,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                             <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>{val}</span>
                           </div>
                         ))}
+                        <div className="flex justify-between items-center rounded-lg border border-rose-800/40 bg-rose-900/20 px-2 py-1.5 mt-0.5">
+                          <span className="font-semibold text-rose-400">Strike touch rate</span>
+                          <span className="font-bold text-rose-300">
+                            {aggressiveModeData?.strikeTouchRate != null ? formatPercent(aggressiveModeData.strikeTouchRate) : "N/D"}
+                          </span>
+                        </div>
                         <div className="border-t border-slate-700/40 pt-2 mt-1 space-y-1.5">
                           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">V2C — Qualité des victoires</p>
                           {[
@@ -1562,10 +1572,55 @@ export default function JournalPopPanel({ apiBase, active }) {
                 })()}
               </div>
 
+              {(() => {
+                const safeTouch = numberOrNull(safeModeData?.strikeTouchRate);
+                const aggTouch = numberOrNull(aggressiveModeData?.strikeTouchRate);
+                const gap = safeTouch != null && aggTouch != null ? aggTouch - safeTouch : null;
+                const ratio = safeTouch != null && aggTouch != null && safeTouch > 0 ? aggTouch / safeTouch : null;
+                return (
+                  <div className="mt-4 rounded-2xl border border-slate-600/50 bg-slate-800/50 p-4 space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Différence réelle de risque</p>
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div className="rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-3 py-2.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-600 mb-1">Safe</p>
+                        <p className="text-xl font-bold text-emerald-300 tabular-nums">
+                          {safeTouch != null ? `${safeTouch.toFixed(1)}%` : "N/D"}
+                        </p>
+                        <p className="text-[9px] text-slate-600 mt-0.5">Strike touch rate</p>
+                      </div>
+                      <div className="rounded-lg border border-rose-800/40 bg-rose-900/20 px-3 py-2.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-rose-600 mb-1">Aggressive</p>
+                        <p className="text-xl font-bold text-rose-300 tabular-nums">
+                          {aggTouch != null ? `${aggTouch.toFixed(1)}%` : "N/D"}
+                        </p>
+                        <p className="text-[9px] text-slate-600 mt-0.5">Strike touch rate</p>
+                      </div>
+                      <div className="rounded-lg border border-amber-800/40 bg-amber-900/20 px-3 py-2.5 text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-600 mb-1">Écart</p>
+                        <p className="text-xl font-bold text-amber-300 tabular-nums">
+                          {gap != null ? (gap >= 0 ? `+${gap.toFixed(1)} pts` : `${gap.toFixed(1)} pts`) : "N/D"}
+                        </p>
+                        <p className="text-[9px] text-slate-600 mt-0.5">Aggressive vs Safe</p>
+                      </div>
+                    </div>
+                    {ratio != null && (
+                      <p className="text-[11px] text-slate-500 text-center">
+                        Aggressive touche le strike environ{" "}
+                        <span className="text-amber-400 font-semibold">{ratio.toFixed(1)}×</span>{" "}
+                        plus souvent que Safe.
+                      </p>
+                    )}
+                    {safeTouch == null && aggTouch == null && (
+                      <p className="text-[11px] text-slate-600 text-center">Strike touch rate indisponible — données insuffisantes.</p>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
                 <span className="text-slate-600 text-sm">ℹ</span>
                 <p className="text-[11px] text-slate-600">
                   V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate. Safe et Aggressive peuvent avoir le même win rate — V2C montre lequel est plus propre.
+                  <span className="block mt-1.5">Lucky win % et LowerBound break % sont basés sur le comportement du sous-jacent — ils peuvent être identiques entre Safe et Aggressive. Le <span className="text-slate-400 font-medium">strike touch rate</span> reste la métrique la plus discriminante entre modes.</span>
                 </p>
               </div>
             </>

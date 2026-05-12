@@ -813,6 +813,86 @@ function computeOnePercentReadiness({
 
 // ── Main component ──────────────────────────────────────────────────────────
 
+function computePrimeQualityStats(records) {
+  const rows = Array.isArray(records) ? records : [];
+  const avg = (vals) => (vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null);
+
+  const bidVals = [];
+  const askVals = [];
+  const spreadVals = [];
+  const spreadPctVals = [];
+  const premiumVals = [];
+  const efficiencyVals = [];
+  const staleFlags = [];
+  const earningsFlags = [];
+  let spreadCoverageKnown = 0;
+
+  for (const r of rows) {
+    const bid = numberOrNull(r?.bid) ?? numberOrNull(r?.optionBid) ?? numberOrNull(r?.strike?.bid);
+    const ask = numberOrNull(r?.ask) ?? numberOrNull(r?.optionAsk) ?? numberOrNull(r?.strike?.ask);
+    const spread = numberOrNull(r?.spread) ?? numberOrNull(r?.bidAskSpread) ?? (bid != null && ask != null ? ask - bid : null);
+    const spreadPct = numberOrNull(r?.spreadPct) ?? numberOrNull(r?.bidAskSpreadPct) ?? (spread != null && ask != null && ask > 0 ? (spread / ask) * 100 : null);
+    const premium = numberOrNull(r?.premium) ?? numberOrNull(r?.mid) ?? numberOrNull(r?.strike?.premium);
+    const premiumEfficiency = numberOrNull(r?.premiumToSpotPct) ?? numberOrNull(r?.premium_to_spot_pct) ??
+      numberOrNull(r?.weeklyYield) ?? numberOrNull(r?.annualizedYield) ?? numberOrNull(r?.returnPct) ?? numberOrNull(r?.premiumYield);
+
+    if (bid != null || ask != null || spread != null || spreadPct != null) spreadCoverageKnown += 1;
+    if (bid != null) bidVals.push(bid);
+    if (ask != null) askVals.push(ask);
+    if (spread != null) spreadVals.push(spread);
+    if (spreadPct != null) spreadPctVals.push(spreadPct);
+    if (premium != null) premiumVals.push(premium);
+    if (premiumEfficiency != null) efficiencyVals.push(premiumEfficiency);
+
+    const staleRaw = r?.staleQuote ?? r?.stale_quote;
+    if (typeof staleRaw === "boolean") staleFlags.push(staleRaw);
+
+    const earningsRaw = r?.earningsRisk ?? r?.earningsRiskFlag ?? r?.hasEarnings ?? r?.eventRisk ?? r?.eventRiskFlag;
+    if (typeof earningsRaw === "boolean") earningsFlags.push(earningsRaw);
+  }
+
+  const spreadCoveragePct = rows.length > 0 && spreadCoverageKnown > 0 ? (spreadCoverageKnown / rows.length) * 100 : null;
+  const staleQuoteCount = staleFlags.length > 0 ? staleFlags.filter(Boolean).length : null;
+  const staleQuoteRate = staleFlags.length > 0 ? (staleFlags.filter(Boolean).length / staleFlags.length) * 100 : null;
+  const earningsRiskCount = earningsFlags.length > 0 ? earningsFlags.filter(Boolean).length : null;
+  const earningsRiskRate = earningsFlags.length > 0 ? (earningsFlags.filter(Boolean).length / earningsFlags.length) * 100 : null;
+
+  let qualityVerdict = "Spread N/D";
+  const avgSpreadPct = avg(spreadPctVals);
+  if (avgSpreadPct != null) {
+    if (avgSpreadPct <= 5) qualityVerdict = "Prime propre";
+    else if (avgSpreadPct <= 10) qualityVerdict = "Prime correcte";
+    else if (avgSpreadPct <= 20) qualityVerdict = "Spread limite";
+    else qualityVerdict = "Spread risqué";
+  }
+  if (staleQuoteRate != null && staleQuoteRate > 20) qualityVerdict = "Qualité quote faible";
+
+  const warnings = [];
+  if (earningsRiskRate != null && earningsRiskRate > 0) warnings.push("Earnings risk présent");
+  if (avgSpreadPct == null) {
+    const avgPremium = avg(premiumVals);
+    if (avgPremium != null && avgPremium >= 1) warnings.push("Prime élevée mais liquidité non confirmée");
+  }
+
+  return {
+    avgBid: avg(bidVals),
+    avgAsk: avg(askVals),
+    avgSpread: avg(spreadVals),
+    avgSpreadPct,
+    spreadCoveragePct,
+    avgPremium: avg(premiumVals),
+    premiumEfficiency: avg(efficiencyVals),
+    staleQuoteCount,
+    staleQuoteRate,
+    earningsRiskCount,
+    earningsRiskRate,
+    qualityVerdict,
+    warnings,
+    staleCoverageCount: staleFlags.length,
+    earningsCoverageCount: earningsFlags.length,
+  };
+}
+
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [calibrationSummary, setCalibrationSummary] = useState(null);
@@ -1037,9 +1117,12 @@ export default function JournalPopPanel({ apiBase, active }) {
       const aggressiveCount = tickerRecs.filter((r) => r?.strikeMode === "aggressive").length;
       const stressStats = computeStressStats(tickerRecs);
       const modeSplit   = computeTickerModeSplit(row.ticker, tickerRecs);
-      return { ...row, safeCount, aggressiveCount, stressStats, modeSplit };
+      const primeQuality = computePrimeQualityStats(tickerRecs);
+      return { ...row, safeCount, aggressiveCount, stressStats, modeSplit, primeQuality };
     });
   }, [calibrationSummary, records]);
+
+  const primeQualityStats = useMemo(() => computePrimeQualityStats(records), [records]);
 
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
@@ -1793,6 +1876,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Prime</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Touch</th>
                     <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Clean</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Spread %</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Earn</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Prime Q</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap">Mode rec.</th>
                   </tr>
                 </thead>
@@ -1802,6 +1888,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     const ms    = row.modeSplit;
                     const sMs   = ms?.safe;
                     const aMs   = ms?.aggressive;
+                    const pq    = row.primeQuality;
                     const recMode = ms?.recommendedMode ?? "Données insuff.";
                     const recModeCls =
                       recMode === "Safe préféré"
@@ -1905,6 +1992,21 @@ export default function JournalPopPanel({ apiBase, active }) {
                             </span>
                           ) : <span className="text-slate-700">N/D</span>}
                         </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {pq?.avgSpreadPct != null ? (
+                            <span className={pq.avgSpreadPct <= 10 ? "text-emerald-400" : pq.avgSpreadPct <= 20 ? "text-amber-400" : "text-rose-400"}>
+                              {pq.avgSpreadPct.toFixed(1)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {pq?.earningsRiskRate != null
+                            ? <span className={pq.earningsRiskRate > 0 ? "text-amber-400" : "text-emerald-400"}>{pq.earningsRiskRate.toFixed(0)}%</span>
+                            : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {pq?.qualityVerdict ? <span className="text-[10px] text-slate-400">{pq.qualityVerdict}</span> : <span className="text-slate-700">N/D</span>}
+                        </td>
                         {/* ── Mode recommandé ── */}
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className={`text-[10px] ${recModeCls}`} title={ms?.recommendationReason ?? ""}>{recMode}</span>
@@ -1919,6 +2021,55 @@ export default function JournalPopPanel({ apiBase, active }) {
           <p className="mt-3 text-[11px] text-slate-600">
             V2D-B : le leaderboard sépare maintenant Safe et Aggressive par ticker. La prime moyenne globale ne suffit pas à recommander un mode.
           </p>
+        </ProSection>
+      )}
+
+      {hasLoaded && (
+        <ProSection
+          title="Prime Quality — Spread, liquidité et risque événementiel"
+          badge="V2D-C"
+          subtitle="V2D-C : vérifie si les primes observées sont réellement tradables. N/D si les champs ne sont pas encore capturés."
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ProKpi
+              label="Spread coverage"
+              value={primeQualityStats.spreadCoveragePct != null ? `${primeQualityStats.spreadCoveragePct.toFixed(0)}%` : null}
+              tone={primeQualityStats.spreadCoveragePct != null && primeQualityStats.spreadCoveragePct >= 70 ? "good" : "default"}
+              sub={primeQualityStats.spreadCoveragePct != null ? "Records avec bid/ask/spread disponibles" : "Aucun champ spread détecté"}
+            />
+            <ProKpi
+              label="Spread moyen"
+              value={primeQualityStats.avgSpreadPct != null
+                ? `${primeQualityStats.avgSpreadPct.toFixed(1)}%`
+                : (primeQualityStats.avgSpread != null ? formatMoney(primeQualityStats.avgSpread) : null)}
+              tone={primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 10 ? "good" : primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 20 ? "warn" : "default"}
+              sub={primeQualityStats.avgBid != null && primeQualityStats.avgAsk != null ? `Bid ${formatMoney(primeQualityStats.avgBid)} · Ask ${formatMoney(primeQualityStats.avgAsk)}` : "N/D"}
+            />
+            <ProKpi
+              label="Prime moyenne"
+              value={primeQualityStats.avgPremium != null ? formatMoney(primeQualityStats.avgPremium) : null}
+              tone="info"
+              sub={primeQualityStats.premiumEfficiency != null ? `Premium efficiency ${primeQualityStats.premiumEfficiency.toFixed(2)}%` : "N/D"}
+            />
+            <ProKpi
+              label="Qualité prime"
+              value={primeQualityStats.qualityVerdict}
+              tone={primeQualityStats.qualityVerdict === "Prime propre" ? "good" : primeQualityStats.qualityVerdict === "Prime correcte" ? "info" : primeQualityStats.qualityVerdict === "Spread limite" ? "warn" : primeQualityStats.qualityVerdict === "Spread risqué" || primeQualityStats.qualityVerdict === "Qualité quote faible" ? "risk" : "muted"}
+              sub={primeQualityStats.warnings.length > 0 ? primeQualityStats.warnings.join(" · ") : "Aucun warning détecté"}
+            />
+            <ProKpi
+              label="Earnings risk"
+              value={primeQualityStats.earningsRiskRate != null ? `${primeQualityStats.earningsRiskCount}/${primeQualityStats.earningsCoverageCount} (${primeQualityStats.earningsRiskRate.toFixed(0)}%)` : null}
+              tone={primeQualityStats.earningsRiskRate != null && primeQualityStats.earningsRiskRate > 0 ? "warn" : "default"}
+              sub={primeQualityStats.earningsRiskRate != null ? "Sur les records avec champ earnings" : "N/D"}
+            />
+            <ProKpi
+              label="Stale quote / data quality"
+              value={primeQualityStats.staleQuoteRate != null ? `${primeQualityStats.staleQuoteCount}/${primeQualityStats.staleCoverageCount} (${primeQualityStats.staleQuoteRate.toFixed(0)}%)` : null}
+              tone={primeQualityStats.staleQuoteRate != null && primeQualityStats.staleQuoteRate > 20 ? "risk" : "default"}
+              sub={primeQualityStats.staleQuoteRate != null ? "Stale quote sur records couverts" : "N/D"}
+            />
+          </div>
         </ProSection>
       )}
 

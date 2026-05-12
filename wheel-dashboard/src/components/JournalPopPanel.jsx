@@ -460,6 +460,169 @@ function computeStressCoverage(resolvedRecords) {
   return { strikeTouchedCoverage, lowerBoundCoverage, drawdownCoverage, globalCoverage, verdict };
 }
 
+// ── 1% Readiness V2B ────────────────────────────────────────────────────────
+
+function computeOnePercentReadiness({
+  resolvedCount,
+  cleanWinRate,
+  stressedWinRate,
+  luckyWinRate,
+  assignmentRate,
+  strikeTouchRate,
+  lowerBoundBreakRate,
+  avgPop,
+  stressCoveragePct,
+  premiumBuckets,
+}) {
+  const reasons = [];
+  const penalties = [];
+  const positives = [];
+  let score = 0;
+
+  // 1. Sample — max 20 pts
+  const rc = resolvedCount ?? 0;
+  let samplePts = 0;
+  if (rc >= 150) samplePts = 20;
+  else if (rc >= 100) samplePts = 17;
+  else if (rc >= 50) samplePts = 12;
+  else if (rc >= 30) samplePts = 8;
+  else if (rc >= 10) samplePts = 4;
+  score += samplePts;
+  if (samplePts >= 12) positives.push(`Sample résolu robuste (n=${rc})`);
+  else if (rc >= 10) reasons.push(`Sample résolu limité (n=${rc})`);
+  else reasons.push(`Sample insuffisant (n=${rc} < 10)`);
+
+  // 2. Win quality — max 25 pts + pénalités lucky/stressed
+  const cwr = cleanWinRate ?? 0;
+  let winQPts = 0;
+  if (cwr >= 75) winQPts = 25;
+  else if (cwr >= 65) winQPts = 20;
+  else if (cwr >= 55) winQPts = 14;
+  else if (cwr >= 45) winQPts = 8;
+  else winQPts = 3;
+  score += winQPts;
+  if (winQPts >= 20) positives.push(`Clean win rate élevé (${cwr.toFixed(1)}%)`);
+
+  const lwr = luckyWinRate ?? 0;
+  if (lwr >= 30) { score -= 15; penalties.push(`Lucky win rate très élevé (${lwr.toFixed(1)}%)`); }
+  else if (lwr >= 20) { score -= 10; penalties.push(`Lucky win rate élevé (${lwr.toFixed(1)}%)`); }
+  else if (lwr >= 10) { score -= 5; penalties.push(`Lucky win rate modéré (${lwr.toFixed(1)}%)`); }
+
+  const swr = stressedWinRate ?? 0;
+  if (swr >= 25) { score -= 8; penalties.push(`Stressed win rate élevé (${swr.toFixed(1)}%)`); }
+  else if (swr >= 15) { score -= 4; penalties.push(`Stressed win rate modéré (${swr.toFixed(1)}%)`); }
+
+  // 3. Stress risk — max 20 pts
+  const ar = assignmentRate ?? 0;
+  if (ar === 0) { score += 8; positives.push("Assignment rate 0%"); }
+  else if (ar <= 2) { score += 5; positives.push(`Assignment rate faible (${ar.toFixed(1)}%)`); }
+  else if (ar <= 5) score += 2;
+  else { score -= 10; penalties.push(`Assignment rate élevé (${ar.toFixed(1)}%)`); }
+
+  if (strikeTouchRate != null) {
+    if (strikeTouchRate <= 10) { score += 6; positives.push(`Strike touch rate faible (${strikeTouchRate.toFixed(1)}%)`); }
+    else if (strikeTouchRate <= 20) score += 3;
+    else if (strikeTouchRate <= 30) score += 0;
+    else { score -= 6; penalties.push(`Strike touch rate élevé (${strikeTouchRate.toFixed(1)}%)`); }
+  }
+
+  if (lowerBoundBreakRate != null) {
+    if (lowerBoundBreakRate <= 10) { score += 6; positives.push(`LowerBound break rate faible (${lowerBoundBreakRate.toFixed(1)}%)`); }
+    else if (lowerBoundBreakRate <= 20) score += 3;
+    else if (lowerBoundBreakRate <= 30) score += 0;
+    else { score -= 8; penalties.push(`LowerBound break rate élevé (${lowerBoundBreakRate.toFixed(1)}%)`); }
+  }
+
+  // 4. POP quality — max 10 pts
+  const ap = avgPop ?? 0;
+  let popPts = 0;
+  if (ap >= 90) popPts = 10;
+  else if (ap >= 87) popPts = 8;
+  else if (ap >= 84) popPts = 5;
+  else if (ap >= 80) popPts = 2;
+  score += popPts;
+  if (popPts >= 8) positives.push(`POP moyenne forte (${ap.toFixed(1)}%)`);
+
+  // 5. Premium opportunity — max 15 pts
+  const b080 = premiumBuckets?.find((b) => b.label.startsWith("0.80"))?.resolvedCount ?? 0;
+  const b100 = premiumBuckets?.find((b) => b.label.startsWith("1.00"))?.resolvedCount ?? 0;
+  const b125 = premiumBuckets?.find((b) => b.label.startsWith("1.25"))?.resolvedCount ?? 0;
+
+  if (b100 >= 30) { score += 8; positives.push(`Bucket 1.00–1.25% robuste (n=${b100})`); }
+  else if (b100 >= 10) score += 4;
+  else if (b100 > 0) score += 2;
+  else reasons.push("Bucket 1.00–1.25% vide — 1% non validé");
+
+  if (b080 >= 30) { score += 5; positives.push(`Bucket 0.80–1.00% solide (n=${b080})`); }
+  else if (b080 >= 10) score += 3;
+
+  if (b125 > 0) {
+    score += 2;
+    if (b125 > b100 + b080) {
+      score -= 8;
+      penalties.push("1.25%+ domine les hauts buckets — spéculatif");
+    } else {
+      reasons.push("1.25%+ présent — spéculatif");
+    }
+  }
+
+  // 6. Data coverage — max 10 pts
+  const scp = stressCoveragePct ?? 0;
+  let coveragePts = 0;
+  if (scp >= 90) coveragePts = 10;
+  else if (scp >= 70) coveragePts = 7;
+  else if (scp >= 50) coveragePts = 4;
+  else if (scp >= 30) coveragePts = 2;
+  score += coveragePts;
+  if (coveragePts >= 7) positives.push(`Stress data coverage bon (${scp.toFixed(0)}%)`);
+  else if (scp < 50) reasons.push(`Stress coverage partiel (${scp.toFixed(0)}%) — readiness partiel`);
+
+  score = Math.max(0, Math.min(100, score));
+
+  // Blocking rules
+  let blocked = false;
+  const blocks = [];
+  if (b100 < 10) blocks.push("Bucket 1.00–1.25% insuffisant (n<10)");
+  if (lwr > 25) blocks.push(`Lucky win rate > 25% (${lwr.toFixed(1)}%)`);
+  if (lowerBoundBreakRate != null && lowerBoundBreakRate > 25) blocks.push(`LowerBound break rate > 25% (${lowerBoundBreakRate.toFixed(1)}%)`);
+  if (blocks.length > 0) {
+    blocked = true;
+    blocks.forEach((b) => penalties.push(`Blocage : ${b}`));
+  }
+
+  if (scp < 50) reasons.push("Readiness partiel — stress data incomplet");
+
+  // Verdict
+  let verdict, targetBand, confidence;
+  if (blocked) {
+    verdict = "1 % non validé";
+    targetBand = "0.50–0.65 % prudent";
+    confidence = "Bloqué — conditions non remplies";
+  } else if (score >= 80) {
+    verdict = "1 % potentiellement validable";
+    targetBand = "0.90–1.00 % sélectif";
+    confidence = "Haute si sample 1% suffisant";
+  } else if (score >= 65) {
+    verdict = "0.75–1 % opportuniste";
+    targetBand = "0.75–1.00 % selon setup";
+    confidence = "Moyenne";
+  } else if (score >= 50) {
+    verdict = "0.65–0.80 % préférable";
+    targetBand = "0.65–0.80 %";
+    confidence = "Utilisable, mais 1 % non confirmé";
+  } else if (score >= 35) {
+    verdict = "0.50–0.65 % prudent";
+    targetBand = "0.50–0.65 %";
+    confidence = "Prudente";
+  } else {
+    verdict = "1 % non validé";
+    targetBand = "0.50 % ou moins";
+    confidence = "Faible";
+  }
+
+  return { score, verdict, targetBand, confidence, reasons, penalties, positives, blocked, b100, b080, b125 };
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 export default function JournalPopPanel({ apiBase, active }) {
@@ -696,6 +859,33 @@ export default function JournalPopPanel({ apiBase, active }) {
 
   const stressCoverage = useMemo(() => computeStressCoverage(resolvedRecords), [resolvedRecords]);
 
+  // ── 1% Readiness V2B ────────────────────────────────────────────────────────
+
+  const readiness = useMemo(() => {
+    const stTouchedKnown = resolvedRecords.filter((r) => r?.resolution?.strikeTouched != null);
+    const strikeTouchRate = stTouchedKnown.length > 0
+      ? (stTouchedKnown.filter((r) => r.resolution.strikeTouched === true).length / stTouchedKnown.length) * 100
+      : null;
+
+    const lbKnown = resolvedRecords.filter((r) => r?.resolution?.brokeLowerBound != null);
+    const lowerBoundBreakRate = lbKnown.length > 0
+      ? (lbKnown.filter((r) => r.resolution.brokeLowerBound === true).length / lbKnown.length) * 100
+      : null;
+
+    return computeOnePercentReadiness({
+      resolvedCount: stats.resolvedCount,
+      cleanWinRate: winQualityStats.cleanWinRate,
+      stressedWinRate: winQualityStats.stressedWinRate,
+      luckyWinRate: winQualityStats.luckyWinRate,
+      assignmentRate: winQualityStats.assignmentRate,
+      strikeTouchRate,
+      lowerBoundBreakRate,
+      avgPop: stats.avgPop,
+      stressCoveragePct: stressCoverage.globalCoverage,
+      premiumBuckets: premiumReturnBuckets,
+    });
+  }, [resolvedRecords, stats, winQualityStats, stressCoverage, premiumReturnBuckets]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -713,12 +903,23 @@ export default function JournalPopPanel({ apiBase, active }) {
               <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-[10px] text-slate-500">
                 SQLite · Read-only · Calibration active OFF
               </span>
+              {hasLoaded && (
+                <span className={`rounded-full border px-3 py-1 text-[10px] font-bold tabular-nums ${
+                  readiness.score >= 80 ? "border-emerald-800/50 bg-emerald-900/20 text-emerald-400" :
+                  readiness.score >= 65 ? "border-indigo-800/50 bg-indigo-900/20 text-indigo-400" :
+                  readiness.score >= 50 ? "border-sky-800/50 bg-sky-900/20 text-sky-400" :
+                  readiness.score >= 35 ? "border-amber-800/50 bg-amber-900/20 text-amber-400" :
+                  "border-rose-800/50 bg-rose-900/20 text-rose-400"
+                }`}>
+                  1% Readiness {readiness.score}/100
+                </span>
+              )}
             </div>
             <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-100">
               Calibration réelle — Données historiques
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Journal POP Pro V2A · Win Quality + Stress Coverage · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
+              Journal POP Pro V2B · Win Quality + Stress Coverage + 1% Readiness · Lecture seule · Aucun impact scanner, IBKR, Yahoo, EliteScore
             </p>
           </div>
           <div className="flex flex-col gap-2 md:items-end">
@@ -922,6 +1123,119 @@ export default function JournalPopPanel({ apiBase, active }) {
                   Coverage calculé sur {winQualityStats.resolvedCount} records résolus. &lt;30% : Faible · 30–70% : Partiel · &gt;70% : Bon.
                 </p>
               </div>
+            </>
+          )}
+        </ProSection>
+      )}
+
+      {/* ── SECTION V2B — 1% READINESS ──────────────────────────────────────── */}
+      {hasLoaded && (
+        <ProSection
+          title="1% Readiness — Capacité statistique à viser 1% / semaine"
+          badge="V2B"
+          subtitle="Score calculé sur les données résolues actuelles. Indicatif uniquement — aucun impact scanner, IBKR, EliteScore."
+        >
+          {stats.resolvedCount === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Aucun record résolu. Le score apparaîtra après expiration des premières positions.
+            </div>
+          ) : (
+            <>
+              {/* Score card + progress bar */}
+              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+                <div className="flex flex-wrap items-end gap-6">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 mb-2">Score global</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-5xl font-bold tabular-nums leading-none ${
+                        readiness.score >= 80 ? "text-emerald-400" :
+                        readiness.score >= 65 ? "text-indigo-400" :
+                        readiness.score >= 50 ? "text-sky-400" :
+                        readiness.score >= 35 ? "text-amber-400" : "text-rose-400"
+                      }`}>{readiness.score}</span>
+                      <span className="text-xl text-slate-600">/100</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <p className={`text-lg font-bold leading-tight ${
+                      readiness.score >= 80 ? "text-emerald-400" :
+                      readiness.score >= 65 ? "text-indigo-400" :
+                      readiness.score >= 50 ? "text-sky-400" :
+                      readiness.score >= 35 ? "text-amber-400" : "text-rose-400"
+                    }`}>{readiness.verdict}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-300">Target : {readiness.targetBand}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">Confiance : {readiness.confidence}</p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-5">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800 border border-slate-700/50">
+                    <div
+                      className={`h-full rounded-full ${
+                        readiness.score >= 80 ? "bg-emerald-500" :
+                        readiness.score >= 65 ? "bg-indigo-500" :
+                        readiness.score >= 50 ? "bg-sky-500" :
+                        readiness.score >= 35 ? "bg-amber-500" : "bg-rose-500"
+                      }`}
+                      style={{ width: `${readiness.score}%` }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-[9px]">
+                    <span className="text-slate-700">0</span>
+                    <span className="text-rose-900">Non validé · 35</span>
+                    <span className="text-amber-900">Prudent · 50</span>
+                    <span className="text-sky-900">0.65–0.80% · 65</span>
+                    <span className="text-indigo-900">Opportuniste · 80</span>
+                    <span className="text-emerald-900">1% validable · 100</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Positives + Freins */}
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-emerald-800/20 bg-emerald-900/10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-600 mb-3">Positifs</p>
+                  {readiness.positives.length === 0 ? (
+                    <p className="text-[11px] text-slate-600">Aucun signal positif fort détecté.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {readiness.positives.map((p, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[11px] text-emerald-400">
+                          <span className="flex-shrink-0 mt-0.5 text-emerald-600">+</span>
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-rose-800/20 bg-rose-900/10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-rose-600 mb-3">Freins</p>
+                  {readiness.penalties.length === 0 && readiness.reasons.length === 0 ? (
+                    <p className="text-[11px] text-slate-600">Aucun frein détecté.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {readiness.penalties.map((p, i) => (
+                        <li key={`pen-${i}`} className="flex items-start gap-2 text-[11px] text-rose-400">
+                          <span className="flex-shrink-0 mt-0.5 text-rose-600">−</span>
+                          {p}
+                        </li>
+                      ))}
+                      {readiness.reasons.map((r, i) => (
+                        <li key={`rsn-${i}`} className="flex items-start gap-2 text-[11px] text-amber-400">
+                          <span className="flex-shrink-0 mt-0.5 text-amber-600">›</span>
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              <p className="mt-3 text-[11px] text-slate-600 italic">
+                Score V2B basé sur {stats.resolvedCount} records résolus · bucket 1.00–1.25%: n={readiness.b100} · 0.80–1.00%: n={readiness.b080} · 1.25%+: n={readiness.b125} · aucun impact scanner.
+              </p>
             </>
           )}
         </ProSection>
@@ -1168,7 +1482,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               stats.resolvedCount < 30 && "Échantillon résolu encore limité pour valider 1 % systématique.",
               stats.winRate != null && stats.winRate >= 95 && "Le win rate élevé doit être interprété avec stress metrics et régimes de marché.",
               "Les résultats doivent être segmentés par régime de marché (bull/bear/sideways) pour une validation complète.",
-              "Touch rate, assignment rate et LowerBound break rate nécessitent window data historique (V2 auto-resolve).",
+              "Les stress metrics sont disponibles pour les records résolus actuels. Prochaine étape : intégrer clean/stressed/lucky wins, strike touch et LowerBound break directement dans les buckets, les modes et les tickers.",
             ].filter(Boolean).map((msg, i) => (
               <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-2.5">
                 <span className="text-slate-600 text-sm mt-0.5">›</span>

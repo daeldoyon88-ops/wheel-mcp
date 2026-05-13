@@ -484,6 +484,44 @@ export function createCapitalCombinationStore(options = {}) {
     };
   }
 
+  // ── getLatestFullCapitalCombination ───────────────────────────────────────
+  // READ-ONLY. Returns the most recent snapshot with its modes and positions.
+  // No INSERT / UPDATE / DELETE — pure SELECT.
+
+  async function getLatestFullCapitalCombination() {
+    await ensureInitialized();
+    const conn = getConn();
+
+    const snapshot = conn.prepare(`
+      SELECT id, scan_date, scan_timestamp, selected_expiration, account_capital, source, created_at
+      FROM capital_combination_snapshots
+      ORDER BY scan_timestamp DESC
+      LIMIT 1
+    `).get();
+
+    if (!snapshot) return null;
+
+    const modes = conn.prepare(`
+      SELECT *
+      FROM capital_combination_modes
+      WHERE snapshot_id = @snapshot_id
+      ORDER BY CASE mode WHEN 'conservative' THEN 1 WHEN 'balanced' THEN 2 WHEN 'aggressive' THEN 3 ELSE 4 END
+    `).all({ snapshot_id: snapshot.id });
+
+    for (const mode of modes) {
+      mode.positions = conn.prepare(`
+        SELECT id, ticker, strike, expiration, contracts, capital_required,
+               premium_unit, total_premium, yield_pct, strike_mode, pop_estimate,
+               spread_pct, quality_tier, quality_score, concentration_theme, created_at
+        FROM capital_combination_positions
+        WHERE mode_id = @mode_id
+        ORDER BY rowid
+      `).all({ mode_id: mode.id });
+    }
+
+    return { snapshot, modes };
+  }
+
   // ── getTablesReady ─────────────────────────────────────────────────────────
 
   async function getTablesReady() {
@@ -500,6 +538,7 @@ export function createCapitalCombinationStore(options = {}) {
     saveSnapshot,
     getHistory,
     getStats,
+    getLatestFullCapitalCombination,
     getTablesReady,
   };
 }

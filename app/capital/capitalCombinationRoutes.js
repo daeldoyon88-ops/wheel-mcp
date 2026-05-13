@@ -18,6 +18,7 @@
  *   POST /capital-combinations/snapshot
  *   GET  /capital-combinations/history
  *   GET  /capital-combinations/stats
+ *   GET  /capital-combinations/latest-full   ← V2E feed (read-only)
  */
 
 import { Router } from "express";
@@ -180,6 +181,44 @@ export default function createCapitalCombinationRoutes(options = {}) {
         totalSnapshots: 0,
         modeStats: [],
         outcomeStats: [],
+        ...SAFETY,
+      });
+    }
+  });
+
+  // ── GET /capital-combinations/latest-full ─────────────────────────────────
+  //
+  // V2E feed — returns the most recent snapshot with its modes and positions.
+  // READ-ONLY: no INSERT / UPDATE / DELETE, no scanner call, no live fetch.
+  //
+  // Response shape:
+  //   { ok, snapshot: { id, scan_date, ... }, modes: [{ mode, ..., positions: [...] }] }
+  //   { ok, snapshot: null, modes: [], message } when tables are empty
+
+  router.get("/latest-full", async (_req, res) => {
+    try {
+      const result = await store.getLatestFullCapitalCombination();
+      if (!result) {
+        return res.json({
+          ok: true,
+          snapshot: null,
+          modes: [],
+          message: "No capital combination snapshots found",
+          ...SAFETY,
+        });
+      }
+      return res.json({
+        ok: true,
+        snapshot: result.snapshot,
+        modes: result.modes,
+        ...SAFETY,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: String(err?.message ?? err),
+        snapshot: null,
+        modes: [],
         ...SAFETY,
       });
     }

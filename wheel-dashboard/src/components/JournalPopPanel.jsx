@@ -1500,21 +1500,23 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
+        fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
       const calibrationPayload = await calibrationResponse.json();
+      const capitalPayload = capitalResponse ? await capitalResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setCalibrationSummary(calibrationPayload.calibration ?? null);
-      setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload]));
+      setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload, capitalPayload]));
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));

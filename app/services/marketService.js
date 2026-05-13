@@ -323,6 +323,7 @@ export function createMarketService(provider) {
           sma20: null,
           sma50: null,
           currentPrice: closes.length ? round(closes[closes.length - 1], 3) : null,
+          closes60: closes.length ? closes.slice(-60).map((v) => round(v, 4)) : null,
         };
       }
 
@@ -377,6 +378,7 @@ export function createMarketService(provider) {
         sma20: round(sma20, 3),
         sma50: round(sma50, 3),
         currentPrice: round(currentPrice, 3),
+        closes60: closes.slice(-60).map((v) => round(v, 4)),
       };
     } catch (_error) {
       return {
@@ -387,6 +389,7 @@ export function createMarketService(provider) {
         sma20: null,
         sma50: null,
         currentPrice: null,
+        closes60: null,
       };
     }
   }

@@ -755,6 +755,14 @@ export function createWheelScanner(marketService) {
         sma20: technicals?.sma20 ?? null,
         sma50: technicals?.sma50 ?? null,
       },
+      priceSeries:
+        Array.isArray(technicals?.closes60) && technicals.closes60.length
+          ? {
+              interval: "1d",
+              closes: technicals.closes60,
+              count: technicals.closes60.length,
+            }
+          : null,
       supportResistance: {
         support: supportResistance?.support ?? null,
         resistance: supportResistance?.resistance ?? null,

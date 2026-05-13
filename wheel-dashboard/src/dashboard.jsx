@@ -7,7 +7,6 @@ import {
   Target,
   Search,
   Activity,
-  ChevronRight,
   BarChart3,
   Layers3,
   X,
@@ -2070,6 +2069,356 @@ function Metric({ label, value, strong = false, tone = "default" }) {
   );
 }
 
+function FaceplateMetric({ label, value, sub = null, tone = "default", strong = false }) {
+  const toneClass =
+    tone === "good"
+      ? "text-[#21ff7a]"
+      : tone === "warn"
+      ? "text-[#ffb21a]"
+      : tone === "bad"
+      ? "text-[#ff273a]"
+      : tone === "cyan"
+      ? "text-[#00c8ff]"
+      : tone === "magenta"
+      ? "text-[#f05cff]"
+      : tone === "orange"
+      ? "text-[#ff9f0a]"
+      : tone === "violet"
+      ? "text-[#c76bff]"
+      : "text-slate-50";
+
+  return (
+    <div className="min-h-[68px] rounded-[6px] border border-[#172637] bg-[#06111b]/95 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_18px_rgba(0,170,255,0.025)]">
+      <p className="text-[11px] font-medium tracking-wide text-slate-200/90">{label}</p>
+      <p className={cn("mt-1 text-lg leading-tight", strong && "font-semibold", toneClass)}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs leading-tight text-slate-400">{sub}</p>}
+    </div>
+  );
+}
+
+function FaceplateStrikeColumn({ title, tone = "safe", strikeData, fallbackDte }) {
+  if (!strikeData) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-4 text-sm text-slate-400">
+        Aucun strike {tone === "safe" ? "safe" : "agressif"} snapshot.
+      </div>
+    );
+  }
+
+  const strikeNumber = Number(strikeData.strike);
+  const displayedPremium = Number.isFinite(Number(strikeData.premiumUsed))
+    ? Number(strikeData.premiumUsed)
+    : Number.isFinite(Number(strikeData.mid))
+    ? Number(strikeData.mid)
+    : null;
+  const distanceNumber = Number(strikeData.distancePct);
+  const tradeYieldNumber = Number(strikeData.weeklyYield);
+  const weeklyNormalizedYieldNumber = Number(strikeData.weeklyNormalizedYield);
+  const annualizedYieldNumber = Number(strikeData.annualizedYield);
+  const popProfitNumber = Number(strikeData.popProfitEstimated ?? strikeData.popEstimate);
+  const popOtmNumber = Number(strikeData.popOtmEstimated);
+  const dteNumber = Number(strikeData.dteDays ?? fallbackDte);
+  const spreadClass = classifySpreadPctPercent(strikeData.liquidity?.spreadPct);
+  const accent = tone === "safe" ? "text-[#00c8ff]" : "text-[#e052ff]";
+  const border = tone === "safe" ? "border-[#12354a]" : "border-[#3b1a4a]";
+  const glow = tone === "safe" ? "shadow-sky-950/30" : "shadow-fuchsia-950/30";
+  const titleText = tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)";
+  const subtitleText = tone === "safe" ? "safe IBKR live" : "agressif IBKR live";
+  const metricRows = [
+    {
+      label: "Strike",
+      value: Number.isFinite(strikeNumber) ? strikeNumber.toFixed(2) : "—",
+      tone: accent,
+      strong: true,
+    },
+    {
+      label: strikeData.premiumLabel || "Prime utilisée",
+      value: displayedPremium != null ? `$${displayedPremium.toFixed(2)}` : "—",
+      tone: "text-[#21ff7a]",
+      strong: true,
+    },
+    {
+      label: "Rendement",
+      value: Number.isFinite(tradeYieldNumber) ? `${tradeYieldNumber.toFixed(2)}%` : "—",
+      sub: "jusqu'à expiration",
+      tone: "text-[#21ff7a]",
+      strong: true,
+    },
+    {
+      label: "Distance",
+      value: Number.isFinite(distanceNumber) ? `${distanceNumber.toFixed(1)}%` : "—",
+      tone: "text-slate-50",
+    },
+    {
+      label: "POP estimée",
+      value: Number.isFinite(popProfitNumber) ? `${(popProfitNumber * 100).toFixed(1)}%` : "—",
+      tone: "text-[#21ff7a]",
+      strong: true,
+    },
+    {
+      label: "DTE",
+      value: Number.isFinite(dteNumber) ? `${dteNumber} jours` : "—",
+      sub: Number.isFinite(popOtmNumber) ? `OTM estimé ${(popOtmNumber * 100).toFixed(1)}%` : "OTM estimé —",
+      tone: "text-[#21ff7a]",
+      strong: true,
+    },
+  ];
+
+  return (
+    <div className={cn("rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", border, glow)}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={cn("text-sm font-semibold tracking-wide", accent)}>{titleText}</p>
+          <p className="mt-1 text-xs text-slate-500">{strikeData.label || subtitleText}</p>
+        </div>
+        <Badge className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
+          PUT
+        </Badge>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-y-2.5">
+        {metricRows.map((row) => (
+          <div key={row.label} className="min-h-[42px]">
+            <p className="text-xs leading-tight text-slate-400">{row.label}</p>
+            <p className={cn("mt-1 text-[15px] leading-tight tabular-nums", row.strong && "font-semibold", row.tone)}>
+              {row.value}
+            </p>
+            {row.sub && <p className="mt-0.5 text-[11px] leading-tight text-slate-500">{row.sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-3 text-sm text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <p className={cn("mb-2 text-sm font-semibold", accent)}>Marché live</p>
+        <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-2">
+          <span className="text-slate-400">Bid</span>
+          <span className="font-semibold tabular-nums text-white">{formatMoneyOrDash(strikeData.bid)}</span>
+          <span className="text-slate-400">Ask</span>
+          <span className="font-semibold tabular-nums text-white">{formatMoneyOrDash(strikeData.ask)}</span>
+          <span className="text-slate-400">Mid</span>
+          <span className="font-semibold tabular-nums text-white">{formatMoneyOrDash(strikeData.mid)}</span>
+          <span className="text-slate-400">Spread</span>
+          <span className={cn("font-semibold tabular-nums", spreadClass.metricTone === "bad" ? "text-[#ff273a]" : spreadClass.metricTone === "warn" ? "text-[#ffb21a]" : "text-[#21ff7a]")}>
+            {strikeData.liquidity?.spreadPct != null ? `${Number(strikeData.liquidity.spreadPct).toFixed(2)}%` : "—"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniTradeLevelsChart({ item }) {
+  const closes = Array.isArray(item?.priceSeries?.closes)
+    ? item.priceSeries.closes.map(Number).filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+  const rawDates = Array.isArray(item?.priceSeries?.dates)
+    ? item.priceSeries.dates
+    : Array.isArray(item?.priceSeries?.timestamps)
+    ? item.priceSeries.timestamps
+    : [];
+  const visibleCloses = closes.slice(-60);
+  const visibleDates = rawDates.slice(-visibleCloses.length);
+  const price = Number(item?.price);
+  const safeStrike = Number(item?.safeStrike?.strike);
+  const safeMid = Number(item?.safeStrike?.mid ?? item?.safeStrike?.premiumUsed);
+  const expectedMoveLow = Number(item?.expectedMoveLow);
+  const expectedMoveHigh = Number(item?.expectedMoveHigh);
+  const supportNear = Number(item?.supportNear);
+  const supportWide = Number(item?.supportWide ?? item?.support);
+  const potentialSupport =
+    Number(item?.potentialSupportFromBrokenResistance) ||
+    (item?.resistanceStatus === "broken" ? Number(item?.resistanceCurrent ?? item?.resistance) : NaN);
+  const resistanceAboveSpot = Number(item?.resistanceAboveSpot ?? item?.resistanceCurrent ?? item?.resistance);
+  const levels = [
+    ...visibleCloses,
+    price,
+    safeStrike,
+    expectedMoveLow,
+    expectedMoveHigh,
+    supportNear,
+    supportWide,
+    potentialSupport,
+    resistanceAboveSpot,
+  ].filter((value) => Number.isFinite(value) && value > 0);
+  const hasSeries = visibleCloses.length >= 2;
+  const rawMin = levels.length ? Math.min(...levels) : 0;
+  const rawMax = levels.length ? Math.max(...levels) : 1;
+  const rawRange = rawMax - rawMin || Math.max(rawMax * 0.08, 1);
+  const min = Math.floor((rawMin - rawRange * 0.06) / 5) * 5;
+  const max = Math.ceil((rawMax + rawRange * 0.04) / 5) * 5;
+  const range = max - min || 1;
+  const width = 640;
+  const height = 248;
+  const padLeft = 44;
+  const padRight = 36;
+  const padTop = 12;
+  const padBottom = 28;
+  const chartWidth = width - padLeft - padRight;
+  const chartHeight = height - padTop - padBottom;
+  const xForIndex = (index) =>
+    padLeft + (visibleCloses.length <= 1 ? 0 : (index / (visibleCloses.length - 1)) * chartWidth);
+  const yForValue = (value) => padTop + ((max - value) / range) * chartHeight;
+  const points = visibleCloses
+    .map((value, index) => `${xForIndex(index).toFixed(1)},${yForValue(value).toFixed(1)}`)
+    .join(" ");
+  const levelRows = [
+    { label: "EM haut", value: expectedMoveHigh, className: "text-[#ff9f0a]", color: "#ff9f0a" },
+    { label: "Résistance sup.", value: resistanceAboveSpot, className: "text-[#c76bff]", color: "#c76bff" },
+    { label: "Spot", value: price, className: "text-[#00c8ff]", color: "#00c8ff" },
+    { label: "S. proche", value: supportNear, className: "text-[#21ff7a]", color: "#21ff7a" },
+    { label: "Strike safe", value: safeStrike, className: "text-[#ff273a]", color: "#ff273a" },
+    { label: "EM bas", value: expectedMoveLow, className: "text-[#ffb21a]", color: "#ffb21a" },
+    { label: "S. potentiel", value: potentialSupport, className: "text-[#10d6a3]", color: "#10d6a3" },
+    { label: "S. large", value: supportWide, className: "text-[#26e6c2]", color: "#26e6c2" },
+  ].filter((row) => Number.isFinite(row.value) && row.value > 0);
+  const levelLabels = levelRows
+    .map((row) => ({ ...row, lineY: yForValue(row.value), labelY: yForValue(row.value) - 5 }))
+    .sort((a, b) => a.labelY - b.labelY)
+    .reduce((acc, row) => {
+      const previous = acc[acc.length - 1];
+      const minGap = 15;
+      const topLimit = padTop + 8;
+      const bottomLimit = height - padBottom - 4;
+      const labelY = Math.min(
+        bottomLimit,
+        Math.max(previous ? previous.labelY + minGap : topLimit, row.labelY)
+      );
+      acc.push({ ...row, labelY });
+      return acc;
+    }, []);
+  const labelYByName = new Map(levelLabels.map((row) => [row.label, row.labelY]));
+  const yTicks = Array.from({ length: Math.floor((max - min) / 5) + 1 }, (_, index) => max - index * 5)
+    .filter((value) => value >= min && value <= max);
+  const monthLabels = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+  const parseChartDate = (raw) => {
+    if (raw == null) return null;
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+  const formatChartDate = (date) => `${date.getDate()} ${monthLabels[date.getMonth()]}`;
+  const fallbackEndDate = parseChartDate(item?.asOf ?? item?.raw?.asOf ?? item?.scanTimestamp) ?? new Date();
+  const xTickIndexes = [0, 7, 14, 21, 28, 35, 42, 49, Math.max(0, visibleCloses.length - 1)]
+    .filter((index, pos, arr) => index < visibleCloses.length && arr.indexOf(index) === pos);
+  const xTicks = xTickIndexes.map((index) => {
+    const parsed = parseChartDate(visibleDates[index]);
+    const approx = new Date(fallbackEndDate);
+    approx.setDate(fallbackEndDate.getDate() - (visibleCloses.length - 1 - index));
+    return {
+      index,
+      label: formatChartDate(parsed ?? approx),
+    };
+  });
+
+  return (
+    <div className="rounded-[8px] border border-[#172637] bg-[#020811] p-3 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_24px_rgba(0,170,255,0.035)]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-white">Mini carte technique — 60 derniers jours</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Niveaux trade / supports / expected move.
+          </p>
+        </div>
+        <Badge className="rounded-full border border-fuchsia-700 bg-fuchsia-950/70 text-fuchsia-100">
+          PUT {Number.isFinite(safeStrike) ? `${safeStrike.toFixed(0)}` : "—"}
+          {Number.isFinite(safeMid) ? ` @ ${safeMid.toFixed(2)}` : ""}
+        </Badge>
+      </div>
+
+      <div className="mt-3 rounded-[7px] border border-[#132536] bg-[#030b14] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_26px_rgba(0,169,255,0.035)]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_178px]">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-[285px] w-full" role="img" aria-label="Mini-graphe des niveaux de prix">
+          <defs>
+            <linearGradient id={`mini-chart-bg-${item.ticker}`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#06131f" />
+              <stop offset="100%" stopColor="#020811" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width={width} height={height} fill={`url(#mini-chart-bg-${item.ticker})`} rx="6" />
+          {[0.16, 0.32, 0.48, 0.64, 0.8].map((ratio) => (
+            <line
+              key={`v-${ratio}`}
+              x1={padLeft + ratio * chartWidth}
+              x2={padLeft + ratio * chartWidth}
+              y1={padTop}
+              y2={height - padBottom}
+              stroke="#132536"
+              strokeWidth="1"
+              opacity="0.65"
+            />
+          ))}
+          {yTicks.map((tick) => (
+            <g key={`ytick-${tick}`}>
+              <line
+                x1={padLeft}
+                x2={width - padRight}
+                y1={yForValue(tick)}
+                y2={yForValue(tick)}
+                stroke="#163047"
+                strokeWidth="1"
+                opacity="0.72"
+              />
+              <text x={width - padRight + 14} y={yForValue(tick) + 4} textAnchor="start" fill="#e5edf7" fontSize="12" fontWeight="600">
+                {tick}
+              </text>
+            </g>
+          ))}
+          {levelRows.map((row) => {
+            const y = yForValue(row.value);
+            const labelY = labelYByName.get(row.label) ?? y - 5;
+            return (
+              <g key={row.label}>
+                <line x1={padLeft} x2={width - padRight} y1={y} y2={y} stroke={row.color} strokeDasharray="7 7" strokeWidth="1.5" opacity="0.92" />
+              </g>
+            );
+          })}
+          {hasSeries ? (
+            <polyline fill="none" stroke="#00a9ff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" points={points} />
+          ) : (
+            <text x={width / 2} y={height / 2} textAnchor="middle" fill="#94a3b8" fontSize="14">
+              Historique indisponible
+            </text>
+          )}
+          <line x1={padLeft} x2={width - padRight} y1={height - padBottom} y2={height - padBottom} stroke="#24364a" strokeWidth="1" />
+          {xTicks.map((tick) => (
+            <text key={`xtick-${tick.index}`} x={xForIndex(tick.index)} y={height - 10} textAnchor="middle" fill="#e5edf7" fontSize="12" fontWeight="600">
+              {tick.label}
+            </text>
+          ))}
+        </svg>
+        <div className="hidden min-w-[168px] flex-col justify-center gap-2 border-l border-[#132536] pl-4 text-sm xl:flex">
+          {levelRows.map((row) => (
+            <div key={`legend-${row.label}`} className="flex items-center justify-between gap-3">
+              <span className={cn("flex items-center gap-2 font-semibold", row.className)}>
+                <span className="h-2 w-2 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: row.color, color: row.color }} />
+                {row.label}
+              </span>
+              <span className={cn("font-semibold tabular-nums", row.className)}>${Number(row.value).toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+        </div>
+      </div>
+
+      <div className="mt-2 border-t border-[#132536] px-1 pt-2 text-sm text-slate-100">
+        Mouvement attendu : {item.expectedMovePct.toFixed(2)}% <span className="px-3 text-slate-400">•</span>
+        Plage attendue : ${item.expectedMoveLow.toFixed(2)} - ${item.expectedMoveHigh.toFixed(2)} <span className="px-3 text-slate-400">•</span>
+        Strike Safe : {item.safeStrike?.strike != null ? `$${Number(item.safeStrike.strike).toFixed(2)}` : "—"}
+        {Number.isFinite(safeMid) ? ` (prime $${safeMid.toFixed(2)})` : ""} <span className="px-3 text-slate-400">•</span>
+        Rendement : {item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn)) ? `${Number(item.weeklyReturn).toFixed(2)}% jusqu'à expiration` : "—"}
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 xl:hidden">
+        {levelRows.map((row) => (
+          <div key={row.label} className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
+            <span className={cn("font-semibold", row.className)}>{row.label}</span>
+            <span className="ml-1 text-slate-300">${Number(row.value).toFixed(2)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StrikeCard({
   className = "",
   title,
@@ -2367,10 +2716,30 @@ function StrikeOpportunities({ item }) {
   );
 }
 
+function FaceplateStrikeOpportunities({ item }) {
+  const hasSafe = !!item.safeStrike;
+  const hasAggressive = !!item.aggressiveStrike;
+
+  return (
+    <div className="h-full">
+      {hasSafe || hasAggressive ? (
+        <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-2">
+          <FaceplateStrikeColumn title="Safe (IBKR live)" tone="safe" strikeData={item.safeStrike} fallbackDte={item.dteDays} />
+          <FaceplateStrikeColumn title="Aggressif (IBKR live)" tone="aggressive" strikeData={item.aggressiveStrike} fallbackDte={item.dteDays} />
+        </div>
+      ) : (
+        <div className="rounded-[8px] border border-dashed border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
+          Aucun strike local disponible.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SupportStatusLine({ item }) {
   if (item.strikeVsSupportPct == null) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      <div className="rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-2 text-sm text-slate-300">
         Support: indisponible
       </div>
     );
@@ -2378,12 +2747,12 @@ function SupportStatusLine({ item }) {
 
   const toneClass =
     item.supportStatus === "strike_below_support" || item.supportStatus === "below_support"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "border-[#0b4a66] bg-cyan-950/35 text-[#00c8ff] shadow-[0_0_18px_rgba(0,200,255,0.08)]"
       : item.supportStatus === "strike_near_support" || item.supportStatus === "near_support"
-      ? "border-amber-200 bg-amber-50 text-amber-700"
+      ? "border-[#6a4300] bg-amber-950/35 text-[#ffb21a] shadow-[0_0_18px_rgba(255,176,0,0.08)]"
       : item.supportStatus === "strike_above_support" || item.supportStatus === "room_above_support"
-      ? "border-rose-200 bg-rose-50 text-rose-700"
-      : "border-rose-200 bg-rose-50 text-rose-700";
+      ? "border-[#601824] bg-rose-950/35 text-[#ff273a] shadow-[0_0_18px_rgba(255,39,58,0.08)]"
+      : "border-[#601824] bg-rose-950/35 text-[#ff273a] shadow-[0_0_18px_rgba(255,39,58,0.08)]";
 
   const label =
     item.supportStatus === "current_below_support"
@@ -2395,7 +2764,7 @@ function SupportStatusLine({ item }) {
       : "strike sous support — marge de sécurité";
 
   return (
-    <div className={cn("rounded-xl border px-3 py-2 text-sm", toneClass)}>
+    <div className={cn("rounded-[7px] border px-3 py-2 text-sm font-semibold", toneClass)}>
       Strike vs support: {label} ({Math.abs(item.strikeVsSupportPct).toFixed(1)}% {item.strikeVsSupportPct < 0 ? "sous" : "au-dessus du"} support)
     </div>
   );
@@ -3200,16 +3569,16 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <Card className="border-slate-200 shadow-sm transition-all hover:shadow-md">
-        <CardContent className="p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="flex-1 min-w-0 space-y-3">
+      <Card className="rounded-[8px] border-[#172637] bg-[#020811] text-slate-100 shadow-[0_0_0_1px_rgba(80,140,180,0.08),0_24px_80px_rgba(0,0,0,0.34)] transition-all hover:shadow-[0_0_0_1px_rgba(80,140,180,0.14),0_28px_90px_rgba(0,0,0,0.42)]">
+        <CardContent className="p-3">
+          <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
+                <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-3 py-1 text-slate-100">
                   Choix #{shownRank}
                 </Badge>
                 {yahooRank != null && (
-                  <Badge className="rounded-full border border-slate-200 bg-white text-xs text-slate-500">
+                  <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-3 py-1 text-xs text-slate-100">
                     Rang Yahoo #{yahooRank}
                   </Badge>
                 )}
@@ -3266,34 +3635,138 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                     score={seasonality.seasonalityScore ?? null}
                   />
                 )}
+                <Button
+                  className="ml-auto rounded-[6px] border border-slate-600 bg-[#07111b] px-5 py-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  onClick={() => onOpenDetail(item)}
+                >
+                  Voir fiche complète ↗
+                </Button>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold tracking-tight text-slate-900">
-                  {item.ticker} <span className="font-normal text-slate-500">— {item.name}</span>
+                <h3 className="text-xl font-semibold tracking-tight text-white">
+                  {item.ticker} <span className="font-normal text-slate-400">— {item.name}</span>
                 </h3>
-                <p className="mt-1 text-sm text-slate-600">{item.setup}</p>
+                <p className="mt-1 text-sm text-slate-300">{item.setup}</p>
                 {item.recommendedMode === "AGGRESSIVE" ? (
-                  <p className="mt-1 text-sm text-emerald-700">
+                  <p className="mt-1 text-sm text-emerald-300">
                     Mode recommandé : AGGRESSIVE — {item.recommendedReason}
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-slate-300">
                     Mode recommandé : SAFE
                   </p>
                 )}
                 {earningsDisplay ? (
-                  <p className="mt-1 text-sm text-amber-700">
+                  <p className="mt-1 text-sm text-amber-300">
                     {earningsDisplay}
                   </p>
                 ) : relevantEarningsDate ? (
-                  <p className="mt-1 text-sm text-violet-700">
+                  <p className="mt-1 text-sm text-violet-300">
                     Earnings: {formatShortDate(relevantEarningsDate) || relevantEarningsDate}
                   </p>
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4 xl:grid-cols-8 2xl:grid-cols-[1.02fr_1.05fr_1.14fr_1.14fr_0.86fr_0.76fr_0.72fr_1fr]">
+                <FaceplateMetric label="Prix actuel" value={`$${item.price.toFixed(2)}`} strong />
+                <FaceplateMetric
+                  label="Mouvement attendu"
+                  value={
+                    item.earningsMode
+                      ? `${item.expectedMovePct.toFixed(2)}% -> ${adjustedMovePct.toFixed(2)}%`
+                      : `${item.expectedMovePct.toFixed(2)}%`
+                  }
+                  strong
+                  tone={item.earningsMode ? "bad" : "orange"}
+                />
+                <FaceplateMetric
+                  label="Plage attendue"
+                  value={`$${item.expectedMoveLow.toFixed(2)} - $${item.expectedMoveHigh.toFixed(2)}`}
+                  strong
+                  tone="bad"
+                />
+                <FaceplateMetric
+                  label="Rendement période"
+                  value={
+                    item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn))
+                      ? `${Number(item.weeklyReturn).toFixed(2)}%`
+                      : "—"
+                  }
+                  sub={item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn)) ? "jusqu'à expiration" : null}
+                  strong={
+                    Number.isFinite(Number(item.weeklyReturn)) &&
+                    Number(item.weeklyReturn) >= 0.5
+                  }
+                  tone={
+                    !Number.isFinite(Number(item.weeklyReturn))
+                      ? "default"
+                      : Number(item.weeklyReturn) >= 0.5
+                      ? "good"
+                      : "bad"
+                  }
+                />
+                <FaceplateMetric label="Distance strike" value={`${item.strikeDistance.toFixed(1)}%`} />
+                <FaceplateMetric label="Sem. cible" value={`${item.targetWeeks ?? 1}`} />
+                <FaceplateMetric
+                  label="DTE"
+                  value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
+                  strong
+                />
+                <FaceplateMetric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,2.22fr)_minmax(390px,0.98fr)]">
+                <MiniTradeLevelsChart item={item} />
+                <FaceplateStrikeOpportunities item={item} />
+              </div>
+
+              <div className="rounded-[8px] border border-[#132536] bg-[#020811]/95 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_22px_rgba(0,170,255,0.025)]">
+                <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3 xl:grid-cols-9">
+                  <FaceplateMetric label="IV" value={typeof item.iv === "number" ? `${item.iv.toFixed(1)}%` : "—"} />
+                  <FaceplateMetric
+                    label="RSI"
+                    value={typeof item.rsi === "number" ? `${item.rsi}` : "—"}
+                    strong={typeof item.rsi === "number"}
+                    tone={typeof item.rsi !== "number" ? "default" : item.rsi >= 70 ? "bad" : item.rsi <= 40 ? "orange" : "good"}
+                  />
+                  <FaceplateMetric label="Trend" value={item.trend || "unknown"} strong tone={item.trend === "bullish" ? "good" : item.trend === "bearish" ? "bad" : "orange"} />
+                  <FaceplateMetric label="Momentum" value={item.momentum || "unknown"} strong tone={item.momentum === "positive" ? "good" : item.momentum === "negative" ? "bad" : "orange"} />
+                  <FaceplateMetric label="Support proche" value={supportNearDisplay} tone="good" />
+                  <FaceplateMetric label="Résistance actuelle" value={resistanceDisplay} tone={resistanceStatusDisplay === "franchie" ? "warn" : "default"} />
+                  <FaceplateMetric label="Résistance sup." value={resistanceAboveSpotDisplay} tone="warn" />
+                  <FaceplateMetric
+                    label="Score Yahoo"
+                    value={item.qualityScore != null ? `${item.qualityScore} pts` : "—"}
+                    strong={item.qualityScore != null}
+                    tone={item.qualityScore == null ? "default" : item.qualityScore >= 50 ? "good" : item.qualityScore >= 20 ? "orange" : "bad"}
+                  />
+                  <FaceplateMetric
+                    label="Elite Score"
+                    value={Number.isFinite(Number(item.eliteScore)) ? `${Number(item.eliteScore).toFixed(1)} / 100` : "—"}
+                    strong={Number.isFinite(Number(item.eliteScore))}
+                    tone={!Number.isFinite(Number(item.eliteScore)) ? "default" : Number(item.eliteScore) >= 82 ? "good" : Number(item.eliteScore) >= 68 ? "orange" : "bad"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2 xl:grid-cols-3">
+                {(item.resistanceStatus === "broken" || resistanceUnderSpot) &&
+    isValidLevel(resistanceValue) &&
+                  Number.isFinite(priceValue) && (
+                  <div className="rounded-[7px] border border-[#0b4a66] bg-cyan-950/35 px-3 py-2 text-sm font-semibold text-[#00c8ff] shadow-[0_0_18px_rgba(0,200,255,0.08)]">
+                    Ancienne résistance ${resistanceValue.toFixed(2)} franchie — support potentiel.
+                  </div>
+                )}
+                {rsiHigh && (
+                  <div className="rounded-[7px] border border-[#6a4300] bg-amber-950/35 px-3 py-2 text-sm font-semibold text-[#ffb21a] shadow-[0_0_18px_rgba(255,176,0,0.08)]">
+                    RSI élevé : surachat court terme
+                  </div>
+                )}
+                <SupportStatusLine item={item} />
+              </div>
+
+              <div className="hidden">
                 <Metric label="Prix actuel" value={`$${item.price.toFixed(2)}`} />
                 <Metric
                   label="Mouvement attendu"
@@ -3447,86 +3920,108 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                 </div>
               </div>
 
-              {item.qualityReasons?.length > 0 && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  Score Yahoo pré-IBKR : {item.qualityReasons.join(" · ")}
-                </div>
-              )}
-              {(item.strengths?.length > 0 || item.weaknesses?.length > 0) && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  {item.strengths?.length > 0 && (
-                    <p>
-                      <span className="font-semibold text-emerald-700">Forces :</span> {item.strengths.join(" · ")}
-                    </p>
-                  )}
-                  {item.weaknesses?.length > 0 && (
-                    <p className="mt-1">
-                      <span className="font-semibold text-rose-700">Faiblesses :</span> {item.weaknesses.join(" · ")}
-                    </p>
-                  )}
-                </div>
-              )}
-              <details className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                <summary className="cursor-pointer font-medium text-slate-800">Détail du score</summary>
-                <p className="mt-2 leading-5">
-                  {item.qualityReasons?.length
-                    ? item.qualityReasons.join(" · ")
-                    : "Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée."}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée.
-                </p>
-              </details>
-              {(item.resistanceStatus === "broken" || resistanceUnderSpot) &&
-    isValidLevel(resistanceValue) &&
-                Number.isFinite(priceValue) && (
-                <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">
-                  Ancienne résistance ${resistanceValue.toFixed(2)} franchie — support potentiel.
-                </div>
-              )}
-              {!resistanceUnderSpot &&
-    isValidLevel(resistanceValue) &&
-                Number.isFinite(priceValue) &&
-                resistanceDistancePct != null && (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
-                    Résistance ${resistanceValue.toFixed(2)} — à {Math.abs(resistanceDistancePct).toFixed(1)} % du spot.
-                  </div>
-                )}
-              {rsiHigh && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-                  RSI élevé : surachat court terme
-                </div>
-              )}
-              {item.optionsSource === "IBKR live" && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  <div className="font-semibold">Options IBKR live utilisées dans cette carte</div>
-                  <div className="mt-1 leading-5">
-                    Safe : bid {formatMoneyOrDash(item.safeStrike?.bid)} / ask{" "}
-                    {formatMoneyOrDash(item.safeStrike?.ask)} / mid{" "}
-                    {formatMoneyOrDash(item.safeStrike?.mid)} · Agressif : bid{" "}
-                    {formatMoneyOrDash(item.aggressiveStrike?.bid)} / ask{" "}
-                    {formatMoneyOrDash(item.aggressiveStrike?.ask)} / mid{" "}
-                    {formatMoneyOrDash(item.aggressiveStrike?.mid)} · spread{" "}
-                    {formatIbkrPercent(item.ibkrSpreadPct)}
-                  </div>
-                  {hasIbkrSpread && ibkrSpreadClass.label !== "liquide" && (
-                    <div className={cn("mt-2 rounded-lg border px-3 py-2 font-semibold", ibkrSpreadClass.badgeClass)}>
-                      {ibkrSpreadClass.label} — {ibkrSpreadClass.reason}
+              <div className="grid gap-3 xl:grid-cols-2">
+                {item.optionsSource === "IBKR live" && (
+                  <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-emerald-50 after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">Options IBKR live utilisées dans cette carte</summary>
+                    <div className="mt-2 leading-5">
+                      Safe : bid {formatMoneyOrDash(item.safeStrike?.bid)} / ask{" "}
+                      {formatMoneyOrDash(item.safeStrike?.ask)} / mid{" "}
+                      {formatMoneyOrDash(item.safeStrike?.mid)} · Agressif : bid{" "}
+                      {formatMoneyOrDash(item.aggressiveStrike?.bid)} / ask{" "}
+                      {formatMoneyOrDash(item.aggressiveStrike?.ask)} / mid{" "}
+                      {formatMoneyOrDash(item.aggressiveStrike?.mid)} · spread{" "}
+                      {formatIbkrPercent(item.ibkrSpreadPct)}
                     </div>
-                  )}
-                </div>
-              )}
-              <SupportStatusLine item={item} />
-              <div className="pt-1">
-                <Button className="rounded-xl" onClick={() => onOpenDetail(item)}>
-                  Voir la fiche complète <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              <IbkrBatchCardDetails item={item} row={ibkrBatchRow} />
-            </div>
+                    {hasIbkrSpread && ibkrSpreadClass.label !== "liquide" && (
+                      <div className={cn("mt-2 rounded-lg border px-3 py-2 font-semibold", ibkrSpreadClass.badgeClass)}>
+                        {ibkrSpreadClass.label} — {ibkrSpreadClass.reason}
+                      </div>
+                    )}
+                  </details>
+                )}
 
-            <div className="w-full xl:min-w-[420px] xl:max-w-[520px]">
-              <StrikeOpportunities item={item} />
+                <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-white after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">Détails techniques / pipeline (score pré-IBKR, rangs, etc.)</summary>
+                  {item.qualityReasons?.length > 0 && (
+                    <p className="mt-2 leading-5">
+                      Score Yahoo pré-IBKR : {item.qualityReasons.join(" · ")}
+                    </p>
+                  )}
+                  <p className="mt-2 leading-5">
+                    {item.qualityReasons?.length
+                      ? item.qualityReasons.join(" · ")
+                      : "Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée."}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée.
+                  </p>
+                </details>
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-2">
+                <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-white after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">Forces / Faiblesses principales</summary>
+                  {item.strengths?.length > 0 ? (
+                    <p className="mt-2">
+                      <span className="font-semibold text-emerald-300">Forces :</span> {item.strengths.join(" · ")}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-slate-400">Forces : non disponibles.</p>
+                  )}
+                  {item.weaknesses?.length > 0 ? (
+                    <p className="mt-1">
+                      <span className="font-semibold text-rose-300">Faiblesses :</span> {item.weaknesses.join(" · ")}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-slate-400">Faiblesses : non disponibles.</p>
+                  )}
+                </details>
+
+                <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-white after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">Métriques complémentaires (supports larges, secteur, liquidité, etc.)</summary>
+                  <div className="mt-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                      <FaceplateMetric label="Prime safe mini" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
+                      <FaceplateMetric label="Support large" value={supportWideDisplay} />
+                      <FaceplateMetric label="Support potentiel" value={potentialSupportDisplay} tone={item.resistanceStatus === "broken" || isValidLevel(fallbackPotentialSupportValue) ? "good" : "default"} />
+                      <FaceplateMetric label="Delta Yahoo -> Elite" value={Number.isFinite(Number(item.yahooRank)) && Number.isFinite(Number(item.ibkrRank)) ? `${Number(item.yahooRank) - Number(item.ibkrRank)}` : "—"} />
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Badge Elite</p>
+                        <Badge className={cn("mt-1 rounded-full border", classifyEliteBadge(item.eliteBadge))}>
+                          {item.eliteBadge || "Speculative"}
+                        </Badge>
+                      </div>
+                      <FaceplateMetric label="Statut résistance" value={resistanceStatusDisplay} />
+                    </div>
+                    {(item.resistanceStatus === "broken" || resistanceUnderSpot) &&
+    isValidLevel(resistanceValue) &&
+                      Number.isFinite(priceValue) && (
+                      <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 font-semibold text-sky-800">
+                        Ancienne résistance ${resistanceValue.toFixed(2)} franchie — support potentiel.
+                      </div>
+                    )}
+                    {!resistanceUnderSpot &&
+    isValidLevel(resistanceValue) &&
+                      Number.isFinite(priceValue) &&
+                      resistanceDistancePct != null && (
+                        <div className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 font-semibold text-slate-200">
+                          Résistance ${resistanceValue.toFixed(2)} — à {Math.abs(resistanceDistancePct).toFixed(1)} % du spot.
+                        </div>
+                      )}
+                    {rsiHigh && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 font-semibold text-amber-900">
+                        RSI élevé : surachat court terme
+                      </div>
+                    )}
+                    <SupportStatusLine item={item} />
+                    <IbkrBatchCardDetails item={item} row={ibkrBatchRow} />
+                  </div>
+                </details>
+              </div>
+              <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/70 px-3 py-2 text-xs text-slate-400">
+                Note : les niveaux techniques proviennent des 60 derniers jours (daily). Les prix et options sont en temps réel via IBKR.
+              </div>
             </div>
           </div>
         </CardContent>
@@ -4429,7 +4924,7 @@ function IbkrShadowCard({
               <Metric
                 label="Startup fetch disabled"
                 value={String(result.startupFetchDisabled ?? "—")}
-                tone="good"
+                  tone="good"
               />
             </div>
 
@@ -7209,7 +7704,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+      <div className="w-full px-2 py-3 md:px-3 lg:px-4">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -8098,7 +8593,7 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 px-2 py-3 md:px-3">
                 {filtered.map((item, index) => (
                   <CandidateCard
                     key={`${item.ticker}-${item.setup}`}

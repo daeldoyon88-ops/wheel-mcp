@@ -142,6 +142,36 @@ function ProSection({ title, badge, subtitle, children }) {
   );
 }
 
+function CollapsibleSection({ title, badge, subtitle, defaultOpen = false, summaryRight, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-start justify-between gap-4 text-left"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{title}</h3>
+            {badge && (
+              <span className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
+                {badge}
+              </span>
+            )}
+          </div>
+          {subtitle && <p className="mt-1 text-[11px] text-slate-600">{subtitle}</p>}
+          {!open && summaryRight && (
+            <p className="mt-1.5 text-[11px] text-slate-500">{summaryRight}</p>
+          )}
+        </div>
+        <span className="flex-shrink-0 text-[10px] text-slate-500 pt-0.5">{open ? "Masquer ▼" : "Afficher ▶"}</span>
+      </button>
+      {open && <div className="mt-5">{children}</div>}
+    </section>
+  );
+}
+
 function DarkTable({ title, headers, rows, empty = "Aucune donnée." }) {
   return (
     <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
@@ -1277,12 +1307,12 @@ function computeCapitalOverlayScore(metrics) {
 
 function computeCapitalOverlayVerdict(metrics) {
   if (metrics.hasCapitalData !== true) return "Capital data N/D";
-  if ((metrics.tickerCount ?? 0) === 0) return "Donnees insuffisantes";
+  if ((metrics.tickerCount ?? 0) === 0) return "Données insuffisantes";
 
   const unknownRatio = metrics.tickerCount > 0 ? metrics.unknownTickerCount / metrics.tickerCount : 1;
   const highRiskRatio = metrics.tickerCount > 0 ? metrics.highRiskTickerCount / metrics.tickerCount : 0;
 
-  if (unknownRatio >= 0.5 || (metrics.resolvedSampleTotal ?? 0) < 6) return "Donnees insuffisantes";
+  if (unknownRatio >= 0.5 || (metrics.resolvedSampleTotal ?? 0) < 6) return "Données insuffisantes";
 
   if (
     highRiskRatio >= 0.5 ||
@@ -1290,7 +1320,7 @@ function computeCapitalOverlayVerdict(metrics) {
     (metrics.concentrationRiskPct != null && metrics.concentrationRiskPct >= 35) ||
     (metrics.avgSpreadPct != null && metrics.avgSpreadPct > 25)
   ) {
-    return "A limiter";
+    return "À limiter";
   }
 
   if (
@@ -1299,7 +1329,7 @@ function computeCapitalOverlayVerdict(metrics) {
     (metrics.avgStrikeTouchRate != null && metrics.avgStrikeTouchRate >= 25) ||
     (metrics.avgSpreadPct != null && metrics.avgSpreadPct > 20)
   ) {
-    return "Agressif stresse";
+    return "Agressif stressé";
   }
 
   if (
@@ -1320,7 +1350,7 @@ function computeCapitalOverlayVerdict(metrics) {
     return "Agressif sain";
   }
 
-  return "Equilibre propre";
+  return "Équilibre propre";
 }
 
 function computeCapitalCombinationOverlay(records, capitalData) {
@@ -1462,6 +1492,8 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [resolveSummary, setResolveSummary] = useState(null);
   const [showRawSections, setShowRawSections] = useState(false);
   const [bucketTickerVisibleCounts, setBucketTickerVisibleCounts] = useState({});
+  const [openBucketsDetail, setOpenBucketsDetail] = useState(false);
+  const [openBuckets, setOpenBuckets] = useState({});
 
   // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
@@ -1869,10 +1901,16 @@ export default function JournalPopPanel({ apiBase, active }) {
 
       {/* ── SECTION V2A — WIN QUALITY ───────────────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Win Quality — Qualité réelle des victoires"
           badge="V2A"
           subtitle="Classification des victoires selon les métriques de stress disponibles. Basé sur les records résolus uniquement."
+          defaultOpen={false}
+          summaryRight={
+            winQualityStats.resolvedCount > 0
+              ? `Clean ${winQualityStats.cleanWinRate != null ? winQualityStats.cleanWinRate.toFixed(1) + "%" : "N/D"} · Lucky ${winQualityStats.luckyWinRate != null ? winQualityStats.luckyWinRate.toFixed(1) + "%" : "N/D"} · Assignments ${winQualityStats.assignmentRate != null ? winQualityStats.assignmentRate.toFixed(1) + "%" : "N/D"}`
+              : "Aucun record résolu"
+          }
         >
           {winQualityStats.resolvedCount === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
@@ -1978,15 +2016,21 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
             </>
           )}
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION V2B — 1% READINESS ──────────────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="1% Readiness — Capacité statistique à viser 1% / semaine"
           badge="V2B"
           subtitle="Score calculé sur les données résolues actuelles. Indicatif uniquement — aucun impact scanner, IBKR, EliteScore."
+          defaultOpen={true}
+          summaryRight={
+            stats.resolvedCount > 0
+              ? `Score ${readiness.score}/100 · ${readiness.verdict} · ${readiness.targetBand}`
+              : "Aucun record résolu"
+          }
         >
           {stats.resolvedCount === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
@@ -2091,15 +2135,21 @@ export default function JournalPopPanel({ apiBase, active }) {
               </p>
             </>
           )}
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION B — OBJECTIF 1 % / SEMAINE ─────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Objectif 1 % / Semaine — Buckets de rendement prime"
           badge="Premium / Spot"
           subtitle="Distribution des records par rendement de prime (premium / cours sous-jacent au scan). Cible : 1.00–1.25 %."
+          defaultOpen={false}
+          summaryRight={(() => {
+            const b1 = premiumReturnBuckets.find((b) => b.label.startsWith("1.00"));
+            const best = [...premiumReturnBuckets].sort((a, b) => (b.resolvedCount ?? 0) - (a.resolvedCount ?? 0))[0];
+            return `Meilleur bucket : ${best ? best.label : "N/D"} · Bucket 1% n=${b1?.resolvedCount ?? 0} · ${readiness.verdict}`;
+          })()}
         >
           <p className="mb-4 text-[10px] text-slate-600 italic">
             V2C : verdicts tenant compte de la qualité réelle des victoires (clean/lucky/LB break) — "Core défensif" exige n≥30 + stress faible · 1.25%+ toujours spéculatif.
@@ -2188,34 +2238,58 @@ export default function JournalPopPanel({ apiBase, active }) {
           </p>
 
           <div className="mt-6 space-y-4">
-            <div>
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                Détail des buckets par ticker
-              </h4>
-              <p className="mt-1 text-[11px] text-slate-600">
-                Montre quels tickers composent chaque bucket de rendement et lesquels créent le stress.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setOpenBucketsDetail((v) => !v)}
+              className="flex w-full items-center justify-between gap-3 text-left rounded-xl border border-slate-700/50 bg-slate-800/20 px-4 py-3"
+            >
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Détail des buckets par ticker
+                </h4>
+                <p className="mt-1 text-[11px] text-slate-600">
+                  Montre quels tickers composent chaque bucket de rendement et lesquels créent le stress.
+                </p>
+              </div>
+              <span className="flex-shrink-0 text-[10px] text-slate-500">{openBucketsDetail ? "Masquer ▼" : "Afficher ▶"}</span>
+            </button>
 
-            {bucketTickerBreakdown.map((bucket) => {
+            {openBucketsDetail && bucketTickerBreakdown.map((bucket) => {
               const defaultVisible = 20;
               const visibleLimit = numberOrNull(bucketTickerVisibleCounts?.[bucket.label]) ?? defaultVisible;
               const shownCount = Math.min(visibleLimit, bucket.tickers.length);
               const displayedTickers = bucket.tickers.slice(0, shownCount);
+              const isBucketOpen = openBuckets[bucket.label] ?? false;
+              const totalResolved = bucket.tickers.reduce((sum, t) => sum + (t.resolvedCount ?? 0), 0);
+              const matchingB = premiumReturnBuckets.find((b) => b.label === bucket.label);
+              const bucketVerdict = matchingB
+                ? premiumBucketVerdict(bucket.label, matchingB.count, matchingB.resolvedCount, matchingB.winRate, matchingB.stressStats)
+                : null;
               return (
-                <div key={`bucket-ticker-${bucket.label}`} className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-slate-200">{bucket.label}</p>
-                    <p className="text-[11px] text-slate-500">
-                      {bucket.tickerCount} ticker{bucket.tickerCount !== 1 ? "s" : ""} · {bucket.count} record{bucket.count !== 1 ? "s" : ""}
+                <div key={`bucket-ticker-${bucket.label}`} className="rounded-2xl border border-slate-700/50 bg-slate-800/20">
+                  <button
+                    type="button"
+                    onClick={() => setOpenBuckets((prev) => ({ ...prev, [bucket.label]: !prev[bucket.label] }))}
+                    className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left"
+                  >
+                    <p className="flex-1 text-xs font-semibold text-slate-200">
+                      {bucket.label}
+                      <span className="font-normal text-slate-500">
+                        {" — "}{bucket.tickerCount} ticker{bucket.tickerCount !== 1 ? "s" : ""} · {bucket.count} record{bucket.count !== 1 ? "s" : ""}
+                        {totalResolved > 0 ? ` · ${totalResolved} résolus` : ""}
+                        {!isBucketOpen && bucketVerdict ? ` · ${bucketVerdict.label}` : ""}
+                      </span>
                     </p>
-                  </div>
+                    <span className="flex-shrink-0 text-[10px] text-slate-500 pt-0.5">{isBucketOpen ? "Masquer ▼" : "Afficher ▶"}</span>
+                  </button>
 
-                  <p className="mb-3 text-[11px] text-slate-600">
-                    Affiche {shownCount} / {bucket.tickers.length} tickers — triés par records résolus puis records totaux.
-                  </p>
+                  {isBucketOpen && (
+                    <div className="px-4 pb-4">
+                      <p className="mb-3 text-[11px] text-slate-600">
+                        Affiche {shownCount} / {bucket.tickers.length} tickers — triés par records résolus puis records totaux.
+                      </p>
 
-                  {bucket.tickers.length === 0 ? (
+                      {bucket.tickers.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 px-3 py-2 text-[11px] text-slate-600">
                       Aucun ticker dans ce bucket.
                     </div>
@@ -2310,19 +2384,27 @@ export default function JournalPopPanel({ apiBase, active }) {
                       )}
                     </>
                   )}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION C — SAFE vs AGGRESSIVE ─────────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Capital Combination Risk Overlay"
           badge="V2E"
-          subtitle="Croise les combinaisons de capital avec les resultats reels du Journal POP. Read-only : aucun impact scanner ou SQLite."
+          subtitle="Croise les combinaisons de capital avec les résultats réels du Journal POP. Read-only : aucun impact scanner ou SQLite."
+          defaultOpen={false}
+          summaryRight={
+            capitalCombinationOverlay.hasCapitalData
+              ? `${capitalCombinationOverlay.rows.length} mode${capitalCombinationOverlay.rows.length !== 1 ? "s" : ""} · ${capitalCombinationOverlay.rows[0]?.verdict ?? "voir détail"}`
+              : "Capital data N/D"
+          }
         >
           {capitalCombinationOverlay.hasCapitalData !== true ? (
             <div className="space-y-4">
@@ -2334,7 +2416,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-slate-400">
-                  Les tables ou donnees de combinaisons capital ne sont pas encore exposees dans le payload actuel du Journal POP. V2E est prete cote UI/calcul, mais necessite un branchement read-only futur.
+                  Les tables ou données de combinaisons capital ne sont pas encore exposées dans le payload actuel du Journal POP. V2E est prête côté UI/calcul, mais nécessite un branchement read-only futur.
                 </p>
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   {[
@@ -2354,10 +2436,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                   Ce que V2E mesurera
                 </p>
                 <ul className="mt-3 space-y-2 text-sm text-slate-400">
-                  <li>concentration sur tickers stresses</li>
+                  <li>concentration sur tickers stressés</li>
                   <li>exposition a lucky / lowerBound break</li>
                   <li>exposition a spread eleve</li>
-                  <li>equilibre Safe vs Aggressive</li>
+                  <li>équilibre Safe vs Aggressive</li>
                   <li>robustesse statistique de la combinaison</li>
                 </ul>
               </div>
@@ -2386,11 +2468,11 @@ export default function JournalPopPanel({ apiBase, active }) {
                     const verdictClass =
                       row.verdict === "Conservateur sain"
                         ? "border-emerald-800/50 bg-emerald-900/20 text-emerald-400"
-                        : row.verdict === "Equilibre propre"
+                        : row.verdict === "Équilibre propre"
                         ? "border-sky-800/50 bg-sky-900/20 text-sky-400"
                         : row.verdict === "Agressif sain"
                         ? "border-indigo-800/50 bg-indigo-900/20 text-indigo-400"
-                        : row.verdict === "Agressif stresse" || row.verdict === "A limiter"
+                        : row.verdict === "Agressif stressé" || row.verdict === "À limiter"
                         ? "border-rose-800/50 bg-rose-900/20 text-rose-400"
                         : "border-slate-700 bg-slate-800 text-slate-400";
                     return (
@@ -2442,14 +2524,20 @@ export default function JournalPopPanel({ apiBase, active }) {
               </table>
             </div>
           )}
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Safe vs Aggressive — Comparaison mode strike"
           badge="V2 calibration"
           subtitle="Données issues de la calibration probabilistique V2. Stress metrics disponibles uniquement pour records avec window data."
+          defaultOpen={false}
+          summaryRight={
+            hasProbabilisticCalibrationData
+              ? `Safe n=${safeModeData?.resolvedCount ?? 0} · Agg n=${aggressiveModeData?.resolvedCount ?? 0}`
+              : "Aucun record résolu"
+          }
         >
           {!hasProbabilisticCalibrationData ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
@@ -2653,15 +2741,21 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
             </>
           )}
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION D — TICKER LEADERBOARD ─────────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Ticker Leaderboard — Calibration par actif"
           badge="V2D-B"
           subtitle="Tickers avec au moins 3 records résolus. Split Safe / Aggressive par ticker — prime, touch rate, clean rate et mode recommandé."
+          defaultOpen={false}
+          summaryRight={
+            tickerLeaderboard.length > 0
+              ? `${tickerLeaderboard.length} ticker${tickerLeaderboard.length !== 1 ? "s" : ""} · meilleur : ${tickerLeaderboard[0]?.ticker ?? "voir détail"}`
+              : "Aucun ticker calibré"
+          }
         >
           <p className="mb-4 text-[10px] text-slate-600 italic">
             V2C + V2D-B : stress metrics intégrées · split Safe/Aggressive par ticker · luckyWinRate ≥ 25% / LB break ≥ 25% entraînent downgrade automatique.
@@ -2843,14 +2937,16 @@ export default function JournalPopPanel({ apiBase, active }) {
           <p className="mt-3 text-[11px] text-slate-600">
             V2D-B : le leaderboard sépare maintenant Safe et Aggressive par ticker. La prime moyenne globale ne suffit pas à recommander un mode.
           </p>
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Prime Quality — Spread, liquidité et risque événementiel"
           badge="V2D-C"
           subtitle="V2D-C : vérifie si les primes observées sont réellement tradables. N/D si les champs ne sont pas encore capturés."
+          defaultOpen={false}
+          summaryRight={`Spread moy. ${primeQualityStats.avgSpreadPct != null ? primeQualityStats.avgSpreadPct.toFixed(1) + "%" : "N/D"} · ${primeQualityStats.qualityVerdict}`}
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <ProKpi
@@ -2892,15 +2988,17 @@ export default function JournalPopPanel({ apiBase, active }) {
               sub={primeQualityStats.staleQuoteRate != null ? "Stale quote sur records couverts" : "N/D"}
             />
           </div>
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION E — DATA CONFIDENCE ─────────────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Confiance statistique — État de la calibration"
           badge="Read-only"
           subtitle="Évaluation de la fiabilité des résultats actuels."
+          defaultOpen={false}
+          summaryRight={`Sample résolu n=${stats.resolvedCount} · ${confidenceLevel(stats.resolvedCount).label} · Non résolu n=${stats.unresolvedCount}`}
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
@@ -2933,15 +3031,17 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
             ))}
           </div>
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION F — MÉTRIQUES V2 PRÉPARÉES ─────────────────────────────── */}
       {hasLoaded && (
-        <ProSection
+        <CollapsibleSection
           title="Métriques avancées — Préparées pour V2"
           badge="Prochaine phase"
           subtitle="Placeholders visuels. Aucune donnée inventée — tracking requis pour activation."
+          defaultOpen={false}
+          summaryRight="6 métriques préparées · tracking requis · N/D"
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[
@@ -2962,7 +3062,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
             ))}
           </div>
-        </ProSection>
+        </CollapsibleSection>
       )}
 
       {/* ── SECTION G — DÉTAILS AVANCÉS (preserved, togglable) ─────────────── */}
@@ -2981,7 +3081,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                 Cohorts d'expiration · POP buckets · DTE stress · FTQS · Tickers calibrés · Secteurs · Tables raw
               </p>
             </div>
-            <span className="ml-4 text-slate-500 text-lg">{showRawSections ? "↑" : "↓"}</span>
+            <span className="ml-4 text-[10px] text-slate-500">{showRawSections ? "Masquer ▼" : "Afficher ▶"}</span>
           </button>
 
           {showRawSections && (
@@ -3322,8 +3422,184 @@ export default function JournalPopPanel({ apiBase, active }) {
       {/* ── Raw journal tables ──────────────────────────────────────────────── */}
       {hasLoaded && (
         <>
-          <DarkJournalTable title="À résoudre" rows={unresolvedRecords} />
-          <DarkJournalTable title="Résolus" rows={resolvedRecords} showOutcomeV2 />
+          <CollapsibleSection
+            title="À résoudre"
+            defaultOpen={false}
+            summaryRight={(() => {
+              const uniqueTickers = new Set(unresolvedRecords.map((r) => r?.symbol).filter(Boolean));
+              const expirations = unresolvedRecords.map((r) => r?.expiration).filter(Boolean).sort();
+              const parts = [
+                `${unresolvedRecords.length} record${unresolvedRecords.length !== 1 ? "s" : ""}`,
+                uniqueTickers.size > 0 ? `${uniqueTickers.size} ticker${uniqueTickers.size !== 1 ? "s" : ""}` : null,
+                expirations.length > 0 ? `prochaine exp. ${formatCompactExpiration(expirations[0])}` : null,
+              ].filter(Boolean).join(" · ");
+              return unresolvedRecords.length === 0 ? "Aucun record en attente" : parts;
+            })()}
+          >
+            <p className="mb-4 text-[11px] text-slate-600">{unresolvedRecords.length} record{unresolvedRecords.length !== 1 ? "s" : ""}</p>
+            {unresolvedRecords.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-8 text-sm text-slate-600">
+                Aucun record.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3 font-semibold">Date scan</th>
+                      <th className="px-3 py-3 font-semibold">Classe</th>
+                      <th className="px-3 py-3 font-semibold">Ticker</th>
+                      <th className="px-3 py-3 font-semibold">Expiration</th>
+                      <th className="px-3 py-3 font-semibold">DTE</th>
+                      <th className="px-3 py-3 font-semibold">Rang</th>
+                      <th className="px-3 py-3 font-semibold">Source</th>
+                      <th className="px-3 py-3 font-semibold">Mode</th>
+                      <th className="px-3 py-3 font-semibold">Strike</th>
+                      <th className="px-3 py-3 font-semibold">Premium</th>
+                      <th className="px-3 py-3 font-semibold">POP est.</th>
+                      <th className="px-3 py-3 font-semibold">EliteScore</th>
+                      <th className="px-3 py-3 font-semibold">Badge</th>
+                      <th className="px-3 py-3 font-semibold">Résultat</th>
+                      <th className="px-3 py-3 font-semibold">Statut</th>
+                      <th className="px-3 py-3 font-semibold">P/L</th>
+                      <th className="px-3 py-3 font-semibold">Return %</th>
+                      <th className="px-3 py-3 font-semibold">Résolu le</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {unresolvedRecords.map((record) => {
+                      const pl = numberOrNull(record?.resolution?.realizedPl);
+                      return (
+                        <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
+                          <td className="px-3 py-2.5"><CaptureClassBadgeDark value={record?.captureClass} /></td>
+                          <td className="px-3 py-2.5 font-bold text-slate-100">{record?.symbol || "—"}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
+                          <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
+                          <td className="px-3 py-2.5">
+                            <span className={record?.strikeMode === "safe" ? "font-semibold text-emerald-400" : record?.strikeMode === "aggressive" ? "font-semibold text-rose-400" : "text-slate-500"}>
+                              {record?.strikeMode || "—"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{numberOrNull(record?.strike?.strike) ?? "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums text-sky-400">{formatMoney(record?.strike?.premium)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatPop(record?.strike?.popEstimate)}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.scores?.eliteScore) != null ? Number(record.scores.eliteScore).toFixed(1) : "—"}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{record?.scores?.eliteBadge || "—"}</td>
+                          <td className="px-3 py-2.5">{getResolutionLabel(record)}</td>
+                          <td className="px-3 py-2.5">{formatResultStatus(record?.resolution?.resultStatus)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">
+                            {pl == null ? "—" : <span className={pl >= 0 ? "text-emerald-400" : "text-rose-400"}>{formatMoney(pl)}</span>}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatPercent(record?.resolution?.realizedReturnPct, 2)}</td>
+                          <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.resolution?.resolvedAt)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CollapsibleSection>
+          <CollapsibleSection
+            title="Résolus"
+            defaultOpen={false}
+            summaryRight={(() => {
+              const uniqueTickers = new Set(resolvedRecords.map((r) => r?.symbol).filter(Boolean));
+              const plVals = resolvedRecords.map((r) => numberOrNull(r?.resolution?.realizedPl)).filter((v) => v != null);
+              const totalPl = plVals.length > 0 ? plVals.reduce((s, v) => s + v, 0) : null;
+              const parts = [
+                `${resolvedRecords.length} record${resolvedRecords.length !== 1 ? "s" : ""}`,
+                uniqueTickers.size > 0 ? `${uniqueTickers.size} ticker${uniqueTickers.size !== 1 ? "s" : ""}` : null,
+                stats.winRate != null ? `Win rate ${stats.winRate.toFixed(1)}%` : null,
+                totalPl != null ? `P/L total ${formatMoney(totalPl)}` : null,
+              ].filter(Boolean).join(" · ");
+              return resolvedRecords.length === 0 ? "Aucun record résolu" : parts;
+            })()}
+          >
+            <p className="mb-4 text-[11px] text-slate-600">{resolvedRecords.length} record{resolvedRecords.length !== 1 ? "s" : ""}</p>
+            {resolvedRecords.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-8 text-sm text-slate-600">
+                Aucun record.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3 font-semibold">Date scan</th>
+                      <th className="px-3 py-3 font-semibold">Classe</th>
+                      <th className="px-3 py-3 font-semibold">Ticker</th>
+                      <th className="px-3 py-3 font-semibold">Expiration</th>
+                      <th className="px-3 py-3 font-semibold">DTE</th>
+                      <th className="px-3 py-3 font-semibold">Rang</th>
+                      <th className="px-3 py-3 font-semibold">Source</th>
+                      <th className="px-3 py-3 font-semibold">Mode</th>
+                      <th className="px-3 py-3 font-semibold">Strike</th>
+                      <th className="px-3 py-3 font-semibold">Premium</th>
+                      <th className="px-3 py-3 font-semibold">POP est.</th>
+                      <th className="px-3 py-3 font-semibold">EliteScore</th>
+                      <th className="px-3 py-3 font-semibold">Badge</th>
+                      <th className="px-3 py-3 font-semibold">Résultat</th>
+                      <th className="px-3 py-3 font-semibold">Statut</th>
+                      <th className="px-3 py-3 font-semibold">P/L</th>
+                      <th className="px-3 py-3 font-semibold">Return %</th>
+                      <th className="px-3 py-3 font-semibold">Résolu le</th>
+                      <th className="px-3 py-3 font-semibold">Strike touché</th>
+                      <th className="px-3 py-3 font-semibold">Min prix</th>
+                      <th className="px-3 py-3 font-semibold">Max ITM</th>
+                      <th className="px-3 py-3 font-semibold">LB cassé</th>
+                      <th className="px-3 py-3 font-semibold">Drawdown %</th>
+                      <th className="px-3 py-3 font-semibold">Support cassé</th>
+                      <th className="px-3 py-3 font-semibold">Dist. LB</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {resolvedRecords.map((record) => {
+                      const pl = numberOrNull(record?.resolution?.realizedPl);
+                      return (
+                        <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
+                          <td className="px-3 py-2.5"><CaptureClassBadgeDark value={record?.captureClass} /></td>
+                          <td className="px-3 py-2.5 font-bold text-slate-100">{record?.symbol || "—"}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
+                          <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
+                          <td className="px-3 py-2.5">
+                            <span className={record?.strikeMode === "safe" ? "font-semibold text-emerald-400" : record?.strikeMode === "aggressive" ? "font-semibold text-rose-400" : "text-slate-500"}>
+                              {record?.strikeMode || "—"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{numberOrNull(record?.strike?.strike) ?? "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums text-sky-400">{formatMoney(record?.strike?.premium)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatPop(record?.strike?.popEstimate)}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.scores?.eliteScore) != null ? Number(record.scores.eliteScore).toFixed(1) : "—"}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{record?.scores?.eliteBadge || "—"}</td>
+                          <td className="px-3 py-2.5">{getResolutionLabel(record)}</td>
+                          <td className="px-3 py-2.5">{formatResultStatus(record?.resolution?.resultStatus)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">
+                            {pl == null ? "—" : <span className={pl >= 0 ? "text-emerald-400" : "text-rose-400"}>{formatMoney(pl)}</span>}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatPercent(record?.resolution?.realizedReturnPct, 2)}</td>
+                          <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.resolution?.resolvedAt)}</td>
+                          <td className="px-3 py-2.5">{formatYesNo(record?.resolution?.strikeTouched)}</td>
+                          <td className="px-3 py-2.5">{formatMoney(record?.resolution?.minPriceBetweenScanAndExpiration)}</td>
+                          <td className="px-3 py-2.5">{formatMoney(record?.resolution?.maxItmDepth)}</td>
+                          <td className="px-3 py-2.5">{formatYesNo(record?.resolution?.brokeLowerBound)}</td>
+                          <td className="px-3 py-2.5">{formatPercent(record?.resolution?.drawdownPct)}</td>
+                          <td className="px-3 py-2.5">{formatYesNo(record?.resolution?.supportBreak)}</td>
+                          <td className="px-3 py-2.5">{formatMoney(record?.resolution?.lowerBoundDistance)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CollapsibleSection>
         </>
       )}
     </div>

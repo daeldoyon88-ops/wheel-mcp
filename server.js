@@ -664,7 +664,7 @@ function runIbkrShadowWheelBatch(body = {}) {
   const perTickerTimeoutMs = Math.max(1000, toPositiveInt(body.perTickerTimeoutMs, 7000));
   const requestedTimeoutMs = toPositiveInt(body.batchTimeoutMs, 0);
   const debug = body.debug === true;
-  const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "0" ? false : true;
+  const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "1";
 
   const pythonExe = pickIbkrShadowPython();
   const scriptPath = path.join(process.cwd(), "python_ibkr", "test_ibkr_async_wheel_safe_aggressive_batch.py");
@@ -1470,7 +1470,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const batchTimeoutMs = Math.min(300_000, 30_000 + tickers.length * 12_000);
     const startedAt = Date.now();
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
-    const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "0" ? false : true;
+    const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "1";
     const devMode = getWheelDevScanMode();
     const devScanEnabled = devMode.devScanEnabled;
 
@@ -1610,12 +1610,32 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       enrichedIbkrCallMetrics?.totals?.totalApproxIbkrCalls ?? 0
     );
     const serverDurationMs = Date.now() - startedAt;
+    const ibkrDurationMs = numberOrNull(payload?.durationMs);
     const ibkrPerfSummary = buildIbkrPerformanceSummary(
       rows,
-      numberOrNull(payload?.durationMs),
+      ibkrDurationMs,
       serverDurationMs,
       10
     );
+    const _totals = enrichedIbkrCallMetrics?.totals ?? {};
+    const _qualifyCalls =
+      (Number(_totals.totalOptionQualifyCalls) || 0) +
+      (Number(_totals.totalStockQualifyCalls) || 0);
+    const scanTiming = {
+      totalSeconds: +(serverDurationMs / 1000).toFixed(1),
+      ibkrSeconds: ibkrDurationMs != null ? +(ibkrDurationMs / 1000).toFixed(1) : null,
+      avgIbkrPerTicker: ibkrPerfSummary?.avgDurationMs != null
+        ? +(ibkrPerfSummary.avgDurationMs / 1000).toFixed(1)
+        : null,
+      ibkrMode: responseTwoPhaseEnabled ? "TWO_PHASE" : "NORMAL",
+      tickerCount: tickers.length,
+      keptCount: shortlist.length,
+      rejectedCount: rejected.length,
+      timeoutCount: ibkrPerfSummary?.timeoutCount ?? 0,
+      ibkrTotalCalls: Number(_totals.totalApproxIbkrCalls) || null,
+      ibkrOptionMarketDataRequests: Number(_totals.totalOptionMarketDataRequests) || null,
+      ibkrQualifyCalls: _qualifyCalls || null,
+    };
 
     res.json({
       ok: true,
@@ -1641,7 +1661,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       kept: shortlist.length,
       returned: Math.min(topN, shortlist.length),
       durationMs: serverDurationMs,
-      ibkrDurationMs: numberOrNull(payload?.durationMs),
+      ibkrDurationMs,
       batchTimeoutMs,
       shortlist: shortlist.slice(0, topN),
       rejected,
@@ -1652,6 +1672,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       ibkr: {
         twoPhaseEnabled: responseTwoPhaseEnabled,
       },
+      scanTiming,
       ibkrPerfSummary,
       ibkrCallMetrics: enrichedIbkrCallMetrics,
     });
@@ -1984,11 +2005,23 @@ app.post("/tools/analyze_trade_setup", async (req, res) => {
 });
 
 app.post("/scan_shortlist", async (req, res) => {
+  const yahooStartMs = Date.now();
   try {
     const { expiration, tickers = [], topN = 20, sort = "yield" } = req.body ?? {};
     const { status, payload } = await wheelScanner.scanShortlist({ expiration, tickers, topN, sort });
+    const yahooMs = Date.now() - yahooStartMs;
     scanMetricsState.lastRefreshAt = new Date().toISOString();
-    res.status(status).json(payload);
+    const enriched = payload && typeof payload === "object"
+      ? {
+          ...payload,
+          scanTiming: {
+            yahooSeconds: +(yahooMs / 1000).toFixed(1),
+            yahooMs,
+            tickerCount: Array.isArray(tickers) ? tickers.length : 0,
+          },
+        }
+      : payload;
+    res.status(status).json(enriched);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "scan_shortlist failed" });
   }

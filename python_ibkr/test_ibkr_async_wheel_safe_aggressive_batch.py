@@ -368,15 +368,20 @@ def main() -> int:
         dev_incomplete = sum(
             1 for row in results if isinstance(row, dict) and row.get("devIncompleteMarketData") is True
         )
+        total_dur_ms = round((time.monotonic() - started) * 1000)
+        tickers_observed = max(1, ibkr_totals["totalTickersObserved"])
+        avg_ticker_ms = round(ibkr_totals["totalDurationMs"] / tickers_observed) if ibkr_totals["totalTickersObserved"] > 0 else None
         _emit_payload = {
             **base,
             "ok": True,
             "connected": True,
             "twoPhaseEnabled": two_phase_enabled,
+            "ibkrMode": "TWO_PHASE" if two_phase_enabled else "NORMAL",
             "symbols": symbols,
             "total": len(symbols),
             "completed": len(results),
-            "durationMs": round((time.monotonic() - started) * 1000),
+            "durationMs": total_dur_ms,
+            "avgTickerDurationMs": avg_ticker_ms,
             "perTickerTimeoutMs": per_ticker_timeout_ms,
             "ibkrCallMetrics": {
                 "totals": ibkr_totals,

@@ -4496,6 +4496,17 @@ function mergeIbkrProgressPayloads({
   const warnings = [];
   const seenKept = new Set();
 
+  // Timing accumulators across all sub-batch payloads
+  let aggTotalMs = 0;
+  let aggIbkrMs = 0;
+  let aggIbkrCalls = 0;
+  let aggOptionMd = 0;
+  let aggQualify = 0;
+  let aggTimeouts = 0;
+  let aggTickerCount = 0;
+  let aggIbkrMode = null;
+  let hasTiming = false;
+
   for (const payload of payloads) {
     for (const item of Array.isArray(payload?.shortlist) ? payload.shortlist : []) {
       const symbol = String(item?.symbol || "").trim().toUpperCase();
@@ -4507,7 +4518,37 @@ function mergeIbkrProgressPayloads({
     errors.push(...(Array.isArray(payload?.errors) ? payload.errors : []));
     shortlistDev.push(...(Array.isArray(payload?.shortlistDev) ? payload.shortlistDev : []));
     warnings.push(...(Array.isArray(payload?.warnings) ? payload.warnings : []));
+
+    const st = payload?.scanTiming;
+    if (st && typeof st === "object") {
+      hasTiming = true;
+      aggTotalMs += (Number(st.totalSeconds) || 0) * 1000;
+      aggIbkrMs += (Number(st.ibkrSeconds) || 0) * 1000;
+      aggIbkrCalls += Number(st.ibkrTotalCalls) || 0;
+      aggOptionMd += Number(st.ibkrOptionMarketDataRequests) || 0;
+      aggQualify += Number(st.ibkrQualifyCalls) || 0;
+      aggTimeouts += Number(st.timeoutCount) || 0;
+      aggTickerCount += Number(st.tickerCount) || 0;
+      if (!aggIbkrMode && st.ibkrMode) aggIbkrMode = st.ibkrMode;
+    }
   }
+
+  const mergedScanTiming = hasTiming
+    ? {
+        totalSeconds: +(aggTotalMs / 1000).toFixed(1),
+        ibkrSeconds: +(aggIbkrMs / 1000).toFixed(1),
+        avgIbkrPerTicker:
+          aggTickerCount > 0 ? +(aggIbkrMs / aggTickerCount / 1000).toFixed(1) : null,
+        ibkrMode: aggIbkrMode,
+        tickerCount: aggTickerCount,
+        keptCount: shortlist.length,
+        rejectedCount: rejected.length,
+        timeoutCount: aggTimeouts,
+        ibkrTotalCalls: aggIbkrCalls || null,
+        ibkrOptionMarketDataRequests: aggOptionMd || null,
+        ibkrQualifyCalls: aggQualify || null,
+      }
+    : null;
 
   return {
     ok: true,
@@ -4527,6 +4568,9 @@ function mergeIbkrProgressPayloads({
     testedSymbols,
     rejectedReplaced: Math.max(0, testedSymbols.length - shortlist.length),
     nonTestedCandidates: Math.max(0, poolSize - testedSymbols.length),
+    scanTiming: mergedScanTiming,
+    durationMs: hasTiming ? Math.round(aggTotalMs) : null,
+    ibkrDurationMs: hasTiming ? Math.round(aggIbkrMs) : null,
   };
 }
 
@@ -4830,6 +4874,70 @@ function IbkrShadowCard({
   );
 }
 
+function ScanDiagBlock({ ibkrResult, yahooScanTiming }) {
+  const st = ibkrResult?.scanTiming;
+  const ibkrMode = st?.ibkrMode ?? null;
+  // Goal metrics — canonical names used in display labels
+  const totalScanDurationSeconds = st?.totalSeconds ?? null;
+  const ibkrPhaseDurationSeconds = st?.ibkrSeconds ?? null;
+  const avgIbkrDurationPerTicker = st?.avgIbkrPerTicker ?? null;
+  const ibkrApproxCalls = st?.ibkrTotalCalls ?? null;
+  const ibkrOptionMarketDataCalls = st?.ibkrOptionMarketDataRequests ?? null;
+  const ibkrQualifyCalls = st?.ibkrQualifyCalls ?? null;
+  const ibkrTimeoutCount = st?.timeoutCount ?? null;
+  const yahooSec = yahooScanTiming?.yahooSeconds ?? null;
+  const keptCount = st?.keptCount ?? ibkrResult?.kept ?? null;
+  const rejectedCount = st?.rejectedCount ?? (Array.isArray(ibkrResult?.rejected) ? ibkrResult.rejected.length : null);
+
+  const hasAny = ibkrResult?.ok === true || yahooSec != null;
+  if (!hasAny) return null;
+
+  const row = (label, value, color = "text-slate-200") => (
+    <div className="flex items-baseline justify-between gap-2 border-b border-slate-700/40 py-[3px] last:border-0">
+      <span className="text-slate-400">{label}</span>
+      <span className={`font-mono font-semibold ${color}`}>{value ?? "—"}</span>
+    </div>
+  );
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-xs leading-5">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          Diagnostic Scan
+        </span>
+        {ibkrMode && (
+          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+            ibkrMode === "TWO_PHASE"
+              ? "bg-indigo-900 text-indigo-300"
+              : "bg-emerald-900 text-emerald-300"
+          }`}>
+            {ibkrMode}
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-x-6">
+        <div>
+          {row("YAHOO PHASE", yahooSec != null ? `${yahooSec}s` : "—", "text-sky-300")}
+          {row("IBKR PHASE", ibkrPhaseDurationSeconds != null ? `${ibkrPhaseDurationSeconds}s` : "—", "text-sky-300")}
+          {row("SCAN TOTAL", totalScanDurationSeconds != null ? `${totalScanDurationSeconds}s` : "—", "text-emerald-300")}
+          {row("AVG / TICKER", avgIbkrDurationPerTicker != null ? `${avgIbkrDurationPerTicker}s` : "—")}
+          {row("RETENUS / REJETÉS", keptCount != null && rejectedCount != null ? `${keptCount} / ${rejectedCount}` : "—")}
+        </div>
+        <div>
+          {row("APPROX CALLS", ibkrApproxCalls != null ? String(ibkrApproxCalls) : "—")}
+          {row("MKT DATA OPTS", ibkrOptionMarketDataCalls != null ? String(ibkrOptionMarketDataCalls) : "—")}
+          {row("QUALIFY CALLS", ibkrQualifyCalls != null ? String(ibkrQualifyCalls) : "—")}
+          {row(
+            "TIMEOUTS",
+            ibkrTimeoutCount != null ? String(ibkrTimeoutCount) : "—",
+            ibkrTimeoutCount > 0 ? "text-rose-400" : "text-slate-200"
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function IbkrDirectScanPanel({
   clientIdStart,
   setClientIdStart,
@@ -4843,6 +4951,7 @@ function IbkrDirectScanPanel({
   error,
   result,
   sentTickers,
+  yahooScanTiming,
   onRun,
   onRunTest,
 }) {
@@ -5049,6 +5158,8 @@ function IbkrDirectScanPanel({
                 />
               )}
             </div>
+
+            <ScanDiagBlock ibkrResult={result} yahooScanTiming={yahooScanTiming} />
 
             {perfSummary && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
@@ -5909,6 +6020,7 @@ export default function Dashboard() {
   const [ibkrDirectError, setIbkrDirectError] = useState("");
   const [ibkrDirectResult, setIbkrDirectResult] = useState(null);
   const [ibkrDirectSentTickers, setIbkrDirectSentTickers] = useState([]);
+  const [yahooScanTiming, setYahooScanTiming] = useState(null);
   const [autoIbkrDirectScan, setAutoIbkrDirectScan] = useState(true);
   const [ibkrAutoMaxTickers, setIbkrAutoMaxTickers] = useState(() =>
     readStoredNumber("wheel.ibkrAuditDepth", 20)
@@ -6980,6 +7092,9 @@ export default function Dashboard() {
         returned: payload.returned ?? mapped.length,
       });
       setYahooReturnedCandidates(mapped);
+      if (payload?.scanTiming && typeof payload.scanTiming === "object") {
+        setYahooScanTiming(payload.scanTiming);
+      }
       const nextYahooDiagnostics = buildYahooDiagnosticsFromScanPayload(payload, {
         scanned: payload.scanned ?? tickers.length,
         kept: payload.kept ?? mapped.length,
@@ -8320,6 +8435,7 @@ export default function Dashboard() {
           error={ibkrDirectError}
           result={ibkrDirectResult}
           sentTickers={ibkrDirectSentTickers.length ? ibkrDirectSentTickers : ibkrDirectTickersForSend}
+          yahooScanTiming={yahooScanTiming}
           onRun={handleIbkrDirectScan}
           onRunTest={handleIbkrDirectTestScan}
         />

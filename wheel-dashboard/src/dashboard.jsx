@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
+import { getTickerDisplayMeta, QUALITY_TIER_STYLE } from "./tickerMeta.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -3597,6 +3598,15 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
   const ibkrSpreadClass = classifySpreadPctPercent(item.ibkrSpreadPct);
   const hasIbkrSpread = normalizedIbkrSpreadPctPercent(item.ibkrSpreadPct) != null;
   const ibkrActionability = getIbkrActionabilityStatus(item);
+  const tickerMeta = getTickerDisplayMeta(item.ticker);
+  const tierStyle = QUALITY_TIER_STYLE[tickerMeta.qualityTier] ?? QUALITY_TIER_STYLE["Inconnu à valider"];
+  const resolvedName =
+    tickerMeta.name ??
+    item.companyName ??
+    item.longName ??
+    item.shortName ??
+    (item.name !== item.ticker ? item.name : null) ??
+    null;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -3606,10 +3616,33 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
             <div className="space-y-0.5">
               {/* Ligne 1 : Ticker gauche | badges centre | bouton droite */}
               <div className="flex items-center gap-2">
-                <h3 className="shrink-0 text-base font-semibold tracking-tight leading-tight text-white">
-                  {item.ticker} <span className="font-normal text-slate-400">— {item.name}</span>
-                </h3>
+                <div className="min-w-0 flex-shrink">
+                  <h3 className="flex items-baseline gap-1 text-base font-semibold tracking-tight leading-tight text-white min-w-0">
+                    <span className="shrink-0">
+                      {item.ticker}
+                      {tickerMeta.isFavorite && (
+                        <span className="ml-1.5 text-amber-400 text-sm" title="Favori">&#9733;</span>
+                      )}
+                    </span>
+                    <span className="font-normal text-slate-300 truncate min-w-0">
+                      {resolvedName ?? <span className="text-slate-500 italic">Nom indisponible</span>}
+                    </span>
+                  </h3>
+                  {/* Ligne méta : type · secteur */}
+                  <p className="text-[11px] leading-tight text-slate-500 mt-0.5 truncate">
+                    {tickerMeta.type && <span className="text-slate-400">{tickerMeta.type}</span>}
+                    {tickerMeta.type && tickerMeta.sector && <span className="mx-1 text-slate-600">·</span>}
+                    {tickerMeta.sector && <span>{tickerMeta.sector}</span>}
+                    {!tickerMeta.type && !tickerMeta.sector && (
+                      <span className="italic">secteur non renseigné</span>
+                    )}
+                  </p>
+                </div>
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                  {/* Badge qualité ticker */}
+                  <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-[11px] font-medium", tierStyle.badge)}>
+                    {tickerMeta.qualityTier}
+                  </Badge>
                   <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-2 py-0.5 text-xs text-slate-100">
                     Choix #{shownRank}
                   </Badge>
@@ -5463,24 +5496,27 @@ function DetailModal({ item, onClose }) {
       expiration: item.targetExpiration ?? null,
     }).earningsWarning;
   const quote = liveData?.quote ?? {};
+  const detailMeta = getTickerDisplayMeta(item?.ticker);
   const companyName =
     item?.companyName ??
     item?.longName ??
     item?.shortName ??
     quote?.longName ??
     quote?.shortName ??
+    detailMeta.name ??
     item?.name ??
     item?.ticker;
   const sector =
     item?.sector ??
     item?.profile?.sector ??
     quote?.sector ??
+    detailMeta.sector ??
     "non disponible";
   const industry =
     item?.industry ??
     item?.profile?.industry ??
     quote?.industry ??
-    "non disponible";
+    (detailMeta.type ?? "non disponible");
   const businessSummary =
     item?.businessSummary ??
     item?.longBusinessSummary ??

@@ -460,6 +460,242 @@ function getFinalDisplayRecommendation(item) {
   };
 }
 
+function getFinalSelectedLeg(candidate) {
+  const finalDisplayMode = String(candidate?.finalDisplayMode || "").trim().toUpperCase();
+  const finalDisplayGrade = String(candidate?.finalDisplayGrade || "").trim().toUpperCase();
+  const fallbackRecommendation =
+    finalDisplayMode && finalDisplayGrade
+      ? null
+      : getFinalDisplayRecommendation(candidate);
+  const resolvedMode = finalDisplayMode || fallbackRecommendation?.finalDisplayMode || "";
+  const resolvedGrade = finalDisplayGrade || fallbackRecommendation?.finalDisplayGrade || "";
+  if (resolvedGrade === "REJECT") return null;
+  if (resolvedMode === "SAFE") return candidate?.safeStrike ?? null;
+  if (resolvedMode === "AGGRESSIVE") return candidate?.aggressiveStrike ?? null;
+  return null;
+}
+
+function getLegPremiumValue(leg) {
+  const premium = Number(
+    leg?.bid ??
+      leg?.premiumUsed ??
+      leg?.mid ??
+      leg?.premium ??
+      leg?.primeUsed
+  );
+  return Number.isFinite(premium) && premium > 0 ? premium : null;
+}
+
+function getLegSpreadPct(leg) {
+  return normalizedIbkrSpreadPctPercent(leg?.liquidity?.spreadPct ?? leg?.spreadPct);
+}
+
+function getLegYieldPct(leg, candidate) {
+  const directYield = Number(leg?.weeklyYield ?? leg?.periodYield ?? NaN);
+  if (Number.isFinite(directYield) && directYield > 0) return directYield;
+  const strike = Number(leg?.strike ?? NaN);
+  const premium = getLegPremiumValue(leg);
+  if (Number.isFinite(strike) && strike > 0 && Number.isFinite(premium) && premium > 0) {
+    return (premium / strike) * 100;
+  }
+  const fallbackYield = Number(candidate?.weeklyReturn ?? NaN);
+  return Number.isFinite(fallbackYield) && fallbackYield > 0 ? fallbackYield : null;
+}
+
+function getLegDistancePct(leg) {
+  const distance = Number(leg?.distancePct ?? NaN);
+  return Number.isFinite(distance) ? distance : null;
+}
+
+function getLegPopPct(leg) {
+  const rawPop = Number(leg?.popProfitEstimated ?? leg?.popEstimate ?? NaN);
+  if (!Number.isFinite(rawPop)) return null;
+  return rawPop <= 1 ? rawPop * 100 : rawPop;
+}
+
+function clamp01(value) {
+  if (!Number.isFinite(Number(value))) return 0;
+  return Math.max(0, Math.min(1, Number(value)));
+}
+
+function normalizeScoreUnit(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  if (numeric >= 0 && numeric <= 1) return numeric;
+  return clamp01(numeric / 100);
+}
+
+function getCapitalComboTierScore(meta) {
+  const tier = String(meta?.qualityTier || "").trim();
+  if (tier === "Core Quality") return 1;
+  if (tier === "Cyclique") return 0.82;
+  if (tier === "Spéculatif favori") return 0.62;
+  if (tier === "Thématique risqué") return 0.45;
+  if (tier === "Inconnu à valider") return 0.2;
+  if (tier === "Crypto bloqué") return 0;
+  return 0.5;
+}
+
+function normalizeComboYieldScore(yieldPct, mode) {
+  const value = Number(yieldPct);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const min = Number(mode?.minWeeklyYield ?? 0);
+  const max = Number(mode?.maxWeeklyYield ?? NaN);
+  const hardCap = Number(mode?.yieldHardCap ?? NaN);
+
+  if (Number.isFinite(max) && max > min) {
+    if (value < min) return clamp01((value / min) * 0.55);
+    if (value <= max) return 0.7 + 0.3 * clamp01((value - min) / (max - min));
+    const ceiling = Number.isFinite(hardCap) && hardCap > max ? hardCap : max + (max - min);
+    const decay = clamp01((value - max) / Math.max(ceiling - max, 0.01));
+    return Math.max(0.2, 1 - 0.6 * decay);
+  }
+
+  if (value < min) return clamp01((value / min) * 0.65);
+  const softBand = Number.isFinite(hardCap) && hardCap > min ? hardCap - min : Math.max(min * 0.8, 0.5);
+  const climb = clamp01((value - min) / Math.max(softBand, 0.01));
+  const overshoot = Number.isFinite(hardCap) && value > hardCap
+    ? clamp01((value - hardCap) / Math.max(hardCap, 0.5))
+    : 0;
+  return Math.max(0.25, Math.min(1, 0.72 + 0.28 * climb - 0.35 * overshoot));
+}
+
+function normalizeComboDistanceScore(distancePct, mode) {
+  const value = Number(distancePct);
+  if (!Number.isFinite(value)) return 0.35;
+  const safeDistance = Math.abs(Math.min(value, 0));
+  const target = Number(mode?.distanceTargetAbs ?? 6);
+  return clamp01(safeDistance / Math.max(target, 0.1));
+}
+
+function normalizeComboSpreadScore(spreadPct, mode) {
+  const value = Number(spreadPct);
+  const max = Number(mode?.maxSpreadPct ?? NaN);
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return 0;
+  return clamp01((max - value) / max);
+}
+
+function buildCapitalComboPoolStats(candidates) {
+  const sectorCounts = new Map();
+  const themeCounts = new Map();
+  for (const candidate of candidates || []) {
+    const sector = String(candidate?._tickerMeta?.sector || "unknown").trim().toLowerCase();
+    const theme = String(candidate?._qualityOverlay?.concentrationTheme || "none").trim().toLowerCase();
+    sectorCounts.set(sector, (sectorCounts.get(sector) ?? 0) + 1);
+    themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
+  }
+  return { sectorCounts, themeCounts };
+}
+
+function buildCapitalComboScoreBreakdown(candidate, mode, usableCapital, poolStats) {
+  const overlay = candidate?._qualityOverlay ?? {};
+  const meta = candidate?._tickerMeta ?? {};
+  const sectorKey = String(meta?.sector || "unknown").trim().toLowerCase();
+  const themeKey = String(overlay?.concentrationTheme || "none").trim().toLowerCase();
+  const sectorCount = poolStats?.sectorCounts?.get(sectorKey) ?? 1;
+  const themeCount = poolStats?.themeCounts?.get(themeKey) ?? 1;
+  const qualityKnownBonus = meta?.name ? 1 : 0;
+  const sectorKnownBonus = meta?.sector ? 1 : 0;
+
+  const gradeNorm = candidate.finalDisplayGrade === "A" ? 1 : candidate.finalDisplayGrade === "B" ? 0.72 : 0;
+  const yieldNorm = normalizeComboYieldScore(candidate.selectedYieldPct, mode);
+  const spreadNorm = normalizeComboSpreadScore(candidate.selectedSpreadPct, mode);
+  const distanceNorm = normalizeComboDistanceScore(candidate.selectedDistancePct, mode);
+  const qualityNorm = clamp01(
+    0.35 * (overlay?.qualityScore ?? 0.5) +
+    0.2 * normalizeScoreUnit(candidate.proFinalScore) +
+    0.15 * normalizeScoreUnit(candidate.proExecutionScore) +
+    0.1 * normalizeScoreUnit(candidate.proDistanceScore) +
+    0.1 * getCapitalComboTierScore(meta) +
+    0.05 * qualityKnownBonus +
+    0.05 * sectorKnownBonus
+  );
+  const riskPenaltyNorm = clamp01(
+    (overlay?.speculativePenalty ?? 0) +
+    (overlay?.premiumTrapPenalty ?? 0) +
+    (overlay?.earningsPenalty ?? 0) +
+    (overlay?.liquidityPenalty ?? 0)
+  );
+  const capitalFitNorm =
+    usableCapital > 0 && candidate.capitalPerContract > 0
+      ? clamp01(1 - candidate.capitalPerContract / usableCapital)
+      : 0;
+  const diversificationPenaltyNorm = clamp01(
+    0.55 * clamp01(Math.max(themeCount - 1, 0) / 3) +
+    0.45 * clamp01(Math.max(sectorCount - 1, 0) / 5)
+  );
+
+  const weighted = {
+    grade: mode.weights.grade * gradeNorm,
+    yield: mode.weights.yield * yieldNorm,
+    spread: mode.weights.spread * spreadNorm,
+    distance: mode.weights.distance * distanceNorm,
+    quality: mode.weights.quality * qualityNorm,
+    riskPenalty: mode.weights.riskPenalty * riskPenaltyNorm,
+    capitalFit: mode.weights.capitalFit * capitalFitNorm,
+    diversificationPenalty: mode.weights.diversificationPenalty * diversificationPenaltyNorm,
+  };
+  const totalScore = Math.max(
+    0,
+    Math.round(
+      weighted.grade +
+        weighted.yield +
+        weighted.spread +
+        weighted.distance +
+        weighted.quality +
+        weighted.capitalFit -
+        weighted.riskPenalty -
+        weighted.diversificationPenalty
+    )
+  );
+
+  const factors = [
+    { key: "grade", value: weighted.grade },
+    { key: "yield", value: weighted.yield },
+    { key: "spread", value: weighted.spread },
+    { key: "distance", value: weighted.distance },
+    { key: "quality", value: weighted.quality },
+    { key: "capitalFit", value: weighted.capitalFit },
+  ].sort((a, b) => b.value - a.value);
+
+  let selectionReason = "selected: quality and risk-adjusted balance";
+  if (factors[0]?.key === "yield" && candidate.finalDisplayGrade === "A") {
+    selectionReason = "selected: best yield after A-grade filter";
+  } else if (["spread", "distance"].includes(factors[0]?.key)) {
+    selectionReason = "selected: superior spread-distance balance";
+  } else if (factors[0]?.key === "capitalFit") {
+    selectionReason = "selected: best capital efficiency";
+  } else if (["quality", "grade"].includes(factors[0]?.key)) {
+    selectionReason = "selected: strongest quality profile after strict filters";
+  }
+
+  return {
+    totalScore,
+    summary: [
+      `grade +${Math.round(weighted.grade)}`,
+      `yield +${Math.round(weighted.yield)}`,
+      `spread +${Math.round(weighted.spread)}`,
+      `distance +${Math.round(weighted.distance)}`,
+      `quality +${Math.round(weighted.quality)}`,
+      `risk -${Math.round(weighted.riskPenalty)}`,
+      `capital +${Math.round(weighted.capitalFit)}`,
+      `diversification -${Math.round(weighted.diversificationPenalty)}`,
+    ].join(" • "),
+    selectionReason,
+    tooltip: [
+      `Score ${totalScore}`,
+      `Grade ${candidate.finalDisplayGrade}: +${Math.round(weighted.grade)}`,
+      `Yield ${Number(candidate.selectedYieldPct ?? 0).toFixed(2)}%: +${Math.round(weighted.yield)}`,
+      `Spread ${Number(candidate.selectedSpreadPct ?? 0).toFixed(1)}%: +${Math.round(weighted.spread)}`,
+      `Distance ${Number(candidate.selectedDistancePct ?? 0).toFixed(1)}%: +${Math.round(weighted.distance)}`,
+      `Quality: +${Math.round(weighted.quality)}`,
+      `Risk penalty: -${Math.round(weighted.riskPenalty)}`,
+      `Capital fit: +${Math.round(weighted.capitalFit)}`,
+      `Diversification penalty: -${Math.round(weighted.diversificationPenalty)}`,
+    ].join("\n"),
+  };
+}
+
 function computeModeRecommendation({
   safeStrike,
   aggressiveStrike,
@@ -1704,6 +1940,87 @@ function computeTickerQualityOverlay(candidate) {
   };
 }
 
+function buildCapitalComboCandidate(candidate, usableCapital) {
+  const ticker = String(candidate?.ticker || "").trim().toUpperCase();
+  const meta = getTickerDisplayMeta(ticker);
+  const recommendation = getFinalDisplayRecommendation(candidate);
+  const finalDisplayMode =
+    String(candidate?.finalDisplayMode || "").trim().toUpperCase() || recommendation.finalDisplayMode;
+  const finalDisplayGrade =
+    String(candidate?.finalDisplayGrade || "").trim().toUpperCase() || recommendation.finalDisplayGrade;
+  const selectedLeg = getFinalSelectedLeg(candidate);
+  const strike = Number(selectedLeg?.strike ?? NaN);
+  const premiumUnit = getLegPremiumValue(selectedLeg);
+  const spreadPct = getLegSpreadPct(selectedLeg);
+  const weeklyReturn = getLegYieldPct(selectedLeg, candidate);
+  const distancePct = getLegDistancePct(selectedLeg);
+  const popEstimate = getLegPopPct(selectedLeg);
+  const capitalPerContract = Number.isFinite(strike) && strike > 0 ? strike * 100 : 0;
+  const premiumPerContract =
+    Number.isFinite(premiumUnit) && premiumUnit > 0 ? premiumUnit * 100 : 0;
+  const gradeScore = finalDisplayGrade === "A" ? 2 : finalDisplayGrade === "B" ? 1 : 0;
+  const distanceScore =
+    Number.isFinite(distancePct) && distancePct <= 0 ? Math.min(Math.abs(distancePct) / 10, 2) : 0;
+  const contractsPenaltyScore = capitalPerContract > 0 ? capitalPerContract / 1000 : 0;
+  const isUnknownTicker = isUnknownUnvalidatedTicker(candidate);
+  const capitalComboExclusionReasons = [];
+  if (isUnknownTicker) capitalComboExclusionReasons.push("rejected: unknown/unvalidated ticker");
+
+  return {
+    ...candidate,
+    ticker,
+    _tickerMeta: meta,
+    finalDisplayMode,
+    finalDisplayGrade,
+    selectedLeg,
+    selectedStrikeValue: Number.isFinite(strike) ? strike : null,
+    selectedPremiumUnit: premiumUnit,
+    selectedSpreadPct: spreadPct,
+    selectedYieldPct: weeklyReturn,
+    selectedDistancePct: distancePct,
+    _popForCombo: popEstimate,
+    capitalPerContract,
+    premiumPerContract,
+    _comboGradeScore: gradeScore,
+    _comboDistanceScore: distanceScore,
+    _contractsPenaltyScore: contractsPenaltyScore,
+    source: candidate?.optionsSource === "IBKR live" ? "IBKR live" : "Yahoo fallback",
+    premiumKind:
+      selectedLeg?.bid != null
+        ? "prime bid"
+        : selectedLeg?.premiumUsed != null || selectedLeg?.primeUsed != null
+        ? "prime utilisee"
+        : "prime fallback",
+    spreadPct,
+    weeklyReturn,
+    _qualityOverlay: computeTickerQualityOverlay({
+      ...candidate,
+      ticker,
+      spreadPct,
+      weeklyReturn,
+      _popForCombo: popEstimate,
+    }),
+    _capitalComboExclusionReasons: capitalComboExclusionReasons,
+    _isCapitalComboEligible:
+      (finalDisplayMode === "SAFE" || finalDisplayMode === "AGGRESSIVE") &&
+      (finalDisplayGrade === "A" || finalDisplayGrade === "B") &&
+      !!selectedLeg &&
+      !(meta.isCryptoBlocked && !meta.isCryptoAllowed) &&
+      meta.qualityTier !== "Inconnu Ã  valider" &&
+      !isUnknownTicker &&
+      Number.isFinite(strike) &&
+      strike > 0 &&
+      Number.isFinite(premiumUnit) &&
+      premiumUnit > 0 &&
+      Number.isFinite(spreadPct) &&
+      spreadPct <= 35 &&
+      Number.isFinite(weeklyReturn) &&
+      weeklyReturn > 0 &&
+      capitalPerContract > 0 &&
+      capitalPerContract <= usableCapital,
+  };
+}
+
 function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, rejectedIbkrSymbols = new Set()) {
   const usableCapital = capital * (maxCapitalPct / 100);
   const targetMinPct = 90;
@@ -1712,25 +2029,43 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
     .filter((c) => !rejectedIbkrSymbols.has(String(c?.ticker || "").trim().toUpperCase()))
     .filter((c) => Number.isFinite(c.proFinalScore) && Number.isFinite(c.proExecutionScore))
     .filter((c) => c.proFinalScore > 0)
-    .filter((c) => {
-      const spread = c.safeStrike?.liquidity?.spreadPct ?? c.aggressiveStrike?.liquidity?.spreadPct;
-      if (spread == null) return true;
-      return spread <= 35;
-    });
+    .map((c) => buildCapitalComboCandidate(c, usableCapital))
+    .filter((c) => c._isCapitalComboEligible);
+  const poolStats = buildCapitalComboPoolStats(basePool);
 
   if (!basePool.length) return [];
 
   const modeConfigs = [
     {
       id: "aggressive",
-      label: "Agressif",
+      label: "AGGRESSIVE",
       // Identity: high-return quality — pas de junk premium
-      tickerCapPct: 0.25,
-      positionCapPct: 0.25,
+      tickerCapPct: 0.35,
+      positionCapPct: 0.35,
       maxContractsPerTicker: 4,
-      minWeeklyYield: 0.007,
+      minTargetPositions: 3,
+      maxThemeCapitalPct: 0.50,
+      maxSectorCapitalPct: 0.50,
+      maxHighBetaCapitalPct: 0.45,
+      minWeeklyYield: 1.0,
+      maxWeeklyYield: null,
       minExecutionScore: 0.45,
-      maxSpreadPct: 35,
+      maxSpreadPct: 25,
+      allowedModes: new Set(["AGGRESSIVE"]),
+      allowedGrades: new Set(["A", "B"]),
+      minDistancePct: -5,
+      distanceTargetAbs: 5,
+      yieldHardCap: 2.0,
+      weights: {
+        grade: 20,
+        yield: 24,
+        spread: 14,
+        distance: 10,
+        quality: 12,
+        riskPenalty: 10,
+        capitalFit: 12,
+        diversificationPenalty: 8,
+      },
       // Composition limits — enforced in Pass 1 via canAddByComposition
       maxCryptoMinerPositions: 1,
       maxCryptoMinerExceptionCount: 2,      // 2ème autorisé si POP >= 82 + spread <= 20 + quality >= 0.65
@@ -1739,14 +2074,7 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       maxCryptoMinerExceptionQualityMin: 0.65,
       maxSpeculativePositions: 2,
       // Score: high-return quality > junk premium
-      score: (c) =>
-        0.45 * normalizeYield(c.weeklyReturn) +
-        0.20 * c.proFinalScore +
-        0.15 * c.proExecutionScore +
-        0.10 * normalizePop(c._popForCombo) +
-        0.10 * (c._qualityOverlay?.qualityScore ?? 0.5) -
-        0.35 * (c._qualityOverlay?.premiumTrapPenalty ?? 0) -
-        0.20 * (c._qualityOverlay?.speculativePenalty ?? 0),
+      score: (c) => buildCapitalComboScoreBreakdown(c, modeConfigs[0], usableCapital, poolStats).totalScore,
       filterCandidate: (c) => {
         const ov = c._qualityOverlay;
         if (!ov) return true;
@@ -1754,65 +2082,93 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
         // Rejeter premium trap fort sauf POP >= 82
         if (ov.premiumTrapPenalty >= 0.40 && (c._popForCombo == null || c._popForCombo < 82)) return false;
         // Rejeter speculative avec spread excessif
-        if (ov.qualityTier === "speculative" && c.spreadPct != null && c.spreadPct > 20) return false;
+        if (ov.qualityTier === "speculative" && c.selectedSpreadPct != null && c.selectedSpreadPct > 20) return false;
         return true;
       },
     },
     {
       id: "balanced",
-      label: "Équilibré",
+      label: "BALANCED",
       // Identity: controlled growth — compromis rendement / POP / qualité
-      tickerCapPct: 0.2,
-      positionCapPct: 0.2,
+      tickerCapPct: 0.32,
+      positionCapPct: 0.32,
       maxContractsPerTicker: 3,
-      minWeeklyYield: 0,
+      minTargetPositions: 3,
+      maxThemeCapitalPct: 0.45,
+      maxSectorCapitalPct: 0.45,
+      maxHighBetaCapitalPct: 0.40,
+      minWeeklyYield: 0.75,
+      maxWeeklyYield: 1.0,
       minExecutionScore: 0,
-      maxSpreadPct: 35,
+      maxSpreadPct: 20,
+      allowedModes: new Set(["SAFE", "AGGRESSIVE"]),
+      allowedGrades: new Set(["A", "B"]),
+      minDistancePct: null,
+      distanceTargetAbs: 6,
+      yieldHardCap: 1.35,
+      weights: {
+        grade: 22,
+        yield: 18,
+        spread: 16,
+        distance: 12,
+        quality: 14,
+        riskPenalty: 10,
+        capitalFit: 10,
+        diversificationPenalty: 6,
+      },
       // Score: vrai compromis rendement/POP/qualité
-      score: (c) =>
-        0.25 * c.proFinalScore +
-        0.25 * c.proExecutionScore +
-        0.20 * normalizeYield(c.weeklyReturn) +
-        0.15 * normalizePop(c._popForCombo) +
-        0.15 * (c._qualityOverlay?.qualityScore ?? 0.5) -
-        0.20 * (c._qualityOverlay?.premiumTrapPenalty ?? 0) -
-        0.15 * (c._qualityOverlay?.speculativePenalty ?? 0),
+      score: (c) => buildCapitalComboScoreBreakdown(c, modeConfigs[1], usableCapital, poolStats).totalScore,
       filterCandidate: (c) => {
         const ov = c._qualityOverlay;
         if (!ov) return true;
         if (ov.qualityTier === "avoid") return false;
         if (ov.qualityTier === "speculative") {
           if (c._popForCombo == null || c._popForCombo < 82) return false;
-          if (c.spreadPct != null && c.spreadPct > 20) return false;
-          if (c.weeklyReturn < 0.55) return false;
+          if (c.selectedSpreadPct != null && c.selectedSpreadPct > 20) return false;
+          if ((c.selectedYieldPct ?? 0) < 0.75) return false;
         }
         return true;
       },
     },
     {
       id: "conservative",
-      label: "Conservateur",
+      label: "SAFE",
       // Identity: capital defense — qualité + exécution + distance, pénalise speculative
-      tickerCapPct: 0.15,
-      positionCapPct: 0.15,
+      tickerCapPct: 0.30,
+      positionCapPct: 0.30,
       maxContractsPerTicker: 2,
-      minWeeklyYield: 0,
+      minTargetPositions: 3,
+      maxThemeCapitalPct: 0.40,
+      maxSectorCapitalPct: 0.40,
+      maxHighBetaCapitalPct: 0.35,
+      minWeeklyYield: 0.5,
+      maxWeeklyYield: 0.75,
       minExecutionScore: 0,
-      maxSpreadPct: 35,
+      maxSpreadPct: 15,
+      allowedModes: new Set(["SAFE"]),
+      allowedGrades: new Set(["A", "B"]),
+      minDistancePct: null,
+      distanceTargetAbs: 8,
+      yieldHardCap: 0.95,
+      weights: {
+        grade: 24,
+        yield: 10,
+        spread: 18,
+        distance: 20,
+        quality: 14,
+        riskPenalty: 10,
+        capitalFit: 10,
+        diversificationPenalty: 6,
+      },
       // Score: favorise qualité + exécution + distance
-      score: (c) =>
-        0.35 * c.proExecutionScore +
-        0.25 * c.proDistanceScore +
-        0.20 * c.proFinalScore +
-        0.20 * (c._qualityOverlay?.qualityScore ?? 0.5) -
-        0.30 * (c._qualityOverlay?.speculativePenalty ?? 0),
+      score: (c) => buildCapitalComboScoreBreakdown(c, modeConfigs[2], usableCapital, poolStats).totalScore,
       filterCandidate: (c) => {
         const ov = c._qualityOverlay;
         if (!ov) return true;
         if (ov.qualityTier === "avoid") return false;
         if (ov.qualityTier === "speculative") {
           if (c._popForCombo == null || c._popForCombo < 88) return false;
-          if (c.spreadPct != null && c.spreadPct > 15) return false;
+          if (c.selectedSpreadPct != null && c.selectedSpreadPct > 15) return false;
           if (ov.earningsPenalty > 0) return false;
         }
         return true;
@@ -1821,132 +2177,108 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
   ];
 
   function getModeStrike(candidate, modeId) {
-    const isAggressive = modeId === "aggressive";
-    const isIbkrPreferred = candidate?.optionsSource === "IBKR live";
-    const rawSafe = candidate.raw?.safeStrike ?? null;
-    const rawAggressive = candidate.raw?.aggressiveStrike ?? null;
-    const mappedSafe = candidate.safeStrike ?? null;
-    const mappedAggressive = candidate.aggressiveStrike ?? null;
-    const mappedPrimary = isAggressive ? mappedAggressive ?? mappedSafe : mappedSafe ?? mappedAggressive;
-    const mappedSecondary = isAggressive ? mappedSafe ?? mappedAggressive : mappedAggressive ?? mappedSafe;
-    const rawPrimary = isAggressive ? rawAggressive ?? rawSafe : rawSafe ?? rawAggressive;
-    const rawSecondary = isAggressive ? rawSafe ?? rawAggressive : rawAggressive ?? rawSafe;
-
-    const selected = isIbkrPreferred
-      ? mappedPrimary ?? mappedSecondary ?? rawPrimary ?? rawSecondary
-      : rawPrimary ?? rawSecondary ?? mappedPrimary ?? mappedSecondary;
-
-    const strike = Number(selected?.strike ?? 0);
-    let premiumUnit = Number(
-      selected?.premiumUsed ??
-      selected?.primeUsed ??
-      selected?.conservativePremium ??
-      selected?.bid ??
-      selected?.premium ??
-      (!isIbkrPreferred ? selected?.mid : null) ??
-      0
-    );
-    if (isIbkrPreferred && !(premiumUnit > 0)) {
-      return { strike: 0, premiumUnit: 0, weeklyReturn: 0, source: "IBKR live", premiumKind: "invalid" };
-    }
-    if (isIbkrPreferred && !(strike > 0)) {
-      return { strike: 0, premiumUnit: 0, weeklyReturn: 0, source: "IBKR live", premiumKind: "invalid" };
-    }
-    const spot = Number(candidate?.price ?? 0);
-    const weeklyReturn =
-      selected?.weeklyYield != null
-        ? Number(selected.weeklyYield)
-        : premiumUnit > 0 && strike > 0
-        ? (premiumUnit / strike) * 100
-        : Number(candidate.weeklyReturn ?? 0);
-
-    return {
-      strike: Number.isFinite(strike) ? strike : 0,
-      premiumUnit: Number.isFinite(premiumUnit) ? premiumUnit : 0,
-      weeklyReturn: Number.isFinite(weeklyReturn) ? weeklyReturn : 0,
-      source: isIbkrPreferred ? "IBKR live" : "Yahoo fallback",
-      premiumKind:
-        selected?.premiumUsed != null || selected?.primeUsed != null
-          ? "prime utilisée"
-          : selected?.bid != null
-          ? "prime bid"
-          : "prime fallback",
-    };
-  }
+  void modeId;
+  return {
+    strike: Number(candidate?.selectedStrikeValue ?? 0),
+    premiumUnit: Number(candidate?.selectedPremiumUnit ?? 0),
+    weeklyReturn: Number(candidate?.selectedYieldPct ?? 0),
+    spreadPct: candidate?.selectedSpreadPct ?? null,
+    distancePct: candidate?.selectedDistancePct ?? null,
+    source: candidate?.source ?? "Yahoo fallback",
+    premiumKind: candidate?.premiumKind ?? "prime fallback",
+    mode: candidate?.finalDisplayMode ?? null,
+    grade: candidate?.finalDisplayGrade ?? null,
+  };
+}
 
   function makeCombo(mode) {
     const scoredPool = basePool
-      .map((candidate) => {
-        const selected = getModeStrike(candidate, mode.id);
-        const spreadPct =
-          candidate.safeStrike?.liquidity?.spreadPct ??
-          candidate.aggressiveStrike?.liquidity?.spreadPct ??
-          null;
-        const rawPop =
-          candidate.safeStrike?.popEstimate ??
-          candidate.aggressiveStrike?.popEstimate ??
-          null;
-        const popNum = rawPop != null ? Number(rawPop) : null;
-        const _popForCombo =
-          popNum != null && Number.isFinite(popNum)
-            ? popNum <= 1 ? popNum * 100 : popNum
-            : null;
-        const withSpread = {
-          ...candidate,
-          selectedStrike: selected,
-          capitalPerContract: selected.strike > 0 ? selected.strike * 100 : 0,
-          premiumPerContract: selected.premiumUnit > 0 ? selected.premiumUnit * 100 : 0,
-          weeklyReturn: selected.weeklyReturn,
-          source: selected.source,
-          premiumKind: selected.premiumKind,
-          spreadPct,
-          _popForCombo,
-        };
-        return { ...withSpread, _qualityOverlay: computeTickerQualityOverlay(withSpread) };
-      })
+      .map((candidate) => ({
+        ...candidate,
+        selectedStrike: getModeStrike(candidate, mode.id),
+        _comboScoreBreakdown: buildCapitalComboScoreBreakdown(candidate, mode, usableCapital, poolStats),
+      }))
       .filter((candidate) => candidate.capitalPerContract > 0 && candidate.weeklyReturn > 0)
-      .filter((candidate) => candidate.weeklyReturn / 100 >= mode.minWeeklyYield)
+      .filter((candidate) => mode.allowedModes?.has(candidate.finalDisplayMode))
+      .filter((candidate) => mode.allowedGrades?.has(candidate.finalDisplayGrade))
+      .filter((candidate) => candidate.weeklyReturn >= mode.minWeeklyYield)
+      .filter((candidate) => mode.maxWeeklyYield == null || candidate.weeklyReturn < mode.maxWeeklyYield)
       .filter((candidate) => candidate.proExecutionScore >= mode.minExecutionScore)
       .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= mode.maxSpreadPct)
+      .filter((candidate) =>
+        mode.minDistancePct == null ||
+        candidate.selectedDistancePct == null ||
+        candidate.selectedDistancePct <= mode.minDistancePct
+      )
       .filter((candidate) => mode.filterCandidate ? mode.filterCandidate(candidate) : true)
       .map((candidate) => ({
         ...candidate,
-        allocScore: mode.score(candidate),
+        allocScore: candidate._comboScoreBreakdown?.totalScore ?? mode.score(candidate),
       }))
-      .sort((a, b) => b.allocScore - a.allocScore);
+      .sort((a, b) =>
+        b.allocScore - a.allocScore ||
+        b._comboGradeScore - a._comboGradeScore ||
+        (b.selectedYieldPct ?? 0) - (a.selectedYieldPct ?? 0) ||
+        (a.selectedSpreadPct ?? Number.POSITIVE_INFINITY) - (b.selectedSpreadPct ?? Number.POSITIVE_INFINITY) ||
+        (a.selectedDistancePct ?? 0) - (b.selectedDistancePct ?? 0)
+      );
     if (!scoredPool.length) return null;
     const picks = [];
     let used = 0;
     const pickMap = new Map();
     const tickerCapDollars = usableCapital * mode.tickerCapPct;
     const positionCapDollars = usableCapital * mode.positionCapPct;
+    const NEUTRAL_CLUSTER_KEYS = new Set(["unknown", "none", "no_theme", "other", ""]);
+    const feasibleDistinctTickers = new Set(scoredPool.map((candidate) => candidate.ticker)).size;
+    const minTargetPositions = Math.max(
+      1,
+      Math.min(Number(maxPositions) || 0, Number(mode.minTargetPositions ?? 3), feasibleDistinctTickers)
+    );
+    let lastRejectionCounts = new Map();
 
-    function canAddContract(candidate, currentContracts, useSoftCaps = false) {
-      if (candidate.capitalPerContract <= 0) return false;
-      const maxContractsAllowed = useSoftCaps
-        ? mode.maxContractsPerTicker + 1
-        : mode.maxContractsPerTicker;
-      if (currentContracts >= maxContractsAllowed) return false;
-      if (used + candidate.capitalPerContract > usableCapital) return false;
-      const nextPositionCapital = (currentContracts + 1) * candidate.capitalPerContract;
-      const tickerCapLimit = useSoftCaps ? tickerCapDollars * 1.2 : tickerCapDollars;
-      const positionCapLimit = useSoftCaps ? positionCapDollars * 1.15 : positionCapDollars;
-      if (nextPositionCapital > tickerCapLimit) return false;
-      if (nextPositionCapital > positionCapLimit) return false;
-      return true;
+    function computePortfolioState() {
+      const tickerCapitalMap = new Map();
+      const themeCapitalMap = new Map();
+      const sectorCapitalMap = new Map();
+      let highBetaCapital = 0;
+      let cryptoMinerPositions = 0;
+      let speculativePositions = 0;
+      for (const pick of picks) {
+        tickerCapitalMap.set(pick.ticker, (tickerCapitalMap.get(pick.ticker) ?? 0) + pick.capitalUsed);
+        const themeKey = String(pick.concentrationTheme || "").trim().toLowerCase();
+        if (themeKey && !NEUTRAL_CLUSTER_KEYS.has(themeKey)) {
+          themeCapitalMap.set(themeKey, (themeCapitalMap.get(themeKey) ?? 0) + pick.capitalUsed);
+        }
+        const sectorKey = String(pick.sectorKey || "").trim().toLowerCase();
+        if (sectorKey && !NEUTRAL_CLUSTER_KEYS.has(sectorKey)) {
+          sectorCapitalMap.set(sectorKey, (sectorCapitalMap.get(sectorKey) ?? 0) + pick.capitalUsed);
+        }
+        if (pick.concentrationTheme === "crypto_miner") cryptoMinerPositions += 1;
+        if (pick.qualityTier === "speculative") speculativePositions += 1;
+        if (pick.isHighBeta === true) highBetaCapital += pick.capitalUsed;
+      }
+      return {
+        tickerCapitalMap,
+        themeCapitalMap,
+        sectorCapitalMap,
+        highBetaCapital,
+        cryptoMinerPositions,
+        speculativePositions,
+        distinctPositions: picks.length,
+      };
     }
 
-    function canAddByComposition(candidate) {
+    function canAddByComposition(candidate, state) {
       const maxCrypto = mode.maxCryptoMinerPositions;
       const maxSpec = mode.maxSpeculativePositions;
-      if (maxCrypto == null && maxSpec == null) return true;
+      if (maxCrypto == null && maxSpec == null) return { ok: true };
       const ov = candidate._qualityOverlay;
       const theme = ov?.concentrationTheme ?? null;
       const tier = ov?.qualityTier ?? null;
       if (maxCrypto != null && theme === "crypto_miner") {
-        const currentCrypto = picks.filter(p => p.concentrationTheme === "crypto_miner").length;
+        const currentCrypto = state.cryptoMinerPositions;
         const hardMax = mode.maxCryptoMinerExceptionCount ?? maxCrypto;
-        if (currentCrypto >= hardMax) return false;
+        if (currentCrypto >= hardMax) return { ok: false, reason: "theme_cap_reached" };
         if (currentCrypto >= maxCrypto) {
           const pop = candidate._popForCombo;
           const spread = candidate.spreadPct;
@@ -1955,106 +2287,245 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
             pop != null && pop >= (mode.maxCryptoMinerExceptionPopMin ?? 82) &&
             (spread == null || spread <= (mode.maxCryptoMinerExceptionSpreadMax ?? 20)) &&
             quality >= (mode.maxCryptoMinerExceptionQualityMin ?? 0.65);
-          if (!ok) return false;
+          if (!ok) return { ok: false, reason: "theme_cap_reached" };
         }
       }
       if (maxSpec != null && tier === "speculative") {
-        const currentSpec = picks.filter(p => p.qualityTier === "speculative").length;
-        if (currentSpec >= maxSpec) return false;
+        const currentSpec = state.speculativePositions;
+        if (currentSpec >= maxSpec) return { ok: false, reason: "caps_too_strict" };
       }
-      return true;
+      return { ok: true };
     }
 
-    // Pass 1: breadth first (max 1 contract per ticker)
-    for (const candidate of scoredPool) {
-      if (picks.length >= maxPositions) break;
-      const existing = pickMap.get(candidate.ticker);
-      if (existing) continue;
-      if (!canAddContract(candidate, 0)) continue;
-      if (!canAddByComposition(candidate)) continue;
+    function hasDiversifyingAlternative(state, excludedTicker = "") {
+      return scoredPool.some((candidate) => {
+        if (candidate.ticker === excludedTicker) return false;
+        if (pickMap.has(candidate.ticker)) return false;
+        if (candidate.capitalPerContract <= 0) return false;
+        if (used + candidate.capitalPerContract > usableCapital) return false;
+        return canAddByComposition(candidate, state).ok;
+      });
+    }
 
-      const pick = {
+    function projectLargestPct(map, key, nextCapital, nextUsed) {
+      const nextMap = new Map(map);
+      if (key) nextMap.set(key, (nextMap.get(key) ?? 0) + nextCapital);
+      if (nextUsed <= 0 || nextMap.size === 0) return 0;
+      return (Math.max(...nextMap.values()) / nextUsed) * 100;
+    }
+
+    function projectDynamicPenalty(state, candidate, nextUsed, isExisting, nextTickerCapital) {
+      const themeKey = String(candidate?._qualityOverlay?.concentrationTheme || "").trim().toLowerCase();
+      const sectorKey = String(candidate?._tickerMeta?.sector || "").trim().toLowerCase();
+      const largestTickerPct = nextUsed > 0 ? (nextTickerCapital / nextUsed) * 100 : 0;
+      const largestThemePct = projectLargestPct(
+        state.themeCapitalMap,
+        themeKey && !NEUTRAL_CLUSTER_KEYS.has(themeKey) ? themeKey : null,
+        candidate.capitalPerContract,
+        nextUsed
+      );
+      const largestSectorPct = projectLargestPct(
+        state.sectorCapitalMap,
+        sectorKey && !NEUTRAL_CLUSTER_KEYS.has(sectorKey) ? sectorKey : null,
+        candidate.capitalPerContract,
+        nextUsed
+      );
+      const nextHighBetaCapital =
+        state.highBetaCapital + (candidate?._qualityOverlay?.concentrationTheme === "high_beta_growth" ? candidate.capitalPerContract : 0);
+      const nextHighBetaPct = nextUsed > 0 ? (nextHighBetaCapital / nextUsed) * 100 : 0;
+      let penalty = 0;
+      penalty += Math.max(0, largestTickerPct - 30) * 0.9;
+      penalty += Math.max(0, largestThemePct - 45) * 0.55;
+      penalty += Math.max(0, largestSectorPct - 45) * 0.45;
+      penalty += Math.max(0, nextHighBetaPct - 40) * 0.6;
+      if (isExisting) penalty += 6;
+      return { penalty };
+    }
+
+    function evaluateCandidate(candidate, useSoftCaps = false) {
+      const existing = pickMap.get(candidate.ticker);
+      const isExisting = !!existing;
+      const currentContracts = existing?.contracts ?? 0;
+      const state = computePortfolioState();
+      const nextUsed = used + candidate.capitalPerContract;
+      const maxContractsAllowed = useSoftCaps ? mode.maxContractsPerTicker + 1 : mode.maxContractsPerTicker;
+      const nextPositionCapital = (currentContracts + 1) * candidate.capitalPerContract;
+      const tickerCapLimit = useSoftCaps ? tickerCapDollars * 1.1 : tickerCapDollars;
+      const positionCapLimit = useSoftCaps ? positionCapDollars * 1.1 : positionCapDollars;
+      const nextDistinctPositions = isExisting ? state.distinctPositions : state.distinctPositions + 1;
+
+      if (candidate.capitalPerContract <= 0) return { ok: false, reason: "contract_size_too_large" };
+      if (currentContracts >= maxContractsAllowed) return { ok: false, reason: "ticker_cap_reached" };
+      if (!isExisting && state.distinctPositions >= maxPositions) return { ok: false, reason: "max_positions_limit" };
+      if (nextUsed > usableCapital) return { ok: false, reason: "contract_size_too_large" };
+      if (nextPositionCapital > tickerCapLimit || nextPositionCapital > positionCapLimit) {
+        return { ok: false, reason: "ticker_cap_reached" };
+      }
+
+      const composition = canAddByComposition(candidate, state);
+      if (!composition.ok) return { ok: false, reason: composition.reason ?? "caps_too_strict" };
+
+      if (
+        isExisting &&
+        state.distinctPositions < minTargetPositions &&
+        hasDiversifyingAlternative(state, candidate.ticker)
+      ) {
+        return { ok: false, reason: "ticker_cap_reached" };
+      }
+
+      const themeKey = String(candidate?._qualityOverlay?.concentrationTheme || "").trim().toLowerCase();
+      const sectorKey = String(candidate?._tickerMeta?.sector || "").trim().toLowerCase();
+      const nextTickerCapital = (state.tickerCapitalMap.get(candidate.ticker) ?? 0) + candidate.capitalPerContract;
+      const nextThemeCapital =
+        themeKey && !NEUTRAL_CLUSTER_KEYS.has(themeKey)
+          ? (state.themeCapitalMap.get(themeKey) ?? 0) + candidate.capitalPerContract
+          : 0;
+      const nextSectorCapital =
+        sectorKey && !NEUTRAL_CLUSTER_KEYS.has(sectorKey)
+          ? (state.sectorCapitalMap.get(sectorKey) ?? 0) + candidate.capitalPerContract
+          : 0;
+      const nextHighBetaCapital =
+        state.highBetaCapital + (candidate?._qualityOverlay?.concentrationTheme === "high_beta_growth" ? candidate.capitalPerContract : 0);
+      const enforceClusterCaps = nextDistinctPositions >= minTargetPositions || !hasDiversifyingAlternative(state, candidate.ticker);
+
+      if (enforceClusterCaps) {
+        if (nextUsed > 0 && (nextTickerCapital / nextUsed) > (useSoftCaps ? mode.tickerCapPct * 1.08 : mode.tickerCapPct)) {
+          return { ok: false, reason: "ticker_cap_reached" };
+        }
+        if (
+          themeKey &&
+          !NEUTRAL_CLUSTER_KEYS.has(themeKey) &&
+          nextUsed > 0 &&
+          (nextThemeCapital / nextUsed) > (useSoftCaps ? (mode.maxThemeCapitalPct ?? 0.45) * 1.08 : (mode.maxThemeCapitalPct ?? 0.45))
+        ) {
+          return { ok: false, reason: "theme_cap_reached" };
+        }
+        if (
+          sectorKey &&
+          !NEUTRAL_CLUSTER_KEYS.has(sectorKey) &&
+          nextUsed > 0 &&
+          (nextSectorCapital / nextUsed) > (useSoftCaps ? (mode.maxSectorCapitalPct ?? 0.45) * 1.08 : (mode.maxSectorCapitalPct ?? 0.45))
+        ) {
+          return { ok: false, reason: "sector_cap_reached" };
+        }
+        if (
+          nextUsed > 0 &&
+          (nextHighBetaCapital / nextUsed) > (useSoftCaps ? (mode.maxHighBetaCapitalPct ?? 0.40) * 1.08 : (mode.maxHighBetaCapitalPct ?? 0.40))
+        ) {
+          return { ok: false, reason: "high_beta_cap_reached" };
+        }
+      }
+
+      const projected = projectDynamicPenalty(state, candidate, nextUsed, isExisting, nextTickerCapital);
+      const diversificationBonus = !isExisting
+        ? (state.distinctPositions < minTargetPositions ? 16 : 7)
+        : 0;
+      const marginalScore = Number(candidate.allocScore ?? 0) + diversificationBonus - projected.penalty;
+      const selectionReasonParts = [candidate._comboScoreBreakdown?.selectionReason ?? "selected: portfolio fit"];
+      if (!isExisting && state.distinctPositions < minTargetPositions) {
+        selectionReasonParts.push("portfolio: nouvelle ligne priorisÃ©e pour diversification");
+      } else if (!isExisting) {
+        selectionReasonParts.push("portfolio: diversification ajoutÃ©e sans dÃ©grader le budget");
+      } else {
+        selectionReasonParts.push("portfolio: renfort acceptÃ© aprÃ¨s caps et diversification");
+      }
+
+      return {
+        ok: true,
+        candidate,
+        existing,
+        isExisting,
+        marginalScore,
+        selectionReason: selectionReasonParts.join(" Â· "),
+      };
+    }
+
+    function pickBestCandidate(useSoftCaps = false) {
+      const rejections = new Map();
+      let best = null;
+      for (const candidate of scoredPool) {
+        const evaluated = evaluateCandidate(candidate, useSoftCaps);
+        if (!evaluated.ok) {
+          const key = evaluated.reason ?? "caps_too_strict";
+          rejections.set(key, (rejections.get(key) ?? 0) + 1);
+          continue;
+        }
+        if (
+          !best ||
+          evaluated.marginalScore > best.marginalScore ||
+          (
+            evaluated.marginalScore === best.marginalScore &&
+            (evaluated.candidate.allocScore ?? 0) > (best.candidate.allocScore ?? 0)
+          )
+        ) {
+          best = evaluated;
+        }
+      }
+      lastRejectionCounts = rejections;
+      return best;
+    }
+
+    function createPick(candidate, selectionReason) {
+      return {
         ticker: candidate.ticker,
+        mode: candidate.finalDisplayMode,
+        grade: candidate.finalDisplayGrade,
         strike: candidate.selectedStrike.strike,
         source: candidate.source,
         premiumKind: candidate.premiumKind,
         premiumUnit: candidate.selectedStrike.premiumUnit,
         contracts: 1,
+        capitalRequired: candidate.capitalPerContract,
         capitalUsed: candidate.capitalPerContract,
         premiumCollected: candidate.premiumPerContract,
         weeklyReturn: candidate.weeklyReturn,
+        spreadPct: candidate.selectedSpreadPct,
+        distancePct: candidate.selectedDistancePct,
         qualityTier: candidate._qualityOverlay?.qualityTier ?? null,
         qualityScore: candidate._qualityOverlay?.qualityScore ?? null,
         qualityWarnings: candidate._qualityOverlay?.qualityWarnings ?? [],
         concentrationTheme: candidate._qualityOverlay?.concentrationTheme ?? null,
+        sectorKey: String(candidate?._tickerMeta?.sector || "").trim().toLowerCase(),
+        isHighBeta: candidate?._qualityOverlay?.concentrationTheme === "high_beta_growth",
         premiumTrapPenalty: candidate._qualityOverlay?.premiumTrapPenalty ?? 0,
         popEstimate: candidate._popForCombo ?? null,
+        selectionScore: candidate._comboScoreBreakdown?.totalScore ?? candidate.allocScore ?? 0,
+        selectionSummary: candidate._comboScoreBreakdown?.summary ?? null,
+        selectionReason,
+        selectionTooltip: candidate._comboScoreBreakdown?.tooltip ?? null,
       };
-      picks.push(pick);
-      pickMap.set(candidate.ticker, pick);
+    }
+
+    function applySelection(selection) {
+      const { candidate, existing, isExisting, selectionReason } = selection;
+      if (!isExisting) {
+        const pick = createPick(candidate, selectionReason);
+        picks.push(pick);
+        pickMap.set(candidate.ticker, pick);
+      } else {
+        existing.contracts += 1;
+        existing.capitalUsed += candidate.capitalPerContract;
+        existing.premiumCollected += candidate.premiumPerContract;
+        existing.selectionScore = Math.max(
+          existing.selectionScore ?? 0,
+          candidate._comboScoreBreakdown?.totalScore ?? candidate.allocScore ?? 0
+        );
+        existing.selectionReason = selectionReason;
+      }
       used += candidate.capitalPerContract;
     }
 
-    // Pass 2: depth by score while respecting caps
-    let progressed = true;
-    while (progressed) {
-      progressed = false;
-      for (const candidate of scoredPool) {
-        const existing = pickMap.get(candidate.ticker);
-        if (!existing) continue;
-        if (!canAddContract(candidate, existing.contracts)) continue;
-
-        existing.contracts += 1;
-        existing.capitalUsed += candidate.capitalPerContract;
-        existing.premiumCollected += candidate.premiumPerContract;
-        used += candidate.capitalPerContract;
-        progressed = true;
+    while (true) {
+      const best = pickBestCandidate(false);
+      if (best) {
+        applySelection(best);
+        continue;
       }
-    }
-
-    // Pass 3: capital completion with soft caps.
-    const usablePct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
-    if (usablePct < targetMinPct) {
-      let softProgressed = true;
-      while (softProgressed) {
-        const currentPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
-        if (currentPct >= targetGoalPct) break;
-        softProgressed = false;
-        for (const candidate of scoredPool) {
-          const existing = pickMap.get(candidate.ticker);
-          if (!existing) continue;
-          if (!canAddContract(candidate, existing.contracts, true)) continue;
-
-          existing.contracts += 1;
-          existing.capitalUsed += candidate.capitalPerContract;
-          existing.premiumCollected += candidate.premiumPerContract;
-          used += candidate.capitalPerContract;
-          softProgressed = true;
-
-          const updatedPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
-          if (updatedPct >= targetGoalPct) break;
-        }
-      }
-    }
-
-    // Pass 4: targeted completion under soft caps.
-    let completionProgressed = true;
-    while (completionProgressed) {
       const currentPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
       if (currentPct >= targetGoalPct) break;
-      completionProgressed = false;
-      for (const candidate of scoredPool) {
-        const existing = pickMap.get(candidate.ticker);
-        if (!existing) continue;
-        if (!canAddContract(candidate, existing.contracts, true)) continue;
-        existing.contracts += 1;
-        existing.capitalUsed += candidate.capitalPerContract;
-        existing.premiumCollected += candidate.premiumPerContract;
-        used += candidate.capitalPerContract;
-        completionProgressed = true;
-        const updatedPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
-        if (updatedPct >= targetGoalPct) break;
-      }
+      const softBest = pickBestCandidate(true);
+      if (!softBest) break;
+      applySelection(softBest);
     }
 
     if (!picks.length) return null;
@@ -2078,6 +2549,16 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
         capitalShortfallReason = "max_positions_limit";
       } else if (usableCapital - used < minContractCost) {
         capitalShortfallReason = "contract_size_too_large";
+      } else if ((lastRejectionCounts.get("ticker_cap_reached") ?? 0) > 0) {
+        capitalShortfallReason = "ticker_cap_reached";
+      } else if ((lastRejectionCounts.get("theme_cap_reached") ?? 0) > 0) {
+        capitalShortfallReason = "theme_cap_reached";
+      } else if ((lastRejectionCounts.get("sector_cap_reached") ?? 0) > 0) {
+        capitalShortfallReason = "sector_cap_reached";
+      } else if ((lastRejectionCounts.get("high_beta_cap_reached") ?? 0) > 0) {
+        capitalShortfallReason = "high_beta_cap_reached";
+      } else if (usedPct >= 70) {
+        capitalShortfallReason = "no_clean_incremental_candidate";
       } else {
         capitalShortfallReason = "caps_too_strict";
       }
@@ -3990,7 +4471,7 @@ function IbkrBatchCardDetails({ item, row }) {
   );
 }
 
-function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkrBatchRow = null, seasonality = null }) {
+function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkrBatchRow = null, seasonality = null, highlightedTicker = null }) {
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
     : item.expectedMovePct;
@@ -4095,10 +4576,20 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
     ? Number(displayLeg.weeklyYield)
     : (item.weeklyReturn != null && Number(item.weeklyReturn) > 0 ? Number(item.weeklyReturn) : null);
   const displayDistance = displayLeg?.distancePct ?? item.strikeDistance;
+  const isTickerHighlighted = highlightedTicker === String(item?.ticker || "").trim().toUpperCase();
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <Card className="rounded-[8px] border-[#172637] bg-[#020811] text-slate-100 shadow-[0_0_0_1px_rgba(80,140,180,0.08),0_24px_80px_rgba(0,0,0,0.34)] transition-all hover:shadow-[0_0_0_1px_rgba(80,140,180,0.14),0_28px_90px_rgba(0,0,0,0.42)]">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      data-ticker-card={String(item?.ticker || "").trim().toUpperCase()}
+      className="scroll-mt-24"
+    >
+      <Card className={cn(
+        "rounded-[8px] border-[#172637] bg-[#020811] text-slate-100 shadow-[0_0_0_1px_rgba(80,140,180,0.08),0_24px_80px_rgba(0,0,0,0.34)] transition-all hover:shadow-[0_0_0_1px_rgba(80,140,180,0.14),0_28px_90px_rgba(0,0,0,0.42)]",
+        isTickerHighlighted && "ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-50 shadow-[0_0_0_1px_rgba(56,189,248,0.55),0_0_28px_rgba(56,189,248,0.35)]"
+      )}>
         <CardContent className="p-2">
           <div className="space-y-1">
             <div className="space-y-0.5">
@@ -4713,6 +5204,11 @@ function getAggressiveSpreadPct(card) {
   );
 }
 
+function isUnknownUnvalidatedTicker(card) {
+  const meta = getTickerDisplayMeta(String(card?.ticker ?? "").toUpperCase());
+  return meta.qualityTier === "Inconnu Ã  valider";
+}
+
 function getCreamQualityScore(card) {
   const meta = getTickerDisplayMeta(String(card?.ticker ?? "").toUpperCase());
   let score = 0;
@@ -4768,6 +5264,9 @@ function getCreamQualityBucket(card) {
     card?.hasUpcomingEarningsBeforeExpiration === true ||
     card?.hasEarningsBeforeExpiration === true;
   const rsi = Number(card?.rsi);
+  if (isUnknownUnvalidatedTicker(card)) {
+    return { bucket: "unknownReview", label: "Inconnus Ã  valider", reasons: ["Ajouter Ã  tickerMeta.js pour le classer"] };
+  }
 
   if (meta.isCryptoBlocked && !meta.isCryptoAllowed) {
     return { bucket: "cryptoBlocked", label: "Crypto bloqués / exclus", reasons: ["crypto non autorisé stratégie Wheel"] };
@@ -5968,7 +6467,7 @@ const CREAM_BUCKET_ICON = {
 // Sections sans carte complète — affichage compact uniquement.
 const CREAM_COMPACT_BUCKETS = new Set(["unknownReview", "spreadRejected"]);
 
-function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail }) {
+function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null }) {
   const [openBuckets, setOpenBuckets] = useState(() => new Set(["topExecutable", "favoriteWatch", "watchOnly"]));
 
   const classified = useMemo(() => {
@@ -6096,6 +6595,7 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
                           onOpenDetail={onOpenDetail}
                           ibkrBatchRow={ibkrBatchByTicker.get(sym) ?? null}
                           seasonality={seasonalityMap[sym] ?? null}
+                          highlightedTicker={highlightedTicker}
                         />
                       </div>
                     );
@@ -6554,23 +7054,66 @@ function formatCapitalShortfallReason(reason) {
   return map[reason] ?? "Raison non déterminée.";
 }
 
+function formatCapitalShortfallReasonLegacy(reason) {
+  const map = {
+    caps_too_strict: "Caps de risque trop stricts pour ajouter un contrat sans dÃ©passer la limite.",
+    contract_size_too_large: "Capital restant insuffisant pour le prochain contrat admissible.",
+    high_beta_cap_reached: "Cap high beta atteint pour les candidats restants.",
+    max_positions_limit: "Limite maximale de positions atteinte.",
+    no_clean_incremental_candidate: "Les candidats restants dÃ©gradent trop la diversification ou le profil de risque.",
+    not_enough_candidates: "Pas assez de candidats admissibles pour remplir davantage le capital.",
+    min_yield_or_execution_filter: "Filtres de rendement ou d'exÃ©cution trop stricts pour les candidats restants.",
+    sector_cap_reached: "Cap secteur atteint pour les candidats restants.",
+    theme_cap_reached: "Cap thÃ¨me atteint pour les candidats restants.",
+    ticker_cap_reached: "Cap ticker atteint pour les candidats restants.",
+  };
+  return map[reason] ?? "Raison non dÃ©terminÃ©e.";
+}
+
 const LABEL_TO_MODE_ID = {
+  AGGRESSIVE: "aggressive",
+  BALANCED: "balanced",
+  SAFE: "conservative",
   "Agressif": "aggressive",
   "Équilibré": "balanced",
   "Conservateur": "conservative",
 };
 
-function PortfolioCombos({ combos, capital }) {
+function PortfolioCombos({ combos, capital, onTickerClick = null }) {
   const [snapshotStatus, setSnapshotStatus] = useState(null);
   const [snapshotMsg, setSnapshotMsg] = useState("");
+  const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
+  const comboDefinitions = [
+    { key: "SAFE", aliases: ["SAFE", "Conservateur"], emptyMessage: "Aucune combinaison SAFE propre selon les crit�res actuels." },
+    { key: "BALANCED", aliases: ["BALANCED", "Équilibré", "Ã‰quilibrÃ©"], emptyMessage: "Aucune combinaison BALANCED propre selon les crit�res actuels." },
+    { key: "AGGRESSIVE", aliases: ["AGGRESSIVE", "Agressif"], emptyMessage: "Aucune combinaison AGGRESSIVE propre selon les crit�res actuels." },
+  ];
+  const visibleCombos = comboDefinitions.map((definition) => {
+    const found = combos.find((combo) => definition.aliases.includes(combo?.label));
+    return (
+      found ?? {
+        label: definition.key,
+        positions: 0,
+        totalCapital: 0,
+        capitalPct: 0,
+        avgWeeklyReturn: 0,
+        freeCapital: capital,
+        picks: [],
+        capitalTargetReached: false,
+        capitalShortfallReason: "not_enough_candidates",
+        emptyMessage: definition.emptyMessage,
+      }
+    );
+  });
 
   async function handleSaveSnapshot() {
-    if (!combos.length) return;
+    if (!hasAnyPicks) return;
     setSnapshotStatus("loading");
     setSnapshotMsg("");
     try {
       const payload = { accountCapital: capital, source: "manual_button" };
-      for (const combo of combos) {
+      for (const combo of visibleCombos) {
+        if ((combo?.picks?.length ?? 0) === 0) continue;
         const modeKey = LABEL_TO_MODE_ID[combo.label];
         if (!modeKey) continue;
         payload[modeKey] = {
@@ -6604,7 +7147,7 @@ function PortfolioCombos({ combos, capital }) {
       <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
       <button
         onClick={handleSaveSnapshot}
-        disabled={snapshotStatus === "loading" || !combos.length}
+        disabled={snapshotStatus === "loading" || !hasAnyPicks}
         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Database className="h-3.5 w-3.5" />
@@ -6612,21 +7155,6 @@ function PortfolioCombos({ combos, capital }) {
       </button>
     </div>
   );
-
-  if (!combos.length) {
-    return (
-      <Card className="rounded-[28px] border-slate-200 shadow-sm">
-        <CardHeader>
-          {snapshotHeader}
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Pas assez de données pour générer des combinaisons.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="rounded-[28px] border-slate-200 shadow-sm">
@@ -6640,11 +7168,22 @@ function PortfolioCombos({ combos, capital }) {
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {combos.map((combo) => (
+        <div className="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm text-slate-700">
+          <p className="font-medium text-slate-900">
+            Chaque bloc représente une simulation indépendante utilisant le capital complet. Les montants ne s&apos;additionnent pas.
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            SAFE, BALANCED et AGGRESSIVE comparent trois politiques de sélection sur le même capital simulé.
+          </p>
+        </div>
+        {visibleCombos.map((combo) => (
           <div key={combo.label} className="rounded-2xl border border-slate-200 p-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-base font-semibold text-slate-900">{combo.label}</p>
+                <p className="text-sm font-medium text-slate-700">
+                  Simulation {combo.label} — capital simulé : {capital.toFixed(0)}$
+                </p>
                 <p className="text-sm text-slate-500">
                   {combo.positions} positions · Capital {combo.totalCapital.toFixed(0)}$ ({combo.capitalPct.toFixed(0)}%) · Rend. moy ~{combo.avgWeeklyReturn.toFixed(2)}%
                 </p>
@@ -6701,14 +7240,26 @@ function PortfolioCombos({ combos, capital }) {
             </div>
 
             <div className="mt-4 space-y-2">
+              {combo.picks.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
+                  {combo.emptyMessage ?? "Aucune combinaison propre selon les crit�res actuels."}
+                </div>
+              )}
               {combo.picks.map((pick) => (
                 <div
                   key={`${combo.label}-${pick.ticker}`}
                   className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
                 >
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid gap-2 md:grid-cols-10">
                     <div>
-                      <div className="font-semibold text-slate-900">{pick.ticker}</div>
+                      <button
+                        type="button"
+                        onClick={() => onTickerClick?.(pick.ticker)}
+                        title={`Aller à la carte principale ${pick.ticker}`}
+                        className="cursor-pointer font-semibold text-slate-900 transition hover:text-sky-700 hover:underline"
+                      >
+                        {pick.ticker}
+                      </button>
                       {pick.qualityTier && pick.qualityTier !== "high" && (
                         <div className={cn(
                           "mt-0.5 text-xs font-medium",
@@ -6720,15 +7271,35 @@ function PortfolioCombos({ combos, capital }) {
                         </div>
                       )}
                     </div>
+                    <div>{pick.mode ?? "�"} {pick.grade ? `[${pick.grade}]` : ""}</div>
                     <div>PUT {pick.strike}$</div>
                     <div>{pick.source || "Yahoo fallback"}</div>
                     <div>
                       {pick.premiumKind || "prime"} {pick.premiumUnit != null ? `${Number(pick.premiumUnit).toFixed(2)}$` : "—"}
                     </div>
+                    <div>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "�"}</div>
+                    <div>yield {pick.weeklyReturn.toFixed(2)}%</div>
+                    <div>dist. {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "�"}</div>
                     <div>×{pick.contracts}</div>
-                    <div>{pick.capitalUsed.toFixed(0)}$</div>
-                    <div>{pick.weeklyReturn.toFixed(2)}%</div>
+                    <div>{pick.capitalRequired.toFixed(0)}$</div>
+                    <div>{pick.premiumCollected.toFixed(0)}$</div>
                   </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span
+                      className="rounded-full border border-slate-300 bg-white px-2 py-0.5 font-medium text-slate-700"
+                      title={pick.selectionTooltip ?? undefined}
+                    >
+                      Score {pick.selectionScore}
+                    </span>
+                    {pick.selectionSummary && (
+                      <span className="text-slate-500">{pick.selectionSummary}</span>
+                    )}
+                  </div>
+                  {pick.selectionReason && (
+                    <div className="mt-1 text-xs text-sky-700">
+                      {pick.selectionReason}
+                    </div>
+                  )}
                   {(pick.concentrationTheme || (pick.qualityWarnings?.length > 0 && pick.qualityTier !== "high" && pick.qualityTier !== "medium")) && (
                     <div className="mt-1 text-xs text-amber-600">
                       {pick.concentrationTheme && <span className="mr-2">thème: {pick.concentrationTheme}</span>}
@@ -6778,7 +7349,9 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState("quality");
   const [sortOrder, setSortOrder] = useState("desc");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [highlightedTicker, setHighlightedTicker] = useState(null);
   const [activeView, setActiveView] = useState("dashboard");
+  const tickerHighlightTimeoutRef = useRef(null);
 
   const [selectedExpiration, setSelectedExpiration] = useState(() =>
     pickDefaultExpiration(DEFAULT_EXPIRATIONS)
@@ -6788,6 +7361,36 @@ export default function Dashboard() {
   useEffect(() => {
     selectedExpirationRef.current = selectedExpiration;
   }, [selectedExpiration]);
+
+  useEffect(() => {
+    return () => {
+      if (tickerHighlightTimeoutRef.current != null) {
+        window.clearTimeout(tickerHighlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scrollToTickerCard = useCallback((symbol) => {
+    const ticker = String(symbol || "").trim().toUpperCase();
+    if (!ticker) return;
+    const card = document.querySelector(`[data-ticker-card="${ticker}"]`);
+    if (!card) {
+      console.warn(`[capital-combos] ticker card not found for ${ticker}`);
+      return;
+    }
+    card.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    setHighlightedTicker(ticker);
+    if (tickerHighlightTimeoutRef.current != null) {
+      window.clearTimeout(tickerHighlightTimeoutRef.current);
+    }
+    tickerHighlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedTicker((current) => (current === ticker ? null : current));
+      tickerHighlightTimeoutRef.current = null;
+    }, 2600);
+  }, []);
 
   const expirationOptions = useMemo(() => futureExpirations(DEFAULT_EXPIRATIONS), []);
   const [topN, setTopN] = useState(() => readStoredNumber("wheel.topYahooReturned", 30));
@@ -9474,6 +10077,7 @@ export default function Dashboard() {
                       yahooRankForIbkrBySymbol={yahooRankForIbkrBySymbol}
                       seasonalityMap={seasonalityMap}
                       onOpenDetail={setSelectedItem}
+                      highlightedTicker={highlightedTicker}
                     />
                     <p className="mt-3 px-1 text-xs text-slate-500">
                       Les cryptos exclus sont masqués du classement principal. Ils ne sont pas encore remplacés automatiquement par les prochains candidats Yahoo.
@@ -9483,7 +10087,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <PortfolioCombos combos={combos} capital={Number(capital)} />
+            <PortfolioCombos combos={combos} capital={Number(capital)} onTickerClick={scrollToTickerCard} />
           </div>
 
           <div className="space-y-6">

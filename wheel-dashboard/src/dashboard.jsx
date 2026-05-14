@@ -33,7 +33,7 @@ function nextNFridays(n = 6) {
 }
 
 const DEFAULT_EXPIRATIONS = nextNFridays(6);
-const DEBUG_COMPARE = true;
+const DEBUG_COMPARE = false;
 
 /** Liste statique conservée uniquement en secours si /universe/build échoue ou est indisponible. */
 const FALLBACK_TICKERS = [
@@ -3984,19 +3984,15 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
 
                 <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
                   <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-white after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">Détails techniques / pipeline (score pré-IBKR, rangs, etc.)</summary>
-                  {item.qualityReasons?.length > 0 && (
+                  {item.qualityReasons?.length > 0 ? (
                     <p className="mt-2 leading-5">
                       Score Yahoo pré-IBKR : {item.qualityReasons.join(" · ")}
                     </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-400">
+                      Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée.
+                    </p>
                   )}
-                  <p className="mt-2 leading-5">
-                    {item.qualityReasons?.length
-                      ? item.qualityReasons.join(" · ")
-                      : "Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée."}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Détail disponible : raisons qualitatives seulement, pas de pondération chiffrée retournée.
-                  </p>
                 </details>
               </div>
 
@@ -4038,7 +4034,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                     {(item.resistanceStatus === "broken" || resistanceUnderSpot) &&
     isValidLevel(resistanceValue) &&
                       Number.isFinite(priceValue) && (
-                      <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 font-semibold text-sky-800">
+                      <div className="rounded-xl border border-sky-500/30 bg-sky-950/40 px-3 py-2 font-semibold text-sky-300">
                         Ancienne résistance ${resistanceValue.toFixed(2)} franchie — support potentiel.
                       </div>
                     )}
@@ -4051,7 +4047,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                         </div>
                       )}
                     {rsiHigh && (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 font-semibold text-amber-900">
+                      <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 font-semibold text-amber-300">
                         RSI élevé : surachat court terme
                       </div>
                     )}

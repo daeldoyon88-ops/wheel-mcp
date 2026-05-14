@@ -55,6 +55,9 @@ export const TICKER_META = {
   ZM: { name: "Zoom Video Commun.", type: "Cloud / Vidéo", sector: "Technology", qualityTier: "Cyclique" },
   DUOL: { name: "Duolingo Inc.", type: "EdTech / IA", sector: "Technology", qualityTier: "Cyclique" },
   DXCM: { name: "Dexcom Inc.", type: "Medtech / Glucose CGM", sector: "Healthcare", qualityTier: "Cyclique" },
+  HPE:  { name: "Hewlett Packard Enterprise", type: "Enterprise IT / Infrastructure", sector: "Technology", qualityTier: "Cyclique" },
+  MCHP: { name: "Microchip Technology", type: "Semi-conducteurs / Microcontrôleurs", sector: "Technology", qualityTier: "Cyclique" },
+  IGV:  { name: "iShares Expanded Tech-Software Sector ETF", type: "Sector ETF", sector: "Technology", qualityTier: "Thématique risqué" },
 
   // ─── Tech / IA — Spéculatif favori ────────────────────────────────────────
   PLTR: { name: "Palantir Technologies", type: "IA / Données Gov & Défense", sector: "Technology", qualityTier: "Spéculatif favori" },
@@ -71,6 +74,9 @@ export const TICKER_META = {
   DKNG: { name: "DraftKings Inc.", type: "Paris Sportifs / Tech", sector: "Consumer Discretionary", qualityTier: "Spéculatif favori" },
   ROOT: { name: "Root Insurance", type: "Insurtech / IA", sector: "Financial Services", qualityTier: "Spéculatif favori" },
   HIMS: { name: "Hims & Hers Health", type: "Santé / DTC / Télémédecine", sector: "Healthcare", qualityTier: "Spéculatif favori" },
+  TEM:  { name: "Tempus AI", type: "IA / Healthcare Data", sector: "Healthcare", qualityTier: "Spéculatif favori" },
+  FLY:  { name: "Firefly Aerospace", type: "Spatial / Lanceurs", sector: "Industrials", qualityTier: "Spéculatif favori" },
+  ONON: { name: "On Holding", type: "Chaussures / Apparel Growth", sector: "Consumer Discretionary", qualityTier: "Spéculatif favori" },
 
   // ─── Finance — Core Quality ────────────────────────────────────────────────
   BAC: { name: "Bank of America", type: "Banque Universelle", sector: "Financial Services", qualityTier: "Core Quality" },
@@ -97,16 +103,20 @@ export const TICKER_META = {
   RYAAY: { name: "Ryanair Holdings", type: "Aviation Low-Cost", sector: "Industrials", qualityTier: "Cyclique" },
   PDD: { name: "PDD Holdings (Temu/Pinduoduo)", type: "E-Commerce Chine", sector: "Consumer Discretionary", qualityTier: "Thématique risqué" },
   PHM: { name: "PulteGroup Inc.", type: "Construction Résidentielle", sector: "Industrials", qualityTier: "Cyclique" },
+  CCL:  { name: "Carnival Corporation", type: "Cruise Line / Tourisme", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
+  ETSY: { name: "Etsy Inc.", type: "E-commerce Marketplace", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
+  MGM:  { name: "MGM Resorts International", type: "Casinos / Hôtels", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
 
   // ─── Consumer Staples ─────────────────────────────────────────────────────
   KO: { name: "The Coca-Cola Co.", type: "Boissons / Défensif", sector: "Consumer Staples", qualityTier: "Core Quality" },
 
   // ─── Communication Services ───────────────────────────────────────────────
   NFLX: { name: "Netflix Inc.", type: "Streaming / Contenu", sector: "Communication Services", qualityTier: "Core Quality" },
-  WBD: { name: "Warner Bros. Discovery", type: "Streaming / Médias", sector: "Communication Services", qualityTier: "Cyclique" },
+  WBD:  { name: "Warner Bros. Discovery", type: "Streaming / Médias", sector: "Communication Services", qualityTier: "Cyclique" },
+  PINS: { name: "Pinterest Inc.", type: "Réseaux Sociaux / Digital Advertising", sector: "Communication Services", qualityTier: "Cyclique" },
 
   // ─── Énergie ──────────────────────────────────────────────────────────────
-  SLB: { name: "SLB (Schlumberger)", type: "Services Pétroliers", sector: "Energy", qualityTier: "Cyclique" },
+  SLB:  { name: "SLB (Schlumberger)", type: "Services Pétroliers", sector: "Energy", qualityTier: "Cyclique" },
   FSLR: { name: "First Solar Inc.", type: "Panneaux Solaires / Utility", sector: "Energy", qualityTier: "Cyclique" },
   KMI: { name: "Kinder Morgan", type: "Pipelines / Midstream", sector: "Energy", qualityTier: "Core Quality" },
   VST: { name: "Vistra Corp.", type: "Électricité / Énergie", sector: "Utilities", qualityTier: "Core Quality" },
@@ -122,15 +132,22 @@ export const TICKER_META = {
   NVO: { name: "Novo Nordisk A/S", type: "Pharma / GLP-1 / Diabète", sector: "Healthcare", qualityTier: "Core Quality" },
   INCY: { name: "Incyte Corp.", type: "Biotech / Oncologie", sector: "Healthcare", qualityTier: "Cyclique" },
   NBIX: { name: "Neurocrine Biosciences", type: "Biotech / Neurologie", sector: "Healthcare", qualityTier: "Cyclique" },
+  CNC:  { name: "Centene Corporation", type: "Managed Healthcare / Assurance", sector: "Healthcare", qualityTier: "Cyclique" },
+  TEVA: { name: "Teva Pharmaceutical Industries", type: "Génériques / Pharma", sector: "Healthcare", qualityTier: "Cyclique" },
 
   // ─── Industrials ──────────────────────────────────────────────────────────
   CSX: { name: "CSX Corp.", type: "Transport Ferroviaire", sector: "Industrials", qualityTier: "Core Quality" },
+  DAL: { name: "Delta Air Lines", type: "Aviation / Compagnie Aérienne", sector: "Industrials", qualityTier: "Cyclique" },
 
   // ─── Matériaux ────────────────────────────────────────────────────────────
-  CF: { name: "CF Industries Holdings", type: "Engrais / Chimie Azotée", sector: "Materials", qualityTier: "Cyclique" },
+  CF:   { name: "CF Industries Holdings", type: "Engrais / Chimie Azotée", sector: "Materials", qualityTier: "Cyclique" },
+  PAAS: { name: "Pan American Silver", type: "Mines / Argent & Or", sector: "Materials", qualityTier: "Cyclique" },
+  CDE:  { name: "Coeur Mining", type: "Mines / Argent & Or", sector: "Materials", qualityTier: "Cyclique" },
 
   // ─── ETF Thématique / Matières premières ──────────────────────────────────
   SLV: { name: "iShares Silver Trust", type: "ETF Argent", sector: "Commodities", qualityTier: "Thématique risqué" },
+  XLE: { name: "Energy Select Sector SPDR Fund", type: "Sector ETF Énergie", sector: "Energy", qualityTier: "Thématique risqué" },
+  BNO: { name: "United States Brent Oil Fund", type: "Commodity ETF Pétrole", sector: "Energy", qualityTier: "Thématique risqué" },
 
   // ─── ETF Leveraged ────────────────────────────────────────────────────────
   SOXL: { name: "Direxion Semiconductor 3× ETF", type: "Leveraged ETF 3×", sector: "ETF Semi-conducteurs", qualityTier: "Thématique risqué" },

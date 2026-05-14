@@ -58,6 +58,13 @@ const TIER_1_SET = new Set(TIER_1_ULTRA_LIQUID);
 const TIER_2_SET = new Set(TIER_2_GOOD_WHEEL);
 const TIER_3_SET = new Set(TIER_3_SPECULATIVE);
 const PRIORITY_WHEEL_SET = new Set(PRIORITY_WHEEL_SYMBOLS);
+
+/** Tickers crypto exclus définitivement du pipeline Wheel. BITX n'est pas dans cette liste. */
+const CRYPTO_BLOCKED_SYMBOLS = new Set([
+  "IBIT", "BITO", "RIOT", "CIFR", "WULF", "IREN",
+  "MARA", "CLSK", "HUT", "BTBT", "COIN", "BITF", "BMNR",
+]);
+
 const CATEGORY_PRIORITY = {
   weekly: 1,
   core: 2,
@@ -339,8 +346,12 @@ export function createWatchlistBuilder(deps) {
       market_cap_below_min_rejected: 0,
     };
 
-    const source = loadMergedUniverse({ categories: criteria.categories })
-      .filter((r) => r.enabled)
+    const rawUniverse = loadMergedUniverse({ categories: criteria.categories }).filter((r) => r.enabled);
+    const cryptoBlockedRemovedCount = rawUniverse.filter(
+      (r) => CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase())
+    ).length;
+    const source = rawUniverse
+      .filter((r) => !CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase()))
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
 
     /** @type {string[]} */
@@ -524,6 +535,7 @@ export function createWatchlistBuilder(deps) {
       top20Tickers: watchlist.slice(0, 20),
       top30Tickers: top30,
       top30HardcodedTierCount,
+      cryptoBlockedRemovedCount,
       rejectedByReason,
       fundamentalsCachePath: fundamentalsCachePathAbs(),
       fundamentalsCacheLoaded: fundamentalsBySymbol.size,

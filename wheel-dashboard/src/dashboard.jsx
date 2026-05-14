@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
-import { getTickerDisplayMeta, QUALITY_TIER_STYLE } from "./tickerMeta.js";
+import { getTickerDisplayMeta, QUALITY_TIER_STYLE, USER_PREFS } from "./tickerMeta.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -316,6 +316,150 @@ function computeIbkrPriorityScore(candidate) {
   return { score, reasons: reasons.slice(0, 6) };
 }
 
+function gradeLeg({ spreadPct, weeklyYieldPct, popDecimal }) {
+  const spread = Number.isFinite(Number(spreadPct)) ? Number(spreadPct) : null;
+  const yldRaw = Number(weeklyYieldPct);
+  const yld = Number.isFinite(yldRaw) && yldRaw > 0 ? yldRaw : null;
+  const pop = Number.isFinite(Number(popDecimal)) ? Number(popDecimal) * 100 : null;
+  if (spread == null) return "WATCH";
+  if (spread > 35) return "REJECT";
+  if (yld == null) return "WATCH";
+  if (spread <= 10 && yld >= 0.50 && (pop == null || pop >= 80)) return "A";
+  if (spread <= 20 && yld >= 0.50 && (pop == null || pop >= 75)) return "B";
+  if (spread <= 35 && yld >= 0.40) return "WATCH";
+  return "REJECT";
+}
+
+function getAggressivePriorityGrade({ spreadPct, weeklyYieldPct, popDecimal, distancePct }) {
+  const spread = Number.isFinite(Number(spreadPct)) ? Number(spreadPct) : null;
+  const yld = Number.isFinite(Number(weeklyYieldPct)) ? Number(weeklyYieldPct) : null;
+  const popPct = Number.isFinite(Number(popDecimal)) ? Number(popDecimal) * 100 : null;
+  const dist = Number.isFinite(Number(distancePct)) ? Number(distancePct) : null;
+  if (spread == null || yld == null || popPct == null || dist == null) return null;
+  if (yld < 1.0) return null;
+  if (spread > 30) return null;
+  if (popPct < 75) return null;
+  if (dist > -5) return null;
+  return spread <= 15 ? "A" : "B";
+}
+
+const MODE_GRADE_RANK = {
+  AGGRESSIVE_A: 8,
+  AGGRESSIVE_B: 7,
+  SAFE_A: 6,
+  SAFE_B: 5,
+  AGGRESSIVE_WATCH: 4,
+  SAFE_WATCH: 3,
+  WATCH: 2,
+  REJECT: 0,
+};
+
+function getModeGradeRank(mode, grade) {
+  const normalizedMode = String(mode || "").trim().toUpperCase();
+  const normalizedGrade = String(grade || "").trim().toUpperCase();
+  if (normalizedGrade === "REJECT") return MODE_GRADE_RANK.REJECT;
+  if (normalizedGrade === "WATCH") {
+    if (normalizedMode === "AGGRESSIVE") return MODE_GRADE_RANK.AGGRESSIVE_WATCH;
+    if (normalizedMode === "SAFE") return MODE_GRADE_RANK.SAFE_WATCH;
+    return MODE_GRADE_RANK.WATCH;
+  }
+  if (normalizedGrade === "A") {
+    return normalizedMode === "AGGRESSIVE" ? MODE_GRADE_RANK.AGGRESSIVE_A : MODE_GRADE_RANK.SAFE_A;
+  }
+  if (normalizedGrade === "B") {
+    return normalizedMode === "AGGRESSIVE" ? MODE_GRADE_RANK.AGGRESSIVE_B : MODE_GRADE_RANK.SAFE_B;
+  }
+  return MODE_GRADE_RANK.REJECT;
+}
+
+function getFinalDisplayRecommendation(item) {
+  const diag = item?.recommendationDiagnostics ?? null;
+  const safeGrade = String(item?.safeGrade ?? diag?.safeGrade ?? "").toUpperCase() || null;
+  const aggressiveGrade = String(item?.aggressiveGrade ?? diag?.aggressiveGrade ?? "").toUpperCase() || null;
+  const safeYieldPct = item?.safeStrike?.weeklyYield ?? diag?.safeYieldPct ?? null;
+  const aggressiveYieldPct = item?.aggressiveStrike?.weeklyYield ?? diag?.aggressiveYieldPct ?? null;
+  const safeSpreadPct =
+    item?.safeStrike?.liquidity?.spreadPct ?? item?.safeStrike?.spreadPct ?? diag?.safeSpreadPct ?? null;
+  const aggressiveSpreadPct =
+    item?.aggressiveStrike?.liquidity?.spreadPct ??
+    item?.aggressiveStrike?.spreadPct ??
+    diag?.aggressiveSpreadPctDisplay ??
+    diag?.aggressiveSpreadPct ??
+    null;
+  const safePopDecimal =
+    item?.safeStrike?.popProfitEstimated ?? item?.safeStrike?.popEstimate ?? null;
+  const aggressivePopDecimal =
+    item?.aggressiveStrike?.popProfitEstimated ??
+    item?.aggressiveStrike?.popEstimate ??
+    diag?.aggressivePop ??
+    null;
+  const safeDistancePct = item?.safeStrike?.distancePct ?? diag?.safeDistancePct ?? null;
+  const aggressiveDistancePct =
+    item?.aggressiveStrike?.distancePct ?? diag?.aggressiveDistancePctDisplay ?? diag?.aggressiveDistancePct ?? null;
+
+  const aggressivePriorityGrade = getAggressivePriorityGrade({
+    spreadPct: aggressiveSpreadPct,
+    weeklyYieldPct: aggressiveYieldPct,
+    popDecimal: aggressivePopDecimal,
+    distancePct: aggressiveDistancePct,
+  });
+  const effectiveAggressiveGrade = aggressivePriorityGrade ?? aggressiveGrade;
+  const safeRank = getModeGradeRank("SAFE", safeGrade);
+  const aggressiveRank = getModeGradeRank("AGGRESSIVE", effectiveAggressiveGrade);
+
+  const derivedSafeGrade = gradeLeg({
+    spreadPct: safeSpreadPct,
+    weeklyYieldPct: safeYieldPct,
+    popDecimal: safePopDecimal,
+  });
+  const derivedAggressiveGrade = gradeLeg({
+    spreadPct: aggressiveSpreadPct,
+    weeklyYieldPct: aggressiveYieldPct,
+    popDecimal: aggressivePopDecimal,
+  });
+  const fallbackSafeRank = getModeGradeRank("SAFE", derivedSafeGrade);
+  const fallbackAggressiveRank = getModeGradeRank(
+    "AGGRESSIVE",
+    aggressivePriorityGrade ?? derivedAggressiveGrade
+  );
+
+  let finalDisplayMode = "REJECT";
+  let finalDisplayGrade = "REJECT";
+  let finalRank = MODE_GRADE_RANK.REJECT;
+
+  if (safeRank === MODE_GRADE_RANK.REJECT && aggressiveRank === MODE_GRADE_RANK.REJECT) {
+    if (fallbackAggressiveRank > fallbackSafeRank && fallbackAggressiveRank > MODE_GRADE_RANK.REJECT) {
+      finalDisplayMode = "AGGRESSIVE";
+      finalDisplayGrade = aggressivePriorityGrade ?? derivedAggressiveGrade;
+      finalRank = fallbackAggressiveRank;
+    } else if (fallbackSafeRank > MODE_GRADE_RANK.REJECT) {
+      finalDisplayMode = "SAFE";
+      finalDisplayGrade = derivedSafeGrade;
+      finalRank = fallbackSafeRank;
+    }
+  } else if (aggressiveRank > safeRank) {
+    finalDisplayMode = "AGGRESSIVE";
+    finalDisplayGrade = effectiveAggressiveGrade;
+    finalRank = aggressiveRank;
+  } else if (safeRank > MODE_GRADE_RANK.REJECT) {
+    finalDisplayMode = "SAFE";
+    finalDisplayGrade = safeGrade;
+    finalRank = safeRank;
+  } else if (aggressiveRank > MODE_GRADE_RANK.REJECT) {
+    finalDisplayMode = "AGGRESSIVE";
+    finalDisplayGrade = effectiveAggressiveGrade;
+    finalRank = aggressiveRank;
+  }
+
+  return {
+    finalDisplayMode,
+    finalDisplayGrade,
+    safeRank,
+    aggressiveRank,
+    finalRank,
+  };
+}
+
 function computeModeRecommendation({
   safeStrike,
   aggressiveStrike,
@@ -413,30 +557,102 @@ function computeModeRecommendation({
   if (earningsRisk) safeScore -= 10;
   safeScore = Math.max(0, Math.min(100, safeScore));
 
-  const aggressiveAllowedByRules =
-    Number.isFinite(ratio) &&
-    ratio >= 1.5 &&
-    Number.isFinite(aggressiveSpreadPct) &&
-    aggressiveSpreadPct <= 15 &&
-    !earningsRisk &&
-    lowerBoundOk &&
-    (!Number.isFinite(aggressivePop) || aggressivePop >= 0.65) &&
-    !tooCloseSpot;
+  const safeWeeklyYieldPct = Number(safeStrike?.weeklyYield);
+  const aggressiveWeeklyYieldPct = Number(aggressiveStrike?.weeklyYield);
+  const safePopDecimal = Number(safeStrike?.popProfitEstimated ?? safeStrike?.popEstimate);
+  const safeDistancePct = Number(safeStrike?.distancePct);
+  const aggressiveDistancePctDisplay = Number(aggressiveStrike?.distancePct);
 
-  const recommendedMode = aggressiveAllowedByRules ? "AGGRESSIVE" : "SAFE";
-  const recommendedReason =
-    recommendedMode === "AGGRESSIVE"
-      ? `prime x${ratio?.toFixed(2) ?? "—"}, spread ${
-          Number.isFinite(aggressiveSpreadPct) ? `${aggressiveSpreadPct.toFixed(1)}%` : "—"
-        }, POP ${Number.isFinite(aggressivePop) ? `${(aggressivePop * 100).toFixed(0)}%` : "—"}`
-      : earningsRisk
-      ? "SAFE — risque earnings"
-      : "SAFE — meilleur compromis risque/liquidité";
+  const safeGrade = gradeLeg({
+    spreadPct: safeSpreadPct,
+    weeklyYieldPct: safeWeeklyYieldPct,
+    popDecimal: safePopDecimal,
+  });
+  const aggressiveGrade = earningsRisk
+    ? "REJECT"
+    : gradeLeg({
+        spreadPct: aggressiveSpreadPct,
+        weeklyYieldPct: aggressiveWeeklyYieldPct,
+        popDecimal: aggressivePop,
+      });
+  const aggressivePriorityGrade = earningsRisk
+    ? null
+    : getAggressivePriorityGrade({
+        spreadPct: aggressiveSpreadPct,
+        weeklyYieldPct: aggressiveWeeklyYieldPct,
+        popDecimal: aggressivePop,
+        distancePct: aggressiveDistancePctDisplay,
+      });
+
+  const effectiveAggressiveGrade = aggressivePriorityGrade ?? aggressiveGrade;
+  const safeRank = getModeGradeRank("SAFE", safeGrade);
+  const aggressiveRank = getModeGradeRank("AGGRESSIVE", effectiveAggressiveGrade);
+
+  let recommendedMode = "REJECT";
+  let recommendedGrade = "REJECT";
+  if (safeRank === MODE_GRADE_RANK.REJECT && aggressiveRank === MODE_GRADE_RANK.REJECT) {
+    recommendedMode = "REJECT";
+    recommendedGrade = "REJECT";
+  } else if (aggressiveRank > safeRank) {
+    recommendedMode = "AGGRESSIVE";
+    recommendedGrade = effectiveAggressiveGrade;
+  } else if (safeRank > MODE_GRADE_RANK.REJECT) {
+    recommendedMode = "SAFE";
+    recommendedGrade = safeGrade;
+  } else if (aggressiveRank > MODE_GRADE_RANK.REJECT) {
+    recommendedMode = "AGGRESSIVE";
+    recommendedGrade = effectiveAggressiveGrade;
+  }
+  const normalizedRecommendation = getFinalDisplayRecommendation({
+    safeStrike,
+    aggressiveStrike,
+    safeGrade,
+    aggressiveGrade,
+    recommendedMode,
+    recommendedGrade,
+    recommendationDiagnostics: {
+      safeYieldPct: Number.isFinite(safeWeeklyYieldPct) ? Number(safeWeeklyYieldPct) : null,
+      aggressiveYieldPct: Number.isFinite(aggressiveWeeklyYieldPct) ? Number(aggressiveWeeklyYieldPct) : null,
+      safeSpreadPct: Number.isFinite(safeSpreadPct) ? Number(safeSpreadPct) : null,
+      aggressiveSpreadPctDisplay: Number.isFinite(aggressiveSpreadPct) ? Number(aggressiveSpreadPct) : null,
+      safeDistancePct: Number.isFinite(safeDistancePct) ? Number(safeDistancePct) : null,
+      aggressiveDistancePctDisplay: Number.isFinite(aggressiveDistancePctDisplay)
+        ? Number(aggressiveDistancePctDisplay)
+        : null,
+      aggressivePop: Number.isFinite(aggressivePop) ? Number(aggressivePop) : null,
+      safeRank,
+      aggressiveRank,
+    },
+  });
+  recommendedMode = normalizedRecommendation.finalDisplayMode;
+  recommendedGrade = normalizedRecommendation.finalDisplayGrade;
+  const finalRank = normalizedRecommendation.finalRank ?? getModeGradeRank(recommendedMode, recommendedGrade);
+
+  const recommendedReason = (() => {
+    if (recommendedMode === "REJECT") return "Rejeté — spread ou liquidité insuffisant sur les deux jambes";
+    const isAggr = recommendedMode === "AGGRESSIVE";
+    const legYld = isAggr ? aggressiveWeeklyYieldPct : safeWeeklyYieldPct;
+    const legSp = isAggr ? aggressiveSpreadPct : safeSpreadPct;
+    const legPop = isAggr ? aggressivePop : safePopDecimal;
+    const yldStr = Number.isFinite(legYld) && legYld > 0 ? `${legYld.toFixed(2)}%` : "—";
+    const spStr = Number.isFinite(legSp) ? `${legSp.toFixed(1)}%` : "—";
+    const popStr = Number.isFinite(legPop) && legPop > 0 ? `${(legPop * 100).toFixed(1)}%` : null;
+    if (recommendedGrade === "WATCH") {
+      return `${isAggr ? "Agressif" : "Safe"} à surveiller : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}`;
+    }
+    if (isAggr) {
+      return `Agressif meilleur : rendement ${yldStr}, spread ${spStr}${popStr ? `, POP ${popStr}` : ""}`;
+    }
+    return earningsRisk ? "SAFE — risque earnings" : "SAFE — meilleur compromis risque/liquidité";
+  })();
 
   return {
     safeScore: Math.round(safeScore),
     aggressiveOpportunityScore: Math.round(aggressiveOpportunityScore),
+    safeGrade,
+    aggressiveGrade,
     recommendedMode,
+    recommendedGrade,
     recommendedReason,
     recommendationDiagnostics: {
       premiumRatio: Number.isFinite(ratio) ? Number(ratio.toFixed(4)) : null,
@@ -447,6 +663,26 @@ function computeModeRecommendation({
       aggressiveTooCloseSpot: tooCloseSpot,
       aggressiveDistancePct:
         Number.isFinite(aggressiveDistancePct) ? Number(aggressiveDistancePct.toFixed(4)) : null,
+      safeYieldPct: Number.isFinite(safeWeeklyYieldPct) ? Number(safeWeeklyYieldPct.toFixed(4)) : null,
+      aggressiveYieldPct: Number.isFinite(aggressiveWeeklyYieldPct)
+        ? Number(aggressiveWeeklyYieldPct.toFixed(4))
+        : null,
+      safeSpreadPct: Number.isFinite(safeSpreadPct) ? Number(safeSpreadPct.toFixed(4)) : null,
+      aggressiveSpreadPctDisplay: Number.isFinite(aggressiveSpreadPct) ? Number(aggressiveSpreadPct.toFixed(4)) : null,
+      safeDistancePct: Number.isFinite(safeDistancePct) ? Number(safeDistancePct.toFixed(4)) : null,
+      aggressiveDistancePctDisplay: Number.isFinite(aggressiveDistancePctDisplay)
+        ? Number(aggressiveDistancePctDisplay.toFixed(4))
+        : null,
+      safeGrade,
+      aggressiveGrade,
+      safeRank,
+      aggressiveRank,
+      finalRank,
+      aggressivePriorityGrade,
+      finalDisplayMode: recommendedMode,
+      finalDisplayGrade: recommendedGrade,
+      recommendedMode,
+      recommendedGrade,
       reasons,
     },
   };
@@ -1238,6 +1474,15 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     hasEarningsBeforeExpiration: item.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil,
   });
+  const finalDisplayRecommendation = getFinalDisplayRecommendation({
+    safeStrike: safeStrikeMapped,
+    aggressiveStrike: aggressiveStrikeMapped,
+    safeGrade: modeRecommendation.safeGrade,
+    aggressiveGrade: modeRecommendation.aggressiveGrade,
+    recommendedMode: modeRecommendation.recommendedMode,
+    recommendedGrade: modeRecommendation.recommendedGrade,
+    recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
+  });
 
   return {
     ...item,
@@ -1280,7 +1525,15 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     aggressiveBid: aggressiveBidPreferred,
     safeScore: modeRecommendation.safeScore,
     aggressiveOpportunityScore: modeRecommendation.aggressiveOpportunityScore,
+    safeGrade: modeRecommendation.safeGrade,
+    aggressiveGrade: modeRecommendation.aggressiveGrade,
+    safeRank: finalDisplayRecommendation.safeRank,
+    aggressiveRank: finalDisplayRecommendation.aggressiveRank,
+    finalRank: finalDisplayRecommendation.finalRank,
     recommendedMode: modeRecommendation.recommendedMode,
+    recommendedGrade: modeRecommendation.recommendedGrade,
+    finalDisplayMode: finalDisplayRecommendation.finalDisplayMode,
+    finalDisplayGrade: finalDisplayRecommendation.finalDisplayGrade,
     recommendedReason: modeRecommendation.recommendedReason,
     recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
     premium:
@@ -2104,7 +2357,17 @@ function FaceplateMetric({ label, value, sub = null, tone = "default", strong = 
   );
 }
 
-function FaceplateStrikeColumn({ title, tone = "safe", strikeData, fallbackDte }) {
+function FaceplateStrikeColumn({
+  title,
+  tone = "safe",
+  strikeData,
+  fallbackDte,
+  isSelected = false,
+  selectedGrade = null,
+  selectedMode = null,
+  displayGrade = null,
+  debugLabel = null,
+}) {
   if (!strikeData) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-4 text-sm text-slate-400">
@@ -2135,6 +2398,16 @@ function FaceplateStrikeColumn({ title, tone = "safe", strikeData, fallbackDte }
   const accent = tone === "safe" ? "text-[#00c8ff]" : "text-[#e052ff]";
   const border = tone === "safe" ? "border-[#12354a]" : "border-[#3b1a4a]";
   const glow = tone === "safe" ? "shadow-sky-950/30" : "shadow-fuchsia-950/30";
+  const hasSelection =
+    isSelected && (selectedGrade === "A" || selectedGrade === "B" || selectedGrade === "WATCH");
+  const selectionBorder = !hasSelection
+    ? border
+    : selectedGrade === "WATCH"
+    ? "border-amber-500 ring-2 ring-amber-300/55 shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
+    : "border-emerald-500 ring-2 ring-emerald-300/55 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]";
+  const selectionBadgeClass = selectedGrade === "WATCH"
+    ? "border border-amber-300 bg-amber-50 text-amber-900"
+    : "border border-emerald-300 bg-emerald-50 text-emerald-800";
   const titleText = tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)";
   const subtitleText = tone === "safe" ? "safe IBKR live" : "agressif IBKR live";
   const metricRows = [
@@ -2194,15 +2467,26 @@ function FaceplateStrikeColumn({ title, tone = "safe", strikeData, fallbackDte }
   ];
 
   return (
-    <div className={cn("rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", border, glow)}>
+    <div className={cn("rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", selectionBorder, glow)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={cn("text-sm font-semibold tracking-wide", accent)}>{titleText}</p>
           <p className="mt-1 text-xs text-slate-500">{strikeData.label || subtitleText}</p>
         </div>
-        <Badge className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
-          PUT
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          {hasSelection && (
+            <Badge className={cn("rounded-full px-2.5 py-1 text-xs", selectionBadgeClass)}>
+              Sélectionné{selectedGrade ? ` [${selectedGrade}]` : ""}
+            </Badge>
+          )}
+          <Badge className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
+            PUT
+          </Badge>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-2 text-[11px] text-slate-400">
+        {`selected=${hasSelection ? "true" : "false"} • mode=${selectedMode ?? "—"} • grade=${displayGrade ?? selectedGrade ?? "—"}${debugLabel ? ` • ${debugLabel}` : ""}`}
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-y-2.5">
@@ -2471,6 +2755,12 @@ function StrikeCard({
   label,
   meetsTarget,
   liquidity,
+  isSelected = false,
+  selectedGrade = null,
+  recommendedMode = null,
+  recommendedGrade = null,
+  recommendationDiagnostics = null,
+  legKey = null,
 }) {
   const strikeNumber = Number(strike);
   const distanceNumber = Number(distancePct);
@@ -2523,14 +2813,43 @@ function StrikeCard({
       : "bad";
   const spreadClass = classifySpreadPctPercent(liquidity?.spreadPct);
 
+  const selectedBorder = isSelected
+    ? selectedGrade === "WATCH"
+      ? "border-amber-500 ring-2 ring-amber-300/60 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]"
+      : "border-emerald-500 ring-2 ring-emerald-300/60 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]"
+    : "border-slate-200";
+  const diagGrade =
+    legKey === "safe" ? recommendationDiagnostics?.safeGrade : recommendationDiagnostics?.aggressiveGrade;
+  const diagYield =
+    legKey === "safe" ? recommendationDiagnostics?.safeYieldPct : recommendationDiagnostics?.aggressiveYieldPct;
+  const diagSpread =
+    legKey === "safe"
+      ? recommendationDiagnostics?.safeSpreadPct
+      : recommendationDiagnostics?.aggressiveSpreadPctDisplay;
+  const diagDistance =
+    legKey === "safe"
+      ? recommendationDiagnostics?.safeDistancePct
+      : recommendationDiagnostics?.aggressiveDistancePctDisplay;
+  const diagPop = legKey === "safe" ? mainPop : recommendationDiagnostics?.aggressivePop;
+
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-white p-4 shadow-sm", className)}>
+    <div className={cn("rounded-2xl border bg-white p-4 shadow-sm", selectedBorder, className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-900">{title}</p>
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
+          {isSelected && (
+            <Badge className={cn(
+              "rounded-full text-xs",
+              selectedGrade === "WATCH"
+                ? "border border-amber-300 bg-amber-50 text-amber-800"
+                : "border border-emerald-300 bg-emerald-50 text-emerald-800"
+            )}>
+              Sélectionné{selectedGrade ? ` [${selectedGrade}]` : ""}
+            </Badge>
+          )}
           <Badge className="rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
             {label}
           </Badge>
@@ -2629,11 +2948,22 @@ function StrikeCard({
           tone={spreadClass.metricTone}
         />
       </div>
+
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600">
+        <span className="font-semibold text-slate-700">Diag reco</span>
+        {` • grade ${diagGrade ?? "—"}`}
+        {` • yld ${Number.isFinite(Number(diagYield)) ? `${Number(diagYield).toFixed(2)}%` : "—"}`}
+        {` • spread ${Number.isFinite(Number(diagSpread)) ? `${Number(diagSpread).toFixed(1)}%` : "—"}`}
+        {` • dist ${Number.isFinite(Number(diagDistance)) ? `${Number(diagDistance).toFixed(1)}%` : "—"}`}
+        {` • POP ${Number.isFinite(Number(diagPop)) ? `${(Number(diagPop) * 100).toFixed(1)}%` : "—"}`}
+        {` • reco ${recommendedMode ?? "—"}${recommendedGrade ? ` [${recommendedGrade}]` : ""}`}
+      </div>
     </div>
   );
 }
 
 function StrikeOpportunities({ item }) {
+  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
     : item.expectedMovePct;
@@ -2709,6 +3039,12 @@ function StrikeOpportunities({ item }) {
                 Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
               }
               liquidity={item.safeStrike.liquidity}
+              isSelected={finalDisplayMode === "SAFE"}
+              selectedGrade={finalDisplayMode === "SAFE" ? finalDisplayGrade : null}
+              recommendedMode={finalDisplayMode}
+              recommendedGrade={finalDisplayGrade}
+              recommendationDiagnostics={item.recommendationDiagnostics}
+              legKey="safe"
             />
           )}
 
@@ -2736,6 +3072,12 @@ function StrikeOpportunities({ item }) {
                 Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
               }
               liquidity={item.aggressiveStrike.liquidity}
+              isSelected={finalDisplayMode === "AGGRESSIVE"}
+              selectedGrade={finalDisplayMode === "AGGRESSIVE" ? finalDisplayGrade : null}
+              recommendedMode={finalDisplayMode}
+              recommendedGrade={finalDisplayGrade}
+              recommendationDiagnostics={item.recommendationDiagnostics}
+              legKey="aggressive"
             />
           )}
         </div>
@@ -2751,13 +3093,38 @@ function StrikeOpportunities({ item }) {
 function FaceplateStrikeOpportunities({ item }) {
   const hasSafe = !!item.safeStrike;
   const hasAggressive = !!item.aggressiveStrike;
+  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
+  const safeSelected = finalDisplayMode === "SAFE";
+  const aggressiveSelected = finalDisplayMode === "AGGRESSIVE";
+  const safeDebug = `safeRank=${item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
+  const aggressiveDebug = `aggressiveRank=${item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
 
   return (
     <div className="h-full">
       {hasSafe || hasAggressive ? (
         <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-2">
-          <FaceplateStrikeColumn title="Safe (IBKR live)" tone="safe" strikeData={item.safeStrike} fallbackDte={item.dteDays} />
-          <FaceplateStrikeColumn title="Aggressif (IBKR live)" tone="aggressive" strikeData={item.aggressiveStrike} fallbackDte={item.dteDays} />
+          <FaceplateStrikeColumn
+            title="Safe (IBKR live)"
+            tone="safe"
+            strikeData={item.safeStrike}
+            fallbackDte={item.dteDays}
+            isSelected={safeSelected}
+            selectedGrade={safeSelected ? finalDisplayGrade : null}
+            selectedMode={finalDisplayMode}
+            displayGrade={finalDisplayGrade}
+            debugLabel={safeDebug}
+          />
+          <FaceplateStrikeColumn
+            title="Aggressif (IBKR live)"
+            tone="aggressive"
+            strikeData={item.aggressiveStrike}
+            fallbackDte={item.dteDays}
+            isSelected={aggressiveSelected}
+            selectedGrade={aggressiveSelected ? finalDisplayGrade : null}
+            selectedMode={finalDisplayMode}
+            displayGrade={finalDisplayGrade}
+            debugLabel={aggressiveDebug}
+          />
         </div>
       ) : (
         <div className="rounded-[8px] border border-dashed border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
@@ -2827,6 +3194,59 @@ function getIbkrBatchMessage(row) {
   return formatIbkrReason(ibkrError || yahooError || warnings || "");
 }
 
+function buildIbkrRetainedViewModel(item) {
+  const spot = Number(item?.currentPrice ?? item?.underlyingPrice ?? 0);
+  const resolvedDte = Number.isFinite(Number(item?.dteDays)) ? Number(item.dteDays) : null;
+  const safeStrike = ibkrStrikeToDashboardStrike(
+    item?.safeStrike,
+    spot,
+    "safe IBKR live",
+    false,
+    resolvedDte
+  );
+  const aggressiveStrike = ibkrStrikeToDashboardStrike(
+    item?.aggressiveStrike,
+    spot,
+    "agressif IBKR live",
+    false,
+    resolvedDte
+  );
+  const modeRecommendation = computeModeRecommendation({
+    safeStrike,
+    aggressiveStrike,
+    lowerBound: item?.lowerBound ?? null,
+    spot,
+    hasUpcomingEarningsBeforeExpiration: item?.hasUpcomingEarningsBeforeExpiration ?? false,
+    hasEarningsBeforeExpiration: item?.hasEarningsBeforeExpiration ?? false,
+    earningsDaysUntil: item?.earningsDaysUntil ?? null,
+  });
+  const finalDisplayRecommendation = getFinalDisplayRecommendation({
+    safeStrike,
+    aggressiveStrike,
+    safeGrade: modeRecommendation.safeGrade,
+    aggressiveGrade: modeRecommendation.aggressiveGrade,
+    recommendedMode: modeRecommendation.recommendedMode,
+    recommendedGrade: modeRecommendation.recommendedGrade,
+    recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
+  });
+  const finalDisplayMode = finalDisplayRecommendation.finalDisplayMode;
+  const finalDisplayGrade = finalDisplayRecommendation.finalDisplayGrade;
+  const selectedLeg = finalDisplayMode === "AGGRESSIVE" ? aggressiveStrike : safeStrike;
+
+  return {
+    safeStrike,
+    aggressiveStrike,
+    finalDisplayMode,
+    finalDisplayGrade,
+    safeSelected: finalDisplayMode === "SAFE",
+    aggressiveSelected: finalDisplayMode === "AGGRESSIVE",
+    selectedLeg,
+    selectedYieldPct: selectedLeg?.weeklyYield ?? null,
+    selectedSpreadPct: selectedLeg?.liquidity?.spreadPct ?? null,
+    selectedPremium: selectedLeg?.premiumUsed ?? selectedLeg?.mid ?? null,
+  };
+}
+
 function IbkrMiniStrikeDetails({ title, strike }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
@@ -2841,6 +3261,51 @@ function IbkrMiniStrikeDetails({ title, strike }) {
       <p className="text-xs leading-5 text-slate-600">
         Spread {formatMoneyOrDash(strike?.spread)} / {formatIbkrPercent(strike?.spreadPct)} · Prime{" "}
         {formatMoneyOrDash(strike?.primeUsed)}
+      </p>
+    </div>
+  );
+}
+
+function IbkrMiniStrikeDetailsSelected({
+  title,
+  strike,
+  isSelected = false,
+  selectedGrade = null,
+  selectedMode = null,
+}) {
+  const selectedBorder = !isSelected
+    ? "border-slate-200"
+    : selectedGrade === "WATCH"
+    ? "border-amber-500 ring-2 ring-amber-300/55 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]"
+    : "border-emerald-500 ring-2 ring-emerald-300/55 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]";
+  const selectedBadgeClass = selectedGrade === "WATCH"
+    ? "border border-amber-300 bg-amber-50 text-amber-900"
+    : "border border-emerald-300 bg-emerald-50 text-emerald-800";
+  return (
+    <div className={cn("rounded-xl border bg-white/80 p-3", selectedBorder)}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">
+            Strike {formatStrikeOrDash(strike?.strike)}
+          </p>
+        </div>
+        {isSelected && (
+          <Badge className={cn("rounded-full px-2 py-0.5 text-[11px]", selectedBadgeClass)}>
+            Sélectionné{selectedGrade ? ` [${selectedGrade}]` : ""}
+          </Badge>
+        )}
+      </div>
+      <p className="mt-2 text-xs leading-5 text-slate-600">
+        Bid {formatMoneyOrDash(strike?.bid)} / Ask {formatMoneyOrDash(strike?.ask)} / Mid{" "}
+        {formatMoneyOrDash(strike?.mid)}
+      </p>
+      <p className="text-xs leading-5 text-slate-600">
+        Spread {formatMoneyOrDash(strike?.spread)} / {formatIbkrPercent(strike?.spreadPct)} · Prime{" "}
+        {formatMoneyOrDash(strike?.primeUsed)}
+      </p>
+      <p className="mt-2 text-[11px] leading-5 text-slate-500">
+        {`selected=${isSelected ? "true" : "false"} • mode=${selectedMode ?? "—"} • grade=${selectedGrade ?? "—"}`}
       </p>
     </div>
   );
@@ -3100,6 +3565,15 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
       yahooCandidate?.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil: yahooCandidate?.earningsDaysUntil ?? null,
   });
+  const finalDisplayRecommendation = getFinalDisplayRecommendation({
+    safeStrike: safeStrikeWithPop,
+    aggressiveStrike: aggressiveStrikeWithPop,
+    safeGrade: modeRecommendation.safeGrade,
+    aggressiveGrade: modeRecommendation.aggressiveGrade,
+    recommendedMode: modeRecommendation.recommendedMode,
+    recommendedGrade: modeRecommendation.recommendedGrade,
+    recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
+  });
   const ftqs = computeFinalTradeQualityScore({
     symbol,
     safeStrike: safeStrikeWithPop,
@@ -3172,7 +3646,15 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     aggressiveStrike: aggressiveStrikeWithPop,
     safeScore: modeRecommendation.safeScore,
     aggressiveOpportunityScore: modeRecommendation.aggressiveOpportunityScore,
+    safeGrade: modeRecommendation.safeGrade,
+    aggressiveGrade: modeRecommendation.aggressiveGrade,
+    safeRank: finalDisplayRecommendation.safeRank,
+    aggressiveRank: finalDisplayRecommendation.aggressiveRank,
+    finalRank: finalDisplayRecommendation.finalRank,
     recommendedMode: modeRecommendation.recommendedMode,
+    recommendedGrade: modeRecommendation.recommendedGrade,
+    finalDisplayMode: finalDisplayRecommendation.finalDisplayMode,
+    finalDisplayGrade: finalDisplayRecommendation.finalDisplayGrade,
     recommendedReason: modeRecommendation.recommendedReason,
     recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
     finalTradeQualityScore: ftqs.finalTradeQualityScore,
@@ -3598,6 +4080,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
   const ibkrSpreadClass = classifySpreadPctPercent(item.ibkrSpreadPct);
   const hasIbkrSpread = normalizedIbkrSpreadPctPercent(item.ibkrSpreadPct) != null;
   const ibkrActionability = getIbkrActionabilityStatus(item);
+  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const tickerMeta = getTickerDisplayMeta(item.ticker);
   const tierStyle = QUALITY_TIER_STYLE[tickerMeta.qualityTier] ?? QUALITY_TIER_STYLE["Inconnu à valider"];
   const resolvedName =
@@ -3607,6 +4090,11 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
     item.shortName ??
     (item.name !== item.ticker ? item.name : null) ??
     null;
+  const displayLeg = finalDisplayMode === "AGGRESSIVE" ? item.aggressiveStrike : item.safeStrike;
+  const displayYield = (displayLeg?.weeklyYield != null && Number(displayLeg.weeklyYield) > 0)
+    ? Number(displayLeg.weeklyYield)
+    : (item.weeklyReturn != null && Number(item.weeklyReturn) > 0 ? Number(item.weeklyReturn) : null);
+  const displayDistance = displayLeg?.distancePct ?? item.strikeDistance;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -3701,17 +4189,34 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
               {/* Ligne 2 : sous-titre setup */}
               <p className="text-xs text-slate-400 leading-tight">{item.setup}</p>
 
-              {/* Ligne 3 : mode recommandé */}
-              {item.recommendedMode === "AGGRESSIVE" ? (
+              {/* Ligne 3 : mode recommandé + grade */}
+              {finalDisplayMode === "REJECT" ? (
+                <p className="text-xs text-rose-400 leading-tight">
+                  Mode : <span className="font-semibold">REJECT</span> — {item.recommendedReason}
+                </p>
+              ) : finalDisplayGrade === "WATCH" ? (
+                <p className="text-xs text-amber-300 leading-tight">
+                  Mode : <span className="font-semibold">{finalDisplayMode}</span>{" "}
+                  <span className="text-amber-400">[WATCH]</span> — {item.recommendedReason}
+                </p>
+              ) : finalDisplayMode === "AGGRESSIVE" ? (
                 <p className="text-xs text-emerald-300 leading-tight">
-                  Mode recommandé : AGGRESSIVE — {item.recommendedReason}
+                  Mode : <span className="font-semibold">AGGRESSIVE</span>
+                  {finalDisplayGrade ? ` [${finalDisplayGrade}]` : ""} — {item.recommendedReason}
                 </p>
               ) : (
                 <p className="text-xs text-emerald-400 leading-tight">
-                  Mode recommandé : SAFE
+                  Mode : <span className="font-semibold">SAFE</span>
+                  {finalDisplayGrade ? ` [${finalDisplayGrade}]` : ""}
+                  {item.recommendedReason && item.recommendedReason !== "SAFE — meilleur compromis risque/liquidité" ? ` — ${item.recommendedReason}` : ""}
                 </p>
               )}
 
+              {item.ticker === "APLD" && (
+                <p className="text-[11px] leading-tight text-sky-300">
+                  APLD debug • safeGrade {item.safeGrade ?? "—"} • aggressiveGrade {item.aggressiveGrade ?? "—"} • safeRank {item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"} • aggressiveRank {item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"} • finalRank {item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"} • finalDisplayMode {item.finalDisplayMode ?? finalDisplayMode ?? "—"} • finalDisplayGrade {item.finalDisplayGrade ?? finalDisplayGrade ?? "—"}
+                </p>
+              )}
               {/* Earnings si présent */}
               {earningsDisplay ? (
                 <p className="text-xs text-amber-300 leading-tight">{earningsDisplay}</p>
@@ -3761,26 +4266,13 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   tone="bad"
                 />
                 <FaceplateMetric
-                  label="Rendement période"
-                  value={
-                    item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn))
-                      ? `${Number(item.weeklyReturn).toFixed(2)}%`
-                      : "—"
-                  }
-                  sub={item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn)) ? "jusqu'à expiration" : null}
-                  strong={
-                    Number.isFinite(Number(item.weeklyReturn)) &&
-                    Number(item.weeklyReturn) >= 0.5
-                  }
-                  tone={
-                    !Number.isFinite(Number(item.weeklyReturn))
-                      ? "default"
-                      : Number(item.weeklyReturn) >= 0.5
-                      ? "good"
-                      : "bad"
-                  }
+                  label={`Rendement${finalDisplayMode === "AGGRESSIVE" ? " (agressif)" : ""}`}
+                  value={displayYield != null ? `${displayYield.toFixed(2)}%` : "—"}
+                  sub={displayYield != null ? "jusqu'à expiration" : null}
+                  strong={displayYield != null && displayYield >= 0.5}
+                  tone={displayYield == null ? "default" : displayYield >= 0.5 ? "good" : "bad"}
                 />
-                <FaceplateMetric label="Distance strike" value={`${item.strikeDistance.toFixed(1)}%`} />
+                <FaceplateMetric label="Distance strike" value={Number.isFinite(Number(displayDistance)) ? `${Number(displayDistance).toFixed(1)}%` : "—"} />
                 <FaceplateMetric label="Sem. cible" value={`${item.targetWeeks ?? 1}`} />
                 <FaceplateMetric
                   label="DTE"
@@ -4214,6 +4706,123 @@ function getSafeSpreadPct(item) {
   );
 }
 
+function getAggressiveSpreadPct(card) {
+  return normalizedIbkrSpreadPctPercent(
+    card?.aggressiveStrike?.liquidity?.spreadPct ??
+    card?.aggressiveStrike?.spreadPct
+  );
+}
+
+function getCreamQualityScore(card) {
+  const meta = getTickerDisplayMeta(String(card?.ticker ?? "").toUpperCase());
+  let score = 0;
+  const TIER_PTS = {
+    "Core Quality": 30, "Cyclique": 22, "Spéculatif favori": 18,
+    "Thématique risqué": 12, "Inconnu à valider": 5, "Crypto bloqué": 0,
+  };
+  score += TIER_PTS[meta.qualityTier] ?? 5;
+  const safe = getSafeSpreadPct(card);
+  const agg = getAggressiveSpreadPct(card);
+  const spreadValues = [safe, agg].filter((v) => Number.isFinite(v));
+  const sp = spreadValues.length ? Math.min(...spreadValues) : null;
+  if (sp == null || sp > 80) score += 0;
+  else if (sp > 50) score += 2;
+  else if (sp > 35) score += 8;
+  else if (sp > 25) score += 15;
+  else if (sp > 15) score += 20;
+  else score += 25;
+  const dist = Number(card?.safeStrike?.distancePct ?? NaN);
+  if (Number.isFinite(dist)) {
+    if (dist <= -15) score += 20;
+    else if (dist <= -10) score += 17;
+    else if (dist <= -7) score += 13;
+    else if (dist <= -5) score += 8;
+    else score += 3;
+  }
+  const wr = Number(card?.weeklyReturn ?? 0);
+  if (wr >= 1.0) score += 15;
+  else if (wr >= 0.75) score += 12;
+  else if (wr >= 0.50) score += 9;
+  else score += 3;
+  let tech = 5;
+  const rsi = Number(card?.rsi);
+  if (Number.isFinite(rsi) && rsi > 75) tech -= 4;
+  if (card?.hasUpcomingEarningsBeforeExpiration === true || card?.hasEarningsBeforeExpiration === true) tech -= 5;
+  if (
+    card?.safeStrike?.strike != null &&
+    card?.aggressiveStrike?.strike != null &&
+    card.safeStrike.strike === card.aggressiveStrike.strike &&
+    (sp == null || sp > 15)
+  ) tech -= 2;
+  score += Math.max(0, Math.min(10, tech));
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function getCreamQualityBucket(card) {
+  const meta = getTickerDisplayMeta(String(card?.ticker ?? "").toUpperCase());
+  const safe = getSafeSpreadPct(card);
+  const agg = getAggressiveSpreadPct(card);
+  const wr = Number(card?.weeklyReturn ?? 0);
+  const dist = Number(card?.safeStrike?.distancePct ?? NaN);
+  const hasEarnings =
+    card?.hasUpcomingEarningsBeforeExpiration === true ||
+    card?.hasEarningsBeforeExpiration === true;
+  const rsi = Number(card?.rsi);
+
+  if (meta.isCryptoBlocked && !meta.isCryptoAllowed) {
+    return { bucket: "cryptoBlocked", label: "Crypto bloqués / exclus", reasons: ["crypto non autorisé stratégie Wheel"] };
+  }
+  if (meta.qualityTier === "Inconnu à valider") {
+    return { bucket: "unknownReview", label: "Inconnus à valider", reasons: ["Ajouter à tickerMeta.js pour le classer"] };
+  }
+  if ((safe != null && safe > 80) || (agg != null && agg > 80)) {
+    const worst = Math.max(safe ?? 0, agg ?? 0);
+    return { bucket: "spreadRejected", label: "Rejetés pour spread", reasons: [`spread extrême ${worst.toFixed(0)}%`] };
+  }
+  const { finalDisplayMode: mode, finalDisplayGrade: recGrade } = getFinalDisplayRecommendation(card);
+  const isTopGrade = (mode === "SAFE" || mode === "AGGRESSIVE") && (recGrade === "A" || recGrade === "B");
+  const isWatchable = (mode === "SAFE" || mode === "AGGRESSIVE") && recGrade === "WATCH";
+
+  if (isTopGrade) {
+    const reasons = [];
+    const activeSpread = mode === "AGGRESSIVE" ? agg : safe;
+    if (activeSpread != null) {
+      if (activeSpread <= 10) reasons.push("spread excellent");
+      else if (activeSpread <= 20) reasons.push("spread acceptable");
+      else reasons.push("spread limite");
+    }
+    reasons.push(`grade ${recGrade}`);
+    if (mode === "AGGRESSIVE") reasons.push("mode agressif");
+    return { bucket: "topExecutable", label: "Top exécutables", reasons };
+  }
+  if (meta.isFavorite) {
+    const reasons = [];
+    if (safe != null && safe > 20) reasons.push(`spread safe ${safe.toFixed(0)}%`);
+    if (Number.isFinite(rsi) && rsi > 75) reasons.push(`RSI ${rsi.toFixed(0)}`);
+    if (hasEarnings) reasons.push("earnings avant expiration");
+    if (wr < 0.50) reasons.push("rendement insuffisant");
+    if (Number.isFinite(dist) && dist > -5) reasons.push("distance trop proche");
+    if (mode === "REJECT") reasons.push("rejeté spread/liquidité");
+    else if (isWatchable) reasons.push("à surveiller");
+    return { bucket: "favoriteWatch", label: "Favoris surveillés", reasons: reasons.length ? reasons : ["favori à surveiller"] };
+  }
+  if (isWatchable) {
+    const reasons = [];
+    const activeSpread = mode === "AGGRESSIVE" ? agg : safe;
+    if (activeSpread != null && activeSpread > 20) reasons.push(`spread ${activeSpread.toFixed(0)}%`);
+    if (Number.isFinite(dist) && dist > -5) reasons.push("distance trop proche");
+    if (wr < 0.40) reasons.push("rendement insuffisant");
+    if (hasEarnings) reasons.push("earnings");
+    return { bucket: "watchOnly", label: "Autres à surveiller", reasons: reasons.length ? reasons : ["conditions à surveiller"] };
+  }
+  const reasons = [];
+  if (safe != null && safe > 20) reasons.push(`spread safe ${safe.toFixed(0)}%`);
+  if (agg != null && agg > 20) reasons.push(`spread agressif ${agg.toFixed(0)}%`);
+  if (wr < 0.40) reasons.push("rendement insuffisant");
+  if (hasEarnings) reasons.push("earnings");
+  return { bucket: "watchOnly", label: "Autres à surveiller", reasons: reasons.length ? reasons : ["conditions non réunies"] };
+}
+
 function classifySpreadPctPercent(raw) {
   const pct = normalizedIbkrSpreadPctPercent(raw);
   if (pct == null) {
@@ -4439,46 +5048,28 @@ function sortByLiveActionability(a, b) {
 
 function getIbkrActionabilityStatus(item) {
   if (!item || typeof item !== "object") {
-    return {
-      label: "À surveiller",
-      tone: "warn",
-      className: "border-amber-200 bg-amber-50 text-amber-900",
-    };
+    return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
+  }
+  const { finalDisplayMode: mode, finalDisplayGrade: grade } = getFinalDisplayRecommendation(item);
+  if (mode === "REJECT" || mode === "SAFE" || mode === "AGGRESSIVE") {
+    if (mode === "REJECT") {
+      return { label: "Non actionnable", tone: "bad", className: "border-rose-200 bg-rose-50 text-rose-700" };
+    }
+    if (grade === "A" || grade === "B") {
+      return { label: "Actionnable", tone: "good", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+    }
+    if (grade === "WATCH") {
+      return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
+    }
+    return { label: "Non actionnable", tone: "bad", className: "border-rose-200 bg-rose-50 text-rose-700" };
   }
   const profile = getIbkrActionabilityProfile(item);
   if (!profile || typeof profile !== "object") {
-    return {
-      label: "À surveiller",
-      tone: "warn",
-      className: "border-amber-200 bg-amber-50 text-amber-900",
-    };
+    return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
   }
-  if (profile.bucket === 2) {
-    return {
-      label: "Non actionnable",
-      tone: "bad",
-      className: "border-rose-200 bg-rose-50 text-rose-700",
-    };
-  }
-  if (profile.bucket === 1) {
-    return {
-      label: "À surveiller",
-      tone: "warn",
-      className: "border-amber-200 bg-amber-50 text-amber-900",
-    };
-  }
-  if (profile.bucket === 0) {
-    return {
-      label: "Actionnable",
-      tone: "good",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    };
-  }
-  return {
-    label: "À surveiller",
-    tone: "warn",
-    className: "border-amber-200 bg-amber-50 text-amber-900",
-  };
+  if (profile.bucket === 2) return { label: "Non actionnable", tone: "bad", className: "border-rose-200 bg-rose-50 text-rose-700" };
+  if (profile.bucket === 0) return { label: "Actionnable", tone: "good", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
 }
 
 function getRetainedNotDisplayedReason(item, displayedCutoffScore) {
@@ -5226,34 +5817,54 @@ function IbkrDirectScanPanel({
 
             <div className="space-y-3">
               <p className="font-semibold text-slate-900">Retenus IBKR total — bassin testé</p>
-              {shortlist.map((item) => (
-                <div key={`ibkr-direct-${item.symbol}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="text-lg font-semibold text-slate-900">{item.symbol}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Spot {formatMoneyOrDash(item.currentPrice ?? item.underlyingPrice)} · Borne basse{" "}
-                        {formatMoneyOrDash(item.lowerBound)} · Prime cible {formatMoneyOrDash(item.targetPremium)}
+              {shortlist.map((item) => {
+                const viewModel = buildIbkrRetainedViewModel(item);
+                const selectedSpreadDisplay =
+                  viewModel.selectedSpreadPct == null
+                    ? "—"
+                    : `${Number(viewModel.selectedSpreadPct).toFixed(2)}%`;
+                return (
+                  <div key={`ibkr-direct-${item.symbol}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="text-lg font-semibold text-slate-900">{item.symbol}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Spot {formatMoneyOrDash(item.currentPrice ?? item.underlyingPrice)} · Borne basse{" "}
+                          {formatMoneyOrDash(item.lowerBound)} · Prime cible {formatMoneyOrDash(item.targetPremium)}
+                        </p>
+                      </div>
+                      <div className="text-sm font-medium text-slate-700">
+                        Mode {viewModel.finalDisplayMode} {viewModel.finalDisplayGrade ? `[${viewModel.finalDisplayGrade}]` : ""} · Yield{" "}
+                        {viewModel.selectedYieldPct == null ? "—" : `${Number(viewModel.selectedYieldPct).toFixed(2)}%`} · Spread{" "}
+                        {selectedSpreadDisplay} · Prime {formatMoneyOrDash(viewModel.selectedPremium)}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <IbkrMiniStrikeDetailsSelected
+                        title="Safe IBKR"
+                        strike={item.safeStrike}
+                        isSelected={viewModel.safeSelected}
+                        selectedGrade={viewModel.safeSelected ? viewModel.finalDisplayGrade : null}
+                        selectedMode={viewModel.finalDisplayMode}
+                      />
+                      <IbkrMiniStrikeDetailsSelected
+                        title="Agressif IBKR"
+                        strike={item.aggressiveStrike}
+                        isSelected={viewModel.aggressiveSelected}
+                        selectedGrade={viewModel.aggressiveSelected ? viewModel.finalDisplayGrade : null}
+                        selectedMode={viewModel.finalDisplayMode}
+                      />
+                    </div>
+
+                    {Array.isArray(item.qualityReasons) && item.qualityReasons.length > 0 && (
+                      <p className="mt-3 text-xs leading-5 text-slate-600">
+                        {item.qualityReasons.filter(Boolean).join(" · ")}
                       </p>
-                    </div>
-                    <div className="text-sm font-medium text-slate-700">
-                      Yield {formatIbkrPercent(item.weeklyYield)} · Spread {formatIbkrPercent(item.spreadPct)} · Prime{" "}
-                      {formatMoneyOrDash(item.premiumUsed)}
-                    </div>
+                    )}
                   </div>
-
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    <IbkrMiniStrikeDetails title="Safe IBKR" strike={item.safeStrike} />
-                    <IbkrMiniStrikeDetails title="Agressif IBKR" strike={item.aggressiveStrike} />
-                  </div>
-
-                  {Array.isArray(item.qualityReasons) && item.qualityReasons.length > 0 && (
-                    <p className="mt-3 text-xs leading-5 text-slate-600">
-                      {item.qualityReasons.filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {shortlist.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
                   Aucun candidat IBKR direct retenu (mode LIVE).
@@ -5335,7 +5946,172 @@ function IbkrDirectScanPanel({
   );
 }
 
+// Buckets affichés dans le panneau principal — cryptoBlocked exclu intentionnellement.
+const CREAM_BUCKET_ORDER = [
+  "topExecutable", "favoriteWatch", "watchOnly",
+  "unknownReview", "spreadRejected",
+];
+
+const CREAM_BUCKET_CONFIG = {
+  topExecutable:  { label: "Top exécutables",     border: "border-emerald-700", bg: "bg-emerald-950/20", text: "text-emerald-300", countBadge: "bg-emerald-900/60 text-emerald-200", tag: "bg-emerald-900 text-emerald-200" },
+  favoriteWatch:  { label: "Favoris surveillés",  border: "border-amber-600",   bg: "bg-amber-950/20",   text: "text-amber-300",   countBadge: "bg-amber-900/60 text-amber-200",   tag: "bg-amber-900 text-amber-200" },
+  watchOnly:      { label: "Autres à surveiller", border: "border-slate-500",   bg: "bg-slate-900/20",   text: "text-slate-400",   countBadge: "bg-slate-800/60 text-slate-300",   tag: "bg-slate-800 text-slate-300" },
+  unknownReview:  { label: "Inconnus à valider",  border: "border-slate-600",   bg: "bg-slate-800/20",   text: "text-slate-300",   countBadge: "bg-slate-700/60 text-slate-200",   tag: "bg-slate-700 text-slate-300" },
+  spreadRejected: { label: "Rejetés pour spread", border: "border-orange-700",  bg: "bg-orange-950/20",  text: "text-orange-300",  countBadge: "bg-orange-900/60 text-orange-200", tag: "bg-orange-900 text-orange-200" },
+};
+
+const CREAM_BUCKET_ICON = {
+  topExecutable: "🏆", favoriteWatch: "⭐", watchOnly: "👁",
+  unknownReview: "❓", spreadRejected: "⚠",
+};
+
+// Sections sans carte complète — affichage compact uniquement.
+const CREAM_COMPACT_BUCKETS = new Set(["unknownReview", "spreadRejected"]);
+
+function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail }) {
+  const [openBuckets, setOpenBuckets] = useState(() => new Set(["topExecutable", "favoriteWatch", "watchOnly"]));
+
+  const classified = useMemo(() => {
+    // cryptoBlocked initialisé mais non rendu — évite un crash sur .push()
+    const groups = Object.fromEntries([...CREAM_BUCKET_ORDER, "cryptoBlocked"].map(b => [b, []]));
+    items.forEach((item) => {
+      const info = getCreamQualityBucket(item);
+      const score = getCreamQualityScore(item);
+      groups[info.bucket].push({ item, info, score });
+    });
+    CREAM_BUCKET_ORDER.forEach(b => groups[b].sort((a, z) => z.score - a.score));
+    return groups;
+  }, [items]);
+
+  if (!items.length) return null;
+
+  const visibleCount = items.length - (classified.cryptoBlocked?.length ?? 0);
+
+  const toggle = (b) => setOpenBuckets(prev => {
+    const next = new Set(prev);
+    next.has(b) ? next.delete(b) : next.add(b);
+    return next;
+  });
+
+  return (
+    <div className="rounded-[12px] border border-[#1e3a52] bg-[#020811] overflow-hidden shadow-[0_0_0_1px_rgba(80,140,180,0.08)]">
+      <div className="flex items-center gap-2 border-b border-[#172637] px-4 py-3">
+        <Layers3 className="h-4 w-4 text-amber-400 shrink-0" />
+        <span className="text-sm font-bold text-slate-100">Classement Crème de la crème</span>
+        <span className="ml-1 rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+          {visibleCount} admissibles
+        </span>
+      </div>
+
+      <div className="divide-y divide-[#172637]">
+        {CREAM_BUCKET_ORDER.map((bucket) => {
+          const group = classified[bucket];
+          if (!group.length) return null;
+          const cfg = CREAM_BUCKET_CONFIG[bucket];
+          const isOpen = openBuckets.has(bucket);
+          const isCompact = CREAM_COMPACT_BUCKETS.has(bucket);
+          return (
+            <div key={bucket}>
+              <button
+                onClick={() => toggle(bucket)}
+                className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/5"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{CREAM_BUCKET_ICON[bucket]}</span>
+                  <span className={`text-sm font-semibold ${cfg.text}`}>{cfg.label}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cfg.countBadge}`}>
+                    {group.length}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500">{isOpen ? "▲" : "▼"}</span>
+              </button>
+
+              {isOpen && isCompact && (
+                <div className={`divide-y divide-[#172637] ${cfg.bg}`}>
+                  {bucket === "unknownReview" && (
+                    <p className="px-4 py-2 text-xs italic text-slate-500">
+                      Ajouter ces tickers à tickerMeta.js pour les classer, ou les exclure.
+                    </p>
+                  )}
+                  {group.map(({ item }) => {
+                    const sym = String(item?.ticker ?? "").toUpperCase();
+                    const safeSpread = getSafeSpreadPct(item);
+                    const aggSpread = getAggressiveSpreadPct(item);
+                    return (
+                      <div key={sym} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-xs">
+                        <span className="shrink-0 font-mono font-bold text-slate-200">{sym}</span>
+                        {bucket === "unknownReview" && (
+                          <>
+                            <span className="italic text-slate-500">Nom indisponible</span>
+                            <span className="text-slate-600">·</span>
+                            <span className="italic text-slate-600">secteur non renseigné</span>
+                            <span className="ml-auto rounded bg-slate-800 px-1.5 py-0.5 text-slate-500">
+                              à ajouter dans tickerMeta.js
+                            </span>
+                          </>
+                        )}
+                        {bucket === "spreadRejected" && (
+                          <>
+                            {safeSpread != null && (
+                              <span className="text-orange-400">safe {safeSpread.toFixed(0)}%</span>
+                            )}
+                            {aggSpread != null && (
+                              <span className="text-orange-400">agg {aggSpread.toFixed(0)}%</span>
+                            )}
+                            <span className="italic text-slate-500">spread trop large</span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {isOpen && !isCompact && (
+                <div className={`space-y-3 px-3 pb-3 pt-1 ${cfg.bg}`}>
+                  {group.map(({ item, info, score }, idx) => {
+                    const sym = String(item?.ticker ?? "").toUpperCase();
+                    return (
+                      <div key={sym} className="rounded-[8px] overflow-hidden">
+                        <div
+                          className={`flex flex-wrap items-center gap-1.5 border ${cfg.border} border-b-0 rounded-t-[8px] bg-[#020811] px-3 py-1.5`}
+                        >
+                          <span className="shrink-0 text-xs text-slate-400">Score crème</span>
+                          <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${cfg.tag}`}>
+                            {score}/100
+                          </span>
+                          <span className={`rounded px-1.5 py-0.5 text-xs ${cfg.tag}`}>
+                            {cfg.label.split(" ")[0]}
+                          </span>
+                          {info.reasons.slice(0, 3).map((r, i) => (
+                            <span key={i} className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400">
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                        <CandidateCard
+                          item={item}
+                          displayRank={idx + 1}
+                          yahooRankForIbkr={yahooRankForIbkrBySymbol.get(sym)}
+                          onOpenDetail={onOpenDetail}
+                          ibkrBatchRow={ibkrBatchByTicker.get(sym) ?? null}
+                          seasonality={seasonalityMap[sym] ?? null}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DetailModal({ item, onClose }) {
+  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const [loading, setLoading] = useState(false);
   const [liveData, setLiveData] = useState(null);
   const [error, setError] = useState("");
@@ -5711,6 +6487,12 @@ function DetailModal({ item, onClose }) {
                 Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
               }
                 liquidity={item.safeStrike.liquidity}
+                isSelected={finalDisplayMode === "SAFE"}
+                selectedGrade={finalDisplayMode === "SAFE" ? finalDisplayGrade : null}
+                recommendedMode={finalDisplayMode}
+                recommendedGrade={finalDisplayGrade}
+                recommendationDiagnostics={item.recommendationDiagnostics}
+                legKey="safe"
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
@@ -5742,6 +6524,12 @@ function DetailModal({ item, onClose }) {
                 Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
               }
                 liquidity={item.aggressiveStrike.liquidity}
+                isSelected={finalDisplayMode === "AGGRESSIVE"}
+                selectedGrade={finalDisplayMode === "AGGRESSIVE" ? finalDisplayGrade : null}
+                recommendedMode={finalDisplayMode}
+                recommendedGrade={finalDisplayGrade}
+                recommendationDiagnostics={item.recommendationDiagnostics}
+                legKey="aggressive"
               />
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
@@ -6339,7 +7127,11 @@ export default function Dashboard() {
     );
   }, [filtered, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
 
-  const tickersForScan = watchlistTickers ?? FALLBACK_TICKERS;
+  const _rawWatchlist = watchlistTickers ?? FALLBACK_TICKERS;
+  const tickersForScan = _rawWatchlist.filter(
+    (t) => !USER_PREFS.cryptoBlocked.has(String(t || "").trim().toUpperCase())
+  );
+  const cryptoRemovedFromWatchlistCount = _rawWatchlist.length - tickersForScan.length;
   const ibkrDirectTickers = useMemo(
     () => [...new Set((tickersForScan || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))],
     [tickersForScan]
@@ -6419,14 +7211,29 @@ export default function Dashboard() {
     if (!scores.length) return null;
     return Math.min(...scores);
   }, [backendCandidates]);
+  const ibkrAnyContactSymbols = useMemo(() => {
+    const set = new Set();
+    const add = (sym) => { const s = String(sym || "").trim().toUpperCase(); if (s) set.add(s); };
+    for (const t of ibkrDirectSentTickers || []) add(t);
+    for (const row of ibkrDirectResult?.shortlist || []) add(row?.symbol);
+    for (const row of ibkrDirectResult?.rejected || []) add(row?.symbol);
+    for (const row of backendCandidates || []) add(row?.ticker ?? row?.symbol);
+    for (const row of ibkrAutoRankDiagnostics || []) add(row?.symbol);
+    for (const item of filtered || []) add(item?.ticker);
+    return set;
+  }, [ibkrDirectSentTickers, ibkrDirectResult, backendCandidates, ibkrAutoRankDiagnostics, filtered]);
+
   const yahooNonSentCandidates = useMemo(() => {
     const offset = ibkrTestedCount > 0
       ? ibkrTestedCount
       : Math.min(Number(ibkrAutoMaxTickers) || 20, 120);
     return (yahooReturnedCandidates || [])
       .slice(offset, 30)
-      .filter((item) => !ibkrSentSet.has(String(item?.ticker || "").trim().toUpperCase()));
-  }, [yahooReturnedCandidates, ibkrSentSet, ibkrTestedCount, ibkrAutoMaxTickers]);
+      .filter((item) => {
+        const sym = String(item?.ticker || item?.symbol || "").trim().toUpperCase();
+        return sym !== "" && !ibkrAnyContactSymbols.has(sym);
+      });
+  }, [yahooReturnedCandidates, ibkrAnyContactSymbols, ibkrTestedCount, ibkrAutoMaxTickers]);
   const sofiDiagnostic = useMemo(() => {
     const watchlist = Array.isArray(tickersForScan) ? tickersForScan : [];
     const watchlistIndex = watchlist.findIndex((t) => String(t || "").trim().toUpperCase() === "SOFI");
@@ -7697,14 +8504,21 @@ export default function Dashboard() {
         icon: Search,
       },
       {
-        title: "Cartes affichées",
+        title: "Retenus IBKR",
         value: String(filtered.length),
-        sub:
-          dataSource === "ibkr_direct"
-            ? `${scanMeta.returned} cartes finales (retenus IBKR total: ${primaryIbkrSourceInfo?.totalKeptCollected ?? scanMeta.returned})`
+        sub: (() => {
+          const blocked = filtered.filter(it => {
+            const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
+            return m.isCryptoBlocked && !m.isCryptoAllowed;
+          }).length;
+          const admis = filtered.length - blocked;
+          if (blocked > 0) return `${admis} admissibles · ${blocked} crypto masqués`;
+          return dataSource === "ibkr_direct"
+            ? `${scanMeta.returned} retenus IBKR`
             : dataSource === "backend"
             ? `${scanMeta.kept} retenus backend`
-            : "snapshot local",
+            : "snapshot local";
+        })(),
         icon: ShieldCheck,
       },
       {
@@ -7927,13 +8741,27 @@ export default function Dashboard() {
               <summary className="cursor-pointer font-semibold text-slate-900">Résumé du funnel</summary>
               <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
               <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
+              <Metric
+                label="Cryptos supprimées watchlist"
+                value={String(cryptoRemovedFromWatchlistCount)}
+                tone={cryptoRemovedFromWatchlistCount > 0 ? "warn" : "default"}
+              />
               <Metric label="Yahoo retenus" value={String(yahooScanMeta.kept || 0)} />
               <Metric label="Yahoo retournés" value={String(yahooReturnedCount)} />
               <Metric label="Objectif cartes finales" value={String(ibkrFinalTarget)} />
               <Metric label="IBKR testés" value={String(ibkrTestedCount)} />
               <Metric label="Envoyés à IBKR" value={String(ibkrSentCount)} />
               <Metric label="Retenus IBKR total" value={String(ibkrTotalKeptCollected)} />
-              <Metric label="Cartes finales affichées" value={String(Math.min(ibkrFinalTarget, ibkrTotalKeptCollected))} />
+              <Metric
+                label="Admissibles panneau crème"
+                value={String(
+                  filtered.length -
+                  filtered.filter(it => {
+                    const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
+                    return m.isCryptoBlocked && !m.isCryptoAllowed;
+                  }).length
+                )}
+              />
               <Metric label="Retenus non affichés après tri" value={String(ibkrRetainedNotDisplayed)} tone={ibkrRetainedNotDisplayed > 0 ? "warn" : "default"} />
               <Metric label="Rejetés IBKR" value={String(ibkrRejectedCount)} />
               <Metric label="Rejetés remplacés" value={String(ibkrRejectedReplaced)} tone={ibkrRejectedReplaced ? "warn" : "default"} />
@@ -7951,7 +8779,7 @@ export default function Dashboard() {
               <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Lecture visuelle seulement : actionnable = spread safe ≤ 10 % sans earnings avant expiration.
+              Lecture visuelle seulement : actionnable = finalDisplayMode SAFE/AGGRESSIVE avec finalDisplayGrade A/B.
             </p>
             {ibkrDirectResult?.progressiveAutoIbkr && ibkrTotalKeptCollected < ibkrFinalTarget && (
               <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
@@ -8030,21 +8858,20 @@ export default function Dashboard() {
               <p className="mt-2 text-slate-500">
                 Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
               </p>
+            ) : yahooNonSentCandidates.length === 0 ? (
+              <p className="mt-2 text-slate-500">
+                Aucun candidat Yahoo prioritaire non envoyé à IBKR.
+              </p>
             ) : (
               <div className="mt-2 space-y-1">
                 {yahooNonSentCandidates.map((item) => (
-                  <div key={`yahoo-not-sent-${item.ticker}`}>
-                    Rang Yahoo #{item.rank} · {item.ticker} · qualité {item.qualityScore ?? "—"} · RSI{" "}
+                  <div key={`yahoo-not-sent-${item.ticker ?? item.symbol}`}>
+                    Rang Yahoo #{item.rank} · {item.ticker ?? item.symbol} · qualité {item.qualityScore ?? "—"} · RSI{" "}
                     {item.rsi ?? "—"}
                   </div>
                 ))}
               </div>
             )}
-            <div className={cn("mt-3 rounded-xl border px-3 py-2", sofiDiagnostic.sent ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900")}>
-              SOFI : {sofiDiagnostic.inWatchlist ? `watchlist #${sofiDiagnostic.watchlistRank}` : "absent de la watchlist actuelle"} ·{" "}
-              {sofiDiagnostic.inYahoo ? `Yahoo #${sofiDiagnostic.yahooRank}` : "absent de la shortlist Yahoo retournée"} ·{" "}
-              {sofiDiagnostic.statusText}
-            </div>
             </details>
           </div>
         )}
@@ -8634,23 +9461,24 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4 px-2 py-3 md:px-3">
-                {filtered.map((item, index) => (
-                  <CandidateCard
-                    key={`${item.ticker}-${item.setup}`}
-                    item={item}
-                    displayRank={index + 1}
-                    yahooRankForIbkr={yahooRankForIbkrBySymbol.get(String(item?.ticker || "").trim().toUpperCase())}
-                    onOpenDetail={setSelectedItem}
-                    ibkrBatchRow={ibkrBatchByTicker.get(String(item?.ticker || "").trim().toUpperCase()) || null}
-                    seasonality={seasonalityMap[String(item?.ticker ?? "").toUpperCase()] ?? null}
-                  />
-                ))}
-
-                {filtered.length === 0 && (
+              <CardContent className="px-2 py-3 md:px-3">
+                {filtered.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">
                     Aucun résultat avec ce filtre.
                   </div>
+                ) : (
+                  <>
+                    <CremeDeLaCremePanel
+                      items={filtered}
+                      ibkrBatchByTicker={ibkrBatchByTicker}
+                      yahooRankForIbkrBySymbol={yahooRankForIbkrBySymbol}
+                      seasonalityMap={seasonalityMap}
+                      onOpenDetail={setSelectedItem}
+                    />
+                    <p className="mt-3 px-1 text-xs text-slate-500">
+                      Les cryptos exclus sont masqués du classement principal. Ils ne sont pas encore remplacés automatiquement par les prochains candidats Yahoo.
+                    </p>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -8687,10 +9515,33 @@ export default function Dashboard() {
                         : "snapshot"}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-slate-500">Candidats affichés</span>
-                    <span className="font-semibold text-slate-900">{filtered.length}</span>
-                  </div>
+                  {(() => {
+                    const cryptoCount = filtered.filter(it => {
+                      const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
+                      return m.isCryptoBlocked && !m.isCryptoAllowed;
+                    }).length;
+                    const admis = filtered.length - cryptoCount;
+                    return (
+                      <>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-slate-500">Retenus IBKR total</span>
+                          <span className="font-semibold text-slate-900">{filtered.length}</span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-slate-500">Admissibles panneau crème</span>
+                          <span className="font-semibold text-slate-900">{admis}</span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-slate-500">Exclus crypto masqués</span>
+                          <span className="font-semibold text-slate-900">{cryptoCount}</span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-slate-500">Non remplacés après exclusion</span>
+                          <span className="font-semibold text-amber-600">{cryptoCount}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Scannés backend</span>
                     <span className="font-semibold text-slate-900">{scanMeta.scanned}</span>

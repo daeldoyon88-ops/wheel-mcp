@@ -19,13 +19,20 @@ import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
 
-const DEFAULT_EXPIRATIONS = [
-  "2026-04-24",
-  "2026-05-01",
-  "2026-05-08",
-  "2026-05-15",
-  "2026-05-22",
-];
+function nextNFridays(n = 6) {
+  const fridays = [];
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  while (fridays.length < n) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() === 5) {
+      fridays.push(d.toISOString().slice(0, 10));
+    }
+  }
+  return fridays;
+}
+
+const DEFAULT_EXPIRATIONS = nextNFridays(6);
 const DEBUG_COMPARE = true;
 
 /** Liste statique conservée uniquement en secours si /universe/build échoue ou est indisponible. */
@@ -2118,6 +2125,11 @@ function FaceplateStrikeColumn({ title, tone = "safe", strikeData, fallbackDte }
   const popProfitNumber = Number(strikeData.popProfitEstimated ?? strikeData.popEstimate);
   const popOtmNumber = Number(strikeData.popOtmEstimated);
   const dteNumber = Number(strikeData.dteDays ?? fallbackDte);
+  const rend7j =
+    Number.isFinite(dteNumber) && dteNumber > 0 && Number.isFinite(weeklyNormalizedYieldNumber) && weeklyNormalizedYieldNumber > 0
+      ? weeklyNormalizedYieldNumber
+      : null;
+  const annualise7j = rend7j != null ? rend7j * 52 : null;
   const spreadClass = classifySpreadPctPercent(strikeData.liquidity?.spreadPct);
   const accent = tone === "safe" ? "text-[#00c8ff]" : "text-[#e052ff]";
   const border = tone === "safe" ? "border-[#12354a]" : "border-[#3b1a4a]";
@@ -2144,6 +2156,22 @@ function FaceplateStrikeColumn({ title, tone = "safe", strikeData, fallbackDte }
       tone: "text-[#21ff7a]",
       strong: true,
     },
+    ...(rend7j != null
+      ? [
+          {
+            label: "Rend. 7J",
+            value: `${rend7j.toFixed(2)}%`,
+            tone: "text-[#21ff7a]",
+            strong: true,
+          },
+          {
+            label: "Annualisé 7J",
+            value: `${annualise7j.toFixed(1)}%`,
+            tone: "text-[#21ff7a]",
+            strong: true,
+          },
+        ]
+      : []),
     {
       label: "Distance",
       value: Number.isFinite(distanceNumber) ? `${distanceNumber.toFixed(1)}%` : "—",
@@ -2402,6 +2430,9 @@ function MiniTradeLevelsChart({ item }) {
       <div className="mt-2 border-t border-[#132536] px-1 pt-2 text-sm text-slate-100">
         Mouvement attendu : {item.expectedMovePct.toFixed(2)}% <span className="px-3 text-slate-400">•</span>
         Plage attendue : ${item.expectedMoveLow.toFixed(2)} - ${item.expectedMoveHigh.toFixed(2)} <span className="px-3 text-slate-400">•</span>
+        {Number.isFinite(Number(item.targetPremium)) && Number(item.targetPremium) > 0 ? (
+          <>Prime cible ${Number(item.targetPremium).toFixed(2)} <span className="px-3 text-slate-400">•</span></>
+        ) : null}
         Strike Safe : {item.safeStrike?.strike != null ? `$${Number(item.safeStrike.strike).toFixed(2)}` : "—"}
         {Number.isFinite(safeMid) ? ` (prime $${safeMid.toFixed(2)})` : ""} <span className="px-3 text-slate-400">•</span>
         Rendement : {item.weeklyReturn != null && Number.isFinite(Number(item.weeklyReturn)) ? `${Number(item.weeklyReturn).toFixed(2)}% jusqu'à expiration` : "—"}
@@ -3570,105 +3601,115 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="rounded-[8px] border-[#172637] bg-[#020811] text-slate-100 shadow-[0_0_0_1px_rgba(80,140,180,0.08),0_24px_80px_rgba(0,0,0,0.34)] transition-all hover:shadow-[0_0_0_1px_rgba(80,140,180,0.14),0_28px_90px_rgba(0,0,0,0.42)]">
-        <CardContent className="p-3">
-          <div className="space-y-2.5">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-3 py-1 text-slate-100">
-                  Choix #{shownRank}
-                </Badge>
-                {yahooRank != null && (
-                  <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-3 py-1 text-xs text-slate-100">
-                    Rang Yahoo #{yahooRank}
+        <CardContent className="p-2">
+          <div className="space-y-1">
+            <div className="space-y-0.5">
+              {/* Ligne 1 : Ticker gauche | badges centre | bouton droite */}
+              <div className="flex items-center gap-2">
+                <h3 className="shrink-0 text-base font-semibold tracking-tight leading-tight text-white">
+                  {item.ticker} <span className="font-normal text-slate-400">— {item.name}</span>
+                </h3>
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                  <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-2 py-0.5 text-xs text-slate-100">
+                    Choix #{shownRank}
                   </Badge>
-                )}
-                <Badge className={cn("rounded-full border", verdictStyle[item.verdict])}>
-                  {item.verdict}
-                </Badge>
-                {item.earningsMode && (
-                  <Badge className="rounded-full border border-violet-200 bg-violet-50 text-violet-700">
-                    mode earnings x{item.expectedMoveMultiplier || 2}
+                  {yahooRank != null && (
+                    <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-2 py-0.5 text-xs text-slate-100">
+                      Rang Yahoo #{yahooRank}
+                    </Badge>
+                  )}
+                  <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-xs", verdictStyle[item.verdict])}>
+                    {item.verdict}
                   </Badge>
-                )}
-                {item.ok && !item.ibkrDevObjectiveBlocked ? (
-                  <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
-                    objectif validé
-                  </Badge>
-                ) : (
-                  <Badge className="rounded-full border border-slate-200 bg-slate-50 text-slate-600">
-                    à surveiller
-                  </Badge>
-                )}
-                {item.optionsSource === "IBKR live" && (
-                  <Badge className="rounded-full border border-sky-200 bg-sky-50 text-sky-700">
-                    Technique : {techniqueBadgeLabel(item)}
-                  </Badge>
-                )}
-                {item.optionsSource === "IBKR live" && (
-                  <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
-                    Options : IBKR live
-                  </Badge>
-                )}
-                {item.optionsSource === "IBKR live" && (
-                  <Badge className={cn("rounded-full border", ibkrActionability.className)}>
-                    {ibkrActionability.label}
-                  </Badge>
-                )}
-                {item.ibkrDirect?.devScanEnabled && (
-                  <Badge className="rounded-full border border-amber-400 bg-amber-50 text-amber-950">
-                    DEV TEST — données hors marché / non tradables
-                  </Badge>
-                )}
-                {item.indicativeShortlistSession && !item.ibkrDirect?.devScanEnabled && (
-                  <Badge className="rounded-full border border-amber-400 bg-amber-50 text-amber-950">
-                    DEV TEST — marche ferme / donnees indicatives / non tradables
-                  </Badge>
-                )}
-                {item.ibkrDevIncompleteSurface && (
-                  <Badge className="rounded-full border border-amber-300 bg-amber-100 text-amber-950">
-                    Données IBKR incomplètes — affichage DEV seulement
-                  </Badge>
-                )}
-                {seasonality?.seasonalBias && (
-                  <SeasonalityBadge
-                    bias={seasonality.seasonalBias}
-                    score={seasonality.seasonalityScore ?? null}
-                  />
-                )}
+                  {item.earningsMode && (
+                    <Badge className="rounded-[4px] border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs text-violet-700">
+                      mode earnings x{item.expectedMoveMultiplier || 2}
+                    </Badge>
+                  )}
+                  {item.ok && !item.ibkrDevObjectiveBlocked ? (
+                    <Badge className="rounded-[4px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                      objectif validé
+                    </Badge>
+                  ) : (
+                    <Badge className="rounded-[4px] border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
+                      à surveiller
+                    </Badge>
+                  )}
+                  {item.optionsSource === "IBKR live" && (
+                    <Badge className="rounded-[4px] border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs text-sky-700">
+                      Technique : {techniqueBadgeLabel(item)}
+                    </Badge>
+                  )}
+                  {item.optionsSource === "IBKR live" && (
+                    <Badge className="rounded-[4px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                      Options : IBKR live
+                    </Badge>
+                  )}
+                  {item.optionsSource === "IBKR live" && (
+                    <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-xs", ibkrActionability.className)}>
+                      {ibkrActionability.label}
+                    </Badge>
+                  )}
+                  {seasonality?.seasonalBias && (
+                    <SeasonalityBadge
+                      bias={seasonality.seasonalBias}
+                      score={seasonality.seasonalityScore ?? null}
+                    />
+                  )}
+                </div>
                 <Button
-                  className="ml-auto rounded-[6px] border border-slate-600 bg-[#07111b] px-5 py-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  className="shrink-0 rounded-[6px] border border-slate-600 bg-[#07111b] px-3 py-1 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   onClick={() => onOpenDetail(item)}
                 >
                   Voir fiche complète ↗
                 </Button>
               </div>
 
-              <div>
-                <h3 className="text-xl font-semibold tracking-tight text-white">
-                  {item.ticker} <span className="font-normal text-slate-400">— {item.name}</span>
-                </h3>
-                <p className="mt-1 text-sm text-slate-300">{item.setup}</p>
-                {item.recommendedMode === "AGGRESSIVE" ? (
-                  <p className="mt-1 text-sm text-emerald-300">
-                    Mode recommandé : AGGRESSIVE — {item.recommendedReason}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-slate-300">
-                    Mode recommandé : SAFE
-                  </p>
-                )}
-                {earningsDisplay ? (
-                  <p className="mt-1 text-sm text-amber-300">
-                    {earningsDisplay}
-                  </p>
-                ) : relevantEarningsDate ? (
-                  <p className="mt-1 text-sm text-violet-300">
-                    Earnings: {formatShortDate(relevantEarningsDate) || relevantEarningsDate}
-                  </p>
-                ) : null}
-              </div>
+              {/* Ligne 2 : sous-titre setup */}
+              <p className="text-xs text-slate-400 leading-tight">{item.setup}</p>
 
-              <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4 xl:grid-cols-8 2xl:grid-cols-[1.02fr_1.05fr_1.14fr_1.14fr_0.86fr_0.76fr_0.72fr_1fr]">
+              {/* Ligne 3 : mode recommandé */}
+              {item.recommendedMode === "AGGRESSIVE" ? (
+                <p className="text-xs text-emerald-300 leading-tight">
+                  Mode recommandé : AGGRESSIVE — {item.recommendedReason}
+                </p>
+              ) : (
+                <p className="text-xs text-emerald-400 leading-tight">
+                  Mode recommandé : SAFE
+                </p>
+              )}
+
+              {/* Earnings si présent */}
+              {earningsDisplay ? (
+                <p className="text-xs text-amber-300 leading-tight">{earningsDisplay}</p>
+              ) : relevantEarningsDate ? (
+                <p className="text-xs text-violet-300 leading-tight">
+                  Earnings: {formatShortDate(relevantEarningsDate) || relevantEarningsDate}
+                </p>
+              ) : null}
+
+              {/* DEV TEST / Données incomplètes — ligne séparée centrée */}
+              {(item.ibkrDirect?.devScanEnabled || (item.indicativeShortlistSession && !item.ibkrDirect?.devScanEnabled) || item.ibkrDevIncompleteSurface) && (
+                <div className="flex justify-center gap-1">
+                  {item.ibkrDirect?.devScanEnabled && (
+                    <Badge className="rounded-[4px] border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs text-amber-950">
+                      DEV TEST — données hors marché / non tradables
+                    </Badge>
+                  )}
+                  {item.indicativeShortlistSession && !item.ibkrDirect?.devScanEnabled && (
+                    <Badge className="rounded-[4px] border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs text-amber-950">
+                      DEV TEST — marche ferme / donnees indicatives / non tradables
+                    </Badge>
+                  )}
+                  {item.ibkrDevIncompleteSurface && (
+                    <Badge className="rounded-[4px] border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs text-amber-950">
+                      Données IBKR incomplètes — affichage DEV seulement
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-1.5 text-sm md:grid-cols-4 xl:grid-cols-8 2xl:grid-cols-[1.02fr_1.05fr_1.14fr_1.14fr_0.86fr_0.76fr_0.72fr_1fr]">
                 <FaceplateMetric label="Prix actuel" value={`$${item.price.toFixed(2)}`} strong />
                 <FaceplateMetric
                   label="Mouvement attendu"
@@ -7889,8 +7930,9 @@ export default function Dashboard() {
         )}
         {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult) && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-            <p className="font-semibold text-slate-900">Résumé du funnel</p>
-            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <details open>
+              <summary className="cursor-pointer font-semibold text-slate-900">Résumé du funnel</summary>
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
               <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
               <Metric label="Yahoo retenus" value={String(yahooScanMeta.kept || 0)} />
               <Metric label="Yahoo retournés" value={String(yahooReturnedCount)} />
@@ -7923,6 +7965,7 @@ export default function Dashboard() {
                 Seulement {ibkrTotalKeptCollected} retenus IBKR disponibles dans le bassin Yahoo testé.
               </p>
             )}
+            </details>
           </div>
         )}
 
@@ -7988,7 +8031,8 @@ export default function Dashboard() {
 
         {yahooReturnedCount > 0 && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-            <p className="font-semibold text-slate-900">Candidats Yahoo non envoyés à IBKR</p>
+            <details>
+              <summary className="cursor-pointer font-semibold text-slate-900">Candidats Yahoo non envoyés à IBKR</summary>
             {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 120)) ? (
               <p className="mt-2 text-slate-500">
                 Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
@@ -8008,14 +8052,16 @@ export default function Dashboard() {
               {sofiDiagnostic.inYahoo ? `Yahoo #${sofiDiagnostic.yahooRank}` : "absent de la shortlist Yahoo retournée"} ·{" "}
               {sofiDiagnostic.statusText}
             </div>
+            </details>
           </div>
         )}
 
         {ibkrAutoRankDiagnostics.length > 0 && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
-            <p className="font-semibold text-slate-900">
-              Rangs Yahoo — testés IBKR : {ibkrTestedCount} / {yahooReturnedCount}
-            </p>
+            <details>
+              <summary className="cursor-pointer font-semibold text-slate-900">
+                Rangs Yahoo — testés IBKR : {ibkrTestedCount} / {yahooReturnedCount}
+              </summary>
             <p className="mt-1 text-xs text-slate-500">
               Source :{" "}
               <span className="font-mono font-medium text-slate-800">
@@ -8072,6 +8118,7 @@ export default function Dashboard() {
             <p className="mt-2 text-xs text-slate-500">
               Tickers envoyés à IBKR auto : {(ibkrDirectSentTickers || []).join(", ") || "—"}
             </p>
+            </details>
           </div>
         )}
 

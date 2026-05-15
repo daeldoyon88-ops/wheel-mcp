@@ -1948,6 +1948,55 @@ function buildCapitalComboCandidate(candidate, usableCapital) {
     String(candidate?.finalDisplayMode || "").trim().toUpperCase() || recommendation.finalDisplayMode;
   const finalDisplayGrade =
     String(candidate?.finalDisplayGrade || "").trim().toUpperCase() || recommendation.finalDisplayGrade;
+
+  // ─── Jambes par bucket (indépendantes du mode global) ────────────────────
+  const safeLeg = candidate?.safeStrike ?? null;
+  const aggLeg = candidate?.aggressiveStrike ?? null;
+
+  const safeStrikeValue = Number(safeLeg?.strike ?? NaN);
+  const safePremium = getLegPremiumValue(safeLeg);
+  const safeSpreadPct = getLegSpreadPct(safeLeg);
+  const safeYieldPct = getLegYieldPct(safeLeg, candidate);
+  const safeDistancePct = getLegDistancePct(safeLeg);
+  const safePopPct = getLegPopPct(safeLeg);
+  const safeCapital = Number.isFinite(safeStrikeValue) && safeStrikeValue > 0 ? safeStrikeValue * 100 : 0;
+  const safeGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
+
+  const aggStrikeValue = Number(aggLeg?.strike ?? NaN);
+  const aggPremium = getLegPremiumValue(aggLeg);
+  const aggSpreadPct = getLegSpreadPct(aggLeg);
+  const aggYieldPct = getLegYieldPct(aggLeg, candidate);
+  const aggDistancePct = getLegDistancePct(aggLeg);
+  const aggPopPct = getLegPopPct(aggLeg);
+  const aggCapital = Number.isFinite(aggStrikeValue) && aggStrikeValue > 0 ? aggStrikeValue * 100 : 0;
+  const aggGrade = String(
+    getAggressivePriorityGrade({
+      spreadPct: aggSpreadPct,
+      weeklyYieldPct: aggYieldPct,
+      popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
+      distancePct: aggDistancePct,
+    }) ??
+    candidate?.aggressiveGrade ??
+    ""
+  ).toUpperCase() || null;
+
+  const hasSafeLegValid = !!safeLeg &&
+    Number.isFinite(safeStrikeValue) && safeStrikeValue > 0 &&
+    Number.isFinite(safePremium) && safePremium > 0 &&
+    Number.isFinite(safeSpreadPct) && safeSpreadPct <= 35 &&
+    Number.isFinite(safeYieldPct) && safeYieldPct > 0;
+
+  const hasAggLegValid = !!aggLeg &&
+    Number.isFinite(aggStrikeValue) && aggStrikeValue > 0 &&
+    Number.isFinite(aggPremium) && aggPremium > 0 &&
+    Number.isFinite(aggSpreadPct) && aggSpreadPct <= 35 &&
+    Number.isFinite(aggYieldPct) && aggYieldPct > 0;
+
+  const commonBlocked =
+    (meta.isCryptoBlocked && !meta.isCryptoAllowed) ||
+    meta.qualityTier === "Inconnu à valider";
+
+  // ─── Jambe globale (compat affichage compact principal) ──────────────────
   const selectedLeg = getFinalSelectedLeg(candidate);
   const strike = Number(selectedLeg?.strike ?? NaN);
   const premiumUnit = getLegPremiumValue(selectedLeg);
@@ -1993,6 +2042,25 @@ function buildCapitalComboCandidate(candidate, usableCapital) {
         : "prime fallback",
     spreadPct,
     weeklyReturn,
+    // Données per-bucket (indépendantes du mode global)
+    _safeLeg: safeLeg,
+    _aggLeg: aggLeg,
+    _safeYieldPct: safeYieldPct,
+    _aggYieldPct: aggYieldPct,
+    _safeSpreadPct: safeSpreadPct,
+    _aggSpreadPct: aggSpreadPct,
+    _safeStrikeValue: safeStrikeValue,
+    _aggStrikeValue: aggStrikeValue,
+    _safeCapital: safeCapital,
+    _aggCapital: aggCapital,
+    _safeDistancePct: safeDistancePct,
+    _aggDistancePct: aggDistancePct,
+    _safePopPct: safePopPct,
+    _aggPopPct: aggPopPct,
+    _safeGrade: safeGrade,
+    _aggGrade: aggGrade,
+    _hasSafeLegValid: hasSafeLegValid && !commonBlocked && !isUnknownTicker,
+    _hasAggLegValid: hasAggLegValid && !commonBlocked && !isUnknownTicker,
     _qualityOverlay: computeTickerQualityOverlay({
       ...candidate,
       ticker,
@@ -2001,23 +2069,11 @@ function buildCapitalComboCandidate(candidate, usableCapital) {
       _popForCombo: popEstimate,
     }),
     _capitalComboExclusionReasons: capitalComboExclusionReasons,
+    // Éligibilité large : au moins une jambe bucket valide, pas de blocage global
     _isCapitalComboEligible:
-      (finalDisplayMode === "SAFE" || finalDisplayMode === "AGGRESSIVE") &&
-      (finalDisplayGrade === "A" || finalDisplayGrade === "B") &&
-      !!selectedLeg &&
-      !(meta.isCryptoBlocked && !meta.isCryptoAllowed) &&
-      meta.qualityTier !== "Inconnu à valider" &&
+      !commonBlocked &&
       !isUnknownTicker &&
-      Number.isFinite(strike) &&
-      strike > 0 &&
-      Number.isFinite(premiumUnit) &&
-      premiumUnit > 0 &&
-      Number.isFinite(spreadPct) &&
-      spreadPct <= 35 &&
-      Number.isFinite(weeklyReturn) &&
-      weeklyReturn > 0 &&
-      capitalPerContract > 0 &&
-      capitalPerContract <= usableCapital,
+      (hasSafeLegValid || hasAggLegValid),
   };
 }
 
@@ -2027,8 +2083,6 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
   const targetGoalPct = 95;
   const basePool = candidates
     .filter((c) => !rejectedIbkrSymbols.has(String(c?.ticker || "").trim().toUpperCase()))
-    .filter((c) => Number.isFinite(c.proFinalScore) && Number.isFinite(c.proExecutionScore))
-    .filter((c) => c.proFinalScore > 0)
     .map((c) => buildCapitalComboCandidate(c, usableCapital))
     .filter((c) => c._isCapitalComboEligible);
   const poolStats = buildCapitalComboPoolStats(basePool);
@@ -2193,17 +2247,103 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
 
   function makeCombo(mode) {
     const scoredPool = basePool
+      // Étape 1 : résoudre la jambe spécifique au bucket (simulation indépendante)
+      .map((candidate) => {
+        let bucketLeg = null;
+        let bucketStrikeValue = null;
+        let bucketCapital = 0;
+        let bucketGrade = null;
+
+        if (mode.id === "conservative") {
+          // SAFE : utiliser exclusivement la jambe SAFE
+          if (candidate._hasSafeLegValid) {
+            bucketLeg = candidate._safeLeg;
+            bucketStrikeValue = candidate._safeStrikeValue;
+            bucketCapital = candidate._safeCapital;
+            bucketGrade = candidate._safeGrade;
+          }
+        } else if (mode.id === "aggressive") {
+          // AGGRESSIVE : utiliser exclusivement la jambe AGGRESSIVE
+          if (candidate._hasAggLegValid) {
+            bucketLeg = candidate._aggLeg;
+            bucketStrikeValue = candidate._aggStrikeValue;
+            bucketCapital = candidate._aggCapital;
+            bucketGrade = candidate._aggGrade;
+          }
+        } else {
+          // BALANCED : choisir la meilleure jambe dans la bande [0.75, 1.0)
+          const safeY = candidate._safeYieldPct;
+          const aggY = candidate._aggYieldPct;
+          const safeInRange = candidate._hasSafeLegValid && safeY >= 0.75 && safeY < 1.0;
+          const aggInRange = candidate._hasAggLegValid && aggY >= 0.75 && aggY < 1.0;
+          const MID = 0.875;
+          if (safeInRange && aggInRange) {
+            if (Math.abs(safeY - MID) <= Math.abs(aggY - MID)) {
+              bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
+              bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade;
+            } else {
+              bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
+              bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade;
+            }
+          } else if (safeInRange) {
+            bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
+            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade;
+          } else if (aggInRange) {
+            bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
+            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade;
+          } else if (candidate._hasAggLegValid) {
+            bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
+            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade;
+          } else if (candidate._hasSafeLegValid) {
+            bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
+            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade;
+          }
+        }
+
+        if (!bucketLeg) return { ...candidate, _hasBucketLeg: false };
+
+        const bucketPremium = getLegPremiumValue(bucketLeg);
+        const bucketSpread = getLegSpreadPct(bucketLeg);
+        const bucketYield = getLegYieldPct(bucketLeg, candidate);
+        const bucketDistance = getLegDistancePct(bucketLeg);
+        const bucketPop = getLegPopPct(bucketLeg);
+        const resolvedCapital = Number.isFinite(bucketStrikeValue) && bucketStrikeValue > 0
+          ? bucketStrikeValue * 100
+          : bucketCapital;
+        const resolvedGrade = String(bucketGrade ?? candidate.finalDisplayGrade ?? "").toUpperCase();
+
+        return {
+          ...candidate,
+          _hasBucketLeg: true,
+          selectedLeg: bucketLeg,
+          selectedStrikeValue: bucketStrikeValue,
+          selectedPremiumUnit: bucketPremium,
+          selectedSpreadPct: bucketSpread,
+          selectedYieldPct: bucketYield,
+          selectedDistancePct: bucketDistance,
+          _popForCombo: bucketPop,
+          capitalPerContract: resolvedCapital,
+          premiumPerContract: Number.isFinite(bucketPremium) && bucketPremium > 0 ? bucketPremium * 100 : 0,
+          finalDisplayGrade: resolvedGrade || candidate.finalDisplayGrade,
+          weeklyReturn: bucketYield ?? candidate.weeklyReturn,
+          spreadPct: bucketSpread ?? candidate.spreadPct,
+        };
+      })
+      // Étape 2 : exclure les candidats sans jambe bucket
+      .filter((candidate) => candidate._hasBucketLeg)
+      // Étape 3 : scorer avec la jambe bucket (les valeurs sélectées ont été remplacées)
       .map((candidate) => ({
         ...candidate,
         selectedStrike: getModeStrike(candidate, mode.id),
         _comboScoreBreakdown: buildCapitalComboScoreBreakdown(candidate, mode, usableCapital, poolStats),
       }))
-      .filter((candidate) => candidate.capitalPerContract > 0 && candidate.weeklyReturn > 0)
-      .filter((candidate) => mode.allowedModes?.has(candidate.finalDisplayMode))
+      // Étape 4 : filtres bucket (appliqués après résolution jambe)
+      .filter((candidate) => candidate.capitalPerContract > 0 && candidate.capitalPerContract <= usableCapital && candidate.weeklyReturn > 0)
+      // allowedModes retiré — remplacé par la résolution bucket ci-dessus
       .filter((candidate) => mode.allowedGrades?.has(candidate.finalDisplayGrade))
       .filter((candidate) => candidate.weeklyReturn >= mode.minWeeklyYield)
       .filter((candidate) => mode.maxWeeklyYield == null || candidate.weeklyReturn < mode.maxWeeklyYield)
-      .filter((candidate) => candidate.proExecutionScore >= mode.minExecutionScore)
+      .filter((candidate) => !Number.isFinite(candidate.proExecutionScore) || candidate.proExecutionScore >= mode.minExecutionScore)
       .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= mode.maxSpreadPct)
       .filter((candidate) =>
         mode.minDistancePct == null ||
@@ -7079,7 +7219,450 @@ const LABEL_TO_MODE_ID = {
   "Conservateur": "conservative",
 };
 
-function PortfolioCombos({ combos, capital, onTickerClick = null }) {
+// ─── Inspector Combinaisons capital (read-only, no engine impact) ───────────
+
+const _INSP_BUCKETS = {
+  SAFE: {
+    label: "SAFE",
+    allowedModes: new Set(["SAFE"]),
+    allowedGrades: new Set(["A", "B"]),
+    minYield: 0.5,
+    maxYield: 0.75,
+    maxSpread: 15,
+    minDistancePct: null,
+    color: "green",
+  },
+  BALANCED: {
+    label: "BALANCED",
+    allowedModes: new Set(["SAFE", "AGGRESSIVE"]),
+    allowedGrades: new Set(["A", "B"]),
+    minYield: 0.75,
+    maxYield: 1.0,
+    maxSpread: 20,
+    minDistancePct: null,
+    color: "sky",
+  },
+  AGGRESSIVE: {
+    label: "AGGRESSIVE",
+    allowedModes: new Set(["AGGRESSIVE"]),
+    allowedGrades: new Set(["A", "B"]),
+    minYield: 1.0,
+    maxYield: null,
+    maxSpread: 25,
+    minDistancePct: -5,
+    color: "orange",
+  },
+};
+const _INSP_BUCKET_KEYS = ["SAFE", "BALANCED", "AGGRESSIVE"];
+
+function _inspFindCombo(combos, bucketKey) {
+  const aliases = {
+    SAFE: ["SAFE", "Conservateur"],
+    BALANCED: ["BALANCED", "Équilibré", "Équilibré"],
+    AGGRESSIVE: ["AGGRESSIVE", "Agressif"],
+  };
+  const keys = aliases[bucketKey] ?? [bucketKey];
+  return combos.find((c) => keys.includes(c?.label)) ?? null;
+}
+
+function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
+  const cfg = _INSP_BUCKETS[bucketKey];
+  const combo = _inspFindCombo(combos, bucketKey);
+  const ticker = String(candidate?.ticker || "").trim().toUpperCase();
+  const pick = combo?.picks?.find((p) => String(p?.ticker || "").toUpperCase() === ticker) ?? null;
+  const rec = getFinalDisplayRecommendation(candidate);
+  const globalMode = String(candidate.finalDisplayMode || rec.finalDisplayMode || "").toUpperCase();
+  const safeLeg = candidate.safeStrike ?? null;
+  const aggLeg = candidate.aggressiveStrike ?? null;
+  const meta = getTickerDisplayMeta(ticker);
+  const isCryptoBlocked = meta.isCryptoBlocked && !meta.isCryptoAllowed;
+  const inPicks = pick != null;
+
+  // Jambe et grade spécifiques au bucket (indépendants du mode global)
+  let bucketLeg;
+  let bucketGrade;
+  if (bucketKey === "SAFE") {
+    bucketLeg = safeLeg;
+    bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
+  } else if (bucketKey === "AGGRESSIVE") {
+    bucketLeg = aggLeg;
+    bucketGrade = String(
+      getAggressivePriorityGrade({
+        spreadPct: getLegSpreadPct(aggLeg),
+        weeklyYieldPct: getLegYieldPct(aggLeg, candidate),
+        popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
+        distancePct: getLegDistancePct(aggLeg),
+      }) ?? candidate?.aggressiveGrade ?? ""
+    ).toUpperCase() || null;
+  } else {
+    // BALANCED : utiliser la jambe la plus proche de la bande [0.75, 1.0)
+    const safeY = getLegYieldPct(safeLeg, candidate);
+    const aggY = getLegYieldPct(aggLeg, candidate);
+    const safeInRange = safeLeg && safeY >= 0.75 && safeY < 1.0;
+    const aggInRange = aggLeg && aggY >= 0.75 && aggY < 1.0;
+    if (safeInRange && (!aggInRange || Math.abs(safeY - 0.875) <= Math.abs(aggY - 0.875))) {
+      bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
+    } else if (aggInRange) {
+      bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+    } else {
+      bucketLeg = getFinalSelectedLeg(candidate);
+      bucketGrade = String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase() || null;
+    }
+  }
+
+  const premium = getLegPremiumValue(bucketLeg);
+  const spread = getLegSpreadPct(bucketLeg);
+  const yieldPct = getLegYieldPct(bucketLeg, candidate);
+  const distance = getLegDistancePct(bucketLeg);
+  const pop = getLegPopPct(bucketLeg);
+  const strike = Number(bucketLeg?.strike ?? NaN);
+  const capitalRequired = Number.isFinite(strike) && strike > 0 ? strike * 100 : null;
+  const bid = Number(bucketLeg?.bid ?? NaN);
+  const ask = Number(bucketLeg?.ask ?? NaN);
+  const mid = Number(bucketLeg?.mid ?? NaN);
+  const bucketLegAvailable = bucketLeg != null;
+  const effectiveGrade = bucketGrade ?? String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase();
+
+  let statusProbable;
+  let raisonProbable;
+  if (inPicks) {
+    statusProbable = "sélectionné";
+    raisonProbable = "—";
+  } else if (isCryptoBlocked) {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "crypto/commodity exclu";
+  } else if (!bucketLegAvailable) {
+    statusProbable = "aucune jambe bucket";
+    raisonProbable = "pas de jambe bucket";
+  } else if (!["A", "B"].includes(effectiveGrade)) {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "grade non A/B";
+  } else if (spread != null && spread > cfg.maxSpread) {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "spread trop large";
+  } else if (yieldPct != null && yieldPct < cfg.minYield) {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "yield hors bande";
+  } else if (cfg.maxYield != null && yieldPct != null && yieldPct >= cfg.maxYield) {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "yield hors bande";
+  } else if (capitalRequired != null && capital > 0 && capitalRequired > capital) {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "capital insuffisant";
+  } else if (meta.qualityTier === "Inconnu à valider") {
+    statusProbable = "jambe présente mais bloquée";
+    raisonProbable = "inconnu à valider";
+  } else {
+    statusProbable = "candidat visible mais non sélectionné";
+    raisonProbable = "cap ticker/secteur/thème probable";
+  }
+
+  return {
+    ticker, bucket: bucketKey, inScanData: true, inPicks,
+    mode: globalMode, grade: effectiveGrade,
+    safeLegAvailable: safeLeg != null,
+    aggLegAvailable: aggLeg != null,
+    bucketLegAvailable,
+    strike: Number.isFinite(strike) ? strike : null,
+    bid: Number.isFinite(bid) ? bid : null,
+    ask: Number.isFinite(ask) ? ask : null,
+    mid: Number.isFinite(mid) ? mid : null,
+    spread, yieldPct, distance, pop,
+    capitalRequired, premiumUnit: premium,
+    premiumTotal: inPicks ? pick.premiumCollected : null,
+    scoreCombo: inPicks ? pick.selectionScore : null,
+    statusProbable, raisonProbable, pick,
+  };
+}
+
+function _inspBucketSummary(bucketKey, combos, candidates) {
+  const combo = _inspFindCombo(combos, bucketKey);
+  const picks = combo?.picks ?? [];
+  const top10ByYield = [...candidates]
+    .filter((c) => Number.isFinite(Number(c.weeklyReturn)) && Number(c.weeklyReturn) > 0)
+    .sort((a, b) => Number(b.weeklyReturn) - Number(a.weeklyReturn))
+    .slice(0, 10);
+  const top10ByDist = [...candidates]
+    .filter((c) => { const d = getLegDistancePct(getFinalSelectedLeg(c)); return d != null; })
+    .sort((a, b) => {
+      const dA = getLegDistancePct(getFinalSelectedLeg(a)) ?? 0;
+      const dB = getLegDistancePct(getFinalSelectedLeg(b)) ?? 0;
+      return dA - dB;
+    })
+    .slice(0, 10);
+  const top10BySpread = [...candidates]
+    .filter((c) => { const s = getSafeSpreadPct(c) ?? getAggressiveSpreadPct(c); return s != null; })
+    .sort((a, b) => {
+      const sA = getSafeSpreadPct(a) ?? getAggressiveSpreadPct(a) ?? Infinity;
+      const sB = getSafeSpreadPct(b) ?? getAggressiveSpreadPct(b) ?? Infinity;
+      return sA - sB;
+    })
+    .slice(0, 10);
+  return {
+    positions: picks.length,
+    totalCapital: combo?.totalCapital ?? 0,
+    freeCapital: combo?.freeCapital ?? 0,
+    selectedTickers: picks.map((p) => p.ticker),
+    totalScanCards: candidates.length,
+    withSafeLeg: candidates.filter((c) => c.safeStrike != null).length,
+    withAggressiveLeg: candidates.filter((c) => c.aggressiveStrike != null).length,
+    withNoLeg: candidates.filter((c) => c.safeStrike == null && c.aggressiveStrike == null).length,
+    withInvalidSpread: candidates.filter((c) => getSafeSpreadPct(c) == null && getAggressiveSpreadPct(c) == null).length,
+    withInvalidYield: candidates.filter((c) => { const y = Number(c.weeklyReturn ?? NaN); return !Number.isFinite(y) || y <= 0; }).length,
+    top10ByYield: top10ByYield.map((c) => c.ticker),
+    top10ByDist: top10ByDist.map((c) => c.ticker),
+    top10BySpread: top10BySpread.map((c) => c.ticker),
+  };
+}
+
+function _inspStatusBadge(status) {
+  if (status === "sélectionné") return "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700";
+  if (status === "candidat visible mais non sélectionné") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
+  if (status === "jambe présente mais bloquée") return "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700";
+  if (status === "aucune jambe bucket") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500";
+  return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600";
+}
+
+function CapitalCombosInspector({ combos, candidates, capital }) {
+  const [open, setOpen] = useState(false);
+  const [tickerSearch, setTickerSearch] = useState("");
+
+  const searchedTicker = String(tickerSearch || "").trim().toUpperCase();
+
+  const summaries = useMemo(
+    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates)])),
+    [combos, candidates]
+  );
+
+  const diagnostics = useMemo(() => {
+    if (!searchedTicker) return null;
+    const cand = candidates.find((c) => String(c?.ticker || "").toUpperCase() === searchedTicker);
+    if (!cand) {
+      return _INSP_BUCKET_KEYS.map((b) => ({
+        ticker: searchedTicker, bucket: b,
+        inScanData: false, inPicks: false,
+        statusProbable: "données insuffisantes",
+        raisonProbable: "données manquantes",
+      }));
+    }
+    return _INSP_BUCKET_KEYS.map((b) => _inspCandidateDiag(cand, b, combos, capital));
+  }, [searchedTicker, candidates, combos, capital]);
+
+  function handleExportJSON() {
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      capital,
+      combosActuels: combos.map((c) => ({
+        label: c.label,
+        positions: c.positions,
+        totalCapital: c.totalCapital,
+        freeCapital: c.freeCapital,
+        picks: (c.picks ?? []).map((p) => ({
+          ticker: p.ticker,
+          strike: p.strike,
+          capitalRequired: p.capitalRequired,
+          premiumCollected: p.premiumCollected,
+          selectionScore: p.selectionScore,
+        })),
+      })),
+      inspecteurParBucket: Object.fromEntries(
+        _INSP_BUCKET_KEYS.map((b) => {
+          const s = summaries[b];
+          return [b, {
+            positions: s.positions,
+            totalCapital: s.totalCapital,
+            freeCapital: s.freeCapital,
+            selectedTickers: s.selectedTickers,
+            totalScanCards: s.totalScanCards,
+            withSafeLeg: s.withSafeLeg,
+            withAggressiveLeg: s.withAggressiveLeg,
+            withNoLeg: s.withNoLeg,
+            withInvalidSpread: s.withInvalidSpread,
+            withInvalidYield: s.withInvalidYield,
+            top10ByYield: s.top10ByYield,
+            top10ByDist: s.top10ByDist,
+            top10BySpread: s.top10BySpread,
+          }];
+        })
+      ),
+      tickerRecherche: searchedTicker || null,
+      diagnosticTicker: diagnostics,
+      champsDisponiblesParTicker: candidates.slice(0, 3).map((c) => Object.keys(c ?? {})),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `combos-inspector-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const fmt = (v, suffix = "", digits = 2) =>
+    v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(digits)}${suffix}` : "n/d";
+
+  const bucketColorCls = { SAFE: "green", BALANCED: "sky", AGGRESSIVE: "orange" };
+  const bucketHeaderCls = {
+    SAFE: "border-green-200 bg-green-50 text-green-800",
+    BALANCED: "border-sky-200 bg-sky-50 text-sky-800",
+    AGGRESSIVE: "border-orange-200 bg-orange-50 text-orange-800",
+  };
+
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left hover:bg-slate-50"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <Search className="h-4 w-4 text-slate-400" />
+          Inspecteur Combinaisons capital
+        </span>
+        <span className="text-xs text-slate-400">{open ? "▲ fermer" : "▼ ouvrir"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
+          {/* Header actions */}
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="text"
+              value={tickerSearch}
+              onChange={(e) => setTickerSearch(e.target.value)}
+              placeholder="Ex: TQQQ, APLD, HOOD, HAL, GM"
+              className="flex-1 min-w-48 rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-sky-400 focus:bg-white"
+            />
+            <button
+              type="button"
+              onClick={handleExportJSON}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Database className="h-3.5 w-3.5" />
+              Export JSON
+            </button>
+          </div>
+
+          {/* Ticker diagnostic */}
+          {diagnostics && (
+            <div>
+              <p className="mb-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                Diagnostic — {searchedTicker}
+              </p>
+              <div className="grid gap-3 md:grid-cols-3">
+                {diagnostics.map((diag) => {
+                  const cfg = _INSP_BUCKETS[diag.bucket];
+                  const hdr = bucketHeaderCls[diag.bucket];
+                  return (
+                    <div key={diag.bucket} className={cn("rounded-xl border p-3 text-xs space-y-1", hdr)}>
+                      <p className="font-semibold text-sm">{diag.ticker} — {diag.bucket}</p>
+                      <span className={_inspStatusBadge(diag.statusProbable)}>{diag.statusProbable}</span>
+                      <p className="text-xs mt-1 italic">{diag.raisonProbable}</p>
+                      <div className="mt-2 space-y-0.5 text-slate-700">
+                        <Row label="Dans scan" val={diag.inScanData ? "oui" : "non"} />
+                        <Row label="Sélectionné" val={diag.inPicks ? "oui" : "non"} />
+                        {diag.inScanData && (
+                          <>
+                            <Row label="Mode global" val={diag.mode || "n/d"} />
+                            <Row label="Grade global" val={diag.grade || "n/d"} />
+                            <Row label="Jambe SAFE dispo" val={diag.safeLegAvailable != null ? (diag.safeLegAvailable ? "oui" : "non") : "n/d"} />
+                            <Row label="Jambe AGG dispo" val={diag.aggLegAvailable != null ? (diag.aggLegAvailable ? "oui" : "non") : "n/d"} />
+                            <Row label="Jambe bucket dispo" val={diag.bucketLegAvailable != null ? (diag.bucketLegAvailable ? "oui" : "non") : "n/d"} />
+                            <Row label="Strike" val={diag.strike != null ? `${diag.strike}$` : "n/d"} />
+                            <Row label="Bid" val={diag.bid != null ? `${fmt(diag.bid)}$` : "n/d"} />
+                            <Row label="Ask" val={diag.ask != null ? `${fmt(diag.ask)}$` : "n/d"} />
+                            <Row label="Mid" val={diag.mid != null ? `${fmt(diag.mid)}$` : "n/d"} />
+                            <Row label="Spread %" val={fmt(diag.spread, "%", 1)} />
+                            <Row label="Yield %" val={fmt(diag.yieldPct, "%")} />
+                            <Row label="Distance %" val={fmt(diag.distance, "%", 1)} />
+                            <Row label="POP estimée" val={fmt(diag.pop, "%", 0)} />
+                            <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
+                            <Row label="Prime/contrat" val={diag.premiumUnit != null ? `${fmt(diag.premiumUnit)}$` : "n/d"} />
+                            {diag.inPicks && (
+                              <>
+                                <Row label="Prime totale" val={diag.premiumTotal != null ? `${Number(diag.premiumTotal).toFixed(0)}$` : "n/d"} />
+                                <Row label="Score combo" val={diag.scoreCombo ?? "n/d"} />
+                              </>
+                            )}
+                            <div className="mt-1 border-t border-slate-200 pt-1">
+                              <p className="text-slate-500">
+                                Critères {diag.bucket} — yield [{cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}]
+                                · spread max {cfg.maxSpread}%
+                                · modes {[...cfg.allowedModes].join("/")}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Bucket summary */}
+          <div>
+            <p className="mb-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              Résumé par bucket (approximatif, read-only)
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              {_INSP_BUCKET_KEYS.map((b) => {
+                const s = summaries[b];
+                const hdr = bucketHeaderCls[b];
+                return (
+                  <div key={b} className={cn("rounded-xl border p-3 text-xs space-y-0.5", hdr)}>
+                    <p className="font-semibold text-sm mb-1">{b}</p>
+                    <Row label="Positions sélectionnées" val={s.positions} />
+                    <Row label="Capital utilisé" val={`${s.totalCapital.toFixed(0)}$`} />
+                    <Row label="Capital libre" val={`${s.freeCapital.toFixed(0)}$`} />
+                    <Row label="Tickers sélectionnés" val={s.selectedTickers.length > 0 ? s.selectedTickers.join(", ") : "—"} />
+                    <div className="border-t border-slate-200 mt-1 pt-1">
+                      <Row label="Cartes scan total" val={s.totalScanCards} />
+                      <Row label="Avec jambe SAFE" val={s.withSafeLeg} />
+                      <Row label="Avec jambe AGGRESSIVE" val={s.withAggressiveLeg} />
+                      <Row label="Sans jambe exploitable" val={s.withNoLeg} />
+                      <Row label="Spread invalide/absent" val={s.withInvalidSpread} />
+                      <Row label="Yield invalide/absent" val={s.withInvalidYield} />
+                    </div>
+                    <div className="border-t border-slate-200 mt-1 pt-1">
+                      <p className="text-slate-500 font-medium">Top 10 yield :</p>
+                      <p className="text-slate-600 break-all">{s.top10ByYield.join(", ") || "—"}</p>
+                    </div>
+                    <div className="mt-1">
+                      <p className="text-slate-500 font-medium">Top 10 distance OTM :</p>
+                      <p className="text-slate-600 break-all">{s.top10ByDist.join(", ") || "—"}</p>
+                    </div>
+                    <div className="mt-1">
+                      <p className="text-slate-500 font-medium">Top 10 spread propre :</p>
+                      <p className="text-slate-600 break-all">{s.top10BySpread.join(", ") || "—"}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Les tops sont calculés sur l&apos;ensemble des candidats du scan, sans appliquer les filtres par bucket. Read-only — aucun impact sur les combos affichés.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, val }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-slate-500 shrink-0">{label}</span>
+      <span className="font-medium text-slate-800 text-right">{val ?? "n/d"}</span>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+function PortfolioCombos({ combos, candidates = [], capital, onTickerClick = null }) {
   const [snapshotStatus, setSnapshotStatus] = useState(null);
   const [snapshotMsg, setSnapshotMsg] = useState("");
   const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
@@ -7329,6 +7912,7 @@ function PortfolioCombos({ combos, capital, onTickerClick = null }) {
             )}
           </div>
         ))}
+        <CapitalCombosInspector combos={combos} candidates={candidates} capital={capital} />
       </CardContent>
     </Card>
   );
@@ -10087,7 +10671,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <PortfolioCombos combos={combos} capital={Number(capital)} onTickerClick={scrollToTickerCard} />
+            <PortfolioCombos combos={combos} candidates={filtered} capital={Number(capital)} onTickerClick={scrollToTickerCard} />
           </div>
 
           <div className="space-y-6">

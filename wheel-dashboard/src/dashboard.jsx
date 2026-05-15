@@ -2529,28 +2529,25 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       const enforceClusterCaps = nextDistinctPositions >= minTargetPositions || !hasDiversifyingAlternative(state, candidate.ticker);
 
       if (enforceClusterCaps) {
-        if (nextUsed > 0 && (nextTickerCapital / nextUsed) > (useSoftCaps ? mode.tickerCapPct * 1.08 : mode.tickerCapPct)) {
+        if (nextTickerCapital > usableCapital * mode.tickerCapPct) {
           return { ok: false, reason: "ticker_cap_reached" };
         }
         if (
           themeKey &&
           !NEUTRAL_CLUSTER_KEYS.has(themeKey) &&
-          nextUsed > 0 &&
-          (nextThemeCapital / nextUsed) > (useSoftCaps ? (mode.maxThemeCapitalPct ?? 0.45) * 1.08 : (mode.maxThemeCapitalPct ?? 0.45))
+          nextThemeCapital > usableCapital * (mode.maxThemeCapitalPct ?? 0.45)
         ) {
           return { ok: false, reason: "theme_cap_reached" };
         }
         if (
           sectorKey &&
           !NEUTRAL_CLUSTER_KEYS.has(sectorKey) &&
-          nextUsed > 0 &&
-          (nextSectorCapital / nextUsed) > (useSoftCaps ? (mode.maxSectorCapitalPct ?? 0.45) * 1.08 : (mode.maxSectorCapitalPct ?? 0.45))
+          nextSectorCapital > usableCapital * (mode.maxSectorCapitalPct ?? 0.45)
         ) {
           return { ok: false, reason: "sector_cap_reached" };
         }
         if (
-          nextUsed > 0 &&
-          (nextHighBetaCapital / nextUsed) > (useSoftCaps ? (mode.maxHighBetaCapitalPct ?? 0.40) * 1.08 : (mode.maxHighBetaCapitalPct ?? 0.40))
+          nextHighBetaCapital > usableCapital * (mode.maxHighBetaCapitalPct ?? 0.40)
         ) {
           return { ok: false, reason: "high_beta_cap_reached" };
         }

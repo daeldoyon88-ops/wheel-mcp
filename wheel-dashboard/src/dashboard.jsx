@@ -7456,15 +7456,16 @@ function BucketSection({ title, items, limit = 15 }) {
   );
 }
 
-function CapitalCombosInspector({ combos, candidates, capital }) {
+function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 100 }) {
   const [open, setOpen] = useState(false);
   const [tickerSearch, setTickerSearch] = useState("");
 
   const searchedTicker = String(tickerSearch || "").trim().toUpperCase();
+  const usableCapital = capital * (maxCapitalPct / 100);
 
   const summaries = useMemo(
-    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates, capital)])),
-    [combos, candidates, capital]
+    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates, usableCapital)])),
+    [combos, candidates, usableCapital]
   );
 
   const diagnostics = useMemo(() => {
@@ -7478,8 +7479,8 @@ function CapitalCombosInspector({ combos, candidates, capital }) {
         raisonProbable: "données manquantes",
       }));
     }
-    return _INSP_BUCKET_KEYS.map((b) => _inspCandidateDiag(cand, b, combos, capital));
-  }, [searchedTicker, candidates, combos, capital]);
+    return _INSP_BUCKET_KEYS.map((b) => _inspCandidateDiag(cand, b, combos, usableCapital));
+  }, [searchedTicker, candidates, combos, usableCapital]);
 
   function handleExportJSON() {
     const payload = {
@@ -7652,18 +7653,27 @@ function CapitalCombosInspector({ combos, candidates, capital }) {
 
           {/* Bucket summary */}
           <div>
-            <p className="mb-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="mb-1 text-xs font-semibold text-slate-600 uppercase tracking-wide">
               Résumé par bucket (approximatif, read-only)
+            </p>
+            <p className="mb-2 text-xs text-slate-400">
+              Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%)
             </p>
             <div className="grid gap-3 md:grid-cols-3">
               {_INSP_BUCKET_KEYS.map((b) => {
                 const s = summaries[b];
                 const hdr = bucketHeaderCls[b];
+                const freeDeployable = Math.max(0, usableCapital - s.totalCapital);
                 return (
                   <div key={b} className={cn("rounded-xl border p-3 text-xs", hdr)}>
-                    <p className="font-semibold text-sm mb-1">{b}</p>
+                    <p className="font-semibold text-sm mb-0.5">{b}</p>
+                    {(() => { const cfg = _INSP_BUCKETS[b]; return (
+                      <p className="text-slate-500 italic mb-1">
+                        yield {cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"} · spread max {cfg.maxSpread}% · modes {[...cfg.allowedModes].join("/")}
+                      </p>
+                    ); })()}
                     <Row label="Capital utilisé" val={`${s.totalCapital.toFixed(0)}$`} />
-                    <Row label="Capital libre" val={`${s.freeCapital.toFixed(0)}$`} />
+                    <Row label="Libre déployable" val={`${freeDeployable.toFixed(0)}$`} />
                     <Row label="Total scan" val={s.totalScanCards} />
                     <div className="border-t border-slate-200 mt-2 pt-1">
                       <BucketSection title="Sélectionnés" items={s.selected} />
@@ -7699,10 +7709,11 @@ function Row({ label, val }) {
 
 // ────────────────────────────────────────────────────────────────────────────
 
-function PortfolioCombos({ combos, candidates = [], capital, onTickerClick = null }) {
+function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100, onTickerClick = null }) {
   const [snapshotStatus, setSnapshotStatus] = useState(null);
   const [snapshotMsg, setSnapshotMsg] = useState("");
   const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
+  const usableCapital = capital * (maxCapitalPct / 100);
   const comboDefinitions = [
     { key: "SAFE", aliases: ["SAFE", "Conservateur"], emptyMessage: "Aucune combinaison SAFE propre selon les critères actuels." },
     { key: "BALANCED", aliases: ["BALANCED", "Équilibré", "Équilibré"], emptyMessage: "Aucune combinaison BALANCED propre selon les critères actuels." },
@@ -7802,10 +7813,10 @@ function PortfolioCombos({ combos, candidates = [], capital, onTickerClick = nul
               <div>
                 <p className="text-base font-semibold text-slate-900">{combo.label}</p>
                 <p className="text-sm font-medium text-slate-700">
-                  Simulation {combo.label} — capital simulé : {capital.toFixed(0)}$
+                  Simulation {combo.label} · {combo.positions} pos. · Rend. moy ~{combo.avgWeeklyReturn.toFixed(2)}%
                 </p>
-                <p className="text-sm text-slate-500">
-                  {combo.positions} positions · Capital {combo.totalCapital.toFixed(0)}$ ({combo.capitalPct.toFixed(0)}%) · Rend. moy ~{combo.avgWeeklyReturn.toFixed(2)}%
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%) · Utilisé {combo.totalCapital.toFixed(0)}$ · <span className="font-medium text-slate-700">Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$</span>
                 </p>
                 {(combo.avgQualityScore != null || combo.qualitySpeculativeCount > 0 || combo.qualityCryptoMinerCount > 0 || combo.qualityPremiumTrapCount > 0) && (
                   <p className="mt-0.5 text-xs text-slate-400">
@@ -7855,7 +7866,7 @@ function PortfolioCombos({ combos, candidates = [], capital, onTickerClick = nul
                 )}
               </div>
               <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
-                Libre {combo.freeCapital.toFixed(0)}$
+                Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$
               </Badge>
             </div>
 
@@ -7868,67 +7879,68 @@ function PortfolioCombos({ combos, candidates = [], capital, onTickerClick = nul
               {combo.picks.map((pick) => (
                 <div
                   key={`${combo.label}-${pick.ticker}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
                 >
-                  <div className="grid gap-2 md:grid-cols-10">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => onTickerClick?.(pick.ticker)}
-                        title={`Aller à la carte principale ${pick.ticker}`}
-                        className="cursor-pointer font-semibold text-slate-900 transition hover:text-sky-700 hover:underline"
-                      >
-                        {pick.ticker}
-                      </button>
-                      {pick.qualityTier && pick.qualityTier !== "high" && (
-                        <div className={cn(
-                          "mt-0.5 text-xs font-medium",
-                          pick.qualityTier === "medium" && "text-slate-400",
-                          pick.qualityTier === "speculative" && "text-amber-500",
-                          pick.qualityTier === "avoid" && "text-rose-600",
-                        )}>
-                          {pick.qualityTier}
-                        </div>
-                      )}
-                    </div>
-                    <div>{pick.mode ?? "—"} {pick.grade ? `[${pick.grade}]` : ""}</div>
-                    <div>PUT {pick.strike}$</div>
-                    <div>{pick.source || "Yahoo fallback"}</div>
-                    <div>
-                      {pick.premiumKind || "prime"} {pick.premiumUnit != null ? `${Number(pick.premiumUnit).toFixed(2)}$` : "—"}
-                    </div>
-                    <div>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}</div>
-                    <div>yield {pick.weeklyReturn.toFixed(2)}%</div>
-                    <div>dist. {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}</div>
-                    <div>×{pick.contracts}</div>
-                    <div>{pick.capitalRequired.toFixed(0)}$</div>
-                    <div>{pick.premiumCollected.toFixed(0)}$</div>
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => onTickerClick?.(pick.ticker)}
+                      title={`Aller à la carte principale ${pick.ticker}`}
+                      className="cursor-pointer font-bold text-slate-900 transition hover:text-sky-700 hover:underline"
+                    >
+                      {pick.ticker}
+                    </button>
+                    {pick.qualityTier && pick.qualityTier !== "high" && (
+                      <span className={cn(
+                        "text-xs font-medium",
+                        pick.qualityTier === "medium" && "text-slate-400",
+                        pick.qualityTier === "speculative" && "text-amber-500",
+                        pick.qualityTier === "avoid" && "text-rose-600",
+                      )}>
+                        {pick.qualityTier}
+                      </span>
+                    )}
+                    <span className="text-slate-300">|</span>
+                    <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs font-semibold text-slate-700">
+                      {pick.mode ?? "—"}{pick.grade ? ` ${pick.grade}` : ""}
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span>PUT {pick.strike}$</span>
+                    <span className="text-slate-300">|</span>
+                    <span>{pick.premiumKind || "bid"} {pick.premiumUnit != null ? `${Number(pick.premiumUnit).toFixed(2)}$` : "—"}</span>
+                    <span className="text-slate-300">|</span>
+                    <span>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}</span>
+                    <span className="text-slate-300">|</span>
+                    <span>yield {pick.weeklyReturn.toFixed(2)}%</span>
+                    <span className="text-slate-300">|</span>
+                    <span>dist {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}</span>
+                    <span className="text-slate-300">|</span>
+                    <span>×{pick.contracts}</span>
+                    <span className="text-slate-300">|</span>
+                    <span>capital {pick.capitalRequired.toFixed(0)}$</span>
+                    <span className="text-slate-300">|</span>
+                    <span>prime {pick.premiumCollected.toFixed(0)}$</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
                     <span
-                      className="rounded-full border border-slate-300 bg-white px-2 py-0.5 font-medium text-slate-700"
+                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-medium"
                       title={pick.selectionTooltip ?? undefined}
                     >
                       Score {pick.selectionScore}
                     </span>
-                    {pick.selectionSummary && (
-                      <span className="text-slate-500">{pick.selectionSummary}</span>
+                    {pick.source && <span>{pick.source}</span>}
+                    {pick.selectionSummary && <span>{pick.selectionSummary}</span>}
+                    {pick.selectionReason && <span className="text-sky-600">{pick.selectionReason}</span>}
+                    {(pick.concentrationTheme || (pick.qualityWarnings?.length > 0 && pick.qualityTier !== "high" && pick.qualityTier !== "medium")) && (
+                      <span className="text-amber-500">
+                        {pick.concentrationTheme && <span className="mr-1">thème: {pick.concentrationTheme}</span>}
+                        {pick.qualityWarnings
+                          ?.filter((w) => w !== "Crypto miner" && w !== "High beta growth")
+                          .slice(0, 2)
+                          .join(" · ")}
+                      </span>
                     )}
                   </div>
-                  {pick.selectionReason && (
-                    <div className="mt-1 text-xs text-sky-700">
-                      {pick.selectionReason}
-                    </div>
-                  )}
-                  {(pick.concentrationTheme || (pick.qualityWarnings?.length > 0 && pick.qualityTier !== "high" && pick.qualityTier !== "medium")) && (
-                    <div className="mt-1 text-xs text-amber-600">
-                      {pick.concentrationTheme && <span className="mr-2">thème: {pick.concentrationTheme}</span>}
-                      {pick.qualityWarnings
-                        ?.filter((w) => w !== "Crypto miner" && w !== "High beta growth")
-                        .slice(0, 2)
-                        .join(" · ")}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -7949,7 +7961,7 @@ function PortfolioCombos({ combos, candidates = [], capital, onTickerClick = nul
             )}
           </div>
         ))}
-        <CapitalCombosInspector combos={combos} candidates={candidates} capital={capital} />
+        <CapitalCombosInspector combos={combos} candidates={candidates} capital={capital} maxCapitalPct={maxCapitalPct} />
       </CardContent>
     </Card>
   );
@@ -10708,7 +10720,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <PortfolioCombos combos={combos} candidates={filtered} capital={Number(capital)} onTickerClick={scrollToTickerCard} />
+            <PortfolioCombos combos={combos} candidates={filtered} capital={Number(capital)} maxCapitalPct={Number(maxCapitalPct)} onTickerClick={scrollToTickerCard} />
           </div>
 
           <div className="space-y-6">

@@ -7262,6 +7262,10 @@ function _inspFindCombo(combos, bucketKey) {
   return combos.find((c) => keys.includes(c?.label)) ?? null;
 }
 
+function _inspYesNo(flag) {
+  return flag ? "oui" : "non";
+}
+
 function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
   const cfg = _INSP_BUCKETS[bucketKey];
   const combo = _inspFindCombo(combos, bucketKey);
@@ -7319,43 +7323,81 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
   const mid = Number(bucketLeg?.mid ?? NaN);
   const bucketLegAvailable = bucketLeg != null;
   const effectiveGrade = bucketGrade ?? String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase();
+  const comboFreeCapital = Math.max(0, Number(combo?.freeCapital ?? capital ?? 0));
+  const blockedByStaticGrade = bucketLegAvailable && !["A", "B"].includes(effectiveGrade);
+  const blockedByStaticSpread = bucketLegAvailable && spread != null && spread > cfg.maxSpread;
+  const blockedByStaticYield =
+    bucketLegAvailable &&
+    yieldPct != null &&
+    (yieldPct < cfg.minYield || (cfg.maxYield != null && yieldPct >= cfg.maxYield));
+  const blockedByStaticCapital =
+    capitalRequired != null && capital > 0 && capitalRequired > capital;
+  const blockedByUnknown = meta.qualityTier === "Inconnu à valider";
+  const passedStaticFilters =
+    bucketLegAvailable &&
+    !isCryptoBlocked &&
+    !blockedByStaticGrade &&
+    !blockedByStaticSpread &&
+    !blockedByStaticYield &&
+    !blockedByStaticCapital &&
+    !blockedByUnknown;
+  const blockedByCapitalEnvelope =
+    !inPicks &&
+    passedStaticFilters &&
+    capitalRequired != null &&
+    capitalRequired > comboFreeCapital;
+  const possibleDynamicBlock =
+    !inPicks &&
+    passedStaticFilters &&
+    !blockedByCapitalEnvelope;
 
+  let diagCategory = "non_selected";
   let statusProbable;
   let raisonProbable;
   if (inPicks) {
+    diagCategory = "selected";
     statusProbable = "sélectionné";
     raisonProbable = "—";
   } else if (isCryptoBlocked) {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "crypto/commodity exclu";
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable = "bloqué avant scoredPool — crypto/commodity exclu";
   } else if (!bucketLegAvailable) {
+    diagCategory = "no_bucket_leg";
     statusProbable = "aucune jambe bucket";
     raisonProbable = "pas de jambe bucket";
-  } else if (!["A", "B"].includes(effectiveGrade)) {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "grade non A/B";
-  } else if (spread != null && spread > cfg.maxSpread) {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "spread trop large";
-  } else if (yieldPct != null && yieldPct < cfg.minYield) {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "yield hors bande";
-  } else if (cfg.maxYield != null && yieldPct != null && yieldPct >= cfg.maxYield) {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "yield hors bande";
-  } else if (capitalRequired != null && capital > 0 && capitalRequired > capital) {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "capital insuffisant";
-  } else if (meta.qualityTier === "Inconnu à valider") {
-    statusProbable = "jambe présente mais bloquée";
-    raisonProbable = "inconnu à valider";
+  } else if (blockedByStaticGrade) {
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable = "bloqué avant scoredPool — grade non A/B";
+  } else if (blockedByStaticSpread) {
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable = "bloqué avant scoredPool — spread trop large";
+  } else if (blockedByStaticYield) {
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable = "bloqué avant scoredPool — yield hors bande";
+  } else if (blockedByStaticCapital) {
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable = "bloqué avant scoredPool — capital déployable insuffisant";
+  } else if (blockedByUnknown) {
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable = "bloqué avant scoredPool — inconnu à valider";
+  } else if (blockedByCapitalEnvelope) {
+    diagCategory = "capital_envelope";
+    statusProbable = "admissible statique, trop cher";
+    raisonProbable = `non sélectionné — capital restant ${comboFreeCapital.toFixed(0)}$ insuffisant pour ${capitalRequired.toFixed(0)}$`;
   } else {
-    statusProbable = "candidat visible mais non sélectionné";
-    raisonProbable = "cap ticker/secteur/thème probable";
+    diagCategory = "non_selected";
+    statusProbable = "admissible statique non sélectionné";
+    raisonProbable = "non sélectionné — raison moteur non reproduite par inspecteur, possiblement caps/ordre/capital restant";
   }
 
   return {
-    ticker, bucket: bucketKey, inScanData: true, inPicks,
+    ticker, bucket: bucketKey, inScanData: true, inPicks, diagCategory,
     mode: globalMode, grade: effectiveGrade,
     safeLegAvailable: safeLeg != null,
     aggLegAvailable: aggLeg != null,
@@ -7368,6 +7410,13 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
     capitalRequired, premiumUnit: premium,
     premiumTotal: inPicks ? pick.premiumCollected : null,
     scoreCombo: inPicks ? pick.selectionScore : null,
+    comboFreeCapital,
+    passedStaticFilters,
+    blockedByStaticGrade,
+    blockedByStaticSpread,
+    blockedByStaticYield,
+    blockedByCapitalEnvelope,
+    possibleDynamicBlock,
     statusProbable, raisonProbable, pick,
   };
 }
@@ -7378,9 +7427,11 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital) {
   const diags = candidates.map((c) => _inspCandidateDiag(c, bucketKey, combos, capital));
   const selected = diags.filter((d) => d.inPicks);
   const affiliated = diags.filter((d) => d.bucketLegAvailable);
-  const eligibleNotSelected = diags.filter((d) => d.statusProbable === "candidat visible mais non sélectionné");
-  const rejectedByBucketFilter = diags.filter((d) => d.statusProbable === "jambe présente mais bloquée");
-  const noBucketLeg = diags.filter((d) => d.statusProbable === "aucune jambe bucket");
+  const eligibleNotSelected = diags.filter(
+    (d) => d.diagCategory === "non_selected" || d.diagCategory === "capital_envelope"
+  );
+  const rejectedByBucketFilter = diags.filter((d) => d.diagCategory === "blocked_static");
+  const noBucketLeg = diags.filter((d) => d.diagCategory === "no_bucket_leg");
   return {
     positions: picks.length,
     totalCapital: combo?.totalCapital ?? 0,
@@ -7396,8 +7447,9 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital) {
 
 function _inspStatusBadge(status) {
   if (status === "sélectionné") return "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700";
-  if (status === "candidat visible mais non sélectionné") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
-  if (status === "jambe présente mais bloquée") return "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700";
+  if (status === "admissible statique non sélectionné") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
+  if (status === "admissible statique, trop cher") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700";
+  if (status === "rejeté avant scoredPool") return "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700";
   if (status === "aucune jambe bucket") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500";
   return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600";
 }
@@ -7407,14 +7459,17 @@ const _inspFmt = (v, suffix = "", digits = 2) =>
 
 function _inspLineStatus(diag) {
   if (diag.inPicks) return "sélectionné";
-  if (diag.statusProbable === "candidat visible mais non sélectionné") return "éligible non sélectionné";
+  if (diag.diagCategory === "non_selected") return "admissible statique, non sélectionné";
+  if (diag.diagCategory === "capital_envelope") return "admissible statique, trop cher";
   if (diag.statusProbable === "aucune jambe bucket") return "sans jambe bucket valide";
+  if (diag.diagCategory === "blocked_static") return "rejeté avant scoredPool";
   return `rejeté : ${diag.raisonProbable}`;
 }
 
 function _inspLineStatusCls(diag) {
   if (diag.inPicks) return "text-green-700 font-semibold";
-  if (diag.statusProbable === "candidat visible mais non sélectionné") return "text-sky-700";
+  if (diag.diagCategory === "non_selected") return "text-sky-700";
+  if (diag.diagCategory === "capital_envelope") return "text-slate-700";
   if (diag.statusProbable === "aucune jambe bucket") return "text-slate-400";
   return "text-amber-700";
 }
@@ -7472,6 +7527,13 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
       return _INSP_BUCKET_KEYS.map((b) => ({
         ticker: searchedTicker, bucket: b,
         inScanData: false, inPicks: false,
+        diagCategory: "insufficient_data",
+        passedStaticFilters: false,
+        blockedByStaticGrade: false,
+        blockedByStaticSpread: false,
+        blockedByStaticYield: false,
+        blockedByCapitalEnvelope: false,
+        possibleDynamicBlock: false,
         statusProbable: "données insuffisantes",
         raisonProbable: "données manquantes",
       }));
@@ -7511,6 +7573,12 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
             capitalRequired: d.capitalRequired,
             status: _inspLineStatus(d),
             raisonProbable: d.raisonProbable,
+            passedStaticFilters: d.passedStaticFilters,
+            blockedByStaticGrade: d.blockedByStaticGrade,
+            blockedByStaticSpread: d.blockedByStaticSpread,
+            blockedByStaticYield: d.blockedByStaticYield,
+            blockedByCapitalEnvelope: d.blockedByCapitalEnvelope,
+            possibleDynamicBlock: d.possibleDynamicBlock,
           });
           return [b, {
             positions: s.positions,
@@ -7624,7 +7692,14 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
                             <Row label="Distance %" val={fmt(diag.distance, "%", 1)} />
                             <Row label="POP estimée" val={fmt(diag.pop, "%", 0)} />
                             <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
+                            <Row label="Capital libre bucket" val={diag.comboFreeCapital != null ? `${Number(diag.comboFreeCapital).toFixed(0)}$` : "n/d"} />
                             <Row label="Prime/contrat" val={diag.premiumUnit != null ? `${fmt(diag.premiumUnit)}$` : "n/d"} />
+                            <Row label="Filtres statiques OK" val={_inspYesNo(diag.passedStaticFilters)} />
+                            <Row label="Bloqué grade" val={_inspYesNo(diag.blockedByStaticGrade)} />
+                            <Row label="Bloqué spread" val={_inspYesNo(diag.blockedByStaticSpread)} />
+                            <Row label="Bloqué yield" val={_inspYesNo(diag.blockedByStaticYield)} />
+                            <Row label="Trop cher fin combo" val={_inspYesNo(diag.blockedByCapitalEnvelope)} />
+                            <Row label="Bloc moteur possible" val={_inspYesNo(diag.possibleDynamicBlock)} />
                             {diag.inPicks && (
                               <>
                                 <Row label="Prime totale" val={diag.premiumTotal != null ? `${Number(diag.premiumTotal).toFixed(0)}$` : "n/d"} />
@@ -7677,7 +7752,7 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
                       <div className="mt-1.5">
                         <p className="text-xs font-medium text-slate-600">Affiliés au bucket : {s.affiliated.length}</p>
                       </div>
-                      <BucketSection title="Éligibles non sélectionnés" items={s.eligibleNotSelected} />
+                      <BucketSection title="Admissibles statiques non sélectionnés" items={s.eligibleNotSelected} />
                       <BucketSection title="Rejetés par filtre bucket" items={s.rejectedByBucketFilter} />
                       <BucketSection title="Sans jambe bucket valide" items={s.noBucketLeg} />
                     </div>
@@ -7686,7 +7761,7 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
               })}
             </div>
             <p className="mt-2 text-xs text-slate-400">
-              Affichage approximatif read-only — aucun impact sur les combos affichés.
+              Affichage approximatif read-only — filtres statiques reproduits, moteur complet non rejoué.
             </p>
           </div>
         </div>
@@ -7810,7 +7885,7 @@ function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100
               <div>
                 <p className="text-base font-semibold text-slate-900">{combo.label}</p>
                 <p className="text-sm font-medium text-slate-700">
-                  Simulation {combo.label} · {combo.positions} pos. · Rend. moy ~{combo.avgWeeklyReturn.toFixed(2)}%
+                  Simulation {combo.label} · {combo.positions} pos. · Rend. port. ~{(usableCapital > 0 ? ((combo.totalPremium ?? combo.picks.reduce((s, p) => s + p.premiumCollected, 0)) / usableCapital * 100) : 0).toFixed(2)}%
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%) · Utilisé {combo.totalCapital.toFixed(0)}$ · <span className="font-medium text-slate-700">Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$</span>

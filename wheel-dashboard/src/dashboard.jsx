@@ -7375,43 +7375,25 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
   };
 }
 
-function _inspBucketSummary(bucketKey, combos, candidates) {
+function _inspBucketSummary(bucketKey, combos, candidates, capital) {
   const combo = _inspFindCombo(combos, bucketKey);
   const picks = combo?.picks ?? [];
-  const top10ByYield = [...candidates]
-    .filter((c) => Number.isFinite(Number(c.weeklyReturn)) && Number(c.weeklyReturn) > 0)
-    .sort((a, b) => Number(b.weeklyReturn) - Number(a.weeklyReturn))
-    .slice(0, 10);
-  const top10ByDist = [...candidates]
-    .filter((c) => { const d = getLegDistancePct(getFinalSelectedLeg(c)); return d != null; })
-    .sort((a, b) => {
-      const dA = getLegDistancePct(getFinalSelectedLeg(a)) ?? 0;
-      const dB = getLegDistancePct(getFinalSelectedLeg(b)) ?? 0;
-      return dA - dB;
-    })
-    .slice(0, 10);
-  const top10BySpread = [...candidates]
-    .filter((c) => { const s = getSafeSpreadPct(c) ?? getAggressiveSpreadPct(c); return s != null; })
-    .sort((a, b) => {
-      const sA = getSafeSpreadPct(a) ?? getAggressiveSpreadPct(a) ?? Infinity;
-      const sB = getSafeSpreadPct(b) ?? getAggressiveSpreadPct(b) ?? Infinity;
-      return sA - sB;
-    })
-    .slice(0, 10);
+  const diags = candidates.map((c) => _inspCandidateDiag(c, bucketKey, combos, capital));
+  const selected = diags.filter((d) => d.inPicks);
+  const affiliated = diags.filter((d) => d.bucketLegAvailable);
+  const eligibleNotSelected = diags.filter((d) => d.statusProbable === "candidat visible mais non sélectionné");
+  const rejectedByBucketFilter = diags.filter((d) => d.statusProbable === "jambe présente mais bloquée");
+  const noBucketLeg = diags.filter((d) => d.statusProbable === "aucune jambe bucket");
   return {
     positions: picks.length,
     totalCapital: combo?.totalCapital ?? 0,
     freeCapital: combo?.freeCapital ?? 0,
-    selectedTickers: picks.map((p) => p.ticker),
     totalScanCards: candidates.length,
-    withSafeLeg: candidates.filter((c) => c.safeStrike != null).length,
-    withAggressiveLeg: candidates.filter((c) => c.aggressiveStrike != null).length,
-    withNoLeg: candidates.filter((c) => c.safeStrike == null && c.aggressiveStrike == null).length,
-    withInvalidSpread: candidates.filter((c) => getSafeSpreadPct(c) == null && getAggressiveSpreadPct(c) == null).length,
-    withInvalidYield: candidates.filter((c) => { const y = Number(c.weeklyReturn ?? NaN); return !Number.isFinite(y) || y <= 0; }).length,
-    top10ByYield: top10ByYield.map((c) => c.ticker),
-    top10ByDist: top10ByDist.map((c) => c.ticker),
-    top10BySpread: top10BySpread.map((c) => c.ticker),
+    selected,
+    affiliated,
+    eligibleNotSelected,
+    rejectedByBucketFilter,
+    noBucketLeg,
   };
 }
 
@@ -7423,6 +7405,57 @@ function _inspStatusBadge(status) {
   return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600";
 }
 
+const _inspFmt = (v, suffix = "", digits = 2) =>
+  v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(digits)}${suffix}` : "n/d";
+
+function _inspLineStatus(diag) {
+  if (diag.inPicks) return "sélectionné";
+  if (diag.statusProbable === "candidat visible mais non sélectionné") return "éligible non sélectionné";
+  if (diag.statusProbable === "aucune jambe bucket") return "sans jambe bucket valide";
+  return `rejeté : ${diag.raisonProbable}`;
+}
+
+function _inspLineStatusCls(diag) {
+  if (diag.inPicks) return "text-green-700 font-semibold";
+  if (diag.statusProbable === "candidat visible mais non sélectionné") return "text-sky-700";
+  if (diag.statusProbable === "aucune jambe bucket") return "text-slate-400";
+  return "text-amber-700";
+}
+
+function BucketTickerLine({ diag }) {
+  const capStr = diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d";
+  return (
+    <div className="text-xs text-slate-700 py-px leading-snug">
+      <span className="font-semibold text-slate-900">{diag.ticker}</span>
+      {" — "}{diag.bucket} {diag.grade || "n/d"}
+      {" — "}yield {_inspFmt(diag.yieldPct, "%")}
+      {" — "}spread {_inspFmt(diag.spread, "%", 1)}
+      {" — "}dist {_inspFmt(diag.distance, "%", 1)}
+      {" — "}POP {_inspFmt(diag.pop, "%", 0)}
+      {" — "}capital {capStr}
+      {" — "}<span className={_inspLineStatusCls(diag)}>{_inspLineStatus(diag)}</span>
+    </div>
+  );
+}
+
+function BucketSection({ title, items, limit = 15 }) {
+  const visible = items.slice(0, limit);
+  const overflow = items.length - visible.length;
+  return (
+    <div className="mt-1.5">
+      <p className="text-xs font-semibold text-slate-700">{title} : {items.length}</p>
+      {visible.length > 0 && (
+        <div className="mt-0.5 pl-2 border-l-2 border-slate-200 space-y-0">
+          {visible.map((d) => <BucketTickerLine key={d.ticker} diag={d} />)}
+          {overflow > 0 && (
+            <p className="text-xs text-slate-400 italic">+ {overflow} autres dans Export JSON</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CapitalCombosInspector({ combos, candidates, capital }) {
   const [open, setOpen] = useState(false);
   const [tickerSearch, setTickerSearch] = useState("");
@@ -7430,8 +7463,8 @@ function CapitalCombosInspector({ combos, candidates, capital }) {
   const searchedTicker = String(tickerSearch || "").trim().toUpperCase();
 
   const summaries = useMemo(
-    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates)])),
-    [combos, candidates]
+    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates, capital)])),
+    [combos, candidates, capital]
   );
 
   const diagnostics = useMemo(() => {
@@ -7468,20 +7501,36 @@ function CapitalCombosInspector({ combos, candidates, capital }) {
       inspecteurParBucket: Object.fromEntries(
         _INSP_BUCKET_KEYS.map((b) => {
           const s = summaries[b];
+          const mapDiag = (d) => ({
+            ticker: d.ticker,
+            bucket: d.bucket,
+            mode: d.mode,
+            grade: d.grade,
+            yieldPct: d.yieldPct,
+            spread: d.spread,
+            distance: d.distance,
+            pop: d.pop,
+            capitalRequired: d.capitalRequired,
+            status: _inspLineStatus(d),
+            raisonProbable: d.raisonProbable,
+          });
           return [b, {
             positions: s.positions,
             totalCapital: s.totalCapital,
             freeCapital: s.freeCapital,
-            selectedTickers: s.selectedTickers,
             totalScanCards: s.totalScanCards,
-            withSafeLeg: s.withSafeLeg,
-            withAggressiveLeg: s.withAggressiveLeg,
-            withNoLeg: s.withNoLeg,
-            withInvalidSpread: s.withInvalidSpread,
-            withInvalidYield: s.withInvalidYield,
-            top10ByYield: s.top10ByYield,
-            top10ByDist: s.top10ByDist,
-            top10BySpread: s.top10BySpread,
+            bucketMetrics: {
+              selectedCount: s.selected.length,
+              affiliatedCount: s.affiliated.length,
+              eligibleNotSelectedCount: s.eligibleNotSelected.length,
+              rejectedCount: s.rejectedByBucketFilter.length,
+              noBucketLegCount: s.noBucketLeg.length,
+            },
+            selected: s.selected.map(mapDiag),
+            affiliated: s.affiliated.map(mapDiag),
+            eligibleNotSelected: s.eligibleNotSelected.map(mapDiag),
+            rejectedByBucketFilter: s.rejectedByBucketFilter.map(mapDiag),
+            noBucketLeg: s.noBucketLeg.map(mapDiag),
           }];
         })
       ),
@@ -7611,38 +7660,26 @@ function CapitalCombosInspector({ combos, candidates, capital }) {
                 const s = summaries[b];
                 const hdr = bucketHeaderCls[b];
                 return (
-                  <div key={b} className={cn("rounded-xl border p-3 text-xs space-y-0.5", hdr)}>
+                  <div key={b} className={cn("rounded-xl border p-3 text-xs", hdr)}>
                     <p className="font-semibold text-sm mb-1">{b}</p>
-                    <Row label="Positions sélectionnées" val={s.positions} />
                     <Row label="Capital utilisé" val={`${s.totalCapital.toFixed(0)}$`} />
                     <Row label="Capital libre" val={`${s.freeCapital.toFixed(0)}$`} />
-                    <Row label="Tickers sélectionnés" val={s.selectedTickers.length > 0 ? s.selectedTickers.join(", ") : "—"} />
-                    <div className="border-t border-slate-200 mt-1 pt-1">
-                      <Row label="Cartes scan total" val={s.totalScanCards} />
-                      <Row label="Avec jambe SAFE" val={s.withSafeLeg} />
-                      <Row label="Avec jambe AGGRESSIVE" val={s.withAggressiveLeg} />
-                      <Row label="Sans jambe exploitable" val={s.withNoLeg} />
-                      <Row label="Spread invalide/absent" val={s.withInvalidSpread} />
-                      <Row label="Yield invalide/absent" val={s.withInvalidYield} />
-                    </div>
-                    <div className="border-t border-slate-200 mt-1 pt-1">
-                      <p className="text-slate-500 font-medium">Top 10 yield :</p>
-                      <p className="text-slate-600 break-all">{s.top10ByYield.join(", ") || "—"}</p>
-                    </div>
-                    <div className="mt-1">
-                      <p className="text-slate-500 font-medium">Top 10 distance OTM :</p>
-                      <p className="text-slate-600 break-all">{s.top10ByDist.join(", ") || "—"}</p>
-                    </div>
-                    <div className="mt-1">
-                      <p className="text-slate-500 font-medium">Top 10 spread propre :</p>
-                      <p className="text-slate-600 break-all">{s.top10BySpread.join(", ") || "—"}</p>
+                    <Row label="Total scan" val={s.totalScanCards} />
+                    <div className="border-t border-slate-200 mt-2 pt-1">
+                      <BucketSection title="Sélectionnés" items={s.selected} />
+                      <div className="mt-1.5">
+                        <p className="text-xs font-medium text-slate-600">Affiliés au bucket : {s.affiliated.length}</p>
+                      </div>
+                      <BucketSection title="Éligibles non sélectionnés" items={s.eligibleNotSelected} />
+                      <BucketSection title="Rejetés par filtre bucket" items={s.rejectedByBucketFilter} />
+                      <BucketSection title="Sans jambe bucket valide" items={s.noBucketLeg} />
                     </div>
                   </div>
                 );
               })}
             </div>
             <p className="mt-2 text-xs text-slate-400">
-              Les tops sont calculés sur l&apos;ensemble des candidats du scan, sans appliquer les filtres par bucket. Read-only — aucun impact sur les combos affichés.
+              Affichage approximatif read-only — aucun impact sur les combos affichés.
             </p>
           </div>
         </div>

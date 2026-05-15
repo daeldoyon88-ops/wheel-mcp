@@ -2006,7 +2006,7 @@ function buildCapitalComboCandidate(candidate, usableCapital) {
       (finalDisplayGrade === "A" || finalDisplayGrade === "B") &&
       !!selectedLeg &&
       !(meta.isCryptoBlocked && !meta.isCryptoAllowed) &&
-      meta.qualityTier !== "Inconnu Ã  valider" &&
+      meta.qualityTier !== "Inconnu à valider" &&
       !isUnknownTicker &&
       Number.isFinite(strike) &&
       strike > 0 &&
@@ -2423,11 +2423,11 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       const marginalScore = Number(candidate.allocScore ?? 0) + diversificationBonus - projected.penalty;
       const selectionReasonParts = [candidate._comboScoreBreakdown?.selectionReason ?? "selected: portfolio fit"];
       if (!isExisting && state.distinctPositions < minTargetPositions) {
-        selectionReasonParts.push("portfolio: nouvelle ligne priorisÃ©e pour diversification");
+        selectionReasonParts.push("portfolio: nouvelle ligne priorisée pour diversification");
       } else if (!isExisting) {
-        selectionReasonParts.push("portfolio: diversification ajoutÃ©e sans dÃ©grader le budget");
+        selectionReasonParts.push("portfolio: diversification ajoutée sans dégrader le budget");
       } else {
-        selectionReasonParts.push("portfolio: renfort acceptÃ© aprÃ¨s caps et diversification");
+        selectionReasonParts.push("portfolio: renfort accepté après caps et diversification");
       }
 
       return {
@@ -2436,7 +2436,7 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
         existing,
         isExisting,
         marginalScore,
-        selectionReason: selectionReasonParts.join(" Â· "),
+        selectionReason: selectionReasonParts.join(" · "),
       };
     }
 
@@ -5206,7 +5206,7 @@ function getAggressiveSpreadPct(card) {
 
 function isUnknownUnvalidatedTicker(card) {
   const meta = getTickerDisplayMeta(String(card?.ticker ?? "").toUpperCase());
-  return meta.qualityTier === "Inconnu Ã  valider";
+  return meta.qualityTier === "Inconnu à valider";
 }
 
 function getCreamQualityScore(card) {
@@ -5265,7 +5265,7 @@ function getCreamQualityBucket(card) {
     card?.hasEarningsBeforeExpiration === true;
   const rsi = Number(card?.rsi);
   if (isUnknownUnvalidatedTicker(card)) {
-    return { bucket: "unknownReview", label: "Inconnus Ã  valider", reasons: ["Ajouter Ã  tickerMeta.js pour le classer"] };
+    return { bucket: "unknownReview", label: "Inconnus à valider", reasons: ["Ajouter à tickerMeta.js pour le classer"] };
   }
 
   if (meta.isCryptoBlocked && !meta.isCryptoAllowed) {
@@ -7056,18 +7056,18 @@ function formatCapitalShortfallReason(reason) {
 
 function formatCapitalShortfallReasonLegacy(reason) {
   const map = {
-    caps_too_strict: "Caps de risque trop stricts pour ajouter un contrat sans dÃ©passer la limite.",
+    caps_too_strict: "Caps de risque trop stricts pour ajouter un contrat sans dépasser la limite.",
     contract_size_too_large: "Capital restant insuffisant pour le prochain contrat admissible.",
     high_beta_cap_reached: "Cap high beta atteint pour les candidats restants.",
     max_positions_limit: "Limite maximale de positions atteinte.",
-    no_clean_incremental_candidate: "Les candidats restants dÃ©gradent trop la diversification ou le profil de risque.",
+    no_clean_incremental_candidate: "Les candidats restants dégradent trop la diversification ou le profil de risque.",
     not_enough_candidates: "Pas assez de candidats admissibles pour remplir davantage le capital.",
-    min_yield_or_execution_filter: "Filtres de rendement ou d'exÃ©cution trop stricts pour les candidats restants.",
+    min_yield_or_execution_filter: "Filtres de rendement ou d'exécution trop stricts pour les candidats restants.",
     sector_cap_reached: "Cap secteur atteint pour les candidats restants.",
-    theme_cap_reached: "Cap thÃ¨me atteint pour les candidats restants.",
+    theme_cap_reached: "Cap thème atteint pour les candidats restants.",
     ticker_cap_reached: "Cap ticker atteint pour les candidats restants.",
   };
-  return map[reason] ?? "Raison non dÃ©terminÃ©e.";
+  return map[reason] ?? "Raison non déterminée.";
 }
 
 const LABEL_TO_MODE_ID = {
@@ -7084,9 +7084,9 @@ function PortfolioCombos({ combos, capital, onTickerClick = null }) {
   const [snapshotMsg, setSnapshotMsg] = useState("");
   const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
   const comboDefinitions = [
-    { key: "SAFE", aliases: ["SAFE", "Conservateur"], emptyMessage: "Aucune combinaison SAFE propre selon les crit�res actuels." },
-    { key: "BALANCED", aliases: ["BALANCED", "Équilibré", "Ã‰quilibrÃ©"], emptyMessage: "Aucune combinaison BALANCED propre selon les crit�res actuels." },
-    { key: "AGGRESSIVE", aliases: ["AGGRESSIVE", "Agressif"], emptyMessage: "Aucune combinaison AGGRESSIVE propre selon les crit�res actuels." },
+    { key: "SAFE", aliases: ["SAFE", "Conservateur"], emptyMessage: "Aucune combinaison SAFE propre selon les critères actuels." },
+    { key: "BALANCED", aliases: ["BALANCED", "Équilibré", "Équilibré"], emptyMessage: "Aucune combinaison BALANCED propre selon les critères actuels." },
+    { key: "AGGRESSIVE", aliases: ["AGGRESSIVE", "Agressif"], emptyMessage: "Aucune combinaison AGGRESSIVE propre selon les critères actuels." },
   ];
   const visibleCombos = comboDefinitions.map((definition) => {
     const found = combos.find((combo) => definition.aliases.includes(combo?.label));
@@ -7242,7 +7242,7 @@ function PortfolioCombos({ combos, capital, onTickerClick = null }) {
             <div className="mt-4 space-y-2">
               {combo.picks.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
-                  {combo.emptyMessage ?? "Aucune combinaison propre selon les crit�res actuels."}
+                  {combo.emptyMessage ?? "Aucune combinaison propre selon les critères actuels."}
                 </div>
               )}
               {combo.picks.map((pick) => (
@@ -7271,15 +7271,15 @@ function PortfolioCombos({ combos, capital, onTickerClick = null }) {
                         </div>
                       )}
                     </div>
-                    <div>{pick.mode ?? "�"} {pick.grade ? `[${pick.grade}]` : ""}</div>
+                    <div>{pick.mode ?? "—"} {pick.grade ? `[${pick.grade}]` : ""}</div>
                     <div>PUT {pick.strike}$</div>
                     <div>{pick.source || "Yahoo fallback"}</div>
                     <div>
                       {pick.premiumKind || "prime"} {pick.premiumUnit != null ? `${Number(pick.premiumUnit).toFixed(2)}$` : "—"}
                     </div>
-                    <div>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "�"}</div>
+                    <div>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}</div>
                     <div>yield {pick.weeklyReturn.toFixed(2)}%</div>
-                    <div>dist. {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "�"}</div>
+                    <div>dist. {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}</div>
                     <div>×{pick.contracts}</div>
                     <div>{pick.capitalRequired.toFixed(0)}$</div>
                     <div>{pick.premiumCollected.toFixed(0)}$</div>
@@ -10181,5 +10181,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-

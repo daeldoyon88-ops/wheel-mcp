@@ -2332,6 +2332,14 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
           finalDisplayGrade: resolvedGrade || candidate.finalDisplayGrade,
           weeklyReturn: bucketYield ?? candidate.weeklyReturn,
           spreadPct: bucketSpread ?? candidate.spreadPct,
+          // Recompute quality overlay with bucket-specific leg metrics so that
+          // filterCandidate sees the correct spread/yield/pop for this specific leg
+          _qualityOverlay: computeTickerQualityOverlay({
+            ...candidate,
+            spreadPct: bucketSpread,
+            weeklyReturn: bucketYield,
+            _popForCombo: bucketPop,
+          }),
         };
       })
       // Étape 2 : exclure les candidats sans jambe bucket
@@ -7193,11 +7201,16 @@ function formatCapitalShortfallReason(reason) {
   const map = {
     caps_too_strict: "Caps de risque trop stricts pour ajouter un contrat sans dépasser la limite.",
     contract_size_too_large: "Capital restant insuffisant pour le prochain contrat admissible.",
+    high_beta_cap_reached: "Cap high beta atteint — aucun candidat restant ne passe ce filtre.",
     max_positions_limit: "Limite maximale de positions atteinte.",
+    no_clean_incremental_candidate: "Les candidats restants dégradent trop la diversification ou le profil de risque.",
     not_enough_candidates: "Pas assez de candidats admissibles pour remplir davantage le capital.",
     min_yield_or_execution_filter: "Filtres de rendement ou d'exécution trop stricts pour les candidats restants.",
+    sector_cap_reached: "Cap secteur atteint pour les candidats restants.",
+    theme_cap_reached: "Cap thème atteint pour les candidats restants.",
+    ticker_cap_reached: "Cap ticker atteint — contrats max déjà déployés sur ce sous-jacent.",
   };
-  return map[reason] ?? "Raison non déterminée.";
+  return map[reason] ?? `Raison non déterminée (${reason ?? "?"}).`;
 }
 
 function formatCapitalShortfallReasonLegacy(reason) {
@@ -7237,6 +7250,15 @@ const _INSP_BUCKETS = {
     maxSpread: 15,
     minDistancePct: null,
     color: "green",
+    // filterCandidate mirrors (moteur conservatif)
+    filterAvoid: true,
+    filterSpeculativePopMin: 88,
+    filterSpeculativeSpreadMax: 15,
+    filterSpeculativeYieldMin: null,
+    filterSpeculativeRequireNoEarnings: true,
+    filterPremiumTrapPenaltyMin: null,
+    filterPremiumTrapPopMin: null,
+    minExecutionScore: 0,
   },
   BALANCED: {
     label: "BALANCED",
@@ -7247,6 +7269,15 @@ const _INSP_BUCKETS = {
     maxSpread: 20,
     minDistancePct: null,
     color: "sky",
+    // filterCandidate mirrors (moteur équilibré)
+    filterAvoid: true,
+    filterSpeculativePopMin: 82,
+    filterSpeculativeSpreadMax: 20,
+    filterSpeculativeYieldMin: 0.75,
+    filterSpeculativeRequireNoEarnings: false,
+    filterPremiumTrapPenaltyMin: null,
+    filterPremiumTrapPopMin: null,
+    minExecutionScore: 0,
   },
   AGGRESSIVE: {
     label: "AGGRESSIVE",
@@ -7257,6 +7288,15 @@ const _INSP_BUCKETS = {
     maxSpread: 25,
     minDistancePct: -5,
     color: "orange",
+    // filterCandidate mirrors (moteur agressif)
+    filterAvoid: true,
+    filterSpeculativePopMin: null,
+    filterSpeculativeSpreadMax: 20,
+    filterSpeculativeYieldMin: null,
+    filterSpeculativeRequireNoEarnings: false,
+    filterPremiumTrapPenaltyMin: 0.40,
+    filterPremiumTrapPopMin: 82,
+    minExecutionScore: 0.45,
   },
 };
 const _INSP_BUCKET_KEYS = ["SAFE", "BALANCED", "AGGRESSIVE"];
@@ -7275,7 +7315,7 @@ function _inspYesNo(flag) {
   return flag ? "oui" : "non";
 }
 
-function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
+function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedSymbols = new Set()) {
   const cfg = _INSP_BUCKETS[bucketKey];
   const combo = _inspFindCombo(combos, bucketKey);
   const ticker = String(candidate?.ticker || "").trim().toUpperCase();
@@ -7287,6 +7327,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
   const meta = getTickerDisplayMeta(ticker);
   const isCryptoBlocked = meta.isCryptoBlocked && !meta.isCryptoAllowed;
   const inPicks = pick != null;
+  const ibkrRejected = ibkrRejectedSymbols.has(ticker);
 
   // Jambe et grade spécifiques au bucket (indépendants du mode global)
   let bucketLeg;
@@ -7305,18 +7346,26 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
       }) ?? candidate?.aggressiveGrade ?? ""
     ).toUpperCase() || null;
   } else {
-    // BALANCED : utiliser la jambe la plus proche de la bande [0.75, 1.0)
+    // BALANCED : miroir exact du moteur — bande [0.75, 1.05), MID=0.875
     const safeY = getLegYieldPct(safeLeg, candidate);
     const aggY = getLegYieldPct(aggLeg, candidate);
-    const safeInRange = safeLeg && safeY >= 0.75 && safeY < 1.0;
-    const aggInRange = aggLeg && aggY >= 0.75 && aggY < 1.0;
-    if (safeInRange && (!aggInRange || Math.abs(safeY - 0.875) <= Math.abs(aggY - 0.875))) {
+    const safeInRange = safeLeg != null && safeY != null && safeY >= 0.75 && safeY < 1.05;
+    const aggInRange = aggLeg != null && aggY != null && aggY >= 0.75 && aggY < 1.05;
+    const MID = 0.875;
+    if (safeInRange && aggInRange) {
+      if (Math.abs(safeY - MID) <= Math.abs(aggY - MID)) {
+        bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
+      } else {
+        bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+      }
+    } else if (safeInRange) {
       bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
     } else if (aggInRange) {
       bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
-    } else {
-      bucketLeg = getFinalSelectedLeg(candidate);
-      bucketGrade = String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase() || null;
+    } else if (aggLeg != null) {
+      bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+    } else if (safeLeg != null) {
+      bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
     }
   }
 
@@ -7350,14 +7399,74 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
     !blockedByStaticYield &&
     !blockedByStaticCapital &&
     !blockedByUnknown;
+
+  // ── Quality overlay (bucket-specific, miroir de computeTickerQualityOverlay) ─
+  const bucketOv = bucketLegAvailable
+    ? computeTickerQualityOverlay({
+        ticker,
+        spreadPct: spread,
+        weeklyReturn: yieldPct,
+        _popForCombo: pop,
+        earningsDaysUntil: candidate?.earningsDaysUntil ?? null,
+        hasEarningsBeforeExpiration:
+          candidate?.hasEarningsBeforeExpiration ??
+          candidate?.hasUpcomingEarningsBeforeExpiration ??
+          false,
+        hasUpcomingEarningsBeforeExpiration: candidate?.hasUpcomingEarningsBeforeExpiration ?? false,
+      })
+    : null;
+  const qualityTierBucket = bucketOv?.qualityTier ?? null;
+  const premiumTrapPenaltyBucket = bucketOv?.premiumTrapPenalty ?? 0;
+
+  // ── filterCandidate mirrors (moteur) ─────────────────────────────────────
+  const blockedByAvoid =
+    passedStaticFilters && (cfg.filterAvoid ?? false) && qualityTierBucket === "avoid";
+  const blockedByPremiumTrap =
+    passedStaticFilters && !blockedByAvoid &&
+    cfg.filterPremiumTrapPenaltyMin != null &&
+    premiumTrapPenaltyBucket >= cfg.filterPremiumTrapPenaltyMin &&
+    (pop == null || pop < (cfg.filterPremiumTrapPopMin ?? 82));
+  const blockedBySpeculative =
+    passedStaticFilters && !blockedByAvoid && !blockedByPremiumTrap &&
+    qualityTierBucket === "speculative" && (() => {
+      if (cfg.filterSpeculativePopMin != null && (pop == null || pop < cfg.filterSpeculativePopMin)) return true;
+      if (cfg.filterSpeculativeSpreadMax != null && spread != null && spread > cfg.filterSpeculativeSpreadMax) return true;
+      if (cfg.filterSpeculativeYieldMin != null && (yieldPct == null || yieldPct < cfg.filterSpeculativeYieldMin)) return true;
+      if (cfg.filterSpeculativeRequireNoEarnings) {
+        const hasEarnings =
+          candidate?.hasEarningsBeforeExpiration ||
+          candidate?.hasUpcomingEarningsBeforeExpiration ||
+          (candidate?.earningsDaysUntil != null && candidate.earningsDaysUntil <= 7);
+        if (hasEarnings) return true;
+      }
+      return false;
+    })();
+  const blockedByExecutionScore =
+    passedStaticFilters && !blockedByAvoid && !blockedByPremiumTrap && !blockedBySpeculative &&
+    (cfg.minExecutionScore ?? 0) > 0 &&
+    candidate?.proExecutionScore != null &&
+    Number.isFinite(candidate.proExecutionScore) &&
+    candidate.proExecutionScore < cfg.minExecutionScore;
+  const blockedByDistancePct =
+    passedStaticFilters && !blockedByAvoid && !blockedByPremiumTrap && !blockedBySpeculative &&
+    !blockedByExecutionScore &&
+    cfg.minDistancePct != null &&
+    distance != null &&
+    distance > cfg.minDistancePct;
+
+  const passedAllFilters =
+    passedStaticFilters &&
+    !blockedByAvoid && !blockedByPremiumTrap && !blockedBySpeculative &&
+    !blockedByExecutionScore && !blockedByDistancePct;
+
   const blockedByCapitalEnvelope =
     !inPicks &&
-    passedStaticFilters &&
+    passedAllFilters &&
     capitalRequired != null &&
     capitalRequired > comboFreeCapital;
   const possibleDynamicBlock =
     !inPicks &&
-    passedStaticFilters &&
+    passedAllFilters &&
     !blockedByCapitalEnvelope;
 
   let diagCategory = "non_selected";
@@ -7367,6 +7476,10 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
     diagCategory = "selected";
     statusProbable = "sélectionné";
     raisonProbable = "—";
+  } else if (ibkrRejected) {
+    diagCategory = "ibkr_rejected";
+    statusProbable = "hors basePool — IBKR rejeté";
+    raisonProbable = "exclu avant basePool — symbole rejeté par IBKR live";
   } else if (isCryptoBlocked) {
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
@@ -7395,14 +7508,43 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
     raisonProbable = "bloqué avant scoredPool — inconnu à valider";
+  } else if (blockedByAvoid) {
+    diagCategory = "filtered_quality";
+    statusProbable = "rejeté par filterCandidate";
+    raisonProbable = `qualityTier=avoid (score ${bucketOv?.qualityScore?.toFixed(2) ?? "n/d"}) — exclu par filtre qualité`;
+  } else if (blockedByPremiumTrap) {
+    diagCategory = "filtered_quality";
+    statusProbable = "rejeté par filterCandidate";
+    raisonProbable = `premium trap (pénalité=${premiumTrapPenaltyBucket.toFixed(2)}) sans POP ≥ ${cfg.filterPremiumTrapPopMin ?? 82}%`;
+  } else if (blockedBySpeculative) {
+    const specReason = (() => {
+      if (cfg.filterSpeculativePopMin != null && (pop == null || pop < cfg.filterSpeculativePopMin))
+        return `POP ${pop != null ? pop.toFixed(0) + "%" : "manquant"} < ${cfg.filterSpeculativePopMin}%`;
+      if (cfg.filterSpeculativeSpreadMax != null && spread != null && spread > cfg.filterSpeculativeSpreadMax)
+        return `spread ${spread.toFixed(1)}% > ${cfg.filterSpeculativeSpreadMax}%`;
+      if (cfg.filterSpeculativeYieldMin != null && (yieldPct == null || yieldPct < cfg.filterSpeculativeYieldMin))
+        return `yield ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} < ${cfg.filterSpeculativeYieldMin}%`;
+      return "earnings avant expiration";
+    })();
+    diagCategory = "filtered_quality";
+    statusProbable = "rejeté par filterCandidate";
+    raisonProbable = `speculative — ${specReason}`;
+  } else if (blockedByExecutionScore) {
+    diagCategory = "filtered_dynamic";
+    statusProbable = "rejeté par filterCandidate";
+    raisonProbable = `executionScore ${candidate?.proExecutionScore?.toFixed(2) ?? "n/d"} < min ${cfg.minExecutionScore}`;
+  } else if (blockedByDistancePct) {
+    diagCategory = "filtered_dynamic";
+    statusProbable = "rejeté par filterCandidate";
+    raisonProbable = `distance ${distance?.toFixed(1) ?? "n/d"}% > min ${cfg.minDistancePct}% (OTM insuffisant)`;
   } else if (blockedByCapitalEnvelope) {
     diagCategory = "capital_envelope";
-    statusProbable = "admissible statique, trop cher";
-    raisonProbable = `non sélectionné — capital restant ${comboFreeCapital.toFixed(0)}$ insuffisant pour ${capitalRequired.toFixed(0)}$`;
+    statusProbable = "admissible, trop cher en fin de combo";
+    raisonProbable = `capital restant ${comboFreeCapital.toFixed(0)}$ insuffisant pour ${capitalRequired?.toFixed(0) ?? "?"}$`;
   } else {
     diagCategory = "non_selected";
-    statusProbable = "admissible statique non sélectionné";
-    raisonProbable = "non sélectionné — raison moteur non reproduite par inspecteur, possiblement caps/ordre/capital restant";
+    statusProbable = "dans scoredPool — non retenu greedy";
+    raisonProbable = "présent dans scoredPool — non sélectionné : caps diversification, ordre de tri, ou capital restant";
   }
 
   return {
@@ -7420,26 +7562,42 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital) {
     premiumTotal: inPicks ? pick.premiumCollected : null,
     scoreCombo: inPicks ? pick.selectionScore : null,
     comboFreeCapital,
+    ibkrRejected,
     passedStaticFilters,
+    passedAllFilters,
+    qualityTierBucket,
+    premiumTrapPenaltyBucket,
     blockedByStaticGrade,
     blockedByStaticSpread,
     blockedByStaticYield,
+    blockedByStaticCapital,
+    blockedByAvoid,
+    blockedByPremiumTrap,
+    blockedBySpeculative,
+    blockedByExecutionScore,
+    blockedByDistancePct,
     blockedByCapitalEnvelope,
     possibleDynamicBlock,
     statusProbable, raisonProbable, pick,
   };
 }
 
-function _inspBucketSummary(bucketKey, combos, candidates, capital) {
+function _inspBucketSummary(bucketKey, combos, candidates, capital, ibkrRejectedSymbols = new Set()) {
   const combo = _inspFindCombo(combos, bucketKey);
   const picks = combo?.picks ?? [];
-  const diags = candidates.map((c) => _inspCandidateDiag(c, bucketKey, combos, capital));
+  const diags = candidates.map((c) => _inspCandidateDiag(c, bucketKey, combos, capital, ibkrRejectedSymbols));
   const selected = diags.filter((d) => d.inPicks);
   const affiliated = diags.filter((d) => d.bucketLegAvailable);
   const eligibleNotSelected = diags.filter(
     (d) => d.diagCategory === "non_selected" || d.diagCategory === "capital_envelope"
   );
-  const rejectedByBucketFilter = diags.filter((d) => d.diagCategory === "blocked_static");
+  const rejectedByBucketFilter = diags.filter(
+    (d) =>
+      d.diagCategory === "blocked_static" ||
+      d.diagCategory === "filtered_quality" ||
+      d.diagCategory === "filtered_dynamic" ||
+      d.diagCategory === "ibkr_rejected"
+  );
   const noBucketLeg = diags.filter((d) => d.diagCategory === "no_bucket_leg");
   return {
     positions: picks.length,
@@ -7456,9 +7614,13 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital) {
 
 function _inspStatusBadge(status) {
   if (status === "sélectionné") return "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700";
+  if (status === "dans scoredPool — non retenu greedy") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
   if (status === "admissible statique non sélectionné") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
+  if (status === "admissible, trop cher en fin de combo") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700";
   if (status === "admissible statique, trop cher") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700";
   if (status === "rejeté avant scoredPool") return "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700";
+  if (status === "rejeté par filterCandidate") return "rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700";
+  if (status === "hors basePool — IBKR rejeté") return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700";
   if (status === "aucune jambe bucket") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500";
   return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600";
 }
@@ -7468,9 +7630,12 @@ const _inspFmt = (v, suffix = "", digits = 2) =>
 
 function _inspLineStatus(diag) {
   if (diag.inPicks) return "sélectionné";
-  if (diag.diagCategory === "non_selected") return "admissible statique, non sélectionné";
-  if (diag.diagCategory === "capital_envelope") return "admissible statique, trop cher";
-  if (diag.statusProbable === "aucune jambe bucket") return "sans jambe bucket valide";
+  if (diag.diagCategory === "non_selected") return "dans scoredPool — non retenu greedy";
+  if (diag.diagCategory === "capital_envelope") return "admissible, trop cher en fin de combo";
+  if (diag.diagCategory === "no_bucket_leg") return "sans jambe bucket valide";
+  if (diag.diagCategory === "ibkr_rejected") return "hors basePool — IBKR rejeté";
+  if (diag.diagCategory === "filtered_quality") return `rejeté filterCandidate — ${diag.raisonProbable}`;
+  if (diag.diagCategory === "filtered_dynamic") return `rejeté filterCandidate — ${diag.raisonProbable}`;
   if (diag.diagCategory === "blocked_static") return "rejeté avant scoredPool";
   return `rejeté : ${diag.raisonProbable}`;
 }
@@ -7479,7 +7644,9 @@ function _inspLineStatusCls(diag) {
   if (diag.inPicks) return "text-green-700 font-semibold";
   if (diag.diagCategory === "non_selected") return "text-sky-700";
   if (diag.diagCategory === "capital_envelope") return "text-slate-700";
-  if (diag.statusProbable === "aucune jambe bucket") return "text-slate-400";
+  if (diag.diagCategory === "no_bucket_leg") return "text-slate-400";
+  if (diag.diagCategory === "ibkr_rejected") return "text-rose-700";
+  if (diag.diagCategory === "filtered_quality" || diag.diagCategory === "filtered_dynamic") return "text-orange-700";
   return "text-amber-700";
 }
 
@@ -7517,7 +7684,7 @@ function BucketSection({ title, items, limit = 15 }) {
   );
 }
 
-function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 100 }) {
+function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 100, ibkrRejectedSymbols = new Set() }) {
   const [open, setOpen] = useState(false);
   const [tickerSearch, setTickerSearch] = useState("");
 
@@ -7525,8 +7692,8 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
   const usableCapital = capital * (maxCapitalPct / 100);
 
   const summaries = useMemo(
-    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates, usableCapital)])),
-    [combos, candidates, usableCapital]
+    () => Object.fromEntries(_INSP_BUCKET_KEYS.map((b) => [b, _inspBucketSummary(b, combos, candidates, usableCapital, ibkrRejectedSymbols)])),
+    [combos, candidates, usableCapital, ibkrRejectedSymbols]
   );
 
   const diagnostics = useMemo(() => {
@@ -7538,17 +7705,25 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
         inScanData: false, inPicks: false,
         diagCategory: "insufficient_data",
         passedStaticFilters: false,
+        passedAllFilters: false,
         blockedByStaticGrade: false,
         blockedByStaticSpread: false,
         blockedByStaticYield: false,
+        blockedByStaticCapital: false,
+        ibkrRejected: ibkrRejectedSymbols.has(searchedTicker),
+        blockedByAvoid: false,
+        blockedByPremiumTrap: false,
+        blockedBySpeculative: false,
+        blockedByExecutionScore: false,
+        blockedByDistancePct: false,
         blockedByCapitalEnvelope: false,
         possibleDynamicBlock: false,
         statusProbable: "données insuffisantes",
         raisonProbable: "données manquantes",
       }));
     }
-    return _INSP_BUCKET_KEYS.map((b) => _inspCandidateDiag(cand, b, combos, usableCapital));
-  }, [searchedTicker, candidates, combos, usableCapital]);
+    return _INSP_BUCKET_KEYS.map((b) => _inspCandidateDiag(cand, b, combos, usableCapital, ibkrRejectedSymbols));
+  }, [searchedTicker, candidates, combos, usableCapital, ibkrRejectedSymbols]);
 
   function handleExportJSON() {
     const payload = {
@@ -7580,12 +7755,21 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
             distance: d.distance,
             pop: d.pop,
             capitalRequired: d.capitalRequired,
+            qualityTierBucket: d.qualityTierBucket ?? null,
+            premiumTrapPenaltyBucket: d.premiumTrapPenaltyBucket ?? null,
             status: _inspLineStatus(d),
             raisonProbable: d.raisonProbable,
+            ibkrRejected: d.ibkrRejected ?? false,
             passedStaticFilters: d.passedStaticFilters,
+            passedAllFilters: d.passedAllFilters ?? d.passedStaticFilters,
             blockedByStaticGrade: d.blockedByStaticGrade,
             blockedByStaticSpread: d.blockedByStaticSpread,
             blockedByStaticYield: d.blockedByStaticYield,
+            blockedByAvoid: d.blockedByAvoid ?? false,
+            blockedByPremiumTrap: d.blockedByPremiumTrap ?? false,
+            blockedBySpeculative: d.blockedBySpeculative ?? false,
+            blockedByExecutionScore: d.blockedByExecutionScore ?? false,
+            blockedByDistancePct: d.blockedByDistancePct ?? false,
             blockedByCapitalEnvelope: d.blockedByCapitalEnvelope,
             possibleDynamicBlock: d.possibleDynamicBlock,
           });
@@ -7703,12 +7887,20 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
                             <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
                             <Row label="Capital libre bucket" val={diag.comboFreeCapital != null ? `${Number(diag.comboFreeCapital).toFixed(0)}$` : "n/d"} />
                             <Row label="Prime/contrat" val={diag.premiumUnit != null ? `${fmt(diag.premiumUnit)}$` : "n/d"} />
+                            <Row label="IBKR rejeté" val={_inspYesNo(diag.ibkrRejected)} />
                             <Row label="Filtres statiques OK" val={_inspYesNo(diag.passedStaticFilters)} />
                             <Row label="Bloqué grade" val={_inspYesNo(diag.blockedByStaticGrade)} />
                             <Row label="Bloqué spread" val={_inspYesNo(diag.blockedByStaticSpread)} />
                             <Row label="Bloqué yield" val={_inspYesNo(diag.blockedByStaticYield)} />
+                            <Row label="Qualité tier bucket" val={diag.qualityTierBucket ?? "n/d"} />
+                            <Row label="Bloqué avoid" val={_inspYesNo(diag.blockedByAvoid)} />
+                            <Row label="Bloqué premium trap" val={_inspYesNo(diag.blockedByPremiumTrap)} />
+                            <Row label="Bloqué speculative" val={_inspYesNo(diag.blockedBySpeculative)} />
+                            <Row label="Bloqué execScore" val={_inspYesNo(diag.blockedByExecutionScore)} />
+                            <Row label="Bloqué distance" val={_inspYesNo(diag.blockedByDistancePct)} />
+                            <Row label="Tous filtres OK" val={_inspYesNo(diag.passedAllFilters)} />
                             <Row label="Trop cher fin combo" val={_inspYesNo(diag.blockedByCapitalEnvelope)} />
-                            <Row label="Bloc moteur possible" val={_inspYesNo(diag.possibleDynamicBlock)} />
+                            <Row label="Dans scoredPool non retenu" val={_inspYesNo(diag.possibleDynamicBlock)} />
                             {diag.inPicks && (
                               <>
                                 <Row label="Prime totale" val={diag.premiumTotal != null ? `${Number(diag.premiumTotal).toFixed(0)}$` : "n/d"} />
@@ -7804,9 +7996,23 @@ function Row({ label, val }) {
   );
 }
 
+/** Moyenne pondérée par le capital déployé sur la ligne (capitalUsed), pour POP / OTM — UI seulement. */
+function weightedMetricByCapital(picks, pickMetricAccessor) {
+  let sumWx = 0;
+  let sumW = 0;
+  for (const p of picks || []) {
+    const w = Number(p?.capitalUsed ?? p?.capitalRequired ?? NaN);
+    const x = Number(pickMetricAccessor(p));
+    if (!Number.isFinite(w) || w <= 0 || !Number.isFinite(x)) continue;
+    sumWx += x * w;
+    sumW += w;
+  }
+  return sumW > 0 ? sumWx / sumW : null;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 
-function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100, onTickerClick = null }) {
+function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100, onTickerClick = null, ibkrRejectedSymbols = new Set() }) {
   const [snapshotStatus, setSnapshotStatus] = useState(null);
   const [snapshotMsg, setSnapshotMsg] = useState("");
   const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
@@ -7904,13 +8110,26 @@ function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100
             SAFE, BALANCED et AGGRESSIVE comparent trois politiques de sélection sur le même capital simulé.
           </p>
         </div>
-        {visibleCombos.map((combo) => (
+        {visibleCombos.map((combo) => {
+          const portfolioReturnPct =
+            usableCapital > 0
+              ? ((combo.totalPremium ?? combo.picks.reduce((s, p) => s + p.premiumCollected, 0)) / usableCapital) * 100
+              : 0;
+          const popWeighted = weightedMetricByCapital(combo.picks, (p) => p.popEstimate);
+          const otmWeighted = weightedMetricByCapital(combo.picks, (p) => p.distancePct);
+          return (
           <div key={combo.label} className="rounded-2xl border border-slate-200 p-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-base font-semibold text-slate-900">{combo.label}</p>
                 <p className="text-sm font-medium text-slate-700">
-                  Simulation {combo.label} · {combo.positions} pos. · Rend. port. ~{(usableCapital > 0 ? ((combo.totalPremium ?? combo.picks.reduce((s, p) => s + p.premiumCollected, 0)) / usableCapital * 100) : 0).toFixed(2)}%
+                  Simulation {combo.label} · {combo.positions} pos. · Rend. port. ~{portfolioReturnPct.toFixed(2)}%
+                  {(combo.picks?.length ?? 0) > 0 ? (
+                    <>
+                      {popWeighted != null ? ` · POP moy. ${Math.round(popWeighted)}%` : " · POP moy. n/d"}
+                      {otmWeighted != null ? ` · OTM moy. ${Math.round(otmWeighted)}%` : " · OTM moy. n/d"}
+                    </>
+                  ) : null}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%) · Utilisé {combo.totalCapital.toFixed(0)}$ · <span className="font-medium text-slate-700">Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$</span>
@@ -8025,6 +8244,20 @@ function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100
                     <span>capital {pick.capitalRequired.toFixed(0)}$</span>
                     <span className="text-slate-300">|</span>
                     <span>prime {pick.premiumCollected.toFixed(0)}$</span>
+                    <span className="text-slate-300">|</span>
+                    <span>
+                      POP{" "}
+                      {pick.popEstimate != null && Number.isFinite(Number(pick.popEstimate))
+                        ? `${Math.round(Number(pick.popEstimate))}%`
+                        : "—"}
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span>
+                      OTM{" "}
+                      {pick.distancePct != null && Number.isFinite(Number(pick.distancePct))
+                        ? `${Math.round(Number(pick.distancePct))}%`
+                        : "—"}
+                    </span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
                     <span
@@ -8065,8 +8298,9 @@ function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100
               </div>
             )}
           </div>
-        ))}
-        <CapitalCombosInspector combos={combos} candidates={candidates} capital={capital} maxCapitalPct={maxCapitalPct} />
+          );
+        })}
+        <CapitalCombosInspector combos={combos} candidates={candidates} capital={capital} maxCapitalPct={maxCapitalPct} ibkrRejectedSymbols={ibkrRejectedSymbols} />
       </CardContent>
     </Card>
   );
@@ -10825,7 +11059,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <PortfolioCombos combos={combos} candidates={filtered} capital={Number(capital)} maxCapitalPct={Number(maxCapitalPct)} onTickerClick={scrollToTickerCard} />
+            <PortfolioCombos combos={combos} candidates={filtered} capital={Number(capital)} maxCapitalPct={Number(maxCapitalPct)} onTickerClick={scrollToTickerCard} ibkrRejectedSymbols={ibkrRejectedSymbols} />
           </div>
 
           <div className="space-y-6">

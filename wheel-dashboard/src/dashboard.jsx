@@ -336,7 +336,7 @@ function getAggressivePriorityGrade({ spreadPct, weeklyYieldPct, popDecimal, dis
   const popPct = Number.isFinite(Number(popDecimal)) ? Number(popDecimal) * 100 : null;
   const dist = Number.isFinite(Number(distancePct)) ? Number(distancePct) : null;
   if (spread == null || yld == null || popPct == null || dist == null) return null;
-  if (yld < 1.0) return null;
+  if (yld < 0.90) return null;
   if (spread > 30) return null;
   if (popPct < 75) return null;
   if (dist > -5) return null;
@@ -1969,16 +1969,22 @@ function buildCapitalComboCandidate(candidate, usableCapital) {
   const aggDistancePct = getLegDistancePct(aggLeg);
   const aggPopPct = getLegPopPct(aggLeg);
   const aggCapital = Number.isFinite(aggStrikeValue) && aggStrikeValue > 0 ? aggStrikeValue * 100 : 0;
-  const aggGrade = String(
+  // Derive grade from actual leg yield (bid/strike fallback) — avoids weeklyYield=0 giving "WATCH"
+  const _aggDerivedGrade = gradeLeg({
+    spreadPct: aggSpreadPct,
+    weeklyYieldPct: aggYieldPct,
+    popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
+  });
+  const _aggStoredGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+  const aggGrade =
     getAggressivePriorityGrade({
       spreadPct: aggSpreadPct,
       weeklyYieldPct: aggYieldPct,
       popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
       distancePct: aggDistancePct,
     }) ??
-    candidate?.aggressiveGrade ??
-    ""
-  ).toUpperCase() || null;
+    (_aggDerivedGrade !== "REJECT" ? _aggDerivedGrade : null) ??
+    _aggStoredGrade;
 
   const hasSafeLegValid = !!safeLeg &&
     Number.isFinite(safeStrikeValue) && safeStrikeValue > 0 &&
@@ -2107,6 +2113,19 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       maxSpreadPct: 25,
       allowedModes: new Set(["AGGRESSIVE"]),
       allowedGrades: new Set(["A", "B"]),
+      watchPremiumFilter: (c) => {
+        const pop = c._popForCombo;
+        const spread = c.selectedSpreadPct;
+        const yld = c.selectedYieldPct;
+        const dist = c.selectedDistancePct;
+        return (
+          pop != null && pop >= 85 &&
+          (spread == null || spread <= 20) &&
+          yld != null && yld >= 0.90 &&
+          dist != null && dist <= -6
+        );
+      },
+      maxWatchPremiumContracts: 1,
       minDistancePct: -5,
       distanceTargetAbs: 5,
       yieldHardCap: 2.0,
@@ -2159,6 +2178,19 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       maxSpreadPct: 20,
       allowedModes: new Set(["SAFE", "AGGRESSIVE"]),
       allowedGrades: new Set(["A", "B"]),
+      watchPremiumFilter: (c) => {
+        const pop = c._popForCombo;
+        const spread = c.selectedSpreadPct;
+        const yld = c.selectedYieldPct;
+        const dist = c.selectedDistancePct;
+        return (
+          pop != null && pop >= 88 &&
+          (spread == null || spread <= 15) &&
+          yld != null && yld >= 0.75 && yld <= 1.05 &&
+          dist != null && dist <= -6
+        );
+      },
+      maxWatchPremiumContracts: 1,
       minDistancePct: null,
       distanceTargetAbs: 6,
       yieldHardCap: 1.35,
@@ -2353,7 +2385,15 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       // Étape 4 : filtres bucket (appliqués après résolution jambe)
       .filter((candidate) => candidate.capitalPerContract > 0 && candidate.capitalPerContract <= usableCapital && candidate.weeklyReturn > 0)
       // allowedModes retiré — remplacé par la résolution bucket ci-dessus
-      .filter((candidate) => mode.allowedGrades?.has(candidate.finalDisplayGrade))
+      .filter((candidate) => {
+        if (mode.allowedGrades?.has(candidate.finalDisplayGrade)) return true;
+        if (candidate.finalDisplayGrade === "WATCH" && mode.watchPremiumFilter?.(candidate)) return true;
+        return false;
+      })
+      .map((candidate) => ({
+        ...candidate,
+        _isWatchPremium: candidate.finalDisplayGrade === "WATCH" && !!mode.watchPremiumFilter?.(candidate),
+      }))
       .filter((candidate) => candidate.weeklyReturn >= mode.minWeeklyYield)
       .filter((candidate) => mode.maxWeeklyYield == null || candidate.weeklyReturn < mode.maxWeeklyYield)
       .filter((candidate) => !Number.isFinite(candidate.proExecutionScore) || candidate.proExecutionScore >= mode.minExecutionScore)
@@ -2366,7 +2406,7 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       .filter((candidate) => mode.filterCandidate ? mode.filterCandidate(candidate) : true)
       .map((candidate) => ({
         ...candidate,
-        allocScore: candidate._comboScoreBreakdown?.totalScore ?? mode.score(candidate),
+        allocScore: (candidate._comboScoreBreakdown?.totalScore ?? mode.score(candidate)) - (candidate._isWatchPremium ? 15 : 0),
       }))
       .sort((a, b) =>
         b.allocScore - a.allocScore ||
@@ -2456,7 +2496,28 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
         if (pickMap.has(candidate.ticker)) return false;
         if (candidate.capitalPerContract <= 0) return false;
         if (used + candidate.capitalPerContract > usableCapital) return false;
-        return canAddByComposition(candidate, state).ok;
+        if (state.distinctPositions >= maxPositions) return false;
+        if (candidate.capitalPerContract > tickerCapDollars) return false;
+        if (candidate.capitalPerContract > positionCapDollars) return false;
+        if (!canAddByComposition(candidate, state).ok) return false;
+        // Enforce cluster caps when near/at target positions (mirrors evaluateCandidate without recursion)
+        const nextDistinctPositions = state.distinctPositions + 1;
+        if (nextDistinctPositions >= minTargetPositions) {
+          const themeKey = String(candidate?._qualityOverlay?.concentrationTheme || "").trim().toLowerCase();
+          const sectorKey = String(candidate?._tickerMeta?.sector || "").trim().toLowerCase();
+          if (themeKey && !NEUTRAL_CLUSTER_KEYS.has(themeKey)) {
+            const nextThemeCapital = (state.themeCapitalMap.get(themeKey) ?? 0) + candidate.capitalPerContract;
+            if (nextThemeCapital > usableCapital * (mode.maxThemeCapitalPct ?? 0.45)) return false;
+          }
+          if (sectorKey && !NEUTRAL_CLUSTER_KEYS.has(sectorKey)) {
+            const nextSectorCapital = (state.sectorCapitalMap.get(sectorKey) ?? 0) + candidate.capitalPerContract;
+            if (nextSectorCapital > usableCapital * (mode.maxSectorCapitalPct ?? 0.45)) return false;
+          }
+          const nextHighBetaCapital =
+            state.highBetaCapital + (candidate?._qualityOverlay?.concentrationTheme === "high_beta_growth" ? candidate.capitalPerContract : 0);
+          if (nextHighBetaCapital > usableCapital * (mode.maxHighBetaCapitalPct ?? 0.40)) return false;
+        }
+        return true;
       });
     }
 
@@ -2511,6 +2572,10 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       if (currentContracts >= maxContractsAllowed) return { ok: false, reason: "ticker_cap_reached" };
       // Limite spécifique par ticker selon config mode (ex: BITX max 1 contrat dans BALANCED)
       if (mode.maxBitxContracts != null && String(candidate.ticker).toUpperCase() === "BITX" && currentContracts >= mode.maxBitxContracts) {
+        return { ok: false, reason: "ticker_cap_reached" };
+      }
+      // WATCH premium : max 1 contrat par ticker — score pénalisé, jamais renforcé
+      if (candidate._isWatchPremium && currentContracts >= (mode.maxWatchPremiumContracts ?? 1)) {
         return { ok: false, reason: "ticker_cap_reached" };
       }
       if (!isExisting && state.distinctPositions >= maxPositions) return { ok: false, reason: "max_positions_limit" };
@@ -7337,13 +7402,19 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
   } else if (bucketKey === "AGGRESSIVE") {
     bucketLeg = aggLeg;
+    const _diagAggYld = getLegYieldPct(aggLeg, candidate);
+    const _diagAggSp = getLegSpreadPct(aggLeg);
+    const _diagAggPop = aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate;
+    const _diagAggDerived = gradeLeg({ spreadPct: _diagAggSp, weeklyYieldPct: _diagAggYld, popDecimal: _diagAggPop });
     bucketGrade = String(
       getAggressivePriorityGrade({
-        spreadPct: getLegSpreadPct(aggLeg),
-        weeklyYieldPct: getLegYieldPct(aggLeg, candidate),
-        popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
+        spreadPct: _diagAggSp,
+        weeklyYieldPct: _diagAggYld,
+        popDecimal: _diagAggPop,
         distancePct: getLegDistancePct(aggLeg),
-      }) ?? candidate?.aggressiveGrade ?? ""
+      }) ??
+      (_diagAggDerived !== "REJECT" ? _diagAggDerived : null) ??
+      candidate?.aggressiveGrade ?? ""
     ).toUpperCase() || null;
   } else {
     // BALANCED : miroir exact du moteur — bande [0.75, 1.05), MID=0.875
@@ -7361,9 +7432,17 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     } else if (safeInRange) {
       bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
     } else if (aggInRange) {
-      bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+      bucketLeg = aggLeg; {
+        const _bdY = getLegYieldPct(aggLeg, candidate), _bdS = getLegSpreadPct(aggLeg), _bdP = aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate;
+        const _bdD = gradeLeg({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP });
+        bucketGrade = String(getAggressivePriorityGrade({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP, distancePct: getLegDistancePct(aggLeg) }) ?? (_bdD !== "REJECT" ? _bdD : null) ?? candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+      }
     } else if (aggLeg != null) {
-      bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+      bucketLeg = aggLeg; {
+        const _bdY = getLegYieldPct(aggLeg, candidate), _bdS = getLegSpreadPct(aggLeg), _bdP = aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate;
+        const _bdD = gradeLeg({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP });
+        bucketGrade = String(getAggressivePriorityGrade({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP, distancePct: getLegDistancePct(aggLeg) }) ?? (_bdD !== "REJECT" ? _bdD : null) ?? candidate?.aggressiveGrade ?? "").toUpperCase() || null;
+      }
     } else if (safeLeg != null) {
       bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
     }

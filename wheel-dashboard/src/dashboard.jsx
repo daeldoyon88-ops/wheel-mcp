@@ -2144,13 +2144,15 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       id: "balanced",
       label: "BALANCED",
       // Identity: controlled growth — compromis rendement / POP / qualité
-      tickerCapPct: 0.32,
-      positionCapPct: 0.32,
+      tickerCapPct: 0.30,
+      positionCapPct: 0.30,
       maxContractsPerTicker: 3,
       minTargetPositions: 3,
       maxThemeCapitalPct: 0.45,
       maxSectorCapitalPct: 0.45,
-      maxHighBetaCapitalPct: 0.40,
+      maxHighBetaCapitalPct: 0.35,
+      // BITX est le seul crypto autorisé dans BALANCED — limité à 1 contrat max
+      maxBitxContracts: 1,
       minWeeklyYield: 0.70,
       maxWeeklyYield: 1.05,
       minExecutionScore: 0,
@@ -2271,11 +2273,14 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
             bucketGrade = candidate._aggGrade;
           }
         } else {
-          // BALANCED : choisir la meilleure jambe dans la bande [0.75, 1.0)
+          // BALANCED : choisir la meilleure jambe dans la bande de rendement [0.75, 1.05)
+          // MID = centre de rendement cible (0.875%) — NE PAS confondre avec le prix mid option
+          // Le prix utilisé reste exclusivement le BID de l'option, jamais le mid bid/ask
+          // La bande [0.75, 1.05) capture toute la plage autorisée par maxWeeklyYield
           const safeY = candidate._safeYieldPct;
           const aggY = candidate._aggYieldPct;
-          const safeInRange = candidate._hasSafeLegValid && safeY >= 0.75 && safeY < 1.0;
-          const aggInRange = candidate._hasAggLegValid && aggY >= 0.75 && aggY < 1.0;
+          const safeInRange = candidate._hasSafeLegValid && safeY >= 0.75 && safeY < 1.05;
+          const aggInRange = candidate._hasAggLegValid && aggY >= 0.75 && aggY < 1.05;
           const MID = 0.875;
           if (safeInRange && aggInRange) {
             if (Math.abs(safeY - MID) <= Math.abs(aggY - MID)) {
@@ -2496,6 +2501,10 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
 
       if (candidate.capitalPerContract <= 0) return { ok: false, reason: "contract_size_too_large" };
       if (currentContracts >= maxContractsAllowed) return { ok: false, reason: "ticker_cap_reached" };
+      // Limite spécifique par ticker selon config mode (ex: BITX max 1 contrat dans BALANCED)
+      if (mode.maxBitxContracts != null && String(candidate.ticker).toUpperCase() === "BITX" && currentContracts >= mode.maxBitxContracts) {
+        return { ok: false, reason: "ticker_cap_reached" };
+      }
       if (!isExisting && state.distinctPositions >= maxPositions) return { ok: false, reason: "max_positions_limit" };
       if (nextUsed > usableCapital) return { ok: false, reason: "contract_size_too_large" };
       if (nextPositionCapital > tickerCapLimit || nextPositionCapital > positionCapLimit) {
@@ -7739,11 +7748,27 @@ function CapitalCombosInspector({ combos, candidates, capital, maxCapitalPct = 1
                 return (
                   <div key={b} className={cn("rounded-xl border p-3 text-xs", hdr)}>
                     <p className="font-semibold text-sm mb-0.5">{b}</p>
-                    {(() => { const cfg = _INSP_BUCKETS[b]; return (
-                      <p className="text-slate-500 italic mb-1">
-                        yield {cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"} · spread max {cfg.maxSpread}% · modes {[...cfg.allowedModes].join("/")}
-                      </p>
-                    ); })()}
+                    {(() => {
+                      const cfg = _INSP_BUCKETS[b];
+                      const isBalanced = b === "BALANCED";
+                      return (
+                        <div className="text-[10px] text-slate-500 italic mb-1.5 space-y-0.5">
+                          <p>
+                            Yield {cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}
+                            {" · "}Spread ≤{cfg.maxSpread}%
+                            {" · "}Grades {[...cfg.allowedGrades ?? ["A","B"]].join("/")}
+                          </p>
+                          {isBalanced && (
+                            <p>
+                              POP speculative ≥82%
+                              {" · "}Ticker cap 30%
+                              {" · "}High beta cap 35%
+                              {" · "}BITX max 1 contrat
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <Row label="Capital utilisé" val={`${s.totalCapital.toFixed(0)}$`} />
                     <Row label="Libre déployable" val={`${freeDeployable.toFixed(0)}$`} />
                     <Row label="Total scan" val={s.totalScanCards} />
@@ -7890,6 +7915,14 @@ function PortfolioCombos({ combos, candidates = [], capital, maxCapitalPct = 100
                 <p className="text-xs text-slate-500 mt-0.5">
                   Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%) · Utilisé {combo.totalCapital.toFixed(0)}$ · <span className="font-medium text-slate-700">Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$</span>
                 </p>
+                {combo.label === "BALANCED" && (
+                  <p className="mt-0.5 text-[10px] text-sky-600/80 leading-snug">
+                    Critères · yield 0.70–1.05% · spread ≤20% · POP spéc. ≥82% · ticker ≤30% · high beta ≤35% · BITX max 1 contrat
+                    {!combo.capitalTargetReached && combo.capitalShortfallReason
+                      ? <span className="ml-1 text-amber-600 font-medium">· Capital incomplet : {formatCapitalShortfallReason(combo.capitalShortfallReason)}</span>
+                      : null}
+                  </p>
+                )}
                 {(combo.avgQualityScore != null || combo.qualitySpeculativeCount > 0 || combo.qualityCryptoMinerCount > 0 || combo.qualityPremiumTrapCount > 0) && (
                   <p className="mt-0.5 text-xs text-slate-400">
                     {combo.avgQualityScore != null && (

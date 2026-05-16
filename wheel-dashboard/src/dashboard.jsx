@@ -2734,6 +2734,94 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       used += candidate.capitalPerContract;
     }
 
+    function pickBestFillerCandidate() {
+      const freeCapital = usableCapital - used;
+      if (freeCapital <= 0) return null;
+
+      const rejections = new Map();
+      let best = null;
+
+      for (const candidate of scoredPool) {
+        if (candidate.capitalPerContract <= 0 || candidate.capitalPerContract > freeCapital) {
+          rejections.set("contract_size_too_large", (rejections.get("contract_size_too_large") ?? 0) + 1);
+          continue;
+        }
+
+        let evaluated = evaluateCandidate(candidate, false);
+        let usedSoftCaps = false;
+        if (!evaluated.ok) {
+          const strictReason = evaluated.reason ?? "caps_too_strict";
+          const softEvaluated = evaluateCandidate(candidate, true);
+          if (!softEvaluated.ok) {
+            const key = softEvaluated.reason ?? strictReason;
+            rejections.set(key, (rejections.get(key) ?? 0) + 1);
+            continue;
+          }
+          evaluated = softEvaluated;
+          usedSoftCaps = true;
+        }
+
+        const freeAfter = freeCapital - candidate.capitalPerContract;
+        const deployEfficiency = 1 - (freeAfter / Math.max(1, freeCapital));
+        const smallContractBonus = 1 - Math.min(1, candidate.capitalPerContract / Math.max(1, usableCapital));
+        const premiumEfficiency = Math.max(0, candidate.weeklyReturn ?? 0);
+        const diversificationBonus = evaluated.isExisting ? 0 : 1.8;
+        const watchPenalty = candidate._isWatchPremium ? 1.2 : 0;
+        const speculativePenalty = candidate._qualityOverlay?.qualityTier === "speculative" ? 1.4 : 0;
+        const fillerScore =
+          Number(evaluated.marginalScore ?? 0) +
+          deployEfficiency * 16 +
+          premiumEfficiency * 9 +
+          smallContractBonus * 4 +
+          diversificationBonus -
+          watchPenalty -
+          speculativePenalty;
+
+        const selectionReasonParts = [evaluated.selectionReason ?? "selected: filler pass"];
+        selectionReasonParts.push("filler: capital libre deploye sans relacher les garde-fous");
+        if (!evaluated.isExisting) {
+          selectionReasonParts.push("filler: nouvelle ligne privilegiee");
+        } else {
+          selectionReasonParts.push("filler: renfort sous caps");
+        }
+        if (usedSoftCaps) {
+          selectionReasonParts.push("filler: soft caps existants utilises");
+        }
+
+        const enriched = {
+          ...evaluated,
+          marginalScore: fillerScore,
+          selectionReason: selectionReasonParts.join(" · "),
+          _fillerFreeAfter: freeAfter,
+        };
+
+        if (
+          !best ||
+          enriched.marginalScore > best.marginalScore ||
+          (
+            enriched.marginalScore === best.marginalScore &&
+            enriched._fillerFreeAfter < best._fillerFreeAfter
+          ) ||
+          (
+            enriched.marginalScore === best.marginalScore &&
+            enriched._fillerFreeAfter === best._fillerFreeAfter &&
+            !enriched.isExisting &&
+            !!best.isExisting
+          ) ||
+          (
+            enriched.marginalScore === best.marginalScore &&
+            enriched._fillerFreeAfter === best._fillerFreeAfter &&
+            ((enriched.candidate.weeklyReturn ?? 0) > (best.candidate.weeklyReturn ?? 0))
+          )
+        ) {
+          best = enriched;
+        }
+      }
+
+      lastRejectionCounts = rejections;
+      return best;
+    }
+
     while (true) {
       const best = pickBestCandidate(false);
       if (best) {
@@ -2745,6 +2833,15 @@ function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, 
       const softBest = pickBestCandidate(true);
       if (!softBest) break;
       applySelection(softBest);
+    }
+
+    // Keep SAFE behavior stable: filler pass targets only BALANCED and AGGRESSIVE.
+    if (mode.id !== "conservative") {
+      while (true) {
+        const fillerBest = pickBestFillerCandidate();
+        if (!fillerBest) break;
+        applySelection(fillerBest);
+      }
     }
 
     if (!picks.length) return null;

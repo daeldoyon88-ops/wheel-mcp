@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\melan\\\\Desktop\\\\wheel-mcp-remote\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(xargs wc -l)",
+      "Bash(npm run *)",
+      "Bash(node --input-type=module)",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\(JSON.stringify\\(j.scripts,null,2\\)\\);\")",
+      "Bash(findstr /C:\"start\" /C:\"dev\" /C:\"nodemon\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")",
+      "Bash(curl -s \"http://127.0.0.1:3001/seasonality/AAPL\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); const s=j.seasonality; console.log\\('ok:', j.ok\\); console.log\\('symbol:', s?.symbol\\); console.log\\('dataPointCount:', s?.dataPointCount\\); console.log\\('seasonalBias:', s?.seasonalBias\\); console.log\\('seasonalityScore:', s?.seasonalityScore\\); console.log\\('seasonalStrikeRisk:', s?.seasonalStrikeRisk\\); console.log\\('activeWindowNow:', JSON.stringify\\(s?.activeWindowNow\\)\\); console.log\\('bestBullish[0]:', JSON.stringify\\(s?.bestBullishWindows?.[0]\\)\\);\")",
+      "Bash(curl -s \"http://127.0.0.1:3001/seasonality/AAPL\" -o C:\\\\Temp\\\\aapl_seas.json)",
+      "Bash(node -e \"const j=require\\('C:\\\\\\\\Temp\\\\\\\\aapl_seas.json'\\); const s=j.seasonality; console.log\\('ok:', j.ok, '| symbol:', s?.symbol, '| dataPoints:', s?.dataPointCount, '| bias:', s?.seasonalBias, '| score:', s?.seasonalityScore, '| risk:', s?.seasonalStrikeRisk\\); console.log\\('activeWindow:', JSON.stringify\\(s?.activeWindowNow\\)\\); console.log\\('bestBullish[0]:', JSON.stringify\\(s?.bestBullishWindows?.[0]\\)\\);\")",
+      "Bash(cp data/wheelValidationJournal.sqlite data/wheelValidationJournal.backup-before-phase-1-3.sqlite && echo \"BACKUP OK\" && ls -lh data/wheelValidationJournal*.sqlite)",
+      "Bash(curl -s http://127.0.0.1:3001/health)",
+      "PowerShell(Invoke-RestMethod -Uri \"http://127.0.0.1:3001/health\" -Method Get)",
+      "PowerShell(Invoke-RestMethod -Uri \"http://127.0.0.1:3001/journal/wheel-validation/stats\" -Method Get)",
+      "PowerShell(cd C:\\\\Users\\\\melan\\\\Desktop\\\\wheel-mcp-remote; \\(Get-Content wheel-dashboard\\\\src\\\\data\\\\wheelShortlist.js | Measure-Object -Line\\).Lines)",
+      "Bash(dir /s *capital*)",
+      "Bash(npm.cmd run *)",
+      "Bash(python -m py_compile python_ibkr/test_ibkr_async_wheel_safe_aggressive.py)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\melan\\\\Desktop\\\\wheel-mcp-remote\")",
+      "Bash(Select-Object -Property Mode, Name)",
+      "Bash(npx vite *)",
+      "Bash(npx.cmd vite *)",
+      "Bash(python3)",
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\melan\\\\Desktop\\\\wheel-mcp-remote\" -Recurse -File -Include \"*.js\", \"*.jsx\", \"*.py\", \"*.sql\", \"*.db\")",
+      "Bash(Select-Object -ExpandProperty FullName)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data"
+    ]
+  }
+}

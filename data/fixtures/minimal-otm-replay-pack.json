@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "criteria": { "limit": 120 },
+  "liquidityOtmReplayMeta": { "capturedAt": "2026-01-01T00:00:00.000Z", "packEntries": 1 },
+  "liquidityOtmReplayPack": [
+    {
+      "symbol": "TEST",
+      "category": "core",
+      "universeRow": { "sources": ["test"], "tags": ["core"] },
+      "scoreCtx": {
+        "spot": 100,
+        "maxPrice": 200,
+        "minPrice": 10,
+        "minVolume": 1000000,
+        "volumeUsed": 2000000,
+        "hasWeeklyStyle": true,
+        "atmSpreadPct": 0.12
+      },
+      "nearestExpiration": "2026-06-19",
+      "tierBias": 2,
+      "probePctAtCapture": 3,
+      "chain": {
+        "currentPrice": 100,
+        "puts": [
+          { "strike": 100, "bid": 1.2, "ask": 1.25, "lastPrice": 0, "volume": 100, "openInterest": 500 },
+          { "strike": 96, "bid": 0.45, "ask": 0.48, "lastPrice": 0, "volume": 80, "openInterest": 200 }
+        ]
+      }
+    }
+  ]
+}

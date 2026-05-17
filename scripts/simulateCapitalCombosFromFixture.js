@@ -350,6 +350,39 @@ async function main() {
   console.log('- colonne LV2 OFF force leftoverDensityPassEnabled=false et safeLeftoverDensityPassEnabled=false');
   console.log('- blocages lisibles en FR avec formatCapBlockerReason du moteur V2.');
   console.log("");
+
+  /** Phase 2B — smoke : présence de capDiagnosticsV2.alternativeCompositionSimV1 (lecture seule). */
+  const cap0 = Number(payload?.capital);
+  const pos0 = Number(payload?.maxPositions);
+  const smokeCombos = buildPortfolioCombos(
+    candidates,
+    Number.isFinite(cap0) && cap0 > 0 ? cap0 : 25500,
+    maxPctUse,
+    Number.isFinite(pos0) && pos0 > 0 ? pos0 : 8,
+    ibkrRejected,
+    { optimizerV2: mergeOptimizerBase(payload) },
+  );
+  for (const c of smokeCombos || []) {
+    const sim = c?.capDiagnosticsV2?.alternativeCompositionSimV1;
+    if (!sim || sim.enabled !== true || sim.simulationOnly !== true || sim.changedLiveSelection !== false) {
+      console.error(
+        "ERREUR Phase 2B: alternativeCompositionSimV1 manquant ou invalide sur le bucket",
+        c?.label ?? "(sans label)",
+      );
+      process.exitCode = 1;
+      return;
+    }
+    if (!Array.isArray(sim.alternativeCompositions) || sim.alternativeCompositions.length < 1) {
+      console.error("ERREUR Phase 2B: alternativeCompositions vide pour", c?.label);
+      process.exitCode = 1;
+      return;
+    }
+  }
+  console.log(
+    "Phase 2B OK: capDiagnosticsV2.alternativeCompositionSimV1 présent sur",
+    (smokeCombos || []).length,
+    "bucket(s) (export / replay).",
+  );
 }
 
 await main();

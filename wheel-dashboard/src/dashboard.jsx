@@ -6478,7 +6478,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
       candidate?.aggressiveGrade ?? ""
     ).toUpperCase() || null;
   } else {
-    // BALANCED : miroir exact du moteur — bande [0.75, 1.05), MID=0.875
+    // BALANCED : miroir jambe du moteur — bande choix jambe [0.75, 1.05), MID=0.875 ; filtres yield pool 0.70–1.05% ; V3 = caps dynamiques runtime
     const safeY = getLegYieldPct(safeLeg, candidate);
     const aggY = getLegYieldPct(aggLeg, candidate);
     const safeInRange = safeLeg != null && safeY != null && safeY >= 0.75 && safeY < 1.05;
@@ -7379,7 +7379,15 @@ function PortfolioCombos({
                 </p>
                 {combo.label === "BALANCED" && (
                   <p className="mt-0.5 text-[10px] text-sky-600/80 leading-snug">
-                    Critères · yield 0.70–1.05% · spread ≤20% · POP spéc. ≥82% · ticker ≤30% · high beta ≤35% · BITX max 1 contrat
+                    <span className="font-medium text-sky-800">Core Institutional Yield (BALANCED V3)</span>
+                    {" "}· yield filtre V3 ≥0,675%–1,05% · spread ≤22% · caps ticker / thème / secteur / high beta{" "}
+                    <span className="whitespace-nowrap">scalés au capital</span>
+                    {" "}· jusqu&apos;à 6–8 lignes · POP spéc. ≥82% · BITX max 1 contrat
+                    {combo.balancedInstitutionalV3Audit?.effectiveMaxPositions != null ? (
+                      <span className="ml-1 text-sky-900 font-medium">
+                        · lignes max effectives {combo.balancedInstitutionalV3Audit.effectiveMaxPositions}
+                      </span>
+                    ) : null}
                     {!combo.capitalTargetReached && combo.capitalShortfallReason
                       ? <span className="ml-1 text-amber-600 font-medium">· Capital incomplet : {formatCapitalShortfallReason(combo.capitalShortfallReason)}</span>
                       : null}
@@ -7433,6 +7441,53 @@ function PortfolioCombos({
                       </span>
                     </summary>
                     <div className="mt-2 space-y-1.5 text-slate-600">
+                      {combo.label === "BALANCED" && combo.capDiagnosticsV2?.institutionalYieldV3 && (
+                        <div className="rounded-lg border border-sky-200 bg-sky-50/60 px-2.5 py-2 text-[11px] leading-snug space-y-1">
+                          <p className="font-semibold text-sky-900">Institutionnel V3 — garde-fous actifs</p>
+                          <p>
+                            Caps (fraction du déployable) : ticker{" "}
+                            {(combo.capDiagnosticsV2.institutionalYieldV3.capsFraction?.tickerCap * 100).toFixed(0)}%
+                            {" · "}thème{" "}
+                            {(combo.capDiagnosticsV2.institutionalYieldV3.capsFraction?.maxTheme * 100).toFixed(0)}%
+                            {" · "}secteur{" "}
+                            {(combo.capDiagnosticsV2.institutionalYieldV3.capsFraction?.maxSector * 100).toFixed(0)}%
+                            {" · "}high beta{" "}
+                            {(combo.capDiagnosticsV2.institutionalYieldV3.capsFraction?.maxHighBeta * 100).toFixed(0)}%
+                            {" · "}max contrats / ticker {combo.capDiagnosticsV2.institutionalYieldV3.maxContractsPerTicker}
+                            {" · "}clusters stricts après {combo.capDiagnosticsV2.institutionalYieldV3.minTargetPositionsBeforeStrictClusters} ligne(s)
+                          </p>
+                          {combo.capDiagnosticsV2.dominantFillBlocker && (
+                            <p className="text-amber-800">
+                              Cap / blocage dominant (cycles + résidu) :{" "}
+                              <span className="font-medium">{formatCapBlockerReason(combo.capDiagnosticsV2.dominantFillBlocker.reason)}</span>
+                              {" "}× {combo.capDiagnosticsV2.dominantFillBlocker.count}
+                            </p>
+                          )}
+                          {combo.capDiagnosticsV2.lostPremiumNoteFr && (
+                            <p className="text-amber-800">{combo.capDiagnosticsV2.lostPremiumNoteFr}</p>
+                          )}
+                          {Array.isArray(combo.capDiagnosticsV2.balancedPerPickInsights) && combo.capDiagnosticsV2.balancedPerPickInsights.length > 0 && (
+                            <div className="text-[10px] text-slate-600 space-y-0.5 border-t border-sky-100 pt-1 mt-1">
+                              <p className="font-medium text-slate-700">Efficacité par ligne (prime / capital déployable)</p>
+                              <ul className="list-disc pl-4 space-y-0.5">
+                                {combo.capDiagnosticsV2.balancedPerPickInsights.map((row) => (
+                                  <li key={row.ticker}>
+                                    <span className="font-semibold text-slate-800">{row.ticker}</span>
+                                    {row.premiumUsdPer1000Collateral != null && (
+                                      <> · {row.premiumUsdPer1000Collateral.toFixed(1)} $ prime / 1000 $ collat</>
+                                    )}
+                                    {row.shareOfDeployablePct != null && (
+                                      <> · {row.shareOfDeployablePct.toFixed(1)}% du déployable</>
+                                    )}
+                                    {row.phase && <> · phase {row.phase}</>}
+                                    {row.weeklyYieldPct != null && <> · yield {Number(row.weeklyYieldPct).toFixed(2)}%</>}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {(combo.capDiagnosticsV2.blockerSummaryMerged ?? []).slice(0, 6).map((b, idx) => (
                         <div key={`${b.reason}-${b.source}-${idx}`} className="flex gap-2 justify-between leading-snug">
                           <span className="font-medium text-slate-800">{formatCapBlockerReason(b.reason)}</span>
@@ -7571,6 +7626,16 @@ function PortfolioCombos({
                     {pick.source && <span>{pick.source}</span>}
                     {pick.selectionSummary && <span>{pick.selectionSummary}</span>}
                     {pick.selectionReason && <span className="text-sky-600">{pick.selectionReason}</span>}
+                    {combo.label === "BALANCED" && pick.balancedInstitutionalV3Pick && (
+                      <span className="text-sky-800">
+                        {pick.balancedInstitutionalV3Pick.premiumUsdPer1000Collateral != null && (
+                          <>Efficacité prime ≈ {pick.balancedInstitutionalV3Pick.premiumUsdPer1000Collateral.toFixed(1)} $/1000$ collat · </>
+                        )}
+                        {pick.balancedInstitutionalV3Pick.deployableCapitalSharePct != null && (
+                          <>part du déployable {pick.balancedInstitutionalV3Pick.deployableCapitalSharePct.toFixed(1)}%</>
+                        )}
+                      </span>
+                    )}
                     {(pick.concentrationTheme || (pick.qualityWarnings?.length > 0 && pick.qualityTier !== "high" && pick.qualityTier !== "medium")) && (
                       <span className="text-amber-500">
                         {pick.concentrationTheme && <span className="mr-1">thème: {pick.concentrationTheme}</span>}

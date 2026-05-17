@@ -336,6 +336,34 @@ export function createWatchlistBuilder(deps) {
   }
 
   /**
+   * Réduit une chaîne Yahoo pour rejouer hors ligne ATM + sonde OTM (read-only diagnostic).
+   * Garde les puts les plus près du spot pour limiter la taille JSON.
+   *
+   * @param {{ puts?: unknown[], currentPrice?: unknown }} chain
+   * @param {number} spot
+   * @param {number} [maxPuts]
+   */
+  function trimChainForOtmReplay(chain, spot, maxPuts = 360) {
+    const puts = Array.isArray(chain?.puts) ? chain.puts : [];
+    const s = toNumber(spot);
+    const trimmed = puts
+      .map((p) => ({
+        strike: toNumber(p?.strike),
+        bid: p?.bid,
+        ask: p?.ask,
+        lastPrice: p?.lastPrice,
+        volume: p?.volume,
+        openInterest: p?.openInterest,
+      }))
+      .filter((p) => p.strike > 0);
+    if (!Number.isFinite(s) || s <= 0) {
+      return { currentPrice: chain?.currentPrice ?? null, puts: trimmed.slice(0, maxPuts) };
+    }
+    trimmed.sort((a, b) => Math.abs(a.strike - s) - Math.abs(b.strike - s));
+    return { currentPrice: chain?.currentPrice ?? null, puts: trimmed.slice(0, maxPuts) };
+  }
+
+  /**
    * @param {BuildWatchlistCriteria} criteria
    */
   async function buildWatchlist(criteria) {
@@ -361,6 +389,13 @@ export function createWatchlistBuilder(deps) {
     const source = rawUniverse
       .filter((r) => !CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase()))
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
+
+    const otmReplayExport =
+      String(process.env.WATCHLIST_OTM_REPLAY_PACK || "").toLowerCase() === "true" ||
+      process.env.WATCHLIST_OTM_REPLAY_PACK === "1";
+
+    /** @type {unknown[]} */
+    const liquidityOtmReplayPack = [];
 
     /** @type {string[]} */
     const watchlist = [];
@@ -461,6 +496,35 @@ export function createWatchlistBuilder(deps) {
           }
           optionLiquidityOk = true;
           atmSpreadPct = liq.detail?.liquidity?.spreadPct ?? null;
+
+          if (otmReplayExport) {
+            const volUsedForReplay = volCheck.detail?.volumeUsed ?? criteria.minVolume;
+            const probeForMeta =
+              typeof criteria.liquidityOtmProbePct === "number" && Number.isFinite(criteria.liquidityOtmProbePct)
+                ? criteria.liquidityOtmProbePct
+                : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+            liquidityOtmReplayPack.push({
+              symbol,
+              category,
+              universeRow: {
+                sources: Array.isArray(row.sources) ? row.sources : [],
+                tags: row.tags,
+              },
+              scoreCtx: {
+                spot,
+                maxPrice: criteria.maxPrice,
+                minPrice: minPx,
+                minVolume: criteria.minVolume,
+                volumeUsed: volUsedForReplay,
+                hasWeeklyStyle,
+                atmSpreadPct,
+              },
+              nearestExpiration: nearest,
+              tierBias: tierMicroBias(symbol),
+              probePctAtCapture: probeForMeta,
+              chain: trimChainForOtmReplay(chain, spotForChain),
+            });
+          }
 
           const probeRaw = criteria.liquidityOtmProbePct;
           const probePct =
@@ -584,7 +648,7 @@ export function createWatchlistBuilder(deps) {
         probeForStats > 0,
     };
 
-    return {
+    const base = {
       ok: true,
       criteria: {
         ...criteria,
@@ -596,6 +660,21 @@ export function createWatchlistBuilder(deps) {
       rejected,
       errors,
     };
+
+    if (otmReplayExport) {
+      return {
+        ...base,
+        liquidityOtmReplayPack,
+        liquidityOtmReplayMeta: {
+          capturedAt: new Date().toISOString(),
+          universeCandidates: source.length,
+          packEntries: liquidityOtmReplayPack.length,
+          note: "Données Yahoo (chaîne tronquée) pour comparer la sonde OTM hors ligne. Définir WATCHLIST_OTM_REPLAY_PACK=0 pour désactiver.",
+        },
+      };
+    }
+
+    return base;
   }
 
   return { buildWatchlist };

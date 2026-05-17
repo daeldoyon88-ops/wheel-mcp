@@ -14,6 +14,7 @@ import {
   summarizeBlockerHits,
   formatCapBlockerReason,
 } from "./capitalComboEngineV2.js";
+import { buildAlternativeCompositionSimV1 } from "./alternativeCompositionSimV1.js";
 
 /** Spread IBKR : fraction 0–1 ou pourcentage déjà > 1. */
 function normalizedIbkrSpreadPctPercent(raw) {
@@ -84,6 +85,96 @@ export function getModeGradeRank(mode, grade) {
     return normalizedMode === "AGGRESSIVE" ? MODE_GRADE_RANK.AGGRESSIVE_B : MODE_GRADE_RANK.SAFE_B;
   }
   return MODE_GRADE_RANK.REJECT;
+}
+
+/** Identifiant audit — BALANCED « Core Institutional Yield » (caps dynamiques, réversible). */
+export const BALANCED_INSTITUTIONAL_V3_ID = "balanced-core-institutional-yield-v3";
+
+/**
+ * BALANCED V3 : plafond de lignes et caps qui montent avec le capital déployable,
+ * sans toucher aux filtres SAFE / AGGRESSIVE ni au scanner.
+ */
+function computeBalancedInstitutionalV3(mode, usableCapital, globalMaxPositions) {
+  const u = Number(usableCapital);
+  const deploy = Number.isFinite(u) && u > 0 ? u : 0;
+  const globalCap = Math.max(1, Number(globalMaxPositions) || 30);
+
+  let targetLines = 6;
+  if (deploy >= 27500) targetLines = 7;
+  if (deploy >= 36000) targetLines = 8;
+  if (deploy >= 48000) targetLines = Math.min(9, globalCap);
+  const lineCap = Math.max(5, Math.min(globalCap, targetLines));
+
+  let tickerCapPct = 0.32;
+  let positionCapPct = 0.32;
+  let maxContractsPerTicker = 4;
+  let maxThemeCapitalPct = 0.48;
+  let maxSectorCapitalPct = 0.48;
+  let maxHighBetaCapitalPct = 0.38;
+  let minTargetPositions = 3;
+
+  /** Sous ~22,5k déployable : palier prudent (ex. petit compte ou maxCapitalPct bas). */
+  if (deploy > 0 && deploy < 22500) {
+    tickerCapPct = 0.3;
+    positionCapPct = 0.3;
+    maxContractsPerTicker = 3;
+    maxThemeCapitalPct = 0.46;
+    maxSectorCapitalPct = 0.46;
+    maxHighBetaCapitalPct = 0.36;
+    minTargetPositions = 3;
+  } else if (deploy >= 22500) {
+    minTargetPositions = deploy >= 32000 ? 4 : 3;
+  }
+  if (deploy >= 43000) {
+    tickerCapPct = 0.34;
+    positionCapPct = 0.34;
+    maxThemeCapitalPct = 0.5;
+    maxSectorCapitalPct = 0.5;
+    maxHighBetaCapitalPct = 0.4;
+  }
+
+  const modePatch = {
+    /** Légèrement sous 0.70 pour débloquer le pool sans rapprocher du profil AGGRESSIVE. */
+    minWeeklyYield: 0.675,
+    tickerCapPct,
+    positionCapPct,
+    maxContractsPerTicker,
+    maxThemeCapitalPct,
+    maxSectorCapitalPct,
+    maxHighBetaCapitalPct,
+    minTargetPositions,
+    /** Spread légèrement assoupli vs 20% : reste sous AGGRESSIVE (25%). */
+    maxSpreadPct: 22,
+    /** Moins pénaliser la diversification statique du pool ; favoriser capital fit + yield modéré. */
+    weights: {
+      ...mode.weights,
+      yield: 19,
+      spread: mode.weights.spread,
+      capitalFit: 12,
+      diversificationPenalty: 4,
+    },
+  };
+
+  return {
+    modePatch,
+    lineCap,
+    audit: {
+      engineId: BALANCED_INSTITUTIONAL_V3_ID,
+      label: "Core Institutional Yield",
+      usableCapitalUsd: deploy,
+      effectiveMaxPositions: lineCap,
+      minTargetPositionsBeforeStrictClusters: minTargetPositions,
+      capsFraction: {
+        tickerCap: tickerCapPct,
+        positionCap: positionCapPct,
+        maxTheme: maxThemeCapitalPct,
+        maxSector: maxSectorCapitalPct,
+        maxHighBeta: maxHighBetaCapitalPct,
+      },
+      maxContractsPerTicker,
+      minWeeklyYieldV3: modePatch.minWeeklyYield,
+    },
+  };
 }
 
 export function getFinalDisplayRecommendation(item) {
@@ -865,6 +956,15 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
 
   function makeCombo(mode) {
     const optimizerV2 = resolveOptimizerV2ForCombo(options?.optimizerV2);
+    let modeAlloc = mode;
+    let maxPositionLines = maxPositions;
+    let balancedInstitutionalV3Audit = null;
+    if (mode.id === "balanced") {
+      const v3 = computeBalancedInstitutionalV3(mode, usableCapital, maxPositions);
+      modeAlloc = { ...mode, ...v3.modePatch };
+      maxPositionLines = v3.lineCap;
+      balancedInstitutionalV3Audit = v3.audit;
+    }
     const rejectionTotals = new Map();
     const scoredPool = basePool
       // Étape 1 : résoudre la jambe spécifique au bucket (simulation indépendante)
@@ -966,33 +1066,33 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       .map((candidate) => ({
         ...candidate,
         selectedStrike: getModeStrike(candidate, mode.id),
-        _comboScoreBreakdown: buildCapitalComboScoreBreakdown(candidate, mode, usableCapital, poolStats),
+        _comboScoreBreakdown: buildCapitalComboScoreBreakdown(candidate, modeAlloc, usableCapital, poolStats),
       }))
       // Étape 4 : filtres bucket (appliqués après résolution jambe)
       .filter((candidate) => candidate.capitalPerContract > 0 && candidate.capitalPerContract <= usableCapital && candidate.weeklyReturn > 0)
       // allowedModes retiré — remplacé par la résolution bucket ci-dessus
       .filter((candidate) => {
-        if (mode.allowedGrades?.has(candidate.finalDisplayGrade)) return true;
-        if (candidate.finalDisplayGrade === "WATCH" && mode.watchPremiumFilter?.(candidate)) return true;
+        if (modeAlloc.allowedGrades?.has(candidate.finalDisplayGrade)) return true;
+        if (candidate.finalDisplayGrade === "WATCH" && modeAlloc.watchPremiumFilter?.(candidate)) return true;
         return false;
       })
       .map((candidate) => ({
         ...candidate,
-        _isWatchPremium: candidate.finalDisplayGrade === "WATCH" && !!mode.watchPremiumFilter?.(candidate),
+        _isWatchPremium: candidate.finalDisplayGrade === "WATCH" && !!modeAlloc.watchPremiumFilter?.(candidate),
       }))
-      .filter((candidate) => candidate.weeklyReturn >= mode.minWeeklyYield)
-      .filter((candidate) => mode.maxWeeklyYield == null || candidate.weeklyReturn < mode.maxWeeklyYield)
-      .filter((candidate) => !Number.isFinite(candidate.proExecutionScore) || candidate.proExecutionScore >= mode.minExecutionScore)
-      .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= mode.maxSpreadPct)
+      .filter((candidate) => candidate.weeklyReturn >= modeAlloc.minWeeklyYield)
+      .filter((candidate) => modeAlloc.maxWeeklyYield == null || candidate.weeklyReturn < modeAlloc.maxWeeklyYield)
+      .filter((candidate) => !Number.isFinite(candidate.proExecutionScore) || candidate.proExecutionScore >= modeAlloc.minExecutionScore)
+      .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= modeAlloc.maxSpreadPct)
       .filter((candidate) =>
-        mode.minDistancePct == null ||
+        modeAlloc.minDistancePct == null ||
         candidate.selectedDistancePct == null ||
-        candidate.selectedDistancePct <= mode.minDistancePct
+        candidate.selectedDistancePct <= modeAlloc.minDistancePct
       )
-      .filter((candidate) => mode.filterCandidate ? mode.filterCandidate(candidate) : true)
+      .filter((candidate) => modeAlloc.filterCandidate ? modeAlloc.filterCandidate(candidate) : true)
       .map((candidate) => ({
         ...candidate,
-        allocScore: (candidate._comboScoreBreakdown?.totalScore ?? mode.score(candidate)) - (candidate._isWatchPremium ? 15 : 0),
+        allocScore: (candidate._comboScoreBreakdown?.totalScore ?? modeAlloc.score(candidate)) - (candidate._isWatchPremium ? 15 : 0),
       }))
       .sort((a, b) =>
         b.allocScore - a.allocScore ||
@@ -1005,15 +1105,170 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     const picks = [];
     let used = 0;
     const pickMap = new Map();
-    const tickerCapDollars = usableCapital * mode.tickerCapPct;
-    const positionCapDollars = usableCapital * mode.positionCapPct;
+    const tickerCapDollars = usableCapital * modeAlloc.tickerCapPct;
+    const positionCapDollars = usableCapital * modeAlloc.positionCapPct;
     const NEUTRAL_CLUSTER_KEYS = new Set(["unknown", "none", "no_theme", "other", ""]);
     const feasibleDistinctTickers = new Set(scoredPool.map((candidate) => candidate.ticker)).size;
     const minTargetPositions = Math.max(
       1,
-      Math.min(Number(maxPositions) || 0, Number(mode.minTargetPositions ?? 3), feasibleDistinctTickers)
+      Math.min(Number(maxPositionLines) || 0, Number(modeAlloc.minTargetPositions ?? 3), feasibleDistinctTickers)
     );
     let lastRejectionCounts = new Map();
+
+    /** Phase 2A — instrumentation lecture seule (export Inspector / allocationTraceV1). */
+    const diagnosticsEnabledForTrace = optimizerV2.capDiagnosticsEnabled !== false;
+    const traceAccum = diagnosticsEnabledForTrace
+      ? { cycleRows: [], selectedRows: [], rejectionRows: [], leftoverRejectSamples: [] }
+      : null;
+    const CYCLE_ROWS_CAP = 5200;
+    const REJECTION_ROWS_CAP = 900;
+    const LEFTOVER_REJECT_CAP = 120;
+    let allocationCycleOrdinal = 0;
+
+    /** Classe rang post-tri allocatedScore principal (doublons tickers très rares : dernier rang gagne). */
+    const candidateRankByTicker = scoredPool.reduce((acc, cand, idx) => {
+      acc[String(cand.ticker || "").trim().toUpperCase()] = idx + 1;
+      return acc;
+    }, {});
+    /** Position du ticker dans scoredPool après tri allocation (pour l’ordre exact testé ligne par ligne). */
+    const candidateSweepIndexByTicker = scoredPool.reduce((acc, cand, idx) => {
+      acc[String(cand.ticker || "").trim().toUpperCase()] = idx;
+      return acc;
+    }, {});
+
+    function traceFlagsFromRejectReason(ok, reason) {
+      if (ok) {
+        return {
+          passedCapitalCheck: true,
+          passedTickerCap: true,
+          passedSectorCap: true,
+          passedThemeCap: true,
+          passedHighBetaCap: true,
+          blockerType: null,
+        };
+      }
+      const r = reason ?? "caps_too_strict";
+      return {
+        passedCapitalCheck: r !== "contract_size_too_large",
+        passedTickerCap: r !== "ticker_cap_reached",
+        passedSectorCap: r !== "sector_cap_reached",
+        passedThemeCap: r !== "theme_cap_reached",
+        passedHighBetaCap: r !== "high_beta_cap_reached",
+        blockerType: r,
+      };
+    }
+
+    function pushCycleRow(payload) {
+      if (!traceAccum || traceAccum.cycleRows.length >= CYCLE_ROWS_CAP) return;
+      traceAccum.cycleRows.push(payload);
+    }
+
+    function pushRejectionRow(payload) {
+      if (!traceAccum || traceAccum.rejectionRows.length >= REJECTION_ROWS_CAP) return;
+      traceAccum.rejectionRows.push(payload);
+    }
+
+    function pushLeftoverRejectSample(sample) {
+      if (!traceAccum || traceAccum.leftoverRejectSamples.length >= LEFTOVER_REJECT_CAP) return;
+      traceAccum.leftoverRejectSamples.push(sample);
+    }
+
+    function flushSweepTrace(
+      rows,
+      phaseLabel,
+      cycleNum,
+      sweepFreeCapitalSnapshot,
+      sweepPositionsSnapshot,
+      freeCapitalHint = null,
+    ) {
+      if (!traceAccum || rows.length === 0) return;
+      const capitalBeforeSweep = sweepFreeCapitalSnapshot;
+      const positionsBeforeSweep = sweepPositionsSnapshot;
+      const freeHint =
+        freeCapitalHint != null && Number.isFinite(freeCapitalHint)
+          ? freeCapitalHint
+          : null;
+      for (const row of rows) {
+        const cand = row.candidate;
+        const tickerKey = String(cand.ticker ?? "");
+        const tk = tickerKey.trim().toUpperCase();
+        let decision = "rejected";
+        let reasonStr = row.failReason ?? "caps_too_strict";
+        let capitalAfterIfSel = null;
+        if (!row.failReason && row.okEvaluated?.ok) {
+          const wins = !!(row.winningSweep && row.candidate?.ticker === row.bestTicker);
+          if (wins) {
+            decision = "selected";
+            reasonStr =
+              row.usedSoftCaps && phaseLabel === "filler_primary"
+                ? "selected_filler_with_soft_caps"
+                : phaseLabel.includes("soft")
+                  ? "selected_primary_with_soft_contract_caps"
+                  : row.selectionHint ?? `selected_${phaseLabel}`;
+            const req = Number(cand.capitalPerContract);
+            capitalAfterIfSel = usableCapital - used - req;
+          } else {
+            decision = "skipped";
+            reasonStr =
+              phaseLabel.startsWith("leftover")
+                ? "not_selected_leftover_density_greedy_score"
+                : phaseLabel.includes("filler")
+                  ? "not_selected_filler_greedy_score"
+                  : "not_selected_primary_greedy_marginalScore";
+            const req = Number(cand.capitalPerContract);
+            capitalAfterIfSel = usableCapital - used - req;
+          }
+        }
+
+        pushCycleRow({
+          cycle: cycleNum,
+          allocationPhase: phaseLabel,
+          capitalBefore: capitalBeforeSweep,
+          positionsBefore: positionsBeforeSweep,
+          freeCapitalAtSweepStart: freeHint ?? capitalBeforeSweep,
+          candidateTicker: tickerKey,
+          candidateMode: cand.finalDisplayMode ?? cand.mode ?? null,
+          candidateCapitalRequired:
+            cand.capitalPerContract ?? null,
+          candidateYieldPct:
+            cand.weeklyReturn ?? cand.selectedYieldPct ?? null,
+          candidateScore:
+            cand._comboScoreBreakdown?.totalScore ?? cand.allocScore ?? null,
+          candidateRank: candidateRankByTicker[tk] ?? null,
+          candidateGrade: cand.finalDisplayGrade ?? cand.grade ?? null,
+          candidateSpreadPct: cand.selectedSpreadPct ?? cand.spreadPct ?? null,
+          candidatePop: cand._popForCombo ?? null,
+          decision,
+          reason: reasonStr,
+          capitalAfterIfSelected:
+            typeof capitalAfterIfSel === "number" && Number.isFinite(capitalAfterIfSel)
+              ? capitalAfterIfSel
+              : null,
+          usedSoftCapsInEval: !!row.usedSoftCaps,
+          sweepOrdinalInBucket: candidateSweepIndexByTicker[tk] ?? null,
+        });
+
+        if (decision === "rejected" && row.failReason) {
+          const flags = traceFlagsFromRejectReason(false, row.failReason);
+          pushRejectionRow({
+            ticker: tickerKey,
+            mode: cand.finalDisplayMode ?? cand.mode ?? null,
+            capitalRequired: cand.capitalPerContract ?? null,
+            capitalRemainingAtDecision: usableCapital - used,
+            reasonRejected: row.failReason ?? "caps_too_strict",
+            blockerType: row.failReason ?? "caps_too_strict",
+            passedBucketFilters: true,
+            passedCapitalCheck: flags.passedCapitalCheck,
+            passedTickerCap: flags.passedTickerCap,
+            passedSectorCap: flags.passedSectorCap,
+            passedThemeCap: flags.passedThemeCap,
+            passedHighBetaCap: flags.passedHighBetaCap,
+            allocationPhase: phaseLabel,
+            cycle: cycleNum,
+          });
+        }
+      }
+    }
 
     function computePortfolioState() {
       const tickerCapitalMap = new Map();
@@ -1048,24 +1303,24 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     }
 
     function canAddByComposition(candidate, state) {
-      const maxCrypto = mode.maxCryptoMinerPositions;
-      const maxSpec = mode.maxSpeculativePositions;
+      const maxCrypto = modeAlloc.maxCryptoMinerPositions;
+      const maxSpec = modeAlloc.maxSpeculativePositions;
       if (maxCrypto == null && maxSpec == null) return { ok: true };
       const ov = candidate._qualityOverlay;
       const theme = ov?.concentrationTheme ?? null;
       const tier = ov?.qualityTier ?? null;
       if (maxCrypto != null && theme === "crypto_miner") {
         const currentCrypto = state.cryptoMinerPositions;
-        const hardMax = mode.maxCryptoMinerExceptionCount ?? maxCrypto;
+        const hardMax = modeAlloc.maxCryptoMinerExceptionCount ?? maxCrypto;
         if (currentCrypto >= hardMax) return { ok: false, reason: "theme_cap_reached" };
         if (currentCrypto >= maxCrypto) {
           const pop = candidate._popForCombo;
           const spread = candidate.spreadPct;
           const quality = ov?.qualityScore ?? 0;
           const ok =
-            pop != null && pop >= (mode.maxCryptoMinerExceptionPopMin ?? 82) &&
-            (spread == null || spread <= (mode.maxCryptoMinerExceptionSpreadMax ?? 20)) &&
-            quality >= (mode.maxCryptoMinerExceptionQualityMin ?? 0.65);
+            pop != null && pop >= (modeAlloc.maxCryptoMinerExceptionPopMin ?? 82) &&
+            (spread == null || spread <= (modeAlloc.maxCryptoMinerExceptionSpreadMax ?? 20)) &&
+            quality >= (modeAlloc.maxCryptoMinerExceptionQualityMin ?? 0.65);
           if (!ok) return { ok: false, reason: "theme_cap_reached" };
         }
       }
@@ -1082,7 +1337,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         if (pickMap.has(candidate.ticker)) return false;
         if (candidate.capitalPerContract <= 0) return false;
         if (used + candidate.capitalPerContract > usableCapital) return false;
-        if (state.distinctPositions >= maxPositions) return false;
+        if (state.distinctPositions >= maxPositionLines) return false;
         if (candidate.capitalPerContract > tickerCapDollars) return false;
         if (candidate.capitalPerContract > positionCapDollars) return false;
         if (!canAddByComposition(candidate, state).ok) return false;
@@ -1093,15 +1348,15 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           const sectorKey = String(candidate?._tickerMeta?.sector || "").trim().toLowerCase();
           if (themeKey && !NEUTRAL_CLUSTER_KEYS.has(themeKey)) {
             const nextThemeCapital = (state.themeCapitalMap.get(themeKey) ?? 0) + candidate.capitalPerContract;
-            if (nextThemeCapital > usableCapital * (mode.maxThemeCapitalPct ?? 0.45)) return false;
+            if (nextThemeCapital > usableCapital * (modeAlloc.maxThemeCapitalPct ?? 0.45)) return false;
           }
           if (sectorKey && !NEUTRAL_CLUSTER_KEYS.has(sectorKey)) {
             const nextSectorCapital = (state.sectorCapitalMap.get(sectorKey) ?? 0) + candidate.capitalPerContract;
-            if (nextSectorCapital > usableCapital * (mode.maxSectorCapitalPct ?? 0.45)) return false;
+            if (nextSectorCapital > usableCapital * (modeAlloc.maxSectorCapitalPct ?? 0.45)) return false;
           }
           const nextHighBetaCapital =
             state.highBetaCapital + (candidate?._qualityOverlay?.concentrationTheme === "high_beta_growth" ? candidate.capitalPerContract : 0);
-          if (nextHighBetaCapital > usableCapital * (mode.maxHighBetaCapitalPct ?? 0.40)) return false;
+          if (nextHighBetaCapital > usableCapital * (modeAlloc.maxHighBetaCapitalPct ?? 0.40)) return false;
         }
         return true;
       });
@@ -1133,11 +1388,15 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       const nextHighBetaCapital =
         state.highBetaCapital + (candidate?._qualityOverlay?.concentrationTheme === "high_beta_growth" ? candidate.capitalPerContract : 0);
       const nextHighBetaPct = nextUsed > 0 ? (nextHighBetaCapital / nextUsed) * 100 : 0;
+      const tickerCapSoftPct = (Number(modeAlloc.tickerCapPct) || 0.3) * 100;
+      const themeCapSoftPct = (Number(modeAlloc.maxThemeCapitalPct) || 0.45) * 100;
+      const sectorCapSoftPct = (Number(modeAlloc.maxSectorCapitalPct) || 0.45) * 100;
+      const highBetaCapSoftPct = (Number(modeAlloc.maxHighBetaCapitalPct) || 0.4) * 100;
       let penalty = 0;
-      penalty += Math.max(0, largestTickerPct - 30) * 0.9;
-      penalty += Math.max(0, largestThemePct - 45) * 0.55;
-      penalty += Math.max(0, largestSectorPct - 45) * 0.45;
-      penalty += Math.max(0, nextHighBetaPct - 40) * 0.6;
+      penalty += Math.max(0, largestTickerPct - tickerCapSoftPct) * 0.9;
+      penalty += Math.max(0, largestThemePct - themeCapSoftPct) * 0.55;
+      penalty += Math.max(0, largestSectorPct - sectorCapSoftPct) * 0.45;
+      penalty += Math.max(0, nextHighBetaPct - highBetaCapSoftPct) * 0.6;
       if (isExisting) penalty += 6;
       return { penalty };
     }
@@ -1148,7 +1407,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       const currentContracts = existing?.contracts ?? 0;
       const state = computePortfolioState();
       const nextUsed = used + candidate.capitalPerContract;
-      const maxContractsAllowed = useSoftCaps ? mode.maxContractsPerTicker + 1 : mode.maxContractsPerTicker;
+      const maxContractsAllowed = useSoftCaps ? modeAlloc.maxContractsPerTicker + 1 : modeAlloc.maxContractsPerTicker;
       const nextPositionCapital = (currentContracts + 1) * candidate.capitalPerContract;
       const tickerCapLimit = useSoftCaps ? tickerCapDollars * 1.1 : tickerCapDollars;
       const positionCapLimit = useSoftCaps ? positionCapDollars * 1.1 : positionCapDollars;
@@ -1157,14 +1416,14 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       if (candidate.capitalPerContract <= 0) return { ok: false, reason: "contract_size_too_large" };
       if (currentContracts >= maxContractsAllowed) return { ok: false, reason: "ticker_cap_reached" };
       // Limite spécifique par ticker selon config mode (ex: BITX max 1 contrat dans BALANCED)
-      if (mode.maxBitxContracts != null && String(candidate.ticker).toUpperCase() === "BITX" && currentContracts >= mode.maxBitxContracts) {
+      if (modeAlloc.maxBitxContracts != null && String(candidate.ticker).toUpperCase() === "BITX" && currentContracts >= modeAlloc.maxBitxContracts) {
         return { ok: false, reason: "ticker_cap_reached" };
       }
       // WATCH premium : max 1 contrat par ticker — score pénalisé, jamais renforcé
-      if (candidate._isWatchPremium && currentContracts >= (mode.maxWatchPremiumContracts ?? 1)) {
+      if (candidate._isWatchPremium && currentContracts >= (modeAlloc.maxWatchPremiumContracts ?? 1)) {
         return { ok: false, reason: "ticker_cap_reached" };
       }
-      if (!isExisting && state.distinctPositions >= maxPositions) return { ok: false, reason: "max_positions_limit" };
+      if (!isExisting && state.distinctPositions >= maxPositionLines) return { ok: false, reason: "max_positions_limit" };
       if (nextUsed > usableCapital) return { ok: false, reason: "contract_size_too_large" };
       if (nextPositionCapital > tickerCapLimit || nextPositionCapital > positionCapLimit) {
         return { ok: false, reason: "ticker_cap_reached" };
@@ -1197,25 +1456,25 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       const enforceClusterCaps = nextDistinctPositions >= minTargetPositions || !hasDiversifyingAlternative(state, candidate.ticker);
 
       if (enforceClusterCaps) {
-        if (nextTickerCapital > usableCapital * mode.tickerCapPct) {
+        if (nextTickerCapital > usableCapital * modeAlloc.tickerCapPct) {
           return { ok: false, reason: "ticker_cap_reached" };
         }
         if (
           themeKey &&
           !NEUTRAL_CLUSTER_KEYS.has(themeKey) &&
-          nextThemeCapital > usableCapital * (mode.maxThemeCapitalPct ?? 0.45)
+          nextThemeCapital > usableCapital * (modeAlloc.maxThemeCapitalPct ?? 0.45)
         ) {
           return { ok: false, reason: "theme_cap_reached" };
         }
         if (
           sectorKey &&
           !NEUTRAL_CLUSTER_KEYS.has(sectorKey) &&
-          nextSectorCapital > usableCapital * (mode.maxSectorCapitalPct ?? 0.45)
+          nextSectorCapital > usableCapital * (modeAlloc.maxSectorCapitalPct ?? 0.45)
         ) {
           return { ok: false, reason: "sector_cap_reached" };
         }
         if (
-          nextHighBetaCapital > usableCapital * (mode.maxHighBetaCapitalPct ?? 0.40)
+          nextHighBetaCapital > usableCapital * (modeAlloc.maxHighBetaCapitalPct ?? 0.40)
         ) {
           return { ok: false, reason: "high_beta_cap_reached" };
         }
@@ -1246,15 +1505,29 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     }
 
     function pickBestCandidate(useSoftCaps = false) {
+      const sweepFreeCapitalSnapshot = usableCapital - used;
+      const sweepPositionsSnapshot = picks.length;
+      const cycleNumTrace = diagnosticsEnabledForTrace ? ++allocationCycleOrdinal : 0;
+      const phaseLabel = useSoftCaps ? "primary_soft_cap" : "primary_strict";
+
       const rejections = new Map();
       let best = null;
+      const sweepRows = [];
       for (const candidate of scoredPool) {
         const evaluated = evaluateCandidate(candidate, useSoftCaps);
         if (!evaluated.ok) {
           const key = evaluated.reason ?? "caps_too_strict";
           rejections.set(key, (rejections.get(key) ?? 0) + 1);
+          sweepRows.push({ candidate, failReason: key, okEvaluated: evaluated, usedSoftCaps: !!useSoftCaps });
           continue;
         }
+        sweepRows.push({
+          candidate,
+          failReason: null,
+          okEvaluated: evaluated,
+          usedSoftCaps: !!useSoftCaps,
+          selectionHint: evaluated.selectionReason,
+        });
         if (
           !best ||
           evaluated.marginalScore > best.marginalScore ||
@@ -1266,6 +1539,23 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           best = evaluated;
         }
       }
+      const bestTicker = best?.candidate?.ticker ?? null;
+      if (traceAccum && cycleNumTrace > 0) {
+        for (const sr of sweepRows) {
+          sr.bestTicker = bestTicker;
+          sr.winningSweep =
+            !!(sr.failReason == null && sr.okEvaluated?.ok && sr.candidate?.ticker === bestTicker);
+        }
+        flushSweepTrace(
+          sweepRows,
+          phaseLabel,
+          cycleNumTrace,
+          sweepFreeCapitalSnapshot,
+          sweepPositionsSnapshot,
+          null,
+        );
+      }
+
       lastRejectionCounts = rejections;
       return best;
     }
@@ -1303,6 +1593,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     }
 
     function applySelection(selection, comboAllocationPhase = "primary_strict") {
+      const capitalFreeBeforePick = usableCapital - used;
       const { candidate, existing, isExisting, selectionReason } = selection;
       if (!isExisting) {
         const pick = createPick(candidate, selectionReason, comboAllocationPhase);
@@ -1320,18 +1611,47 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         existing.selectionReason = selectionReason;
       }
       used += candidate.capitalPerContract;
+
+      if (traceAccum) {
+        const capitalFreeAfterPick = usableCapital - used;
+        traceAccum.selectedRows.push({
+          ticker: candidate.ticker,
+          mode: candidate.finalDisplayMode ?? null,
+          capitalRequired: candidate.capitalPerContract,
+          yieldPct:
+            candidate.weeklyReturn ??
+            candidate.selectedYieldPct ??
+            null,
+          selectionScore:
+            candidate._comboScoreBreakdown?.totalScore ?? candidate.allocScore ?? null,
+          capitalBefore: capitalFreeBeforePick,
+          capitalAfter: capitalFreeAfterPick,
+          comboAllocationPhase,
+          reasonSelected:
+            typeof selectionReason === "string"
+              ? selectionReason
+              : "unknown",
+        });
+      }
     }
 
     function pickBestFillerCandidate() {
+      const sweepFreeCapitalSnapshot = usableCapital - used;
+      const sweepPositionsSnapshot = picks.length;
+      const cycleNumTrace = diagnosticsEnabledForTrace ? ++allocationCycleOrdinal : 0;
+
       const freeCapital = usableCapital - used;
       if (freeCapital <= 0) return null;
 
       const rejections = new Map();
       let best = null;
 
+      const sweepRows = [];
+
       for (const candidate of scoredPool) {
         if (candidate.capitalPerContract <= 0 || candidate.capitalPerContract > freeCapital) {
           rejections.set("contract_size_too_large", (rejections.get("contract_size_too_large") ?? 0) + 1);
+          sweepRows.push({ candidate, failReason: "contract_size_too_large", okEvaluated: null, usedSoftCaps: false });
           continue;
         }
 
@@ -1343,6 +1663,12 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           if (!softEvaluated.ok) {
             const key = softEvaluated.reason ?? strictReason;
             rejections.set(key, (rejections.get(key) ?? 0) + 1);
+            sweepRows.push({
+              candidate,
+              failReason: key,
+              okEvaluated: softEvaluated,
+              usedSoftCaps: false,
+            });
             continue;
           }
           evaluated = softEvaluated;
@@ -1404,6 +1730,31 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         ) {
           best = enriched;
         }
+
+        sweepRows.push({
+          candidate,
+          failReason: null,
+          okEvaluated: evaluated,
+          usedSoftCaps,
+          selectionHint: selectionReasonParts.join(" · "),
+        });
+      }
+
+      const bestTicker = best?.candidate?.ticker ?? null;
+      if (traceAccum && cycleNumTrace > 0) {
+        for (const sr of sweepRows) {
+          sr.bestTicker = bestTicker;
+          sr.winningSweep =
+            !!(sr.failReason == null && sr.okEvaluated?.ok && sr.candidate?.ticker === bestTicker);
+        }
+        flushSweepTrace(
+          sweepRows,
+          "filler_primary",
+          cycleNumTrace,
+          sweepFreeCapitalSnapshot,
+          sweepPositionsSnapshot,
+          freeCapital,
+        );
       }
 
       lastRejectionCounts = rejections;
@@ -1411,6 +1762,10 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     }
 
     function pickBestDensityLeftoverCandidate() {
+      const sweepFreeCapitalSnapshot = usableCapital - used;
+      const sweepPositionsSnapshot = picks.length;
+      const cycleNumTrace = diagnosticsEnabledForTrace ? ++allocationCycleOrdinal : 0;
+
       const freeCapital = usableCapital - used;
       if (freeCapital <= 0) return null;
 
@@ -1418,9 +1773,17 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       let best = null;
       const ordered = [...scoredPool].sort(compareLeftoverDensityOrder);
 
+      const sweepRows = [];
+
       for (const candidate of ordered) {
         if (candidate.capitalPerContract <= 0 || candidate.capitalPerContract > freeCapital) {
           rejections.set("contract_size_too_large", (rejections.get("contract_size_too_large") ?? 0) + 1);
+          sweepRows.push({ candidate, failReason: "contract_size_too_large", okEvaluated: null, usedSoftCaps: false });
+          pushLeftoverRejectSample({
+            ticker: candidate.ticker,
+            capitalRequired: candidate.capitalPerContract ?? null,
+            reasonRejected: "contract_size_too_large",
+          });
           continue;
         }
 
@@ -1432,6 +1795,17 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           if (!softEvaluated.ok) {
             const key = softEvaluated.reason ?? strictReason;
             rejections.set(key, (rejections.get(key) ?? 0) + 1);
+            sweepRows.push({
+              candidate,
+              failReason: key,
+              okEvaluated: softEvaluated,
+              usedSoftCaps: false,
+            });
+            pushLeftoverRejectSample({
+              ticker: candidate.ticker,
+              capitalRequired: candidate.capitalPerContract ?? null,
+              reasonRejected: key,
+            });
             continue;
           }
           evaluated = softEvaluated;
@@ -1494,6 +1868,31 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         ) {
           best = enriched;
         }
+
+        sweepRows.push({
+          candidate,
+          failReason: null,
+          okEvaluated: evaluated,
+          usedSoftCaps,
+          selectionHint: selectionReasonParts.join(" · "),
+        });
+      }
+
+      const bestTicker = best?.candidate?.ticker ?? null;
+      if (traceAccum && cycleNumTrace > 0) {
+        for (const sr of sweepRows) {
+          sr.bestTicker = bestTicker;
+          sr.winningSweep =
+            !!(sr.failReason == null && sr.okEvaluated?.ok && sr.candidate?.ticker === bestTicker);
+        }
+        flushSweepTrace(
+          sweepRows,
+          "leftover_density_v2",
+          cycleNumTrace,
+          sweepFreeCapitalSnapshot,
+          sweepPositionsSnapshot,
+          freeCapital,
+        );
       }
 
       lastRejectionCounts = rejections;
@@ -1528,10 +1927,24 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     // Phase 2 V2 — leftover optimisation densité après filler (SAFE désactivée par défaut).
     let leftoverV2Adds = 0;
     let leftoverV2PremiumDelta = 0;
+    const leftoverDensityGlobalEnabledFlag = optimizerV2.leftoverDensityPassEnabled !== false;
+    let leftoverDensityPassBreakReasonTrace = null;
+    let leftoverDensityCrumbUsdTrace = null;
+    let leftoverDensityMinContractUsdTrace = null;
+    let leftoverDensityLoopEnteredTrace = false;
+    let leftoverDensityIterationsRanTrace = 0;
+
     const leftoverV2EligibleMode =
       picks.length > 0 &&
-      ((mode.id !== "conservative" && optimizerV2.leftoverDensityPassEnabled !== false)
+      ((mode.id !== "conservative" && leftoverDensityGlobalEnabledFlag)
         || (mode.id === "conservative" && optimizerV2.safeLeftoverDensityPassEnabled === true));
+
+    /** SAFE : passe leftover indépendante du flag global leftoverDensityPass (voir safeLeftoverDensityPassEnabled). */
+    const conservativeLeftoverIsPolicyOff =
+      picks.length > 0 &&
+      mode.id === "conservative" &&
+      optimizerV2.safeLeftoverDensityPassEnabled !== true;
+
     const premiumBeforeDensityPass = picks.reduce((s, p) => s + Number(p.premiumCollected || 0), 0);
 
     const leftoverRemainMeaningful = (usableUsd, usedUsd, thresholdUsd, absUsd) =>
@@ -1543,25 +1956,68 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         .filter((n) => Number.isFinite(n) && n > 0);
       const minContractEligible =
         finiteCaps.length ? Math.min(...finiteCaps) : Number.POSITIVE_INFINITY;
+      leftoverDensityMinContractUsdTrace = Number.isFinite(minContractEligible) ? minContractEligible : null;
+
       const crumbThreshold = computeLeftoverActionThresholdUsd(usableCapital, minContractEligible, optimizerV2);
+      leftoverDensityCrumbUsdTrace = crumbThreshold;
       const floorAbsUsd = optimizerV2.leftoverMinAbsoluteUsd ?? 320;
 
       let it = 0;
       const maxIterations = Number(optimizerV2.maxLeftoverIterations ?? 22);
+      leftoverDensityLoopEnteredTrace = false;
       while (it < maxIterations) {
+        leftoverDensityLoopEnteredTrace = true;
         const remainingUsd = usableCapital - used;
-        if (remainingUsd < crumbThreshold) break;
-        if (!leftoverRemainMeaningful(usableCapital, used, crumbThreshold, floorAbsUsd)) break;
+        if (remainingUsd < crumbThreshold) {
+          leftoverDensityPassBreakReasonTrace = "remaining_free_usd_below_crumbThreshold_computeLeftoverActionThresholdUsd";
+          break;
+        }
+        if (!leftoverRemainMeaningful(usableCapital, used, crumbThreshold, floorAbsUsd)) {
+          leftoverDensityPassBreakReasonTrace = "remaining_free_usd_below_leftoverRemainMeaningful_floor_relative_to_threshold";
+          break;
+        }
 
+        leftoverDensityIterationsRanTrace += 1;
         const densityPick = pickBestDensityLeftoverCandidate();
         mergeRejectionDiagnostics(rejectionTotals, lastRejectionCounts);
-        if (!densityPick) break;
+        if (!densityPick) {
+          leftoverDensityPassBreakReasonTrace = "density_sweep_returned_null_all_candidates_failed_eval";
+          break;
+        }
         applySelection(densityPick, "leftover_density_v2");
         leftoverV2Adds += 1;
         it += 1;
       }
+
       const premiumAfterDensityPass = picks.reduce((s, p) => s + Number(p.premiumCollected || 0), 0);
       leftoverV2PremiumDelta = premiumAfterDensityPass - premiumBeforeDensityPass;
+    }
+
+    /** Détail textualisé lorsque leftoverDensityPass.adds === 0 (Phase 2A audit). */
+    function finalizeLeftoverReasonNoAdds() {
+      if (leftoverV2Adds !== 0) {
+        return "n/a_leftover_pass_did_increment_positions_use_adds_field";
+      }
+      if (!leftoverV2EligibleMode) {
+        if (picks.length === 0) {
+          return "gate_off_zero_portfolio_lines_after_primary_allocation_block_runs_entire_density_pass_skipped";
+        }
+        if (mode.id === "conservative") {
+          return optimizerV2.safeLeftoverDensityPassEnabled !== true
+            ? "SAFE_requires_safeLeftoverDensityPassEnabled_true_default_false_wheelCapitalComboOptimizerV2Flags"
+            : "SAFE_leftover_ineligible_unknown_residual_flag_conflict";
+        }
+        return leftoverDensityGlobalEnabledFlag === false
+          ? "global_leftoverDensityPass_explicitly_disabled_leftoverDensityPassEnabled_false"
+          : "leftover_density_gate_off_unknown_residual";
+      }
+      if (!leftoverDensityLoopEnteredTrace) {
+        return "eligible_flags_true_but_outer_while_marker_false_residual_internal_state_inconsistency";
+      }
+      return (
+        leftoverDensityPassBreakReasonTrace ??
+        `adds_remain_zero_after_${leftoverDensityIterationsRanTrace}_recorded_density_iteration_attempt_sweeps`
+      );
     }
 
     if (!picks.length) return null;
@@ -1581,7 +2037,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         capitalShortfallReason = "not_enough_candidates";
       } else if (!hasAnyPick) {
         capitalShortfallReason = "min_yield_or_execution_filter";
-      } else if (picks.length >= maxPositions) {
+      } else if (picks.length >= maxPositionLines) {
         capitalShortfallReason = "max_positions_limit";
       } else if (usableCapital - used < minContractCost) {
         capitalShortfallReason = "contract_size_too_large";
@@ -1696,12 +2152,198 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           wedgeDensity: row.wedgeDensity,
         }));
 
+      const mergedBlockers = summarizeBlockerHits(rejectionTotals, residualDiagnosticRows);
+
+      /** État résiduel final — après construction complète des picks — pour diagnostic knapsack (lecture seule). */
+      const residualFreeUsd = usableCapital - used;
+      let couldAddStrictResidual = false;
+      let couldAddSoftResidualOnly = false;
+      for (const cScan of scoredPool) {
+        if (evaluateCandidate(cScan, false).ok) {
+          couldAddStrictResidual = true;
+          break;
+        }
+      }
+      if (!couldAddStrictResidual) {
+        for (const cScan of scoredPool) {
+          if (evaluateCandidate(cScan, true).ok) {
+            couldAddSoftResidualOnly = true;
+            break;
+          }
+        }
+      }
+      const residualFiniteCollateral = scoredPool
+        .map((z) => Number(z.capitalPerContract))
+        .filter((q) => Number.isFinite(q) && q > 0);
+      const smallestPoolCollateralUsd =
+        residualFiniteCollateral.length ? Math.min(...residualFiniteCollateral) : null;
+
+      const sortedByCheap = [...scoredPool].sort(
+        (a, b) => (Number(a.capitalPerContract) || 0) - (Number(b.capitalPerContract) || 0),
+      );
+      let cheapestEligibleFailCandidate = null;
+      for (const ccheap of sortedByCheap) {
+        const evCheap = evaluateCandidate(ccheap, false);
+        if (!evCheap.ok) {
+          cheapestEligibleFailCandidate = {
+            ticker: ccheap.ticker,
+            capitalRequired: ccheap.capitalPerContract,
+            reasonNotAdded: evCheap.reason ?? "caps_too_strict",
+          };
+          break;
+        }
+      }
+
+      const nextBestCandidatesResidual = residualDiagnosticRows.slice(0, 14).map((row) => {
+        const canon = scoredPool.find((sp) => sp.ticker === row.ticker);
+        const blocker = row.primaryBlocker ?? "caps_too_strict";
+        const capReq = Number(row.capitalPerContract);
+        let missingUsd = null;
+        if (
+          blocker === "contract_size_too_large" &&
+          Number.isFinite(capReq) &&
+          Number.isFinite(residualFreeUsd)
+        ) {
+          missingUsd = Math.max(0, capReq - residualFreeUsd);
+        }
+        return {
+          ticker: row.ticker,
+          mode: canon?.finalDisplayMode ?? canon?.mode ?? null,
+          capitalRequired: row.capitalPerContract,
+          missingCapital:
+            blocker === "contract_size_too_large"
+              ? missingUsd
+              : null,
+          yieldPct:
+            canon?.weeklyReturn ??
+            canon?.selectedYieldPct ??
+            null,
+          score:
+            canon?._comboScoreBreakdown?.totalScore ?? canon?.allocScore ?? null,
+          blockerTypeDiagnostic:
+            blocker,
+          reasonNotAdded: `${blocker} · après allocation greedy (voir cycleTrace même timestamp logique bucket)`,
+        };
+      });
+
+      const stoppedPieces = [];
+      if (residualFreeUsd <= 0.01) stoppedPieces.push("deployable_residual_usd_floor_reached_near_zero_cent");
+      if (picks.length >= maxPositionLines) stoppedPieces.push(`portfolio_distinct_lines_hit_max_${maxPositionLines}`);
+      if (
+        smallestPoolCollateralUsd != null &&
+        residualFreeUsd + 1e-6 < smallestPoolCollateralUsd &&
+        picks.length < maxPositionLines
+      ) {
+        stoppedPieces.push(
+          `residual_collateral_below_smallest_per_contract_ticket_in_filtered_pool_approx_${smallestPoolCollateralUsd.toFixed(0)}_usd_gap_knapsack`,
+        );
+      }
+      if (!couldAddStrictResidual && !couldAddSoftResidualOnly && picks.length < maxPositionLines && residualFreeUsd > 0.01) {
+        stoppedPieces.push("aucun_strict_ni_soft_evaluate_candidate_ok_avec_etat_actuelvoir_rejectionTotals");
+      }
+      if (capitalShortfallReason) stoppedPieces.push(`capital_shortfall_label_${capitalShortfallReason}`);
+      const stoppedBecauseTrace =
+        stoppedPieces.length > 0
+          ? [...new Set(stoppedPieces)].join(" · ")
+          : "allocation_greedy_exited_under_normal_terminal_conditions_no_extra_residual_flags_emitted";
+
+      const allocationTraceV1 =
+        diagnosticsEnabledForTrace && traceAccum
+          ? {
+              bucket: mode.label ?? "unknown_bucket_label",
+              requestedMaxPositions: maxPositions ?? null,
+              effectiveMaxPositions: maxPositionLines ?? null,
+              minTargetDistinctLinesPolicy: minTargetPositions ?? null,
+              startingCapital: usableCapital,
+              startingCapitalUsableEnvelope:
+                usableCapital,
+              finalUsedCapital: used,
+              finalFreeCapital: residualFreeUsd,
+              finalDistinctLines:
+                picks.length,
+              finalPositionCount:
+                picks.length,
+              stoppedBecause: stoppedBecauseTrace,
+              cycleTrace: [...traceAccum.cycleRows],
+              selectedTrace: [...traceAccum.selectedRows],
+              rejectionTrace: [...traceAccum.rejectionRows],
+              residualAnalysis: {
+                freeCapital:
+                  residualFreeUsd,
+                nextBestCandidates: nextBestCandidatesResidual,
+                cheapestEligibleCandidate: cheapestEligibleFailCandidate,
+                couldAddAnyCandidateWithResidual:
+                  couldAddStrictResidual || couldAddSoftResidualOnly,
+                couldStrictFitResidualAudit:
+                  !!couldAddStrictResidual,
+                couldSoftContractCapFitResidualAudit:
+                  !!couldAddSoftResidualOnly,
+                smallestContractCollateralUsdInFilteredPool:
+                  smallestPoolCollateralUsd,
+                alternateOrderingKnapsackNotSimulatedNoteFr:
+                  "Aucune optimisation exhaustive sac-à-dos ou permutation d’ordo simulée en Phase 2A ; consulter allocationTrace.cycleTrace et blockerSummaryMerged.",
+              },
+              leftoverDensityPassTrace: {
+                enabledGlobal: leftoverDensityGlobalEnabledFlag,
+                enabledForBucket: !!leftoverV2EligibleMode,
+                safeBucketLeftoverExplicitlyDisabledPolicy: !!conservativeLeftoverIsPolicyOff,
+                attempted: leftoverDensityLoopEnteredTrace,
+                adds:
+                  leftoverV2Adds,
+                reasonNoAdd:
+                  leftoverV2Adds === 0
+                    ? finalizeLeftoverReasonNoAdds()
+                    : `n_a_positive_add_counter_${leftoverV2Adds}_see_density_sweep_iterations`,
+                leftoverMinPctOfUsable:
+                  optimizerV2.leftoverMinPctOfUsable ?? null,
+                leftoverMinAbsoluteUsd:
+                  optimizerV2.leftoverMinAbsoluteUsd ?? null,
+                crumbThresholdUsdSnapshot:
+                  leftoverDensityCrumbUsdTrace,
+                minEligibleContractUsdSnapshotPrePass:
+                  leftoverDensityMinContractUsdTrace,
+                candidatesConsidered: leftoverDensityIterationsRanTrace,
+                breakReasonDetailed:
+                  leftoverDensityPassBreakReasonTrace,
+                candidatesRejected: [...traceAccum.leftoverRejectSamples],
+                instrumentationNoteSafeLeftoverDefaultsFr:
+                  mode.id === "conservative"
+                    ? optimizerV2.safeLeftoverDensityPassEnabled !== true
+                      ? "SAFE : passe leftover désactivée par défaut tant que safeLeftoverDensityPassEnabled=false (voir wheelCapitalComboOptimizerV2Flags / localStorage)."
+                      : "SAFE : passe leftover activée côté config — si adds=0, utiliser reasonNoAdd + breakReasonDetailed."
+                    : "Balanced/aggressive suivent leftoverDensityPassEnabled globale sans clé SAFE additionnelle.",
+              },
+              traceTruncationSignalsV1: {
+                cycleRowCapConfigured: CYCLE_ROWS_CAP,
+                rejectionRowCapConfigured: REJECTION_ROWS_CAP,
+                cycleRowsLogged: traceAccum.cycleRows.length,
+                rejectionRowsLogged: traceAccum.rejectionRows.length,
+                maybeTruncatedCycles: traceAccum.cycleRows.length >= CYCLE_ROWS_CAP,
+                maybeTruncatedRejections: traceAccum.rejectionRows.length >= REJECTION_ROWS_CAP,
+              },
+            }
+          : null;
+
+      const alternativeCompositionSimV1 = buildAlternativeCompositionSimV1({
+        bucketLabel: mode.label,
+        modeId: mode.id,
+        scoredPool,
+        modeAlloc,
+        usableCapital,
+        grossCapital: capital,
+        maxPositionsRequested: maxPositions,
+        effectiveMaxLines: maxPositionLines,
+        minTargetPositions,
+        baselinePicks: picks,
+        optimizerV2,
+      });
+
       capDiagnosticsV2 = {
         engineVersion: "capital-combo-v2.1-dashboard",
         flagsSnapshot: { ...optimizerV2 },
         fillEfficiencyPct: usedPct,
         rejectionTotalsAcrossCycles: Object.fromEntries([...rejectionTotals.entries()].sort()),
-        blockerSummaryMerged: summarizeBlockerHits(rejectionTotals, residualDiagnosticRows),
+        blockerSummaryMerged: mergedBlockers,
         nextBestResiduals: residualDiagnosticRows.slice(0, 22),
         approxCollateralBlockedUsdByReason: approxCollateralStrandedUsd,
         potentialPremiumStrandedUsd,
@@ -1712,19 +2354,63 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           premiumBaselineUsd: premiumBeforeDensityPass,
         },
         replacementHints: replacementClusterHints,
+        institutionalYieldV3: balancedInstitutionalV3Audit,
+        balancedEffectiveMaxPositions: mode.id === "balanced" ? maxPositionLines : null,
+        dominantFillBlocker: mergedBlockers[0] ?? null,
+        lostPremiumNoteFr:
+          potentialPremiumStrandedUsd > 10
+            ? `Prime théorique encore bloquée par caps (est.) ≈ ${potentialPremiumStrandedUsd.toFixed(0)}$ — voir replacementHints / nextBestResiduals.`
+            : null,
+        balancedPerPickInsights:
+          mode.id === "balanced" && balancedInstitutionalV3Audit
+            ? picks.map((p) => {
+                const c = Number(p.capitalUsed ?? 0);
+                const pr = Number(p.premiumCollected ?? 0);
+                return {
+                  ticker: p.ticker,
+                  phase: p.comboAllocationPhase ?? null,
+                  selectionSummary: p.selectionSummary ?? null,
+                  whyKeptFr: p.selectionReason ?? null,
+                  premiumUsdPer1000Collateral: c > 0 ? (pr / c) * 1000 : null,
+                  shareOfDeployablePct: usableCapital > 0 ? (c / usableCapital) * 100 : null,
+                  weeklyYieldPct: p.weeklyReturn,
+                  popPct: p.popEstimate,
+                };
+              })
+            : null,
+        allocationTraceV1,
+        alternativeCompositionSimV1,
       };
     }
 
+    const picksOut =
+      mode.id === "balanced" && balancedInstitutionalV3Audit
+        ? picks.map((p) => {
+            const c = Number(p.capitalUsed ?? 0);
+            const pr = Number(p.premiumCollected ?? 0);
+            return {
+              ...p,
+              balancedInstitutionalV3Pick: {
+                whyInBookFr: p.selectionReason ?? null,
+                allocPhase: p.comboAllocationPhase ?? null,
+                premiumUsdPer1000Collateral: c > 0 ? (pr / c) * 1000 : null,
+                deployableCapitalSharePct: usableCapital > 0 ? (c / usableCapital) * 100 : null,
+              },
+            };
+          })
+        : picks;
+
     return {
       label: mode.label,
-      positions: picks.length,
+      positions: picksOut.length,
       totalCapital: used,
       capitalPct: capital > 0 ? (used / capital) * 100 : 0,
       capitalTargetReached: usedPct >= targetMinPct,
       capitalShortfallReason,
       avgWeeklyReturn: avgWeekly,
       freeCapital: capital - used,
-      picks,
+      picks: picksOut,
+      balancedInstitutionalV3Audit: mode.id === "balanced" ? balancedInstitutionalV3Audit : null,
       avgQualityScore: picks.length > 0 ? qualityStats.totalQualityScore / picks.length : null,
       qualityAvoidCount: qualityStats.avoidCount,
       qualitySpeculativeCount: qualityStats.speculativeCount,

@@ -8,6 +8,7 @@ import {
   weeklyYieldDecimal,
 } from "../calculations/wheelMetrics.js";
 import { round, roundMoney, toNumber } from "../utils/number.js";
+import { buildSupportDiagnosticsV1 } from "./supportDiagnosticsV1.js";
 
 const STRIKE_DEBUG_SYMBOLS = new Set(["HOOD", "UBER", "SOFI", "U", "TQQQ"]);
 const MOVE_DEBUG_ENABLED = String(process.env.WHEEL_MOVE_DEBUG || "").trim() === "1";
@@ -711,6 +712,18 @@ export function createWheelScanner(marketService) {
       expectedMovePercent: spot > 0 && expectedMoveAbs > 0 ? (expectedMoveAbs / spot) * 100 : null,
     });
 
+    const supportDiagnosticsV1 = buildSupportDiagnosticsV1({
+      spot,
+      strike: safeStrike?.strike ?? null,
+      supportWide:
+        toNumber(supportResistance?.supportWide) || toNumber(supportResistance?.support) || null,
+      supportNear: toNumber(supportResistance?.supportNear) || null,
+      resistanceWide: toNumber(supportResistance?.resistance) || null,
+      resistanceNear: toNumber(supportResistance?.resistanceAboveSpot) || null,
+      currentSupportStatusUsedByScoring: supportStatus,
+      dteDays,
+    });
+
     return {
       symbol,
       ok: true,
@@ -778,6 +791,7 @@ export function createWheelScanner(marketService) {
         strikeVsResistancePct: strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
         supportStatus,
       },
+      supportDiagnosticsV1,
       diagnosticsV12,
       passesFilter,
       debug: {

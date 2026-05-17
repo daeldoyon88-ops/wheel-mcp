@@ -1483,6 +1483,10 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     strikeVsSupportPct: item.supportResistance?.strikeVsSupportPct ?? null,
     strikeVsResistancePct: item.supportResistance?.strikeVsResistancePct ?? null,
     supportStatus: item.supportResistance?.supportStatus ?? "unknown",
+    supportDiagnosticsV1:
+      item.supportDiagnosticsV1 && typeof item.supportDiagnosticsV1 === "object"
+        ? { ...item.supportDiagnosticsV1 }
+        : null,
     macd: "—",
     zone: "sous borne basse",
     verdict: item.hasEarnings ? "balanced" : "conservative",
@@ -3020,6 +3024,13 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     strikeVsSupportPct: yahooCandidate?.strikeVsSupportPct ?? null,
     strikeVsResistancePct: yahooCandidate?.strikeVsResistancePct ?? null,
     supportStatus: yahooCandidate?.supportStatus ?? "unknown",
+    supportDiagnosticsV1:
+      yahooCandidate?.supportDiagnosticsV1 && typeof yahooCandidate.supportDiagnosticsV1 === "object"
+        ? { ...yahooCandidate.supportDiagnosticsV1 }
+        : yahooCandidate?.raw?.supportDiagnosticsV1 &&
+            typeof yahooCandidate.raw.supportDiagnosticsV1 === "object"
+          ? { ...yahooCandidate.raw.supportDiagnosticsV1 }
+          : null,
     macd: yahooCandidate?.macd ?? "—",
     zone: "sous borne basse IBKR",
     verdict: yahooCandidate?.verdict ?? "conservative",

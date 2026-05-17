@@ -11,6 +11,10 @@ import { round, roundMoney, toNumber } from "../utils/number.js";
 import { buildSupportDiagnosticsV1 } from "./supportDiagnosticsV1.js";
 import { buildSupportResistanceLevelsV3 } from "./supportResistanceLevelsV3.js";
 import { SUPPORT_SCORING_V2_ENABLED, buildSupportScoringV2 } from "./supportScoringV2.js";
+import {
+  buildScanFunnelDiagnosticsV1,
+  isYahooFunnelDiagnosticsV1Enabled,
+} from "../diagnostics/yahooFunnelDiagnosticsV1.js";
 
 const STRIKE_DEBUG_SYMBOLS = new Set(["HOOD", "UBER", "SOFI", "U", "TQQQ"]);
 const MOVE_DEBUG_ENABLED = String(process.env.WHEEL_MOVE_DEBUG || "").trim() === "1";
@@ -896,6 +900,11 @@ export function createWheelScanner(marketService) {
     };
     const BATCH_SIZE = 8;
 
+    const funnelDiag = isYahooFunnelDiagnosticsV1Enabled();
+    /** @type {Map<string, Record<string, unknown>> | null} */
+    const scanBySymbol = funnelDiag ? new Map() : null;
+    let completedScanCount = 0;
+
     function tagLiquiditySource(item, liquiditySource, noYahooLiquidity) {
       const diagnosticsBase =
         item?.diagnosticsV12 && typeof item.diagnosticsV12 === "object" ? item.diagnosticsV12 : {};
@@ -931,8 +940,10 @@ export function createWheelScanner(marketService) {
       for (let j = 0; j < batchResults.length; j += 1) {
         const result = batchResults[j];
         const symbol = batch[j];
+        completedScanCount += 1;
         if (result.status === "fulfilled") {
           const item = result.value;
+          if (scanBySymbol) scanBySymbol.set(symbol, item);
           if (!item?.ok) {
             const reason = item?.reason || "not_ok";
             countReason(reason);
@@ -997,6 +1008,18 @@ export function createWheelScanner(marketService) {
     const challengerCount = sort === "quality" && topN >= 30 ? 10 : 0;
     const returnLimit = topN + challengerCount;
 
+    const scanFunnelDiagnosticsV1 = funnelDiag
+      ? buildScanFunnelDiagnosticsV1({
+          cleanedTickers,
+          shortlistFullSorted: shortlist,
+          rejected,
+          errors,
+          scanBySymbol: scanBySymbol ?? new Map(),
+          returnLimit,
+          completedScanCount,
+        })
+      : null;
+
     return {
       status: 200,
       payload: {
@@ -1012,6 +1035,7 @@ export function createWheelScanner(marketService) {
         errors,
         rejectionReasonCounts,
         stageRejectCounts,
+        ...(scanFunnelDiagnosticsV1 ? { scanFunnelDiagnosticsV1 } : {}),
       },
     };
   }

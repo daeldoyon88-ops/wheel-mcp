@@ -30,7 +30,8 @@
       "Bash(python3 -c ' *)",
       "Bash(python -c ' *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\melan\\\\Desktop\\\\wheel-mcp-remote\" -Recurse -File -Include \"*.js\", \"*.jsx\", \"*.py\", \"*.sql\", \"*.db\")",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(grep -v \"//\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data"

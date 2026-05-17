@@ -10,3 +10,9 @@ export const MAX_ABSOLUTE_SPREAD = 0.2;
 export const LIQUIDITY_MAX_SPREAD_PCT = 12;
 export const TRADABLE_MAX_SPREAD_PCT = 15;
 export const PREMIUM_TOLERANCE = 0.01;
+
+/**
+ * Watchlist Yahoo : seuil % OTM minimal pour la sonde `evaluateOtmPutLiquidityProbe` (strike ≤ spot×(1−pct/100)).
+ * Surcharge serveur : variable d'environnement `LIQUIDITY_OTM_PROBE_PCT` (0–45). Le corps JSON `/universe/build` peut aussi envoyer `liquidityOtmProbePct`.
+ */
+export const DEFAULT_LIQUIDITY_OTM_PROBE_PCT = 5;

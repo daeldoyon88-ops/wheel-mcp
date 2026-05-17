@@ -2,10 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { MAX_SCAN_TICKERS } from "../config/constants.js";
+import { DEFAULT_LIQUIDITY_OTM_PROBE_PCT, MAX_SCAN_TICKERS } from "../config/constants.js";
 import { toNumber } from "../utils/number.js";
 import {
   evaluateAtmPutLiquidity,
+  evaluateOtmPutLiquidityProbe,
   hasWeeklyStyleExpirations,
   passesMaxContractCapital,
   passesMaxPrice,
@@ -21,11 +22,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * @typedef {Object} BuildWatchlistCriteria
- * @property {100|125|150|200} maxPrice
+ * @property {100|125|150|200|250} maxPrice
  * @property {number} [minPrice] défaut côté API : 10 ; <= 0 désactive le plancher
  * @property {number} minVolume
  * @property {boolean} requireLiquidOptions
  * @property {boolean} requireWeeklyOptions
+ * @property {number} [liquidityOtmProbePct] si requireLiquidOptions : exige en plus un put OTM liquide (0 = désactive la sonde ; défaut = DEFAULT_LIQUIDITY_OTM_PROBE_PCT côté serveur, surcharge env `LIQUIDITY_OTM_PROBE_PCT`)
  * @property {number} [maxContractCapital] si défini et > 0 : exige spot * 100 <= maxContractCapital
  * @property {number} [minMarketCapB] si défini et > 0 : rejette seulement si marketCapB connue < seuil (cache local)
  * @property {UniverseCategory[]} categories
@@ -180,6 +182,7 @@ function tierMicroBias(symbol) {
  *   hasWeeklyStyle: boolean,
  *   optionLiquidityOk?: boolean,
  *   atmSpreadPct?: number | null,
+ *   otmProbeOk?: boolean,
  * }} ctx
  */
 export function computeWatchlistCandidateScore(row, ctx) {
@@ -262,6 +265,11 @@ export function computeWatchlistCandidateScore(row, ctx) {
     } else if (Number.isFinite(sp) && sp <= 0.3) {
       score += 3;
     }
+  }
+
+  if (ctx.otmProbeOk === true) {
+    score += 4;
+    reasons.push("sonde put OTM liquide");
   }
 
   if (TIER_3_SET.has(sym)) {
@@ -415,6 +423,7 @@ export function createWatchlistBuilder(deps) {
         let hasWeeklyStyle = false;
         let atmSpreadPct = null;
         let optionLiquidityOk = false;
+        let otmProbeOk = false;
 
         if (criteria.requireWeeklyOptions) {
           const exp = await getExpirationsCached(symbol);
@@ -452,6 +461,25 @@ export function createWatchlistBuilder(deps) {
           }
           optionLiquidityOk = true;
           atmSpreadPct = liq.detail?.liquidity?.spreadPct ?? null;
+
+          const probeRaw = criteria.liquidityOtmProbePct;
+          const probePct =
+            typeof probeRaw === "number" && Number.isFinite(probeRaw)
+              ? probeRaw
+              : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+          if (probePct > 0) {
+            const otmProbe = evaluateOtmPutLiquidityProbe(chain, spotForChain, probePct);
+            if (!otmProbe.ok) {
+              rejected.push({
+                symbol,
+                category,
+                reason: "liquid_options_otm_probe_failed",
+                detail: { minOtmPct: probePct, ...otmProbe },
+              });
+              return;
+            }
+            otmProbeOk = otmProbe.detail?.skipped !== true;
+          }
         }
 
         const volUsed = volCheck.detail?.volumeUsed ?? criteria.minVolume;
@@ -464,6 +492,7 @@ export function createWatchlistBuilder(deps) {
           hasWeeklyStyle,
           optionLiquidityOk,
           atmSpreadPct,
+          otmProbeOk,
         });
         const tierBias = tierMicroBias(symbol);
         const tierLabel = tierLabelFromIndex(getPriorityTier(symbol));
@@ -521,6 +550,13 @@ export function createWatchlistBuilder(deps) {
       sortScore: r.sortScore,
     }));
 
+    const probeForStats =
+      criteria.requireLiquidOptions !== true
+        ? null
+        : typeof criteria.liquidityOtmProbePct === "number" && Number.isFinite(criteria.liquidityOtmProbePct)
+          ? criteria.liquidityOtmProbePct
+          : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+
     const stats = {
       sourceCount: source.length,
       keptCount: watchlist.length,
@@ -540,6 +576,12 @@ export function createWatchlistBuilder(deps) {
       fundamentalsCachePath: fundamentalsCachePathAbs(),
       fundamentalsCacheLoaded: fundamentalsBySymbol.size,
       marketCapDiagnostics: marketCapDiag,
+      /** % OTM utilisé pour la sonde Yahoo (null si requireLiquidOptions false). 0 = sonde désactivée. */
+      liquidityOtmProbePctApplied: probeForStats,
+      liquidityOtmProbeActive:
+        criteria.requireLiquidOptions === true &&
+        typeof probeForStats === "number" &&
+        probeForStats > 0,
     };
 
     return {

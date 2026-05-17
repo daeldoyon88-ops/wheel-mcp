@@ -8,7 +8,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { DEFAULT_BACKEND_PORT } from "./app/config/constants.js";
+import { DEFAULT_BACKEND_PORT, DEFAULT_LIQUIDITY_OTM_PROBE_PCT } from "./app/config/constants.js";
 import { createMarketDataProvider } from "./app/data_providers/createMarketDataProvider.js";
 import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
@@ -23,6 +23,17 @@ import createCapitalCombinationRoutes from "./app/capital/capitalCombinationRout
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
+
+/** Défaut Zod pour `liquidityOtmProbePct` : constante projet, surchargeable par `LIQUIDITY_OTM_PROBE_PCT`. */
+function resolvedDefaultLiquidityOtmProbePct() {
+  const raw = process.env.LIQUIDITY_OTM_PROBE_PCT;
+  if (raw == null || String(raw).trim() === "") return DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+  const n = Number(String(raw).trim().replace(",", "."));
+  if (!Number.isFinite(n)) return DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+  return Math.min(45, Math.max(0, n));
+}
+
+const defaultLiquidityOtmProbePct = resolvedDefaultLiquidityOtmProbePct();
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
@@ -326,13 +337,21 @@ function resetScanMetricsState() {
 }
 
 const buildWatchlistBodySchema = z.object({
-  maxPrice: z.union([z.literal(100), z.literal(125), z.literal(150), z.literal(200)]),
+  maxPrice: z.union([
+    z.literal(100),
+    z.literal(125),
+    z.literal(150),
+    z.literal(200),
+    z.literal(250),
+  ]),
   minPrice: z.number().min(0).max(1000).optional().default(10),
   minVolume: z.number().positive(),
   maxContractCapital: z.number().positive().optional(),
   minMarketCapB: z.number().min(0).max(1_000_000).optional(),
   requireLiquidOptions: z.boolean(),
   requireWeeklyOptions: z.boolean(),
+  /** Sonde optionnelle : put OTM (strike ≤ spot×(1−pct/100)) doit être liquide ; 0 = désactivé. Défaut : constante projet ou env LIQUIDITY_OTM_PROBE_PCT. */
+  liquidityOtmProbePct: z.number().min(0).max(45).optional().default(defaultLiquidityOtmProbePct),
   categories: z.array(z.enum(["core", "growth", "high_premium", "etf", "weekly"])).min(1),
   limit: z.number().int().positive().max(2000).optional(),
 });
@@ -903,6 +922,199 @@ function buildIbkrTickerMetricRow(row) {
     approxIbkrCalls,
     approxCalls: approxIbkrCalls,
     totalApproxCalls: approxIbkrCalls,
+  };
+}
+
+/** Observabilité seulement : enrichit les rejets IBKR Shadow (pas de logique métier). */
+function roundFiniteObservation(value, decimals = 6) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return +n.toFixed(decimals);
+}
+
+function ibkrShadowPutOtmPctFromUnderlying(underlying, strike) {
+  const u = numberOrNull(underlying);
+  const k = numberOrNull(strike);
+  if (u == null || k == null || u <= 0) return null;
+  return roundFiniteObservation(((u - k) / u) * 100, 4);
+}
+
+function yieldPctFromPythonPremiumYieldFraction(premiumYieldFrac) {
+  const f = numberOrNull(premiumYieldFrac);
+  if (f == null) return null;
+  return roundFiniteObservation(f * 100, 6);
+}
+
+function summarizeIbkrShadowPutForensicThin(p) {
+  if (!p || typeof p !== "object") return null;
+  const tgt = numberOrNull(p.targetPremium);
+  const pu = numberOrNull(p.primeUsed);
+  return {
+    strike: numberOrNull(p.strike),
+    bid: roundFiniteObservation(p.bid),
+    ask: roundFiniteObservation(p.ask),
+    mid: roundFiniteObservation(p.mid),
+    primeUsed: roundFiniteObservation(p.primeUsed),
+    spreadPct: roundFiniteObservation(p.spreadPct),
+    premiumYieldPct: yieldPctFromPythonPremiumYieldFraction(p.premiumYield),
+    passesMinPremium: p.passesMinPremium === true ? true : p.passesMinPremium === false ? false : null,
+    isBelowLowerBound: p.isBelowLowerBound === true ? true : p.isBelowLowerBound === false ? false : null,
+    distanceBelowLowerBound: roundFiniteObservation(p.distanceBelowLowerBound),
+    premiumVsTarget: roundFiniteObservation(p.premiumVsTarget),
+    premiumCoveragePct:
+      tgt != null && tgt > 0 && pu != null ? roundFiniteObservation((pu / tgt) * 100, 4) : null,
+    status: p.status ?? null,
+    reason: p.reason ?? null,
+  };
+}
+
+function pickBestIbkrShadowSafeNearMissPut(row) {
+  const puts = Array.isArray(row?.putCandidates) ? row.putCandidates : [];
+  const aggStrike =
+    row?.aggressiveStrike && typeof row.aggressiveStrike === "object"
+      ? numberOrNull(row.aggressiveStrike.strike)
+      : null;
+  const pool = [];
+  for (const p of puts) {
+    if (!p || typeof p !== "object") continue;
+    if (p.isBelowLowerBound !== true) continue;
+    const k = numberOrNull(p.strike);
+    if (k == null) continue;
+    if (aggStrike != null && k >= aggStrike) continue;
+    if (p.bid == null || p.ask == null || p.mid == null || !(Number(p.mid) > 0)) continue;
+    pool.push(p);
+  }
+  if (!pool.length) {
+    const relaxed = [];
+    for (const p of puts) {
+      if (!p || typeof p !== "object") continue;
+      if (p.isBelowLowerBound !== true) continue;
+      const k = numberOrNull(p.strike);
+      if (k == null) continue;
+      if (p.bid == null || p.ask == null || p.mid == null || !(Number(p.mid) > 0)) continue;
+      relaxed.push(p);
+    }
+    pool.push(...relaxed);
+  }
+  if (!pool.length) return null;
+  let best = pool[0];
+  let bestPu = numberOrNull(best.primeUsed);
+  for (let i = 1; i < pool.length; i++) {
+    const p = pool[i];
+    const pr = numberOrNull(p.primeUsed);
+    if (pr == null) continue;
+    if (bestPu == null || pr > bestPu) {
+      best = p;
+      bestPu = pr;
+      continue;
+    }
+    if (bestPu != null && pr === bestPu) {
+      const ks = numberOrNull(best.strike) ?? -Infinity;
+      const kn = numberOrNull(p.strike) ?? -Infinity;
+      if (kn > ks) best = p;
+    }
+  }
+  return best;
+}
+
+function summarizeAggressiveStrikeForensics(aggObj, underlying) {
+  const empty = {
+    aggressiveBid: null,
+    aggressiveAsk: null,
+    aggressiveMid: null,
+    aggressivePrimeUsed: null,
+    aggressiveSpreadPct: null,
+    aggressiveYieldPct: null,
+    aggressiveOtmPct: null,
+    aggressiveDistanceFromLowerBound: null,
+  };
+  if (!aggObj || typeof aggObj !== "object") return empty;
+  const strikeNum = numberOrNull(aggObj.strike);
+  return {
+    aggressiveBid: roundFiniteObservation(aggObj.bid),
+    aggressiveAsk: roundFiniteObservation(aggObj.ask),
+    aggressiveMid: roundFiniteObservation(aggObj.mid),
+    aggressivePrimeUsed: roundFiniteObservation(aggObj.primeUsed),
+    aggressiveSpreadPct: roundFiniteObservation(aggObj.spreadPct),
+    aggressiveYieldPct: yieldPctFromPythonPremiumYieldFraction(aggObj.premiumYield),
+    aggressiveOtmPct: ibkrShadowPutOtmPctFromUnderlying(underlying, strikeNum),
+    aggressiveDistanceFromLowerBound: roundFiniteObservation(aggObj.distanceBelowLowerBound),
+  };
+}
+
+function summarizeBestSafeNearMissForensics(best, underlying, targetPremiumRaw) {
+  const empty = {
+    bestSafeStrike: null,
+    bestSafeBid: null,
+    bestSafeAsk: null,
+    bestSafeMid: null,
+    bestSafePrimeUsed: null,
+    bestSafeSpreadPct: null,
+    bestSafeYieldPct: null,
+    bestSafeOtmPct: null,
+    bestSafeDistanceFromLowerBound: null,
+    premiumDeficitDollar: null,
+    premiumDeficitPct: null,
+    premiumCoveragePct: null,
+  };
+  if (!best || typeof best !== "object") return empty;
+  const strikeNum = numberOrNull(best.strike);
+  const prime = roundFiniteObservation(best.primeUsed);
+  const tgt = numberOrNull(targetPremiumRaw);
+  let premiumDeficitDollar = null;
+  let premiumDeficitPct = null;
+  let premiumCoveragePct = null;
+  if (tgt != null && prime != null) {
+    premiumDeficitDollar = roundFiniteObservation(tgt - prime, 6);
+    if (tgt > 0) {
+      premiumDeficitPct = roundFiniteObservation(((tgt - prime) / tgt) * 100, 4);
+      premiumCoveragePct = roundFiniteObservation((prime / tgt) * 100, 4);
+    }
+  }
+  return {
+    bestSafeStrike: strikeNum,
+    bestSafeBid: roundFiniteObservation(best.bid),
+    bestSafeAsk: roundFiniteObservation(best.ask),
+    bestSafeMid: roundFiniteObservation(best.mid),
+    bestSafePrimeUsed: prime,
+    bestSafeSpreadPct: roundFiniteObservation(best.spreadPct),
+    bestSafeYieldPct: yieldPctFromPythonPremiumYieldFraction(best.premiumYield),
+    bestSafeOtmPct: ibkrShadowPutOtmPctFromUnderlying(underlying, strikeNum),
+    bestSafeDistanceFromLowerBound: roundFiniteObservation(best.distanceBelowLowerBound),
+    premiumDeficitDollar,
+    premiumDeficitPct,
+    premiumCoveragePct,
+  };
+}
+
+function buildTopPutCandidatesForensicSummary(row, limit = 5) {
+  const puts = Array.isArray(row?.putCandidates) ? row.putCandidates : [];
+  const ranked = [...puts].filter((p) => numberOrNull(p?.primeUsed) != null);
+  ranked.sort((a, b) => numberOrNull(b.primeUsed) - numberOrNull(a.primeUsed));
+  const out = [];
+  for (const p of ranked.slice(0, limit)) {
+    const s = summarizeIbkrShadowPutForensicThin(p);
+    if (s) out.push(s);
+  }
+  return out;
+}
+
+function buildIbkrShadowRejectedForensics(row, rejectionReasonCode) {
+  const underlyingRaw = row?.underlyingPrice;
+  const targetRaw = row?.targetPremium;
+  const bestNear = pickBestIbkrShadowSafeNearMissPut(row);
+  const aggObj =
+    row?.aggressiveStrike && typeof row.aggressiveStrike === "object" ? row.aggressiveStrike : null;
+  return {
+    rejectionReason: rejectionReasonCode ?? null,
+    underlyingPrice: roundFiniteObservation(row?.underlyingPrice, 6),
+    lowerBound: roundFiniteObservation(row?.lowerBound, 6),
+    targetPremium: roundFiniteObservation(row?.targetPremium, 6),
+    ...summarizeAggressiveStrikeForensics(aggObj, underlyingRaw),
+    ...summarizeBestSafeNearMissForensics(bestNear, underlyingRaw, targetRaw),
+    putCandidatesCount: Array.isArray(row?.putCandidates) ? row.putCandidates.length : 0,
+    topPutCandidatesSummary: buildTopPutCandidatesForensicSummary(row, 5),
+    probabilityOfProfit: null,
   };
 }
 
@@ -1557,6 +1769,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
           aggressiveStrike: row?.aggressiveStrike ?? null,
           targetPremium: row?.targetPremium ?? null,
           error: row?.error ?? null,
+          ...buildIbkrShadowRejectedForensics(row, reason),
         });
         if (row?.ok !== true) errors.push({ symbol: row?.symbol ?? null, error: reason });
         if (devScanEnabled && row?.ibkrDevDisplay === true) {

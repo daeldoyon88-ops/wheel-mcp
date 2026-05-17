@@ -6,7 +6,7 @@ const TOP_N = Number(process.env.POP_CAPTURE_TOP_N || 57);
 const SORT = process.env.POP_CAPTURE_SORT || "score";
 
 const DEFAULT_BUILD_WATCHLIST_BODY = {
-  maxPrice: 125,
+  maxPrice: 200,
   minVolume: 500000,
   requireLiquidOptions: false,
   requireWeeklyOptions: true,

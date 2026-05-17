@@ -197,3 +197,51 @@ export function evaluateAtmPutLiquidity(chain, spot) {
     detail: { strike: toNumber(best.strike), liquidity: liq },
   };
 }
+
+/**
+ * Sonde wheel : au moins un put clairement OTM (strike ≤ spot × (1 − minOtmPct/100))
+ * avec carnet bid/ask réel et contrôles {@link evaluateLiquidity}.
+ * Réduit les faux positifs où seul le put ATM semble « passable » mais les ailes / zone safe sont mortes (ETF, low-price, chaînes fines).
+ *
+ * @param {{ puts?: unknown[], currentPrice?: unknown }} chain
+ * @param {number} spot
+ * @param {number} minOtmPct ex. 5 → strikes ≤ 95 % du spot
+ * @returns {{ ok: true, detail?: object } | { ok: false, reason: string, detail?: object }}
+ */
+export function evaluateOtmPutLiquidityProbe(chain, spot, minOtmPct) {
+  const puts = Array.isArray(chain?.puts) ? chain.puts : [];
+  const s = toNumber(spot);
+  const pct = toNumber(minOtmPct);
+
+  if (!(s > 0)) return { ok: false, reason: "spot_unavailable" };
+  if (!(pct > 0)) return { ok: true, detail: { skipped: true, minOtmPct: pct } };
+
+  const thresholdStrike = s * (1 - pct / 100);
+
+  /** Plus proche du spot tout en restant ≤ seuil OTM (put le moins lointain dans la zone exigée). */
+  const candidates = puts
+    .map((row) => ({ row, strike: toNumber(row?.strike) }))
+    .filter((x) => x.strike > 0 && x.strike <= thresholdStrike)
+    .sort((a, b) => b.strike - a.strike);
+
+  for (const { row, strike } of candidates) {
+    const liq = evaluateLiquidity(row);
+    if (liq?.isLiquid) {
+      const otmPct = ((s - strike) / s) * 100;
+      return {
+        ok: true,
+        detail: { strike, otmPct, thresholdStrike, minOtmPct: pct, liquidity: liq },
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    reason: "no_liquid_otm_put",
+    detail: {
+      minOtmPct: pct,
+      thresholdStrike,
+      candidatesConsidered: candidates.length,
+    },
+  };
+}

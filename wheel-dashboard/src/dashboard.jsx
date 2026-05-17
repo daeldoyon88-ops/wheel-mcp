@@ -49,17 +49,25 @@ const FALLBACK_TICKERS = [
 
 /** Aligné sur ton backend (schema zod dans server.js) — à ajuster si tes critères changent. */
 const DEFAULT_BUILD_WATCHLIST_BODY = {
-  maxPrice: 125,
+  /** Plafond spot CSP : 200 couvre plus de noms institutionnels tout en restant sous beaucoup de caps 25,5k$/contrat. */
+  maxPrice: 200,
   minPrice: 10,
   minVolume: 1_000_000,
   maxContractCapital: 25_500,
   minMarketCapB: 5,
-  requireLiquidOptions: false,
+  /** true : vérifie bid/ask réel sur put ATM Yahoo + sonde OTM (liquidityOtmProbePct) — aligne le bassin sur l’exigence « prime conservatrice » IBKR. */
+  requireLiquidOptions: true,
   requireWeeklyOptions: true,
-  categories: ["weekly", "core", "growth"],
-  // Temporary Yahoo protection: scan first 100 symbols only
-  limit: 120,
+  /** % OTM minimal pour la sonde (défaut serveur 5 si omis). Mettre 0 pour désactiver uniquement la sonde OTM tout en gardant ATM. */
+  liquidityOtmProbePct: 5,
+  /** high_premium : bassin élargi ; etf volontairement absent par défaut (junk/leverage à activer au besoin). */
+  categories: ["weekly", "core", "growth", "high_premium"],
+  limit: 150,
 };
+
+/** Niveaux pour comparer la sonde OTM Yahoo sur la watchlist (si `requireLiquidOptions`). */
+const LIQUIDITY_OTM_PROBE_PCT_CHOICES = Object.freeze([0, 3, 4, 5, 6]);
+
 const LAST_GOOD_SCAN_KEY = "wheel.lastGoodScan.v1";
 const AUTO_REFRESH_SHORTLIST_ON_LOAD = false;
 
@@ -72,7 +80,7 @@ const alerts = [
   {
     type: "rule",
     title: "Watchlist backend",
-    body: "Le compteur Watchlist et le scan utilisent /universe/build avec la liste weekly TradingView quand le backend répond ; la liste statique sert de secours.",
+    body: "Le compteur Watchlist et le scan utilisent /universe/build (options liquides Yahoo : ATM + sonde OTM) avec la liste weekly TradingView quand le backend répond ; la liste statique sert de secours.",
   },
 ];
 
@@ -1372,6 +1380,24 @@ function topCountEntries(countsLike, limit = 10) {
     .map(([reason, count]) => ({ reason, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
+}
+
+function clampPct(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
+
+function ratioPct(part, total) {
+  const p = Number(part);
+  const t = Number(total);
+  if (!Number.isFinite(p) || !Number.isFinite(t) || t <= 0) return 0;
+  return clampPct((p / t) * 100);
+}
+
+function sumCountsByKeys(countsLike, keys = []) {
+  const counts = normalizeCountMap(countsLike);
+  return keys.reduce((sum, key) => sum + (Number(counts[key]) || 0), 0);
 }
 
 function normalizeYahooDiagnosticsForState(diagnostics, fallbackMeta = {}) {
@@ -5921,6 +5947,321 @@ function inferInstrumentType({ quoteType, category, sector, symbol }) {
   return "Stock";
 }
 
+/** Alignée sur mergeIbkrCallMetricsIntoState (server.js) — sommes en observabilité seulement. */
+const IBKR_SNAPSHOT_TOTAL_SUM_KEYS = [
+  "totalStockQualifyCalls",
+  "totalOptionQualifyCalls",
+  "totalOptionChainRequests",
+  "totalStockMarketDataRequests",
+  "totalOptionMarketDataRequests",
+  "totalExpectedMoveOptionRequests",
+  "totalPutCandidateOptionRequests",
+  "totalExpectedMoveContractsRequested",
+  "totalPutCandidateContractsRequested",
+  "totalCancelMarketDataCalls",
+  "totalMarketDataWaits",
+  "totalTimeouts",
+  "totalRawStrikesChecked",
+  "totalValidCallStrikesCount",
+  "totalValidPutStrikesCount",
+  "totalApproxIbkrCalls",
+  "totalApproxCalls",
+  "totalDurationMs",
+  "totalTickersObserved",
+  "totalOptionQualifyCacheHits",
+  "totalOptionMarketDataCacheHits",
+  "totalStockMarketDataCacheHits",
+  "totalOptionChainCacheHits",
+  "totalDuplicateOptionQualifyAvoided",
+  "totalDuplicateOptionMarketDataAvoided",
+];
+
+function incrementIbkrPayloadReasonCounts(target, source) {
+  if (!target || typeof target !== "object") return target;
+  if (!source || typeof source !== "object") return target;
+  for (const [k, v] of Object.entries(source)) {
+    const key = String(k || "").trim() || "unknown";
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
+    target[key] = (target[key] || 0) + n;
+  }
+  return target;
+}
+
+function extractIbkrPayloadRejectionReasonsSnapshot(payload) {
+  const top = payload?.rejectionReasons;
+  if (top && typeof top === "object" && Object.keys(top).length > 0) return top;
+  const inner = payload?.ibkrCallMetrics?.rejectionReasons;
+  if (inner && typeof inner === "object") return inner;
+  return {};
+}
+
+function mergeIbkrCallMetricSnapshotsAcrossPayloads(payloads) {
+  let sawMetrics = false;
+  const totals = {};
+  const bySymbol = {};
+  const twoPhaseAny = Array.isArray(payloads)
+    ? payloads.some((p) => p?.twoPhaseEnabled === true)
+    : false;
+
+  for (const p of payloads || []) {
+    const metrics = p?.ibkrCallMetrics;
+    if (!metrics || typeof metrics !== "object") continue;
+    sawMetrics = true;
+    const t = metrics.totals ?? {};
+    for (const key of IBKR_SNAPSHOT_TOTAL_SUM_KEYS) {
+      const n = Number(t[key]);
+      if (!Number.isFinite(n)) continue;
+      totals[key] = (totals[key] || 0) + n;
+    }
+    const bs = metrics.bySymbol ?? {};
+    for (const [rawSym, row] of Object.entries(bs)) {
+      const sym = String(rawSym || "").trim().toUpperCase();
+      if (!sym || !row || typeof row !== "object") continue;
+      const prev = bySymbol[sym];
+      bySymbol[sym] =
+        prev && typeof prev === "object" ? { ...prev, ...row } : { ...row };
+    }
+  }
+
+  const approxIb = Number(totals.totalApproxIbkrCalls);
+  if (
+    sawMetrics &&
+    !Number.isFinite(Number(totals.totalApproxCalls)) &&
+    Number.isFinite(approxIb)
+  ) {
+    totals.totalApproxCalls = approxIb;
+  }
+
+  const metricsOut = sawMetrics
+    ? { twoPhaseEnabled: twoPhaseAny, totals, bySymbol }
+    : null;
+  return { sawMetrics, twoPhaseAny, metricsOut };
+}
+
+function pickYahooIbkrTickerFromRow(row) {
+  const raw = row?.ticker ?? row?.symbol ?? "";
+  return String(raw || "").trim().toUpperCase();
+}
+
+function toIbkrRankLookupMap(rankMapRaw) {
+  if (rankMapRaw instanceof Map) return rankMapRaw;
+  const out = new Map();
+  if (!rankMapRaw || typeof rankMapRaw !== "object") return out;
+  for (const [k, v] of Object.entries(rankMapRaw)) {
+    const sym = String(k || "").trim().toUpperCase();
+    const n = Number(v);
+    if (!sym || !Number.isFinite(n)) continue;
+    out.set(sym, n);
+  }
+  return out;
+}
+
+function ibkrRejectedAggressiveStrikeForForensicExport(rej) {
+  const a = rej?.aggressiveStrike;
+  if (a && typeof a === "object" && Number.isFinite(Number(a.strike))) return Number(a.strike);
+  if (Number.isFinite(Number(a))) return Number(a);
+  return null;
+}
+
+/** Champs diagnostics IBKR rejets uniquement — restitués par server.js sans logique métier. */
+function pickIbkrRejectedObservabilityForForensicExport(rej) {
+  if (!rej || typeof rej !== "object") return {};
+  return {
+    rejectionReason: rej.rejectionReason ?? null,
+    underlyingPrice: rej.underlyingPrice ?? null,
+    lowerBound: rej.lowerBound ?? null,
+    targetPremium: rej.targetPremium ?? null,
+    aggressiveStrike: ibkrRejectedAggressiveStrikeForForensicExport(rej),
+    aggressiveBid: rej.aggressiveBid ?? null,
+    aggressiveAsk: rej.aggressiveAsk ?? null,
+    aggressiveMid: rej.aggressiveMid ?? null,
+    aggressivePrimeUsed: rej.aggressivePrimeUsed ?? null,
+    aggressiveSpreadPct: rej.aggressiveSpreadPct ?? null,
+    aggressiveYieldPct: rej.aggressiveYieldPct ?? null,
+    aggressiveOtmPct: rej.aggressiveOtmPct ?? null,
+    aggressiveDistanceFromLowerBound: rej.aggressiveDistanceFromLowerBound ?? null,
+    bestSafeStrike: rej.bestSafeStrike ?? null,
+    bestSafeBid: rej.bestSafeBid ?? null,
+    bestSafeAsk: rej.bestSafeAsk ?? null,
+    bestSafeMid: rej.bestSafeMid ?? null,
+    bestSafePrimeUsed: rej.bestSafePrimeUsed ?? null,
+    bestSafeSpreadPct: rej.bestSafeSpreadPct ?? null,
+    bestSafeYieldPct: rej.bestSafeYieldPct ?? null,
+    bestSafeOtmPct: rej.bestSafeOtmPct ?? null,
+    bestSafeDistanceFromLowerBound: rej.bestSafeDistanceFromLowerBound ?? null,
+    premiumDeficitDollar: rej.premiumDeficitDollar ?? null,
+    premiumDeficitPct: rej.premiumDeficitPct ?? null,
+    premiumCoveragePct: rej.premiumCoveragePct ?? null,
+    putCandidatesCount: rej.putCandidatesCount ?? null,
+    topPutCandidatesSummary: rej.topPutCandidatesSummary ?? null,
+    probabilityOfProfit: rej.probabilityOfProfit ?? null,
+  };
+}
+
+/**
+ * Rang Yahoo utilisé après scan auto (priorité carte diagnostics).
+ * @param {{ ibkrDirectResult: object|null, yahooReturnedCandidates?: unknown[], yahooRankForIbkrBySymbol?: Map|Record<string, number> }} opts
+ */
+function buildIbkrYahooIbkrForensicExportRows(opts) {
+  const result = opts?.ibkrDirectResult;
+  if (!result || result.ok !== true) return [];
+
+  const rankLookup = toIbkrRankLookupMap(opts?.yahooRankForIbkrBySymbol);
+
+  const testedOrder = [
+    ...(Array.isArray(result.testedSymbols)
+      ? result.testedSymbols
+      : []),
+  ]
+    .map((t) => String(t || "").trim().toUpperCase())
+    .filter(Boolean);
+  const testedSet = new Set(testedOrder);
+
+  const retainedSymbols = (
+    Array.isArray(result.shortlist) ? result.shortlist : []
+  )
+    .map((r) => String(r?.symbol || "").trim().toUpperCase())
+    .filter(Boolean);
+  const retainedSet = new Set(retainedSymbols);
+
+  const rejRows = Array.isArray(result.rejected) ? result.rejected : [];
+  const rejFirstBySym = new Map();
+  for (const r of rejRows) {
+    const sym = String(r?.symbol || "").trim().toUpperCase();
+    if (sym && !rejFirstBySym.has(sym)) rejFirstBySym.set(sym, r);
+  }
+
+  const poolFromYahoo = (opts?.yahooReturnedCandidates || [])
+    .map(pickYahooIbkrTickerFromRow)
+    .filter(Boolean);
+  const poolOrder = [...new Set([...poolFromYahoo, ...testedOrder, ...rejFirstBySym.keys()])];
+
+  /** @type {unknown[]} */
+  const outRows = [];
+  function yahooRankFor(sym) {
+    const n = rankLookup.get(sym);
+    return Number.isFinite(Number(n)) ? Number(n) : null;
+  }
+
+  for (const sym of poolOrder) {
+    const tested = testedSet.has(sym);
+    let disposition = "nonTested";
+    if (tested) {
+      if (retainedSet.has(sym)) disposition = "retained";
+      else if (rejFirstBySym.has(sym)) disposition = "rejected";
+      else disposition = "unknown";
+    }
+    const rej = rejFirstBySym.get(sym);
+    const retainedRow = (Array.isArray(result.shortlist) ? result.shortlist : []).find(
+      (x) => String(x?.symbol || "").trim().toUpperCase() === sym
+    );
+
+    /** @type {number|null|string} */
+    let durationMs = null;
+    if (rej) {
+      durationMs =
+        rej.durationMs ??
+        rej?.ibkrCallMetrics?.durationMs ??
+        null;
+    } else if (retainedRow) {
+      durationMs = retainedRow.durationMs ?? null;
+    }
+
+    const forensicObs =
+      disposition === "rejected" ? pickIbkrRejectedObservabilityForForensicExport(rej) : {};
+
+    outRows.push({
+      ticker: sym,
+      yahooRank: yahooRankFor(sym),
+      tested,
+      disposition,
+      reason:
+        disposition === "nonTested"
+          ? ""
+          : disposition === "retained"
+          ? "OK"
+          : String(rej?.reason ?? rej?.status ?? "").trim(),
+      rawError: disposition === "rejected" ? (rej?.error ?? null) : null,
+      durationMs,
+      ...forensicObs,
+    });
+  }
+  return outRows;
+}
+
+function escapeCsvForensicCell(value) {
+  if (value == null) return "";
+  const s = String(value);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function stringifyIbkrForensicRowsCsv(rows) {
+  const header = [
+    "ticker",
+    "yahooRank",
+    "disposition",
+    "reason",
+    "targetPremium",
+    "bestSafePrimeUsed",
+    "premiumCoveragePct",
+    "premiumDeficitDollar",
+    "bestSafeStrike",
+    "bestSafeSpreadPct",
+    "bestSafeOtmPct",
+    "bestSafeDistanceFromLowerBound",
+    "aggressiveStrike",
+    "aggressivePrimeUsed",
+    "aggressiveSpreadPct",
+    "lowerBound",
+    "underlyingPrice",
+    "durationMs",
+    "rawError",
+  ];
+  const lines = [header.join(",")];
+  for (const r of rows || []) {
+    lines.push(
+      [
+        escapeCsvForensicCell(r?.ticker),
+        escapeCsvForensicCell(r?.yahooRank),
+        escapeCsvForensicCell(r?.disposition),
+        escapeCsvForensicCell(r?.reason),
+        escapeCsvForensicCell(r?.targetPremium),
+        escapeCsvForensicCell(r?.bestSafePrimeUsed),
+        escapeCsvForensicCell(r?.premiumCoveragePct),
+        escapeCsvForensicCell(r?.premiumDeficitDollar),
+        escapeCsvForensicCell(r?.bestSafeStrike),
+        escapeCsvForensicCell(r?.bestSafeSpreadPct),
+        escapeCsvForensicCell(r?.bestSafeOtmPct),
+        escapeCsvForensicCell(r?.bestSafeDistanceFromLowerBound),
+        escapeCsvForensicCell(r?.aggressiveStrike),
+        escapeCsvForensicCell(r?.aggressivePrimeUsed),
+        escapeCsvForensicCell(r?.aggressiveSpreadPct),
+        escapeCsvForensicCell(r?.lowerBound),
+        escapeCsvForensicCell(r?.underlyingPrice),
+        escapeCsvForensicCell(r?.durationMs),
+        escapeCsvForensicCell(r?.rawError),
+      ].join(",")
+    );
+  }
+  return lines.join("\r\n");
+}
+
+function triggerDashboardFileDownload(contents, mime, filename) {
+  try {
+    const blob = new Blob([contents], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (_e) {
+    /* eslint no-empty -- fallback silencieux : diagnostic export */
+  }
+}
+
 function mergeIbkrProgressPayloads({
   baseExpiration,
   payloads,
@@ -5972,6 +6313,29 @@ function mergeIbkrProgressPayloads({
     }
   }
 
+  const rejectionReasons = {};
+  for (const p of payloads) {
+    incrementIbkrPayloadReasonCounts(
+      rejectionReasons,
+      extractIbkrPayloadRejectionReasonsSnapshot(p),
+    );
+  }
+
+  const { twoPhaseAny, metricsOut } = mergeIbkrCallMetricSnapshotsAcrossPayloads(payloads);
+  const twoPhaseEnabledRoot = Array.isArray(payloads)
+    ? payloads.some((p) => p?.twoPhaseEnabled === true)
+    : false;
+
+  /** Observabilité seulement — miroir fusion progressive des batches. */
+  const ibkrCallMetrics =
+    metricsOut != null
+      ? {
+          ...metricsOut,
+          twoPhaseEnabled: twoPhaseAny,
+          rejectionReasons: { ...rejectionReasons },
+        }
+      : null;
+
   const mergedScanTiming = hasTiming
     ? {
         totalSeconds: +(aggTotalMs / 1000).toFixed(1),
@@ -6001,6 +6365,10 @@ function mergeIbkrProgressPayloads({
     shortlistDev,
     warnings: [...new Set(warnings.filter(Boolean))],
     progressiveAutoIbkr: true,
+    twoPhaseEnabled: twoPhaseEnabledRoot,
+    rejectionReasons,
+    ibkrCallMetrics,
+    yahooReturnedPoolSize: poolSize,
     finalDisplayedTarget,
     totalKeptCollected: shortlist.length,
     retainedNotDisplayed: Math.max(0, shortlist.length - finalDisplayedTarget),
@@ -6010,6 +6378,7 @@ function mergeIbkrProgressPayloads({
     scanTiming: mergedScanTiming,
     durationMs: hasTiming ? Math.round(aggTotalMs) : null,
     ibkrDurationMs: hasTiming ? Math.round(aggIbkrMs) : null,
+    progressiveIbkrBatchCount: Array.isArray(payloads) ? payloads.length : 0,
   };
 }
 
@@ -6393,6 +6762,8 @@ function IbkrDirectScanPanel({
   yahooScanTiming,
   onRun,
   onRunTest,
+  yahooReturnedCandidates = [],
+  yahooRankForIbkrBySymbol,
 }) {
   const shortlist = Array.isArray(result?.shortlist) ? result.shortlist : [];
   const shortlistDev =
@@ -6421,6 +6792,77 @@ function IbkrDirectScanPanel({
     ? perfSummary.slowestTickers
     : [];
   const rawPayload = result ? JSON.stringify(result, null, 2) : "";
+
+  const rankLookup = useMemo(() => toIbkrRankLookupMap(yahooRankForIbkrBySymbol), [yahooRankForIbkrBySymbol]);
+
+  const forensicExportRows = useMemo(
+    () =>
+      buildIbkrYahooIbkrForensicExportRows({
+        ibkrDirectResult: result,
+        yahooReturnedCandidates,
+        yahooRankForIbkrBySymbol: rankLookup,
+      }),
+    [result, yahooReturnedCandidates, rankLookup],
+  );
+
+  const ibkrPanelYahooReturned = Number.isFinite(Number(result?.yahooReturnedPoolSize))
+    ? Number(result.yahooReturnedPoolSize)
+    : Array.isArray(yahooReturnedCandidates)
+    ? yahooReturnedCandidates.length
+    : 0;
+
+  const ibkrPanelTestedCount =
+    Array.isArray(result?.testedSymbols) && result.testedSymbols.length
+      ? result.testedSymbols.length
+      : Array.isArray(sentTickers)
+      ? sentTickers.length
+      : 0;
+
+  const ibkrPanelTotalRetained = Number.isFinite(Number(result?.totalKeptCollected))
+    ? Number(result.totalKeptCollected)
+    : shortlist.length;
+
+  const ibkrPanelNonTested = Number.isFinite(Number(result?.nonTestedCandidates))
+    ? Number(result.nonTestedCandidates)
+    : Math.max(0, ibkrPanelYahooReturned - ibkrPanelTestedCount);
+
+  const rejectionReasonAggPanelLines = useMemo(() => {
+    const rr = result?.rejectionReasons;
+    if (rr && typeof rr === "object" && Object.keys(rr).length) {
+      return Object.entries(rr)
+        .map(([reason, count]) => [String(reason || "").trim() || "unknown", Number(count)])
+        .filter(([, n]) => Number.isFinite(n) && n > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([reason, n]) => `${formatIbkrReason(reason)} (${n})`);
+    }
+    return aggregateIbkrRejectedReasons(rejected, 10).topLines;
+  }, [result?.rejectionReasons, rejected]);
+
+  const stampForensicFilename = () => new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+
+  const handleForensicExportJson = useCallback(() => {
+    const payloadObj = {
+      exportedAtIso: new Date().toISOString(),
+      rejectionReasonCounts: result?.rejectionReasons ?? null,
+      progressiveIbkrBatchCount: result?.progressiveIbkrBatchCount ?? null,
+      ibkrCallMetricsPresent: Boolean(result?.ibkrCallMetrics),
+      rows: forensicExportRows,
+    };
+    triggerDashboardFileDownload(
+      JSON.stringify(payloadObj, null, 2),
+      "application/json",
+      `ibkr-rejection-forensics-${stampForensicFilename()}.json`,
+    );
+  }, [forensicExportRows, result]);
+
+  const handleForensicExportCsv = useCallback(() => {
+    triggerDashboardFileDownload(
+      stringifyIbkrForensicRowsCsv(forensicExportRows),
+      "text/csv;charset=utf-8",
+      `ibkr-rejection-forensics-${stampForensicFilename()}.csv`,
+    );
+  }, [forensicExportRows]);
 
   return (
     <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
@@ -6596,6 +7038,48 @@ function IbkrDirectScanPanel({
                   tone="warn"
                 />
               )}
+            </div>
+
+            <div className="rounded-2xl border border-sky-100 bg-white p-4 text-sm text-slate-700">
+              <p className="font-semibold text-slate-900">Traçabilité Yahoo → IBKR (panneau)</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-4">
+                <Metric label="Yahoo Returned" value={String(ibkrPanelYahooReturned)} />
+                <Metric label="IBKR Sent / Tested" value={String(ibkrPanelTestedCount)} />
+                <Metric label="IBKR Retained" value={String(ibkrPanelTotalRetained)} tone="good" />
+                <Metric label="IBKR Rejected" value={String(rejected.length)} tone={rejected.length ? "warn" : "default"} />
+                <Metric label="IBKR Non Tested" value={String(ibkrPanelNonTested)} />
+                <Metric label="Fusion IBKR (batches)" value={String(result.progressiveIbkrBatchCount ?? 1)} />
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                <span className="font-semibold text-slate-800">Top IBKR rejection reasons:</span>{" "}
+                {rejectionReasonAggPanelLines.length
+                  ? rejectionReasonAggPanelLines.join(" · ")
+                  : "(aucune raison agrégée disponible pour ce résultat)"}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  className="rounded-xl"
+                  variant="outline"
+                  disabled={result?.ok !== true || forensicExportRows.length === 0}
+                  onClick={handleForensicExportJson}
+                >
+                  Export forensic JSON <Database className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-xl"
+                  variant="outline"
+                  disabled={result?.ok !== true || forensicExportRows.length === 0}
+                  onClick={handleForensicExportCsv}
+                >
+                  Export forensic CSV <Database className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+              <p className="mt-2 text-[11px] leading-5 text-slate-500">
+                CSV/JSON : une ligne par ticker du bassin Yahoo (quand disponible). Colonnes : ticker, yahooRank, tested,
+                disposition (retained | rejected | nonTested | unknown), reason, rawError, durationMs.
+              </p>
             </div>
 
             <ScanDiagBlock ibkrResult={result} yahooScanTiming={yahooScanTiming} />
@@ -8488,6 +8972,13 @@ export default function Dashboard() {
     const value = Number(raw);
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
+  const readStoredLiquidityOtmProbePct = (key, fallback) => {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null || raw === "") return fallback;
+    const value = Number(String(raw).trim().replace(",", "."));
+    if (!Number.isFinite(value) || value < 0 || value > 45) return fallback;
+    return LIQUIDITY_OTM_PROBE_PCT_CHOICES.includes(value) ? value : fallback;
+  };
   const readStoredAutoJournalMode = () => {
     const raw = String(window.localStorage.getItem("wheel.autoJournalPop") || "off").trim().toLowerCase();
     return raw === "10" || raw === "30" || raw === "50" ? raw : "off";
@@ -8541,7 +9032,7 @@ export default function Dashboard() {
   }, []);
 
   const expirationOptions = useMemo(() => futureExpirations(DEFAULT_EXPIRATIONS), []);
-  const [topN, setTopN] = useState(() => readStoredNumber("wheel.topYahooReturned", 30));
+  const [topN, setTopN] = useState(() => readStoredNumber("wheel.topYahooReturned", 55));
   const [capital, setCapital] = useState(25500);
   const [maxCapitalPct, setMaxCapitalPct] = useState(() =>
     readStoredNumber("wheel.maxCapitalPct", 100)
@@ -8556,6 +9047,12 @@ export default function Dashboard() {
   const [watchlistSource, setWatchlistSource] = useState("loading");
   const [watchlistStats, setWatchlistStats] = useState(null);
   const [watchlistBuildError, setWatchlistBuildError] = useState("");
+  const [watchlistOtmProbePct, setWatchlistOtmProbePct] = useState(() =>
+    readStoredLiquidityOtmProbePct(
+      "wheel.liquidityOtmProbePct",
+      DEFAULT_BUILD_WATCHLIST_BODY.liquidityOtmProbePct
+    )
+  );
 
   const [backendCandidates, setBackendCandidates] = useState(null);
   const [loadingScan, setLoadingScan] = useState(false);
@@ -8574,6 +9071,10 @@ export default function Dashboard() {
   });
   const [yahooReturnedCandidates, setYahooReturnedCandidates] = useState([]);
   const [yahooDiagnostics, setYahooDiagnostics] = useState(() => createEmptyYahooDiagnostics());
+  const [yahooSentToScanCount, setYahooSentToScanCount] = useState(0);
+  const [yahooScanErrorCount, setYahooScanErrorCount] = useState(0);
+  const [yahooRequestedTopN, setYahooRequestedTopN] = useState(0);
+  const [yahooChallengerCount, setYahooChallengerCount] = useState(0);
   /** Dernier /scan_shortlist : payload.devScanEnabled (absent du backend → reste false). */
   const [backendShortlistDevScan, setBackendShortlistDevScan] = useState(false);
   /** True seulement si la shortlist affichée vient du LAST_GOOD_SCAN_KEY après échec réseau/API. */
@@ -8598,7 +9099,7 @@ export default function Dashboard() {
   const [yahooScanTiming, setYahooScanTiming] = useState(null);
   const [autoIbkrDirectScan, setAutoIbkrDirectScan] = useState(true);
   const [ibkrAutoMaxTickers, setIbkrAutoMaxTickers] = useState(() =>
-    readStoredNumber("wheel.ibkrAuditDepth", 20)
+    readStoredNumber("wheel.ibkrAuditDepth", 50)
   );
   const [ibkrAutoClientIdStart] = useState("500");
   const [autoJournalPop, setAutoJournalPop] = useState(() => readStoredAutoJournalMode());
@@ -8656,6 +9157,10 @@ export default function Dashboard() {
     setYahooScanMeta({ scanned: 0, kept: 0, returned: 0 });
     setYahooReturnedCandidates([]);
     setYahooDiagnostics(createEmptyYahooDiagnostics());
+    setYahooSentToScanCount(0);
+    setYahooScanErrorCount(0);
+    setYahooRequestedTopN(0);
+    setYahooChallengerCount(0);
     setBackendShortlistDevScan(false);
     setClosedMarketCacheFallback(false);
     technicalCandidatesRef.current.clear();
@@ -8942,6 +9447,32 @@ export default function Dashboard() {
   const ibkrNonTestedCount = Number.isFinite(Number(ibkrDirectResult?.nonTestedCandidates))
     ? Number(ibkrDirectResult.nonTestedCandidates)
     : Math.max(0, yahooReturnedCount - ibkrTestedCount);
+
+  /** Bassin Yahoo côté dernier résultat IBKR auto (fallback : compteur courant Yahoo retournés). */
+  const ibkrTraceYahooReturnedForFunnel = useMemo(() => {
+    if (
+      ibkrDirectResult?.ok === true &&
+      Number.isFinite(Number(ibkrDirectResult.yahooReturnedPoolSize))
+    ) {
+      return Number(ibkrDirectResult.yahooReturnedPoolSize);
+    }
+    return yahooReturnedCount;
+  }, [ibkrDirectResult, yahooReturnedCount]);
+
+  const ibkrTraceTopReasonLines = useMemo(() => {
+    const rr = ibkrDirectResult?.rejectionReasons;
+    if (rr && typeof rr === "object" && Object.keys(rr).length) {
+      const sorted = Object.entries(rr)
+        .map(([reason, count]) => [String(reason || "").trim() || "unknown", Number(count)])
+        .filter(([, n]) => Number.isFinite(n) && n > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      return sorted.map(([reason, n]) => `${formatIbkrReason(reason)} (${n})`);
+    }
+    const rejectedArr = Array.isArray(ibkrDirectResult?.rejected) ? ibkrDirectResult.rejected : [];
+    return aggregateIbkrRejectedReasons(rejectedArr, 10).topLines;
+  }, [ibkrDirectResult]);
+
   const ibkrSentSet = useMemo(
     () => new Set((ibkrDirectSentTickers || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean)),
     [ibkrDirectSentTickers]
@@ -9061,6 +9592,210 @@ export default function Dashboard() {
     }
     return counts;
   }, [filtered]);
+  const pipelineFunnelDiagnostics = useMemo(() => {
+    const universeSourceCount = Number(watchlistStats?.sourceCount ?? 0);
+    const excludedCrypto = Number(watchlistStats?.cryptoBlockedRemovedCount ?? cryptoRemovedFromWatchlistCount ?? 0);
+    const universeMasterActive = Math.max(
+      0,
+      universeSourceCount > 0 ? universeSourceCount + excludedCrypto : (watchlistTickers?.length ?? 0) + excludedCrypto
+    );
+    const categoriesSelected = Array.isArray(DEFAULT_BUILD_WATCHLIST_BODY?.categories)
+      ? DEFAULT_BUILD_WATCHLIST_BODY.categories.length
+      : 0;
+    const watchlistKept = Number(watchlistStats?.keptCount ?? watchlistTickers?.length ?? 0);
+    const watchlistRejected = Number(watchlistStats?.rejectedCount ?? 0);
+    const watchlistLimitApplied = Number(
+      watchlistStats?.limitApplied ?? DEFAULT_BUILD_WATCHLIST_BODY?.limit ?? 0
+    );
+    const watchlistBuildRejections = topCountEntries(watchlistStats?.rejectedByReason, 12);
+    const tickersSentToScan = Number(yahooSentToScanCount || yahooScanMeta?.scanned || 0);
+    const scanned = Number(yahooScanMeta?.scanned || 0);
+    const duplicateRemoved = Math.max(0, tickersSentToScan - scanned);
+    const scanFailures = Number(yahooScanErrorCount || 0);
+    const reasonCounts = normalizeCountMap(yahooDiagnostics?.rejectionReasonCounts);
+    const stageCounts = normalizeCountMap(yahooDiagnostics?.stageRejectCounts);
+    const expirationReasonKeys = new Set([
+      "expiration_unavailable",
+      "expirations_unavailable",
+      "chain_unavailable",
+      "no_valid_expiration",
+      ...Object.keys(reasonCounts).filter((k) => String(k).toLowerCase().includes("expiration")),
+    ]);
+    const expirationUnavailable = Array.from(expirationReasonKeys).reduce(
+      (sum, key) => sum + (Number(reasonCounts[key]) || 0),
+      0
+    );
+    const passesFilterTrue = (yahooReturnedCandidates || []).filter((row) => row?.passesFilter === true).length;
+    const keptUnreliable = (yahooReturnedCandidates || []).filter(
+      (row) => row?.noYahooLiquidity === true || row?.liquiditySource === "yahoo_unreliable"
+    ).length;
+    const rejectedTotal = Number(yahooDiagnostics?.rejectedTotal || 0);
+    const reasonNoPut = sumCountsByKeys(reasonCounts, ["no_put_below_lower_bound", "no_put_with_bid_below_lower_bound"]);
+    const reasonNoLiquid = sumCountsByKeys(reasonCounts, ["no_liquid_strike_below_lower_bound"]);
+    const reasonPremium = sumCountsByKeys(reasonCounts, ["premium_below_target"]);
+    const reasonYield = sumCountsByKeys(reasonCounts, ["yield_below_target"]);
+    const reasonSafeNotLiquid = sumCountsByKeys(reasonCounts, ["safe_strike_not_liquid"]);
+    const reasonFailedFinal = Number(stageCounts.failed_final_filter || 0);
+    const reasonKnownTotal =
+      reasonNoPut + reasonNoLiquid + reasonPremium + reasonYield + reasonSafeNotLiquid + reasonFailedFinal;
+    const reasonUnknown = Math.max(0, rejectedTotal - reasonKnownTotal);
+    const requestedTopN = Number(yahooRequestedTopN || topN || 0);
+    const challengerCount = Number(yahooChallengerCount || 0);
+    const returned = Number(yahooReturnedCount || 0);
+    const hiddenReturnedCandidates = Math.max(0, returned - requestedTopN);
+    const visibleAfterTopN = Number(activeCandidates?.length || 0);
+    const q = String(query || "").trim().toLowerCase();
+    const matchesQuery = (item) =>
+      q === "" ||
+      String(item?.ticker || "").toLowerCase().includes(q) ||
+      String(item?.name || "").toLowerCase().includes(q);
+    const matchesVerdict = (item) =>
+      filter === "all" ? true : filter === "validated" ? item?.ok : item?.verdict === filter;
+    const afterQueryCount = (enrichedCandidates || []).filter((item) => matchesQuery(item)).length;
+    const afterVerdictCount = (enrichedCandidates || [])
+      .filter((item) => matchesQuery(item) && matchesVerdict(item))
+      .length;
+    const afterExpirationCount = (enrichedCandidates || [])
+      .filter((item) => matchesQuery(item) && matchesVerdict(item) && candidateRowMatchesSelectedExpiration(item, selectedExpiration))
+      .length;
+    const removedBySearch = Math.max(0, (enrichedCandidates?.length || 0) - afterQueryCount);
+    const removedByVerdict = Math.max(0, afterQueryCount - afterVerdictCount);
+    const removedByExpiration = Math.max(0, afterVerdictCount - afterExpirationCount);
+    const filteredFinalCount = Number(filtered?.length || 0);
+    const usableCapital = Number(capital) * (Number(maxCapitalPct) / 100);
+    const ibkrRejectedRemoved = (filtered || []).filter((row) =>
+      ibkrRejectedSymbols.has(String(row?.ticker || "").trim().toUpperCase())
+    ).length;
+    const comboBasePoolCount = (filtered || [])
+      .filter((row) => !ibkrRejectedSymbols.has(String(row?.ticker || "").trim().toUpperCase()))
+      .map((row) => buildCapitalComboCandidate(row, usableCapital))
+      .filter((row) => row?._isCapitalComboEligible)
+      .length;
+    const comboSummaries = Object.fromEntries(
+      _INSP_BUCKET_KEYS.map((bucketKey) => [
+        bucketKey,
+        _inspBucketSummary(bucketKey, combos, filtered, usableCapital, ibkrRejectedSymbols),
+      ])
+    );
+    const usableForSAFE =
+      (comboSummaries?.SAFE?.selected?.length || 0) + (comboSummaries?.SAFE?.eligibleNotSelected?.length || 0);
+    const usableForBALANCED =
+      (comboSummaries?.BALANCED?.selected?.length || 0) +
+      (comboSummaries?.BALANCED?.eligibleNotSelected?.length || 0);
+    const usableForAGGRESSIVE =
+      (comboSummaries?.AGGRESSIVE?.selected?.length || 0) +
+      (comboSummaries?.AGGRESSIVE?.eligibleNotSelected?.length || 0);
+    const rejectionRows = [
+      { reason: "Lower Bound Failure", count: reasonNoPut },
+      { reason: "Liquidity Failure", count: reasonNoLiquid },
+      { reason: "Premium Failure", count: reasonPremium },
+      { reason: "Yield Failure", count: reasonYield },
+      { reason: "Safe Strike Not Liquid", count: reasonSafeNotLiquid },
+      { reason: "Failed Final Filter", count: reasonFailedFinal },
+      { reason: "Expiration Missing", count: expirationUnavailable },
+      { reason: "Unknown", count: reasonUnknown },
+    ]
+      .map((row) => {
+        const share = rejectedTotal > 0 ? row.count / rejectedTotal : 0;
+        const severity = share >= 0.25 ? "High" : share >= 0.1 ? "Medium" : "Low";
+        return { ...row, severity };
+      })
+      .filter((row) => row.count > 0)
+      .sort((a, b) => b.count - a.count);
+    const stages = [
+      { key: "universe", label: "Universe", count: universeMasterActive },
+      { key: "watchlist", label: "Watchlist", count: watchlistKept },
+      { key: "yahooSent", label: "Yahoo Sent", count: tickersSentToScan },
+      { key: "yahooQualified", label: "Yahoo Qualified", count: passesFilterTrue },
+      { key: "yahooReturned", label: "Yahoo Returned", count: returned },
+      { key: "uiVisible", label: "UI Visible", count: visibleAfterTopN },
+      { key: "filteredFinal", label: "Filtered Final", count: filteredFinalCount },
+      { key: "comboPool", label: "Combo Pool", count: comboBasePoolCount },
+    ];
+    const stageLossRows = stages.slice(1).map((stage, idx) => {
+      const prev = stages[idx];
+      const lost = Math.max(0, Number(prev.count || 0) - Number(stage.count || 0));
+      return {
+        from: prev.label,
+        to: stage.label,
+        before: Number(prev.count || 0),
+        after: Number(stage.count || 0),
+        lost,
+        conversionPct: ratioPct(stage.count, prev.count),
+      };
+    });
+    return {
+      universeSourceCount,
+      universeMasterActive,
+      categoriesSelected,
+      excludedCrypto,
+      buildExcluded: Number(watchlistStats?.rejectedCount ?? 0),
+      watchlistKept,
+      watchlistRejected,
+      watchlistLimitApplied,
+      watchlistBuildRejections,
+      tickersSentToScan,
+      scanned,
+      scanFailures,
+      expirationUnavailable,
+      duplicateRemoved,
+      passesFilterTrue,
+      keptUnreliable,
+      rejectedTotal,
+      reasonBreakdown: {
+        no_put_below_lower_bound: reasonNoPut,
+        no_liquid_strike_below_lower_bound: reasonNoLiquid,
+        premium_below_target: reasonPremium,
+        yield_below_target: reasonYield,
+        safe_strike_not_liquid: reasonSafeNotLiquid,
+        failed_final_filter: reasonFailedFinal,
+        unknown: reasonUnknown,
+      },
+      requestedTopN,
+      challengerCount,
+      returned,
+      hiddenReturnedCandidates,
+      visibleAfterTopN,
+      removedBySearch,
+      removedByVerdict,
+      removedByExpiration,
+      filteredFinalCount,
+      comboBasePoolCount,
+      ibkrRejectedRemoved,
+      usableForSAFE,
+      usableForBALANCED,
+      usableForAGGRESSIVE,
+      fillRatePct: ratioPct(watchlistKept, universeMasterActive),
+      qualificationRatePct: ratioPct(passesFilterTrue, scanned),
+      finalComboConversionRatePct: ratioPct(comboBasePoolCount, filteredFinalCount),
+      stageLossRows,
+      rejectionRows,
+      stages,
+    };
+  }, [
+    watchlistStats,
+    cryptoRemovedFromWatchlistCount,
+    watchlistTickers,
+    yahooSentToScanCount,
+    yahooScanMeta,
+    yahooScanErrorCount,
+    yahooDiagnostics,
+    yahooReturnedCandidates,
+    yahooRequestedTopN,
+    yahooChallengerCount,
+    topN,
+    yahooReturnedCount,
+    activeCandidates,
+    query,
+    filter,
+    enrichedCandidates,
+    selectedExpiration,
+    filtered,
+    capital,
+    maxCapitalPct,
+    ibkrRejectedSymbols,
+    combos,
+  ]);
   const yahooCandidateByTicker = useMemo(() => {
     return new Map(
       activeCandidates
@@ -9630,9 +10365,17 @@ export default function Dashboard() {
       setDataSource("snapshot");
       setPrimaryIbkrSourceInfo(null);
       setScanMeta({ scanned: 0, kept: 0, returned: 0 });
+      setYahooSentToScanCount(0);
+      setYahooScanErrorCount(0);
+      setYahooRequestedTopN(0);
+      setYahooChallengerCount(0);
       return;
     }
     console.log("[SCAN_DEBUG] tickers_sent_to_scan", tickers.length);
+    setYahooSentToScanCount(tickers.length);
+    setYahooScanErrorCount(0);
+    setYahooRequestedTopN(Number(topN) || 0);
+    setYahooChallengerCount(0);
 
     setLoadingScan(true);
     setScanError("");
@@ -9685,6 +10428,9 @@ export default function Dashboard() {
         kept: payload.kept ?? mapped.length,
         returned: payload.returned ?? mapped.length,
       });
+      setYahooScanErrorCount(Array.isArray(payload?.errors) ? payload.errors.length : 0);
+      setYahooRequestedTopN(Number(payload?.requestedTopN ?? topN) || 0);
+      setYahooChallengerCount(Number(payload?.challengerCount ?? 0) || 0);
       setYahooReturnedCandidates(mapped);
       if (payload?.scanTiming && typeof payload.scanTiming === "object") {
         setYahooScanTiming(payload.scanTiming);
@@ -9797,6 +10543,10 @@ export default function Dashboard() {
             returned: tagged.length,
           }
         );
+        setYahooSentToScanCount(Number(cached?.scanMeta?.scanned ?? tagged.length) || tagged.length);
+        setYahooScanErrorCount(0);
+        setYahooRequestedTopN(Number(topN) || 0);
+        setYahooChallengerCount(0);
         setYahooReturnedCandidates(tagged);
         setYahooDiagnostics(
           normalizeYahooDiagnosticsForState(cached?.yahooDiagnostics, {
@@ -9823,6 +10573,10 @@ export default function Dashboard() {
           kept: 0,
           returned: 0,
         });
+        setYahooSentToScanCount(tickers.length);
+        setYahooScanErrorCount(1);
+        setYahooRequestedTopN(Number(topN) || 0);
+        setYahooChallengerCount(0);
         setYahooReturnedCandidates([]);
         setYahooDiagnostics(
           normalizeYahooDiagnosticsForState(null, {
@@ -9898,7 +10652,8 @@ export default function Dashboard() {
     setWatchlistLoading(true);
     setWatchlistBuildError("");
     try {
-      const payload = await callBuildWatchlist(DEFAULT_BUILD_WATCHLIST_BODY);
+      const body = { ...DEFAULT_BUILD_WATCHLIST_BODY, liquidityOtmProbePct: watchlistOtmProbePct };
+      const payload = await callBuildWatchlist(body);
       setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
       setWatchlistSource("backend");
       setWatchlistStats(payload.stats ?? null);
@@ -9910,7 +10665,7 @@ export default function Dashboard() {
     } finally {
       setWatchlistLoading(false);
     }
-  }, []);
+  }, [watchlistOtmProbePct]);
 
   const handleIbkrShadowTest = useCallback(async () => {
     setIbkrShadowLoading(true);
@@ -10157,7 +10912,8 @@ export default function Dashboard() {
       setWatchlistLoading(true);
       setWatchlistBuildError("");
       try {
-        const payload = await callBuildWatchlist(DEFAULT_BUILD_WATCHLIST_BODY);
+        const body = { ...DEFAULT_BUILD_WATCHLIST_BODY, liquidityOtmProbePct: watchlistOtmProbePct };
+        const payload = await callBuildWatchlist(body);
         if (cancelled) return;
         setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
         setWatchlistSource("backend");
@@ -10180,6 +10936,14 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("wheel.liquidityOtmProbePct", String(watchlistOtmProbePct));
+    } catch {
+      /* quota / private mode */
+    }
+  }, [watchlistOtmProbePct]);
 
   useEffect(() => {
     handleRefreshScanMetrics();
@@ -10371,12 +11135,14 @@ export default function Dashboard() {
             <Input
               type="number"
               min="1"
-              max="120"
+              max="200"
               value={topN}
               onChange={(e) => setTopN(Number(e.target.value || 1))}
               className="w-full rounded-xl border-slate-200"
             />
-            <p className="mt-1 text-xs text-slate-500">Nombre demandé à /scan_shortlist.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Plafond renvoyé par Yahoo (/scan_shortlist, + challengers si tri qualité). Avec IBKR auto, l’affichage final suit surtout « IBKR Audit Depth ».
+            </p>
           </div>
 
           <div>
@@ -10462,6 +11228,24 @@ export default function Dashboard() {
             </Select>
           </div>
 
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Sonde liquidité OTM Yahoo</label>
+            <Select
+              value={String(watchlistOtmProbePct)}
+              onChange={(e) => setWatchlistOtmProbePct(Number(e.target.value))}
+              className="w-full rounded-xl border-slate-200"
+            >
+              {LIQUIDITY_OTM_PROBE_PCT_CHOICES.map((p) => (
+                <option key={p} value={String(p)}>
+                  {p}% OTM{p === 0 ? " — ATM seulement" : ""}
+                </option>
+              ))}
+            </Select>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              Appliqué au prochain « Rebuild watchlist ». 0 % désactive la sonde OTM (garde le test ATM).
+            </p>
+          </div>
+
           <div className="flex flex-col gap-2 justify-end">
             <Button
               className="w-full rounded-xl"
@@ -10529,6 +11313,27 @@ export default function Dashboard() {
               <Metric label="À surveiller IBKR" value={String(ibkrActionabilityCounts.watch)} tone="warn" />
               <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
             </div>
+            {ibkrDirectResult?.ok === true && (
+              <div className="mt-4 rounded-xl border border-sky-100 bg-slate-50/80 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Traçabilité Yahoo → IBKR (observabilité)
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <Metric label="Yahoo Returned" value={String(ibkrTraceYahooReturnedForFunnel)} />
+                  <Metric label="IBKR Sent / Tested" value={String(ibkrTestedCount)} />
+                  <Metric label="IBKR Retained" value={String(ibkrTotalKeptCollected)} tone="good" />
+                  <Metric label="IBKR Rejected" value={String(ibkrRejectedCount)} tone={ibkrRejectedCount ? "warn" : "default"} />
+                  <Metric label="IBKR Non Tested" value={String(ibkrNonTestedCount)} />
+                  <Metric label="Fusion IBKR (batches)" value={String(ibkrDirectResult.progressiveIbkrBatchCount ?? "—")} />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  <span className="font-semibold text-slate-800">Top IBKR rejection reasons:</span>{" "}
+                  {ibkrTraceTopReasonLines.length
+                    ? ibkrTraceTopReasonLines.join(" · ")
+                    : "(aucune raison agrégée — voir tableau rejetés par symbole)"}
+                </p>
+              </div>
+            )}
             <p className="mt-2 text-xs text-slate-500">
               Lecture visuelle seulement : actionnable = finalDisplayMode SAFE/AGGRESSIVE avec finalDisplayGrade A/B.
             </p>
@@ -10537,6 +11342,153 @@ export default function Dashboard() {
                 Seulement {ibkrTotalKeptCollected} retenus IBKR disponibles dans le bassin Yahoo testé.
               </p>
             )}
+            </details>
+          </div>
+        )}
+
+        {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+            <details open>
+              <summary className="cursor-pointer font-semibold text-slate-900">
+                PIPELINE FUNNEL DIAGNOSTICS
+              </summary>
+              <p className="mt-2 text-xs text-slate-600">
+                Universe: {pipelineFunnelDiagnostics.universeMasterActive} · Watchlist: {pipelineFunnelDiagnostics.watchlistKept} · Yahoo Sent: {pipelineFunnelDiagnostics.tickersSentToScan} · Yahoo Qualified: {pipelineFunnelDiagnostics.passesFilterTrue} · Yahoo Unreliable: {pipelineFunnelDiagnostics.keptUnreliable} · Yahoo Returned: {pipelineFunnelDiagnostics.returned} · UI Visible: {pipelineFunnelDiagnostics.visibleAfterTopN} · Filtered Final: {pipelineFunnelDiagnostics.filteredFinalCount} · Combo Pool: {pipelineFunnelDiagnostics.comboBasePoolCount}
+              </p>
+              {dataSource === "ibkr_direct" && primaryIbkrSourceInfo && (
+                <p className="mt-1 text-xs text-amber-900">
+                  IBKR auto : affichage prima limité à {ibkrFinalTarget} lignes — shortlist Yahoo en mémoire{" "}
+                  {yahooReturnedCount}, fusion IBKR avant cap{" "}
+                  {Number(primaryIbkrSourceInfo.totalKeptCollected) || "—"}, hors écran{" "}
+                  {Number(primaryIbkrSourceInfo.retainedNotDisplayed) || 0}. L’écart « Yahoo Returned vs UI Visible » vient
+                  surtout de ce plafond / des rejets IBKR, pas du SAFE Wheel.
+                </p>
+              )}
+
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Master actifs (univers)" value={String(pipelineFunnelDiagnostics.universeMasterActive)} />
+                <Metric label="Catégories sélectionnées" value={String(pipelineFunnelDiagnostics.categoriesSelected)} />
+                <Metric label="Exclus crypto (univers)" value={String(pipelineFunnelDiagnostics.excludedCrypto)} tone={pipelineFunnelDiagnostics.excludedCrypto > 0 ? "warn" : "default"} />
+                <Metric label="Exclus filtres build" value={String(pipelineFunnelDiagnostics.buildExcluded)} tone={pipelineFunnelDiagnostics.buildExcluded > 0 ? "warn" : "default"} />
+                <Metric label="Watchlist kept/rejected" value={`${pipelineFunnelDiagnostics.watchlistKept} / ${pipelineFunnelDiagnostics.watchlistRejected}`} />
+                <Metric label="Watchlist limit applied" value={String(pipelineFunnelDiagnostics.watchlistLimitApplied)} />
+                <Metric
+                  label="Sonde OTM % (dernier build)"
+                  value={
+                    watchlistStats?.liquidityOtmProbePctApplied == null
+                      ? "—"
+                      : `${watchlistStats.liquidityOtmProbePctApplied}%${
+                          watchlistStats.liquidityOtmProbeActive ? "" : " (off)"
+                        }`
+                  }
+                />
+                <Metric label="Yahoo sent/scanned" value={`${pipelineFunnelDiagnostics.tickersSentToScan} / ${pipelineFunnelDiagnostics.scanned}`} />
+                <Metric label="Scan failures" value={String(pipelineFunnelDiagnostics.scanFailures)} tone={pipelineFunnelDiagnostics.scanFailures > 0 ? "warn" : "default"} />
+                <Metric label="Expiration unavailable" value={String(pipelineFunnelDiagnostics.expirationUnavailable)} tone={pipelineFunnelDiagnostics.expirationUnavailable > 0 ? "warn" : "default"} />
+                <Metric label="Duplicate removed" value={String(pipelineFunnelDiagnostics.duplicateRemoved)} />
+                <Metric label="passesFilter TRUE" value={String(pipelineFunnelDiagnostics.passesFilterTrue)} tone="good" />
+                <Metric label="keptUnreliable" value={String(pipelineFunnelDiagnostics.keptUnreliable)} tone={pipelineFunnelDiagnostics.keptUnreliable > 0 ? "warn" : "default"} />
+                <Metric label="requestedTopN/challenger" value={`${pipelineFunnelDiagnostics.requestedTopN} / ${pipelineFunnelDiagnostics.challengerCount}`} />
+                <Metric label="returned/hiddenReturned" value={`${pipelineFunnelDiagnostics.returned} / ${pipelineFunnelDiagnostics.hiddenReturnedCandidates}`} />
+                <Metric label="UI removed S/V/E" value={`${pipelineFunnelDiagnostics.removedBySearch} / ${pipelineFunnelDiagnostics.removedByVerdict} / ${pipelineFunnelDiagnostics.removedByExpiration}`} />
+                <Metric label="Combo usable S/B/A" value={`${pipelineFunnelDiagnostics.usableForSAFE} / ${pipelineFunnelDiagnostics.usableForBALANCED} / ${pipelineFunnelDiagnostics.usableForAGGRESSIVE}`} />
+              </div>
+
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="font-medium text-slate-900">Conversion rates</p>
+                <div className="mt-2 space-y-2 text-xs text-slate-700">
+                  <div>
+                    Fill rate watchlist: {pipelineFunnelDiagnostics.fillRatePct.toFixed(1)}%
+                    <div className="mt-1 h-2 w-full rounded bg-slate-200">
+                      <div className="h-2 rounded bg-sky-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.fillRatePct)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    Qualification rate: {pipelineFunnelDiagnostics.qualificationRatePct.toFixed(1)}%
+                    <div className="mt-1 h-2 w-full rounded bg-slate-200">
+                      <div className="h-2 rounded bg-emerald-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.qualificationRatePct)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    Final combo conversion rate: {pipelineFunnelDiagnostics.finalComboConversionRatePct.toFixed(1)}%
+                    <div className="mt-1 h-2 w-full rounded bg-slate-200">
+                      <div className="h-2 rounded bg-amber-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.finalComboConversionRatePct)}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">Pertes par étape</p>
+                  <div className="mt-2 space-y-2 text-xs text-slate-700">
+                    {pipelineFunnelDiagnostics.stageLossRows.map((row) => (
+                      <div key={`stage-loss-${row.from}-${row.to}`} className="rounded border border-slate-200 bg-white p-2">
+                        <div className="flex items-center justify-between">
+                          <span>{row.from} → {row.to}</span>
+                          <span className="font-medium">{row.before} → {row.after} (perte {row.lost})</span>
+                        </div>
+                        <div className="mt-1 h-2 w-full rounded bg-slate-200">
+                          <div className="h-2 rounded bg-slate-600" style={{ width: `${clampPct(row.conversionPct)}%` }} />
+                        </div>
+                        <div className="mt-1 text-right">{row.conversionPct.toFixed(1)}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">Rejection Dashboard</p>
+                  {pipelineFunnelDiagnostics.rejectionRows.length === 0 ? (
+                    <p className="mt-2 text-xs text-slate-500">Aucun rejet comptabilisé.</p>
+                  ) : (
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="min-w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-500">
+                            <th className="py-1 pr-2 font-medium">Reason</th>
+                            <th className="py-1 pr-2 font-medium">Count</th>
+                            <th className="py-1 font-medium">Severity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pipelineFunnelDiagnostics.rejectionRows.map((row) => (
+                            <tr key={`reject-row-${row.reason}`} className="border-b border-slate-100 last:border-0">
+                              <td className="py-1 pr-2">{row.reason}</td>
+                              <td className="py-1 pr-2">{row.count}</td>
+                              <td className="py-1">{row.severity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <div className="mt-3 rounded border border-slate-200 bg-white p-2 text-xs">
+                    <div className="font-medium text-slate-800">Yahoo qualification reasons</div>
+                    <div className="mt-1 text-slate-600">
+                      no_put_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_put_below_lower_bound} ·
+                      no_liquid_strike_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_liquid_strike_below_lower_bound} ·
+                      premium_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.premium_below_target} ·
+                      yield_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.yield_below_target} ·
+                      safe_strike_not_liquid: {pipelineFunnelDiagnostics.reasonBreakdown.safe_strike_not_liquid} ·
+                      failed_final_filter: {pipelineFunnelDiagnostics.reasonBreakdown.failed_final_filter} ·
+                      unknown: {pipelineFunnelDiagnostics.reasonBreakdown.unknown}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {pipelineFunnelDiagnostics.watchlistBuildRejections.length > 0 && (
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">Watchlist build rejection reasons</p>
+                  <div className="mt-2 grid gap-1 text-xs text-slate-700 md:grid-cols-2">
+                    {pipelineFunnelDiagnostics.watchlistBuildRejections.map((row) => (
+                      <div key={`watchlist-build-reason-${row.reason}`}>
+                        {formatIbkrReason(row.reason)} : {row.count}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </details>
           </div>
         )}
@@ -11049,6 +12001,8 @@ export default function Dashboard() {
           error={ibkrDirectError}
           result={ibkrDirectResult}
           sentTickers={ibkrDirectSentTickers.length ? ibkrDirectSentTickers : ibkrDirectTickersForSend}
+          yahooReturnedCandidates={yahooReturnedCandidates}
+          yahooRankForIbkrBySymbol={yahooRankForIbkrBySymbol}
           yahooScanTiming={yahooScanTiming}
           onRun={handleIbkrDirectScan}
           onRunTest={handleIbkrDirectTestScan}

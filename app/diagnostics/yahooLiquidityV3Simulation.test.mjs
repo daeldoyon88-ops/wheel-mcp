@@ -18,11 +18,17 @@ test("isYahooLiquidityV3SimulationEnabled — défaut désactivé", () => {
   delete process.env.YAHOO_LIQUIDITY_V3_SIMULATION;
 });
 
-test("isYahooLiquidityV3LiveSafeEnabled — défaut désactivé", () => {
+test("isYahooLiquidityV3LiveSafeEnabled — défaut activé (opt-out)", () => {
   delete process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE;
-  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), false);
+  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), true, "absent => ON");
   process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE = "1";
-  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), true);
+  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), true, "=1 => ON");
+  process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE = "true";
+  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), true, "=true => ON");
+  process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE = "0";
+  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), false, "=0 => OFF");
+  process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE = "false";
+  assert.equal(isYahooLiquidityV3LiveSafeEnabled(), false, "=false => OFF");
   delete process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE;
 });
 
@@ -207,7 +213,7 @@ test("evaluateYahooLiquidityV3RecoveryEligibility — TQQQ high + leveraged_etf_
   assert.ok(Array.isArray(ev.risks) && ev.risks.includes("leveraged_etf_hint"));
 });
 
-test("evaluateYahooLiquidityV3RecoveryEligibility — LIVE_SAFE OFF ne change pas l’éligibilité (gate dans watchlistBuilder)", () => {
+test("evaluateYahooLiquidityV3RecoveryEligibility — LIVE_SAFE non lu ici (gate dans watchlistBuilder)", () => {
   delete process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE;
   const row = {
     symbol: "AA",

@@ -242,7 +242,7 @@ async function run() {
 
   if (!v3SimOn || !v3LiveOn) {
     missingData.push(
-      "Flags V3 : pour une session « telle que prod », activer YAHOO_LIQUIDITY_V3_SIMULATION=1 et YAHOO_LIQUIDITY_V3_LIVE_SAFE=1.",
+      "Flags V3 : pour une session « telle que prod », activer YAHOO_LIQUIDITY_V3_SIMULATION=1 (YAHOO_LIQUIDITY_V3_LIVE_SAFE est ON par défaut — désactiver avec =0).",
     );
   }
   if (!funnelOn) {

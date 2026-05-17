@@ -48,10 +48,11 @@ export function isYahooLiquidityV3SimulationEnabled() {
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
 
-/** @returns {boolean} */
+/** @returns {boolean} — ON par défaut ; désactiver avec YAHOO_LIQUIDITY_V3_LIVE_SAFE=0 */
 export function isYahooLiquidityV3LiveSafeEnabled() {
-  const raw = String(process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE || "").trim().toLowerCase();
-  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+  const raw = String(process.env.YAHOO_LIQUIDITY_V3_LIVE_SAFE ?? "").trim().toLowerCase();
+  if (raw === "0" || raw === "false") return false;
+  return true;
 }
 
 /**

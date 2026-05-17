@@ -1483,6 +1483,15 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     strikeVsSupportPct: item.supportResistance?.strikeVsSupportPct ?? null,
     strikeVsResistancePct: item.supportResistance?.strikeVsResistancePct ?? null,
     supportStatus: item.supportResistance?.supportStatus ?? "unknown",
+    supportStatusLegacy: item.supportStatusLegacy ?? item.supportResistance?.supportStatus ?? null,
+    supportStatusV2: item.supportStatusV2 ?? null,
+    supportScoringV2:
+      item.supportScoringV2 && typeof item.supportScoringV2 === "object"
+        ? { ...item.supportScoringV2 }
+        : null,
+    supportStatusUsedByQualityScore: item.supportStatusUsedByQualityScore ?? null,
+    strikeVsSupportEffectivePct: item.strikeVsSupportEffectivePct ?? null,
+    qualityScoreDeltaLegacyVsV2: item.qualityScoreDeltaLegacyVsV2 ?? null,
     supportDiagnosticsV1:
       item.supportDiagnosticsV1 && typeof item.supportDiagnosticsV1 === "object"
         ? { ...item.supportDiagnosticsV1 }
@@ -3024,6 +3033,21 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     strikeVsSupportPct: yahooCandidate?.strikeVsSupportPct ?? null,
     strikeVsResistancePct: yahooCandidate?.strikeVsResistancePct ?? null,
     supportStatus: yahooCandidate?.supportStatus ?? "unknown",
+    supportStatusLegacy:
+      yahooCandidate?.supportStatusLegacy ??
+      yahooCandidate?.supportResistance?.supportStatus ??
+      null,
+    supportStatusV2: yahooCandidate?.supportStatusV2 ?? null,
+    supportScoringV2:
+      yahooCandidate?.supportScoringV2 && typeof yahooCandidate.supportScoringV2 === "object"
+        ? { ...yahooCandidate.supportScoringV2 }
+        : yahooCandidate?.raw?.supportScoringV2 &&
+            typeof yahooCandidate.raw.supportScoringV2 === "object"
+          ? { ...yahooCandidate.raw.supportScoringV2 }
+          : null,
+    supportStatusUsedByQualityScore: yahooCandidate?.supportStatusUsedByQualityScore ?? null,
+    strikeVsSupportEffectivePct: yahooCandidate?.strikeVsSupportEffectivePct ?? null,
+    qualityScoreDeltaLegacyVsV2: yahooCandidate?.qualityScoreDeltaLegacyVsV2 ?? null,
     supportDiagnosticsV1:
       yahooCandidate?.supportDiagnosticsV1 && typeof yahooCandidate.supportDiagnosticsV1 === "object"
         ? { ...yahooCandidate.supportDiagnosticsV1 }

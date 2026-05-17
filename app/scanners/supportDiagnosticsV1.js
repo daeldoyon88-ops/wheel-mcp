@@ -73,6 +73,8 @@ export function buildSupportDiagnosticsV1({
   resistanceNear,
   currentSupportStatusUsedByScoring,
   dteDays,
+  /** `near`|`wide`|`unknown` depuis support scoring — si absent, export suppose wide (legacy). */
+  qualityStrikeSupportLevel = null,
 }) {
   const w = toNumber(supportWide);
   const supportWideNum = w > 0 ? w : null;
@@ -126,8 +128,17 @@ export function buildSupportDiagnosticsV1({
     }
   }
 
-  /** Le scoring wheelScanner utilise le support quantile (alias support / supportWide), jamais supportNear. */
-  const whichSupportUsedByCurrentScoring = supportWideNum != null ? "wide" : "unknown";
+  const qLevel =
+    typeof qualityStrikeSupportLevel === "string" && qualityStrikeSupportLevel.trim().length > 0
+      ? qualityStrikeSupportLevel.trim()
+      : null;
+  /** Ancre export : niveau utilisé pour classer le strike dans qualityScore (`wide` legacy, ou `near` avec V2 DTE court). */
+  const whichSupportUsedByCurrentScoring =
+    qLevel === "near" || qLevel === "wide"
+      ? qLevel
+      : supportWideNum != null
+        ? "wide"
+        : "unknown";
 
   const notes = [];
   if (supportNearNum == null) {

@@ -9,6 +9,7 @@ import {
 } from "../calculations/wheelMetrics.js";
 import { round, roundMoney, toNumber } from "../utils/number.js";
 import { buildSupportDiagnosticsV1 } from "./supportDiagnosticsV1.js";
+import { SUPPORT_SCORING_V2_ENABLED, buildSupportScoringV2 } from "./supportScoringV2.js";
 
 const STRIKE_DEBUG_SYMBOLS = new Set(["HOOD", "UBER", "SOFI", "U", "TQQQ"]);
 const MOVE_DEBUG_ENABLED = String(process.env.WHEEL_MOVE_DEBUG || "").trim() === "1";
@@ -672,16 +673,41 @@ export function createWheelScanner(marketService) {
         ? ((resistance - safeStrike.strike) / resistance) * 100
         : null;
 
-    let supportStatus = "unknown";
+    let supportStatusLegacy = "unknown";
     const currentVsSupportPct =
       Number.isFinite(spot) && support && support > 0 ? ((spot - support) / support) * 100 : null;
     if (currentVsSupportPct != null && currentVsSupportPct < 0) {
-      supportStatus = "current_below_support";
+      supportStatusLegacy = "current_below_support";
     } else if (strikeVsSupportPct != null) {
-      if (strikeVsSupportPct > 2) supportStatus = "strike_above_support";
-      else if (strikeVsSupportPct >= 0) supportStatus = "strike_near_support";
-      else supportStatus = "strike_below_support";
+      if (strikeVsSupportPct > 2) supportStatusLegacy = "strike_above_support";
+      else if (strikeVsSupportPct >= 0) supportStatusLegacy = "strike_near_support";
+      else supportStatusLegacy = "strike_below_support";
     }
+
+    const swTop = toNumber(supportResistance?.supportWide);
+    const swFb = toNumber(supportResistance?.support);
+    const supportWideForScoring =
+      Number.isFinite(swTop) && swTop > 0
+        ? swTop
+        : Number.isFinite(swFb) && swFb > 0
+          ? swFb
+          : null;
+    const snTop = toNumber(supportResistance?.supportNear);
+    const supportNearForScoring = Number.isFinite(snTop) && snTop > 0 ? snTop : null;
+
+    const supportScoringV2 = buildSupportScoringV2({
+      spot,
+      strike: safeStrike?.strike ?? null,
+      dteDays,
+      supportWide: supportWideForScoring,
+      supportNear: supportNearForScoring > 0 ? supportNearForScoring : null,
+      legacySupportStatus: supportStatusLegacy,
+      enabled: SUPPORT_SCORING_V2_ENABLED,
+    });
+
+    const supportStatusUsedForQuality = SUPPORT_SCORING_V2_ENABLED
+      ? supportScoringV2.supportStatusV2
+      : supportStatusLegacy;
 
     const aggressivePremiumOk =
       !!aggressiveStrike &&
@@ -705,7 +731,7 @@ export function createWheelScanner(marketService) {
     const qualitySort = buildQualitySort({
       symbol,
       safeStrike,
-      supportStatus,
+      supportStatus: supportStatusUsedForQuality,
       technicals,
       hasUpcomingEarningsBeforeExpiration,
       earningsDaysUntil,
@@ -720,9 +746,17 @@ export function createWheelScanner(marketService) {
       supportNear: toNumber(supportResistance?.supportNear) || null,
       resistanceWide: toNumber(supportResistance?.resistance) || null,
       resistanceNear: toNumber(supportResistance?.resistanceAboveSpot) || null,
-      currentSupportStatusUsedByScoring: supportStatus,
+      currentSupportStatusUsedByScoring: supportStatusUsedForQuality,
+      qualityStrikeSupportLevel: SUPPORT_SCORING_V2_ENABLED
+        ? supportScoringV2.strikeSupportLevelUsed
+        : null,
       dteDays,
     });
+
+    const strikeVsSupportEffectivePct =
+      supportScoringV2.strikeVsSupportEffectivePct != null
+        ? round(supportScoringV2.strikeVsSupportEffectivePct, 2)
+        : null;
 
     return {
       symbol,
@@ -789,9 +823,15 @@ export function createWheelScanner(marketService) {
         supportResistanceMethod: supportResistance?.supportResistanceMethod ?? null,
         strikeVsSupportPct: strikeVsSupportPct != null ? round(strikeVsSupportPct, 2) : null,
         strikeVsResistancePct: strikeVsResistancePct != null ? round(strikeVsResistancePct, 2) : null,
-        supportStatus,
+        supportStatus: supportStatusLegacy,
       },
       supportDiagnosticsV1,
+      supportStatusLegacy,
+      supportStatusV2: supportScoringV2.supportStatusV2,
+      supportScoringV2,
+      supportStatusUsedByQualityScore: supportScoringV2.supportStatusUsedByQualityScore,
+      strikeVsSupportEffectivePct,
+      qualityScoreDeltaLegacyVsV2: supportScoringV2.qualityScoreDeltaLegacyVsV2,
       diagnosticsV12,
       passesFilter,
       debug: {

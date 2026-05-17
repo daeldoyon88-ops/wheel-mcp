@@ -20,6 +20,18 @@ import { createWheelValidationStore } from "./app/journal/wheelValidationStore.j
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
 import createCapitalCombinationRoutes from "./app/capital/capitalCombinationRoutes.js";
+import {
+  buildYahooFunnelForensicPayload,
+  defaultWheelRepoRoot,
+  isYahooFunnelDiagnosticsV1Enabled,
+  writeYahooFunnelForensicExport,
+} from "./app/diagnostics/yahooFunnelDiagnosticsV1.js";
+import {
+  isYahooLiquidityV3SimulationEnabled,
+  logYahooLiquidityV3Summary,
+  runYahooLiquidityV3Simulation,
+  writeYahooLiquidityV3SimulationReport,
+} from "./app/diagnostics/yahooLiquidityV3Simulation.js";
 
 const app = express();
 const PORT = process.env.PORT || DEFAULT_BACKEND_PORT;
@@ -53,6 +65,39 @@ const wheelValidationService = createWheelValidationService({
   getHistoricalWindowMetrics: (symbol, scanDateYmd, expirationDateYmd) =>
     marketService.getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd),
 });
+
+/** Snapshot dernier /universe/build pour fusion export forensic (YAHOO_FUNNEL_DIAGNOSTICS=1). */
+let yahooFunnelLastWatchlistDiagnosticsV1 = null;
+/** Rejets watchlist avant fusion V3 live (build avec SIM+LIVE) — cohérence rapport simulation sur scan. */
+let yahooFunnelLastRejectedCandidatesBeforeV3LiveSafe = null;
+
+/**
+ * Rapport read-only Yahoo Liquidity V3 (`YAHOO_LIQUIDITY_V3_SIMULATION=1`) — n’altère pas la sélection.
+ * Live safe (`YAHOO_LIQUIDITY_V3_LIVE_SAFE=1`) : récupération dans `watchlistBuilder` uniquement.
+ * Quand les deux flags sont actifs, `payload.rejectedCandidatesBeforeYahooLiquidityV3LiveSafe` alimente la simulation pour garder les rejets Yahoo avant récupération live.
+ * @param {Record<string, unknown> | null | undefined} watchlistDiagnosticsV1
+ * @param {Record<string, unknown> | null | undefined} [stats]
+ * @param {Record<string, unknown> | null | undefined} [buildWatchlistPayload]
+ * @returns {string | null}
+ */
+function maybeExportYahooLiquidityV3Simulation(watchlistDiagnosticsV1, stats, buildWatchlistPayload = undefined) {
+  if (!isYahooLiquidityV3SimulationEnabled() || !watchlistDiagnosticsV1) return null;
+  try {
+    const pre = buildWatchlistPayload?.rejectedCandidatesBeforeYahooLiquidityV3LiveSafe;
+    const v1 =
+      Array.isArray(pre) ?
+        { ...watchlistDiagnosticsV1, rejectedCandidates: pre }
+      : watchlistDiagnosticsV1;
+    const simulation = runYahooLiquidityV3Simulation(v1, { stats: stats ?? null });
+    logYahooLiquidityV3Summary(simulation);
+    const { path } = writeYahooLiquidityV3SimulationReport(defaultWheelRepoRoot(), simulation);
+    return path;
+  } catch (e) {
+    console.warn("[yahoo-liquidity-v3] export error:", e?.message || e);
+    return null;
+  }
+}
+
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
 const WHEEL_DEV_SCAN_WARNING =
   "DEV TEST - marché fermé / données possiblement figées / non tradables";
@@ -2224,16 +2269,49 @@ app.post("/scan_shortlist", async (req, res) => {
     const { status, payload } = await wheelScanner.scanShortlist({ expiration, tickers, topN, sort });
     const yahooMs = Date.now() - yahooStartMs;
     scanMetricsState.lastRefreshAt = new Date().toISOString();
-    const enriched = payload && typeof payload === "object"
-      ? {
-          ...payload,
-          scanTiming: {
-            yahooSeconds: +(yahooMs / 1000).toFixed(1),
-            yahooMs,
-            tickerCount: Array.isArray(tickers) ? tickers.length : 0,
+    let enriched =
+      payload && typeof payload === "object"
+        ? {
+            ...payload,
+            scanTiming: {
+              yahooSeconds: +(yahooMs / 1000).toFixed(1),
+              yahooMs,
+              tickerCount: Array.isArray(tickers) ? tickers.length : 0,
+            },
+          }
+        : payload;
+    if (enriched && typeof enriched === "object" && enriched.scanFunnelDiagnosticsV1) {
+      try {
+        const forensic = buildYahooFunnelForensicPayload({
+          watchlistDiagnosticsV1: yahooFunnelLastWatchlistDiagnosticsV1,
+          scanFunnelDiagnosticsV1: enriched.scanFunnelDiagnosticsV1,
+          phase: "watchlist_plus_scan",
+          requestBodySnapshot: {
+            expiration: req.body?.expiration ?? null,
+            topN: req.body?.topN ?? null,
+            sort: req.body?.sort ?? null,
+            tickerCount: Array.isArray(req.body?.tickers) ? req.body.tickers.length : 0,
           },
-        }
-      : payload;
+        });
+        const { path: exportPath } = writeYahooFunnelForensicExport(defaultWheelRepoRoot(), forensic);
+        enriched = { ...enriched, yahooFunnelForensicExportPath: exportPath };
+      } catch (e) {
+        console.warn("[YAHOO_FUNNEL_DIAGNOSTICS] export scan:", e?.message || e);
+      }
+    }
+    if (
+      isYahooLiquidityV3SimulationEnabled() &&
+      yahooFunnelLastWatchlistDiagnosticsV1 &&
+      enriched &&
+      typeof enriched === "object"
+    ) {
+      const v3Path = maybeExportYahooLiquidityV3Simulation(
+        yahooFunnelLastWatchlistDiagnosticsV1,
+        null,
+        { rejectedCandidatesBeforeYahooLiquidityV3LiveSafe: yahooFunnelLastRejectedCandidatesBeforeV3LiveSafe }
+      );
+      if (v3Path) enriched = { ...enriched, yahooLiquidityV3SimulationPath: v3Path };
+    }
     res.status(status).json(enriched);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "scan_shortlist failed" });
@@ -2381,6 +2459,29 @@ async function handleBuildWatchlist(req, res) {
       });
     }
     const payload = await watchlistBuilder.buildWatchlist(parsed.data);
+    if (payload.watchlistDiagnosticsV1) {
+      yahooFunnelLastWatchlistDiagnosticsV1 = payload.watchlistDiagnosticsV1;
+      yahooFunnelLastRejectedCandidatesBeforeV3LiveSafe = Array.isArray(
+        payload.rejectedCandidatesBeforeYahooLiquidityV3LiveSafe
+      )
+        ? payload.rejectedCandidatesBeforeYahooLiquidityV3LiveSafe
+        : null;
+      if (isYahooFunnelDiagnosticsV1Enabled()) {
+        try {
+          const forensic = buildYahooFunnelForensicPayload({
+            watchlistDiagnosticsV1: payload.watchlistDiagnosticsV1,
+            scanFunnelDiagnosticsV1: null,
+            phase: "watchlist_only",
+          });
+          const { path: exportPath } = writeYahooFunnelForensicExport(defaultWheelRepoRoot(), forensic);
+          payload.yahooFunnelForensicExportPath = exportPath;
+        } catch (e) {
+          console.warn("[YAHOO_FUNNEL_DIAGNOSTICS] export watchlist:", e?.message || e);
+        }
+      }
+      const v3Path = maybeExportYahooLiquidityV3Simulation(payload.watchlistDiagnosticsV1, payload.stats, payload);
+      if (v3Path) payload.yahooLiquidityV3SimulationPath = v3Path;
+    }
     res.json(payload);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "build_watchlist failed" });

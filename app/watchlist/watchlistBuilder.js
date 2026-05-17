@@ -14,7 +14,20 @@ import {
   passesMinPrice,
   passesMinVolume,
 } from "./watchlistFilters.js";
-import { loadMergedUniverse } from "./universeLoader.js";
+import {
+  atmSpreadToLiquidityScore,
+  buildWatchlistYahooFunnelFlags,
+  isYahooFunnelDiagnosticsV1Enabled,
+  rejectionStageFromWatchlistReason,
+} from "../diagnostics/yahooFunnelDiagnosticsV1.js";
+import {
+  evaluateYahooLiquidityV3RecoveryEligibility,
+  isYahooLiquidityV3LiveSafeEnabled,
+  isYahooLiquidityV3SimulationEnabled,
+  LOG_YAHOO_LIQUIDITY_V3_LIVE,
+  resolvedV3SimulationMaxAbsoluteSpread,
+} from "../diagnostics/yahooLiquidityV3Simulation.js";
+import { loadMasterUniverse, loadMergedUniverse } from "./universeLoader.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -382,6 +395,47 @@ export function createWatchlistBuilder(deps) {
       market_cap_below_min_rejected: 0,
     };
 
+    const funnelDiag =
+      isYahooFunnelDiagnosticsV1Enabled() ||
+      isYahooLiquidityV3SimulationEnabled() ||
+      isYahooLiquidityV3LiveSafeEnabled();
+
+    const liveV3Safe = isYahooLiquidityV3LiveSafeEnabled();
+    if (liveV3Safe) {
+      console.warn(`${LOG_YAHOO_LIQUIDITY_V3_LIVE} enabled`);
+    }
+
+    /**
+     * @param {{ symbol: string, category: UniverseCategory, reason: string, detail?: unknown }} r
+     */
+    function rejectedEntryToDiagShape(r) {
+      return {
+        symbol: r.symbol,
+        rejectionStage: rejectionStageFromWatchlistReason(r.reason),
+        rejectionReasons: [r.reason],
+        partialMetrics: { category: r.category, detail: r.detail },
+      };
+    }
+
+    /** @param {{ symbol: string, category: UniverseCategory, reason: string, detail?: unknown, _v3LiveRecoveryCtx?: unknown }[]} list */
+    function stripV3LiveRecoveryCtx(list) {
+      for (const entry of list) {
+        if (entry && typeof entry === "object" && "_v3LiveRecoveryCtx" in entry) {
+          delete entry._v3LiveRecoveryCtx;
+        }
+      }
+    }
+
+    /** @type {Record<string, unknown>} */
+    const yahooLiquidityV3LiveSafe = {
+      enabled: liveV3Safe,
+      recoveredCount: 0,
+      recoveredSymbols: [],
+      highQualityRecovered: [],
+      mediumQualityRecovered: [],
+      excludedSummary: null,
+    };
+
     const rawUniverse = loadMergedUniverse({ categories: criteria.categories }).filter((r) => r.enabled);
     const cryptoBlockedRemovedCount = rawUniverse.filter(
       (r) => CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase())
@@ -459,6 +513,7 @@ export function createWatchlistBuilder(deps) {
         let atmSpreadPct = null;
         let optionLiquidityOk = false;
         let otmProbeOk = false;
+        let probePctForDiag = 0;
 
         if (criteria.requireWeeklyOptions) {
           const exp = await getExpirationsCached(symbol);
@@ -486,11 +541,35 @@ export function createWatchlistBuilder(deps) {
           const spotForChain = toNumber(chain?.currentPrice) || spot;
           const liq = evaluateAtmPutLiquidity(chain, spotForChain);
           if (!liq.ok) {
+            const detail = { code: liq.reason, ...liq.detail };
             rejected.push({
               symbol,
               category,
               reason: "liquid_options_failed",
-              detail: { code: liq.reason, ...liq.detail },
+              detail,
+              ...(liveV3Safe
+                ? {
+                    _v3LiveRecoveryCtx: {
+                      spot,
+                      minPx,
+                      maxPrice: criteria.maxPrice,
+                      minVolume: criteria.minVolume,
+                      volumeUsed: volCheck.detail?.volumeUsed ?? criteria.minVolume,
+                      hasWeeklyStyle,
+                      universeRow: {
+                        symbol,
+                        category,
+                        sources: Array.isArray(row.sources) ? row.sources : [],
+                        tags: row.tags,
+                      },
+                      probePctForDiag:
+                        typeof criteria.liquidityOtmProbePct === "number" &&
+                        Number.isFinite(criteria.liquidityOtmProbePct)
+                          ? criteria.liquidityOtmProbePct
+                          : DEFAULT_LIQUIDITY_OTM_PROBE_PCT,
+                    },
+                  }
+                : {}),
             });
             return;
           }
@@ -531,6 +610,7 @@ export function createWatchlistBuilder(deps) {
             typeof probeRaw === "number" && Number.isFinite(probeRaw)
               ? probeRaw
               : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+          probePctForDiag = probePct;
           if (probePct > 0) {
             const otmProbe = evaluateOtmPutLiquidityProbe(chain, spotForChain, probePct);
             if (!otmProbe.ok) {
@@ -560,7 +640,15 @@ export function createWatchlistBuilder(deps) {
         });
         const tierBias = tierMicroBias(symbol);
         const tierLabel = tierLabelFromIndex(getPriorityTier(symbol));
-        keptRows.push({
+        const atmLiquidityScore = funnelDiag ? atmSpreadToLiquidityScore(atmSpreadPct) : null;
+        const mcapBRaw = fundRow != null && typeof fundRow === "object" ? toNumber(fundRow.marketCapB) : null;
+        const marketCapB =
+          Number.isFinite(mcapBRaw) && mcapBRaw > 0 ? Math.round(mcapBRaw * 1000) / 1000 : null;
+        const otmProbeScore =
+          funnelDiag && criteria.requireLiquidOptions && probePctForDiag > 0 ? (otmProbeOk ? 100 : 0) : null;
+
+        /** @type {Record<string, unknown>} */
+        const keptRow = {
           symbol,
           category,
           watchlistScore,
@@ -568,13 +656,197 @@ export function createWatchlistBuilder(deps) {
           tierLabel,
           tierBias,
           sortScore: watchlistScore + tierBias,
-        });
+        };
+        if (funnelDiag) {
+          Object.assign(keptRow, {
+            quotePrice: spot,
+            avgVolume: volUsed,
+            marketCapB,
+            weeklyOptionsAvailable: hasWeeklyStyle,
+            atmLiquidityScore,
+            otmProbeScore,
+            tags: normalizeMasterTags(row.tags),
+            sources: Array.isArray(row.sources) ? row.sources : [],
+          });
+        }
+        keptRows.push(keptRow);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         errors.push({ symbol, message });
         rejected.push({ symbol, category, reason: "error", detail: { message } });
       }
     });
+
+    /** @type {unknown[] | null} */
+    let rejectedCandidatesBeforeYahooLiquidityV3LiveSafe = null;
+
+    if (liveV3Safe && isYahooLiquidityV3SimulationEnabled()) {
+      rejectedCandidatesBeforeYahooLiquidityV3LiveSafe = rejected.map((r) => ({
+        symbol: r.symbol,
+        rejectionStage: rejectionStageFromWatchlistReason(r.reason),
+        rejectionReasons: [String(r.reason || "unknown")],
+        partialMetrics: {
+          category: r.category,
+          detail: r.detail ?? null,
+        },
+      }));
+    }
+
+    if (liveV3Safe) {
+      const v3Opts = { maxAbsoluteSpreadV3: resolvedV3SimulationMaxAbsoluteSpread() };
+
+      /** @type {Record<string, number>} */
+      const excludedSummary = {
+        weak: 0,
+        noRealBidAsk: 0,
+        otmProbe: 0,
+        spreadPctFailed: 0,
+        patternNotPure: 0,
+        otherLiquidFailures: 0,
+        overCap: 0,
+      };
+
+      for (const r of rejected) {
+        const ev = evaluateYahooLiquidityV3RecoveryEligibility(rejectedEntryToDiagShape(r), v3Opts);
+        switch (ev.kind) {
+          case "exclude_weak":
+            excludedSummary.weak += 1;
+            break;
+          case "exclude_no_real_bid_ask":
+            excludedSummary.noRealBidAsk += 1;
+            break;
+          case "exclude_otm":
+            excludedSummary.otmProbe += 1;
+            break;
+          case "exclude_spread_pct":
+            excludedSummary.spreadPctFailed += 1;
+            break;
+          case "exclude_pattern_not_pure":
+            excludedSummary.patternNotPure += 1;
+            break;
+          case "exclude_other_liquid":
+            excludedSummary.otherLiquidFailures += 1;
+            break;
+          case "exclude_over_cap":
+            excludedSummary.overCap += 1;
+            break;
+          default:
+            break;
+        }
+      }
+
+      const nextRejected = [];
+      /** @type {{ r: { symbol: string, category: UniverseCategory, reason: string, detail?: unknown, _v3LiveRecoveryCtx?: Record<string, unknown> }, ev: Record<string, unknown> }[]} */
+      const recoveredPairs = [];
+
+      for (const r of rejected) {
+        if (r.reason === "liquid_options_failed" && r._v3LiveRecoveryCtx) {
+          const ev = evaluateYahooLiquidityV3RecoveryEligibility(rejectedEntryToDiagShape(r), v3Opts);
+          if (ev.kind === "recovered") {
+            recoveredPairs.push({ r, ev });
+            continue;
+          }
+        }
+        nextRejected.push(r);
+      }
+
+      rejected.length = 0;
+      rejected.push(...nextRejected);
+
+      /** @type {string[]} */
+      const recoveredSymbolsList = [];
+      /** @type {string[]} */
+      const highQualityRecoveredList = [];
+      /** @type {string[]} */
+      const mediumQualityRecoveredList = [];
+
+      for (const { r, ev } of recoveredPairs) {
+        const ctx = r._v3LiveRecoveryCtx;
+        delete r._v3LiveRecoveryCtx;
+
+        const universeRow = ctx?.universeRow;
+        if (!universeRow || typeof universeRow !== "object") continue;
+
+        const sym = String(universeRow.symbol || "").trim().toUpperCase();
+        const cat = universeRow.category;
+        const fundRowRec = fundamentalsBySymbol.get(sym);
+        const mcapBRawRec =
+          fundRowRec != null && typeof fundRowRec === "object" ? toNumber(fundRowRec.marketCapB) : null;
+        const marketCapBRec =
+          Number.isFinite(mcapBRawRec) && mcapBRawRec > 0 ? Math.round(mcapBRawRec * 1000) / 1000 : null;
+
+        const atmSpreadPctSnap = toNumber(ev.liquiditySnapshot?.spreadPct);
+        const volUsedRec = toNumber(ctx.volumeUsed);
+
+        const { score: wlScore, reasons: wlReasons } = computeWatchlistCandidateScore(universeRow, {
+          spot: toNumber(ctx.spot),
+          maxPrice: criteria.maxPrice,
+          minPrice: toNumber(ctx.minPx),
+          minVolume: criteria.minVolume,
+          volumeUsed: volUsedRec,
+          hasWeeklyStyle: ctx.hasWeeklyStyle === true,
+          optionLiquidityOk: true,
+          atmSpreadPct: Number.isFinite(atmSpreadPctSnap) ? atmSpreadPctSnap : null,
+        });
+
+        const tierBiasRec = tierMicroBias(sym);
+        const tierLabelRec = tierLabelFromIndex(getPriorityTier(sym));
+        const atmLiqScoreRec = funnelDiag ? atmSpreadToLiquidityScore(atmSpreadPctSnap) : null;
+
+        /** @type {Record<string, unknown>} */
+        const keptRowRec = {
+          symbol: sym,
+          category: cat,
+          watchlistScore: wlScore,
+          watchlistScoreReasons: wlReasons,
+          tierLabel: tierLabelRec,
+          tierBias: tierBiasRec,
+          sortScore: wlScore + tierBiasRec,
+          recoveredByYahooLiquidityV3LiveSafe: true,
+          v3Bucket: ev.bucket,
+          recoveryReason: ev.recoveryReason,
+          liquiditySnapshot: ev.liquiditySnapshot,
+          v3RiskFlags: Array.isArray(ev.risks) ? ev.risks : [],
+        };
+
+        if (funnelDiag) {
+          Object.assign(keptRowRec, {
+            quotePrice: toNumber(ctx.spot),
+            avgVolume: volUsedRec,
+            marketCapB: marketCapBRec,
+            weeklyOptionsAvailable: ctx.hasWeeklyStyle === true,
+            atmLiquidityScore: atmLiqScoreRec,
+            otmProbeScore: null,
+            tags: normalizeMasterTags(universeRow.tags),
+            sources: Array.isArray(universeRow.sources) ? universeRow.sources : [],
+          });
+        }
+
+        keptRows.push(keptRowRec);
+        recoveredSymbolsList.push(sym);
+        if (ev.bucket === "high") highQualityRecoveredList.push(sym);
+        else if (ev.bucket === "medium") mediumQualityRecoveredList.push(sym);
+      }
+
+      stripV3LiveRecoveryCtx(rejected);
+
+      yahooLiquidityV3LiveSafe.excludedSummary = excludedSummary;
+      yahooLiquidityV3LiveSafe.recoveredCount = [...new Set(recoveredSymbolsList)].length;
+      yahooLiquidityV3LiveSafe.recoveredSymbols = [...new Set(recoveredSymbolsList)].sort();
+      yahooLiquidityV3LiveSafe.highQualityRecovered = [...new Set(highQualityRecoveredList)].sort();
+      yahooLiquidityV3LiveSafe.mediumQualityRecovered = [...new Set(mediumQualityRecoveredList)].sort();
+
+      const hiN = yahooLiquidityV3LiveSafe.highQualityRecovered.length;
+      const medN = yahooLiquidityV3LiveSafe.mediumQualityRecovered.length;
+      console.warn(
+        `${LOG_YAHOO_LIQUIDITY_V3_LIVE} recovered count=${yahooLiquidityV3LiveSafe.recoveredCount} high=${hiN} medium=${medN}`
+      );
+      console.warn(`${LOG_YAHOO_LIQUIDITY_V3_LIVE} weak excluded=${excludedSummary.weak}`);
+      console.warn(`${LOG_YAHOO_LIQUIDITY_V3_LIVE} no_real_bid_ask excluded=${excludedSummary.noRealBidAsk}`);
+      console.warn(`${LOG_YAHOO_LIQUIDITY_V3_LIVE} otm excluded=${excludedSummary.otmProbe}`);
+    } else {
+      stripV3LiveRecoveryCtx(rejected);
+    }
 
     keptRows.sort((a, b) => {
       if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
@@ -584,6 +856,10 @@ export function createWatchlistBuilder(deps) {
     for (const r of keptRows) {
       if (watchlist.length >= limit) break;
       watchlist.push(r.symbol);
+    }
+
+    if (liveV3Safe) {
+      console.warn(`${LOG_YAHOO_LIQUIDITY_V3_LIVE} final estimated watchlist=${watchlist.length}`);
     }
 
     const overflow = Math.max(0, keptRows.length - limit);
@@ -648,6 +924,89 @@ export function createWatchlistBuilder(deps) {
         probeForStats > 0,
     };
 
+    const limitCutoffSortScore =
+      keptRows.length === 0 ? 0 : keptRows[Math.min(limit, keptRows.length) - 1].sortScore;
+
+    let watchlistDiagnosticsV1;
+    if (funnelDiag) {
+      const masterEnabledAll = loadMasterUniverse({ categories: [] });
+      const universeTotalCount =
+        masterEnabledAll !== null ? masterEnabledAll.length : rawUniverse.length;
+      const universeAfterCategoryCount = rawUniverse.length;
+      const universeAfterCryptoBlockCount = source.length;
+
+      const minMcapB = toNumber(criteria.minMarketCapB);
+      watchlistDiagnosticsV1 = {
+        universeTotalCount,
+        universeAfterCategoryCount,
+        universeAfterCryptoBlockCount,
+        watchlistKeptCount: watchlist.length,
+        watchlistRejectedCount: rejected.length,
+        watchlistTruncatedCount: overflow,
+        fullRankedCandidates: keptRows.map((r, i) => {
+          const excludedByLimit = i >= limit;
+          const keptBeforeLimit = i < limit;
+          const dataQualityFlags = [];
+          if (minMcapB > 0 && (r.marketCapB == null || !Number.isFinite(r.marketCapB))) {
+            dataQualityFlags.push("market_cap_unknown_allowed");
+          }
+          if (r.recoveredByYahooLiquidityV3LiveSafe === true) {
+            dataQualityFlags.push("yahoo_liquidity_v3_live_safe_recovered");
+          }
+          const wf = buildWatchlistYahooFunnelFlags(
+            {
+              rankBeforeLimit: i + 1,
+              watchlistScore: r.watchlistScore,
+              sortScore: r.sortScore,
+              excludedByLimit,
+              atmLiquidityScore: r.atmLiquidityScore ?? null,
+            },
+            { limitCutoffSortScore }
+          );
+          return {
+            symbol: r.symbol,
+            rankBeforeLimit: i + 1,
+            watchlistScore: r.watchlistScore,
+            tier: r.tierLabel,
+            category: r.category,
+            quotePrice: r.quotePrice ?? null,
+            avgVolume: r.avgVolume ?? null,
+            marketCap: r.marketCapB ?? null,
+            weeklyOptionsAvailable: r.weeklyOptionsAvailable ?? false,
+            atmLiquidityScore: r.atmLiquidityScore ?? null,
+            otmProbeScore: r.otmProbeScore ?? null,
+            rejectionReasons: [],
+            keptBeforeLimit,
+            excludedByLimit,
+            tags: Array.isArray(r.tags) ? r.tags : [],
+            dataQualityFlags,
+            notes: Array.isArray(r.watchlistScoreReasons) ? [...r.watchlistScoreReasons] : [],
+            excluded_by_limit_but_viable: wf.excluded_by_limit_but_viable,
+            yahooFunnelExplicitFlags: wf.yahoo_funnel_flags_v1,
+            recoveredByYahooLiquidityV3LiveSafe: r.recoveredByYahooLiquidityV3LiveSafe === true,
+            v3Bucket: r.v3Bucket ?? null,
+            recoveryReason: r.recoveryReason ?? null,
+            liquiditySnapshot: r.liquiditySnapshot ?? null,
+            v3RiskFlags: Array.isArray(r.v3RiskFlags) ? r.v3RiskFlags : [],
+          };
+        }),
+        rejectedCandidates: rejected.map((r) => ({
+          symbol: r.symbol,
+          rejectionStage: rejectionStageFromWatchlistReason(r.reason),
+          rejectionReasons: [String(r.reason || "unknown")],
+          partialMetrics: {
+            category: r.category,
+            detail: r.detail ?? null,
+          },
+        })),
+        futureInspectorHints: {
+          yahooFunnelInspector: "fullRankedCandidates + rejectedCandidates",
+          missedCandidates: "fullRankedCandidates (excluded_by_limit_but_viable) + rejectedCandidates",
+          ibkrWasteAnalyzer: "scanFunnelDiagnosticsV1 après POST /scan_shortlist",
+        },
+      };
+    }
+
     const base = {
       ok: true,
       criteria: {
@@ -659,6 +1018,11 @@ export function createWatchlistBuilder(deps) {
       watchlistDiagnostics,
       rejected,
       errors,
+      yahooLiquidityV3LiveSafe,
+      ...(rejectedCandidatesBeforeYahooLiquidityV3LiveSafe
+        ? { rejectedCandidatesBeforeYahooLiquidityV3LiveSafe }
+        : {}),
+      ...(watchlistDiagnosticsV1 ? { watchlistDiagnosticsV1 } : {}),
     };
 
     if (otmReplayExport) {

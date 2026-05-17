@@ -1,0 +1,675 @@
+{
+  "meta": {
+    "auditType": "post_v3_impact_readonly",
+    "generatedAt": "2026-05-17T09:51:55.538Z",
+    "sources": [
+      {
+        "path": "debug/yahoo-liquidity-v3-simulation-2026-05-17T09-41-44.json",
+        "role": "primary_v3_recovered_metadata_simulation_export"
+      },
+      {
+        "path": "debug/combos-inspector-2026-05-17.json",
+        "generatedAt": "2026-05-17T04:25:54.025Z",
+        "role": "capital_combo_replay_fixture",
+        "caveat": "Généré avant la session V3 listée; 29 candidats, **aucun** des 22 symboles V3 — ne permet pas de mesurer IBKR ni Capital Combo pour cette session."
+      }
+    ],
+    "limitations": [
+      "Aucun export `POST /scan_shortlist` ou réponse dashboard post-V3 dans le dépôt : shortlist finale Wheel, rendements Yahoo, SAFE/BALANCED/AGGRESSIVE par titre **non observables** ici.",
+      "retainedAfterFiltersCount (88) du rapport V3 reflète déjà keptRows après récupération live; estimatedRetainedAfterFiltersAfterSim (110) = 88+22 suit la formule simulation (+ recoveredCount) et **double-compte** les récupérés quand l’export est pris **après** live safe (les 22 sont déjà dans les 88).",
+      "Les champs `recoveredByYahooLiquidityV3LiveSafe` sur chaque ligne de scan ne sont pas disponibles dans les artefacts ; l’audit s’appuie sur `simulated.recoveredDetail` du export V3 (même symbolique que `recoveryReason` / `liquiditySnapshot` / `v3RiskFlags` côté watchlist).",
+      "Les symboles `bestV3Symbols` sont les **high bucket sans `v3RiskFlags`** (liquidité recovery plus « propre »). Les `high` avec risques (ex. CVX, WMT, TQQQ) sont classés dans `noisyV3Symbols` avec les `medium`."
+    ]
+  },
+  "summary": {
+    "v3ExportVersion": "yahoo_liquidity_v3_simulation_v1",
+    "v3Scenario": "balanced_v3_controlled_absolute_spread",
+    "v3ExportedAt": "2026-05-17T09:41:44.168Z",
+    "baselineWatchlistKeptCount": 88,
+    "yahooLiquidityRejectionRowsBaseline": 272,
+    "recoveredCount": 22,
+    "recoveredSymbols": [
+      "AA",
+      "APLD",
+      "BABA",
+      "CCJ",
+      "CRM",
+      "CVNA",
+      "CVX",
+      "DIS",
+      "FCX",
+      "IBKR",
+      "IONQ",
+      "LULU",
+      "MP",
+      "MRK",
+      "OKLO",
+      "RTX",
+      "SHOP",
+      "TQQQ",
+      "UAL",
+      "VST",
+      "WMT",
+      "XYZ"
+    ],
+    "highQualityRecovered": [
+      "AA",
+      "BABA",
+      "CRM",
+      "CVX",
+      "MP",
+      "OKLO",
+      "SHOP",
+      "TQQQ",
+      "VST",
+      "WMT"
+    ],
+    "mediumQualityRecovered": [
+      "APLD",
+      "CCJ",
+      "CVNA",
+      "DIS",
+      "FCX",
+      "IBKR",
+      "IONQ",
+      "LULU",
+      "MRK",
+      "RTX",
+      "UAL",
+      "XYZ"
+    ],
+    "estimatedRetainedAfterFiltersAfterSim": 110,
+    "retainedAfterFiltersCountIfPresent": 88,
+    "limitAppliedIfPresent": 150,
+    "simulationDoubleCountWarning": "retainedAfterFiltersCount (88) du rapport V3 reflète déjà keptRows après récupération live; estimatedRetainedAfterFiltersAfterSim (110) = 88+22 suit la formule simulation (+ recoveredCount) et **double-compte** les récupérés quand l’export est pris **après** live safe (les 22 sont déjà dans les 88)."
+  },
+  "v3RecoveredImpact": {
+    "totalRecovered": 22,
+    "byBucket": {
+      "high": [
+        "AA",
+        "BABA",
+        "CRM",
+        "CVX",
+        "MP",
+        "OKLO",
+        "SHOP",
+        "TQQQ",
+        "VST",
+        "WMT"
+      ],
+      "medium": [
+        "APLD",
+        "CCJ",
+        "CVNA",
+        "DIS",
+        "FCX",
+        "IBKR",
+        "IONQ",
+        "LULU",
+        "MRK",
+        "RTX",
+        "UAL",
+        "XYZ"
+      ]
+    },
+    "recoveredDetail": [
+      {
+        "symbol": "AA",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.21 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.21,
+          "spreadPct": 9.4,
+          "volume": 377,
+          "openInterest": 296,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "APLD",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.28 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.28,
+          "spreadPct": 11.43,
+          "volume": 242,
+          "openInterest": 85,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": false,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "BABA",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.25 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.25,
+          "spreadPct": 7.63,
+          "volume": 547,
+          "openInterest": 163,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "CCJ",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.35 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.35,
+          "spreadPct": 9.93,
+          "volume": 95,
+          "openInterest": 208,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "CRM",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.3 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.3,
+          "spreadPct": 8.22,
+          "volume": 293,
+          "openInterest": 375,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "CVX",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.35 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.35,
+          "spreadPct": 10.37,
+          "volume": 104,
+          "openInterest": 121,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "CVNA",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.3 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.3,
+          "spreadPct": 13.64,
+          "volume": 233,
+          "openInterest": 415,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "DIS",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.21 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.21,
+          "spreadPct": 13.77,
+          "volume": 435,
+          "openInterest": 299,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "FCX",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.23 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.23,
+          "spreadPct": 13.33,
+          "volume": 714,
+          "openInterest": 225,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "IBKR",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.3 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.3,
+          "spreadPct": 14.63,
+          "volume": 72,
+          "openInterest": 86,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": false,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "IONQ",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.35 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.35,
+          "spreadPct": 13.23,
+          "volume": 300,
+          "openInterest": 259,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "LULU",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.34 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.34,
+          "spreadPct": 13.18,
+          "volume": 454,
+          "openInterest": 97,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": false,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "MP",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.25 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.25,
+          "spreadPct": 10.8,
+          "volume": 112,
+          "openInterest": 985,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "MRK",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.25 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.25,
+          "spreadPct": 18.18,
+          "volume": 58,
+          "openInterest": 132,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "OKLO",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.25 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.25,
+          "spreadPct": 8.7,
+          "volume": 721,
+          "openInterest": 238,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "RTX",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.35 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.35,
+          "spreadPct": 14.14,
+          "volume": 180,
+          "openInterest": 651,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "SHOP",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.22 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.22,
+          "spreadPct": 7.75,
+          "volume": 197,
+          "openInterest": 1044,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "TQQQ",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.26 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.26,
+          "spreadPct": 9.56,
+          "volume": 5570,
+          "openInterest": 2679,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "leveraged_etf_hint"
+        ]
+      },
+      {
+        "symbol": "UAL",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.35 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.35,
+          "spreadPct": 12.66,
+          "volume": 121,
+          "openInterest": 73,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": false,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "VST",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.25 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.25,
+          "spreadPct": 6.99,
+          "volume": 174,
+          "openInterest": 351,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      },
+      {
+        "symbol": "WMT",
+        "v3Bucket": "high",
+        "recoveryReason": "balanced_v3: absolute_spread 0.33 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.33,
+          "spreadPct": 10.7,
+          "volume": 400,
+          "openInterest": 191,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": [
+          "elevated_absolute_spread"
+        ]
+      },
+      {
+        "symbol": "XYZ",
+        "v3Bucket": "medium",
+        "recoveryReason": "balanced_v3: absolute_spread 0.22 <= sim_max 0.35 (baseline max 0.2) ; volume/oi/spreadPct inchangés",
+        "liquiditySnapshot": {
+          "absoluteSpread": 0.22,
+          "spreadPct": 14.19,
+          "volume": 59,
+          "openInterest": 540,
+          "checks": {
+            "hasRealMarket": true,
+            "hasLastFallback": true,
+            "absoluteSpreadOk": false,
+            "spreadPctOk": true,
+            "volumeOk": true,
+            "openInterestOk": true,
+            "rejectReason": null
+          }
+        },
+        "v3RiskFlags": []
+      }
+    ],
+    "simulationRiskSection": {
+      "leveragedFlagged": [
+        "TQQQ"
+      ],
+      "macroEtfFlagged": [
+        "EEM"
+      ]
+    },
+    "inferredWatchlistMembership": "Si `stats.retainedAfterFiltersCount` === longueur watchlist (88) et `limit` >= 88, alors **tous** les `keptRows` entrent dans la watchlist : les 22 récupérés y figurent et peuvent être scannés si le client envoie toute la watchlist à `/scan_shortlist`.",
+    "countEligibleToScanIfFullWatchlistSent": 22
+  },
+  "ibkrPassThrough": {
+    "measurableFromRepo": false,
+    "v3SymbolsInComboFixture": [],
+    "v3SymbolsPassedIbkrInComboFixture": [],
+    "v3SymbolsRejectedIbkrInComboFixture": [],
+    "ibkrRejectedSnapshotInComboFixture": [
+      "APA",
+      "BAC",
+      "ETHA",
+      "HL",
+      "JD",
+      "NVO",
+      "VG",
+      "WFC"
+    ],
+    "note": "Impossible de compter pass/reject IBKR pour les 22 symboles V3 à partir de combos-inspector (aucun chevauchement). Requiert export shadow batch ou payload dashboard avec métriques IBKR pour la même session."
+  },
+  "capitalComboImpact": {
+    "measurableFromRepo": false,
+    "reason": "Capital Combo (optimizer V2) côté dashboard : pas de fixture alignée sur les 22 symboles V3. Le fichier combos-inspector est une capture partielle (29 symboles) et disjointe.",
+    "comboFixtureCandidateCount": 29,
+    "comboFixtureCapital": 25500
+  },
+  "bucketImpact": {
+    "safe": {
+      "status": "unknown_without_scan_payload",
+      "explanation": "Le mode SAFE par titre (`recommendedMode` / strikes) dépend du résultat Wheel + earnings — absent des artefacts pour les symboles V3."
+    },
+    "balanced": {
+      "status": "unknown_without_scan_payload",
+      "explanation": "Idem — nécessite shortlist / données dashboard."
+    },
+    "aggressive": {
+      "status": "unknown_without_scan_payload",
+      "explanation": "Idem — nécessite shortlist / données dashboard."
+    }
+  },
+  "bestV3Symbols": [
+    "AA",
+    "BABA",
+    "CRM",
+    "MP",
+    "OKLO",
+    "SHOP",
+    "VST"
+  ],
+  "noisyV3Symbols": [
+    "APLD",
+    "CCJ",
+    "CVNA",
+    "CVX",
+    "DIS",
+    "FCX",
+    "IBKR",
+    "IONQ",
+    "LULU",
+    "MRK",
+    "RTX",
+    "TQQQ",
+    "UAL",
+    "WMT",
+    "XYZ"
+  ],
+  "recommendations": [
+    "Exporter une capture unique post-session : `watchlistDiagnosticsV1.fullRankedCandidates` + réponse `POST /scan_shortlist` + métriques IBKR (`ibkrCallMetrics`) + snapshot Capital Combo pour corréler symbole par symbole.",
+    "Pour le suivi : prioriser les titres **high** sans `v3RiskFlags` et spreadPct bas ; surveiller **TQQQ** (levier) et les **medium** avec `elevated_absolute_spread` ou sans `hasLastFallback`.",
+    "Ne pas utiliser seul `estimatedRetainedAfterFiltersAfterSim` comme signal de marge live lorsque live safe est déjà actif — voir `summary.simulationDoubleCountWarning`."
+  ]
+}

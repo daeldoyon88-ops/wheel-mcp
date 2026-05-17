@@ -10,7 +10,10 @@
     "test": "node --test \"app/**/*.test.mjs\"",
     "refresh:fundamentals": "node scripts/refresh_fundamentals_cache.js",
     "simulate:capital-combos": "node scripts/simulateCapitalCombosFromFixture.js data/fixtures/latest-capital-combo-export.json",
-    "compare:otm-offline": "node scripts/compareLiquidityOtmProbeOffline.mjs"
+    "compare:otm-offline": "node scripts/compareLiquidityOtmProbeOffline.mjs",
+    "simulate:oklo-swap": "node scripts/aggressiveOkloSwapSimulation.mjs",
+    "simulate:forced-first-topn": "node scripts/aggressiveForcedFirstTopNSimulation.mjs",
+    "recommend:aggressive-alt-v1": "node scripts/aggressiveAlternativeRecommendationV1.mjs"
   },
   "engines": {
     "node": ">=20"

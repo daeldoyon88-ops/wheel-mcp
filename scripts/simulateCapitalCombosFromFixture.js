@@ -16,6 +16,7 @@ import {
   formatCapBlockerReason,
 } from "../wheel-dashboard/src/capitalComboEngineV2.js";
 import { buildPortfolioCombos } from "../wheel-dashboard/src/capitalComboPortfolio.js";
+import { writeCapitalComboAllocationTraceFile } from "../app/diagnostics/capitalComboAllocationTraceWriter.mjs";
 
 const CAP_GRID = [25500, 30000, 35000, 50000];
 const POS_GRID = [5, 6, 8, 10];
@@ -233,6 +234,7 @@ async function main() {
   const baseOptimizer = mergeOptimizerBase(payload);
 
   const results = [];
+  let exportedCapitalComboTrace = false;
 
   /** @typedef {{ capital: number, maxPositions: number, leftoverVariant: string, leftoverOn: boolean, usableCapital: number }} Scenario */
 
@@ -267,6 +269,8 @@ async function main() {
           safeLeftoverDensityPassEnabled: false,
         };
 
+    const comboHold = {};
+
     let combosAll;
     try {
       combosAll = buildPortfolioCombos(
@@ -275,12 +279,31 @@ async function main() {
         maxPctUse,
         sc.maxPositions,
         ibkrRejected,
-        { optimizerV2: optimizerV2Override },
+        {
+          optimizerV2: optimizerV2Override,
+          ...(process.env.CAPITAL_COMBO_TRACE_DEBUG === "1"
+            ? {
+                comboTracePayloadHolder: comboHold,
+                capitalComboTraceSuppressConsoleLogs: exportedCapitalComboTrace,
+              }
+            : {}),
+        },
       );
     } catch (e) {
       console.error("Simulation échouée:", e?.message ?? e);
       process.exitCode = 1;
       return;
+    }
+
+    if (
+      process.env.CAPITAL_COMBO_TRACE_DEBUG === "1" &&
+      !exportedCapitalComboTrace &&
+      comboHold.capitalComboAllocationTraceV1 != null
+    ) {
+      const p = writeCapitalComboAllocationTraceFile(comboHold.capitalComboAllocationTraceV1);
+      console.log("");
+      console.log(`[combo-trace] wrote ${p}`);
+      exportedCapitalComboTrace = true;
     }
 
     if (!Array.isArray(combosAll) || combosAll.length === 0) {

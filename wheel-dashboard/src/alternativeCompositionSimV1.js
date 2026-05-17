@@ -192,7 +192,7 @@ function buildPickFromSelection(candidate, selectionReason, comboAllocationPhase
   };
 }
 
-class VirtualAllocator {
+export class VirtualAllocator {
   constructor(scoredPool, modeAlloc, usableCapital, maxPositionLines, minTargetPositions) {
     this.scoredPool = scoredPool;
     this.modeAlloc = modeAlloc;
@@ -518,7 +518,17 @@ class VirtualAllocator {
     return best;
   }
 
-  runSimulation(modeId, primaryScoreFn, fillerScoreFn, targetGoalPct = 95) {
+  runSimulation(modeId, primaryScoreFn, fillerScoreFn, targetGoalPct = 95, forcedFirstTicker = null) {
+    const forcedTk = forcedFirstTicker != null ? String(forcedFirstTicker).trim().toUpperCase() : "";
+    if (forcedTk) {
+      const cand = this.scoredPool.find((c) => String(c?.ticker || "").trim().toUpperCase() === forcedTk);
+      if (cand) {
+        const ev = this.evaluateCandidate(cand, false);
+        if (ev.ok) {
+          this.applySelection(ev, "sim_forced_first");
+        }
+      }
+    }
     while (true) {
       const best = this.pickBestPrimary(primaryScoreFn, false);
       if (best) {
@@ -563,7 +573,7 @@ function simMyopicBalanced(evaluated, candidate) {
   );
 }
 
-function makeFillerFn(usableCapitalEnvelope) {
+export function makeFillerFn(usableCapitalEnvelope) {
   return (evaluated, candidate, freeCapital, freeAfter, usedSoftCaps) => {
   const deployEfficiency = 1 - freeAfter / Math.max(1, freeCapital);
   const smallC = 1 - Math.min(1, candidate.capitalPerContract / Math.max(1, usableCapitalEnvelope));
@@ -592,7 +602,7 @@ function ftqsProxy(cand) {
   return 40 + 18 * gradeRank(cand.finalDisplayGrade);
 }
 
-function buildCompositionSnapshot(picks, usableCapital, grossCapital, scoredPool) {
+export function buildCompositionSnapshot(picks, usableCapital, grossCapital, scoredPool) {
   const used = picks.reduce((s, p) => s + Number(p.capitalUsed ?? 0), 0);
   const prem = picks.reduce((s, p) => s + Number(p.premiumCollected ?? 0), 0);
   const distinct = new Set(picks.map((p) => p.ticker)).size;
@@ -706,6 +716,13 @@ function baseSimDistinct(snap) {
 /**
  * @param {object} params
  */
+export function createBalancedVirtualAllocationScorers(usableCapitalEnvelope) {
+  return {
+    primaryScoreFn: (ev, cand) => simMyopicBalanced(ev, cand),
+    fillerScoreFn: makeFillerFn(usableCapitalEnvelope),
+  };
+}
+
 export function buildAlternativeCompositionSimV1(params) {
   const {
     bucketLabel,

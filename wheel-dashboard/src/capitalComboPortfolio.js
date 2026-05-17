@@ -31,6 +31,466 @@ function resolveOptimizerV2ForCombo(overrideFlags) {
   return getCapitalOptimizerV2Flags();
 }
 
+/** Symboles focal — même liste que dans l’export `nearMissFocus` (diagnostic lecture seule). */
+export const CAPITAL_COMBO_ALLOCATION_TRACE_FOCUS_SYMBOLS = [
+  "OKLO",
+  "SHOP",
+  "CRM",
+  "MP",
+  "APLD",
+  "IONQ",
+  "WMT",
+  "CVNA",
+  "AA",
+  "UAL",
+  "CCJ",
+  "XYZ",
+  "LULU",
+];
+
+/** Désactivé par défaut : `capitalComboTraceDebug: true` sur `options`, ou env `CAPITAL_COMBO_TRACE_DEBUG=1`. */
+export function resolveCapitalComboTraceDebugEnabled(options) {
+  if (options && options.capitalComboTraceDebug === true) return true;
+  if (typeof process !== "undefined" && process.env && process.env.CAPITAL_COMBO_TRACE_DEBUG === "1") {
+    return true;
+  }
+  return false;
+}
+
+function pickFiniteOrNull(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function buildShortlistSnapshotRowFromEligibleCandidate(candidate) {
+  const missingData = [];
+  const safeLeg = candidate?._safeLeg ?? candidate?.safeStrike ?? null;
+  const aggLeg = candidate?._aggLeg ?? candidate?.aggressiveStrike ?? null;
+
+  const finalScore =
+    candidate?.finalScore != null && Number.isFinite(Number(candidate.finalScore))
+      ? Number(candidate.finalScore)
+      : candidate?.proFinalScore != null && Number.isFinite(Number(candidate.proFinalScore))
+        ? Number(candidate.proFinalScore)
+        : null;
+  if (finalScore == null) missingData.push("finalScore");
+
+  const qualityScore = pickFiniteOrNull(candidate?.qualityScore ?? candidate?._qualityOverlay?.qualityScore);
+  if (qualityScore == null) missingData.push("qualityScore");
+
+  const strike = candidate?.selectedStrikeValue ?? candidate?.strike ?? safeLeg?.strike ?? aggLeg?.strike ?? null;
+  if (!Number.isFinite(Number(strike))) missingData.push("strike");
+
+  const bid =
+    candidate?.selectedLeg?.bid ??
+    aggLeg?.bid ??
+    safeLeg?.bid ??
+    pickFiniteOrNull(candidate?.premium) ??
+    null;
+  const premiumUsed =
+    candidate?.selectedPremiumUnit ??
+    candidate?.selectedLeg?.premiumUsed ??
+    pickFiniteOrNull(safeLeg?.premiumUsed ?? safeLeg?.bid) ??
+    pickFiniteOrNull(aggLeg?.premiumUsed ?? aggLeg?.bid) ??
+    bid;
+
+  if (premiumUsed == null) missingData.push("bidPremium");
+
+  const expiration =
+    candidate?.targetExpiration ??
+    candidate?.selectedExpiration ??
+    candidate?.expiration ??
+    candidate?.optionsExpiration ??
+    null;
+  if (expiration == null) missingData.push("expiration");
+
+  const expectedMovePct =
+    pickFiniteOrNull(candidate?.adjustedMovePct) ??
+    pickFiniteOrNull(candidate?.expectedMovePct) ??
+    (pickFiniteOrNull(candidate?.currentPrice) > 0 && pickFiniteOrNull(candidate?.adjustedMove) != null
+      ? (Number(candidate.adjustedMove) / Number(candidate.currentPrice)) * 100
+      : pickFiniteOrNull(candidate?.expectedMove));
+
+  const lowerBound = pickFiniteOrNull(candidate?.lowerBound);
+
+  return {
+    symbol: String(candidate?.ticker || "").trim().toUpperCase() || null,
+    finalScore,
+    qualityScore,
+    weeklyReturnPct: pickFiniteOrNull(candidate?.weeklyReturn ?? candidate?.selectedYieldPct),
+    safeWeeklyReturnPct:
+      candidate?._safeYieldPct != null
+        ? pickFiniteOrNull(candidate._safeYieldPct)
+        : pickFiniteOrNull(safeLeg?.weeklyYield ?? safeLeg?.periodYield),
+    aggressiveWeeklyReturnPct:
+      candidate?._aggYieldPct != null
+        ? pickFiniteOrNull(candidate._aggYieldPct)
+        : pickFiniteOrNull(aggLeg?.weeklyYield ?? aggLeg?.periodYield),
+    bid,
+    premiumOrBidUsedForLeg: premiumUsed,
+    strike: pickFiniteOrNull(strike),
+    expiration,
+    capitalRequiredUsd: candidate?.capitalPerContract != null ? pickFiniteOrNull(candidate.capitalPerContract) : null,
+    spreadPct: pickFiniteOrNull(candidate?.spreadPct ?? candidate?.selectedSpreadPct ?? safeLeg?.spreadPct ?? aggLeg?.spreadPct),
+    distancePct: pickFiniteOrNull(candidate?.selectedDistancePct ?? candidate?.distancePct ?? safeLeg?.distancePct ?? aggLeg?.distancePct),
+    popPct: pickFiniteOrNull(candidate?._popForCombo),
+    expectedMovePct: expectedMovePct,
+    lowerBound,
+    recoveredByYahooLiquidityV3LiveSafe:
+      typeof candidate?.recoveredByYahooLiquidityV3LiveSafe === "boolean"
+        ? candidate.recoveredByYahooLiquidityV3LiveSafe
+        : candidate?.recoveredByYahooLiquidityV3LiveSafe === true
+          ? true
+          : candidate?.recoveredByYahooLiquidityV3LiveSafe == null
+            ? null
+            : !!candidate.recoveredByYahooLiquidityV3LiveSafe,
+    v3Bucket: candidate?.v3Bucket ?? null,
+    v3RiskFlags:
+      candidate?.v3RiskFlags ??
+      candidate?.yahooLiquidityV3?.riskFlags ??
+      candidate?.diagnostics?.v3RiskFlags ??
+      candidate?.yahooLiquidityV3Diagnostics?.v3RiskFlags ??
+      null,
+    missingData: missingData.length ? missingData : undefined,
+  };
+}
+
+function serializeScoredCandidateForTrace(candidate, rankAfterSort, modeLabel) {
+  const bd = candidate?._comboScoreBreakdown ?? null;
+  const ov = candidate?._qualityOverlay ?? {};
+  const meta = candidate?._tickerMeta ?? {};
+
+  const penaltyHints = [...(Array.isArray(ov.qualityWarnings) ? ov.qualityWarnings : [])];
+  const primaryPenaltiesSummary = penaltyHints.slice(0, 8).join("; ") || null;
+
+  return {
+    symbol: String(candidate?.ticker || "").trim().toUpperCase() || null,
+    modeSimulatedBucket: modeLabel ?? null,
+    rankAfterCompositeSort: rankAfterSort ?? null,
+    compositeAllocScore:
+      candidate?.allocScore != null && Number.isFinite(Number(candidate.allocScore))
+        ? Number(candidate.allocScore)
+        : null,
+    comboScoreBreakdown: bd
+      ? {
+          totalScore: bd.totalScore ?? null,
+          summaryFr: bd.summary ?? null,
+          selectionReasonFr: bd.selectionReason ?? null,
+          tooltipFr: bd.tooltip ?? null,
+        }
+      : { missingData: ["_comboScoreBreakdown"] },
+    legSummary: {
+      weeklyReturnPct:
+        candidate?.weeklyReturn ??
+        candidate?.selectedYieldPct ??
+        null,
+      strike: candidate?.selectedStrike?.strike ?? candidate?.selectedStrikeValue ?? null,
+      spreadPct: candidate?.spreadPct ?? candidate?.selectedSpreadPct ?? null,
+      distancePct: candidate?.selectedDistancePct ?? null,
+      popPct: candidate?._popForCombo ?? null,
+      capitalUsd: candidate?.capitalPerContract ?? null,
+      grade: candidate?.finalDisplayGrade ?? null,
+      isWatchPremium: candidate?._isWatchPremium === true,
+    },
+    qualityOverlay: {
+      qualityTier: ov.qualityTier ?? null,
+      qualityScore: ov.qualityScore ?? null,
+      concentrationTheme: ov.concentrationTheme ?? null,
+      speculativePenalty: ov.speculativePenalty ?? null,
+      liquidityPenalty: ov.liquidityPenalty ?? null,
+      earningsPenalty: ov.earningsPenalty ?? null,
+      premiumTrapPenalty: ov.premiumTrapPenalty ?? null,
+      penaltyReasonsFrSample: primaryPenaltiesSummary,
+    },
+    tickerMeta: {
+      sector: meta?.sector ?? null,
+      name: meta?.name ?? null,
+    },
+    modeEligibilityPassedScoredPool: true,
+    primaryBlocker: null,
+  };
+}
+
+/** Meilleurs `skipped` par cycle greedy (scores statiques pré-sélection, pas marginalScore filler). */
+function summarizeTopGreedySkippedByCycleLimited(cycleTrace, limitCycles = 60, limitPerCycle = 8) {
+  if (!Array.isArray(cycleTrace) || cycleTrace.length === 0) return [];
+  const byCycle = new Map();
+  for (const row of cycleTrace) {
+    if (!row || typeof row !== "object") continue;
+    if (row.decision !== "skipped") continue;
+    const cyc = Number(row.cycle);
+    if (!Number.isFinite(cyc)) continue;
+    if (!byCycle.has(cyc)) byCycle.set(cyc, []);
+    byCycle.get(cyc).push({
+      ticker: row.candidateTicker ?? null,
+      allocScoreApprox: row.candidateScore ?? null,
+      reason: row.reason ?? null,
+    });
+  }
+  const out = [];
+  const sortedCycles = [...byCycle.keys()].sort((a, b) => a - b);
+  for (const cyc of sortedCycles.slice(0, limitCycles)) {
+    const rows = (byCycle.get(cyc) || [])
+      .filter((r) => r.ticker)
+      .sort((a, b) => Number(b.allocScoreApprox || 0) - Number(a.allocScoreApprox || 0))
+      .slice(0, limitPerCycle);
+    if (rows.length) out.push({ cycle: cyc, topSkippedGreedyByStaticScore: rows });
+  }
+  return out;
+}
+
+function summarizeRejectionTotalsFromAllocationTrace(rows) {
+  if (!Array.isArray(rows)) return {};
+  const m = new Map();
+  for (const r of rows) {
+    const k = String(r.reasonRejected ?? r.blockerType ?? "").trim();
+    if (!k) continue;
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return Object.fromEntries([...m.entries()].sort((a, b) => (b[1] || 0) - (a[1] || 0)));
+}
+
+function buildNearMissFocusSection(builtCombos, comboTraceSnapshotsByModeLabel) {
+  /** @type {Record<string, unknown>} */
+  const out = {};
+  const combosByLabel = {};
+  for (const c of builtCombos || []) {
+    combosByLabel[String(c?.label || "").trim()] = c;
+  }
+
+  for (const sym of CAPITAL_COMBO_ALLOCATION_TRACE_FOCUS_SYMBOLS) {
+    const u = String(sym || "").trim().toUpperCase();
+    const modesOut = {};
+
+    let comparedWinnerTickerGuess = null;
+    let compareNoteFr = null;
+    /** @type {null | number} */
+    let bestResidualRankAcrossModes = null;
+
+    for (const label of ["AGGRESSIVE", "BALANCED", "SAFE"]) {
+      const combo = combosByLabel[label];
+      const modeSnap =
+        comboTraceSnapshotsByModeLabel instanceof Map ? comboTraceSnapshotsByModeLabel.get(label) : undefined;
+
+      const scoredList = Array.isArray(modeSnap?.scoredCandidatesOrdered)
+        ? modeSnap.scoredCandidatesOrdered
+        : [];
+      const scoredRow = scoredList.find((row) => String(row?.symbol || "").toUpperCase() === u);
+
+      const rejectedList = Array.isArray(modeSnap?.rejectedBeforeAllocation)
+        ? modeSnap.rejectedBeforeAllocation
+        : [];
+      const rejectedRow =
+        rejectedList.find((row) => String(row?.ticker || "").toUpperCase() === u) ?? null;
+
+      const residualRow =
+        combo?.capDiagnosticsV2?.nextBestResiduals?.find(
+          (row) => String(row?.ticker || "").trim().toUpperCase() === u,
+        ) ?? null;
+
+      const inPortfolio =
+        Array.isArray(combo?.picks) && combo.picks.some((p) => String(p?.ticker || "").toUpperCase() === u);
+
+      const blockerNotInPool = rejectedRow?.primaryBlocker ?? null;
+      const blockerResidual = residualRow?.primaryBlocker ?? null;
+
+      const scoredRank =
+        scoredRow?.rankAfterCompositeSort != null ? Number(scoredRow.rankAfterCompositeSort) : null;
+      const scoredComposite = scoredRow?.compositeAllocScore != null ? Number(scoredRow.compositeAllocScore) : null;
+
+      modesOut[label] = {
+        inPortfolio,
+        eligibleForScoredPool: !!scoredRow,
+        primaryBlockerNeverReachedScoredPool: blockerNotInPool,
+        scoredPoolRank: scoredRank,
+        compositeScoreInMode: scoredComposite,
+        scoreBreakdown: scoredRow?.comboScoreBreakdown ?? null,
+        residualPrimaryBlockerAfterGreedyAllocation: blockerResidual,
+        residualRowSummary: residualRow
+          ? {
+              wedgeDensity: residualRow.wedgeDensity ?? null,
+              capitalPerContract: residualRow.capitalPerContract ?? null,
+              premiumPerContract: residualRow.premiumPerContract ?? null,
+            }
+          : null,
+        hypotheticalReadOnlyHints: buildHypotheticalHints({
+          blockerNotInPool,
+          blockerResidual,
+          scoredRank,
+          inPortfolio,
+        }),
+      };
+
+      /** Cherche un ticker « gagnant » plausible dans le dernier sweep où ce symbole est skipped (~greedy marginal). */
+      if (!comparedWinnerTickerGuess && combo?.capDiagnosticsV2?.allocationTraceV1) {
+        const ct = combo.capDiagnosticsV2.allocationTraceV1.cycleTrace;
+        if (Array.isArray(ct)) {
+          const rowHit = [...ct].reverse().find(
+            (r) =>
+              String(r?.candidateTicker || "").trim().toUpperCase() === u &&
+              r?.decision === "skipped",
+          );
+          if (rowHit?.cycle != null && rowHit.bestTicker != null) {
+            comparedWinnerTickerGuess = String(rowHit.bestTicker).trim().toUpperCase();
+            compareNoteFr =
+              "Heuristique greedy : dernier sweep cycleTrace où le symbole est « skipped », champ bestTicker (= meilleur marginalScore cette passe). Simulation exhaustive non effectuée.";
+          }
+        }
+      }
+
+      if (scoredRank != null && scoredRank <= 40) {
+        if (bestResidualRankAcrossModes == null || scoredRank < bestResidualRankAcrossModes)
+          bestResidualRankAcrossModes = scoredRank;
+      }
+    }
+
+    out[u] = {
+      byMode: modesOut,
+      comparedToWinnerTickerApprox: comparedWinnerTickerGuess ?? "missingData",
+      compareNoteFr: compareNoteFr ?? "Voir cycleTrace/raw pour corrélations précises ; aucun bestTicker trouvé automatiquement.",
+      bestApproxRankAcrossModesAmongTop40Hint: bestResidualRankAcrossModes,
+    };
+  }
+  return out;
+}
+
+function buildHypotheticalHints({ blockerResidual, blockerNotInPool, scoredRank, inPortfolio }) {
+  const capKeys = ["ticker_cap_reached", "theme_cap_reached", "sector_cap_reached", "high_beta_cap_reached"];
+  const bk = blockerResidual ?? blockerNotInPool;
+  return {
+    wouldFitIfRelaxClusterCaps_ApproxLikelyUncertain:
+      bk != null && capKeys.includes(String(bk)) ? true : bk == null ? null : false,
+    moreCapitalLikelyUnlocksResidual_ApproxLikelyUncertain:
+      bk === "contract_size_too_large" ? true : bk == null ? null : false,
+    moreMaxPositionsLikelyUnlocksResidual_ApproxLikelyUncertain:
+      bk === "max_positions_limit" ? true : bk == null ? null : false,
+    ifInScoredPoolButNotPortfolio_GreedyOrMarginal_ApproxLikelyUncertain:
+      scoredRank != null ? !inPortfolio : null,
+    noteFr:
+      "Heuristiques seulement : pas de re-simulation greedy sans caps ou avec capital supplémentaire.",
+  };
+}
+
+function assembleCapitalComboAllocationTraceV1({
+  basePool,
+  builtCombos,
+  comboTraceSnapshotsByModeLabel,
+  grossCapital,
+  maxCapitalPct,
+  maxPositions,
+  usableCapital,
+  rejectedIbkrSymbolsSize,
+}) {
+  const iso = new Date().toISOString();
+  /** @type {Record<string, unknown>} */
+  const allocationTraceOut = {};
+
+  const scoredCandidatesByMode = {};
+
+  const comboLookup = new Map();
+  for (const combo of builtCombos || []) {
+    const lk = String(combo?.label ?? "").trim();
+    if (lk) comboLookup.set(lk, combo);
+  }
+
+  for (const label of ["AGGRESSIVE", "BALANCED", "SAFE"]) {
+    const combo = comboLookup.get(label) ?? null;
+    const at = combo?.capDiagnosticsV2?.allocationTraceV1 ?? null;
+    const snap = comboTraceSnapshotsByModeLabel?.get(label) ?? null;
+
+    allocationTraceOut[label] = {
+      bucketLabel: label,
+      comboReturnedNull:
+        combo == null ? true : undefined,
+      positionsInBook: combo?.positions ?? combo?.picks?.length ?? null,
+      totalCapitalUsd: combo?.totalCapital ?? null,
+      usableCapitalEnvelopeUsd: usableCapital,
+      fillEfficiencyPct: combo?.capDiagnosticsV2?.fillEfficiencyPct ?? null,
+      blockerSummaryMerged: combo?.capDiagnosticsV2?.blockerSummaryMerged ?? null,
+      dominantFillBlocker: combo?.capDiagnosticsV2?.dominantFillBlocker ?? null,
+      rejectionTotalsAcrossCycles:
+        combo?.capDiagnosticsV2?.rejectionTotalsAcrossCycles ??
+        summarizeRejectionTotalsFromAllocationTrace(at?.rejectionTrace),
+      capsHitApproxFromRejectionSweep: summarizeRejectionTotalsFromAllocationTrace(at?.rejectionTrace ?? []),
+      nextBestResiduals: combo?.capDiagnosticsV2?.nextBestResiduals?.slice(0, 36) ?? null,
+      allocationTraceV1: at ?? { missingData: ["allocationTraceV1"] },
+      topGreedySkippedByCycleLimited: summarizeTopGreedySkippedByCycleLimited(at?.cycleTrace ?? []),
+    };
+
+    scoredCandidatesByMode[label] = {
+      rejectedBeforeAllocation: snap?.rejectedBeforeAllocation ?? null,
+      scoredCandidatesOrdered: snap?.scoredCandidatesOrdered ?? null,
+      institutionalYieldV3Audit: combo?.balancedInstitutionalV3Audit ?? null,
+    };
+  }
+
+  const nearMissFocus = buildNearMissFocusSection(builtCombos, comboTraceSnapshotsByModeLabel);
+
+  return {
+    exportVersion: "capital-combo-allocation-trace-v1",
+    exportedAtIso: iso,
+    trigger: {
+      envCapitalComboTraceDebug: typeof process !== "undefined" ? process.env?.CAPITAL_COMBO_TRACE_DEBUG ?? null : null,
+    },
+    inputs: {
+      grossCapitalUsd: grossCapital,
+      maxCapitalPct,
+      maxPositionsRequested: maxPositions,
+      usableCapitalUsdApprox: usableCapital,
+      rejectedIbkrSymbolsCount: rejectedIbkrSymbolsSize,
+    },
+    shortlistSnapshot:
+      Array.isArray(basePool) && basePool.length
+        ? basePool.map(buildShortlistSnapshotRowFromEligibleCandidate)
+        : { missingData: ["basePool"] },
+    scoredCandidatesByMode,
+    allocationTrace: allocationTraceOut,
+    nearMissFocus,
+    notesFr: [
+      "Export diagnostic lecture seule : aucune logique greedy / filtres Capital Combo modifiée.",
+      "Les hypothèses « hypotheticalReadOnlyHints » sont heuristiques (pas de re-simulation caps off).",
+    ],
+  };
+}
+
+function comboTraceEmitConsoleSummary(payload, writtenPathText) {
+  if (!payload) return;
+  if (writtenPathText) console.log(`[combo-trace] wrote ${writtenPathText}`);
+
+  const bal = payload.allocationTrace?.BALANCED;
+  const agg = payload.allocationTrace?.AGGRESSIVE;
+  const bm = bal?.blockerSummaryMerged;
+  const am = agg?.blockerSummaryMerged;
+
+  console.log(`[combo-trace] balanced top blockers=${formatTopMergedBlockersForLog(bm)}`);
+  console.log(`[combo-trace] aggressive top blockers=${formatTopMergedBlockersForLog(am)}`);
+
+  for (const sym of CAPITAL_COMBO_ALLOCATION_TRACE_FOCUS_SYMBOLS) {
+    const row = payload.nearMissFocus?.[sym];
+    const modePick =
+      ["AGGRESSIVE", "BALANCED", "SAFE"].find(
+        (m) => row?.byMode?.[m]?.inPortfolio !== true && row?.byMode?.[m]?.residualPrimaryBlockerAfterGreedyAllocation,
+      ) ||
+      ["AGGRESSIVE", "BALANCED", "SAFE"].find(
+        (m) => row?.byMode?.[m]?.primaryBlockerNeverReachedScoredPool,
+      ) ||
+      "AGGRESSIVE";
+    const br =
+      row?.byMode?.[modePick]?.residualPrimaryBlockerAfterGreedyAllocation ??
+      row?.byMode?.[modePick]?.primaryBlockerNeverReachedScoredPool ??
+      "missingData";
+    console.log(`[combo-trace] ${sym} mode=${modePick} blocker=${br}`);
+  }
+}
+
+function formatTopMergedBlockersForLog(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return "missingData";
+  return arr
+    .slice(0, 5)
+    .map((row) => `${String(row?.reason ?? row?.blockerType ?? "?")}×${Number(row?.count ?? 0)}[${String(row?.source ?? "")}]`)
+    .join(" | ");
+}
+
 export function gradeLeg({ spreadPct, weeklyYieldPct, popDecimal }) {
   const spread = Number.isFinite(Number(spreadPct)) ? Number(spreadPct) : null;
   const yldRaw = Number(weeklyYieldPct);
@@ -380,7 +840,7 @@ function normalizeComboSpreadScore(spreadPct, mode) {
   return clamp01((max - value) / max);
 }
 
-function buildCapitalComboPoolStats(candidates) {
+export function buildCapitalComboPoolStats(candidates) {
   const sectorCounts = new Map();
   const themeCounts = new Map();
   for (const candidate of candidates || []) {
@@ -392,7 +852,7 @@ function buildCapitalComboPoolStats(candidates) {
   return { sectorCounts, themeCounts };
 }
 
-function buildCapitalComboScoreBreakdown(candidate, mode, usableCapital, poolStats) {
+export function buildCapitalComboScoreBreakdown(candidate, mode, usableCapital, poolStats) {
   const overlay = candidate?._qualityOverlay ?? {};
   const meta = candidate?._tickerMeta ?? {};
   const sectorKey = String(meta?.sector || "unknown").trim().toLowerCase();
@@ -768,6 +1228,9 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     .filter((c) => c._isCapitalComboEligible);
   const poolStats = buildCapitalComboPoolStats(basePool);
 
+  const comboTraceRecording = resolveCapitalComboTraceDebugEnabled(options);
+  const comboTraceSnapshotsByModeLabel = comboTraceRecording ? new Map() : null;
+
   if (!basePool.length) return [];
 
   const modeConfigs = [
@@ -966,7 +1429,17 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       balancedInstitutionalV3Audit = v3.audit;
     }
     const rejectionTotals = new Map();
-    const scoredPool = basePool
+
+    /** Audit lecture seule : aligné sur les mêmes prédicats que la ancienne chaîne filtres/map (aucun seuil modifié). */
+    const rejectionAudit = comboTraceRecording ? [] : null;
+    function pushScoredPoolReject(ticker, blocker, detail) {
+      if (!rejectionAudit) return;
+      const tk = String(ticker ?? "").trim().toUpperCase();
+      if (!tk) return;
+      rejectionAudit.push({ ticker: tk, primaryBlocker: blocker, ...(detail ?? {}) });
+    }
+
+    const bucketResolvedPool = basePool
       // Étape 1 : résoudre la jambe spécifique au bucket (simulation indépendante)
       .map((candidate) => {
         let bucketLeg = null;
@@ -992,9 +1465,6 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           }
         } else {
           // BALANCED : choisir la meilleure jambe dans la bande de rendement [0.75, 1.05)
-          // MID = centre de rendement cible (0.875%) — NE PAS confondre avec le prix mid option
-          // Le prix utilisé reste exclusivement le BID de l'option, jamais le mid bid/ask
-          // La bande [0.75, 1.05) capture toute la plage autorisée par maxWeeklyYield
           const safeY = candidate._safeYieldPct;
           const aggY = candidate._aggYieldPct;
           const safeInRange = candidate._hasSafeLegValid && safeY >= 0.75 && safeY < 1.05;
@@ -1050,8 +1520,6 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           finalDisplayGrade: resolvedGrade || candidate.finalDisplayGrade,
           weeklyReturn: bucketYield ?? candidate.weeklyReturn,
           spreadPct: bucketSpread ?? candidate.spreadPct,
-          // Recompute quality overlay with bucket-specific leg metrics so that
-          // filterCandidate sees the correct spread/yield/pop for this specific leg
           _qualityOverlay: computeTickerQualityOverlay({
             ...candidate,
             spreadPct: bucketSpread,
@@ -1059,48 +1527,119 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             _popForCombo: bucketPop,
           }),
         };
-      })
-      // Étape 2 : exclure les candidats sans jambe bucket
-      .filter((candidate) => candidate._hasBucketLeg)
-      // Étape 3 : scorer avec la jambe bucket (les valeurs sélectées ont été remplacées)
-      .map((candidate) => ({
-        ...candidate,
-        selectedStrike: getModeStrike(candidate, mode.id),
-        _comboScoreBreakdown: buildCapitalComboScoreBreakdown(candidate, modeAlloc, usableCapital, poolStats),
-      }))
-      // Étape 4 : filtres bucket (appliqués après résolution jambe)
-      .filter((candidate) => candidate.capitalPerContract > 0 && candidate.capitalPerContract <= usableCapital && candidate.weeklyReturn > 0)
-      // allowedModes retiré — remplacé par la résolution bucket ci-dessus
-      .filter((candidate) => {
-        if (modeAlloc.allowedGrades?.has(candidate.finalDisplayGrade)) return true;
-        if (candidate.finalDisplayGrade === "WATCH" && modeAlloc.watchPremiumFilter?.(candidate)) return true;
-        return false;
-      })
-      .map((candidate) => ({
-        ...candidate,
-        _isWatchPremium: candidate.finalDisplayGrade === "WATCH" && !!modeAlloc.watchPremiumFilter?.(candidate),
-      }))
-      .filter((candidate) => candidate.weeklyReturn >= modeAlloc.minWeeklyYield)
-      .filter((candidate) => modeAlloc.maxWeeklyYield == null || candidate.weeklyReturn < modeAlloc.maxWeeklyYield)
-      .filter((candidate) => !Number.isFinite(candidate.proExecutionScore) || candidate.proExecutionScore >= modeAlloc.minExecutionScore)
-      .filter((candidate) => candidate.spreadPct == null || candidate.spreadPct <= modeAlloc.maxSpreadPct)
-      .filter((candidate) =>
+      });
+
+    const scoredStaging = [];
+    for (const cand0 of bucketResolvedPool) {
+      if (!cand0._hasBucketLeg) {
+        pushScoredPoolReject(cand0.ticker, "NO_BUCKET_LEG_FOR_MODE", {
+          noteFr: `Aucune jambe valide pour le bucket « ${mode.label} ».`,
+        });
+        continue;
+      }
+      const cand = {
+        ...cand0,
+        selectedStrike: getModeStrike(cand0, mode.id),
+        _comboScoreBreakdown: buildCapitalComboScoreBreakdown(cand0, modeAlloc, usableCapital, poolStats),
+      };
+
+      if (!(cand.capitalPerContract > 0 && cand.capitalPerContract <= usableCapital && cand.weeklyReturn > 0)) {
+        pushScoredPoolReject(cand.ticker, "CAPITAL_OR_YIELD_GATE", {
+          capitalPerContract: cand.capitalPerContract,
+          usableCapitalUsd: usableCapital,
+          weeklyReturnPct: cand.weeklyReturn,
+        });
+        continue;
+      }
+      const gradeOk =
+        modeAlloc.allowedGrades?.has(cand.finalDisplayGrade) ||
+        (cand.finalDisplayGrade === "WATCH" && modeAlloc.watchPremiumFilter?.(cand));
+      if (!gradeOk) {
+        pushScoredPoolReject(cand.ticker, "GRADE_OR_WATCH_GATE", {
+          grade: cand.finalDisplayGrade,
+        });
+        continue;
+      }
+
+      const candWp = {
+        ...cand,
+        _isWatchPremium: cand.finalDisplayGrade === "WATCH" && !!modeAlloc.watchPremiumFilter?.(cand),
+      };
+
+      if (!(candWp.weeklyReturn >= modeAlloc.minWeeklyYield)) {
+        pushScoredPoolReject(candWp.ticker, "MIN_WEEKLY_YIELD_NOT_MET", {
+          minWeeklyYieldPct: modeAlloc.minWeeklyYield,
+          weeklyReturnPct: candWp.weeklyReturn,
+        });
+        continue;
+      }
+      if (!(modeAlloc.maxWeeklyYield == null || candWp.weeklyReturn < modeAlloc.maxWeeklyYield)) {
+        pushScoredPoolReject(candWp.ticker, "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT", {
+          maxWeeklyYieldConfig: modeAlloc.maxWeeklyYield,
+          weeklyReturnPct: candWp.weeklyReturn,
+        });
+        continue;
+      }
+      if (!(!Number.isFinite(candWp.proExecutionScore) || candWp.proExecutionScore >= modeAlloc.minExecutionScore)) {
+        pushScoredPoolReject(candWp.ticker, "MIN_EXECUTION_SCORE_NOT_MET", {
+          minExecutionScore: modeAlloc.minExecutionScore,
+          proExecutionScore: candWp.proExecutionScore,
+        });
+        continue;
+      }
+      if (!(candWp.spreadPct == null || candWp.spreadPct <= modeAlloc.maxSpreadPct)) {
+        pushScoredPoolReject(candWp.ticker, "MAX_SPREAD_PCT_EXCEEDED", {
+          maxSpreadPctMode: modeAlloc.maxSpreadPct,
+          spreadPct: candWp.spreadPct,
+        });
+        continue;
+      }
+      if (!(
         modeAlloc.minDistancePct == null ||
-        candidate.selectedDistancePct == null ||
-        candidate.selectedDistancePct <= modeAlloc.minDistancePct
-      )
-      .filter((candidate) => modeAlloc.filterCandidate ? modeAlloc.filterCandidate(candidate) : true)
-      .map((candidate) => ({
-        ...candidate,
-        allocScore: (candidate._comboScoreBreakdown?.totalScore ?? modeAlloc.score(candidate)) - (candidate._isWatchPremium ? 15 : 0),
-      }))
-      .sort((a, b) =>
-        b.allocScore - a.allocScore ||
-        b._comboGradeScore - a._comboGradeScore ||
-        (b.selectedYieldPct ?? 0) - (a.selectedYieldPct ?? 0) ||
-        (a.selectedSpreadPct ?? Number.POSITIVE_INFINITY) - (b.selectedSpreadPct ?? Number.POSITIVE_INFINITY) ||
-        (a.selectedDistancePct ?? 0) - (b.selectedDistancePct ?? 0)
-      );
+        candWp.selectedDistancePct == null ||
+        candWp.selectedDistancePct <= modeAlloc.minDistancePct
+      )) {
+        pushScoredPoolReject(candWp.ticker, "MIN_DISTANCE_PCT_BUCKET_GATE_FAILED", {
+          minDistancePctConfig: modeAlloc.minDistancePct,
+          selectedDistancePct: candWp.selectedDistancePct,
+        });
+        continue;
+      }
+      if (modeAlloc.filterCandidate && !modeAlloc.filterCandidate(candWp)) {
+        pushScoredPoolReject(candWp.ticker, "MODE_SPECIFIC_QUALITY_OR_SPECULATIVE_FILTER", {
+          qualityTier: candWp._qualityOverlay?.qualityTier ?? null,
+        });
+        continue;
+      }
+
+      scoredStaging.push({
+        ...candWp,
+        allocScore:
+          (candWp._comboScoreBreakdown?.totalScore ?? modeAlloc.score(candWp)) -
+          (candWp._isWatchPremium ? 15 : 0),
+      });
+    }
+
+    scoredStaging.sort((a, b) =>
+      b.allocScore - a.allocScore ||
+      b._comboGradeScore - a._comboGradeScore ||
+      (b.selectedYieldPct ?? 0) - (a.selectedYieldPct ?? 0) ||
+      (a.selectedSpreadPct ?? Number.POSITIVE_INFINITY) - (b.selectedSpreadPct ?? Number.POSITIVE_INFINITY) ||
+      (a.selectedDistancePct ?? 0) - (b.selectedDistancePct ?? 0)
+    );
+
+    const scoredPool = scoredStaging;
+
+    if (comboTraceRecording && comboTraceSnapshotsByModeLabel instanceof Map) {
+      comboTraceSnapshotsByModeLabel.set(mode.label, {
+        modeLabel: mode.label,
+        modeId: mode.id,
+        rejectedBeforeAllocation: rejectionAudit ?? [],
+        scoredCandidatesOrdered: scoredPool.map((cRow, idx) =>
+          serializeScoredCandidateForTrace(cRow, idx + 1, mode.label),
+        ),
+      });
+    }
     if (!scoredPool.length) return null;
     const picks = [];
     let used = 0;
@@ -2457,6 +2996,26 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
   }
 
   const builtCombos = modeConfigs.map((mode) => makeCombo(mode)).filter(Boolean);
+
+  if (comboTraceRecording) {
+    const payloadTrace = assembleCapitalComboAllocationTraceV1({
+      basePool,
+      builtCombos,
+      comboTraceSnapshotsByModeLabel,
+      grossCapital: capital,
+      maxCapitalPct,
+      maxPositions,
+      usableCapital,
+      rejectedIbkrSymbolsSize: rejectedIbkrSymbols.size,
+    });
+    if (options?.comboTracePayloadHolder && typeof options.comboTracePayloadHolder === "object") {
+      options.comboTracePayloadHolder.capitalComboAllocationTraceV1 = payloadTrace;
+    }
+    if (!options.capitalComboTraceSuppressConsoleLogs) {
+      comboTraceEmitConsoleSummary(payloadTrace, null);
+    }
+  }
+
   if (!builtCombos.length) return builtCombos;
   const crossModeOverlap = computeCrossModeOverlapLocal(builtCombos);
   return builtCombos.map(combo => ({ ...combo, crossModeOverlap }));

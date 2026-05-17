@@ -237,7 +237,7 @@
   },
   {
     "symbol": "BRK.B",
-    "enabled": true
+    "enabled": false
   },
   {
     "symbol": "BBY",

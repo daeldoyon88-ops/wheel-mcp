@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { WHEEL_UNIVERSE_EXCLUDED_SYMBOLS } from "../config/universeExcludedSymbols.js";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** @typedef {'core'|'growth'|'high_premium'|'etf'|'weekly'} UniverseCategory */
@@ -109,6 +111,7 @@ export function loadMasterUniverse({ categories } = {}) {
     if (!item || typeof item !== "object" || typeof item.symbol !== "string") continue;
     const symbol = item.symbol.trim().toUpperCase();
     if (!symbol) continue;
+    if (WHEEL_UNIVERSE_EXCLUDED_SYMBOLS.has(symbol)) continue;
     if (item.enabled !== true) continue;
     if (item.excluded === true) continue;
     rowsActive.push({
@@ -221,6 +224,7 @@ function loadMergedUniverseLegacy({ categories }) {
   for (const category of categories) {
     const rows = normalizeRows(readCategoryFile(category));
     for (const row of rows) {
+      if (WHEEL_UNIVERSE_EXCLUDED_SYMBOLS.has(row.symbol)) continue;
       if (seen.has(row.symbol)) continue;
       seen.add(row.symbol);
       merged.push({ symbol: row.symbol, category, enabled: row.enabled });

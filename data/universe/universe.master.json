@@ -1783,9 +1783,9 @@
   },
   {
     "symbol": "BRK.B",
-    "enabled": true,
-    "excluded": false,
-    "excludeReason": null,
+    "enabled": false,
+    "excluded": true,
+    "excludeReason": "BRK.B excluded because price above strategy maxPrice and Yahoo quote validation edge-case.",
     "sources": [
       "core",
       "weekly"

@@ -9,6 +9,7 @@ import {
 } from "../calculations/wheelMetrics.js";
 import { round, roundMoney, toNumber } from "../utils/number.js";
 import { buildSupportDiagnosticsV1 } from "./supportDiagnosticsV1.js";
+import { buildSupportResistanceLevelsV3 } from "./supportResistanceLevelsV3.js";
 import { SUPPORT_SCORING_V2_ENABLED, buildSupportScoringV2 } from "./supportScoringV2.js";
 
 const STRIKE_DEBUG_SYMBOLS = new Set(["HOOD", "UBER", "SOFI", "U", "TQQQ"]);
@@ -753,6 +754,25 @@ export function createWheelScanner(marketService) {
       dteDays,
     });
 
+    const priceSeries =
+      Array.isArray(technicals?.closes60) && technicals.closes60.length
+        ? {
+            interval: "1d",
+            closes: technicals.closes60,
+            count: technicals.closes60.length,
+          }
+        : null;
+
+    const supportResistanceLevelsV3 = buildSupportResistanceLevelsV3({
+      spot,
+      strike: safeStrike?.strike ?? null,
+      dteDays,
+      supportResistance,
+      priceSeries,
+      supportDiagnosticsV1,
+      supportScoringV2,
+    });
+
     const strikeVsSupportEffectivePct =
       supportScoringV2.strikeVsSupportEffectivePct != null
         ? round(supportScoringV2.strikeVsSupportEffectivePct, 2)
@@ -802,14 +822,7 @@ export function createWheelScanner(marketService) {
         sma20: technicals?.sma20 ?? null,
         sma50: technicals?.sma50 ?? null,
       },
-      priceSeries:
-        Array.isArray(technicals?.closes60) && technicals.closes60.length
-          ? {
-              interval: "1d",
-              closes: technicals.closes60,
-              count: technicals.closes60.length,
-            }
-          : null,
+      priceSeries,
       supportResistance: {
         support: supportResistance?.support ?? null,
         resistance: supportResistance?.resistance ?? null,
@@ -826,6 +839,7 @@ export function createWheelScanner(marketService) {
         supportStatus: supportStatusLegacy,
       },
       supportDiagnosticsV1,
+      supportResistanceLevelsV3,
       supportStatusLegacy,
       supportStatusV2: supportScoringV2.supportStatusV2,
       supportScoringV2,

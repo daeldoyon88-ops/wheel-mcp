@@ -1,0 +1,370 @@
+{
+  "generatedAt": "2026-05-17T03:12:05.325Z",
+  "capital": 25500,
+  "maxCapitalPct": 100,
+  "maxPositions": 8,
+  "ibkrRejectedSymbolsSnapshot": [],
+  "optimizerV2FlagsSnapshot": null,
+  "comboReplayCandidates": [
+    {
+      "ticker": "AAPL",
+      "currentPrice": 180,
+      "weeklyReturn": 0.88,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 169,
+        "bid": 0.396,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 173,
+        "bid": 0.63,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "currentPrice": 385,
+      "weeklyReturn": 0.85,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 362,
+        "bid": 0.8470000000000001,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 369,
+        "bid": 1.3475,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "JPM",
+      "currentPrice": 200,
+      "weeklyReturn": 0.9,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 184,
+        "bid": 0.44,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 188,
+        "bid": 0.7000000000000001,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "XOM",
+      "currentPrice": 110,
+      "weeklyReturn": 0.79,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 103,
+        "bid": 0.24200000000000002,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 107,
+        "bid": 0.385,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "F",
+      "currentPrice": 13,
+      "weeklyReturn": 0.93,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 11.8,
+        "bid": 0.0286,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 12.4,
+        "bid": 0.0455,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "T",
+      "currentPrice": 21,
+      "weeklyReturn": 0.71,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 18.9,
+        "bid": 0.046200000000000005,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 19.6,
+        "bid": 0.0735,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "PFE",
+      "currentPrice": 28,
+      "weeklyReturn": 0.74,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 26.6,
+        "bid": 0.0616,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 26.95,
+        "bid": 0.098,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "CSCO",
+      "currentPrice": 54,
+      "weeklyReturn": 0.86,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 52.22,
+        "bid": 0.1188,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 53.03,
+        "bid": 0.189,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "INTC",
+      "currentPrice": 25,
+      "weeklyReturn": 0.99,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 21.82,
+        "bid": 0.055,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 21.95,
+        "bid": 0.08750000000000001,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "WFC",
+      "currentPrice": 55,
+      "weeklyReturn": 0.91,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 53.72,
+        "bid": 0.12100000000000001,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 53.95,
+        "bid": 0.1925,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "MCD",
+      "currentPrice": 298,
+      "weeklyReturn": 0.92,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 279,
+        "bid": 0.6556000000000001,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 279,
+        "bid": 1.043,
+        "weeklyYield": 1,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    },
+    {
+      "ticker": "NKE",
+      "currentPrice": 105,
+      "weeklyReturn": 1.08,
+      "finalDisplayMode": "AGGRESSIVE",
+      "finalDisplayGrade": "B",
+      "proFinalScore": 0.71,
+      "proExecutionScore": 0.62,
+      "proDistanceScore": 0.55,
+      "hasEarningsBeforeExpiration": false,
+      "hasUpcomingEarningsBeforeExpiration": false,
+      "earningsDaysUntil": null,
+      "optionsSource": "Yahoo fallback",
+      "safeStrike": {
+        "strike": 104,
+        "bid": 0.231,
+        "weeklyYield": 0.52,
+        "spreadPct": 14,
+        "distancePct": -9,
+        "popProfitEstimated": 0.86
+      },
+      "aggressiveStrike": {
+        "strike": 107,
+        "bid": 0.3675,
+        "weeklyYield": 1.08,
+        "spreadPct": 16,
+        "distancePct": -6.8,
+        "popProfitEstimated": 0.81
+      }
+    }
+  ]
+}

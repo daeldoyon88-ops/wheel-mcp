@@ -1498,6 +1498,10 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
       item.supportDiagnosticsV1 && typeof item.supportDiagnosticsV1 === "object"
         ? { ...item.supportDiagnosticsV1 }
         : null,
+    supportResistanceV4:
+      item.supportResistanceV4 && typeof item.supportResistanceV4 === "object"
+        ? { ...item.supportResistanceV4 }
+        : null,
     macd: "—",
     zone: "sous borne basse",
     verdict: item.hasEarnings ? "balanced" : "conservative",
@@ -2516,6 +2520,220 @@ function formatYahooIbkrDiff({ yahooValue, ibkrValue, diff }) {
   return `${formatMoneyOrDash(yahooValue)} / ${formatMoneyOrDash(ibkrValue)} (${formatSignedMoneyOrDash(diff)})`;
 }
 
+function formatSupportResistanceV4Price(value) {
+  return Number.isFinite(Number(value)) ? `$${Number(value).toFixed(2)}` : "n/a";
+}
+
+function formatSupportResistanceV4Pct(value) {
+  return Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)} %` : "n/a";
+}
+
+function formatSupportResistanceV4Number(value) {
+  return Number.isFinite(Number(value)) ? String(Number(value)) : "n/a";
+}
+
+function formatSupportResistanceV4Zone(zone) {
+  if (!zone || typeof zone !== "object") return "n/a";
+  const low = formatSupportResistanceV4Price(zone.zoneLow);
+  const high = formatSupportResistanceV4Price(zone.zoneHigh);
+  if (low === "n/a" && high === "n/a") return "n/a";
+  return `${low} - ${high}`;
+}
+
+function supportResistanceV4ConfidenceLabel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "high" || normalized === "medium" || normalized === "low") return normalized;
+  return "n/a";
+}
+
+function supportResistanceV4RoleLabel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  switch (normalized) {
+    case "support":
+    case "resistance":
+    case "broken_resistance_support":
+    case "broken_support_resistance":
+      return normalized;
+    default:
+      return "n/a";
+  }
+}
+
+function SupportResistanceV4ZoneCard({ title, zone, emptyLabel }) {
+  if (!zone || typeof zone !== "object") {
+    return (
+      <div className="rounded-[6px] border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-xs text-slate-400">
+        <p className="font-semibold uppercase tracking-wide text-slate-300">{title}</p>
+        <p className="mt-2">{emptyLabel}</p>
+      </div>
+    );
+  }
+
+  const notes = Array.isArray(zone.notes) ? zone.notes.filter(Boolean) : [];
+
+  return (
+    <div className="rounded-[6px] border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-xs text-slate-200">
+      <p className="font-semibold uppercase tracking-wide text-slate-200">{title}</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Zone</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Zone(zone)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Milieu</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Price(zone.zoneMid)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Clotures</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Number(zone.closeTouchCount)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Meches</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Number(zone.wickTouchCount)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Distance spot</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Pct(zone.distanceToSpotPct)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Distance strike</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Pct(zone.distanceToStrikePct)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Score</p>
+          <p className="mt-1 font-medium text-slate-100">
+            {Number.isFinite(Number(zone.score)) ? `${Number(zone.score)} / 100` : "n/a"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Confiance</p>
+          <p className="mt-1 font-medium text-slate-100">{supportResistanceV4ConfidenceLabel(zone.confidence)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Role</p>
+          <p className="mt-1 font-medium text-slate-100">{supportResistanceV4RoleLabel(zone.role)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Derniere touche</p>
+          <p className="mt-1 font-medium text-slate-100">
+            {Number.isFinite(Number(zone.lastTouchDaysAgo)) ? `${Number(zone.lastTouchDaysAgo)} j` : "n/a"}
+          </p>
+        </div>
+      </div>
+      <div className="mt-2">
+        <p className="text-[11px] uppercase tracking-wide text-slate-500">Notes</p>
+        <p className="mt-1 text-slate-300">{notes.length ? notes.join(" · ") : "n/a"}</p>
+      </div>
+    </div>
+  );
+}
+
+function SupportResistanceV4MiniList({ title, zones, emptyLabel }) {
+  const rows = Array.isArray(zones) ? zones.slice(0, 3) : [];
+
+  return (
+    <div className="rounded-[6px] border border-slate-700/70 bg-slate-950/60 px-3 py-2 text-xs text-slate-200">
+      <p className="font-semibold uppercase tracking-wide text-slate-300">{title}</p>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-slate-400">{emptyLabel}</p>
+      ) : (
+        <div className="mt-2 space-y-2">
+          {rows.map((zone, index) => (
+            <div key={`${title}-${index}-${zone?.zoneMid ?? "na"}`} className="rounded-[5px] border border-slate-800 bg-slate-950/80 px-2 py-1.5">
+              <p className="font-medium text-slate-100">
+                #{index + 1} · {formatSupportResistanceV4Zone(zone)}
+              </p>
+              <p className="mt-1 text-slate-400">
+                score {Number.isFinite(Number(zone?.score)) ? Number(zone.score) : "n/a"} / 100 ·
+                clotures {formatSupportResistanceV4Number(zone?.closeTouchCount)} ·
+                meches {formatSupportResistanceV4Number(zone?.wickTouchCount)} ·
+                spot {formatSupportResistanceV4Pct(zone?.distanceToSpotPct)} ·
+                strike {formatSupportResistanceV4Pct(zone?.distanceToStrikePct)} ·
+                {` ${supportResistanceV4RoleLabel(zone?.role)}`}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SupportResistanceV4Panel({ data }) {
+  if (!data || typeof data !== "object") {
+    return (
+      <div className="rounded-[7px] border border-slate-700/70 bg-slate-950/70 px-3 py-3 text-sm text-slate-400">
+        V4 non disponible pour ce candidat.
+      </div>
+    );
+  }
+
+  const supports = Array.isArray(data.supports) ? data.supports : [];
+  const resistances = Array.isArray(data.resistances) ? data.resistances : [];
+
+  return (
+    <div className="rounded-[7px] border border-slate-700/70 bg-slate-950/70 px-3 py-3 text-sm text-slate-200">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="rounded-[4px] border border-slate-600 bg-slate-900/90 px-2 py-0.5 text-[11px] text-slate-200">
+          Diagnostic seulement
+        </Badge>
+        <Badge className="rounded-[4px] border border-slate-700 bg-slate-950/90 px-2 py-0.5 text-[11px] text-slate-300">
+          min. 3 clotures
+        </Badge>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-slate-300">
+        {data.summaryFr || "V4 non disponible pour ce candidat."}
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-5">
+        <div className="rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Available</p>
+          <p className="mt-1 font-medium text-slate-100">{data.available === true ? "true" : "false"}</p>
+        </div>
+        <div className="rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Tolerance</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Price(data.tolerance)}</p>
+        </div>
+        <div className="rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">ATR</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Price(data.atr)}</p>
+        </div>
+        <div className="rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Zones</p>
+          <p className="mt-1 font-medium text-slate-100">{formatSupportResistanceV4Number(data.zonesCount)}</p>
+        </div>
+        <div className="rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Version</p>
+          <p className="mt-1 font-medium text-slate-100">{data.version || "n/a"}</p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2 xl:grid-cols-2">
+        <SupportResistanceV4ZoneCard
+          title="Meilleur support confirme"
+          zone={data.bestSupportZone}
+          emptyLabel="Aucun support confirme par 3 clotures."
+        />
+        <SupportResistanceV4ZoneCard
+          title="Meilleure resistance confirmee"
+          zone={data.bestResistanceZone}
+          emptyLabel="Aucune resistance confirmee par 3 clotures."
+        />
+      </div>
+      <div className="mt-3 grid gap-2 xl:grid-cols-2">
+        <SupportResistanceV4MiniList
+          title="Top 3 supports"
+          zones={supports}
+          emptyLabel="Aucun support confirme par 3 clotures."
+        />
+        <SupportResistanceV4MiniList
+          title="Top 3 resistances"
+          zones={resistances}
+          emptyLabel="Aucune resistance confirmee par 3 clotures."
+        />
+      </div>
+    </div>
+  );
+}
+
 function getIbkrBatchMessage(row) {
   const ibkrError = row?.ibkr?.error || row?.ibkr?.reason;
   const yahooError = row?.yahoo?.error || row?.yahoo?.reason;
@@ -3063,6 +3281,13 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
         : yahooCandidate?.raw?.supportDiagnosticsV1 &&
             typeof yahooCandidate.raw.supportDiagnosticsV1 === "object"
           ? { ...yahooCandidate.raw.supportDiagnosticsV1 }
+          : null,
+    supportResistanceV4:
+      yahooCandidate?.supportResistanceV4 && typeof yahooCandidate.supportResistanceV4 === "object"
+        ? { ...yahooCandidate.supportResistanceV4 }
+        : yahooCandidate?.raw?.supportResistanceV4 &&
+            typeof yahooCandidate.raw.supportResistanceV4 === "object"
+          ? { ...yahooCandidate.raw.supportResistanceV4 }
           : null,
     macd: yahooCandidate?.macd ?? "—",
     zone: "sous borne basse IBKR",
@@ -3783,6 +4008,14 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   </div>
                 </details>
               </div>
+              <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
+                <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-slate-100 after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">
+                  Support/Résistance V4 — zones confirmées
+                </summary>
+                <div className="mt-3">
+                  <SupportResistanceV4Panel data={item.supportResistanceV4} />
+                </div>
+              </details>
               <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/70 px-3 py-2 text-xs text-slate-400">
                 Note : les niveaux techniques proviennent des 60 derniers jours (daily). Les prix et options sont en temps réel via IBKR.
               </div>
@@ -6265,6 +6498,15 @@ function DetailModal({ item, onClose }) {
               }
             />
           </div>
+
+          <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+            <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold text-slate-900 after:ml-auto after:text-xl after:leading-none after:text-slate-500 after:content-['›'] [&::-webkit-details-marker]:hidden">
+              Support/Résistance V4 — zones confirmées
+            </summary>
+            <div className="mt-3">
+              <SupportResistanceV4Panel data={item.supportResistanceV4} />
+            </div>
+          </details>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-900">Résumé</p>

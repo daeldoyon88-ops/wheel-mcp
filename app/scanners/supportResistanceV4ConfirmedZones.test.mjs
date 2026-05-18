@@ -21,6 +21,43 @@ function candlesAt(price, n, { dateStart = "2026-01-01", offset = 0, spread = 0.
   });
 }
 
+function makeSupportSeries({
+  spot,
+  supportBase,
+  supportSpread = 0.12,
+  supportCount = 4,
+  wickCount = 3,
+}) {
+  const earlyNoise = [
+    makeCandle(spot * 1.01, { date: "2026-01-01", high: spot * 1.02, low: spot * 0.995 }),
+    makeCandle(spot * 0.995, { date: "2026-01-02", high: spot * 1.01, low: spot * 0.985 }),
+    makeCandle(spot * 1.005, { date: "2026-01-03", high: spot * 1.015, low: spot * 0.99 }),
+  ];
+
+  const supportCandles = Array.from({ length: supportCount }, (_, i) => {
+    const d = new Date("2026-01-10");
+    d.setDate(d.getDate() + i);
+    const close = supportBase + (i % 2 === 0 ? supportSpread : -supportSpread);
+    return makeCandle(close, {
+      date: d.toISOString().slice(0, 10),
+      high: close + 0.22,
+      low: close - 0.22,
+    });
+  });
+
+  const wickCandles = Array.from({ length: wickCount }, (_, i) => {
+    const d = new Date("2026-01-20");
+    d.setDate(d.getDate() + i);
+    return makeCandle(spot + 0.4 + i * 0.1, {
+      date: d.toISOString().slice(0, 10),
+      high: supportBase + 0.3,
+      low: supportBase - 0.3,
+    });
+  });
+
+  return [...earlyNoise, ...supportCandles, ...wickCandles];
+}
+
 test("buildSupportResistanceV4ConfirmedZones: retour stable si ohlcCandles absent", () => {
   const r = buildSupportResistanceV4ConfirmedZones({ spot: 50, strike: 47, dteDays: 5 });
   assert.equal(r.available, false);
@@ -131,4 +168,69 @@ test("buildSupportResistanceV4ConfirmedZones: diagnosticOnly est toujours true",
   for (const r of cases) {
     assert.equal(r.diagnosticOnly, true, "diagnosticOnly doit toujours être true");
   }
+});
+
+test("buildSupportResistanceV4ConfirmedZones: strikeProtectionV4 unavailable si strike absent", () => {
+  const ohlcCandles = makeSupportSeries({ spot: 80, supportBase: 70 });
+  const r = buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot: 80, dteDays: 7 });
+  assert.equal(r.strikeProtectionV4?.status, "unavailable");
+  assert.equal(r.strikeProtectionV4?.diagnosticOnly, true);
+  assert.equal(r.strikeProtectionV4?.score, 0);
+});
+
+test("buildSupportResistanceV4ConfirmedZones: strikeProtectionV4 protected si strike dans la zone", () => {
+  const strike = 70;
+  const ohlcCandles = makeSupportSeries({ spot: 80, supportBase: 70, supportSpread: 0.08, wickCount: 4 });
+  const r = buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot: 80, strike, dteDays: 7 });
+  const protection = r.strikeProtectionV4;
+  assert.equal(protection?.status, "protected");
+  assert.equal(protection?.strikeInsideConfirmedSupportZone, true);
+  assert.ok((protection?.score ?? 0) >= 80);
+  assert.equal(protection?.summaryFr, "Strike dans une zone support V4 confirmee.");
+});
+
+test("buildSupportResistanceV4ConfirmedZones: strikeProtectionV4 partially_protected si strike 1-3% au-dessus d'un support confirme", () => {
+  const strike = 70;
+  const ohlcCandles = makeSupportSeries({ spot: 80, supportBase: 68.2, supportSpread: 0.08, wickCount: 4 });
+  const r = buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot: 80, strike, dteDays: 7 });
+  const protection = r.strikeProtectionV4;
+  assert.equal(protection?.status, "partially_protected");
+  assert.ok((protection?.supportDistanceBelowStrikePct ?? 0) > 0.5);
+  assert.ok((protection?.supportDistanceBelowStrikePct ?? 99) <= 3.5);
+  assert.equal(protection?.summaryFr, "Strike au-dessus d'un support V4 confirme proche.");
+});
+
+test("buildSupportResistanceV4ConfirmedZones: strikeProtectionV4 weakly_protected si support confirme a 5-8% sous le strike", () => {
+  const strike = 70;
+  const ohlcCandles = makeSupportSeries({ spot: 80, supportBase: 65.2, supportSpread: 0.1, wickCount: 4 });
+  const r = buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot: 80, strike, dteDays: 7 });
+  const protection = r.strikeProtectionV4;
+  assert.equal(protection?.status, "weakly_protected");
+  assert.ok((protection?.supportDistanceBelowStrikePct ?? 0) > 5);
+  assert.ok((protection?.supportDistanceBelowStrikePct ?? 99) <= 8);
+  assert.equal(protection?.summaryFr, "Support V4 confirme present, mais eloigne du strike.");
+});
+
+test("buildSupportResistanceV4ConfirmedZones: strikeProtectionV4 unprotected si support confirme a plus de 8% sous le strike", () => {
+  const strike = 70;
+  const ohlcCandles = makeSupportSeries({ spot: 80, supportBase: 60.4, supportSpread: 0.1, wickCount: 4 });
+  const r = buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot: 80, strike, dteDays: 7 });
+  const protection = r.strikeProtectionV4;
+  assert.equal(protection?.status, "unprotected");
+  assert.ok((protection?.supportDistanceBelowStrikePct ?? 0) > 8);
+  assert.ok((protection?.score ?? 100) <= 34);
+  assert.equal(protection?.summaryFr, "Support V4 confirme present, mais trop eloigne du strike.");
+});
+
+test("buildSupportResistanceV4ConfirmedZones: cas TQQQ-like reste hors protected/partially_protected", () => {
+  const spot = 75;
+  const strike = 68;
+  const ohlcCandles = makeSupportSeries({ spot, supportBase: 59.7, supportSpread: 1.05, wickCount: 5 });
+  const r = buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot, strike, dteDays: 7 });
+  const protection = r.strikeProtectionV4;
+  assert.notEqual(protection?.status, "protected");
+  assert.notEqual(protection?.status, "partially_protected");
+  assert.ok(["weakly_protected", "unprotected"].includes(protection?.status));
+  assert.ok((protection?.supportDistanceBelowStrikePct ?? 0) > 8);
+  assert.match(protection?.summaryFr ?? "", /(trop eloigne|Aucun support V4 confirme proche)/);
 });

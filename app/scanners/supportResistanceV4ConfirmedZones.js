@@ -186,6 +186,237 @@ function buildZone(cluster, sorted, spotVal, strikeVal, tolerance) {
   };
 }
 
+function roundPct(value) {
+  return typeof value === "number" && isFinite(value)
+    ? Math.round(value * 100) / 100
+    : null;
+}
+
+function confidenceRank(value) {
+  switch (value) {
+    case "high":
+      return 3;
+    case "medium":
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+function sortInsideZonesByPriority(a, b, strikeVal) {
+  const scoreDiff = (b?.score ?? 0) - (a?.score ?? 0);
+  if (scoreDiff !== 0) return scoreDiff;
+  const aMid = typeof a?.zoneMid === "number" ? Math.abs(a.zoneMid - strikeVal) : Infinity;
+  const bMid = typeof b?.zoneMid === "number" ? Math.abs(b.zoneMid - strikeVal) : Infinity;
+  return aMid - bMid;
+}
+
+function buildUnavailableStrikeProtectionV4({ strikeVal, spotVal, notes = [] } = {}) {
+  return {
+    status: "unavailable",
+    diagnosticOnly: true,
+    strike: strikeVal,
+    spot: spotVal,
+    selectedSupportZone: null,
+    nearestSupportBelowStrike: null,
+    nearestSupportAboveStrike: null,
+    supportDistanceBelowStrikePct: null,
+    supportDistanceAboveStrikePct: null,
+    strikeInsideConfirmedSupportZone: false,
+    strikeAboveConfirmedSupportZone: false,
+    strikeBelowConfirmedSupportZone: false,
+    confidence: "low",
+    score: 0,
+    summaryFr: "Protection V4 indisponible.",
+    notes: Array.isArray(notes) ? notes.filter(Boolean) : [],
+  };
+}
+
+function clampScore(value, min, max) {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function computeStrikeProtectionScore({
+  status,
+  selectedSupportZone,
+  supportDistanceBelowStrikePct,
+  supportDistanceAboveStrikePct,
+}) {
+  if (status === "unavailable") return 0;
+
+  const zone = selectedSupportZone && typeof selectedSupportZone === "object" ? selectedSupportZone : null;
+  const zoneScore = Number.isFinite(Number(zone?.score)) ? Number(zone.score) : 0;
+  const closeTouchCount = Number.isFinite(Number(zone?.closeTouchCount)) ? Number(zone.closeTouchCount) : 0;
+  const confidenceBoost = zone ? ({ low: 0, medium: 6, high: 12 }[zone.confidence] ?? 0) : 0;
+  const touchBoost = Math.max(0, Math.min(8, (closeTouchCount - 3) * 2));
+  const zoneBoost = Math.round(zoneScore * 0.06);
+
+  if (status === "protected") {
+    return clampScore(82 + confidenceBoost + touchBoost + zoneBoost, 80, 100);
+  }
+
+  if (status === "partially_protected") {
+    const threshold = supportDistanceAboveStrikePct != null ? 2.5 : 3.5;
+    const distance = supportDistanceAboveStrikePct != null
+      ? supportDistanceAboveStrikePct
+      : supportDistanceBelowStrikePct;
+    const proximityBoost = distance != null
+      ? Math.max(0, Math.round(((threshold - distance) / threshold) * 12))
+      : 0;
+    return clampScore(60 + confidenceBoost + touchBoost + zoneBoost + proximityBoost, 60, 79);
+  }
+
+  if (status === "weakly_protected") {
+    const distance = supportDistanceBelowStrikePct;
+    const proximityBoost = distance != null
+      ? Math.max(0, Math.round(((8 - distance) / 8) * 10))
+      : 0;
+    return clampScore(35 + Math.min(confidenceBoost, 8) + Math.min(touchBoost, 6) + zoneBoost + proximityBoost, 35, 59);
+  }
+
+  const fallbackDistance = supportDistanceBelowStrikePct ?? supportDistanceAboveStrikePct;
+  const distancePenalty = fallbackDistance != null ? Math.min(18, Math.round(fallbackDistance)) : 20;
+  return clampScore(30 + Math.round(zoneScore * 0.03) - distancePenalty, 0, 34);
+}
+
+function buildStrikeProtectionV4({ supports, strikeVal, spotVal } = {}) {
+  if (!spotVal) {
+    return buildUnavailableStrikeProtectionV4({
+      strikeVal,
+      spotVal,
+      notes: ["spot invalide"],
+    });
+  }
+  if (!strikeVal) {
+    return buildUnavailableStrikeProtectionV4({
+      strikeVal,
+      spotVal,
+      notes: ["strike invalide"],
+    });
+  }
+  if (!Array.isArray(supports) || supports.length === 0) {
+    return buildUnavailableStrikeProtectionV4({
+      strikeVal,
+      spotVal,
+      notes: ["aucun support confirme V4 disponible"],
+    });
+  }
+
+  const insideZones = supports
+    .filter((zone) => typeof zone?.zoneLow === "number" && typeof zone?.zoneHigh === "number" && zone.zoneLow <= strikeVal && zone.zoneHigh >= strikeVal)
+    .sort((a, b) => sortInsideZonesByPriority(a, b, strikeVal));
+  const belowZones = supports
+    .filter((zone) => typeof zone?.zoneHigh === "number" && zone.zoneHigh <= strikeVal)
+    .sort((a, b) => {
+      const distanceDiff = (strikeVal - a.zoneHigh) - (strikeVal - b.zoneHigh);
+      if (distanceDiff !== 0) return distanceDiff;
+      return (b?.score ?? 0) - (a?.score ?? 0);
+    });
+  const aboveZones = supports
+    .filter((zone) => typeof zone?.zoneLow === "number" && zone.zoneLow > strikeVal)
+    .sort((a, b) => {
+      const distanceDiff = (a.zoneLow - strikeVal) - (b.zoneLow - strikeVal);
+      if (distanceDiff !== 0) return distanceDiff;
+      return (b?.score ?? 0) - (a?.score ?? 0);
+    });
+
+  const insideZone = insideZones[0] ?? null;
+  const nearestBelowStrike = belowZones[0] ?? null;
+  const nearestAboveStrike = aboveZones[0] ?? null;
+  const supportDistanceBelowStrikePct = nearestBelowStrike
+    ? roundPct(((strikeVal - nearestBelowStrike.zoneHigh) / strikeVal) * 100)
+    : null;
+  const supportDistanceAboveStrikePct = nearestAboveStrike
+    ? roundPct(((nearestAboveStrike.zoneLow - strikeVal) / strikeVal) * 100)
+    : null;
+
+  let status = "unprotected";
+  let selectedSupportZone = null;
+  let summaryFr = "Aucun support V4 confirme proche du strike.";
+  const notes = [];
+
+  if (insideZone && insideZone.closeTouchCount >= 3 && confidenceRank(insideZone.confidence) >= 2) {
+    status = "protected";
+    selectedSupportZone = insideZone;
+    summaryFr = "Strike dans une zone support V4 confirmee.";
+  } else if (
+    nearestBelowStrike &&
+    supportDistanceBelowStrikePct != null &&
+    supportDistanceBelowStrikePct <= 3.5 &&
+    confidenceRank(nearestBelowStrike.confidence) >= 2
+  ) {
+    status = "partially_protected";
+    selectedSupportZone = nearestBelowStrike;
+    summaryFr = "Strike au-dessus d'un support V4 confirme proche.";
+  } else if (
+    nearestAboveStrike &&
+    supportDistanceAboveStrikePct != null &&
+    supportDistanceAboveStrikePct <= 2.5 &&
+    confidenceRank(nearestAboveStrike.confidence) >= 2
+  ) {
+    status = "partially_protected";
+    selectedSupportZone = nearestAboveStrike;
+    summaryFr = "Support V4 confirme legerement au-dessus du strike.";
+  } else if (
+    nearestBelowStrike &&
+    supportDistanceBelowStrikePct != null &&
+    supportDistanceBelowStrikePct <= 8
+  ) {
+    status = "weakly_protected";
+    selectedSupportZone = nearestBelowStrike;
+    summaryFr = "Support V4 confirme present, mais eloigne du strike.";
+  } else if (nearestBelowStrike) {
+    selectedSupportZone = nearestBelowStrike;
+    summaryFr = "Support V4 confirme present, mais trop eloigne du strike.";
+  } else if (nearestAboveStrike) {
+    selectedSupportZone = nearestAboveStrike;
+    summaryFr = "Aucun support V4 confirme proche du strike.";
+  }
+
+  if (supportDistanceBelowStrikePct != null) {
+    notes.push(`support sous strike a ${supportDistanceBelowStrikePct}%`);
+  }
+  if (supportDistanceAboveStrikePct != null) {
+    notes.push(`support au-dessus du strike a ${supportDistanceAboveStrikePct}%`);
+  }
+  if (selectedSupportZone?.confidence) {
+    notes.push(`confiance ${selectedSupportZone.confidence}`);
+  }
+  if (Number.isFinite(Number(selectedSupportZone?.closeTouchCount))) {
+    notes.push(`${Number(selectedSupportZone.closeTouchCount)} clotures confirmees`);
+  }
+
+  const strikeInsideConfirmedSupportZone = Boolean(insideZone);
+  const strikeAboveConfirmedSupportZone = !strikeInsideConfirmedSupportZone && Boolean(selectedSupportZone && selectedSupportZone.zoneHigh <= strikeVal);
+  const strikeBelowConfirmedSupportZone = !strikeInsideConfirmedSupportZone && Boolean(selectedSupportZone && selectedSupportZone.zoneLow > strikeVal);
+  const confidence = selectedSupportZone?.confidence || "low";
+  const score = computeStrikeProtectionScore({
+    status,
+    selectedSupportZone,
+    supportDistanceBelowStrikePct,
+    supportDistanceAboveStrikePct,
+  });
+
+  return {
+    status,
+    diagnosticOnly: true,
+    strike: strikeVal,
+    spot: spotVal,
+    selectedSupportZone,
+    nearestSupportBelowStrike: nearestBelowStrike,
+    nearestSupportAboveStrike: nearestAboveStrike,
+    supportDistanceBelowStrikePct,
+    supportDistanceAboveStrikePct,
+    strikeInsideConfirmedSupportZone,
+    strikeAboveConfirmedSupportZone,
+    strikeBelowConfirmedSupportZone,
+    confidence,
+    score,
+    summaryFr,
+    notes,
+  };
+}
+
 export function buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot, strike, dteDays } = {}) {
   const spotVal = typeof spot === "number" && isFinite(spot) && spot > 0 ? spot : null;
   const strikeVal = typeof strike === "number" && isFinite(strike) && strike > 0 ? strike : null;
@@ -203,6 +434,11 @@ export function buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot, stri
     resistances: [],
     bestSupportZone: null,
     bestResistanceZone: null,
+    strikeProtectionV4: buildUnavailableStrikeProtectionV4({
+      strikeVal,
+      spotVal,
+      notes: ["donnees OHLC insuffisantes"],
+    }),
     summaryFr: "V4 diagnostic: données OHLC insuffisantes pour confirmer des zones par 3 clôtures.",
   };
 
@@ -249,6 +485,11 @@ export function buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot, stri
       available: false,
       tolerance: toleranceRounded,
       atr: atrRounded,
+      strikeProtectionV4: buildUnavailableStrikeProtectionV4({
+        strikeVal,
+        spotVal,
+        notes: ["aucune zone confirmee disponible"],
+      }),
       summaryFr: "V4 diagnostic: aucun support/résistance confirmé par 3 clôtures.",
     };
   }
@@ -267,6 +508,7 @@ export function buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot, stri
   const resistances = zones
     .filter((z) => z.role === "resistance" || z.role === "broken_support_resistance")
     .sort(sortFn);
+  const strikeProtectionV4 = buildStrikeProtectionV4({ supports, strikeVal, spotVal });
 
   const supCount = supports.length;
   const resCount = resistances.length;
@@ -293,6 +535,7 @@ export function buildSupportResistanceV4ConfirmedZones({ ohlcCandles, spot, stri
     resistances,
     bestSupportZone: supports[0] ?? null,
     bestResistanceZone: resistances[0] ?? null,
+    strikeProtectionV4,
     summaryFr,
   };
 }

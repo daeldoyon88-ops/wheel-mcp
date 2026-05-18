@@ -2546,6 +2546,20 @@ function supportResistanceV4ConfidenceLabel(value) {
   return "n/a";
 }
 
+function supportResistanceV4ProtectionStatusLabel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  switch (normalized) {
+    case "protected":
+    case "partially_protected":
+    case "weakly_protected":
+    case "unprotected":
+    case "unavailable":
+      return normalized;
+    default:
+      return "n/a";
+  }
+}
+
 function supportResistanceV4RoleLabel(value) {
   const normalized = String(value || "").trim().toLowerCase();
   switch (normalized) {
@@ -2670,6 +2684,12 @@ function SupportResistanceV4Panel({ data }) {
 
   const supports = Array.isArray(data.supports) ? data.supports : [];
   const resistances = Array.isArray(data.resistances) ? data.resistances : [];
+  const strikeProtection = data.strikeProtectionV4 && typeof data.strikeProtectionV4 === "object"
+    ? data.strikeProtectionV4
+    : null;
+  const strikeProtectionZone = strikeProtection?.selectedSupportZone
+    ? formatSupportResistanceV4Zone(strikeProtection.selectedSupportZone)
+    : "n/a";
 
   return (
     <div className="rounded-[7px] border border-slate-700/70 bg-slate-950/70 px-3 py-3 text-sm text-slate-200">
@@ -2684,6 +2704,15 @@ function SupportResistanceV4Panel({ data }) {
       <p className="mt-2 text-xs leading-5 text-slate-300">
         {data.summaryFr || "V4 non disponible pour ce candidat."}
       </p>
+      <div className="mt-3 rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2 text-xs text-slate-300">
+        <span className="font-semibold uppercase tracking-wide text-slate-400">Protection strike V4</span>
+        <p className="mt-1">
+          {supportResistanceV4ProtectionStatusLabel(strikeProtection?.status)} · score{" "}
+          {Number.isFinite(Number(strikeProtection?.score)) ? `${Number(strikeProtection.score)} / 100` : "n/a"} —{" "}
+          {strikeProtection?.summaryFr || "n/a"}
+          {strikeProtection?.selectedSupportZone ? ` · zone ${strikeProtectionZone}` : ""}
+        </p>
+      </div>
       <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-5">
         <div className="rounded-[6px] border border-slate-800 bg-slate-950/80 px-2.5 py-2">
           <p className="text-[11px] uppercase tracking-wide text-slate-500">Available</p>

@@ -400,7 +400,8 @@ export function createMarketService(provider) {
         period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
         interval: "1d",
       });
-      const rows = (result?.quotes ?? [])
+      const rawQuotes = result?.quotes ?? [];
+      const rows = rawQuotes
         .map((q) => ({ high: toNumber(q?.high), low: toNumber(q?.low), close: toNumber(q?.close) }))
         .filter((q) => q.high > 0 && q.low > 0 && q.close > 0);
       if (rows.length < 20) {
@@ -416,6 +417,7 @@ export function createMarketService(provider) {
           resistanceStatus: "unavailable",
           supportResistanceMethod: "quantile_40d_plus_near_levels",
           currentPrice: null,
+          ohlcCandles: null,
         };
       }
 
@@ -449,6 +451,26 @@ export function createMarketService(provider) {
       const potentialSupportFromBrokenResistance =
         resistanceStatus === "broken" ? Number(resistanceCurrent) : null;
 
+      const ohlcCandles = rawQuotes
+        .map((q) => {
+          const close = toNumber(q?.close);
+          if (!(close > 0)) return null;
+          const open = toNumber(q?.open);
+          const high = toNumber(q?.high);
+          const low = toNumber(q?.low);
+          const volume = toNumber(q?.volume);
+          return {
+            date: toIsoDate(q?.date, null),
+            open: open > 0 ? open : null,
+            high: high > 0 ? high : null,
+            low: low > 0 ? low : null,
+            close,
+            volume: volume > 0 ? volume : null,
+          };
+        })
+        .filter((c) => c !== null)
+        .slice(-60);
+
       return {
         symbol,
         support: support ? round(support, 3) : null,
@@ -463,6 +485,7 @@ export function createMarketService(provider) {
         resistanceStatus,
         supportResistanceMethod: "quantile_40d_plus_near_levels",
         currentPrice: currentPrice ? round(currentPrice, 3) : null,
+        ohlcCandles,
       };
     } catch (_error) {
       return {
@@ -477,6 +500,7 @@ export function createMarketService(provider) {
         resistanceStatus: "unavailable",
         supportResistanceMethod: "quantile_40d_plus_near_levels",
         currentPrice: null,
+        ohlcCandles: null,
       };
     }
   }

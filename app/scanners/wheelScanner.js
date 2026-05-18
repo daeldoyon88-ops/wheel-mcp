@@ -827,6 +827,7 @@ export function createWheelScanner(marketService) {
         sma50: technicals?.sma50 ?? null,
       },
       priceSeries,
+      ohlcCandles: supportResistance?.ohlcCandles ?? null,
       supportResistance: {
         support: supportResistance?.support ?? null,
         resistance: supportResistance?.resistance ?? null,

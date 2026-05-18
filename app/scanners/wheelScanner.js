@@ -12,6 +12,7 @@ import { buildSupportDiagnosticsV1 } from "./supportDiagnosticsV1.js";
 import { buildSupportResistanceLevelsV3 } from "./supportResistanceLevelsV3.js";
 import { SUPPORT_SCORING_V2_ENABLED, buildSupportScoringV2 } from "./supportScoringV2.js";
 import { buildSupportResistanceV4ConfirmedZones } from "./supportResistanceV4ConfirmedZones.js";
+import { getFinalDisplayRecommendation } from "../../wheel-dashboard/src/capitalComboPortfolio.js";
 import {
   buildScanFunnelDiagnosticsV1,
   isYahooFunnelDiagnosticsV1Enabled,
@@ -159,6 +160,52 @@ function estimatePop({ spot, strike, premiumUsed, dteDays, impliedVolatility }) 
   const d = Math.log(breakEven / spot) / denom;
   const pop = 1 - normalCdf(d);
   return Math.max(0, Math.min(1, pop));
+}
+
+function resolvePositiveStrikeValue(leg) {
+  const strike = Number(leg?.strike);
+  return Number.isFinite(strike) && strike > 0 ? strike : null;
+}
+
+export function resolveSelectedStrikeForSupportResistanceV4({
+  aggressiveStrike = null,
+  safeStrike = null,
+  selectedOption = null,
+  finalDisplayMode = null,
+  finalDisplayGrade = null,
+} = {}) {
+  const aggressiveSelectedStrike =
+    aggressiveStrike?.selected === true ? resolvePositiveStrikeValue(aggressiveStrike) : null;
+  if (aggressiveSelectedStrike != null) return aggressiveSelectedStrike;
+
+  const safeSelectedStrike =
+    safeStrike?.selected === true ? resolvePositiveStrikeValue(safeStrike) : null;
+  if (safeSelectedStrike != null) return safeSelectedStrike;
+
+  const selectedOptionStrike = resolvePositiveStrikeValue(selectedOption);
+  if (selectedOptionStrike != null) return selectedOptionStrike;
+
+  const resolvedMode = String(finalDisplayMode || "").trim().toUpperCase();
+  const resolvedGrade = String(finalDisplayGrade || "").trim().toUpperCase();
+  const fallbackRecommendation =
+    resolvedMode && resolvedGrade
+      ? { finalDisplayMode: resolvedMode, finalDisplayGrade: resolvedGrade }
+      : getFinalDisplayRecommendation({ safeStrike, aggressiveStrike });
+  const fallbackMode = String(fallbackRecommendation?.finalDisplayMode || "").trim().toUpperCase();
+  const fallbackGrade = String(fallbackRecommendation?.finalDisplayGrade || "").trim().toUpperCase();
+
+  if (fallbackGrade !== "REJECT") {
+    if (fallbackMode === "AGGRESSIVE") {
+      const aggressiveFinalStrike = resolvePositiveStrikeValue(aggressiveStrike);
+      if (aggressiveFinalStrike != null) return aggressiveFinalStrike;
+    }
+    if (fallbackMode === "SAFE") {
+      const safeFinalStrike = resolvePositiveStrikeValue(safeStrike);
+      if (safeFinalStrike != null) return safeFinalStrike;
+    }
+  }
+
+  return resolvePositiveStrikeValue(safeStrike);
 }
 
 function robustOptionMid(row, strictBidAsk = false) {
@@ -782,11 +829,15 @@ export function createWheelScanner(marketService) {
       supportScoringV2.strikeVsSupportEffectivePct != null
         ? round(supportScoringV2.strikeVsSupportEffectivePct, 2)
         : null;
+    const selectedStrikeForSupportResistanceV4 = resolveSelectedStrikeForSupportResistanceV4({
+      aggressiveStrike,
+      safeStrike,
+    });
 
     const supportResistanceV4 = buildSupportResistanceV4ConfirmedZones({
       ohlcCandles: supportResistance?.ohlcCandles ?? null,
       spot,
-      strike: safeStrike?.strike ?? null,
+      strike: selectedStrikeForSupportResistanceV4,
       dteDays,
     });
 

@@ -1243,7 +1243,7 @@ function enrichIbkrCallMetrics(metrics, rows, rejectionReasons) {
 }
 
 function getIbkrStrikeYield(strike) {
-  const n = numberOrNull(strike?.premiumYieldOnUnderlying ?? strike?.premiumYield);
+  const n = numberOrNull(strike?.premiumYield ?? strike?.premiumYieldOnUnderlying);
   return n == null ? null : n;
 }
 

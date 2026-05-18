@@ -2721,7 +2721,7 @@ function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = f
     ? null
     : Number(strike.mid ?? strike.primeUsed ?? strike.bid ?? 0);
 
-  const yieldDecimal = Number(strike.premiumYieldOnUnderlying ?? strike.premiumYield);
+  const yieldDecimal = Number(strike.premiumYield ?? strike.premiumYieldOnUnderlying);
   let weeklyYield;
   let weeklyNormalizedYield;
   let annualizedYield;

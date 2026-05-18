@@ -4199,7 +4199,7 @@ function IbkrBatchCardDetails({ item, row }) {
   );
 }
 
-function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkrBatchRow = null, seasonality = null, highlightedTicker = null }) {
+function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkrBatchRow = null, seasonality = null, highlightedTicker = null, isExpanded = false, onToggleExpand = null }) {
   const adjustedMovePct = item.earningsMode
     ? item.expectedMovePct * (item.expectedMoveMultiplier || 1)
     : item.expectedMovePct;
@@ -4397,6 +4397,17 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                     />
                   )}
                 </div>
+                {onToggleExpand && (
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    title={isExpanded ? "Réduire la carte" : "Afficher plus de détails"}
+                    onClick={onToggleExpand}
+                    className="shrink-0 rounded-[6px] border border-slate-700 bg-[#07111b] px-3 py-1 text-sm text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
+                  >
+                    {isExpanded ? "Réduire ▲" : "Afficher plus ▼"}
+                  </button>
+                )}
                 <Button
                   className="shrink-0 rounded-[6px] border border-slate-600 bg-[#07111b] px-3 py-1 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   onClick={() => onOpenDetail(item)}
@@ -4496,6 +4507,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                 <FaceplateMetric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
               </div>
 
+              {isExpanded && (<>
               <div className="grid gap-3 xl:grid-cols-[minmax(0,2.22fr)_minmax(390px,0.98fr)]">
                 <MiniTradeLevelsChart item={item} />
                 <FaceplateStrikeOpportunities item={item} />
@@ -4652,6 +4664,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
               <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/70 px-3 py-2 text-xs text-slate-400">
                 Note : les niveaux techniques proviennent des 60 derniers jours (daily). Les prix et options sont en temps réel via IBKR.
               </div>
+              </>)}
             </div>
           </div>
         </CardContent>
@@ -6654,6 +6667,13 @@ const CREAM_COMPACT_BUCKETS = new Set(["unknownReview", "spreadRejected"]);
 
 function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null }) {
   const [openBuckets, setOpenBuckets] = useState(() => new Set(["topExecutable", "favoriteWatch", "watchOnly"]));
+  const [expandedTickerCards, setExpandedTickerCards] = useState({});
+
+  useEffect(() => {
+    if (highlightedTicker) {
+      setExpandedTickerCards(prev => ({ ...prev, [highlightedTicker]: true }));
+    }
+  }, [highlightedTicker]);
 
   const classified = useMemo(() => {
     // cryptoBlocked initialisé mais non rendu — évite un crash sur .push()
@@ -6676,6 +6696,8 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
     next.has(b) ? next.delete(b) : next.add(b);
     return next;
   });
+
+  const toggleTickerCard = (ticker) => setExpandedTickerCards(prev => ({ ...prev, [ticker]: !prev[ticker] }));
 
   return (
     <div className="rounded-[12px] border border-[#1e3a52] bg-[#020811] overflow-hidden shadow-[0_0_0_1px_rgba(80,140,180,0.08)]">
@@ -6781,6 +6803,8 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
                           ibkrBatchRow={ibkrBatchByTicker.get(sym) ?? null}
                           seasonality={seasonalityMap[sym] ?? null}
                           highlightedTicker={highlightedTicker}
+                          isExpanded={expandedTickerCards[sym] === true}
+                          onToggleExpand={() => toggleTickerCard(sym)}
                         />
                       </div>
                     );
@@ -8505,7 +8529,7 @@ function PortfolioCombos({
                     <span className="text-slate-300">|</span>
                     <span>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}</span>
                     <span className="text-slate-300">|</span>
-                    <span>yield {pick.weeklyReturn.toFixed(2)}%</span>
+                    <span>rendement {pick.weeklyReturn.toFixed(2)}%</span>
                     <span className="text-slate-300">|</span>
                     <span>dist {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}</span>
                     <span className="text-slate-300">|</span>
@@ -8534,13 +8558,6 @@ function PortfolioCombos({
                         ? `${Math.round(Number(pick.popEstimate))}%`
                         : "—"}
                     </span>
-                    <span className="text-slate-300">|</span>
-                    <span>
-                      OTM{" "}
-                      {pick.distancePct != null && Number.isFinite(Number(pick.distancePct))
-                        ? `${Math.round(Number(pick.distancePct))}%`
-                        : "—"}
-                    </span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
                     <span
@@ -8550,8 +8567,7 @@ function PortfolioCombos({
                       Score {pick.selectionScore}
                     </span>
                     {pick.source && <span>{pick.source}</span>}
-                    {pick.selectionSummary && <span>{pick.selectionSummary}</span>}
-                    {pick.selectionReason && <span className="text-sky-600">{pick.selectionReason}</span>}
+                    {pick.selectionSummary && <span>{pick.selectionSummary.replace(/\byield\b/g, "rendement").replace(/\bquality\b/g, "qualité").replace(/\brisk\b/g, "risque")}</span>}
                     {combo.label === "BALANCED" && pick.balancedInstitutionalV3Pick && (
                       <span className="text-sky-800">
                         {pick.balancedInstitutionalV3Pick.premiumUsdPer1000Collateral != null && (

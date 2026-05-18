@@ -1865,27 +1865,70 @@ function MiniTradeLevelsChart({ item }) {
   const expectedMoveHigh = Number(item?.expectedMoveHigh);
   const supportNear = Number(item?.supportNear);
   const supportWide = Number(item?.supportWide ?? item?.support);
+  // S. large excluded from scale when >25% below spot to prevent it from crushing the vertical axis;
+  // it stays in levelRows for the legend.
+  const supportWideForScale =
+    Number.isFinite(supportWide) && Number.isFinite(price) && price > 0 && supportWide < price * 0.75
+      ? NaN
+      : supportWide;
   const potentialSupport =
     Number(item?.potentialSupportFromBrokenResistance) ||
     (item?.resistanceStatus === "broken" ? Number(item?.resistanceCurrent ?? item?.resistance) : NaN);
   const resistanceAboveSpot = Number(item?.resistanceAboveSpot ?? item?.resistanceCurrent ?? item?.resistance);
-  const levels = [
+  // Extract V4 zone numerics early for Trade Focus Scale (before scale computation)
+  const v4DataRaw = item?.supportResistanceV4;
+  const v4SupportZoneRaw =
+    v4DataRaw?.strikeProtectionV4?.selectedSupportZone != null
+      ? v4DataRaw.strikeProtectionV4.selectedSupportZone
+      : v4DataRaw?.bestSupportZone ?? null;
+  const v4ResistanceZoneRaw = v4DataRaw?.bestResistanceZone ?? null;
+  const v4StrikeNumForFocus = Number(v4DataRaw?.strike);
+  const v4StrikeForFocus =
+    Number.isFinite(v4StrikeNumForFocus) && v4StrikeNumForFocus > 0 ? v4StrikeNumForFocus : NaN;
+  const v4SupportLowFocus = Number(v4SupportZoneRaw?.zoneLow);
+  const v4SupportHighFocus = Number(v4SupportZoneRaw?.zoneHigh);
+  const v4ResistanceLowFocus = Number(v4ResistanceZoneRaw?.zoneLow);
+  const v4ResistanceHighFocus = Number(v4ResistanceZoneRaw?.zoneHigh);
+
+  // Trade Focus Scale: Y-axis domain from trade-relevant levels only, not 60-day closes
+  const tradeFocusValues = [
+    price,
+    safeStrike,
+    expectedMoveLow,
+    expectedMoveHigh,
+    supportNear,
+    resistanceAboveSpot,
+    supportWideForScale,
+    potentialSupport,
+    v4StrikeForFocus,
+    v4SupportLowFocus,
+    v4SupportHighFocus,
+    v4ResistanceLowFocus,
+    v4ResistanceHighFocus,
+  ].filter((value) => Number.isFinite(value) && value > 0);
+
+  const hasSeries = visibleCloses.length >= 2;
+
+  // Fallback to legacy scale (includes closes) if trade focus has fewer than 2 valid values
+  const legacyLevels = [
     ...visibleCloses,
     price,
     safeStrike,
     expectedMoveLow,
     expectedMoveHigh,
     supportNear,
-    supportWide,
+    supportWideForScale,
     potentialSupport,
     resistanceAboveSpot,
   ].filter((value) => Number.isFinite(value) && value > 0);
-  const hasSeries = visibleCloses.length >= 2;
-  const rawMin = levels.length ? Math.min(...levels) : 0;
-  const rawMax = levels.length ? Math.max(...levels) : 1;
+
+  const focusSource = tradeFocusValues.length >= 2 ? tradeFocusValues : legacyLevels;
+  const rawMin = focusSource.length ? Math.min(...focusSource) : 0;
+  const rawMax = focusSource.length ? Math.max(...focusSource) : 1;
   const rawRange = rawMax - rawMin || Math.max(rawMax * 0.08, 1);
-  const min = Math.floor((rawMin - rawRange * 0.06) / 5) * 5;
-  const max = Math.ceil((rawMax + rawRange * 0.04) / 5) * 5;
+  const padding = Math.max(rawRange * 0.08, rawMax * 0.02);
+  const min = rawMin - padding;
+  const max = rawMax + padding;
   const range = max - min || 1;
   const width = 640;
   const height = 420;
@@ -1927,8 +1970,19 @@ function MiniTradeLevelsChart({ item }) {
       return acc;
     }, []);
   const labelYByName = new Map(levelLabels.map((row) => [row.label, row.labelY]));
-  const allYTicks = Array.from({ length: Math.floor((max - min) / 5) + 1 }, (_, index) => max - index * 5)
-    .filter((value) => value >= min && value <= max);
+  // Adaptive tick step: handles small prices (SOFI ~$15) and large prices (TQQQ ~$74)
+  const niceTickSteps = [0.1, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100];
+  const rawTickStep = (max - min) / 8;
+  const tickStep = niceTickSteps.find((s) => s >= rawTickStep) ?? 100;
+  const formatTick = (v) => {
+    if (v % 1 === 0) return String(Math.round(v));
+    return tickStep < 1 ? v.toFixed(2) : v.toFixed(1);
+  };
+  const tickStart = Math.ceil(min / tickStep) * tickStep;
+  const tickCount = Math.floor((max - tickStart) / tickStep) + 1;
+  const allYTicks = Array.from({ length: Math.max(0, tickCount) }, (_, i) =>
+    Math.round((tickStart + i * tickStep) * 10000) / 10000
+  ).filter((v) => v >= min - 0.0001 && v <= max + 0.0001);
   const yTicks = allYTicks.length > 14 ? allYTicks.filter((_, i) => i % 2 === 0) : allYTicks;
   const monthLabels = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
   const parseChartDate = (raw) => {
@@ -1994,6 +2048,9 @@ function MiniTradeLevelsChart({ item }) {
               <stop offset="0%" stopColor="#06131f" />
               <stop offset="100%" stopColor="#020811" />
             </linearGradient>
+            <clipPath id={`mini-chart-clip-${item.ticker}`}>
+              <rect x={padLeft} y={padTop} width={chartWidth} height={chartHeight} />
+            </clipPath>
           </defs>
           <rect x="0" y="0" width={width} height={height} fill={`url(#mini-chart-bg-${item.ticker})`} rx="6" />
           {[0.16, 0.32, 0.48, 0.64, 0.8].map((ratio) => (
@@ -2060,7 +2117,7 @@ function MiniTradeLevelsChart({ item }) {
                 opacity="0.72"
               />
               <text x={width - padRight + 14} y={yForValue(tick) + 4} textAnchor="start" fill="#e5edf7" fontSize="12" fontWeight="600">
-                {tick}
+                {formatTick(tick)}
               </text>
             </g>
           ))}
@@ -2086,7 +2143,7 @@ function MiniTradeLevelsChart({ item }) {
             />
           )}
           {hasSeries ? (
-            <polyline fill="none" stroke="#00a9ff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" points={points} />
+            <polyline fill="none" stroke="#00a9ff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" points={points} clipPath={`url(#mini-chart-clip-${item.ticker})`} />
           ) : (
             <text x={width / 2} y={height / 2} textAnchor="middle" fill="#94a3b8" fontSize="14">
               Historique indisponible

@@ -11,6 +11,7 @@ import { round, roundMoney, toNumber } from "../utils/number.js";
 import { buildSupportDiagnosticsV1 } from "./supportDiagnosticsV1.js";
 import { buildSupportResistanceLevelsV3 } from "./supportResistanceLevelsV3.js";
 import { SUPPORT_SCORING_V2_ENABLED, buildSupportScoringV2 } from "./supportScoringV2.js";
+import { buildSupportResistanceV4ConfirmedZones } from "./supportResistanceV4ConfirmedZones.js";
 import {
   buildScanFunnelDiagnosticsV1,
   isYahooFunnelDiagnosticsV1Enabled,
@@ -782,6 +783,13 @@ export function createWheelScanner(marketService) {
         ? round(supportScoringV2.strikeVsSupportEffectivePct, 2)
         : null;
 
+    const supportResistanceV4 = buildSupportResistanceV4ConfirmedZones({
+      ohlcCandles: supportResistance?.ohlcCandles ?? null,
+      spot,
+      strike: safeStrike?.strike ?? null,
+      dteDays,
+    });
+
     return {
       symbol,
       ok: true,
@@ -845,6 +853,7 @@ export function createWheelScanner(marketService) {
       },
       supportDiagnosticsV1,
       supportResistanceLevelsV3,
+      supportResistanceV4,
       supportStatusLegacy,
       supportStatusV2: supportScoringV2.supportStatusV2,
       supportScoringV2,

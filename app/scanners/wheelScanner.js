@@ -808,13 +808,17 @@ export function createWheelScanner(marketService) {
       dteDays,
     });
 
+    const rawOhlc = supportResistance?.ohlcCandles;
     const priceSeries =
-      Array.isArray(technicals?.closes60) && technicals.closes60.length
+      Array.isArray(rawOhlc) && rawOhlc.length >= 2
         ? {
             interval: "1d",
-            closes: technicals.closes60,
-            count: technicals.closes60.length,
+            closes: rawOhlc.map((c) => c.close),
+            dates: rawOhlc.map((c) => c.date),
+            count: rawOhlc.length,
           }
+        : Array.isArray(technicals?.closes60) && technicals.closes60.length
+        ? { interval: "1d", closes: technicals.closes60, count: technicals.closes60.length }
         : null;
 
     const supportResistanceLevelsV3 = buildSupportResistanceLevelsV3({

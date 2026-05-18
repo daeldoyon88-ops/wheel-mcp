@@ -1863,6 +1863,9 @@ function MiniTradeLevelsChart({ item }) {
     priceLineStyle: "standard",
     labelDensity: "normal",
     palette: "defensive",
+    periodDays: 60,
+    scaleMode: "tradeFocus",
+    priceMode: "linear",
   });
   const closes = Array.isArray(item?.priceSeries?.closes)
     ? item.priceSeries.closes.map(Number).filter((value) => Number.isFinite(value) && value > 0)
@@ -1872,8 +1875,11 @@ function MiniTradeLevelsChart({ item }) {
     : Array.isArray(item?.priceSeries?.timestamps)
     ? item.priceSeries.timestamps
     : [];
-  const visibleCloses = closes.slice(-60);
-  const visibleDates = rawDates.slice(-visibleCloses.length);
+  const requestedDays = chartOptions.periodDays;
+  const visibleCloses = closes.slice(-requestedDays);
+  const actualDays = visibleCloses.length;
+  const dataLimitedForPeriod = requestedDays > actualDays;
+  const visibleDates = rawDates.slice(-actualDays);
   const price = Number(item?.price);
   const safeStrike = Number(item?.safeStrike?.strike);
   const safeMid = Number(item?.safeStrike?.mid ?? item?.safeStrike?.premiumUsed);
@@ -1906,41 +1912,49 @@ function MiniTradeLevelsChart({ item }) {
   const v4ResistanceLowFocus = Number(v4ResistanceZoneRaw?.zoneLow);
   const v4ResistanceHighFocus = Number(v4ResistanceZoneRaw?.zoneHigh);
 
-  // Trade Focus Scale: Y-axis domain from trade-relevant levels only, not 60-day closes
-  const tradeFocusValues = [
-    price,
-    safeStrike,
-    expectedMoveLow,
-    expectedMoveHigh,
-    supportNear,
-    resistanceAboveSpot,
-    supportWideForScale,
-    potentialSupport,
-    v4StrikeForFocus,
-    v4SupportLowFocus,
-    v4SupportHighFocus,
-    v4ResistanceLowFocus,
-    v4ResistanceHighFocus,
-  ].filter((value) => Number.isFinite(value) && value > 0);
-
   const hasSeries = visibleCloses.length >= 2;
 
-  // Fallback to legacy scale (includes closes) if trade focus has fewer than 2 valid values
-  const legacyLevels = [
-    ...visibleCloses,
-    price,
-    safeStrike,
-    expectedMoveLow,
-    expectedMoveHigh,
-    supportNear,
-    supportWideForScale,
-    potentialSupport,
+  // Scale source selection based on scaleMode
+  const tradeFocusLevelValues = [
+    price, safeStrike, expectedMoveLow, expectedMoveHigh, supportNear,
     resistanceAboveSpot,
-  ].filter((value) => Number.isFinite(value) && value > 0);
+    chartOptions.showWideSupport ? supportWideForScale : NaN,
+    potentialSupport, v4StrikeForFocus,
+    v4SupportLowFocus, v4SupportHighFocus, v4ResistanceLowFocus, v4ResistanceHighFocus,
+  ].filter((v) => Number.isFinite(v) && v > 0);
 
-  const focusSource = tradeFocusValues.length >= 2 ? tradeFocusValues : legacyLevels;
-  const rawMin = focusSource.length ? Math.min(...focusSource) : 0;
-  const rawMax = focusSource.length ? Math.max(...focusSource) : 1;
+  let scaleSource;
+  if (chartOptions.scaleMode === "auto") {
+    const enabledLevels = [
+      chartOptions.showSpot ? price : NaN,
+      chartOptions.showSafeStrike ? safeStrike : NaN,
+      chartOptions.showExpectedMove ? expectedMoveLow : NaN,
+      chartOptions.showExpectedMove ? expectedMoveHigh : NaN,
+      chartOptions.showClassicSupports ? supportNear : NaN,
+      chartOptions.showClassicSupports ? potentialSupport : NaN,
+      chartOptions.showClassicResistances ? resistanceAboveSpot : NaN,
+      chartOptions.showWideSupport ? supportWide : NaN,
+      chartOptions.showSelectedStrike ? v4StrikeForFocus : NaN,
+      chartOptions.showV4Zones ? v4SupportLowFocus : NaN,
+      chartOptions.showV4Zones ? v4SupportHighFocus : NaN,
+      chartOptions.showV4Zones ? v4ResistanceLowFocus : NaN,
+      chartOptions.showV4Zones ? v4ResistanceHighFocus : NaN,
+    ].filter((v) => Number.isFinite(v) && v > 0);
+    const src = [...visibleCloses, ...enabledLevels].filter((v) => Number.isFinite(v) && v > 0);
+    scaleSource = src.length >= 2 ? src : [price, safeStrike].filter((v) => Number.isFinite(v) && v > 0);
+  } else if (chartOptions.scaleMode === "full") {
+    // Complet: Y axis follows the price curve only — levels are drawn but don't distort scale
+    const src = visibleCloses.filter((v) => Number.isFinite(v) && v > 0);
+    scaleSource = src.length >= 2 ? src : [price, safeStrike].filter((v) => Number.isFinite(v) && v > 0);
+  } else {
+    // tradeFocus (default): trade-relevant levels, S. large clamped, fallback to closes
+    scaleSource = tradeFocusLevelValues.length >= 2
+      ? tradeFocusLevelValues
+      : [...visibleCloses, price, safeStrike].filter((v) => Number.isFinite(v) && v > 0);
+  }
+
+  const rawMin = scaleSource.length ? Math.min(...scaleSource) : 0;
+  const rawMax = scaleSource.length ? Math.max(...scaleSource) : 1;
   const rawRange = rawMax - rawMin || Math.max(rawMax * 0.08, 1);
   const padding = Math.max(rawRange * 0.08, rawMax * 0.02);
   const min = rawMin - padding;
@@ -1956,10 +1970,33 @@ function MiniTradeLevelsChart({ item }) {
   const chartHeight = height - padTop - padBottom;
   const xForIndex = (index) =>
     padLeft + (visibleCloses.length <= 1 ? 0 : (index / (visibleCloses.length - 1)) * chartWidth);
-  const yForValue = (value) => padTop + ((max - value) / range) * chartHeight;
+  // logFeasible uses rawMin (unpadded): linear padding can push min to ≤ 0 for low-priced stocks
+  const logFeasible = chartOptions.priceMode === "log" && rawMin > 0 && rawMax > 0;
+  if (chartOptions.priceMode === "log" && !logFeasible) console.warn("[MiniChart] log impossible (prix ≤ 0), fallback linéaire.");
+  // Multiplicative boundaries keep all price data inside the clip area regardless of linear padding
+  const _logMin = logFeasible ? Math.log(rawMin * 0.90) : 0;
+  const _logMax = logFeasible ? Math.log(rawMax * 1.10) : 1;
+  const _logRange = (_logMax - _logMin) || 1;
+  const yForValue = logFeasible
+    ? (value) => { const lv = value > 0 ? Math.log(value) : _logMin; return padTop + ((_logMax - lv) / _logRange) * chartHeight; }
+    : (value) => padTop + ((max - value) / range) * chartHeight;
   const points = visibleCloses
     .map((value, index) => `${xForIndex(index).toFixed(1)},${yForValue(value).toFixed(1)}`)
     .join(" ");
+  if (typeof window !== "undefined" && window.location?.hostname === "localhost") {
+    console.debug("[mini-chart-scale]", {
+      ticker: item?.ticker,
+      periodDays: requestedDays,
+      actualCandlesCount: actualDays,
+      scaleMode: chartOptions.scaleMode,
+      priceMode: chartOptions.priceMode,
+      logFeasible,
+      rawMin: rawMin.toFixed(3),
+      rawMax: rawMax.toFixed(3),
+      yMin: min.toFixed(3),
+      yMax: max.toFixed(3),
+    });
+  }
   const chartPalettes = {
     standard: {
       spot: "#00c8ff",
@@ -2040,12 +2077,36 @@ function MiniTradeLevelsChart({ item }) {
     if (v % 1 === 0) return String(Math.round(v));
     return tickStep < 1 ? v.toFixed(2) : v.toFixed(1);
   };
-  const tickStart = Math.ceil(min / tickStep) * tickStep;
-  const tickCount = Math.floor((max - tickStart) / tickStep) + 1;
-  const allYTicks = Array.from({ length: Math.max(0, tickCount) }, (_, i) =>
-    Math.round((tickStart + i * tickStep) * 10000) / 10000
-  ).filter((v) => v >= min - 0.0001 && v <= max + 0.0001);
-  const yTicks = allYTicks.length > 14 ? allYTicks.filter((_, i) => i % 2 === 0) : allYTicks;
+  let yTicks;
+  if (logFeasible) {
+    const logTicks = [];
+    const mag = Math.pow(10, Math.floor(Math.log10(rawMin)));
+    for (let m = mag; m <= rawMax * 2; m *= 10) {
+      for (const mult of [1, 2, 5]) {
+        const v = Math.round(m * mult * 100) / 100;
+        if (v >= rawMin * 0.95 && v <= rawMax * 1.05) logTicks.push(v);
+      }
+    }
+    if (logTicks.length < 2) {
+      // Fallback: linear ticks when log decade spacing gives too few points
+      const fbStep = niceTickSteps.find((s) => s >= (rawMax - rawMin) / 6) ?? 1;
+      const fbStart = Math.ceil(rawMin / fbStep) * fbStep;
+      const fbCount = Math.floor((rawMax - fbStart) / fbStep) + 1;
+      Array.from({ length: Math.max(0, fbCount) }, (_, i) =>
+        Math.round((fbStart + i * fbStep) * 10000) / 10000
+      )
+        .filter((v) => v >= rawMin * 0.95 && v <= rawMax * 1.05)
+        .forEach((v) => { if (!logTicks.includes(v)) logTicks.push(v); });
+    }
+    yTicks = logTicks.length > 14 ? logTicks.filter((_, i) => i % 2 === 0) : logTicks;
+  } else {
+    const tickStart = Math.ceil(min / tickStep) * tickStep;
+    const tickCount = Math.floor((max - tickStart) / tickStep) + 1;
+    const allYTicks = Array.from({ length: Math.max(0, tickCount) }, (_, i) =>
+      Math.round((tickStart + i * tickStep) * 10000) / 10000
+    ).filter((v) => v >= min - 0.0001 && v <= max + 0.0001);
+    yTicks = allYTicks.length > 14 ? allYTicks.filter((_, i) => i % 2 === 0) : allYTicks;
+  }
   const monthLabels = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
   const parseChartDate = (raw) => {
     if (raw == null) return null;
@@ -2054,8 +2115,9 @@ function MiniTradeLevelsChart({ item }) {
   };
   const formatChartDate = (date) => `${date.getDate()} ${monthLabels[date.getMonth()]}`;
   const fallbackEndDate = parseChartDate(item?.asOf ?? item?.raw?.asOf ?? item?.scanTimestamp) ?? new Date();
-  const xTickIndexes = [0, 7, 14, 21, 28, 35, 42, 49, Math.max(0, visibleCloses.length - 1)]
-    .filter((index, pos, arr) => index < visibleCloses.length && arr.indexOf(index) === pos);
+  const xTickInterval = Math.max(1, Math.floor((visibleCloses.length - 1) / 8));
+  const xTickIndexes = Array.from({ length: 9 }, (_, i) => Math.min(i * xTickInterval, visibleCloses.length - 1))
+    .filter((index, pos, arr) => index >= 0 && index < visibleCloses.length && arr.indexOf(index) === pos);
   const xTicks = xTickIndexes.map((index) => {
     const parsed = parseChartDate(visibleDates[index]);
     const approx = new Date(fallbackEndDate);
@@ -2111,10 +2173,16 @@ function MiniTradeLevelsChart({ item }) {
     <div className="flex flex-col rounded-[8px] border border-[#172637] bg-[#020811] p-3 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_24px_rgba(0,170,255,0.035)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-white">Mini carte technique — 60 derniers jours</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-white">Mini carte technique — {actualDays} dernières séances</p>
           <p className="mt-1 text-xs text-slate-400">
             Niveaux trade / supports / expected move.
           </p>
+          {dataLimitedForPeriod && (
+            <p className="mt-0.5 text-[10px] text-amber-500/80">Données disponibles : {actualDays} séances sur {requestedDays} demandées.</p>
+          )}
+          {!dataLimitedForPeriod && requestedDays > 60 && (
+            <p className="mt-0.5 text-[10px] text-slate-500/70">Niveaux V4 figés au scan — non mis à jour par la période.</p>
+          )}
           <button
             type="button"
             onClick={() => setChartOptionsOpen((prev) => !prev)}
@@ -2195,6 +2263,34 @@ function MiniTradeLevelsChart({ item }) {
                 {[["standard", "Standard"], ["defensive", "Défensive"], ["contrast", "Contraste"]].map(([val, lbl]) => (
                   <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, palette: val }))}
                     className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.palette === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[#1a3347] pt-1.5">
+              <span className="w-[88px] text-[11px] text-slate-500">Période</span>
+              <div className="flex gap-1">
+                {[[60, "60j"], [120, "120j"], [180, "180j"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, periodDays: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.periodDays === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+              <span className="w-[88px] text-[11px] text-slate-500">Échelle</span>
+              <div className="flex gap-1">
+                {[["auto", "Auto"], ["tradeFocus", "Trade focus"], ["full", "Complet"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, scaleMode: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.scaleMode === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="w-[88px] text-[11px] text-slate-500">Mode prix</span>
+              <div className="flex gap-1">
+                {[["linear", "Linéaire"], ["log", "Logarithmique"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, priceMode: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.priceMode === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
                   >{lbl}</button>
                 ))}
               </div>

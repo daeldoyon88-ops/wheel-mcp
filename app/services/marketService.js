@@ -397,7 +397,7 @@ export function createMarketService(provider) {
   async function getSupportResistance(symbol) {
     try {
       const result = await provider.getChart(symbol, {
-        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 180),
+        period1: new Date(Date.now() - 1000 * 60 * 60 * 24 * 280),
         interval: "1d",
       });
       const rawQuotes = result?.quotes ?? [];
@@ -469,7 +469,7 @@ export function createMarketService(provider) {
           };
         })
         .filter((c) => c !== null)
-        .slice(-60);
+        .slice(-180);
 
       return {
         symbol,
@@ -486,6 +486,7 @@ export function createMarketService(provider) {
         supportResistanceMethod: "quantile_40d_plus_near_levels",
         currentPrice: currentPrice ? round(currentPrice, 3) : null,
         ohlcCandles,
+        availableCandlesCount: ohlcCandles.length,
       };
     } catch (_error) {
       return {
@@ -501,6 +502,7 @@ export function createMarketService(provider) {
         supportResistanceMethod: "quantile_40d_plus_near_levels",
         currentPrice: null,
         ohlcCandles: null,
+        availableCandlesCount: 0,
       };
     }
   }

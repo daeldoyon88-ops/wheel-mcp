@@ -1888,7 +1888,7 @@ function MiniTradeLevelsChart({ item }) {
   const max = Math.ceil((rawMax + rawRange * 0.04) / 5) * 5;
   const range = max - min || 1;
   const width = 640;
-  const height = 248;
+  const height = 420;
   const padLeft = 44;
   const padRight = 36;
   const padTop = 12;
@@ -1927,8 +1927,9 @@ function MiniTradeLevelsChart({ item }) {
       return acc;
     }, []);
   const labelYByName = new Map(levelLabels.map((row) => [row.label, row.labelY]));
-  const yTicks = Array.from({ length: Math.floor((max - min) / 5) + 1 }, (_, index) => max - index * 5)
+  const allYTicks = Array.from({ length: Math.floor((max - min) / 5) + 1 }, (_, index) => max - index * 5)
     .filter((value) => value >= min && value <= max);
+  const yTicks = allYTicks.length > 14 ? allYTicks.filter((_, i) => i % 2 === 0) : allYTicks;
   const monthLabels = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
   const parseChartDate = (raw) => {
     if (raw == null) return null;
@@ -1949,8 +1950,29 @@ function MiniTradeLevelsChart({ item }) {
     };
   });
 
+  const v4Data = item?.supportResistanceV4;
+  const v4SelectedSupport =
+    v4Data?.strikeProtectionV4?.selectedSupportZone != null
+      ? v4Data.strikeProtectionV4.selectedSupportZone
+      : v4Data?.bestSupportZone ?? null;
+  const v4Resistance = v4Data?.bestResistanceZone ?? null;
+  const v4StrikeNum = Number(v4Data?.strike);
+  const v4Strike = Number.isFinite(v4StrikeNum) && v4StrikeNum > 0 ? v4StrikeNum : null;
+
+  const isZoneDrawable = (zone) => {
+    if (!zone) return false;
+    const low = Number(zone.zoneLow);
+    const high = Number(zone.zoneHigh);
+    if (!Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high <= 0) return false;
+    return high >= min * 0.98 && low <= max * 1.02;
+  };
+
+  const drawSupport = isZoneDrawable(v4SelectedSupport);
+  const drawResistance = isZoneDrawable(v4Resistance);
+  const drawStrike = v4Strike !== null && v4Strike >= min * 0.92 && v4Strike <= max * 1.08;
+
   return (
-    <div className="rounded-[8px] border border-[#172637] bg-[#020811] p-3 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_24px_rgba(0,170,255,0.035)]">
+    <div className="flex flex-col rounded-[8px] border border-[#172637] bg-[#020811] p-3 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_24px_rgba(0,170,255,0.035)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-white">Mini carte technique — 60 derniers jours</p>
@@ -1964,9 +1986,9 @@ function MiniTradeLevelsChart({ item }) {
         </Badge>
       </div>
 
-      <div className="mt-3 rounded-[7px] border border-[#132536] bg-[#030b14] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_26px_rgba(0,169,255,0.035)]">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_178px]">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-[285px] w-full" role="img" aria-label="Mini-graphe des niveaux de prix">
+      <div className="mt-3 flex flex-1 flex-col rounded-[7px] border border-[#132536] bg-[#030b14] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_26px_rgba(0,169,255,0.035)]">
+        <div className="grid flex-1 grid-rows-[1fr] gap-3 xl:grid-cols-[minmax(0,1fr)_178px]">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-full min-h-[420px] w-full" role="img" aria-label="Mini-graphe des niveaux de prix">
           <defs>
             <linearGradient id={`mini-chart-bg-${item.ticker}`} x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#06131f" />
@@ -1986,6 +2008,46 @@ function MiniTradeLevelsChart({ item }) {
               opacity="0.65"
             />
           ))}
+          {drawSupport && (
+            <g>
+              <rect
+                x={padLeft}
+                y={yForValue(Math.min(Number(v4SelectedSupport.zoneHigh), max))}
+                width={chartWidth}
+                height={Math.max(1, yForValue(Math.max(Number(v4SelectedSupport.zoneLow), min)) - yForValue(Math.min(Number(v4SelectedSupport.zoneHigh), max)))}
+                fill="rgba(33,255,122,0.10)"
+              />
+              <text
+                x={padLeft + 4}
+                y={yForValue(Math.min(Number(v4SelectedSupport.zoneHigh), max)) + 11}
+                fill="#21ff7a"
+                fontSize="10"
+                opacity="0.70"
+              >
+                Support V4
+              </text>
+            </g>
+          )}
+          {drawResistance && (
+            <g>
+              <rect
+                x={padLeft}
+                y={yForValue(Math.min(Number(v4Resistance.zoneHigh), max))}
+                width={chartWidth}
+                height={Math.max(1, yForValue(Math.max(Number(v4Resistance.zoneLow), min)) - yForValue(Math.min(Number(v4Resistance.zoneHigh), max)))}
+                fill="rgba(199,107,255,0.10)"
+              />
+              <text
+                x={padLeft + 4}
+                y={yForValue(Math.min(Number(v4Resistance.zoneHigh), max)) + 11}
+                fill="#c76bff"
+                fontSize="10"
+                opacity="0.70"
+              >
+                Résistance V4
+              </text>
+            </g>
+          )}
           {yTicks.map((tick) => (
             <g key={`ytick-${tick}`}>
               <line
@@ -2011,6 +2073,18 @@ function MiniTradeLevelsChart({ item }) {
               </g>
             );
           })}
+          {drawStrike && (
+            <line
+              x1={padLeft}
+              x2={width - padRight}
+              y1={yForValue(v4Strike)}
+              y2={yForValue(v4Strike)}
+              stroke="#f59e0b"
+              strokeDasharray="4 4"
+              strokeWidth="1.5"
+              opacity="0.88"
+            />
+          )}
           {hasSeries ? (
             <polyline fill="none" stroke="#00a9ff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" points={points} />
           ) : (
@@ -2035,6 +2109,33 @@ function MiniTradeLevelsChart({ item }) {
               <span className={cn("font-semibold tabular-nums", row.className)}>${Number(row.value).toFixed(2)}</span>
             </div>
           ))}
+          {drawSupport && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-semibold text-[#21ff7a]">
+                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: "#21ff7a" }} />
+                Support V4
+              </span>
+              <span className="font-semibold tabular-nums text-[#21ff7a]">${Number(v4SelectedSupport.zoneLow).toFixed(0)}–{Number(v4SelectedSupport.zoneHigh).toFixed(0)}</span>
+            </div>
+          )}
+          {drawResistance && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-semibold text-[#c76bff]">
+                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: "#c76bff" }} />
+                Résistance V4
+              </span>
+              <span className="font-semibold tabular-nums text-[#c76bff]">${Number(v4Resistance.zoneLow).toFixed(0)}–{Number(v4Resistance.zoneHigh).toFixed(0)}</span>
+            </div>
+          )}
+          {drawStrike && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-semibold text-[#f59e0b]">
+                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: "#f59e0b" }} />
+                Strike sél.
+              </span>
+              <span className="font-semibold tabular-nums text-[#f59e0b]">${v4Strike.toFixed(2)}</span>
+            </div>
+          )}
         </div>
         </div>
       </div>
@@ -2057,11 +2158,29 @@ function MiniTradeLevelsChart({ item }) {
             <span className="ml-1 text-slate-300">${Number(row.value).toFixed(2)}</span>
           </div>
         ))}
+        {drawSupport && (
+          <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
+            <span className="font-semibold text-[#21ff7a]">Support V4</span>
+            <span className="ml-1 text-slate-300">${Number(v4SelectedSupport.zoneLow).toFixed(0)}–{Number(v4SelectedSupport.zoneHigh).toFixed(0)}</span>
+          </div>
+        )}
+        {drawResistance && (
+          <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
+            <span className="font-semibold text-[#c76bff]">Résistance V4</span>
+            <span className="ml-1 text-slate-300">${Number(v4Resistance.zoneLow).toFixed(0)}–{Number(v4Resistance.zoneHigh).toFixed(0)}</span>
+          </div>
+        )}
+        {drawStrike && (
+          <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
+            <span className="font-semibold text-[#f59e0b]">Strike sél.</span>
+            <span className="ml-1 text-slate-300">${v4Strike.toFixed(2)}</span>
+          </div>
+        )}
       </div>
 
-      <SupportResistanceV4CompactPanelClean
+      <SupportResistanceV4InlineLine
         data={item.supportResistanceV4}
-        className="mt-3"
+        className="mt-2"
       />
     </div>
   );
@@ -2962,6 +3081,50 @@ function SupportResistanceV4CompactPanelClean({ data, variant = "dark", classNam
         </details>
       ) : null}
     </div>
+  );
+}
+
+function SupportResistanceV4InlineLine({ data, className = "" }) {
+  const strikeProtection =
+    data?.strikeProtectionV4 && typeof data.strikeProtectionV4 === "object"
+      ? data.strikeProtectionV4
+      : null;
+  const usefulSupportZone =
+    strikeProtection?.selectedSupportZone && typeof strikeProtection.selectedSupportZone === "object"
+      ? strikeProtection.selectedSupportZone
+      : data?.bestSupportZone && typeof data.bestSupportZone === "object"
+      ? data.bestSupportZone
+      : null;
+
+  if (!data || typeof data !== "object") return null;
+
+  const statusLabel = strikeProtection
+    ? supportResistanceV4ProtectionStatusLabelFr(strikeProtection.status)
+    : null;
+  const supportLabel = usefulSupportZone ? formatSupportResistanceV4Zone(usefulSupportZone) : null;
+
+  return (
+    <details className={cn("rounded-[5px] border border-[#132536] bg-[#06101a]/60 px-3 py-1.5", className)}>
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] text-slate-400 [&::-webkit-details-marker]:hidden">
+        <span className="font-semibold text-slate-300">V4</span>
+        {statusLabel && (
+          <>
+            <span className="text-slate-600">·</span>
+            <span>{statusLabel}</span>
+          </>
+        )}
+        {supportLabel && (
+          <>
+            <span className="text-slate-600">·</span>
+            <span>support {supportLabel}</span>
+          </>
+        )}
+        <span className="ml-auto text-slate-500">détails ›</span>
+      </summary>
+      <div className="mt-2">
+        <SupportResistanceV4Panel data={data} />
+      </div>
+    </details>
   );
 }
 
@@ -6748,10 +6911,18 @@ function DetailModal({ item, onClose }) {
             />
           </div>
 
-          <SupportResistanceV4CompactPanelClean
-            data={item.supportResistanceV4}
-            variant="light"
-          />
+          <details className="mt-2">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 [&::-webkit-details-marker]:hidden">
+              <span>Support / Résistance V4</span>
+              <span>›</span>
+            </summary>
+            <div className="mt-2">
+              <SupportResistanceV4CompactPanelClean
+                data={item.supportResistanceV4}
+                variant="light"
+              />
+            </div>
+          </details>
           <details className="hidden">
             <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold text-slate-900 after:ml-auto after:text-xl after:leading-none after:text-slate-500 after:content-['›'] [&::-webkit-details-marker]:hidden">
               Support/Résistance V4 — zones confirmées

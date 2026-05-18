@@ -2058,6 +2058,11 @@ function MiniTradeLevelsChart({ item }) {
           </div>
         ))}
       </div>
+
+      <SupportResistanceV4CompactPanelClean
+        data={item.supportResistanceV4}
+        className="mt-3"
+      />
     </div>
   );
 }
@@ -2760,6 +2765,202 @@ function SupportResistanceV4Panel({ data }) {
           emptyLabel="Aucune resistance confirmee par 3 clotures."
         />
       </div>
+    </div>
+  );
+}
+
+function supportResistanceV4ProtectionStatusLabelFr(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  switch (normalized) {
+    case "protected":
+      return "protégé";
+    case "partially_protected":
+      return "partiellement protégé";
+    case "weakly_protected":
+      return "faiblement protégé";
+    case "unprotected":
+      return "non protégé";
+    case "unavailable":
+      return "indisponible";
+    default:
+      return "n/a";
+  }
+}
+
+function formatSupportResistanceV4SignedPctCompact(value) {
+  if (!Number.isFinite(Number(value))) return "n/a";
+  const numericValue = Number(value);
+  return `${numericValue > 0 ? "+" : ""}${numericValue.toFixed(2)} %`;
+}
+
+function formatSupportResistanceV4ScoreCompact(value) {
+  return Number.isFinite(Number(value)) ? `${Number(value)} / 100` : "n/a";
+}
+
+function formatSupportResistanceV4CompactZoneLine(zone, distanceLabel, distanceValue) {
+  if (!zone || typeof zone !== "object") return "n/a";
+  const zoneLabel = formatSupportResistanceV4Zone(zone);
+  const distanceLabelValue = formatSupportResistanceV4SignedPctCompact(distanceValue);
+  if (zoneLabel === "n/a" && distanceLabelValue === "n/a") return "n/a";
+  if (distanceLabelValue === "n/a") return zoneLabel;
+  if (zoneLabel === "n/a") return `${distanceLabel} ${distanceLabelValue}`;
+  return `${zoneLabel} · ${distanceLabel} ${distanceLabelValue}`;
+}
+
+function SupportResistanceV4CompactPanel({ data, variant = "dark", className = "" }) {
+  const isLight = variant === "light";
+  const strikeProtection =
+    data?.strikeProtectionV4 && typeof data.strikeProtectionV4 === "object"
+      ? data.strikeProtectionV4
+      : null;
+  const usefulSupportZone =
+    strikeProtection?.selectedSupportZone && typeof strikeProtection.selectedSupportZone === "object"
+      ? strikeProtection.selectedSupportZone
+      : data?.bestSupportZone && typeof data.bestSupportZone === "object"
+      ? data.bestSupportZone
+      : null;
+  const nearbyResistanceZone =
+    data?.bestResistanceZone && typeof data.bestResistanceZone === "object"
+      ? data.bestResistanceZone
+      : null;
+  const protectionLine = strikeProtection
+    ? `Protection strike : ${supportResistanceV4ProtectionStatusLabelFr(strikeProtection.status)} · score ${formatSupportResistanceV4ScoreCompact(strikeProtection.score)}`
+    : "Protection strike : n/a";
+  const summaryLine = strikeProtection?.summaryFr || data?.summaryFr || "n/a";
+  const usefulSupportLine = formatSupportResistanceV4CompactZoneLine(
+    usefulSupportZone,
+    "distance strike",
+    usefulSupportZone?.distanceToStrikePct
+  );
+  const nearbyResistanceLine = formatSupportResistanceV4CompactZoneLine(
+    nearbyResistanceZone,
+    "distance spot",
+    nearbyResistanceZone?.distanceToSpotPct
+  );
+
+  return (
+    <div
+      className={cn(
+        isLight
+          ? "rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800"
+          : "rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]",
+        className
+      )}
+    >
+      <p className={isLight ? "text-xs font-semibold uppercase tracking-wide text-slate-500" : "text-xs font-semibold uppercase tracking-wide text-slate-400"}>
+        Support/RÃ©sistance V4 â€” diagnostic
+      </p>
+      <div className={isLight ? "mt-2 rounded-xl border border-slate-200 bg-white px-3 py-3" : "mt-2 rounded-[6px] border border-[#132536] bg-[#020811]/70 px-3 py-3"}>
+        {!data || typeof data !== "object" ? (
+          <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+            V4 : indisponible
+          </p>
+        ) : (
+          <>
+            <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+              {protectionLine}
+            </p>
+            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+              RÃ©sumÃ© : {summaryLine}
+            </p>
+            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+              Support utile : {usefulSupportLine}
+            </p>
+            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+              RÃ©sistance proche : {nearbyResistanceLine}
+            </p>
+          </>
+        )}
+      </div>
+      {data && typeof data === "object" ? (
+        <details className={isLight ? "mt-3 rounded-xl border border-slate-200 bg-white p-3" : "mt-3 rounded-[6px] border border-[#132536] bg-[#020811]/60 p-3"}>
+          <summary className={isLight ? "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-900 after:ml-auto after:text-lg after:leading-none after:text-slate-500 after:content-['â€º'] [&::-webkit-details-marker]:hidden" : "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-400 after:content-['â€º'] [&::-webkit-details-marker]:hidden"}>
+            Voir dÃ©tails V4
+          </summary>
+          <div className="mt-3">
+            <SupportResistanceV4Panel data={data} />
+          </div>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+function SupportResistanceV4CompactPanelClean({ data, variant = "dark", className = "" }) {
+  const isLight = variant === "light";
+  const strikeProtection =
+    data?.strikeProtectionV4 && typeof data.strikeProtectionV4 === "object"
+      ? data.strikeProtectionV4
+      : null;
+  const usefulSupportZone =
+    strikeProtection?.selectedSupportZone && typeof strikeProtection.selectedSupportZone === "object"
+      ? strikeProtection.selectedSupportZone
+      : data?.bestSupportZone && typeof data.bestSupportZone === "object"
+      ? data.bestSupportZone
+      : null;
+  const nearbyResistanceZone =
+    data?.bestResistanceZone && typeof data.bestResistanceZone === "object"
+      ? data.bestResistanceZone
+      : null;
+  const protectionLine = strikeProtection
+    ? `Protection strike : ${supportResistanceV4ProtectionStatusLabelFr(strikeProtection.status)} · score ${formatSupportResistanceV4ScoreCompact(strikeProtection.score)}`
+    : "Protection strike : n/a";
+  const summaryLine = strikeProtection?.summaryFr || data?.summaryFr || "n/a";
+  const usefulSupportLine = formatSupportResistanceV4CompactZoneLine(
+    usefulSupportZone,
+    "distance strike",
+    usefulSupportZone?.distanceToStrikePct
+  );
+  const nearbyResistanceLine = formatSupportResistanceV4CompactZoneLine(
+    nearbyResistanceZone,
+    "distance spot",
+    nearbyResistanceZone?.distanceToSpotPct
+  );
+
+  return (
+    <div
+      className={cn(
+        isLight
+          ? "rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800"
+          : "rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]",
+        className
+      )}
+    >
+      <p className={isLight ? "text-xs font-semibold uppercase tracking-wide text-slate-500" : "text-xs font-semibold uppercase tracking-wide text-slate-400"}>
+        Support/Résistance V4 — diagnostic
+      </p>
+      <div className={isLight ? "mt-2 rounded-xl border border-slate-200 bg-white px-3 py-3" : "mt-2 rounded-[6px] border border-[#132536] bg-[#020811]/70 px-3 py-3"}>
+        {!data || typeof data !== "object" ? (
+          <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+            V4 : indisponible
+          </p>
+        ) : (
+          <>
+            <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+              {protectionLine}
+            </p>
+            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+              Résumé : {summaryLine}
+            </p>
+            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+              Support utile : {usefulSupportLine}
+            </p>
+            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+              Résistance proche : {nearbyResistanceLine}
+            </p>
+          </>
+        )}
+      </div>
+      {data && typeof data === "object" ? (
+        <details className={isLight ? "mt-3 rounded-xl border border-slate-200 bg-white p-3" : "mt-3 rounded-[6px] border border-[#132536] bg-[#020811]/60 p-3"}>
+          <summary className={isLight ? "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-900 after:ml-auto after:text-lg after:leading-none after:text-slate-500 after:content-['>'] [&::-webkit-details-marker]:hidden" : "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-400 after:content-['>'] [&::-webkit-details-marker]:hidden"}>
+            Voir détails V4
+          </summary>
+          <div className="mt-3">
+            <SupportResistanceV4Panel data={data} />
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }
@@ -4056,7 +4257,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   </div>
                 </details>
               </div>
-              <details className="rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]">
+              <details className="hidden">
                 <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold uppercase tracking-wide text-slate-100 after:ml-auto after:text-xl after:leading-none after:text-slate-100 after:content-['›'] [&::-webkit-details-marker]:hidden">
                   Support/Résistance V4 — zones confirmées
                 </summary>
@@ -6547,7 +6748,11 @@ function DetailModal({ item, onClose }) {
             />
           </div>
 
-          <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+          <SupportResistanceV4CompactPanelClean
+            data={item.supportResistanceV4}
+            variant="light"
+          />
+          <details className="hidden">
             <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold text-slate-900 after:ml-auto after:text-xl after:leading-none after:text-slate-500 after:content-['›'] [&::-webkit-details-marker]:hidden">
               Support/Résistance V4 — zones confirmées
             </summary>

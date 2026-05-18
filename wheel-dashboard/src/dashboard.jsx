@@ -52,6 +52,7 @@ function nextNFridays(n = 6) {
 
 const DEFAULT_EXPIRATIONS = nextNFridays(6);
 const DEBUG_COMPARE = false;
+const DEBUG_DTE_RESOLVE = false;
 
 /** Liste statique conservée uniquement en secours si /universe/build échoue ou est indisponible. */
 const FALLBACK_TICKERS = [
@@ -127,9 +128,10 @@ function isValidLevel(value) {
   return Number.isFinite(n) && n > 0;
 }
 
-function minPremiumForSpot(spot) {
+function minPremiumForSpot(spot, dteDays) {
   if (!spot || spot <= 0) return 0;
-  return spot * 0.005;
+  // Aligné sur backend wheelMetrics.js : spot * 0.5% * max(1, dteDays/7)
+  return spot * 0.005 * Math.max(1, (dteDays ?? 7) / 7);
 }
 
 function normalCdf(x) {
@@ -1417,7 +1419,7 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
         ? item.currentPrice + item.adjustedMove
         : 0,
     dteDays: Number.isFinite(Number(item.dteDays)) ? Number(item.dteDays) : null,
-    minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0),
+    minPremium: item.targetPremium ?? minPremiumForSpot(item.currentPrice ?? 0, item.dteDays),
     targetWeeks: item.targetWeeks ?? 1,
     safeStrike: safeStrikeMapped,
     aggressiveStrike: aggressiveStrikeMapped,
@@ -2093,11 +2095,18 @@ function StrikeCard({
     : distanceNumber <= -5
     ? "warn"
     : "bad";
-  const displayedPremium = Number.isFinite(Number(premiumUsed))
+  const premiumUsedIsFinite = Number.isFinite(Number(premiumUsed));
+  const displayedPremium = premiumUsedIsFinite
     ? Number(premiumUsed)
     : Number.isFinite(Number(mid))
     ? Number(mid)
     : null;
+  // Quand on tombe sur le fallback mid, le label reflète la source réelle
+  const resolvedPremiumLabel = premiumUsedIsFinite
+    ? (premiumLabel || "Prime utilisée")
+    : displayedPremium != null
+    ? "Mid"
+    : (premiumLabel || "Prime utilisée");
   const hasPremiumNumber = displayedPremium != null;
   const premiumTone =
     displayedPremium == null
@@ -2199,7 +2208,7 @@ function StrikeCard({
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Metric label="Strike" value={hasStrikeNumber ? `$${strikeNumber.toFixed(2)}` : "non disponible"} strong />
         <Metric
-          label={premiumLabel || "Prime (mid)"}
+          label={resolvedPremiumLabel}
           value={Number.isFinite(displayedPremium) ? `$${displayedPremium.toFixed(2)}` : "—"}
           strong={displayedPremium != null && displayedPremium >= 0.09}
           tone={premiumTone}
@@ -2813,7 +2822,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     yahooDte: yahooCandidate?.dteDays,
     expirationYmd: expirationForDte,
   });
-  console.log("[DTE_RESOLVE]", {
+  if (DEBUG_DTE_RESOLVE) console.log("[DTE_RESOLVE]", {
     symbol,
     expiration: expirationForDte,
     ibkrDte: ibkrCandidate?.dteDays ?? null,
@@ -2959,7 +2968,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     earningsWarningLevel: yahooCandidate?.earningsWarningLevel ?? null,
     expectedMoveLow: resolvedLowerBound ?? 0,
     expectedMoveHigh: ibkrCandidate?.upperBound ?? yahooCandidate?.expectedMoveHigh ?? 0,
-    minPremium: ibkrCandidate?.targetPremium ?? yahooCandidate?.minPremium ?? minPremiumForSpot(spot),
+    minPremium: ibkrCandidate?.targetPremium ?? yahooCandidate?.minPremium ?? minPremiumForSpot(spot, resolvedDteDays),
     targetWeeks: yahooCandidate?.targetWeeks ?? 1,
     dteDays: Number.isFinite(resolvedDteDays) ? resolvedDteDays : null,
     safeStrike: safeStrikeWithPop,
@@ -3564,11 +3573,6 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                 </p>
               )}
 
-              {item.ticker === "APLD" && (
-                <p className="text-[11px] leading-tight text-sky-300">
-                  APLD debug • safeGrade {item.safeGrade ?? "—"} • aggressiveGrade {item.aggressiveGrade ?? "—"} • safeRank {item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"} • aggressiveRank {item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"} • finalRank {item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"} • finalDisplayMode {item.finalDisplayMode ?? finalDisplayMode ?? "—"} • finalDisplayGrade {item.finalDisplayGrade ?? finalDisplayGrade ?? "—"}
-                </p>
-              )}
               {/* Earnings si présent */}
               {earningsDisplay ? (
                 <p className="text-xs text-amber-300 leading-tight">{earningsDisplay}</p>

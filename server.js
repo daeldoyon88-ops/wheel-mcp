@@ -1247,6 +1247,18 @@ function getIbkrStrikeYield(strike) {
   return n == null ? null : n;
 }
 
+/** Calcule le DTE en jours depuis la date d'aujourd'hui vers une expiration "YYYYMMDD" ou "YYYY-MM-DD". */
+function dteDaysFromIbkrExpiration(expStr) {
+  if (!expStr) return null;
+  const clean = String(expStr).replace(/-/g, "");
+  if (!/^\d{8}$/.test(clean)) return null;
+  const exp = new Date(`${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T00:00:00Z`);
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const days = Math.round((exp.getTime() - today.getTime()) / 86400000);
+  return days > 0 ? days : null;
+}
+
 const ELITE_STABLE_SECTORS = new Set([
   "Utilities",
   "Consumer Defensive",
@@ -1466,6 +1478,14 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
   const aggressive = row?.aggressiveStrike ?? null;
   const primary = safe ?? aggressive;
   const weeklyYield = getIbkrStrikeYield(primary);
+  const rowDteDays = dteDaysFromIbkrExpiration(row.expiration);
+  // DTE-ajusté si l'expiration est connue ; fallback ×52 (assume hebdomadaire) sinon
+  const annualizedYield =
+    weeklyYield == null
+      ? null
+      : rowDteDays != null && rowDteDays > 0
+      ? weeklyYield * (365 / rowDteDays)
+      : weeklyYield * 52;
   /** @type {Record<string, unknown>} */
   const cand = {
     symbol: row.symbol,
@@ -1481,7 +1501,7 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
     spreadPct: primary?.spreadPct ?? null,
     premiumUsed: primary?.primeUsed ?? null,
     weeklyYield,
-    annualizedYield: weeklyYield == null ? null : weeklyYield * 52,
+    annualizedYield,
     putCandidates: Array.isArray(row.putCandidates) ? row.putCandidates : [],
     putCandidatesSummary: {
       total: Array.isArray(row.putCandidates) ? row.putCandidates.length : 0,

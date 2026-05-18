@@ -399,6 +399,15 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
     candidateRank,
     captureSource,
     captureClass: null,
+    // Traçabilité mode/source — null si non transmis par le frontend
+    portfolioMode: options.portfolioMode ?? candidate?.portfolioMode ?? null,
+    strikeLegUsed: strikeMode === "safe" ? "safe" : strikeMode === "aggressive" ? "aggressive" : null,
+    optionSource:
+      candidate?.source === "IBKR" || candidate?.optionsSource === "IBKR live"
+        ? "IBKR live"
+        : candidate?.raw != null
+        ? "Yahoo"
+        : candidate?.optionsSource ?? null,
     symbol,
     expiration,
     strikeMode,
@@ -427,29 +436,50 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
       expectedMove: getExpectedMove(candidate),
       lowerBound: getLowerBound(candidate),
     },
-    strike: {
-      strike,
-      premium:
-        toNumberOrNull(strikeRow?.premium) ??
-        toNumberOrNull(strikeRow?.premiumUsed) ??
-        toNumberOrNull(strikeRow?.mid) ??
-        toNumberOrNull(strikeRow?.bid) ??
-        null,
-      bid: toNumberOrNull(strikeRow?.bid),
-      ask: toNumberOrNull(strikeRow?.ask),
-      mid: toNumberOrNull(strikeRow?.mid),
-      spread: toNumberOrNull(strikeRow?.spread),
-      spreadPct:
-        toNumberOrNull(strikeRow?.spreadPct) ??
-        toNumberOrNull(strikeRow?.liquidity?.spreadPct) ??
-        null,
-      annualizedYield: toNumberOrNull(strikeRow?.annualizedYield),
-      targetPremium: toNumberOrNull(candidate?.targetPremium ?? candidate?.minPremium),
-      popEstimate:
-        toNumberOrNull(strikeRow?.popEstimate) ??
-        toNumberOrNull(strikeRow?.popProfitEstimated) ??
-        null,
-    },
+    strike: (() => {
+      // Résolution de la prime officielle avec traçabilité de la source
+      const _cprem = toNumberOrNull(strikeRow?.conservativePremium);
+      const _pprem = toNumberOrNull(strikeRow?.primeUsed);
+      const _puprem = toNumberOrNull(strikeRow?.premiumUsed);
+      const _bprem = toNumberOrNull(strikeRow?.bid);
+      const _prem = toNumberOrNull(strikeRow?.premium);
+      const _mprem = toNumberOrNull(strikeRow?.mid);
+      const officialPremiumUsed =
+        _cprem ?? _pprem ?? _puprem ?? _bprem ?? _prem ?? _mprem ?? null;
+      const premiumSource =
+        _cprem != null ? "conservativePremium" :
+        _pprem != null ? "primeUsed" :
+        _puprem != null ? "premiumUsed" :
+        _bprem != null ? "bid" :
+        _prem != null ? "premium" :
+        _mprem != null ? "mid" :
+        null;
+      return {
+        strike,
+        premium:
+          toNumberOrNull(strikeRow?.premium) ??
+          toNumberOrNull(strikeRow?.premiumUsed) ??
+          toNumberOrNull(strikeRow?.mid) ??
+          toNumberOrNull(strikeRow?.bid) ??
+          null,
+        officialPremiumUsed,
+        premiumSource,
+        bid: toNumberOrNull(strikeRow?.bid),
+        ask: toNumberOrNull(strikeRow?.ask),
+        mid: toNumberOrNull(strikeRow?.mid),
+        spread: toNumberOrNull(strikeRow?.spread),
+        spreadPct:
+          toNumberOrNull(strikeRow?.spreadPct) ??
+          toNumberOrNull(strikeRow?.liquidity?.spreadPct) ??
+          null,
+        annualizedYield: toNumberOrNull(strikeRow?.annualizedYield),
+        targetPremium: toNumberOrNull(candidate?.targetPremium ?? candidate?.minPremium),
+        popEstimate:
+          toNumberOrNull(strikeRow?.popEstimate) ??
+          toNumberOrNull(strikeRow?.popProfitEstimated) ??
+          null,
+      };
+    })(),
     context: {
       support:
         toNumberOrNull(candidate?.support) ??

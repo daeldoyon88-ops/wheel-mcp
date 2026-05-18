@@ -20,6 +20,8 @@ import {
 
 const STRIKE_DEBUG_SYMBOLS = new Set(["HOOD", "UBER", "SOFI", "U", "TQQQ"]);
 const MOVE_DEBUG_ENABLED = String(process.env.WHEEL_MOVE_DEBUG || "").trim() === "1";
+const SUPPORT_RESISTANCE_V4_STRIKE_DEBUG_ENABLED =
+  String(process.env.SUPPORT_RESISTANCE_V4_STRIKE_DEBUG || "").trim() === "1";
 const MOVE_DEBUG_SYMBOLS = new Set(["INTC"]);
 const TIER_1_ULTRA_LIQUID = new Set([
   "TQQQ", "SOXL", "QQQ", "SPY", "IWM",
@@ -840,6 +842,23 @@ export function createWheelScanner(marketService) {
       strike: selectedStrikeForSupportResistanceV4,
       dteDays,
     });
+    if (SUPPORT_RESISTANCE_V4_STRIKE_DEBUG_ENABLED) {
+      console.log("[SUPPORT_RESISTANCE_V4_STRIKE_DEBUG]", {
+        symbol,
+        safeStrike: {
+          strike: safeStrike?.strike ?? null,
+          selected: safeStrike?.selected ?? null,
+        },
+        aggressiveStrike: {
+          strike: aggressiveStrike?.strike ?? null,
+          selected: aggressiveStrike?.selected ?? null,
+        },
+        selectedStrikeForSupportResistanceV4,
+        supportResistanceV4Strike: supportResistanceV4?.strike ?? null,
+        supportResistanceV4ProtectionStatus:
+          supportResistanceV4?.strikeProtectionV4?.status ?? null,
+      });
+    }
 
     return {
       symbol,

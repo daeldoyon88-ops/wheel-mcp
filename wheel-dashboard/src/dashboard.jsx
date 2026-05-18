@@ -33,6 +33,7 @@ import {
   MODE_GRADE_RANK,
 } from "./capitalComboPortfolio.js";
 import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
+import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -3150,6 +3151,30 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     recommendedGrade: modeRecommendation.recommendedGrade,
     recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
   });
+  const selectedLeg =
+    finalDisplayRecommendation.finalDisplayMode === "AGGRESSIVE"
+      ? aggressiveStrikeWithPop
+      : safeStrikeWithPop;
+  const mergedSupportResistanceV4 = (() => {
+    const fallback =
+      yahooCandidate?.supportResistanceV4 && typeof yahooCandidate.supportResistanceV4 === "object"
+        ? { ...yahooCandidate.supportResistanceV4 }
+        : yahooCandidate?.raw?.supportResistanceV4 &&
+            typeof yahooCandidate.raw.supportResistanceV4 === "object"
+          ? { ...yahooCandidate.raw.supportResistanceV4 }
+          : null;
+    const selectedStrike = Number(selectedLeg?.strike);
+    const ohlcCandles = yahooCandidate?.raw?.ohlcCandles ?? null;
+    if (!Number.isFinite(selectedStrike) || selectedStrike <= 0) return fallback;
+    if (!Array.isArray(ohlcCandles) || ohlcCandles.length === 0) return fallback;
+    if (!Number.isFinite(Number(spot)) || Number(spot) <= 0) return fallback;
+    return buildSupportResistanceV4ConfirmedZones({
+      ohlcCandles,
+      spot: Number(spot),
+      strike: selectedStrike,
+      dteDays: Number.isFinite(Number(resolvedDteDays)) ? Number(resolvedDteDays) : null,
+    });
+  })();
   const ftqs = computeFinalTradeQualityScore({
     symbol,
     safeStrike: safeStrikeWithPop,
@@ -3311,13 +3336,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
             typeof yahooCandidate.raw.supportDiagnosticsV1 === "object"
           ? { ...yahooCandidate.raw.supportDiagnosticsV1 }
           : null,
-    supportResistanceV4:
-      yahooCandidate?.supportResistanceV4 && typeof yahooCandidate.supportResistanceV4 === "object"
-        ? { ...yahooCandidate.supportResistanceV4 }
-        : yahooCandidate?.raw?.supportResistanceV4 &&
-            typeof yahooCandidate.raw.supportResistanceV4 === "object"
-          ? { ...yahooCandidate.raw.supportResistanceV4 }
-          : null,
+    supportResistanceV4: mergedSupportResistanceV4,
     macd: yahooCandidate?.macd ?? "—",
     zone: "sous borne basse IBKR",
     verdict: yahooCandidate?.verdict ?? "conservative",

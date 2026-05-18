@@ -1848,6 +1848,22 @@ function FaceplateStrikeColumn({
 }
 
 function MiniTradeLevelsChart({ item }) {
+  const [chartOptionsOpen, setChartOptionsOpen] = useState(false);
+  const [chartOptions, setChartOptions] = useState({
+    showSpot: true,
+    showSelectedStrike: true,
+    showSafeStrike: true,
+    showExpectedMove: true,
+    showClassicSupports: true,
+    showClassicResistances: true,
+    showV4Zones: true,
+    showWideSupport: true,
+    lineStyle: "dashed",
+    lineWidth: "normal",
+    priceLineStyle: "standard",
+    labelDensity: "normal",
+    palette: "defensive",
+  });
   const closes = Array.isArray(item?.priceSeries?.closes)
     ? item.priceSeries.closes.map(Number).filter((value) => Number.isFinite(value) && value > 0)
     : [];
@@ -1944,15 +1960,61 @@ function MiniTradeLevelsChart({ item }) {
   const points = visibleCloses
     .map((value, index) => `${xForIndex(index).toFixed(1)},${yForValue(value).toFixed(1)}`)
     .join(" ");
+  const chartPalettes = {
+    standard: {
+      spot: "#00c8ff",
+      safeStrike: "#ff273a",
+      selectedStrike: "#f59e0b",
+      expectedMoveHigh: "#ff9f0a",
+      expectedMoveLow: "#ffb21a",
+      supportNear: "#21ff7a",
+      potentialSupport: "#10d6a3",
+      wideSupport: "#26e6c2",
+      resistance: "#c76bff",
+      supportV4: "#21ff7a",
+      resistanceV4: "#c76bff",
+      priceLine: "#00a9ff",
+    },
+    defensive: {
+      spot: "#00c8ff",
+      safeStrike: "#7ec8e3",
+      selectedStrike: "#f59e0b",
+      expectedMoveHigh: "#fbbf24",
+      expectedMoveLow: "#fbbf24",
+      supportNear: "#22c55e",
+      potentialSupport: "#2dd4bf",
+      wideSupport: "#0d9488",
+      resistance: "#a855f7",
+      supportV4: "#16a34a",
+      resistanceV4: "#7c3aed",
+      priceLine: "#38bdf8",
+    },
+    contrast: {
+      spot: "#e0f7ff",
+      safeStrike: "#bfdbfe",
+      selectedStrike: "#fb923c",
+      expectedMoveHigh: "#facc15",
+      expectedMoveLow: "#facc15",
+      supportNear: "#4ade80",
+      potentialSupport: "#34d399",
+      wideSupport: "#94a3b8",
+      resistance: "#e879f9",
+      supportV4: "#86efac",
+      resistanceV4: "#d8b4fe",
+      priceLine: "#67e8f9",
+    },
+  };
+  const pal = chartPalettes[chartOptions.palette] ?? chartPalettes.defensive;
+
   const levelRows = [
-    { label: "EM haut", value: expectedMoveHigh, className: "text-[#ff9f0a]", color: "#ff9f0a" },
-    { label: "Résistance sup.", value: resistanceAboveSpot, className: "text-[#c76bff]", color: "#c76bff" },
-    { label: "Spot", value: price, className: "text-[#00c8ff]", color: "#00c8ff" },
-    { label: "S. proche", value: supportNear, className: "text-[#21ff7a]", color: "#21ff7a" },
-    { label: "Strike safe", value: safeStrike, className: "text-[#ff273a]", color: "#ff273a" },
-    { label: "EM bas", value: expectedMoveLow, className: "text-[#ffb21a]", color: "#ffb21a" },
-    { label: "S. potentiel", value: potentialSupport, className: "text-[#10d6a3]", color: "#10d6a3" },
-    { label: "S. large", value: supportWide, className: "text-[#26e6c2]", color: "#26e6c2" },
+    { label: "EM haut", value: expectedMoveHigh, color: pal.expectedMoveHigh },
+    { label: "Résistance sup.", value: resistanceAboveSpot, color: pal.resistance },
+    { label: "Spot", value: price, color: pal.spot },
+    { label: "S. proche", value: supportNear, color: pal.supportNear },
+    { label: "Strike safe", value: safeStrike, color: pal.safeStrike },
+    { label: "EM bas", value: expectedMoveLow, color: pal.expectedMoveLow },
+    { label: "S. potentiel", value: potentialSupport, color: pal.potentialSupport },
+    { label: "S. large", value: supportWide, color: pal.wideSupport },
   ].filter((row) => Number.isFinite(row.value) && row.value > 0);
   const levelLabels = levelRows
     .map((row) => ({ ...row, lineY: yForValue(row.value), labelY: yForValue(row.value) - 5 }))
@@ -2025,6 +2087,26 @@ function MiniTradeLevelsChart({ item }) {
   const drawResistance = isZoneDrawable(v4Resistance);
   const drawStrike = v4Strike !== null && v4Strike >= min * 0.92 && v4Strike <= max * 1.08;
 
+  const filteredLevelRows = levelRows.filter((row) => {
+    if (row.label === "Spot" && !chartOptions.showSpot) return false;
+    if (row.label === "Strike safe" && !chartOptions.showSafeStrike) return false;
+    if ((row.label === "EM haut" || row.label === "EM bas") && !chartOptions.showExpectedMove) return false;
+    if ((row.label === "S. proche" || row.label === "S. potentiel") && !chartOptions.showClassicSupports) return false;
+    if (row.label === "Résistance sup." && !chartOptions.showClassicResistances) return false;
+    if (row.label === "S. large" && !chartOptions.showWideSupport) return false;
+    return true;
+  });
+  const showV4Support = drawSupport && chartOptions.showV4Zones;
+  const showV4Resistance = drawResistance && chartOptions.showV4Zones;
+  const showV4Strike = drawStrike && chartOptions.showSelectedStrike;
+  const levelStrokeDasharray = chartOptions.lineStyle === "solid" ? undefined : "7 7";
+  const levelStrokeWidth = chartOptions.lineWidth === "fine" ? 1.2 : chartOptions.lineWidth === "thick" ? 2.2 : 1.5;
+  const v4StrokeDasharray = chartOptions.lineStyle === "solid" ? undefined : "4 4";
+  const priceStrokeWidth = chartOptions.priceLineStyle === "visible" ? 2.6 : chartOptions.priceLineStyle === "muted" ? 1.2 : 1.9;
+  const priceOpacity = chartOptions.priceLineStyle === "muted" ? 0.55 : 1;
+  const legendGapClass = chartOptions.labelDensity === "compact" ? "gap-1" : "gap-2";
+  const legendTextClass = chartOptions.labelDensity === "compact" ? "text-xs" : "text-sm";
+
   return (
     <div className="flex flex-col rounded-[8px] border border-[#172637] bg-[#020811] p-3 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_24px_rgba(0,170,255,0.035)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2033,12 +2115,93 @@ function MiniTradeLevelsChart({ item }) {
           <p className="mt-1 text-xs text-slate-400">
             Niveaux trade / supports / expected move.
           </p>
+          <button
+            type="button"
+            onClick={() => setChartOptionsOpen((prev) => !prev)}
+            className="mt-1.5 flex items-center gap-1 rounded-[5px] border border-[#1a3347] bg-[#071420] px-2 py-0.5 text-[11px] text-slate-400 transition-colors hover:border-[#2a5070] hover:text-slate-200"
+          >
+            Options mini carte {chartOptionsOpen ? "▴" : "▾"}
+          </button>
         </div>
         <Badge className="rounded-full border border-fuchsia-700 bg-fuchsia-950/70 text-fuchsia-100">
           PUT {Number.isFinite(safeStrike) ? `${safeStrike.toFixed(0)}` : "—"}
           {Number.isFinite(safeMid) ? ` @ ${safeMid.toFixed(2)}` : ""}
         </Badge>
       </div>
+      {chartOptionsOpen && (
+        <div className="mt-2 rounded-[6px] border border-[#1a3347] bg-[#050f1a] p-2.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pb-2 sm:grid-cols-4">
+            {[
+              ["showSpot", "Spot"],
+              ["showSelectedStrike", "Strike sél."],
+              ["showSafeStrike", "Strike safe"],
+              ["showExpectedMove", "Expected Move"],
+              ["showClassicSupports", "Supports"],
+              ["showClassicResistances", "Résistances"],
+              ["showV4Zones", "Zones V4"],
+              ["showWideSupport", "S. large"],
+            ].map(([key, label]) => (
+              <label key={key} className="flex cursor-pointer items-center gap-1.5 text-[11px] text-slate-300 hover:text-slate-100">
+                <input
+                  type="checkbox"
+                  checked={chartOptions[key]}
+                  onChange={() => setChartOptions((prev) => ({ ...prev, [key]: !prev[key] }))}
+                  className="h-3 w-3 cursor-pointer accent-sky-500"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-col gap-1.5 border-t border-[#1a3347] pt-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="w-[88px] text-[11px] text-slate-500">Style lignes</span>
+              <div className="flex gap-1">
+                {[["dashed", "Pointillé"], ["solid", "Plein"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, lineStyle: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.lineStyle === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+              <span className="w-[88px] text-[11px] text-slate-500">Épaisseur</span>
+              <div className="flex gap-1">
+                {[["fine", "Fine"], ["normal", "Normale"], ["thick", "Épaisse"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, lineWidth: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.lineWidth === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="w-[88px] text-[11px] text-slate-500">Courbe prix</span>
+              <div className="flex gap-1">
+                {[["standard", "Standard"], ["visible", "Visible"], ["muted", "Atténuée"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, priceLineStyle: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.priceLineStyle === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+              <span className="w-[88px] text-[11px] text-slate-500">Labels</span>
+              <div className="flex gap-1">
+                {[["normal", "Normaux"], ["compact", "Compacts"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, labelDensity: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.labelDensity === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="w-[88px] text-[11px] text-slate-500">Palette</span>
+              <div className="flex gap-1">
+                {[["standard", "Standard"], ["defensive", "Défensive"], ["contrast", "Contraste"]].map(([val, lbl]) => (
+                  <button key={val} type="button" onClick={() => setChartOptions((prev) => ({ ...prev, palette: val }))}
+                    className={`rounded-[4px] border px-2 py-0.5 text-[11px] transition-colors ${chartOptions.palette === val ? "border-sky-600 bg-sky-900/40 text-sky-200" : "border-[#1a3347] bg-[#071420] text-slate-400 hover:border-[#2a5070] hover:text-slate-200"}`}
+                  >{lbl}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 flex flex-1 flex-col rounded-[7px] border border-[#132536] bg-[#030b14] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_26px_rgba(0,169,255,0.035)]">
         <div className="grid flex-1 grid-rows-[1fr] gap-3 xl:grid-cols-[minmax(0,1fr)_178px]">
@@ -2065,19 +2228,20 @@ function MiniTradeLevelsChart({ item }) {
               opacity="0.65"
             />
           ))}
-          {drawSupport && (
+          {showV4Support && (
             <g>
               <rect
                 x={padLeft}
                 y={yForValue(Math.min(Number(v4SelectedSupport.zoneHigh), max))}
                 width={chartWidth}
                 height={Math.max(1, yForValue(Math.max(Number(v4SelectedSupport.zoneLow), min)) - yForValue(Math.min(Number(v4SelectedSupport.zoneHigh), max)))}
-                fill="rgba(33,255,122,0.10)"
+                fill={pal.supportV4}
+                fillOpacity="0.10"
               />
               <text
                 x={padLeft + 4}
                 y={yForValue(Math.min(Number(v4SelectedSupport.zoneHigh), max)) + 11}
-                fill="#21ff7a"
+                fill={pal.supportV4}
                 fontSize="10"
                 opacity="0.70"
               >
@@ -2085,19 +2249,20 @@ function MiniTradeLevelsChart({ item }) {
               </text>
             </g>
           )}
-          {drawResistance && (
+          {showV4Resistance && (
             <g>
               <rect
                 x={padLeft}
                 y={yForValue(Math.min(Number(v4Resistance.zoneHigh), max))}
                 width={chartWidth}
                 height={Math.max(1, yForValue(Math.max(Number(v4Resistance.zoneLow), min)) - yForValue(Math.min(Number(v4Resistance.zoneHigh), max)))}
-                fill="rgba(199,107,255,0.10)"
+                fill={pal.resistanceV4}
+                fillOpacity="0.10"
               />
               <text
                 x={padLeft + 4}
                 y={yForValue(Math.min(Number(v4Resistance.zoneHigh), max)) + 11}
-                fill="#c76bff"
+                fill={pal.resistanceV4}
                 fontSize="10"
                 opacity="0.70"
               >
@@ -2121,29 +2286,28 @@ function MiniTradeLevelsChart({ item }) {
               </text>
             </g>
           ))}
-          {levelRows.map((row) => {
+          {filteredLevelRows.map((row) => {
             const y = yForValue(row.value);
-            const labelY = labelYByName.get(row.label) ?? y - 5;
             return (
               <g key={row.label}>
-                <line x1={padLeft} x2={width - padRight} y1={y} y2={y} stroke={row.color} strokeDasharray="7 7" strokeWidth="1.5" opacity="0.92" />
+                <line x1={padLeft} x2={width - padRight} y1={y} y2={y} stroke={row.color} strokeDasharray={levelStrokeDasharray} strokeWidth={levelStrokeWidth} opacity="0.92" />
               </g>
             );
           })}
-          {drawStrike && (
+          {showV4Strike && (
             <line
               x1={padLeft}
               x2={width - padRight}
               y1={yForValue(v4Strike)}
               y2={yForValue(v4Strike)}
-              stroke="#f59e0b"
-              strokeDasharray="4 4"
-              strokeWidth="1.5"
+              stroke={pal.selectedStrike}
+              strokeDasharray={v4StrokeDasharray}
+              strokeWidth={levelStrokeWidth}
               opacity="0.88"
             />
           )}
           {hasSeries ? (
-            <polyline fill="none" stroke="#00a9ff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" points={points} clipPath={`url(#mini-chart-clip-${item.ticker})`} />
+            <polyline fill="none" stroke={pal.priceLine} strokeWidth={priceStrokeWidth} opacity={priceOpacity} strokeLinecap="round" strokeLinejoin="round" points={points} clipPath={`url(#mini-chart-clip-${item.ticker})`} />
           ) : (
             <text x={width / 2} y={height / 2} textAnchor="middle" fill="#94a3b8" fontSize="14">
               Historique indisponible
@@ -2156,41 +2320,41 @@ function MiniTradeLevelsChart({ item }) {
             </text>
           ))}
         </svg>
-        <div className="hidden min-w-[168px] flex-col justify-center gap-2 border-l border-[#132536] pl-4 text-sm xl:flex">
-          {levelRows.map((row) => (
+        <div className={`hidden min-w-[168px] flex-col justify-center border-l border-[#132536] pl-4 xl:flex ${legendGapClass} ${legendTextClass}`}>
+          {filteredLevelRows.map((row) => (
             <div key={`legend-${row.label}`} className="flex items-center justify-between gap-3">
-              <span className={cn("flex items-center gap-2 font-semibold", row.className)}>
+              <span className="flex items-center gap-2 font-semibold" style={{ color: row.color }}>
                 <span className="h-2 w-2 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: row.color, color: row.color }} />
                 {row.label}
               </span>
-              <span className={cn("font-semibold tabular-nums", row.className)}>${Number(row.value).toFixed(2)}</span>
+              <span className="font-semibold tabular-nums" style={{ color: row.color }}>${Number(row.value).toFixed(2)}</span>
             </div>
           ))}
-          {drawSupport && (
+          {showV4Support && (
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 font-semibold text-[#21ff7a]">
-                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: "#21ff7a" }} />
+              <span className="flex items-center gap-2 font-semibold" style={{ color: pal.supportV4 }}>
+                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: pal.supportV4 }} />
                 Support V4
               </span>
-              <span className="font-semibold tabular-nums text-[#21ff7a]">${Number(v4SelectedSupport.zoneLow).toFixed(0)}–{Number(v4SelectedSupport.zoneHigh).toFixed(0)}</span>
+              <span className="font-semibold tabular-nums" style={{ color: pal.supportV4 }}>${Number(v4SelectedSupport.zoneLow).toFixed(0)}–{Number(v4SelectedSupport.zoneHigh).toFixed(0)}</span>
             </div>
           )}
-          {drawResistance && (
+          {showV4Resistance && (
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 font-semibold text-[#c76bff]">
-                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: "#c76bff" }} />
+              <span className="flex items-center gap-2 font-semibold" style={{ color: pal.resistanceV4 }}>
+                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: pal.resistanceV4 }} />
                 Résistance V4
               </span>
-              <span className="font-semibold tabular-nums text-[#c76bff]">${Number(v4Resistance.zoneLow).toFixed(0)}–{Number(v4Resistance.zoneHigh).toFixed(0)}</span>
+              <span className="font-semibold tabular-nums" style={{ color: pal.resistanceV4 }}>${Number(v4Resistance.zoneLow).toFixed(0)}–{Number(v4Resistance.zoneHigh).toFixed(0)}</span>
             </div>
           )}
-          {drawStrike && (
+          {showV4Strike && (
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 font-semibold text-[#f59e0b]">
-                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: "#f59e0b" }} />
+              <span className="flex items-center gap-2 font-semibold" style={{ color: pal.selectedStrike }}>
+                <span className="block h-2 w-2 rounded-sm opacity-60" style={{ backgroundColor: pal.selectedStrike }} />
                 Strike sél.
               </span>
-              <span className="font-semibold tabular-nums text-[#f59e0b]">${v4Strike.toFixed(2)}</span>
+              <span className="font-semibold tabular-nums" style={{ color: pal.selectedStrike }}>${v4Strike.toFixed(2)}</span>
             </div>
           )}
         </div>
@@ -2209,27 +2373,27 @@ function MiniTradeLevelsChart({ item }) {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 xl:hidden">
-        {levelRows.map((row) => (
+        {filteredLevelRows.map((row) => (
           <div key={row.label} className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
-            <span className={cn("font-semibold", row.className)}>{row.label}</span>
+            <span className="font-semibold" style={{ color: row.color }}>{row.label}</span>
             <span className="ml-1 text-slate-300">${Number(row.value).toFixed(2)}</span>
           </div>
         ))}
-        {drawSupport && (
+        {showV4Support && (
           <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
-            <span className="font-semibold text-[#21ff7a]">Support V4</span>
+            <span className="font-semibold" style={{ color: pal.supportV4 }}>Support V4</span>
             <span className="ml-1 text-slate-300">${Number(v4SelectedSupport.zoneLow).toFixed(0)}–{Number(v4SelectedSupport.zoneHigh).toFixed(0)}</span>
           </div>
         )}
-        {drawResistance && (
+        {showV4Resistance && (
           <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
-            <span className="font-semibold text-[#c76bff]">Résistance V4</span>
+            <span className="font-semibold" style={{ color: pal.resistanceV4 }}>Résistance V4</span>
             <span className="ml-1 text-slate-300">${Number(v4Resistance.zoneLow).toFixed(0)}–{Number(v4Resistance.zoneHigh).toFixed(0)}</span>
           </div>
         )}
-        {drawStrike && (
+        {showV4Strike && (
           <div className="rounded-[6px] border border-[#132536] bg-[#06111b]/80 px-2 py-1.5">
-            <span className="font-semibold text-[#f59e0b]">Strike sél.</span>
+            <span className="font-semibold" style={{ color: pal.selectedStrike }}>Strike sél.</span>
             <span className="ml-1 text-slate-300">${v4Strike.toFixed(2)}</span>
           </div>
         )}

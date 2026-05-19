@@ -25,6 +25,8 @@ export const TICKER_META = {
   BTBT: { name: "Bit Digital", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
   COIN: { name: "Coinbase Global", type: "Crypto Exchange", sector: "Financial Services", qualityTier: "Crypto bloqué" },
   BITF: { name: "Bitfarms Ltd.", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  CORZ: { name: "Core Scientific Inc.", type: "Crypto Miner / Infrastructure HPC", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  ETHA: { name: "iShares Ethereum Trust ETF", type: "Crypto ETF Spot / Ethereum", sector: "Crypto", qualityTier: "Crypto bloqué" },
 
   // ─── Exemples de validation ────────────────────────────────────────────────
   NOK:  { name: "Nokia Oyj", type: "Équipement Télécom", sector: "Communication Equipment", qualityTier: "Core Quality" },
@@ -82,6 +84,10 @@ export const TICKER_META = {
   ONON: { name: "On Holding", type: "Chaussures / Apparel Growth", sector: "Consumer Discretionary", qualityTier: "Spéculatif favori" },
   LYFT: { name: "Lyft", type: "Mobilité / Covoiturage", sector: "Technology", qualityTier: "Spéculatif favori" },
   RBLX: { name: "Roblox", type: "Gaming / Métaverse / Social", sector: "Technology", qualityTier: "Spéculatif favori" },
+  CRWV: { name: "CoreWeave Inc.", type: "IA / Infrastructure Cloud GPU", sector: "Technology", qualityTier: "Spéculatif favori" },
+  FIG:  { name: "Figma Inc.", type: "SaaS / Design & Collaboration", sector: "Technology", qualityTier: "Spéculatif favori" },
+  S:    { name: "SentinelOne Inc.", type: "Cybersécurité / IA", sector: "Technology", qualityTier: "Spéculatif favori" },
+  IOT:  { name: "Samsara Inc.", type: "IoT / Fleet Telematics / SaaS", sector: "Technology", qualityTier: "Spéculatif favori" },
 
   // ─── Finance — Core Quality ────────────────────────────────────────────────
   BAC:  { name: "Bank of America", type: "Banque Universelle", sector: "Financial Services", qualityTier: "Core Quality" },
@@ -100,6 +106,7 @@ export const TICKER_META = {
   PYPL: { name: "PayPal Holdings", type: "Fintech / Paiements", sector: "Financial Services", qualityTier: "Cyclique" },
   XYZ:  { name: "Block Inc.", type: "Fintech / Paiements / Crypto", sector: "Financials", qualityTier: "Cyclique" },
   NU:   { name: "Nu Holdings", type: "Neobank Amérique Latine", sector: "Financials", qualityTier: "Cyclique" },
+  RKT:  { name: "Rocket Companies Inc.", type: "Fintech / Prêts Hypothécaires", sector: "Financial Services", qualityTier: "Cyclique" },
 
   // ─── Consumer Discretionary ───────────────────────────────────────────────
   UBER:  { name: "Uber Technologies", type: "Mobilité / Livraison / Tech", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
@@ -126,6 +133,10 @@ export const TICKER_META = {
   BBY:   { name: "Best Buy", type: "Retail Électronique Grand Public", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
   CPNG:  { name: "Coupang", type: "E-Commerce Corée du Sud", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
   W:     { name: "Wayfair", type: "E-Commerce Maison & Mobilier", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
+  SONY:  { name: "Sony Group Corp.", type: "Électronique / Jeux Vidéo / Médias", sector: "Consumer Discretionary", qualityTier: "Core Quality" },
+  LI:    { name: "Li Auto Inc.", type: "Véhicules Électriques / Chine ADR", sector: "Consumer Discretionary", qualityTier: "Thématique risqué" },
+  XPEV:  { name: "XPeng Inc.", type: "Véhicules Électriques / Chine ADR", sector: "Consumer Discretionary", qualityTier: "Thématique risqué" },
+  GAP:   { name: "Gap Inc.", type: "Vêtements / Retail Mode", sector: "Consumer Discretionary", qualityTier: "Cyclique" },
 
   // ─── Consumer Staples ─────────────────────────────────────────────────────
   KO:   { name: "The Coca-Cola Co.", type: "Boissons / Défensif", sector: "Consumer Staples", qualityTier: "Core Quality" },
@@ -135,6 +146,9 @@ export const TICKER_META = {
   LW:   { name: "Lamb Weston", type: "Alimentation / Pommes de Terre", sector: "Consumer Staples", qualityTier: "Cyclique" },
   KR:   { name: "Kroger", type: "Grande Distribution Alimentaire", sector: "Consumer Staples", qualityTier: "Core Quality" },
   KVUE: { name: "Kenvue", type: "Santé Consommateur / OTC", sector: "Consumer Staples", qualityTier: "Core Quality" },
+  CELH:  { name: "Celsius Holdings Inc.", type: "Boissons Énergétiques / Consumer Growth", sector: "Consumer Staples", qualityTier: "Cyclique" },
+  CPB:   { name: "The Campbell's Company", type: "Alimentation / Soupes & Sauces", sector: "Consumer Staples", qualityTier: "Core Quality" },
+  UL:    { name: "Unilever PLC", type: "Produits Ménagers & Personnels / Global", sector: "Consumer Staples", qualityTier: "Core Quality" },
 
   // ─── Communication Services ───────────────────────────────────────────────
   NFLX:  { name: "Netflix Inc.", type: "Streaming / Contenu", sector: "Communication Services", qualityTier: "Core Quality" },
@@ -143,6 +157,8 @@ export const TICKER_META = {
   VZ:    { name: "Verizon Communications", type: "Télécom US / Réseau Mobile", sector: "Communication Services", qualityTier: "Core Quality" },
   T:     { name: "AT&T", type: "Télécom US / Réseau Mobile & TV", sector: "Communication Services", qualityTier: "Core Quality" },
   CMCSA: { name: "Comcast", type: "Télécoms / Médias / Câble", sector: "Communication Services", qualityTier: "Core Quality" },
+  BILI:  { name: "Bilibili Inc.", type: "Internet / Contenu Vidéo / Chine ADR", sector: "Communication Services", qualityTier: "Thématique risqué" },
+  SIRI:  { name: "Sirius XM Holdings", type: "Radio Satellite / Audio Streaming", sector: "Communication Services", qualityTier: "Cyclique" },
 
   // ─── Énergie ──────────────────────────────────────────────────────────────
   SLB:  { name: "SLB (Schlumberger)", type: "Services Pétroliers", sector: "Energy", qualityTier: "Cyclique" },
@@ -158,6 +174,8 @@ export const TICKER_META = {
   BP:   { name: "BP plc", type: "Majeure Pétrolière Intégrée", sector: "Energy", qualityTier: "Cyclique" },
   EQT:  { name: "EQT Corporation", type: "Gaz Naturel E&P", sector: "Energy", qualityTier: "Cyclique" },
   AR:   { name: "Antero Resources", type: "Gaz Naturel E&P", sector: "Energy", qualityTier: "Cyclique" },
+  PBR:  { name: "Petróleo Brasileiro S.A. (Petrobras)", type: "Pétrole / Gaz / Brésil ADR", sector: "Energy", qualityTier: "Cyclique" },
+  UEC:  { name: "Uranium Energy Corp.", type: "Uranium / Énergie Nucléaire", sector: "Energy", qualityTier: "Spéculatif favori" },
 
   // ─── Utilities ────────────────────────────────────────────────────────────
   PCG: { name: "PG&E Corp.", type: "Électricité / Gaz Californie", sector: "Utilities", qualityTier: "Core Quality" },
@@ -186,6 +204,7 @@ export const TICKER_META = {
   UAL: { name: "United Airlines", type: "Aviation / Compagnie Aérienne", sector: "Industrials", qualityTier: "Cyclique" },
   UPS: { name: "United Parcel Service", type: "Logistique / Livraison", sector: "Industrials", qualityTier: "Core Quality" },
   LUV: { name: "Southwest Airlines", type: "Aviation Low-Cost", sector: "Industrials", qualityTier: "Cyclique" },
+  QXO:  { name: "QXO Inc.", type: "Distribution Matériaux Construction / Tech", sector: "Industrials", qualityTier: "Spéculatif favori" },
 
   // ─── Matériaux ────────────────────────────────────────────────────────────
   CF:   { name: "CF Industries Holdings", type: "Engrais / Chimie Azotée", sector: "Materials", qualityTier: "Cyclique" },
@@ -195,6 +214,12 @@ export const TICKER_META = {
   DOW:  { name: "Dow Inc.", type: "Chimie / Matériaux", sector: "Materials", qualityTier: "Cyclique" },
   HL:   { name: "Hecla Mining", type: "Mines / Argent & Or", sector: "Materials", qualityTier: "Cyclique" },
   MP:   { name: "MP Materials", type: "Terres Rares / Matériaux Critiques", sector: "Materials", qualityTier: "Spéculatif favori" },
+  USAR:  { name: "USA Rare Earth Inc.", type: "Terres Rares / Matériaux Critiques", sector: "Materials", qualityTier: "Spéculatif favori" },
+  UUUU:  { name: "Energy Fuels Inc.", type: "Uranium / Terres Rares / Matériaux Critiques", sector: "Materials", qualityTier: "Spéculatif favori" },
+  IP:    { name: "International Paper Co.", type: "Emballage Papier / Conteneurs", sector: "Materials", qualityTier: "Cyclique" },
+  VALE:  { name: "Vale S.A.", type: "Mines / Minerai de Fer / Nickel / Brésil ADR", sector: "Materials", qualityTier: "Cyclique" },
+  CLF:   { name: "Cleveland-Cliffs Inc.", type: "Acier / Sidérurgie", sector: "Materials", qualityTier: "Cyclique" },
+  AG:    { name: "First Majestic Silver Corp.", type: "Mines / Argent", sector: "Materials", qualityTier: "Cyclique" },
 
   // ─── ETF Thématique / Matières premières ──────────────────────────────────
   SLV:  { name: "iShares Silver Trust", type: "ETF Argent", sector: "Commodities", qualityTier: "Thématique risqué" },
@@ -214,6 +239,12 @@ export const TICKER_META = {
   XLU:  { name: "Utilities Select Sector SPDR Fund", type: "Sector ETF Utilities", sector: "ETF", qualityTier: "Thématique risqué" },
   FEZ:  { name: "SPDR EURO STOXX 50 ETF", type: "Euro STOXX 50 ETF", sector: "ETF", qualityTier: "Thématique risqué" },
   TLT:  { name: "iShares 20+ Year Treasury Bond ETF", type: "Treasury Bond ETF Long Duration", sector: "ETF", qualityTier: "Thématique risqué" },
+  URA:   { name: "Global X Uranium ETF", type: "ETF Uranium / Énergie Nucléaire Thématique", sector: "ETF Thématique", qualityTier: "Thématique risqué" },
+  MAGS:  { name: "Roundhill Magnificent Seven ETF", type: "ETF Mega-Cap Tech / Magnificent Seven", sector: "ETF Thématique", qualityTier: "Thématique risqué" },
+  UNG:   { name: "United States Natural Gas Fund", type: "Commodity ETF Gaz Naturel", sector: "Commodities", qualityTier: "Thématique risqué" },
+  XLC:   { name: "Communication Services Select Sector SPDR Fund", type: "Sector ETF Communication Services", sector: "ETF", qualityTier: "Thématique risqué" },
+  LQD:   { name: "iShares iBoxx $ Investment Grade Corporate Bond ETF", type: "ETF Obligataire / Investment Grade Corporate", sector: "ETF", qualityTier: "Thématique risqué" },
+  IEF:   { name: "iShares 7-10 Year Treasury Bond ETF", type: "ETF Obligataire / Treasuries 7-10 ans", sector: "ETF", qualityTier: "Thématique risqué" },
 
   // ─── Matières premières — Futures (traiter avec prudence) ─────────────────
   PL: { name: "Platinum Futures", type: "Futures / Contrat Platine", sector: "Commodities", qualityTier: "Thématique risqué" },

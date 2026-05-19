@@ -47,6 +47,7 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
   const strike = record?.strike ?? {};
   const context = record?.context ?? {};
   const resolution = record?.resolution ?? {};
+  const diagnostics = record?.diagnosticsV12 ?? null;
   return {
     id: String(record?.id ?? "").trim(),
     scanSessionId: record?.scanSessionId ?? null,
@@ -167,6 +168,14 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     volume_at_scan: toInt(record?.ivSnapshot?.volume_at_scan),
     liquidity_score: toReal(record?.ivSnapshot?.liquidity_score),
     options_quality_score: toReal(record?.ivSnapshot?.options_quality_score),
+    // Phase POP V2-A — HV/IV snapshot from diagnosticsV12
+    hv10_at_scan: toReal(diagnostics?.hv10),
+    hv20_at_scan: toReal(diagnostics?.hv20),
+    hv30_at_scan: toReal(diagnostics?.hv30),
+    atm_iv_at_scan: toReal(diagnostics?.atmIv),
+    safe_strike_iv_at_scan: toReal(diagnostics?.safeStrikeIv),
+    iv_hv_ratio_at_scan: toReal(diagnostics?.ivHvRatio),
+    iv_hv_edge_at_scan: diagnostics?.ivHvEdge === true ? 1 : diagnostics?.ivHvEdge === false ? 0 : null,
     rawJson: JSON.stringify(record ?? {}),
     createdAt: nowIso,
     updatedAt: nowIso,
@@ -384,6 +393,74 @@ export function createWheelValidationStoreSqlite(options = {}) {
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN liquidity_score REAL`);
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN options_quality_score REAL`);
 
+    // Phase POP V2-A — HV/IV columns from diagnosticsV12 (additive, dormant NULL for old records)
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN hv10_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN hv20_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN hv30_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN atm_iv_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN safe_strike_iv_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN iv_hv_ratio_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN iv_hv_edge_at_scan INTEGER`);
+
+    // Phase POP V2-A — local backfill from rawJson (no network, only fills NULL rows)
+    {
+      const backfillRows = conn.prepare(
+        "SELECT id, rawJson FROM wheel_validation_records WHERE hv30_at_scan IS NULL AND atm_iv_at_scan IS NULL"
+      ).all();
+      const backfillStmt = conn.prepare(`
+        UPDATE wheel_validation_records SET
+          hv10_at_scan = @hv10_at_scan,
+          hv20_at_scan = @hv20_at_scan,
+          hv30_at_scan = @hv30_at_scan,
+          atm_iv_at_scan = @atm_iv_at_scan,
+          safe_strike_iv_at_scan = @safe_strike_iv_at_scan,
+          iv_hv_ratio_at_scan = @iv_hv_ratio_at_scan,
+          iv_hv_edge_at_scan = @iv_hv_edge_at_scan
+        WHERE id = @id
+          AND hv30_at_scan IS NULL
+          AND atm_iv_at_scan IS NULL
+      `);
+      let bfTotal = 0;
+      let bfUpdated = 0;
+      let bfNoDiag = 0;
+      let bfErrors = 0;
+      for (const row of backfillRows) {
+        bfTotal += 1;
+        try {
+          const parsed = JSON.parse(String(row?.rawJson ?? "{}"));
+          const diag = parsed?.diagnosticsV12;
+          if (!diag || typeof diag !== "object") {
+            bfNoDiag += 1;
+            continue;
+          }
+          const hv30 = toReal(diag?.hv30);
+          const atmIv = toReal(diag?.atmIv);
+          if (hv30 == null && atmIv == null) {
+            bfNoDiag += 1;
+            continue;
+          }
+          const result = backfillStmt.run({
+            id: row.id,
+            hv10_at_scan: toReal(diag?.hv10),
+            hv20_at_scan: toReal(diag?.hv20),
+            hv30_at_scan: hv30,
+            atm_iv_at_scan: atmIv,
+            safe_strike_iv_at_scan: toReal(diag?.safeStrikeIv),
+            iv_hv_ratio_at_scan: toReal(diag?.ivHvRatio),
+            iv_hv_edge_at_scan: diag?.ivHvEdge === true ? 1 : diag?.ivHvEdge === false ? 0 : null,
+          });
+          if (Number(result?.changes ?? 0) > 0) bfUpdated += 1;
+        } catch (_bfErr) {
+          bfErrors += 1;
+        }
+      }
+      if (bfTotal > 0) {
+        console.log(
+          `[wheel-journal-sqlite] pop-v2a backfill total=${bfTotal} updated=${bfUpdated} no_diag=${bfNoDiag} errors=${bfErrors}`
+        );
+      }
+    }
+
     // Phase 4A.5 — Calibration summary tables (dormant, populated by adaptiveCalibrationEngine)
     safeExec(conn, `
       CREATE TABLE IF NOT EXISTS calibration_ticker_summary (
@@ -445,6 +522,8 @@ export function createWheelValidationStoreSqlite(options = {}) {
         days_to_earnings, earnings_risk_flag, macro_event_risk_flag, fed_event_risk_flag, event_risk_score,
         iv_rank_at_scan, iv_percentile_at_scan, option_spread_pct_at_scan,
         open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
+        hv10_at_scan, hv20_at_scan, hv30_at_scan, atm_iv_at_scan,
+        safe_strike_iv_at_scan, iv_hv_ratio_at_scan, iv_hv_edge_at_scan,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -473,6 +552,8 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @days_to_earnings, @earnings_risk_flag, @macro_event_risk_flag, @fed_event_risk_flag, @event_risk_score,
         @iv_rank_at_scan, @iv_percentile_at_scan, @option_spread_pct_at_scan,
         @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
+        @hv10_at_scan, @hv20_at_scan, @hv30_at_scan, @atm_iv_at_scan,
+        @safe_strike_iv_at_scan, @iv_hv_ratio_at_scan, @iv_hv_edge_at_scan,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO NOTHING
     `);
@@ -564,6 +645,8 @@ export function createWheelValidationStoreSqlite(options = {}) {
         days_to_earnings, earnings_risk_flag, macro_event_risk_flag, fed_event_risk_flag, event_risk_score,
         iv_rank_at_scan, iv_percentile_at_scan, option_spread_pct_at_scan,
         open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
+        hv10_at_scan, hv20_at_scan, hv30_at_scan, atm_iv_at_scan,
+        safe_strike_iv_at_scan, iv_hv_ratio_at_scan, iv_hv_edge_at_scan,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -592,6 +675,8 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @days_to_earnings, @earnings_risk_flag, @macro_event_risk_flag, @fed_event_risk_flag, @event_risk_score,
         @iv_rank_at_scan, @iv_percentile_at_scan, @option_spread_pct_at_scan,
         @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
+        @hv10_at_scan, @hv20_at_scan, @hv30_at_scan, @atm_iv_at_scan,
+        @safe_strike_iv_at_scan, @iv_hv_ratio_at_scan, @iv_hv_edge_at_scan,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO UPDATE SET
         scanSessionId=excluded.scanSessionId,
@@ -704,6 +789,13 @@ export function createWheelValidationStoreSqlite(options = {}) {
         volume_at_scan=excluded.volume_at_scan,
         liquidity_score=excluded.liquidity_score,
         options_quality_score=excluded.options_quality_score,
+        hv10_at_scan=excluded.hv10_at_scan,
+        hv20_at_scan=excluded.hv20_at_scan,
+        hv30_at_scan=excluded.hv30_at_scan,
+        atm_iv_at_scan=excluded.atm_iv_at_scan,
+        safe_strike_iv_at_scan=excluded.safe_strike_iv_at_scan,
+        iv_hv_ratio_at_scan=excluded.iv_hv_ratio_at_scan,
+        iv_hv_edge_at_scan=excluded.iv_hv_edge_at_scan,
         rawJson=excluded.rawJson,
         createdAt=COALESCE(wheel_validation_records.createdAt, excluded.createdAt),
         updatedAt=excluded.updatedAt

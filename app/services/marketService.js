@@ -618,6 +618,7 @@ export function createMarketService(provider) {
       return {
         historicalUnavailable: true,
         minPriceBetweenScanAndExpiration: null,
+        maxPriceBetweenScanAndExpiration: null,
       };
     }
 
@@ -627,12 +628,14 @@ export function createMarketService(provider) {
       return {
         historicalUnavailable: true,
         minPriceBetweenScanAndExpiration: null,
+        maxPriceBetweenScanAndExpiration: null,
       };
     }
     if (scanDate.getTime() > expirationDate.getTime()) {
       return {
         historicalUnavailable: true,
         minPriceBetweenScanAndExpiration: null,
+        maxPriceBetweenScanAndExpiration: null,
       };
     }
 
@@ -643,30 +646,38 @@ export function createMarketService(provider) {
         interval: "1d",
       });
       const quotes = Array.isArray(result?.quotes) ? result.quotes : [];
-      const lows = quotes
-        .map((q) => {
-          const low = toNumber(q?.low);
-          const dt = q?.date != null ? new Date(q.date) : null;
-          if (!(low > 0) || !dt || Number.isNaN(dt.getTime())) return null;
-          const ymd = dt.toISOString().slice(0, 10);
-          if (ymd < rawScanDate || ymd > rawExpirationDate) return null;
-          return low;
-        })
-        .filter((value) => value != null);
+      const lows = [];
+      const highs = [];
+      for (const q of quotes) {
+        const dt = q?.date != null ? new Date(q.date) : null;
+        if (!dt || Number.isNaN(dt.getTime())) continue;
+        const ymd = dt.toISOString().slice(0, 10);
+        if (ymd < rawScanDate || ymd > rawExpirationDate) continue;
+        const low = toNumber(q?.low);
+        const close = toNumber(q?.close);
+        if (low > 0) lows.push(low);
+        else if (close > 0) lows.push(close);
+        const high = toNumber(q?.high);
+        if (high > 0) highs.push(high);
+        else if (close > 0) highs.push(close);
+      }
       if (lows.length === 0) {
         return {
           historicalUnavailable: true,
           minPriceBetweenScanAndExpiration: null,
+          maxPriceBetweenScanAndExpiration: null,
         };
       }
       return {
         historicalUnavailable: false,
         minPriceBetweenScanAndExpiration: Math.min(...lows),
+        maxPriceBetweenScanAndExpiration: highs.length > 0 ? Math.max(...highs) : null,
       };
     } catch (_error) {
       return {
         historicalUnavailable: true,
         minPriceBetweenScanAndExpiration: null,
+        maxPriceBetweenScanAndExpiration: null,
       };
     }
   }

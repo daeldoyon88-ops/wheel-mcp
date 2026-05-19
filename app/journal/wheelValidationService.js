@@ -740,6 +740,7 @@ function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
   const support = toNumberOrNull(record?.context?.support);
   const spotAtScan = toNumberOrNull(record?.underlying?.spotAtScan);
   const minPrice = toNumberOrNull(historicalMetrics?.minPriceBetweenScanAndExpiration);
+  const maxPrice = toNumberOrNull(historicalMetrics?.maxPriceBetweenScanAndExpiration);
   const historicalUnavailable = historicalMetrics?.historicalUnavailable !== false;
 
   if (historicalUnavailable || minPrice == null || strike == null) {
@@ -751,6 +752,7 @@ function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
       strikeTouched: null,
       minPriceBetweenScanAndExpiration: null,
       underlying_low_between_scan_and_expiration: null,
+      underlying_high_between_scan_and_expiration: null,
       maxItmDepth: null,
       brokeLowerBound: null,
       lowerBoundDistance: null,
@@ -796,8 +798,9 @@ function buildResolutionOutcomeV2(baseOutcome, record, historicalMetrics) {
     // Phase 1 — upgrade confidence when historical window data is available
     resolution_confidence: "high",
     resolved_source: "auto_yahoo_close_v2",
-    // Phase 2 — underlying low
+    // Phase 2 — underlying low and high
     underlying_low_between_scan_and_expiration: Number(minPrice.toFixed(4)),
+    underlying_high_between_scan_and_expiration: maxPrice != null ? Number(maxPrice.toFixed(4)) : null,
     strikeTouched,
     minPriceBetweenScanAndExpiration: Number(minPrice.toFixed(4)),
     maxItmDepth,

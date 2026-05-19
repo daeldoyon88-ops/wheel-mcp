@@ -2400,6 +2400,15 @@ app.get("/journal/wheel-validation/calibration-summary", async (_req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/mode-comparison", async (_req, res) => {
+  try {
+    const modeComparison = await wheelValidationService.computeModeComparison();
+    res.json({ ok: true, modeComparison });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error?.message || "mode_comparison_failed" });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

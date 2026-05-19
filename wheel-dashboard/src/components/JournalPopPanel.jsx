@@ -1495,6 +1495,10 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [openBucketsDetail, setOpenBucketsDetail] = useState(false);
   const [openBuckets, setOpenBuckets] = useState({});
 
+  // Mode comparison V2-G — read-only
+  const [modeComparison, setModeComparison] = useState(null);
+  const [modeComparisonTickerFilter, setModeComparisonTickerFilter] = useState("tous");
+
   // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
   const [seasonalityLoading, setSeasonalityLoading] = useState(false);
@@ -1532,16 +1536,18 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
         fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
       const calibrationPayload = await calibrationResponse.json();
       const capitalPayload = capitalResponse ? await capitalResponse.json().catch(() => null) : null;
+      const modeComparisonPayload = modeComparisonResponse ? await modeComparisonResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
@@ -1549,6 +1555,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setCalibrationSummary(calibrationPayload.calibration ?? null);
       setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload, capitalPayload]));
+      if (modeComparisonPayload?.ok) setModeComparison(modeComparisonPayload.modeComparison ?? null);
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -2743,6 +2750,223 @@ export default function JournalPopPanel({ apiBase, active }) {
           )}
         </CollapsibleSection>
       )}
+
+      {/* ── SECTION V2-G — COMPARAISON SAFE vs AGRESSIF ─────────────────────── */}
+      {hasLoaded && modeComparison && (() => {
+        const mc = modeComparison;
+        const safe = mc.modes.safe;
+        const agg = mc.modes.aggressive;
+        const cmp = mc.comparison;
+
+        const interpretiveText = (() => {
+          const v = cmp.aggressiveRiskVerdict;
+          const safeN = safe.resolved_records;
+          const aggN = agg.resolved_records;
+          if (v === "insufficient_data" || safeN < 10 || aggN < 10)
+            return "Échantillon encore faible : interpréter avec prudence.";
+          if (v === "similar_risk")
+            return "SAFE et AGRESSIF ont des taux d'assignation proches sur l'échantillon actuel.";
+          if (v === "higher_risk_not_compensated")
+            return `AGRESSIF s'assigne significativement plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts) sans compensation de prime visible.`;
+          if (v === "higher_risk_partially_compensated")
+            return `AGRESSIF s'assigne plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts), mais paie une prime moyenne plus élevée (+${cmp.premiumDeltaDollar != null ? `$${cmp.premiumDeltaDollar.toFixed(2)}` : "N/D"}).`;
+          return `AGRESSIF s'assigne légèrement plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts).`;
+        })();
+
+        const filteredTickers = (() => {
+          const all = Array.isArray(mc.byTicker) ? mc.byTicker : [];
+          if (modeComparisonTickerFilter === "ok") return all.filter((t) => t.sample_size_status === "ok");
+          if (modeComparisonTickerFilter === "faible") return all.filter((t) => t.sample_size_status === "faible");
+          return all;
+        })();
+
+        return (
+          <CollapsibleSection
+            title="Comparaison SAFE vs AGRESSIF"
+            badge="V2-G"
+            subtitle="Taux d'assignation réelle par mode. Calculé sur records résolus uniquement. Source locale, aucun appel réseau."
+            defaultOpen={false}
+            summaryRight={
+              cmp.assignmentRateDeltaPct != null
+                ? `Assign. SAFE ${safe.assigned_rate_pct?.toFixed(1)}% · AGRESSIF ${agg.assigned_rate_pct?.toFixed(1)}% · Δ ${cmp.assignmentRateDeltaPct >= 0 ? "+" : ""}${cmp.assignmentRateDeltaPct.toFixed(1)} pts`
+                : "Données insuffisantes"
+            }
+          >
+            {/* 10 KPI cards */}
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-5 mb-5">
+              <ProKpi
+                label="Assign. SAFE"
+                value={safe.assigned_rate_pct != null ? `${safe.assigned_rate_pct.toFixed(1)}%` : "N/D"}
+                tone="good"
+                sub={`${safe.assigned_count} / ${safe.resolved_records} résolus`}
+              />
+              <ProKpi
+                label="Assign. AGRESSIF"
+                value={agg.assigned_rate_pct != null ? `${agg.assigned_rate_pct.toFixed(1)}%` : "N/D"}
+                tone={agg.assigned_rate_pct != null && safe.assigned_rate_pct != null && agg.assigned_rate_pct > safe.assigned_rate_pct + 5 ? "risk" : "default"}
+                sub={`${agg.assigned_count} / ${agg.resolved_records} résolus`}
+              />
+              <ProKpi
+                label="Écart assignation"
+                value={cmp.assignmentRateDeltaPct != null ? `${cmp.assignmentRateDeltaPct >= 0 ? "+" : ""}${cmp.assignmentRateDeltaPct.toFixed(1)} pts` : "N/D"}
+                tone={cmp.assignmentRateDeltaPct != null && cmp.assignmentRateDeltaPct > 5 ? "risk" : cmp.assignmentRateDeltaPct != null && cmp.assignmentRateDeltaPct <= 2 ? "good" : "warn"}
+                sub="AGRESSIF − SAFE"
+              />
+              <ProKpi
+                label="Strike touché SAFE"
+                value={safe.strike_touched_rate_pct != null ? `${safe.strike_touched_rate_pct.toFixed(1)}%` : "N/D"}
+                tone="default"
+                sub={`${safe.strike_touched_count} records`}
+              />
+              <ProKpi
+                label="Strike touché AGRES."
+                value={agg.strike_touched_rate_pct != null ? `${agg.strike_touched_rate_pct.toFixed(1)}%` : "N/D"}
+                tone={agg.strike_touched_rate_pct != null && safe.strike_touched_rate_pct != null && agg.strike_touched_rate_pct > safe.strike_touched_rate_pct + 8 ? "risk" : "default"}
+                sub={`${agg.strike_touched_count} records`}
+              />
+              <ProKpi
+                label="Prime moy. SAFE"
+                value={safe.avg_premium != null ? `$${safe.avg_premium.toFixed(2)}` : "N/D"}
+                tone="default"
+              />
+              <ProKpi
+                label="Prime moy. AGRESSIF"
+                value={agg.avg_premium != null ? `$${agg.avg_premium.toFixed(2)}` : "N/D"}
+                tone="info"
+              />
+              <ProKpi
+                label="Écart prime"
+                value={cmp.premiumDeltaDollar != null ? `${cmp.premiumDeltaDollar >= 0 ? "+" : ""}$${cmp.premiumDeltaDollar.toFixed(2)}` : "N/D"}
+                tone={cmp.premiumDeltaDollar != null && cmp.premiumDeltaDollar > 0 ? "info" : "muted"}
+                sub="AGRESSIF − SAFE"
+              />
+              <ProKpi
+                label="Rend. moy. SAFE"
+                value={safe.avg_yield_pct != null ? `${safe.avg_yield_pct.toFixed(1)}%` : "N/D"}
+                tone="default"
+                sub="Annualisé"
+              />
+              <ProKpi
+                label="Rend. moy. AGRESSIF"
+                value={agg.avg_yield_pct != null ? `${agg.avg_yield_pct.toFixed(1)}%` : "N/D"}
+                tone={agg.avg_yield_pct != null && safe.avg_yield_pct != null && agg.avg_yield_pct > safe.avg_yield_pct ? "info" : "default"}
+                sub="Annualisé"
+              />
+            </div>
+
+            {/* Interpretive sentence */}
+            <div className="mb-5 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
+              <span className="text-slate-500 text-sm shrink-0">ℹ</span>
+              <p className="text-[12px] text-slate-300">{interpretiveText}</p>
+            </div>
+
+            {/* Ticker table */}
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Filtre échantillon</span>
+                {["tous", "ok", "faible"].map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setModeComparisonTickerFilter(f)}
+                    className={`rounded border px-2 py-0.5 text-[10px] transition-colors ${
+                      modeComparisonTickerFilter === f
+                        ? "border-sky-700 bg-sky-900/40 text-sky-300 font-bold"
+                        : "border-slate-700 bg-slate-800/60 text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    {f === "tous" ? "Tous" : f === "ok" ? "Échantillon OK" : "Échantillon faible"}
+                  </button>
+                ))}
+                <span className="text-[10px] text-slate-600 ml-1">{filteredTickers.length} ticker{filteredTickers.length !== 1 ? "s" : ""}</span>
+              </div>
+
+              {filteredTickers.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                  Aucun ticker pour ce filtre.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-xs text-slate-300">
+                    <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <tr>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. SAFE</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. AGRES.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. SAFE</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. AGRES.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart assign.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime SAFE</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime AGRES.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart prime</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. SAFE</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. AGRES.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Échantillon</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {filteredTickers.map((row) => {
+                        const assignDelta = numberOrNull(row.assignment_delta_pct);
+                        const isSampleOk = row.sample_size_status === "ok";
+                        return (
+                          <tr key={row.symbol} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="px-3 py-2.5 font-bold text-slate-100">{row.symbol}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{row.safe_resolved}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-rose-400">{row.aggressive_resolved}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              {row.safe_assigned_rate_pct != null ? `${row.safe_assigned_rate_pct.toFixed(1)}%` : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              {row.aggressive_assigned_rate_pct != null ? (
+                                <span className={row.aggressive_assigned_rate_pct > (row.safe_assigned_rate_pct ?? 0) + 5 ? "text-rose-400 font-semibold" : ""}>
+                                  {row.aggressive_assigned_rate_pct.toFixed(1)}%
+                                </span>
+                              ) : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              {assignDelta != null ? (
+                                <span className={assignDelta > 5 ? "text-rose-400 font-semibold" : assignDelta <= 0 ? "text-emerald-400" : "text-amber-400"}>
+                                  {assignDelta >= 0 ? "+" : ""}{assignDelta.toFixed(1)} pts
+                                </span>
+                              ) : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              {row.safe_avg_premium != null ? `$${row.safe_avg_premium.toFixed(2)}` : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">
+                              {row.aggressive_avg_premium != null ? `$${row.aggressive_avg_premium.toFixed(2)}` : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              {row.premium_delta != null ? (
+                                <span className={row.premium_delta > 0 ? "text-sky-400" : "text-slate-400"}>
+                                  {row.premium_delta >= 0 ? "+" : ""}${row.premium_delta.toFixed(2)}
+                                </span>
+                              ) : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
+                              {row.safe_avg_yield_pct != null ? `${row.safe_avg_yield_pct.toFixed(0)}%` : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              {row.aggressive_avg_yield_pct != null ? `${row.aggressive_avg_yield_pct.toFixed(0)}%` : "—"}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {isSampleOk ? (
+                                <span className="rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">OK</span>
+                              ) : (
+                                <span className="rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Faible</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+        );
+      })()}
 
       {/* ── SECTION D — TICKER LEADERBOARD ─────────────────────────────────── */}
       {hasLoaded && (

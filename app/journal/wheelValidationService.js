@@ -1765,12 +1765,229 @@ export function createWheelValidationService(options = {}) {
     });
   }
 
+  async function computeModeComparison() {
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+
+    function modeStats(modeRecords) {
+      const totalRecords = modeRecords.length;
+      const resolvedRecs = modeRecords.filter((r) => r?.resolution?.resolved === true);
+      const resolvedCount = resolvedRecs.length;
+      const unresolvedRecords = totalRecords - resolvedCount;
+
+      const assignedCount = resolvedRecs.filter((r) =>
+        r?.resolution?.assigned_flag === true ||
+        (r?.resolution?.assigned_flag == null && r?.resolution?.assigned === true)
+      ).length;
+      const assignedRatePct = resolvedCount > 0 ? (assignedCount / resolvedCount) * 100 : null;
+
+      const expiredOtmCount = resolvedRecs.filter((r) =>
+        r?.resolution?.expired_otm === true || r?.resolution?.expiredWorthless === true
+      ).length;
+      const expiredOtmRatePct = resolvedCount > 0 ? (expiredOtmCount / resolvedCount) * 100 : null;
+
+      const stTouchKnown = resolvedRecs.filter((r) => r?.resolution?.strikeTouched != null);
+      const strikeTouchedCount = stTouchKnown.filter((r) => r?.resolution?.strikeTouched === true).length;
+      const strikeTouchedRatePct = stTouchKnown.length > 0 ? (strikeTouchedCount / stTouchKnown.length) * 100 : null;
+
+      const lbKnown = resolvedRecs.filter((r) => r?.resolution?.brokeLowerBound != null);
+      const brokeLowerBoundCount = lbKnown.filter((r) => r?.resolution?.brokeLowerBound === true).length;
+      const brokeLowerBoundRatePct = lbKnown.length > 0 ? (brokeLowerBoundCount / lbKnown.length) * 100 : null;
+
+      const avg = (fn) => {
+        const vals = resolvedRecs.map(fn).filter((v) => v != null);
+        return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+      };
+
+      return {
+        total_records: totalRecords,
+        resolved_records: resolvedCount,
+        unresolved_records: unresolvedRecords,
+        assigned_count: assignedCount,
+        assigned_rate_pct: assignedRatePct,
+        expired_otm_count: expiredOtmCount,
+        expired_otm_rate_pct: expiredOtmRatePct,
+        strike_touched_count: strikeTouchedCount,
+        strike_touched_rate_pct: strikeTouchedRatePct,
+        broke_lower_bound_count: brokeLowerBoundCount,
+        broke_lower_bound_rate_pct: brokeLowerBoundRatePct,
+        avg_premium: avg((r) => toNumberOrNull(r?.strike?.premium)),
+        avg_yield_pct: avg((r) => toNumberOrNull(r?.strike?.annualizedYield)),
+        avg_pop_estimate: avg((r) => {
+          const n = toNumberOrNull(r?.strike?.popEstimate);
+          if (n == null) return null;
+          return n > 1 ? n : n * 100;
+        }),
+        avg_distance_strike_pct: avg((r) => toNumberOrNull(r?.snapshot?.distance_strike_from_spot_pct)),
+        avg_spread_pct: avg((r) => toNumberOrNull(r?.strike?.spreadPct)),
+        avg_drawdown_pct: avg((r) => toNumberOrNull(r?.resolution?.drawdownPct)),
+        avg_max_itm_depth_pct: avg((r) => toNumberOrNull(r?.resolution?.max_itm_depth_pct)),
+        avg_data_quality_score: avg((r) => toNumberOrNull(r?.stress?.data_quality_score)),
+      };
+    }
+
+    const safeRecords = records.filter((r) => r?.strikeMode === "safe");
+    const aggRecords = records.filter((r) => r?.strikeMode === "aggressive");
+    const safe = modeStats(safeRecords);
+    const aggressive = modeStats(aggRecords);
+
+    const assignmentRateDeltaPct =
+      safe.assigned_rate_pct != null && aggressive.assigned_rate_pct != null
+        ? aggressive.assigned_rate_pct - safe.assigned_rate_pct
+        : null;
+    const premiumDeltaDollar =
+      safe.avg_premium != null && aggressive.avg_premium != null
+        ? aggressive.avg_premium - safe.avg_premium
+        : null;
+
+    let aggressiveRiskVerdict;
+    if (safe.resolved_records < 10 || aggressive.resolved_records < 10) {
+      aggressiveRiskVerdict = "insufficient_data";
+    } else if (assignmentRateDeltaPct != null && assignmentRateDeltaPct > 5 && premiumDeltaDollar != null && premiumDeltaDollar > 0) {
+      aggressiveRiskVerdict = "higher_risk_partially_compensated";
+    } else if (assignmentRateDeltaPct != null && assignmentRateDeltaPct > 5) {
+      aggressiveRiskVerdict = "higher_risk_not_compensated";
+    } else if (assignmentRateDeltaPct != null && assignmentRateDeltaPct <= 2) {
+      aggressiveRiskVerdict = "similar_risk";
+    } else {
+      aggressiveRiskVerdict = "moderate_risk_delta";
+    }
+
+    const comparison = {
+      assignmentRateDeltaPct,
+      otmRateDeltaPct:
+        safe.expired_otm_rate_pct != null && aggressive.expired_otm_rate_pct != null
+          ? aggressive.expired_otm_rate_pct - safe.expired_otm_rate_pct
+          : null,
+      premiumDeltaDollar,
+      yieldDeltaPct:
+        safe.avg_yield_pct != null && aggressive.avg_yield_pct != null
+          ? aggressive.avg_yield_pct - safe.avg_yield_pct
+          : null,
+      popDeltaPct:
+        safe.avg_pop_estimate != null && aggressive.avg_pop_estimate != null
+          ? aggressive.avg_pop_estimate - safe.avg_pop_estimate
+          : null,
+      distanceDeltaPct:
+        safe.avg_distance_strike_pct != null && aggressive.avg_distance_strike_pct != null
+          ? aggressive.avg_distance_strike_pct - safe.avg_distance_strike_pct
+          : null,
+      strikeTouchedDeltaPct:
+        safe.strike_touched_rate_pct != null && aggressive.strike_touched_rate_pct != null
+          ? aggressive.strike_touched_rate_pct - safe.strike_touched_rate_pct
+          : null,
+      aggressiveRiskVerdict,
+    };
+
+    const tickerMap = new Map();
+    for (const record of records) {
+      const symbol = normalizeSymbol(record?.symbol);
+      if (!symbol) continue;
+      if (!tickerMap.has(symbol)) tickerMap.set(symbol, { safe: [], aggressive: [] });
+      const mode = record?.strikeMode;
+      if (mode === "safe") tickerMap.get(symbol).safe.push(record);
+      else if (mode === "aggressive") tickerMap.get(symbol).aggressive.push(record);
+    }
+
+    const byTicker = Array.from(tickerMap.entries())
+      .filter(([, { safe: sr, aggressive: ar }]) => sr.length > 0 && ar.length > 0)
+      .map(([symbol, { safe: sr, aggressive: ar }]) => {
+        const avgOf = (recs, fn) => {
+          const vals = recs.map(fn).filter((v) => v != null);
+          return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+        };
+        const safeResolved = sr.filter((r) => r?.resolution?.resolved === true);
+        const aggResolved = ar.filter((r) => r?.resolution?.resolved === true);
+
+        const safeAssigned = safeResolved.filter((r) =>
+          r?.resolution?.assigned_flag === true ||
+          (r?.resolution?.assigned_flag == null && r?.resolution?.assigned === true)
+        ).length;
+        const aggAssigned = aggResolved.filter((r) =>
+          r?.resolution?.assigned_flag === true ||
+          (r?.resolution?.assigned_flag == null && r?.resolution?.assigned === true)
+        ).length;
+
+        const safeAssignedRatePct = safeResolved.length > 0 ? (safeAssigned / safeResolved.length) * 100 : null;
+        const aggAssignedRatePct = aggResolved.length > 0 ? (aggAssigned / aggResolved.length) * 100 : null;
+
+        const safeAvgPremium = avgOf(safeResolved, (r) => toNumberOrNull(r?.strike?.premium));
+        const aggAvgPremium = avgOf(aggResolved, (r) => toNumberOrNull(r?.strike?.premium));
+        const safeAvgYieldPct = avgOf(safeResolved, (r) => toNumberOrNull(r?.strike?.annualizedYield));
+        const aggAvgYieldPct = avgOf(aggResolved, (r) => toNumberOrNull(r?.strike?.annualizedYield));
+
+        const safeOtmCount = safeResolved.filter((r) =>
+          r?.resolution?.expired_otm === true || r?.resolution?.expiredWorthless === true
+        ).length;
+        const aggOtmCount = aggResolved.filter((r) =>
+          r?.resolution?.expired_otm === true || r?.resolution?.expiredWorthless === true
+        ).length;
+
+        const safeTouchKnown = safeResolved.filter((r) => r?.resolution?.strikeTouched != null);
+        const aggTouchKnown = aggResolved.filter((r) => r?.resolution?.strikeTouched != null);
+
+        const sampleSizeStatus =
+          safeResolved.length >= 3 && aggResolved.length >= 3 ? "ok" : "faible";
+
+        return {
+          symbol,
+          safe_total: sr.length,
+          aggressive_total: ar.length,
+          safe_resolved: safeResolved.length,
+          aggressive_resolved: aggResolved.length,
+          safe_assigned_rate_pct: safeAssignedRatePct,
+          aggressive_assigned_rate_pct: aggAssignedRatePct,
+          assignment_delta_pct:
+            safeAssignedRatePct != null && aggAssignedRatePct != null
+              ? aggAssignedRatePct - safeAssignedRatePct
+              : null,
+          safe_avg_premium: safeAvgPremium,
+          aggressive_avg_premium: aggAvgPremium,
+          premium_delta:
+            safeAvgPremium != null && aggAvgPremium != null
+              ? aggAvgPremium - safeAvgPremium
+              : null,
+          safe_avg_yield_pct: safeAvgYieldPct,
+          aggressive_avg_yield_pct: aggAvgYieldPct,
+          yield_delta_pct:
+            safeAvgYieldPct != null && aggAvgYieldPct != null
+              ? aggAvgYieldPct - safeAvgYieldPct
+              : null,
+          safe_otm_rate_pct: safeResolved.length > 0 ? (safeOtmCount / safeResolved.length) * 100 : null,
+          aggressive_otm_rate_pct: aggResolved.length > 0 ? (aggOtmCount / aggResolved.length) * 100 : null,
+          safe_strike_touched_rate_pct: safeTouchKnown.length > 0
+            ? (safeTouchKnown.filter((r) => r.resolution.strikeTouched === true).length / safeTouchKnown.length) * 100
+            : null,
+          aggressive_strike_touched_rate_pct: aggTouchKnown.length > 0
+            ? (aggTouchKnown.filter((r) => r.resolution.strikeTouched === true).length / aggTouchKnown.length) * 100
+            : null,
+          sample_size_status: sampleSizeStatus,
+        };
+      })
+      .sort((a, b) => {
+        if (a.sample_size_status !== b.sample_size_status) {
+          return a.sample_size_status === "ok" ? -1 : 1;
+        }
+        const totalA = a.safe_resolved + a.aggressive_resolved;
+        const totalB = b.safe_resolved + b.aggressive_resolved;
+        return totalB - totalA;
+      });
+
+    return {
+      generatedAt: new Date().toISOString(),
+      modes: { safe, aggressive },
+      comparison,
+      byTicker,
+    };
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
     computeStats,
     computeCohortSummary,
     computeCalibrationSummary,
+    computeModeComparison,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

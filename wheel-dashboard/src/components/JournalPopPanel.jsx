@@ -1498,6 +1498,11 @@ export default function JournalPopPanel({ apiBase, active }) {
   // Mode comparison V2-G — read-only
   const [modeComparison, setModeComparison] = useState(null);
   const [modeComparisonTickerFilter, setModeComparisonTickerFilter] = useState("tous");
+  const [modeComparisonTickerSearch, setModeComparisonTickerSearch] = useState("");
+  const [dteTickerSearch, setDteTickerSearch] = useState("");
+  const [dteDteFilter, setDteDteFilter] = useState("tous");
+  const [dteSampleFilter, setDteSampleFilter] = useState("tous");
+  const [dteReadingFilter, setDteReadingFilter] = useState("tous");
 
   // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
@@ -2773,12 +2778,89 @@ export default function JournalPopPanel({ apiBase, active }) {
           return `AGRESSIF s'assigne légèrement plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts).`;
         })();
 
+        const getTickerModeReading = (row) => {
+          if (row.sample_size_status === "faible") return "Échantillon faible";
+          const pd = numberOrNull(row.premium_delta);
+          const ad = numberOrNull(row.assignment_delta_pct);
+          if (pd == null || ad == null) return "Données insuffisantes";
+          if (pd > 0 && ad <= 0) return "AGRESSIF paie plus sans plus d'assignation";
+          if (pd > 0 && ad > 0 && ad <= 5) return "AGRESSIF paie plus avec risque légèrement supérieur";
+          if (pd > 0 && ad > 5) return "AGRESSIF paie plus mais assigne davantage";
+          if (pd <= 0 && ad > 0) return "SAFE préférable";
+          return "Écart faible";
+        };
+
+        const getReadingTone = (reading) => {
+          if (reading === "AGRESSIF paie plus sans plus d'assignation") return "text-sky-400";
+          if (reading === "AGRESSIF paie plus avec risque légèrement supérieur") return "text-amber-400";
+          if (reading === "AGRESSIF paie plus mais assigne davantage") return "text-orange-400";
+          if (reading === "SAFE préférable") return "text-emerald-400";
+          if (reading === "Échantillon faible") return "text-slate-500 italic";
+          return "text-slate-400";
+        };
+
+        const allTickers = Array.isArray(mc.byTicker) ? mc.byTicker : [];
+
+        // Sort: OK samples first, then by total resolved desc, then by premium_delta desc
+        const sortedTickers = [...allTickers].sort((a, b) => {
+          const aOk = a.sample_size_status === "ok" ? 0 : 1;
+          const bOk = b.sample_size_status === "ok" ? 0 : 1;
+          if (aOk !== bOk) return aOk - bOk;
+          const aTotal = (a.safe_resolved ?? 0) + (a.aggressive_resolved ?? 0);
+          const bTotal = (b.safe_resolved ?? 0) + (b.aggressive_resolved ?? 0);
+          if (bTotal !== aTotal) return bTotal - aTotal;
+          const aPd = numberOrNull(a.premium_delta) ?? -Infinity;
+          const bPd = numberOrNull(b.premium_delta) ?? -Infinity;
+          return bPd - aPd;
+        });
+
+        const filterLabels = {
+          tous: "Tous",
+          ok: "Échantillon OK",
+          faible: "Échantillon faible",
+          "agressif-paie-plus": "AGRESSIF paie plus",
+          "agressif-plus-risque": "AGRESSIF plus risqué",
+          "safe-preferable": "SAFE préférable",
+        };
+
+        const searchTerm = modeComparisonTickerSearch.trim().toUpperCase();
+
         const filteredTickers = (() => {
-          const all = Array.isArray(mc.byTicker) ? mc.byTicker : [];
-          if (modeComparisonTickerFilter === "ok") return all.filter((t) => t.sample_size_status === "ok");
-          if (modeComparisonTickerFilter === "faible") return all.filter((t) => t.sample_size_status === "faible");
-          return all;
+          let base = sortedTickers;
+          if (modeComparisonTickerFilter === "ok") base = base.filter((t) => t.sample_size_status === "ok");
+          else if (modeComparisonTickerFilter === "faible") base = base.filter((t) => t.sample_size_status === "faible");
+          else if (modeComparisonTickerFilter === "agressif-paie-plus") {
+            base = base.filter((t) => {
+              const pd = numberOrNull(t.premium_delta);
+              return pd != null && pd > 0;
+            });
+          } else if (modeComparisonTickerFilter === "agressif-plus-risque") {
+            base = base.filter((t) => {
+              const ad = numberOrNull(t.assignment_delta_pct);
+              return ad != null && ad > 5;
+            });
+          } else if (modeComparisonTickerFilter === "safe-preferable") {
+            base = base.filter((t) => {
+              const reading = getTickerModeReading(t);
+              return reading === "SAFE préférable";
+            });
+          }
+          if (searchTerm) base = base.filter((t) => String(t.symbol ?? "").toUpperCase().includes(searchTerm));
+          return base;
         })();
+
+        // "Tickers à regarder" — OK sample, premium_delta > 0, assignment_delta_pct <= 5
+        const spotlightTickers = sortedTickers
+          .filter((t) => {
+            const pd = numberOrNull(t.premium_delta);
+            const ad = numberOrNull(t.assignment_delta_pct);
+            return (
+              t.sample_size_status === "ok" &&
+              pd != null && pd > 0 &&
+              ad != null && ad <= 5
+            );
+          })
+          .slice(0, 5);
 
         return (
           <CollapsibleSection
@@ -2860,11 +2942,42 @@ export default function JournalPopPanel({ apiBase, active }) {
               <p className="text-[12px] text-slate-300">{interpretiveText}</p>
             </div>
 
+            {/* Spotlight — tickers where AGRESSIF looks interesting */}
+            {spotlightTickers.length > 0 && (
+              <div className="mb-5">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Tickers à regarder</span>
+                  <span className="text-[9px] text-slate-600">Échantillon OK · prime AGRESSIF supérieure · écart assignation ≤ 5 pts</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {spotlightTickers.map((t) => {
+                    const pd = numberOrNull(t.premium_delta);
+                    const ad = numberOrNull(t.assignment_delta_pct);
+                    return (
+                      <div
+                        key={t.symbol}
+                        className="rounded-xl border border-sky-800/40 bg-sky-900/20 px-3 py-2 min-w-[110px]"
+                      >
+                        <div className="text-[11px] font-bold text-sky-300 mb-1">{t.symbol}</div>
+                        <div className="text-[10px] text-slate-400">
+                          AGRESSIF {pd != null ? <span className="text-sky-400 font-semibold">{pd >= 0 ? "+" : ""}${pd.toFixed(2)} prime</span> : "—"}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Écart assign. : {ad != null ? <span className={ad <= 0 ? "text-emerald-400" : "text-amber-400"}>{ad >= 0 ? "+" : ""}{ad.toFixed(1)} pts</span> : "—"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Ticker table */}
             <div>
+              {/* Filters + search row */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Filtre échantillon</span>
-                {["tous", "ok", "faible"].map((f) => (
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 shrink-0">Filtre</span>
+                {Object.entries(filterLabels).map(([f, label]) => (
                   <button
                     key={f}
                     type="button"
@@ -2875,10 +2988,28 @@ export default function JournalPopPanel({ apiBase, active }) {
                         : "border-slate-700 bg-slate-800/60 text-slate-500 hover:text-slate-300"
                     }`}
                   >
-                    {f === "tous" ? "Tous" : f === "ok" ? "Échantillon OK" : "Échantillon faible"}
+                    {label}
                   </button>
                 ))}
-                <span className="text-[10px] text-slate-600 ml-1">{filteredTickers.length} ticker{filteredTickers.length !== 1 ? "s" : ""}</span>
+                <div className="ml-auto flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={modeComparisonTickerSearch}
+                    onChange={(e) => setModeComparisonTickerSearch(e.target.value)}
+                    placeholder="Filtrer ticker..."
+                    className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-300 placeholder:text-slate-600 focus:border-sky-700 focus:outline-none w-28"
+                  />
+                  {modeComparisonTickerSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setModeComparisonTickerSearch("")}
+                      className="text-[10px] text-slate-600 hover:text-slate-400"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <span className="text-[10px] text-slate-600">{filteredTickers.length} ticker{filteredTickers.length !== 1 ? "s" : ""}</span>
+                </div>
               </div>
 
               {filteredTickers.length === 0 ? (
@@ -2892,30 +3023,36 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <tr>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. SAFE</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. AGRES.</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. SAFE</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. AGRES.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart assign.</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime SAFE</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. AGRES.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. AGRES.</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime AGRES.</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart assign.</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart prime</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. SAFE</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. AGRES.</th>
                         <th className="px-3 py-3 font-semibold whitespace-nowrap">Échantillon</th>
+                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Lecture</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/70">
                       {filteredTickers.map((row) => {
                         const assignDelta = numberOrNull(row.assignment_delta_pct);
                         const isSampleOk = row.sample_size_status === "ok";
+                        const reading = getTickerModeReading(row);
+                        const readingTone = getReadingTone(reading);
                         return (
                           <tr key={row.symbol} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="px-3 py-2.5 font-bold text-slate-100">{row.symbol}</td>
+                            <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.symbol}</td>
                             <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{row.safe_resolved}</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-rose-400">{row.aggressive_resolved}</td>
                             <td className="px-3 py-2.5 text-right tabular-nums">
                               {row.safe_assigned_rate_pct != null ? `${row.safe_assigned_rate_pct.toFixed(1)}%` : "—"}
                             </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">
+                              {row.safe_avg_premium != null ? `$${row.safe_avg_premium.toFixed(2)}` : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-rose-400">{row.aggressive_resolved}</td>
                             <td className="px-3 py-2.5 text-right tabular-nums">
                               {row.aggressive_assigned_rate_pct != null ? (
                                 <span className={row.aggressive_assigned_rate_pct > (row.safe_assigned_rate_pct ?? 0) + 5 ? "text-rose-400 font-semibold" : ""}>
@@ -2923,18 +3060,15 @@ export default function JournalPopPanel({ apiBase, active }) {
                                 </span>
                               ) : "—"}
                             </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">
+                              {row.aggressive_avg_premium != null ? `$${row.aggressive_avg_premium.toFixed(2)}` : "—"}
+                            </td>
                             <td className="px-3 py-2.5 text-right tabular-nums">
                               {assignDelta != null ? (
                                 <span className={assignDelta > 5 ? "text-rose-400 font-semibold" : assignDelta <= 0 ? "text-emerald-400" : "text-amber-400"}>
                                   {assignDelta >= 0 ? "+" : ""}{assignDelta.toFixed(1)} pts
                                 </span>
                               ) : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {row.safe_avg_premium != null ? `$${row.safe_avg_premium.toFixed(2)}` : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">
-                              {row.aggressive_avg_premium != null ? `$${row.aggressive_avg_premium.toFixed(2)}` : "—"}
                             </td>
                             <td className="px-3 py-2.5 text-right tabular-nums">
                               {row.premium_delta != null ? (
@@ -2956,6 +3090,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                                 <span className="rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Faible</span>
                               )}
                             </td>
+                            <td className={`px-3 py-2.5 text-[10px] whitespace-nowrap ${readingTone}`}>
+                              {reading}
+                            </td>
                           </tr>
                         );
                       })}
@@ -2964,6 +3101,219 @@ export default function JournalPopPanel({ apiBase, active }) {
                 </div>
               )}
             </div>
+
+            {/* ── Par ticker et DTE / jour d'entrée ─────────────────────── */}
+            {Array.isArray(mc.byTickerDte) && mc.byTickerDte.length > 0 && (() => {
+              const allDteRows = mc.byTickerDte;
+              const uniqueDtes = [...new Set(allDteRows.map((r) => r.dteAtScan).filter((d) => d != null))].sort((a, b) => a - b);
+
+              const getTickerDteModeReading = (row) => {
+                if (row.sample_size_status === "faible") return "Échantillon faible";
+                const pd = numberOrNull(row.premium_delta);
+                const ad = numberOrNull(row.assignment_delta_pct);
+                if (pd == null || ad == null) return "Données insuffisantes";
+                if (pd > 0 && ad <= 0) return "AGRESSIF paie plus sans plus d'assignation";
+                if (pd > 0 && ad > 0 && ad <= 5) return "AGRESSIF paie plus avec risque légèrement supérieur";
+                if (pd > 0 && ad > 5) return "AGRESSIF paie plus mais assigne davantage";
+                if (pd <= 0 && ad > 0) return "SAFE préférable";
+                return "Écart faible";
+              };
+
+              const getDteReadingTone = (reading) => {
+                if (reading === "AGRESSIF paie plus sans plus d'assignation") return "text-sky-400";
+                if (reading === "AGRESSIF paie plus avec risque légèrement supérieur") return "text-amber-400";
+                if (reading === "AGRESSIF paie plus mais assigne davantage") return "text-orange-400";
+                if (reading === "SAFE préférable") return "text-emerald-400";
+                if (reading === "Échantillon faible") return "text-slate-500 italic";
+                return "text-slate-400";
+              };
+
+              let filteredDteRows = allDteRows.filter((r) => r.safe_total > 0 || r.aggressive_total > 0);
+
+              if (dteSampleFilter === "ok") filteredDteRows = filteredDteRows.filter((r) => r.sample_size_status === "ok");
+              else if (dteSampleFilter === "faible") filteredDteRows = filteredDteRows.filter((r) => r.sample_size_status === "faible");
+
+              if (dteDteFilter !== "tous") {
+                const dteVal = Number(dteDteFilter);
+                filteredDteRows = filteredDteRows.filter((r) => r.dteAtScan === dteVal);
+              }
+
+              if (dteReadingFilter === "agressif-paie-plus") {
+                filteredDteRows = filteredDteRows.filter((r) => {
+                  const reading = getTickerDteModeReading(r);
+                  return (
+                    reading === "AGRESSIF paie plus sans plus d'assignation" ||
+                    reading === "AGRESSIF paie plus avec risque légèrement supérieur" ||
+                    reading === "AGRESSIF paie plus mais assigne davantage"
+                  );
+                });
+              } else if (dteReadingFilter === "agressif-plus-risque") {
+                filteredDteRows = filteredDteRows.filter((r) => getTickerDteModeReading(r) === "AGRESSIF paie plus mais assigne davantage");
+              } else if (dteReadingFilter === "safe-preferable") {
+                filteredDteRows = filteredDteRows.filter((r) => getTickerDteModeReading(r) === "SAFE préférable");
+              }
+
+              const dteSearch = dteTickerSearch.trim().toUpperCase();
+              if (dteSearch) filteredDteRows = filteredDteRows.filter((r) => String(r.symbol ?? "").toUpperCase().includes(dteSearch));
+
+              return (
+                <div className="mt-8 border-t border-slate-700/40 pt-6">
+                  <div className="mb-3">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-1">Par ticker et DTE / jour d'entrée</div>
+                    <div className="text-[10px] text-slate-600">Compare SAFE et AGRESSIF selon le moment où le candidat a été scanné.</div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={dteTickerSearch}
+                      onChange={(e) => setDteTickerSearch(e.target.value)}
+                      placeholder="Filtrer ticker..."
+                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-300 placeholder:text-slate-600 focus:border-sky-700 focus:outline-none w-28"
+                    />
+                    {dteTickerSearch && (
+                      <button type="button" onClick={() => setDteTickerSearch("")} className="text-[10px] text-slate-600 hover:text-slate-400">✕</button>
+                    )}
+                    <select
+                      value={dteDteFilter}
+                      onChange={(e) => setDteDteFilter(e.target.value)}
+                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
+                    >
+                      <option value="tous">Tous DTE</option>
+                      {uniqueDtes.map((d) => (
+                        <option key={d} value={String(d)}>DTE {d}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={dteSampleFilter}
+                      onChange={(e) => setDteSampleFilter(e.target.value)}
+                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
+                    >
+                      <option value="tous">Tous échantillons</option>
+                      <option value="ok">Échantillon OK</option>
+                      <option value="faible">Échantillon faible</option>
+                    </select>
+                    <select
+                      value={dteReadingFilter}
+                      onChange={(e) => setDteReadingFilter(e.target.value)}
+                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
+                    >
+                      <option value="tous">Toutes lectures</option>
+                      <option value="agressif-paie-plus">AGRESSIF paie plus</option>
+                      <option value="agressif-plus-risque">AGRESSIF plus risqué</option>
+                      <option value="safe-preferable">SAFE préférable</option>
+                    </select>
+                    <span className="text-[10px] text-slate-600 ml-auto">{filteredDteRows.length} ligne{filteredDteRows.length !== 1 ? "s" : ""}</span>
+                  </div>
+
+                  {filteredDteRows.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-4 text-sm text-slate-600">
+                      Aucune ligne pour ces filtres.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left text-xs text-slate-300">
+                        <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          <tr>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">DTE</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Jour</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. SAFE</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. SAFE</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime SAFE</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. hebdo SAFE</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. AGRES.</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. AGRES.</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime AGRES.</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. hebdo AGRES.</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart assign.</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart prime</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart rend. hebdo</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Échantillon</th>
+                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Lecture</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/70">
+                          {filteredDteRows.map((row) => {
+                            const assignDelta = numberOrNull(row.assignment_delta_pct);
+                            const weeklyDelta = numberOrNull(row.weekly_yield_delta_pct);
+                            const isSampleOk = row.sample_size_status === "ok";
+                            const reading = getTickerDteModeReading(row);
+                            const readingTone = getDteReadingTone(reading);
+                            return (
+                              <tr key={`${row.symbol}__${row.dteAtScan}`} className={`hover:bg-slate-800/30 transition-colors ${!isSampleOk ? "opacity-60" : ""}`}>
+                                <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.symbol}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">{row.dteAtScan}</td>
+                                <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{row.scanDayLabel}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{row.safe_resolved}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {row.safe_assigned_rate_pct != null ? `${row.safe_assigned_rate_pct.toFixed(1)}%` : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">
+                                  {row.safe_avg_premium != null ? `$${row.safe_avg_premium.toFixed(2)}` : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
+                                  {row.safe_avg_weekly_yield_pct != null ? `${row.safe_avg_weekly_yield_pct.toFixed(2)}%` : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-rose-400">{row.aggressive_resolved}</td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {row.aggressive_assigned_rate_pct != null ? (
+                                    <span className={row.aggressive_assigned_rate_pct > (row.safe_assigned_rate_pct ?? 0) + 5 ? "text-rose-400 font-semibold" : ""}>
+                                      {row.aggressive_assigned_rate_pct.toFixed(1)}%
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">
+                                  {row.aggressive_avg_premium != null ? `$${row.aggressive_avg_premium.toFixed(2)}` : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {row.aggressive_avg_weekly_yield_pct != null ? (
+                                    <span className={row.aggressive_avg_weekly_yield_pct > (row.safe_avg_weekly_yield_pct ?? 0) ? "text-sky-400" : "text-slate-400"}>
+                                      {row.aggressive_avg_weekly_yield_pct.toFixed(2)}%
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {assignDelta != null ? (
+                                    <span className={assignDelta > 5 ? "text-rose-400 font-semibold" : assignDelta <= 0 ? "text-emerald-400" : "text-amber-400"}>
+                                      {assignDelta >= 0 ? "+" : ""}{assignDelta.toFixed(1)} pts
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {row.premium_delta != null ? (
+                                    <span className={row.premium_delta > 0 ? "text-sky-400" : "text-slate-400"}>
+                                      {row.premium_delta >= 0 ? "+" : ""}${row.premium_delta.toFixed(2)}
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {weeklyDelta != null ? (
+                                    <span className={weeklyDelta > 0 ? "text-sky-400" : "text-slate-400"}>
+                                      {weeklyDelta >= 0 ? "+" : ""}{weeklyDelta.toFixed(2)} pts
+                                    </span>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2.5">
+                                  {isSampleOk ? (
+                                    <span className="rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">OK</span>
+                                  ) : (
+                                    <span className="rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Faible</span>
+                                  )}
+                                </td>
+                                <td className={`px-3 py-2.5 text-[10px] whitespace-nowrap ${readingTone}`}>
+                                  {reading}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </CollapsibleSection>
         );
       })()}

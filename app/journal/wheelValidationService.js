@@ -61,6 +61,15 @@ function computeDteAtScan(scanTimestamp, expirationYmd) {
   return Math.round((expUtc.getTime() - scanUtc.getTime()) / 86400000);
 }
 
+function getScanDayInfo(scanDate) {
+  const raw = String(scanDate ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return { label: "Inconnu", dow: null };
+  const d = new Date(`${raw}T12:00:00.000Z`);
+  const dayNum = d.getUTCDay();
+  const labels = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+  return { label: labels[dayNum], dow: dayNum };
+}
+
 function buildLegacyRecordId(symbol, expiration, strikeMode, strike, scanDate) {
   return `${symbol}_${expiration}_${strikeMode}_${normalizeStrikeToken(strike)}_${scanDate}`;
 }
@@ -1973,11 +1982,172 @@ export function createWheelValidationService(options = {}) {
         return totalB - totalA;
       });
 
+    // byTickerDte: group records by (symbol, dteAtScan) then compare SAFE vs AGGRESSIVE
+    const tickerDteMap = new Map();
+    for (const record of records) {
+      const symbol = normalizeSymbol(record?.symbol);
+      const dte = toNumberOrNull(record?.dteAtScan);
+      if (!symbol || dte == null) continue;
+      const key = `${symbol}__${dte}`;
+      if (!tickerDteMap.has(key)) tickerDteMap.set(key, { symbol, dteAtScan: dte, safe: [], aggressive: [] });
+      const mode = record?.strikeMode;
+      if (mode === "safe") tickerDteMap.get(key).safe.push(record);
+      else if (mode === "aggressive") tickerDteMap.get(key).aggressive.push(record);
+    }
+
+    const byTickerDte = Array.from(tickerDteMap.values())
+      .filter(({ safe: sr, aggressive: ar }) => sr.length > 0 || ar.length > 0)
+      .map(({ symbol, dteAtScan, safe: sr, aggressive: ar }) => {
+        const avgOf = (recs, fn) => {
+          const vals = recs.map(fn).filter((v) => v != null);
+          return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+        };
+
+        const safeResolved = sr.filter((r) => r?.resolution?.resolved === true);
+        const aggResolved = ar.filter((r) => r?.resolution?.resolved === true);
+
+        // Most common scan day of week across all records in the group
+        const dayCounts = new Map();
+        for (const r of [...sr, ...ar]) {
+          const info = getScanDayInfo(r?.scanDate);
+          if (info.dow != null) {
+            const k = String(info.dow);
+            dayCounts.set(k, { count: (dayCounts.get(k)?.count ?? 0) + 1, label: info.label, dow: info.dow });
+          }
+        }
+        let scanDayLabel = "Inconnu";
+        let scanDayOfWeek = null;
+        if (dayCounts.size > 0) {
+          const best = Array.from(dayCounts.values()).sort((a, b) => b.count - a.count)[0];
+          scanDayLabel = best.label;
+          scanDayOfWeek = best.dow;
+        }
+
+        const safeAssigned = safeResolved.filter((r) =>
+          r?.resolution?.assigned_flag === true ||
+          (r?.resolution?.assigned_flag == null && r?.resolution?.assigned === true)
+        ).length;
+        const aggAssigned = aggResolved.filter((r) =>
+          r?.resolution?.assigned_flag === true ||
+          (r?.resolution?.assigned_flag == null && r?.resolution?.assigned === true)
+        ).length;
+
+        const safeAssignedRatePct = safeResolved.length > 0 ? (safeAssigned / safeResolved.length) * 100 : null;
+        const aggAssignedRatePct = aggResolved.length > 0 ? (aggAssigned / aggResolved.length) * 100 : null;
+
+        const safeAvgPremium = avgOf(safeResolved, (r) => toNumberOrNull(r?.strike?.premium));
+        const aggAvgPremium = avgOf(aggResolved, (r) => toNumberOrNull(r?.strike?.premium));
+        const safeAvgYieldPct = avgOf(safeResolved, (r) => toNumberOrNull(r?.strike?.annualizedYield));
+        const aggAvgYieldPct = avgOf(aggResolved, (r) => toNumberOrNull(r?.strike?.annualizedYield));
+
+        // Weekly yield estimate: premium / strike * 7 / max(dteAtScan, 1) * 100
+        const safeWeeklyYieldPct = avgOf(safeResolved, (r) => {
+          const prem = toNumberOrNull(r?.strike?.premium);
+          const stk = toNumberOrNull(r?.strike?.strike);
+          const dte = toNumberOrNull(r?.dteAtScan) ?? dteAtScan;
+          if (prem == null || stk == null || stk <= 0) return null;
+          return (prem / stk) * (7 / Math.max(dte, 1)) * 100;
+        });
+        const aggWeeklyYieldPct = avgOf(aggResolved, (r) => {
+          const prem = toNumberOrNull(r?.strike?.premium);
+          const stk = toNumberOrNull(r?.strike?.strike);
+          const dte = toNumberOrNull(r?.dteAtScan) ?? dteAtScan;
+          if (prem == null || stk == null || stk <= 0) return null;
+          return (prem / stk) * (7 / Math.max(dte, 1)) * 100;
+        });
+
+        const safeOtmCount = safeResolved.filter((r) =>
+          r?.resolution?.expired_otm === true || r?.resolution?.expiredWorthless === true
+        ).length;
+        const aggOtmCount = aggResolved.filter((r) =>
+          r?.resolution?.expired_otm === true || r?.resolution?.expiredWorthless === true
+        ).length;
+
+        const safeTouchKnown = safeResolved.filter((r) => r?.resolution?.strikeTouched != null);
+        const aggTouchKnown = aggResolved.filter((r) => r?.resolution?.strikeTouched != null);
+        const safeLbKnown = safeResolved.filter((r) => r?.resolution?.brokeLowerBound != null);
+        const aggLbKnown = aggResolved.filter((r) => r?.resolution?.brokeLowerBound != null);
+
+        const premiumDelta =
+          safeAvgPremium != null && aggAvgPremium != null ? aggAvgPremium - safeAvgPremium : null;
+        const weeklyYieldDelta =
+          safeWeeklyYieldPct != null && aggWeeklyYieldPct != null
+            ? aggWeeklyYieldPct - safeWeeklyYieldPct
+            : null;
+        const sampleSizeStatus =
+          safeResolved.length >= 3 && aggResolved.length >= 3 ? "ok" : "faible";
+
+        return {
+          symbol,
+          dteAtScan,
+          scanDayLabel,
+          scanDayOfWeek,
+          safe_total: sr.length,
+          aggressive_total: ar.length,
+          safe_resolved: safeResolved.length,
+          aggressive_resolved: aggResolved.length,
+          safe_assigned_rate_pct: safeAssignedRatePct,
+          aggressive_assigned_rate_pct: aggAssignedRatePct,
+          assignment_delta_pct:
+            safeAssignedRatePct != null && aggAssignedRatePct != null
+              ? aggAssignedRatePct - safeAssignedRatePct
+              : null,
+          safe_avg_premium: safeAvgPremium,
+          aggressive_avg_premium: aggAvgPremium,
+          premium_delta: premiumDelta,
+          safe_avg_yield_pct: safeAvgYieldPct,
+          aggressive_avg_yield_pct: aggAvgYieldPct,
+          yield_delta_pct:
+            safeAvgYieldPct != null && aggAvgYieldPct != null
+              ? aggAvgYieldPct - safeAvgYieldPct
+              : null,
+          safe_avg_weekly_yield_pct: safeWeeklyYieldPct,
+          aggressive_avg_weekly_yield_pct: aggWeeklyYieldPct,
+          weekly_yield_delta_pct: weeklyYieldDelta,
+          safe_otm_rate_pct:
+            safeResolved.length > 0 ? (safeOtmCount / safeResolved.length) * 100 : null,
+          aggressive_otm_rate_pct:
+            aggResolved.length > 0 ? (aggOtmCount / aggResolved.length) * 100 : null,
+          safe_strike_touched_rate_pct:
+            safeTouchKnown.length > 0
+              ? (safeTouchKnown.filter((r) => r.resolution.strikeTouched === true).length /
+                  safeTouchKnown.length) *
+                100
+              : null,
+          aggressive_strike_touched_rate_pct:
+            aggTouchKnown.length > 0
+              ? (aggTouchKnown.filter((r) => r.resolution.strikeTouched === true).length /
+                  aggTouchKnown.length) *
+                100
+              : null,
+          safe_broke_lower_bound_rate_pct:
+            safeLbKnown.length > 0
+              ? (safeLbKnown.filter((r) => r.resolution.brokeLowerBound === true).length /
+                  safeLbKnown.length) *
+                100
+              : null,
+          aggressive_broke_lower_bound_rate_pct:
+            aggLbKnown.length > 0
+              ? (aggLbKnown.filter((r) => r.resolution.brokeLowerBound === true).length /
+                  aggLbKnown.length) *
+                100
+              : null,
+          sample_size_status: sampleSizeStatus,
+        };
+      })
+      .sort((a, b) => {
+        if (a.sample_size_status !== b.sample_size_status) return a.sample_size_status === "ok" ? -1 : 1;
+        const symCmp = a.symbol.localeCompare(b.symbol);
+        if (symCmp !== 0) return symCmp;
+        return a.dteAtScan - b.dteAtScan;
+      });
+
     return {
       generatedAt: new Date().toISOString(),
       modes: { safe, aggressive },
       comparison,
       byTicker,
+      byTickerDte,
     };
   }
 

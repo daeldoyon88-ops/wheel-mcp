@@ -1,11 +1,14 @@
 import { DatabaseSync } from "node:sqlite";
 import { estimateCoveredCallPremium } from "./theoryPricingService.js";
+import { createMarketService } from "../services/marketService.js";
+import { YahooMarketDataProvider } from "../data_providers/yahooMarketDataProvider.js";
 
-export function createTheoreticalCycleService({ validationStore, cycleStore } = {}) {
+export function createTheoreticalCycleService({ validationStore, cycleStore, marketService } = {}) {
   if (!validationStore?.sqlitePath) throw new Error("createTheoreticalCycleService: validationStore with sqlitePath is required");
   if (!cycleStore?.upsertCycle) throw new Error("createTheoreticalCycleService: cycleStore with upsertCycle is required");
 
   const sqlitePath = validationStore.sqlitePath;
+  const effectiveMarketService = marketService ?? createMarketService(new YahooMarketDataProvider());
 
   // ─────────────────────────────────────────────
   // buildCycleFromAssignedRecord
@@ -224,7 +227,12 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
   // V1: no post-assignment OHLC in SQLite → always falls back to assignment-era prices.
   // Returns null if no usable price is found.
   // ─────────────────────────────────────────────
-  function selectFirstCcSpot({ cycle, sourceRecord, testDate: _testDate, options: _options = {} }) {
+  function normalizePositiveNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  function buildFallbackFirstCcSpot({ cycle, sourceRecord, officialPriceRule }) {
     const candidates = [
       { value: cycle.spot_at_assignment,                        rule: "fallback_assignment_close" },
       { value: sourceRecord?.underlying_close_at_expiration,   rule: "fallback_expiration_close" },
@@ -242,10 +250,84 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
           stock_close: n,
           priceRule:   rule,
           priceQuality: "fallback_no_post_assignment_price",
+          usedPostAssignmentOhlc: false,
+          ohlcSource: null,
+          ohlcDate: null,
+          usedFallback: true,
+          officialPriceRule,
         };
       }
     }
     return null;
+  }
+
+  function selectSpotFromOfficialPriceRule({ ohlc, officialPriceRule }) {
+    const stock_open = normalizePositiveNumber(ohlc?.open);
+    const stock_high = normalizePositiveNumber(ohlc?.high);
+    const stock_low = normalizePositiveNumber(ohlc?.low);
+    const stock_close = normalizePositiveNumber(ohlc?.close);
+    const midpoint =
+      stock_high != null && stock_low != null
+        ? (stock_high + stock_low) / 2
+        : null;
+
+    const prioritiesByRule = {
+      open: [
+        { spot: stock_open, priceRule: "next_session_open" },
+        { spot: stock_close, priceRule: "next_session_close" },
+        { spot: midpoint, priceRule: "next_session_high_low_midpoint" },
+      ],
+      close: [
+        { spot: stock_close, priceRule: "next_session_close" },
+        { spot: stock_open, priceRule: "next_session_open" },
+        { spot: midpoint, priceRule: "next_session_high_low_midpoint" },
+      ],
+      midpoint: [
+        { spot: midpoint, priceRule: "next_session_high_low_midpoint" },
+        { spot: stock_open, priceRule: "next_session_open" },
+        { spot: stock_close, priceRule: "next_session_close" },
+      ],
+    };
+
+    const priorities = prioritiesByRule[officialPriceRule] ?? prioritiesByRule.open;
+    for (const candidate of priorities) {
+      if (candidate.spot != null) {
+        return {
+          spot: candidate.spot,
+          stock_open,
+          stock_high,
+          stock_low,
+          stock_close,
+          priceRule: candidate.priceRule,
+          priceQuality: "post_assignment_daily_ohlc",
+          usedPostAssignmentOhlc: true,
+          ohlcSource: ohlc?.source ?? "yahoo_daily",
+          ohlcDate: ohlc?.date ?? null,
+          usedFallback: false,
+          officialPriceRule,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  async function selectFirstCcSpot({ cycle, sourceRecord, testDate, options = {} }) {
+    const usePostAssignmentOhlc = options.usePostAssignmentOhlc !== false;
+    const officialPriceRule =
+      options.officialPriceRule === "close" || options.officialPriceRule === "midpoint"
+        ? options.officialPriceRule
+        : "open";
+
+    if (usePostAssignmentOhlc && effectiveMarketService?.getDailyOhlcForDate && cycle?.ticker && testDate) {
+      const ohlc = await effectiveMarketService.getDailyOhlcForDate(cycle.ticker, testDate);
+      if (ohlc?.ok) {
+        const ohlcSpot = selectSpotFromOfficialPriceRule({ ohlc, officialPriceRule });
+        if (ohlcSpot) return ohlcSpot;
+      }
+    }
+
+    return buildFallbackFirstCcSpot({ cycle, sourceRecord, officialPriceRule });
   }
 
   // ─────────────────────────────────────────────
@@ -270,11 +352,15 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
   // Returns { step, pricing, error } or { step: null, pricing: null, error } if spot is unavailable.
   // RULE: cc_strike is always set to assignment_strike (never below).
   // ─────────────────────────────────────────────
-  function buildFirstCcStepForCycle({ cycle, sourceRecord, options = {} }) {
+  async function buildFirstCcStepForCycle({ cycle, sourceRecord, options = {} }) {
     const defaultCcDte       = options.defaultCcDte       ?? 7;
     const riskFreeRate       = options.riskFreeRate       ?? 0.045;
     const dividendYield      = options.dividendYield      ?? 0;
     const conservativeFactor = options.conservativeFactor ?? 0.8;
+    const officialPriceRule =
+      options.officialPriceRule === "close" || options.officialPriceRule === "midpoint"
+        ? options.officialPriceRule
+        : "open";
 
     const assignment_strike = Number(cycle.assignment_strike);
     const cc_strike = assignment_strike; // RULE: never below assignment_strike
@@ -284,7 +370,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     const test_date = testDateInfo.testDate;
 
     // spot: V1 fallback chain — no post-assignment OHLC stored yet
-    const spotInfo = selectFirstCcSpot({ cycle, sourceRecord, testDate: test_date, options });
+    const spotInfo = await selectFirstCcSpot({ cycle, sourceRecord, testDate: test_date, options });
     if (!spotInfo) {
       return { step: null, pricing: null, error: "no_valid_spot" };
     }
@@ -294,10 +380,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     const cc_expiration = getCcExpirationFromTestDate(test_date, defaultCcDte);
 
     // target_time reflects the actual price rule used
-    const target_time =
-      spotInfo.priceRule === "next_session_open"  ? "next_session_open"  :
-      spotInfo.priceRule === "next_session_close" ? "next_session_close" :
-      spotInfo.priceRule;
+    const target_time = spotInfo.priceRule;
 
     const hv30         = sourceRecord?.hv30_at_scan          != null ? Number(sourceRecord.hv30_at_scan)          : null;
     const atmIv        = sourceRecord?.atm_iv_at_scan         != null ? Number(sourceRecord.atm_iv_at_scan)         : null;
@@ -340,12 +423,16 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     };
 
     const rawExtra = {
-      testDateRule:   testDateInfo.rule,
-      priceRule:      spotInfo.priceRule,
-      priceQuality:   spotInfo.priceQuality,
       assignmentDate: cycle.assignment_date,
-      testDate:       test_date,
-      usedFallback:   spotInfo.priceQuality === "fallback_no_post_assignment_price",
+      testDate: test_date,
+      testDateRule: testDateInfo.rule,
+      priceRule: spotInfo.priceRule,
+      priceQuality: spotInfo.priceQuality,
+      usedPostAssignmentOhlc: spotInfo.usedPostAssignmentOhlc === true,
+      ohlcSource: spotInfo.ohlcSource ?? null,
+      ohlcDate: spotInfo.ohlcDate ?? null,
+      usedFallback: spotInfo.usedFallback === true,
+      officialPriceRule,
     };
 
     if (!pricing.ok) {
@@ -444,6 +531,8 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     conservativeFactor = 0.8,
     riskFreeRate       = 0.045,
     dividendYield      = 0,
+    usePostAssignmentOhlc = true,
+    officialPriceRule = "open",
     includeExisting    = false,
     forceRefresh       = false, // overwrite existing step 1 (upsert) without skipping
   } = {}) {
@@ -467,7 +556,14 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     const errors       = [];
     const sample_steps = [];
 
-    const options = { defaultCcDte, conservativeFactor, riskFreeRate, dividendYield };
+    const options = {
+      defaultCcDte,
+      conservativeFactor,
+      riskFreeRate,
+      dividendYield,
+      usePostAssignmentOhlc,
+      officialPriceRule,
+    };
 
     for (const cycle of openCycles) {
       if (!includeExisting && !forceRefresh) {
@@ -489,7 +585,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
       }
       source_records_found++;
 
-      const result = buildFirstCcStepForCycle({ cycle, sourceRecord: sourceRow, options });
+      const result = await buildFirstCcStepForCycle({ cycle, sourceRecord: sourceRow, options });
 
       if (!result.step) {
         skipped_pricing_unavailable++;
@@ -500,13 +596,16 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
       if (result.step.cc_sold_theoretical === 1) cc_sold_theoretical_count++;
       else cc_wait_count++;
 
-      if (sample_steps.length < 5) {
+      if (sample_steps.length < 10) {
         const raw = result.step.raw ?? {};
         sample_steps.push({
           ticker:                    result.step.ticker,
           assignment_date:           cycle.assignment_date,
           test_date:                 result.step.test_date,
           priceRule:                 raw.priceRule ?? null,
+          priceQuality:              raw.priceQuality ?? null,
+          stock_open:                result.step.stock_open,
+          stock_close:               result.step.stock_close,
           stock_price_used:          result.step.stock_price_used,
           assignment_strike:         result.step.assignment_strike,
           cc_strike:                 result.step.cc_strike,
@@ -515,6 +614,8 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
           best_threshold_reached:    result.step.best_threshold_reached,
           cc_sold_theoretical:       result.step.cc_sold_theoretical,
           not_sold_reason:           result.step.not_sold_reason,
+          usedPostAssignmentOhlc:    raw.usedPostAssignmentOhlc ?? null,
+          usedFallback:              raw.usedFallback ?? null,
         });
       }
 

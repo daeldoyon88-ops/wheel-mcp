@@ -606,6 +606,82 @@ export function createMarketService(provider) {
     }
   }
 
+  async function getDailyOhlcForDate(symbol, dateYmd) {
+    const rawSymbol = String(symbol ?? "").trim().toUpperCase();
+    const rawDate = String(dateYmd ?? "").trim();
+    if (!rawSymbol || !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      return {
+        ok: false,
+        symbol: rawSymbol || null,
+        date: rawDate || null,
+        error: "invalid_symbol_or_date",
+      };
+    }
+
+    const endDate = new Date(`${rawDate}T23:59:59.999Z`);
+    if (Number.isNaN(endDate.getTime())) {
+      return {
+        ok: false,
+        symbol: rawSymbol,
+        date: rawDate,
+        error: "invalid_symbol_or_date",
+      };
+    }
+
+    const lookbackStart = new Date(endDate.getTime() - 1000 * 60 * 60 * 24 * 10);
+    try {
+      const result = await provider.getChart(rawSymbol, {
+        period1: lookbackStart,
+        interval: "1d",
+      });
+      const quotes = Array.isArray(result?.quotes) ? result.quotes : [];
+      for (const q of quotes) {
+        const dt = q?.date != null ? new Date(q.date) : null;
+        if (!dt || Number.isNaN(dt.getTime())) continue;
+        const ymd = dt.toISOString().slice(0, 10);
+        if (ymd !== rawDate) continue;
+        const open = toNumber(q?.open);
+        const high = toNumber(q?.high);
+        const low = toNumber(q?.low);
+        const close = toNumber(q?.close);
+        const normalized = {
+          open: open > 0 ? open : null,
+          high: high > 0 ? high : null,
+          low: low > 0 ? low : null,
+          close: close > 0 ? close : null,
+        };
+        if (
+          normalized.open == null &&
+          normalized.high == null &&
+          normalized.low == null &&
+          normalized.close == null
+        ) {
+          break;
+        }
+        return {
+          ok: true,
+          symbol: rawSymbol,
+          date: rawDate,
+          source: "yahoo_daily",
+          ...normalized,
+        };
+      }
+      return {
+        ok: false,
+        symbol: rawSymbol,
+        date: rawDate,
+        error: "daily_ohlc_not_found",
+      };
+    } catch (_error) {
+      return {
+        ok: false,
+        symbol: rawSymbol,
+        date: rawDate,
+        error: "daily_ohlc_not_found",
+      };
+    }
+  }
+
   async function getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd) {
     const rawSymbol = String(symbol ?? "").trim().toUpperCase();
     const rawScanDate = String(scanDateYmd ?? "").trim();
@@ -803,6 +879,7 @@ export function createMarketService(provider) {
     getTechnicals,
     getSupportResistance,
     getHistoricalClose,
+    getDailyOhlcForDate,
     getHistoricalWindowMetrics,
     getBestStrike,
     analyzeTradeSetup,

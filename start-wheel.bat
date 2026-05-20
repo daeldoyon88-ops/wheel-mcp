@@ -12,17 +12,20 @@ echo.
 echo Configuration environnement...
 set WHEEL_DEV_SCAN=auto
 set IBKR_TWO_PHASE_SCAN=1
+set NODE_OPTIONS=--use-system-ca
 
 echo WHEEL_DEV_SCAN=%WHEEL_DEV_SCAN%
 echo IBKR_TWO_PHASE_SCAN=%IBKR_TWO_PHASE_SCAN%
+echo NODE_OPTIONS=%NODE_OPTIONS%
 echo.
 
 echo Marche ouvert  = mode normal
 echo Hors marche    = mode DEV automatique
 echo IBKR mode      = TWO_PHASE explicite
+echo Yahoo TLS      = certificats systeme Windows
 echo.
 
-start "Wheel Backend AUTO" cmd /k "cd /d C:\Users\melan\Desktop\wheel-mcp-remote && echo IBKR_TWO_PHASE_SCAN=%IBKR_TWO_PHASE_SCAN% && npm run dev"
+start "Wheel Backend AUTO" cmd /k "cd /d C:\Users\melan\Desktop\wheel-mcp-remote && echo IBKR_TWO_PHASE_SCAN=%IBKR_TWO_PHASE_SCAN% && echo NODE_OPTIONS=%NODE_OPTIONS% && npm run dev"
 
 timeout /t 3 /nobreak >nul
 

@@ -3,6 +3,7 @@ import cors from "cors";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -96,6 +97,230 @@ function maybeExportYahooLiquidityV3Simulation(watchlistDiagnosticsV1, stats, bu
     console.warn("[yahoo-liquidity-v3] export error:", e?.message || e);
     return null;
   }
+}
+
+function parseSafeJson(raw) {
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function numberOrNullSafe(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeTheoreticalCycleSoldFilter(value) {
+  const raw = String(value ?? "all").trim().toLowerCase();
+  if (raw === "sold" || raw === "wait" || raw === "all") return raw;
+  return "all";
+}
+
+function getTheoreticalCycleDbPath() {
+  return wheelValidationStore?.sqlitePath ?? path.resolve(process.cwd(), "data", "wheelValidationJournal.sqlite");
+}
+
+function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", sold = "all" } = {}) {
+  const sqlitePath = getTheoreticalCycleDbPath();
+  if (!existsSync(sqlitePath)) {
+    return {
+      summary: {
+        cycles_total: 0,
+        cycles_open: 0,
+        cycles_closed: 0,
+        cc_steps_total: 0,
+        cc_sold_total: 0,
+        cc_wait_total: 0,
+        tickers_count: 0,
+        total_cc_premium_conservative: 0,
+        avg_cc_premium_conservative: null,
+        avg_reduced_cost_basis: null,
+        best_threshold_global: null,
+      },
+      cycles: [],
+    };
+  }
+
+  const conn = new DatabaseSync(sqlitePath);
+  const limitValue = Math.min(Math.max(toPositiveInt(limit, 200), 1), 1000);
+  const normalizedTicker = String(ticker ?? "").trim().toUpperCase();
+  const normalizedStatus = String(status ?? "").trim().toLowerCase();
+  const normalizedSold = normalizeTheoreticalCycleSoldFilter(sold);
+
+  let cyclesSql = "SELECT * FROM theoretical_wheel_cycles WHERE 1=1";
+  const cycleParams = {};
+  if (normalizedTicker) {
+    cyclesSql += " AND UPPER(ticker) = @ticker";
+    cycleParams.ticker = normalizedTicker;
+  }
+  if (normalizedStatus) {
+    cyclesSql += " AND LOWER(status) = @status";
+    cycleParams.status = normalizedStatus;
+  }
+  cyclesSql += " ORDER BY created_at DESC";
+
+  const rawCycles = conn.prepare(cyclesSql).all(cycleParams);
+  if (!Array.isArray(rawCycles) || rawCycles.length === 0) {
+    return {
+      summary: {
+        cycles_total: 0,
+        cycles_open: 0,
+        cycles_closed: 0,
+        cc_steps_total: 0,
+        cc_sold_total: 0,
+        cc_wait_total: 0,
+        tickers_count: 0,
+        total_cc_premium_conservative: 0,
+        avg_cc_premium_conservative: null,
+        avg_reduced_cost_basis: null,
+        best_threshold_global: null,
+      },
+      cycles: [],
+    };
+  }
+
+  const cycleIds = rawCycles.map((cycle) => String(cycle.id));
+  const stepPlaceholders = cycleIds.map((_, index) => `@cycleId${index}`).join(", ");
+  const stepParams = Object.fromEntries(cycleIds.map((id, index) => [`cycleId${index}`, id]));
+  const rawSteps = conn.prepare(
+    `SELECT * FROM theoretical_cc_steps WHERE theoretical_cycle_id IN (${stepPlaceholders}) ORDER BY theoretical_cycle_id ASC, sequence_number ASC`
+  ).all(stepParams);
+
+  const stepsByCycleId = new Map();
+  for (const step of rawSteps) {
+    const cycleId = String(step.theoretical_cycle_id ?? "");
+    if (!cycleId) continue;
+    if (!stepsByCycleId.has(cycleId)) stepsByCycleId.set(cycleId, []);
+    stepsByCycleId.get(cycleId).push(step);
+  }
+
+  const mappedCycles = rawCycles.map((cycle) => {
+    const cycleId = String(cycle.id);
+    const steps = stepsByCycleId.get(cycleId) ?? [];
+    const firstStepRow = steps[0] ?? null;
+    const firstStepRaw = firstStepRow ? parseSafeJson(firstStepRow.raw_json) : null;
+    const firstStep = firstStepRow
+      ? {
+          test_date: firstStepRow.test_date ?? null,
+          cc_expiration: firstStepRow.cc_expiration ?? null,
+          dte: numberOrNullSafe(firstStepRow.dte),
+          stock_price_used: numberOrNullSafe(firstStepRow.stock_price_used),
+          stock_open: numberOrNullSafe(firstStepRow.stock_open),
+          stock_high: numberOrNullSafe(firstStepRow.stock_high),
+          stock_low: numberOrNullSafe(firstStepRow.stock_low),
+          stock_close: numberOrNullSafe(firstStepRow.stock_close),
+          cc_strike: numberOrNullSafe(firstStepRow.cc_strike),
+          premium_conservative: numberOrNullSafe(firstStepRow.premium_conservative),
+          cc_yield_conservative_pct: numberOrNullSafe(firstStepRow.cc_yield_conservative_pct),
+          cc_sold_theoretical: Number(firstStepRow.cc_sold_theoretical) === 1 ? 1 : 0,
+          not_sold_reason: firstStepRow.not_sold_reason ?? null,
+          best_threshold_reached: numberOrNullSafe(firstStepRow.best_threshold_reached),
+          priceRule: firstStepRaw?.priceRule ?? null,
+          priceQuality: firstStepRaw?.priceQuality ?? null,
+          usedPostAssignmentOhlc: typeof firstStepRaw?.usedPostAssignmentOhlc === "boolean" ? firstStepRaw.usedPostAssignmentOhlc : null,
+          usedFallback: typeof firstStepRaw?.usedFallback === "boolean" ? firstStepRaw.usedFallback : null,
+        }
+      : null;
+
+    return {
+      id: cycle.id,
+      ticker: cycle.ticker ?? null,
+      strike_mode: cycle.strike_mode ?? null,
+      assignment_date: cycle.assignment_date ?? null,
+      assignment_strike: numberOrNullSafe(cycle.assignment_strike),
+      assignment_price: numberOrNullSafe(cycle.assignment_price),
+      spot_at_assignment: numberOrNullSafe(cycle.spot_at_assignment),
+      csp_premium: numberOrNullSafe(cycle.csp_premium),
+      total_cc_premium_conservative: numberOrNullSafe(cycle.total_cc_premium_conservative) ?? 0,
+      total_premium_estimated: numberOrNullSafe(cycle.total_premium_estimated) ?? 0,
+      reduced_cost_basis_estimated: numberOrNullSafe(cycle.reduced_cost_basis_estimated),
+      cc_sellable_steps_count: numberOrNullSafe(cycle.cc_sellable_steps_count) ?? 0,
+      cc_wait_steps_count: numberOrNullSafe(cycle.cc_wait_steps_count) ?? 0,
+      best_cc_threshold_reached: numberOrNullSafe(cycle.best_cc_threshold_reached),
+      status: cycle.status ?? null,
+      current_step: numberOrNullSafe(cycle.current_step) ?? 0,
+      confidence_level: cycle.confidence_level ?? null,
+      data_quality: cycle.data_quality ?? null,
+      first_cc_step: firstStep,
+      _meta: {
+        totalStepCount: steps.length,
+        soldStepCount: steps.filter((step) => Number(step.cc_sold_theoretical) === 1).length,
+        waitStepCount: steps.filter((step) => Number(step.cc_sold_theoretical) !== 1).length,
+      },
+    };
+  });
+
+  const soldFilteredCycles = mappedCycles.filter((cycle) => {
+    if (normalizedSold === "all") return true;
+    const soldFlag = cycle.first_cc_step?.cc_sold_theoretical;
+    if (normalizedSold === "sold") return soldFlag === 1;
+    if (normalizedSold === "wait") return soldFlag === 0;
+    return true;
+  });
+
+  soldFilteredCycles.sort((a, b) => {
+    const soldDelta = (b.first_cc_step?.cc_sold_theoretical ?? -1) - (a.first_cc_step?.cc_sold_theoretical ?? -1);
+    if (soldDelta !== 0) return soldDelta;
+    const thresholdDelta = (numberOrNullSafe(b.best_cc_threshold_reached) ?? -Infinity) - (numberOrNullSafe(a.best_cc_threshold_reached) ?? -Infinity);
+    if (thresholdDelta !== 0) return thresholdDelta;
+    const premiumDelta = (numberOrNullSafe(b.total_cc_premium_conservative) ?? -Infinity) - (numberOrNullSafe(a.total_cc_premium_conservative) ?? -Infinity);
+    if (premiumDelta !== 0) return premiumDelta;
+    return String(a.ticker ?? "").localeCompare(String(b.ticker ?? ""));
+  });
+
+  const limitedCycles = soldFilteredCycles.slice(0, limitValue);
+  const tickers = new Set();
+  let cyclesOpen = 0;
+  let cyclesClosed = 0;
+  let ccStepsTotal = 0;
+  let ccSoldTotal = 0;
+  let ccWaitTotal = 0;
+  let totalCcPremiumConservative = 0;
+  let reducedCostBasisSum = 0;
+  let reducedCostBasisCount = 0;
+  let bestThresholdGlobal = null;
+
+  for (const cycle of limitedCycles) {
+    if (cycle.ticker) tickers.add(String(cycle.ticker));
+    if (String(cycle.status ?? "").toLowerCase() === "open") cyclesOpen += 1;
+    else cyclesClosed += 1;
+    ccStepsTotal += cycle._meta.totalStepCount;
+    ccSoldTotal += cycle._meta.soldStepCount;
+    ccWaitTotal += cycle._meta.waitStepCount;
+    totalCcPremiumConservative += numberOrNullSafe(cycle.total_cc_premium_conservative) ?? 0;
+    const reducedCostBasis = numberOrNullSafe(cycle.reduced_cost_basis_estimated);
+    if (reducedCostBasis != null) {
+      reducedCostBasisSum += reducedCostBasis;
+      reducedCostBasisCount += 1;
+    }
+    const threshold = numberOrNullSafe(cycle.best_cc_threshold_reached);
+    if (threshold != null && (bestThresholdGlobal == null || threshold > bestThresholdGlobal)) {
+      bestThresholdGlobal = threshold;
+    }
+    delete cycle._meta;
+  }
+
+  return {
+    summary: {
+      cycles_total: limitedCycles.length,
+      cycles_open: cyclesOpen,
+      cycles_closed: cyclesClosed,
+      cc_steps_total: ccStepsTotal,
+      cc_sold_total: ccSoldTotal,
+      cc_wait_total: ccWaitTotal,
+      tickers_count: tickers.size,
+      total_cc_premium_conservative: totalCcPremiumConservative,
+      avg_cc_premium_conservative: limitedCycles.length > 0 ? totalCcPremiumConservative / limitedCycles.length : null,
+      avg_reduced_cost_basis: reducedCostBasisCount > 0 ? reducedCostBasisSum / reducedCostBasisCount : null,
+      best_threshold_global: bestThresholdGlobal,
+    },
+    cycles: limitedCycles,
+  };
 }
 
 const IBKR_SHADOW_TIMEOUT_MS = 60_000;
@@ -2406,6 +2631,27 @@ app.get("/journal/wheel-validation/mode-comparison", async (_req, res) => {
     res.json({ ok: true, modeComparison });
   } catch (error) {
     res.status(500).json({ ok: false, error: error?.message || "mode_comparison_failed" });
+  }
+});
+
+app.get("/journal/wheel-validation/theoretical-cycles", async (req, res) => {
+  try {
+    const payload = readTheoreticalCyclesSnapshot({
+      limit: req.query?.limit,
+      ticker: req.query?.ticker,
+      status: req.query?.status,
+      sold: req.query?.sold,
+    });
+    res.json({
+      ok: true,
+      summary: payload.summary,
+      cycles: payload.cycles,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "theoretical_cycles_fetch_failed",
+    });
   }
 });
 

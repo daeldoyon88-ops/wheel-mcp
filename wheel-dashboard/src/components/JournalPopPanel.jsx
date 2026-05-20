@@ -83,6 +83,52 @@ function formatResultStatus(value) {
   return labels[value] ?? String(value);
 }
 
+function formatTheoreticalCycleMode(value) {
+  if (value === "safe") return "Safe";
+  if (value === "aggressive") return "Aggressive";
+  return value ? String(value) : "—";
+}
+
+function formatTheoreticalCyclePriceRule(value) {
+  const labels = {
+    next_session_open: "Open J+1",
+    next_session_close: "Close J+1",
+    next_session_high_low_midpoint: "Mid H/L J+1",
+  };
+  if (!value) return "—";
+  return labels[value] ?? String(value);
+}
+
+function formatThresholdPctLabel(value) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  return `${n.toFixed(n % 1 === 0 ? 0 : 1)} %`;
+}
+
+function getTheoreticalCycleThresholdValue(cycle) {
+  return numberOrNull(cycle?.best_cc_threshold_reached) ?? numberOrNull(cycle?.first_cc_step?.best_threshold_reached);
+}
+
+function getTheoreticalCycleStatusLabel(cycle) {
+  return cycle?.first_cc_step?.cc_sold_theoretical === 1 ? "Vendu" : "Attente";
+}
+
+function getTheoreticalCycleReading(cycle) {
+  const step = cycle?.first_cc_step;
+  if (!step) return "Aucun CC step";
+  const threshold = getTheoreticalCycleThresholdValue(cycle);
+  let label = "CC vendable";
+  if (step.cc_sold_theoretical === 1 && threshold != null && threshold >= 2) {
+    label = "CC tres payant";
+  } else if (step.cc_sold_theoretical === 1 && threshold != null && threshold >= 1) {
+    label = "CC payant";
+  } else if (step.cc_sold_theoretical !== 1) {
+    label = "Attente : rendement < 0.5 %";
+  }
+  if (step.usedFallback === true) return `${label} · prix fallback`;
+  return label;
+}
+
 // ── Dark-mode design tokens ─────────────────────────────────────────────────
 // bg-[#020617] = slate-950 (panel root)
 // bg-slate-900 = cards
@@ -1507,6 +1553,11 @@ export default function JournalPopPanel({ apiBase, active }) {
   // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
   const [seasonalityLoading, setSeasonalityLoading] = useState(false);
+  const [theoreticalCyclesPayload, setTheoreticalCyclesPayload] = useState({ summary: null, cycles: [] });
+  const [theoreticalTickerSearch, setTheoreticalTickerSearch] = useState("");
+  const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
+  const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
+  const [theoreticalPriceSourceFilter, setTheoreticalPriceSourceFilter] = useState("all");
 
   const uniqueJournalSymbols = useMemo(() => {
     if (!Array.isArray(journal?.records)) return [];
@@ -1541,18 +1592,20 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
         fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
       const calibrationPayload = await calibrationResponse.json();
       const capitalPayload = capitalResponse ? await capitalResponse.json().catch(() => null) : null;
       const modeComparisonPayload = modeComparisonResponse ? await modeComparisonResponse.json().catch(() => null) : null;
+      const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
@@ -1561,6 +1614,14 @@ export default function JournalPopPanel({ apiBase, active }) {
       setCalibrationSummary(calibrationPayload.calibration ?? null);
       setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload, capitalPayload]));
       if (modeComparisonPayload?.ok) setModeComparison(modeComparisonPayload.modeComparison ?? null);
+      setTheoreticalCyclesPayload(
+        theoreticalCyclesJson?.ok
+          ? {
+              summary: theoreticalCyclesJson.summary ?? null,
+              cycles: Array.isArray(theoreticalCyclesJson.cycles) ? theoreticalCyclesJson.cycles : [],
+            }
+          : { summary: null, cycles: [] }
+      );
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -1734,6 +1795,81 @@ export default function JournalPopPanel({ apiBase, active }) {
     () => computeCapitalCombinationOverlay(records, capitalData),
     [records, capitalData],
   );
+  const theoreticalCycles = useMemo(
+    () => (Array.isArray(theoreticalCyclesPayload?.cycles) ? theoreticalCyclesPayload.cycles : []),
+    [theoreticalCyclesPayload],
+  );
+  const filteredTheoreticalCycles = useMemo(() => {
+    const search = theoreticalTickerSearch.trim().toUpperCase();
+    const thresholdMin = theoreticalThresholdFilter === "all" ? null : Number(theoreticalThresholdFilter);
+    return theoreticalCycles.filter((cycle) => {
+      const ticker = String(cycle?.ticker ?? "").trim().toUpperCase();
+      if (search && !ticker.includes(search)) return false;
+
+      const soldFlag = cycle?.first_cc_step?.cc_sold_theoretical === 1 ? "sold" : cycle?.first_cc_step ? "wait" : "none";
+      if (theoreticalSoldFilter === "sold" && soldFlag !== "sold") return false;
+      if (theoreticalSoldFilter === "wait" && soldFlag !== "wait") return false;
+
+      const threshold = getTheoreticalCycleThresholdValue(cycle);
+      if (thresholdMin != null && (threshold == null || threshold < thresholdMin)) return false;
+
+      if (theoreticalPriceSourceFilter === "ohlc" && cycle?.first_cc_step?.usedPostAssignmentOhlc !== true) return false;
+      if (theoreticalPriceSourceFilter === "fallback" && cycle?.first_cc_step?.usedFallback !== true) return false;
+
+      return true;
+    });
+  }, [
+    theoreticalCycles,
+    theoreticalTickerSearch,
+    theoreticalSoldFilter,
+    theoreticalThresholdFilter,
+    theoreticalPriceSourceFilter,
+  ]);
+  const theoreticalCyclesStats = useMemo(() => {
+    const rows = filteredTheoreticalCycles;
+    const soldCount = rows.filter((cycle) => cycle?.first_cc_step?.cc_sold_theoretical === 1).length;
+    const waitCount = rows.filter((cycle) => cycle?.first_cc_step?.cc_sold_theoretical === 0).length;
+    const distinctTickers = new Set(rows.map((cycle) => String(cycle?.ticker ?? "").trim()).filter(Boolean)).size;
+    const totalCcPremium = rows.reduce((sum, cycle) => sum + (numberOrNull(cycle?.total_cc_premium_conservative) ?? 0), 0);
+    const bestThreshold = rows.reduce((best, cycle) => {
+      const value = getTheoreticalCycleThresholdValue(cycle);
+      return value != null && (best == null || value > best) ? value : best;
+    }, null);
+    const reducedCostBasisValues = rows.map((cycle) => numberOrNull(cycle?.reduced_cost_basis_estimated)).filter((value) => value != null);
+    const stepsWithFirstStep = rows.filter((cycle) => cycle?.first_cc_step).length;
+    const ohlcTrueCount = rows.filter((cycle) => cycle?.first_cc_step?.usedPostAssignmentOhlc === true).length;
+    return {
+      total: rows.length,
+      soldCount,
+      waitCount,
+      distinctTickers,
+      totalCcPremium,
+      avgCcPremium: rows.length > 0 ? totalCcPremium / rows.length : null,
+      bestThreshold,
+      avgReducedCostBasis:
+        reducedCostBasisValues.length > 0
+          ? reducedCostBasisValues.reduce((sum, value) => sum + value, 0) / reducedCostBasisValues.length
+          : null,
+      stepsWithFirstStep,
+      ohlcTrueCount,
+      ohlcPct: stepsWithFirstStep > 0 ? (ohlcTrueCount / stepsWithFirstStep) * 100 : null,
+    };
+  }, [filteredTheoreticalCycles]);
+  const theoreticalCyclesToWatch = useMemo(() => {
+    return filteredTheoreticalCycles
+      .filter((cycle) =>
+        cycle?.first_cc_step?.cc_sold_theoretical === 1 &&
+        cycle?.first_cc_step?.usedPostAssignmentOhlc === true &&
+        (getTheoreticalCycleThresholdValue(cycle) ?? -Infinity) >= 1
+      )
+      .slice()
+      .sort((a, b) => {
+        const thresholdDelta = (getTheoreticalCycleThresholdValue(b) ?? -Infinity) - (getTheoreticalCycleThresholdValue(a) ?? -Infinity);
+        if (thresholdDelta !== 0) return thresholdDelta;
+        return (numberOrNull(b?.first_cc_step?.premium_conservative) ?? -Infinity) - (numberOrNull(a?.first_cc_step?.premium_conservative) ?? -Infinity);
+      })
+      .slice(0, 5);
+  }, [filteredTheoreticalCycles]);
 
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
@@ -4172,6 +4308,217 @@ export default function JournalPopPanel({ apiBase, active }) {
                   </tbody>
                 </table>
               </div>
+            )}
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Cycles théoriques Wheel"
+            badge="POP V2-I"
+            subtitle="CSP assigné → CC théorique au strike d’assignation, calculé avec le prix d’ouverture de la première séance après assignation quand disponible."
+            defaultOpen={false}
+            summaryRight={
+              theoreticalCyclesStats.total > 0
+                ? `${theoreticalCyclesStats.total} cycle(s) · ${theoreticalCyclesStats.soldCount} vendu(s) · ${theoreticalCyclesStats.ohlcPct != null ? theoreticalCyclesStats.ohlcPct.toFixed(0) + "% vrai OHLC" : "OHLC N/D"}`
+                : "Aucun cycle théorique chargé"
+            }
+          >
+            {theoreticalCycles.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                Aucun cycle théorique disponible dans la réponse actuelle.
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <ProKpi label="Cycles théoriques" value={theoreticalCyclesStats.total} large />
+                  <ProKpi label="CC vendus théoriquement" value={theoreticalCyclesStats.soldCount} tone="good" large />
+                  <ProKpi label="CC en attente" value={theoreticalCyclesStats.waitCount} tone={theoreticalCyclesStats.waitCount > 0 ? "warn" : "muted"} large />
+                  <ProKpi label="Prime CC conservatrice totale" value={formatMoney(theoreticalCyclesStats.totalCcPremium)} tone="info" large />
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <ProKpi label="Prime CC conservatrice moyenne" value={theoreticalCyclesStats.avgCcPremium != null ? formatMoney(theoreticalCyclesStats.avgCcPremium) : null} />
+                  <ProKpi label="Meilleur seuil atteint" value={formatThresholdPctLabel(theoreticalCyclesStats.bestThreshold)} tone="good" />
+                  <ProKpi label="Tickers distincts" value={theoreticalCyclesStats.distinctTickers} />
+                  <ProKpi
+                    label="% avec vrai OHLC post-assignation"
+                    value={theoreticalCyclesStats.ohlcPct != null ? `${theoreticalCyclesStats.ohlcPct.toFixed(1)} %` : null}
+                    sub={theoreticalCyclesStats.stepsWithFirstStep > 0 ? `${theoreticalCyclesStats.ohlcTrueCount}/${theoreticalCyclesStats.stepsWithFirstStep} cycles avec first CC step` : "Aucun first CC step"}
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-4">
+                  <label className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Recherche ticker</p>
+                    <input
+                      type="text"
+                      value={theoreticalTickerSearch}
+                      onChange={(event) => setTheoreticalTickerSearch(event.target.value)}
+                      placeholder="Ex: BMNR"
+                      className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
+                    />
+                  </label>
+                  <label className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Statut CC</p>
+                    <select
+                      value={theoreticalSoldFilter}
+                      onChange={(event) => setTheoreticalSoldFilter(event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+                    >
+                      <option value="all">Tous</option>
+                      <option value="sold">CC vendu</option>
+                      <option value="wait">Attente</option>
+                    </select>
+                  </label>
+                  <label className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Seuil</p>
+                    <select
+                      value={theoreticalThresholdFilter}
+                      onChange={(event) => setTheoreticalThresholdFilter(event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+                    >
+                      <option value="all">Tous seuils</option>
+                      <option value="0.5">≥ 0.5</option>
+                      <option value="1">≥ 1</option>
+                      <option value="2">≥ 2</option>
+                      <option value="3">≥ 3</option>
+                      <option value="5">≥ 5</option>
+                    </select>
+                  </label>
+                  <label className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Source prix</p>
+                    <select
+                      value={theoreticalPriceSourceFilter}
+                      onChange={(event) => setTheoreticalPriceSourceFilter(event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+                    >
+                      <option value="all">Tous</option>
+                      <option value="ohlc">Vrai OHLC</option>
+                      <option value="fallback">Fallback</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-slate-700/60 bg-slate-800/30 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Cycles à regarder</h4>
+                      <p className="mt-1 text-[11px] text-slate-600">
+                        Cycles avec CC théorique vendu, vrai OHLC post-assignation et seuil ≥ 1 %.
+                      </p>
+                    </div>
+                    {theoreticalCyclesPayload?.summary && (
+                      <p className="text-[11px] text-slate-500">
+                        Backend: {numberOrNull(theoreticalCyclesPayload.summary?.cycles_total) ?? theoreticalCycles.length} cycle(s)
+                      </p>
+                    )}
+                  </div>
+                  {theoreticalCyclesToWatch.length === 0 ? (
+                    <p className="mt-4 text-sm text-slate-600">Aucun cycle qualifié dans la vue courante.</p>
+                  ) : (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                      {theoreticalCyclesToWatch.map((cycle) => (
+                        <div key={cycle.id} className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-base font-bold tracking-tight text-slate-100">{cycle.ticker}</p>
+                            <span className="rounded border border-emerald-800/50 bg-emerald-900/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                              {formatTheoreticalCycleMode(cycle.strike_mode)}
+                            </span>
+                          </div>
+                          <p className="mt-3 text-sm text-slate-300">CC cons. {formatMoney(cycle?.first_cc_step?.premium_conservative)}</p>
+                          <p className="mt-1 text-sm text-slate-400">Rend. {formatPercent(cycle?.first_cc_step?.cc_yield_conservative_pct)}</p>
+                          <p className="mt-1 text-sm text-slate-400">Seuil {formatThresholdPctLabel(getTheoreticalCycleThresholdValue(cycle))}</p>
+                          <p className="mt-1 text-sm text-slate-400">Coût réduit : {formatMoney(cycle?.reduced_cost_basis_estimated)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                  <table className="min-w-full text-left text-xs text-slate-300">
+                    <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <tr>
+                        {[
+                          "Ticker",
+                          "Mode",
+                          "Date assign.",
+                          "Strike assign.",
+                          "Prix lundi utilisé",
+                          "Règle prix",
+                          "Prime CSP",
+                          "Prime CC cons.",
+                          "Rend. CC cons.",
+                          "Seuil",
+                          "Statut CC",
+                          "Coût réduit",
+                          "Total primes",
+                          "Lecture",
+                        ].map((header) => (
+                          <th key={header} className="px-3 py-3 font-semibold whitespace-nowrap">{header}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {filteredTheoreticalCycles.length === 0 ? (
+                        <tr>
+                          <td colSpan={14} className="px-4 py-8 text-center text-sm text-slate-600">
+                            Aucun cycle ne correspond aux filtres.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTheoreticalCycles.map((cycle) => {
+                          const step = cycle?.first_cc_step;
+                          return (
+                            <tr key={cycle.id} className="align-top">
+                              <td className="px-3 py-3">
+                                <div className="font-semibold text-slate-100">{cycle.ticker ?? "—"}</div>
+                                <div className="mt-1 text-[11px] text-slate-600">
+                                  {cycle.confidence_level ?? "confidence N/D"} · {cycle.data_quality ?? "data quality N/D"}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap">{formatTheoreticalCycleMode(cycle.strike_mode)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap">{formatDate(cycle.assignment_date)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.assignment_strike)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <div className="tabular-nums">{formatMoney(step?.stock_price_used)}</div>
+                                <div className="mt-1 text-[11px] text-slate-600">{step?.test_date ? `test ${formatDate(step.test_date)}` : "test N/D"}</div>
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <div>{formatTheoreticalCyclePriceRule(step?.priceRule)}</div>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {step?.usedPostAssignmentOhlc === true && (
+                                    <span className="rounded border border-emerald-800/50 bg-emerald-900/20 px-1.5 py-0.5 text-[10px] text-emerald-400">Vrai OHLC</span>
+                                  )}
+                                  {step?.usedFallback === true && (
+                                    <span className="rounded border border-amber-800/50 bg-amber-900/20 px-1.5 py-0.5 text-[10px] text-amber-400">Fallback</span>
+                                  )}
+                                  {step?.priceQuality && (
+                                    <span className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">{step.priceQuality}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums text-sky-400">{formatMoney(cycle.csp_premium)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums text-emerald-400">{formatMoney(step?.premium_conservative ?? cycle.total_cc_premium_conservative)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatPercent(step?.cc_yield_conservative_pct)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatThresholdPctLabel(getTheoreticalCycleThresholdValue(cycle))}</td>
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <div className={step?.cc_sold_theoretical === 1 ? "text-emerald-400" : "text-amber-400"}>{getTheoreticalCycleStatusLabel(cycle)}</div>
+                                {step?.cc_sold_theoretical === 0 && step?.not_sold_reason && (
+                                  <div className="mt-1 max-w-[220px] text-[11px] text-slate-600">{step.not_sold_reason}</div>
+                                )}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.reduced_cost_basis_estimated)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.total_premium_estimated)}</td>
+                              <td className="px-3 py-3">
+                                <div className="max-w-[220px] text-slate-300">{getTheoreticalCycleReading(cycle)}</div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CollapsibleSection>
         </>

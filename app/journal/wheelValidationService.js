@@ -2557,6 +2557,508 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computeTickerRanking(options = {}) {
+    const journal = await store.load();
+    const allRecords = Array.isArray(journal?.records) ? journal.records : [];
+
+    const tickerFilter = normalizeSymbol(options?.ticker ?? "");
+    const requestedMode = String(options?.mode ?? "all").trim().toLowerCase();
+    const modeFilter = requestedMode === "safe" || requestedMode === "aggressive" ? requestedMode : "all";
+    const limit = Math.min(Math.max(toNumberOrNull(options?.limit) ?? 50, 1), 100);
+    const minSample = Math.max(toNumberOrNull(options?.minSample) ?? 3, 1);
+    const theoreticalCycles = Array.isArray(options?.theoreticalCycles) ? options.theoreticalCycles : [];
+
+    // ── Group ALL records by ticker (no early filter — scores must use global refs) ──
+    const tickerRecordsMap = new Map();
+    for (const record of allRecords) {
+      const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+      if (!ticker) continue;
+      if (!tickerRecordsMap.has(ticker)) tickerRecordsMap.set(ticker, []);
+      tickerRecordsMap.get(ticker).push(record);
+    }
+
+    // ── CC data by ticker ────────────────────────────────────────────────────
+    const ccMap = new Map();
+    for (const cycle of theoreticalCycles) {
+      const ticker = normalizeSymbol(cycle?.ticker);
+      if (!ticker) continue;
+      if (!ccMap.has(ticker)) ccMap.set(ticker, []);
+      ccMap.get(ticker).push(cycle);
+    }
+
+    // ── Stability groups by (ticker, mode, dte) ──────────────────────────────
+    const stabilityGroupMap = new Map();
+    for (const [ticker, records] of tickerRecordsMap.entries()) {
+      for (const record of records) {
+        const premium = getPremiumCandidate(record);
+        const strikeMode = String(record?.strikeMode ?? "").trim().toLowerCase();
+        const dteAtScan = toNumberOrNull(record?.dteAtScan);
+        if (!strikeMode || dteAtScan == null || premium == null) continue;
+        const key = `${ticker}__${strikeMode}__${dteAtScan}`;
+        if (!stabilityGroupMap.has(key)) {
+          stabilityGroupMap.set(key, { ticker, strikeMode, dteAtScan, rows: [] });
+        }
+        stabilityGroupMap.get(key).rows.push({
+          premium,
+          resolved: getResolvedFlag(record),
+          assigned: getAssignedFlag(record),
+          expiredOtm: getExpiredOtmFlag(record),
+          strikeTouched: getStrikeTouchedFlag(record),
+          brokeLowerBound: getBrokeLowerBoundFlag(record),
+        });
+      }
+    }
+
+    const buildRateLocal = (rows, sel, useKnown = false) => {
+      const src = useKnown ? rows.filter((r) => sel(r) != null) : rows;
+      if (src.length === 0) return null;
+      return (src.filter((r) => sel(r) === true).length / src.length) * 100;
+    };
+
+    const stabilityGroups = Array.from(stabilityGroupMap.values()).map((group) => {
+      const premiums = group.rows.map((r) => r.premium);
+      const avgPremium = average(premiums);
+      const medianPremium = median(premiums);
+      const stddevPremium = stddevPopulation(premiums, avgPremium);
+      const cv = avgPremium != null && avgPremium !== 0 && stddevPremium != null
+        ? (stddevPremium / avgPremium) * 100 : null;
+      const premiumsPerDay = group.rows.map((r) => r.premium / Math.max(group.dteAtScan, 1));
+      const medianPerDay = median(premiumsPerDay);
+      const sampleCount = group.rows.length;
+      const resolvedRows = group.rows.filter((r) => r.resolved);
+      const stabilityLabel = sampleCount < 5 ? "échantillon faible"
+        : cv == null ? "échantillon faible"
+        : cv <= 20 ? "stable"
+        : cv <= 40 ? "variable"
+        : "volatile";
+      const sampleQuality = sampleCount < 5 ? "faible" : sampleCount < 15 ? "moyen" : "bon";
+      return {
+        ticker: group.ticker,
+        strikeMode: group.strikeMode,
+        dteAtScan: group.dteAtScan,
+        sampleCount,
+        resolvedCount: resolvedRows.length,
+        medianPremium,
+        medianPerDay,
+        stabilityLabel,
+        sampleQuality,
+        assignedRate: buildRateLocal(resolvedRows, (r) => r.assigned),
+        strikeTouchedRate: buildRateLocal(resolvedRows, (r) => r.strikeTouched, true),
+        brokeLowerBoundRate: buildRateLocal(resolvedRows, (r) => r.brokeLowerBound, true),
+        otmRate: buildRateLocal(resolvedRows, (r) => r.expiredOtm),
+      };
+    });
+
+    // Group stability results by (ticker, mode)
+    const tickerModeMap = new Map();
+    for (const g of stabilityGroups) {
+      const key = `${g.ticker}__${g.strikeMode}`;
+      if (!tickerModeMap.has(key)) tickerModeMap.set(key, []);
+      tickerModeMap.get(key).push(g);
+    }
+
+    function computeDteWindow(groups) {
+      if (groups.length === 0) {
+        return { recommendedDteRange: null, theoreticalBestDte: null, practicalBestDte: null };
+      }
+      const rows = [...groups].sort((a, b) => Number(a.dteAtScan ?? 0) - Number(b.dteAtScan ?? 0));
+      const theoreticalBest = [...rows].sort((a, b) => {
+        const pa = a.medianPerDay ?? -Infinity;
+        const pb = b.medianPerDay ?? -Infinity;
+        if (pb !== pa) return pb - pa;
+        return Number(a.dteAtScan ?? 1e9) - Number(b.dteAtScan ?? 1e9);
+      })[0] ?? null;
+      const bestMedian = Math.max(0, ...rows.map((g) => g.medianPremium ?? 0).filter(Number.isFinite));
+      const admissible = rows.filter((g) => {
+        if (!g.medianPremium || bestMedian <= 0) return false;
+        if (g.medianPremium < bestMedian * 0.9) return false;
+        if (g.stabilityLabel !== "stable" && g.stabilityLabel !== "variable") return false;
+        if (g.assignedRate != null && g.assignedRate > 15) return false;
+        if (g.sampleCount < 5) return false;
+        return true;
+      });
+      const practicalBest = admissible[0] ?? theoreticalBest;
+      const set = admissible.length > 0 ? admissible : practicalBest ? [practicalBest] : [];
+      const dtes = set.map((g) => g.dteAtScan).filter((v) => v != null).sort((a, b) => a - b);
+      const minDte = dtes[0] ?? null;
+      const maxDte = dtes[dtes.length - 1] ?? null;
+      const range = minDte == null ? null
+        : minDte === maxDte ? `DTE ${minDte}`
+        : `DTE ${minDte}-${maxDte}`;
+      return {
+        recommendedDteRange: range,
+        theoreticalBestDte: theoreticalBest?.dteAtScan ?? null,
+        practicalBestDte: practicalBest?.dteAtScan ?? null,
+      };
+    }
+
+    // ── Execution quality: compute spread metrics from stored records ─────────
+    function computeExecutionData(tickerRecords) {
+      const spreadPctValues = [];
+      let validBidAskCount = 0;
+      const totalCount = tickerRecords.length;
+
+      for (const record of tickerRecords) {
+        const bid = toNumberOrNull(record?.strike?.bid);
+        const ask = toNumberOrNull(record?.strike?.ask);
+        const mid = toNumberOrNull(record?.strike?.mid);
+
+        // Primary: stored spreadPct — normalize fraction vs percent
+        const rawSp = toNumberOrNull(record?.strike?.spreadPct) ??
+          toNumberOrNull(record?.ivSnapshot?.option_spread_pct_at_scan);
+        let spreadFrac = rawSp == null ? null : rawSp > 1 ? rawSp / 100 : rawSp;
+
+        // Fallback: compute from bid/ask
+        if (spreadFrac == null && bid != null && ask != null && bid >= 0 && ask > 0) {
+          const midCalc = mid != null && mid > 0 ? mid : (bid + ask) / 2;
+          if (midCalc > 0) spreadFrac = (ask - bid) / midCalc;
+        }
+
+        // Clamp to sane range (< 10 = 1000% spread, clearly bad data)
+        if (spreadFrac != null && spreadFrac >= 0 && spreadFrac < 10) {
+          spreadPctValues.push(spreadFrac * 100);
+        }
+
+        if (bid != null && bid > 0 && ask != null && ask > 0) validBidAskCount++;
+      }
+
+      return {
+        medianSpreadPct: median(spreadPctValues),
+        avgSpreadPct: average(spreadPctValues),
+        bidAskCoveragePct: totalCount > 0 ? (validBidAskCount / totalCount) * 100 : null,
+        recordsWithValidBidAsk: validBidAskCount,
+        hasSpreadData: spreadPctValues.length > 0,
+      };
+    }
+
+    // ── Per-ticker summaries ─────────────────────────────────────────────────
+    const preSummaries = Array.from(tickerRecordsMap.entries()).map(([ticker, tickerRecords]) => {
+      const totalSample = tickerRecords.length;
+      if (totalSample < minSample) return null;
+
+      const resolvedRecords = tickerRecords.filter((r) => getResolvedFlag(r));
+      const safeRecords = tickerRecords.filter((r) => String(r?.strikeMode ?? "").toLowerCase() === "safe");
+      const aggRecords = tickerRecords.filter((r) => String(r?.strikeMode ?? "").toLowerCase() === "aggressive");
+      const safeResolved = safeRecords.filter((r) => getResolvedFlag(r));
+      const aggResolved = aggRecords.filter((r) => getResolvedFlag(r));
+
+      const assignedCount = resolvedRecords.filter((r) => getAssignedFlag(r) === true).length;
+      const assignmentRatePct = resolvedRecords.length > 0 ? (assignedCount / resolvedRecords.length) * 100 : null;
+
+      const otmCount = resolvedRecords.filter((r) => getExpiredOtmFlag(r) === true).length;
+      const otmRatePct = resolvedRecords.length > 0 ? (otmCount / resolvedRecords.length) * 100 : null;
+
+      const stTouchKnown = resolvedRecords.filter((r) => getStrikeTouchedFlag(r) != null);
+      const strikeTouchedRatePct = stTouchKnown.length > 0
+        ? (stTouchKnown.filter((r) => getStrikeTouchedFlag(r) === true).length / stTouchKnown.length) * 100
+        : null;
+
+      const lbKnown = resolvedRecords.filter((r) => getBrokeLowerBoundFlag(r) != null);
+      const brokeLowerBoundRatePct = lbKnown.length > 0
+        ? (lbKnown.filter((r) => getBrokeLowerBoundFlag(r) === true).length / lbKnown.length) * 100
+        : null;
+
+      const safeGroups = tickerModeMap.get(`${ticker}__safe`) ?? [];
+      const aggGroups = tickerModeMap.get(`${ticker}__aggressive`) ?? [];
+      const allGroups = [...safeGroups, ...aggGroups];
+
+      const bestGroup = [...allGroups].sort((a, b) => (b.medianPerDay ?? -Infinity) - (a.medianPerDay ?? -Infinity))[0] ?? null;
+      const stabilityLabel = bestGroup?.stabilityLabel ?? "échantillon faible";
+      const sampleQuality = totalSample < 5 ? "faible" : totalSample < 15 ? "moyen" : "bon";
+      const medianPremium = bestGroup?.medianPremium ?? null;
+      const medianPerDay = bestGroup?.medianPerDay ?? null;
+
+      const safeWindow = computeDteWindow(safeGroups);
+      const aggWindow = computeDteWindow(aggGroups);
+
+      const safeAvgPremium = safeResolved.length > 0
+        ? average(safeResolved.map((r) => getPremiumCandidate(r)).filter((v) => v != null))
+        : null;
+      const aggAvgPremium = aggResolved.length > 0
+        ? average(aggResolved.map((r) => getPremiumCandidate(r)).filter((v) => v != null))
+        : null;
+      const safeAssignRate = safeResolved.length > 0
+        ? (safeResolved.filter((r) => getAssignedFlag(r) === true).length / safeResolved.length) * 100
+        : null;
+      const aggAssignRate = aggResolved.length > 0
+        ? (aggResolved.filter((r) => getAssignedFlag(r) === true).length / aggResolved.length) * 100
+        : null;
+
+      let preferredMode = "À confirmer";
+      if (safeResolved.length >= 3 && aggResolved.length >= 3) {
+        const premiumDelta = safeAvgPremium != null && aggAvgPremium != null ? aggAvgPremium - safeAvgPremium : null;
+        const assignDelta = safeAssignRate != null && aggAssignRate != null ? aggAssignRate - safeAssignRate : null;
+        if (premiumDelta != null && assignDelta != null) {
+          if (premiumDelta > 0 && assignDelta <= 5) {
+            preferredMode = "AGRESSIF";
+          } else if (assignDelta > 5) {
+            preferredMode = "SAFE";
+          }
+        }
+      } else if (safeRecords.length > 0 && aggRecords.length === 0) {
+        preferredMode = "SAFE";
+      } else if (aggRecords.length > 0 && safeRecords.length === 0) {
+        preferredMode = "AGRESSIF";
+      }
+
+      let recommendedWindow;
+      if (preferredMode === "AGRESSIF" && aggWindow.recommendedDteRange) {
+        recommendedWindow = aggWindow;
+      } else if (safeWindow.recommendedDteRange) {
+        recommendedWindow = safeWindow;
+      } else {
+        recommendedWindow = aggWindow;
+      }
+
+      const ccCycles = ccMap.get(ticker) ?? [];
+      const ccStats = ccCycles.length > 0 ? (() => {
+        const total = ccCycles.length;
+        const sold = ccCycles.filter((c) => Number(c?.first_cc_step?.cc_sold_theoretical) === 1);
+        const premiums = sold
+          .map((c) => { const p = toNumberOrNull(c?.first_cc_step?.premium_conservative); return p != null ? p * 100 : null; })
+          .filter((v) => v != null);
+        const yields = sold.map((c) => toNumberOrNull(c?.first_cc_step?.cc_yield_conservative_pct)).filter((v) => v != null);
+        return {
+          total,
+          soldCount: sold.length,
+          ccSellableRatePct: (sold.length / total) * 100,
+          avgCcPremiumPerContract: premiums.length > 0 ? average(premiums) : null,
+          avgCcYieldPct: yields.length > 0 ? average(yields) : null,
+        };
+      })() : null;
+
+      const executionData = computeExecutionData(tickerRecords);
+
+      return {
+        ticker, totalSample, resolvedCount: resolvedRecords.length,
+        safeResolvedCount: safeResolved.length, aggResolvedCount: aggResolved.length,
+        assignmentRatePct, otmRatePct, strikeTouchedRatePct, brokeLowerBoundRatePct,
+        medianPremium, medianPerDay, stabilityLabel, sampleQuality,
+        preferredMode, recommendedWindow, safeWindow, aggWindow, ccStats, executionData,
+      };
+    }).filter(Boolean);
+
+    // ── Percentile-based premium normalization (cap at p90 to resist outliers) ──
+    function localPercentile(sorted, pct) {
+      if (sorted.length === 0) return null;
+      const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((pct / 100) * sorted.length) - 1));
+      return sorted[idx];
+    }
+    const sortedPerDay = preSummaries
+      .map((t) => t.medianPerDay)
+      .filter((v) => v != null && Number.isFinite(v) && v > 0)
+      .sort((a, b) => a - b);
+    const sortedPremium = preSummaries
+      .map((t) => t.medianPremium)
+      .filter((v) => v != null && Number.isFinite(v) && v > 0)
+      .sort((a, b) => a - b);
+    const p90PerDay = localPercentile(sortedPerDay, 90) ?? (sortedPerDay.length > 0 ? sortedPerDay[sortedPerDay.length - 1] : null);
+    const p90Premium = localPercentile(sortedPremium, 90) ?? (sortedPremium.length > 0 ? sortedPremium[sortedPremium.length - 1] : null);
+
+    // ── Score per ticker — V2-L-D weights: 30/25/15/15/10/5 ─────────────────
+    const rankingItems = preSummaries.map((t) => {
+
+      // ── RISK SCORE: 30 pts ────────────────────────────────────────────────
+      const ar = t.assignmentRatePct;
+      const assignmentScore = ar == null ? 6 : ar <= 5 ? 12 : ar <= 10 ? 10 : ar <= 15 ? 8 : ar <= 25 ? 5 : 2;
+
+      const otm = t.otmRatePct;
+      const otmScore = otm == null ? 4 : otm >= 95 ? 8 : otm >= 90 ? 7 : otm >= 80 ? 5 : otm >= 70 ? 3 : 1;
+
+      const st = t.strikeTouchedRatePct;
+      const strikeTouchScore = st == null ? 2 : st <= 5 ? 5 : st <= 15 ? 4 : st <= 30 ? 2 : 0;
+
+      const lb = t.brokeLowerBoundRatePct;
+      const lowerBoundScore = lb == null ? 2 : lb <= 5 ? 5 : lb <= 15 ? 4 : lb <= 30 ? 2 : 0;
+
+      const riskScore = Math.min(30, Math.max(0, assignmentScore + otmScore + strikeTouchScore + lowerBoundScore));
+
+      // ── PREMIUM SCORE: 25 pts (percentile-normalized, p90 cap) ───────────
+      const perDayNorm = p90PerDay != null && p90PerDay > 0 && t.medianPerDay != null
+        ? Math.min(1, t.medianPerDay / p90PerDay) : 0;
+      const premNorm = p90Premium != null && p90Premium > 0 && t.medianPremium != null
+        ? Math.min(1, t.medianPremium / p90Premium) : 0;
+      const premiumMetric = 0.6 * perDayNorm + 0.4 * premNorm;
+      const premiumScore = Math.round(Math.min(25, Math.max(0, premiumMetric * 25)));
+
+      // ── STABILITY SCORE: 15 pts ───────────────────────────────────────────
+      const stabMap = { stable: 15, variable: 9, volatile: 3, "échantillon faible": 5 };
+      const stabilityScore = stabMap[t.stabilityLabel] ?? 5;
+      const sampleQualityTicker = t.totalSample >= 30 ? "bon" : t.totalSample >= 15 ? "moyen" : "faible";
+
+      // ── EXECUTION QUALITY SCORE: 15 pts ──────────────────────────────────
+      const exec = t.executionData;
+      let executionQualityScore, executionQualityLabel;
+      if (!exec.hasSpreadData) {
+        executionQualityScore = 5;
+        executionQualityLabel = "Données spread manquantes";
+      } else {
+        const msp = exec.medianSpreadPct;
+        if (msp <= 5) {
+          executionQualityScore = 15; executionQualityLabel = "Exécution bonne";
+        } else if (msp <= 10) {
+          executionQualityScore = 12; executionQualityLabel = "Exécution correcte";
+        } else if (msp <= 20) {
+          executionQualityScore = 8; executionQualityLabel = "Spread large";
+        } else if (msp <= 35) {
+          executionQualityScore = 4; executionQualityLabel = "Spread très large";
+        } else {
+          executionQualityScore = 0; executionQualityLabel = "Spread très large";
+        }
+        // Additional penalty if bid/ask coverage is very poor
+        if (exec.bidAskCoveragePct != null && exec.bidAskCoveragePct < 50) {
+          executionQualityScore = Math.max(0, executionQualityScore - 3);
+          if (executionQualityScore <= 4) executionQualityLabel = "Spread très large";
+        }
+      }
+
+      // ── SAMPLE SCORE: 10 pts ──────────────────────────────────────────────
+      const sampleScore = t.sampleQuality === "bon" ? 10 : t.sampleQuality === "moyen" ? 6 : 2;
+
+      // ── CC SCORE: 5 pts max — bonus/malus secondaire ──────────────────────
+      const cc = t.ccStats;
+      const ccSellRate = cc?.ccSellableRatePct ?? null;
+      const ccYield = cc?.avgCcYieldPct ?? null;
+
+      let ccStatus, ccStatusLabel, ccScore;
+      if (ccSellRate != null) {
+        if (ccSellRate >= 90) {
+          ccStatus = "testé_fort"; ccStatusLabel = "CC fort"; ccScore = 5;
+        } else if (ccSellRate >= 70) {
+          ccStatus = "testé_correct"; ccStatusLabel = "CC correct"; ccScore = 4;
+        } else if (ccSellRate >= 50) {
+          ccStatus = "testé_correct"; ccStatusLabel = "CC correct"; ccScore = 2;
+        } else {
+          ccStatus = "testé_faible"; ccStatusLabel = "CC faible"; ccScore = 0;
+        }
+      } else {
+        if (ar != null && ar <= 5) {
+          ccStatus = "non_testé_assignation_faible";
+          ccStatusLabel = "CC non testé — assignation faible";
+          ccScore = 3;
+        } else if (ar != null && ar <= 15) {
+          ccStatus = "non_testé_assignation_modérée";
+          ccStatusLabel = "CC non testé — assignation modérée";
+          ccScore = 2;
+        } else {
+          ccStatus = "non_testé_risque_assignation";
+          ccStatusLabel = "CC non testé — risque assignation";
+          ccScore = 1;
+        }
+      }
+
+      const score = Math.min(100, Math.max(1,
+        riskScore + premiumScore + stabilityScore + executionQualityScore + sampleScore + ccScore));
+      const scoreLabel = score >= 85 ? "Excellent" : score >= 70 ? "Bon" : score >= 55 ? "Moyen" : score >= 40 ? "Faible" : "À éviter";
+
+      // ── Confidence ────────────────────────────────────────────────────────
+      const premiumWindowConfidence = t.stabilityLabel === "stable" ? "bon" : t.stabilityLabel === "variable" ? "moyen" : "faible";
+      const hasCcTested = ccStatus.startsWith("testé");
+      const confidence =
+        sampleQualityTicker === "bon" && premiumWindowConfidence !== "faible" && hasCcTested ? "élevée" :
+        sampleQualityTicker === "bon" ? "moyenne" :
+        sampleQualityTicker === "moyen" && t.resolvedCount >= 5 ? "moyenne" :
+        "faible";
+
+      // ── Reading ───────────────────────────────────────────────────────────
+      let reading;
+      if (executionQualityScore <= 4) reading = "Potentiel théorique, spread à surveiller";
+      else if (score >= 85) reading = "Excellent vendeur de prime";
+      else if (score >= 70) reading = "Bon candidat récurrent";
+      else if (score >= 55) reading = "Candidat correct";
+      else if (ar != null && ar <= 5 && ccStatus.startsWith("non_testé")) reading = "Bon CSP, CC à confirmer";
+      else if (ccStatus === "testé_faible") reading = "CC post-assignation faible";
+      else reading = "À surveiller";
+
+      // ── Reasons (max 3, ordered by priority) ─────────────────────────────
+      const reasons = [];
+      if (executionQualityScore === 0) reasons.push("Spread très large");
+      else if (executionQualityScore <= 4) reasons.push("Spread à surveiller");
+      if (ar != null && ar <= 5 && reasons.length < 3) reasons.push("Assignation faible");
+      if (premiumScore >= 18 && reasons.length < 3) reasons.push("Prime CSP forte");
+      if (stabilityScore <= 5 && reasons.length < 3) reasons.push("Fenêtre DTE à confirmer");
+      if (ccStatus === "testé_fort" && reasons.length < 3) reasons.push("CC fort après assignation");
+      if (ccStatus.startsWith("non_testé") && reasons.length < 3) reasons.push("CC non testé");
+
+      const rec = t.recommendedWindow;
+      return {
+        ticker: t.ticker,
+        score,
+        scoreLabel,
+        preferredMode: t.preferredMode,
+        recommendedDteWindow: rec?.recommendedDteRange ?? null,
+        practicalBestDte: rec?.practicalBestDte ?? null,
+        theoreticalBestDte: rec?.theoreticalBestDte ?? null,
+        sampleCount: t.totalSample,
+        sampleQuality: t.sampleQuality,
+        sampleQualityTicker,
+        assignmentRatePct: roundMetric(t.assignmentRatePct, 1),
+        otmRatePct: roundMetric(t.otmRatePct, 1),
+        strikeTouchedRatePct: roundMetric(t.strikeTouchedRatePct, 1),
+        brokeLowerBoundRatePct: roundMetric(t.brokeLowerBoundRatePct, 1),
+        avgPremium: roundMetric(t.medianPremium),
+        medianPremium: roundMetric(t.medianPremium),
+        premiumStabilityLabel: t.stabilityLabel,
+        ccSellableRatePct: roundMetric(cc?.ccSellableRatePct, 1),
+        avgCcPremiumPerContract: roundMetric(cc?.avgCcPremiumPerContract, 2),
+        avgCcYieldPct: roundMetric(cc?.avgCcYieldPct, 2),
+        ccStatus,
+        ccStatusLabel,
+        executionQualityScore,
+        executionQualityLabel,
+        medianSpreadPct: roundMetric(exec.medianSpreadPct, 2),
+        avgSpreadPct: roundMetric(exec.avgSpreadPct, 2),
+        bidAskCoveragePct: roundMetric(exec.bidAskCoveragePct, 1),
+        confidence,
+        reading,
+        reasons: reasons.slice(0, 3),
+        components: { riskScore, premiumScore, stabilityScore, executionQualityScore, sampleScore, ccScore },
+      };
+    });
+
+    // ── Filter by ticker / mode — applied AFTER global scoring ─────────────
+    let filtered = rankingItems;
+    if (tickerFilter) {
+      filtered = filtered.filter((t) => t.ticker === tickerFilter);
+    }
+    if (modeFilter === "safe") {
+      filtered = filtered.filter((t) => t.preferredMode !== "AGRESSIF");
+    } else if (modeFilter === "aggressive") {
+      filtered = filtered.filter((t) => t.preferredMode === "AGRESSIF");
+    }
+
+    const confOrder = { "élevée": 0, "moyenne": 1, "faible": 2 };
+    filtered.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const ca = confOrder[a.confidence] ?? 2;
+      const cb = confOrder[b.confidence] ?? 2;
+      if (ca !== cb) return ca - cb;
+      const ccDelta = (b.ccSellableRatePct ?? -1) - (a.ccSellableRatePct ?? -1);
+      if (ccDelta !== 0) return ccDelta;
+      const arA = a.assignmentRatePct ?? 100;
+      const arB = b.assignmentRatePct ?? 100;
+      if (arA !== arB) return arA - arB;
+      return a.ticker.localeCompare(b.ticker);
+    });
+
+    const limited = filtered.slice(0, limit);
+    const rankings = limited.map((item, i) => ({ rank: i + 1, ...item }));
+
+    const scores = rankings.map((r) => r.score);
+    return {
+      ok: true,
+      summary: {
+        tickers_ranked: rankings.length,
+        records_used: allRecords.length,
+        avg_score: scores.length > 0 ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : null,
+        top_score: scores.length > 0 ? Math.max(...scores) : null,
+        weak_sample_count: rankings.filter((r) => r.sampleQuality === "faible").length,
+        generatedAt: new Date().toISOString(),
+      },
+      rankings,
+    };
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
@@ -2565,6 +3067,7 @@ export function createWheelValidationService(options = {}) {
     computeCalibrationSummary,
     computeModeComparison,
     computePremiumStability,
+    computeTickerRanking,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

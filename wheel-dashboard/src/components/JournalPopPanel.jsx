@@ -1637,6 +1637,13 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
   const [theoreticalPriceSourceFilter, setTheoreticalPriceSourceFilter] = useState("all");
 
+  // Ticker ranking V2-L — read-only
+  const [tickerRanking, setTickerRanking] = useState(null);
+  const [rankingTickerSearch, setRankingTickerSearch] = useState("");
+  const [rankingScoreFilter, setRankingScoreFilter] = useState("tous");
+  const [rankingModeFilter, setRankingModeFilter] = useState("tous");
+  const [rankingConfidenceFilter, setRankingConfidenceFilter] = useState("tous");
+
   const uniqueJournalSymbols = useMemo(() => {
     if (!Array.isArray(journal?.records)) return [];
     const seen = new Set();
@@ -1670,7 +1677,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
@@ -1678,6 +1685,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/ticker-ranking?limit=100`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
@@ -1686,6 +1694,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       const modeComparisonPayload = modeComparisonResponse ? await modeComparisonResponse.json().catch(() => null) : null;
       const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
       const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
+      const tickerRankingPayload = tickerRankingResponse ? await tickerRankingResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
@@ -1695,6 +1704,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload, capitalPayload]));
       if (modeComparisonPayload?.ok) setModeComparison(modeComparisonPayload.modeComparison ?? null);
       if (premiumStabilityPayload?.ok) setPremiumStability(premiumStabilityPayload);
+      if (tickerRankingPayload?.ok) setTickerRanking(tickerRankingPayload);
       setTheoreticalCyclesPayload(
         theoreticalCyclesJson?.ok
           ? {
@@ -4430,6 +4440,229 @@ export default function JournalPopPanel({ apiBase, active }) {
           )}
         </section>
       )}
+
+      {/* ── Ticker Ranking V2-L ─────────────────────────────────────────────── */}
+      {hasLoaded && tickerRanking && (() => {
+        const rankings = Array.isArray(tickerRanking.rankings) ? tickerRanking.rankings : [];
+        const summary = tickerRanking.summary ?? {};
+
+        const search = rankingTickerSearch.trim().toUpperCase();
+        let filtered = rankings;
+        if (search) filtered = filtered.filter((r) => r.ticker.includes(search));
+        if (rankingScoreFilter !== "tous") {
+          const scoreMap = { excellent: [85, 100], bon: [70, 84], moyen: [55, 69], faible: [1, 54] };
+          const [lo, hi] = scoreMap[rankingScoreFilter] ?? [1, 100];
+          filtered = filtered.filter((r) => r.score >= lo && r.score <= hi);
+        }
+        if (rankingModeFilter !== "tous") {
+          const modeMap = { SAFE: "SAFE", AGRESSIF: "AGRESSIF", confirmer: "À confirmer" };
+          const target = modeMap[rankingModeFilter];
+          if (target) filtered = filtered.filter((r) => r.preferredMode === target);
+        }
+        if (rankingConfidenceFilter !== "tous") {
+          filtered = filtered.filter((r) => r.confidence === rankingConfidenceFilter);
+        }
+
+        const scoreLabelColor = (label) => {
+          if (label === "Excellent") return "text-emerald-400";
+          if (label === "Bon") return "text-sky-400";
+          if (label === "Moyen") return "text-amber-400";
+          if (label === "Faible") return "text-rose-400";
+          return "text-slate-500";
+        };
+        const modeColor = (mode) => {
+          if (mode === "AGRESSIF") return "text-rose-400";
+          if (mode === "SAFE") return "text-emerald-400";
+          return "text-slate-500";
+        };
+        const confidenceColor = (c) => {
+          if (c === "élevée") return "text-emerald-400";
+          if (c === "moyenne") return "text-amber-400";
+          return "text-slate-500";
+        };
+
+        return (
+          <CollapsibleSection
+            title="Classement tickers Wheel"
+            badge={`${summary.tickers_ranked ?? 0} tickers`}
+            subtitle="Score 1-100 : risque CSP (30) · prime (25) · spread/liquidité (15) · stabilité (15) · échantillon (10) · CC (5)."
+            defaultOpen={false}
+            summaryRight={summary.top_score != null ? `Meilleur score : ${summary.top_score} · Moy. ${summary.avg_score ?? "—"}` : undefined}
+          >
+            {/* Summary cards */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+              <ProKpi label="Tickers classés" value={summary.tickers_ranked ?? "—"} tone="info" />
+              <ProKpi label="Score moyen" value={summary.avg_score ?? "—"} tone="default" />
+              <ProKpi label="Meilleur score" value={summary.top_score ?? "—"} tone="good" />
+              <ProKpi label="Échantillons faibles" value={summary.weak_sample_count ?? "—"} tone={summary.weak_sample_count > 0 ? "warn" : "default"} />
+            </div>
+
+            {/* Filters */}
+            <div className="mb-4 flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Recherche ticker…"
+                value={rankingTickerSearch}
+                onChange={(e) => setRankingTickerSearch(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-36"
+              />
+              <select
+                value={rankingScoreFilter}
+                onChange={(e) => setRankingScoreFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Score : tous</option>
+                <option value="excellent">Excellent (85+)</option>
+                <option value="bon">Bon (70-84)</option>
+                <option value="moyen">Moyen (55-69)</option>
+                <option value="faible">Faible (&lt;55)</option>
+              </select>
+              <select
+                value={rankingModeFilter}
+                onChange={(e) => setRankingModeFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Mode : tous</option>
+                <option value="SAFE">SAFE</option>
+                <option value="AGRESSIF">AGRESSIF</option>
+                <option value="confirmer">À confirmer</option>
+              </select>
+              <select
+                value={rankingConfidenceFilter}
+                onChange={(e) => setRankingConfidenceFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Confiance : tous</option>
+                <option value="élevée">Élevée</option>
+                <option value="moyenne">Moyenne</option>
+                <option value="faible">Faible</option>
+              </select>
+              {(search || rankingScoreFilter !== "tous" || rankingModeFilter !== "tous" || rankingConfidenceFilter !== "tous") && (
+                <button
+                  type="button"
+                  onClick={() => { setRankingTickerSearch(""); setRankingScoreFilter("tous"); setRankingModeFilter("tous"); setRankingConfidenceFilter("tous"); }}
+                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+
+            {/* Ranking table */}
+            {filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                Aucun ticker ne correspond aux filtres.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3 font-semibold">Rang</th>
+                      <th className="px-3 py-3 font-semibold">Ticker</th>
+                      <th className="px-3 py-3 font-semibold">Score</th>
+                      <th className="px-3 py-3 font-semibold">Mode</th>
+                      <th className="px-3 py-3 font-semibold">Fenêtre DTE</th>
+                      <th className="px-3 py-3 font-semibold">Assign.</th>
+                      <th className="px-3 py-3 font-semibold">CC vendables</th>
+                      <th className="px-3 py-3 font-semibold">Confiance / Exéc.</th>
+                      <th className="px-3 py-3 font-semibold">Lecture</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filtered.map((row) => (
+                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors align-top">
+                        <td className="px-3 py-2.5 text-slate-500 tabular-nums">#{row.rank}</td>
+                        <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className={`font-bold tabular-nums ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</span>
+                          <span className={`ml-1.5 text-[10px] ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</span>
+                          <div className="mt-1 text-[9px] text-slate-600 leading-tight">
+                            <span title="Risque/30">R:{row.components?.riskScore ?? 0}</span>
+                            <span className="mx-0.5 text-slate-700">·</span>
+                            <span title="Prime/25">P:{row.components?.premiumScore ?? 0}</span>
+                            <span className="mx-0.5 text-slate-700">·</span>
+                            <span title="Exécution/15" className={row.components?.executionQualityScore <= 4 ? "text-rose-600" : ""}>E:{row.components?.executionQualityScore ?? 0}</span>
+                            <span className="mx-0.5 text-slate-700">·</span>
+                            <span title="Stabilité/15">S:{row.components?.stabilityScore ?? 0}</span>
+                            <span className="mx-0.5 text-slate-700">·</span>
+                            <span title="Échantillon/10">n:{row.components?.sampleScore ?? 0}</span>
+                            <span className="mx-0.5 text-slate-700">·</span>
+                            <span title="CC/5">CC:{row.components?.ccScore ?? 0}</span>
+                          </div>
+                        </td>
+                        <td className={`px-3 py-2.5 whitespace-nowrap font-semibold ${modeColor(row.preferredMode)}`}>{row.preferredMode}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap text-slate-300">
+                          {row.recommendedDteWindow ?? "—"}
+                          {row.practicalBestDte != null && (
+                            <div className="text-[10px] text-slate-600">Pratique : DTE {row.practicalBestDte}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                          {row.assignmentRatePct != null ? (
+                            <span className={row.assignmentRatePct > 20 ? "text-rose-400" : row.assignmentRatePct > 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {row.assignmentRatePct.toFixed(1)}%
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                          {row.ccSellableRatePct != null ? (
+                            <span className={row.ccSellableRatePct >= 60 ? "text-emerald-400" : row.ccSellableRatePct >= 30 ? "text-amber-400" : "text-slate-500"}>
+                              {row.ccSellableRatePct.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">Non testé</span>
+                          )}
+                          {row.ccStatusLabel && (
+                            <div className="mt-0.5 text-[9px] text-slate-600 max-w-[120px] leading-tight">{row.ccStatusLabel}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className={`text-[11px] ${confidenceColor(row.confidence)}`}>{row.confidence}</span>
+                          <div className="text-[10px] text-slate-600">
+                            n={row.sampleCount}
+                            {row.sampleQualityTicker && row.sampleQualityTicker !== row.sampleQuality && (
+                              <span className="ml-1 text-slate-700">· {row.sampleQualityTicker}</span>
+                            )}
+                          </div>
+                          {row.executionQualityLabel && (
+                            <div className={`mt-0.5 text-[9px] leading-tight ${
+                              row.executionQualityScore === 0 ? "text-rose-500" :
+                              row.executionQualityScore <= 4 ? "text-rose-400" :
+                              row.executionQualityScore >= 12 ? "text-emerald-600" :
+                              "text-amber-500"
+                            }`}>{row.executionQualityLabel}</div>
+                          )}
+                          {row.medianSpreadPct != null ? (
+                            <div className="text-[9px] text-slate-600">Spread: {row.medianSpreadPct.toFixed(1)}%</div>
+                          ) : (
+                            <div className="text-[9px] text-slate-700">Spread: n/d</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-300 max-w-[200px]">
+                          <div>{row.reading}</div>
+                          {Array.isArray(row.reasons) && row.reasons.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {row.reasons.map((r) => (
+                                <span key={r} className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">{r}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {summary.generatedAt && (
+              <p className="mt-3 text-[10px] text-slate-600">
+                V2-L-D · lecture seule · généré {new Date(summary.generatedAt).toLocaleTimeString()}
+              </p>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
 
       {/* ── Raw journal tables ──────────────────────────────────────────────── */}
       {hasLoaded && (

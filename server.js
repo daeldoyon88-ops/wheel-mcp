@@ -2678,6 +2678,28 @@ app.get("/journal/wheel-validation/theoretical-cycles", async (req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/ticker-ranking", async (req, res) => {
+  try {
+    const { limit, minSample, mode, ticker } = req.query;
+    const theoreticalCyclesData = readTheoreticalCyclesSnapshot({ limit: 1000 });
+    const theoreticalCycles = Array.isArray(theoreticalCyclesData?.cycles) ? theoreticalCyclesData.cycles : [];
+    const result = await wheelValidationService.computeTickerRanking({
+      limit: limit != null ? Number(limit) : undefined,
+      minSample: minSample != null ? Number(minSample) : undefined,
+      mode,
+      ticker,
+      theoreticalCycles,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[ticker-ranking]", error);
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "ticker_ranking_failed",
+    });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

@@ -119,11 +119,11 @@ function getTheoreticalCycleReading(cycle) {
   const threshold = getTheoreticalCycleThresholdValue(cycle);
   let label = "CC vendable";
   if (step.cc_sold_theoretical === 1 && threshold != null && threshold >= 2) {
-    label = "CC tres payant";
+    label = "CC >= 2 %";
   } else if (step.cc_sold_theoretical === 1 && threshold != null && threshold >= 1) {
-    label = "CC payant";
+    label = "CC >= 1 %";
   } else if (step.cc_sold_theoretical !== 1) {
-    label = "Attente : rendement < 0.5 %";
+    label = "Attente < 0.5 %";
   }
   if (step.usedFallback === true) return `${label} · prix fallback`;
   return label;
@@ -1830,7 +1830,12 @@ export default function JournalPopPanel({ apiBase, active }) {
     const soldCount = rows.filter((cycle) => cycle?.first_cc_step?.cc_sold_theoretical === 1).length;
     const waitCount = rows.filter((cycle) => cycle?.first_cc_step?.cc_sold_theoretical === 0).length;
     const distinctTickers = new Set(rows.map((cycle) => String(cycle?.ticker ?? "").trim()).filter(Boolean)).size;
-    const totalCcPremium = rows.reduce((sum, cycle) => sum + (numberOrNull(cycle?.total_cc_premium_conservative) ?? 0), 0);
+    const firstStepPremiumValues = rows
+      .map((cycle) => numberOrNull(cycle?.first_cc_step?.premium_conservative))
+      .filter((value) => value != null);
+    const firstStepYieldValues = rows
+      .map((cycle) => numberOrNull(cycle?.first_cc_step?.cc_yield_conservative_pct))
+      .filter((value) => value != null);
     const bestThreshold = rows.reduce((best, cycle) => {
       const value = getTheoreticalCycleThresholdValue(cycle);
       return value != null && (best == null || value > best) ? value : best;
@@ -1843,8 +1848,17 @@ export default function JournalPopPanel({ apiBase, active }) {
       soldCount,
       waitCount,
       distinctTickers,
-      totalCcPremium,
-      avgCcPremium: rows.length > 0 ? totalCcPremium / rows.length : null,
+      firstStepCount: stepsWithFirstStep,
+      avgCcPremiumPerContract:
+        firstStepPremiumValues.length > 0
+          ? (firstStepPremiumValues.reduce((sum, value) => sum + value, 0) / firstStepPremiumValues.length) * 100
+          : null,
+      avgCcYield:
+        firstStepYieldValues.length > 0
+          ? firstStepYieldValues.reduce((sum, value) => sum + value, 0) / firstStepYieldValues.length
+          : null,
+      soldPct: stepsWithFirstStep > 0 ? (soldCount / stepsWithFirstStep) * 100 : null,
+      waitPct: stepsWithFirstStep > 0 ? (waitCount / stepsWithFirstStep) * 100 : null,
       bestThreshold,
       avgReducedCostBasis:
         reducedCostBasisValues.length > 0
@@ -4330,16 +4344,37 @@ export default function JournalPopPanel({ apiBase, active }) {
               <>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <ProKpi label="Cycles théoriques" value={theoreticalCyclesStats.total} large />
-                  <ProKpi label="CC vendus théoriquement" value={theoreticalCyclesStats.soldCount} tone="good" large />
-                  <ProKpi label="CC en attente" value={theoreticalCyclesStats.waitCount} tone={theoreticalCyclesStats.waitCount > 0 ? "warn" : "muted"} large />
-                  <ProKpi label="Prime CC conservatrice totale" value={formatMoney(theoreticalCyclesStats.totalCcPremium)} tone="info" large />
+                  <ProKpi label="Prime CC moy. / contrat" value={theoreticalCyclesStats.avgCcPremiumPerContract != null ? formatMoney(theoreticalCyclesStats.avgCcPremiumPerContract) : null} tone="info" large />
+                  <ProKpi
+                    label="Rend. CC moyen"
+                    value={theoreticalCyclesStats.avgCcYield != null ? `${theoreticalCyclesStats.avgCcYield.toFixed(2)} %` : null}
+                    large
+                  />
+                  <ProKpi
+                    label="CC vendables"
+                    value={
+                      theoreticalCyclesStats.firstStepCount > 0
+                        ? `${theoreticalCyclesStats.soldCount} / ${theoreticalCyclesStats.firstStepCount} · ${theoreticalCyclesStats.soldPct?.toFixed(1) ?? "0.0"} %`
+                        : null
+                    }
+                    tone="good"
+                    large
+                  />
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <ProKpi label="Prime CC conservatrice moyenne" value={theoreticalCyclesStats.avgCcPremium != null ? formatMoney(theoreticalCyclesStats.avgCcPremium) : null} />
+                  <ProKpi
+                    label="CC en attente"
+                    value={
+                      theoreticalCyclesStats.firstStepCount > 0
+                        ? `${theoreticalCyclesStats.waitCount} / ${theoreticalCyclesStats.firstStepCount} · ${theoreticalCyclesStats.waitPct?.toFixed(1) ?? "0.0"} %`
+                        : null
+                    }
+                    tone={theoreticalCyclesStats.waitCount > 0 ? "warn" : "muted"}
+                  />
                   <ProKpi label="Meilleur seuil atteint" value={formatThresholdPctLabel(theoreticalCyclesStats.bestThreshold)} tone="good" />
                   <ProKpi label="Tickers distincts" value={theoreticalCyclesStats.distinctTickers} />
                   <ProKpi
-                    label="% avec vrai OHLC post-assignation"
+                    label="Vrai OHLC"
                     value={theoreticalCyclesStats.ohlcPct != null ? `${theoreticalCyclesStats.ohlcPct.toFixed(1)} %` : null}
                     sub={theoreticalCyclesStats.stepsWithFirstStep > 0 ? `${theoreticalCyclesStats.ohlcTrueCount}/${theoreticalCyclesStats.stepsWithFirstStep} cycles avec first CC step` : "Aucun first CC step"}
                   />
@@ -4423,7 +4458,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                               {formatTheoreticalCycleMode(cycle.strike_mode)}
                             </span>
                           </div>
-                          <p className="mt-3 text-sm text-slate-300">CC cons. {formatMoney(cycle?.first_cc_step?.premium_conservative)}</p>
+                          <p className="mt-3 text-sm text-slate-300">
+                            Prime CC / contrat {(() => {
+                              const premium = numberOrNull(cycle?.first_cc_step?.premium_conservative);
+                              return premium != null ? formatMoney(premium * 100) : "—";
+                            })()}
+                          </p>
                           <p className="mt-1 text-sm text-slate-400">Rend. {formatPercent(cycle?.first_cc_step?.cc_yield_conservative_pct)}</p>
                           <p className="mt-1 text-sm text-slate-400">Seuil {formatThresholdPctLabel(getTheoreticalCycleThresholdValue(cycle))}</p>
                           <p className="mt-1 text-sm text-slate-400">Coût réduit : {formatMoney(cycle?.reduced_cost_basis_estimated)}</p>
@@ -4445,12 +4485,13 @@ export default function JournalPopPanel({ apiBase, active }) {
                           "Prix lundi utilisé",
                           "Règle prix",
                           "Prime CSP",
-                          "Prime CC cons.",
+                          "Prime CC / action",
+                          "Prime CC / contrat",
                           "Rend. CC cons.",
                           "Seuil",
                           "Statut CC",
                           "Coût réduit",
-                          "Total primes",
+                          "Total primes / action",
                           "Lecture",
                         ].map((header) => (
                           <th key={header} className="px-3 py-3 font-semibold whitespace-nowrap">{header}</th>
@@ -4460,7 +4501,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tbody className="divide-y divide-slate-800/70">
                       {filteredTheoreticalCycles.length === 0 ? (
                         <tr>
-                          <td colSpan={14} className="px-4 py-8 text-center text-sm text-slate-600">
+                          <td colSpan={15} className="px-4 py-8 text-center text-sm text-slate-600">
                             Aucun cycle ne correspond aux filtres.
                           </td>
                         </tr>
@@ -4498,6 +4539,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                               </td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums text-sky-400">{formatMoney(cycle.csp_premium)}</td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums text-emerald-400">{formatMoney(step?.premium_conservative ?? cycle.total_cc_premium_conservative)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums text-emerald-300">
+                                {(() => {
+                                  const premium = numberOrNull(step?.premium_conservative ?? cycle.total_cc_premium_conservative);
+                                  return premium != null ? formatMoney(premium * 100) : "—";
+                                })()}
+                              </td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatPercent(step?.cc_yield_conservative_pct)}</td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatThresholdPctLabel(getTheoreticalCycleThresholdValue(cycle))}</td>
                               <td className="px-3 py-3 whitespace-nowrap">

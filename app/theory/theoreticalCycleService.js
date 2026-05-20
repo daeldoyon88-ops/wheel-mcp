@@ -186,61 +186,121 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
   }
 
   // ─────────────────────────────────────────────
+  // getFirstCcTestDateAfterAssignment
+  // Pure — returns the first realistic CC sale session after assignment.
+  // Rule V1 (no holiday calendar): Fri/Sat/Sun → Monday, else next day.
+  // ─────────────────────────────────────────────
+  function getFirstCcTestDateAfterAssignment(assignmentDate) {
+    if (!assignmentDate) {
+      return { testDate: new Date().toISOString().slice(0, 10), rule: "next_session_simple", daysAdded: 0 };
+    }
+    try {
+      // Normalise YYYYMMDD (compact, no dashes) or YYYY-MM-DD to a local Date.
+      // Using local ctor (year, month-1, day) avoids new Date("YYYYMMDD") being
+      // parsed as UTC-midnight which can shift the day-of-week in non-UTC zones.
+      const s = String(assignmentDate).replace(/-/g, "");
+      if (!/^\d{8}$/.test(s)) throw new Error("unrecognised date format");
+      const d = new Date(
+        parseInt(s.slice(0, 4), 10),
+        parseInt(s.slice(4, 6), 10) - 1,
+        parseInt(s.slice(6, 8), 10)
+      );
+      const dow = d.getDay(); // 0=Sun,1=Mon,...,5=Fri,6=Sat
+      const daysAdded = dow === 5 ? 3 : dow === 6 ? 2 : 1; // Fri→+3=Mon, Sat→+2=Mon, else→+1
+      d.setDate(d.getDate() + daysAdded);
+      // Format with local accessors to avoid UTC offset shifting the date back.
+      const y   = d.getFullYear();
+      const mo  = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return { testDate: `${y}-${mo}-${day}`, rule: "next_session_simple", daysAdded };
+    } catch (_) {
+      return { testDate: new Date().toISOString().slice(0, 10), rule: "next_session_simple", daysAdded: 0 };
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // selectFirstCcSpot
+  // Pure — selects the best available spot for CC pricing on testDate.
+  // V1: no post-assignment OHLC in SQLite → always falls back to assignment-era prices.
+  // Returns null if no usable price is found.
+  // ─────────────────────────────────────────────
+  function selectFirstCcSpot({ cycle, sourceRecord, testDate: _testDate, options: _options = {} }) {
+    const candidates = [
+      { value: cycle.spot_at_assignment,                        rule: "fallback_assignment_close" },
+      { value: sourceRecord?.underlying_close_at_expiration,   rule: "fallback_expiration_close" },
+      { value: cycle.assignment_price,                          rule: "fallback_expiration_close" },
+      { value: cycle.spot_at_scan,                              rule: "fallback_spot_at_scan"     },
+    ];
+    for (const { value, rule } of candidates) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) {
+        return {
+          spot:        n,
+          stock_open:  null,
+          stock_high:  null,
+          stock_low:   null,
+          stock_close: n,
+          priceRule:   rule,
+          priceQuality: "fallback_no_post_assignment_price",
+        };
+      }
+    }
+    return null;
+  }
+
+  // ─────────────────────────────────────────────
+  // getCcExpirationFromTestDate
+  // Pure — returns testDate + dte calendar days, formatted YYYY-MM-DD.
+  // ─────────────────────────────────────────────
+  function getCcExpirationFromTestDate(testDate, dte = 7) {
+    try {
+      // Parse YYYY-MM-DD parts directly (local ctor) to avoid UTC offset shifting.
+      const [y, mo, day] = String(testDate).split("-").map(Number);
+      const d = new Date(y, mo - 1, day);
+      d.setDate(d.getDate() + dte);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ─────────────────────────────────────────────
   // buildFirstCcStepForCycle
   // Pure function — receives a cycle and its source validation record.
   // Returns { step, pricing, error } or { step: null, pricing: null, error } if spot is unavailable.
   // RULE: cc_strike is always set to assignment_strike (never below).
   // ─────────────────────────────────────────────
   function buildFirstCcStepForCycle({ cycle, sourceRecord, options = {} }) {
-    const defaultCcDte     = options.defaultCcDte     ?? 7;
-    const riskFreeRate     = options.riskFreeRate     ?? 0.045;
-    const dividendYield    = options.dividendYield    ?? 0;
+    const defaultCcDte       = options.defaultCcDte       ?? 7;
+    const riskFreeRate       = options.riskFreeRate       ?? 0.045;
+    const dividendYield      = options.dividendYield      ?? 0;
     const conservativeFactor = options.conservativeFactor ?? 0.8;
 
     const assignment_strike = Number(cycle.assignment_strike);
     const cc_strike = assignment_strike; // RULE: never below assignment_strike
 
-    // Spot: underlying_close_at_expiration > spot_at_assignment > assignment_price > spot_at_scan
-    let spot = null;
-    for (const v of [
-      sourceRecord?.underlying_close_at_expiration,
-      cycle.spot_at_assignment,
-      cycle.assignment_price,
-      cycle.spot_at_scan,
-    ]) {
-      const n = Number(v);
-      if (Number.isFinite(n) && n > 0) { spot = n; break; }
-    }
+    // test_date: first trading session after assignment (Fri/Sat/Sun → Monday)
+    const testDateInfo = getFirstCcTestDateAfterAssignment(cycle.assignment_date);
+    const test_date = testDateInfo.testDate;
 
-    if (!Number.isFinite(spot) || spot <= 0) {
+    // spot: V1 fallback chain — no post-assignment OHLC stored yet
+    const spotInfo = selectFirstCcSpot({ cycle, sourceRecord, testDate: test_date, options });
+    if (!spotInfo) {
       return { step: null, pricing: null, error: "no_valid_spot" };
     }
+    const spot = spotInfo.spot;
 
-    // test_date: next business day after assignment_date
-    let test_date;
-    if (cycle.assignment_date) {
-      try {
-        const d = new Date(cycle.assignment_date);
-        const dow = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
-        d.setDate(d.getDate() + (dow === 5 ? 3 : dow === 6 ? 2 : 1));
-        test_date = d.toISOString().slice(0, 10);
-      } catch (_) {
-        test_date = new Date().toISOString().slice(0, 10);
-      }
-    } else {
-      test_date = new Date().toISOString().slice(0, 10);
-    }
+    // cc_expiration: test_date + dte calendar days
+    const cc_expiration = getCcExpirationFromTestDate(test_date, defaultCcDte);
 
-    // cc_expiration: test_date + dte days
-    let cc_expiration = null;
-    try {
-      const expDate = new Date(test_date);
-      expDate.setDate(expDate.getDate() + defaultCcDte);
-      cc_expiration = expDate.toISOString().slice(0, 10);
-    } catch (_) {}
+    // target_time reflects the actual price rule used
+    const target_time =
+      spotInfo.priceRule === "next_session_open"  ? "next_session_open"  :
+      spotInfo.priceRule === "next_session_close" ? "next_session_close" :
+      spotInfo.priceRule;
 
-    const hv30         = sourceRecord?.hv30_at_scan        != null ? Number(sourceRecord.hv30_at_scan)        : null;
-    const atmIv        = sourceRecord?.atm_iv_at_scan       != null ? Number(sourceRecord.atm_iv_at_scan)       : null;
+    const hv30         = sourceRecord?.hv30_at_scan          != null ? Number(sourceRecord.hv30_at_scan)          : null;
+    const atmIv        = sourceRecord?.atm_iv_at_scan         != null ? Number(sourceRecord.atm_iv_at_scan)         : null;
     const safeStrikeIv = sourceRecord?.safe_strike_iv_at_scan != null ? Number(sourceRecord.safe_strike_iv_at_scan) : null;
 
     const pricing = estimateCoveredCallPremium({
@@ -257,49 +317,63 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     });
 
     const baseStep = {
-      id:                    `theoretical_cc_step_${cycle.id}_1`,
-      theoretical_cycle_id:  cycle.id,
-      candidate_record_id:   cycle.candidate_record_id,
-      ticker:                cycle.ticker,
-      sequence_number:       1,
+      id:                   `theoretical_cc_step_${cycle.id}_1`,
+      theoretical_cycle_id: cycle.id,
+      candidate_record_id:  cycle.candidate_record_id,
+      ticker:               cycle.ticker,
+      sequence_number:      1,
       test_date,
-      target_time:           "theoretical_close_or_next_session",
+      target_time,
       cc_expiration,
-      dte:                   defaultCcDte,
-      stock_price_used:      spot,
+      dte:                  defaultCcDte,
+      stock_price_used:     spot,
+      stock_open:           spotInfo.stock_open,
+      stock_high:           spotInfo.stock_high,
+      stock_low:            spotInfo.stock_low,
+      stock_close:          spotInfo.stock_close,
       assignment_strike,
       cc_strike,
-      risk_free_rate:        riskFreeRate,
-      dividend_yield:        dividendYield,
-      conservative_factor:   conservativeFactor,
-      data_quality:          "estimated_black_scholes",
+      risk_free_rate:       riskFreeRate,
+      dividend_yield:       dividendYield,
+      conservative_factor:  conservativeFactor,
+      data_quality:         "estimated_black_scholes",
+    };
+
+    const rawExtra = {
+      testDateRule:   testDateInfo.rule,
+      priceRule:      spotInfo.priceRule,
+      priceQuality:   spotInfo.priceQuality,
+      assignmentDate: cycle.assignment_date,
+      testDate:       test_date,
+      usedFallback:   spotInfo.priceQuality === "fallback_no_post_assignment_price",
     };
 
     if (!pricing.ok) {
       return {
         step: {
           ...baseStep,
-          volatility_used:            null,
-          volatility_source:          null,
-          bs_call_premium:            null,
-          premium_estimated:          null,
-          premium_conservative:       null,
-          cc_yield_pct:               null,
-          cc_yield_conservative_pct:  null,
-          cc_sold_theoretical:        0,
-          not_sold_reason:            "pricing_unavailable",
-          best_threshold_reached:     null,
+          volatility_used:           null,
+          volatility_source:         null,
+          bs_call_premium:           null,
+          premium_estimated:         null,
+          premium_conservative:      null,
+          cc_yield_pct:              null,
+          cc_yield_conservative_pct: null,
+          cc_sold_theoretical:       0,
+          not_sold_reason:           "pricing_unavailable",
+          best_threshold_reached:    null,
           threshold_0_5_hit: 0, threshold_0_75_hit: 0, threshold_1_0_hit: 0,
           threshold_1_5_hit: 0, threshold_2_0_hit: 0,  threshold_2_5_hit: 0,
           threshold_3_0_hit: 0, threshold_4_0_hit: 0,  threshold_5_0_hit: 0,
           threshold_6_0_hit: 0,
           raw: {
-            source:        "black_scholes_first_cc_step",
+            source:         "black_scholes_first_cc_step",
             pricing_source: null,
             error:          pricing.error,
             inputs:         { hv30, atmIv, safeStrikeIv, spot, assignment_strike, cc_strike, dte: defaultCcDte },
             thresholds:     null,
             sourceRecordId: cycle.candidate_record_id,
+            ...rawExtra,
           },
         },
         pricing,
@@ -344,12 +418,13 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
         threshold_5_0_hit:  thresholdMap[5.0]  ? 1 : 0,
         threshold_6_0_hit:  thresholdMap[6.0]  ? 1 : 0,
         raw: {
-          source:           "black_scholes_first_cc_step",
-          pricing_source:   pricing.source,
+          source:            "black_scholes_first_cc_step",
+          pricing_source:    pricing.source,
           volatility_source: pricing.volatilitySource,
-          inputs:           pricing.inputs,
-          thresholds:       pricing.thresholds,
-          sourceRecordId:   cycle.candidate_record_id,
+          inputs:            pricing.inputs,
+          thresholds:        pricing.thresholds,
+          sourceRecordId:    cycle.candidate_record_id,
+          ...rawExtra,
         },
       },
       pricing,
@@ -363,13 +438,14 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
   // and upserts it. Safe to re-run (idempotent via UNIQUE constraint + skip logic).
   // ─────────────────────────────────────────────
   async function generateFirstCcStepsForOpenCycles({
-    dryRun            = false,
-    limit             = null,
-    defaultCcDte      = 7,
+    dryRun             = false,
+    limit              = null,
+    defaultCcDte       = 7,
     conservativeFactor = 0.8,
-    riskFreeRate      = 0.045,
-    dividendYield     = 0,
-    includeExisting   = false,
+    riskFreeRate       = 0.045,
+    dividendYield      = 0,
+    includeExisting    = false,
+    forceRefresh       = false, // overwrite existing step 1 (upsert) without skipping
   } = {}) {
     await cycleStore.ensureInitialized();
 
@@ -394,7 +470,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     const options = { defaultCcDte, conservativeFactor, riskFreeRate, dividendYield };
 
     for (const cycle of openCycles) {
-      if (!includeExisting) {
+      if (!includeExisting && !forceRefresh) {
         const existingSteps = await cycleStore.listCcSteps(cycle.id);
         if (existingSteps.some((s) => s.sequence_number === 1)) {
           skipped_existing++;
@@ -425,10 +501,15 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
       else cc_wait_count++;
 
       if (sample_steps.length < 5) {
+        const raw = result.step.raw ?? {};
         sample_steps.push({
           ticker:                    result.step.ticker,
-          assignment_strike:         result.step.assignment_strike,
+          assignment_date:           cycle.assignment_date,
+          test_date:                 result.step.test_date,
+          priceRule:                 raw.priceRule ?? null,
           stock_price_used:          result.step.stock_price_used,
+          assignment_strike:         result.step.assignment_strike,
+          cc_strike:                 result.step.cc_strike,
           premium_conservative:      result.step.premium_conservative,
           cc_yield_conservative_pct: result.step.cc_yield_conservative_pct,
           best_threshold_reached:    result.step.best_threshold_reached,
@@ -465,6 +546,199 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     };
   }
 
+  // ─────────────────────────────────────────────
+  // summarizeCycleFromCcSteps
+  // Pure function — receives a cycle and its CC steps array.
+  // Returns consolidated summary fields for theoretical_wheel_cycles update.
+  // Does NOT touch DB, does NOT create/modify cc_steps.
+  // ─────────────────────────────────────────────
+  function summarizeCycleFromCcSteps({ cycle, ccSteps }) {
+    const soldSteps = ccSteps.filter((s) => s.cc_sold_theoretical === 1);
+    const waitSteps = ccSteps.filter((s) => s.cc_sold_theoretical !== 1);
+
+    const total_cc_premium_estimated = soldSteps.reduce((sum, s) => {
+      const p = s.premium_estimated != null ? Number(s.premium_estimated) : 0;
+      return sum + (Number.isFinite(p) ? p : 0);
+    }, 0);
+
+    // Conservative prime per step: premium_conservative > premium_estimated > bs_call_premium
+    const total_cc_premium_conservative = soldSteps.reduce((sum, s) => {
+      let p = null;
+      if (s.premium_conservative != null) p = Number(s.premium_conservative);
+      else if (s.premium_estimated != null) p = Number(s.premium_estimated);
+      else if (s.bs_call_premium != null) p = Number(s.bs_call_premium);
+      return sum + (p != null && Number.isFinite(p) ? p : 0);
+    }, 0);
+
+    const cc_sellable_steps_count = soldSteps.length;
+    const cc_wait_steps_count = waitSteps.length;
+
+    let best_cc_threshold_reached = null;
+    for (const s of soldSteps) {
+      const t = s.best_threshold_reached != null ? Number(s.best_threshold_reached) : null;
+      if (t != null && Number.isFinite(t)) {
+        if (best_cc_threshold_reached === null || t > best_cc_threshold_reached) {
+          best_cc_threshold_reached = t;
+        }
+      }
+    }
+
+    const current_step = ccSteps.length;
+
+    const cspPremium = cycle.csp_premium != null ? Number(cycle.csp_premium) : null;
+    const assignmentStrike = Number(cycle.assignment_strike);
+
+    const total_premium_estimated = (cspPremium ?? 0) + total_cc_premium_conservative;
+
+    const reduced_cost_basis_estimated =
+      cspPremium != null && Number.isFinite(assignmentStrike)
+        ? assignmentStrike - cspPremium - total_cc_premium_conservative
+        : null;
+
+    const hasCalled = ccSteps.some((s) => s.called_away_theoretical === 1);
+    const status = hasCalled ? "closed_theoretical" : "open";
+
+    return {
+      total_cc_premium_estimated,
+      total_cc_premium_conservative,
+      total_premium_estimated,
+      reduced_cost_basis_estimated,
+      cc_sellable_steps_count,
+      cc_wait_steps_count,
+      best_cc_threshold_reached,
+      current_step,
+      status,
+      data_quality: cycle.data_quality ?? "estimated_black_scholes",
+      source_prime_method: "black_scholes_first_cc_step",
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // updateCycleSummaryFromCcSteps
+  // Updates a single cycle's summary fields from its CC steps.
+  // If dryRun=true, computes but does not upsert.
+  // ─────────────────────────────────────────────
+  async function updateCycleSummaryFromCcSteps({ cycle, ccSteps, dryRun = false }) {
+    const summary = summarizeCycleFromCcSteps({ cycle, ccSteps });
+    const updatedCycle = { ...cycle, ...summary };
+
+    if (!dryRun) {
+      await cycleStore.upsertCycle(updatedCycle);
+    }
+
+    return {
+      ok: true,
+      dryRun,
+      cycle_id: cycle.id,
+      ticker: cycle.ticker,
+      updated: !dryRun,
+      summary,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // refreshAllCycleSummaries
+  // POP V2-F3 consolidation: reads all theoretical_wheel_cycles + their
+  // cc_steps, computes summary fields, upserts each cycle (unless dryRun).
+  // Does NOT create, modify, or delete theoretical_cc_steps.
+  // ─────────────────────────────────────────────
+  async function refreshAllCycleSummaries({
+    dryRun = false,
+    limit = null,
+    includeCyclesWithoutSteps = true,
+  } = {}) {
+    await cycleStore.ensureInitialized();
+
+    const cycles = await cycleStore.listCycles(limit != null ? Number(limit) : 999999);
+
+    let cycles_scanned = cycles.length;
+    let cycles_with_steps = 0;
+    let cycles_without_steps = 0;
+    let cycles_updated = 0;
+    let total_cc_steps_seen = 0;
+    let total_cc_sold_seen = 0;
+    let total_cc_wait_seen = 0;
+    let total_cc_premium_conservative = 0;
+    let best_threshold_global = null;
+    const errors = [];
+    const sample_cycles = [];
+
+    for (const cycle of cycles) {
+      try {
+        const ccSteps = await cycleStore.listCcSteps(cycle.id);
+
+        if (ccSteps.length === 0) {
+          cycles_without_steps++;
+          if (!includeCyclesWithoutSteps) continue;
+          const summary = summarizeCycleFromCcSteps({ cycle, ccSteps: [] });
+          if (!dryRun) {
+            await cycleStore.upsertCycle({ ...cycle, ...summary });
+            cycles_updated++;
+          }
+          continue;
+        }
+
+        cycles_with_steps++;
+        total_cc_steps_seen += ccSteps.length;
+
+        const soldSteps = ccSteps.filter((s) => s.cc_sold_theoretical === 1);
+        const waitSteps = ccSteps.filter((s) => s.cc_sold_theoretical !== 1);
+        total_cc_sold_seen += soldSteps.length;
+        total_cc_wait_seen += waitSteps.length;
+
+        const summary = summarizeCycleFromCcSteps({ cycle, ccSteps });
+
+        total_cc_premium_conservative += summary.total_cc_premium_conservative;
+
+        if (summary.best_cc_threshold_reached != null) {
+          if (
+            best_threshold_global === null ||
+            summary.best_cc_threshold_reached > best_threshold_global
+          ) {
+            best_threshold_global = summary.best_cc_threshold_reached;
+          }
+        }
+
+        if (sample_cycles.length < 5) {
+          sample_cycles.push({
+            ticker: cycle.ticker,
+            assignment_strike: cycle.assignment_strike,
+            csp_premium: cycle.csp_premium,
+            total_cc_premium_conservative: summary.total_cc_premium_conservative,
+            total_premium_estimated: summary.total_premium_estimated,
+            reduced_cost_basis_estimated: summary.reduced_cost_basis_estimated,
+            cc_sellable_steps_count: summary.cc_sellable_steps_count,
+            cc_wait_steps_count: summary.cc_wait_steps_count,
+            best_cc_threshold_reached: summary.best_cc_threshold_reached,
+          });
+        }
+
+        if (!dryRun) {
+          await cycleStore.upsertCycle({ ...cycle, ...summary });
+          cycles_updated++;
+        }
+      } catch (err) {
+        errors.push({ cycle_id: cycle.id, error: String(err?.message ?? err) });
+      }
+    }
+
+    return {
+      ok: true,
+      dryRun,
+      cycles_scanned,
+      cycles_with_steps,
+      cycles_without_steps,
+      cycles_updated,
+      total_cc_steps_seen,
+      total_cc_sold_seen,
+      total_cc_wait_seen,
+      total_cc_premium_conservative,
+      best_threshold_global,
+      errors,
+      sample_cycles,
+    };
+  }
+
   async function listTheoreticalCycles(limit = 100) {
     return cycleStore.listCycles(limit);
   }
@@ -480,5 +754,8 @@ export function createTheoreticalCycleService({ validationStore, cycleStore } = 
     getTheoreticalCycleSummary,
     buildFirstCcStepForCycle,
     generateFirstCcStepsForOpenCycles,
+    summarizeCycleFromCcSteps,
+    updateCycleSummaryFromCcSteps,
+    refreshAllCycleSummaries,
   };
 }

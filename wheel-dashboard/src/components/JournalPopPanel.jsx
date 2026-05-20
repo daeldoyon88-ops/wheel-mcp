@@ -138,6 +138,47 @@ function getTheoreticalCycleReading(cycle) {
 // text-slate-400 = secondary
 // text-slate-500/600 = muted
 
+function compareTheoreticalCyclesForWatch(a, b) {
+  const thresholdDelta = (getTheoreticalCycleThresholdValue(b) ?? -Infinity) - (getTheoreticalCycleThresholdValue(a) ?? -Infinity);
+  if (thresholdDelta !== 0) return thresholdDelta;
+
+  const ccYieldDelta =
+    (numberOrNull(b?.first_cc_step?.cc_yield_conservative_pct) ?? -Infinity) -
+    (numberOrNull(a?.first_cc_step?.cc_yield_conservative_pct) ?? -Infinity);
+  if (ccYieldDelta !== 0) return ccYieldDelta;
+
+  const premiumConservativeDelta =
+    (numberOrNull(b?.first_cc_step?.premium_conservative) ?? -Infinity) -
+    (numberOrNull(a?.first_cc_step?.premium_conservative) ?? -Infinity);
+  if (premiumConservativeDelta !== 0) return premiumConservativeDelta;
+
+  const totalPremiumDelta =
+    (numberOrNull(b?.total_premium_estimated) ?? -Infinity) - (numberOrNull(a?.total_premium_estimated) ?? -Infinity);
+  if (totalPremiumDelta !== 0) return totalPremiumDelta;
+
+  return (numberOrNull(a?.reduced_cost_basis_estimated) ?? Infinity) - (numberOrNull(b?.reduced_cost_basis_estimated) ?? Infinity);
+}
+
+function getBestTheoreticalCyclePerTicker(cycles) {
+  const bestByTicker = new Map();
+  for (const cycle of Array.isArray(cycles) ? cycles : []) {
+    const ticker = String(cycle?.ticker ?? "").trim().toUpperCase();
+    const step = cycle?.first_cc_step;
+    const threshold = getTheoreticalCycleThresholdValue(cycle);
+    if (!ticker) continue;
+    if (!step) continue;
+    if (step.cc_sold_theoretical !== 1) continue;
+    if (step.usedPostAssignmentOhlc !== true) continue;
+    if ((threshold ?? -Infinity) < 1) continue;
+
+    const currentBest = bestByTicker.get(ticker);
+    if (!currentBest || compareTheoreticalCyclesForWatch(cycle, currentBest) < 0) {
+      bestByTicker.set(ticker, cycle);
+    }
+  }
+  return Array.from(bestByTicker.values()).sort(compareTheoreticalCyclesForWatch).slice(0, 5);
+}
+
 function confidenceLevel(sample) {
   const n = numberOrNull(sample) ?? 0;
   if (n === 0) return { key: "none",        label: "Aucune donnée",      cls: "bg-slate-800 text-slate-500 border-slate-700" };
@@ -1870,19 +1911,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     };
   }, [filteredTheoreticalCycles]);
   const theoreticalCyclesToWatch = useMemo(() => {
-    return filteredTheoreticalCycles
-      .filter((cycle) =>
-        cycle?.first_cc_step?.cc_sold_theoretical === 1 &&
-        cycle?.first_cc_step?.usedPostAssignmentOhlc === true &&
-        (getTheoreticalCycleThresholdValue(cycle) ?? -Infinity) >= 1
-      )
-      .slice()
-      .sort((a, b) => {
-        const thresholdDelta = (getTheoreticalCycleThresholdValue(b) ?? -Infinity) - (getTheoreticalCycleThresholdValue(a) ?? -Infinity);
-        if (thresholdDelta !== 0) return thresholdDelta;
-        return (numberOrNull(b?.first_cc_step?.premium_conservative) ?? -Infinity) - (numberOrNull(a?.first_cc_step?.premium_conservative) ?? -Infinity);
-      })
-      .slice(0, 5);
+    return getBestTheoreticalCyclePerTicker(filteredTheoreticalCycles);
   }, [filteredTheoreticalCycles]);
 
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
@@ -4437,7 +4466,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Cycles à regarder</h4>
                       <p className="mt-1 text-[11px] text-slate-600">
-                        Cycles avec CC théorique vendu, vrai OHLC post-assignation et seuil ≥ 1 %.
+                        Meilleur cycle par ticker · CC vendu · vrai OHLC · seuil ≥ 1 %
                       </p>
                     </div>
                     {theoreticalCyclesPayload?.summary && (
@@ -4447,7 +4476,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     )}
                   </div>
                   {theoreticalCyclesToWatch.length === 0 ? (
-                    <p className="mt-4 text-sm text-slate-600">Aucun cycle qualifié dans la vue courante.</p>
+                    <p className="mt-4 text-sm text-slate-600">Aucun cycle admissible avec CC vendu, vrai OHLC et seuil ≥ 1 %.</p>
                   ) : (
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                       {theoreticalCyclesToWatch.map((cycle) => (

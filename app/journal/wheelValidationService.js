@@ -3059,6 +3059,215 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computeNormalizedDailyPopObservations(options = {}) {
+    const journal = await store.load();
+    const allRecords = Array.isArray(journal?.records) ? journal.records : [];
+
+    const tickerFilter = options.ticker ? normalizeSymbol(options.ticker) : null;
+    const modeRaw = String(options.mode ?? "all").trim().toLowerCase();
+    const modeFilter = modeRaw === "safe" ? "safe" : modeRaw === "aggressive" ? "aggressive" : null;
+    const limitValue = Number.isFinite(Number(options.limit)) && Number(options.limit) > 0
+      ? Math.min(Math.max(1, Number(options.limit)), 50000)
+      : 5000;
+
+    function extractRecordPremium(record) {
+      return (
+        toNumberOrNull(record?.strike?.premium) ??
+        toNumberOrNull(record?.strike?.mid) ??
+        toNumberOrNull(record?.strike?.bid) ??
+        null
+      );
+    }
+
+    function buildGroupKey(record) {
+      const t = normalizeSymbol(record?.symbol);
+      const m = String(record?.strikeMode ?? "").trim().toLowerCase();
+      const d = String(toNumberOrNull(record?.dteAtScan) ?? "na");
+      const s = String(toNumberOrNull(record?.strike?.strike) ?? "na");
+      const e = String(record?.expiration ?? "").trim();
+      const sd = String(record?.scanDate ?? "").trim().slice(0, 10);
+      return `${t}|${m}|${d}|${s}|${e}|${sd}`;
+    }
+
+    const groups = new Map();
+    let rawRecordsUsed = 0;
+
+    for (const record of allRecords) {
+      const ticker = normalizeSymbol(record?.symbol);
+      if (!ticker) continue;
+      if (tickerFilter && ticker !== tickerFilter) continue;
+      const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+      if (modeFilter && mode !== modeFilter) continue;
+
+      const key = buildGroupKey(record);
+      if (!groups.has(key)) {
+        groups.set(key, {
+          ticker,
+          mode,
+          dteAtScan: toNumberOrNull(record?.dteAtScan),
+          strike: toNumberOrNull(record?.strike?.strike),
+          expiration: String(record?.expiration ?? "").trim(),
+          scanDate: String(record?.scanDate ?? "").trim().slice(0, 10),
+          records: [],
+        });
+      }
+      groups.get(key).records.push(record);
+      rawRecordsUsed += 1;
+    }
+
+    const observations = [];
+    let multiScanGroups = 0;
+    let singleScanGroups = 0;
+    const groupsWithMixedOutcomes = [];
+    const groupsMissingPremiumList = [];
+    const groupsMissingTimestampList = [];
+    const topMultiScanGroups = [];
+
+    for (const group of groups.values()) {
+      const { ticker, mode, dteAtScan, strike, expiration, scanDate, records } = group;
+
+      const sorted = [...records].sort((a, b) => {
+        const ta = a.scanTimestamp ? new Date(a.scanTimestamp).getTime() : (a.scanDate ? new Date(a.scanDate).getTime() : 0);
+        const tb = b.scanTimestamp ? new Date(b.scanTimestamp).getTime() : (b.scanDate ? new Date(b.scanDate).getTime() : 0);
+        return ta - tb;
+      });
+
+      const rawScanCount = sorted.length;
+      if (rawScanCount > 1) multiScanGroups += 1;
+      else singleScanGroups += 1;
+
+      const premiumValues = sorted.map(extractRecordPremium).filter((v) => v != null);
+      if (premiumValues.length === 0) {
+        groupsMissingPremiumList.push({ ticker, mode, scanDate, rawScanCount });
+        continue;
+      }
+
+      const hasMissingTimestamp = sorted.some((r) => !r.scanTimestamp && !r.scanDate);
+      if (hasMissingTimestamp) {
+        groupsMissingTimestampList.push({ ticker, mode, scanDate });
+      }
+
+      const firstRecord = sorted[0];
+      const lastRecord = sorted[rawScanCount - 1];
+
+      const firstPremium = extractRecordPremium(firstRecord) ?? premiumValues[0];
+      const medianPremium = median(premiumValues);
+      const avgPremium = average(premiumValues);
+      const minPremium = Math.min(...premiumValues);
+      const maxPremium = Math.max(...premiumValues);
+
+      const normalizedPremium = rawScanCount === 1
+        ? roundMetric(firstPremium, 4)
+        : roundMetric(0.70 * firstPremium + 0.30 * medianPremium, 4);
+
+      const intradayPremiumRange = roundMetric(maxPremium - minPremium, 4);
+      const intradayPremiumRangePct =
+        medianPremium != null && medianPremium > 0
+          ? roundMetric((intradayPremiumRange / medianPremium) * 100, 2)
+          : null;
+
+      const firstBid = toNumberOrNull(firstRecord?.strike?.bid);
+      const firstAsk = toNumberOrNull(firstRecord?.strike?.ask);
+      const firstMid = toNumberOrNull(firstRecord?.strike?.mid);
+      const spreadPcts = sorted.map((r) => toNumberOrNull(r?.strike?.spreadPct)).filter((v) => v != null);
+      const medianSpreadPct = roundMetric(median(spreadPcts), 4);
+
+      const assignedFlags = sorted.map((r) => getAssignedFlag(r));
+      const expiredOtmFlags = sorted.map((r) => getExpiredOtmFlag(r));
+      const strikeTouchedFlags = sorted.map((r) => getStrikeTouchedFlag(r));
+      const brokeLowerBoundFlags = sorted.map((r) => getBrokeLowerBoundFlag(r));
+
+      const assignedFlag = assignedFlags.some((v) => v === true) ? true : assignedFlags.some((v) => v != null) ? false : null;
+      const expiredOtmKnown = expiredOtmFlags.filter((v) => v != null);
+      const expiredOtmTrueCount = expiredOtmKnown.filter((v) => v === true).length;
+      const expiredOtm = expiredOtmKnown.length === 0 ? null : expiredOtmTrueCount >= Math.ceil(expiredOtmKnown.length / 2);
+      const strikeTouched = strikeTouchedFlags.some((v) => v === true) ? true : strikeTouchedFlags.some((v) => v != null) ? false : null;
+      const brokeLowerBound = brokeLowerBoundFlags.some((v) => v === true) ? true : brokeLowerBoundFlags.some((v) => v != null) ? false : null;
+
+      let outcomeMergeNote;
+      if (rawScanCount === 1) {
+        outcomeMergeNote = "single_scan";
+      } else {
+        const assignedKnown = assignedFlags.filter((v) => v != null);
+        const expiredKnown = expiredOtmFlags.filter((v) => v != null);
+        const assignedConsistent = assignedKnown.length <= 1 || assignedKnown.every((v) => v === assignedKnown[0]);
+        const expiredConsistent = expiredKnown.length <= 1 || expiredKnown.every((v) => v === expiredKnown[0]);
+        outcomeMergeNote = assignedConsistent && expiredConsistent ? "multi_scan_consistent" : "multi_scan_mixed_outcome";
+      }
+
+      if (outcomeMergeNote === "multi_scan_mixed_outcome") {
+        groupsWithMixedOutcomes.push({ ticker, mode, scanDate, rawScanCount });
+      }
+      if (rawScanCount > 1) {
+        topMultiScanGroups.push({ ticker, mode, dteAtScan, strike, expiration, scanDate, rawScanCount });
+      }
+
+      observations.push({
+        ticker,
+        mode,
+        dteAtScan,
+        strike,
+        expiration,
+        scanDate,
+        rawScanCount,
+        firstScanTimestamp: firstRecord?.scanTimestamp ?? firstRecord?.scanDate ?? null,
+        lastScanTimestamp: lastRecord?.scanTimestamp ?? lastRecord?.scanDate ?? null,
+        firstPremium: roundMetric(firstPremium, 4),
+        medianPremium: roundMetric(medianPremium, 4),
+        avgPremium: roundMetric(avgPremium, 4),
+        minPremium: roundMetric(minPremium, 4),
+        maxPremium: roundMetric(maxPremium, 4),
+        normalizedPremium,
+        intradayPremiumRange,
+        intradayPremiumRangePct,
+        firstBid,
+        firstAsk,
+        firstMid,
+        medianSpreadPct,
+        assignedFlag,
+        expiredOtm,
+        strikeTouched,
+        brokeLowerBound,
+        outcomeMergeNote,
+        sourceRecordIds: sorted.map((r) => String(r?.id ?? "")).filter(Boolean),
+      });
+    }
+
+    observations.sort((a, b) => {
+      if (b.rawScanCount !== a.rawScanCount) return b.rawScanCount - a.rawScanCount;
+      if (b.scanDate !== a.scanDate) return b.scanDate.localeCompare(a.scanDate);
+      return a.ticker.localeCompare(b.ticker);
+    });
+
+    const limitedObs = observations.slice(0, limitValue);
+    topMultiScanGroups.sort((a, b) => b.rawScanCount - a.rawScanCount);
+    const tickersSet = new Set(observations.map((o) => o.ticker));
+    const avgScansPerObs = observations.length > 0 ? rawRecordsUsed / observations.length : null;
+    const maxScansInOneGroup = observations.length > 0 ? Math.max(...observations.map((o) => o.rawScanCount)) : 0;
+
+    return {
+      ok: true,
+      summary: {
+        raw_records_used: rawRecordsUsed,
+        normalized_observations: observations.length,
+        compression_ratio: observations.length > 0 ? roundMetric(rawRecordsUsed / observations.length, 3) : null,
+        multi_scan_groups: multiScanGroups,
+        single_scan_groups: singleScanGroups,
+        tickers_count: tickersSet.size,
+        avg_scans_per_observation: avgScansPerObs != null ? roundMetric(avgScansPerObs, 2) : null,
+        max_scans_in_one_group: maxScansInOneGroup,
+        generatedAt: new Date().toISOString(),
+      },
+      observations: limitedObs,
+      diagnostics: {
+        groups_with_mixed_outcomes: groupsWithMixedOutcomes.length,
+        groups_missing_premium: groupsMissingPremiumList.length,
+        groups_missing_timestamp: groupsMissingTimestampList.length,
+        top_multi_scan_groups: topMultiScanGroups.slice(0, 5),
+      },
+    };
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
@@ -3068,6 +3277,7 @@ export function createWheelValidationService(options = {}) {
     computeModeComparison,
     computePremiumStability,
     computeTickerRanking,
+    computeNormalizedDailyPopObservations,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

@@ -2700,6 +2700,21 @@ app.get("/journal/wheel-validation/ticker-ranking", async (req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/normalized-observations", async (req, res) => {
+  try {
+    const { ticker, mode, limit } = req.query;
+    const result = await wheelValidationService.computeNormalizedDailyPopObservations({
+      ticker,
+      mode,
+      limit: limit != null ? Number(limit) : undefined,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[normalized-observations]", error);
+    res.status(500).json({ ok: false, error: error?.message || "normalized_observations_failed" });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

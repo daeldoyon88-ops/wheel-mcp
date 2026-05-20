@@ -1644,6 +1644,12 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [rankingModeFilter, setRankingModeFilter] = useState("tous");
   const [rankingConfidenceFilter, setRankingConfidenceFilter] = useState("tous");
 
+  // Normalized observations V2-M — read-only audit layer
+  const [normalizedObs, setNormalizedObs] = useState(null);
+  const [normTickerFilter, setNormTickerFilter] = useState("");
+  const [normModeFilter, setNormModeFilter] = useState("all");
+  const [normMultiScanOnly, setNormMultiScanOnly] = useState(false);
+
   const uniqueJournalSymbols = useMemo(() => {
     if (!Array.isArray(journal?.records)) return [];
     const seen = new Set();
@@ -1677,7 +1683,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
@@ -1686,6 +1692,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/ticker-ranking?limit=100`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/normalized-observations?limit=5000`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
@@ -1695,6 +1702,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
       const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
       const tickerRankingPayload = tickerRankingResponse ? await tickerRankingResponse.json().catch(() => null) : null;
+      const normalizedObsPayload = normalizedObsResponse ? await normalizedObsResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
@@ -1705,6 +1713,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       if (modeComparisonPayload?.ok) setModeComparison(modeComparisonPayload.modeComparison ?? null);
       if (premiumStabilityPayload?.ok) setPremiumStability(premiumStabilityPayload);
       if (tickerRankingPayload?.ok) setTickerRanking(tickerRankingPayload);
+      if (normalizedObsPayload?.ok) setNormalizedObs(normalizedObsPayload);
       setTheoreticalCyclesPayload(
         theoreticalCyclesJson?.ok
           ? {
@@ -5091,6 +5100,148 @@ export default function JournalPopPanel({ apiBase, active }) {
           </CollapsibleSection>
         </>
       )}
+
+      {/* ── Observations normalisées V2-M ─────────────────────────────────── */}
+      {hasLoaded && normalizedObs && (() => {
+        const summary = normalizedObs.summary ?? {};
+        const diagnostics = normalizedObs.diagnostics ?? {};
+        const allObs = Array.isArray(normalizedObs.observations) ? normalizedObs.observations : [];
+
+        const tickerSearch = normTickerFilter.trim().toUpperCase();
+        let filtered = allObs;
+        if (tickerSearch) filtered = filtered.filter((o) => o.ticker.includes(tickerSearch));
+        if (normModeFilter !== "all") filtered = filtered.filter((o) => o.mode === normModeFilter);
+        if (normMultiScanOnly) filtered = filtered.filter((o) => o.rawScanCount > 1);
+
+        const compressionPct = summary.compression_ratio != null
+          ? `${summary.compression_ratio.toFixed(2)}x`
+          : "—";
+
+        return (
+          <CollapsibleSection
+            title="Observations normalisées"
+            badge={`${summary.normalized_observations ?? 0} observations`}
+            subtitle="Regroupe les scans similaires d'une même journée pour éviter de surpondérer un ticker scanné plusieurs fois."
+            defaultOpen={false}
+            summaryRight={summary.compression_ratio != null ? `Compression : ${compressionPct}` : undefined}
+          >
+            {/* Summary cards */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+              <ProKpi label="Records bruts" value={summary.raw_records_used ?? "—"} tone="default" />
+              <ProKpi label="Observations normalisées" value={summary.normalized_observations ?? "—"} tone="info" />
+              <ProKpi label="Compression" value={compressionPct} tone={summary.compression_ratio > 1 ? "warn" : "good"} />
+              <ProKpi label="Groupes multi-scan" value={summary.multi_scan_groups ?? "—"} tone={summary.multi_scan_groups > 0 ? "warn" : "default"} />
+            </div>
+
+            {/* Diagnostics row */}
+            <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-[11px] text-slate-500">
+              <div>Tickers : <span className="text-slate-300">{summary.tickers_count ?? "—"}</span></div>
+              <div>Moy. scans/obs : <span className="text-slate-300">{summary.avg_scans_per_observation ?? "—"}</span></div>
+              <div>Max scans/groupe : <span className="text-slate-300">{summary.max_scans_in_one_group ?? "—"}</span></div>
+              <div>Outcomes mixtes : <span className={diagnostics.groups_with_mixed_outcomes > 0 ? "text-amber-400" : "text-slate-300"}>{diagnostics.groups_with_mixed_outcomes ?? 0}</span></div>
+            </div>
+
+            {/* Filters */}
+            <div className="mb-4 flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Ticker…"
+                value={normTickerFilter}
+                onChange={(e) => setNormTickerFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-28"
+              />
+              <select
+                value={normModeFilter}
+                onChange={(e) => setNormModeFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="all">Mode : tous</option>
+                <option value="safe">Safe</option>
+                <option value="aggressive">Aggressive</option>
+              </select>
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={normMultiScanOnly}
+                  onChange={(e) => setNormMultiScanOnly(e.target.checked)}
+                  className="accent-amber-500"
+                />
+                Multi-scan seulement
+              </label>
+              <span className="self-center text-[11px] text-slate-600">{filtered.length} / {allObs.length} obs.</span>
+            </div>
+
+            {/* Table */}
+            {filtered.length === 0 ? (
+              <p className="text-sm text-slate-600 py-4">Aucune observation ne correspond aux filtres.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      {["Ticker", "Mode", "DTE", "Strike", "Date scan", "Scans", "Prime norm.", "Variation intraday"].map((h) => (
+                        <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filtered.slice(0, 200).map((obs, idx) => {
+                      const isMulti = obs.rawScanCount > 1;
+                      const rangePct = obs.intradayPremiumRangePct;
+                      const rangeColor = rangePct == null ? "text-slate-500" : rangePct > 20 ? "text-rose-400" : rangePct > 8 ? "text-amber-400" : "text-emerald-400";
+                      return (
+                        <tr key={`${obs.ticker}-${obs.mode}-${obs.scanDate}-${obs.strike}-${idx}`} className="align-top">
+                          <td className="px-3 py-2.5 font-semibold text-slate-100 whitespace-nowrap">{obs.ticker}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <span className={obs.mode === "aggressive" ? "text-rose-400" : "text-emerald-400"}>
+                              {obs.mode === "aggressive" ? "Agressif" : "Safe"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{obs.dteAtScan ?? "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{obs.strike != null ? `$${obs.strike}` : "—"}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap text-slate-400">{obs.scanDate || "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                            <span className={isMulti ? "text-amber-400 font-semibold" : "text-slate-500"}>{obs.rawScanCount}</span>
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <div className="tabular-nums text-slate-100 font-semibold">
+                              {obs.normalizedPremium != null ? `$${obs.normalizedPremium.toFixed(2)}` : "—"}
+                            </div>
+                            {isMulti && (
+                              <div className="mt-0.5 text-[10px] text-slate-500 tabular-nums">
+                                1er ${obs.firstPremium?.toFixed(2) ?? "—"} · méd. ${obs.medianPremium?.toFixed(2) ?? "—"}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            {isMulti ? (
+                              <div>
+                                <span className={`tabular-nums ${rangeColor}`}>
+                                  {obs.intradayPremiumRange != null ? `$${obs.intradayPremiumRange.toFixed(2)}` : "—"}
+                                </span>
+                                {rangePct != null && (
+                                  <span className={`ml-1 text-[10px] ${rangeColor}`}>({rangePct.toFixed(1)}%)</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filtered.length > 200 && (
+                  <p className="px-4 py-2 text-[11px] text-slate-600">
+                    Affichage limité à 200 lignes sur {filtered.length} ({filtered.length - 200} masquées).
+                  </p>
+                )}
+              </div>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
     </div>
   );
 }

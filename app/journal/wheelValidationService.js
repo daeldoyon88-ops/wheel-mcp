@@ -3268,6 +3268,404 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computeSafeAggressiveComparison(options = {}) {
+    const tickerFilter = options.ticker ? normalizeSymbol(options.ticker) : null;
+    const dteFilter = toNumberOrNull(options.dte);
+    const limitValue = Number.isFinite(Number(options.limit)) && Number(options.limit) > 0
+      ? Math.min(Math.max(1, Number(options.limit)), 50000)
+      : 5000;
+    const minSample = Number.isFinite(Number(options.minSample)) && Number(options.minSample) > 0
+      ? Math.max(1, Math.trunc(Number(options.minSample)))
+      : 2;
+
+    const normalizedResult = await computeNormalizedDailyPopObservations({
+      ticker: tickerFilter ?? undefined,
+      limit: limitValue,
+    });
+    let observations = Array.isArray(normalizedResult?.observations) ? normalizedResult.observations : [];
+    if (dteFilter != null) {
+      observations = observations.filter((obs) => toNumberOrNull(obs?.dteAtScan) === dteFilter);
+    }
+
+    function buildSampleQuality(sampleCount) {
+      if (sampleCount === 0) return "absent";
+      if (sampleCount < 5) return "faible";
+      if (sampleCount < 15) return "moyen";
+      return "bon";
+    }
+
+    function buildRatePct(rows, selector, useKnownDenominator = false) {
+      const source = useKnownDenominator ? rows.filter((row) => selector(row) != null) : rows;
+      if (source.length === 0) return null;
+      const count = source.filter((row) => selector(row) === true).length;
+      return roundMetric((count / source.length) * 100, 2);
+    }
+
+    function buildModeStats(rows) {
+      const sampleCount = rows.length;
+      if (sampleCount === 0) {
+        return {
+          sampleCount: 0,
+          sampleQuality: "absent",
+          avgPremium: null,
+          medianPremium: null,
+          minPremium: null,
+          maxPremium: null,
+          avgPremiumPerDay: null,
+          medianPremiumPerDay: null,
+          assignmentRatePct: null,
+          otmRatePct: null,
+          strikeTouchedRatePct: null,
+          brokeLowerBoundRatePct: null,
+          avgSpreadPct: null,
+          medianSpreadPct: null,
+          avgStrike: null,
+          medianStrike: null,
+        };
+      }
+
+      const premiums = rows.map((row) => toNumberOrNull(row?.normalizedPremium)).filter((v) => v != null);
+      const premiumsPerDay = rows
+        .map((row) => {
+          const premium = toNumberOrNull(row?.normalizedPremium);
+          const dte = toNumberOrNull(row?.dteAtScan);
+          if (premium == null || dte == null) return null;
+          return premium / Math.max(dte, 1);
+        })
+        .filter((v) => v != null);
+      const spreadPcts = rows.map((row) => toNumberOrNull(row?.medianSpreadPct)).filter((v) => v != null);
+      const strikes = rows.map((row) => toNumberOrNull(row?.strike)).filter((v) => v != null);
+
+      return {
+        sampleCount,
+        sampleQuality: buildSampleQuality(sampleCount),
+        avgPremium: roundMetric(average(premiums), 4),
+        medianPremium: roundMetric(median(premiums), 4),
+        minPremium: premiums.length > 0 ? roundMetric(Math.min(...premiums), 4) : null,
+        maxPremium: premiums.length > 0 ? roundMetric(Math.max(...premiums), 4) : null,
+        avgPremiumPerDay: roundMetric(average(premiumsPerDay), 4),
+        medianPremiumPerDay: roundMetric(median(premiumsPerDay), 4),
+        assignmentRatePct: buildRatePct(rows, (row) => row?.assignedFlag),
+        otmRatePct: buildRatePct(rows, (row) => row?.expiredOtm),
+        strikeTouchedRatePct: buildRatePct(rows, (row) => row?.strikeTouched, true),
+        brokeLowerBoundRatePct: buildRatePct(rows, (row) => row?.brokeLowerBound, true),
+        avgSpreadPct: roundMetric(average(spreadPcts), 2),
+        medianSpreadPct: roundMetric(median(spreadPcts), 2),
+        avgStrike: roundMetric(average(strikes), 2),
+        medianStrike: roundMetric(median(strikes), 2),
+      };
+    }
+
+    function buildPublicModeStats(stats) {
+      return {
+        sampleCount: stats.sampleCount,
+        sampleQuality: stats.sampleQuality,
+        avgPremium: stats.avgPremium,
+        medianPremium: stats.medianPremium,
+        avgPremiumPerDay: stats.avgPremiumPerDay,
+        medianPremiumPerDay: stats.medianPremiumPerDay,
+        assignmentRatePct: stats.assignmentRatePct,
+        otmRatePct: stats.otmRatePct,
+        strikeTouchedRatePct: stats.strikeTouchedRatePct,
+        brokeLowerBoundRatePct: stats.brokeLowerBoundRatePct,
+        medianSpreadPct: stats.medianSpreadPct,
+        medianStrike: stats.medianStrike,
+      };
+    }
+
+    function computeComparisonScore({
+      recommendedMode,
+      premiumLiftPct,
+      assignmentDeltaPct,
+      lowerBoundDeltaPct,
+      aggressiveSpread,
+      safeCount,
+      aggressiveCount,
+    }) {
+      let score = 50;
+      const minCount = Math.min(safeCount, aggressiveCount);
+      if (safeCount < minSample || aggressiveCount < minSample) {
+        return Math.min(55, score);
+      }
+
+      if (premiumLiftPct != null) {
+        if (recommendedMode === "AGRESSIF") {
+          score += Math.min(30, Math.max(0, premiumLiftPct) * 0.35);
+        } else if (recommendedMode === "SAFE") {
+          score += Math.min(25, Math.max(0, 15 - premiumLiftPct) * 1.5);
+        }
+      }
+
+      if (assignmentDeltaPct != null) {
+        score -= Math.max(0, assignmentDeltaPct - 5) * 1.5;
+      }
+      if (lowerBoundDeltaPct != null) {
+        score -= Math.max(0, lowerBoundDeltaPct - 8) * 1.2;
+      }
+      if (aggressiveSpread != null && aggressiveSpread > 20) {
+        score -= (aggressiveSpread - 20) * 0.5;
+      }
+
+      if (minCount < 5) score = Math.min(score, 55);
+      else if (minCount < 15) score = Math.min(score, 75);
+
+      return Math.round(Math.max(0, Math.min(100, score)));
+    }
+
+    function buildDecision({
+      safeStats,
+      aggressiveStats,
+      premiumLiftPct,
+      assignmentDeltaPct,
+      lowerBoundDeltaPct,
+      spreadDeltaPct,
+      comparisonStatus,
+    }) {
+      const reasons = [];
+      const safeCount = safeStats.sampleCount;
+      const aggressiveCount = aggressiveStats.sampleCount;
+      const aggSpread = aggressiveStats.medianSpreadPct;
+
+      if (comparisonStatus === "safe_only" || comparisonStatus === "aggressive_only") {
+        if (comparisonStatus === "safe_only") reasons.push("Seulement des observations SAFE");
+        else reasons.push("Seulement des observations AGRESSIF");
+        return {
+          recommendedMode: "À confirmer",
+          modeDecision: "À confirmer",
+          decisionConfidence: "faible",
+          comparisonScore: Math.min(55, 40),
+          reasons: reasons.slice(0, 3),
+        };
+      }
+
+      if (safeCount < minSample || aggressiveCount < minSample) {
+        reasons.push("Échantillon faible");
+        return {
+          recommendedMode: "À confirmer",
+          modeDecision: "À confirmer",
+          decisionConfidence: "faible",
+          comparisonScore: Math.min(55, 45),
+          reasons: reasons.slice(0, 3),
+        };
+      }
+
+      const safePreferred =
+        (premiumLiftPct != null && premiumLiftPct < 15) ||
+        (assignmentDeltaPct != null && assignmentDeltaPct > 12) ||
+        (lowerBoundDeltaPct != null && lowerBoundDeltaPct > 20) ||
+        (aggSpread != null && aggSpread > 35);
+
+      const aggressivePreferred =
+        premiumLiftPct != null &&
+        premiumLiftPct >= 25 &&
+        (assignmentDeltaPct == null || assignmentDeltaPct <= 8) &&
+        (lowerBoundDeltaPct == null || lowerBoundDeltaPct <= 15) &&
+        (aggSpread == null || aggSpread <= 20);
+
+      let recommendedMode = "À confirmer";
+      let modeDecision = "À confirmer";
+
+      if (safePreferred) {
+        recommendedMode = "SAFE";
+        if (premiumLiftPct != null && premiumLiftPct < 15) {
+          modeDecision = "SAFE préféré : prime agressive insuffisamment supérieure";
+          reasons.push("SAFE préféré : prime similaire");
+        } else if (assignmentDeltaPct != null && assignmentDeltaPct > 12) {
+          modeDecision = "AGRESSIF trop stressé";
+          reasons.push(`Assignation +${assignmentDeltaPct.toFixed(1)} %`);
+        } else if (lowerBoundDeltaPct != null && lowerBoundDeltaPct > 20) {
+          modeDecision = "AGRESSIF trop stressé";
+          reasons.push("Borne basse plus souvent cassée");
+        } else if (aggSpread != null && aggSpread > 35) {
+          modeDecision = "AGRESSIF paie plus mais exécution trop faible";
+          reasons.push("Spread agressif trop large");
+        }
+      } else if (aggressivePreferred) {
+        recommendedMode = "AGRESSIF";
+        if (premiumLiftPct != null && premiumLiftPct >= 25) {
+          reasons.push(`AGRESSIF +${premiumLiftPct.toFixed(0)} % de prime`);
+        }
+        if (assignmentDeltaPct != null && assignmentDeltaPct <= 8) {
+          reasons.push(`Assignation +${assignmentDeltaPct.toFixed(1)} % seulement`);
+        }
+        if (aggSpread == null || aggSpread <= 20) {
+          reasons.push("Spread agressif acceptable");
+        }
+        if (
+          premiumLiftPct != null &&
+          premiumLiftPct >= 25 &&
+          assignmentDeltaPct != null &&
+          assignmentDeltaPct > 0 &&
+          assignmentDeltaPct <= 8
+        ) {
+          modeDecision = "AGRESSIF paie beaucoup plus, risque encore acceptable";
+        } else {
+          modeDecision = "AGRESSIF recommandé";
+        }
+      } else {
+        if (premiumLiftPct != null) {
+          reasons.push(`Écart prime ${premiumLiftPct >= 0 ? "+" : ""}${premiumLiftPct.toFixed(1)} %`);
+        }
+        if (assignmentDeltaPct != null) {
+          reasons.push(`Écart assignation ${assignmentDeltaPct >= 0 ? "+" : ""}${assignmentDeltaPct.toFixed(1)} %`);
+        }
+        if (spreadDeltaPct != null) {
+          reasons.push(`Écart spread ${spreadDeltaPct >= 0 ? "+" : ""}${spreadDeltaPct.toFixed(1)} %`);
+        }
+      }
+
+      const comparisonScore = computeComparisonScore({
+        recommendedMode,
+        premiumLiftPct,
+        assignmentDeltaPct,
+        lowerBoundDeltaPct,
+        aggressiveSpread: aggSpread,
+        safeCount,
+        aggressiveCount,
+      });
+
+      const decisionConfidence =
+        comparisonScore >= 75 ? "élevée" : comparisonScore >= 55 ? "moyenne" : "faible";
+
+      return {
+        recommendedMode,
+        modeDecision,
+        decisionConfidence,
+        comparisonScore,
+        reasons: reasons.slice(0, 3),
+      };
+    }
+
+    const groupMap = new Map();
+    for (const obs of observations) {
+      const ticker = normalizeSymbol(obs?.ticker);
+      const dteAtScan = toNumberOrNull(obs?.dteAtScan);
+      const mode = String(obs?.mode ?? "").trim().toLowerCase();
+      if (!ticker || dteAtScan == null) continue;
+      if (mode !== "safe" && mode !== "aggressive") continue;
+
+      const key = `${ticker}|${dteAtScan}`;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, { ticker, dteAtScan, safe: [], aggressive: [] });
+      }
+      groupMap.get(key)[mode === "safe" ? "safe" : "aggressive"].push(obs);
+    }
+
+    const allComparisons = [];
+    for (const group of groupMap.values()) {
+      const safeStats = buildModeStats(group.safe);
+      const aggressiveStats = buildModeStats(group.aggressive);
+
+      let comparisonStatus = "comparable";
+      if (safeStats.sampleCount === 0 && aggressiveStats.sampleCount > 0) {
+        comparisonStatus = "aggressive_only";
+      } else if (aggressiveStats.sampleCount === 0 && safeStats.sampleCount > 0) {
+        comparisonStatus = "safe_only";
+      }
+
+      const premiumLiftAbs =
+        safeStats.avgPremium != null && aggressiveStats.avgPremium != null
+          ? roundMetric(aggressiveStats.avgPremium - safeStats.avgPremium, 4)
+          : null;
+      const premiumLiftPct =
+        safeStats.avgPremium != null &&
+        aggressiveStats.avgPremium != null &&
+        safeStats.avgPremium !== 0
+          ? roundMetric(((aggressiveStats.avgPremium - safeStats.avgPremium) / safeStats.avgPremium) * 100, 2)
+          : null;
+      const assignmentDeltaPct =
+        safeStats.assignmentRatePct != null && aggressiveStats.assignmentRatePct != null
+          ? roundMetric(aggressiveStats.assignmentRatePct - safeStats.assignmentRatePct, 2)
+          : null;
+      const strikeTouchedDeltaPct =
+        safeStats.strikeTouchedRatePct != null && aggressiveStats.strikeTouchedRatePct != null
+          ? roundMetric(aggressiveStats.strikeTouchedRatePct - safeStats.strikeTouchedRatePct, 2)
+          : null;
+      const lowerBoundDeltaPct =
+        safeStats.brokeLowerBoundRatePct != null && aggressiveStats.brokeLowerBoundRatePct != null
+          ? roundMetric(aggressiveStats.brokeLowerBoundRatePct - safeStats.brokeLowerBoundRatePct, 2)
+          : null;
+      const spreadDeltaPct =
+        safeStats.medianSpreadPct != null && aggressiveStats.medianSpreadPct != null
+          ? roundMetric(aggressiveStats.medianSpreadPct - safeStats.medianSpreadPct, 2)
+          : null;
+
+      const decision = buildDecision({
+        safeStats,
+        aggressiveStats,
+        premiumLiftPct,
+        assignmentDeltaPct,
+        lowerBoundDeltaPct,
+        spreadDeltaPct,
+        comparisonStatus,
+      });
+
+      allComparisons.push({
+        ticker: group.ticker,
+        dteAtScan: group.dteAtScan,
+        safe: buildPublicModeStats(safeStats),
+        aggressive: buildPublicModeStats(aggressiveStats),
+        premiumLiftAbs,
+        premiumLiftPct,
+        assignmentDeltaPct,
+        strikeTouchedDeltaPct,
+        lowerBoundDeltaPct,
+        spreadDeltaPct,
+        comparisonStatus,
+        recommendedMode: decision.recommendedMode,
+        comparisonScore: decision.comparisonScore,
+        decisionConfidence: decision.decisionConfidence,
+        modeDecision: decision.modeDecision,
+        reasons: decision.reasons,
+      });
+    }
+
+    allComparisons.sort((a, b) => {
+      if (b.comparisonScore !== a.comparisonScore) return b.comparisonScore - a.comparisonScore;
+      const liftA = a.premiumLiftPct ?? -Infinity;
+      const liftB = b.premiumLiftPct ?? -Infinity;
+      if (liftB !== liftA) return liftB - liftA;
+      if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+      return (a.dteAtScan ?? 0) - (b.dteAtScan ?? 0);
+    });
+
+    const comparisons = allComparisons.slice(0, limitValue);
+    const tickersSet = new Set(allComparisons.map((item) => item.ticker));
+    const dteSet = new Set(allComparisons.map((item) => item.dteAtScan));
+    const comparableGroups = allComparisons.filter((item) => item.comparisonStatus === "comparable").length;
+    const safeOnlyGroups = allComparisons.filter((item) => item.comparisonStatus === "safe_only").length;
+    const aggressiveOnlyGroups = allComparisons.filter((item) => item.comparisonStatus === "aggressive_only").length;
+    const aggressiveRecommended = allComparisons.filter((item) => item.recommendedMode === "AGRESSIF").length;
+    const safeRecommended = allComparisons.filter((item) => item.recommendedMode === "SAFE").length;
+
+    return {
+      ok: true,
+      summary: {
+        comparisons_total: allComparisons.length,
+        tickers_count: tickersSet.size,
+        dte_count: dteSet.size,
+        observations_used: observations.length,
+        comparable_groups: comparableGroups,
+        safe_only_groups: safeOnlyGroups,
+        aggressive_only_groups: aggressiveOnlyGroups,
+        aggressive_recommended: aggressiveRecommended,
+        safe_recommended: safeRecommended,
+        generatedAt: new Date().toISOString(),
+      },
+      comparisons,
+      diagnostics: {
+        min_sample_used: minSample,
+        observations_source: normalizedResult?.summary ?? null,
+        confirm_count: allComparisons.filter((item) => item.recommendedMode === "À confirmer").length,
+        weak_sample_groups: allComparisons.filter(
+          (item) =>
+            item.comparisonStatus === "comparable" &&
+            (item.safe?.sampleQuality === "faible" || item.aggressive?.sampleQuality === "faible")
+        ).length,
+      },
+    };
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
@@ -3278,6 +3676,7 @@ export function createWheelValidationService(options = {}) {
     computePremiumStability,
     computeTickerRanking,
     computeNormalizedDailyPopObservations,
+    computeSafeAggressiveComparison,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

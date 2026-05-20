@@ -2715,6 +2715,22 @@ app.get("/journal/wheel-validation/normalized-observations", async (req, res) =>
   }
 });
 
+app.get("/journal/wheel-validation/safe-aggressive-comparison", async (req, res) => {
+  try {
+    const { ticker, dte, limit, minSample } = req.query;
+    const result = await wheelValidationService.computeSafeAggressiveComparison({
+      ticker,
+      dte: dte != null ? Number(dte) : undefined,
+      limit: limit != null ? Number(limit) : undefined,
+      minSample: minSample != null ? Number(minSample) : undefined,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[safe-aggressive-comparison]", error);
+    res.status(500).json({ ok: false, error: error?.message || "safe_aggressive_comparison_failed" });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

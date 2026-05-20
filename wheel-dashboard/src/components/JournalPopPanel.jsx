@@ -1650,6 +1650,13 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [normModeFilter, setNormModeFilter] = useState("all");
   const [normMultiScanOnly, setNormMultiScanOnly] = useState(false);
 
+  // Safe vs Aggressive comparison V2-N — read-only
+  const [safeAggComparison, setSafeAggComparison] = useState(null);
+  const [saTickerFilter, setSaTickerFilter] = useState("");
+  const [saDteFilter, setSaDteFilter] = useState("tous");
+  const [saModeFilter, setSaModeFilter] = useState("tous");
+  const [saComparableOnly, setSaComparableOnly] = useState(false);
+
   const uniqueJournalSymbols = useMemo(() => {
     if (!Array.isArray(journal?.records)) return [];
     const seen = new Set();
@@ -1683,7 +1690,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
@@ -1693,6 +1700,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/ticker-ranking?limit=100`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/normalized-observations?limit=5000`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/safe-aggressive-comparison?limit=5000`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
@@ -1703,6 +1711,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
       const tickerRankingPayload = tickerRankingResponse ? await tickerRankingResponse.json().catch(() => null) : null;
       const normalizedObsPayload = normalizedObsResponse ? await normalizedObsResponse.json().catch(() => null) : null;
+      const safeAggComparisonPayload = safeAggComparisonResponse ? await safeAggComparisonResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
@@ -1714,6 +1723,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       if (premiumStabilityPayload?.ok) setPremiumStability(premiumStabilityPayload);
       if (tickerRankingPayload?.ok) setTickerRanking(tickerRankingPayload);
       if (normalizedObsPayload?.ok) setNormalizedObs(normalizedObsPayload);
+      if (safeAggComparisonPayload?.ok) setSafeAggComparison(safeAggComparisonPayload);
       setTheoreticalCyclesPayload(
         theoreticalCyclesJson?.ok
           ? {
@@ -5100,6 +5110,174 @@ export default function JournalPopPanel({ apiBase, active }) {
           </CollapsibleSection>
         </>
       )}
+
+      {/* ── SAFE vs AGRESSIF V2-N ─────────────────────────────────────────── */}
+      {hasLoaded && safeAggComparison && (() => {
+        const summary = safeAggComparison.summary ?? {};
+        const allRows = Array.isArray(safeAggComparison.comparisons) ? safeAggComparison.comparisons : [];
+
+        const tickerSearch = saTickerFilter.trim().toUpperCase();
+        let filtered = allRows;
+        if (tickerSearch) filtered = filtered.filter((row) => String(row.ticker ?? "").includes(tickerSearch));
+        if (saDteFilter !== "tous") {
+          const dteNum = Number(saDteFilter);
+          if (Number.isFinite(dteNum)) filtered = filtered.filter((row) => row.dteAtScan === dteNum);
+        }
+        if (saModeFilter === "SAFE") filtered = filtered.filter((row) => row.recommendedMode === "SAFE");
+        else if (saModeFilter === "AGRESSIF") filtered = filtered.filter((row) => row.recommendedMode === "AGRESSIF");
+        else if (saModeFilter === "confirm") filtered = filtered.filter((row) => row.recommendedMode === "À confirmer");
+        if (saComparableOnly) filtered = filtered.filter((row) => row.comparisonStatus === "comparable");
+
+        const uniqueDtes = [...new Set(allRows.map((row) => row.dteAtScan).filter((v) => v != null))].sort((a, b) => a - b);
+
+        const getModeTone = (mode) => {
+          if (mode === "AGRESSIF") return "text-rose-400";
+          if (mode === "SAFE") return "text-emerald-400";
+          return "text-amber-400";
+        };
+
+        return (
+          <CollapsibleSection
+            title="SAFE vs AGRESSIF"
+            badge="V2-N"
+            subtitle="Compare la prime moyenne et le risque par ticker/DTE pour expliquer le mode recommandé."
+            defaultOpen={false}
+            summaryRight={
+              summary.comparable_groups != null
+                ? `${summary.comparable_groups} comparables · ${summary.aggressive_recommended ?? 0} AGRESSIF · ${summary.safe_recommended ?? 0} SAFE`
+                : undefined
+            }
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+              <ProKpi label="Comparaisons" value={summary.comparisons_total ?? "—"} tone="default" />
+              <ProKpi label="Comparables SAFE+AGRESSIF" value={summary.comparable_groups ?? "—"} tone="info" />
+              <ProKpi label="AGRESSIF recommandé" value={summary.aggressive_recommended ?? "—"} tone="warn" />
+              <ProKpi label="SAFE recommandé" value={summary.safe_recommended ?? "—"} tone="good" />
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Ticker…"
+                value={saTickerFilter}
+                onChange={(e) => setSaTickerFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-28"
+              />
+              <select
+                value={saDteFilter}
+                onChange={(e) => setSaDteFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">DTE : tous</option>
+                {uniqueDtes.map((dte) => (
+                  <option key={dte} value={String(dte)}>DTE {dte}</option>
+                ))}
+              </select>
+              <select
+                value={saModeFilter}
+                onChange={(e) => setSaModeFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Mode : tous</option>
+                <option value="SAFE">SAFE recommandé</option>
+                <option value="AGRESSIF">AGRESSIF recommandé</option>
+                <option value="confirm">À confirmer</option>
+              </select>
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saComparableOnly}
+                  onChange={(e) => setSaComparableOnly(e.target.checked)}
+                  className="accent-amber-500"
+                />
+                Comparables seulement
+              </label>
+              <span className="self-center text-[11px] text-slate-600">{filtered.length} / {allRows.length} lignes</span>
+            </div>
+
+            {filtered.length === 0 ? (
+              <p className="text-sm text-slate-600 py-4">Aucune comparaison ne correspond aux filtres.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      {["Ticker", "DTE", "SAFE moy.", "AGR moy.", "Écart prime", "Écart assign.", "Spread AGR", "Mode", "Lecture"].map((h) => (
+                        <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filtered.slice(0, 200).map((row, idx) => {
+                      const safe = row.safe ?? {};
+                      const agg = row.aggressive ?? {};
+                      return (
+                        <tr key={`${row.ticker}-${row.dteAtScan}-${idx}`} className="align-top">
+                          <td className="px-3 py-2.5 font-semibold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{row.dteAtScan ?? "—"}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <div className="tabular-nums text-emerald-300 font-semibold">
+                              {safe.avgPremium != null ? `$${safe.avgPremium.toFixed(2)}` : "—"}
+                            </div>
+                            <div className="text-[10px] text-slate-500">n={safe.sampleCount ?? 0}</div>
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <div className="tabular-nums text-rose-300 font-semibold">
+                              {agg.avgPremium != null ? `$${agg.avgPremium.toFixed(2)}` : "—"}
+                            </div>
+                            <div className="text-[10px] text-slate-500">n={agg.sampleCount ?? 0}</div>
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            {row.premiumLiftPct != null ? (
+                              <div>
+                                <span className={`tabular-nums font-semibold ${row.premiumLiftPct >= 0 ? "text-sky-400" : "text-amber-400"}`}>
+                                  {row.premiumLiftPct >= 0 ? "+" : ""}{row.premiumLiftPct.toFixed(1)}%
+                                </span>
+                                {row.premiumLiftAbs != null && (
+                                  <div className="text-[10px] text-slate-500 tabular-nums">
+                                    {row.premiumLiftAbs >= 0 ? "+" : ""}${row.premiumLiftAbs.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            ) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                            {row.assignmentDeltaPct != null ? (
+                              <span className={row.assignmentDeltaPct > 8 ? "text-rose-400" : row.assignmentDeltaPct <= 5 ? "text-emerald-400" : "text-amber-400"}>
+                                {row.assignmentDeltaPct >= 0 ? "+" : ""}{row.assignmentDeltaPct.toFixed(1)}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                            {agg.medianSpreadPct != null ? (
+                              <span className={agg.medianSpreadPct > 35 ? "text-rose-400" : agg.medianSpreadPct <= 20 ? "text-emerald-400" : "text-amber-400"}>
+                                {agg.medianSpreadPct.toFixed(1)}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <span className={`font-semibold ${getModeTone(row.recommendedMode)}`}>
+                              {row.recommendedMode ?? "—"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] text-slate-400 max-w-[220px]">
+                            {row.modeDecision ?? "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filtered.length > 200 && (
+                  <p className="px-4 py-2 text-[11px] text-slate-600">
+                    Affichage limité à 200 lignes sur {filtered.length} ({filtered.length - 200} masquées).
+                  </p>
+                )}
+              </div>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
 
       {/* ── Observations normalisées V2-M ─────────────────────────────────── */}
       {hasLoaded && normalizedObs && (() => {

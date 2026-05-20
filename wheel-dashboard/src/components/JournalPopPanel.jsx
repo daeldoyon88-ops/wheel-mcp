@@ -89,6 +89,36 @@ function formatTheoreticalCycleMode(value) {
   return value ? String(value) : "—";
 }
 
+function formatStrikeModeLabel(value) {
+  if (value === "safe") return "Safe";
+  if (value === "aggressive") return "Aggressive";
+  return value ? String(value) : "—";
+}
+
+function getPremiumStabilityTone(value) {
+  if (value === "stable") return "text-emerald-400";
+  if (value === "variable") return "text-amber-400";
+  if (value === "volatile") return "text-rose-400";
+  if (value === "échantillon faible") return "text-slate-500";
+  return "text-slate-400";
+}
+
+function getPremiumStabilityBadgeClass(value) {
+  if (value === "stable") return "border-emerald-800/50 bg-emerald-900/20 text-emerald-400";
+  if (value === "variable") return "border-amber-800/50 bg-amber-900/20 text-amber-400";
+  if (value === "volatile") return "border-rose-800/50 bg-rose-900/20 text-rose-400";
+  if (value === "échantillon faible") return "border-slate-700 bg-slate-800 text-slate-500";
+  return "border-slate-700 bg-slate-800 text-slate-400";
+}
+
+function getPremiumReadingTone(reading) {
+  if (reading === "Prime supérieure à la normale") return "text-sky-400";
+  if (reading === "Prime dans la zone normale") return "text-emerald-400";
+  if (reading === "Prime inférieure à la normale") return "text-amber-400";
+  if (reading === "Échantillon faible") return "text-slate-500";
+  return "text-slate-400";
+}
+
 function formatTheoreticalCyclePriceRule(value) {
   const labels = {
     next_session_open: "Open J+1",
@@ -1591,6 +1621,13 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [dteSampleFilter, setDteSampleFilter] = useState("tous");
   const [dteReadingFilter, setDteReadingFilter] = useState("tous");
 
+  // Premium stability V2-K — read-only
+  const [premiumStability, setPremiumStability] = useState(null);
+  const [premiumStabilityTickerSearch, setPremiumStabilityTickerSearch] = useState("");
+  const [premiumStabilityModeFilter, setPremiumStabilityModeFilter] = useState("tous");
+  const [premiumStabilityLabelFilter, setPremiumStabilityLabelFilter] = useState("tous");
+  const [premiumStabilityDteFilter, setPremiumStabilityDteFilter] = useState("tous");
+
   // Seasonality V1 — read-only
   const [journalSeasonality, setJournalSeasonality] = useState(null);
   const [seasonalityLoading, setSeasonalityLoading] = useState(false);
@@ -1633,13 +1670,14 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
         fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
       ]);
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
@@ -1647,6 +1685,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       const capitalPayload = capitalResponse ? await capitalResponse.json().catch(() => null) : null;
       const modeComparisonPayload = modeComparisonResponse ? await modeComparisonResponse.json().catch(() => null) : null;
       const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
+      const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
       if (!journalResponse.ok || payload?.ok !== true) throw new Error(payload?.error || "journal_fetch_failed");
       if (!cohortResponse.ok || cohortPayload?.ok !== true) throw new Error(cohortPayload?.error || "journal_cohort_summary_fetch_failed");
       if (!calibrationResponse.ok || calibrationPayload?.ok !== true) throw new Error(calibrationPayload?.error || "journal_calibration_summary_fetch_failed");
@@ -1655,6 +1694,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       setCalibrationSummary(calibrationPayload.calibration ?? null);
       setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload, capitalPayload]));
       if (modeComparisonPayload?.ok) setModeComparison(modeComparisonPayload.modeComparison ?? null);
+      if (premiumStabilityPayload?.ok) setPremiumStability(premiumStabilityPayload);
       setTheoreticalCyclesPayload(
         theoreticalCyclesJson?.ok
           ? {
@@ -1914,6 +1954,51 @@ export default function JournalPopPanel({ apiBase, active }) {
     return getBestTheoreticalCyclePerTicker(filteredTheoreticalCycles);
   }, [filteredTheoreticalCycles]);
 
+  const premiumStabilityGroups = useMemo(
+    () => (Array.isArray(premiumStability?.groups) ? premiumStability.groups : []),
+    [premiumStability],
+  );
+  const premiumStabilitySummary = premiumStability?.summary ?? null;
+  const premiumStabilityWindows = useMemo(
+    () => (Array.isArray(premiumStability?.recommendedWindows) ? premiumStability.recommendedWindows : []),
+    [premiumStability],
+  );
+  const premiumStabilityDtes = useMemo(() => {
+    return [...new Set(
+      premiumStabilityGroups
+        .map((row) => numberOrNull(row?.dteAtScan))
+        .filter((value) => value != null)
+    )].sort((a, b) => a - b);
+  }, [premiumStabilityGroups]);
+  const filteredPremiumStabilityGroups = useMemo(() => {
+    const tickerSearch = premiumStabilityTickerSearch.trim().toUpperCase();
+    return premiumStabilityGroups.filter((row) => {
+      const ticker = String(row?.ticker ?? "").trim().toUpperCase();
+      if (tickerSearch && !ticker.includes(tickerSearch)) return false;
+      if (premiumStabilityModeFilter !== "tous" && row?.strikeMode !== premiumStabilityModeFilter) return false;
+      if (premiumStabilityLabelFilter !== "tous" && row?.stability_label !== premiumStabilityLabelFilter) return false;
+      if (premiumStabilityDteFilter !== "tous" && Number(row?.dteAtScan) !== Number(premiumStabilityDteFilter)) return false;
+      return true;
+    });
+  }, [
+    premiumStabilityGroups,
+    premiumStabilityTickerSearch,
+    premiumStabilityModeFilter,
+    premiumStabilityLabelFilter,
+    premiumStabilityDteFilter,
+  ]);
+  const filteredPremiumStabilityWindows = useMemo(() => {
+    const tickerSearch = premiumStabilityTickerSearch.trim().toUpperCase();
+    return premiumStabilityWindows
+      .filter((row) => {
+        const ticker = String(row?.ticker ?? "").trim().toUpperCase();
+        if (tickerSearch && !ticker.includes(tickerSearch)) return false;
+        if (premiumStabilityModeFilter !== "tous" && row?.strikeMode !== premiumStabilityModeFilter) return false;
+        return true;
+      })
+      .slice(0, 10);
+  }, [premiumStabilityWindows, premiumStabilityTickerSearch, premiumStabilityModeFilter]);
+
   const hasProbabilisticCalibrationData = Number(calibrationSummary?.totalResolved ?? 0) > 0;
 
   // ── Objectif 1% status ─────────────────────────────────────────────────────
@@ -2089,6 +2174,180 @@ export default function JournalPopPanel({ apiBase, active }) {
           </>
         )}
       </section>
+
+      {hasLoaded && premiumStability && (
+        <CollapsibleSection
+          title={"Stabilit\u00e9 des primes"}
+          badge="V2-K"
+          subtitle={"Compare les primes habituelles par ticker, mode et DTE pour \u00e9viter d'attendre inutilement un meilleur DTE."}
+          defaultOpen={false}
+          summaryRight={
+            premiumStabilitySummary
+              ? `${premiumStabilitySummary.groups_total ?? 0} groupes · ${premiumStabilitySummary.stable_groups_count ?? 0} stables · ${premiumStabilitySummary.volatile_groups_count ?? 0} volatils`
+              : "Lecture seule"
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-5">
+            <ProKpi label="Groupes analyses" value={premiumStabilitySummary?.groups_total ?? 0} large />
+            <ProKpi label="Groupes stables" value={premiumStabilitySummary?.stable_groups_count ?? 0} tone="good" large />
+            <ProKpi label="Groupes volatils" value={premiumStabilitySummary?.volatile_groups_count ?? 0} tone="risk" large />
+            <ProKpi label="Echantillons faibles" value={premiumStabilitySummary?.weak_sample_groups_count ?? 0} tone="warn" large />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <input
+              type="text"
+              value={premiumStabilityTickerSearch}
+              onChange={(e) => setPremiumStabilityTickerSearch(e.target.value)}
+              placeholder="Filtrer ticker..."
+              className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-300 placeholder:text-slate-600 focus:border-sky-700 focus:outline-none w-32"
+            />
+            {premiumStabilityTickerSearch && (
+              <button
+                type="button"
+                onClick={() => setPremiumStabilityTickerSearch("")}
+                className="text-[10px] text-slate-600 hover:text-slate-400"
+              >
+                ✕
+              </button>
+            )}
+            <select
+              value={premiumStabilityModeFilter}
+              onChange={(e) => setPremiumStabilityModeFilter(e.target.value)}
+              className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
+            >
+              <option value="tous">Tous modes</option>
+              <option value="safe">Safe</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+            <select
+              value={premiumStabilityLabelFilter}
+              onChange={(e) => setPremiumStabilityLabelFilter(e.target.value)}
+              className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
+            >
+              <option value="tous">Toutes stabilites</option>
+              <option value="stable">Stable</option>
+              <option value="variable">Variable</option>
+              <option value="volatile">Volatile</option>
+              <option value="échantillon faible">Echantillon faible</option>
+            </select>
+            <select
+              value={premiumStabilityDteFilter}
+              onChange={(e) => setPremiumStabilityDteFilter(e.target.value)}
+              className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
+            >
+              <option value="tous">Tous DTE</option>
+              {premiumStabilityDtes.map((dte) => (
+                <option key={dte} value={String(dte)}>DTE {dte}</option>
+              ))}
+            </select>
+            <span className="text-[10px] text-slate-600 ml-auto">
+              {filteredPremiumStabilityGroups.length} ligne{filteredPremiumStabilityGroups.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {filteredPremiumStabilityGroups.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-4 text-sm text-slate-600">
+              Aucune ligne pour ces filtres.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Mode</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">DTE</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime mediane</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime / jour</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Stabilite</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign.</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime actuelle vs normale</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Lecture</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {filteredPremiumStabilityGroups.map((row) => {
+                    const deltaPct = numberOrNull(row?.latest_vs_median_pct);
+                    return (
+                      <tr key={`${row.ticker}__${row.strikeMode}__${row.dteAtScan}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">{formatStrikeModeLabel(row?.strikeMode)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">{row?.dteAtScan ?? "—"}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">{formatMoney(row?.median_premium)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">{formatMoney(row?.median_premium_per_day)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${getPremiumStabilityBadgeClass(row?.stability_label)}`}>
+                            {row?.stability_label ?? "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">
+                          {row?.assigned_rate_pct != null ? formatPercent(row.assigned_rate_pct, 1) : "N/D"}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                          {row?.latest_premium != null ? (
+                            <span className={deltaPct != null && deltaPct > 15 ? "text-sky-400" : deltaPct != null && deltaPct < -15 ? "text-amber-400" : "text-slate-300"}>
+                              {formatMoney(row.latest_premium)}
+                              {deltaPct != null ? ` (${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(1)}%)` : ""}
+                            </span>
+                          ) : "N/D"}
+                        </td>
+                        <td className={`px-3 py-2.5 text-[11px] whitespace-nowrap ${getPremiumReadingTone(row?.reading)}`}>
+                          {row?.reading ?? "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="mt-8 border-t border-slate-700/40 pt-6">
+            <div className="mb-3">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-1">
+                {"Fen\u00eatres d'entr\u00e9e recommand\u00e9es"}
+              </div>
+              <div className="text-[10px] text-slate-600">
+                Plage pratique retenue quand une prime plus tot dans la semaine reste proche du niveau normal rentable.
+              </div>
+            </div>
+
+            {filteredPremiumStabilityWindows.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-4 text-sm text-slate-600">
+                Aucune fenetre recommandee pour ces filtres.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap">Mode</th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap">Fenetre recommandee</th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">DTE pratique</th>
+                      <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">DTE theorique</th>
+                      <th className="px-3 py-3 font-semibold">Raison</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filteredPremiumStabilityWindows.map((row) => (
+                      <tr key={`${row.ticker}__${row.strikeMode}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row?.ticker ?? "—"}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">{formatStrikeModeLabel(row?.strikeMode)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap text-sky-400">{row?.recommended_dte_range ?? "N/D"}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{row?.practical_best_dte ?? "—"}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{row?.theoretical_best_dte ?? "—"}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-slate-400">{row?.reason ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* ── SECTION V2A — WIN QUALITY ───────────────────────────────────────── */}
       {hasLoaded && (

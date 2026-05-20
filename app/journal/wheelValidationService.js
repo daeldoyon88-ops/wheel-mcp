@@ -182,6 +182,96 @@ function computeStaleQuoteFlag(strikeRow) {
   return false;
 }
 
+function average(values) {
+  const nums = values.map((value) => toNumberOrNull(value)).filter((value) => value != null);
+  if (nums.length === 0) return null;
+  return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+}
+
+function median(values) {
+  const nums = values.map((value) => toNumberOrNull(value)).filter((value) => value != null).sort((a, b) => a - b);
+  if (nums.length === 0) return null;
+  const mid = Math.floor(nums.length / 2);
+  if (nums.length % 2 === 1) return nums[mid];
+  return (nums[mid - 1] + nums[mid]) / 2;
+}
+
+function stddevPopulation(values, mean = average(values)) {
+  const nums = values.map((value) => toNumberOrNull(value)).filter((value) => value != null);
+  if (nums.length === 0 || mean == null) return null;
+  const variance = nums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / nums.length;
+  return Math.sqrt(variance);
+}
+
+function roundMetric(value, digits = 4) {
+  const n = toNumberOrNull(value);
+  if (n == null) return null;
+  return Number(n.toFixed(digits));
+}
+
+function getPremiumCandidate(record) {
+  return (
+    toNumberOrNull(record?.premium) ??
+    toNumberOrNull(record?.strike?.premium) ??
+    toNumberOrNull(record?.mid) ??
+    toNumberOrNull(record?.strike?.mid) ??
+    toNumberOrNull(record?.bid) ??
+    toNumberOrNull(record?.strike?.bid) ??
+    null
+  );
+}
+
+function getLatestTimestamp(record) {
+  const raw = record?.scanTimestamp ?? record?.scanDate ?? null;
+  const date = raw == null ? null : new Date(raw);
+  const time = date instanceof Date && !Number.isNaN(date.getTime()) ? date.getTime() : null;
+  return time ?? -Infinity;
+}
+
+function getAssignedFlag(record) {
+  return (
+    toBooleanOrNull(record?.resolution?.assigned_flag) ??
+    toBooleanOrNull(record?.resolution?.assigned) ??
+    toBooleanOrNull(record?.assigned_flag) ??
+    toBooleanOrNull(record?.assigned) ??
+    null
+  );
+}
+
+function getExpiredOtmFlag(record) {
+  return (
+    toBooleanOrNull(record?.resolution?.expired_otm) ??
+    toBooleanOrNull(record?.resolution?.expiredWorthless) ??
+    toBooleanOrNull(record?.expired_otm) ??
+    toBooleanOrNull(record?.expiredWorthless) ??
+    null
+  );
+}
+
+function getStrikeTouchedFlag(record) {
+  return (
+    toBooleanOrNull(record?.resolution?.strikeTouched) ??
+    toBooleanOrNull(record?.strikeTouched) ??
+    null
+  );
+}
+
+function getBrokeLowerBoundFlag(record) {
+  return (
+    toBooleanOrNull(record?.resolution?.brokeLowerBound) ??
+    toBooleanOrNull(record?.brokeLowerBound) ??
+    null
+  );
+}
+
+function getResolvedFlag(record) {
+  return (
+    toBooleanOrNull(record?.resolution?.resolved) ??
+    toBooleanOrNull(record?.resolved) ??
+    false
+  ) === true;
+}
+
 function buildResolutionDefaults() {
   return {
     resolved: false,
@@ -2151,6 +2241,322 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computePremiumStability(options = {}) {
+    const journal = await store.load();
+    const allRecords = Array.isArray(journal?.records) ? journal.records : [];
+    const tickerFilter = normalizeSymbol(options?.ticker);
+    const requestedMode = String(options?.mode ?? "all").trim().toLowerCase();
+    const modeFilter = requestedMode === "safe" || requestedMode === "aggressive" ? requestedMode : "all";
+    const limitRaw = toNumberOrNull(options?.limit);
+    const limit = limitRaw != null ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50000) : 5000;
+
+    const filteredRecords = allRecords
+      .filter((record) => {
+        const symbol = normalizeSymbol(record?.symbol ?? record?.ticker);
+        if (!symbol) return false;
+        if (tickerFilter && symbol !== tickerFilter) return false;
+        if (modeFilter !== "all" && String(record?.strikeMode ?? "").trim().toLowerCase() !== modeFilter) return false;
+        return true;
+      })
+      .sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a))
+      .slice(0, limit);
+
+    const usableRecords = filteredRecords
+      .map((record) => {
+        const premium = getPremiumCandidate(record);
+        const symbol = normalizeSymbol(record?.symbol ?? record?.ticker);
+        const strikeMode = String(record?.strikeMode ?? "").trim().toLowerCase();
+        const dteAtScan = toNumberOrNull(record?.dteAtScan);
+        if (!symbol || !strikeMode || dteAtScan == null || premium == null) return null;
+        return {
+          record,
+          symbol,
+          strikeMode,
+          dteAtScan,
+          premium,
+          resolved: getResolvedFlag(record),
+          assigned: getAssignedFlag(record),
+          expiredOtm: getExpiredOtmFlag(record),
+          strikeTouched: getStrikeTouchedFlag(record),
+          brokeLowerBound: getBrokeLowerBoundFlag(record),
+          latestTimestamp: getLatestTimestamp(record),
+        };
+      })
+      .filter(Boolean);
+
+    const groupMap = new Map();
+    for (const item of usableRecords) {
+      const key = `${item.symbol}__${item.strikeMode}__${item.dteAtScan}`;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
+          ticker: item.symbol,
+          strikeMode: item.strikeMode,
+          dteAtScan: item.dteAtScan,
+          rows: [],
+        });
+      }
+      groupMap.get(key).rows.push(item);
+    }
+
+    const buildRate = (rows, selector, useKnownDenominator = false) => {
+      const source = useKnownDenominator ? rows.filter((row) => selector(row) != null) : rows;
+      if (source.length === 0) return null;
+      const count = source.filter((row) => selector(row) === true).length;
+      return (count / source.length) * 100;
+    };
+
+    const groups = Array.from(groupMap.values()).map((group) => {
+      const premiums = group.rows.map((row) => row.premium);
+      const avgPremium = average(premiums);
+      const medianPremium = median(premiums);
+      const minPremium = premiums.length > 0 ? Math.min(...premiums) : null;
+      const maxPremium = premiums.length > 0 ? Math.max(...premiums) : null;
+      const stddevPremium = stddevPopulation(premiums, avgPremium);
+      const coefficientVariationPct =
+        avgPremium != null && avgPremium !== 0 && stddevPremium != null
+          ? (stddevPremium / avgPremium) * 100
+          : null;
+      const premiumsPerDay = group.rows.map((row) => row.premium / Math.max(row.dteAtScan, 1));
+      const resolvedRows = group.rows.filter((row) => row.resolved === true);
+      const latest = [...group.rows].sort((a, b) => b.latestTimestamp - a.latestTimestamp)[0] ?? null;
+      const sampleCount = group.rows.length;
+      const resolvedCount = resolvedRows.length;
+      const sampleQuality =
+        sampleCount < 5 ? "faible" : sampleCount < 15 ? "moyen" : "bon";
+      const stabilityLabel =
+        sampleCount < 5
+          ? "\u00e9chantillon faible"
+          : coefficientVariationPct == null
+          ? "\u00e9chantillon faible"
+          : coefficientVariationPct <= 20
+          ? "stable"
+          : coefficientVariationPct <= 40
+          ? "variable"
+          : "volatile";
+      const normalRangeLow = medianPremium != null ? medianPremium * 0.85 : null;
+      const normalRangeHigh = medianPremium != null ? medianPremium * 1.15 : null;
+      const latestPremium = latest?.premium ?? null;
+      const latestVsMedianPct =
+        latestPremium != null && medianPremium != null && medianPremium !== 0
+          ? ((latestPremium - medianPremium) / medianPremium) * 100
+          : null;
+      const spikeCount =
+        medianPremium != null
+          ? group.rows.filter((row) => row.premium > medianPremium * 1.35).length
+          : 0;
+      const lowAnomalyCount =
+        medianPremium != null
+          ? group.rows.filter((row) => row.premium < medianPremium * 0.7).length
+          : 0;
+
+      let reading = "Prime normale";
+      if (sampleCount < 5) reading = "\u00c9chantillon faible";
+      else if (latestPremium != null && normalRangeLow != null && latestPremium >= normalRangeLow && latestPremium <= (normalRangeHigh ?? Infinity)) {
+        reading = "Prime dans la zone normale";
+      } else if (latestPremium != null && normalRangeHigh != null && latestPremium > normalRangeHigh) {
+        reading = "Prime sup\u00e9rieure \u00e0 la normale";
+      } else if (latestPremium != null && normalRangeLow != null && latestPremium < normalRangeLow) {
+        reading = "Prime inf\u00e9rieure \u00e0 la normale";
+      }
+
+      return {
+        ticker: group.ticker,
+        strikeMode: group.strikeMode,
+        dteAtScan: group.dteAtScan,
+        sample_count: sampleCount,
+        resolved_count: resolvedCount,
+        avg_premium: roundMetric(avgPremium),
+        median_premium: roundMetric(medianPremium),
+        min_premium: roundMetric(minPremium),
+        max_premium: roundMetric(maxPremium),
+        stddev_premium: roundMetric(stddevPremium),
+        coefficient_variation_pct: roundMetric(coefficientVariationPct, 2),
+        avg_premium_per_day: roundMetric(average(premiumsPerDay)),
+        median_premium_per_day: roundMetric(median(premiumsPerDay)),
+        assigned_rate_pct: roundMetric(buildRate(resolvedRows, (row) => row.assigned), 2),
+        otm_rate_pct: roundMetric(buildRate(resolvedRows, (row) => row.expiredOtm), 2),
+        strike_touched_rate_pct: roundMetric(buildRate(resolvedRows, (row) => row.strikeTouched, true), 2),
+        broke_lower_bound_rate_pct: roundMetric(buildRate(resolvedRows, (row) => row.brokeLowerBound, true), 2),
+        stability_label: stabilityLabel,
+        sample_quality: sampleQuality,
+        normal_range_low: roundMetric(normalRangeLow),
+        normal_range_high: roundMetric(normalRangeHigh),
+        latest_premium: roundMetric(latestPremium),
+        latest_scan_date: latest?.record?.scanDate ?? latest?.record?.scanTimestamp ?? null,
+        latest_vs_median_pct: roundMetric(latestVsMedianPct, 2),
+        spike_count: spikeCount,
+        low_anomaly_count: lowAnomalyCount,
+        practical_entry_score: 0,
+        reading,
+      };
+    });
+
+    const pairMap = new Map();
+    for (const group of groups) {
+      const key = `${group.ticker}__${group.strikeMode}`;
+      if (!pairMap.has(key)) pairMap.set(key, []);
+      pairMap.get(key).push(group);
+    }
+
+    for (const list of pairMap.values()) {
+      const perDayValues = list
+        .map((group) => toNumberOrNull(group.median_premium_per_day))
+        .filter((value) => value != null);
+      const maxPerDay = perDayValues.length > 0 ? Math.max(...perDayValues) : null;
+      for (const group of list) {
+        const medianPerDay = toNumberOrNull(group.median_premium_per_day);
+        const premiumScore =
+          maxPerDay != null && maxPerDay > 0 && medianPerDay != null
+            ? Math.max(0, Math.min(40, (medianPerDay / maxPerDay) * 40))
+            : 0;
+        const stabilityScore =
+          group.stability_label === "stable"
+            ? 25
+            : group.stability_label === "variable"
+            ? 15
+            : group.stability_label === "volatile"
+            ? 5
+            : 5;
+        const assignedRate = toNumberOrNull(group.assigned_rate_pct);
+        const assignmentScore =
+          assignedRate == null
+            ? 12
+            : assignedRate <= 5
+            ? 20
+            : assignedRate <= 15
+            ? 12
+            : assignedRate <= 30
+            ? 6
+            : 0;
+        const sampleScore =
+          group.sample_quality === "bon" ? 15 : group.sample_quality === "moyen" ? 8 : 2;
+        group.practical_entry_score = Math.round(
+          Math.max(0, Math.min(100, premiumScore + stabilityScore + assignmentScore + sampleScore))
+        );
+      }
+    }
+
+    groups.sort((a, b) => {
+      const tickerCmp = String(a.ticker).localeCompare(String(b.ticker));
+      if (tickerCmp !== 0) return tickerCmp;
+      const modeCmp = String(a.strikeMode).localeCompare(String(b.strikeMode));
+      if (modeCmp !== 0) return modeCmp;
+      return Number(a.dteAtScan ?? 1e9) - Number(b.dteAtScan ?? 1e9);
+    });
+
+    const recommendedWindows = Array.from(pairMap.entries())
+      .map(([, list]) => {
+        const rows = [...list].sort((a, b) => Number(a.dteAtScan ?? 1e9) - Number(b.dteAtScan ?? 1e9));
+        const theoreticalBest = [...rows].sort((a, b) => {
+          const scoreDelta = (b.practical_entry_score ?? -Infinity) - (a.practical_entry_score ?? -Infinity);
+          if (scoreDelta !== 0) return scoreDelta;
+          const perDayDelta =
+            (toNumberOrNull(b.median_premium_per_day) ?? -Infinity) -
+            (toNumberOrNull(a.median_premium_per_day) ?? -Infinity);
+          if (perDayDelta !== 0) return perDayDelta;
+          return Number(a.dteAtScan ?? 1e9) - Number(b.dteAtScan ?? 1e9);
+        })[0] ?? null;
+
+        const bestMedianPremium = Math.max(
+          ...rows.map((row) => toNumberOrNull(row.median_premium) ?? 0)
+        );
+        const admissibleRows = rows.filter((row) => {
+          const medianPremium = toNumberOrNull(row.median_premium);
+          const assignedRate = toNumberOrNull(row.assigned_rate_pct);
+          if (medianPremium == null || bestMedianPremium <= 0) return false;
+          if (medianPremium < bestMedianPremium * 0.9) return false;
+          if (row.stability_label !== "stable" && row.stability_label !== "variable") return false;
+          if (assignedRate != null && assignedRate > 15) return false;
+          if (row.sample_count < 5) return false;
+          return true;
+        });
+
+        const practicalBest = admissibleRows[0] ?? theoreticalBest;
+        const recommendedSet = admissibleRows.length > 0 ? admissibleRows : practicalBest ? [practicalBest] : [];
+        const dtes = recommendedSet
+          .map((row) => toNumberOrNull(row.dteAtScan))
+          .filter((value) => value != null)
+          .sort((a, b) => a - b);
+        const minDte = dtes.length > 0 ? dtes[0] : null;
+        const maxDte = dtes.length > 0 ? dtes[dtes.length - 1] : null;
+        const recommendedRange =
+          minDte == null
+            ? null
+            : minDte === maxDte
+            ? `DTE ${minDte}`
+            : `DTE ${minDte}-${maxDte}`;
+
+        let reason = "Donn\u00e9es insuffisantes";
+        if (practicalBest && theoreticalBest) {
+          const theoreticalDte = toNumberOrNull(theoreticalBest.dteAtScan);
+          const practicalDte = toNumberOrNull(practicalBest.dteAtScan);
+          const bestMedian = toNumberOrNull(theoreticalBest.median_premium);
+          const practicalMedian = toNumberOrNull(practicalBest.median_premium);
+          if (
+            practicalDte != null &&
+            theoreticalDte != null &&
+            practicalDte > theoreticalDte &&
+            bestMedian != null &&
+            practicalMedian != null &&
+            bestMedian > 0
+          ) {
+            const pct = (practicalMedian / bestMedian) * 100;
+            reason = `Prime proche du meilleur niveau (${pct.toFixed(0)}% du pic), avec stabilit\u00e9 correcte et risque d'assignation contenu.`;
+          } else if (practicalBest.stability_label === "stable") {
+            reason = "Prime dans une zone normale stable, utile pour entrer plus t\u00f4t sans attendre un DTE extr\u00eame.";
+          } else if (practicalBest.stability_label === "variable") {
+            reason = "Prime encore exploitable, mais avec variabilit\u00e9 mod\u00e9r\u00e9e.";
+          } else {
+            reason = "Meilleur compromis disponible sur l'\u00e9chantillon actuel.";
+          }
+        }
+
+        return {
+          ticker: rows[0]?.ticker ?? null,
+          strikeMode: rows[0]?.strikeMode ?? null,
+          recommended_dte_range: recommendedRange,
+          theoretical_best_dte: theoreticalBest?.dteAtScan ?? null,
+          practical_best_dte: practicalBest?.dteAtScan ?? null,
+          reason,
+          dte_groups: rows.map((row) => ({
+            dteAtScan: row.dteAtScan,
+            median_premium: row.median_premium,
+            median_premium_per_day: row.median_premium_per_day,
+            assigned_rate_pct: row.assigned_rate_pct,
+            stability_label: row.stability_label,
+            practical_entry_score: row.practical_entry_score,
+          })),
+        };
+      })
+      .filter((row) => row.ticker && row.strikeMode)
+      .sort((a, b) => {
+        const tickerCmp = String(a.ticker).localeCompare(String(b.ticker));
+        if (tickerCmp !== 0) return tickerCmp;
+        return String(a.strikeMode).localeCompare(String(b.strikeMode));
+      });
+
+    const summary = {
+      groups_total: groups.length,
+      tickers_count: new Set(groups.map((group) => group.ticker)).size,
+      records_used: usableRecords.length,
+      stable_groups_count: groups.filter((group) => group.stability_label === "stable").length,
+      volatile_groups_count: groups.filter((group) => group.stability_label === "volatile").length,
+      weak_sample_groups_count: groups.filter((group) => group.sample_quality === "faible").length,
+    };
+
+    return {
+      generatedAt: new Date().toISOString(),
+      filters: {
+        ticker: tickerFilter || null,
+        mode: modeFilter,
+        limit,
+      },
+      summary,
+      groups,
+      recommendedWindows,
+    };
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
@@ -2158,6 +2564,7 @@ export function createWheelValidationService(options = {}) {
     computeCohortSummary,
     computeCalibrationSummary,
     computeModeComparison,
+    computePremiumStability,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

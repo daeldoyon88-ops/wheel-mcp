@@ -2634,6 +2634,29 @@ app.get("/journal/wheel-validation/mode-comparison", async (_req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/premium-stability", async (req, res) => {
+  try {
+    const premiumStability = await wheelValidationService.computePremiumStability({
+      ticker: req.query?.ticker,
+      mode: req.query?.mode,
+      limit: req.query?.limit,
+    });
+    res.json({
+      ok: true,
+      summary: premiumStability.summary,
+      groups: premiumStability.groups,
+      recommendedWindows: premiumStability.recommendedWindows,
+      filters: premiumStability.filters,
+      generatedAt: premiumStability.generatedAt,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "premium_stability_failed",
+    });
+  }
+});
+
 app.get("/journal/wheel-validation/theoretical-cycles", async (req, res) => {
   try {
     const payload = readTheoreticalCyclesSnapshot({

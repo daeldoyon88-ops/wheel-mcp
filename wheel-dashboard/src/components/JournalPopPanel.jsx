@@ -495,6 +495,37 @@ function getExecutionDecisionBadge(ranking, insight) {
   return candidates[0] ?? null;
 }
 
+function isExecutableRanking(ranking, insight) {
+  const score = numberOrNull(ranking?.score);
+  if (score == null || score < 55) return false;
+
+  if (ranking?.scoreLabel === "À éviter") return false;
+
+  const displayMode = getDisplayModeForDecision(ranking, insight);
+  if (displayMode === "À confirmer") return false;
+
+  const spread = insight?.aggressiveSpread ?? numberOrNull(ranking?.medianSpreadPct);
+  const executionDisplay = getExecutionColumnDisplay(ranking);
+  const decisionBadge = getExecutionDecisionBadge(ranking, insight);
+
+  if (decisionBadge?.label === "Non tradable") return false;
+  if (executionDisplay.label === "Spread très large") return false;
+
+  const spreadAcceptable =
+    (spread != null && spread <= 20) ||
+    executionDisplay.label === "Exécution bonne" ||
+    executionDisplay.label === "Exécution correcte" ||
+    ranking?.executionQualityLabel === "Exécution bonne" ||
+    ranking?.executionQualityLabel === "Exécution correcte";
+
+  if (!spreadAcceptable) return false;
+
+  const assignment = numberOrNull(ranking?.assignmentRatePct);
+  if (assignment != null && assignment > 15) return false;
+
+  return true;
+}
+
 // ── Dark-mode design tokens ─────────────────────────────────────────────────
 // bg-[#020617] = slate-950 (panel root)
 // bg-slate-900 = cards
@@ -1979,6 +2010,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [rankingScoreFilter, setRankingScoreFilter] = useState("tous");
   const [rankingModeFilter, setRankingModeFilter] = useState("tous");
   const [rankingConfidenceFilter, setRankingConfidenceFilter] = useState("tous");
+  const [rankingExecutableOnly, setRankingExecutableOnly] = useState(false);
 
   // Normalized observations V2-M — read-only audit layer
   const [normalizedObs, setNormalizedObs] = useState(null);
@@ -4898,6 +4930,18 @@ export default function JournalPopPanel({ apiBase, active }) {
           filtered = filtered.filter((r) => r.confidence === rankingConfidenceFilter);
         }
 
+        const executableInPool = filtered.filter((ranking) => {
+          const insight = getSafeAggressiveInsightForRanking(ranking, safeAggComparison);
+          return isExecutableRanking(ranking, insight);
+        }).length;
+
+        if (rankingExecutableOnly) {
+          filtered = filtered.filter((ranking) => {
+            const insight = getSafeAggressiveInsightForRanking(ranking, safeAggComparison);
+            return isExecutableRanking(ranking, insight);
+          });
+        }
+
         const scoreLabelColor = (label) => {
           if (label === "Excellent") return "text-emerald-400";
           if (label === "Bon") return "text-sky-400";
@@ -4963,10 +5007,30 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <option value="moyenne">Moyenne</option>
                 <option value="faible">Faible</option>
               </select>
-              {(search || rankingScoreFilter !== "tous" || rankingModeFilter !== "tous" || rankingConfidenceFilter !== "tous") && (
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rankingExecutableOnly}
+                  onChange={(e) => setRankingExecutableOnly(e.target.checked)}
+                  className="accent-emerald-500"
+                />
+                Exécutables seulement
+              </label>
+              <span className="self-center text-[11px] text-slate-600">
+                {rankingExecutableOnly
+                  ? `${filtered.length} affiché${filtered.length !== 1 ? "s" : ""}`
+                  : `${executableInPool} exécutable${executableInPool !== 1 ? "s" : ""} / ${filtered.length}`}
+              </span>
+              {(search || rankingScoreFilter !== "tous" || rankingModeFilter !== "tous" || rankingConfidenceFilter !== "tous" || rankingExecutableOnly) && (
                 <button
                   type="button"
-                  onClick={() => { setRankingTickerSearch(""); setRankingScoreFilter("tous"); setRankingModeFilter("tous"); setRankingConfidenceFilter("tous"); }}
+                  onClick={() => {
+                    setRankingTickerSearch("");
+                    setRankingScoreFilter("tous");
+                    setRankingModeFilter("tous");
+                    setRankingConfidenceFilter("tous");
+                    setRankingExecutableOnly(false);
+                  }}
                   className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
                 >
                   Réinitialiser

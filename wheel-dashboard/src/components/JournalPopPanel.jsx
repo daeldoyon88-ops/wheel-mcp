@@ -526,6 +526,47 @@ function isExecutableRanking(ranking, insight) {
   return true;
 }
 
+function isWatchCandidateRanking(ranking, insight) {
+  const score = numberOrNull(ranking?.score);
+  if (score == null || score < 70) return false;
+
+  const displayMode = getDisplayModeForDecision(ranking, insight);
+  if (normalizeDecisionMode(displayMode) !== "confirm") return false;
+
+  if (isExecutableRanking(ranking, insight)) return false;
+
+  const spread = insight?.aggressiveSpread ?? numberOrNull(ranking?.medianSpreadPct);
+  const executionDisplay = getExecutionColumnDisplay(ranking);
+
+  const spreadAcceptable =
+    (spread != null && spread <= 20) ||
+    executionDisplay.label === "Exécution bonne" ||
+    executionDisplay.label === "Exécution correcte" ||
+    ranking?.executionQualityLabel === "Exécution bonne" ||
+    ranking?.executionQualityLabel === "Exécution correcte";
+
+  if (!spreadAcceptable) return false;
+
+  const assignment = numberOrNull(ranking?.assignmentRatePct);
+  if (assignment != null && assignment > 15) return false;
+
+  return true;
+}
+
+function compareDecisionWatchCandidates(a, b) {
+  const scoreDelta = (numberOrNull(b.ranking?.score) ?? 0) - (numberOrNull(a.ranking?.score) ?? 0);
+  if (scoreDelta !== 0) return scoreDelta;
+
+  const spreadA = a.spread ?? Number.POSITIVE_INFINITY;
+  const spreadB = b.spread ?? Number.POSITIVE_INFINITY;
+  const spreadDelta = spreadA - spreadB;
+  if (spreadDelta !== 0) return spreadDelta;
+
+  const assignA = numberOrNull(a.ranking?.assignmentRatePct) ?? Number.POSITIVE_INFINITY;
+  const assignB = numberOrNull(b.ranking?.assignmentRatePct) ?? Number.POSITIVE_INFINITY;
+  return assignA - assignB;
+}
+
 // ── Dark-mode design tokens ─────────────────────────────────────────────────
 // bg-[#020617] = slate-950 (panel root)
 // bg-slate-900 = cards
@@ -2454,6 +2495,19 @@ export default function JournalPopPanel({ apiBase, active }) {
     });
   }, [resolvedRecords, stats, winQualityStats, stressCoverage, premiumReturnBuckets]);
 
+  const decisionWatchCandidates = useMemo(() => {
+    const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
+    return rankings
+      .map((ranking) => {
+        const insight = getSafeAggressiveInsightForRanking(ranking, safeAggComparison);
+        const spread = insight?.aggressiveSpread ?? numberOrNull(ranking?.medianSpreadPct);
+        return { ranking, insight, spread };
+      })
+      .filter(({ ranking, insight }) => isWatchCandidateRanking(ranking, insight))
+      .sort(compareDecisionWatchCandidates)
+      .slice(0, 5);
+  }, [tickerRanking, safeAggComparison]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -2642,6 +2696,45 @@ export default function JournalPopPanel({ apiBase, active }) {
                   : undefined
               }
             />
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+            <div className="mb-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">À surveiller</h4>
+              <p className="mt-0.5 text-[10px] text-slate-600">
+                Score élevé, spread acceptable, mais mode encore à confirmer.
+              </p>
+            </div>
+            {decisionWatchCandidates.length === 0 ? (
+              <p className="text-[11px] text-slate-600">Aucun candidat à surveiller selon les critères actuels.</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {decisionWatchCandidates.map(({ ranking, insight, spread }) => {
+                  const decisionLine = formatSafeAggressiveDecisionLine(insight);
+                  return (
+                    <div
+                      key={ranking.ticker}
+                      className="rounded-lg border border-slate-700/50 bg-slate-900/60 px-2.5 py-2 min-w-0"
+                    >
+                      <div className="text-[11px] font-medium text-slate-200">
+                        <span className="font-bold text-slate-100">{ranking.ticker}</span>
+                        {" · "}
+                        <span className="tabular-nums text-sky-400">{ranking.score}</span>
+                        {" · "}
+                        <span className="text-slate-400">{getDecisionDteDisplay(ranking)}</span>
+                        {" · "}
+                        <span className="text-slate-500">
+                          spread {spread != null ? `${spread.toFixed(1)} %` : "n/d"}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-[10px] leading-tight text-slate-500" title={decisionLine}>
+                        {decisionLine}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       )}

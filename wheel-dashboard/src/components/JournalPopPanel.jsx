@@ -254,6 +254,24 @@ function getDisplayModeForDecision(ranking, insight) {
   return ranking?.preferredMode ?? "—";
 }
 
+function normalizeDecisionMode(mode) {
+  if (mode == null || mode === "" || mode === "—") return "unknown";
+  const s = String(mode).trim().toLowerCase();
+  if (s === "tous" || s === "all") return "all";
+  if (s === "safe") return "safe";
+  if (s === "agressif" || s === "aggressive") return "aggressive";
+  if (
+    s === "confirmer" ||
+    s === "à confirmer" ||
+    s === "a confirmer" ||
+    s === "to_confirm" ||
+    s === "confirm"
+  ) {
+    return "confirm";
+  }
+  return "unknown";
+}
+
 function formatScoreComponentsTooltip(row) {
   const c = row?.components ?? {};
   return [
@@ -4867,9 +4885,14 @@ export default function JournalPopPanel({ apiBase, active }) {
           filtered = filtered.filter((r) => r.score >= lo && r.score <= hi);
         }
         if (rankingModeFilter !== "tous") {
-          const modeMap = { SAFE: "SAFE", AGRESSIF: "AGRESSIF", confirmer: "À confirmer" };
-          const target = modeMap[rankingModeFilter];
-          if (target) filtered = filtered.filter((r) => r.preferredMode === target);
+          const normalizedFilterMode = normalizeDecisionMode(rankingModeFilter);
+          if (normalizedFilterMode !== "all") {
+            filtered = filtered.filter((r) => {
+              const saInsight = getSafeAggressiveInsightForRanking(r, safeAggComparison);
+              const displayMode = getDisplayModeForDecision(r, saInsight);
+              return normalizeDecisionMode(displayMode) === normalizedFilterMode;
+            });
+          }
         }
         if (rankingConfidenceFilter !== "tous") {
           filtered = filtered.filter((r) => r.confidence === rankingConfidenceFilter);

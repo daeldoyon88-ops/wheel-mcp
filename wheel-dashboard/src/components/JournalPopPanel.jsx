@@ -159,6 +159,324 @@ function getTheoreticalCycleReading(cycle) {
   return label;
 }
 
+function truncateDecisionLine(line, max = 90) {
+  if (!line || line.length <= max) return line ?? "";
+  return `${line.slice(0, max - 1)}…`;
+}
+
+function getRankingTargetDte(ranking) {
+  const practical = numberOrNull(ranking?.practicalBestDte);
+  if (practical != null) return practical;
+  const windowStr = ranking?.recommendedDteWindow;
+  if (!windowStr) return null;
+  const parts = String(windowStr)
+    .split(/[-/]/)
+    .map((s) => numberOrNull(s.trim()))
+    .filter((n) => n != null);
+  if (parts.length >= 2) return Math.round((parts[0] + parts[1]) / 2);
+  if (parts.length === 1) return parts[0];
+  return null;
+}
+
+function getSafeAggressiveInsightForRanking(ranking, comparisonsPayload) {
+  if (!ranking?.ticker) return null;
+
+  const comparisons = Array.isArray(comparisonsPayload?.comparisons)
+    ? comparisonsPayload.comparisons
+    : Array.isArray(comparisonsPayload)
+      ? comparisonsPayload
+      : [];
+  if (comparisons.length === 0) return null;
+
+  const ticker = String(ranking.ticker).trim().toUpperCase();
+  const tickerComps = comparisons.filter(
+    (c) => String(c?.ticker ?? "").trim().toUpperCase() === ticker,
+  );
+  if (tickerComps.length === 0) return null;
+
+  const targetDte = getRankingTargetDte(ranking);
+  const preferredMode = ranking.preferredMode;
+
+  function scoreCandidate(comp) {
+    let sortScore = numberOrNull(comp?.comparisonScore) ?? 0;
+    const safeCount = numberOrNull(comp?.safe?.sampleCount) ?? 0;
+    const aggCount = numberOrNull(comp?.aggressive?.sampleCount) ?? 0;
+    const compDte = numberOrNull(comp?.dteAtScan);
+
+    if (targetDte != null && compDte === targetDte) sortScore += 1000;
+    else if (targetDte != null && compDte != null) {
+      sortScore -= Math.abs(compDte - targetDte) * 10;
+    }
+
+    if (comp.comparisonStatus === "comparable") sortScore += 500;
+    if (preferredMode && comp.recommendedMode === preferredMode) sortScore += 200;
+
+    sortScore += (safeCount + aggCount) * 0.1;
+    return { comp, sortScore };
+  }
+
+  const scored = tickerComps.map(scoreCandidate);
+  scored.sort((a, b) => {
+    if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+    return (numberOrNull(b.comp?.comparisonScore) ?? 0) - (numberOrNull(a.comp?.comparisonScore) ?? 0);
+  });
+
+  const best = scored[0]?.comp;
+  if (!best) return null;
+
+  return {
+    comparison: best,
+    recommendedMode: best.recommendedMode,
+    modeDecision: best.modeDecision,
+    comparisonScore: best.comparisonScore,
+    decisionConfidence: best.decisionConfidence,
+    premiumLiftPct: best.premiumLiftPct,
+    premiumLiftAbs: best.premiumLiftAbs,
+    assignmentDeltaPct: best.assignmentDeltaPct,
+    lowerBoundDeltaPct: best.lowerBoundDeltaPct,
+    aggressiveSpread: numberOrNull(best.aggressive?.medianSpreadPct),
+    safeSampleCount: numberOrNull(best.safe?.sampleCount) ?? 0,
+    aggressiveSampleCount: numberOrNull(best.aggressive?.sampleCount) ?? 0,
+    comparisonStatus: best.comparisonStatus,
+    dteAtScan: best.dteAtScan,
+  };
+}
+
+function isPremiumLiftNegligible(liftRounded) {
+  return liftRounded == null || Math.abs(liftRounded) < 3;
+}
+
+function getDisplayModeForDecision(ranking, insight) {
+  const rec = insight?.recommendedMode;
+  if (rec === "SAFE") return "SAFE";
+  if (rec === "AGRESSIF" || rec === "AGGRESSIVE") return "AGRESSIF";
+  if (rec === "À confirmer" || rec === "CONFIRM" || rec === "TO_CONFIRM") return "À confirmer";
+  return ranking?.preferredMode ?? "—";
+}
+
+function formatScoreComponentsTooltip(row) {
+  const c = row?.components ?? {};
+  return [
+    `R:${c.riskScore ?? 0}`,
+    `P:${c.premiumScore ?? 0}`,
+    `E:${c.executionQualityScore ?? 0}`,
+    `S:${c.stabilityScore ?? 0}`,
+    `n:${c.sampleScore ?? 0}`,
+    `CC:${c.ccScore ?? 0}`,
+  ].join(" · ");
+}
+
+function getDecisionDteDisplay(row) {
+  const dte = numberOrNull(row?.practicalBestDte);
+  if (dte != null) return `DTE ${dte}`;
+  if (row?.recommendedDteWindow) return row.recommendedDteWindow;
+  return "—";
+}
+
+function getDecisionDteTooltip(row) {
+  const parts = [];
+  if (row?.recommendedDteWindow) parts.push(`Fenêtre : ${row.recommendedDteWindow}`);
+  if (row?.practicalBestDte != null) parts.push(`Pratique : DTE ${row.practicalBestDte}`);
+  if (row?.theoreticalBestDte != null) parts.push(`Théorique : DTE ${row.theoreticalBestDte}`);
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function getExecutionColumnDisplay(ranking) {
+  const spread = numberOrNull(ranking?.medianSpreadPct);
+  const score = numberOrNull(ranking?.executionQualityScore);
+  let label;
+  if (spread != null && spread > 35) label = "Spread très large";
+  else if (spread != null && spread > 20) label = "Spread large";
+  else if (score != null && score >= 12) label = "Exécution bonne";
+  else if (score != null && score > 4) label = "Exécution correcte";
+  else if (spread != null && spread > 10) label = "Spread large";
+  else label = ranking?.executionQualityLabel ?? "—";
+  return { label, spread };
+}
+
+function getExecutionColumnTooltip(ranking) {
+  const parts = [];
+  if (ranking?.confidence) parts.push(`Confiance : ${ranking.confidence}`);
+  if (ranking?.sampleCount != null) parts.push(`n=${ranking.sampleCount}`);
+  if (ranking?.sampleQualityTicker && ranking.sampleQualityTicker !== ranking.sampleQuality) {
+    parts.push(ranking.sampleQualityTicker);
+  } else if (ranking?.sampleQuality) {
+    parts.push(`échantillon ${ranking.sampleQuality}`);
+  }
+  if (ranking?.executionQualityLabel) parts.push(ranking.executionQualityLabel);
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function getReadingTooltip(row) {
+  const parts = [];
+  if (row?.reading) parts.push(row.reading);
+  if (Array.isArray(row?.reasons) && row.reasons.length > 0) {
+    parts.push(row.reasons.join(" · "));
+  }
+  return parts.length > 0 ? parts.join("\n") : undefined;
+}
+
+function formatSafeAggressiveDecisionLine(insight) {
+  if (!insight) return "Comparaison SAFE/AGR non disponible";
+
+  const {
+    recommendedMode,
+    premiumLiftPct,
+    premiumLiftAbs,
+    assignmentDeltaPct,
+    lowerBoundDeltaPct,
+    aggressiveSpread,
+  } = insight;
+
+  const liftRounded = premiumLiftPct != null ? Math.round(premiumLiftPct) : null;
+
+  if ((premiumLiftPct != null && premiumLiftPct < 0) || (premiumLiftAbs != null && premiumLiftAbs < 0)) {
+    return truncateDecisionLine("SAFE préféré · AGR paie moins");
+  }
+
+  const liftStr = !isPremiumLiftNegligible(liftRounded)
+    ? `AGR ${liftRounded >= 0 ? "+" : ""}${liftRounded} % vs SAFE`
+    : null;
+
+  const assignStr = assignmentDeltaPct != null
+    ? `assign. ${assignmentDeltaPct >= 0 ? "+" : ""}${assignmentDeltaPct.toFixed(assignmentDeltaPct % 1 === 0 ? 0 : 1)} %`
+    : null;
+
+  const lbStr = lowerBoundDeltaPct != null && lowerBoundDeltaPct > 8
+    ? `stress LB +${lowerBoundDeltaPct.toFixed(1)} pts`
+    : null;
+
+  let spreadStr = null;
+  if (aggressiveSpread != null) {
+    if (aggressiveSpread <= 10) spreadStr = "spread OK";
+    else if (aggressiveSpread <= 20) spreadStr = "spread moyen";
+    else if (aggressiveSpread <= 35) spreadStr = "spread large";
+    else spreadStr = "non tradable";
+  }
+
+  if (recommendedMode === "AGRESSIF") {
+    if (isPremiumLiftNegligible(liftRounded)) {
+      return truncateDecisionLine("Écart SAFE/AGR non significatif");
+    }
+    const parts = [liftStr, assignStr, spreadStr].filter(Boolean);
+    return truncateDecisionLine(parts.length > 0 ? parts.join(" · ") : "AGRESSIF recommandé");
+  }
+
+  if (recommendedMode === "SAFE") {
+    if (liftRounded != null && liftRounded < 15) {
+      return truncateDecisionLine("SAFE préféré · prime AGR insuffisante");
+    }
+    const parts = ["SAFE préféré"];
+    if (liftStr) parts.push(liftStr);
+    if (assignmentDeltaPct != null && assignmentDeltaPct > 5) {
+      parts.push(`assign. +${assignmentDeltaPct.toFixed(0)} %`);
+    } else if (spreadStr === "non tradable" || spreadStr === "spread large") {
+      parts.push("spread AGR trop large");
+    } else {
+      parts.push("risque/spread trop élevé");
+    }
+    return truncateDecisionLine(parts.join(" · "));
+  }
+
+  if (recommendedMode === "À confirmer") {
+    if (isPremiumLiftNegligible(liftRounded)) {
+      return truncateDecisionLine("SAFE/AGR similaire · décision à confirmer");
+    }
+    if (liftRounded != null && liftRounded < 15) {
+      return truncateDecisionLine("À confirmer · écart prime faible");
+    }
+    const parts = ["À confirmer"];
+    if (liftStr) parts.push(liftStr);
+    if (lbStr) parts.push(lbStr);
+    else if (assignStr) parts.push(assignStr);
+    return truncateDecisionLine(parts.join(" · "));
+  }
+
+  return "Comparaison SAFE/AGR non disponible";
+}
+
+function getExecutionDecisionBadge(ranking, insight) {
+  const spread = insight?.aggressiveSpread ?? numberOrNull(ranking?.medianSpreadPct);
+  const displayMode = getDisplayModeForDecision(ranking, insight);
+
+  const minSample = Math.min(
+    insight?.safeSampleCount ?? Number.POSITIVE_INFINITY,
+    insight?.aggressiveSampleCount ?? Number.POSITIVE_INFINITY,
+  );
+  const weakSample =
+    ranking?.sampleQuality === "faible" ||
+    ranking?.confidence === "faible" ||
+    insight?.comparisonStatus !== "comparable" ||
+    (insight != null && minSample < 5);
+
+  const decisionClear =
+    insight?.decisionConfidence === "élevée" ||
+    (numberOrNull(insight?.comparisonScore) ?? 0) >= 75;
+
+  const candidates = [];
+
+  if (spread != null && spread > 35) {
+    candidates.push({
+      label: "Non tradable",
+      priority: 1,
+      className: "border-rose-800/50 bg-rose-900/20 text-rose-400",
+    });
+  } else if (spread != null && spread > 20) {
+    candidates.push({
+      label: "Spread large",
+      priority: 2,
+      className: "border-amber-800/50 bg-amber-900/20 text-amber-400",
+    });
+  }
+
+  if (displayMode === "À confirmer") {
+    candidates.push({
+      label: "À confirmer",
+      priority: 3,
+      className: "border-slate-600 bg-slate-800 text-slate-400",
+    });
+  }
+
+  if (weakSample) {
+    candidates.push({
+      label: "Données faibles",
+      priority: 4,
+      className: "border-slate-700 bg-slate-800/80 text-slate-500",
+    });
+  }
+
+  if (decisionClear) {
+    candidates.push({
+      label: "Décision claire",
+      priority: 5,
+      className: "border-emerald-800/50 bg-emerald-900/20 text-emerald-400",
+    });
+  }
+
+  if (spread == null) {
+    candidates.push({
+      label: "Spread n/d",
+      priority: 6,
+      className: "border-slate-700 bg-slate-800/80 text-slate-500",
+    });
+  } else if (spread > 10) {
+    candidates.push({
+      label: "Spread moyen",
+      priority: 6,
+      className: "border-amber-800/40 bg-amber-900/10 text-amber-400",
+    });
+  } else {
+    candidates.push({
+      label: "Exécution OK",
+      priority: 7,
+      className: "border-emerald-800/50 bg-emerald-900/20 text-emerald-400",
+    });
+  }
+
+  candidates.sort((a, b) => a.priority - b.priority);
+  return candidates[0] ?? null;
+}
+
 // ── Dark-mode design tokens ─────────────────────────────────────────────────
 // bg-[#020617] = slate-950 (panel root)
 // bg-slate-900 = cards
@@ -1657,6 +1975,16 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [saModeFilter, setSaModeFilter] = useState("tous");
   const [saComparableOnly, setSaComparableOnly] = useState(false);
 
+  const [activePopTab, setActivePopTab] = useState("decision");
+
+  const POP_TABS = [
+    { id: "decision", label: "Décision" },
+    { id: "safeAggressive", label: "SAFE/AGR" },
+    { id: "premiumStability", label: "Stabilité" },
+    { id: "wheelCycles", label: "Wheel/CC" },
+    { id: "dataAudit", label: "Données" },
+  ];
+
   const uniqueJournalSymbols = useMemo(() => {
     if (!Array.isArray(journal?.records)) return [];
     const seen = new Set();
@@ -2204,7 +2532,71 @@ export default function JournalPopPanel({ apiBase, active }) {
         )}
       </section>
 
-      {hasLoaded && premiumStability && (
+      {hasLoaded && (
+        <nav className="flex flex-wrap gap-2 rounded-[20px] border border-slate-700/50 bg-slate-900 p-2">
+          {POP_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActivePopTab(tab.id)}
+              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                activePopTab === tab.id
+                  ? "border border-sky-700/50 bg-sky-900/30 text-sky-300"
+                  : "border border-transparent bg-slate-800/50 text-slate-500 hover:border-slate-700 hover:text-slate-300"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {hasLoaded && activePopTab === "decision" && (
+        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+          <div className="mb-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Résumé décision</h3>
+            <p className="mt-1 text-[11px] text-slate-600">
+              Classement Wheel et modes SAFE/AGR recommandés — détail complet dans l&apos;onglet SAFE/AGR.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ProKpi
+              label="Top tickers"
+              value={tickerRanking?.summary?.tickers_ranked ?? "—"}
+              tone="info"
+              sub={tickerRanking?.summary?.avg_score != null ? `Score moy. ${tickerRanking.summary.avg_score}` : "V2-L"}
+            />
+            <ProKpi
+              label="Score max"
+              value={tickerRanking?.summary?.top_score ?? "—"}
+              tone="good"
+              sub={stats.resolvedCount > 0 ? `Readiness ${readiness.score}/100` : undefined}
+            />
+            <ProKpi
+              label="AGRESSIF recommandés"
+              value={safeAggComparison?.summary?.aggressive_recommended ?? "—"}
+              tone="warn"
+              sub={
+                safeAggComparison?.summary?.comparable_groups != null
+                  ? `${safeAggComparison.summary.comparable_groups} comparables`
+                  : "V2-N"
+              }
+            />
+            <ProKpi
+              label="SAFE recommandés"
+              value={safeAggComparison?.summary?.safe_recommended ?? "—"}
+              tone="good"
+              sub={
+                primeQualityStats.avgSpreadPct != null
+                  ? `Spread moy. ${primeQualityStats.avgSpreadPct.toFixed(1)} %`
+                  : undefined
+              }
+            />
+          </div>
+        </section>
+      )}
+
+      {hasLoaded && activePopTab === "premiumStability" && premiumStability && (
         <CollapsibleSection
           title={"Stabilit\u00e9 des primes"}
           badge="V2-K"
@@ -2379,7 +2771,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION V2A — WIN QUALITY ───────────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Win Quality — Qualité réelle des victoires"
           badge="V2A"
@@ -2499,7 +2891,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION V2B — 1% READINESS ──────────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="1% Readiness — Capacité statistique à viser 1% / semaine"
           badge="V2B"
@@ -2618,7 +3010,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION B — OBJECTIF 1 % / SEMAINE ─────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Objectif 1 % / Semaine — Buckets de rendement prime"
           badge="Premium / Spot"
@@ -2873,7 +3265,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION C — SAFE vs AGGRESSIVE ─────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Capital Combination Risk Overlay"
           badge="V2E"
@@ -3006,7 +3398,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         </CollapsibleSection>
       )}
 
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "safeAggressive" && (
         <CollapsibleSection
           title="Safe vs Aggressive — Comparaison mode strike"
           badge="V2 calibration"
@@ -3224,7 +3616,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION V2-G — COMPARAISON SAFE vs AGRESSIF ─────────────────────── */}
-      {hasLoaded && modeComparison && (() => {
+      {hasLoaded && activePopTab === "safeAggressive" && modeComparison && (() => {
         const mc = modeComparison;
         const safe = mc.modes.safe;
         const agg = mc.modes.aggressive;
@@ -3786,7 +4178,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       })()}
 
       {/* ── SECTION D — TICKER LEADERBOARD ─────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Ticker Leaderboard — Calibration par actif"
           badge="V2D-B"
@@ -3981,7 +4373,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         </CollapsibleSection>
       )}
 
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Prime Quality — Spread, liquidité et risque événementiel"
           badge="V2D-C"
@@ -4033,7 +4425,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION E — DATA CONFIDENCE ─────────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Confiance statistique — État de la calibration"
           badge="Read-only"
@@ -4076,7 +4468,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION F — MÉTRIQUES V2 PRÉPARÉES ─────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <CollapsibleSection
           title="Métriques avancées — Préparées pour V2"
           badge="Prochaine phase"
@@ -4107,7 +4499,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── SECTION G — DÉTAILS AVANCÉS (preserved, togglable) ─────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
           <button
             type="button"
@@ -4357,7 +4749,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── Seasonality V1 — read-only ──────────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div>
@@ -4461,9 +4853,10 @@ export default function JournalPopPanel({ apiBase, active }) {
       )}
 
       {/* ── Ticker Ranking V2-L ─────────────────────────────────────────────── */}
-      {hasLoaded && tickerRanking && (() => {
+      {hasLoaded && activePopTab === "decision" && tickerRanking && (() => {
         const rankings = Array.isArray(tickerRanking.rankings) ? tickerRanking.rankings : [];
         const summary = tickerRanking.summary ?? {};
+        const saSummary = safeAggComparison?.summary ?? {};
 
         const search = rankingTickerSearch.trim().toUpperCase();
         let filtered = rankings;
@@ -4494,28 +4887,19 @@ export default function JournalPopPanel({ apiBase, active }) {
           if (mode === "SAFE") return "text-emerald-400";
           return "text-slate-500";
         };
-        const confidenceColor = (c) => {
-          if (c === "élevée") return "text-emerald-400";
-          if (c === "moyenne") return "text-amber-400";
-          return "text-slate-500";
-        };
 
         return (
           <CollapsibleSection
             title="Classement tickers Wheel"
             badge={`${summary.tickers_ranked ?? 0} tickers`}
-            subtitle="Score 1-100 : risque CSP (30) · prime (25) · spread/liquidité (15) · stabilité (15) · échantillon (10) · CC (5)."
+            subtitle="Score 1-100 · mode décisionnel aligné SAFE/AGR · détail complet dans l'onglet SAFE/AGR."
             defaultOpen={false}
-            summaryRight={summary.top_score != null ? `Meilleur score : ${summary.top_score} · Moy. ${summary.avg_score ?? "—"}` : undefined}
+            summaryRight={
+              summary.top_score != null
+                ? `Score max ${summary.top_score} · ${saSummary.aggressive_recommended ?? 0} AGR · ${saSummary.safe_recommended ?? 0} SAFE`
+                : undefined
+            }
           >
-            {/* Summary cards */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-              <ProKpi label="Tickers classés" value={summary.tickers_ranked ?? "—"} tone="info" />
-              <ProKpi label="Score moyen" value={summary.avg_score ?? "—"} tone="default" />
-              <ProKpi label="Meilleur score" value={summary.top_score ?? "—"} tone="good" />
-              <ProKpi label="Échantillons faibles" value={summary.weak_sample_count ?? "—"} tone={summary.weak_sample_count > 0 ? "warn" : "default"} />
-            </div>
-
             {/* Filters */}
             <div className="mb-4 flex flex-wrap gap-3">
               <input
@@ -4577,99 +4961,79 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <table className="min-w-full text-left text-xs text-slate-300">
                   <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                     <tr>
-                      <th className="px-3 py-3 font-semibold">Rang</th>
-                      <th className="px-3 py-3 font-semibold">Ticker</th>
-                      <th className="px-3 py-3 font-semibold">Score</th>
-                      <th className="px-3 py-3 font-semibold">Mode</th>
-                      <th className="px-3 py-3 font-semibold">Fenêtre DTE</th>
-                      <th className="px-3 py-3 font-semibold">Assign.</th>
-                      <th className="px-3 py-3 font-semibold">CC vendables</th>
-                      <th className="px-3 py-3 font-semibold">Confiance / Exéc.</th>
-                      <th className="px-3 py-3 font-semibold">Lecture</th>
+                      <th className="px-3 py-2 font-semibold">Rang</th>
+                      <th className="px-3 py-2 font-semibold">Ticker</th>
+                      <th className="px-3 py-2 font-semibold">Score</th>
+                      <th className="px-3 py-2 font-semibold">Mode</th>
+                      <th className="px-3 py-2 font-semibold">DTE</th>
+                      <th className="px-3 py-2 font-semibold">Assign.</th>
+                      <th className="px-3 py-2 font-semibold">Exécution</th>
+                      <th className="px-3 py-2 font-semibold">Lecture</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
-                    {filtered.map((row) => (
+                    {filtered.map((row) => {
+                      const saInsight = getSafeAggressiveInsightForRanking(row, safeAggComparison);
+                      const displayMode = getDisplayModeForDecision(row, saInsight);
+                      const decisionLine = formatSafeAggressiveDecisionLine(saInsight);
+                      const decisionBadge = getExecutionDecisionBadge(row, saInsight);
+                      const executionDisplay = getExecutionColumnDisplay(row);
+                      const modeTooltipParts = [
+                        saInsight?.modeDecision ?? decisionLine,
+                        row.preferredMode && row.preferredMode !== displayMode
+                          ? `mode ranking : ${row.preferredMode}`
+                          : null,
+                      ].filter(Boolean);
+
+                      return (
                       <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors align-top">
-                        <td className="px-3 py-2.5 text-slate-500 tabular-nums">#{row.rank}</td>
-                        <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <span className={`font-bold tabular-nums ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</span>
-                          <span className={`ml-1.5 text-[10px] ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</span>
-                          <div className="mt-1 text-[9px] text-slate-600 leading-tight">
-                            <span title="Risque/30">R:{row.components?.riskScore ?? 0}</span>
-                            <span className="mx-0.5 text-slate-700">·</span>
-                            <span title="Prime/25">P:{row.components?.premiumScore ?? 0}</span>
-                            <span className="mx-0.5 text-slate-700">·</span>
-                            <span title="Exécution/15" className={row.components?.executionQualityScore <= 4 ? "text-rose-600" : ""}>E:{row.components?.executionQualityScore ?? 0}</span>
-                            <span className="mx-0.5 text-slate-700">·</span>
-                            <span title="Stabilité/15">S:{row.components?.stabilityScore ?? 0}</span>
-                            <span className="mx-0.5 text-slate-700">·</span>
-                            <span title="Échantillon/10">n:{row.components?.sampleScore ?? 0}</span>
-                            <span className="mx-0.5 text-slate-700">·</span>
-                            <span title="CC/5">CC:{row.components?.ccScore ?? 0}</span>
+                        <td className="px-3 py-2 text-slate-500 tabular-nums">#{row.rank}</td>
+                        <td className="px-3 py-2 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={formatScoreComponentsTooltip(row)}>
+                          <div className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</div>
+                          <div className={`mt-0.5 text-[10px] leading-tight ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</div>
+                        </td>
+                        <td className="px-3 py-2 max-w-[190px]" title={modeTooltipParts.join("\n")}>
+                          <div className={`font-semibold whitespace-nowrap ${modeColor(displayMode)}`}>{displayMode}</div>
+                          {decisionBadge && (
+                            <span className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[9px] leading-tight ${decisionBadge.className}`}>
+                              {decisionBadge.label}
+                            </span>
+                          )}
+                          <div className="mt-0.5 text-[10px] leading-tight text-slate-500">
+                            {decisionLine}
                           </div>
                         </td>
-                        <td className={`px-3 py-2.5 whitespace-nowrap font-semibold ${modeColor(row.preferredMode)}`}>{row.preferredMode}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap text-slate-300">
-                          {row.recommendedDteWindow ?? "—"}
-                          {row.practicalBestDte != null && (
-                            <div className="text-[10px] text-slate-600">Pratique : DTE {row.practicalBestDte}</div>
-                          )}
+                        <td className="px-3 py-2 whitespace-nowrap text-slate-300" title={getDecisionDteTooltip(row)}>
+                          {getDecisionDteDisplay(row)}
                         </td>
-                        <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap">
                           {row.assignmentRatePct != null ? (
                             <span className={row.assignmentRatePct > 20 ? "text-rose-400" : row.assignmentRatePct > 10 ? "text-amber-400" : "text-emerald-400"}>
                               {row.assignmentRatePct.toFixed(1)}%
                             </span>
                           ) : "—"}
                         </td>
-                        <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
-                          {row.ccSellableRatePct != null ? (
-                            <span className={row.ccSellableRatePct >= 60 ? "text-emerald-400" : row.ccSellableRatePct >= 30 ? "text-amber-400" : "text-slate-500"}>
-                              {row.ccSellableRatePct.toFixed(1)}%
-                            </span>
-                          ) : (
-                            <span className="text-slate-500">Non testé</span>
-                          )}
-                          {row.ccStatusLabel && (
-                            <div className="mt-0.5 text-[9px] text-slate-600 max-w-[120px] leading-tight">{row.ccStatusLabel}</div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">
-                          <span className={`text-[11px] ${confidenceColor(row.confidence)}`}>{row.confidence}</span>
-                          <div className="text-[10px] text-slate-600">
-                            n={row.sampleCount}
-                            {row.sampleQualityTicker && row.sampleQualityTicker !== row.sampleQuality && (
-                              <span className="ml-1 text-slate-700">· {row.sampleQualityTicker}</span>
-                            )}
+                        <td className="px-3 py-2 whitespace-nowrap" title={getExecutionColumnTooltip(row)}>
+                          <div className={`text-[11px] leading-tight ${
+                            executionDisplay.label === "Spread très large" ? "text-rose-400" :
+                            executionDisplay.label === "Spread large" ? "text-amber-400" :
+                            executionDisplay.label === "Exécution bonne" ? "text-emerald-400" :
+                            executionDisplay.label === "Exécution correcte" ? "text-sky-400" :
+                            "text-slate-400"
+                          }`}>
+                            {executionDisplay.label}
                           </div>
-                          {row.executionQualityLabel && (
-                            <div className={`mt-0.5 text-[9px] leading-tight ${
-                              row.executionQualityScore === 0 ? "text-rose-500" :
-                              row.executionQualityScore <= 4 ? "text-rose-400" :
-                              row.executionQualityScore >= 12 ? "text-emerald-600" :
-                              "text-amber-500"
-                            }`}>{row.executionQualityLabel}</div>
-                          )}
-                          {row.medianSpreadPct != null ? (
-                            <div className="text-[9px] text-slate-600">Spread: {row.medianSpreadPct.toFixed(1)}%</div>
-                          ) : (
-                            <div className="text-[9px] text-slate-700">Spread: n/d</div>
-                          )}
+                          <div className="text-[10px] text-slate-600">
+                            Spread: {executionDisplay.spread != null ? `${executionDisplay.spread.toFixed(1)}%` : "n/d"}
+                          </div>
                         </td>
-                        <td className="px-3 py-2.5 text-slate-300 max-w-[200px]">
-                          <div>{row.reading}</div>
-                          {Array.isArray(row.reasons) && row.reasons.length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {row.reasons.map((r) => (
-                                <span key={r} className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">{r}</span>
-                              ))}
-                            </div>
-                          )}
+                        <td className="px-3 py-2 text-[11px] text-slate-300 max-w-[180px] leading-tight" title={getReadingTooltip(row)}>
+                          {row.reading ?? "—"}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -4684,7 +5048,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       })()}
 
       {/* ── Raw journal tables ──────────────────────────────────────────────── */}
-      {hasLoaded && (
+      {hasLoaded && activePopTab === "dataAudit" && (
         <>
           <CollapsibleSection
             title="À résoudre"
@@ -4767,6 +5131,7 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
             )}
           </CollapsibleSection>
+
           <CollapsibleSection
             title="Résolus"
             defaultOpen={false}
@@ -4864,7 +5229,10 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
             )}
           </CollapsibleSection>
+        </>
+      )}
 
+      {hasLoaded && activePopTab === "wheelCycles" && (
           <CollapsibleSection
             title="Cycles théoriques Wheel"
             badge="POP V2-I"
@@ -5108,11 +5476,10 @@ export default function JournalPopPanel({ apiBase, active }) {
               </>
             )}
           </CollapsibleSection>
-        </>
       )}
 
       {/* ── SAFE vs AGRESSIF V2-N ─────────────────────────────────────────── */}
-      {hasLoaded && safeAggComparison && (() => {
+      {hasLoaded && activePopTab === "safeAggressive" && safeAggComparison && (() => {
         const summary = safeAggComparison.summary ?? {};
         const allRows = Array.isArray(safeAggComparison.comparisons) ? safeAggComparison.comparisons : [];
 
@@ -5280,7 +5647,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       })()}
 
       {/* ── Observations normalisées V2-M ─────────────────────────────────── */}
-      {hasLoaded && normalizedObs && (() => {
+      {hasLoaded && activePopTab === "dataAudit" && normalizedObs && (() => {
         const summary = normalizedObs.summary ?? {};
         const diagnostics = normalizedObs.diagnostics ?? {};
         const allObs = Array.isArray(normalizedObs.observations) ? normalizedObs.observations : [];

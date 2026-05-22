@@ -36,6 +36,14 @@ import {
 } from "./capitalComboPortfolio.js";
 import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
+import {
+  applyResearchExpandedFlagsToCandidates,
+  formatPoolSourceLabel,
+  loadResearchExpandedPoolWithFallback,
+  readStoredPreIbkrPoolMode,
+  readStoredResearchExpandedLimit,
+  resolvePreIbkrTickers,
+} from "./preIbkrPool.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -4936,6 +4944,9 @@ function buildAutoJournalCandidatePayload(candidate) {
         ? raw.technicals.rsi
         : null,
     source: candidate.source ?? null,
+    poolSource: candidate.poolSource ?? null,
+    researchExpanded: candidate.researchExpanded === true,
+    researchOnlyCandidate: candidate.researchOnlyCandidate === true,
     optionsSource: candidate.optionsSource ?? null,
     techniqueSource: candidate.techniqueSource ?? null,
     portfolioMode: candidate.portfolioMode ?? null,
@@ -9075,6 +9086,47 @@ export default function Dashboard() {
       DEFAULT_BUILD_WATCHLIST_BODY.liquidityOtmProbePct
     )
   );
+  const [preIbkrPoolMode, setPreIbkrPoolMode] = useState(() =>
+    readStoredPreIbkrPoolMode(window.localStorage.getItem("wheel.preIbkrPoolMode"))
+  );
+  const [researchExpandedLimit, setResearchExpandedLimit] = useState(() =>
+    readStoredResearchExpandedLimit(window.localStorage.getItem("wheel.researchExpandedLimit"))
+  );
+  const [researchExpandedEnabled, setResearchExpandedEnabled] = useState(() => {
+    const raw = window.localStorage.getItem("wheel.researchExpandedEnabled");
+    if (raw === "false") return false;
+    if (raw === "true") return true;
+    return readStoredPreIbkrPoolMode(window.localStorage.getItem("wheel.preIbkrPoolMode")) === "research_expanded";
+  });
+  const [researchExpandedMaxPrice, setResearchExpandedMaxPrice] = useState(() => {
+    const raw = window.localStorage.getItem("wheel.researchExpandedMaxPrice");
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  });
+  const [researchExpandedIncludeAboveMaxPrice, setResearchExpandedIncludeAboveMaxPrice] = useState(() => {
+    const raw = window.localStorage.getItem("wheel.researchExpandedIncludeAboveMaxPrice");
+    return raw !== "false";
+  });
+  const [researchExpandedFlagUnreliable, setResearchExpandedFlagUnreliable] = useState(() => {
+    const raw = window.localStorage.getItem("wheel.researchExpandedFlagUnreliable");
+    return raw !== "false";
+  });
+  const [researchExpandedPool, setResearchExpandedPool] = useState([]);
+  const [researchExpandedStats, setResearchExpandedStats] = useState(null);
+  const [researchExpandedPoolSource, setResearchExpandedPoolSource] = useState("loading");
+  const [researchExpandedPoolError, setResearchExpandedPoolError] = useState("");
+  const [lastScanPoolMeta, setLastScanPoolMeta] = useState({
+    poolSource: "",
+    preIbkrCount: 0,
+    yahooSent: 0,
+    yahooReturned: 0,
+    ibkrAuditDepth: 0,
+    ibkrTested: 0,
+    ibkrRetained: 0,
+    journalPopCaptured: 0,
+    usedFallbackUltimate: false,
+  });
+  const [lastJournalPopCaptured, setLastJournalPopCaptured] = useState(0);
 
   const [backendCandidates, setBackendCandidates] = useState(null);
   const [loadingScan, setLoadingScan] = useState(false);
@@ -9405,7 +9457,19 @@ export default function Dashboard() {
     );
   }, [filtered, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
 
-  const _rawWatchlist = watchlistTickers ?? FALLBACK_TICKERS;
+  const resolvedPreIbkrPool = useMemo(
+    () =>
+      resolvePreIbkrTickers({
+        watchlistTickers,
+        preIbkrPoolMode,
+        researchExpandedPool,
+        researchExpandedLimit,
+        fallbackTickers: FALLBACK_TICKERS,
+      }),
+    [watchlistTickers, preIbkrPoolMode, researchExpandedPool, researchExpandedLimit]
+  );
+
+  const _rawWatchlist = resolvedPreIbkrPool.tickers;
   const tickersForScan = _rawWatchlist.filter(
     (t) => !USER_PREFS.cryptoBlocked.has(String(t || "").trim().toUpperCase())
   );
@@ -10054,6 +10118,14 @@ export default function Dashboard() {
           totalReceived: Array.isArray(payload?.journal?.records) ? payload.journal.records.length : null,
           backendTotal: payload?.totalRecords ?? payload?.journal?.totalRecords ?? null,
         });
+        const capturedCount = Number(payload?.captured ?? payload?.inserted ?? 0);
+        if (Number.isFinite(capturedCount) && capturedCount >= 0) {
+          setLastJournalPopCaptured(capturedCount);
+          setLastScanPoolMeta((prev) => ({
+            ...prev,
+            journalPopCaptured: capturedCount,
+          }));
+        }
         return payload;
       } catch (error) {
         console.warn("[AUTO_JOURNAL_ERROR]", {
@@ -10302,6 +10374,20 @@ export default function Dashboard() {
         });
         const emptySuspicious = isIbkrDirectScanSuspiciousEmpty(payload);
         setIbkrDirectResult(payload);
+        const testedCount = Array.isArray(payload?.testedSymbols)
+          ? payload.testedSymbols.length
+          : testedSymbols.length;
+        const retainedCount = Number.isFinite(Number(payload?.kept))
+          ? Number(payload.kept)
+          : Array.isArray(payload?.shortlist)
+          ? payload.shortlist.length
+          : 0;
+        setLastScanPoolMeta((prev) => ({
+          ...prev,
+          ibkrTested: testedCount,
+          ibkrRetained: retainedCount,
+          ibkrAuditDepth: finalTarget,
+        }));
         if (emptySuspicious) {
           setIbkrDirectError(IBKR_TWS_EMPTY_MESSAGE);
           setRefreshStage("IBKR : aucune donnée par symbole — vérifie TWS / IB Gateway.");
@@ -10386,14 +10472,48 @@ export default function Dashboard() {
     setBackendShortlistDevScan(false);
     setRefreshStage("Étape 1/2 : Yahoo/yfinance — contexte technique");
 
-    let tickers = watchlistTickers ?? FALLBACK_TICKERS;
+    let tickers = [];
+    let poolSource = "strict_watchlist";
+    let usedFallbackUltimate = false;
+
+    const resolved = resolvePreIbkrTickers({
+      watchlistTickers,
+      preIbkrPoolMode,
+      researchExpandedPool,
+      researchExpandedLimit,
+      fallbackTickers: FALLBACK_TICKERS,
+    });
+    tickers = resolved.tickers;
+    poolSource = resolved.poolSource;
+    usedFallbackUltimate = resolved.usedFallbackUltimate;
+
     if (Array.isArray(watchlistTickers) && watchlistTickers.length === 0) {
-      console.log("[SCAN_DEBUG] watchlist_empty_using_fallback_no_auto_rebuild");
-      tickers = FALLBACK_TICKERS;
-      setWatchlistBuildError(
-        "Watchlist vide. Utilisation de la liste secours. Cliquer Rebuild watchlist pour relancer /universe/build."
-      );
+      if (poolSource === "research_expanded") {
+        setWatchlistBuildError(
+          usedFallbackUltimate
+            ? "Watchlist stricte vide — pool Research Expanded indisponible, secours fallback 65 utilisé."
+            : `Watchlist stricte vide — pool Research Expanded (${tickers.length} tickers).`
+        );
+      } else if (poolSource === "fallback_65") {
+        setWatchlistBuildError(
+          "Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65."
+        );
+      } else {
+        setWatchlistBuildError(
+          "Watchlist stricte vide — mode Strict Watchlist actif, aucun ticker pré-IBKR."
+        );
+      }
+    } else if (watchlistTickers?.length > 0) {
+      setWatchlistBuildError("");
     }
+
+    setLastScanPoolMeta((prev) => ({
+      ...prev,
+      poolSource,
+      preIbkrCount: tickers.length,
+      ibkrAuditDepth: Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
+      usedFallbackUltimate,
+    }));
 
     if (!Array.isArray(tickers) || tickers.length === 0) {
       console.log("[SCAN_DEBUG] scan_cancelled_reason", "no_tickers_to_scan");
@@ -10408,7 +10528,7 @@ export default function Dashboard() {
       setYahooChallengerCount(0);
       return;
     }
-    console.log("[SCAN_DEBUG] tickers_sent_to_scan", tickers.length);
+    console.log("[SCAN_DEBUG] tickers_sent_to_scan", tickers.length, "poolSource", poolSource);
     setYahooSentToScanCount(tickers.length);
     setYahooScanErrorCount(0);
     setYahooRequestedTopN(Number(topN) || 0);
@@ -10447,7 +10567,8 @@ export default function Dashboard() {
       const mappedRaw = (payload.shortlist || []).map((item, index) =>
         toDashboardCandidate(item, index, lockedExpiration)
       );
-      const mapped = tagCandidatesOffMarketNonTradable(mappedRaw, marketClosed);
+      const mappedTagged = applyResearchExpandedFlagsToCandidates(mappedRaw, poolSource);
+      const mapped = tagCandidatesOffMarketNonTradable(mappedTagged, marketClosed);
       rememberTechnicalCandidates(mapped);
 
       setBackendCandidates(mapped);
@@ -10478,6 +10599,15 @@ export default function Dashboard() {
         returned: payload.returned ?? mapped.length,
       });
       setYahooDiagnostics(nextYahooDiagnostics);
+
+      setLastScanPoolMeta((prev) => ({
+        ...prev,
+        poolSource,
+        preIbkrCount: tickers.length,
+        yahooSent: payload.scanned ?? tickers.length,
+        yahooReturned: payload.returned ?? mapped.length,
+        ibkrAuditDepth: Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
+      }));
 
       const yahooTop20 = (payload.shortlist || []).slice(0, 20).map((it) => it.symbol);
       console.log("[SCAN_YAHOO_RESULT]", {
@@ -10675,7 +10805,7 @@ export default function Dashboard() {
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [watchlistTickers, selectedExpiration, topN, autoIbkrDirectScan, rememberTechnicalCandidates, displaySnapshotRef, captureWheelJournalSnapshot]);
+  }, [watchlistTickers, preIbkrPoolMode, researchExpandedPool, researchExpandedLimit, selectedExpiration, topN, autoIbkrDirectScan, ibkrAutoMaxTickers, rememberTechnicalCandidates, displaySnapshotRef, captureWheelJournalSnapshot]);
 
   useEffect(() => {
     rememberTechnicalCandidates(activeCandidates);
@@ -10684,6 +10814,35 @@ export default function Dashboard() {
   useEffect(() => {
     rememberTechnicalCandidates(mergedIbkrYahooCandidates);
   }, [mergedIbkrYahooCandidates, rememberTechnicalCandidates]);
+
+  const handleReloadResearchExpandedPool = useCallback(async () => {
+    setResearchExpandedPoolSource("loading");
+    setResearchExpandedPoolError("");
+    try {
+      const result = await loadResearchExpandedPoolWithFallback({
+        limit: researchExpandedLimit,
+        maxPrice: researchExpandedMaxPrice,
+        includeAboveMaxPrice: researchExpandedIncludeAboveMaxPrice,
+        flagUnreliable: researchExpandedFlagUnreliable,
+      });
+      setResearchExpandedPool(Array.isArray(result.pool) ? result.pool : []);
+      setResearchExpandedStats(result.stats ?? null);
+      setResearchExpandedPoolSource(result.source ?? "backend");
+      if (result.usedStaticFallback) {
+        setResearchExpandedPoolError(result.error || "Pool research : secours statique utilisé.");
+      }
+    } catch (err) {
+      setResearchExpandedPool([]);
+      setResearchExpandedStats(null);
+      setResearchExpandedPoolSource("error");
+      setResearchExpandedPoolError(String(err?.message || err || "Pool research indisponible"));
+    }
+  }, [
+    researchExpandedLimit,
+    researchExpandedMaxPrice,
+    researchExpandedIncludeAboveMaxPrice,
+    researchExpandedFlagUnreliable,
+  ]);
 
   const handleRebuildWatchlist = useCallback(async () => {
     setWatchlistLoading(true);
@@ -10973,6 +11132,51 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    void handleReloadResearchExpandedPool();
+  }, [handleReloadResearchExpandedPool]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("wheel.preIbkrPoolMode", preIbkrPoolMode);
+      window.localStorage.setItem(
+        "wheel.researchExpandedEnabled",
+        preIbkrPoolMode === "research_expanded" ? "true" : "false"
+      );
+    } catch {
+      /* quota / private mode */
+    }
+    setResearchExpandedEnabled(preIbkrPoolMode === "research_expanded");
+  }, [preIbkrPoolMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("wheel.researchExpandedLimit", String(researchExpandedLimit));
+    } catch {
+      /* quota / private mode */
+    }
+  }, [researchExpandedLimit]);
+
+  useEffect(() => {
+    try {
+      if (researchExpandedMaxPrice == null) {
+        window.localStorage.removeItem("wheel.researchExpandedMaxPrice");
+      } else {
+        window.localStorage.setItem("wheel.researchExpandedMaxPrice", String(researchExpandedMaxPrice));
+      }
+      window.localStorage.setItem(
+        "wheel.researchExpandedIncludeAboveMaxPrice",
+        researchExpandedIncludeAboveMaxPrice ? "true" : "false"
+      );
+      window.localStorage.setItem(
+        "wheel.researchExpandedFlagUnreliable",
+        researchExpandedFlagUnreliable ? "true" : "false"
+      );
+    } catch {
+      /* quota / private mode */
+    }
+  }, [researchExpandedMaxPrice, researchExpandedIncludeAboveMaxPrice, researchExpandedFlagUnreliable]);
 
   useEffect(() => {
     try {
@@ -11285,6 +11489,66 @@ export default function Dashboard() {
             </p>
           </div>
 
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 xl:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-slate-800">Pool pré-IBKR</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "strict_watchlist", label: "Strict Watchlist" },
+                { id: "research_expanded", label: "Research Expanded" },
+                { id: "fallback_65", label: "Fallback 65" },
+              ].map((mode) => (
+                <Button
+                  key={mode.id}
+                  type="button"
+                  variant={preIbkrPoolMode === mode.id ? "default" : "outline"}
+                  className="rounded-xl text-xs"
+                  onClick={() => setPreIbkrPoolMode(mode.id)}
+                >
+                  {mode.label}
+                </Button>
+              ))}
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-700">Research limit</label>
+                <Select
+                  value={String(researchExpandedLimit)}
+                  onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
+                  className="w-full rounded-xl border-slate-200"
+                  disabled={preIbkrPoolMode !== "research_expanded"}
+                >
+                  <option value="150">150</option>
+                  <option value="200">200</option>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full rounded-xl"
+                  onClick={handleReloadResearchExpandedPool}
+                  disabled={preIbkrPoolMode !== "research_expanded" || researchExpandedPoolSource === "loading"}
+                >
+                  Recharger pool research
+                </Button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              Mode actif : {formatPoolSourceLabel(preIbkrPoolMode)} · Pool research chargé :{" "}
+              {researchExpandedPoolSource === "loading"
+                ? "…"
+                : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
+              {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
+                <span className="mt-1 block font-medium text-amber-800">
+                  ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
+                </span>
+              ) : null}
+              {researchExpandedPoolError ? (
+                <span className="mt-1 block text-amber-800">{researchExpandedPoolError}</span>
+              ) : null}
+            </p>
+          </div>
+
           <div className="flex flex-col gap-2 justify-end">
             <Button
               className="w-full rounded-xl"
@@ -11309,10 +11573,76 @@ export default function Dashboard() {
             {refreshStage}
           </div>
         )}
-        {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult) && (
+        {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult || lastScanPoolMeta.preIbkrCount > 0) && (
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
             <details open>
               <summary className="cursor-pointer font-semibold text-slate-900">Résumé du funnel</summary>
+              <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 text-xs text-slate-700">
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  <div>
+                    <span className="text-slate-500">Pool source</span>
+                    <div className="font-semibold text-slate-900">
+                      {formatPoolSourceLabel(lastScanPoolMeta.poolSource || resolvedPreIbkrPool.poolSource)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Pool pré-Yahoo</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.preIbkrCount || _rawWatchlist.length || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Yahoo sent/scanned</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.yahooSent || yahooScanMeta.scanned || yahooSentToScanCount || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Yahoo retournés</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR Audit Depth</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR testés</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.ibkrTested || ibkrTestedCount}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR retenus</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.ibkrRetained || ibkrKeptCount}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Journal POP capturés</span>
+                    <div className="font-semibold text-slate-900">{lastJournalPopCaptured}</div>
+                  </div>
+                </div>
+                {lastScanPoolMeta.usedFallbackUltimate ? (
+                  <p className="mt-2 text-amber-800">
+                    Pool Research Expanded indisponible — secours fallback 65 utilisé pour ce scan.
+                  </p>
+                ) : null}
+                {(lastScanPoolMeta.ibkrTested || ibkrTestedCount) <
+                Math.min(
+                  lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget,
+                  lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0
+                ) ? (
+                  <p className="mt-2 text-slate-600">
+                    IBKR testés &lt; Audit Depth : Yahoo a renvoyé{" "}
+                    {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0} candidats (plafond réel = min(Yahoo
+                    retournés, Audit Depth)).
+                  </p>
+                ) : null}
+              </div>
               <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
               <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
               <Metric

@@ -15,6 +15,7 @@ import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
 import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
 import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
+import { buildResearchExpandedPool } from "./app/watchlist/researchExpandedPool.js";
 import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
 import { createWheelValidationService } from "./app/journal/wheelValidationService.js";
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
@@ -624,6 +625,17 @@ const buildWatchlistBodySchema = z.object({
   liquidityOtmProbePct: z.number().min(0).max(45).optional().default(defaultLiquidityOtmProbePct),
   categories: z.array(z.enum(["core", "growth", "high_premium", "etf", "weekly"])).min(1),
   limit: z.number().int().positive().max(2000).optional(),
+});
+
+const buildResearchExpandedBodySchema = z.object({
+  limit: z.union([z.literal(150), z.literal(200)]).optional().default(200),
+  maxPrice: z.number().positive().max(1000).optional().nullable(),
+  includeAboveMaxPrice: z.boolean().optional().default(true),
+  flagUnreliable: z.boolean().optional().default(true),
+  categories: z
+    .array(z.enum(["core", "growth", "high_premium", "etf", "weekly"]))
+    .min(1)
+    .optional(),
 });
 
 const mcpSessions = new Map();
@@ -2864,6 +2876,28 @@ async function handleBuildWatchlist(req, res) {
 app.post("/build_watchlist", handleBuildWatchlist);
 /** Alias sans le segment "watchlist" dans le chemin (évite certains bloqueurs / filtres d'URL côté navigateur). */
 app.post("/universe/build", handleBuildWatchlist);
+
+function handleBuildResearchExpandedPool(req, res) {
+  try {
+    const parsed = buildResearchExpandedBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        ok: false,
+        error: "invalid request body",
+        details: parsed.error.flatten(),
+      });
+    }
+    const payload = buildResearchExpandedPool(parsed.data);
+    res.json(payload);
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error.message || "universe/research failed",
+    });
+  }
+}
+
+app.post("/universe/research", handleBuildResearchExpandedPool);
 
 // Seasonality Engine V1 — read-only, isolated, additive
 app.use("/seasonality", seasonalityRoutes);

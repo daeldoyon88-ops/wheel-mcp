@@ -28,6 +28,7 @@ import {
   getLegSpreadPct,
   getLegYieldPct,
   getCandidateExecutionScore,
+  getLegExecutionBreakdown,
   getModeGradeRank,
   gradeLeg,
   isUnknownUnvalidatedTicker,
@@ -7937,6 +7938,24 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     raisonProbable = "présent dans scoredPool — non sélectionné : caps diversification, ordre de tri, ou capital restant";
   }
 
+  const executionBreakdown =
+    blockedByExecutionScore && bucketLeg
+      ? (() => {
+          const bd = getLegExecutionBreakdown(bucketLeg);
+          if (!bd) return null;
+          return {
+            executionScore: bd.executionScore,
+            minExecutionScore: cfg.minExecutionScore,
+            spreadScore: bd.spreadScore,
+            volumeScore: bd.volumeScore,
+            openInterestScore: bd.openInterestScore,
+            spreadPct: bd.spreadPct,
+            volume: bd.volume,
+            openInterest: bd.openInterest,
+          };
+        })()
+      : null;
+
   return {
     ticker, bucket: bucketKey, inScanData: true, inPicks, diagCategory,
     mode: globalMode, grade: effectiveGrade,
@@ -7965,6 +7984,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     blockedByPremiumTrap,
     blockedBySpeculative,
     blockedByExecutionScore,
+    executionBreakdown,
     blockedByDistancePct,
     blockedByCapitalEnvelope,
     possibleDynamicBlock,
@@ -8310,6 +8330,24 @@ function CapitalCombosInspector({
                       <p className="font-semibold text-sm">{diag.ticker} — {diag.bucket}</p>
                       <span className={_inspStatusBadge(diag.statusProbable)}>{diag.statusProbable}</span>
                       <p className="text-xs mt-1 italic">{diag.raisonProbable}</p>
+                      {diag.blockedByExecutionScore && diag.executionBreakdown && (
+                        <div className="mt-1 rounded border border-amber-200 bg-amber-50/80 px-2 py-1 text-[11px] leading-snug text-amber-950">
+                          <p className="font-semibold">Execution</p>
+                          <p>
+                            score {Number(diag.executionBreakdown.executionScore).toFixed(2)} / min{" "}
+                            {Number(diag.executionBreakdown.minExecutionScore).toFixed(2)}
+                          </p>
+                          <p>
+                            spreadScore {Number(diag.executionBreakdown.spreadScore).toFixed(2)} · volumeScore{" "}
+                            {Number(diag.executionBreakdown.volumeScore).toFixed(2)} · OI score{" "}
+                            {Number(diag.executionBreakdown.openInterestScore).toFixed(2)}
+                          </p>
+                          <p>
+                            spread {Number(diag.executionBreakdown.spreadPct).toFixed(2)} % · volume{" "}
+                            {diag.executionBreakdown.volume} · OI {diag.executionBreakdown.openInterest}
+                          </p>
+                        </div>
+                      )}
                       <div className="mt-2 space-y-0.5 text-slate-700">
                         <Row label="Dans scan" val={diag.inScanData ? "oui" : "non"} />
                         <Row label="Sélectionné" val={diag.inPicks ? "oui" : "non"} />

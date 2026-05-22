@@ -784,7 +784,7 @@ export function getLegPopPct(leg) {
  * Le score backend global est toujours calculé sur la jambe SAFE ; pour AGGRESSIVE il faut
  * recalculer sur la jambe bucket réellement sélectionnée.
  */
-export function getLegExecutionScore(leg) {
+export function getLegExecutionBreakdown(leg) {
   if (!leg) return null;
   const spreadPct = getLegSpreadPct(leg);
   if (!Number.isFinite(spreadPct)) return null;
@@ -793,9 +793,27 @@ export function getLegExecutionScore(leg) {
   const openInterest = Number(leg?.openInterest ?? leg?.liquidity?.openInterest ?? NaN);
   const spreadScore = Math.max(0, 1 - spreadPct / 50);
   const volumeScore = Number.isFinite(volume) && volume > 0 ? Math.min(volume / 200, 1) : 0;
-  const oiScore = Number.isFinite(openInterest) && openInterest > 0 ? Math.min(openInterest / 500, 1) : 0;
-  const executionScore = spreadScore * 0.5 + volumeScore * 0.3 + oiScore * 0.2;
-  return Math.max(0, Math.min(1, executionScore));
+  const openInterestScore =
+    Number.isFinite(openInterest) && openInterest > 0 ? Math.min(openInterest / 500, 1) : 0;
+  const rawExecutionScore =
+    spreadScore * 0.5 + volumeScore * 0.3 + openInterestScore * 0.2;
+  const executionScore = Math.max(0, Math.min(1, rawExecutionScore));
+
+  return {
+    executionScore,
+    spreadScore,
+    volumeScore,
+    openInterestScore,
+    spreadPct,
+    volume: Number.isFinite(volume) ? volume : 0,
+    openInterest: Number.isFinite(openInterest) ? openInterest : 0,
+    formula: "spreadScore*0.5 + volumeScore*0.3 + openInterestScore*0.2",
+  };
+}
+
+export function getLegExecutionScore(leg) {
+  const breakdown = getLegExecutionBreakdown(leg);
+  return breakdown?.executionScore ?? null;
 }
 
 /** Score d'exécution contextualisé à la jambe bucket (ou selectedLeg si absent). */

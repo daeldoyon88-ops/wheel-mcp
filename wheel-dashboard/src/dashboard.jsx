@@ -38,6 +38,9 @@ import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
   applyResearchExpandedFlagsToCandidates,
+  buildIbkrAutoNetworkSkipMessage,
+  buildIbkrAutoSkipMessage,
+  buildStrictWatchlistEmptyInfo,
   formatPoolSourceLabel,
   loadResearchExpandedPoolWithFallback,
   readStoredPreIbkrPoolMode,
@@ -3741,6 +3744,60 @@ function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = f
   };
 }
 
+function buildIbkrDataProvenance({ ibkrCandidate, spot }) {
+  const requested = ibkrCandidate?.marketDataTypeRequested ?? null;
+  const requestedLabel = ibkrCandidate?.marketDataTypeRequestedLabel ?? "unknown";
+  const receivedLabel = ibkrCandidate?.marketDataTypeReceivedLabel ?? "unknown";
+  const hasIbkrSpot =
+    Number.isFinite(Number(ibkrCandidate?.currentPrice)) ||
+    Number.isFinite(Number(ibkrCandidate?.underlyingPrice));
+  return {
+    sourceSpot: hasIbkrSpot ? "ibkr" : Number.isFinite(Number(spot)) && spot > 0 ? "yahoo" : "unknown",
+    sourceOptions: "ibkr",
+    ibkrMarketDataTypeRequested: requested,
+    ibkrMarketDataTypeRequestedLabel: requestedLabel,
+    ibkrMarketDataTypeReceivedLabel: receivedLabel,
+    scanCompletedAt: ibkrCandidate?.scanCompletedAt ?? null,
+  };
+}
+
+function formatIbkrOptionsProvenanceLabel(provenance) {
+  if (!provenance) return "Options : IBKR (provenance inconnue)";
+  const received = String(provenance.ibkrMarketDataTypeReceivedLabel || "unknown");
+  const requested = String(provenance.ibkrMarketDataTypeRequestedLabel || "unknown");
+  if (received === "live") return "Options : IBKR live";
+  if (requested === "live") return "Options : IBKR live demandé";
+  if (received === "frozen" || requested === "frozen") return "Options : IBKR frozen";
+  if (received === "delayed" || requested === "delayed") return "Options : IBKR delayed";
+  if (received === "delayed_frozen" || requested === "delayed_frozen")
+    return "Options : IBKR delayed_frozen";
+  return "Options : IBKR (type inconnu)";
+}
+
+function formatIbkrSpotProvenanceLine(provenance) {
+  if (!provenance) return "";
+  const sourceSpot = provenance.sourceSpot;
+  const requested = String(provenance.ibkrMarketDataTypeRequestedLabel || "unknown");
+  const received = String(provenance.ibkrMarketDataTypeReceivedLabel || "unknown");
+  const spotLabel =
+    sourceSpot === "ibkr"
+      ? received === "live"
+        ? "IBKR live"
+        : requested === "live"
+        ? "IBKR live demandé"
+        : `IBKR ${received !== "unknown" ? received : requested}`
+      : sourceSpot === "yahoo"
+      ? "Yahoo"
+      : "indisponible";
+  const optionsLabel =
+    received === "live"
+      ? "IBKR live"
+      : requested === "live"
+      ? "IBKR live demandé"
+      : `IBKR ${received !== "unknown" ? received : requested}`;
+  return `Spot : ${spotLabel} · Options : ${optionsLabel}`;
+}
+
 function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, selectedExpiration) {
   const symbol = String(ibkrCandidate?.symbol || yahooCandidate?.ticker || "").trim().toUpperCase();
   const spot = ibkrCandidate?.currentPrice ?? ibkrCandidate?.underlyingPrice ?? yahooCandidate?.price ?? 0;
@@ -4035,6 +4092,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     note: yahooCandidate?.note ?? "Candidat IBKR live ajouté sans contexte technique Yahoo.",
     techniqueSource: yahooCandidate ? "Yahoo" : "—",
     optionsSource: "IBKR live",
+    dataProvenance: buildIbkrDataProvenance({ ibkrCandidate, spot }),
     ibkrDirect: ibkrCandidate,
     ibkrSpreadPct: ibkrCandidate?.spreadPct ?? primaryStrike?.raw?.spreadPct ?? null,
     ibkrDevIncompleteSurface: ibkrCandidate?.devIncompleteMarketData === true,
@@ -4488,7 +4546,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   )}
                   {item.optionsSource === "IBKR live" && (
                     <Badge className="rounded-[4px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
-                      Options : IBKR live
+                      {formatIbkrOptionsProvenanceLabel(item.dataProvenance)}
                     </Badge>
                   )}
                   {item.optionsSource === "IBKR live" && (
@@ -4524,6 +4582,12 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
 
               {/* Ligne 2 : sous-titre setup */}
               <p className="text-xs text-slate-400 leading-tight">{item.setup}</p>
+
+              {item.dataProvenance && (
+                <p className="text-[11px] text-slate-500 leading-tight">
+                  {formatIbkrSpotProvenanceLine(item.dataProvenance)}
+                </p>
+              )}
 
               {/* Ligne 3 : mode recommandé + grade */}
               {finalDisplayMode === "REJECT" ? (
@@ -5116,6 +5180,7 @@ async function callIbkrDirectScan({
       auditDepth: Number(auditDepth ?? maxTickers ?? topN),
       ibkrValidationCount: Number(auditDepth ?? maxTickers ?? topN),
       sort: "elite",
+      marketDataType: 1,
     }),
   });
 
@@ -9127,6 +9192,8 @@ export default function Dashboard() {
     ibkrRetained: 0,
     journalPopCaptured: 0,
     usedFallbackUltimate: false,
+    ibkrAutoLaunched: false,
+    ibkrAutoSkipReason: "",
   });
   const [lastJournalPopCaptured, setLastJournalPopCaptured] = useState(0);
 
@@ -10490,21 +10557,13 @@ export default function Dashboard() {
     usedFallbackUltimate = resolved.usedFallbackUltimate;
 
     if (Array.isArray(watchlistTickers) && watchlistTickers.length === 0) {
-      if (poolSource === "research_expanded") {
-        setWatchlistBuildError(
-          usedFallbackUltimate
-            ? "Watchlist stricte vide — pool Research Expanded indisponible, secours fallback 65 utilisé."
-            : `Watchlist stricte vide — pool Research Expanded (${tickers.length} tickers).`
-        );
-      } else if (poolSource === "fallback_65") {
-        setWatchlistBuildError(
-          "Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65."
-        );
-      } else {
-        setWatchlistBuildError(
-          "Watchlist stricte vide — mode Strict Watchlist actif, aucun ticker pré-IBKR."
-        );
-      }
+      setWatchlistBuildError(
+        buildStrictWatchlistEmptyInfo({
+          poolSource,
+          tickersCount: tickers.length,
+          usedFallbackUltimate,
+        })
+      );
     } else if (watchlistTickers?.length > 0) {
       setWatchlistBuildError("");
     }
@@ -10515,11 +10574,14 @@ export default function Dashboard() {
       preIbkrCount: tickers.length,
       ibkrAuditDepth: Math.min(120, Math.max(10, Number(ibkrAutoMaxTickers) || 20)),
       usedFallbackUltimate,
+      ibkrAutoLaunched: false,
+      ibkrAutoSkipReason: "",
     }));
 
     if (!Array.isArray(tickers) || tickers.length === 0) {
       console.log("[SCAN_DEBUG] scan_cancelled_reason", "no_tickers_to_scan");
-      setScanError("Aucun ticker disponible pour lancer le scan.");
+      const noTickerMsg = "Aucun ticker disponible pour lancer le scan.";
+      setScanError(noTickerMsg);
       setBackendCandidates(null);
       setDataSource("snapshot");
       setPrimaryIbkrSourceInfo(null);
@@ -10528,6 +10590,21 @@ export default function Dashboard() {
       setYahooScanErrorCount(0);
       setYahooRequestedTopN(0);
       setYahooChallengerCount(0);
+      setLastScanPoolMeta((prev) => ({
+        ...prev,
+        poolSource,
+        preIbkrCount: 0,
+        yahooSent: 0,
+        yahooReturned: 0,
+        ibkrAutoLaunched: false,
+        ibkrAutoSkipReason: shouldRunAutoIbkr
+          ? buildIbkrAutoNetworkSkipMessage({ poolSource, preIbkrCount: 0, hasCache: false })
+          : "",
+      }));
+      if (shouldRunAutoIbkr) {
+        const skipMsg = buildIbkrAutoNetworkSkipMessage({ poolSource, preIbkrCount: 0, hasCache: false });
+        setRefreshStage(skipMsg);
+      }
       return;
     }
     console.log("[SCAN_DEBUG] tickers_sent_to_scan", tickers.length, "poolSource", poolSource);
@@ -10656,14 +10733,33 @@ export default function Dashboard() {
             expirationYmd: lockedExpiration,
             yahooMappedLength: mapped.length,
           });
+          setLastScanPoolMeta((prev) => ({
+            ...prev,
+            ibkrAutoLaunched: true,
+            ibkrAutoSkipReason: "",
+          }));
         } else {
-          const skipMsg =
-            "Yahoo shortlist vide — IBKR auto non lancé. Vérifier rejets Yahoo.";
+          const skipMsg = buildIbkrAutoSkipMessage({
+            poolSource,
+            preIbkrCount: tickers.length,
+            fromCache: false,
+          });
           setScanError(skipMsg);
           setRefreshStage(skipMsg);
+          setLastScanPoolMeta((prev) => ({
+            ...prev,
+            poolSource,
+            preIbkrCount: tickers.length,
+            yahooSent: payload.scanned ?? tickers.length,
+            yahooReturned: 0,
+            ibkrAutoLaunched: false,
+            ibkrAutoSkipReason: skipMsg,
+          }));
           console.warn("[IBKR_AUTO_SKIPPED]", {
             scanId,
-            reason: "mapped.length === 0 — pas de fallback watchlist silencieux",
+            poolSource,
+            preIbkrCount: tickers.length,
+            reason: "mapped.length === 0 après scan_shortlist",
             yahooRejectedCount: (payload.rejected || []).length,
             yahooErrorsCount: (payload.errors || []).length,
           });
@@ -10771,13 +10867,28 @@ export default function Dashboard() {
               expirationYmd: ibkrExp,
               yahooMappedLength: taggedForIbkr.length,
             });
+            setLastScanPoolMeta((prev) => ({
+              ...prev,
+              ibkrAutoLaunched: true,
+              ibkrAutoSkipReason: "",
+            }));
           } else {
-            const skipMsg =
-              "Yahoo shortlist vide (cache) — IBKR auto non lancé. Vérifier rejets Yahoo.";
+            const skipMsg = buildIbkrAutoSkipMessage({
+              poolSource,
+              preIbkrCount: tickers.length,
+              fromCache: true,
+            });
             setScanError(skipMsg);
             setRefreshStage(skipMsg);
+            setLastScanPoolMeta((prev) => ({
+              ...prev,
+              ibkrAutoLaunched: false,
+              ibkrAutoSkipReason: skipMsg,
+            }));
             console.warn("[IBKR_AUTO_SKIPPED]", {
               scanId,
+              poolSource,
+              preIbkrCount: tickers.length,
               reason: "cache taggedForIbkr vide — pas de fallback watchlist",
             });
             setTimeout(() => {
@@ -10785,12 +10896,26 @@ export default function Dashboard() {
             }, 0);
           }
         } else {
-          const skipMsg =
-            "IBKR auto non lancé : pas de shortlist Yahoo (erreur réseau / pas de cache). Pas de fallback watchlist.";
+          const skipMsg = buildIbkrAutoNetworkSkipMessage({
+            poolSource,
+            preIbkrCount: tickers.length,
+            hasCache: false,
+          });
           setIbkrDirectError("");
           setRefreshStage(skipMsg);
+          setLastScanPoolMeta((prev) => ({
+            ...prev,
+            poolSource,
+            preIbkrCount: tickers.length,
+            yahooSent: tickers.length,
+            yahooReturned: 0,
+            ibkrAutoLaunched: false,
+            ibkrAutoSkipReason: skipMsg,
+          }));
           console.warn("[IBKR_AUTO_SKIPPED]", {
             scanId,
+            poolSource,
+            preIbkrCount: tickers.length,
             reason: "erreur refresh sans cache Yahoo valide",
           });
           setTimeout(() => {
@@ -11537,7 +11662,16 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate-600">
-              Mode actif : {formatPoolSourceLabel(preIbkrPoolMode)} · Pool research chargé :{" "}
+              Mode choisi : {formatPoolSourceLabel(preIbkrPoolMode)}
+              {lastScanPoolMeta.poolSource ? (
+                <>
+                  {" "}
+                  · Pool effectif (dernier scan) :{" "}
+                  {formatPoolSourceLabel(lastScanPoolMeta.poolSource)} ({lastScanPoolMeta.preIbkrCount}{" "}
+                  tickers)
+                </>
+              ) : null}{" "}
+              · Pool research chargé :{" "}
               {researchExpandedPoolSource === "loading"
                 ? "…"
                 : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
@@ -11583,7 +11717,13 @@ export default function Dashboard() {
               <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 text-xs text-slate-700">
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                   <div>
-                    <span className="text-slate-500">Pool source</span>
+                    <span className="text-slate-500">Mode choisi</span>
+                    <div className="font-semibold text-slate-900">
+                      {formatPoolSourceLabel(preIbkrPoolMode)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Pool effectif (dernier scan)</span>
                     <div className="font-semibold text-slate-900">
                       {formatPoolSourceLabel(lastScanPoolMeta.poolSource || resolvedPreIbkrPool.poolSource)}
                     </div>
@@ -11628,7 +11768,16 @@ export default function Dashboard() {
                     <span className="text-slate-500">Journal POP capturés</span>
                     <div className="font-semibold text-slate-900">{lastJournalPopCaptured}</div>
                   </div>
+                  <div>
+                    <span className="text-slate-500">IBKR auto lancé</span>
+                    <div className="font-semibold text-slate-900">
+                      {lastScanPoolMeta.ibkrAutoLaunched || ibkrSentCount > 0 ? "oui" : "non"}
+                    </div>
+                  </div>
                 </div>
+                {lastScanPoolMeta.ibkrAutoSkipReason ? (
+                  <p className="mt-2 text-amber-800">{lastScanPoolMeta.ibkrAutoSkipReason}</p>
+                ) : null}
                 {lastScanPoolMeta.usedFallbackUltimate ? (
                   <p className="mt-2 text-amber-800">
                     Pool Research Expanded indisponible — secours fallback 65 utilisé pour ce scan.

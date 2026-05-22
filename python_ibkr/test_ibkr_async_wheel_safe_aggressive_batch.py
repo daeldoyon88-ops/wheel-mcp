@@ -56,6 +56,28 @@ def _emit(payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False))
 
 
+def _market_data_type_label(value) -> str:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return "unknown"
+    if n == 1:
+        return "live"
+    if n == 2:
+        return "frozen"
+    if n == 3:
+        return "delayed"
+    if n == 4:
+        return "delayed_frozen"
+    return "unknown"
+
+
+def _utc_iso_now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _parse_symbols() -> list[str]:
     raw_json = os.environ.get("IBKR_SYMBOLS_JSON", "")
     if raw_json.strip():
@@ -259,6 +281,11 @@ def main() -> int:
                 payload["symbol"] = symbol
                 payload["durationMs"] = round((time.monotonic() - ticker_started) * 1000)
                 payload["twoPhaseEnabled"] = bool(payload.get("twoPhaseEnabled", False))
+                payload["marketDataTypeRequested"] = market_data_type
+                payload["marketDataTypeRequestedLabel"] = _market_data_type_label(market_data_type)
+                if "marketDataTypeReceivedLabel" not in payload:
+                    payload["marketDataTypeReceivedLabel"] = "unknown"
+                payload["scanCompletedAt"] = _utc_iso_now()
                 if payload.get("ok") is not True:
                     payload["reason"] = _reason_for_payload(payload)
                     if payload["durationMs"] >= per_ticker_timeout_ms:
@@ -330,6 +357,10 @@ def main() -> int:
                     "error": err,
                     "reason": "timeout" if duration_ms >= per_ticker_timeout_ms else "ibkr_unavailable",
                     "durationMs": duration_ms,
+                    "marketDataTypeRequested": market_data_type,
+                    "marketDataTypeRequestedLabel": _market_data_type_label(market_data_type),
+                    "marketDataTypeReceivedLabel": "unknown",
+                    "scanCompletedAt": _utc_iso_now(),
                     "ibkrCallMetrics": {
                         **_empty_ticker_metrics(),
                         "durationMs": duration_ms,
@@ -383,6 +414,9 @@ def main() -> int:
             "durationMs": total_dur_ms,
             "avgTickerDurationMs": avg_ticker_ms,
             "perTickerTimeoutMs": per_ticker_timeout_ms,
+            "marketDataTypeRequested": market_data_type,
+            "marketDataTypeRequestedLabel": _market_data_type_label(market_data_type),
+            "scanCompletedAt": _utc_iso_now(),
             "ibkrCallMetrics": {
                 "totals": ibkr_totals,
                 "bySymbol": ibkr_by_symbol,

@@ -1710,6 +1710,21 @@ function buildEliteFinalScore(cand, row) {
   };
 }
 
+function ibkrMarketDataTypeLabel(value) {
+  switch (Number(value)) {
+    case 1:
+      return "live";
+    case 2:
+      return "frozen";
+    case 3:
+      return "delayed";
+    case 4:
+      return "delayed_frozen";
+    default:
+      return "unknown";
+  }
+}
+
 function toIbkrScanCandidate(row, devScanEnabled = false) {
   const safe = row?.safeStrike ?? null;
   const aggressive = row?.aggressiveStrike ?? null;
@@ -1755,6 +1770,13 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
     reason: "OK",
     ibkrCallMetrics: buildIbkrTickerMetricRow(row),
     source: "IBKR",
+    marketDataTypeRequested: row?.marketDataTypeRequested ?? null,
+    marketDataTypeRequestedLabel:
+      row?.marketDataTypeRequestedLabel ?? ibkrMarketDataTypeLabel(row?.marketDataTypeRequested),
+    marketDataTypeReceived: row?.marketDataTypeReceived ?? null,
+    marketDataTypeReceivedLabel:
+      row?.marketDataTypeReceivedLabel ?? ibkrMarketDataTypeLabel(row?.marketDataTypeReceived),
+    scanCompletedAt: row?.scanCompletedAt ?? null,
     raw: row,
   };
   if (devScanEnabled) {
@@ -1978,7 +2000,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
         ? ""
         : ymdDashedToCompact(String(body.expiration).trim());
     const clientIdStart = toPositiveInt(body.clientIdStart, 500);
-    const marketDataType = toPositiveInt(body.marketDataType, 2);
+    const rawMarketDataType = toPositiveInt(body.marketDataType, 1);
+    const marketDataType = [1, 2, 3, 4].includes(rawMarketDataType) ? rawMarketDataType : 1;
+    const marketDataTypeRequestedLabel = ibkrMarketDataTypeLabel(marketDataType);
     const maxStrikes = toPositiveInt(body.maxStrikes, 25);
     const sort = String(body.sort || "quality").trim().toLowerCase();
     const batchTimeoutMs = Math.min(300_000, 30_000 + tickers.length * 12_000);
@@ -2015,6 +2039,22 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       return;
     }
     const rows = Array.isArray(payload?.results) ? payload.results : [];
+    const scanCompletedAt =
+      typeof payload?.scanCompletedAt === "string" && payload.scanCompletedAt
+        ? payload.scanCompletedAt
+        : new Date().toISOString();
+    for (const row of rows) {
+      if (!row || typeof row !== "object") continue;
+      if (row.marketDataTypeRequested == null) row.marketDataTypeRequested = marketDataType;
+      if (row.marketDataTypeRequestedLabel == null)
+        row.marketDataTypeRequestedLabel = marketDataTypeRequestedLabel;
+      if (row.marketDataTypeReceivedLabel == null && row.marketDataTypeReceived == null) {
+        row.marketDataTypeReceivedLabel = "unknown";
+      } else if (row.marketDataTypeReceivedLabel == null) {
+        row.marketDataTypeReceivedLabel = ibkrMarketDataTypeLabel(row.marketDataTypeReceived);
+      }
+      if (row.scanCompletedAt == null) row.scanCompletedAt = scanCompletedAt;
+    }
     const responseTwoPhaseEnabled =
       typeof payload?.twoPhaseEnabled === "boolean" ? payload.twoPhaseEnabled : twoPhaseScanEnabled;
     const rejectionReasons = buildIbkrRejectionReasons(rows);
@@ -2157,6 +2197,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       mode: "ibkr_shadow_scan",
       source: "IBKR",
       readOnly: true,
+      marketDataTypeRequested: marketDataType,
+      marketDataTypeRequestedLabel,
+      scanCompletedAt,
       twoPhaseEnabled: responseTwoPhaseEnabled,
       configuredDevScanMode: devMode.configuredMode,
       devScanEnabled: devMode.devScanEnabled,

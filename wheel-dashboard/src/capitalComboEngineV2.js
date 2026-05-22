@@ -101,6 +101,64 @@ export function compareLeftoverDensityOrder(a, b) {
 /**
  * Après coup : meilleurs ticker hors picks avec première raison d’échec evaluate(strict).
  */
+/**
+ * Diagnostic greedy pour chaque ticker du scoredPool non retenu dans les picks finaux.
+ * Lecture seule — ne modifie pas l’allocateur.
+ */
+export function buildScoredPoolNotSelectedDiagnostics(
+  scoredPool,
+  pickMap,
+  evaluateCandidateStrict,
+  ctx = {},
+) {
+  const bucket = ctx.modeLabel ?? null;
+  const usedCapital = Number(ctx.usedCapital ?? 0);
+  const usableCapital = Number(ctx.usableCapital ?? 0);
+  const freeCapital = Math.max(0, usableCapital - usedCapital);
+  const maxPositionLines = Number(ctx.maxPositionLines ?? 0);
+  const distinctPositions = pickMap instanceof Map ? pickMap.size : 0;
+
+  const rows = [];
+  for (const c of scoredPool || []) {
+    const tk = String(c?.ticker ?? "").trim();
+    if (!tk || pickMap?.has(c.ticker)) continue;
+
+    const capReq = Number(c.capitalPerContract);
+    const canAfford =
+      Number.isFinite(capReq) && capReq > 0 && usedCapital + capReq <= usableCapital + 1e-6;
+
+    const evStrict = evaluateCandidateStrict(c);
+    const rejectionReason = evStrict.ok
+      ? "not_selected_greedy_lower_marginalScore"
+      : (evStrict.reason ?? "caps_too_strict");
+
+    rows.push({
+      ticker: c.ticker,
+      bucket,
+      score: c.allocScore ?? c._comboScoreBreakdown?.totalScore ?? null,
+      capitalRequired: Number.isFinite(capReq) ? capReq : null,
+      selectedLeg:
+        c.selectedStrikeValue ??
+        c.selectedLeg?.strike ??
+        c.selectedStrike?.strike ??
+        null,
+      canAfford,
+      tickerCapOk: rejectionReason !== "ticker_cap_reached",
+      sectorCapOk: rejectionReason !== "sector_cap_reached",
+      themeCapOk: rejectionReason !== "theme_cap_reached",
+      highBetaCapOk: rejectionReason !== "high_beta_cap_reached",
+      maxPositionsOk: rejectionReason !== "max_positions_limit",
+      rejectionReason,
+      passedGreedyEvaluate: !!evStrict.ok,
+      marginalScore: evStrict.ok ? (evStrict.marginalScore ?? null) : null,
+      distinctPositionsAtDecision: distinctPositions,
+      freeCapitalAtDecision: freeCapital,
+      maxPositionsLimit: maxPositionLines,
+    });
+  }
+  return rows;
+}
+
 export function buildNextBestResidualRows(scoredPoolSorted, pickMap, evaluateCandidateStrict, opts = {}) {
   const lim = opts.limit ?? 28;
   const rows = [];

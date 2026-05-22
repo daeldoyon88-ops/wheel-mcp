@@ -11,6 +11,7 @@ import {
   computeLeftoverActionThresholdUsd,
   premiumDensityScore,
   buildNextBestResidualRows,
+  buildScoredPoolNotSelectedDiagnostics,
   summarizeBlockerHits,
   formatCapBlockerReason,
 } from "./capitalComboEngineV2.js";
@@ -778,6 +779,34 @@ export function getLegPopPct(leg) {
   return rawPop <= 1 ? rawPop * 100 : rawPop;
 }
 
+/**
+ * Score d'exécution pour une jambe option — même formule que computeProScore (wheelScanner).
+ * Le score backend global est toujours calculé sur la jambe SAFE ; pour AGGRESSIVE il faut
+ * recalculer sur la jambe bucket réellement sélectionnée.
+ */
+export function getLegExecutionScore(leg) {
+  if (!leg) return null;
+  const spreadPct = getLegSpreadPct(leg);
+  if (!Number.isFinite(spreadPct)) return null;
+
+  const volume = Number(leg?.volume ?? leg?.liquidity?.volume ?? NaN);
+  const openInterest = Number(leg?.openInterest ?? leg?.liquidity?.openInterest ?? NaN);
+  const spreadScore = Math.max(0, 1 - spreadPct / 50);
+  const volumeScore = Number.isFinite(volume) && volume > 0 ? Math.min(volume / 200, 1) : 0;
+  const oiScore = Number.isFinite(openInterest) && openInterest > 0 ? Math.min(openInterest / 500, 1) : 0;
+  const executionScore = spreadScore * 0.5 + volumeScore * 0.3 + oiScore * 0.2;
+  return Math.max(0, Math.min(1, executionScore));
+}
+
+/** Score d'exécution contextualisé à la jambe bucket (ou selectedLeg si absent). */
+export function getCandidateExecutionScore(candidate, leg = null) {
+  const targetLeg = leg ?? candidate?.selectedLeg ?? null;
+  const legScore = getLegExecutionScore(targetLeg);
+  if (legScore != null && Number.isFinite(legScore)) return legScore;
+  const pro = Number(candidate?.proExecutionScore);
+  return Number.isFinite(pro) ? pro : null;
+}
+
 function clamp01(value) {
   if (!Number.isFinite(Number(value))) return 0;
   return Math.max(0, Math.min(1, Number(value)));
@@ -1238,13 +1267,14 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       id: "aggressive",
       label: "AGGRESSIVE",
       // Identity: high-return quality — pas de junk premium
-      tickerCapPct: 0.35,
-      positionCapPct: 0.35,
+      // Concentration plus élevée que BALANCED/SAFE : gros titres valides (ex. AMD ~42,5k) sans 100 % sur un ticker.
+      tickerCapPct: 0.50,
+      positionCapPct: 0.50,
       maxContractsPerTicker: 4,
       minTargetPositions: 3,
       maxThemeCapitalPct: 0.50,
       maxSectorCapitalPct: 0.50,
-      maxHighBetaCapitalPct: 0.45,
+      maxHighBetaCapitalPct: 0.60,
       minWeeklyYield: 0.95,
       maxWeeklyYield: null,
       minExecutionScore: 0.45,
@@ -1500,6 +1530,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         const bucketYield = getLegYieldPct(bucketLeg, candidate);
         const bucketDistance = getLegDistancePct(bucketLeg);
         const bucketPop = getLegPopPct(bucketLeg);
+        const bucketExecutionScore = getLegExecutionScore(bucketLeg);
         const resolvedCapital = Number.isFinite(bucketStrikeValue) && bucketStrikeValue > 0
           ? bucketStrikeValue * 100
           : bucketCapital;
@@ -1515,6 +1546,9 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           selectedYieldPct: bucketYield,
           selectedDistancePct: bucketDistance,
           _popForCombo: bucketPop,
+          _bucketExecutionScore: bucketExecutionScore,
+          _backendProExecutionScore: candidate.proExecutionScore,
+          proExecutionScore: bucketExecutionScore ?? candidate.proExecutionScore,
           capitalPerContract: resolvedCapital,
           premiumPerContract: Number.isFinite(bucketPremium) && bucketPremium > 0 ? bucketPremium * 100 : 0,
           finalDisplayGrade: resolvedGrade || candidate.finalDisplayGrade,
@@ -1580,10 +1614,18 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         });
         continue;
       }
-      if (!(!Number.isFinite(candWp.proExecutionScore) || candWp.proExecutionScore >= modeAlloc.minExecutionScore)) {
+      const executionScoreForFilter = getCandidateExecutionScore(candWp, candWp.selectedLeg);
+      if (
+        !(
+          !Number.isFinite(executionScoreForFilter) ||
+          executionScoreForFilter >= modeAlloc.minExecutionScore
+        )
+      ) {
         pushScoredPoolReject(candWp.ticker, "MIN_EXECUTION_SCORE_NOT_MET", {
           minExecutionScore: modeAlloc.minExecutionScore,
-          proExecutionScore: candWp.proExecutionScore,
+          proExecutionScore: executionScoreForFilter,
+          backendProExecutionScore: candWp._backendProExecutionScore ?? null,
+          selectedSpreadPct: candWp.selectedSpreadPct,
         });
         continue;
       }
@@ -2559,11 +2601,11 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       );
     }
 
-    if (!picks.length) return null;
-
     const avgWeekly =
-      picks.reduce((sum, p) => sum + p.weeklyReturn * p.capitalUsed, 0) /
-      picks.reduce((sum, p) => sum + p.capitalUsed, 0);
+      picks.length > 0
+        ? picks.reduce((sum, p) => sum + p.weeklyReturn * p.capitalUsed, 0) /
+          picks.reduce((sum, p) => sum + p.capitalUsed, 0)
+        : 0;
     const usedPct = usableCapital > 0 ? (used / usableCapital) * 100 : 0;
     let capitalShortfallReason = null;
     if (usedPct < targetMinPct) {
@@ -2572,10 +2614,24 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       const minContractCost = hasAnyCandidate
         ? Math.min(...scoredPool.map((c) => c.capitalPerContract))
         : Number.POSITIVE_INFINITY;
+      const dominantGreedyBlocker = (() => {
+        if (!(rejectionTotals instanceof Map) || rejectionTotals.size === 0) return null;
+        let best = null;
+        let bestCount = 0;
+        for (const [reason, count] of rejectionTotals.entries()) {
+          const n = Number(count);
+          if (!Number.isFinite(n) || n <= 0) continue;
+          if (n > bestCount) {
+            bestCount = n;
+            best = reason;
+          }
+        }
+        return best;
+      })();
       if (!hasAnyCandidate) {
         capitalShortfallReason = "not_enough_candidates";
       } else if (!hasAnyPick) {
-        capitalShortfallReason = "min_yield_or_execution_filter";
+        capitalShortfallReason = dominantGreedyBlocker ?? "caps_too_strict";
       } else if (picks.length >= maxPositionLines) {
         capitalShortfallReason = "max_positions_limit";
       } else if (usableCapital - used < minContractCost) {
@@ -2653,11 +2709,23 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
 
     let capDiagnosticsV2 = null;
     if (optimizerV2.capDiagnosticsEnabled !== false) {
+      const evaluateStrict = (c) => evaluateCandidate(c, false);
       const residualDiagnosticRows = buildNextBestResidualRows(
         scoredPool,
         pickMap,
-        (c) => evaluateCandidate(c, false),
+        evaluateStrict,
         { limit: 36 },
+      );
+      const scoredPoolNotSelected = buildScoredPoolNotSelectedDiagnostics(
+        scoredPool,
+        pickMap,
+        evaluateStrict,
+        {
+          modeLabel: mode.label ?? null,
+          usedCapital: used,
+          usableCapital,
+          maxPositionLines,
+        },
       );
 
       let approxCollateralStrandedUsd = {};
@@ -2884,6 +2952,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         rejectionTotalsAcrossCycles: Object.fromEntries([...rejectionTotals.entries()].sort()),
         blockerSummaryMerged: mergedBlockers,
         nextBestResiduals: residualDiagnosticRows.slice(0, 22),
+        scoredPoolTickers: scoredPool.map((c) => c.ticker),
+        scoredPoolNotSelected,
         approxCollateralBlockedUsdByReason: approxCollateralStrandedUsd,
         potentialPremiumStrandedUsd,
         leftoverDensityPass: {

@@ -27,6 +27,7 @@ import {
   getLegPremiumValue,
   getLegSpreadPct,
   getLegYieldPct,
+  getCandidateExecutionScore,
   getModeGradeRank,
   gradeLeg,
   isUnknownUnvalidatedTicker,
@@ -7737,6 +7738,18 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const bucketLegAvailable = bucketLeg != null;
   const effectiveGrade = bucketGrade ?? String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase();
   const comboFreeCapital = Math.max(0, Number(combo?.freeCapital ?? capital ?? 0));
+  const comboCapDiag = combo?.capDiagnosticsV2 ?? null;
+  const inEngineScoredPool = (comboCapDiag?.scoredPoolTickers ?? []).some(
+    (tk) => String(tk || "").trim().toUpperCase() === ticker,
+  );
+  const greedyPoolDiag =
+    comboCapDiag?.scoredPoolNotSelected?.find(
+      (row) => String(row?.ticker || "").trim().toUpperCase() === ticker,
+    ) ?? null;
+  const residualGreedyRow =
+    comboCapDiag?.nextBestResiduals?.find(
+      (row) => String(row?.ticker || "").trim().toUpperCase() === ticker,
+    ) ?? null;
   const blockedByStaticGrade = bucketLegAvailable && !["A", "B"].includes(effectiveGrade);
   const blockedByStaticSpread = bucketLegAvailable && spread != null && spread > cfg.maxSpread;
   const blockedByStaticYield =
@@ -7799,9 +7812,14 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const blockedByExecutionScore =
     passedStaticFilters && !blockedByAvoid && !blockedByPremiumTrap && !blockedBySpeculative &&
     (cfg.minExecutionScore ?? 0) > 0 &&
-    candidate?.proExecutionScore != null &&
-    Number.isFinite(candidate.proExecutionScore) &&
-    candidate.proExecutionScore < cfg.minExecutionScore;
+    (() => {
+      const bucketExecutionScore = getCandidateExecutionScore(candidate, bucketLeg);
+      return (
+        bucketExecutionScore != null &&
+        Number.isFinite(bucketExecutionScore) &&
+        bucketExecutionScore < cfg.minExecutionScore
+      );
+    })();
   const blockedByDistancePct =
     passedStaticFilters && !blockedByAvoid && !blockedByPremiumTrap && !blockedBySpeculative &&
     !blockedByExecutionScore &&
@@ -7887,7 +7905,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   } else if (blockedByExecutionScore) {
     diagCategory = "filtered_dynamic";
     statusProbable = "rejeté par filterCandidate";
-    raisonProbable = `executionScore ${candidate?.proExecutionScore?.toFixed(2) ?? "n/d"} < min ${cfg.minExecutionScore}`;
+    const bucketExecutionScore = getCandidateExecutionScore(candidate, bucketLeg);
+    raisonProbable = `executionScore ${bucketExecutionScore?.toFixed(2) ?? "n/d"} < min ${cfg.minExecutionScore}`;
   } else if (blockedByDistancePct) {
     diagCategory = "filtered_dynamic";
     statusProbable = "rejeté par filterCandidate";
@@ -7896,6 +7915,22 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     diagCategory = "capital_envelope";
     statusProbable = "admissible, trop cher en fin de combo";
     raisonProbable = `capital restant ${comboFreeCapital.toFixed(0)}$ insuffisant pour ${capitalRequired?.toFixed(0) ?? "?"}$`;
+  } else if (inEngineScoredPool && greedyPoolDiag?.rejectionReason) {
+    diagCategory = "non_selected";
+    const blocker = greedyPoolDiag.rejectionReason;
+    if (blocker === "not_selected_greedy_lower_marginalScore") {
+      statusProbable = "dans scoredPool — non retenu greedy";
+      raisonProbable = "présent dans scoredPool — non retenu : marginalScore inférieur au meilleur candidat de la passe";
+    } else {
+      statusProbable = `dans scoredPool — non retenu : ${blocker}`;
+      raisonProbable = `présent dans scoredPool — non retenu : ${blocker} (${formatCapBlockerReason(blocker)})`;
+    }
+  } else if (inEngineScoredPool || possibleDynamicBlock) {
+    diagCategory = "non_selected";
+    statusProbable = "dans scoredPool — non retenu greedy";
+    raisonProbable = residualGreedyRow?.primaryBlocker
+      ? `présent dans scoredPool — non retenu : ${residualGreedyRow.primaryBlocker} (${formatCapBlockerReason(residualGreedyRow.primaryBlocker)})`
+      : "présent dans scoredPool — non sélectionné : caps diversification, ordre de tri, ou capital restant";
   } else {
     diagCategory = "non_selected";
     statusProbable = "dans scoredPool — non retenu greedy";
@@ -7933,6 +7968,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     blockedByDistancePct,
     blockedByCapitalEnvelope,
     possibleDynamicBlock,
+    inEngineScoredPool,
+    greedyPoolDiag,
     statusProbable, raisonProbable, pick,
   };
 }
@@ -7985,7 +8022,12 @@ const _inspFmt = (v, suffix = "", digits = 2) =>
 
 function _inspLineStatus(diag) {
   if (diag.inPicks) return "sélectionné";
-  if (diag.diagCategory === "non_selected") return "dans scoredPool — non retenu greedy";
+  if (diag.diagCategory === "non_selected") {
+    if (diag.greedyPoolDiag?.rejectionReason && diag.greedyPoolDiag.rejectionReason !== "not_selected_greedy_lower_marginalScore") {
+      return `dans scoredPool — non retenu : ${diag.greedyPoolDiag.rejectionReason}`;
+    }
+    return "dans scoredPool — non retenu greedy";
+  }
   if (diag.diagCategory === "capital_envelope") return "admissible, trop cher en fin de combo";
   if (diag.diagCategory === "no_bucket_leg") return "sans jambe bucket valide";
   if (diag.diagCategory === "ibkr_rejected") return "hors basePool — IBKR rejeté";
@@ -8007,6 +8049,11 @@ function _inspLineStatusCls(diag) {
 
 function BucketTickerLine({ diag }) {
   const capStr = diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d";
+  const greedyReason =
+    diag.greedyPoolDiag?.rejectionReason &&
+    diag.greedyPoolDiag.rejectionReason !== "not_selected_greedy_lower_marginalScore"
+      ? ` · blocage greedy: ${diag.greedyPoolDiag.rejectionReason}`
+      : "";
   return (
     <div className="text-xs text-slate-700 py-px leading-snug">
       <span className="font-semibold text-slate-900">{diag.ticker}</span>
@@ -8017,6 +8064,7 @@ function BucketTickerLine({ diag }) {
       {" — "}POP {_inspFmt(diag.pop, "%", 0)}
       {" — "}capital {capStr}
       {" — "}<span className={_inspLineStatusCls(diag)}>{_inspLineStatus(diag)}</span>
+      {greedyReason ? <span className="text-slate-500">{greedyReason}</span> : null}
     </div>
   );
 }
@@ -8148,6 +8196,8 @@ function CapitalCombosInspector({
             blockedByDistancePct: d.blockedByDistancePct ?? false,
             blockedByCapitalEnvelope: d.blockedByCapitalEnvelope,
             possibleDynamicBlock: d.possibleDynamicBlock,
+            inEngineScoredPool: d.inEngineScoredPool ?? false,
+            greedyPoolDiag: d.greedyPoolDiag ?? null,
           });
           return [b, {
             positions: s.positions,
@@ -8294,7 +8344,20 @@ function CapitalCombosInspector({
                             <Row label="Bloqué distance" val={_inspYesNo(diag.blockedByDistancePct)} />
                             <Row label="Tous filtres OK" val={_inspYesNo(diag.passedAllFilters)} />
                             <Row label="Trop cher fin combo" val={_inspYesNo(diag.blockedByCapitalEnvelope)} />
-                            <Row label="Dans scoredPool non retenu" val={_inspYesNo(diag.possibleDynamicBlock)} />
+                            <Row label="Dans scoredPool non retenu" val={_inspYesNo(diag.possibleDynamicBlock || diag.inEngineScoredPool)} />
+                            {!diag.inPicks && diag.greedyPoolDiag && (
+                              <>
+                                <Row label="Blocage greedy exact" val={diag.greedyPoolDiag.rejectionReason ?? "n/d"} />
+                                <Row label="canAfford" val={_inspYesNo(diag.greedyPoolDiag.canAfford)} />
+                                <Row label="tickerCapOk" val={_inspYesNo(diag.greedyPoolDiag.tickerCapOk)} />
+                                <Row label="sectorCapOk" val={_inspYesNo(diag.greedyPoolDiag.sectorCapOk)} />
+                                <Row label="themeCapOk" val={_inspYesNo(diag.greedyPoolDiag.themeCapOk)} />
+                                <Row label="highBetaCapOk" val={_inspYesNo(diag.greedyPoolDiag.highBetaCapOk)} />
+                                <Row label="maxPositionsOk" val={_inspYesNo(diag.greedyPoolDiag.maxPositionsOk)} />
+                                <Row label="Score allocateur" val={diag.greedyPoolDiag.score ?? "n/d"} />
+                                <Row label="Jambe bucket (strike)" val={diag.greedyPoolDiag.selectedLeg ?? "n/d"} />
+                              </>
+                            )}
                             {!diag.inPicks && residualRow && (
                               <>
                                 <Row

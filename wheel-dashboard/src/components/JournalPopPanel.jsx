@@ -178,6 +178,271 @@ function getRankingTargetDte(ranking) {
   return null;
 }
 
+function getTickerSafeAggComparisons(ranking, comparisonsPayload) {
+  if (!ranking?.ticker) return [];
+  const comparisons = Array.isArray(comparisonsPayload?.comparisons)
+    ? comparisonsPayload.comparisons
+    : Array.isArray(comparisonsPayload)
+      ? comparisonsPayload
+      : [];
+  const ticker = String(ranking.ticker).trim().toUpperCase();
+  return comparisons.filter(
+    (c) => String(c?.ticker ?? "").trim().toUpperCase() === ticker,
+  );
+}
+
+function buildInsightFromComparison(comp) {
+  if (!comp) return null;
+  return {
+    comparison: comp,
+    recommendedMode: comp.recommendedMode,
+    modeDecision: comp.modeDecision,
+    comparisonScore: comp.comparisonScore,
+    decisionConfidence: comp.decisionConfidence,
+    premiumLiftPct: comp.premiumLiftPct,
+    premiumLiftAbs: comp.premiumLiftAbs,
+    assignmentDeltaPct: comp.assignmentDeltaPct,
+    lowerBoundDeltaPct: comp.lowerBoundDeltaPct,
+    aggressiveSpread: numberOrNull(comp.aggressive?.medianSpreadPct),
+    safeSampleCount: numberOrNull(comp.safe?.sampleCount) ?? 0,
+    aggressiveSampleCount: numberOrNull(comp.aggressive?.sampleCount) ?? 0,
+    comparisonStatus: comp.comparisonStatus,
+    dteAtScan: comp.dteAtScan,
+  };
+}
+
+function getWatchModePriority(mode) {
+  if (mode === "AGRESSIF" || mode === "AGGRESSIVE" || mode === "SAFE") return 2;
+  if (mode === "À confirmer") return 1;
+  return 0;
+}
+
+function isWatchPreferredDte(dte) {
+  return dte != null && dte >= 2 && dte <= 7;
+}
+
+function shouldExcludeDte1ForWatch(comp, tickerComps, ranking) {
+  const dte = numberOrNull(comp?.dteAtScan);
+  if (dte !== 1) return false;
+
+  const hasOtherDte = tickerComps.some((c) => {
+    const otherDte = numberOrNull(c?.dteAtScan);
+    return otherDte != null && otherDte !== 1;
+  });
+  if (!hasOtherDte) return false;
+
+  const score = numberOrNull(ranking?.score);
+  const spread = numberOrNull(comp?.aggressive?.medianSpreadPct) ?? numberOrNull(ranking?.medianSpreadPct);
+  const assignment = numberOrNull(ranking?.assignmentRatePct);
+
+  const passesGuard =
+    score != null &&
+    score >= 80 &&
+    spread != null &&
+    spread <= 10 &&
+    assignment != null &&
+    assignment <= 5;
+
+  return !passesGuard;
+}
+
+function scoreWatchComparisonCandidate(comp, tickerComps, ranking) {
+  if (shouldExcludeDte1ForWatch(comp, tickerComps, ranking)) return -Infinity;
+
+  const dte = numberOrNull(comp?.dteAtScan);
+  let sortScore = 0;
+
+  if (isWatchPreferredDte(dte)) sortScore += 300;
+  else if (dte != null && dte >= 2) sortScore += 150;
+  else if (dte === 1 && tickerComps.every((c) => numberOrNull(c?.dteAtScan) === 1)) sortScore += 40;
+
+  if (comp.comparisonStatus === "comparable") sortScore += 500;
+
+  sortScore += getWatchModePriority(comp.recommendedMode) * 200;
+
+  const safeCount = numberOrNull(comp?.safe?.sampleCount) ?? 0;
+  const aggCount = numberOrNull(comp?.aggressive?.sampleCount) ?? 0;
+  sortScore += (safeCount + aggCount) * 2;
+
+  sortScore += numberOrNull(comp?.comparisonScore) ?? 0;
+
+  const spread = numberOrNull(comp?.aggressive?.medianSpreadPct);
+  if (spread != null) sortScore -= spread * 2;
+
+  if (dte != null && dte >= 2) sortScore -= dte * 3;
+
+  return sortScore;
+}
+
+function getBestWatchCandidateInsight(ranking, comparisonsPayload) {
+  const tickerComps = getTickerSafeAggComparisons(ranking, comparisonsPayload);
+  if (tickerComps.length === 0) return null;
+
+  const scored = tickerComps
+    .map((comp) => ({
+      comp,
+      sortScore: scoreWatchComparisonCandidate(comp, tickerComps, ranking),
+    }))
+    .filter((row) => row.sortScore > -Infinity);
+
+  if (scored.length === 0) return null;
+
+  scored.sort((a, b) => {
+    if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+
+    const dteA = numberOrNull(a.comp?.dteAtScan);
+    const dteB = numberOrNull(b.comp?.dteAtScan);
+    if (dteA != null && dteB != null && dteA >= 2 && dteB >= 2 && dteA !== dteB) {
+      return dteA - dteB;
+    }
+
+    const spreadA = numberOrNull(a.comp?.aggressive?.medianSpreadPct) ?? Number.POSITIVE_INFINITY;
+    const spreadB = numberOrNull(b.comp?.aggressive?.medianSpreadPct) ?? Number.POSITIVE_INFINITY;
+    if (spreadA !== spreadB) return spreadA - spreadB;
+
+    return (numberOrNull(b.comp?.comparisonScore) ?? 0) - (numberOrNull(a.comp?.comparisonScore) ?? 0);
+  });
+
+  return buildInsightFromComparison(scored[0].comp);
+}
+
+function getDecisionModePriority(mode) {
+  if (mode === "AGRESSIF" || mode === "AGGRESSIVE") return 3;
+  if (mode === "SAFE") return 2;
+  if (mode === "À confirmer") return 1;
+  return 0;
+}
+
+function shouldExcludeDte1ForDecision(comp, tickerComps, ranking) {
+  const dte = numberOrNull(comp?.dteAtScan);
+  if (dte !== 1) return false;
+
+  const hasOtherDte = tickerComps.some((c) => {
+    const otherDte = numberOrNull(c?.dteAtScan);
+    return otherDte != null && otherDte !== 1;
+  });
+  if (!hasOtherDte) return false;
+
+  const score = numberOrNull(ranking?.score);
+  const spread = numberOrNull(comp?.aggressive?.medianSpreadPct) ?? numberOrNull(ranking?.medianSpreadPct);
+  const assignment = numberOrNull(comp?.assignmentDeltaPct) ?? numberOrNull(ranking?.assignmentRatePct);
+
+  const passesGuard =
+    score != null &&
+    score >= 80 &&
+    spread != null &&
+    spread <= 10 &&
+    assignment != null &&
+    assignment <= 5;
+
+  return !passesGuard;
+}
+
+function scoreDecisionComparisonCandidate(comp, ranking, tickerComps) {
+  if (shouldExcludeDte1ForDecision(comp, tickerComps, ranking)) return -Infinity;
+
+  const dte = numberOrNull(comp?.dteAtScan);
+  let sortScore = 0;
+
+  if (isWatchPreferredDte(dte)) sortScore += 100;
+  else if (dte === 1) {
+    const onlyDte1 = tickerComps.every((c) => numberOrNull(c?.dteAtScan) === 1);
+    if (onlyDte1) sortScore += 20;
+  }
+
+  const mode = comp?.recommendedMode;
+  if (mode === "AGRESSIF" || mode === "AGGRESSIVE" || mode === "SAFE") sortScore += 60;
+  else if (mode === "À confirmer") sortScore -= 30;
+
+  if (comp.comparisonStatus === "comparable") sortScore += 30;
+
+  const safeCount = numberOrNull(comp?.safe?.sampleCount) ?? 0;
+  const aggCount = numberOrNull(comp?.aggressive?.sampleCount) ?? 0;
+  const totalSamples = safeCount + aggCount;
+  if (totalSamples >= 6) sortScore += 20;
+  else if (totalSamples >= 4) sortScore += 10;
+
+  const assignmentDelta = numberOrNull(comp?.assignmentDeltaPct);
+  if (assignmentDelta != null) {
+    if (assignmentDelta <= 5) sortScore += 20;
+    else if (assignmentDelta > 15) sortScore -= 40;
+  }
+
+  const spread = numberOrNull(comp?.aggressive?.medianSpreadPct);
+  if (spread != null) {
+    if (spread <= 10) sortScore += 20;
+    else if (spread <= 20) sortScore += 10;
+    else if (spread > 25) sortScore -= 40;
+  }
+
+  const premiumLift = numberOrNull(comp?.premiumLiftPct);
+  if (premiumLift != null) {
+    sortScore += Math.min(Math.max(premiumLift, 0), 25) * 0.4;
+  }
+
+  sortScore += numberOrNull(comp?.comparisonScore) ?? 0;
+
+  return sortScore;
+}
+
+function getBestDecisionInsightForRanking(ranking, comparisonsPayload) {
+  const tickerComps = getTickerSafeAggComparisons(ranking, comparisonsPayload);
+  if (tickerComps.length === 0) return null;
+
+  const scored = tickerComps
+    .map((comp) => ({
+      comp,
+      sortScore: scoreDecisionComparisonCandidate(comp, ranking, tickerComps),
+    }))
+    .filter((row) => row.sortScore > -Infinity);
+
+  if (scored.length === 0) {
+    const nonDte1 = tickerComps.filter((c) => numberOrNull(c?.dteAtScan) !== 1);
+    const pool = nonDte1.length > 0 ? nonDte1 : tickerComps;
+    const best = pool.reduce((currentBest, comp) => {
+      const score = numberOrNull(comp?.comparisonScore) ?? 0;
+      const bestScore = numberOrNull(currentBest?.comparisonScore) ?? 0;
+      return score > bestScore ? comp : currentBest;
+    }, pool[0]);
+    return buildInsightFromComparison(best);
+  }
+
+  scored.sort((a, b) => {
+    if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+
+    const modeDelta =
+      getDecisionModePriority(b.comp?.recommendedMode) - getDecisionModePriority(a.comp?.recommendedMode);
+    if (modeDelta !== 0) return modeDelta;
+
+    const dteA = numberOrNull(a.comp?.dteAtScan);
+    const dteB = numberOrNull(b.comp?.dteAtScan);
+    if (dteA != null && dteB != null && dteA >= 2 && dteB >= 2 && dteA !== dteB) {
+      return dteA - dteB;
+    }
+
+    const spreadA = numberOrNull(a.comp?.aggressive?.medianSpreadPct) ?? Number.POSITIVE_INFINITY;
+    const spreadB = numberOrNull(b.comp?.aggressive?.medianSpreadPct) ?? Number.POSITIVE_INFINITY;
+    if (spreadA !== spreadB) return spreadA - spreadB;
+
+    return (numberOrNull(b.comp?.comparisonScore) ?? 0) - (numberOrNull(a.comp?.comparisonScore) ?? 0);
+  });
+
+  return buildInsightFromComparison(scored[0].comp);
+}
+
+function getDecisionInsightForRanking(ranking, comparisonsPayload) {
+  return (
+    getBestDecisionInsightForRanking(ranking, comparisonsPayload) ??
+    getSafeAggressiveInsightForRanking(ranking, comparisonsPayload)
+  );
+}
+
+function getWatchDecisionDteDisplay(ranking, insight) {
+  const insightDte = numberOrNull(insight?.dteAtScan);
+  if (insightDte != null) return `DTE ${insightDte}`;
+  return getDecisionDteDisplay(ranking);
+}
+
 function getSafeAggressiveInsightForRanking(ranking, comparisonsPayload) {
   if (!ranking?.ticker) return null;
 
@@ -188,10 +453,7 @@ function getSafeAggressiveInsightForRanking(ranking, comparisonsPayload) {
       : [];
   if (comparisons.length === 0) return null;
 
-  const ticker = String(ranking.ticker).trim().toUpperCase();
-  const tickerComps = comparisons.filter(
-    (c) => String(c?.ticker ?? "").trim().toUpperCase() === ticker,
-  );
+  const tickerComps = getTickerSafeAggComparisons(ranking, comparisonsPayload);
   if (tickerComps.length === 0) return null;
 
   const targetDte = getRankingTargetDte(ranking);
@@ -222,24 +484,7 @@ function getSafeAggressiveInsightForRanking(ranking, comparisonsPayload) {
   });
 
   const best = scored[0]?.comp;
-  if (!best) return null;
-
-  return {
-    comparison: best,
-    recommendedMode: best.recommendedMode,
-    modeDecision: best.modeDecision,
-    comparisonScore: best.comparisonScore,
-    decisionConfidence: best.decisionConfidence,
-    premiumLiftPct: best.premiumLiftPct,
-    premiumLiftAbs: best.premiumLiftAbs,
-    assignmentDeltaPct: best.assignmentDeltaPct,
-    lowerBoundDeltaPct: best.lowerBoundDeltaPct,
-    aggressiveSpread: numberOrNull(best.aggressive?.medianSpreadPct),
-    safeSampleCount: numberOrNull(best.safe?.sampleCount) ?? 0,
-    aggressiveSampleCount: numberOrNull(best.aggressive?.sampleCount) ?? 0,
-    comparisonStatus: best.comparisonStatus,
-    dteAtScan: best.dteAtScan,
-  };
+  return buildInsightFromComparison(best);
 }
 
 function isPremiumLiftNegligible(liftRounded) {
@@ -297,6 +542,23 @@ function getDecisionDteTooltip(row) {
   if (row?.practicalBestDte != null) parts.push(`Pratique : DTE ${row.practicalBestDte}`);
   if (row?.theoreticalBestDte != null) parts.push(`Théorique : DTE ${row.theoreticalBestDte}`);
   return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function getRankingDecisionDteDisplay(ranking, insight) {
+  const insightDte = numberOrNull(insight?.dteAtScan);
+  if (insightDte != null) return `DTE ${insightDte}`;
+  return getDecisionDteDisplay(ranking);
+}
+
+function getRankingDecisionDteTooltip(ranking, insight) {
+  const parts = [];
+  const rawDte = numberOrNull(ranking?.practicalBestDte);
+  if (rawDte != null) parts.push(`DTE ranking brut : ${rawDte}`);
+  if (ranking?.recommendedDteWindow) parts.push(`Fenêtre : ${ranking.recommendedDteWindow}`);
+  const insightDte = numberOrNull(insight?.dteAtScan);
+  if (insightDte != null) parts.push(`DTE SAFE/AGR choisi : ${insightDte}`);
+  if (parts.length > 0) return parts.join(" · ");
+  return getDecisionDteTooltip(ranking);
 }
 
 function getExecutionColumnDisplay(ranking) {
@@ -2497,13 +2759,23 @@ export default function JournalPopPanel({ apiBase, active }) {
 
   const decisionWatchCandidates = useMemo(() => {
     const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
+    const seenTickers = new Set();
     return rankings
       .map((ranking) => {
-        const insight = getSafeAggressiveInsightForRanking(ranking, safeAggComparison);
+        const insight =
+          getBestWatchCandidateInsight(ranking, safeAggComparison) ??
+          getDecisionInsightForRanking(ranking, safeAggComparison);
         const spread = insight?.aggressiveSpread ?? numberOrNull(ranking?.medianSpreadPct);
         return { ranking, insight, spread };
       })
-      .filter(({ ranking, insight }) => isWatchCandidateRanking(ranking, insight))
+      .filter(({ ranking, insight }) => {
+        const ticker = String(ranking?.ticker ?? "").trim().toUpperCase();
+        if (!ticker || seenTickers.has(ticker)) return false;
+        if (isExecutableRanking(ranking, insight)) return false;
+        if (!isWatchCandidateRanking(ranking, insight)) return false;
+        seenTickers.add(ticker);
+        return true;
+      })
       .sort(compareDecisionWatchCandidates)
       .slice(0, 5);
   }, [tickerRanking, safeAggComparison]);
@@ -2721,7 +2993,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                         {" · "}
                         <span className="tabular-nums text-sky-400">{ranking.score}</span>
                         {" · "}
-                        <span className="text-slate-400">{getDecisionDteDisplay(ranking)}</span>
+                        <span className="text-slate-400">{getWatchDecisionDteDisplay(ranking, insight)}</span>
                         {" · "}
                         <span className="text-slate-500">
                           spread {spread != null ? `${spread.toFixed(1)} %` : "n/d"}
@@ -5013,8 +5285,8 @@ export default function JournalPopPanel({ apiBase, active }) {
           const normalizedFilterMode = normalizeDecisionMode(rankingModeFilter);
           if (normalizedFilterMode !== "all") {
             filtered = filtered.filter((r) => {
-              const saInsight = getSafeAggressiveInsightForRanking(r, safeAggComparison);
-              const displayMode = getDisplayModeForDecision(r, saInsight);
+              const decisionInsight = getDecisionInsightForRanking(r, safeAggComparison);
+              const displayMode = getDisplayModeForDecision(r, decisionInsight);
               return normalizeDecisionMode(displayMode) === normalizedFilterMode;
             });
           }
@@ -5024,13 +5296,13 @@ export default function JournalPopPanel({ apiBase, active }) {
         }
 
         const executableInPool = filtered.filter((ranking) => {
-          const insight = getSafeAggressiveInsightForRanking(ranking, safeAggComparison);
+          const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
           return isExecutableRanking(ranking, insight);
         }).length;
 
         if (rankingExecutableOnly) {
           filtered = filtered.filter((ranking) => {
-            const insight = getSafeAggressiveInsightForRanking(ranking, safeAggComparison);
+            const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
             return isExecutableRanking(ranking, insight);
           });
         }
@@ -5153,13 +5425,13 @@ export default function JournalPopPanel({ apiBase, active }) {
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
                     {filtered.map((row) => {
-                      const saInsight = getSafeAggressiveInsightForRanking(row, safeAggComparison);
-                      const displayMode = getDisplayModeForDecision(row, saInsight);
-                      const decisionLine = formatSafeAggressiveDecisionLine(saInsight);
-                      const decisionBadge = getExecutionDecisionBadge(row, saInsight);
+                      const decisionInsight = getDecisionInsightForRanking(row, safeAggComparison);
+                      const displayMode = getDisplayModeForDecision(row, decisionInsight);
+                      const decisionLine = formatSafeAggressiveDecisionLine(decisionInsight);
+                      const decisionBadge = getExecutionDecisionBadge(row, decisionInsight);
                       const executionDisplay = getExecutionColumnDisplay(row);
                       const modeTooltipParts = [
-                        saInsight?.modeDecision ?? decisionLine,
+                        decisionInsight?.modeDecision ?? decisionLine,
                         row.preferredMode && row.preferredMode !== displayMode
                           ? `mode ranking : ${row.preferredMode}`
                           : null,
@@ -5184,8 +5456,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                             {decisionLine}
                           </div>
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-slate-300" title={getDecisionDteTooltip(row)}>
-                          {getDecisionDteDisplay(row)}
+                        <td className="px-3 py-2 whitespace-nowrap text-slate-300" title={getRankingDecisionDteTooltip(row, decisionInsight)}>
+                          {getRankingDecisionDteDisplay(row, decisionInsight)}
                         </td>
                         <td className="px-3 py-2 tabular-nums whitespace-nowrap">
                           {row.assignmentRatePct != null ? (

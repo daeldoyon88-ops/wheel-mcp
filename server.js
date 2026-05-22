@@ -49,7 +49,7 @@ function resolvedDefaultLiquidityOtmProbePct() {
 const defaultLiquidityOtmProbePct = resolvedDefaultLiquidityOtmProbePct();
 
 app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "25mb" }));
 
 const provider = createMarketDataProvider();
 const marketService = createMarketService(provider);
@@ -2742,6 +2742,15 @@ app.post("/journal/wheel-validation/capture", async (req, res) => {
       ? body.items
       : [];
     const topN = Math.min(Math.max(toPositiveInt(body.topN, 30), 1), 200);
+    console.log("[JOURNAL_CAPTURE_REQUEST]", {
+      topN,
+      candidatesType: Array.isArray(body.candidates) ? "array" : typeof body.candidates,
+      candidatesCount: Array.isArray(candidates) ? candidates.length : 0,
+      firstCandidateKeys: Object.keys(candidates?.[0] || {}),
+      scanSessionId: body.scanSessionId ?? null,
+      captureSource: body.captureSource ?? null,
+      selectedExpiration: body.selectedExpiration ?? null,
+    });
     const result = await wheelValidationService.captureFromCandidates(candidates, {
       topN,
       scanTimestamp: body.scanTimestamp,
@@ -2750,12 +2759,25 @@ app.post("/journal/wheel-validation/capture", async (req, res) => {
       captureSource: body.captureSource,
       dteAtScan: body.dteAtScan,
     });
+    console.log("[JOURNAL_CAPTURE_RESULT]", {
+      inserted: result?.captured ?? null,
+      skipped: result?.skipped ?? null,
+      duplicates: result?.duplicates ?? null,
+      total: result?.records?.length ?? null,
+      skippedReasons: result?.skippedReasons ?? null,
+      sampleSkipped: result?.sampleSkipped?.slice?.(0, 3) ?? null,
+      errors: result?.errors?.slice?.(0, 3) ?? null,
+    });
     res.json({
       ok: true,
       source: "final_candidates_snapshot",
       ...result,
     });
   } catch (error) {
+    console.error("[JOURNAL_CAPTURE_ERROR]", {
+      message: error?.message,
+      stack: error?.stack?.split("\n").slice(0, 5).join("\n"),
+    });
     res.status(500).json({
       ok: false,
       error: error?.message || "wheel_validation_capture_failed",

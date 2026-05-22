@@ -1204,6 +1204,64 @@ export function createWheelValidationService(options = {}) {
     const topN = Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30;
     const finalCandidates = Array.isArray(candidates) ? candidates.slice(0, topN) : [];
     const records = [];
+    const skippedReasons = {
+      missingTicker: 0,
+      missingStrike: 0,
+      missingExpiration: 0,
+      missingPremium: 0,
+      missingMode: 0,
+      duplicate: 0,
+      invalidCandidate: 0,
+    };
+    const sampleSkipped = [];
+    const pushSampleSkipped = (candidate, reason) => {
+      if (sampleSkipped.length >= 5) return;
+      sampleSkipped.push({
+        ticker: candidate?.symbol ?? candidate?.ticker ?? null,
+        reason,
+        keys: Object.keys(candidate || {}),
+      });
+    };
+    const diagnoseSkip = (candidate, strikeMode) => {
+      if (!candidate || typeof candidate !== "object") {
+        skippedReasons.invalidCandidate += 1;
+        pushSampleSkipped(candidate, "invalidCandidate");
+        return;
+      }
+      const symbol = normalizeSymbol(candidate?.symbol ?? candidate?.ticker);
+      if (!symbol) {
+        skippedReasons.missingTicker += 1;
+        pushSampleSkipped(candidate, "missingTicker");
+        return;
+      }
+      const expiration = normalizeExpiration(
+        candidate?.expiration ??
+          candidate?.targetExpiration ??
+          candidate?.ibkrDirect?.raw?.expiration ??
+          candidate?.raw?.expiration
+      );
+      if (!expiration) {
+        skippedReasons.missingExpiration += 1;
+        pushSampleSkipped(candidate, "missingExpiration");
+      }
+      const strikeRow = getStrikeRow(candidate, strikeMode);
+      const strike = toNumberOrNull(strikeRow?.strike);
+      if (strike == null) {
+        skippedReasons.missingStrike += 1;
+        pushSampleSkipped(candidate, `missingStrike:${strikeMode}`);
+        return;
+      }
+      const premium =
+        toNumberOrNull(strikeRow?.premium) ??
+        toNumberOrNull(strikeRow?.premiumUsed) ??
+        toNumberOrNull(strikeRow?.mid) ??
+        toNumberOrNull(strikeRow?.bid) ??
+        null;
+      if (premium == null) {
+        skippedReasons.missingPremium += 1;
+        pushSampleSkipped(candidate, `missingPremium:${strikeMode}`);
+      }
+    };
     for (let index = 0; index < finalCandidates.length; index += 1) {
       const candidate = finalCandidates[index];
       const perCandidateOptions = {
@@ -1214,6 +1272,7 @@ export function createWheelValidationService(options = {}) {
       };
       const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp, scanSessionId, perCandidateOptions);
       if (safeRecord) records.push(safeRecord);
+      else diagnoseSkip(candidate, "safe");
       const aggressiveRecord = normalizeRecord(
         candidate,
         "aggressive",
@@ -1222,7 +1281,9 @@ export function createWheelValidationService(options = {}) {
         perCandidateOptions
       );
       if (aggressiveRecord) records.push(aggressiveRecord);
+      else diagnoseSkip(candidate, "aggressive");
     }
+    records._diagnostics = { skippedReasons, sampleSkipped };
     return records;
   }
 
@@ -1607,6 +1668,8 @@ export function createWheelValidationService(options = {}) {
     return withWriteLock(async () => {
       const journal = await store.load();
       const records = buildRecordsFromCandidates(candidates, options);
+      const buildDiagnostics = records._diagnostics ?? { skippedReasons: {}, sampleSkipped: [] };
+      delete records._diagnostics;
       if (records.length === 0) {
         return {
           captured: 0,
@@ -1615,6 +1678,8 @@ export function createWheelValidationService(options = {}) {
           primaryDailyCount: 0,
           intradayRetestCount: 0,
           requestedTopN: Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30,
+          skippedReasons: buildDiagnostics.skippedReasons,
+          sampleSkipped: buildDiagnostics.sampleSkipped,
           records: [],
           journal,
         };
@@ -1672,6 +1737,8 @@ export function createWheelValidationService(options = {}) {
         await store.save(journal);
       }
 
+      const skippedReasons = { ...buildDiagnostics.skippedReasons };
+      if (duplicates > 0) skippedReasons.duplicate = duplicates;
       return {
         captured: uniqueRecords.length,
         duplicates,
@@ -1679,6 +1746,8 @@ export function createWheelValidationService(options = {}) {
         requestedTopN: Number.isFinite(Number(options.topN)) ? Math.max(1, Number(options.topN)) : 30,
         primaryDailyCount,
         intradayRetestCount,
+        skippedReasons,
+        sampleSkipped: buildDiagnostics.sampleSkipped,
         records: uniqueRecords,
         journal: uniqueRecords.length > 0 ? journal : await store.load(),
       };

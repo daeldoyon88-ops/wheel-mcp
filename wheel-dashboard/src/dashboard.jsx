@@ -4828,6 +4828,151 @@ async function callScanShortlist({ expiration, topN, tickers, sort = "quality" }
   return payload;
 }
 
+function buildAutoJournalStrikePayload(strikeRow) {
+  if (!strikeRow || typeof strikeRow !== "object") return null;
+  const liquidity =
+    strikeRow.liquidity && typeof strikeRow.liquidity === "object"
+      ? {
+          spreadPct: strikeRow.liquidity.spreadPct ?? null,
+          openInterest: strikeRow.liquidity.openInterest ?? null,
+          volume: strikeRow.liquidity.volume ?? null,
+        }
+      : null;
+  const compact = {
+    strike: strikeRow.strike ?? null,
+    premium: strikeRow.premium ?? null,
+    premiumUsed: strikeRow.premiumUsed ?? strikeRow.primeUsed ?? null,
+    primeUsed: strikeRow.primeUsed ?? null,
+    conservativePremium: strikeRow.conservativePremium ?? null,
+    bid: strikeRow.bid ?? null,
+    ask: strikeRow.ask ?? null,
+    mid: strikeRow.mid ?? null,
+    spread: strikeRow.spread ?? null,
+    spreadPct: strikeRow.spreadPct ?? null,
+    annualizedYield: strikeRow.annualizedYield ?? null,
+    popEstimate: strikeRow.popEstimate ?? null,
+    popProfitEstimated: strikeRow.popProfitEstimated ?? null,
+    openInterest: strikeRow.openInterest ?? null,
+    volume: strikeRow.volume ?? null,
+  };
+  if (liquidity) compact.liquidity = liquidity;
+  return compact;
+}
+
+function buildAutoJournalCandidatePayload(candidate) {
+  if (!candidate || typeof candidate !== "object") return candidate;
+  const raw = candidate.raw && typeof candidate.raw === "object" ? candidate.raw : null;
+  const diagnosticsV12 =
+    candidate.diagnosticsV12 && typeof candidate.diagnosticsV12 === "object"
+      ? {
+          hv10: candidate.diagnosticsV12.hv10 ?? null,
+          hv20: candidate.diagnosticsV12.hv20 ?? null,
+          hv30: candidate.diagnosticsV12.hv30 ?? null,
+          safeStrikeIv: candidate.diagnosticsV12.safeStrikeIv ?? null,
+          atmIv: candidate.diagnosticsV12.atmIv ?? null,
+          ivHvRatio: candidate.diagnosticsV12.ivHvRatio ?? null,
+          ivHvEdge: candidate.diagnosticsV12.ivHvEdge ?? null,
+          dailyChangePct: candidate.diagnosticsV12.dailyChangePct ?? null,
+          zScore20: candidate.diagnosticsV12.zScore20 ?? null,
+          volumeVsAvgRatio: candidate.diagnosticsV12.volumeVsAvgRatio ?? null,
+          challengerCandidate: candidate.diagnosticsV12.challengerCandidate ?? null,
+          challengerReasons: Array.isArray(candidate.diagnosticsV12.challengerReasons)
+            ? candidate.diagnosticsV12.challengerReasons.slice(0, 10)
+            : [],
+        }
+      : null;
+
+  const compact = {
+    ticker: candidate.ticker ?? candidate.symbol ?? null,
+    symbol: candidate.symbol ?? candidate.ticker ?? null,
+    name: candidate.name ?? null,
+    price: candidate.price ?? candidate.currentPrice ?? null,
+    currentPrice: candidate.currentPrice ?? candidate.price ?? null,
+    underlyingPrice: candidate.underlyingPrice ?? null,
+    rank: candidate.rank ?? null,
+    yahooRank: candidate.yahooRank ?? candidate.rank ?? null,
+    ibkrRank: candidate.ibkrRank ?? null,
+    selectedMode:
+      candidate.selectedMode ?? candidate.finalDisplayMode ?? candidate.recommendedMode ?? null,
+    expiration: candidate.expiration ?? candidate.targetExpiration ?? null,
+    targetExpiration: candidate.targetExpiration ?? candidate.expiration ?? null,
+    selectedExpiration: candidate.selectedExpiration ?? candidate.targetExpiration ?? null,
+    dteAtScan: candidate.dteAtScan ?? candidate.dteDays ?? null,
+    expectedMove: candidate.expectedMove ?? null,
+    expectedMoveLow: candidate.expectedMoveLow ?? candidate.lowerBound ?? null,
+    expectedMoveHigh: candidate.expectedMoveHigh ?? null,
+    lowerBound: candidate.lowerBound ?? candidate.expectedMoveLow ?? null,
+    safeStrike: buildAutoJournalStrikePayload(candidate.safeStrike),
+    aggressiveStrike: buildAutoJournalStrikePayload(candidate.aggressiveStrike),
+    finalScore: candidate.finalScore ?? candidate.proFinalScore ?? null,
+    proFinalScore: candidate.proFinalScore ?? null,
+    qualityScore: candidate.qualityScore ?? null,
+    eliteScore: candidate.eliteScore ?? null,
+    eliteBadge: candidate.eliteBadge ?? null,
+    support: candidate.support ?? candidate.supportResistance?.support ?? null,
+    resistance: candidate.resistance ?? candidate.supportResistance?.resistance ?? null,
+    supportStatus:
+      candidate.supportStatus ?? candidate.supportResistance?.supportStatus ?? null,
+    targetPremium: candidate.targetPremium ?? candidate.minPremium ?? null,
+    minPremium: candidate.minPremium ?? null,
+    hasUpcomingEarningsBeforeExpiration: candidate.hasUpcomingEarningsBeforeExpiration ?? false,
+    hasEarningsBeforeExpiration: candidate.hasEarningsBeforeExpiration ?? false,
+    earningsDate: candidate.earningsDate ?? null,
+    nextEarningsDate: candidate.nextEarningsDate ?? null,
+    earningsDaysUntil: candidate.earningsDaysUntil ?? null,
+    marketCap: candidate.marketCap ?? raw?.quote?.marketCap ?? null,
+    averageVolume:
+      candidate.averageVolume ??
+      raw?.quote?.averageDailyVolume3Month ??
+      raw?.quote?.regularMarketVolume ??
+      null,
+    quoteType: candidate.quoteType ?? raw?.quote?.quoteType ?? null,
+    rsi:
+      typeof candidate.rsi === "number"
+        ? candidate.rsi
+        : typeof raw?.technicals?.rsi === "number"
+        ? raw.technicals.rsi
+        : null,
+    source: candidate.source ?? null,
+    optionsSource: candidate.optionsSource ?? null,
+    techniqueSource: candidate.techniqueSource ?? null,
+    portfolioMode: candidate.portfolioMode ?? null,
+    diagnosticsV12,
+  };
+
+  const supportResistance = {};
+  if (compact.support != null) supportResistance.support = compact.support;
+  if (compact.resistance != null) supportResistance.resistance = compact.resistance;
+  if (compact.supportStatus != null) supportResistance.supportStatus = compact.supportStatus;
+  if (Object.keys(supportResistance).length > 0) compact.supportResistance = supportResistance;
+
+  if (raw) {
+    const rawCompact = {};
+    if (raw.expiration != null) rawCompact.expiration = raw.expiration;
+    const quote = {};
+    if (raw.quote?.marketCap != null) quote.marketCap = raw.quote.marketCap;
+    if (raw.quote?.quoteType != null) quote.quoteType = raw.quote.quoteType;
+    if (raw.quote?.averageDailyVolume3Month != null) {
+      quote.averageDailyVolume3Month = raw.quote.averageDailyVolume3Month;
+    }
+    if (raw.quote?.regularMarketVolume != null) {
+      quote.regularMarketVolume = raw.quote.regularMarketVolume;
+    }
+    if (Object.keys(quote).length > 0) rawCompact.quote = quote;
+    if (typeof raw.technicals?.rsi === "number") {
+      rawCompact.technicals = { rsi: raw.technicals.rsi };
+    }
+    if (Object.keys(rawCompact).length > 0) compact.raw = rawCompact;
+  }
+
+  if (candidate.ibkrDirect) {
+    compact.ibkrDirect = {};
+    if (!compact.optionsSource && !compact.source) compact.optionsSource = "IBKR live";
+  }
+
+  return compact;
+}
+
 async function callWheelJournalCapture({
   candidates,
   topN,
@@ -4837,26 +4982,50 @@ async function callWheelJournalCapture({
   captureSource,
   dteAtScan,
 }) {
+  const body = {
+    candidates,
+    topN,
+    scanTimestamp,
+    scanSessionId,
+    selectedExpiration,
+    captureSource,
+    dteAtScan,
+  };
+  const bodyStr = JSON.stringify(body);
+  console.info("[AUTO_JOURNAL_DEBUG_BEFORE_FETCH]", {
+    captureTopN: topN,
+    rawCandidates: Array.isArray(candidates) ? candidates.length : 0,
+    compactCandidates: Array.isArray(candidates) ? candidates.length : 0,
+    firstCandidateKeys: Object.keys(candidates?.[0] || {}),
+    firstCandidate: candidates?.[0] ?? null,
+    approxPayloadKb: Math.round(bodyStr.length / 1024),
+    captureSource,
+    scanSessionId,
+  });
   const response = await fetch(`${API_BASE}/journal/wheel-validation/capture`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      candidates,
-      topN,
-      scanTimestamp,
-      scanSessionId,
-      selectedExpiration,
-      captureSource,
-      dteAtScan,
-    }),
+    body: bodyStr,
   });
 
-  const payload = await response.json();
+  let payload = {};
+  let responseText = "";
+  try {
+    responseText = await response.text();
+    payload = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    payload = { error: responseText || `HTTP ${response.status}` };
+  }
 
   if (!response.ok || payload?.ok === false) {
-    throw new Error(payload?.error || `HTTP ${response.status}`);
+    const error = new Error(payload?.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    error.statusText = response.statusText;
+    error.responseText = responseText;
+    error.payloadKb = Math.round(bodyStr.length / 1024);
+    throw error;
   }
 
   return payload;
@@ -8733,7 +8902,7 @@ export default function Dashboard() {
   };
   const readStoredAutoJournalMode = () => {
     const raw = String(window.localStorage.getItem("wheel.autoJournalPop") || "off").trim().toLowerCase();
-    return raw === "10" || raw === "30" || raw === "50" ? raw : "off";
+    return raw === "10" || raw === "30" || raw === "50" || raw === "100" || raw === "150" ? raw : "off";
   };
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -9712,7 +9881,7 @@ export default function Dashboard() {
       // Apply the same guards the dashboard uses:
       // 1. Exclude IBKR-rejected symbols (ibkrRejectedSymbols mirrors ibkrDirectResult.rejected)
       // 2. Exclude candidates whose embedded expiration fields don't match the active selection
-      // Slice to captureTopN AFTER filtering so Top 50 means 50 *admissible* candidates.
+      // Slice to captureTopN AFTER filtering so Top N means N *admissible* candidates.
       const rawCount = Array.isArray(candidates) ? candidates.length : 0;
       const finalCandidates = (Array.isArray(candidates) ? candidates : [])
         .filter((c) => {
@@ -9723,15 +9892,21 @@ export default function Dashboard() {
         })
         .slice(0, captureTopN);
 
-      console.log("[AUTO_JOURNAL_CAPTURE_ATTEMPT]", {
+      const compactCandidates = finalCandidates.map(buildAutoJournalCandidatePayload);
+      const approxPayloadKb = Math.round(
+        JSON.stringify({ candidates: compactCandidates }).length / 1024
+      );
+
+      console.info("[AUTO_JOURNAL_CAPTURE_ATTEMPT]", {
         scanSessionId,
         autoJournalPop,
-        rawCandidatesLength: rawCount,
-        finalCandidatesLength: finalCandidates.length,
+        captureTopN,
+        rawCandidates: rawCount,
+        compactCandidates: compactCandidates.length,
+        approxPayloadKb,
         ibkrRejectedCount: ibkrRejectedSymbols.size,
         selectedExpiration,
         source,
-        captureTopN,
       });
 
       if (autoJournalPop === "off") {
@@ -9757,7 +9932,7 @@ export default function Dashboard() {
       const dteAtScan = computeDteAtScan(scanTimestamp ?? new Date().toISOString(), selectedExpiration);
       try {
         const payload = await callWheelJournalCapture({
-          candidates: finalCandidates,
+          candidates: compactCandidates,
           topN: captureTopN,
           scanTimestamp: scanTimestamp ?? new Date().toISOString(),
           scanSessionId,
@@ -9768,8 +9943,13 @@ export default function Dashboard() {
         console.log("[AUTO_JOURNAL_RESULT]", {
           scanSessionId,
           captured: payload?.captured ?? null,
+          inserted: payload?.captured ?? null,
+          skipped: payload?.skipped ?? null,
           duplicates: payload?.duplicates ?? null,
-          candidatesSent: finalCandidates.length,
+          skippedReasons: payload?.skippedReasons ?? null,
+          sampleSkipped: payload?.sampleSkipped ?? null,
+          candidatesSent: compactCandidates.length,
+          approxPayloadKb,
           totalReceived: Array.isArray(payload?.journal?.records) ? payload.journal.records.length : null,
           backendTotal: payload?.totalRecords ?? payload?.journal?.totalRecords ?? null,
         });
@@ -9779,6 +9959,10 @@ export default function Dashboard() {
           scanSessionId,
           source,
           captureTopN,
+          status: error?.status ?? null,
+          statusText: error?.statusText ?? null,
+          responseText: error?.responseText ?? null,
+          payloadKb: error?.payloadKb ?? approxPayloadKb,
           error: error?.message || String(error),
         });
         return null;
@@ -10958,6 +11142,8 @@ export default function Dashboard() {
               <option value="10">Top 10</option>
               <option value="30">Top 30</option>
               <option value="50">Top 50</option>
+              <option value="100">Top 100</option>
+              <option value="150">Top 150</option>
             </Select>
             <p className="mt-2 text-xs leading-5 text-slate-500">
               Etat actuel : {autoJournalPop === "off" ? "OFF" : `Top ${autoJournalPop}`}.

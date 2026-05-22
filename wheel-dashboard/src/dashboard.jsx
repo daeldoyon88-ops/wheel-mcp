@@ -9014,7 +9014,9 @@ export default function Dashboard() {
   };
   const readStoredAutoJournalMode = () => {
     const raw = String(window.localStorage.getItem("wheel.autoJournalPop") || "off").trim().toLowerCase();
-    return raw === "10" || raw === "30" || raw === "50" || raw === "100" || raw === "150" ? raw : "off";
+    return raw === "10" || raw === "30" || raw === "50" || raw === "100" || raw === "150" || raw === "200"
+      ? raw
+      : "off";
   };
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -11449,6 +11451,7 @@ export default function Dashboard() {
               <option value="50">Top 50</option>
               <option value="100">Top 100</option>
               <option value="150">Top 150</option>
+              <option value="200">Top 200</option>
             </Select>
             <p className="mt-2 text-xs leading-5 text-slate-500">
               Etat actuel : {autoJournalPop === "off" ? "OFF" : `Top ${autoJournalPop}`}.

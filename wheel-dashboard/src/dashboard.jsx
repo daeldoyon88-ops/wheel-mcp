@@ -84,10 +84,11 @@ const DEFAULT_BUILD_WATCHLIST_BODY = {
   /** Plafond spot CSP : 200 couvre plus de noms institutionnels tout en restant sous beaucoup de caps 25,5k$/contrat. */
   maxPrice: 200,
   minPrice: 10,
-  minVolume: 1_000_000,
+  /** V2 relaxed : abaissé de 1 000 000 à 500 000 pour inclure les mid-caps solides (300k-800k ADV). */
+  minVolume: 500_000,
   maxContractCapital: 25_500,
   minMarketCapB: 5,
-  /** true : vérifie bid/ask réel sur put ATM Yahoo + sonde OTM (liquidityOtmProbePct) — aligne le bassin sur l’exigence « prime conservatrice » IBKR. */
+  /** true : tente le fetch options pour scorer ; en mode relaxed, les échecs Yahoo deviennent des pénalités de score plutôt que des rejets durs. */
   requireLiquidOptions: true,
   requireWeeklyOptions: true,
   /** % OTM minimal pour la sonde (défaut serveur 5 si omis). Mettre 0 pour désactiver uniquement la sonde OTM tout en gardant ATM. */
@@ -95,6 +96,8 @@ const DEFAULT_BUILD_WATCHLIST_BODY = {
   /** high_premium : bassin élargi ; etf volontairement absent par défaut (junk/leverage à activer au besoin). */
   categories: ["weekly", "core", "growth", "high_premium"],
   limit: 150,
+  /** "relaxed" : weekly/liquidity Yahoo = pénalités (−10/−12/−15/−8) au lieu de rejets durs. Score plancher 20. */
+  watchlistMode: "relaxed",
 };
 
 /** Niveaux pour comparer la sonde OTM Yahoo sur la watchlist (si `requireLiquidOptions`). */
@@ -5253,7 +5256,7 @@ function formatIbkrReason(reason) {
     no_expected_move_contracts: "Aucun contrat expected move qualifiable",
     no_safe_or_aggressive_strike: "Aucun strike safe ou agressif disponible",
     no_aggressive_strike: "Aucun strike agressif disponible",
-    no_bid_ask: "Bid/ask indisponible (souvent hors marché)",
+    no_bid_ask: "IBKR quote absente / bid-ask manquant",
     invalid_bid: "Bid option indisponible ou invalide",
     invalid_ask: "Ask option indisponible ou invalide",
     invalid_mid: "Mid ou spread indisponible",
@@ -6958,17 +6961,26 @@ function IbkrDirectScanPanel({
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <p className="mb-2 font-semibold">Principaux rejetés IBKR</p>
                 <div className="space-y-1">
-                  {rejected.slice(0, 10).map((row) => (
+                  {rejected.slice(0, 10).map((row) => {
+                    const isMissingQuote = row.reason === "no_bid_ask";
+                    const isBelowPremium = row.reason === "no_safe_candidate_meets_min_premium";
+                    return (
                     <div key={`ibkr-direct-rejected-${row.symbol}-${row.reason}`}>
                       {row.symbol || "—"} : {formatIbkrReason(row.reason)} · cible{" "}
                       {formatMoneyOrDash(row.targetPremium)} · agressif{" "}
-                      {formatStrikeOrDash(row.aggressiveStrike?.strike)} · bid{" "}
-                      {formatMoneyOrDash(row.aggressiveStrike?.bid)} · ask{" "}
-                      {formatMoneyOrDash(row.aggressiveStrike?.ask)} · prime{" "}
-                      {formatMoneyOrDash(row.aggressiveStrike?.primeUsed)} · durée{" "}
+                      {formatStrikeOrDash(row.aggressiveStrike?.strike)}
+                      {isMissingQuote ? (
+                        <> · <span className="font-semibold text-rose-700">quote absente</span></>
+                      ) : isBelowPremium ? (
+                        <> · meilleur bid safe{" "}{formatMoneyOrDash(row.bestSafeBid ?? row.aggressiveStrike?.bid)} vs cible {formatMoneyOrDash(row.targetPremium)}</>
+                      ) : (
+                        <> · bid {formatMoneyOrDash(row.aggressiveStrike?.bid)} · ask{" "}{formatMoneyOrDash(row.aggressiveStrike?.ask)} · prime{" "}{formatMoneyOrDash(row.aggressiveStrike?.primeUsed)}</>
+                      )}
+                      {" "}· durée{" "}
                       {row.durationMs == null ? "non retourné" : `${row.durationMs} ms`}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -625,6 +625,8 @@ const buildWatchlistBodySchema = z.object({
   liquidityOtmProbePct: z.number().min(0).max(45).optional().default(defaultLiquidityOtmProbePct),
   categories: z.array(z.enum(["core", "growth", "high_premium", "etf", "weekly"])).min(1),
   limit: z.number().int().positive().max(2000).optional(),
+  /** "strict" : pipeline original (tous filtres durs) ; "relaxed" : weekly/liquidity Yahoo deviennent pénalités de score. */
+  watchlistMode: z.enum(["strict", "relaxed"]).optional().default("strict"),
 });
 
 const buildResearchExpandedBodySchema = z.object({
@@ -2000,8 +2002,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
         ? ""
         : ymdDashedToCompact(String(body.expiration).trim());
     const clientIdStart = toPositiveInt(body.clientIdStart, 500);
-    const rawMarketDataType = toPositiveInt(body.marketDataType, 1);
-    const marketDataType = [1, 2, 3, 4].includes(rawMarketDataType) ? rawMarketDataType : 1;
+    const devMode = getWheelDevScanMode();
+    const devScanEnabled = devMode.devScanEnabled;
+    const marketDataType = devMode.marketRegime === "REGULAR" ? 1 : 2;
     const marketDataTypeRequestedLabel = ibkrMarketDataTypeLabel(marketDataType);
     const maxStrikes = toPositiveInt(body.maxStrikes, 25);
     const sort = String(body.sort || "quality").trim().toLowerCase();
@@ -2009,8 +2012,6 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const startedAt = Date.now();
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
     const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "1";
-    const devMode = getWheelDevScanMode();
-    const devScanEnabled = devMode.devScanEnabled;
 
     console.log(
       "[WHEEL_DEV_SCAN]",

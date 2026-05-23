@@ -1249,7 +1249,8 @@ def main() -> int:
             )
         else:
             if aggressive_pc is not None:
-                safe_selection_reason = "no_safe_candidate_meets_min_premium"
+                has_any_bid_below = any(p.get("bid") is not None for p in below)
+                safe_selection_reason = "no_bid_ask" if not has_any_bid_below else "no_safe_candidate_meets_min_premium"
             else:
                 safe_selection_reason = "no_put_below_lower_bound"
 
@@ -1338,6 +1339,10 @@ def main() -> int:
             "targetPremium": target_premium,
             "expectedMoveContractsRequested": ibkr_call_metrics.get("expectedMoveContractsRequested", 0),
             "putCandidateContractsRequested": ibkr_call_metrics.get("putCandidateContractsRequested", 0),
+            "strikesTestedCount": len(put_data),
+            "validBidAskCount": sum(1 for p in put_data if p.get("bid") is not None and p.get("ask") is not None),
+            "quotesReceivedCount": sum(1 for p in put_data if p.get("bid") is not None),
+            "bestSafeBid": max((p["bid"] for p in below if p.get("bid") is not None), default=None),
             "strikeValidation": strike_validation,
             "expectedMoveComponents": em_components,
             "expectedMoveOptions": em_options_out,

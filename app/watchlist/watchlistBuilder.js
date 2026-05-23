@@ -52,7 +52,7 @@ const QUOTE_TTL_MS = 90_000;
 const EXP_TTL_MS = 300_000;
 const CHAIN_TTL_MS = 120_000;
 const TIER_1_ULTRA_LIQUID = [
-  "TQQQ", "SOXL", "QQQ", "SPY", "IWM",
+  "TQQQ", "SOXL", "TNA", "SSO", "QQQ", "SPY", "IWM",
   "NVDA", "TSLA", "AMD", "PLTR", "SOFI",
   "AFRM", "HOOD", "INTC", "UBER",
 ];
@@ -74,6 +74,9 @@ const TIER_1_SET = new Set(TIER_1_ULTRA_LIQUID);
 const TIER_2_SET = new Set(TIER_2_GOOD_WHEEL);
 const TIER_3_SET = new Set(TIER_3_SPECULATIVE);
 const PRIORITY_WHEEL_SET = new Set(PRIORITY_WHEEL_SYMBOLS);
+
+/** ETF à levier favoris pour le classement Strict Watchlist (bonus sortScore uniquement, sans effet sur les filtres). */
+const STRICT_WATCHLIST_FAVORITE_ETFS = new Set(["TQQQ", "TNA", "SSO"]);
 
 /** Tickers crypto exclus définitivement du pipeline Wheel. BITX n'est pas dans cette liste. */
 const CRYPTO_BLOCKED_SYMBOLS = new Set([
@@ -171,6 +174,18 @@ function tierLabelFromIndex(tier) {
   if (tier === 1) return "T2";
   if (tier === 2) return "T3";
   return "—";
+}
+
+/**
+ * Bonus de classement Strict Watchlist pour les ETF à levier favoris.
+ * N'affecte que sortScore — aucun effet sur watchlistScore, filtres Yahoo, IBKR ou Wheel.
+ * SOXL exclu intentionnellement (échoue la logique Wheel indépendamment).
+ */
+function favoriteEtfBias(symbol) {
+  const s = String(symbol || "").trim().toUpperCase();
+  if (!STRICT_WATCHLIST_FAVORITE_ETFS.has(s)) return 0;
+  if (s === "TQQQ") return 2;
+  return 5; // TNA, SSO
 }
 
 /** Tie-break faible après le score dynamique (anciennes priorités). */
@@ -459,7 +474,7 @@ export function createWatchlistBuilder(deps) {
     /** @type {{ symbol: string, message: string }[]} */
     const errors = [];
 
-    /** @type {{ symbol: string, category: UniverseCategory, watchlistScore: number, watchlistScoreReasons: string[], tierLabel: string, tierBias: number, sortScore: number }[]} */
+    /** @type {{ symbol: string, category: UniverseCategory, watchlistScore: number, watchlistScoreReasons: string[], tierLabel: string, tierBias: number, favoriteEtfBias: number, sortScore: number }[]} */
     const keptRows = [];
 
     await runPool(source, concurrency, async (row) => {
@@ -684,6 +699,7 @@ export function createWatchlistBuilder(deps) {
           return;
         }
         const tierBias = tierMicroBias(symbol);
+        const etfBias = favoriteEtfBias(symbol);
         const tierLabel = tierLabelFromIndex(getPriorityTier(symbol));
         const atmLiquidityScore = funnelDiag ? atmSpreadToLiquidityScore(atmSpreadPct) : null;
         const mcapBRaw = fundRow != null && typeof fundRow === "object" ? toNumber(fundRow.marketCapB) : null;
@@ -700,7 +716,8 @@ export function createWatchlistBuilder(deps) {
           watchlistScoreReasons,
           tierLabel,
           tierBias,
-          sortScore: watchlistScore + tierBias,
+          favoriteEtfBias: etfBias,
+          sortScore: watchlistScore + tierBias + etfBias,
           ...(isRelaxed && softPenalties.length > 0 ? { softPenalized: true, softPenalties } : {}),
         };
         if (funnelDiag) {
@@ -836,6 +853,7 @@ export function createWatchlistBuilder(deps) {
         });
 
         const tierBiasRec = tierMicroBias(sym);
+        const etfBiasRec = favoriteEtfBias(sym);
         const tierLabelRec = tierLabelFromIndex(getPriorityTier(sym));
         const atmLiqScoreRec = funnelDiag ? atmSpreadToLiquidityScore(atmSpreadPctSnap) : null;
 
@@ -847,7 +865,8 @@ export function createWatchlistBuilder(deps) {
           watchlistScoreReasons: wlReasons,
           tierLabel: tierLabelRec,
           tierBias: tierBiasRec,
-          sortScore: wlScore + tierBiasRec,
+          favoriteEtfBias: etfBiasRec,
+          sortScore: wlScore + tierBiasRec + etfBiasRec,
           recoveredByYahooLiquidityV3LiveSafe: true,
           v3Bucket: ev.bucket,
           recoveryReason: ev.recoveryReason,
@@ -952,6 +971,7 @@ export function createWatchlistBuilder(deps) {
       watchlistScoreReasons: r.watchlistScoreReasons,
       tierLabel: r.tierLabel,
       tierBias: r.tierBias,
+      favoriteEtfBias: r.favoriteEtfBias ?? 0,
       sortScore: r.sortScore,
     }));
 
@@ -1038,6 +1058,7 @@ export function createWatchlistBuilder(deps) {
             rankBeforeLimit: i + 1,
             watchlistScore: r.watchlistScore,
             tier: r.tierLabel,
+            favoriteEtfBias: r.favoriteEtfBias ?? 0,
             category: r.category,
             quotePrice: r.quotePrice ?? null,
             avgVolume: r.avgVolume ?? null,

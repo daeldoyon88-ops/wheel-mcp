@@ -5,7 +5,7 @@
 /** @type {Record<string, { name: string, type: string, sector: string, qualityTier: string }>} */
 export const TICKER_META = {
   // ─── Favoris utilisateur ───────────────────────────────────────────────────
-  TQQQ: { name: "ProShares UltraPro QQQ", type: "Leveraged ETF 3×", sector: "ETF Tech", qualityTier: "Thématique risqué" },
+  TQQQ: { name: "ProShares UltraPro QQQ", type: "Leveraged ETF 3×", sector: "ETF à levier / Nasdaq 100", qualityTier: "Spéculatif favori" },
   SOFI: { name: "SoFi Technologies", type: "Fintech", sector: "Financial Services", qualityTier: "Spéculatif favori" },
   APLD: { name: "Applied Digital Corp.", type: "IA / Infrastructure Cloud", sector: "Technology", qualityTier: "Spéculatif favori" },
   HOOD: { name: "Robinhood Markets", type: "Fintech / Courtage", sector: "Financial Services", qualityTier: "Spéculatif favori" },
@@ -301,7 +301,9 @@ export const TICKER_META = {
   TSLA:  { name: "Tesla Inc.", type: "EV / Énergie / High Beta", sector: "Consumer Discretionary", qualityTier: "Spéculatif favori" },
 
   // ─── ETF Leveraged ────────────────────────────────────────────────────────
-  SOXL: { name: "Direxion Semiconductor 3× ETF", type: "Leveraged ETF 3×", sector: "ETF Semi-conducteurs", qualityTier: "Thématique risqué" },
+  SOXL: { name: "Direxion Daily Semiconductor Bull 3X Shares", type: "Leveraged ETF 3×", sector: "ETF à levier / Semi-conducteurs", qualityTier: "Spéculatif favori" },
+  TNA:  { name: "Direxion Daily Small Cap Bull 3X Shares", type: "Leveraged ETF 3×", sector: "ETF à levier / Russell 2000", qualityTier: "Spéculatif favori" },
+  SSO:  { name: "ProShares Ultra S&P500", type: "Leveraged ETF 2×", sector: "ETF à levier / S&P 500", qualityTier: "Spéculatif favori" },
 };
 
 // ─── Préférences utilisateur ──────────────────────────────────────────────────

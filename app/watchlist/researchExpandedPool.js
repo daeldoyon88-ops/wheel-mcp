@@ -14,10 +14,14 @@ const CRYPTO_BLOCKED_SYMBOLS = new Set([
 ]);
 
 const TIER_1_ULTRA_LIQUID = [
-  "TQQQ", "SOXL", "QQQ", "SPY", "IWM",
+  "TQQQ", "SOXL", "TNA", "SSO", "QQQ", "SPY", "IWM",
   "NVDA", "TSLA", "AMD", "PLTR", "SOFI",
   "AFRM", "HOOD", "INTC", "UBER",
 ];
+
+/** ETF à levier favoris — toujours en tête du pool Research Expanded (même si exclus du master). */
+export const LEVERAGED_ETF_RESEARCH_PINNED = ["TQQQ", "SOXL", "TNA", "SSO"];
+const LEVERAGED_ETF_RESEARCH_PINNED_SET = new Set(LEVERAGED_ETF_RESEARCH_PINNED);
 const TIER_2_GOOD_WHEEL = [
   "DKNG", "SHOP", "RBLX", "SMCI", "COIN", "MSTR",
   "PYPL", "ROKU", "SNAP", "NFLX", "LI", "NIO", "XPEV",
@@ -90,6 +94,19 @@ function categoryRank(category) {
 }
 
 /**
+ * Place les ETF levier épinglés en tête, puis le reste sans doublons, puis applique la limite.
+ * @param {string[]} symbols
+ * @param {number} limit
+ */
+function finalizeResearchExpandedPool(symbols, limit) {
+  const normalized = symbols
+    .map((symbol) => String(symbol || "").trim().toUpperCase())
+    .filter(Boolean);
+  const rest = normalized.filter((symbol) => !LEVERAGED_ETF_RESEARCH_PINNED_SET.has(symbol));
+  return [...new Set([...LEVERAGED_ETF_RESEARCH_PINNED, ...rest])].slice(0, limit);
+}
+
+/**
  * Pool pré-IBKR élargi — sans filtres stricts watchlist (liquidité OTM, weekly obligatoire, cap contrat).
  * Source : universe.master.json (+ legacy si master absent).
  *
@@ -144,14 +161,58 @@ export function buildResearchExpandedPool(criteria = {}) {
     });
   }
 
+  for (const symbol of LEVERAGED_ETF_RESEARCH_PINNED) {
+    if (!symbol || seen.has(symbol) || CRYPTO_BLOCKED_SYMBOLS.has(symbol)) continue;
+    seen.add(symbol);
+    const fundRow = fundamentalsBySymbol.get(symbol);
+    const knownPrice =
+      toNumber(fundRow?.regularMarketPrice) ||
+      toNumber(fundRow?.price) ||
+      toNumber(fundRow?.lastPrice) ||
+      null;
+    const researchUnreliable = flagUnreliable && !fundRow;
+    if (hasMaxPrice && !includeAboveMaxPrice && Number.isFinite(knownPrice) && knownPrice > maxPrice) {
+      continue;
+    }
+    ranked.push({
+      symbol,
+      category: "etf",
+      sortTier: 0,
+      sortCategory: categoryRank("etf"),
+      researchUnreliable,
+      knownPrice: Number.isFinite(knownPrice) ? knownPrice : null,
+    });
+  }
+
   ranked.sort((a, b) => {
     if (a.sortTier !== b.sortTier) return a.sortTier - b.sortTier;
     if (a.sortCategory !== b.sortCategory) return a.sortCategory - b.sortCategory;
     return a.symbol.localeCompare(b.symbol);
   });
 
-  const selected = ranked.slice(0, limit);
-  const pool = selected.map((r) => r.symbol);
+  const pool = finalizeResearchExpandedPool(
+    ranked.map((row) => row.symbol),
+    limit
+  );
+  const selectedBySymbol = new Map(ranked.map((row) => [row.symbol, row]));
+  const selected = pool.map((symbol) => {
+    const row = selectedBySymbol.get(symbol);
+    if (row) return row;
+    const fundRow = fundamentalsBySymbol.get(symbol);
+    const knownPrice =
+      toNumber(fundRow?.regularMarketPrice) ||
+      toNumber(fundRow?.price) ||
+      toNumber(fundRow?.lastPrice) ||
+      null;
+    return {
+      symbol,
+      category: "etf",
+      sortTier: 0,
+      sortCategory: categoryRank("etf"),
+      researchUnreliable: flagUnreliable && !fundRow,
+      knownPrice: Number.isFinite(knownPrice) ? knownPrice : null,
+    };
+  });
 
   return {
     ok: true,

@@ -2,6 +2,44 @@ import { FALLBACK_RESEARCH_TICKERS } from "./data/fallbackResearchTickers.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 
+/** ETF levier — toujours en tête du pool Research Expanded (aligné backend). */
+export const LEVERAGED_ETF_RESEARCH_PINNED = ["TQQQ", "SOXL", "TNA", "SSO"];
+const LEVERAGED_ETF_RESEARCH_PINNED_SET = new Set(LEVERAGED_ETF_RESEARCH_PINNED);
+
+/**
+ * @param {string[]} symbols
+ * @param {number} limit
+ * @returns {string[]}
+ */
+export function applyResearchExpandedPinnedTickers(symbols, limit) {
+  const normalized = (Array.isArray(symbols) ? symbols : [])
+    .map((symbol) => String(symbol || "").trim().toUpperCase())
+    .filter(Boolean);
+  const rest = normalized.filter((symbol) => !LEVERAGED_ETF_RESEARCH_PINNED_SET.has(symbol));
+  const merged = [...new Set([...LEVERAGED_ETF_RESEARCH_PINNED, ...rest])];
+  const cappedLimit = Math.max(1, Number(limit) || 150);
+  return merged.slice(0, cappedLimit);
+}
+
+/**
+ * @param {string[]} tickers
+ * @param {number} limit
+ */
+export function buildResearchExpandedPoolDiagnostics(tickers, limit) {
+  const finalPool = applyResearchExpandedPinnedTickers(tickers, limit);
+  /** @type {Record<string, boolean>} */
+  const pinnedIncluded = {};
+  for (const symbol of LEVERAGED_ETF_RESEARCH_PINNED) {
+    pinnedIncluded[symbol] = finalPool.includes(symbol);
+  }
+  return {
+    requestedLimit: Math.max(1, Number(limit) || 150),
+    finalPoolCount: finalPool.length,
+    pinnedIncluded,
+    firstTickers: finalPool.slice(0, 10),
+  };
+}
+
 /** @typedef {"strict_watchlist" | "research_expanded" | "fallback_65"} PreIbkrPoolMode */
 
 export const PRE_IBKR_POOL_MODES = Object.freeze([
@@ -43,7 +81,7 @@ export function readStoredResearchExpandedLimit(raw) {
  *   researchExpandedLimit: 150 | 200,
  *   fallbackTickers: string[],
  * }} params
- * @returns {{ tickers: string[], poolSource: PreIbkrPoolMode | "strict_watchlist" | "research_expanded" | "fallback_65" | "unknown", requestedMode: PreIbkrPoolMode | "unknown", usedFallbackUltimate: boolean }}
+ * @returns {{ tickers: string[], poolSource: PreIbkrPoolMode | "strict_watchlist" | "research_expanded" | "fallback_65" | "unknown", requestedMode: PreIbkrPoolMode | "unknown", usedFallbackUltimate: boolean, researchExpandedDiagnostics?: ReturnType<typeof buildResearchExpandedPoolDiagnostics> }}
  */
 export function resolvePreIbkrTickers({
   watchlistTickers,
@@ -69,13 +107,15 @@ export function resolvePreIbkrTickers({
     const pool = (Array.isArray(researchExpandedPool) ? researchExpandedPool : [])
       .map((t) => String(t || "").trim().toUpperCase())
       .filter(Boolean);
-    const tickers = [...new Set(pool)].slice(0, limit);
+    const tickers = applyResearchExpandedPinnedTickers(pool, limit);
+    const researchExpandedDiagnostics = buildResearchExpandedPoolDiagnostics(pool, limit);
 
     return {
       tickers,
       poolSource: "research_expanded",
       requestedMode: mode,
       usedFallbackUltimate: false,
+      researchExpandedDiagnostics,
     };
   }
 
@@ -145,7 +185,7 @@ export async function loadResearchExpandedPoolWithFallback(options = {}) {
   } catch (err) {
     const limit = options.limit === 150 ? 150 : 200;
     return {
-      pool: FALLBACK_RESEARCH_TICKERS.slice(0, limit),
+      pool: applyResearchExpandedPinnedTickers(FALLBACK_RESEARCH_TICKERS, limit),
       stats: {
         keptCount: Math.min(limit, FALLBACK_RESEARCH_TICKERS.length),
         limitApplied: limit,

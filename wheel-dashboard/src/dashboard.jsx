@@ -38,6 +38,7 @@ import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
   applyResearchExpandedFlagsToCandidates,
+  applyResearchExpandedPinnedTickers,
   buildIbkrAutoNetworkSkipMessage,
   buildIbkrAutoSkipMessage,
   buildStrictWatchlistEmptyInfo,
@@ -72,7 +73,7 @@ const DEBUG_DTE_RESOLVE = false;
 const FALLBACK_TICKERS = [
   "CF", "SNOW", "KO", "SLB", "TSCO", "PCG", "DOCU", "PATH", "F", "WBD",
   "BITX", "SOFI", "ABT", "SCHW", "CSX", "NDAQ", "BAC", "CVS", "GM", "HIMS",
-  "UBER", "TGT", "AFRM", "SBUX", "NFLX", "TQQQ", "EXPE", "SHOP", "AAPL", "SOXL",
+  "UBER", "TGT", "AFRM", "SBUX", "NFLX", "TQQQ", "SOXL", "TNA", "SSO", "EXPE", "SHOP", "AAPL",
   "AMZN", "AMD", "ORCL", "PLTR", "NVDA", "MSFT", "GOOGL", "MU", "AVGO", "TSM",
   "MRVL", "IBKR", "DUOL", "RYAAY", "NEM", "DELL", "KMI", "HOOD", "LVS", "TW",
   "NI", "FSLR", "INCY", "NBIX", "ROOT", "VST", "TECK", "ZM", "PYPL", "DECK",
@@ -10316,6 +10317,10 @@ export default function Dashboard() {
         }));
       }
 
+      if (ibkrAutoInput.poolSource === "research_expanded") {
+        candidatePool = applyResearchExpandedPinnedTickers(candidatePool, hardEvaluationCap);
+      }
+
       const yahooMappedLen = ibkrAutoInput.yahooMappedLength;
       const decisionReason =
         mode === "yahoo_shortlist" && Array.isArray(orderedSymbols) && orderedSymbols.length > 0
@@ -10568,6 +10573,13 @@ export default function Dashboard() {
     poolSource = resolved.poolSource;
     usedFallbackUltimate = resolved.usedFallbackUltimate;
 
+    if (poolSource === "research_expanded" && resolved.researchExpandedDiagnostics) {
+      console.log("[RESEARCH_EXPANDED_POOL]", {
+        requestedMode: resolved.requestedMode,
+        ...resolved.researchExpandedDiagnostics,
+      });
+    }
+
     if (Array.isArray(watchlistTickers) && watchlistTickers.length === 0) {
       setWatchlistBuildError(
         buildStrictWatchlistEmptyInfo({
@@ -10744,6 +10756,7 @@ export default function Dashboard() {
             orderedSymbols: yahooOrdered,
             expirationYmd: lockedExpiration,
             yahooMappedLength: mapped.length,
+            poolSource,
           });
           setLastScanPoolMeta((prev) => ({
             ...prev,

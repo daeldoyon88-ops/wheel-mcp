@@ -1,6 +1,9 @@
 /** Research fallback, pas liste tradable — secours si /universe/research indisponible. */
 export const FALLBACK_RESEARCH_TICKERS = [
   "TQQQ",
+  "SOXL",
+  "TNA",
+  "SSO",
   "AMD",
   "INTC",
   "NVDA",

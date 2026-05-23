@@ -7021,7 +7021,7 @@ const CREAM_BUCKET_ICON = {
 // Sections sans carte complète — affichage compact uniquement.
 const CREAM_COMPACT_BUCKETS = new Set(["unknownReview", "spreadRejected"]);
 
-function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null }) {
+function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null, sortBy = "quality" }) {
   const [openBuckets, setOpenBuckets] = useState(() => new Set(["topExecutable", "favoriteWatch", "watchOnly"]));
   const [expandedTickerCards, setExpandedTickerCards] = useState({});
 
@@ -7039,9 +7039,11 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
       const score = getCreamQualityScore(item);
       groups[info.bucket].push({ item, info, score });
     });
-    CREAM_BUCKET_ORDER.forEach(b => groups[b].sort((a, z) => z.score - a.score));
+    if (sortBy === "quality") {
+      CREAM_BUCKET_ORDER.forEach(b => groups[b].sort((a, z) => z.score - a.score));
+    }
     return groups;
-  }, [items]);
+  }, [items, sortBy]);
 
   if (!items.length) return null;
 
@@ -12726,6 +12728,7 @@ export default function Dashboard() {
                       seasonalityMap={seasonalityMap}
                       onOpenDetail={setSelectedItem}
                       highlightedTicker={highlightedTicker}
+                      sortBy={sortBy}
                     />
                     <p className="mt-3 px-1 text-xs text-slate-500">
                       Les cryptos exclus sont masqués du classement principal. Ils ne sont pas encore remplacés automatiquement par les prochains candidats Yahoo.

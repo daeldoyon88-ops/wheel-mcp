@@ -24,9 +24,9 @@ const SOURCE_DEFS = [
 
 const SOURCE_ORDER = ["core", "etf", "growth", "high_premium", "weekly"];
 
-const WHITELIST = new Set(["TQQQ"]);
+const WHITELIST = new Set(["TQQQ", "SOXL", "TNA", "SSO"]);
 
-/** ETF levier / inverse / volatilité — TQQQ n’est pas inclus (whitelist séparée). */
+/** ETF levier / inverse / volatilité — whitelist séparée pour TQQQ/SOXL/TNA/SSO. */
 const LEVERAGED_EXCLUDE = new Set(
   `
 AGQ,AMDL,BOIL,CONL,DPST,FAS,LABU,METU,NAIL,NUGT,SCO,SOXL,SOXS,SPXL,SPXS,SPXU,SQQQ,SSO,
@@ -63,7 +63,7 @@ const QUANTUM_HYPE_EXCLUDE = new Set(["QBTS", "RGTI", "SOUN", "QUBT"].map((s) =>
  * @returns {boolean}
  */
 function matchesLeveragedEtfTag(symbol) {
-  if (WHITELIST.has(symbol) && symbol === "TQQQ") return true;
+  if (WHITELIST.has(symbol)) return true;
   return LEVERAGED_EXCLUDE.has(symbol);
 }
 
@@ -278,7 +278,15 @@ function confirmChecks(master) {
     "TQQQ enabled": () => getRow(master, "TQQQ")?.enabled === true,
     "TQQQ not excluded": () => getRow(master, "TQQQ")?.excluded === false,
     "TQQQ whitelisted tag": () => getRow(master, "TQQQ")?.tags?.includes("whitelisted"),
-    "SOXL excluded": () => getRow(master, "SOXL")?.excluded === true,
+    "SOXL enabled": () => getRow(master, "SOXL")?.enabled === true,
+    "SOXL not excluded": () => getRow(master, "SOXL")?.excluded === false,
+    "SOXL whitelisted tag": () => getRow(master, "SOXL")?.tags?.includes("whitelisted"),
+    "TNA enabled": () => getRow(master, "TNA")?.enabled === true,
+    "TNA not excluded": () => getRow(master, "TNA")?.excluded === false,
+    "SSO enabled": () => getRow(master, "SSO")?.enabled === true,
+    "SSO not excluded": () => getRow(master, "SSO")?.excluded === false,
+    "SQQQ excluded": () => getRow(master, "SQQQ")?.excluded === true,
+    "UPRO excluded": () => getRow(master, "UPRO")?.excluded === true,
     "BITX excluded": () => getRow(master, "BITX")?.excluded === true,
     "BULL excluded": () => getRow(master, "BULL")?.excluded === true,
     "ASST excluded": () => getRow(master, "ASST")?.excluded === true,

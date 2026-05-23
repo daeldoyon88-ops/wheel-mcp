@@ -1784,15 +1784,13 @@
   {
     "symbol": "BRK.B",
     "enabled": false,
-    "excluded": true,
-    "excludeReason": "BRK.B excluded because price above strategy maxPrice and Yahoo quote validation edge-case.",
+    "excluded": false,
+    "excludeReason": null,
     "sources": [
-      "core",
-      "weekly"
+      "core"
     ],
     "tags": [
-      "core",
-      "weekly_options"
+      "core"
     ]
   },
   {
@@ -10388,15 +10386,16 @@
   },
   {
     "symbol": "SOXL",
-    "enabled": false,
-    "excluded": true,
-    "excludeReason": "leveraged_etf",
+    "enabled": true,
+    "excluded": false,
+    "excludeReason": null,
     "sources": [
       "weekly"
     ],
     "tags": [
       "leveraged_etf",
-      "weekly_options"
+      "weekly_options",
+      "whitelisted"
     ]
   },
   {
@@ -10558,15 +10557,16 @@
   },
   {
     "symbol": "SSO",
-    "enabled": false,
-    "excluded": true,
-    "excludeReason": "leveraged_etf",
+    "enabled": true,
+    "excluded": false,
+    "excludeReason": null,
     "sources": [
       "weekly"
     ],
     "tags": [
       "leveraged_etf",
-      "weekly_options"
+      "weekly_options",
+      "whitelisted"
     ]
   },
   {
@@ -11086,15 +11086,16 @@
   },
   {
     "symbol": "TNA",
-    "enabled": false,
-    "excluded": true,
-    "excludeReason": "leveraged_etf",
+    "enabled": true,
+    "excluded": false,
+    "excludeReason": null,
     "sources": [
       "weekly"
     ],
     "tags": [
       "leveraged_etf",
-      "weekly_options"
+      "weekly_options",
+      "whitelisted"
     ]
   },
   {

@@ -45,6 +45,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * @property {number} [minMarketCapB] si défini et > 0 : rejette seulement si marketCapB connue < seuil (cache local)
  * @property {UniverseCategory[]} categories
  * @property {number} [limit]
+ * @property {'strict'|'relaxed'} [watchlistMode] "relaxed" convertit les filtres Yahoo options en pénalités de score au lieu de rejets durs.
  */
 
 const QUOTE_TTL_MS = 90_000;
@@ -514,120 +515,143 @@ export function createWatchlistBuilder(deps) {
         let optionLiquidityOk = false;
         let otmProbeOk = false;
         let probePctForDiag = 0;
+        const isRelaxed = criteria.watchlistMode === "relaxed";
+        /** @type {{ reason: string, score: number }[]} */
+        const softPenalties = [];
 
-        if (criteria.requireWeeklyOptions) {
+        if (criteria.requireWeeklyOptions || isRelaxed) {
           const exp = await getExpirationsCached(symbol);
           const dates = Array.isArray(exp?.availableExpirations) ? exp.availableExpirations : [];
           if (!dates.length) {
-            rejected.push({ symbol, category, reason: "expirations_unavailable" });
-            return;
+            if (!isRelaxed) {
+              rejected.push({ symbol, category, reason: "expirations_unavailable" });
+              return;
+            }
+            softPenalties.push({ reason: "expirations_unavailable", score: -12 });
+          } else if (!hasWeeklyStyleExpirations(dates, today)) {
+            if (!isRelaxed) {
+              rejected.push({ symbol, category, reason: "no_weekly_options", detail: { checkedExpirations: dates.length } });
+              return;
+            }
+            softPenalties.push({ reason: "no_weekly_options", score: -10 });
+          } else {
+            hasWeeklyStyle = true;
           }
-          if (!hasWeeklyStyleExpirations(dates, today)) {
-            rejected.push({ symbol, category, reason: "no_weekly_options", detail: { checkedExpirations: dates.length } });
-            return;
-          }
-          hasWeeklyStyle = true;
         }
 
-        if (criteria.requireLiquidOptions) {
+        if (criteria.requireLiquidOptions || isRelaxed) {
           const exp = await getExpirationsCached(symbol);
           const dates = Array.isArray(exp?.availableExpirations) ? exp.availableExpirations : [];
           const nearest = pickNearestExpiration(dates);
           if (!nearest) {
-            rejected.push({ symbol, category, reason: "chain_unavailable" });
-            return;
-          }
-          const chain = await getChainCached(symbol, nearest);
-          const spotForChain = toNumber(chain?.currentPrice) || spot;
-          const liq = evaluateAtmPutLiquidity(chain, spotForChain);
-          if (!liq.ok) {
-            const detail = { code: liq.reason, ...liq.detail };
-            rejected.push({
-              symbol,
-              category,
-              reason: "liquid_options_failed",
-              detail,
-              ...(liveV3Safe
-                ? {
-                    _v3LiveRecoveryCtx: {
-                      spot,
-                      minPx,
-                      maxPrice: criteria.maxPrice,
-                      minVolume: criteria.minVolume,
-                      volumeUsed: volCheck.detail?.volumeUsed ?? criteria.minVolume,
-                      hasWeeklyStyle,
-                      universeRow: {
-                        symbol,
-                        category,
-                        sources: Array.isArray(row.sources) ? row.sources : [],
-                        tags: row.tags,
-                      },
-                      probePctForDiag:
-                        typeof criteria.liquidityOtmProbePct === "number" &&
-                        Number.isFinite(criteria.liquidityOtmProbePct)
-                          ? criteria.liquidityOtmProbePct
-                          : DEFAULT_LIQUIDITY_OTM_PROBE_PCT,
-                    },
-                  }
-                : {}),
-            });
-            return;
-          }
-          optionLiquidityOk = true;
-          atmSpreadPct = liq.detail?.liquidity?.spreadPct ?? null;
-
-          if (otmReplayExport) {
-            const volUsedForReplay = volCheck.detail?.volumeUsed ?? criteria.minVolume;
-            const probeForMeta =
-              typeof criteria.liquidityOtmProbePct === "number" && Number.isFinite(criteria.liquidityOtmProbePct)
-                ? criteria.liquidityOtmProbePct
-                : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
-            liquidityOtmReplayPack.push({
-              symbol,
-              category,
-              universeRow: {
-                sources: Array.isArray(row.sources) ? row.sources : [],
-                tags: row.tags,
-              },
-              scoreCtx: {
-                spot,
-                maxPrice: criteria.maxPrice,
-                minPrice: minPx,
-                minVolume: criteria.minVolume,
-                volumeUsed: volUsedForReplay,
-                hasWeeklyStyle,
-                atmSpreadPct,
-              },
-              nearestExpiration: nearest,
-              tierBias: tierMicroBias(symbol),
-              probePctAtCapture: probeForMeta,
-              chain: trimChainForOtmReplay(chain, spotForChain),
-            });
-          }
-
-          const probeRaw = criteria.liquidityOtmProbePct;
-          const probePct =
-            typeof probeRaw === "number" && Number.isFinite(probeRaw)
-              ? probeRaw
-              : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
-          probePctForDiag = probePct;
-          if (probePct > 0) {
-            const otmProbe = evaluateOtmPutLiquidityProbe(chain, spotForChain, probePct);
-            if (!otmProbe.ok) {
-              rejected.push({
-                symbol,
-                category,
-                reason: "liquid_options_otm_probe_failed",
-                detail: { minOtmPct: probePct, ...otmProbe },
-              });
+            if (!isRelaxed) {
+              rejected.push({ symbol, category, reason: "chain_unavailable" });
               return;
             }
-            otmProbeOk = otmProbe.detail?.skipped !== true;
+            if (!softPenalties.some((p) => p.reason === "expirations_unavailable")) {
+              softPenalties.push({ reason: "chain_unavailable", score: -10 });
+            }
+          } else {
+            const chain = await getChainCached(symbol, nearest);
+            const spotForChain = toNumber(chain?.currentPrice) || spot;
+            const liq = evaluateAtmPutLiquidity(chain, spotForChain);
+            if (!liq.ok) {
+              if (!isRelaxed) {
+                const detail = { code: liq.reason, ...liq.detail };
+                rejected.push({
+                  symbol,
+                  category,
+                  reason: "liquid_options_failed",
+                  detail,
+                  ...(liveV3Safe
+                    ? {
+                        _v3LiveRecoveryCtx: {
+                          spot,
+                          minPx,
+                          maxPrice: criteria.maxPrice,
+                          minVolume: criteria.minVolume,
+                          volumeUsed: volCheck.detail?.volumeUsed ?? criteria.minVolume,
+                          hasWeeklyStyle,
+                          universeRow: {
+                            symbol,
+                            category,
+                            sources: Array.isArray(row.sources) ? row.sources : [],
+                            tags: row.tags,
+                          },
+                          probePctForDiag:
+                            typeof criteria.liquidityOtmProbePct === "number" &&
+                            Number.isFinite(criteria.liquidityOtmProbePct)
+                              ? criteria.liquidityOtmProbePct
+                              : DEFAULT_LIQUIDITY_OTM_PROBE_PCT,
+                        },
+                      }
+                    : {}),
+                });
+                return;
+              }
+              softPenalties.push({ reason: "liquid_options_failed", score: -15 });
+            } else {
+              optionLiquidityOk = true;
+              atmSpreadPct = liq.detail?.liquidity?.spreadPct ?? null;
+
+              if (otmReplayExport) {
+                const volUsedForReplay = volCheck.detail?.volumeUsed ?? criteria.minVolume;
+                const probeForMeta =
+                  typeof criteria.liquidityOtmProbePct === "number" && Number.isFinite(criteria.liquidityOtmProbePct)
+                    ? criteria.liquidityOtmProbePct
+                    : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+                liquidityOtmReplayPack.push({
+                  symbol,
+                  category,
+                  universeRow: {
+                    sources: Array.isArray(row.sources) ? row.sources : [],
+                    tags: row.tags,
+                  },
+                  scoreCtx: {
+                    spot,
+                    maxPrice: criteria.maxPrice,
+                    minPrice: minPx,
+                    minVolume: criteria.minVolume,
+                    volumeUsed: volUsedForReplay,
+                    hasWeeklyStyle,
+                    atmSpreadPct,
+                  },
+                  nearestExpiration: nearest,
+                  tierBias: tierMicroBias(symbol),
+                  probePctAtCapture: probeForMeta,
+                  chain: trimChainForOtmReplay(chain, spotForChain),
+                });
+              }
+
+              const probeRaw = criteria.liquidityOtmProbePct;
+              const probePct =
+                typeof probeRaw === "number" && Number.isFinite(probeRaw)
+                  ? probeRaw
+                  : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
+              probePctForDiag = probePct;
+              if (probePct > 0) {
+                const otmProbe = evaluateOtmPutLiquidityProbe(chain, spotForChain, probePct);
+                if (!otmProbe.ok) {
+                  if (!isRelaxed) {
+                    rejected.push({
+                      symbol,
+                      category,
+                      reason: "liquid_options_otm_probe_failed",
+                      detail: { minOtmPct: probePct, ...otmProbe },
+                    });
+                    return;
+                  }
+                  softPenalties.push({ reason: "liquid_options_otm_probe_failed", score: -8 });
+                } else {
+                  otmProbeOk = otmProbe.detail?.skipped !== true;
+                }
+              }
+            }
           }
         }
 
         const volUsed = volCheck.detail?.volumeUsed ?? criteria.minVolume;
-        const { score: watchlistScore, reasons: watchlistScoreReasons } = computeWatchlistCandidateScore(row, {
+        const { score: rawWatchlistScore, reasons: rawWatchlistScoreReasons } = computeWatchlistCandidateScore(row, {
           spot,
           maxPrice: criteria.maxPrice,
           minPrice: minPx,
@@ -638,6 +662,27 @@ export function createWatchlistBuilder(deps) {
           atmSpreadPct,
           otmProbeOk,
         });
+
+        const softPenaltyTotal = isRelaxed && softPenalties.length > 0
+          ? softPenalties.reduce((acc, p) => acc + p.score, 0)
+          : 0;
+        const watchlistScore = softPenaltyTotal !== 0
+          ? Math.max(0, Math.min(120, Math.round(rawWatchlistScore + softPenaltyTotal)))
+          : rawWatchlistScore;
+        const watchlistScoreReasons = softPenalties.length > 0
+          ? [...rawWatchlistScoreReasons, ...softPenalties.map((p) => p.reason)].slice(0, 8)
+          : rawWatchlistScoreReasons;
+
+        const V2_SCORE_FLOOR = 20;
+        if (isRelaxed && watchlistScore < V2_SCORE_FLOOR) {
+          rejected.push({
+            symbol,
+            category,
+            reason: "below_score_floor",
+            detail: { watchlistScore, softPenalties, floor: V2_SCORE_FLOOR },
+          });
+          return;
+        }
         const tierBias = tierMicroBias(symbol);
         const tierLabel = tierLabelFromIndex(getPriorityTier(symbol));
         const atmLiquidityScore = funnelDiag ? atmSpreadToLiquidityScore(atmSpreadPct) : null;
@@ -656,6 +701,7 @@ export function createWatchlistBuilder(deps) {
           tierLabel,
           tierBias,
           sortScore: watchlistScore + tierBias,
+          ...(isRelaxed && softPenalties.length > 0 ? { softPenalized: true, softPenalties } : {}),
         };
         if (funnelDiag) {
           Object.assign(keptRow, {
@@ -881,6 +927,25 @@ export function createWatchlistBuilder(deps) {
       rejectedByReason[k] = (rejectedByReason[k] ?? 0) + 1;
     }
 
+    const softPenalizedCount = keptRows.filter((r) => r.softPenalized === true).length;
+    const softRejectedByScore = rejected.filter((r) => r.reason === "below_score_floor").length;
+    /** @type {Record<string, number>} */
+    const topSoftPenaltyReasons = {};
+    for (const r of keptRows) {
+      if (!Array.isArray(r.softPenalties)) continue;
+      for (const p of r.softPenalties) {
+        const k = String(p.reason || "unknown");
+        topSoftPenaltyReasons[k] = (topSoftPenaltyReasons[k] ?? 0) + 1;
+      }
+    }
+    for (const r of rejected) {
+      if (r.reason !== "below_score_floor" || !Array.isArray(r.detail?.softPenalties)) continue;
+      for (const p of r.detail.softPenalties) {
+        const k = String(p.reason || "unknown");
+        topSoftPenaltyReasons[k] = (topSoftPenaltyReasons[k] ?? 0) + 1;
+      }
+    }
+
     const watchlistDiagnostics = keptRows.slice(0, Math.min(30, limit)).map((r) => ({
       symbol: r.symbol,
       watchlistScore: r.watchlistScore,
@@ -922,6 +987,11 @@ export function createWatchlistBuilder(deps) {
         criteria.requireLiquidOptions === true &&
         typeof probeForStats === "number" &&
         probeForStats > 0,
+      watchlistMode: criteria.watchlistMode ?? "strict",
+      hardRejectedCount: rejected.filter((r) => r.reason !== "below_score_floor").length,
+      softPenalizedCount,
+      softRejectedByScore,
+      topSoftPenaltyReasons,
     };
 
     const limitCutoffSortScore =

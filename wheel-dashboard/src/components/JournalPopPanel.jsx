@@ -892,6 +892,53 @@ function compareTheoreticalCyclesForWatch(a, b) {
   return (numberOrNull(a?.reduced_cost_basis_estimated) ?? Infinity) - (numberOrNull(b?.reduced_cost_basis_estimated) ?? Infinity);
 }
 
+function scoreWheelCcCycle(cycle) {
+  const step = cycle?.first_cc_step;
+  const multi = getTheoreticalCycleMultiCcSummary(cycle);
+  let score = 0;
+  if ((numberOrNull(cycle?.cc_sold_count) ?? 0) >= 1 || step?.cc_sold_theoretical === 1) score += 1000;
+  if (step?.usedPostAssignmentOhlc === true) score += 500;
+  if (cycle?.assignment_recovered === 1) score += 300;
+  score += (getTheoreticalCycleThresholdValue(cycle) ?? 0) * 100;
+  score += (numberOrNull(step?.cc_yield_conservative_pct) ?? 0) * 10;
+  score += (numberOrNull(cycle?.total_cc_premium_conservative ?? multi.totalPremium) ?? 0) * 5;
+  score += (numberOrNull(cycle?.csp_premium) ?? 0) * 2;
+  score -= (numberOrNull(multi.weeksWithoutCc) ?? 0) * 20;
+  score -= numberOrNull(cycle?.reduced_cost_basis_estimated) ?? 0;
+  if (step?.usedFallback === true) score -= 100;
+  return score;
+}
+
+function groupBestWheelCcCyclesByTicker(cycles) {
+  const byTicker = new Map();
+  for (const cycle of Array.isArray(cycles) ? cycles : []) {
+    const ticker = String(cycle?.ticker ?? "").trim().toUpperCase();
+    if (!ticker) continue;
+    if (!byTicker.has(ticker)) byTicker.set(ticker, []);
+    byTicker.get(ticker).push(cycle);
+  }
+  const grouped = [];
+  for (const [ticker, tickerCycles] of byTicker) {
+    const sorted = [...tickerCycles].sort((a, b) => scoreWheelCcCycle(b) - scoreWheelCcCycle(a));
+    grouped.push({
+      ticker,
+      bestCycle: sorted[0],
+      otherCycles: sorted.slice(1),
+      totalCount: tickerCycles.length,
+    });
+  }
+  return grouped.sort((a, b) => scoreWheelCcCycle(b.bestCycle) - scoreWheelCcCycle(a.bestCycle));
+}
+
+function getOtherTheoreticalCyclesForTicker(cycles, currentCycle) {
+  const ticker = String(currentCycle?.ticker ?? "").trim().toUpperCase();
+  if (!ticker) return [];
+  return (Array.isArray(cycles) ? cycles : []).filter((cycle) => {
+    if (cycle?.id === currentCycle?.id) return false;
+    return String(cycle?.ticker ?? "").trim().toUpperCase() === ticker;
+  });
+}
+
 function getBestTheoreticalCyclePerTicker(cycles) {
   const bestByTicker = new Map();
   for (const cycle of Array.isArray(cycles) ? cycles : []) {
@@ -2339,6 +2386,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
   const [theoreticalPriceSourceFilter, setTheoreticalPriceSourceFilter] = useState("all");
+  const [theoreticalCycleViewMode, setTheoreticalCycleViewMode] = useState("bestPerTicker");
   const [expandedTheoreticalCycleId, setExpandedTheoreticalCycleId] = useState(null);
 
   // Ticker ranking V2-L — read-only
@@ -2711,6 +2759,23 @@ export default function JournalPopPanel({ apiBase, active }) {
   const theoreticalCyclesToWatch = useMemo(() => {
     return getBestTheoreticalCyclePerTicker(filteredTheoreticalCycles);
   }, [filteredTheoreticalCycles]);
+  const theoreticalCyclesGroupedByTicker = useMemo(
+    () => groupBestWheelCcCyclesByTicker(filteredTheoreticalCycles),
+    [filteredTheoreticalCycles],
+  );
+  const theoreticalOtherCyclesById = useMemo(() => {
+    const map = new Map();
+    for (const group of theoreticalCyclesGroupedByTicker) {
+      if (group.otherCycles.length > 0) {
+        map.set(group.bestCycle.id, group.otherCycles);
+      }
+    }
+    return map;
+  }, [theoreticalCyclesGroupedByTicker]);
+  const displayedTheoreticalCycles = useMemo(() => {
+    if (theoreticalCycleViewMode === "raw") return filteredTheoreticalCycles;
+    return theoreticalCyclesGroupedByTicker.map((group) => group.bestCycle);
+  }, [theoreticalCycleViewMode, filteredTheoreticalCycles, theoreticalCyclesGroupedByTicker]);
 
   const premiumStabilityGroups = useMemo(
     () => (Array.isArray(premiumStability?.groups) ? premiumStability.groups : []),
@@ -5865,9 +5930,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <div className="mt-5 rounded-2xl border border-slate-700/60 bg-slate-800/30 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Cycles à regarder</h4>
+                      <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Top 5 cycles à regarder</h4>
                       <p className="mt-1 text-[11px] text-slate-600">
-                        Meilleur cycle par ticker · CC vendu · vrai OHLC · seuil ≥ 1 %
+                        Meilleur cycle par ticker · CC vendu · vrai OHLC · seuil ≥ 1 % · max 5 tickers
                       </p>
                     </div>
                     {theoreticalCyclesPayload?.summary && (
@@ -5903,7 +5968,42 @@ export default function JournalPopPanel({ apiBase, active }) {
                   )}
                 </div>
 
-                <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/60 bg-slate-800/30 px-4 py-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Vue du tableau</p>
+                    <p className="mt-1 text-[11px] text-slate-600">
+                      {theoreticalCycleViewMode === "bestPerTicker"
+                        ? `${displayedTheoreticalCycles.length} ligne(s) · 1 meilleur cycle par ticker`
+                        : `${displayedTheoreticalCycles.length} cycle(s) · vue brute complète`}
+                    </p>
+                  </div>
+                  <div className="inline-flex rounded-xl border border-slate-700 bg-slate-900 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setTheoreticalCycleViewMode("bestPerTicker")}
+                      className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
+                        theoreticalCycleViewMode === "bestPerTicker"
+                          ? "bg-sky-900/50 text-sky-300"
+                          : "text-slate-500 hover:text-slate-300"
+                      }`}
+                    >
+                      Meilleur par ticker
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheoreticalCycleViewMode("raw")}
+                      className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
+                        theoreticalCycleViewMode === "raw"
+                          ? "bg-sky-900/50 text-sky-300"
+                          : "text-slate-500 hover:text-slate-300"
+                      }`}
+                    >
+                      Vue brute
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
                   <table className="min-w-full text-left text-xs text-slate-300">
                     <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                       <tr>
@@ -5933,22 +6033,31 @@ export default function JournalPopPanel({ apiBase, active }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/70">
-                      {filteredTheoreticalCycles.length === 0 ? (
+                      {displayedTheoreticalCycles.length === 0 ? (
                         <tr>
                           <td colSpan={19} className="px-4 py-8 text-center text-sm text-slate-600">
                             Aucun cycle ne correspond aux filtres.
                           </td>
                         </tr>
                       ) : (
-                        filteredTheoreticalCycles.map((cycle) => {
+                        displayedTheoreticalCycles.map((cycle) => {
                           const step = cycle?.first_cc_step;
                           const multi = getTheoreticalCycleMultiCcSummary(cycle);
                           const isExpanded = expandedTheoreticalCycleId === cycle.id;
+                          const otherCyclesSameTicker =
+                            theoreticalCycleViewMode === "bestPerTicker"
+                              ? theoreticalOtherCyclesById.get(cycle.id) ?? []
+                              : getOtherTheoreticalCyclesForTicker(filteredTheoreticalCycles, cycle);
                           return (
                             <React.Fragment key={cycle.id}>
                             <tr className="align-top">
                               <td className="px-3 py-3">
                                 <div className="font-semibold text-slate-100">{cycle.ticker ?? "—"}</div>
+                                {theoreticalCycleViewMode === "bestPerTicker" && otherCyclesSameTicker.length > 0 && (
+                                  <span className="mt-1 inline-block rounded border border-sky-800/50 bg-sky-900/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400">
+                                    +{otherCyclesSameTicker.length} autre{otherCyclesSameTicker.length > 1 ? "s" : ""} cycle{otherCyclesSameTicker.length > 1 ? "s" : ""}
+                                  </span>
+                                )}
                                 <div className="mt-1 text-[11px] text-slate-600">
                                   {cycle.confidence_level ?? "confidence N/D"} · {cycle.data_quality ?? "data quality N/D"}
                                 </div>
@@ -6057,6 +6166,46 @@ export default function JournalPopPanel({ apiBase, active }) {
                                           ))}
                                         </tbody>
                                       </table>
+                                    </div>
+                                  )}
+                                  {otherCyclesSameTicker.length > 0 && (
+                                    <div className="mt-4">
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                        Autres cycles du même ticker ({otherCyclesSameTicker.length})
+                                      </p>
+                                      <div className="mt-2 overflow-x-auto rounded-xl border border-slate-800">
+                                        <table className="min-w-full text-left text-[10px] text-slate-400">
+                                          <thead className="border-b border-slate-800 text-slate-500">
+                                            <tr>
+                                              {["Mode", "Strike assign.", "Prime CSP", "Prime CC", "Rend. CC", "Recovery", "Statut CC"].map((h) => (
+                                                <th key={h} className="px-2 py-2 font-semibold whitespace-nowrap">{h}</th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-800/70">
+                                            {otherCyclesSameTicker.map((other) => {
+                                              const otherStep = other?.first_cc_step;
+                                              return (
+                                                <tr key={`${cycle.id}-other-${other.id}`}>
+                                                  <td className="px-2 py-1.5 whitespace-nowrap">{formatTheoreticalCycleMode(other.strike_mode)}</td>
+                                                  <td className="px-2 py-1.5 tabular-nums">{formatMoney(other.assignment_strike)}</td>
+                                                  <td className="px-2 py-1.5 tabular-nums text-sky-400">{formatMoney(other.csp_premium)}</td>
+                                                  <td className="px-2 py-1.5 tabular-nums text-emerald-400">
+                                                    {formatMoney(otherStep?.premium_conservative ?? other.total_cc_premium_conservative)}
+                                                  </td>
+                                                  <td className="px-2 py-1.5 tabular-nums">{formatPercent(otherStep?.cc_yield_conservative_pct)}</td>
+                                                  <td className={`px-2 py-1.5 whitespace-nowrap ${getTheoreticalCycleRecoveryTone(other)}`}>
+                                                    {getTheoreticalCycleRecoveryStatusLabel(other)}
+                                                  </td>
+                                                  <td className={`px-2 py-1.5 whitespace-nowrap ${otherStep?.cc_sold_theoretical === 1 ? "text-emerald-400" : "text-amber-400"}`}>
+                                                    {getTheoreticalCycleStatusLabel(other)}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
                                     </div>
                                   )}
                                 </td>

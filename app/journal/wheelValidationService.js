@@ -1659,6 +1659,525 @@ export function computeRealPopCalibration(records, options = {}) {
   };
 }
 
+const ONE_PERCENT_YIELD_TARGET_PCT = 0.9;
+const ONE_PERCENT_MIN_MODE_PROFILE_N = 15;
+
+function isOnePercentProfileRecord(record, todayYmd) {
+  if (!getResolvedFlag(record)) return false;
+  if ((record?.captureClass ?? "primaryDaily") === "intradayRetest") return false;
+  const expirationYmd = toExpirationYmd(record?.expiration ?? record?.expirationCohort);
+  if (!expirationYmd || expirationYmd >= todayYmd) return false;
+  return true;
+}
+
+function getTheoreticalCycleExitStatusForProfile(cycle) {
+  if (cycle?.cycle_status === "closed" || String(cycle?.status ?? "").toLowerCase() === "closed_theoretical") {
+    return "closed";
+  }
+  return "open";
+}
+
+function getTheoreticalCycleMultiCcForProfile(cycle) {
+  const m = cycle?.multi_cc_summary;
+  return {
+    ccSold: toNumberOrNull(cycle?.cc_sold_count ?? m?.cc_sold_count) ?? 0,
+    ccWait: toNumberOrNull(cycle?.cc_not_sold_count ?? m?.cc_not_sold_count) ?? 0,
+    weeksWithoutCc: toNumberOrNull(cycle?.weeks_without_cc ?? m?.weeks_without_cc) ?? 0,
+    totalPremium: toNumberOrNull(cycle?.total_cc_premium_conservative ?? m?.total_cc_premium_conservative),
+  };
+}
+
+function normalizeCycleStrikeMode(cycle) {
+  const raw = String(cycle?.strike_mode ?? "").trim().toLowerCase();
+  if (raw === "safe" || raw === "aggressive") return raw;
+  return null;
+}
+
+function buildOnePercentSampleCredibility(n) {
+  if (n < 5) return "non prouvé";
+  if (n < 15) return "très préliminaire";
+  if (n < 30) return "préliminaire";
+  if (n < 50) return "mesurable";
+  return "mesurable";
+}
+
+function buildOnePercentRate(rows, selector, useKnownOnly = false) {
+  const src = useKnownOnly ? rows.filter((row) => selector(row) != null) : rows;
+  if (src.length === 0) return null;
+  return roundMetric((src.filter((row) => selector(row) === true).length / src.length) * 100, 1);
+}
+
+function summarizeOnePercentCspMetrics(rows) {
+  const n = rows.length;
+  const yields = rows.map((record) => getRecordYieldPct(record)).filter((value) => value != null);
+  const highYieldRows = rows.filter((record) => {
+    const y = getRecordYieldPct(record);
+    return y != null && y >= ONE_PERCENT_YIELD_TARGET_PCT;
+  });
+  const highMetrics = summarizeRealPopMetrics(highYieldRows);
+  const baseMetrics = summarizeRealPopMetrics(rows);
+
+  const outcomes = rows
+    .map((record) => getCalibrationIsCorrect(record))
+    .filter((value) => typeof value === "boolean");
+  const realWinRate =
+    outcomes.length > 0
+      ? roundMetric((outcomes.filter((value) => value === true).length / outcomes.length) * 100, 1)
+      : null;
+
+  return {
+    recordsResolved: n,
+    recordsTotal: n,
+    avgYieldPct: yields.length > 0 ? roundMetric(average(yields), 2) : null,
+    medianYieldPct: yields.length > 0 ? roundMetric(median(yields), 2) : null,
+    avgPopAnnounced: baseMetrics.avgPopAnnounced,
+    realWinRate,
+    assignmentRate: baseMetrics.assignmentRate,
+    strikeTouchRate: baseMetrics.strikeTouchRate,
+    lowerBoundBreakRate: baseMetrics.lowerBoundBreakRate,
+    highYieldCount: highYieldRows.length,
+    highYieldRatePct: n > 0 ? roundMetric((highYieldRows.length / n) * 100, 1) : null,
+    highYieldRealWinRate: highMetrics.realWinRate,
+    highYieldAssignmentRate: highMetrics.assignmentRate,
+    highYieldStrikeTouchRate: highMetrics.strikeTouchRate,
+    highYieldLowerBoundBreakRate: highMetrics.lowerBoundBreakRate,
+  };
+}
+
+function summarizeOnePercentAssignmentMetrics(rows) {
+  const assignedRows = rows.filter((record) => getAssignedFlag(record) === true);
+  const depthCounts = summarizeAssignmentDepthCounts(assignedRows);
+  const depthPcts = assignedRows
+    .map((record) => classifyAssignmentDepth(record).assignmentDepthPct)
+    .filter((value) => value != null);
+
+  const totalAssignments = assignedRows.length;
+  return {
+    totalAssignments,
+    procheCount: depthCounts.proche,
+    modereeCount: depthCounts.moderee,
+    profondeCount: depthCounts.profonde,
+    ndCount: depthCounts.nd,
+    procheRatePct:
+      totalAssignments > 0 ? roundMetric((depthCounts.proche / totalAssignments) * 100, 1) : null,
+    profondeRatePct:
+      totalAssignments > 0 ? roundMetric((depthCounts.profonde / totalAssignments) * 100, 1) : null,
+    avgDepthPct: depthPcts.length > 0 ? roundMetric(average(depthPcts), 2) : null,
+  };
+}
+
+function summarizeOnePercentWheelMetrics(cycles) {
+  const all = Array.isArray(cycles) ? cycles : [];
+  if (all.length === 0) {
+    return {
+      cyclesAvailable: 0,
+      cyclesClosed: 0,
+      cyclesOpen: 0,
+      recoveryRatePct: null,
+      avgDaysBelowStrike: null,
+      avgCcSold: null,
+      avgCcWait: null,
+      avgCcPremiumCumulative: null,
+      avgCcYieldPct: null,
+      calledAwayRatePct: null,
+      avgWheelPnl: null,
+      avgWheelReturnPct: null,
+      avgCycleDurationDays: null,
+    };
+  }
+
+  const closed = all.filter((cycle) => getTheoreticalCycleExitStatusForProfile(cycle) === "closed");
+  const open = all.filter((cycle) => getTheoreticalCycleExitStatusForProfile(cycle) === "open");
+  const recoveryKnown = all.filter(
+    (cycle) => cycle?.assignment_recovered === 1 || cycle?.assignment_recovered === 0,
+  );
+  const recoveryRatePct =
+    recoveryKnown.length > 0
+      ? roundMetric(
+          (recoveryKnown.filter((cycle) => cycle?.assignment_recovered === 1).length / recoveryKnown.length) *
+            100,
+          1,
+        )
+      : null;
+
+  const multiSummaries = all.map((cycle) => getTheoreticalCycleMultiCcForProfile(cycle));
+  const daysBelow = all
+    .map((cycle) => toNumberOrNull(cycle?.days_below_assignment_strike))
+    .filter((value) => value != null);
+  const ccYields = all
+    .map((cycle) => toNumberOrNull(cycle?.first_cc_step?.cc_yield_conservative_pct))
+    .filter((value) => value != null);
+  const ccPremiums = multiSummaries
+    .map((summary) => summary.totalPremium)
+    .filter((value) => value != null);
+
+  const calledAwayClosed =
+    closed.length > 0
+      ? closed.filter((cycle) => cycle?.close_reason === "cc_called_away").length
+      : 0;
+  const calledAwayRatePct =
+    closed.length > 0 ? roundMetric((calledAwayClosed / closed.length) * 100, 1) : null;
+
+  const closedPnl = closed
+    .map((cycle) => toNumberOrNull(cycle?.total_pnl_contract) ?? toNumberOrNull(cycle?.total_pnl_per_share))
+    .filter((value) => value != null);
+  const closedReturns = closed
+    .map((cycle) => toNumberOrNull(cycle?.return_on_assignment_pct))
+    .filter((value) => value != null);
+  const closedDurations = closed
+    .map(
+      (cycle) =>
+        toNumberOrNull(cycle?.days_in_cycle) ?? toNumberOrNull(cycle?.days_after_assignment_to_exit),
+    )
+    .filter((value) => value != null);
+
+  return {
+    cyclesAvailable: all.length,
+    cyclesClosed: closed.length,
+    cyclesOpen: open.length,
+    recoveryRatePct,
+    avgDaysBelowStrike: daysBelow.length > 0 ? roundMetric(average(daysBelow), 1) : null,
+    avgCcSold:
+      multiSummaries.length > 0
+        ? roundMetric(average(multiSummaries.map((summary) => summary.ccSold)), 2)
+        : null,
+    avgCcWait:
+      multiSummaries.length > 0
+        ? roundMetric(average(multiSummaries.map((summary) => summary.ccWait)), 2)
+        : null,
+    avgCcPremiumCumulative: ccPremiums.length > 0 ? roundMetric(average(ccPremiums), 4) : null,
+    avgCcYieldPct: ccYields.length > 0 ? roundMetric(average(ccYields), 2) : null,
+    calledAwayRatePct,
+    avgWheelPnl: closedPnl.length > 0 ? roundMetric(average(closedPnl), 4) : null,
+    avgWheelReturnPct: closedReturns.length > 0 ? roundMetric(average(closedReturns), 2) : null,
+    avgCycleDurationDays: closedDurations.length > 0 ? roundMetric(average(closedDurations), 1) : null,
+  };
+}
+
+function buildOnePercentProfileVerdicts(ctx) {
+  const verdicts = [];
+  const n = ctx.n;
+  const credibility = buildOnePercentSampleCredibility(n);
+  const avgYield = ctx.csp.avgYieldPct;
+  const highYieldRate = ctx.csp.highYieldRatePct;
+  const win = ctx.csp.realWinRate;
+  const assign = ctx.csp.assignmentRate;
+  const touch = ctx.csp.strikeTouchRate;
+  const lb = ctx.csp.lowerBoundBreakRate;
+  const profondeRate = ctx.assignment.profondeRatePct;
+  const procheRate = ctx.assignment.procheRatePct;
+  const wheel = ctx.wheel;
+  const ccWait = wheel.avgCcWait ?? 0;
+  const ccSold = wheel.avgCcSold ?? 0;
+  const ccWaitDominant = ccSold + ccWait > 0 && ccWait > ccSold;
+  const closedPnl = wheel.avgWheelPnl;
+  const hasClosedCycles = (wheel.cyclesClosed ?? 0) > 0;
+
+  if (credibility === "non prouvé" || credibility === "très préliminaire") {
+    verdicts.push(credibility);
+  } else if (credibility === "préliminaire") {
+    verdicts.push("préliminaire");
+  } else {
+    verdicts.push("mesurable");
+  }
+
+  const highYieldSignal =
+    (avgYield != null && avgYield >= ONE_PERCENT_YIELD_TARGET_PCT) ||
+    (highYieldRate != null && highYieldRate >= 30);
+  const moderateYieldSignal = avgYield != null && avgYield >= 0.75;
+  const winOk = win == null || win >= 60;
+  const assignHigh = assign != null && assign >= 25;
+  const profondeHigh = profondeRate != null && profondeRate >= 30;
+  const profondeLow = profondeRate == null || profondeRate < 20;
+  const touchStress = touch != null && touch >= 35;
+  const lbStress = lb != null && lb >= 15;
+  const wheelPnlWeak = hasClosedCycles && closedPnl != null && closedPnl <= 0;
+  const wheelPnlPositive = hasClosedCycles && closedPnl != null && closedPnl > 0;
+  const recoveryWeak =
+    wheel.recoveryRatePct != null && wheel.recoveryRatePct < 40 && (wheel.cyclesAvailable ?? 0) >= 2;
+  const recoveryOk = wheel.recoveryRatePct == null || wheel.recoveryRatePct >= 50;
+  const calledAwayOk = wheel.calledAwayRatePct != null && wheel.calledAwayRatePct >= 25;
+
+  if (n >= 30 && highYieldSignal && assignHigh && (profondeHigh || ccWaitDominant || recoveryWeak || wheelPnlWeak)) {
+    verdicts.push("faux 1 %");
+  } else if (
+    n >= 30 &&
+    (moderateYieldSignal || highYieldSignal) &&
+    winOk &&
+    profondeLow &&
+    !touchStress &&
+    !lbStress &&
+    (!hasClosedCycles || wheelPnlPositive) &&
+    !ccWaitDominant
+  ) {
+    verdicts.push("1 % défendable");
+  } else if (highYieldSignal && (touchStress || lbStress || assignHigh || profondeHigh || wheelPnlWeak)) {
+    verdicts.push("1 % stressé");
+  } else if (n >= 15 && n < 30 && (moderateYieldSignal || highYieldSignal)) {
+    verdicts.push("1 % à valider");
+  }
+
+  if (
+    (ctx.assignment.procheCount ?? 0) >= 2 &&
+    profondeLow &&
+    (ccSold > 0 || calledAwayOk) &&
+    recoveryOk &&
+    (!hasClosedCycles || wheelPnlPositive || calledAwayOk)
+  ) {
+    verdicts.push("assignation exploitable");
+  } else if (profondeHigh || (assignHigh && procheRate != null && procheRate < 20)) {
+    verdicts.push("assignation défavorable");
+  }
+
+  if (calledAwayOk && (!hasClosedCycles || wheelPnlPositive)) {
+    verdicts.push("Wheel favorable");
+  }
+  if (ccWaitDominant && (wheel.cyclesAvailable ?? 0) > 0) {
+    verdicts.push("CC insuffisants");
+  }
+  if (profondeHigh && (wheel.cyclesOpen ?? 0) > 0 && !calledAwayOk) {
+    verdicts.push("capital bloqué");
+  }
+
+  const unique = [...new Set(verdicts)];
+  const priority = [
+    "faux 1 %",
+    "1 % défendable",
+    "1 % stressé",
+    "1 % à valider",
+    "assignation exploitable",
+    "assignation défavorable",
+    "Wheel favorable",
+    "CC insuffisants",
+    "capital bloqué",
+    "mesurable",
+    "préliminaire",
+    "très préliminaire",
+    "non prouvé",
+  ];
+  const primaryVerdict = priority.find((item) => unique.includes(item)) ?? unique[0] ?? "non prouvé";
+
+  if (n < 30 && unique.includes("1 % défendable")) {
+    const filtered = unique.filter((item) => item !== "1 % défendable");
+    if (!filtered.includes("1 % à valider") && n >= 15) filtered.push("1 % à valider");
+    return {
+      verdicts: filtered,
+      primaryVerdict: priority.find((item) => filtered.includes(item)) ?? "1 % à valider",
+      sampleCredibility: credibility,
+    };
+  }
+
+  return { verdicts: unique, primaryVerdict, sampleCredibility: credibility };
+}
+
+function scoreOnePercentProfileForSort(profile) {
+  const verdict = profile?.primaryVerdict ?? "";
+  const verdictScoreMap = {
+    "1 % défendable": 1000,
+    "assignation exploitable": 900,
+    "Wheel favorable": 850,
+    "1 % à valider": 700,
+    "mesurable": 500,
+    "préliminaire": 300,
+    "très préliminaire": 150,
+    "1 % stressé": 100,
+    "faux 1 %": 50,
+    "CC insuffisants": 40,
+    "assignation défavorable": 30,
+    "capital bloqué": 20,
+    "non prouvé": 10,
+  };
+  let score = verdictScoreMap[verdict] ?? 0;
+  score += Math.min(profile?.csp?.recordsResolved ?? 0, 100);
+  score += profile?.csp?.avgYieldPct ?? 0;
+  if (profile?.wheel?.avgWheelReturnPct != null) score += profile.wheel.avgWheelReturnPct;
+  return score;
+}
+
+function buildOnePercentProfile({
+  ticker,
+  mode,
+  groupType,
+  records,
+  cycles,
+  recordsTotalInTicker,
+}) {
+  const n = records.length;
+  const csp = summarizeOnePercentCspMetrics(records);
+  csp.recordsTotal = recordsTotalInTicker ?? n;
+  const assignment = summarizeOnePercentAssignmentMetrics(records);
+  const wheel = summarizeOnePercentWheelMetrics(cycles);
+  const { verdicts, primaryVerdict, sampleCredibility } = buildOnePercentProfileVerdicts({
+    n,
+    csp,
+    assignment,
+    wheel,
+  });
+
+  const displayMode =
+    groupType === "ticker"
+      ? "GLOBAL"
+      : String(mode ?? "").trim().toLowerCase() === "aggressive"
+      ? "AGRESSIF"
+      : String(mode ?? "").trim().toLowerCase() === "safe"
+      ? "SAFE"
+      : "—";
+
+  return {
+    ticker,
+    mode: displayMode,
+    groupType,
+    sampleCredibility,
+    verdicts,
+    primaryVerdict,
+    csp,
+    onePercentObjective: {
+      highYieldCount: csp.highYieldCount,
+      highYieldRatePct: csp.highYieldRatePct,
+      highYieldRealWinRate: csp.highYieldRealWinRate,
+      highYieldAssignmentRate: csp.highYieldAssignmentRate,
+      highYieldStrikeTouchRate: csp.highYieldStrikeTouchRate,
+      highYieldLowerBoundBreakRate: csp.highYieldLowerBoundBreakRate,
+    },
+    assignment,
+    wheel,
+    sortScore: 0,
+  };
+}
+
+/**
+ * Profils read-only — objectif 1 %+ avec cycle Wheel complet (CSP → assignation → CC → sortie).
+ */
+export function computeOnePercentWheelProfiles(records, cycles, options = {}) {
+  const todayYmd = normalizeIsoTimestamp(options.today ?? options.asOfDate ?? new Date()).slice(0, 10);
+  const allRecords = Array.isArray(records) ? records : [];
+  const allCycles = Array.isArray(cycles) ? cycles : [];
+  const minModeProfileN = Math.max(
+    toNumberOrNull(options?.minModeProfileN) ?? ONE_PERCENT_MIN_MODE_PROFILE_N,
+    5,
+  );
+
+  const profileRecords = allRecords.filter((record) => isOnePercentProfileRecord(record, todayYmd));
+
+  const recordsByTicker = new Map();
+  const recordsByTickerMode = new Map();
+  const totalByTicker = new Map();
+
+  for (const record of allRecords) {
+    const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+    if (!ticker) continue;
+    totalByTicker.set(ticker, (totalByTicker.get(ticker) ?? 0) + 1);
+  }
+
+  for (const record of profileRecords) {
+    const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+    const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+    if (!ticker) continue;
+
+    if (!recordsByTicker.has(ticker)) recordsByTicker.set(ticker, []);
+    recordsByTicker.get(ticker).push(record);
+
+    if (mode === "safe" || mode === "aggressive") {
+      const key = `${ticker}|${mode}`;
+      if (!recordsByTickerMode.has(key)) recordsByTickerMode.set(key, []);
+      recordsByTickerMode.get(key).push(record);
+    }
+  }
+
+  const cyclesByTicker = new Map();
+  const cyclesByTickerMode = new Map();
+  for (const cycle of allCycles) {
+    const ticker = normalizeSymbol(cycle?.ticker);
+    if (!ticker) continue;
+    if (!cyclesByTicker.has(ticker)) cyclesByTicker.set(ticker, []);
+    cyclesByTicker.get(ticker).push(cycle);
+
+    const mode = normalizeCycleStrikeMode(cycle);
+    if (mode) {
+      const key = `${ticker}|${mode}`;
+      if (!cyclesByTickerMode.has(key)) cyclesByTickerMode.set(key, []);
+      cyclesByTickerMode.get(key).push(cycle);
+    }
+  }
+
+  const profiles = [];
+
+  for (const [ticker, rows] of recordsByTicker.entries()) {
+    profiles.push(
+      buildOnePercentProfile({
+        ticker,
+        mode: null,
+        groupType: "ticker",
+        records: rows,
+        cycles: cyclesByTicker.get(ticker) ?? [],
+        recordsTotalInTicker: totalByTicker.get(ticker) ?? rows.length,
+      }),
+    );
+  }
+
+  for (const [key, rows] of recordsByTickerMode.entries()) {
+    if (rows.length < minModeProfileN) continue;
+    const [ticker, mode] = key.split("|");
+    profiles.push(
+      buildOnePercentProfile({
+        ticker,
+        mode,
+        groupType: "ticker_mode",
+        records: rows,
+        cycles: cyclesByTickerMode.get(key) ?? cyclesByTicker.get(ticker) ?? [],
+        recordsTotalInTicker: totalByTicker.get(ticker) ?? rows.length,
+      }),
+    );
+  }
+
+  for (const profile of profiles) {
+    profile.sortScore = scoreOnePercentProfileForSort(profile);
+  }
+
+  profiles.sort((a, b) => {
+    if (b.sortScore !== a.sortScore) return b.sortScore - a.sortScore;
+    const nDelta = (b.csp?.recordsResolved ?? 0) - (a.csp?.recordsResolved ?? 0);
+    if (nDelta !== 0) return nDelta;
+    const yieldDelta = (b.csp?.avgYieldPct ?? -1) - (a.csp?.avgYieldPct ?? -1);
+    if (yieldDelta !== 0) return yieldDelta;
+    if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+    return String(a.mode).localeCompare(String(b.mode));
+  });
+
+  const tickersAnalyzed = new Set(profiles.filter((p) => p.groupType === "ticker").map((p) => p.ticker)).size;
+  const countByVerdict = (label) =>
+    profiles.filter((profile) => profile.verdicts.includes(label) || profile.primaryVerdict === label).length;
+
+  return {
+    ok: true,
+    asOfDate: todayYmd,
+    profiles,
+    summary: {
+      tickersAnalyzed,
+      profilesTotal: profiles.length,
+      profilesNonProuves: profiles.filter((p) => p.sampleCredibility === "non prouvé").length,
+      profilesTresPreliminaires: profiles.filter((p) => p.sampleCredibility === "très préliminaire").length,
+      profilesPreliminaires: profiles.filter((p) => p.sampleCredibility === "préliminaire").length,
+      profilesMesurables: profiles.filter((p) => p.sampleCredibility === "mesurable").length,
+      profilesOnePercentDefendable: countByVerdict("1 % défendable"),
+      profilesOnePercentStresse: countByVerdict("1 % stressé"),
+      profilesFauxOnePercent: countByVerdict("faux 1 %"),
+      profilesAssignationExploitable: countByVerdict("assignation exploitable"),
+      profilesWheelFavorable: countByVerdict("Wheel favorable"),
+      profilesCcInsuffisants: countByVerdict("CC insuffisants"),
+      recordsUsed: profileRecords.length,
+      cyclesUsed: allCycles.length,
+    },
+    meta: {
+      readOnly: true,
+      minModeProfileN,
+      grouping: ["ticker", "ticker_mode"],
+      warning:
+        "Module read-only — profils historiques, aucune recommandation de trade. POP gelé au scan.",
+    },
+  };
+}
+
 export function createWheelValidationService(options = {}) {
   const store = options.store ?? createWheelValidationStore(options.journalPath);
   const getHistoricalClose =
@@ -4284,6 +4803,13 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computeOnePercentWheelProfilesFromJournal(options = {}) {
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+    const theoreticalCycles = Array.isArray(options?.theoreticalCycles) ? options.theoreticalCycles : [];
+    return computeOnePercentWheelProfiles(records, theoreticalCycles, options);
+  }
+
   async function computeV3CandidateProfiles(options = {}) {
     const journal = await store.load();
     const allRecords = Array.isArray(journal?.records) ? journal.records : [];
@@ -4738,6 +5264,7 @@ export function createWheelValidationService(options = {}) {
     computeNormalizedDailyPopObservations,
     computeSafeAggressiveComparison,
     computeV3CandidateProfiles,
+    computeOnePercentWheelProfiles: computeOnePercentWheelProfilesFromJournal,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

@@ -2922,6 +2922,27 @@ app.get("/journal/wheel-validation/safe-aggressive-comparison", async (req, res)
   }
 });
 
+app.get("/journal/wheel-validation/one-percent-wheel-profiles", async (req, res) => {
+  try {
+    const asOf = req.query?.asOf ?? req.query?.today ?? undefined;
+    const theoreticalCyclesData = readTheoreticalCyclesSnapshot({ limit: 1000 });
+    const theoreticalCycles = Array.isArray(theoreticalCyclesData?.cycles) ? theoreticalCyclesData.cycles : [];
+    const result = await wheelValidationService.computeOnePercentWheelProfiles({
+      today: asOf,
+      theoreticalCycles,
+      minModeProfileN:
+        req.query?.minModeProfileN != null ? Number(req.query.minModeProfileN) : undefined,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[one-percent-wheel-profiles]", error);
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "one_percent_wheel_profiles_failed",
+    });
+  }
+});
+
 app.get("/journal/wheel-validation/v3-candidate-profiles", async (req, res) => {
   try {
     const { limit, ticker, mode, minExpirations, includeWeak, scope } = req.query;

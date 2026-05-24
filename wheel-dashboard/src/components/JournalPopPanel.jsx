@@ -1914,6 +1914,20 @@ function getRealPopVerdictTone(verdict) {
   return "text-slate-400";
 }
 
+function getOnePercentVerdictTone(verdict) {
+  const v = String(verdict ?? "").toLowerCase();
+  if (v === "1 % défendable" || v === "wheel favorable" || v === "assignation exploitable") {
+    return "text-emerald-400 font-semibold";
+  }
+  if (v === "1 % à valider" || v === "mesurable" || v === "préliminaire") return "text-sky-400";
+  if (v === "1 % stressé" || v === "cc insuffisants") return "text-amber-400 font-semibold";
+  if (v === "faux 1 %" || v === "assignation défavorable" || v === "capital bloqué") {
+    return "text-rose-400 font-semibold";
+  }
+  if (v === "non prouvé" || v === "très préliminaire") return "text-slate-500";
+  return "text-slate-400";
+}
+
 // ── Win Quality V2A ─────────────────────────────────────────────────────────
 
 function getWinQuality(record) {
@@ -3003,6 +3017,13 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [journalSeasonality, setJournalSeasonality] = useState(null);
   const [seasonalityLoading, setSeasonalityLoading] = useState(false);
   const [theoreticalCyclesPayload, setTheoreticalCyclesPayload] = useState({ summary: null, cycles: [] });
+  const [onePercentProfilesPayload, setOnePercentProfilesPayload] = useState(null);
+  const [onePercentHideNonProven, setOnePercentHideNonProven] = useState(true);
+  const [onePercentMinYieldFilter, setOnePercentMinYieldFilter] = useState(false);
+  const [onePercentWheelFavorableOnly, setOnePercentWheelFavorableOnly] = useState(false);
+  const [onePercentAssignExploitableOnly, setOnePercentAssignExploitableOnly] = useState(false);
+  const [onePercentTickerSearch, setOnePercentTickerSearch] = useState("");
+  const [onePercentShowAll, setOnePercentShowAll] = useState(false);
   const [theoreticalTickerSearch, setTheoreticalTickerSearch] = useState("");
   const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
@@ -3074,7 +3095,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, onePercentProfilesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
@@ -3082,6 +3103,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/one-percent-wheel-profiles`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/ticker-ranking?limit=100`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/normalized-observations?limit=5000`).catch(() => null),
@@ -3096,6 +3118,9 @@ export default function JournalPopPanel({ apiBase, active }) {
       const capitalPayload = capitalResponse ? await capitalResponse.json().catch(() => null) : null;
       const modeComparisonPayload = modeComparisonResponse ? await modeComparisonResponse.json().catch(() => null) : null;
       const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
+      const onePercentProfilesJson = onePercentProfilesResponse
+        ? await onePercentProfilesResponse.json().catch(() => null)
+        : null;
       const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
       const tickerRankingPayload = tickerRankingResponse ? await tickerRankingResponse.json().catch(() => null) : null;
       const normalizedObsPayload = normalizedObsResponse ? await normalizedObsResponse.json().catch(() => null) : null;
@@ -3133,6 +3158,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             }
           : { summary: null, cycles: [], assignmentDepthSummary: null }
       );
+      setOnePercentProfilesPayload(onePercentProfilesJson?.ok ? onePercentProfilesJson : null);
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -3532,6 +3558,38 @@ export default function JournalPopPanel({ apiBase, active }) {
     () => buildWheelCcTickerSummary(theoreticalCycles),
     [theoreticalCycles],
   );
+
+  const onePercentProfilesAll = useMemo(
+    () =>
+      Array.isArray(onePercentProfilesPayload?.profiles)
+        ? onePercentProfilesPayload.profiles.filter((profile) => profile.groupType === "ticker")
+        : [],
+    [onePercentProfilesPayload],
+  );
+
+  const filteredOnePercentProfiles = useMemo(() => {
+    const search = onePercentTickerSearch.trim().toUpperCase();
+    return onePercentProfilesAll.filter((profile) => {
+      if (onePercentHideNonProven && profile.sampleCredibility === "non prouvé") return false;
+      if (onePercentMinYieldFilter && (profile?.csp?.avgYieldPct ?? 0) < 0.9) return false;
+      if (onePercentWheelFavorableOnly && !profile.verdicts.includes("Wheel favorable")) return false;
+      if (onePercentAssignExploitableOnly && !profile.verdicts.includes("assignation exploitable")) return false;
+      if (search && !String(profile.ticker ?? "").toUpperCase().includes(search)) return false;
+      return true;
+    });
+  }, [
+    onePercentProfilesAll,
+    onePercentHideNonProven,
+    onePercentMinYieldFilter,
+    onePercentWheelFavorableOnly,
+    onePercentAssignExploitableOnly,
+    onePercentTickerSearch,
+  ]);
+
+  const displayedOnePercentProfiles = useMemo(() => {
+    const limit = onePercentShowAll ? filteredOnePercentProfiles.length : 20;
+    return filteredOnePercentProfiles.slice(0, limit);
+  }, [filteredOnePercentProfiles, onePercentShowAll]);
 
   const decisionWheelCcAttentionTickers = useMemo(() => {
     const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
@@ -5866,6 +5924,176 @@ export default function JournalPopPanel({ apiBase, active }) {
 
               <p className="text-[10px] text-slate-600 leading-relaxed">
                 Lecture prudente : POP gelé au scan · échantillon historique · verdicts préliminaires possibles · aucune recommandation de trade.
+              </p>
+            </div>
+          )}
+        </CollapsibleSection>
+      )}
+
+      {/* ── SECTION — OBJECTIF 1 %+ WHEEL COMPLET ─────────────────────────────── */}
+      {hasLoaded && activePopTab === "dataAudit" && (
+        <CollapsibleSection
+          title="Objectif 1 %+ — Wheel complet"
+          badge="Read-only"
+          subtitle="Repère les tickers où une prime CSP élevée reste défendable après assignation, recovery et CC."
+          defaultOpen
+          summaryRight={
+            onePercentProfilesPayload?.summary
+              ? `${onePercentProfilesPayload.summary.tickersAnalyzed ?? 0} ticker(s) · ${onePercentProfilesPayload.summary.profilesOnePercentDefendable ?? 0} défendable(s)`
+              : "Profils historiques"
+          }
+        >
+          {!onePercentProfilesPayload?.profiles ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Profils 1 %+ indisponibles pour l&apos;instant.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <ProKpi label="Tickers analysés" value={onePercentProfilesPayload.summary?.tickersAnalyzed ?? 0} large />
+                <ProKpi
+                  label="Profils mesurables"
+                  value={onePercentProfilesPayload.summary?.profilesMesurables ?? 0}
+                  tone="info"
+                />
+                <ProKpi
+                  label="1 % défendable"
+                  value={onePercentProfilesPayload.summary?.profilesOnePercentDefendable ?? 0}
+                  tone="good"
+                />
+                <ProKpi
+                  label="1 % stressé"
+                  value={onePercentProfilesPayload.summary?.profilesOnePercentStresse ?? 0}
+                  tone="warn"
+                />
+                <ProKpi
+                  label="Faux 1 %"
+                  value={onePercentProfilesPayload.summary?.profilesFauxOnePercent ?? 0}
+                  tone="risk"
+                />
+                <ProKpi
+                  label="Assignation exploitable"
+                  value={onePercentProfilesPayload.summary?.profilesAssignationExploitable ?? 0}
+                  tone="good"
+                />
+                <ProKpi
+                  label="CC insuffisants"
+                  value={onePercentProfilesPayload.summary?.profilesCcInsuffisants ?? 0}
+                  tone="warn"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentHideNonProven}
+                    onChange={(e) => setOnePercentHideNonProven(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Masquer non prouvés
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentMinYieldFilter}
+                    onChange={(e) => setOnePercentMinYieldFilter(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Rendement CSP &ge; 0,9 %
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentWheelFavorableOnly}
+                    onChange={(e) => setOnePercentWheelFavorableOnly(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Wheel favorable seulement
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentAssignExploitableOnly}
+                    onChange={(e) => setOnePercentAssignExploitableOnly(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Assignation exploitable seulement
+                </label>
+                <input
+                  type="search"
+                  value={onePercentTickerSearch}
+                  onChange={(e) => setOnePercentTickerSearch(e.target.value)}
+                  placeholder="Recherche ticker"
+                  className="ml-auto min-w-[140px] rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600"
+                />
+              </div>
+
+              <DarkTable
+                title={`Shortlist profils ticker (max 20 par défaut) — ${displayedOnePercentProfiles.length}/${filteredOnePercentProfiles.length}`}
+                headers={[
+                  "Ticker",
+                  "Mode",
+                  "n",
+                  "Rend. CSP moy.",
+                  "POP moy.",
+                  "Win CSP",
+                  "Assign.",
+                  "Assign. proche",
+                  "Assign. profonde",
+                  "Recovery",
+                  "CC vendus",
+                  "Rend. Wheel",
+                  "Verdict",
+                ]}
+                rows={displayedOnePercentProfiles.map((profile) => (
+                  <tr key={`one-pct-${profile.ticker}-${profile.mode}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">{profile.ticker}</td>
+                    <td className="px-3 py-2.5 text-slate-400">{profile.mode}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{profile?.csp?.recordsResolved ?? 0}</td>
+                    <td className="px-3 py-2.5 text-sky-400">{formatPercent(profile?.csp?.avgYieldPct, 2)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.avgPopAnnounced)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.realWinRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.assignmentRate)}</td>
+                    <td className="px-3 py-2.5">
+                      {profile?.assignment?.procheRatePct != null
+                        ? `${profile.assignment.procheCount} (${formatPercent(profile.assignment.procheRatePct, 0)})`
+                        : profile?.assignment?.procheCount ?? "—"}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {profile?.assignment?.profondeRatePct != null
+                        ? `${profile.assignment.profondeCount} (${formatPercent(profile.assignment.profondeRatePct, 0)})`
+                        : profile?.assignment?.profondeCount ?? "—"}
+                    </td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.recoveryRatePct)}</td>
+                    <td className="px-3 py-2.5 tabular-nums">
+                      {profile?.wheel?.avgCcSold != null ? profile.wheel.avgCcSold.toFixed(1) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.avgWheelReturnPct, 2)}</td>
+                    <td className={`px-3 py-2.5 text-[11px] ${getOnePercentVerdictTone(profile?.primaryVerdict)}`}>
+                      {profile?.primaryVerdict ?? "—"}
+                      <span className="block text-[10px] text-slate-600">{profile?.sampleCredibility ?? ""}</span>
+                    </td>
+                  </tr>
+                ))}
+                empty="Aucun profil ne correspond aux filtres."
+              />
+
+              {filteredOnePercentProfiles.length > 20 && (
+                <button
+                  type="button"
+                  onClick={() => setOnePercentShowAll((value) => !value)}
+                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+                >
+                  {onePercentShowAll
+                    ? "Réduire à 20 profils"
+                    : `Afficher plus (${filteredOnePercentProfiles.length - 20} de plus)`}
+                </button>
+              )}
+
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Ce module ne recommande pas un trade. Il compare des profils historiques et doit être lu avec la taille de
+                l&apos;échantillon. P/L Wheel et rendement Wheel : cycles fermés seulement. POP annoncé gelé au scan.
               </p>
             </div>
           )}

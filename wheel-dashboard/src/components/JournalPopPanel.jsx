@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import V3CandidateProfilesPanel from "./V3CandidateProfilesPanel.jsx";
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 
@@ -5711,6 +5712,11 @@ export default function JournalPopPanel({ apiBase, active }) {
             </div>
           )}
         </section>
+      )}
+
+      {/* ── V3 Candidate Profiles V3B ─────────────────────────────────────── */}
+      {hasLoaded && activePopTab === "decision" && (
+        <V3CandidateProfilesPanel apiBase={apiBase} />
       )}
 
       {/* ── Ticker Ranking V2-L ─────────────────────────────────────────────── */}

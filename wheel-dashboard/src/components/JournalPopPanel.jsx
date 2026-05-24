@@ -959,6 +959,207 @@ function groupBestWheelCcCyclesByTicker(cycles) {
   return grouped.sort((a, b) => scoreWheelCcCycle(b.bestCycle) - scoreWheelCcCycle(a.bestCycle));
 }
 
+function avgNumericValues(values) {
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function bestNumericValue(values) {
+  if (!values.length) return null;
+  return Math.max(...values);
+}
+
+function buildWheelCcTickerSummary(theoreticalCycles) {
+  const map = new Map();
+  const byTicker = new Map();
+  for (const cycle of Array.isArray(theoreticalCycles) ? theoreticalCycles : []) {
+    const ticker = String(cycle?.ticker ?? "").trim().toUpperCase();
+    if (!ticker) continue;
+    if (!byTicker.has(ticker)) byTicker.set(ticker, []);
+    byTicker.get(ticker).push(cycle);
+  }
+
+  for (const [ticker, tickerCycles] of byTicker) {
+    let closedCount = 0;
+    let openCount = 0;
+    let calledAwayCount = 0;
+    let ccSoldCount = 0;
+    let ccWaitCount = 0;
+    let recoveredCount = 0;
+    let weeksWithoutCcTotal = 0;
+    let fallbackCount = 0;
+    let stillHoldingCount = 0;
+    const returnValues = [];
+    const pnlValues = [];
+    const daysToExitValues = [];
+    const attentionReasons = [];
+
+    for (const cycle of tickerCycles) {
+      const multi = getTheoreticalCycleMultiCcSummary(cycle);
+      const exitStatus = getTheoreticalCycleExitStatus(cycle);
+      const step = cycle?.first_cc_step;
+
+      if (exitStatus === "closed") closedCount += 1;
+      else openCount += 1;
+
+      if (cycle?.close_reason === "cc_called_away") calledAwayCount += 1;
+      if (cycle?.close_reason === "still_holding") stillHoldingCount += 1;
+
+      ccSoldCount += multi.ccSold ?? 0;
+      ccWaitCount += multi.ccWait ?? 0;
+      weeksWithoutCcTotal += multi.weeksWithoutCc ?? 0;
+
+      if (cycle?.assignment_recovered === 1) recoveredCount += 1;
+      if (step?.usedFallback === true) fallbackCount += 1;
+
+      const ret = numberOrNull(cycle?.return_on_assignment_pct);
+      if (ret != null && exitStatus === "closed") returnValues.push(ret);
+
+      const pnl = numberOrNull(cycle?.total_pnl_contract);
+      if (pnl != null && exitStatus === "closed") pnlValues.push(pnl);
+
+      const days = numberOrNull(cycle?.days_after_assignment_to_exit);
+      if (days != null && exitStatus === "closed") daysToExitValues.push(days);
+
+      const ccYield = numberOrNull(step?.cc_yield_conservative_pct);
+      if (step && step.cc_sold_theoretical !== 1 && ccYield != null && ccYield < 0.5) {
+        attentionReasons.push("Rendement CC < 0,5 %");
+      }
+    }
+
+    const cyclesCount = tickerCycles.length;
+    const bestReturnOnAssignmentPct = bestNumericValue(returnValues);
+    const avgReturnOnAssignmentPct = avgNumericValues(returnValues);
+    const bestTotalPnlContract = bestNumericValue(pnlValues);
+    const avgTotalPnlContract = avgNumericValues(pnlValues);
+    const avgDaysAfterAssignmentToExit = avgNumericValues(daysToExitValues);
+
+    const hasRecoveryKnown = tickerCycles.some(
+      (cycle) => cycle?.assignment_recovered === 1 || cycle?.assignment_recovered === 0,
+    );
+    const hasNoRecovery = hasRecoveryKnown && recoveredCount === 0;
+
+    let wheelStatusLabel = "À valider";
+    let wheelStatusReason = "Cycle Wheel/CC partiellement documenté";
+
+    if (calledAwayCount > 0 && (bestReturnOnAssignmentPct ?? 0) > 0) {
+      wheelStatusLabel = "Wheel favorable";
+      wheelStatusReason = "Sortie finale validée (called away)";
+    } else if (ccWaitCount > 0 && ccSoldCount === 0) {
+      wheelStatusLabel = "CC faible";
+      wheelStatusReason = "Aucun CC vendu, attentes détectées";
+    } else if (openCount > 0 && closedCount === 0) {
+      wheelStatusLabel = "Détention probable";
+      wheelStatusReason = "Cycles ouverts sans sortie finale";
+    } else if (hasNoRecovery) {
+      wheelStatusLabel = "Recovery faible";
+      wheelStatusReason = "Pas de recovery au strike d'assignation";
+    } else if (calledAwayCount > 0) {
+      wheelStatusLabel = "Called away validé";
+      wheelStatusReason = `${calledAwayCount} sortie(s) called away`;
+    }
+
+    if (ccSoldCount === 0) attentionReasons.push("CC non vendable");
+    if (weeksWithoutCcTotal > 0) attentionReasons.push(`${weeksWithoutCcTotal} sem. sans CC`);
+    if (openCount > 0 && calledAwayCount === 0) attentionReasons.push("Cycle ouvert sans called away");
+    if (hasNoRecovery) attentionReasons.push("Recovery absente");
+    if (openCount > 0 && tickerCycles.every((cycle) => !cycle?.final_exit_date)) {
+      attentionReasons.push("Sortie finale absente");
+    }
+    if (closedCount > 0 && (bestReturnOnAssignmentPct == null || bestReturnOnAssignmentPct < 0.5)) {
+      attentionReasons.push("Rendement Wheel faible ou N/D");
+    }
+    if (stillHoldingCount > 0) attentionReasons.push("Détention (still_holding)");
+    if (fallbackCount > 0) attentionReasons.push("Pricing fallback");
+
+    const uniqueAttentionReasons = [...new Set(attentionReasons)];
+    const hasCcWeakness = ccWaitCount > 0 && ccSoldCount === 0;
+    const hasStillHoldingRisk = stillHoldingCount > 0 || (openCount > 0 && calledAwayCount === 0);
+    const hasAttention = uniqueAttentionReasons.length > 0 && wheelStatusLabel !== "Wheel favorable";
+    const attentionScore =
+      uniqueAttentionReasons.length +
+      (hasCcWeakness ? 2 : 0) +
+      (hasStillHoldingRisk ? 2 : 0) +
+      (hasNoRecovery ? 1 : 0);
+
+    map.set(ticker, {
+      ticker,
+      cyclesCount,
+      closedCount,
+      openCount,
+      calledAwayCount,
+      ccSoldCount,
+      ccWaitCount,
+      recoveredCount,
+      weeksWithoutCcTotal,
+      avgReturnOnAssignmentPct,
+      bestReturnOnAssignmentPct,
+      avgTotalPnlContract,
+      bestTotalPnlContract,
+      avgDaysAfterAssignmentToExit,
+      hasCcWeakness,
+      hasStillHoldingRisk,
+      wheelStatusLabel,
+      wheelStatusReason,
+      attentionReasons: uniqueAttentionReasons,
+      hasAttention,
+      attentionScore,
+    });
+  }
+
+  return map;
+}
+
+function getWheelStatusBadgeClass(label) {
+  if (label === "Wheel favorable" || label === "Called away validé") {
+    return "border-emerald-800/50 bg-emerald-900/20 text-emerald-400";
+  }
+  if (label === "CC faible" || label === "Recovery faible") {
+    return "border-rose-800/50 bg-rose-900/20 text-rose-400";
+  }
+  if (label === "Détention probable") {
+    return "border-amber-800/50 bg-amber-900/20 text-amber-400";
+  }
+  if (label === "Données insuffisantes") {
+    return "border-slate-700 bg-slate-800 text-slate-500";
+  }
+  return "border-sky-800/50 bg-sky-900/20 text-sky-400";
+}
+
+function getWheelCcSummaryForTicker(summaryMap, ticker) {
+  const key = String(ticker ?? "").trim().toUpperCase();
+  if (!key) {
+    return {
+      ticker: key,
+      cyclesCount: 0,
+      wheelStatusLabel: "Données insuffisantes",
+      wheelStatusReason: "Aucun cycle Wheel/CC pour ce ticker",
+      calledAwayCount: 0,
+      ccSoldCount: 0,
+      ccWaitCount: 0,
+      bestReturnOnAssignmentPct: null,
+      bestTotalPnlContract: null,
+      attentionReasons: [],
+      hasAttention: false,
+    };
+  }
+  return (
+    summaryMap.get(key) ?? {
+      ticker: key,
+      cyclesCount: 0,
+      wheelStatusLabel: "Données insuffisantes",
+      wheelStatusReason: "Aucun cycle Wheel/CC pour ce ticker",
+      calledAwayCount: 0,
+      ccSoldCount: 0,
+      ccWaitCount: 0,
+      bestReturnOnAssignmentPct: null,
+      bestTotalPnlContract: null,
+      attentionReasons: [],
+      hasAttention: false,
+    }
+  );
+}
+
 function getOtherTheoreticalCyclesForTicker(cycles, currentCycle) {
   const ticker = String(currentCycle?.ticker ?? "").trim().toUpperCase();
   if (!ticker) return [];
@@ -2913,6 +3114,32 @@ export default function JournalPopPanel({ apiBase, active }) {
     });
   }, [resolvedRecords, stats, winQualityStats, stressCoverage, premiumReturnBuckets]);
 
+  const wheelCcTickerSummaryMap = useMemo(
+    () => buildWheelCcTickerSummary(theoreticalCycles),
+    [theoreticalCycles],
+  );
+
+  const decisionWheelCcAttentionTickers = useMemo(() => {
+    const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
+    const seenTickers = new Set();
+    return rankings
+      .map((ranking) => {
+        const ticker = String(ranking?.ticker ?? "").trim().toUpperCase();
+        if (!ticker || seenTickers.has(ticker)) return null;
+        seenTickers.add(ticker);
+        const wheel = getWheelCcSummaryForTicker(wheelCcTickerSummaryMap, ticker);
+        if (!wheel.hasAttention) return null;
+        return { ranking, wheel };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const scoreDelta = (b.ranking?.score ?? 0) - (a.ranking?.score ?? 0);
+        if (scoreDelta !== 0) return scoreDelta;
+        return (b.wheel?.attentionScore ?? 0) - (a.wheel?.attentionScore ?? 0);
+      })
+      .slice(0, 6);
+  }, [tickerRanking, wheelCcTickerSummaryMap]);
+
   const decisionWatchCandidates = useMemo(() => {
     const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
     const seenTickers = new Set();
@@ -3085,18 +3312,38 @@ export default function JournalPopPanel({ apiBase, active }) {
 
       {hasLoaded && activePopTab === "decision" && (
         <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+          <div className="mb-4 rounded-xl border border-amber-800/40 bg-amber-950/20 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-400">
+              Décision CSP — Wheel/CC à valider
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-amber-200/80">
+              Classement CSP enrichi, pas encore une recommandation Wheel finale. Un bon score CSP ne garantit pas un cycle Wheel/CC complet.
+            </p>
+          </div>
+
+          <div className="mb-4 rounded-xl border border-sky-800/40 bg-sky-950/20 px-4 py-3">
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.12em] text-sky-400">À valider dans Wheel/CC</h4>
+            <ul className="mt-2 space-y-1 text-[11px] leading-relaxed text-sky-100/80">
+              <li>· Vérifier les CC post-assignation (vendus vs attentes, rendement ≥ 0,5 %)</li>
+              <li>· Vérifier la recovery au strike d&apos;assignation</li>
+              <li>· Vérifier called away, détention ou sortie finale</li>
+              <li>· Vérifier le P/L final Wheel/CC et le rendement total</li>
+              <li>· Ne pas choisir seulement selon la prime CSP ou le score Journal</li>
+            </ul>
+          </div>
+
           <div className="mb-4">
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Résumé décision</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Résumé décision CSP</h3>
             <p className="mt-1 text-[11px] text-slate-600">
-              Classement Wheel et modes SAFE/AGR recommandés — détail complet dans l&apos;onglet SAFE/AGR.
+              Top candidats CSP et modes SAFE/AGR recommandés — détail complet dans l&apos;onglet SAFE/AGR · validation Wheel/CC dans l&apos;onglet Wheel/CC.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <ProKpi
-              label="Top tickers"
+              label="Top candidats CSP"
               value={tickerRanking?.summary?.tickers_ranked ?? "—"}
               tone="info"
-              sub={tickerRanking?.summary?.avg_score != null ? `Score moy. ${tickerRanking.summary.avg_score}` : "V2-L"}
+              sub={tickerRanking?.summary?.avg_score != null ? `Score moy. CSP ${tickerRanking.summary.avg_score}` : "V2-L · CSP"}
             />
             <ProKpi
               label="Score max"
@@ -3161,6 +3408,49 @@ export default function JournalPopPanel({ apiBase, active }) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-rose-800/40 bg-rose-950/15 p-3">
+            <div className="mb-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.12em] text-rose-400">Attention / à éviter</h4>
+              <p className="mt-0.5 text-[10px] text-slate-600">
+                Tickers séduisants côté CSP mais signal faible côté Wheel/CC — à valider avant décision finale.
+              </p>
+            </div>
+            {decisionWheelCcAttentionTickers.length === 0 ? (
+              <p className="text-[11px] text-slate-600">
+                Aucun ticker du classement CSP ne présente de signal Wheel/CC d&apos;attention pour l&apos;instant.
+              </p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {decisionWheelCcAttentionTickers.map(({ ranking, wheel }) => (
+                  <div
+                    key={ranking.ticker}
+                    className="rounded-lg border border-rose-800/30 bg-slate-900/60 px-2.5 py-2 min-w-0"
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-slate-100">{ranking.ticker}</span>
+                      <span className="text-[10px] tabular-nums text-sky-400">CSP {ranking.score}</span>
+                      <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold ${getWheelStatusBadgeClass(wheel.wheelStatusLabel)}`}>
+                        {wheel.wheelStatusLabel}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[10px] leading-tight text-slate-500">
+                      CC {wheel.ccSoldCount} vendu{wheel.ccSoldCount !== 1 ? "s" : ""} / {wheel.ccWaitCount} attente
+                      {" · "}
+                      Called away {wheel.calledAwayCount}
+                      {wheel.bestReturnOnAssignmentPct != null
+                        ? ` · Rend. ${wheel.bestReturnOnAssignmentPct.toFixed(1)} %`
+                        : ""}
+                    </div>
+                    <div className="mt-0.5 text-[10px] leading-tight text-rose-300/80" title={wheel.attentionReasons.join(" · ")}>
+                      {wheel.wheelStatusReason}
+                      {wheel.attentionReasons.length > 0 ? ` · ${wheel.attentionReasons.slice(0, 2).join(" · ")}` : ""}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -5478,13 +5768,13 @@ export default function JournalPopPanel({ apiBase, active }) {
 
         return (
           <CollapsibleSection
-            title="Classement tickers Wheel"
+            title="Top CSP selon Journal — candidats à valider Wheel/CC"
             badge={`${summary.tickers_ranked ?? 0} tickers`}
-            subtitle="Score 1-100 · mode décisionnel aligné SAFE/AGR · détail complet dans l'onglet SAFE/AGR."
+            subtitle="Score CSP 1-100 · mode SAFE/AGR · indicateurs Wheel/CC résumés si cycles disponibles · pas une recommandation Wheel finale."
             defaultOpen={false}
             summaryRight={
               summary.top_score != null
-                ? `Score max ${summary.top_score} · ${saSummary.aggressive_recommended ?? 0} AGR · ${saSummary.safe_recommended ?? 0} SAFE`
+                ? `Meilleur candidat CSP ${summary.top_score} · ${saSummary.aggressive_recommended ?? 0} AGR · ${saSummary.safe_recommended ?? 0} SAFE`
                 : undefined
             }
           >
@@ -5569,14 +5859,20 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <table className="min-w-full text-left text-xs text-slate-300">
                   <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                     <tr>
-                      <th className="px-3 py-2 font-semibold">Rang</th>
+                      <th className="px-3 py-2 font-semibold">Rang CSP</th>
                       <th className="px-3 py-2 font-semibold">Ticker</th>
-                      <th className="px-3 py-2 font-semibold">Score</th>
+                      <th className="px-3 py-2 font-semibold">Score CSP</th>
+                      <th className="px-3 py-2 font-semibold">Statut Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Called away</th>
+                      <th className="px-3 py-2 font-semibold">CC</th>
+                      <th className="px-3 py-2 font-semibold">Rend. Wheel</th>
+                      <th className="px-3 py-2 font-semibold">P/L Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Note Wheel</th>
                       <th className="px-3 py-2 font-semibold">Mode</th>
                       <th className="px-3 py-2 font-semibold">DTE</th>
                       <th className="px-3 py-2 font-semibold">Assign.</th>
                       <th className="px-3 py-2 font-semibold">Exécution</th>
-                      <th className="px-3 py-2 font-semibold">Lecture</th>
+                      <th className="px-3 py-2 font-semibold">Lecture CSP</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
@@ -5586,6 +5882,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                       const decisionLine = formatSafeAggressiveDecisionLine(decisionInsight);
                       const decisionBadge = getExecutionDecisionBadge(row, decisionInsight);
                       const executionDisplay = getExecutionColumnDisplay(row);
+                      const wheelSummary = getWheelCcSummaryForTicker(wheelCcTickerSummaryMap, row.ticker);
                       const modeTooltipParts = [
                         decisionInsight?.modeDecision ?? decisionLine,
                         row.preferredMode && row.preferredMode !== displayMode
@@ -5600,6 +5897,32 @@ export default function JournalPopPanel({ apiBase, active }) {
                         <td className="px-3 py-2 whitespace-nowrap" title={formatScoreComponentsTooltip(row)}>
                           <div className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</div>
                           <div className={`mt-0.5 text-[10px] leading-tight ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={wheelSummary.wheelStatusReason}>
+                          <span className={`inline-block rounded border px-1.5 py-0.5 text-[9px] font-semibold leading-tight ${getWheelStatusBadgeClass(wheelSummary.wheelStatusLabel)}`}>
+                            {wheelSummary.wheelStatusLabel}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.calledAwayCount > 0 ? wheelSummary.calledAwayCount : "—"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-[10px] text-slate-400" title={`${wheelSummary.ccSoldCount} vendu(s) · ${wheelSummary.ccWaitCount} attente(s)`}>
+                          {wheelSummary.cyclesCount > 0
+                            ? `${wheelSummary.ccSoldCount} / ${wheelSummary.ccWaitCount}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.bestReturnOnAssignmentPct != null
+                            ? `${wheelSummary.bestReturnOnAssignmentPct.toFixed(1)} %`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.bestTotalPnlContract != null
+                            ? formatMoney(wheelSummary.bestTotalPnlContract)
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-[10px] text-slate-500 max-w-[140px] leading-tight" title={wheelSummary.attentionReasons.join(" · ") || wheelSummary.wheelStatusReason}>
+                          {wheelSummary.wheelStatusReason}
                         </td>
                         <td className="px-3 py-2 max-w-[190px]" title={modeTooltipParts.join("\n")}>
                           <div className={`font-semibold whitespace-nowrap ${modeColor(displayMode)}`}>{displayMode}</div>

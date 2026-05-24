@@ -1287,6 +1287,278 @@ function computeSectorCohortsV2(resolvedRecords) {
     .sort((a, b) => b.resolvedCount - a.resolvedCount);
 }
 
+const REAL_POP_BUCKET_DEFINITIONS = [
+  { bucket: "97–100 %", match: (value) => value != null && value >= 97 && value <= 100 },
+  { bucket: "95–97 %", match: (value) => value != null && value >= 95 && value < 97 },
+  { bucket: "90–95 %", match: (value) => value != null && value >= 90 && value < 95 },
+  { bucket: "85–90 %", match: (value) => value != null && value >= 85 && value < 90 },
+  { bucket: "80–85 %", match: (value) => value != null && value >= 80 && value < 85 },
+  { bucket: "<80 %", match: (value) => value != null && value < 80 },
+];
+
+const REAL_YIELD_BUCKET_DEFINITIONS = [
+  { bucket: "<0,5 %", match: (value) => value != null && value < 0.5 },
+  { bucket: "0,5–0,7 %", match: (value) => value != null && value >= 0.5 && value < 0.7 },
+  { bucket: "0,7–0,9 %", match: (value) => value != null && value >= 0.7 && value < 0.9 },
+  { bucket: "0,9–1,1 %", match: (value) => value != null && value >= 0.9 && value < 1.1 },
+  { bucket: ">1,1 %", match: (value) => value != null && value >= 1.1 },
+];
+
+function getAnnouncedPopPct(record) {
+  const probability = normalizePopToProbability(record?.strike?.popEstimate);
+  return probability == null ? null : probability * 100;
+}
+
+function summarizeRealPopMetrics(rows) {
+  const n = rows.length;
+  if (n === 0) {
+    return {
+      tradesResolved: 0,
+      avgPopAnnounced: null,
+      realWinRate: null,
+      assignmentRate: null,
+      strikeTouchRate: null,
+      lowerBoundBreakRate: null,
+      avgPremium: null,
+      avgYieldPct: null,
+      popRealDelta: null,
+    };
+  }
+
+  const outcomes = rows
+    .map((record) => getCalibrationIsCorrect(record))
+    .filter((value) => typeof value === "boolean");
+  const winCount = outcomes.filter((value) => value === true).length;
+  const realWinRate = outcomes.length > 0 ? (winCount / outcomes.length) * 100 : null;
+
+  const pops = rows.map((record) => getAnnouncedPopPct(record)).filter((value) => value != null);
+  const avgPopAnnounced =
+    pops.length > 0 ? pops.reduce((sum, value) => sum + value, 0) / pops.length : null;
+  const popRealDelta =
+    realWinRate != null && avgPopAnnounced != null
+      ? roundMetric(realWinRate - avgPopAnnounced, 1)
+      : null;
+
+  const assignedKnown = rows.filter((record) => getAssignedFlag(record) != null);
+  const assignmentRate =
+    assignedKnown.length > 0
+      ? (assignedKnown.filter((record) => getAssignedFlag(record) === true).length /
+          assignedKnown.length) *
+        100
+      : null;
+
+  const strikeTouchedKnown = rows.filter((record) => getStrikeTouchedFlag(record) != null);
+  const strikeTouchRate =
+    strikeTouchedKnown.length > 0
+      ? (strikeTouchedKnown.filter((record) => getStrikeTouchedFlag(record) === true).length /
+          strikeTouchedKnown.length) *
+        100
+      : null;
+
+  const lowerBoundKnown = rows.filter((record) => getBrokeLowerBoundFlag(record) != null);
+  const lowerBoundBreakRate =
+    lowerBoundKnown.length > 0
+      ? (lowerBoundKnown.filter((record) => getBrokeLowerBoundFlag(record) === true).length /
+          lowerBoundKnown.length) *
+        100
+      : null;
+
+  const premiums = rows.map((record) => getPremiumCandidate(record)).filter((value) => value != null);
+  const avgPremium =
+    premiums.length > 0 ? roundMetric(premiums.reduce((sum, value) => sum + value, 0) / premiums.length, 4) : null;
+
+  const yields = rows.map((record) => getRecordYieldPct(record)).filter((value) => value != null);
+  const avgYieldPct =
+    yields.length > 0 ? roundMetric(yields.reduce((sum, value) => sum + value, 0) / yields.length, 2) : null;
+
+  return {
+    tradesResolved: n,
+    avgPopAnnounced: avgPopAnnounced == null ? null : roundMetric(avgPopAnnounced, 1),
+    realWinRate: realWinRate == null ? null : roundMetric(realWinRate, 1),
+    assignmentRate: assignmentRate == null ? null : roundMetric(assignmentRate, 1),
+    strikeTouchRate: strikeTouchRate == null ? null : roundMetric(strikeTouchRate, 1),
+    lowerBoundBreakRate: lowerBoundBreakRate == null ? null : roundMetric(lowerBoundBreakRate, 1),
+    avgPremium,
+    avgYieldPct,
+    popRealDelta,
+  };
+}
+
+function computeRealPopVerdict(metrics) {
+  const n = metrics.tradesResolved ?? 0;
+  const delta = metrics.popRealDelta;
+  const win = metrics.realWinRate;
+  const touch = metrics.strikeTouchRate;
+  const lb = metrics.lowerBoundBreakRate;
+  const assign = metrics.assignmentRate;
+
+  if (n < 5) {
+    return { verdict: "non prouvé", confidenceWarning: "échantillon < 5" };
+  }
+
+  let confidenceWarning = null;
+  if (n < 20) confidenceWarning = "échantillon préliminaire";
+  else if (n < 30) confidenceWarning = "échantillon < 30";
+  else if (n < 50) confidenceWarning = "échantillon < 50";
+
+  const stressCache =
+    win != null &&
+    win >= 75 &&
+    ((touch != null && touch >= 35) ||
+      (lb != null && lb >= 45) ||
+      (assign != null && assign >= 15));
+
+  if (stressCache) {
+    return {
+      verdict: "stress caché",
+      confidenceWarning: confidenceWarning ?? "win élevé avec stress observé",
+    };
+  }
+
+  if (delta != null && delta <= -5) {
+    return { verdict: "POP optimiste", confidenceWarning };
+  }
+  if (delta != null && delta >= 5) {
+    return { verdict: "POP conservateur", confidenceWarning };
+  }
+  if (n >= 30 && delta != null && Math.abs(delta) <= 3) {
+    return { verdict: "bien calibré", confidenceWarning };
+  }
+  if (n >= 50 && delta != null && Math.abs(delta) <= 5) {
+    return { verdict: "crédible", confidenceWarning };
+  }
+  if (n >= 20) {
+    return { verdict: "mesurable", confidenceWarning };
+  }
+  return { verdict: "préliminaire", confidenceWarning };
+}
+
+function bucketizeRealPopRows(records, definitions, pickValue) {
+  const buckets = definitions.map((definition) => ({
+    bucket: definition.bucket,
+    rows: [],
+  }));
+
+  for (const record of records) {
+    const value = pickValue(record);
+    let matched = false;
+    for (let i = 0; i < definitions.length; i += 1) {
+      if (definitions[i].match(value, record)) {
+        buckets[i].rows.push(record);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched && buckets.length > 0) {
+      buckets[buckets.length - 1].rows.push(record);
+    }
+  }
+
+  return buckets.map((entry) => {
+    const metrics = summarizeRealPopMetrics(entry.rows);
+    const { verdict, confidenceWarning } = computeRealPopVerdict(metrics);
+    return {
+      bucket: entry.bucket,
+      ...metrics,
+      verdict,
+      confidenceWarning,
+    };
+  });
+}
+
+function buildRealPopYieldMatrix(records) {
+  const matrix = [];
+  for (const popDef of REAL_POP_BUCKET_DEFINITIONS) {
+    for (const yieldDef of REAL_YIELD_BUCKET_DEFINITIONS) {
+      const cellRows = records.filter((record) => {
+        const pop = getAnnouncedPopPct(record);
+        const yieldPct = getRecordYieldPct(record);
+        return popDef.match(pop, record) && yieldDef.match(yieldPct, record);
+      });
+      const metrics = summarizeRealPopMetrics(cellRows);
+      const { verdict, confidenceWarning } = computeRealPopVerdict(metrics);
+      matrix.push({
+        popBucket: popDef.bucket,
+        yieldBucket: yieldDef.bucket,
+        count: metrics.tradesResolved,
+        winRate: metrics.realWinRate,
+        assignmentRate: metrics.assignmentRate,
+        avgPopAnnounced: metrics.avgPopAnnounced,
+        popRealDelta: metrics.popRealDelta,
+        verdict,
+        confidenceWarning,
+      });
+    }
+  }
+  return matrix;
+}
+
+function isPrimaryResolvedExpiredCalibrationRecord(record, todayYmd) {
+  if (record?.resolution?.resolved !== true) return false;
+  if ((record?.captureClass ?? "primaryDaily") === "intradayRetest") return false;
+  const expirationYmd = toExpirationYmd(record?.expiration ?? record?.expirationCohort);
+  if (!expirationYmd || expirationYmd >= todayYmd) return false;
+  if (record?.strike?.popEstimate == null) return false;
+  return true;
+}
+
+export function computeRealPopCalibration(records, options = {}) {
+  const todayYmd = normalizeIsoTimestamp(options.today ?? options.asOfDate ?? new Date())
+    .slice(0, 10);
+  const allRecords = Array.isArray(records) ? records : [];
+
+  const totalRecords = allRecords.length;
+  const resolvedRecords = allRecords.filter((record) => record?.resolution?.resolved === true).length;
+  const excludedIntradayRetests = allRecords.filter(
+    (record) =>
+      record?.resolution?.resolved === true &&
+      (record?.captureClass ?? "primaryDaily") === "intradayRetest"
+  ).length;
+
+  let futureExpiration = 0;
+  let pastUnresolved = 0;
+  for (const record of allRecords) {
+    const expirationYmd = toExpirationYmd(record?.expiration ?? record?.expirationCohort);
+    if (!expirationYmd) continue;
+    const isResolved = record?.resolution?.resolved === true;
+    if (expirationYmd >= todayYmd) {
+      futureExpiration += 1;
+    } else if (!isResolved) {
+      pastUnresolved += 1;
+    }
+  }
+
+  const calibrationRecords = allRecords.filter((record) =>
+    isPrimaryResolvedExpiredCalibrationRecord(record, todayYmd)
+  );
+  const primaryResolvedExpired = calibrationRecords.length;
+  const excludedFromCalibration = totalRecords - primaryResolvedExpired;
+
+  const buckets = bucketizeRealPopRows(
+    calibrationRecords,
+    REAL_POP_BUCKET_DEFINITIONS,
+    (record) => getAnnouncedPopPct(record)
+  );
+  const matrix = buildRealPopYieldMatrix(calibrationRecords);
+
+  return {
+    calibration: {
+      asOfDate: todayYmd,
+      primaryResolvedExpired,
+      totalRecords,
+      resolvedRecords,
+      excludedIntradayRetests,
+      buckets,
+    },
+    matrix,
+    pending: {
+      futureExpiration,
+      pastUnresolved,
+      excludedFromCalibration,
+    },
+  };
+}
+
 export function createWheelValidationService(options = {}) {
   const store = options.store ?? createWheelValidationStore(options.journalPath);
   const getHistoricalClose =
@@ -1618,6 +1890,12 @@ export function createWheelValidationService(options = {}) {
         };
       })
       .sort((a, b) => String(a.expirationCohort).localeCompare(String(b.expirationCohort)));
+  }
+
+  async function computeRealPopCalibrationFromJournal(options = {}) {
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+    return computeRealPopCalibration(records, options);
   }
 
   async function computeCalibrationSummary() {
@@ -4348,6 +4626,7 @@ export function createWheelValidationService(options = {}) {
     computeStats,
     computeCohortSummary,
     computeCalibrationSummary,
+    computeRealPopCalibration: computeRealPopCalibrationFromJournal,
     computeModeComparison,
     computePremiumStability,
     computeTickerRanking,

@@ -1871,6 +1871,23 @@ function PlaceholderBadge({ label }) {
   );
 }
 
+function formatPopRealDelta(value) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(1)} pt`;
+}
+
+function getRealPopVerdictTone(verdict) {
+  const v = String(verdict ?? "").toLowerCase();
+  if (v === "bien calibré" || v === "crédible") return "text-emerald-400";
+  if (v === "mesurable" || v === "préliminaire") return "text-sky-400";
+  if (v === "pop optimiste" || v === "pop conservateur") return "text-amber-400 font-semibold";
+  if (v === "stress caché") return "text-rose-400 font-semibold";
+  if (v === "non prouvé") return "text-slate-500";
+  return "text-slate-400";
+}
+
 // ── Win Quality V2A ─────────────────────────────────────────────────────────
 
 function getWinQuality(record) {
@@ -2927,6 +2944,7 @@ function computeCapitalCombinationOverlay(records, capitalData) {
 export default function JournalPopPanel({ apiBase, active }) {
   const [journal, setJournal] = useState(null);
   const [calibrationSummary, setCalibrationSummary] = useState(null);
+  const [realPopCalibration, setRealPopCalibration] = useState(null);
   const [cohortSummary, setCohortSummary] = useState([]);
   const [capitalData, setCapitalData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -3030,10 +3048,11 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
+        fetch(`${apiBase}/journal/wheel-validation/real-pop-calibration`).catch(() => null),
         fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
@@ -3045,6 +3064,9 @@ export default function JournalPopPanel({ apiBase, active }) {
       const payload = await journalResponse.json();
       const cohortPayload = await cohortResponse.json();
       const calibrationPayload = await calibrationResponse.json();
+      const realPopCalibrationPayload = realPopCalibrationResponse
+        ? await realPopCalibrationResponse.json().catch(() => null)
+        : null;
       const capitalPayload = capitalResponse ? await capitalResponse.json().catch(() => null) : null;
       const modeComparisonPayload = modeComparisonResponse ? await modeComparisonResponse.json().catch(() => null) : null;
       const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
@@ -3058,6 +3080,15 @@ export default function JournalPopPanel({ apiBase, active }) {
       setJournal(payload.journal ?? { version: "1.0", updatedAt: null, records: [] });
       setCohortSummary(Array.isArray(cohortPayload.summary) ? cohortPayload.summary : []);
       setCalibrationSummary(calibrationPayload.calibration ?? null);
+      if (realPopCalibrationPayload?.ok) {
+        setRealPopCalibration({
+          calibration: realPopCalibrationPayload.calibration ?? null,
+          matrix: Array.isArray(realPopCalibrationPayload.matrix) ? realPopCalibrationPayload.matrix : [],
+          pending: realPopCalibrationPayload.pending ?? null,
+        });
+      } else {
+        setRealPopCalibration(null);
+      }
       setCapitalData(extractCapitalCombinationData([payload, cohortPayload, calibrationPayload, capitalPayload]));
       if (modeComparisonPayload?.ok) setModeComparison(modeComparisonPayload.modeComparison ?? null);
       if (premiumStabilityPayload?.ok) setPremiumStability(premiumStabilityPayload);
@@ -5669,6 +5700,139 @@ export default function JournalPopPanel({ apiBase, active }) {
               sub={primeQualityStats.staleQuoteRate != null ? "Stale quote sur records couverts" : "N/D"}
             />
           </div>
+        </CollapsibleSection>
+      )}
+
+      {/* ── SECTION — CALIBRATION POP RÉELLE ─────────────────────────────────── */}
+      {hasLoaded && activePopTab === "dataAudit" && (
+        <CollapsibleSection
+          title="Calibration POP réelle"
+          badge="Read-only"
+          subtitle="Compare le POP annoncé au moment du scan avec le résultat réel observé après expiration."
+          defaultOpen
+          summaryRight={
+            realPopCalibration?.calibration?.primaryResolvedExpired != null
+              ? `Base n=${realPopCalibration.calibration.primaryResolvedExpired} · ref ${realPopCalibration.calibration.asOfDate ?? "—"}`
+              : "Historique observé"
+          }
+        >
+          {!realPopCalibration?.calibration ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Données de calibration réelle indisponibles pour l&apos;instant.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Base de calibration</p>
+                  <p className="mt-1 text-lg font-bold text-slate-100">
+                    {numberOrNull(realPopCalibration.calibration.primaryResolvedExpired) ?? 0} records résolus
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-600">Primary · expiration échue · POP gelé au scan</p>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Futures exclues</p>
+                  <p className="mt-1 text-lg font-bold text-amber-400">
+                    {numberOrNull(realPopCalibration.pending?.futureExpiration) ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Échues non résolues</p>
+                  <p className="mt-1 text-lg font-bold text-amber-400">
+                    {numberOrNull(realPopCalibration.pending?.pastUnresolved) ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Date de référence</p>
+                  <p className="mt-1 text-lg font-bold text-slate-100">
+                    {realPopCalibration.calibration.asOfDate ?? "—"}
+                  </p>
+                </div>
+              </div>
+
+              {(numberOrNull(realPopCalibration.pending?.futureExpiration) ?? 0) > 0 && (
+                <div className="rounded-xl border border-amber-800/40 bg-amber-900/20 px-4 py-2.5 text-[11px] text-amber-300">
+                  Les expirations futures sont exclues de la calibration réelle.
+                </div>
+              )}
+              {(numberOrNull(realPopCalibration.pending?.pastUnresolved) ?? 0) > 0 && (
+                <div className="rounded-xl border border-amber-800/40 bg-amber-900/20 px-4 py-2.5 text-[11px] text-amber-300">
+                  Certaines expirations échues ne sont pas encore résolues.
+                </div>
+              )}
+
+              <DarkTable
+                title="Buckets POP — historique observé"
+                headers={[
+                  "Bucket POP",
+                  "Trades",
+                  "POP annoncé moyen",
+                  "Win réel",
+                  "Écart",
+                  "Assign.",
+                  "Touch",
+                  "LB cassé",
+                  "Rend. moyen",
+                  "Verdict",
+                ]}
+                rows={(realPopCalibration.calibration.buckets ?? []).map((row) => (
+                  <tr key={`real-pop-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket ?? "—"}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.tradesResolved) ?? 0}</td>
+                    <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.avgPopAnnounced)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.realWinRate)}</td>
+                    <td className="px-3 py-2.5">{formatPopRealDelta(row?.popRealDelta)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.assignmentRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.strikeTouchRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.lowerBoundBreakRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.avgYieldPct, 2)}</td>
+                    <td className={`px-3 py-2.5 text-[11px] ${getRealPopVerdictTone(row?.verdict)}`}>
+                      {row?.verdict ?? "—"}
+                      {row?.confidenceWarning ? (
+                        <span className="block text-[10px] text-slate-600">{row.confidenceWarning}</span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              />
+
+              <DarkTable
+                title="POP × rendement — échantillon observé"
+                headers={[
+                  "Bucket POP",
+                  "Bucket rendement",
+                  "Trades",
+                  "Win réel",
+                  "Assign.",
+                  "Écart POP",
+                  "Verdict",
+                ]}
+                rows={(realPopCalibration.matrix ?? [])
+                  .filter((row) => (numberOrNull(row?.count) ?? 0) > 0)
+                  .map((row) => (
+                    <tr
+                      key={`real-pop-matrix-${String(row?.popBucket ?? "na")}-${String(row?.yieldBucket ?? "na")}`}
+                      className="hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.popBucket ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-300">{row?.yieldBucket ?? "—"}</td>
+                      <td className="px-3 py-2.5">{numberOrNull(row?.count) ?? 0}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row?.winRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row?.assignmentRate)}</td>
+                      <td className="px-3 py-2.5">{formatPopRealDelta(row?.popRealDelta)}</td>
+                      <td className={`px-3 py-2.5 text-[11px] ${getRealPopVerdictTone(row?.verdict)}`}>
+                        {row?.verdict ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                empty="Aucune combinaison POP × rendement avec trades observés."
+              />
+
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Lecture prudente : POP gelé au scan · échantillon historique · verdicts préliminaires possibles · aucune recommandation de trade.
+              </p>
+            </div>
+          )}
         </CollapsibleSection>
       )}
 

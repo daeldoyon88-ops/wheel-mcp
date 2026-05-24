@@ -2765,6 +2765,26 @@ app.get("/journal/wheel-validation/calibration-summary", async (_req, res) => {
   }
 });
 
+app.get("/journal/wheel-validation/real-pop-calibration", async (req, res) => {
+  try {
+    const asOf = req.query?.asOf ?? req.query?.today ?? undefined;
+    const payload = await wheelValidationService.computeRealPopCalibration(
+      asOf != null ? { today: asOf } : {}
+    );
+    res.json({
+      ok: true,
+      calibration: payload.calibration,
+      matrix: payload.matrix,
+      pending: payload.pending,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "wheel_validation_real_pop_calibration_failed",
+    });
+  }
+});
+
 app.get("/journal/wheel-validation/mode-comparison", async (_req, res) => {
   try {
     const modeComparison = await wheelValidationService.computeModeComparison();

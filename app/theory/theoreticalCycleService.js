@@ -349,12 +349,112 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
   }
 
   // ─────────────────────────────────────────────
-  // buildFirstCcStepForCycle
-  // Pure function — receives a cycle and its source validation record.
-  // Returns { step, pricing, error } or { step: null, pricing: null, error } if spot is unavailable.
-  // RULE: cc_strike is always set to assignment_strike (never below).
+  // addCalendarDaysToYmd / computeCalendarDaysBetween
+  // Pure date helpers (local timezone, no UTC shift).
   // ─────────────────────────────────────────────
-  async function buildFirstCcStepForCycle({ cycle, sourceRecord, options = {} }) {
+  function parseYmdToLocalDate(ymd) {
+    const normalized = normalizeDateToYmd(ymd);
+    if (!normalized) return null;
+    const [y, mo, day] = normalized.split("-").map(Number);
+    return new Date(y, mo - 1, day);
+  }
+
+  function formatLocalDateToYmd(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+
+  function addCalendarDaysToYmd(ymd, days) {
+    const d = parseYmdToLocalDate(ymd);
+    if (!d) return null;
+    d.setDate(d.getDate() + days);
+    return formatLocalDateToYmd(d);
+  }
+
+  function computeCalendarDaysBetween(startYmd, endYmd) {
+    const start = parseYmdToLocalDate(startYmd);
+    const end = parseYmdToLocalDate(endYmd);
+    if (!start || !end) return null;
+    return Math.round((end.getTime() - start.getTime()) / 86400000);
+  }
+
+  // ─────────────────────────────────────────────
+  // getWeeklyCcExpirationFromTestDate
+  // Pure — weekly CC expiration on the following Friday.
+  // ─────────────────────────────────────────────
+  function getWeeklyCcExpirationFromTestDate(testDate) {
+    const d = parseYmdToLocalDate(testDate);
+    if (!d) return { cc_expiration: null, dte: null };
+    const dow = d.getDay(); // 0=Sun, 5=Fri
+    let daysToFriday;
+    if (dow === 5) {
+      daysToFriday = 7;
+    } else if (dow < 5) {
+      daysToFriday = 5 - dow;
+    } else {
+      daysToFriday = 5 + (7 - dow);
+    }
+    d.setDate(d.getDate() + daysToFriday);
+    return {
+      cc_expiration: formatLocalDateToYmd(d),
+      dte: daysToFriday,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // getNextMarketSessionAfter
+  // Pure — first market session after a calendar date (Fri/Sat/Sun → Monday).
+  // ─────────────────────────────────────────────
+  function getNextMarketSessionAfter(dateYmd) {
+    return getFirstCcTestDateAfterAssignment(dateYmd);
+  }
+
+  // ─────────────────────────────────────────────
+  // computeBeforeRecoveryFlagsForStep
+  // Pure — before_recovery_flag and assignment_recovered_at_step_flag.
+  // ─────────────────────────────────────────────
+  function computeBeforeRecoveryFlagsForStep({
+    testDate,
+    assignmentRecoveryDate,
+    assignmentRecovered,
+    firstAfterRecoveryMarkedRef,
+  }) {
+    const recoveryYmd = normalizeDateToYmd(assignmentRecoveryDate);
+    const recovered = assignmentRecovered === 1 || assignmentRecovered === true;
+
+    if (!recovered || !recoveryYmd) {
+      return {
+        before_recovery_flag: 1,
+        assignment_recovered_at_step_flag: 0,
+      };
+    }
+
+    const testYmd = normalizeDateToYmd(testDate);
+    const before_recovery_flag = testYmd && testYmd < recoveryYmd ? 1 : 0;
+
+    let assignment_recovered_at_step_flag = 0;
+    if (testYmd && testYmd >= recoveryYmd && firstAfterRecoveryMarkedRef && !firstAfterRecoveryMarkedRef.value) {
+      assignment_recovered_at_step_flag = 1;
+      firstAfterRecoveryMarkedRef.value = true;
+    }
+
+    return { before_recovery_flag, assignment_recovered_at_step_flag };
+  }
+
+  // ─────────────────────────────────────────────
+  // buildCcStepForCycle
+  // Builds one CC step at a given sequence / test date.
+  // RULE: cc_strike >= assignment_strike (always assignment_strike in V2).
+  // ─────────────────────────────────────────────
+  async function buildCcStepForCycle({
+    cycle,
+    sourceRecord,
+    sequenceNumber = 1,
+    testDate,
+    ccExpiration = null,
+    dte = null,
+    options = {},
+  }) {
     const defaultCcDte       = options.defaultCcDte       ?? 7;
     const riskFreeRate       = options.riskFreeRate       ?? 0.045;
     const dividendYield      = options.dividendYield      ?? 0;
@@ -365,23 +465,24 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
         : "open";
 
     const assignment_strike = Number(cycle.assignment_strike);
-    const cc_strike = assignment_strike; // RULE: never below assignment_strike
+    const cc_strike = assignment_strike;
 
-    // test_date: first trading session after assignment (Fri/Sat/Sun → Monday)
-    const testDateInfo = getFirstCcTestDateAfterAssignment(cycle.assignment_date);
-    const test_date = testDateInfo.testDate;
+    const test_date = normalizeDateToYmd(testDate);
+    if (!test_date) {
+      return { step: null, pricing: null, error: "invalid_test_date" };
+    }
 
-    // spot: V1 fallback chain — no post-assignment OHLC stored yet
+    const weeklyExp = ccExpiration && dte != null
+      ? { cc_expiration: ccExpiration, dte }
+      : getWeeklyCcExpirationFromTestDate(test_date);
+    const cc_expiration = weeklyExp.cc_expiration ?? getCcExpirationFromTestDate(test_date, defaultCcDte);
+    const stepDte = weeklyExp.dte ?? defaultCcDte;
+
     const spotInfo = await selectFirstCcSpot({ cycle, sourceRecord, testDate: test_date, options });
     if (!spotInfo) {
       return { step: null, pricing: null, error: "no_valid_spot" };
     }
     const spot = spotInfo.spot;
-
-    // cc_expiration: test_date + dte calendar days
-    const cc_expiration = getCcExpirationFromTestDate(test_date, defaultCcDte);
-
-    // target_time reflects the actual price rule used
     const target_time = spotInfo.priceRule;
 
     const hv30         = sourceRecord?.hv30_at_scan          != null ? Number(sourceRecord.hv30_at_scan)          : null;
@@ -392,7 +493,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
       spot,
       assignmentStrike: assignment_strike,
       ccStrike:         cc_strike,
-      dte:              defaultCcDte,
+      dte:              stepDte,
       hv30,
       atmIv,
       safeStrikeIv,
@@ -401,16 +502,18 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
       conservativeFactor,
     });
 
+    const stepSource = sequenceNumber === 1 ? "black_scholes_first_cc_step" : "black_scholes_multi_cc_step";
+
     const baseStep = {
-      id:                   `theoretical_cc_step_${cycle.id}_1`,
+      id:                   `theoretical_cc_step_${cycle.id}_${sequenceNumber}`,
       theoretical_cycle_id: cycle.id,
       candidate_record_id:  cycle.candidate_record_id,
       ticker:               cycle.ticker,
-      sequence_number:      1,
+      sequence_number:      sequenceNumber,
       test_date,
       target_time,
       cc_expiration,
-      dte:                  defaultCcDte,
+      dte:                  stepDte,
       stock_price_used:     spot,
       stock_open:           spotInfo.stock_open,
       stock_high:           spotInfo.stock_high,
@@ -427,7 +530,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     const rawExtra = {
       assignmentDate: cycle.assignment_date,
       testDate: test_date,
-      testDateRule: testDateInfo.rule,
+      testDateRule: sequenceNumber === 1 ? getFirstCcTestDateAfterAssignment(cycle.assignment_date).rule : "weekly_next_session",
       priceRule: spotInfo.priceRule,
       priceQuality: spotInfo.priceQuality,
       usedPostAssignmentOhlc: spotInfo.usedPostAssignmentOhlc === true,
@@ -435,12 +538,14 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
       ohlcDate: spotInfo.ohlcDate ?? null,
       usedFallback: spotInfo.usedFallback === true,
       officialPriceRule,
+      sequenceNumber,
     };
 
     if (!pricing.ok) {
       return {
         step: {
           ...baseStep,
+          premium_mid:               null,
           volatility_used:           null,
           volatility_source:         null,
           bs_call_premium:           null,
@@ -456,10 +561,10 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
           threshold_3_0_hit: 0, threshold_4_0_hit: 0,  threshold_5_0_hit: 0,
           threshold_6_0_hit: 0,
           raw: {
-            source:         "black_scholes_first_cc_step",
+            source:         stepSource,
             pricing_source: null,
             error:          pricing.error,
-            inputs:         { hv30, atmIv, safeStrikeIv, spot, assignment_strike, cc_strike, dte: defaultCcDte },
+            inputs:         { hv30, atmIv, safeStrikeIv, spot, assignment_strike, cc_strike, dte: stepDte },
             thresholds:     null,
             sourceRecordId: cycle.candidate_record_id,
             ...rawExtra,
@@ -470,7 +575,6 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
       };
     }
 
-    // Map thresholds by pct
     const thresholdMap = {};
     for (const t of pricing.thresholds) thresholdMap[t.thresholdPct] = t.reached;
 
@@ -486,6 +590,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     return {
       step: {
         ...baseStep,
+        premium_mid:               pricing.premiumEstimated,
         volatility_used:           pricing.volatilityUsed,
         volatility_source:         pricing.volatilitySource,
         bs_call_premium:           pricing.bsPremium,
@@ -507,7 +612,7 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
         threshold_5_0_hit:  thresholdMap[5.0]  ? 1 : 0,
         threshold_6_0_hit:  thresholdMap[6.0]  ? 1 : 0,
         raw: {
-          source:            "black_scholes_first_cc_step",
+          source:            stepSource,
           pricing_source:    pricing.source,
           volatility_source: pricing.volatilitySource,
           inputs:            pricing.inputs,
@@ -518,6 +623,236 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
       },
       pricing,
       error: null,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // buildFirstCcStepForCycle
+  // Wrapper — first CC step after assignment (sequence 1).
+  // ─────────────────────────────────────────────
+  async function buildFirstCcStepForCycle({ cycle, sourceRecord, options = {} }) {
+    const testDateInfo = getFirstCcTestDateAfterAssignment(cycle.assignment_date);
+    return buildCcStepForCycle({
+      cycle,
+      sourceRecord,
+      sequenceNumber: 1,
+      testDate: testDateInfo.testDate,
+      options,
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // simulateMultiCcStepsForCycle
+  // POP V2-Phase2 — weekly CC attempts after CSP assignment.
+  // Does NOT handle called away / cycle closure.
+  // ─────────────────────────────────────────────
+  async function simulateMultiCcStepsForCycle({ cycle, sourceRecord, options = {} }) {
+    const maxWeeks = options.maxWeeks ?? 12;
+    const endDateYmd = normalizeDateToYmd(options.endDateYmd) ?? new Date().toISOString().slice(0, 10);
+    const assignmentYmd = normalizeDateToYmd(cycle.assignment_date);
+
+    if (!assignmentYmd) {
+      return { steps: [], error: "invalid_assignment_date" };
+    }
+
+    const steps = [];
+    const firstAfterRecoveryMarkedRef = { value: false };
+    let testDateInfo = getFirstCcTestDateAfterAssignment(assignmentYmd);
+    let test_date = testDateInfo.testDate;
+    let sequence_number = 1;
+
+    while (sequence_number <= maxWeeks) {
+      if (test_date > endDateYmd) break;
+
+      const weeklyExp = getWeeklyCcExpirationFromTestDate(test_date);
+      const result = await buildCcStepForCycle({
+        cycle,
+        sourceRecord,
+        sequenceNumber: sequence_number,
+        testDate: test_date,
+        ccExpiration: weeklyExp.cc_expiration,
+        dte: weeklyExp.dte,
+        options,
+      });
+
+      if (!result.step) break;
+
+      const recoveryFlags = computeBeforeRecoveryFlagsForStep({
+        testDate: test_date,
+        assignmentRecoveryDate: cycle.assignment_recovery_date,
+        assignmentRecovered: cycle.assignment_recovered,
+        firstAfterRecoveryMarkedRef,
+      });
+
+      steps.push({
+        ...result.step,
+        days_after_assignment: computeCalendarDaysBetween(assignmentYmd, test_date),
+        before_recovery_flag: recoveryFlags.before_recovery_flag,
+        assignment_recovered_at_step_flag: recoveryFlags.assignment_recovered_at_step_flag,
+        premium_mid: result.step.premium_estimated ?? result.step.premium_mid ?? null,
+      });
+
+      const dayAfterExp = addCalendarDaysToYmd(weeklyExp.cc_expiration, 1);
+      if (!dayAfterExp) break;
+      const nextSession = getNextMarketSessionAfter(dayAfterExp);
+      test_date = nextSession.testDate;
+      sequence_number += 1;
+    }
+
+    return { steps, error: null };
+  }
+
+  // ─────────────────────────────────────────────
+  // refreshMultiCcStepsForCycles
+  // POP V2-Phase2 — backfill multi-week CC simulation for assigned cycles.
+  // ─────────────────────────────────────────────
+  async function refreshMultiCcStepsForCycles({
+    dryRun             = false,
+    limit              = null,
+    forceRefresh       = false,
+    onlyMissing        = true,
+    maxWeeks           = 12,
+    endDateYmd         = null,
+    defaultCcDte       = 7,
+    conservativeFactor = 0.8,
+    riskFreeRate       = 0.045,
+    dividendYield      = 0,
+    usePostAssignmentOhlc = true,
+    officialPriceRule = "open",
+  } = {}) {
+    await cycleStore.ensureInitialized();
+
+    const endYmd = normalizeDateToYmd(endDateYmd) ?? new Date().toISOString().slice(0, 10);
+    const db = new DatabaseSync(sqlitePath);
+
+    let cycles = await cycleStore.listCycles(limit != null ? Number(limit) : 999999);
+    cycles = cycles.filter((c) => c.assignment_date && c.assignment_strike != null && c.ticker);
+
+    if (onlyMissing && !forceRefresh) {
+      cycles = cycles.filter((c) => !c.multi_cc_backfilled_at);
+    }
+
+    const options = {
+      maxWeeks,
+      endDateYmd: endYmd,
+      defaultCcDte,
+      conservativeFactor,
+      riskFreeRate,
+      dividendYield,
+      usePostAssignmentOhlc,
+      officialPriceRule,
+    };
+
+    let cycles_scanned = cycles.length;
+    let cycles_eligible = 0;
+    let cycles_updated = 0;
+    let cc_steps_created = 0;
+    let cc_sold = 0;
+    let cc_not_sold = 0;
+    let total_premium_simulated = 0;
+    let weeks_without_cc_total = 0;
+    let cc_premiums_before_recovery_total = 0;
+    let cc_count_before_recovery_total = 0;
+    let weeks_without_cc_before_recovery_total = 0;
+    const errors = [];
+    const sample_cycles = [];
+
+    for (const cycle of cycles) {
+      cycles_eligible++;
+
+      const sourceRow = db
+        .prepare("SELECT * FROM wheel_validation_records WHERE id = @id")
+        .get({ id: String(cycle.candidate_record_id) });
+
+      if (!sourceRow) {
+        errors.push({ cycle_id: cycle.id, error: "missing_source_record" });
+        continue;
+      }
+
+      try {
+        if (!dryRun && cycleStore.deleteCcStepsForCycle) {
+          await cycleStore.deleteCcStepsForCycle(cycle.id);
+        }
+
+        const simulation = await simulateMultiCcStepsForCycle({
+          cycle,
+          sourceRecord: sourceRow,
+          options,
+        });
+
+        if (simulation.error) {
+          errors.push({ cycle_id: cycle.id, error: simulation.error });
+          continue;
+        }
+
+        const steps = simulation.steps ?? [];
+        cc_steps_created += steps.length;
+
+        for (const step of steps) {
+          if (step.cc_sold_theoretical === 1) {
+            cc_sold++;
+            const p = step.premium_conservative != null ? Number(step.premium_conservative) : 0;
+            if (Number.isFinite(p)) total_premium_simulated += p;
+          } else {
+            cc_not_sold++;
+          }
+        }
+
+        const summary = summarizeCycleFromCcSteps({ cycle, ccSteps: steps });
+        weeks_without_cc_total += summary.weeks_without_cc ?? 0;
+        cc_premiums_before_recovery_total += summary.cc_premiums_before_recovery ?? 0;
+        cc_count_before_recovery_total += summary.cc_count_before_recovery ?? 0;
+        weeks_without_cc_before_recovery_total += summary.weeks_without_cc_before_recovery ?? 0;
+
+        if (sample_cycles.length < 8) {
+          sample_cycles.push({
+            ticker: cycle.ticker,
+            assignment_date: cycle.assignment_date,
+            assignment_strike: cycle.assignment_strike,
+            cc_steps_count: summary.cc_steps_count,
+            cc_sold_count: summary.cc_sold_count,
+            weeks_without_cc: summary.weeks_without_cc,
+            total_cc_premium_conservative: summary.total_cc_premium_conservative,
+            cc_premiums_before_recovery: summary.cc_premiums_before_recovery,
+            reduced_cost_basis_estimated: summary.reduced_cost_basis_estimated,
+            latest_cc_test_date: summary.latest_cc_test_date,
+          });
+        }
+
+        if (!dryRun) {
+          for (const step of steps) {
+            await cycleStore.upsertCcStep(step);
+          }
+          await cycleStore.upsertCycle({
+            ...cycle,
+            ...summary,
+            multi_cc_backfilled_at: new Date().toISOString(),
+          });
+          cycles_updated++;
+        }
+      } catch (err) {
+        errors.push({ cycle_id: cycle.id, error: String(err?.message ?? err) });
+      }
+    }
+
+    return {
+      ok: true,
+      dryRun,
+      endDateYmd: endYmd,
+      maxWeeks,
+      cycles_scanned,
+      cycles_eligible,
+      cycles_updated,
+      cc_steps_created,
+      cc_sold,
+      cc_not_sold,
+      total_premium_simulated,
+      weeks_without_cc: weeks_without_cc_total,
+      cc_premiums_before_recovery: cc_premiums_before_recovery_total,
+      cc_count_before_recovery: cc_count_before_recovery_total,
+      weeks_without_cc_before_recovery: weeks_without_cc_before_recovery_total,
+      errors,
+      sample_cycles,
     };
   }
 
@@ -675,6 +1010,24 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
 
     const cc_sellable_steps_count = soldSteps.length;
     const cc_wait_steps_count = waitSteps.length;
+    const cc_steps_count = ccSteps.length;
+    const cc_sold_count = soldSteps.length;
+    const cc_not_sold_count = waitSteps.length;
+    const weeks_without_cc = waitSteps.length;
+
+    const beforeRecoverySold = soldSteps.filter((s) => Number(s.before_recovery_flag) === 1);
+    const beforeRecoveryWait = waitSteps.filter((s) => Number(s.before_recovery_flag) === 1);
+
+    const cc_premiums_before_recovery = beforeRecoverySold.reduce((sum, s) => {
+      let p = null;
+      if (s.premium_conservative != null) p = Number(s.premium_conservative);
+      else if (s.premium_estimated != null) p = Number(s.premium_estimated);
+      else if (s.bs_call_premium != null) p = Number(s.bs_call_premium);
+      return sum + (p != null && Number.isFinite(p) ? p : 0);
+    }, 0);
+
+    const cc_count_before_recovery = beforeRecoverySold.length;
+    const weeks_without_cc_before_recovery = beforeRecoveryWait.length;
 
     let best_cc_threshold_reached = null;
     for (const s of soldSteps) {
@@ -693,26 +1046,46 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
 
     const total_premium_estimated = (cspPremium ?? 0) + total_cc_premium_conservative;
 
+    const initial_net_cost_basis =
+      cspPremium != null && Number.isFinite(assignmentStrike)
+        ? assignmentStrike - cspPremium
+        : null;
+
     const reduced_cost_basis_estimated =
       cspPremium != null && Number.isFinite(assignmentStrike)
         ? assignmentStrike - cspPremium - total_cc_premium_conservative
         : null;
 
+    const latest_cc_test_date =
+      ccSteps.length > 0 ? ccSteps[ccSteps.length - 1].test_date ?? null : null;
+
     const hasCalled = ccSteps.some((s) => s.called_away_theoretical === 1);
     const status = hasCalled ? "closed_theoretical" : "open";
+
+    const source_prime_method =
+      ccSteps.length > 1 ? "black_scholes_multi_cc_step" : "black_scholes_first_cc_step";
 
     return {
       total_cc_premium_estimated,
       total_cc_premium_conservative,
       total_premium_estimated,
+      initial_net_cost_basis,
       reduced_cost_basis_estimated,
       cc_sellable_steps_count,
       cc_wait_steps_count,
+      cc_steps_count,
+      cc_sold_count,
+      cc_not_sold_count,
+      weeks_without_cc,
+      cc_premiums_before_recovery,
+      cc_count_before_recovery,
+      weeks_without_cc_before_recovery,
       best_cc_threshold_reached,
       current_step,
+      latest_cc_test_date,
       status,
       data_quality: cycle.data_quality ?? "estimated_black_scholes",
-      source_prime_method: "black_scholes_first_cc_step",
+      source_prime_method,
     };
   }
 
@@ -1060,7 +1433,15 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     generateCyclesFromAssignedRecords,
     listTheoreticalCycles,
     getTheoreticalCycleSummary,
+    getFirstCcTestDateAfterAssignment,
+    getWeeklyCcExpirationFromTestDate,
+    getNextMarketSessionAfter,
+    computeBeforeRecoveryFlagsForStep,
+    computeCalendarDaysBetween,
+    buildCcStepForCycle,
     buildFirstCcStepForCycle,
+    simulateMultiCcStepsForCycle,
+    refreshMultiCcStepsForCycles,
     generateFirstCcStepsForOpenCycles,
     summarizeCycleFromCcSteps,
     updateCycleSummaryFromCcSteps,

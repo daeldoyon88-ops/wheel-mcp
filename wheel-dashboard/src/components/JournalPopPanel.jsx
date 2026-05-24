@@ -171,6 +171,27 @@ function getTheoreticalCycleReading(cycle) {
   return label;
 }
 
+function getTheoreticalCycleMultiCcSummary(cycle) {
+  const m = cycle?.multi_cc_summary;
+  return {
+    ccSold: numberOrNull(cycle?.cc_sold_count ?? m?.cc_sold_count) ?? 0,
+    ccWait: numberOrNull(cycle?.cc_not_sold_count ?? m?.cc_not_sold_count) ?? 0,
+    weeksWithoutCc: numberOrNull(cycle?.weeks_without_cc ?? m?.weeks_without_cc) ?? 0,
+    totalPremium: numberOrNull(cycle?.total_cc_premium_conservative ?? m?.total_cc_premium_conservative),
+    premiumBeforeRecovery: numberOrNull(cycle?.cc_premiums_before_recovery ?? m?.cc_premiums_before_recovery),
+    initialCost: numberOrNull(cycle?.initial_net_cost_basis ?? m?.initial_net_cost_basis),
+    reducedCost: numberOrNull(cycle?.reduced_cost_basis_estimated ?? m?.reduced_cost_basis_estimated),
+    latestTest: cycle?.latest_cc_test_date ?? m?.latest_cc_test_date ?? null,
+    stepsCount: numberOrNull(cycle?.cc_steps_count) ?? (Array.isArray(cycle?.cc_steps) ? cycle.cc_steps.length : 0),
+  };
+}
+
+function getTheoreticalCycleMultiCcStatusLabel(cycle) {
+  const s = getTheoreticalCycleMultiCcSummary(cycle);
+  const beforeRec = s.premiumBeforeRecovery != null ? formatMoney(s.premiumBeforeRecovery) : "—";
+  return `CC vendus : ${s.ccSold} · Attentes : ${s.ccWait} · Avant recovery : ${beforeRec}`;
+}
+
 function truncateDecisionLine(line, max = 90) {
   if (!line || line.length <= max) return line ?? "";
   return `${line.slice(0, max - 1)}…`;
@@ -2318,6 +2339,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
   const [theoreticalPriceSourceFilter, setTheoreticalPriceSourceFilter] = useState("all");
+  const [expandedTheoreticalCycleId, setExpandedTheoreticalCycleId] = useState(null);
 
   // Ticker ranking V2-L — read-only
   const [tickerRanking, setTickerRanking] = useState(null);
@@ -2677,6 +2699,13 @@ export default function JournalPopPanel({ apiBase, active }) {
         if (known.length === 0) return null;
         return (known.filter((cycle) => cycle?.assignment_recovered === 1).length / known.length) * 100;
       })(),
+      multiCcSoldTotal: rows.reduce((sum, cycle) => sum + (getTheoreticalCycleMultiCcSummary(cycle).ccSold ?? 0), 0),
+      multiCcWaitTotal: rows.reduce((sum, cycle) => sum + (getTheoreticalCycleMultiCcSummary(cycle).ccWait ?? 0), 0),
+      multiCcPremiumTotal: rows.reduce((sum, cycle) => {
+        const p = getTheoreticalCycleMultiCcSummary(cycle).totalPremium;
+        return sum + (p != null ? p : 0);
+      }, 0),
+      multiCcBackfilledCount: rows.filter((cycle) => cycle?.multi_cc_backfilled_at).length,
     };
   }, [filteredTheoreticalCycles]);
   const theoreticalCyclesToWatch = useMemo(() => {
@@ -5706,8 +5735,8 @@ export default function JournalPopPanel({ apiBase, active }) {
       {hasLoaded && activePopTab === "wheelCycles" && (
           <CollapsibleSection
             title="Cycles théoriques Wheel"
-            badge="POP V2-I"
-            subtitle="CSP assigné → CC théorique au strike d’assignation. Détection du retour au strike CSP (close ≥ assignment_strike) après assignation."
+            badge="POP V2-II"
+            subtitle="CSP assigné → simulation multi-CC hebdomadaire au strike d’assignation (≥ 0,5 %). Recovery Phase 1 conservée."
             defaultOpen={false}
             summaryRight={
               theoreticalCyclesStats.total > 0
@@ -5765,6 +5794,18 @@ export default function JournalPopPanel({ apiBase, active }) {
                         : null
                     }
                     sub={theoreticalCyclesStats.recoveryRatePct != null ? `${theoreticalCyclesStats.recoveryRatePct.toFixed(1)} % recovered` : "Recovery N/D"}
+                    tone="good"
+                  />
+                  <ProKpi
+                    label="Multi-CC vendus (total)"
+                    value={theoreticalCyclesStats.multiCcSoldTotal > 0 ? theoreticalCyclesStats.multiCcSoldTotal : null}
+                    sub={`${theoreticalCyclesStats.multiCcWaitTotal} attente(s) · ${theoreticalCyclesStats.multiCcBackfilledCount} cycle(s) backfillés`}
+                    tone="info"
+                  />
+                  <ProKpi
+                    label="Primes CC totales"
+                    value={theoreticalCyclesStats.multiCcPremiumTotal > 0 ? formatMoney(theoreticalCyclesStats.multiCcPremiumTotal) : null}
+                    sub="Cumul conservateur multi-semaines"
                     tone="good"
                   />
                 </div>
@@ -5885,7 +5926,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                           "Statut CC",
                           "Coût réduit",
                           "Total primes / action",
-                          "Lecture",
+                          "Multi-CC",
                         ].map((header) => (
                           <th key={header} className="px-3 py-3 font-semibold whitespace-nowrap">{header}</th>
                         ))}
@@ -5901,8 +5942,11 @@ export default function JournalPopPanel({ apiBase, active }) {
                       ) : (
                         filteredTheoreticalCycles.map((cycle) => {
                           const step = cycle?.first_cc_step;
+                          const multi = getTheoreticalCycleMultiCcSummary(cycle);
+                          const isExpanded = expandedTheoreticalCycleId === cycle.id;
                           return (
-                            <tr key={cycle.id} className="align-top">
+                            <React.Fragment key={cycle.id}>
+                            <tr className="align-top">
                               <td className="px-3 py-3">
                                 <div className="font-semibold text-slate-100">{cycle.ticker ?? "—"}</div>
                                 <div className="mt-1 text-[11px] text-slate-600">
@@ -5962,9 +6006,63 @@ export default function JournalPopPanel({ apiBase, active }) {
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.reduced_cost_basis_estimated)}</td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.total_premium_estimated)}</td>
                               <td className="px-3 py-3">
-                                <div className="max-w-[220px] text-slate-300">{getTheoreticalCycleReading(cycle)}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedTheoreticalCycleId(isExpanded ? null : cycle.id)}
+                                  className="max-w-[240px] text-left text-slate-300 hover:text-sky-300"
+                                >
+                                  <div className="text-[11px] leading-relaxed">{getTheoreticalCycleMultiCcStatusLabel(cycle)}</div>
+                                  <div className="mt-1 text-[10px] text-slate-500">
+                                    {multi.stepsCount > 0 ? `${multi.stepsCount} step(s)` : "—"} · {isExpanded ? "Masquer" : "Détail"}
+                                  </div>
+                                </button>
                               </td>
                             </tr>
+                            {isExpanded && (
+                              <tr key={`${cycle.id}-detail`} className="bg-slate-950/40">
+                                <td colSpan={19} className="px-4 py-4">
+                                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-[11px]">
+                                    <div><span className="text-slate-500">Nb CC vendus</span><p className="mt-1 text-slate-200 tabular-nums">{multi.ccSold}</p></div>
+                                    <div><span className="text-slate-500">Semaines sans CC</span><p className="mt-1 text-slate-200 tabular-nums">{multi.weeksWithoutCc}</p></div>
+                                    <div><span className="text-slate-500">Primes CC totales</span><p className="mt-1 text-emerald-400 tabular-nums">{formatMoney(multi.totalPremium)}</p></div>
+                                    <div><span className="text-slate-500">Primes CC avant retour strike</span><p className="mt-1 text-amber-300 tabular-nums">{formatMoney(multi.premiumBeforeRecovery)}</p></div>
+                                    <div><span className="text-slate-500">Coût net initial</span><p className="mt-1 text-slate-200 tabular-nums">{formatMoney(multi.initialCost)}</p></div>
+                                    <div><span className="text-slate-500">Coût net après CC</span><p className="mt-1 text-slate-200 tabular-nums">{formatMoney(multi.reducedCost)}</p></div>
+                                    <div><span className="text-slate-500">Dernier test CC</span><p className="mt-1 text-slate-200">{formatDate(multi.latestTest)}</p></div>
+                                    <div><span className="text-slate-500">Lecture 1er CC</span><p className="mt-1 text-slate-400">{getTheoreticalCycleReading(cycle)}</p></div>
+                                  </div>
+                                  {Array.isArray(cycle?.cc_steps) && cycle.cc_steps.length > 0 && (
+                                    <div className="mt-4 overflow-x-auto rounded-xl border border-slate-800">
+                                      <table className="min-w-full text-left text-[10px] text-slate-400">
+                                        <thead className="border-b border-slate-800 text-slate-500">
+                                          <tr>
+                                            {["#", "Test", "Exp.", "Strike", "Spot", "Prime cons.", "Rend.", "Statut", "Avant rec."].map((h) => (
+                                              <th key={h} className="px-2 py-2 font-semibold whitespace-nowrap">{h}</th>
+                                            ))}
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800/70">
+                                          {cycle.cc_steps.map((ccStep) => (
+                                            <tr key={`${cycle.id}-step-${ccStep.sequence_number}`}>
+                                              <td className="px-2 py-1.5 tabular-nums">{ccStep.sequence_number ?? "—"}</td>
+                                              <td className="px-2 py-1.5 whitespace-nowrap">{formatDate(ccStep.test_date)}</td>
+                                              <td className="px-2 py-1.5 whitespace-nowrap">{formatDate(ccStep.cc_expiration)}</td>
+                                              <td className="px-2 py-1.5 tabular-nums">{formatMoney(ccStep.cc_strike)}</td>
+                                              <td className="px-2 py-1.5 tabular-nums">{formatMoney(ccStep.spot_at_test)}</td>
+                                              <td className="px-2 py-1.5 tabular-nums text-emerald-400">{formatMoney(ccStep.premium_conservative)}</td>
+                                              <td className="px-2 py-1.5 tabular-nums">{formatPercent(ccStep.cc_yield_conservative_pct)}</td>
+                                              <td className="px-2 py-1.5">{ccStep.cc_sold_theoretical === 1 ? "Vendu" : ccStep.not_sold_reason ?? "Attente"}</td>
+                                              <td className="px-2 py-1.5">{ccStep.before_recovery_flag === 1 ? "Oui" : ccStep.before_recovery_flag === 0 ? "Non" : "—"}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                            </React.Fragment>
                           );
                         })
                       )}

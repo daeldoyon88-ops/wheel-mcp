@@ -2871,6 +2871,23 @@ app.get("/journal/wheel-validation/safe-aggressive-comparison", async (req, res)
   }
 });
 
+app.get("/journal/wheel-validation/v3-candidate-profiles", async (req, res) => {
+  try {
+    const { limit, ticker, mode, minExpirations, includeWeak } = req.query;
+    const result = await wheelValidationService.computeV3CandidateProfiles({
+      limit: limit != null ? Number(limit) : undefined,
+      ticker,
+      mode,
+      minExpirations: minExpirations != null ? Number(minExpirations) : undefined,
+      includeWeak,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[v3-candidate-profiles]", error);
+    res.status(500).json({ ok: false, error: error?.message || "v3_candidate_profiles_failed" });
+  }
+});
+
 app.post("/journal/wheel-validation/capture", async (req, res) => {
   try {
     const body = req.body ?? {};

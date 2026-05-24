@@ -272,6 +272,52 @@ function getResolvedFlag(record) {
   ) === true;
 }
 
+function getRecordYieldPct(record) {
+  const premium = getPremiumCandidate(record);
+  const strike = toNumberOrNull(record?.strike?.strike);
+  if (premium != null && strike != null && strike > 0) {
+    return (premium / strike) * 100;
+  }
+  return (
+    toNumberOrNull(record?.strike?.annualizedYield) ??
+    toNumberOrNull(record?.snapshot?.premium_to_spot_pct) ??
+    null
+  );
+}
+
+function getDteBucketLabel(dteAtScan) {
+  const dte = toNumberOrNull(dteAtScan);
+  if (dte == null) return "DTE_UNKNOWN";
+  if (dte <= 1) return "DTE_0_1";
+  if (dte <= 3) return "DTE_2_3";
+  if (dte <= 7) return "DTE_4_7";
+  if (dte <= 14) return "DTE_8_14";
+  return "DTE_15_PLUS";
+}
+
+function formatYmdForDisplay(value) {
+  const normalized = normalizeYmd(value);
+  if (normalized) {
+    return `${normalized.slice(0, 4)}-${normalized.slice(4, 6)}-${normalized.slice(6, 8)}`;
+  }
+  const raw = String(value ?? "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+}
+
+function computeHistoryDaysBetween(startDate, endDate) {
+  if (!startDate || !endDate) return null;
+  const startUtc = new Date(`${startDate}T00:00:00.000Z`);
+  const endUtc = new Date(`${endDate}T00:00:00.000Z`);
+  if (Number.isNaN(startUtc.getTime()) || Number.isNaN(endUtc.getTime())) return null;
+  return Math.max(1, Math.round((endUtc.getTime() - startUtc.getTime()) / 86400000) + 1);
+}
+
+// V3 — deduplicate resolved outcomes: ticker + mode + expirationDate (ignores strike/rescans).
+function buildV3ExpirationCohortKey(ticker, mode, expiration) {
+  const exp = normalizeYmd(expiration) || String(expiration ?? "").trim();
+  return `${ticker}|${mode}|${exp}`;
+}
+
 function buildResolutionDefaults() {
   return {
     resolved: false,
@@ -3735,6 +3781,426 @@ export function createWheelValidationService(options = {}) {
     };
   }
 
+  async function computeV3CandidateProfiles(options = {}) {
+    const journal = await store.load();
+    const allRecords = Array.isArray(journal?.records) ? journal.records : [];
+
+    const tickerFilter = options.ticker ? normalizeSymbol(options.ticker) : null;
+    const modeRaw = String(options?.mode ?? "all").trim().toLowerCase();
+    const modeFilter = modeRaw === "safe" || modeRaw === "aggressive" ? modeRaw : null;
+    const limitValue = Math.min(Math.max(toNumberOrNull(options?.limit) ?? 50, 1), 500);
+    const minExpirations = Math.max(toNumberOrNull(options?.minExpirations) ?? 0, 0);
+    const includeWeak = options?.includeWeak !== false && String(options?.includeWeak ?? "true").toLowerCase() !== "false";
+
+    const resolvedRecords = allRecords.filter((record) => {
+      if (!getResolvedFlag(record)) return false;
+      const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+      if (!ticker) return false;
+      if (tickerFilter && ticker !== tickerFilter) return false;
+      const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+      if (mode !== "safe" && mode !== "aggressive") return false;
+      if (modeFilter && mode !== modeFilter) return false;
+      return true;
+    });
+
+    const profileMap = new Map();
+    for (const record of resolvedRecords) {
+      const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+      const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+      const dteBucket = getDteBucketLabel(record?.dteAtScan);
+      const profileKey = `${ticker}|${mode}|${dteBucket}`;
+      if (!profileMap.has(profileKey)) {
+        profileMap.set(profileKey, {
+          ticker,
+          mode,
+          dteBucket,
+          dteValues: [],
+          records: [],
+        });
+      }
+      const profile = profileMap.get(profileKey);
+      profile.records.push(record);
+      const dte = toNumberOrNull(record?.dteAtScan);
+      if (dte != null) profile.dteValues.push(dte);
+    }
+
+    function buildV3SampleQuality(uniqueExpirationCount, recordsResolvedCount, historyDays) {
+      if (
+        uniqueExpirationCount < 3 ||
+        recordsResolvedCount < 8 ||
+        (historyDays != null && historyDays < 14)
+      ) {
+        return "weak";
+      }
+      if (
+        uniqueExpirationCount >= 10 &&
+        recordsResolvedCount >= 25 &&
+        historyDays != null &&
+        historyDays >= 60
+      ) {
+        return "strong";
+      }
+      if (
+        uniqueExpirationCount >= 6 &&
+        recordsResolvedCount >= 15 &&
+        historyDays != null &&
+        historyDays >= 30
+      ) {
+        return "medium";
+      }
+      if (
+        uniqueExpirationCount >= 3 &&
+        recordsResolvedCount >= 8 &&
+        historyDays != null &&
+        historyDays >= 14
+      ) {
+        return "preliminary";
+      }
+      return "weak";
+    }
+
+    function buildConfidenceLabel(sampleQuality) {
+      if (sampleQuality === "strong") return "forte";
+      if (sampleQuality === "medium") return "moyenne";
+      if (sampleQuality === "preliminary") return "préliminaire";
+      return "faible";
+    }
+
+    function buildAssignmentRarityLabel(uniqueExpirationCount, assignmentRatePct) {
+      if (uniqueExpirationCount < 6) return "insufficient";
+      if (assignmentRatePct == null) return "insufficient";
+      if (assignmentRatePct <= 10) return "rare";
+      if (assignmentRatePct <= 30) return "normale";
+      return "fréquente";
+    }
+
+    function buildPrimeStrengthLabel(latestYieldPct, medianYieldPct) {
+      if (latestYieldPct == null) return "inconnue";
+      if (medianYieldPct != null && medianYieldPct > 0) {
+        if (latestYieldPct >= medianYieldPct * 1.15) return "forte";
+        if (latestYieldPct < medianYieldPct) return "faible";
+        return "normale";
+      }
+      if (latestYieldPct >= 0.75) return "forte";
+      if (latestYieldPct >= 0.5) return "normale";
+      return "faible";
+    }
+
+    function buildV3Verdict({
+      sampleQuality,
+      primeStrengthLabel,
+      assignmentRarityLabel,
+      uniqueExpirationCount,
+      assignedCount,
+      historyDays,
+    }) {
+      if (sampleQuality === "weak" || uniqueExpirationCount < 3) {
+        return "Données insuffisantes — historique trop court";
+      }
+      if (sampleQuality === "preliminary" && historyDays != null && historyDays < 21) {
+        return "Historique trop court — ne pas surinterpréter";
+      }
+
+      const primePart =
+        primeStrengthLabel === "forte"
+          ? "Prime forte"
+          : primeStrengthLabel === "faible"
+          ? "Prime faible"
+          : primeStrengthLabel === "inconnue"
+          ? "Prime inconnue"
+          : "Prime correcte";
+
+      let assignPart;
+      if (assignmentRarityLabel === "insufficient") {
+        assignPart = `assignation à confirmer (${assignedCount}/${uniqueExpirationCount} exp.)`;
+      } else if (assignmentRarityLabel === "rare") {
+        assignPart = `assignation rare (${assignedCount}/${uniqueExpirationCount} exp.)`;
+      } else if (assignmentRarityLabel === "fréquente") {
+        assignPart = `assignations fréquentes (${assignedCount}/${uniqueExpirationCount} exp.)`;
+      } else {
+        assignPart = `assignation normale (${assignedCount}/${uniqueExpirationCount} exp.)`;
+      }
+
+      if (primeStrengthLabel === "forte" && assignmentRarityLabel === "fréquente") {
+        return "Prime forte mais assignations fréquentes";
+      }
+      if (sampleQuality === "preliminary") {
+        return `${primePart}, ${assignPart} — échantillon préliminaire`;
+      }
+      if (sampleQuality === "weak") {
+        return `${primePart}, ${assignPart} — échantillon faible`;
+      }
+      return `${primePart}, ${assignPart}`;
+    }
+
+    function buildProfileWarnings(ctx) {
+      const warnings = [];
+      if (ctx.historyDays != null && ctx.historyDays < 21) warnings.push("Historique court");
+      if (ctx.uniqueExpirationCount < 6) warnings.push("Moins de 6 expirations uniques");
+      if (ctx.multiStrikeCohorts > 0) warnings.push("Plusieurs strikes dans une même cohorte");
+      if (ctx.hasMultiBucketExpiration) {
+        warnings.push("Même expiration observée dans plusieurs buckets DTE");
+      }
+      if (ctx.mixedOutcomeCohorts > 0) warnings.push("Résultats mixtes sur même expiration");
+      warnings.push("Données ticker/mode, pas strike exact");
+      if (ctx.latestPremium == null) warnings.push("Prime actuelle absente");
+      if (ctx.strikeTouchedRatePct != null && ctx.strikeTouchedRatePct >= 30) {
+        warnings.push("Touch strike élevé");
+      }
+      if (ctx.lowerBoundBrokenCount > 0) warnings.push("LowerBound cassé détecté");
+      if (ctx.sampleQuality === "weak") warnings.push("Échantillon faible — ne pas surinterpréter");
+      return [...new Set(warnings)];
+    }
+
+    let historyStartGlobal = null;
+    let historyEndGlobal = null;
+    for (const record of resolvedRecords) {
+      const scanDay = formatYmdForDisplay(record?.scanDate) ?? String(record?.scanDate ?? "").trim().slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(scanDay)) continue;
+      if (!historyStartGlobal || scanDay < historyStartGlobal) historyStartGlobal = scanDay;
+      if (!historyEndGlobal || scanDay > historyEndGlobal) historyEndGlobal = scanDay;
+    }
+    const historyDaysGlobal = computeHistoryDaysBetween(historyStartGlobal, historyEndGlobal);
+
+    // V3 — detect expirations scanned at different DTE values (span multiple buckets).
+    const expirationBucketMap = new Map();
+    for (const record of resolvedRecords) {
+      const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+      const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+      const expiration = record?.expiration ?? record?.expirationCohort ?? "";
+      const expKey = buildV3ExpirationCohortKey(ticker, mode, expiration);
+      const dteBucket = getDteBucketLabel(record?.dteAtScan);
+      if (!expirationBucketMap.has(expKey)) expirationBucketMap.set(expKey, new Set());
+      expirationBucketMap.get(expKey).add(dteBucket);
+    }
+    const multiBucketExpirationKeys = new Set(
+      [...expirationBucketMap.entries()]
+        .filter(([, buckets]) => buckets.size > 1)
+        .map(([key]) => key)
+    );
+
+    const allProfiles = [];
+
+    for (const group of profileMap.values()) {
+      const recordsResolvedCount = group.records.length;
+      const cohortMap = new Map();
+
+      for (const record of group.records) {
+        const expiration = record?.expiration ?? record?.expirationCohort ?? "";
+        const cohortKey = buildV3ExpirationCohortKey(group.ticker, group.mode, expiration);
+        if (!cohortMap.has(cohortKey)) {
+          cohortMap.set(cohortKey, {
+            expiration,
+            records: [],
+            strikes: new Set(),
+          });
+        }
+        const cohort = cohortMap.get(cohortKey);
+        cohort.records.push(record);
+        const strike = toNumberOrNull(record?.strike?.strike);
+        if (strike != null) cohort.strikes.add(strike);
+      }
+
+      let assignedCount = 0;
+      let expiredWorthlessCount = 0;
+      let strikeTouchedCount = 0;
+      let lowerBoundBrokenCount = 0;
+      let multiStrikeCohorts = 0;
+      let mixedOutcomeCohorts = 0;
+      let hasMultiBucketExpiration = false;
+
+      const cohortYields = [];
+      const cohortPremiums = [];
+      let historyStartDate = null;
+      let historyEndDate = null;
+
+      for (const cohort of cohortMap.values()) {
+        const cohortKey = buildV3ExpirationCohortKey(group.ticker, group.mode, cohort.expiration);
+        if (multiBucketExpirationKeys.has(cohortKey)) hasMultiBucketExpiration = true;
+
+        const assignedFlags = cohort.records.map((r) => getAssignedFlag(r));
+        const expiredFlags = cohort.records.map((r) => getExpiredOtmFlag(r));
+        const touchedFlags = cohort.records.map((r) => getStrikeTouchedFlag(r));
+        const lbFlags = cohort.records.map((r) => getBrokeLowerBoundFlag(r));
+
+        const assignedKnown = assignedFlags.filter((v) => v != null);
+        const assignedMixed =
+          assignedKnown.length > 1 && !assignedKnown.every((v) => v === assignedKnown[0]);
+        const cohortAssigned = assignedFlags.some((v) => v === true);
+        const cohortExpiredWorthless =
+          !cohortAssigned &&
+          (expiredFlags.some((v) => v === true) || assignedKnown.some((v) => v === false));
+        const cohortTouched = touchedFlags.some((v) => v === true);
+        const cohortLbBroken = lbFlags.some((v) => v === true);
+
+        if (assignedMixed) mixedOutcomeCohorts += 1;
+        if (cohort.strikes.size > 1) multiStrikeCohorts += 1;
+
+        if (cohortAssigned) assignedCount += 1;
+        if (cohortExpiredWorthless) expiredWorthlessCount += 1;
+        if (cohortTouched) strikeTouchedCount += 1;
+        if (cohortLbBroken) lowerBoundBrokenCount += 1;
+
+        const latestCohortRecord = [...cohort.records].sort(
+          (a, b) => getLatestTimestamp(b) - getLatestTimestamp(a)
+        )[0];
+        const yieldPct = getRecordYieldPct(latestCohortRecord);
+        const premium = getPremiumCandidate(latestCohortRecord);
+        if (yieldPct != null) cohortYields.push(yieldPct);
+        if (premium != null) cohortPremiums.push(premium);
+
+        for (const record of cohort.records) {
+          const scanDay =
+            formatYmdForDisplay(record?.scanDate) ?? String(record?.scanDate ?? "").trim().slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(scanDay)) continue;
+          if (!historyStartDate || scanDay < historyStartDate) historyStartDate = scanDay;
+          if (!historyEndDate || scanDay > historyEndDate) historyEndDate = scanDay;
+        }
+      }
+
+      const uniqueExpirationCount = cohortMap.size;
+      if (uniqueExpirationCount < minExpirations) continue;
+
+      const historyDays = computeHistoryDaysBetween(historyStartDate, historyEndDate);
+      const sampleQuality = buildV3SampleQuality(uniqueExpirationCount, recordsResolvedCount, historyDays);
+      if (!includeWeak && sampleQuality === "weak") continue;
+
+      const assignmentRatePct =
+        uniqueExpirationCount > 0 ? roundMetric((assignedCount / uniqueExpirationCount) * 100, 2) : null;
+      const expiredWorthlessRatePct =
+        uniqueExpirationCount > 0
+          ? roundMetric((expiredWorthlessCount / uniqueExpirationCount) * 100, 2)
+          : null;
+      const strikeTouchedRatePct =
+        uniqueExpirationCount > 0
+          ? roundMetric((strikeTouchedCount / uniqueExpirationCount) * 100, 2)
+          : null;
+      const lowerBoundBrokenRatePct =
+        uniqueExpirationCount > 0
+          ? roundMetric((lowerBoundBrokenCount / uniqueExpirationCount) * 100, 2)
+          : null;
+
+      const allYields = group.records.map((r) => getRecordYieldPct(r)).filter((v) => v != null);
+      const allPremiums = group.records.map((r) => getPremiumCandidate(r)).filter((v) => v != null);
+      const avgYieldPct = roundMetric(average(allYields), 2);
+      const medianYieldPct = roundMetric(median(allYields), 2);
+      const avgPremium = roundMetric(average(allPremiums), 4);
+      const medianPremium = roundMetric(median(allPremiums), 4);
+
+      const latestRecord = [...group.records].sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a))[0];
+      const latestPremium = roundMetric(getPremiumCandidate(latestRecord), 4);
+      const latestYieldPct = roundMetric(getRecordYieldPct(latestRecord), 2);
+      const premiumVsMedianPct =
+        latestPremium != null && medianPremium != null && medianPremium !== 0
+          ? roundMetric(((latestPremium - medianPremium) / medianPremium) * 100, 2)
+          : null;
+
+      const confidenceLabel = buildConfidenceLabel(sampleQuality);
+      const primeStrengthLabel = buildPrimeStrengthLabel(latestYieldPct, medianYieldPct);
+      const assignmentRarityLabel = buildAssignmentRarityLabel(uniqueExpirationCount, assignmentRatePct);
+      const v3Verdict = buildV3Verdict({
+        sampleQuality,
+        primeStrengthLabel,
+        assignmentRarityLabel,
+        uniqueExpirationCount,
+        assignedCount,
+        historyDays,
+      });
+      const warnings = buildProfileWarnings({
+        historyDays,
+        uniqueExpirationCount,
+        multiStrikeCohorts,
+        mixedOutcomeCohorts,
+        hasMultiBucketExpiration,
+        latestPremium,
+        strikeTouchedRatePct,
+        lowerBoundBrokenCount,
+        sampleQuality,
+      });
+
+      const avgDte =
+        group.dteValues.length > 0
+          ? roundMetric(average(group.dteValues), 1)
+          : null;
+
+      allProfiles.push({
+        ticker: group.ticker,
+        mode: group.mode.toUpperCase(),
+        dteBucket: group.dteBucket,
+        avgDte,
+        recordsResolvedCount,
+        uniqueExpirationCount,
+        assignedCount,
+        expiredWorthlessCount,
+        assignmentRatePct,
+        expiredWorthlessRatePct,
+        strikeTouchedCount,
+        strikeTouchedRatePct,
+        lowerBoundBrokenCount,
+        lowerBoundBrokenRatePct,
+        historyStartDate,
+        historyEndDate,
+        historyDays,
+        avgPremium,
+        medianPremium,
+        avgYieldPct,
+        medianYieldPct,
+        latestPremium,
+        latestYieldPct,
+        premiumVsMedianPct,
+        sampleQuality,
+        confidenceLabel,
+        primeStrengthLabel,
+        assignmentRarityLabel,
+        v3Verdict,
+        warnings,
+      });
+    }
+
+    allProfiles.sort((a, b) => {
+      const tickerCmp = String(a.ticker).localeCompare(String(b.ticker));
+      if (tickerCmp !== 0) return tickerCmp;
+      const modeCmp = String(a.mode).localeCompare(String(b.mode));
+      if (modeCmp !== 0) return modeCmp;
+      return String(a.dteBucket).localeCompare(String(b.dteBucket));
+    });
+
+    const profiles = allProfiles.slice(0, limitValue);
+    const uniqueExpirationsUsed = new Set(
+      resolvedRecords.map((record) =>
+        buildV3ExpirationCohortKey(
+          normalizeSymbol(record?.symbol ?? record?.ticker),
+          String(record?.strikeMode ?? "").trim().toLowerCase(),
+          record?.expiration ?? record?.expirationCohort ?? ""
+        )
+      )
+    ).size;
+
+    return {
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      scope: "ticker/mode/dte historical preliminary profile",
+      warning: "Read-only preliminary V3 metrics. Not a final trade recommendation.",
+      meta: {
+        totalProfiles: allProfiles.length,
+        profilesReturned: profiles.length,
+        historyStartDate: historyStartGlobal,
+        historyEndDate: historyEndGlobal,
+        historyDays: historyDaysGlobal,
+        resolvedRecordsUsed: resolvedRecords.length,
+        uniqueExpirationsUsed,
+        filters: {
+          limit: limitValue,
+          ticker: tickerFilter || null,
+          mode: modeFilter ? modeFilter.toUpperCase() : "ALL",
+          minExpirations,
+          includeWeak,
+        },
+      },
+      profiles,
+    };
+  }
+
   return {
     buildRecordsFromCandidates,
     listJournal,
@@ -3746,6 +4212,7 @@ export function createWheelValidationService(options = {}) {
     computeTickerRanking,
     computeNormalizedDailyPopObservations,
     computeSafeAggressiveComparison,
+    computeV3CandidateProfiles,
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,

@@ -6070,9 +6070,14 @@ export default function JournalPopPanel({ apiBase, active }) {
                       {profile?.wheel?.avgCcSold != null ? profile.wheel.avgCcSold.toFixed(1) : "—"}
                     </td>
                     <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.avgWheelReturnPct, 2)}</td>
-                    <td className={`px-3 py-2.5 text-[11px] ${getOnePercentVerdictTone(profile?.primaryVerdict)}`}>
+                    <td className={`px-3 py-2.5 text-[11px] max-w-[220px] ${getOnePercentVerdictTone(profile?.primaryVerdict)}`}>
                       {profile?.primaryVerdict ?? "—"}
                       <span className="block text-[10px] text-slate-600">{profile?.sampleCredibility ?? ""}</span>
+                      {Array.isArray(profile?.verdictReasons) && profile.verdictReasons.length > 0 ? (
+                        <span className="mt-0.5 block text-[10px] leading-snug text-slate-500">
+                          {profile.verdictReasons.join(" · ")}
+                        </span>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

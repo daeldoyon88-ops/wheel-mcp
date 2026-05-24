@@ -1854,6 +1854,75 @@ function summarizeOnePercentWheelMetrics(cycles) {
   };
 }
 
+function buildOnePercentVerdictReasons(metrics) {
+  const {
+    n,
+    credibility,
+    highYieldSignal,
+    moderateYieldSignal,
+    touchStress,
+    lbStress,
+    assignHigh,
+    profondeHigh,
+    wheel,
+    wheelPnlWeak,
+    wheelPnlPositive,
+    ccWaitDominant,
+    recoveryWeak,
+    recoveryOk,
+    calledAwayOk,
+    winOk,
+    win,
+    procheRate,
+    procheCount,
+    ccSold,
+    primaryVerdict,
+  } = metrics;
+
+  const reasons = [];
+
+  if (credibility === "non prouvé") reasons.push("Échantillon non prouvé");
+  else if (credibility === "très préliminaire") reasons.push("Échantillon très préliminaire");
+  else if (credibility === "préliminaire") reasons.push("Échantillon préliminaire");
+  else if (n >= 30) reasons.push("Échantillon mesurable");
+
+  if (highYieldSignal) reasons.push("Rendement CSP élevé");
+  else if (moderateYieldSignal) reasons.push("Rendement CSP modéré");
+
+  if (touchStress) reasons.push("Touch élevé");
+  if (lbStress) reasons.push("LB cassé élevé");
+  if (assignHigh) reasons.push("Assignation élevée");
+  if (profondeHigh) reasons.push("Assignation profonde");
+  if (assignHigh && procheRate != null && procheRate < 20) reasons.push("Peu d'assignations proches");
+
+  if ((wheel.cyclesAvailable ?? 0) === 0) reasons.push("Wheel non disponible");
+  if (wheelPnlWeak) reasons.push("P/L Wheel faible");
+  if (ccWaitDominant && (wheel.cyclesAvailable ?? 0) > 0) reasons.push("Attente CC dominante");
+  if (recoveryWeak) reasons.push("Recovery faible");
+  if (!winOk && win != null) reasons.push("Win CSP faible");
+
+  if (primaryVerdict === "1 % défendable") {
+    if (!touchStress && !lbStress) reasons.push("Stress maîtrisé");
+    if (wheelPnlPositive) reasons.push("P/L Wheel positif");
+  } else if (primaryVerdict === "faux 1 %") {
+    reasons.push("Prime élevée mais cycle fragile");
+  } else if (primaryVerdict === "1 % à valider" && n >= 15 && n < 30) {
+    reasons.push("Validation après n≥30");
+  } else if (primaryVerdict === "assignation exploitable") {
+    if (procheCount >= 2) reasons.push("Assignations proches");
+    if (recoveryOk) reasons.push("Recovery correcte");
+    if (ccSold > 0) reasons.push("CC vendus");
+  } else if (primaryVerdict === "assignation défavorable" && profondeHigh) {
+    reasons.push("Profondeur défavorable");
+  } else if (primaryVerdict === "Wheel favorable" && calledAwayOk) {
+    reasons.push("Called away favorable");
+  } else if (primaryVerdict === "capital bloqué") {
+    reasons.push("Cycles ouverts bloquants");
+  }
+
+  return [...new Set(reasons)].slice(0, 6);
+}
+
 function buildOnePercentProfileVerdicts(ctx) {
   const verdicts = [];
   const n = ctx.n;
@@ -1957,17 +2026,51 @@ function buildOnePercentProfileVerdicts(ctx) {
   ];
   const primaryVerdict = priority.find((item) => unique.includes(item)) ?? unique[0] ?? "non prouvé";
 
+  const verdictReasonMetrics = {
+    n,
+    credibility,
+    highYieldSignal,
+    moderateYieldSignal,
+    touchStress,
+    lbStress,
+    assignHigh,
+    profondeHigh,
+    wheel,
+    wheelPnlWeak,
+    wheelPnlPositive,
+    ccWaitDominant,
+    recoveryWeak,
+    recoveryOk,
+    calledAwayOk,
+    winOk,
+    win,
+    procheRate,
+    procheCount: ctx.assignment.procheCount ?? 0,
+    ccSold,
+    primaryVerdict,
+  };
+
   if (n < 30 && unique.includes("1 % défendable")) {
     const filtered = unique.filter((item) => item !== "1 % défendable");
     if (!filtered.includes("1 % à valider") && n >= 15) filtered.push("1 % à valider");
+    const adjustedPrimary = priority.find((item) => filtered.includes(item)) ?? "1 % à valider";
     return {
       verdicts: filtered,
-      primaryVerdict: priority.find((item) => filtered.includes(item)) ?? "1 % à valider",
+      primaryVerdict: adjustedPrimary,
       sampleCredibility: credibility,
+      verdictReasons: buildOnePercentVerdictReasons({
+        ...verdictReasonMetrics,
+        primaryVerdict: adjustedPrimary,
+      }),
     };
   }
 
-  return { verdicts: unique, primaryVerdict, sampleCredibility: credibility };
+  return {
+    verdicts: unique,
+    primaryVerdict,
+    sampleCredibility: credibility,
+    verdictReasons: buildOnePercentVerdictReasons(verdictReasonMetrics),
+  };
 }
 
 function scoreOnePercentProfileForSort(profile) {
@@ -2007,7 +2110,7 @@ function buildOnePercentProfile({
   csp.recordsTotal = recordsTotalInTicker ?? n;
   const assignment = summarizeOnePercentAssignmentMetrics(records);
   const wheel = summarizeOnePercentWheelMetrics(cycles);
-  const { verdicts, primaryVerdict, sampleCredibility } = buildOnePercentProfileVerdicts({
+  const { verdicts, primaryVerdict, sampleCredibility, verdictReasons } = buildOnePercentProfileVerdicts({
     n,
     csp,
     assignment,
@@ -2030,6 +2133,7 @@ function buildOnePercentProfile({
     sampleCredibility,
     verdicts,
     primaryVerdict,
+    verdictReasons,
     csp,
     onePercentObjective: {
       highYieldCount: csp.highYieldCount,

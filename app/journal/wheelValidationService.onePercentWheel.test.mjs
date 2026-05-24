@@ -124,3 +124,47 @@ test("computeOnePercentWheelProfiles — profil ticker+mode seulement si échant
   assert.ok(result.profiles.some((p) => p.ticker === "MODE" && p.groupType === "ticker"));
   assert.ok(!result.profiles.some((p) => p.ticker === "MODE" && p.groupType === "ticker_mode"));
 });
+
+test("computeOnePercentWheelProfiles — verdictReasons explique un profil stressé", () => {
+  const records = Array.from({ length: 35 }, (_, index) => ({
+    ...buildResolvedRecord({
+      ticker: "STRESS",
+      yieldPct: 1.1,
+      expiration: `202504${String(10 + (index % 20)).padStart(2, "0")}`,
+      scanDate: `202504${String((index % 28) + 1).padStart(2, "0")}`,
+    }),
+    resolution: {
+      ...buildResolvedRecord({ ticker: "STRESS" }).resolution,
+      strikeTouched: index % 2 === 0,
+      brokeLowerBound: index % 3 === 0,
+    },
+  }));
+  const result = computeOnePercentWheelProfiles(records, [], { today: "2026-05-24" });
+  const profile = result.profiles.find((p) => p.ticker === "STRESS" && p.groupType === "ticker");
+  assert.ok(profile);
+  assert.ok(Array.isArray(profile.verdictReasons));
+  assert.ok(profile.verdictReasons.length > 0);
+  assert.ok(profile.verdictReasons.includes("Rendement CSP élevé"));
+  if (profile.primaryVerdict === "1 % stressé") {
+    assert.ok(
+      profile.verdictReasons.some((reason) =>
+        ["Touch élevé", "LB cassé élevé", "Wheel non disponible", "Assignation élevée"].includes(reason),
+      ),
+    );
+  }
+});
+
+test("computeOnePercentWheelProfiles — verdictReasons mentionne échantillon préliminaire", () => {
+  const records = Array.from({ length: 20 }, (_, index) =>
+    buildResolvedRecord({
+      ticker: "PRELIM",
+      yieldPct: 1.05,
+      expiration: `202505${String(10 + index).padStart(2, "0")}`,
+      scanDate: `202505${String(index + 1).padStart(2, "0")}`,
+    }),
+  );
+  const result = computeOnePercentWheelProfiles(records, [], { today: "2026-05-24" });
+  const profile = result.profiles.find((p) => p.ticker === "PRELIM" && p.groupType === "ticker");
+  assert.ok(profile);
+  assert.ok(profile.verdictReasons.includes("Échantillon préliminaire"));
+});

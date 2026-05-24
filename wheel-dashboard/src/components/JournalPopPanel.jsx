@@ -904,6 +904,14 @@ function getSafeAggSampleQualityTier(minSample) {
   return "correct";
 }
 
+function getSafeAggConfirmedCounts(summary) {
+  if (!summary) return { aggressive: "—", safe: "—" };
+  return {
+    aggressive: summary.aggressive_recommended_confirmed ?? summary.aggressive_recommended ?? "—",
+    safe: summary.safe_recommended_confirmed ?? summary.safe_recommended ?? "—",
+  };
+}
+
 function getSafeAggSampleQualityBadge(tier) {
   if (tier === "faible") {
     return { label: "échantillon faible", className: "border-amber-800/50 bg-amber-900/20 text-amber-400" };
@@ -3691,23 +3699,23 @@ export default function JournalPopPanel({ apiBase, active }) {
               sub={stats.resolvedCount > 0 ? `Readiness ${readiness.score}/100` : undefined}
             />
             <ProKpi
-              label="AGRESSIF recommandés"
-              value={safeAggComparison?.summary?.aggressive_recommended ?? "—"}
+              label="AGRESSIF confirmés"
+              value={getSafeAggConfirmedCounts(safeAggComparison?.summary).aggressive}
               tone="warn"
               sub={
                 safeAggComparison?.summary?.comparable_groups != null
-                  ? `${safeAggComparison.summary.comparable_groups} comparables`
-                  : "V2-N"
+                  ? `Modes confirmés (n≥5) · ${safeAggComparison.summary.comparable_groups} comparables`
+                  : "Modes confirmés (n≥5)"
               }
             />
             <ProKpi
-              label="SAFE recommandés"
-              value={safeAggComparison?.summary?.safe_recommended ?? "—"}
+              label="SAFE confirmés"
+              value={getSafeAggConfirmedCounts(safeAggComparison?.summary).safe}
               tone="good"
               sub={
                 primeQualityStats.avgSpreadPct != null
-                  ? `Spread moy. ${primeQualityStats.avgSpreadPct.toFixed(1)} %`
-                  : undefined
+                  ? `Modes confirmés (n≥5) · spread moy. ${primeQualityStats.avgSpreadPct.toFixed(1)} %`
+                  : "Modes confirmés (n≥5)"
               }
             />
           </div>
@@ -6102,6 +6110,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         const rankings = Array.isArray(tickerRanking.rankings) ? tickerRanking.rankings : [];
         const summary = tickerRanking.summary ?? {};
         const saSummary = safeAggComparison?.summary ?? {};
+        const saConfirmed = getSafeAggConfirmedCounts(saSummary);
 
         const search = rankingTickerSearch.trim().toUpperCase();
         let filtered = rankings;
@@ -6158,7 +6167,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             defaultOpen={false}
             summaryRight={
               summary.top_score != null
-                ? `Meilleur candidat CSP ${summary.top_score} · ${saSummary.aggressive_recommended ?? 0} AGR · ${saSummary.safe_recommended ?? 0} SAFE`
+                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR confirmés · ${saConfirmed.safe} SAFE confirmés`
                 : undefined
             }
           >
@@ -7056,6 +7065,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       {/* ── SAFE vs AGRESSIF V2-N ─────────────────────────────────────────── */}
       {hasLoaded && activePopTab === "safeAggressive" && safeAggComparison && (() => {
         const summary = safeAggComparison.summary ?? {};
+        const confirmedCounts = getSafeAggConfirmedCounts(summary);
         const allRows = Array.isArray(safeAggComparison.comparisons) ? safeAggComparison.comparisons : [];
 
         const tickerSearch = saTickerFilter.trim().toUpperCase();
@@ -7080,15 +7090,15 @@ export default function JournalPopPanel({ apiBase, active }) {
             defaultOpen={false}
             summaryRight={
               summary.comparable_groups != null
-                ? `${summary.comparable_groups} comparables · ${summary.aggressive_recommended ?? 0} AGRESSIF · ${summary.safe_recommended ?? 0} SAFE`
+                ? `${summary.comparable_groups} comparables · ${confirmedCounts.aggressive} AGRESSIF confirmés · ${confirmedCounts.safe} SAFE confirmés`
                 : undefined
             }
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
               <ProKpi label="Comparaisons" value={summary.comparisons_total ?? "—"} tone="default" />
               <ProKpi label="Comparables SAFE+AGRESSIF" value={summary.comparable_groups ?? "—"} tone="info" />
-              <ProKpi label="AGRESSIF recommandé" value={summary.aggressive_recommended ?? "—"} tone="warn" />
-              <ProKpi label="SAFE recommandé" value={summary.safe_recommended ?? "—"} tone="good" />
+              <ProKpi label="AGRESSIF confirmés" value={confirmedCounts.aggressive} tone="warn" sub="Modes confirmés (n≥5)" />
+              <ProKpi label="SAFE confirmés" value={confirmedCounts.safe} tone="good" sub="Modes confirmés (n≥5)" />
             </div>
 
             <div className="mb-4 flex flex-wrap gap-3">
@@ -7115,8 +7125,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                 className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
               >
                 <option value="tous">Mode : tous</option>
-                <option value="SAFE">SAFE recommandé</option>
-                <option value="AGRESSIF">AGRESSIF recommandé</option>
+                <option value="SAFE">SAFE confirmé</option>
+                <option value="AGRESSIF">AGRESSIF confirmé</option>
                 <option value="confirm">À confirmer</option>
               </select>
               <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">

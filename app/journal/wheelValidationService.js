@@ -3588,6 +3588,12 @@ export function createWheelValidationService(options = {}) {
       return Math.round(Math.max(0, Math.min(100, score)));
     }
 
+    const SAMPLE_CONFIRMED_MIN = 5;
+
+    function isSafeAggRecommendationConfirmed(safeCount, aggressiveCount) {
+      return Math.min(safeCount, aggressiveCount) >= SAMPLE_CONFIRMED_MIN;
+    }
+
     function buildDecision({
       safeStats,
       aggressiveStats,
@@ -3601,6 +3607,7 @@ export function createWheelValidationService(options = {}) {
       const safeCount = safeStats.sampleCount;
       const aggressiveCount = aggressiveStats.sampleCount;
       const aggSpread = aggressiveStats.medianSpreadPct;
+      const minModeCount = Math.min(safeCount, aggressiveCount);
 
       if (comparisonStatus === "safe_only" || comparisonStatus === "aggressive_only") {
         if (comparisonStatus === "safe_only") reasons.push("Seulement des observations SAFE");
@@ -3611,6 +3618,7 @@ export function createWheelValidationService(options = {}) {
           decisionConfidence: "faible",
           comparisonScore: Math.min(55, 40),
           reasons: reasons.slice(0, 3),
+          recommendationConfirmed: false,
         };
       }
 
@@ -3622,6 +3630,40 @@ export function createWheelValidationService(options = {}) {
           decisionConfidence: "faible",
           comparisonScore: Math.min(55, 45),
           reasons: reasons.slice(0, 3),
+          recommendationConfirmed: false,
+        };
+      }
+
+      if (minModeCount < SAMPLE_CONFIRMED_MIN) {
+        reasons.push("Échantillon faible");
+        if (premiumLiftPct != null) {
+          reasons.push(`Écart prime ${premiumLiftPct >= 0 ? "+" : ""}${premiumLiftPct.toFixed(1)} %`);
+        }
+        if (assignmentDeltaPct != null) {
+          reasons.push(`Écart assignation ${assignmentDeltaPct >= 0 ? "+" : ""}${assignmentDeltaPct.toFixed(1)} %`);
+        }
+        if (spreadDeltaPct != null) {
+          reasons.push(`Écart spread ${spreadDeltaPct >= 0 ? "+" : ""}${spreadDeltaPct.toFixed(1)} %`);
+        }
+        const comparisonScore = Math.min(
+          55,
+          computeComparisonScore({
+            recommendedMode: "À confirmer",
+            premiumLiftPct,
+            assignmentDeltaPct,
+            lowerBoundDeltaPct,
+            aggressiveSpread: aggSpread,
+            safeCount,
+            aggressiveCount,
+          }),
+        );
+        return {
+          recommendedMode: "À confirmer",
+          modeDecision: "Mode non confirmé — échantillon faible",
+          decisionConfidence: "faible",
+          comparisonScore,
+          reasons: reasons.slice(0, 3),
+          recommendationConfirmed: false,
         };
       }
 
@@ -3703,12 +3745,17 @@ export function createWheelValidationService(options = {}) {
       const decisionConfidence =
         comparisonScore >= 75 ? "élevée" : comparisonScore >= 55 ? "moyenne" : "faible";
 
+      const recommendationConfirmed =
+        isSafeAggRecommendationConfirmed(safeCount, aggressiveCount) &&
+        (recommendedMode === "AGRESSIF" || recommendedMode === "SAFE");
+
       return {
         recommendedMode,
         modeDecision,
         decisionConfidence,
         comparisonScore,
         reasons: reasons.slice(0, 3),
+        recommendationConfirmed,
       };
     }
 
@@ -3793,6 +3840,7 @@ export function createWheelValidationService(options = {}) {
         decisionConfidence: decision.decisionConfidence,
         modeDecision: decision.modeDecision,
         reasons: decision.reasons,
+        recommendationConfirmed: decision.recommendationConfirmed === true,
       });
     }
 
@@ -3813,6 +3861,12 @@ export function createWheelValidationService(options = {}) {
     const aggressiveOnlyGroups = allComparisons.filter((item) => item.comparisonStatus === "aggressive_only").length;
     const aggressiveRecommended = allComparisons.filter((item) => item.recommendedMode === "AGRESSIF").length;
     const safeRecommended = allComparisons.filter((item) => item.recommendedMode === "SAFE").length;
+    const aggressiveRecommendedConfirmed = allComparisons.filter(
+      (item) => item.recommendedMode === "AGRESSIF" && item.recommendationConfirmed === true,
+    ).length;
+    const safeRecommendedConfirmed = allComparisons.filter(
+      (item) => item.recommendedMode === "SAFE" && item.recommendationConfirmed === true,
+    ).length;
 
     return {
       ok: true,
@@ -3826,6 +3880,9 @@ export function createWheelValidationService(options = {}) {
         aggressive_only_groups: aggressiveOnlyGroups,
         aggressive_recommended: aggressiveRecommended,
         safe_recommended: safeRecommended,
+        aggressive_recommended_confirmed: aggressiveRecommendedConfirmed,
+        safe_recommended_confirmed: safeRecommendedConfirmed,
+        sample_confirmed_min: SAMPLE_CONFIRMED_MIN,
         generatedAt: new Date().toISOString(),
       },
       comparisons,
@@ -3833,6 +3890,8 @@ export function createWheelValidationService(options = {}) {
         min_sample_used: minSample,
         observations_source: normalizedResult?.summary ?? null,
         confirm_count: allComparisons.filter((item) => item.recommendedMode === "À confirmer").length,
+        aggressive_recommended_confirmed: aggressiveRecommendedConfirmed,
+        safe_recommended_confirmed: safeRecommendedConfirmed,
         weak_sample_groups: allComparisons.filter(
           (item) =>
             item.comparisonStatus === "comparable" &&

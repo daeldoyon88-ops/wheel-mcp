@@ -142,6 +142,9 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
         avg_cc_premium_conservative: null,
         avg_reduced_cost_basis: null,
         best_threshold_global: null,
+        cycles_recovered: 0,
+        cycles_not_recovered: 0,
+        recovery_rate_pct: null,
       },
       cycles: [],
     };
@@ -180,6 +183,9 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
         avg_cc_premium_conservative: null,
         avg_reduced_cost_basis: null,
         best_threshold_global: null,
+        cycles_recovered: 0,
+        cycles_not_recovered: 0,
+        recovery_rate_pct: null,
       },
       cycles: [],
     };
@@ -243,6 +249,11 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
       cc_sellable_steps_count: numberOrNullSafe(cycle.cc_sellable_steps_count) ?? 0,
       cc_wait_steps_count: numberOrNullSafe(cycle.cc_wait_steps_count) ?? 0,
       best_cc_threshold_reached: numberOrNullSafe(cycle.best_cc_threshold_reached),
+      days_to_strike_touch: numberOrNullSafe(cycle.days_to_strike_touch),
+      days_to_strike_close_above: numberOrNullSafe(cycle.days_to_strike_close_above),
+      days_below_assignment_strike: numberOrNullSafe(cycle.days_below_assignment_strike),
+      assignment_recovery_date: cycle.assignment_recovery_date ?? null,
+      assignment_recovered: Number(cycle.assignment_recovered) === 1 ? 1 : Number(cycle.assignment_recovered) === 0 ? 0 : null,
       status: cycle.status ?? null,
       current_step: numberOrNullSafe(cycle.current_step) ?? 0,
       confidence_level: cycle.confidence_level ?? null,
@@ -285,6 +296,8 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
   let reducedCostBasisSum = 0;
   let reducedCostBasisCount = 0;
   let bestThresholdGlobal = null;
+  let cyclesRecovered = 0;
+  let cyclesNotRecovered = 0;
 
   for (const cycle of limitedCycles) {
     if (cycle.ticker) tickers.add(String(cycle.ticker));
@@ -303,8 +316,12 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
     if (threshold != null && (bestThresholdGlobal == null || threshold > bestThresholdGlobal)) {
       bestThresholdGlobal = threshold;
     }
+    if (cycle.assignment_recovered === 1) cyclesRecovered += 1;
+    else if (cycle.assignment_recovered === 0) cyclesNotRecovered += 1;
     delete cycle._meta;
   }
+
+  const recoveryKnownCount = cyclesRecovered + cyclesNotRecovered;
 
   return {
     summary: {
@@ -319,6 +336,9 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
       avg_cc_premium_conservative: limitedCycles.length > 0 ? totalCcPremiumConservative / limitedCycles.length : null,
       avg_reduced_cost_basis: reducedCostBasisCount > 0 ? reducedCostBasisSum / reducedCostBasisCount : null,
       best_threshold_global: bestThresholdGlobal,
+      cycles_recovered: cyclesRecovered,
+      cycles_not_recovered: cyclesNotRecovered,
+      recovery_rate_pct: recoveryKnownCount > 0 ? (cyclesRecovered / recoveryKnownCount) * 100 : null,
     },
     cycles: limitedCycles,
   };

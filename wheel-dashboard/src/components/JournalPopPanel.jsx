@@ -143,6 +143,18 @@ function getTheoreticalCycleStatusLabel(cycle) {
   return cycle?.first_cc_step?.cc_sold_theoretical === 1 ? "Vendu" : "Attente";
 }
 
+function getTheoreticalCycleRecoveryStatusLabel(cycle) {
+  if (cycle?.assignment_recovered === 1) return "Revenu au strike";
+  if (cycle?.assignment_recovered === 0) return "Pas encore revenu";
+  return "N/D";
+}
+
+function getTheoreticalCycleRecoveryTone(cycle) {
+  if (cycle?.assignment_recovered === 1) return "text-emerald-400";
+  if (cycle?.assignment_recovered === 0) return "text-amber-400";
+  return "text-slate-500";
+}
+
 function getTheoreticalCycleReading(cycle) {
   const step = cycle?.first_cc_step;
   if (!step) return "Aucun CC step";
@@ -2658,6 +2670,13 @@ export default function JournalPopPanel({ apiBase, active }) {
       stepsWithFirstStep,
       ohlcTrueCount,
       ohlcPct: stepsWithFirstStep > 0 ? (ohlcTrueCount / stepsWithFirstStep) * 100 : null,
+      recoveredCount: rows.filter((cycle) => cycle?.assignment_recovered === 1).length,
+      notRecoveredCount: rows.filter((cycle) => cycle?.assignment_recovered === 0).length,
+      recoveryRatePct: (() => {
+        const known = rows.filter((cycle) => cycle?.assignment_recovered === 1 || cycle?.assignment_recovered === 0);
+        if (known.length === 0) return null;
+        return (known.filter((cycle) => cycle?.assignment_recovered === 1).length / known.length) * 100;
+      })(),
     };
   }, [filteredTheoreticalCycles]);
   const theoreticalCyclesToWatch = useMemo(() => {
@@ -5688,7 +5707,7 @@ export default function JournalPopPanel({ apiBase, active }) {
           <CollapsibleSection
             title="Cycles théoriques Wheel"
             badge="POP V2-I"
-            subtitle="CSP assigné → CC théorique au strike d’assignation, calculé avec le prix d’ouverture de la première séance après assignation quand disponible."
+            subtitle="CSP assigné → CC théorique au strike d’assignation. Détection du retour au strike CSP (close ≥ assignment_strike) après assignation."
             defaultOpen={false}
             summaryRight={
               theoreticalCyclesStats.total > 0
@@ -5737,6 +5756,16 @@ export default function JournalPopPanel({ apiBase, active }) {
                     label="Vrai OHLC"
                     value={theoreticalCyclesStats.ohlcPct != null ? `${theoreticalCyclesStats.ohlcPct.toFixed(1)} %` : null}
                     sub={theoreticalCyclesStats.stepsWithFirstStep > 0 ? `${theoreticalCyclesStats.ohlcTrueCount}/${theoreticalCyclesStats.stepsWithFirstStep} cycles avec first CC step` : "Aucun first CC step"}
+                  />
+                  <ProKpi
+                    label="Revenu au strike"
+                    value={
+                      theoreticalCyclesStats.recoveredCount + theoreticalCyclesStats.notRecoveredCount > 0
+                        ? `${theoreticalCyclesStats.recoveredCount} / ${theoreticalCyclesStats.recoveredCount + theoreticalCyclesStats.notRecoveredCount}`
+                        : null
+                    }
+                    sub={theoreticalCyclesStats.recoveryRatePct != null ? `${theoreticalCyclesStats.recoveryRatePct.toFixed(1)} % recovered` : "Recovery N/D"}
+                    tone="good"
                   />
                 </div>
 
@@ -5842,6 +5871,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                           "Mode",
                           "Date assign.",
                           "Strike assign.",
+                          "Date retour strike",
+                          "Jours retour strike",
+                          "Statut recovery",
+                          "Jours sous strike",
                           "Prix lundi utilisé",
                           "Règle prix",
                           "Prime CSP",
@@ -5861,7 +5894,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tbody className="divide-y divide-slate-800/70">
                       {filteredTheoreticalCycles.length === 0 ? (
                         <tr>
-                          <td colSpan={15} className="px-4 py-8 text-center text-sm text-slate-600">
+                          <td colSpan={19} className="px-4 py-8 text-center text-sm text-slate-600">
                             Aucun cycle ne correspond aux filtres.
                           </td>
                         </tr>
@@ -5879,6 +5912,19 @@ export default function JournalPopPanel({ apiBase, active }) {
                               <td className="px-3 py-3 whitespace-nowrap">{formatTheoreticalCycleMode(cycle.strike_mode)}</td>
                               <td className="px-3 py-3 whitespace-nowrap">{formatDate(cycle.assignment_date)}</td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.assignment_strike)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap">{formatDate(cycle.assignment_recovery_date)}</td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">
+                                {cycle?.days_to_strike_close_above != null ? cycle.days_to_strike_close_above : "—"}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <div className={getTheoreticalCycleRecoveryTone(cycle)}>{getTheoreticalCycleRecoveryStatusLabel(cycle)}</div>
+                                {cycle?.days_to_strike_touch != null && cycle.days_to_strike_touch !== cycle.days_to_strike_close_above && (
+                                  <div className="mt-1 text-[11px] text-slate-600">Touch {cycle.days_to_strike_touch} j</div>
+                                )}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">
+                                {cycle?.days_below_assignment_strike != null ? cycle.days_below_assignment_strike : "—"}
+                              </td>
                               <td className="px-3 py-3 whitespace-nowrap">
                                 <div className="tabular-nums">{formatMoney(step?.stock_price_used)}</div>
                                 <div className="mt-1 text-[11px] text-slate-600">{step?.test_date ? `test ${formatDate(step.test_date)}` : "test N/D"}</div>

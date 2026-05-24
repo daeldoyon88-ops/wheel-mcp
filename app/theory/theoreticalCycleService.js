@@ -88,6 +88,8 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
       days_to_strike_touch: null,
       days_to_strike_close_above: null,
       days_below_assignment_strike: null,
+      assignment_recovery_date: null,
+      assignment_recovered: null,
       max_drawdown_pct:
         record.drawdownPct != null ? Number(record.drawdownPct) :
         record.drawdown_pct != null ? Number(record.drawdown_pct) :
@@ -848,6 +850,211 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     return cycleStore.getSummary();
   }
 
+  // ─────────────────────────────────────────────
+  // normalizeDateToYmd
+  // Pure — normalizes YYYY-MM-DD or YYYYMMDD to YYYY-MM-DD.
+  // ─────────────────────────────────────────────
+  function normalizeDateToYmd(value) {
+    if (value == null || value === "") return null;
+    const raw = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const compact = raw.replace(/-/g, "");
+    if (/^\d{8}$/.test(compact)) {
+      return `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
+    }
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+    return null;
+  }
+
+  // ─────────────────────────────────────────────
+  // computeAssignmentRecoveryMetrics
+  // Pure — scans daily candles AFTER assignment_date for return to assignment_strike.
+  // Recovery principal: first close >= assignment_strike.
+  // Touch optionnel: first high >= assignment_strike.
+  // ─────────────────────────────────────────────
+  function computeAssignmentRecoveryMetrics({
+    assignmentDate,
+    assignmentStrike,
+    candles = [],
+    endDateYmd = null,
+  } = {}) {
+    const strike = Number(assignmentStrike);
+    const assignYmd = normalizeDateToYmd(assignmentDate);
+    const endYmd = normalizeDateToYmd(endDateYmd) ?? new Date().toISOString().slice(0, 10);
+
+    if (!Number.isFinite(strike) || !assignYmd) {
+      return {
+        days_to_strike_touch: null,
+        days_to_strike_close_above: null,
+        days_below_assignment_strike: null,
+        assignment_recovery_date: null,
+        assignment_recovered: null,
+        data_quality: "recovery_inputs_invalid",
+      };
+    }
+
+    const sorted = (Array.isArray(candles) ? candles : [])
+      .filter((c) => c?.date && c.date > assignYmd && c.date <= endYmd)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+    if (sorted.length === 0) {
+      return {
+        days_to_strike_touch: null,
+        days_to_strike_close_above: null,
+        days_below_assignment_strike: null,
+        assignment_recovery_date: null,
+        assignment_recovered: null,
+        data_quality: "recovery_no_post_assignment_candles",
+      };
+    }
+
+    let tradingDayIndex = 0;
+    let days_to_strike_touch = null;
+    let days_to_strike_close_above = null;
+    let days_below_assignment_strike = 0;
+    let assignment_recovery_date = null;
+
+    for (const candle of sorted) {
+      tradingDayIndex += 1;
+      const close = Number(candle.close);
+      const high = Number(candle.high);
+      const closeAbove = Number.isFinite(close) && close >= strike;
+      const highTouch = Number.isFinite(high) && high >= strike;
+
+      if (days_to_strike_touch == null && highTouch) {
+        days_to_strike_touch = tradingDayIndex;
+      }
+
+      if (closeAbove) {
+        days_to_strike_close_above = tradingDayIndex;
+        assignment_recovery_date = candle.date;
+        break;
+      }
+
+      if (Number.isFinite(close) && close < strike) {
+        days_below_assignment_strike += 1;
+      }
+    }
+
+    return {
+      days_to_strike_touch,
+      days_to_strike_close_above,
+      days_below_assignment_strike,
+      assignment_recovery_date,
+      assignment_recovered: assignment_recovery_date ? 1 : 0,
+      data_quality: "recovery_computed",
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // refreshAssignmentRecoveryForCycles
+  // POP V2-Phase1: fetches post-assignment daily OHLC and stores recovery metrics.
+  // Does NOT modify CC steps or wheel_validation_records.
+  // ─────────────────────────────────────────────
+  async function refreshAssignmentRecoveryForCycles({
+    dryRun = false,
+    limit = null,
+    endDateYmd = null,
+    forceRefresh = false,
+    onlyMissing = true,
+  } = {}) {
+    await cycleStore.ensureInitialized();
+
+    const endYmd = normalizeDateToYmd(endDateYmd) ?? new Date().toISOString().slice(0, 10);
+    let cycles = await cycleStore.listCycles(limit != null ? Number(limit) : 999999);
+
+    if (onlyMissing && !forceRefresh) {
+      cycles = cycles.filter(
+        (c) => c.assignment_recovered == null && c.days_to_strike_close_above == null
+      );
+    }
+
+    let cycles_scanned = cycles.length;
+    let cycles_eligible = 0;
+    let cycles_updated = 0;
+    let cycles_recovered = 0;
+    let cycles_not_recovered = 0;
+    let cycles_no_ohlc = 0;
+    const errors = [];
+    const sample_cycles = [];
+
+    for (const cycle of cycles) {
+      if (!cycle?.assignment_date || cycle?.assignment_strike == null || !cycle?.ticker) {
+        continue;
+      }
+      cycles_eligible++;
+
+      const assignYmd = normalizeDateToYmd(cycle.assignment_date);
+      if (!assignYmd) {
+        errors.push({ cycle_id: cycle.id, error: "invalid_assignment_date" });
+        continue;
+      }
+
+      let candles = [];
+      if (effectiveMarketService?.getDailyOhlcRange) {
+        const range = await effectiveMarketService.getDailyOhlcRange(cycle.ticker, assignYmd, endYmd);
+        if (range?.ok && Array.isArray(range.candles)) {
+          candles = range.candles;
+        }
+      }
+
+      if (candles.length === 0) {
+        cycles_no_ohlc++;
+      }
+
+      const recovery = computeAssignmentRecoveryMetrics({
+        assignmentDate: assignYmd,
+        assignmentStrike: cycle.assignment_strike,
+        candles,
+        endDateYmd: endYmd,
+      });
+
+      if (recovery.assignment_recovered === 1) cycles_recovered++;
+      else if (recovery.assignment_recovered === 0) cycles_not_recovered++;
+
+      if (sample_cycles.length < 8) {
+        sample_cycles.push({
+          ticker: cycle.ticker,
+          assignment_date: assignYmd,
+          assignment_strike: cycle.assignment_strike,
+          assignment_recovery_date: recovery.assignment_recovery_date,
+          days_to_strike_close_above: recovery.days_to_strike_close_above,
+          days_to_strike_touch: recovery.days_to_strike_touch,
+          days_below_assignment_strike: recovery.days_below_assignment_strike,
+          assignment_recovered: recovery.assignment_recovered,
+          candle_count: candles.length,
+        });
+      }
+
+      if (!dryRun) {
+        try {
+          await cycleStore.upsertCycle({
+            ...cycle,
+            ...recovery,
+          });
+          cycles_updated++;
+        } catch (err) {
+          errors.push({ cycle_id: cycle.id, error: String(err?.message ?? err) });
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      dryRun,
+      endDateYmd: endYmd,
+      cycles_scanned,
+      cycles_eligible,
+      cycles_updated,
+      cycles_recovered,
+      cycles_not_recovered,
+      cycles_no_ohlc,
+      errors,
+      sample_cycles,
+    };
+  }
+
   return {
     buildCycleFromAssignedRecord,
     generateCyclesFromAssignedRecords,
@@ -858,5 +1065,8 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     summarizeCycleFromCcSteps,
     updateCycleSummaryFromCcSteps,
     refreshAllCycleSummaries,
+    normalizeDateToYmd,
+    computeAssignmentRecoveryMetrics,
+    refreshAssignmentRecoveryForCycles,
   };
 }

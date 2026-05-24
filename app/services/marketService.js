@@ -682,6 +682,95 @@ export function createMarketService(provider) {
     }
   }
 
+  async function getDailyOhlcRange(symbol, startDateYmd, endDateYmd) {
+    const rawSymbol = String(symbol ?? "").trim().toUpperCase();
+    const rawStartDate = String(startDateYmd ?? "").trim();
+    const rawEndDate = String(endDateYmd ?? "").trim();
+    if (
+      !rawSymbol ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(rawStartDate) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(rawEndDate)
+    ) {
+      return {
+        ok: false,
+        symbol: rawSymbol || null,
+        startDate: rawStartDate || null,
+        endDate: rawEndDate || null,
+        candles: [],
+        error: "invalid_symbol_or_date",
+      };
+    }
+
+    const startDate = new Date(`${rawStartDate}T00:00:00.000Z`);
+    const endDate = new Date(`${rawEndDate}T23:59:59.999Z`);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return {
+        ok: false,
+        symbol: rawSymbol,
+        startDate: rawStartDate,
+        endDate: rawEndDate,
+        candles: [],
+        error: "invalid_symbol_or_date",
+      };
+    }
+    if (startDate.getTime() > endDate.getTime()) {
+      return {
+        ok: false,
+        symbol: rawSymbol,
+        startDate: rawStartDate,
+        endDate: rawEndDate,
+        candles: [],
+        error: "invalid_date_range",
+      };
+    }
+
+    try {
+      const period1 = new Date(startDate.getTime() - 1000 * 60 * 60 * 24);
+      const result = await provider.getChart(rawSymbol, {
+        period1,
+        interval: "1d",
+      });
+      const quotes = Array.isArray(result?.quotes) ? result.quotes : [];
+      const candles = [];
+      for (const q of quotes) {
+        const dt = q?.date != null ? new Date(q.date) : null;
+        if (!dt || Number.isNaN(dt.getTime())) continue;
+        const ymd = dt.toISOString().slice(0, 10);
+        if (ymd < rawStartDate || ymd > rawEndDate) continue;
+        const open = toNumber(q?.open);
+        const high = toNumber(q?.high);
+        const low = toNumber(q?.low);
+        const close = toNumber(q?.close);
+        if (!(close > 0 || high > 0 || low > 0 || open > 0)) continue;
+        candles.push({
+          date: ymd,
+          open: open > 0 ? open : null,
+          high: high > 0 ? high : null,
+          low: low > 0 ? low : null,
+          close: close > 0 ? close : null,
+        });
+      }
+      candles.sort((a, b) => a.date.localeCompare(b.date));
+      return {
+        ok: true,
+        symbol: rawSymbol,
+        startDate: rawStartDate,
+        endDate: rawEndDate,
+        source: "yahoo_daily",
+        candles,
+      };
+    } catch (_error) {
+      return {
+        ok: false,
+        symbol: rawSymbol,
+        startDate: rawStartDate,
+        endDate: rawEndDate,
+        candles: [],
+        error: "daily_ohlc_range_unavailable",
+      };
+    }
+  }
+
   async function getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd) {
     const rawSymbol = String(symbol ?? "").trim().toUpperCase();
     const rawScanDate = String(scanDateYmd ?? "").trim();
@@ -880,6 +969,7 @@ export function createMarketService(provider) {
     getSupportResistance,
     getHistoricalClose,
     getDailyOhlcForDate,
+    getDailyOhlcRange,
     getHistoricalWindowMetrics,
     getBestStrike,
     analyzeTradeSetup,

@@ -158,6 +158,8 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
 
     // Additive migrations — idempotent, safe for future columns
     safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN source_prime_method TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN assignment_recovery_date TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN assignment_recovered INTEGER`);
     safeExec(conn, `ALTER TABLE theoretical_cc_steps ADD COLUMN intraday_best_threshold_reached REAL`);
 
     initialized = true;
@@ -181,6 +183,7 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         days_to_strike_touch, days_to_strike_close_above, days_below_assignment_strike, max_drawdown_pct,
         total_cc_premium_estimated, total_cc_premium_conservative, total_premium_estimated,
         reduced_cost_basis_estimated, cc_sellable_steps_count, cc_wait_steps_count, best_cc_threshold_reached,
+        assignment_recovery_date, assignment_recovered,
         source_prime_method, confidence_level, data_quality, raw_json,
         created_at, updated_at
       ) VALUES (
@@ -192,6 +195,7 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         @days_to_strike_touch, @days_to_strike_close_above, @days_below_assignment_strike, @max_drawdown_pct,
         @total_cc_premium_estimated, @total_cc_premium_conservative, @total_premium_estimated,
         @reduced_cost_basis_estimated, @cc_sellable_steps_count, @cc_wait_steps_count, @best_cc_threshold_reached,
+        @assignment_recovery_date, @assignment_recovered,
         @source_prime_method, @confidence_level, @data_quality, @raw_json,
         @created_at, @updated_at
       ) ON CONFLICT(id) DO UPDATE SET
@@ -226,6 +230,8 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         cc_sellable_steps_count=excluded.cc_sellable_steps_count,
         cc_wait_steps_count=excluded.cc_wait_steps_count,
         best_cc_threshold_reached=excluded.best_cc_threshold_reached,
+        assignment_recovery_date=excluded.assignment_recovery_date,
+        assignment_recovered=excluded.assignment_recovered,
         source_prime_method=excluded.source_prime_method,
         confidence_level=excluded.confidence_level,
         data_quality=excluded.data_quality,
@@ -266,6 +272,8 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
       cc_sellable_steps_count: toInt(cycle.cc_sellable_steps_count) ?? 0,
       cc_wait_steps_count: toInt(cycle.cc_wait_steps_count) ?? 0,
       best_cc_threshold_reached: toReal(cycle.best_cc_threshold_reached),
+      assignment_recovery_date: cycle.assignment_recovery_date ?? null,
+      assignment_recovered: toIntBool(cycle.assignment_recovered),
       source_prime_method: cycle.source_prime_method ?? null,
       confidence_level: cycle.confidence_level ?? null,
       data_quality: cycle.data_quality ?? null,

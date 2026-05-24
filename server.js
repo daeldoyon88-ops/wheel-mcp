@@ -2873,11 +2873,12 @@ app.get("/journal/wheel-validation/safe-aggressive-comparison", async (req, res)
 
 app.get("/journal/wheel-validation/v3-candidate-profiles", async (req, res) => {
   try {
-    const { limit, ticker, mode, minExpirations, includeWeak } = req.query;
+    const { limit, ticker, mode, minExpirations, includeWeak, scope } = req.query;
     const result = await wheelValidationService.computeV3CandidateProfiles({
       limit: limit != null ? Number(limit) : undefined,
       ticker,
       mode,
+      scope,
       minExpirations: minExpirations != null ? Number(minExpirations) : undefined,
       includeWeak,
     });

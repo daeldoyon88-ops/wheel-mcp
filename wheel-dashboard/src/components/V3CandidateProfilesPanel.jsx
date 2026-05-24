@@ -4,6 +4,12 @@ const SAMPLE_QUALITY_RANK = { strong: 4, medium: 3, preliminary: 2, weak: 1 };
 const DEFAULT_VISIBLE = 8;
 const MAX_INLINE_WARNINGS = 2;
 
+const SCOPE_OPTIONS = [
+  { value: "ticker", label: "Global ticker" },
+  { value: "ticker_mode", label: "Par mode" },
+  { value: "ticker_mode_dte", label: "Détail mode/DTE" },
+];
+
 const SAMPLE_QUALITY_LABELS = {
   weak: "faible",
   preliminary: "préliminaire",
@@ -19,6 +25,16 @@ const PRIME_STRENGTH_LABELS = {
 };
 
 const WARNING_PRIORITY_RULES = [
+  {
+    key: "ticker_global",
+    match: (w) => w === "Profil ticker global — modes et DTE mélangés",
+    short: "Ticker global — modes/DTE mélangés",
+  },
+  {
+    key: "ticker_mode_global",
+    match: (w) => w === "Profil ticker/mode global — DTE mélangés",
+    short: "Ticker/mode — DTE mélangés",
+  },
   { key: "historique_court", match: (w) => w === "Historique court", short: "Historique court" },
   {
     key: "exp_uniques",
@@ -37,17 +53,28 @@ const WARNING_PRIORITY_RULES = [
     short: "Expiration fragmentée entre buckets DTE",
   },
   {
+    key: "ticker_data",
+    match: (w) => w === "Données ticker globales, pas strike exact",
+    short: "Données ticker globales",
+  },
+  {
     key: "ticker_mode",
     match: (w) => w === "Données ticker/mode, pas strike exact",
     short: "Données ticker/mode, pas strike exact",
   },
 ];
 
-function formatModeLabel(mode) {
+function formatModeLabel(mode, scope) {
   const raw = String(mode ?? "").trim().toUpperCase();
+  if (scope === "ticker" || raw === "GLOBAL" || raw === "ALL") return "Tous modes";
   if (raw === "AGGRESSIVE" || raw === "AGRESSIF") return "AGRESSIF";
   if (raw === "SAFE") return "SAFE";
   return raw || "—";
+}
+
+function formatDteLabel(dteBucket, scope) {
+  if (scope === "ticker" || scope === "ticker_mode") return "Tous DTE";
+  return dteBucket ?? "—";
 }
 
 function formatYieldPct(value) {
@@ -87,29 +114,6 @@ function sortProfiles(profiles) {
   });
 }
 
-function pickBestProfilePerTicker(sortedProfiles) {
-  const tickerCounts = new Map();
-  for (const profile of sortedProfiles) {
-    const ticker = String(profile.ticker ?? "").toUpperCase();
-    if (!ticker) continue;
-    tickerCounts.set(ticker, (tickerCounts.get(ticker) ?? 0) + 1);
-  }
-
-  const seen = new Set();
-  const entries = [];
-  for (const profile of sortedProfiles) {
-    const ticker = String(profile.ticker ?? "").toUpperCase();
-    if (!ticker || seen.has(ticker)) continue;
-    seen.add(ticker);
-    const totalForTicker = tickerCounts.get(ticker) ?? 1;
-    entries.push({
-      profile,
-      extraProfileCount: totalForTicker - 1,
-    });
-  }
-  return entries;
-}
-
 function getSampleQualityBadgeClass(quality) {
   if (quality === "strong") return "border-emerald-800/50 bg-emerald-900/20 text-emerald-400";
   if (quality === "medium") return "border-sky-800/50 bg-sky-900/20 text-sky-400";
@@ -123,6 +127,15 @@ function normalizeWarningText(warning) {
 
 function mapWarningForDisplay(warning) {
   const text = normalizeWarningText(warning);
+  if (text === "Profil ticker global — modes et DTE mélangés") {
+    return "Ticker global — modes et DTE mélangés.";
+  }
+  if (text === "Profil ticker/mode global — DTE mélangés") {
+    return "Ticker/mode global — DTE mélangés.";
+  }
+  if (text === "Données ticker globales, pas strike exact") {
+    return "Données ticker globales, pas strike exact.";
+  }
   if (text.includes("Même expiration observée dans plusieurs buckets DTE")) {
     return "Expiration fragmentée entre buckets DTE.";
   }
@@ -176,7 +189,13 @@ function shortenVerdict(verdict) {
   return `${text.slice(0, 69)}…`;
 }
 
-function ProfileCard({ profile, extraProfileCount = 0 }) {
+function getDisplayUnitLabels(scope) {
+  if (scope === "ticker") return { plural: "tickers", singular: "ticker" };
+  if (scope === "ticker_mode") return { plural: "profils mode", singular: "profil mode" };
+  return { plural: "profils DTE", singular: "profil DTE" };
+}
+
+function ProfileCard({ profile, scope }) {
   const [warningsOpen, setWarningsOpen] = useState(false);
 
   const expCount = profile.uniqueExpirationCount ?? 0;
@@ -197,14 +216,9 @@ function ProfileCard({ profile, extraProfileCount = 0 }) {
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[11px] font-bold text-slate-100">{profile.ticker}</span>
         <span className="text-[10px] text-slate-500">·</span>
-        <span className="text-[10px] font-medium text-slate-300">{formatModeLabel(profile.mode)}</span>
+        <span className="text-[10px] font-medium text-slate-300">{formatModeLabel(profile.mode, scope)}</span>
         <span className="text-[10px] text-slate-500">·</span>
-        <span className="text-[10px] text-slate-500">{profile.dteBucket ?? "—"}</span>
-        {extraProfileCount > 0 && (
-          <span className="rounded border border-violet-800/50 bg-violet-900/20 px-1.5 py-0.5 text-[9px] font-medium text-violet-400">
-            +{extraProfileCount} profil{extraProfileCount !== 1 ? "s" : ""}
-          </span>
-        )}
+        <span className="text-[10px] text-slate-500">{formatDteLabel(profile.dteBucket, scope)}</span>
         <span className={`ml-auto rounded border px-1.5 py-0.5 text-[9px] font-semibold ${getSampleQualityBadgeClass(profile.sampleQuality)}`}>
           {sampleLabel}
         </span>
@@ -295,15 +309,20 @@ export default function V3CandidateProfilesPanel({ apiBase }) {
   const [qualityFilter, setQualityFilter] = useState("tous");
   const [primeFilter, setPrimeFilter] = useState("tous");
   const [assignmentFilter, setAssignmentFilter] = useState("tous");
-  const [viewMode, setViewMode] = useState("bestPerTicker");
+  const [scope, setScope] = useState("ticker");
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE);
 
   const loadProfiles = useCallback(async () => {
     setLoading(true);
     setFetchError("");
     try {
+      const params = new URLSearchParams({
+        limit: "500",
+        includeWeak: "true",
+        scope,
+      });
       const response = await fetch(
-        `${apiBase}/journal/wheel-validation/v3-candidate-profiles?limit=50&includeWeak=true`,
+        `${apiBase}/journal/wheel-validation/v3-candidate-profiles?${params}`,
       ).catch(() => null);
       if (!response) {
         setFetchError("Endpoint V3 indisponible — redémarrer le serveur si nécessaire.");
@@ -323,7 +342,7 @@ export default function V3CandidateProfilesPanel({ apiBase }) {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, scope]);
 
   useEffect(() => {
     loadProfiles();
@@ -363,33 +382,24 @@ export default function V3CandidateProfilesPanel({ apiBase }) {
 
   const sortedProfiles = useMemo(() => sortProfiles(filteredProfiles), [filteredProfiles]);
 
-  const displayEntries = useMemo(() => {
-    if (viewMode === "raw") {
-      return sortedProfiles.map((profile) => ({ profile, extraProfileCount: 0 }));
-    }
-    return pickBestProfilePerTicker(sortedProfiles);
-  }, [sortedProfiles, viewMode]);
-
-  const displayedEntries = useMemo(
-    () => displayEntries.slice(0, visibleCount),
-    [displayEntries, visibleCount],
+  const displayedProfiles = useMemo(
+    () => sortedProfiles.slice(0, visibleCount),
+    [sortedProfiles, visibleCount],
   );
-
-  const isBestPerTickerMode = viewMode === "bestPerTicker";
 
   useEffect(() => {
     setVisibleCount(DEFAULT_VISIBLE);
-  }, [searchQuery, qualityFilter, primeFilter, assignmentFilter, viewMode]);
+  }, [searchQuery, qualityFilter, primeFilter, assignmentFilter, scope]);
 
   const meta = payload?.meta ?? {};
+  const activeScope = payload?.scope ?? scope;
   const totalProfiles = meta.totalProfiles ?? rawProfiles.length;
   const hasRawProfiles = rawProfiles.length > 0;
-  const totalDisplayCount = displayEntries.length;
+  const totalDisplayCount = sortedProfiles.length;
   const hasFilteredResults = totalDisplayCount > 0;
   const hasMoreProfiles = visibleCount < totalDisplayCount;
   const canReduceProfiles = visibleCount > DEFAULT_VISIBLE;
-  const displayUnitLabel = isBestPerTickerMode ? "tickers" : "profils";
-  const displayUnitLabelSingular = isBestPerTickerMode ? "ticker" : "profil";
+  const { plural: displayUnitLabel, singular: displayUnitLabelSingular } = getDisplayUnitLabels(activeScope);
 
   return (
     <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
@@ -454,11 +464,17 @@ export default function V3CandidateProfilesPanel({ apiBase }) {
 
           {!loading && !fetchError && hasRawProfiles && (
             <>
-              <div className="mb-4 rounded-xl border border-amber-900/30 bg-amber-950/20 px-3 py-2">
+              <div className="mb-4 rounded-xl border border-amber-900/30 bg-amber-950/20 px-3 py-2 space-y-1.5">
                 <p className="text-[10px] leading-relaxed text-amber-200/70">
                   Historique encore court : la majorité des profils sont faibles/préliminaires.
                   Ne pas interpréter comme recommandation finale.
                 </p>
+                {activeScope === "ticker" && (
+                  <p className="text-[10px] leading-relaxed text-amber-200/60">
+                    Vue ticker global : les expirations sont comptées par ticker + date d&apos;expiration.
+                    Les modes SAFE/AGRESSIF et DTE sont mélangés. Utiliser les vues détaillées pour inspecter le contexte.
+                  </p>
+                )}
               </div>
 
               <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -497,28 +513,22 @@ export default function V3CandidateProfilesPanel({ apiBase }) {
                   <option value="exclude_insufficient">Exclure insuffisant</option>
                 </select>
                 <div className="flex overflow-hidden rounded-xl border border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("bestPerTicker")}
-                    className={`px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                      isBestPerTickerMode
-                        ? "bg-violet-900/40 text-violet-300"
-                        : "bg-slate-800 text-slate-500 hover:text-slate-400"
-                    }`}
-                  >
-                    Meilleur profil par ticker
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("raw")}
-                    className={`border-l border-slate-700 px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                      !isBestPerTickerMode
-                        ? "bg-violet-900/40 text-violet-300"
-                        : "bg-slate-800 text-slate-500 hover:text-slate-400"
-                    }`}
-                  >
-                    Vue brute
-                  </button>
+                  {SCOPE_OPTIONS.map((option, index) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setScope(option.value)}
+                      className={`px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+                        index > 0 ? "border-l border-slate-700" : ""
+                      } ${
+                        scope === option.value
+                          ? "bg-violet-900/40 text-violet-300"
+                          : "bg-slate-800 text-slate-500 hover:text-slate-400"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
                 <span className="text-[10px] text-slate-600 ml-auto">
                   {hasFilteredResults
@@ -538,11 +548,11 @@ export default function V3CandidateProfilesPanel({ apiBase }) {
               {hasFilteredResults && (
                 <>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {displayedEntries.map(({ profile, extraProfileCount }) => (
+                    {displayedProfiles.map((profile) => (
                       <ProfileCard
                         key={`${profile.ticker}|${profile.mode}|${profile.dteBucket}`}
                         profile={profile}
-                        extraProfileCount={extraProfileCount}
+                        scope={activeScope}
                       />
                     ))}
                   </div>

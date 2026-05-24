@@ -318,6 +318,67 @@ function buildV3ExpirationCohortKey(ticker, mode, expiration) {
   return `${ticker}|${mode}|${exp}`;
 }
 
+function buildV3TickerExpirationCohortKey(ticker, expiration) {
+  const exp = normalizeYmd(expiration) || String(expiration ?? "").trim();
+  return `${ticker}|${exp}`;
+}
+
+function normalizeV3ProfileScope(scopeRaw) {
+  const raw = String(scopeRaw ?? "ticker_mode_dte").trim().toLowerCase();
+  if (raw === "ticker") return "ticker";
+  if (raw === "ticker_mode") return "ticker_mode";
+  if (raw === "ticker_mode_dte") return "ticker_mode_dte";
+  return "ticker_mode_dte";
+}
+
+function buildV3ProfileGroupKey(record, scope) {
+  const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+  const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+  const dteBucket = getDteBucketLabel(record?.dteAtScan);
+  if (scope === "ticker") return ticker;
+  if (scope === "ticker_mode") return `${ticker}|${mode}`;
+  return `${ticker}|${mode}|${dteBucket}`;
+}
+
+function buildV3CohortKeyForScope(ticker, mode, expiration, scope) {
+  if (scope === "ticker") return buildV3TickerExpirationCohortKey(ticker, expiration);
+  return buildV3ExpirationCohortKey(ticker, mode, expiration);
+}
+
+const V3_SAMPLE_QUALITY_RANK = { strong: 4, medium: 3, preliminary: 2, weak: 1 };
+
+function sortV3Profiles(profiles) {
+  return [...profiles].sort((a, b) => {
+    const qA = V3_SAMPLE_QUALITY_RANK[a.sampleQuality] ?? 0;
+    const qB = V3_SAMPLE_QUALITY_RANK[b.sampleQuality] ?? 0;
+    if (qB !== qA) return qB - qA;
+
+    const primeA = a.primeStrengthLabel === "forte" ? 1 : 0;
+    const primeB = b.primeStrengthLabel === "forte" ? 1 : 0;
+    if (primeB !== primeA) return primeB - primeA;
+
+    const assignA = a.assignmentRatePct ?? 999;
+    const assignB = b.assignmentRatePct ?? 999;
+    if (assignA !== assignB) return assignA - assignB;
+
+    const expA = a.uniqueExpirationCount ?? 0;
+    const expB = b.uniqueExpirationCount ?? 0;
+    if (expB !== expA) return expB - expA;
+
+    const yieldA = a.latestYieldPct ?? -1;
+    const yieldB = b.latestYieldPct ?? -1;
+    if (yieldB !== yieldA) return yieldB - yieldA;
+
+    const tickerCmp = String(a.ticker).localeCompare(String(b.ticker));
+    if (tickerCmp !== 0) return tickerCmp;
+
+    const modeCmp = String(a.mode).localeCompare(String(b.mode));
+    if (modeCmp !== 0) return modeCmp;
+
+    return String(a.dteBucket).localeCompare(String(b.dteBucket));
+  });
+}
+
 function buildResolutionDefaults() {
   return {
     resolved: false,
@@ -3785,6 +3846,7 @@ export function createWheelValidationService(options = {}) {
     const journal = await store.load();
     const allRecords = Array.isArray(journal?.records) ? journal.records : [];
 
+    const scope = normalizeV3ProfileScope(options?.scope);
     const tickerFilter = options.ticker ? normalizeSymbol(options.ticker) : null;
     const modeRaw = String(options?.mode ?? "all").trim().toLowerCase();
     const modeFilter = modeRaw === "safe" || modeRaw === "aggressive" ? modeRaw : null;
@@ -3808,12 +3870,12 @@ export function createWheelValidationService(options = {}) {
       const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
       const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
       const dteBucket = getDteBucketLabel(record?.dteAtScan);
-      const profileKey = `${ticker}|${mode}|${dteBucket}`;
+      const profileKey = buildV3ProfileGroupKey(record, scope);
       if (!profileMap.has(profileKey)) {
         profileMap.set(profileKey, {
           ticker,
-          mode,
-          dteBucket,
+          mode: scope === "ticker" ? "GLOBAL" : mode,
+          dteBucket: scope === "ticker_mode_dte" ? dteBucket : "ALL",
           dteValues: [],
           records: [],
         });
@@ -3935,14 +3997,22 @@ export function createWheelValidationService(options = {}) {
 
     function buildProfileWarnings(ctx) {
       const warnings = [];
+      if (ctx.scope === "ticker") {
+        warnings.push("Profil ticker global — modes et DTE mélangés");
+        warnings.push("Données ticker globales, pas strike exact");
+      } else if (ctx.scope === "ticker_mode") {
+        warnings.push("Profil ticker/mode global — DTE mélangés");
+        warnings.push("Données ticker/mode, pas strike exact");
+      } else {
+        warnings.push("Données ticker/mode, pas strike exact");
+      }
       if (ctx.historyDays != null && ctx.historyDays < 21) warnings.push("Historique court");
       if (ctx.uniqueExpirationCount < 6) warnings.push("Moins de 6 expirations uniques");
       if (ctx.multiStrikeCohorts > 0) warnings.push("Plusieurs strikes dans une même cohorte");
-      if (ctx.hasMultiBucketExpiration) {
+      if (ctx.scope === "ticker_mode_dte" && ctx.hasMultiBucketExpiration) {
         warnings.push("Même expiration observée dans plusieurs buckets DTE");
       }
       if (ctx.mixedOutcomeCohorts > 0) warnings.push("Résultats mixtes sur même expiration");
-      warnings.push("Données ticker/mode, pas strike exact");
       if (ctx.latestPremium == null) warnings.push("Prime actuelle absente");
       if (ctx.strikeTouchedRatePct != null && ctx.strikeTouchedRatePct >= 30) {
         warnings.push("Touch strike élevé");
@@ -3963,21 +4033,22 @@ export function createWheelValidationService(options = {}) {
     const historyDaysGlobal = computeHistoryDaysBetween(historyStartGlobal, historyEndGlobal);
 
     // V3 — detect expirations scanned at different DTE values (span multiple buckets).
-    const expirationBucketMap = new Map();
-    for (const record of resolvedRecords) {
-      const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
-      const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
-      const expiration = record?.expiration ?? record?.expirationCohort ?? "";
-      const expKey = buildV3ExpirationCohortKey(ticker, mode, expiration);
-      const dteBucket = getDteBucketLabel(record?.dteAtScan);
-      if (!expirationBucketMap.has(expKey)) expirationBucketMap.set(expKey, new Set());
-      expirationBucketMap.get(expKey).add(dteBucket);
+    const multiBucketExpirationKeys = new Set();
+    if (scope === "ticker_mode_dte") {
+      const expirationBucketMap = new Map();
+      for (const record of resolvedRecords) {
+        const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+        const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+        const expiration = record?.expiration ?? record?.expirationCohort ?? "";
+        const expKey = buildV3ExpirationCohortKey(ticker, mode, expiration);
+        const dteBucket = getDteBucketLabel(record?.dteAtScan);
+        if (!expirationBucketMap.has(expKey)) expirationBucketMap.set(expKey, new Set());
+        expirationBucketMap.get(expKey).add(dteBucket);
+      }
+      for (const [key, buckets] of expirationBucketMap.entries()) {
+        if (buckets.size > 1) multiBucketExpirationKeys.add(key);
+      }
     }
-    const multiBucketExpirationKeys = new Set(
-      [...expirationBucketMap.entries()]
-        .filter(([, buckets]) => buckets.size > 1)
-        .map(([key]) => key)
-    );
 
     const allProfiles = [];
 
@@ -3987,7 +4058,8 @@ export function createWheelValidationService(options = {}) {
 
       for (const record of group.records) {
         const expiration = record?.expiration ?? record?.expirationCohort ?? "";
-        const cohortKey = buildV3ExpirationCohortKey(group.ticker, group.mode, expiration);
+        const recordMode = String(record?.strikeMode ?? "").trim().toLowerCase();
+        const cohortKey = buildV3CohortKeyForScope(group.ticker, recordMode, expiration, scope);
         if (!cohortMap.has(cohortKey)) {
           cohortMap.set(cohortKey, {
             expiration,
@@ -4015,8 +4087,15 @@ export function createWheelValidationService(options = {}) {
       let historyEndDate = null;
 
       for (const cohort of cohortMap.values()) {
-        const cohortKey = buildV3ExpirationCohortKey(group.ticker, group.mode, cohort.expiration);
-        if (multiBucketExpirationKeys.has(cohortKey)) hasMultiBucketExpiration = true;
+        const cohortKey =
+          scope === "ticker_mode_dte"
+            ? buildV3ExpirationCohortKey(
+                group.ticker,
+                String(group.mode ?? "").trim().toLowerCase(),
+                cohort.expiration
+              )
+            : null;
+        if (cohortKey && multiBucketExpirationKeys.has(cohortKey)) hasMultiBucketExpiration = true;
 
         const assignedFlags = cohort.records.map((r) => getAssignedFlag(r));
         const expiredFlags = cohort.records.map((r) => getExpiredOtmFlag(r));
@@ -4107,6 +4186,7 @@ export function createWheelValidationService(options = {}) {
         historyDays,
       });
       const warnings = buildProfileWarnings({
+        scope,
         historyDays,
         uniqueExpirationCount,
         multiStrikeCohorts,
@@ -4123,9 +4203,16 @@ export function createWheelValidationService(options = {}) {
           ? roundMetric(average(group.dteValues), 1)
           : null;
 
+      const displayMode =
+        scope === "ticker"
+          ? "GLOBAL"
+          : group.mode === "GLOBAL"
+          ? "GLOBAL"
+          : group.mode.toUpperCase();
+
       allProfiles.push({
         ticker: group.ticker,
-        mode: group.mode.toUpperCase(),
+        mode: displayMode,
         dteBucket: group.dteBucket,
         avgDte,
         recordsResolvedCount,
@@ -4157,39 +4244,34 @@ export function createWheelValidationService(options = {}) {
       });
     }
 
-    allProfiles.sort((a, b) => {
-      const tickerCmp = String(a.ticker).localeCompare(String(b.ticker));
-      if (tickerCmp !== 0) return tickerCmp;
-      const modeCmp = String(a.mode).localeCompare(String(b.mode));
-      if (modeCmp !== 0) return modeCmp;
-      return String(a.dteBucket).localeCompare(String(b.dteBucket));
-    });
-
-    const profiles = allProfiles.slice(0, limitValue);
+    const sortedProfiles = sortV3Profiles(allProfiles);
+    const profiles = sortedProfiles.slice(0, limitValue);
     const uniqueExpirationsUsed = new Set(
-      resolvedRecords.map((record) =>
-        buildV3ExpirationCohortKey(
-          normalizeSymbol(record?.symbol ?? record?.ticker),
-          String(record?.strikeMode ?? "").trim().toLowerCase(),
-          record?.expiration ?? record?.expirationCohort ?? ""
-        )
-      )
+      resolvedRecords.map((record) => {
+        const ticker = normalizeSymbol(record?.symbol ?? record?.ticker);
+        const mode = String(record?.strikeMode ?? "").trim().toLowerCase();
+        const expiration = record?.expiration ?? record?.expirationCohort ?? "";
+        return buildV3CohortKeyForScope(ticker, mode, expiration, scope);
+      })
     ).size;
 
     return {
       ok: true,
       generatedAt: new Date().toISOString(),
-      scope: "ticker/mode/dte historical preliminary profile",
+      scope,
       warning: "Read-only preliminary V3 metrics. Not a final trade recommendation.",
       meta: {
         totalProfiles: allProfiles.length,
         profilesReturned: profiles.length,
+        scope,
         historyStartDate: historyStartGlobal,
         historyEndDate: historyEndGlobal,
         historyDays: historyDaysGlobal,
         resolvedRecordsUsed: resolvedRecords.length,
         uniqueExpirationsUsed,
+        sort: "sampleQuality,primeStrength,assignmentRate,expirations,yield,ticker",
         filters: {
+          scope,
           limit: limitValue,
           ticker: tickerFilter || null,
           mode: modeFilter ? modeFilter.toUpperCase() : "ALL",

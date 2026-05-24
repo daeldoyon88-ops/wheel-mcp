@@ -737,6 +737,190 @@ function formatSafeAggressiveDecisionLine(insight) {
   return "Comparaison SAFE/AGR non disponible";
 }
 
+function getSafeAggMinSample(safeCount, aggCount) {
+  const safe = numberOrNull(safeCount) ?? 0;
+  const agg = numberOrNull(aggCount) ?? 0;
+  return Math.min(safe, agg);
+}
+
+function getSafeAggSampleQualityTier(minSample) {
+  if (!Number.isFinite(minSample) || minSample <= 0) return "unknown";
+  if (minSample < 5) return "faible";
+  if (minSample < 10) return "preliminaire";
+  return "correct";
+}
+
+function getSafeAggSampleQualityBadge(tier) {
+  if (tier === "faible") {
+    return { label: "échantillon faible", className: "border-amber-800/50 bg-amber-900/20 text-amber-400" };
+  }
+  if (tier === "preliminaire") {
+    return { label: "préliminaire", className: "border-slate-600 bg-slate-800 text-slate-400" };
+  }
+  if (tier === "correct") {
+    return { label: "données correctes", className: "border-emerald-800/50 bg-emerald-900/20 text-emerald-400" };
+  }
+  return null;
+}
+
+function getSafeAggSampleTierFromCounts(safeCount, aggCount) {
+  return getSafeAggSampleQualityTier(getSafeAggMinSample(safeCount, aggCount));
+}
+
+function getSafeAggSampleTierFromV2NRow(row) {
+  const safe = row?.safe ?? {};
+  const agg = row?.aggressive ?? {};
+  return getSafeAggSampleTierFromCounts(safe.sampleCount, agg.sampleCount);
+}
+
+function getSafeAggSampleTierFromModeComparisonRow(row) {
+  return getSafeAggSampleTierFromCounts(row?.safe_resolved, row?.aggressive_resolved);
+}
+
+function formatV2NModeDisplay(row) {
+  const recommendedMode = row?.recommendedMode;
+  const tier = getSafeAggSampleTierFromV2NRow(row);
+
+  if (tier === "faible") {
+    if (recommendedMode === "AGRESSIF") return "À confirmer";
+    if (recommendedMode === "SAFE") return "SAFE";
+    return "À confirmer";
+  }
+
+  if (tier === "preliminaire") {
+    if (recommendedMode === "AGRESSIF") return "AGRESSIF préliminaire";
+    if (recommendedMode === "SAFE") return "SAFE préliminaire";
+    if (recommendedMode === "À confirmer") return "SAFE/AGR à confirmer";
+    return recommendedMode ?? "À confirmer";
+  }
+
+  return recommendedMode ?? "—";
+}
+
+function getV2NModeTone(row) {
+  const displayMode = formatV2NModeDisplay(row);
+  const tier = getSafeAggSampleTierFromV2NRow(row);
+
+  if (tier === "faible") return "text-slate-500";
+  if (tier === "preliminaire") {
+    if (displayMode.includes("AGRESSIF")) return "text-rose-300/80";
+    if (displayMode.includes("SAFE")) return "text-emerald-300/80";
+    return "text-amber-400";
+  }
+
+  if (displayMode.includes("AGRESSIF")) return "text-rose-400";
+  if (displayMode.includes("SAFE")) return "text-emerald-400";
+  return "text-amber-400";
+}
+
+function applySafeAggSamplePrudenceToReading(reading, tier) {
+  if (!reading || tier === "correct" || tier === "unknown") return reading;
+
+  if (tier === "faible") {
+    if (reading.includes("AGRESSIF paie plus")) {
+      return "Prime AGRESSIF supérieure, mais données insuffisantes";
+    }
+    if (reading === "SAFE préférable") return "SAFE préférable · échantillon faible";
+    if (reading === "Échantillon faible") return "Échantillon faible · décision non robuste";
+    return "Signal intéressant, à confirmer · échantillon faible";
+  }
+
+  if (reading.includes("AGRESSIF paie plus")) {
+    return `${reading} · préliminaire`;
+  }
+  if (reading === "SAFE préférable") return "SAFE préférable · préliminaire";
+  if (reading === "Écart faible") return "Écart faible · préliminaire";
+  return `${reading} · à confirmer`;
+}
+
+function formatV2NSafeAggDecisionLine(row) {
+  const safe = row?.safe ?? {};
+  const agg = row?.aggressive ?? {};
+  const minSample = getSafeAggMinSample(safe.sampleCount, agg.sampleCount);
+  const tier = getSafeAggSampleQualityTier(minSample);
+  const recommendedMode = row?.recommendedMode;
+  const premiumLiftPct = numberOrNull(row?.premiumLiftPct);
+  const assignmentDeltaPct = numberOrNull(row?.assignmentDeltaPct);
+  const lowerBoundDeltaPct = numberOrNull(row?.lowerBoundDeltaPct);
+  const spread = numberOrNull(agg.medianSpreadPct);
+  const liftRounded = premiumLiftPct != null ? Math.round(premiumLiftPct) : null;
+
+  const liftStr = !isPremiumLiftNegligible(liftRounded)
+    ? `AGR ${liftRounded >= 0 ? "+" : ""}${liftRounded} % vs SAFE`
+    : null;
+
+  const assignStr = assignmentDeltaPct != null
+    ? `assign. ${assignmentDeltaPct >= 0 ? "+" : ""}${assignmentDeltaPct.toFixed(assignmentDeltaPct % 1 === 0 ? 0 : 1)} %`
+    : null;
+
+  const lbStr = lowerBoundDeltaPct != null && lowerBoundDeltaPct > 8
+    ? `stress LB +${lowerBoundDeltaPct.toFixed(1)} pts`
+    : null;
+
+  let spreadStr = null;
+  if (spread != null) {
+    if (spread <= 10) spreadStr = "spread OK";
+    else if (spread <= 20) spreadStr = "spread moyen";
+    else if (spread <= 35) spreadStr = "spread large";
+    else spreadStr = "non tradable";
+  }
+
+  if (tier === "correct") {
+    if (row?.modeDecision) return truncateDecisionLine(row.modeDecision);
+    return formatSafeAggressiveDecisionLine(buildInsightFromComparison(row));
+  }
+
+  const parts = [];
+
+  if (tier === "faible") {
+    if (recommendedMode === "AGRESSIF" && liftRounded != null && liftRounded >= 3) {
+      const premiumParts = ["Prime AGRESSIF supérieure, mais données insuffisantes"];
+      if (liftStr) premiumParts.push(liftStr);
+      if (spreadStr === "spread large" || spreadStr === "non tradable") premiumParts.push(spreadStr);
+      if (lbStr) premiumParts.push(lbStr);
+      else if (assignStr) premiumParts.push(assignStr);
+      return truncateDecisionLine(premiumParts.join(" · "));
+    }
+    if (recommendedMode === "AGRESSIF") {
+      return truncateDecisionLine(
+        [liftStr, "AGRESSIF préliminaire — échantillon faible"].filter(Boolean).join(" · "),
+      );
+    }
+    if (recommendedMode === "SAFE") {
+      parts.push("SAFE préféré", "échantillon faible");
+      if (liftStr) parts.push(liftStr);
+      if (spreadStr === "spread large" || spreadStr === "non tradable") parts.push(spreadStr);
+      return truncateDecisionLine(parts.join(" · "));
+    }
+    parts.push("Signal intéressant, à confirmer", "échantillon faible");
+    if (liftStr) parts.push(liftStr);
+    return truncateDecisionLine(parts.join(" · "));
+  }
+
+  if (recommendedMode === "AGRESSIF") {
+    parts.push("AGRESSIF préliminaire");
+    if (liftStr) parts.push(liftStr);
+    if (assignStr) parts.push(assignStr);
+    if (spreadStr === "spread large" || spreadStr === "non tradable") parts.push(spreadStr);
+    if (lbStr) parts.push(lbStr);
+    parts.push("à confirmer");
+    return truncateDecisionLine(parts.join(" · "));
+  }
+
+  if (recommendedMode === "SAFE") {
+    parts.push("SAFE préliminaire");
+    if (liftStr) parts.push(liftStr);
+    parts.push("à confirmer");
+    return truncateDecisionLine(parts.join(" · "));
+  }
+
+  parts.push("SAFE/AGR à confirmer");
+  if (liftStr) parts.push(liftStr);
+  if (lbStr) parts.push(lbStr);
+  else if (assignStr) parts.push(assignStr);
+  return truncateDecisionLine(parts.join(" · "));
+}
+
 function getExecutionDecisionBadge(ranking, insight) {
   const spread = insight?.aggressiveSpread ?? numberOrNull(ranking?.medianSpreadPct);
   const displayMode = getDisplayModeForDecision(ranking, insight);
@@ -4500,18 +4684,24 @@ export default function JournalPopPanel({ apiBase, active }) {
         })();
 
         const getTickerModeReading = (row) => {
-          if (row.sample_size_status === "faible") return "Échantillon faible";
+          const tier = getSafeAggSampleTierFromModeComparisonRow(row);
+          if (tier === "faible") return "Échantillon faible";
           const pd = numberOrNull(row.premium_delta);
           const ad = numberOrNull(row.assignment_delta_pct);
-          if (pd == null || ad == null) return "Données insuffisantes";
-          if (pd > 0 && ad <= 0) return "AGRESSIF paie plus sans plus d'assignation";
-          if (pd > 0 && ad > 0 && ad <= 5) return "AGRESSIF paie plus avec risque légèrement supérieur";
-          if (pd > 0 && ad > 5) return "AGRESSIF paie plus mais assigne davantage";
-          if (pd <= 0 && ad > 0) return "SAFE préférable";
-          return "Écart faible";
+          let reading;
+          if (pd == null || ad == null) reading = "Données insuffisantes";
+          else if (pd > 0 && ad <= 0) reading = "AGRESSIF paie plus sans plus d'assignation";
+          else if (pd > 0 && ad > 0 && ad <= 5) reading = "AGRESSIF paie plus avec risque légèrement supérieur";
+          else if (pd > 0 && ad > 5) reading = "AGRESSIF paie plus mais assigne davantage";
+          else if (pd <= 0 && ad > 0) reading = "SAFE préférable";
+          else reading = "Écart faible";
+          return applySafeAggSamplePrudenceToReading(reading, tier);
         };
 
         const getReadingTone = (reading) => {
+          if (reading.includes("données insuffisantes")) return "text-slate-500 italic";
+          if (reading.includes("Prime AGRESSIF supérieure, mais données insuffisantes")) return "text-amber-400";
+          if (reading.includes("préliminaire")) return "text-amber-300/90";
           if (reading === "AGRESSIF paie plus sans plus d'assignation") return "text-sky-400";
           if (reading === "AGRESSIF paie plus avec risque légèrement supérieur") return "text-amber-400";
           if (reading === "AGRESSIF paie plus mais assigne davantage") return "text-orange-400";
@@ -4570,13 +4760,13 @@ export default function JournalPopPanel({ apiBase, active }) {
           return base;
         })();
 
-        // "Tickers à regarder" — OK sample, premium_delta > 0, assignment_delta_pct <= 5
+        // "Tickers à regarder" — échantillon correct, premium_delta > 0, assignment_delta_pct <= 5
         const spotlightTickers = sortedTickers
           .filter((t) => {
             const pd = numberOrNull(t.premium_delta);
             const ad = numberOrNull(t.assignment_delta_pct);
             return (
-              t.sample_size_status === "ok" &&
+              getSafeAggSampleTierFromModeComparisonRow(t) === "correct" &&
               pd != null && pd > 0 &&
               ad != null && ad <= 5
             );
@@ -4760,7 +4950,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tbody className="divide-y divide-slate-800/70">
                       {filteredTickers.map((row) => {
                         const assignDelta = numberOrNull(row.assignment_delta_pct);
-                        const isSampleOk = row.sample_size_status === "ok";
+                        const sampleTier = getSafeAggSampleTierFromModeComparisonRow(row);
+                        const sampleBadge = getSafeAggSampleQualityBadge(sampleTier);
                         const reading = getTickerModeReading(row);
                         const readingTone = getReadingTone(reading);
                         return (
@@ -4805,10 +4996,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                               {row.aggressive_avg_yield_pct != null ? `${row.aggressive_avg_yield_pct.toFixed(0)}%` : "—"}
                             </td>
                             <td className="px-3 py-2.5">
-                              {isSampleOk ? (
-                                <span className="rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">OK</span>
+                              {sampleBadge ? (
+                                <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold ${sampleBadge.className}`}>
+                                  {sampleBadge.label}
+                                </span>
                               ) : (
-                                <span className="rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Faible</span>
+                                <span className="text-slate-600">—</span>
                               )}
                             </td>
                             <td className={`px-3 py-2.5 text-[10px] whitespace-nowrap ${readingTone}`}>
@@ -4829,15 +5022,18 @@ export default function JournalPopPanel({ apiBase, active }) {
               const uniqueDtes = [...new Set(allDteRows.map((r) => r.dteAtScan).filter((d) => d != null))].sort((a, b) => a - b);
 
               const getTickerDteModeReading = (row) => {
-                if (row.sample_size_status === "faible") return "Échantillon faible";
+                const tier = getSafeAggSampleTierFromCounts(row.safe_resolved, row.aggressive_resolved);
+                if (tier === "faible") return "Échantillon faible · décision non robuste";
                 const pd = numberOrNull(row.premium_delta);
                 const ad = numberOrNull(row.assignment_delta_pct);
-                if (pd == null || ad == null) return "Données insuffisantes";
-                if (pd > 0 && ad <= 0) return "AGRESSIF paie plus sans plus d'assignation";
-                if (pd > 0 && ad > 0 && ad <= 5) return "AGRESSIF paie plus avec risque légèrement supérieur";
-                if (pd > 0 && ad > 5) return "AGRESSIF paie plus mais assigne davantage";
-                if (pd <= 0 && ad > 0) return "SAFE préférable";
-                return "Écart faible";
+                let reading;
+                if (pd == null || ad == null) reading = "Données insuffisantes";
+                else if (pd > 0 && ad <= 0) reading = "AGRESSIF paie plus sans plus d'assignation";
+                else if (pd > 0 && ad > 0 && ad <= 5) reading = "AGRESSIF paie plus avec risque légèrement supérieur";
+                else if (pd > 0 && ad > 5) reading = "AGRESSIF paie plus mais assigne davantage";
+                else if (pd <= 0 && ad > 0) reading = "SAFE préférable";
+                else reading = "Écart faible";
+                return applySafeAggSamplePrudenceToReading(reading, tier);
               };
 
               const getDteReadingTone = (reading) => {
@@ -6694,17 +6890,11 @@ export default function JournalPopPanel({ apiBase, active }) {
 
         const uniqueDtes = [...new Set(allRows.map((row) => row.dteAtScan).filter((v) => v != null))].sort((a, b) => a - b);
 
-        const getModeTone = (mode) => {
-          if (mode === "AGRESSIF") return "text-rose-400";
-          if (mode === "SAFE") return "text-emerald-400";
-          return "text-amber-400";
-        };
-
         return (
           <CollapsibleSection
             title="SAFE vs AGRESSIF"
             badge="V2-N"
-            subtitle="Compare la prime moyenne et le risque par ticker/DTE pour expliquer le mode recommandé."
+            subtitle="Compare la prime moyenne et le risque par ticker/DTE. min(nSAFE, nAGRESSIF) &lt; 5 = échantillon faible · 5–9 = préliminaire · ≥ 10 = données correctes."
             defaultOpen={false}
             summaryRight={
               summary.comparable_groups != null
@@ -6766,7 +6956,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <table className="min-w-full text-left text-xs text-slate-300">
                   <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
                     <tr>
-                      {["Ticker", "DTE", "SAFE moy.", "AGR moy.", "Écart prime", "Écart assign.", "Spread AGR", "Mode", "Lecture"].map((h) => (
+                      {["Ticker", "DTE", "SAFE moy.", "AGR moy.", "Écart prime", "Écart assign.", "Spread AGR", "Qualité", "Mode", "Lecture"].map((h) => (
                         <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -6775,6 +6965,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                     {filtered.slice(0, 200).map((row, idx) => {
                       const safe = row.safe ?? {};
                       const agg = row.aggressive ?? {};
+                      const sampleTier = getSafeAggSampleTierFromV2NRow(row);
+                      const sampleBadge = getSafeAggSampleQualityBadge(sampleTier);
+                      const displayMode = formatV2NModeDisplay(row);
+                      const decisionLine = formatV2NSafeAggDecisionLine(row);
                       return (
                         <tr key={`${row.ticker}-${row.dteAtScan}-${idx}`} className="align-top">
                           <td className="px-3 py-2.5 font-semibold text-slate-100 whitespace-nowrap">{row.ticker}</td>
@@ -6820,12 +7014,23 @@ export default function JournalPopPanel({ apiBase, active }) {
                             ) : "—"}
                           </td>
                           <td className="px-3 py-2.5 whitespace-nowrap">
-                            <span className={`font-semibold ${getModeTone(row.recommendedMode)}`}>
-                              {row.recommendedMode ?? "—"}
+                            {sampleBadge ? (
+                              <span className={`inline-block rounded border px-1.5 py-0.5 text-[9px] font-bold leading-tight ${sampleBadge.className}`}>
+                                {sampleBadge.label}
+                              </span>
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <span className={`font-semibold ${getV2NModeTone(row)}`}>
+                              {displayMode}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5 text-[11px] text-slate-400 max-w-[220px]">
-                            {row.modeDecision ?? "—"}
+                          <td className={`px-3 py-2.5 text-[11px] max-w-[240px] leading-tight ${
+                            sampleTier === "faible" ? "text-slate-500" : sampleTier === "preliminaire" ? "text-amber-300/90" : "text-slate-400"
+                          }`}>
+                            {decisionLine}
                           </td>
                         </tr>
                       );

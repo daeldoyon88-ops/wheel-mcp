@@ -120,6 +120,160 @@ function getPremiumReadingTone(reading) {
   return "text-slate-400";
 }
 
+// Stabilité V1A — seuils prudents (frontend only, données API premium-stability)
+const STABILITY_VERDICT_THRESHOLDS = {
+  TOUCH_STRIKE_HIGH_PCT: 30,
+  LOWER_BOUND_BROKEN_HIGH_PCT: 20,
+  ASSIGNMENT_HIGH_PCT: 30,
+  PREMIUM_ELEVATED_PCT: 15,
+  PREMIUM_LOW_PCT: -15,
+  WEAK_RESOLVED_COUNT: 5,
+  PRELIMINARY_MAX_RESOLVED: 9,
+  ROBUST_RESOLVED_COUNT: 15,
+};
+
+function getStabilitySampleQualityBadge(row) {
+  const resolved = numberOrNull(row?.resolved_count) ?? 0;
+  const backendQuality = row?.sample_quality;
+
+  let label;
+  if (resolved < STABILITY_VERDICT_THRESHOLDS.WEAK_RESOLVED_COUNT || backendQuality === "faible") {
+    label = "faible";
+  } else if (
+    resolved >= STABILITY_VERDICT_THRESHOLDS.ROBUST_RESOLVED_COUNT
+    || (resolved >= 10 && backendQuality === "bon")
+  ) {
+    label = "robuste";
+  } else if (resolved >= 10) {
+    label = "correct";
+  } else {
+    label = "préliminaire";
+  }
+
+  const badgeClasses = {
+    faible: "border-slate-700 bg-slate-800 text-slate-500",
+    préliminaire: "border-amber-800/50 bg-amber-900/20 text-amber-400",
+    correct: "border-sky-800/50 bg-sky-900/20 text-sky-400",
+    robuste: "border-emerald-800/50 bg-emerald-900/20 text-emerald-400",
+  };
+
+  return { label, badgeClass: badgeClasses[label] ?? badgeClasses.faible };
+}
+
+function getPremiumVsMedianLabel(row) {
+  const resolved = numberOrNull(row?.resolved_count) ?? 0;
+  const delta = numberOrNull(row?.latest_vs_median_pct);
+  const spikeCount = numberOrNull(row?.spike_count) ?? 0;
+  const lowAnomalyCount = numberOrNull(row?.low_anomaly_count) ?? 0;
+  const ndClass = "border-slate-700 bg-slate-800 text-slate-500";
+
+  if (
+    resolved < STABILITY_VERDICT_THRESHOLDS.WEAK_RESOLVED_COUNT
+    || row?.sample_quality === "faible"
+    || row?.stability_label === "échantillon faible"
+  ) {
+    return { label: "N/D", badgeClass: ndClass };
+  }
+  if (delta == null) {
+    return { label: "N/D", badgeClass: ndClass };
+  }
+  if (spikeCount > 0 && delta >= 35) {
+    return { label: "anomalie", badgeClass: "border-rose-800/50 bg-rose-900/20 text-rose-400" };
+  }
+  if (delta >= STABILITY_VERDICT_THRESHOLDS.PREMIUM_ELEVATED_PCT) {
+    return { label: "élevée", badgeClass: "border-sky-800/50 bg-sky-900/20 text-sky-400" };
+  }
+  if (delta <= STABILITY_VERDICT_THRESHOLDS.PREMIUM_LOW_PCT) {
+    return { label: "faible", badgeClass: "border-amber-800/50 bg-amber-900/20 text-amber-400" };
+  }
+  if (lowAnomalyCount > 0 && delta <= -10) {
+    return { label: "anomalie", badgeClass: "border-rose-800/50 bg-rose-900/20 text-rose-400" };
+  }
+  return { label: "normale", badgeClass: "border-emerald-800/50 bg-emerald-900/20 text-emerald-400" };
+}
+
+function getStabilityStressTone(value, highThreshold) {
+  const n = numberOrNull(value);
+  if (n == null) return "text-slate-500";
+  if (n >= highThreshold) return "text-rose-400";
+  if (n >= highThreshold * 0.6) return "text-amber-400";
+  return "text-slate-400";
+}
+
+function getStabilityVerdictTone(tone) {
+  if (tone === "good") return "text-emerald-400";
+  if (tone === "risk") return "text-rose-400";
+  if (tone === "warn") return "text-amber-400";
+  if (tone === "muted") return "text-slate-500";
+  return "text-slate-400";
+}
+
+function buildStabilityVerdict(row) {
+  const resolved = numberOrNull(row?.resolved_count) ?? 0;
+  const touchPct = numberOrNull(row?.strike_touched_rate_pct);
+  const lowerBoundPct = numberOrNull(row?.broke_lower_bound_rate_pct);
+  const assignPct = numberOrNull(row?.assigned_rate_pct);
+  const deltaPct = numberOrNull(row?.latest_vs_median_pct);
+  const stabilityLabel = row?.stability_label;
+  const sampleQuality = row?.sample_quality;
+
+  const isWeakSample =
+    resolved < STABILITY_VERDICT_THRESHOLDS.WEAK_RESOLVED_COUNT
+    || sampleQuality === "faible"
+    || stabilityLabel === "échantillon faible";
+
+  if (isWeakSample) {
+    return { text: "Échantillon faible — ne pas conclure", tone: "muted" };
+  }
+
+  const hasHighTouch = touchPct != null && touchPct >= STABILITY_VERDICT_THRESHOLDS.TOUCH_STRIKE_HIGH_PCT;
+  const hasHighLowerBound =
+    lowerBoundPct != null && lowerBoundPct >= STABILITY_VERDICT_THRESHOLDS.LOWER_BOUND_BROKEN_HIGH_PCT;
+  const hasHighAssign = assignPct != null && assignPct >= STABILITY_VERDICT_THRESHOLDS.ASSIGNMENT_HIGH_PCT;
+  const hasHighStress = hasHighTouch || hasHighLowerBound || hasHighAssign;
+  const isPremiumHigh = deltaPct != null && deltaPct >= STABILITY_VERDICT_THRESHOLDS.PREMIUM_ELEVATED_PCT;
+  const isVolatile = stabilityLabel === "volatile";
+  const isStable = stabilityLabel === "stable";
+  const isPreliminary =
+    resolved >= STABILITY_VERDICT_THRESHOLDS.WEAK_RESOLVED_COUNT
+    && resolved <= STABILITY_VERDICT_THRESHOLDS.PRELIMINARY_MAX_RESOLVED;
+
+  const phrases = [];
+
+  if (isVolatile) {
+    phrases.push("Volatile — attendre confirmation");
+  }
+  if (hasHighTouch) {
+    phrases.push("Touch élevé — risque d'assignation");
+  } else if (hasHighLowerBound) {
+    phrases.push("LowerBound souvent cassé — prudence");
+  } else if (hasHighAssign) {
+    phrases.push("Assignation fréquente — prudence");
+  }
+
+  if (isPremiumHigh) {
+    phrases.push(hasHighStress ? "Prime élevée, stress risqué" : "Prime élevée, stress à surveiller");
+  } else if (deltaPct != null && deltaPct <= STABILITY_VERDICT_THRESHOLDS.PREMIUM_LOW_PCT) {
+    phrases.push("Prime faible vs normale");
+  }
+
+  if (phrases.length === 0) {
+    if (isStable && isPreliminary) {
+      return { text: "Stable, mais historique court", tone: "warn" };
+    }
+    if (isStable) {
+      return { text: "Stabilité correcte", tone: "good" };
+    }
+    if (stabilityLabel === "variable") {
+      return { text: "Variable — surveiller la prime", tone: "warn" };
+    }
+    return { text: "Stabilité correcte", tone: "good" };
+  }
+
+  const tone = hasHighStress || isVolatile ? "risk" : isPremiumHigh ? "warn" : "default";
+  return { text: phrases.slice(0, 2).join(" · "), tone };
+}
+
 function formatTheoreticalCyclePriceRule(value) {
   const labels = {
     next_session_open: "Open J+1",
@@ -3645,8 +3799,8 @@ export default function JournalPopPanel({ apiBase, active }) {
       {hasLoaded && activePopTab === "premiumStability" && premiumStability && (
         <CollapsibleSection
           title={"Stabilit\u00e9 des primes"}
-          badge="V2-K"
-          subtitle={"Compare les primes habituelles par ticker, mode et DTE pour \u00e9viter d'attendre inutilement un meilleur DTE."}
+          badge="V2-K · V1A"
+          subtitle={"Compare les primes habituelles par ticker, mode et DTE — stress, qualite d'echantillon et verdict court pour eviter une grosse prime sur un ticker instable."}
           defaultOpen={false}
           summaryRight={
             premiumStabilitySummary
@@ -3728,14 +3882,21 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime mediane</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime / jour</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap">Stabilite</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Qualite</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Resolus</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Touch</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">LB casse</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign.</th>
                     <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime actuelle vs normale</th>
-                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Lecture</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70">
                   {filteredPremiumStabilityGroups.map((row) => {
                     const deltaPct = numberOrNull(row?.latest_vs_median_pct);
+                    const sampleBadge = getStabilitySampleQualityBadge(row);
+                    const premiumLabel = getPremiumVsMedianLabel(row);
+                    const verdict = buildStabilityVerdict(row);
                     return (
                       <tr key={`${row.ticker}__${row.strikeMode}__${row.dteAtScan}`} className="hover:bg-slate-800/30 transition-colors">
                         <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
@@ -3748,19 +3909,40 @@ export default function JournalPopPanel({ apiBase, active }) {
                             {row?.stability_label ?? "—"}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${sampleBadge.badgeClass}`}>
+                            {sampleBadge.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
+                          {row?.resolved_count != null ? row.resolved_count : "N/D"}
+                        </td>
+                        <td className={`px-3 py-2.5 text-right tabular-nums ${getStabilityStressTone(row?.strike_touched_rate_pct, STABILITY_VERDICT_THRESHOLDS.TOUCH_STRIKE_HIGH_PCT)}`}>
+                          {row?.strike_touched_rate_pct != null ? formatPercent(row.strike_touched_rate_pct, 1) : "N/D"}
+                        </td>
+                        <td className={`px-3 py-2.5 text-right tabular-nums ${getStabilityStressTone(row?.broke_lower_bound_rate_pct, STABILITY_VERDICT_THRESHOLDS.LOWER_BOUND_BROKEN_HIGH_PCT)}`}>
+                          {row?.broke_lower_bound_rate_pct != null ? formatPercent(row.broke_lower_bound_rate_pct, 1) : "N/D"}
+                        </td>
+                        <td className={`px-3 py-2.5 text-right tabular-nums ${getStabilityStressTone(row?.assigned_rate_pct, STABILITY_VERDICT_THRESHOLDS.ASSIGNMENT_HIGH_PCT)}`}>
                           {row?.assigned_rate_pct != null ? formatPercent(row.assigned_rate_pct, 1) : "N/D"}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
                           {row?.latest_premium != null ? (
-                            <span className={deltaPct != null && deltaPct > 15 ? "text-sky-400" : deltaPct != null && deltaPct < -15 ? "text-amber-400" : "text-slate-300"}>
-                              {formatMoney(row.latest_premium)}
-                              {deltaPct != null ? ` (${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(1)}%)` : ""}
-                            </span>
-                          ) : "N/D"}
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className={deltaPct != null && deltaPct > 15 ? "text-sky-400" : deltaPct != null && deltaPct < -15 ? "text-amber-400" : "text-slate-300"}>
+                                {formatMoney(row.latest_premium)}
+                                {deltaPct != null ? ` (${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(1)}%)` : ""}
+                              </span>
+                              <span className={`rounded border px-1 py-0 text-[9px] font-semibold ${premiumLabel.badgeClass}`}>
+                                {premiumLabel.label}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500">N/D</span>
+                          )}
                         </td>
-                        <td className={`px-3 py-2.5 text-[11px] whitespace-nowrap ${getPremiumReadingTone(row?.reading)}`}>
-                          {row?.reading ?? "—"}
+                        <td className={`px-3 py-2.5 text-[11px] max-w-[220px] ${getStabilityVerdictTone(verdict.tone)}`}>
+                          {verdict.text}
                         </td>
                       </tr>
                     );

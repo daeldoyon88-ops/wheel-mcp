@@ -682,7 +682,7 @@ export function createMarketService(provider) {
     }
   }
 
-  async function getDailyOhlcRange(symbol, startDateYmd, endDateYmd) {
+  async function getDailyOhlcRange(symbol, startDateYmd, endDateYmd, options = {}) {
     const rawSymbol = String(symbol ?? "").trim().toUpperCase();
     const rawStartDate = String(startDateYmd ?? "").trim();
     const rawEndDate = String(endDateYmd ?? "").trim();
@@ -724,6 +724,8 @@ export function createMarketService(provider) {
       };
     }
 
+    const marketTimeZone = options?.usMarketDates === true ? "America/New_York" : null;
+
     try {
       const period1 = new Date(startDate.getTime() - 1000 * 60 * 60 * 24);
       const result = await provider.getChart(rawSymbol, {
@@ -735,8 +737,8 @@ export function createMarketService(provider) {
       for (const q of quotes) {
         const dt = q?.date != null ? new Date(q.date) : null;
         if (!dt || Number.isNaN(dt.getTime())) continue;
-        const ymd = dt.toISOString().slice(0, 10);
-        if (ymd < rawStartDate || ymd > rawEndDate) continue;
+        const ymd = toIsoDate(dt, marketTimeZone);
+        if (!ymd || ymd < rawStartDate || ymd > rawEndDate) continue;
         const open = toNumber(q?.open);
         const high = toNumber(q?.high);
         const low = toNumber(q?.low);

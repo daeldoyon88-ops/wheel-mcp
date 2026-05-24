@@ -177,6 +177,28 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
     safeExec(conn, `ALTER TABLE theoretical_cc_steps ADD COLUMN before_recovery_flag INTEGER`);
     safeExec(conn, `ALTER TABLE theoretical_cc_steps ADD COLUMN assignment_recovered_at_step_flag INTEGER`);
     safeExec(conn, `ALTER TABLE theoretical_cc_steps ADD COLUMN premium_mid REAL`);
+    // Phase 3 — final exit / called away
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN cycle_status TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN final_exit_date TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN final_exit_price REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN final_exit_step_id TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN final_exit_sequence_number INTEGER`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN close_reason TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN called_away_count INTEGER DEFAULT 0`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN expired_otm_count INTEGER DEFAULT 0`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN last_evaluated_cc_expiration TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN gross_stock_pnl_per_share REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN premium_pnl_per_share REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN total_pnl_per_share REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN total_pnl_contract REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN return_on_assignment_pct REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN return_on_net_cost_pct REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN days_in_cycle INTEGER`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN days_after_assignment_to_exit INTEGER`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN annualized_return_after_assignment_pct REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_wheel_cycles ADD COLUMN final_exit_backfilled_at TEXT`);
+    safeExec(conn, `ALTER TABLE theoretical_cc_steps ADD COLUMN expiration_close REAL`);
+    safeExec(conn, `ALTER TABLE theoretical_cc_steps ADD COLUMN expiration_price_source TEXT`);
 
     initialized = true;
   }
@@ -203,6 +225,11 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         cc_steps_count, cc_sold_count, cc_not_sold_count, weeks_without_cc,
         cc_premiums_before_recovery, cc_count_before_recovery, weeks_without_cc_before_recovery,
         initial_net_cost_basis, latest_cc_test_date, multi_cc_backfilled_at,
+        cycle_status, final_exit_date, final_exit_price, final_exit_step_id, final_exit_sequence_number,
+        close_reason, called_away_count, expired_otm_count, last_evaluated_cc_expiration,
+        gross_stock_pnl_per_share, premium_pnl_per_share, total_pnl_per_share, total_pnl_contract,
+        return_on_assignment_pct, return_on_net_cost_pct, days_in_cycle, days_after_assignment_to_exit,
+        annualized_return_after_assignment_pct, final_exit_backfilled_at,
         source_prime_method, confidence_level, data_quality, raw_json,
         created_at, updated_at
       ) VALUES (
@@ -218,6 +245,11 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         @cc_steps_count, @cc_sold_count, @cc_not_sold_count, @weeks_without_cc,
         @cc_premiums_before_recovery, @cc_count_before_recovery, @weeks_without_cc_before_recovery,
         @initial_net_cost_basis, @latest_cc_test_date, @multi_cc_backfilled_at,
+        @cycle_status, @final_exit_date, @final_exit_price, @final_exit_step_id, @final_exit_sequence_number,
+        @close_reason, @called_away_count, @expired_otm_count, @last_evaluated_cc_expiration,
+        @gross_stock_pnl_per_share, @premium_pnl_per_share, @total_pnl_per_share, @total_pnl_contract,
+        @return_on_assignment_pct, @return_on_net_cost_pct, @days_in_cycle, @days_after_assignment_to_exit,
+        @annualized_return_after_assignment_pct, @final_exit_backfilled_at,
         @source_prime_method, @confidence_level, @data_quality, @raw_json,
         @created_at, @updated_at
       ) ON CONFLICT(id) DO UPDATE SET
@@ -264,6 +296,25 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         initial_net_cost_basis=excluded.initial_net_cost_basis,
         latest_cc_test_date=excluded.latest_cc_test_date,
         multi_cc_backfilled_at=excluded.multi_cc_backfilled_at,
+        cycle_status=excluded.cycle_status,
+        final_exit_date=excluded.final_exit_date,
+        final_exit_price=excluded.final_exit_price,
+        final_exit_step_id=excluded.final_exit_step_id,
+        final_exit_sequence_number=excluded.final_exit_sequence_number,
+        close_reason=excluded.close_reason,
+        called_away_count=excluded.called_away_count,
+        expired_otm_count=excluded.expired_otm_count,
+        last_evaluated_cc_expiration=excluded.last_evaluated_cc_expiration,
+        gross_stock_pnl_per_share=excluded.gross_stock_pnl_per_share,
+        premium_pnl_per_share=excluded.premium_pnl_per_share,
+        total_pnl_per_share=excluded.total_pnl_per_share,
+        total_pnl_contract=excluded.total_pnl_contract,
+        return_on_assignment_pct=excluded.return_on_assignment_pct,
+        return_on_net_cost_pct=excluded.return_on_net_cost_pct,
+        days_in_cycle=excluded.days_in_cycle,
+        days_after_assignment_to_exit=excluded.days_after_assignment_to_exit,
+        annualized_return_after_assignment_pct=excluded.annualized_return_after_assignment_pct,
+        final_exit_backfilled_at=excluded.final_exit_backfilled_at,
         source_prime_method=excluded.source_prime_method,
         confidence_level=excluded.confidence_level,
         data_quality=excluded.data_quality,
@@ -316,6 +367,25 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
       initial_net_cost_basis: toReal(cycle.initial_net_cost_basis),
       latest_cc_test_date: cycle.latest_cc_test_date ?? null,
       multi_cc_backfilled_at: cycle.multi_cc_backfilled_at ?? null,
+      cycle_status: cycle.cycle_status ?? null,
+      final_exit_date: cycle.final_exit_date ?? null,
+      final_exit_price: toReal(cycle.final_exit_price),
+      final_exit_step_id: cycle.final_exit_step_id ?? null,
+      final_exit_sequence_number: toInt(cycle.final_exit_sequence_number),
+      close_reason: cycle.close_reason ?? null,
+      called_away_count: toInt(cycle.called_away_count) ?? 0,
+      expired_otm_count: toInt(cycle.expired_otm_count) ?? 0,
+      last_evaluated_cc_expiration: cycle.last_evaluated_cc_expiration ?? null,
+      gross_stock_pnl_per_share: toReal(cycle.gross_stock_pnl_per_share),
+      premium_pnl_per_share: toReal(cycle.premium_pnl_per_share),
+      total_pnl_per_share: toReal(cycle.total_pnl_per_share),
+      total_pnl_contract: toReal(cycle.total_pnl_contract),
+      return_on_assignment_pct: toReal(cycle.return_on_assignment_pct),
+      return_on_net_cost_pct: toReal(cycle.return_on_net_cost_pct),
+      days_in_cycle: toInt(cycle.days_in_cycle),
+      days_after_assignment_to_exit: toInt(cycle.days_after_assignment_to_exit),
+      annualized_return_after_assignment_pct: toReal(cycle.annualized_return_after_assignment_pct),
+      final_exit_backfilled_at: cycle.final_exit_backfilled_at ?? null,
       source_prime_method: cycle.source_prime_method ?? null,
       confidence_level: cycle.confidence_level ?? null,
       data_quality: cycle.data_quality ?? null,
@@ -374,6 +444,7 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         threshold_4_0_hit, threshold_5_0_hit, threshold_6_0_hit,
         opportunity_intraday_detected, intraday_best_threshold_reached,
         result_at_expiration, called_away_theoretical, expired_otm,
+        expiration_close, expiration_price_source,
         data_quality, raw_json, created_at, updated_at
       ) VALUES (
         @id, @theoretical_cycle_id, @candidate_record_id, @ticker,
@@ -391,6 +462,7 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         @threshold_4_0_hit, @threshold_5_0_hit, @threshold_6_0_hit,
         @opportunity_intraday_detected, @intraday_best_threshold_reached,
         @result_at_expiration, @called_away_theoretical, @expired_otm,
+        @expiration_close, @expiration_price_source,
         @data_quality, @raw_json, @created_at, @updated_at
       ) ON CONFLICT(id) DO UPDATE SET
         theoretical_cycle_id=excluded.theoretical_cycle_id,
@@ -440,6 +512,8 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
         result_at_expiration=excluded.result_at_expiration,
         called_away_theoretical=excluded.called_away_theoretical,
         expired_otm=excluded.expired_otm,
+        expiration_close=excluded.expiration_close,
+        expiration_price_source=excluded.expiration_price_source,
         data_quality=excluded.data_quality,
         raw_json=excluded.raw_json,
         created_at=COALESCE(theoretical_cc_steps.created_at, excluded.created_at),
@@ -494,6 +568,8 @@ export function createTheoreticalCycleStoreSqlite(options = {}) {
       result_at_expiration: step.result_at_expiration ?? null,
       called_away_theoretical: toIntBool(step.called_away_theoretical),
       expired_otm: toIntBool(step.expired_otm),
+      expiration_close: toReal(step.expiration_close),
+      expiration_price_source: step.expiration_price_source ?? null,
       data_quality: step.data_quality ?? null,
       raw_json: JSON.stringify(step.raw ?? step),
       created_at: step.created_at ?? nowIso,

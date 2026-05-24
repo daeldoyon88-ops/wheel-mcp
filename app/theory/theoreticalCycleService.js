@@ -1428,6 +1428,514 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     };
   }
 
+  // ─────────────────────────────────────────────
+  // fetchCcExpirationOhlcCandles
+  // Phase 3 only — daily OHLC for CC expiration eval (US market calendar dates).
+  // Requests one extra calendar day then filters to endYmd (never uses dates after expiration).
+  // ─────────────────────────────────────────────
+  async function fetchCcExpirationOhlcCandles(ticker, startYmd, endYmd) {
+    const effectiveEnd = normalizeDateToYmd(endYmd);
+    const rangeStart = normalizeDateToYmd(startYmd);
+    if (!ticker || !rangeStart || !effectiveEnd) return [];
+
+    const fetchEnd = addCalendarDaysToYmd(effectiveEnd, 1) ?? effectiveEnd;
+    if (!effectiveMarketService?.getDailyOhlcRange) return [];
+
+    const range = await effectiveMarketService.getDailyOhlcRange(
+      ticker,
+      rangeStart,
+      fetchEnd,
+      { usMarketDates: true }
+    );
+    if (!range?.ok || !Array.isArray(range.candles)) return [];
+
+    return range.candles.filter((c) => {
+      const ymd = normalizeDateToYmd(c?.date);
+      return ymd && ymd <= effectiveEnd && Number.isFinite(Number(c?.close));
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // resolveExpirationClosePrice
+  // Pure — close at CC expiration (exact day or previous market day fallback).
+  // Never uses a price date after cc_expiration.
+  // ─────────────────────────────────────────────
+  function resolveExpirationClosePrice({ ccExpirationYmd, candles = [], todayYmd = null } = {}) {
+    const expYmd = normalizeDateToYmd(ccExpirationYmd);
+    const today = normalizeDateToYmd(todayYmd) ?? new Date().toISOString().slice(0, 10);
+
+    if (!expYmd) {
+      return { close: null, priceDate: null, source: "missing", pending: false };
+    }
+
+    if (expYmd > today) {
+      return { close: null, priceDate: null, source: "pending", pending: true };
+    }
+
+    const sorted = (Array.isArray(candles) ? candles : [])
+      .map((c) => ({
+        ...c,
+        date: normalizeDateToYmd(c?.date),
+        close: Number(c?.close),
+      }))
+      .filter((c) => c.date && c.date <= expYmd && Number.isFinite(c.close))
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+    const exact = sorted.find((c) => c.date === expYmd);
+    if (exact) {
+      return {
+        close: Number(exact.close),
+        priceDate: expYmd,
+        source: "expiration_daily_close",
+        pending: false,
+      };
+    }
+
+    const lookbackStart = addCalendarDaysToYmd(expYmd, -5);
+    const candidates = sorted.filter((c) => c.date <= expYmd && (!lookbackStart || c.date >= lookbackStart));
+    if (candidates.length > 0) {
+      const last = candidates[candidates.length - 1];
+      return {
+        close: Number(last.close),
+        priceDate: last.date,
+        source: "previous_market_close_fallback",
+        pending: false,
+      };
+    }
+
+    return { close: null, priceDate: null, source: "missing", pending: false };
+  }
+
+  // ─────────────────────────────────────────────
+  // computeCcStepExpirationOutcome
+  // Pure — evaluates one CC step at expiration (sold steps only get price test).
+  // ─────────────────────────────────────────────
+  function computeCcStepExpirationOutcome({ step, priceResolution, todayYmd = null } = {}) {
+    const ccStrike = Number(step?.cc_strike);
+    const assignmentStrike = Number(step?.assignment_strike ?? step?.assignmentStrike);
+
+    if (step?.cc_sold_theoretical !== 1) {
+      return {
+        expiration_close: null,
+        expiration_price_source: null,
+        called_away_theoretical: 0,
+        expired_otm: 0,
+        result_at_expiration: "not_sold",
+      };
+    }
+
+    const expYmd = normalizeDateToYmd(step?.cc_expiration);
+    const today = normalizeDateToYmd(todayYmd) ?? new Date().toISOString().slice(0, 10);
+
+    if (!expYmd) {
+      return {
+        expiration_close: null,
+        expiration_price_source: "missing",
+        called_away_theoretical: 0,
+        expired_otm: 0,
+        result_at_expiration: "missing_expiration_price",
+      };
+    }
+
+    if (expYmd > today) {
+      return {
+        expiration_close: null,
+        expiration_price_source: "pending",
+        called_away_theoretical: 0,
+        expired_otm: 0,
+        result_at_expiration: "pending_expiration",
+      };
+    }
+
+    const price = priceResolution ?? { close: null, source: "missing", pending: false };
+    if (price.pending || price.close == null || !Number.isFinite(Number(price.close))) {
+      return {
+        expiration_close: null,
+        expiration_price_source: price.source ?? "missing",
+        called_away_theoretical: 0,
+        expired_otm: 0,
+        result_at_expiration: "missing_expiration_price",
+      };
+    }
+
+    const expirationClose = Number(price.close);
+    const calledAway = Number.isFinite(ccStrike) && expirationClose >= ccStrike;
+
+    // Safety: never mark called away if cc_strike is below assignment_strike
+    if (calledAway && Number.isFinite(assignmentStrike) && ccStrike < assignmentStrike) {
+      return {
+        expiration_close: expirationClose,
+        expiration_price_source: price.source ?? "missing",
+        called_away_theoretical: 0,
+        expired_otm: 1,
+        result_at_expiration: "expired_otm",
+      };
+    }
+
+    if (calledAway) {
+      return {
+        expiration_close: expirationClose,
+        expiration_price_source: price.source ?? "expiration_daily_close",
+        called_away_theoretical: 1,
+        expired_otm: 0,
+        result_at_expiration: "called_away",
+      };
+    }
+
+    return {
+      expiration_close: expirationClose,
+      expiration_price_source: price.source ?? "expiration_daily_close",
+      called_away_theoretical: 0,
+      expired_otm: 1,
+      result_at_expiration: "expired_otm",
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // sumSoldCcPremiumConservative
+  // Pure — sum conservative premium from sold CC steps.
+  // ─────────────────────────────────────────────
+  function sumSoldCcPremiumConservative(ccSteps) {
+    const soldSteps = (Array.isArray(ccSteps) ? ccSteps : []).filter((s) => s.cc_sold_theoretical === 1);
+    return soldSteps.reduce((sum, s) => {
+      let p = null;
+      if (s.premium_conservative != null) p = Number(s.premium_conservative);
+      else if (s.premium_estimated != null) p = Number(s.premium_estimated);
+      else if (s.bs_call_premium != null) p = Number(s.bs_call_premium);
+      return sum + (p != null && Number.isFinite(p) ? p : 0);
+    }, 0);
+  }
+
+  // ─────────────────────────────────────────────
+  // computeFinalExitForCycle
+  // Pure — walks CC steps in sequence, detects called away, computes cycle P/L.
+  // Does NOT fetch market data.
+  // ─────────────────────────────────────────────
+  function computeFinalExitForCycle({ cycle, ccSteps, candles = [], todayYmd = null } = {}) {
+    const today = normalizeDateToYmd(todayYmd) ?? new Date().toISOString().slice(0, 10);
+    const sortedSteps = [...(Array.isArray(ccSteps) ? ccSteps : [])].sort(
+      (a, b) => (Number(a.sequence_number) || 0) - (Number(b.sequence_number) || 0)
+    );
+
+    const assignmentStrike = Number(cycle?.assignment_strike);
+    const cspPremium = cycle?.csp_premium != null ? Number(cycle.csp_premium) : 0;
+    const assignmentYmd = normalizeDateToYmd(cycle?.assignment_date);
+    const cycleStartYmd = normalizeDateToYmd(cycle?.scan_date) ?? assignmentYmd;
+
+    let called_away_count = 0;
+    let expired_otm_count = 0;
+    let pending_expiration_count = 0;
+    let missing_expiration_price_count = 0;
+    let last_evaluated_cc_expiration = null;
+
+    const evaluatedSteps = [];
+    let finalExitStep = null;
+    let finalExitOutcome = null;
+
+    for (const step of sortedSteps) {
+      const expYmd = normalizeDateToYmd(step?.cc_expiration);
+      if (expYmd) last_evaluated_cc_expiration = expYmd;
+
+      let priceResolution = null;
+      if (step.cc_sold_theoretical === 1 && expYmd) {
+        priceResolution = resolveExpirationClosePrice({ ccExpirationYmd: expYmd, candles, todayYmd: today });
+      }
+
+      const outcome = computeCcStepExpirationOutcome({ step, priceResolution, todayYmd: today });
+      evaluatedSteps.push({ step, outcome });
+
+      if (outcome.result_at_expiration === "called_away") {
+        called_away_count += 1;
+        if (!finalExitStep) {
+          finalExitStep = step;
+          finalExitOutcome = outcome;
+        }
+        break;
+      }
+
+      if (outcome.result_at_expiration === "expired_otm") expired_otm_count += 1;
+      if (outcome.result_at_expiration === "pending_expiration") pending_expiration_count += 1;
+      if (outcome.result_at_expiration === "missing_expiration_price") missing_expiration_price_count += 1;
+    }
+
+    const soldStepsForPremium = sortedSteps.filter((s) => {
+      const ev = evaluatedSteps.find((e) => e.step.id === s.id || e.step.sequence_number === s.sequence_number);
+      if (finalExitStep && Number(s.sequence_number) > Number(finalExitStep.sequence_number)) return false;
+      return s.cc_sold_theoretical === 1;
+    });
+    const total_cc_premium_conservative = sumSoldCcPremiumConservative(soldStepsForPremium);
+
+    const initial_net_cost_basis =
+      Number.isFinite(assignmentStrike) && Number.isFinite(cspPremium)
+        ? assignmentStrike - cspPremium
+        : cycle?.initial_net_cost_basis != null
+          ? Number(cycle.initial_net_cost_basis)
+          : null;
+
+    const reduced_cost_basis_estimated =
+      Number.isFinite(assignmentStrike)
+        ? assignmentStrike - cspPremium - total_cc_premium_conservative
+        : null;
+
+    const isClosed = finalExitStep != null && finalExitOutcome?.result_at_expiration === "called_away";
+    const final_exit_price = isClosed ? Number(finalExitStep.cc_strike) : null;
+    const final_exit_date = isClosed ? normalizeDateToYmd(finalExitStep.cc_expiration) : null;
+
+    // Safety guard: never exit below assignment_strike
+    const safeFinalExitPrice =
+      isClosed && Number.isFinite(final_exit_price) && Number.isFinite(assignmentStrike) && final_exit_price < assignmentStrike
+        ? null
+        : final_exit_price;
+
+    const actuallyClosed = isClosed && safeFinalExitPrice != null;
+
+    let gross_stock_pnl_per_share = null;
+    let premium_pnl_per_share = null;
+    let total_pnl_per_share = null;
+    let total_pnl_contract = null;
+    let return_on_assignment_pct = null;
+    let return_on_net_cost_pct = null;
+    let days_in_cycle = null;
+    let days_after_assignment_to_exit = null;
+    let annualized_return_after_assignment_pct = null;
+
+    if (actuallyClosed) {
+      gross_stock_pnl_per_share = safeFinalExitPrice - assignmentStrike;
+      premium_pnl_per_share = cspPremium + total_cc_premium_conservative;
+      total_pnl_per_share = gross_stock_pnl_per_share + premium_pnl_per_share;
+      total_pnl_contract = total_pnl_per_share * 100;
+
+      if (Number.isFinite(assignmentStrike) && assignmentStrike !== 0) {
+        return_on_assignment_pct = (total_pnl_per_share / assignmentStrike) * 100;
+      }
+      if (initial_net_cost_basis != null && Number.isFinite(initial_net_cost_basis) && initial_net_cost_basis !== 0) {
+        return_on_net_cost_pct = (total_pnl_per_share / initial_net_cost_basis) * 100;
+      }
+
+      if (cycleStartYmd && final_exit_date) {
+        days_in_cycle = computeCalendarDaysBetween(cycleStartYmd, final_exit_date);
+      }
+      if (assignmentYmd && final_exit_date) {
+        days_after_assignment_to_exit = computeCalendarDaysBetween(assignmentYmd, final_exit_date);
+        if (
+          days_after_assignment_to_exit != null &&
+          days_after_assignment_to_exit > 0 &&
+          return_on_assignment_pct != null
+        ) {
+          annualized_return_after_assignment_pct =
+            (return_on_assignment_pct / days_after_assignment_to_exit) * 365;
+        }
+      }
+    }
+
+    return {
+      evaluatedSteps,
+      cycle_status: actuallyClosed ? "closed" : "open",
+      status: actuallyClosed ? "closed_theoretical" : "open",
+      close_reason: actuallyClosed ? "cc_called_away" : pending_expiration_count > 0 ? null : "still_holding",
+      final_exit_date: actuallyClosed ? final_exit_date : null,
+      final_exit_price: actuallyClosed ? safeFinalExitPrice : null,
+      final_exit_step_id: actuallyClosed ? finalExitStep.id : null,
+      final_exit_sequence_number: actuallyClosed ? Number(finalExitStep.sequence_number) : null,
+      called_away_count,
+      expired_otm_count,
+      last_evaluated_cc_expiration,
+      total_cc_premium_conservative,
+      reduced_cost_basis_estimated,
+      initial_net_cost_basis,
+      gross_stock_pnl_per_share,
+      premium_pnl_per_share,
+      total_pnl_per_share,
+      total_pnl_contract,
+      return_on_assignment_pct,
+      return_on_net_cost_pct,
+      days_in_cycle,
+      days_after_assignment_to_exit,
+      annualized_return_after_assignment_pct,
+      pending_expiration_count,
+      missing_expiration_price_count,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // refreshFinalExitForWheelCycles
+  // POP V2 Phase 3: evaluates CC expiration outcomes, called away, cycle P/L.
+  // Does NOT modify CSP selection, multi-CC generation, or recovery logic.
+  // ─────────────────────────────────────────────
+  async function refreshFinalExitForWheelCycles({
+    cycles: inputCycles = null,
+    dryRun = false,
+    limit = null,
+    endDateYmd = null,
+    forceRefresh = false,
+    onlyMissing = true,
+  } = {}) {
+    await cycleStore.ensureInitialized();
+
+    const todayYmd = normalizeDateToYmd(endDateYmd) ?? new Date().toISOString().slice(0, 10);
+    let cycles = inputCycles ?? (await cycleStore.listCycles(limit != null ? Number(limit) : 999999));
+
+    if (onlyMissing && !forceRefresh) {
+      cycles = cycles.filter((c) => !c.final_exit_backfilled_at);
+    }
+
+    let cycles_scanned = cycles.length;
+    let cycles_eligible = 0;
+    let cycles_updated = 0;
+    let cycles_closed = 0;
+    let cycles_still_open = 0;
+    let cc_steps_evaluated = 0;
+    let called_away_total = 0;
+    let expired_otm_total = 0;
+    let pending_expirations = 0;
+    let missing_expiration_price = 0;
+    let total_pnl_contract_sum = 0;
+    let return_on_assignment_sum = 0;
+    let return_on_assignment_count = 0;
+    let days_after_assignment_sum = 0;
+    let days_after_assignment_count = 0;
+    let final_exit_below_assignment_strike = 0;
+    const errors = [];
+    const sample_cycles = [];
+
+    for (const cycle of cycles) {
+      if (!cycle?.id || !cycle?.ticker) continue;
+
+      try {
+        const ccSteps = await cycleStore.listCcSteps(cycle.id);
+        if (ccSteps.length === 0) continue;
+        cycles_eligible++;
+
+        const expDates = ccSteps
+          .map((s) => normalizeDateToYmd(s.cc_expiration))
+          .filter(Boolean)
+          .sort();
+        const minExp = expDates[0] ?? todayYmd;
+        const maxExp = expDates[expDates.length - 1] ?? todayYmd;
+        const rangeStart = addCalendarDaysToYmd(minExp, -5) ?? minExp;
+        const effectiveEnd = maxExp > todayYmd ? todayYmd : maxExp;
+
+        const candles = await fetchCcExpirationOhlcCandles(cycle.ticker, rangeStart, effectiveEnd);
+
+        const result = computeFinalExitForCycle({ cycle, ccSteps, candles, todayYmd });
+        cc_steps_evaluated += result.evaluatedSteps.length;
+
+        for (const { outcome } of result.evaluatedSteps) {
+          if (outcome.result_at_expiration === "called_away") called_away_total += 1;
+          if (outcome.result_at_expiration === "expired_otm") expired_otm_total += 1;
+          if (outcome.result_at_expiration === "pending_expiration") pending_expirations += 1;
+          if (outcome.result_at_expiration === "missing_expiration_price") missing_expiration_price += 1;
+        }
+
+        if (result.cycle_status === "closed") {
+          cycles_closed += 1;
+          if (result.total_pnl_contract != null) total_pnl_contract_sum += result.total_pnl_contract;
+          if (result.return_on_assignment_pct != null) {
+            return_on_assignment_sum += result.return_on_assignment_pct;
+            return_on_assignment_count += 1;
+          }
+          if (result.days_after_assignment_to_exit != null) {
+            days_after_assignment_sum += result.days_after_assignment_to_exit;
+            days_after_assignment_count += 1;
+          }
+          if (
+            result.final_exit_price != null &&
+            Number.isFinite(Number(cycle.assignment_strike)) &&
+            result.final_exit_price < Number(cycle.assignment_strike)
+          ) {
+            final_exit_below_assignment_strike += 1;
+          }
+        } else {
+          cycles_still_open += 1;
+        }
+
+        if (sample_cycles.length < 8) {
+          sample_cycles.push({
+            ticker: cycle.ticker,
+            cycle_status: result.cycle_status,
+            close_reason: result.close_reason,
+            final_exit_date: result.final_exit_date,
+            final_exit_price: result.final_exit_price,
+            final_exit_sequence_number: result.final_exit_sequence_number,
+            total_pnl_contract: result.total_pnl_contract,
+            return_on_assignment_pct: result.return_on_assignment_pct,
+            called_away_count: result.called_away_count,
+            expired_otm_count: result.expired_otm_count,
+          });
+        }
+
+        if (!dryRun) {
+          const nowIso = new Date().toISOString();
+          for (const { step, outcome } of result.evaluatedSteps) {
+            await cycleStore.upsertCcStep({
+              ...step,
+              expiration_close: outcome.expiration_close,
+              expiration_price_source: outcome.expiration_price_source,
+              called_away_theoretical: outcome.called_away_theoretical,
+              expired_otm: outcome.expired_otm,
+              result_at_expiration: outcome.result_at_expiration,
+            });
+          }
+
+          await cycleStore.upsertCycle({
+            ...cycle,
+            cycle_status: result.cycle_status,
+            status: result.status,
+            close_reason: result.close_reason,
+            final_exit_date: result.final_exit_date,
+            final_exit_price: result.final_exit_price,
+            final_exit_step_id: result.final_exit_step_id,
+            final_exit_sequence_number: result.final_exit_sequence_number,
+            called_away_count: result.called_away_count,
+            expired_otm_count: result.expired_otm_count,
+            last_evaluated_cc_expiration: result.last_evaluated_cc_expiration,
+            total_cc_premium_conservative: result.total_cc_premium_conservative,
+            reduced_cost_basis_estimated: result.reduced_cost_basis_estimated,
+            initial_net_cost_basis: result.initial_net_cost_basis,
+            gross_stock_pnl_per_share: result.gross_stock_pnl_per_share,
+            premium_pnl_per_share: result.premium_pnl_per_share,
+            total_pnl_per_share: result.total_pnl_per_share,
+            total_pnl_contract: result.total_pnl_contract,
+            return_on_assignment_pct: result.return_on_assignment_pct,
+            return_on_net_cost_pct: result.return_on_net_cost_pct,
+            days_in_cycle: result.days_in_cycle,
+            days_after_assignment_to_exit: result.days_after_assignment_to_exit,
+            annualized_return_after_assignment_pct: result.annualized_return_after_assignment_pct,
+            final_exit_backfilled_at: nowIso,
+          });
+          cycles_updated += 1;
+        }
+      } catch (err) {
+        errors.push({ cycle_id: cycle.id, error: String(err?.message ?? err) });
+      }
+    }
+
+    return {
+      ok: true,
+      dryRun,
+      todayYmd,
+      cycles_total: inputCycles ? inputCycles.length : cycles_scanned,
+      cycles_scanned,
+      cycles_eligible,
+      cycles_updated,
+      cycles_closed,
+      cycles_still_open,
+      cc_steps_evaluated,
+      called_away_count: called_away_total,
+      expired_otm_count: expired_otm_total,
+      pending_expirations,
+      missing_expiration_price,
+      total_pnl_contract_sum,
+      average_return_on_assignment_pct:
+        return_on_assignment_count > 0 ? return_on_assignment_sum / return_on_assignment_count : null,
+      average_days_after_assignment_to_exit:
+        days_after_assignment_count > 0 ? days_after_assignment_sum / days_after_assignment_count : null,
+      final_exit_below_assignment_strike,
+      errors,
+      sample_cycles,
+    };
+  }
+
   return {
     buildCycleFromAssignedRecord,
     generateCyclesFromAssignedRecords,
@@ -1449,5 +1957,10 @@ export function createTheoreticalCycleService({ validationStore, cycleStore, mar
     normalizeDateToYmd,
     computeAssignmentRecoveryMetrics,
     refreshAssignmentRecoveryForCycles,
+    fetchCcExpirationOhlcCandles,
+    resolveExpirationClosePrice,
+    computeCcStepExpirationOutcome,
+    computeFinalExitForCycle,
+    refreshFinalExitForWheelCycles,
   };
 }

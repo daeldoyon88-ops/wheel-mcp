@@ -192,6 +192,34 @@ function getTheoreticalCycleMultiCcStatusLabel(cycle) {
   return `CC vendus : ${s.ccSold} · Attentes : ${s.ccWait} · Avant recovery : ${beforeRec}`;
 }
 
+function getTheoreticalCycleExitStatus(cycle) {
+  if (cycle?.cycle_status === "closed" || String(cycle?.status ?? "").toLowerCase() === "closed_theoretical") {
+    return "closed";
+  }
+  return "open";
+}
+
+function getTheoreticalCycleExitStatusLabel(cycle) {
+  return getTheoreticalCycleExitStatus(cycle) === "closed" ? "Fermé" : "Ouvert";
+}
+
+function getTheoreticalCycleExitStatusTone(cycle) {
+  return getTheoreticalCycleExitStatus(cycle) === "closed" ? "text-sky-400" : "text-slate-400";
+}
+
+function getTheoreticalCycleCloseReasonLabel(cycle) {
+  if (cycle?.close_reason === "cc_called_away") return "Called away";
+  if (cycle?.close_reason === "still_holding") return "Détention";
+  return "—";
+}
+
+function getTheoreticalCycleFinalExitSummary(cycle) {
+  if (getTheoreticalCycleExitStatus(cycle) !== "closed") return "—";
+  const date = cycle?.final_exit_date ? formatDate(cycle.final_exit_date) : "—";
+  const price = cycle?.final_exit_price != null ? formatMoney(cycle.final_exit_price) : "—";
+  return `${date} @ ${price}`;
+}
+
 function truncateDecisionLine(line, max = 90) {
   if (!line || line.length <= max) return line ?? "";
   return `${line.slice(0, max - 1)}…`;
@@ -906,6 +934,7 @@ function scoreWheelCcCycle(cycle) {
   score -= (numberOrNull(multi.weeksWithoutCc) ?? 0) * 20;
   score -= numberOrNull(cycle?.reduced_cost_basis_estimated) ?? 0;
   if (step?.usedFallback === true) score -= 100;
+  if (getTheoreticalCycleExitStatus(cycle) === "closed" && (numberOrNull(cycle?.total_pnl_per_share) ?? 0) > 0) score += 150;
   return score;
 }
 
@@ -2754,6 +2783,20 @@ export default function JournalPopPanel({ apiBase, active }) {
         return sum + (p != null ? p : 0);
       }, 0),
       multiCcBackfilledCount: rows.filter((cycle) => cycle?.multi_cc_backfilled_at).length,
+      cyclesClosedCount: rows.filter((cycle) => getTheoreticalCycleExitStatus(cycle) === "closed").length,
+      cyclesOpenCount: rows.filter((cycle) => getTheoreticalCycleExitStatus(cycle) === "open").length,
+      calledAwayCount: rows.filter((cycle) => cycle?.close_reason === "cc_called_away").length,
+      expiredOtmTotal: rows.reduce((sum, cycle) => sum + (numberOrNull(cycle?.expired_otm_count) ?? 0), 0),
+      totalPnlClosed: rows
+        .filter((cycle) => getTheoreticalCycleExitStatus(cycle) === "closed")
+        .reduce((sum, cycle) => sum + (numberOrNull(cycle?.total_pnl_contract) ?? 0), 0),
+      avgReturnClosed: (() => {
+        const closed = rows.filter(
+          (cycle) => getTheoreticalCycleExitStatus(cycle) === "closed" && numberOrNull(cycle?.return_on_assignment_pct) != null
+        );
+        if (closed.length === 0) return null;
+        return closed.reduce((sum, cycle) => sum + numberOrNull(cycle.return_on_assignment_pct), 0) / closed.length;
+      })(),
     };
   }, [filteredTheoreticalCycles]);
   const theoreticalCyclesToWatch = useMemo(() => {
@@ -5875,6 +5918,23 @@ export default function JournalPopPanel({ apiBase, active }) {
                   />
                 </div>
 
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                  <ProKpi label="Cycles fermés" value={theoreticalCyclesStats.cyclesClosedCount > 0 ? theoreticalCyclesStats.cyclesClosedCount : null} tone="info" />
+                  <ProKpi label="Cycles ouverts" value={theoreticalCyclesStats.cyclesOpenCount > 0 ? theoreticalCyclesStats.cyclesOpenCount : null} />
+                  <ProKpi label="Called away" value={theoreticalCyclesStats.calledAwayCount > 0 ? theoreticalCyclesStats.calledAwayCount : null} tone="good" />
+                  <ProKpi label="Expired OTM" value={theoreticalCyclesStats.expiredOtmTotal > 0 ? theoreticalCyclesStats.expiredOtmTotal : null} tone="warn" />
+                  <ProKpi
+                    label="P/L total fermé"
+                    value={theoreticalCyclesStats.totalPnlClosed !== 0 ? formatMoney(theoreticalCyclesStats.totalPnlClosed) : null}
+                    tone={theoreticalCyclesStats.totalPnlClosed > 0 ? "good" : theoreticalCyclesStats.totalPnlClosed < 0 ? "warn" : "muted"}
+                  />
+                  <ProKpi
+                    label="Rend. moyen fermé"
+                    value={theoreticalCyclesStats.avgReturnClosed != null ? `${theoreticalCyclesStats.avgReturnClosed.toFixed(2)} %` : null}
+                    tone="info"
+                  />
+                </div>
+
                 <div className="mt-5 grid gap-3 lg:grid-cols-4">
                   <label className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Recherche ticker</p>
@@ -6027,6 +6087,11 @@ export default function JournalPopPanel({ apiBase, active }) {
                           "Coût réduit",
                           "Total primes / action",
                           "Multi-CC",
+                          "Statut cycle",
+                          "Sortie",
+                          "P/L contrat",
+                          "Rend. total",
+                          "Jours post-assign.",
                         ].map((header) => (
                           <th key={header} className="px-3 py-3 font-semibold whitespace-nowrap">{header}</th>
                         ))}
@@ -6035,7 +6100,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tbody className="divide-y divide-slate-800/70">
                       {displayedTheoreticalCycles.length === 0 ? (
                         <tr>
-                          <td colSpan={19} className="px-4 py-8 text-center text-sm text-slate-600">
+                          <td colSpan={24} className="px-4 py-8 text-center text-sm text-slate-600">
                             Aucun cycle ne correspond aux filtres.
                           </td>
                         </tr>
@@ -6126,10 +6191,54 @@ export default function JournalPopPanel({ apiBase, active }) {
                                   </div>
                                 </button>
                               </td>
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${getTheoreticalCycleExitStatus(cycle) === "closed" ? "border-sky-800/50 bg-sky-900/20 text-sky-400" : "border-slate-700 bg-slate-800 text-slate-400"}`}>
+                                  {getTheoreticalCycleExitStatusLabel(cycle)}
+                                </span>
+                                {cycle?.close_reason && (
+                                  <div className="mt-1 text-[10px] text-slate-600">{getTheoreticalCycleCloseReasonLabel(cycle)}</div>
+                                )}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap text-[11px]">
+                                {getTheoreticalCycleFinalExitSummary(cycle)}
+                                {cycle?.final_exit_sequence_number != null && (
+                                  <div className="mt-1 text-[10px] text-slate-600">Step #{cycle.final_exit_sequence_number}</div>
+                                )}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">
+                                {cycle?.total_pnl_contract != null ? (
+                                  <span className={cycle.total_pnl_contract >= 0 ? "text-emerald-400" : "text-amber-400"}>
+                                    {formatMoney(cycle.total_pnl_contract)}
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">
+                                {formatPercent(cycle?.return_on_assignment_pct)}
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap tabular-nums">
+                                {cycle?.days_after_assignment_to_exit != null ? cycle.days_after_assignment_to_exit : "—"}
+                              </td>
                             </tr>
                             {isExpanded && (
                               <tr key={`${cycle.id}-detail`} className="bg-slate-950/40">
-                                <td colSpan={19} className="px-4 py-4">
+                                <td colSpan={24} className="px-4 py-4">
+                                  <div className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sortie finale théorique</p>
+                                    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-[11px]">
+                                      <div><span className="text-slate-500">Statut</span><p className={`mt-1 ${getTheoreticalCycleExitStatusTone(cycle)}`}>{getTheoreticalCycleExitStatusLabel(cycle)}</p></div>
+                                      <div><span className="text-slate-500">Date sortie</span><p className="mt-1 text-slate-200">{formatDate(cycle?.final_exit_date)}</p></div>
+                                      <div><span className="text-slate-500">Prix sortie</span><p className="mt-1 text-slate-200 tabular-nums">{formatMoney(cycle?.final_exit_price)}</p></div>
+                                      <div><span className="text-slate-500">Step CC responsable</span><p className="mt-1 text-slate-200 tabular-nums">{cycle?.final_exit_sequence_number != null ? `#${cycle.final_exit_sequence_number}` : "—"}</p></div>
+                                      <div><span className="text-slate-500">Raison</span><p className="mt-1 text-slate-200">{getTheoreticalCycleCloseReasonLabel(cycle)}</p></div>
+                                      <div><span className="text-slate-500">P/L action</span><p className="mt-1 text-slate-200 tabular-nums">{formatMoney(cycle?.gross_stock_pnl_per_share)}</p></div>
+                                      <div><span className="text-slate-500">Primes CSP + CC</span><p className="mt-1 text-emerald-400 tabular-nums">{formatMoney(cycle?.premium_pnl_per_share)}</p></div>
+                                      <div><span className="text-slate-500">P/L total / action</span><p className="mt-1 text-slate-200 tabular-nums">{formatMoney(cycle?.total_pnl_per_share)}</p></div>
+                                      <div><span className="text-slate-500">P/L total / contrat</span><p className="mt-1 text-slate-200 tabular-nums">{formatMoney(cycle?.total_pnl_contract)}</p></div>
+                                      <div><span className="text-slate-500">Rendement total</span><p className="mt-1 text-sky-400 tabular-nums">{formatPercent(cycle?.return_on_assignment_pct)}</p></div>
+                                      <div><span className="text-slate-500">Jours après assignation</span><p className="mt-1 text-slate-200 tabular-nums">{cycle?.days_after_assignment_to_exit ?? "—"}</p></div>
+                                      <div><span className="text-slate-500">Rend. annualisé post-assign.</span><p className="mt-1 text-slate-200 tabular-nums">{formatPercent(cycle?.annualized_return_after_assignment_pct)}</p></div>
+                                    </div>
+                                  </div>
                                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-[11px]">
                                     <div><span className="text-slate-500">Nb CC vendus</span><p className="mt-1 text-slate-200 tabular-nums">{multi.ccSold}</p></div>
                                     <div><span className="text-slate-500">Semaines sans CC</span><p className="mt-1 text-slate-200 tabular-nums">{multi.weeksWithoutCc}</p></div>
@@ -6145,7 +6254,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                                       <table className="min-w-full text-left text-[10px] text-slate-400">
                                         <thead className="border-b border-slate-800 text-slate-500">
                                           <tr>
-                                            {["#", "Test", "Exp.", "Strike", "Spot", "Prime cons.", "Rend.", "Statut", "Avant rec."].map((h) => (
+                                            {["#", "Test", "Exp.", "Strike", "Spot", "Prime cons.", "Rend.", "Statut", "Close exp.", "Résultat", "Avant rec."].map((h) => (
                                               <th key={h} className="px-2 py-2 font-semibold whitespace-nowrap">{h}</th>
                                             ))}
                                           </tr>
@@ -6161,6 +6270,20 @@ export default function JournalPopPanel({ apiBase, active }) {
                                               <td className="px-2 py-1.5 tabular-nums text-emerald-400">{formatMoney(ccStep.premium_conservative)}</td>
                                               <td className="px-2 py-1.5 tabular-nums">{formatPercent(ccStep.cc_yield_conservative_pct)}</td>
                                               <td className="px-2 py-1.5">{ccStep.cc_sold_theoretical === 1 ? "Vendu" : ccStep.not_sold_reason ?? "Attente"}</td>
+                                              <td className="px-2 py-1.5 tabular-nums">{formatMoney(ccStep.expiration_close)}</td>
+                                              <td className="px-2 py-1.5">
+                                                {ccStep.result_at_expiration === "called_away" ? (
+                                                  <span className="text-sky-400">Called away</span>
+                                                ) : ccStep.result_at_expiration === "expired_otm" ? (
+                                                  <span className="text-amber-400">OTM</span>
+                                                ) : ccStep.result_at_expiration === "pending_expiration" ? (
+                                                  <span className="text-slate-500">Pending</span>
+                                                ) : ccStep.result_at_expiration === "missing_expiration_price" ? (
+                                                  <span className="text-slate-500">Prix N/D</span>
+                                                ) : ccStep.result_at_expiration === "not_sold" ? (
+                                                  <span className="text-slate-600">—</span>
+                                                ) : (ccStep.result_at_expiration ?? "—")}
+                                              </td>
                                               <td className="px-2 py-1.5">{ccStep.before_recovery_flag === 1 ? "Oui" : ccStep.before_recovery_flag === 0 ? "Non" : "—"}</td>
                                             </tr>
                                           ))}

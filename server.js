@@ -17,7 +17,11 @@ import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
 import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
 import { buildResearchExpandedPool } from "./app/watchlist/researchExpandedPool.js";
 import { getIbkrHealthStatus } from "./app/ibkr/ibkrHealthStatus.js";
-import { createWheelValidationService } from "./app/journal/wheelValidationService.js";
+import {
+  classifyAssignmentDepth,
+  createWheelValidationService,
+  summarizeAssignmentDepthCounts,
+} from "./app/journal/wheelValidationService.js";
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
@@ -328,6 +332,17 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
         soldStepCount: steps.filter((step) => Number(step.cc_sold_theoretical) === 1).length,
         waitStepCount: steps.filter((step) => Number(step.cc_sold_theoretical) !== 1).length,
       },
+      ...classifyAssignmentDepth({
+        assigned: true,
+        assigned_flag: 1,
+        strike: { strike: numberOrNullSafe(cycle.assignment_strike) },
+        assignment_strike: numberOrNullSafe(cycle.assignment_strike),
+        assignment_price: numberOrNullSafe(cycle.assignment_price),
+        resolution: {
+          underlying_close_at_expiration: numberOrNullSafe(cycle.assignment_price),
+          expirationClosePrice: numberOrNullSafe(cycle.assignment_price),
+        },
+      }),
     };
   });
 
@@ -386,6 +401,19 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
   }
 
   const recoveryKnownCount = cyclesRecovered + cyclesNotRecovered;
+  const assignmentDepthSummary = summarizeAssignmentDepthCounts(
+    limitedCycles.map((cycle) => ({
+      assigned: true,
+      assigned_flag: 1,
+      strike: { strike: cycle.assignment_strike },
+      assignment_strike: cycle.assignment_strike,
+      assignment_price: cycle.assignment_price,
+      resolution: {
+        underlying_close_at_expiration: cycle.assignment_price,
+        expirationClosePrice: cycle.assignment_price,
+      },
+    }))
+  );
 
   return {
     summary: {
@@ -403,8 +431,10 @@ function readTheoreticalCyclesSnapshot({ limit = 200, ticker = "", status = "", 
       cycles_recovered: cyclesRecovered,
       cycles_not_recovered: cyclesNotRecovered,
       recovery_rate_pct: recoveryKnownCount > 0 ? (cyclesRecovered / recoveryKnownCount) * 100 : null,
+      assignment_depth_summary: assignmentDepthSummary,
     },
     cycles: limitedCycles,
+    assignment_depth_summary: assignmentDepthSummary,
   };
 }
 
@@ -2829,6 +2859,7 @@ app.get("/journal/wheel-validation/theoretical-cycles", async (req, res) => {
       ok: true,
       summary: payload.summary,
       cycles: payload.cycles,
+      assignment_depth_summary: payload.assignment_depth_summary ?? payload.summary?.assignment_depth_summary ?? null,
     });
   } catch (error) {
     res.status(500).json({

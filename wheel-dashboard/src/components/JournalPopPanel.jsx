@@ -310,6 +310,32 @@ function getTheoreticalCycleRecoveryTone(cycle) {
   return "text-slate-500";
 }
 
+function formatAssignmentDepthPct(pct) {
+  const n = numberOrNull(pct);
+  if (n == null) return "—";
+  const formatted = Math.abs(n).toFixed(1).replace(".", ",");
+  if (n < 0) return `-${formatted} %`;
+  if (n > 0) return `+${formatted} %`;
+  return "0,0 %";
+}
+
+function getAssignmentDepthTone(cycle) {
+  const cls = cycle?.assignmentDepthClass;
+  if (cls === "proche") return "text-emerald-400";
+  if (cls === "moderee") return "text-amber-400";
+  if (cls === "profonde") return "text-rose-400";
+  return "text-slate-500";
+}
+
+function getAssignmentDepthShortNote(cycle) {
+  const cls = cycle?.assignmentDepthClass;
+  if (cls === "proche") return "CC potentiellement exploitable";
+  if (cls === "moderee") return "À surveiller";
+  if (cls === "profonde") return "Risque de capital bloqué";
+  if (cycle?.assignmentDepthWarning === "Données insuffisantes") return "Données insuffisantes";
+  return "—";
+}
+
 function getTheoreticalCycleReading(cycle) {
   const step = cycle?.first_cc_step;
   if (!step) return "Aucun CC step";
@@ -3100,8 +3126,12 @@ export default function JournalPopPanel({ apiBase, active }) {
           ? {
               summary: theoreticalCyclesJson.summary ?? null,
               cycles: Array.isArray(theoreticalCyclesJson.cycles) ? theoreticalCyclesJson.cycles : [],
+              assignmentDepthSummary:
+                theoreticalCyclesJson.assignment_depth_summary ??
+                theoreticalCyclesJson.summary?.assignment_depth_summary ??
+                null,
             }
-          : { summary: null, cycles: [] }
+          : { summary: null, cycles: [], assignmentDepthSummary: null }
       );
       setHasLoaded(true);
     } catch (err) {
@@ -3376,6 +3406,12 @@ export default function JournalPopPanel({ apiBase, active }) {
         if (closed.length === 0) return null;
         return closed.reduce((sum, cycle) => sum + numberOrNull(cycle.return_on_assignment_pct), 0) / closed.length;
       })(),
+      assignmentDepthProche: rows.filter((cycle) => cycle?.assignmentDepthClass === "proche").length,
+      assignmentDepthModeree: rows.filter((cycle) => cycle?.assignmentDepthClass === "moderee").length,
+      assignmentDepthProfonde: rows.filter((cycle) => cycle?.assignmentDepthClass === "profonde").length,
+      assignmentDepthNd: rows.filter(
+        (cycle) => !cycle?.assignmentDepthClass || cycle.assignmentDepthClass === "na"
+      ).length,
     };
   }, [filteredTheoreticalCycles]);
   const theoreticalCyclesToWatch = useMemo(() => {
@@ -6815,6 +6851,32 @@ export default function JournalPopPanel({ apiBase, active }) {
                   />
                 </div>
 
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <ProKpi
+                    label="Assign. proches"
+                    value={theoreticalCyclesStats.assignmentDepthProche > 0 ? theoreticalCyclesStats.assignmentDepthProche : null}
+                    sub="0 % à -1,5 % sous le strike"
+                    tone="good"
+                  />
+                  <ProKpi
+                    label="Assign. modérées"
+                    value={theoreticalCyclesStats.assignmentDepthModeree > 0 ? theoreticalCyclesStats.assignmentDepthModeree : null}
+                    sub="-1,5 % à -4 %"
+                    tone="warn"
+                  />
+                  <ProKpi
+                    label="Assign. profondes"
+                    value={theoreticalCyclesStats.assignmentDepthProfonde > 0 ? theoreticalCyclesStats.assignmentDepthProfonde : null}
+                    sub="moins de -4 % sous le strike"
+                    tone="warn"
+                  />
+                  <ProKpi
+                    label="Profondeur N/D"
+                    value={theoreticalCyclesStats.assignmentDepthNd > 0 ? theoreticalCyclesStats.assignmentDepthNd : null}
+                    sub="Données incomplètes"
+                  />
+                </div>
+
                 <div className="mt-5 grid gap-3 lg:grid-cols-4">
                   <label className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-3">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Recherche ticker</p>
@@ -6952,6 +7014,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                           "Mode",
                           "Date assign.",
                           "Strike assign.",
+                          "Distance assign.",
+                          "Type assign.",
+                          "Note assign.",
                           "Date retour strike",
                           "Jours retour strike",
                           "Statut recovery",
@@ -6980,7 +7045,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tbody className="divide-y divide-slate-800/70">
                       {displayedTheoreticalCycles.length === 0 ? (
                         <tr>
-                          <td colSpan={24} className="px-4 py-8 text-center text-sm text-slate-600">
+                          <td colSpan={27} className="px-4 py-8 text-center text-sm text-slate-600">
                             Aucun cycle ne correspond aux filtres.
                           </td>
                         </tr>
@@ -7010,6 +7075,18 @@ export default function JournalPopPanel({ apiBase, active }) {
                               <td className="px-3 py-3 whitespace-nowrap">{formatTheoreticalCycleMode(cycle.strike_mode)}</td>
                               <td className="px-3 py-3 whitespace-nowrap">{formatDate(cycle.assignment_date)}</td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">{formatMoney(cycle.assignment_strike)}</td>
+                              <td className={`px-3 py-3 whitespace-nowrap tabular-nums ${getAssignmentDepthTone(cycle)}`}>
+                                {formatAssignmentDepthPct(cycle?.assignmentDepthPct)}
+                              </td>
+                              <td className={`px-3 py-3 whitespace-nowrap ${getAssignmentDepthTone(cycle)}`}>
+                                {cycle?.assignmentDepthLabel ?? "N/D"}
+                              </td>
+                              <td className="px-3 py-3 max-w-[200px] text-[11px] leading-relaxed text-slate-400">
+                                <span className={getAssignmentDepthTone(cycle)}>{getAssignmentDepthShortNote(cycle)}</span>
+                                {cycle?.assignmentDepthWarning && cycle.assignmentDepthClass !== "na" && (
+                                  <div className="mt-1 text-[10px] text-slate-600">{cycle.assignmentDepthWarning}</div>
+                                )}
+                              </td>
                               <td className="px-3 py-3 whitespace-nowrap">{formatDate(cycle.assignment_recovery_date)}</td>
                               <td className="px-3 py-3 whitespace-nowrap tabular-nums">
                                 {cycle?.days_to_strike_close_above != null ? cycle.days_to_strike_close_above : "—"}
@@ -7101,7 +7178,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                             </tr>
                             {isExpanded && (
                               <tr key={`${cycle.id}-detail`} className="bg-slate-950/40">
-                                <td colSpan={24} className="px-4 py-4">
+                                <td colSpan={27} className="px-4 py-4">
                                   <div className="mb-4 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sortie finale théorique</p>
                                     <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-[11px]">

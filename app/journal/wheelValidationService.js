@@ -1502,6 +1502,106 @@ function isPrimaryResolvedExpiredCalibrationRecord(record, todayYmd) {
   return true;
 }
 
+function getAssignmentStrikeForDepth(record) {
+  return (
+    toNumberOrNull(record?.strike?.strike) ??
+    toNumberOrNull(record?.strike) ??
+    toNumberOrNull(record?.assignment_strike) ??
+    null
+  );
+}
+
+function getExpirationCloseForAssignmentDepth(record) {
+  return (
+    toNumberOrNull(record?.resolution?.underlying_close_at_expiration) ??
+    toNumberOrNull(record?.resolution?.expirationClosePrice) ??
+    toNumberOrNull(record?.underlying_close_at_expiration) ??
+    toNumberOrNull(record?.expirationClosePrice) ??
+    toNumberOrNull(record?.assignment_price) ??
+    null
+  );
+}
+
+function buildAssignmentDepthNaResult(warning = null) {
+  return {
+    assignmentDepthPct: null,
+    assignmentDepthClass: "na",
+    assignmentDepthLabel: "N/D",
+    assignmentDepthWarning: warning,
+  };
+}
+
+/**
+ * Classifie la profondeur d'une assignation CSP vs le strike à l'expiration.
+ * Pur — dérivation à la volée, sans persistance SQLite.
+ */
+export function classifyAssignmentDepth(record) {
+  const assigned =
+    getAssignedFlag(record) === true ||
+    record?.assigned === true ||
+    record?.assigned === 1 ||
+    record?.assigned_flag === 1;
+
+  if (!assigned) {
+    return buildAssignmentDepthNaResult(null);
+  }
+
+  const strike = getAssignmentStrikeForDepth(record);
+  const closeExpiration = getExpirationCloseForAssignmentDepth(record);
+
+  if (strike == null || closeExpiration == null || !(strike > 0)) {
+    return buildAssignmentDepthNaResult("Données insuffisantes");
+  }
+
+  const assignmentDepthPct = Number((((closeExpiration - strike) / strike) * 100).toFixed(2));
+
+  if (assignmentDepthPct <= 0 && assignmentDepthPct >= -1.5) {
+    return {
+      assignmentDepthPct,
+      assignmentDepthClass: "proche",
+      assignmentDepthLabel: "proche",
+      assignmentDepthWarning: "Assignation proche du strike — CC potentiellement exploitable",
+    };
+  }
+
+  if (assignmentDepthPct < -1.5 && assignmentDepthPct >= -4) {
+    return {
+      assignmentDepthPct,
+      assignmentDepthClass: "moderee",
+      assignmentDepthLabel: "modérée",
+      assignmentDepthWarning: "Assignation modérée — surveiller recovery",
+    };
+  }
+
+  if (assignmentDepthPct < -4) {
+    return {
+      assignmentDepthPct,
+      assignmentDepthClass: "profonde",
+      assignmentDepthLabel: "profonde",
+      assignmentDepthWarning: "Assignation profonde — risque de capital bloqué",
+    };
+  }
+
+  return buildAssignmentDepthNaResult("Données insuffisantes");
+}
+
+export function enrichWithAssignmentDepthFields(entity) {
+  if (!entity || typeof entity !== "object") return entity;
+  return { ...entity, ...classifyAssignmentDepth(entity) };
+}
+
+export function summarizeAssignmentDepthCounts(entities) {
+  const summary = { proche: 0, moderee: 0, profonde: 0, nd: 0 };
+  for (const entity of Array.isArray(entities) ? entities : []) {
+    const depth = classifyAssignmentDepth(entity);
+    if (depth.assignmentDepthClass === "proche") summary.proche += 1;
+    else if (depth.assignmentDepthClass === "moderee") summary.moderee += 1;
+    else if (depth.assignmentDepthClass === "profonde") summary.profonde += 1;
+    else summary.nd += 1;
+  }
+  return summary;
+}
+
 export function computeRealPopCalibration(records, options = {}) {
   const todayYmd = normalizeIsoTimestamp(options.today ?? options.asOfDate ?? new Date())
     .slice(0, 10);
@@ -1667,7 +1767,12 @@ export function createWheelValidationService(options = {}) {
   }
 
   async function listJournal() {
-    return store.load();
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
+    return {
+      ...journal,
+      records: records.map((record) => enrichWithAssignmentDepthFields(record)),
+    };
   }
 
   async function computeStats() {

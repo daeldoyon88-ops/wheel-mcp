@@ -190,7 +190,11 @@ def main() -> int:
     underlying_wait = max(0.5, _float_env("IBKR_UNDERLYING_WAIT_SECONDS", 1.5))
     option_wait = max(1.0, _float_env("IBKR_OPTION_WAIT_SECONDS", 3.5))
     debug = _parse_bool(os.environ.get("DEBUG_IBKR"), False)
-    two_phase_enabled = _str_env("IBKR_TWO_PHASE_SCAN", "0") == "1"
+    two_phase_enabled = single._ibkr_two_phase_enabled()
+    two_phase_put_window = max(
+        1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", single.TWO_PHASE_DEFAULT_PUT_WINDOW)
+    )
+    single._log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
     symbols = _parse_symbols()
 
     base = {

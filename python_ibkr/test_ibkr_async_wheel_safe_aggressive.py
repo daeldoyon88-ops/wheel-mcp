@@ -50,6 +50,26 @@ def _str_env(name: str, default: str) -> str:
     return str(raw).strip()
 
 
+def _ibkr_two_phase_enabled() -> bool:
+    # TWO_PHASE par défaut ; NORMAL seulement si IBKR_TWO_PHASE_SCAN=0 (ou false/no/off).
+    return _parse_bool(os.environ.get("IBKR_TWO_PHASE_SCAN"), True)
+
+
+def _log_ibkr_two_phase_config(two_phase_enabled: bool, two_phase_put_window: int) -> None:
+    raw = os.environ.get("IBKR_TWO_PHASE_SCAN")
+    if raw is None or str(raw).strip() == "":
+        source = "default, disable with IBKR_TWO_PHASE_SCAN=0"
+    elif str(raw).strip() == "0":
+        source = "explicit off, IBKR_TWO_PHASE_SCAN=0"
+    elif str(raw).strip() == "1":
+        source = "explicit, IBKR_TWO_PHASE_SCAN=1"
+    else:
+        source = f"IBKR_TWO_PHASE_SCAN={str(raw).strip()}"
+    mode = "TWO_PHASE" if two_phase_enabled else "NORMAL"
+    print(f"IBKR strike mode: {mode} ({source})", file=sys.stderr, flush=True)
+    print(f"IBKR two phase put window: {two_phase_put_window}", file=sys.stderr, flush=True)
+
+
 def _emit(payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False))
 
@@ -573,10 +593,11 @@ def main() -> int:
     right = _str_env("IBKR_OPTION_RIGHT", "P").upper()
     max_strikes_env = max(1, _int_env("IBKR_MAX_STRIKES", 20))
     max_strikes = max(20, max_strikes_env)
-    two_phase_enabled = _str_env("IBKR_TWO_PHASE_SCAN", "0") == "1"
+    two_phase_enabled = _ibkr_two_phase_enabled()
     two_phase_put_window = max(
         1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", TWO_PHASE_DEFAULT_PUT_WINDOW)
     )
+    _log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
     option_generic_ticks = _str_env("IBKR_OPTION_GENERIC_TICKS", "100,101,106,221")
     requested_expiration = os.environ.get("IBKR_OPTION_EXPIRATION")
     requested_expiration = (

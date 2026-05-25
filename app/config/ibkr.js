@@ -25,3 +25,50 @@ export function assertIbkrReadOnly() {
     throw new Error("IBKR_READ_ONLY=true is required for this provider");
   }
 }
+
+export const IBKR_TWO_PHASE_DEFAULT_PUT_WINDOW = 10;
+
+/** TWO_PHASE par défaut ; NORMAL seulement si IBKR_TWO_PHASE_SCAN=0 (ou false/no/off). */
+export function resolveIbkrTwoPhaseScanEnabled(rawValue = process.env.IBKR_TWO_PHASE_SCAN) {
+  return parseBoolean(rawValue, true);
+}
+
+export function resolveIbkrTwoPhasePutWindow(rawValue = process.env.IBKR_TWO_PHASE_PUT_WINDOW) {
+  const n = parseInteger(rawValue, IBKR_TWO_PHASE_DEFAULT_PUT_WINDOW);
+  return Math.max(1, n);
+}
+
+export function formatIbkrTwoPhaseScanLog(env = process.env) {
+  const raw = env.IBKR_TWO_PHASE_SCAN;
+  const enabled = resolveIbkrTwoPhaseScanEnabled(raw);
+  const putWindow = resolveIbkrTwoPhasePutWindow(env.IBKR_TWO_PHASE_PUT_WINDOW);
+  const trimmed = raw == null ? "" : String(raw).trim();
+  let source;
+  if (trimmed === "") {
+    source = "default, disable with IBKR_TWO_PHASE_SCAN=0";
+  } else if (trimmed === "0") {
+    source = "explicit off, IBKR_TWO_PHASE_SCAN=0";
+  } else if (trimmed === "1") {
+    source = "explicit, IBKR_TWO_PHASE_SCAN=1";
+  } else {
+    source = `IBKR_TWO_PHASE_SCAN=${trimmed}`;
+  }
+  return {
+    enabled,
+    mode: enabled ? "TWO_PHASE" : "NORMAL",
+    source,
+    putWindow,
+    logLines: [
+      `IBKR strike mode: ${enabled ? "TWO_PHASE" : "NORMAL"} (${source})`,
+      `IBKR two phase put window: ${putWindow}`,
+    ],
+  };
+}
+
+export function logIbkrTwoPhaseScanConfig(env = process.env) {
+  const cfg = formatIbkrTwoPhaseScanLog(env);
+  for (const line of cfg.logLines) {
+    console.log(line);
+  }
+  return cfg;
+}

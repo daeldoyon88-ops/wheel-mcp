@@ -10,6 +10,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { DEFAULT_BACKEND_PORT, DEFAULT_LIQUIDITY_OTM_PROBE_PCT } from "./app/config/constants.js";
+import {
+  formatIbkrTwoPhaseScanLog,
+  logIbkrTwoPhaseScanConfig,
+  resolveIbkrTwoPhaseScanEnabled,
+} from "./app/config/ibkr.js";
 import { createMarketDataProvider } from "./app/data_providers/createMarketDataProvider.js";
 import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
@@ -1082,7 +1087,7 @@ function runIbkrShadowWheelBatch(body = {}) {
   const perTickerTimeoutMs = Math.max(1000, toPositiveInt(body.perTickerTimeoutMs, 7000));
   const requestedTimeoutMs = toPositiveInt(body.batchTimeoutMs, 0);
   const debug = body.debug === true;
-  const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "1";
+  const twoPhaseScanEnabled = resolveIbkrTwoPhaseScanEnabled();
 
   const pythonExe = pickIbkrShadowPython();
   const scriptPath = path.join(process.cwd(), "python_ibkr", "test_ibkr_async_wheel_safe_aggressive_batch.py");
@@ -2126,7 +2131,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const batchTimeoutMs = Math.min(300_000, 30_000 + tickers.length * 12_000);
     const startedAt = Date.now();
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
-    const twoPhaseScanEnabled = process.env.IBKR_TWO_PHASE_SCAN === "1";
+    const twoPhaseScanEnabled = resolveIbkrTwoPhaseScanEnabled();
 
     console.log(
       "[WHEEL_DEV_SCAN]",
@@ -2137,7 +2142,10 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     );
 
     console.log("[IBKR_SHADOW_SCAN_START]", expiration || "default", "tickers", tickers.length);
-    console.log("[IBKR_TWO_PHASE_SCAN]", `enabled=${twoPhaseScanEnabled}`);
+    const twoPhaseScanLog = formatIbkrTwoPhaseScanLog();
+    for (const line of twoPhaseScanLog.logLines) {
+      console.log(line);
+    }
 
     const { payload } = await runIbkrShadowWheelBatch({
       ...body,
@@ -3242,6 +3250,7 @@ app.delete("/mcp", handleMcpSessionRequest);
 
 app.listen(PORT, () => {
   console.log(`Wheel backend listening on port ${PORT}`);
+  logIbkrTwoPhaseScanConfig();
 });
 
 

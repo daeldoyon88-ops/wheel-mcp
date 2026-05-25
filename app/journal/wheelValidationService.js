@@ -1,8 +1,11 @@
+import { existsSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { createWheelValidationStore } from "./wheelValidationStore.js";
 import {
   buildOptionDataBadge,
   buildOptionQuoteSnapshot,
   enrichRecordWithOptionQuoteFields,
+  parseOptionQuoteSnapshot,
   summarizeOptionDataForProfile,
   summarizeOptionQuoteDiagnostics,
 } from "./optionQuoteSnapshot.js";
@@ -12,6 +15,12 @@ function toNumberOrNull(value) {
   if (typeof value === "string" && value.trim() === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function toIntegerWithin(value, { min = 1, max = 500, fallback = 50 } = {}) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(Math.trunc(n), min), max);
 }
 
 function toBooleanOrNull(value) {
@@ -37,6 +46,20 @@ function normalizeExpiration(value) {
 
 function normalizeSymbol(value) {
   return String(value ?? "").trim().toUpperCase();
+}
+
+function quoteSqlIdentifier(name) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name ?? ""))) {
+    throw new Error("invalid_sql_identifier");
+  }
+  return `"${name}"`;
+}
+
+function pickExistingColumn(columns, candidates) {
+  for (const candidate of candidates) {
+    if (columns.has(candidate)) return candidate;
+  }
+  return null;
 }
 
 function normalizeStrikeToken(value) {
@@ -290,6 +313,321 @@ function getRecordYieldPct(record) {
     toNumberOrNull(record?.snapshot?.premium_to_spot_pct) ??
     null
   );
+}
+
+function getStoredSnapshotScanTimestamp(row) {
+  return (
+    row?.scanTimestamp ??
+    row?.scan_timestamp ??
+    row?.created_at ??
+    row?.createdAt ??
+    row?.updated_at ??
+    row?.updatedAt ??
+    row?.scanDate ??
+    null
+  );
+}
+
+function hasStoredOptionSnapshot(row) {
+  if (row?.optionQuoteSnapshot && typeof row.optionQuoteSnapshot === "object") return true;
+  const raw = row?.option_quote_snapshot_json;
+  return typeof raw === "string" && raw.trim() !== "";
+}
+
+function parseStoredOptionQuoteSnapshot(row) {
+  if (!row || typeof row !== "object") {
+    return { snapshot: null, parseWarnings: ["snapshot_record_invalid"] };
+  }
+  if (row.optionQuoteSnapshot && typeof row.optionQuoteSnapshot === "object") {
+    return { snapshot: row.optionQuoteSnapshot, parseWarnings: [] };
+  }
+  const raw = row.option_quote_snapshot_json;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return { snapshot: parsed, parseWarnings: [] };
+      return { snapshot: null, parseWarnings: ["option_quote_snapshot_json_not_object"] };
+    } catch (_error) {
+      return { snapshot: null, parseWarnings: ["option_quote_snapshot_json_parse_failed"] };
+    }
+  }
+  const parsed = parseOptionQuoteSnapshot(row);
+  return {
+    snapshot: parsed,
+    parseWarnings: parsed ? [] : ["snapshot_absent"],
+  };
+}
+
+function computeRowPremiumYieldPct(row, snapshot) {
+  const fromSnapshot = toNumberOrNull(snapshot?.context?.premiumYieldPct);
+  if (fromSnapshot != null) return fromSnapshot;
+  const premium = toNumberOrNull(row?.premium);
+  const strike = toNumberOrNull(row?.strike ?? snapshot?.strike);
+  if (premium != null && strike != null && strike > 0) return (premium / strike) * 100;
+  return toNumberOrNull(row?.annualizedYield);
+}
+
+function buildLatestOptionSnapshotBadge(snapshot, diagnostics, storageStatus) {
+  if (storageStatus === "snapshot_parse_failed") return "Snapshot incomplet";
+  if (diagnostics?.hasObservedIbkrOptionData) return "IBKR observé";
+  const source = snapshot?.source ?? diagnostics?.optionDataSourceSummary;
+  if (source === "Yahoo" || snapshot?.dataConfidence === "observed_yahoo") return "Yahoo fallback";
+  if (!snapshot) return "Snapshot absent";
+  if ((diagnostics?.optionDataCompletenessPct ?? 0) < 70) return "Options incomplètes";
+  return "Snapshot présent";
+}
+
+function buildLatestOptionSnapshotRecord(row) {
+  const { snapshot, parseWarnings } = parseStoredOptionQuoteSnapshot(row);
+  const diagnosticsRecord = snapshot ? { ...row, optionQuoteSnapshot: snapshot } : row;
+  const diagnostics = summarizeOptionQuoteDiagnostics(diagnosticsRecord);
+  const quote = snapshot?.quote ?? {};
+  const greeks = snapshot?.greeks ?? {};
+  const liquidity = snapshot?.liquidity ?? {};
+  const contract = snapshot?.contract ?? {};
+  const context = snapshot?.context ?? {};
+  const storageStatus = parseWarnings.includes("option_quote_snapshot_json_parse_failed")
+    ? "snapshot_parse_failed"
+    : diagnostics.optionSnapshotStorageStatus;
+  const warnings = [
+    ...(Array.isArray(snapshot?.warnings) ? snapshot.warnings : []),
+    ...parseWarnings.filter((warning) => warning !== "snapshot_absent"),
+  ];
+
+  return {
+    ticker: normalizeSymbol(row?.symbol ?? row?.ticker ?? snapshot?.ticker) || null,
+    mode: row?.strikeMode ?? row?.mode ?? null,
+    expiration: row?.expiration ?? snapshot?.expiration ?? row?.selectedExpiration ?? null,
+    strike: toNumberOrNull(row?.strike ?? snapshot?.strike),
+    dteAtScan: toNumberOrNull(row?.dteAtScan ?? snapshot?.dteAtScan),
+    premiumYieldPct: computeRowPremiumYieldPct(row, snapshot),
+    popEstimate: toNumberOrNull(row?.popEstimate ?? context?.popEstimate),
+    optionDataBadge: buildLatestOptionSnapshotBadge(snapshot, diagnostics, storageStatus),
+    hasObservedIbkrOptionData: diagnostics.hasObservedIbkrOptionData,
+    optionDataCompletenessPct: diagnostics.optionDataCompletenessPct,
+    optionDataMissingFields: diagnostics.optionDataMissingFields,
+    optionDataSourceSummary: diagnostics.optionDataSourceSummary,
+    optionSnapshotStorageStatus: storageStatus,
+    optionQuoteSnapshot: {
+      source: snapshot?.source ?? null,
+      dataConfidence: snapshot?.dataConfidence ?? null,
+      bid: toNumberOrNull(quote?.bid),
+      ask: toNumberOrNull(quote?.ask),
+      mid: toNumberOrNull(quote?.mid),
+      last: toNumberOrNull(quote?.last),
+      spreadAbs: toNumberOrNull(quote?.spreadAbs),
+      spreadPct: toNumberOrNull(quote?.spreadPct),
+      impliedVolatility: toNumberOrNull(greeks?.impliedVolatility),
+      delta: toNumberOrNull(greeks?.delta),
+      gamma: toNumberOrNull(greeks?.gamma),
+      theta: toNumberOrNull(greeks?.theta),
+      vega: toNumberOrNull(greeks?.vega),
+      volume: toNumberOrNull(liquidity?.volume),
+      openInterest: toNumberOrNull(liquidity?.openInterest),
+      conId: contract?.conId ?? null,
+      localSymbol: contract?.localSymbol ?? null,
+      quoteTimestamp: quote?.quoteTimestamp ?? null,
+      scanTimestamp: quote?.scanTimestamp ?? getStoredSnapshotScanTimestamp(row),
+      missingFields: Array.isArray(snapshot?.missingFields) ? snapshot.missingFields : [],
+      warnings,
+    },
+  };
+}
+
+function summarizeLatestOptionSnapshotRecords(records, latestScanTotalCount) {
+  const rows = Array.isArray(records) ? records : [];
+  const summary = {
+    ibkrObservedCount: 0,
+    yahooFallbackCount: 0,
+    incompleteCount: 0,
+    ivPresentCount: 0,
+    deltaPresentCount: 0,
+    bidAskPresentCount: 0,
+    oiVolumePresentCount: 0,
+    conIdPresentCount: 0,
+    localSymbolPresentCount: 0,
+    snapshotAbsentCount: Math.max(0, (latestScanTotalCount ?? rows.length) - rows.length),
+  };
+
+  for (const record of rows) {
+    const snapshot = record?.optionQuoteSnapshot ?? {};
+    if (record?.hasObservedIbkrOptionData) summary.ibkrObservedCount += 1;
+    if (snapshot.source === "Yahoo" || snapshot.dataConfidence === "observed_yahoo") {
+      summary.yahooFallbackCount += 1;
+    }
+    if ((record?.optionDataCompletenessPct ?? 0) < 100) summary.incompleteCount += 1;
+    if (snapshot.impliedVolatility != null) summary.ivPresentCount += 1;
+    if (snapshot.delta != null) summary.deltaPresentCount += 1;
+    if (snapshot.bid != null && snapshot.ask != null) summary.bidAskPresentCount += 1;
+    if (snapshot.openInterest != null || snapshot.volume != null) summary.oiVolumePresentCount += 1;
+    if (snapshot.conId != null) summary.conIdPresentCount += 1;
+    if (snapshot.localSymbol != null) summary.localSymbolPresentCount += 1;
+  }
+
+  return summary;
+}
+
+export function buildLatestOptionSnapshotsPayload(input = {}, options = {}) {
+  const limit = toIntegerWithin(options?.limit, { min: 1, max: 50, fallback: 50 });
+  const snapshotRows = Array.isArray(input?.rows) ? input.rows : [];
+  const allRecords = snapshotRows.map((row) => buildLatestOptionSnapshotRecord(row));
+  const latestScanSnapshotCount = input?.latestScanSnapshotCount ?? allRecords.length;
+  const latestScanTotalCount = input?.latestScanTotalCount ?? latestScanSnapshotCount;
+
+  return {
+    ok: true,
+    latestScanTimestamp:
+      input?.latestScanTimestamp ?? getStoredSnapshotScanTimestamp(snapshotRows[0]) ?? null,
+    totalWithSnapshot: input?.totalWithSnapshot ?? snapshotRows.length,
+    latestScanSnapshotCount,
+    records: allRecords.slice(0, limit),
+    summary: summarizeLatestOptionSnapshotRecords(allRecords, latestScanTotalCount),
+  };
+}
+
+function readLatestOptionSnapshotRowsFromSqlite(sqlitePath) {
+  if (!sqlitePath) return null;
+  if (!existsSync(sqlitePath)) return null;
+  let conn = null;
+  try {
+    conn = new DatabaseSync(sqlitePath);
+    const columns = new Set(
+      conn.prepare("PRAGMA table_info(wheel_validation_records)").all().map((column) => column?.name).filter(Boolean)
+    );
+    const snapshotColumn = pickExistingColumn(columns, ["option_quote_snapshot_json"]);
+    const scanColumn = pickExistingColumn(columns, [
+      "scanTimestamp",
+      "scan_timestamp",
+      "created_at",
+      "createdAt",
+      "updated_at",
+      "updatedAt",
+      "scanDate",
+    ]);
+    if (!snapshotColumn || !scanColumn) {
+      return {
+        latestScanTimestamp: null,
+        totalWithSnapshot: 0,
+        latestScanSnapshotCount: 0,
+        latestScanTotalCount: 0,
+        rows: [],
+      };
+    }
+
+    const snapshotSql = quoteSqlIdentifier(snapshotColumn);
+    const scanSql = quoteSqlIdentifier(scanColumn);
+    const snapshotWhere = `${snapshotSql} IS NOT NULL AND TRIM(CAST(${snapshotSql} AS TEXT)) != ''`;
+    const latestRow = conn
+      .prepare(
+        `SELECT ${scanSql} AS latestScanTimestamp
+         FROM wheel_validation_records
+         WHERE ${snapshotWhere} AND ${scanSql} IS NOT NULL AND TRIM(CAST(${scanSql} AS TEXT)) != ''
+         ORDER BY ${scanSql} DESC
+         LIMIT 1`
+      )
+      .get();
+    const latestScanTimestamp = latestRow?.latestScanTimestamp ?? null;
+    const totalWithSnapshot =
+      conn.prepare(`SELECT COUNT(*) AS cnt FROM wheel_validation_records WHERE ${snapshotWhere}`).get()?.cnt ?? 0;
+    if (!latestScanTimestamp) {
+      return {
+        latestScanTimestamp: null,
+        totalWithSnapshot,
+        latestScanSnapshotCount: 0,
+        latestScanTotalCount: 0,
+        rows: [],
+      };
+    }
+
+    const latestScanTotalCount =
+      conn
+        .prepare(`SELECT COUNT(*) AS cnt FROM wheel_validation_records WHERE ${scanSql} = @latestScanTimestamp`)
+        .get({ latestScanTimestamp })?.cnt ?? 0;
+    const latestScanSnapshotCount =
+      conn
+        .prepare(
+          `SELECT COUNT(*) AS cnt
+           FROM wheel_validation_records
+           WHERE ${scanSql} = @latestScanTimestamp AND ${snapshotWhere}`
+        )
+        .get({ latestScanTimestamp })?.cnt ?? 0;
+
+    const desiredColumns = [
+      "id",
+      "scanSessionId",
+      "scanTimestamp",
+      "scan_timestamp",
+      "scanDate",
+      "createdAt",
+      "created_at",
+      "updatedAt",
+      "updated_at",
+      "candidateRank",
+      "symbol",
+      "ticker",
+      "strikeMode",
+      "mode",
+      "expiration",
+      "selectedExpiration",
+      "dteAtScan",
+      "strike",
+      "premium",
+      "annualizedYield",
+      "popEstimate",
+      "option_quote_snapshot_json",
+    ].filter((column, index, array) => columns.has(column) && array.indexOf(column) === index);
+    const selectSql = desiredColumns.map(quoteSqlIdentifier).join(", ");
+    const orderSql = columns.has("candidateRank")
+      ? `${quoteSqlIdentifier("candidateRank")} IS NULL, ${quoteSqlIdentifier("candidateRank")} ASC, ${quoteSqlIdentifier("id")} ASC`
+      : `${quoteSqlIdentifier("id")} ASC`;
+    const rows = conn
+      .prepare(
+        `SELECT ${selectSql}
+         FROM wheel_validation_records
+         WHERE ${scanSql} = @latestScanTimestamp AND ${snapshotWhere}
+         ORDER BY ${orderSql}`
+      )
+      .all({ latestScanTimestamp });
+
+    return {
+      latestScanTimestamp,
+      totalWithSnapshot,
+      latestScanSnapshotCount,
+      latestScanTotalCount,
+      rows,
+    };
+  } catch (_error) {
+    return null;
+  } finally {
+    try {
+      conn?.close?.();
+    } catch (_error) {
+      // Best-effort close only.
+    }
+  }
+}
+
+function buildLatestOptionSnapshotsFromLoadedJournal(journal) {
+  const records = Array.isArray(journal?.records) ? journal.records : [];
+  const snapshotRecords = records.filter(hasStoredOptionSnapshot);
+  const latestScanTimestamp = snapshotRecords
+    .map(getStoredSnapshotScanTimestamp)
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? null;
+  const latestRows = latestScanTimestamp
+    ? snapshotRecords.filter((record) => getStoredSnapshotScanTimestamp(record) === latestScanTimestamp)
+    : [];
+  const latestScanTotalCount = latestScanTimestamp
+    ? records.filter((record) => getStoredSnapshotScanTimestamp(record) === latestScanTimestamp).length
+    : 0;
+  return {
+    latestScanTimestamp,
+    totalWithSnapshot: snapshotRecords.length,
+    latestScanSnapshotCount: latestRows.length,
+    latestScanTotalCount,
+    rows: latestRows,
+  };
 }
 
 function getDteBucketLabel(dteAtScan) {
@@ -2267,6 +2605,8 @@ function buildOnePercentProfile({
       : String(mode ?? "").trim().toLowerCase() === "safe"
       ? "SAFE"
       : "—";
+  const optionData = summarizeOptionDataForProfile(records);
+  const optionDiagnostics = summarizeOptionQuoteDiagnosticsFromProfile({ optionData });
 
   return {
     ticker,
@@ -2288,7 +2628,8 @@ function buildOnePercentProfile({
     },
     assignment,
     wheel,
-    optionData: summarizeOptionDataForProfile(records),
+    optionData,
+    ...optionDiagnostics,
     sortScore: 0,
   };
 }
@@ -2992,6 +3333,20 @@ export function createWheelValidationService(options = {}) {
         enrichRecordWithOptionQuoteFields(enrichWithAssignmentDepthFields(record))
       ),
     };
+  }
+
+  async function getLatestOptionSnapshots(options = {}) {
+    const limit = toIntegerWithin(options?.limit, { min: 1, max: 50, fallback: 50 });
+    if (store?.sqlitePath) {
+      const sqliteRows = readLatestOptionSnapshotRowsFromSqlite(store.sqlitePath);
+      if (sqliteRows) return buildLatestOptionSnapshotsPayload(sqliteRows, { limit });
+    }
+    if (typeof store?.listLatestOptionSnapshotRows === "function") {
+      const rows = await store.listLatestOptionSnapshotRows({ limit });
+      return buildLatestOptionSnapshotsPayload(rows, { limit });
+    }
+    const journal = await store.load();
+    return buildLatestOptionSnapshotsPayload(buildLatestOptionSnapshotsFromLoadedJournal(journal), { limit });
   }
 
   async function computeStats() {
@@ -5963,6 +6318,7 @@ export function createWheelValidationService(options = {}) {
   return {
     buildRecordsFromCandidates,
     listJournal,
+    getLatestOptionSnapshots,
     computeStats,
     computeCohortSummary,
     computeCalibrationSummary,

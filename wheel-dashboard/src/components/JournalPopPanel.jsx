@@ -48,6 +48,22 @@ function formatPop(value) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+function formatRatioPercent(value, digits = 1) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  const pct = Math.abs(n) <= 3 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function formatCompactNumber(value, digits = 0) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  return n.toLocaleString("en-US", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  });
+}
+
 function formatYesNo(value) {
   if (value === true) return "Oui";
   if (value === false) return "Non";
@@ -98,6 +114,41 @@ function OptionQuoteDiagnosticPanel({ profile }) {
       <div>Stockage : {diag.optionSnapshotStorageStatus === "snapshot_sqlite_present" ? "SQLite présent" : "absent"}</div>
     </div>
   );
+}
+
+function LiveSnapshotBadge({ label, tone = "neutral" }) {
+  if (!label) return null;
+  const cls = {
+    good: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+    warn: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+    risk: "border-rose-500/40 bg-rose-500/10 text-rose-300",
+    neutral: "border-slate-700 bg-slate-800/70 text-slate-400",
+  }[tone] ?? "border-slate-700 bg-slate-800/70 text-slate-400";
+  return (
+    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function formatMissingFields(fields) {
+  if (!Array.isArray(fields) || fields.length === 0) return "—";
+  const shown = fields.slice(0, 4).join(", ");
+  return fields.length > 4 ? `${shown} +${fields.length - 4}` : shown;
+}
+
+function getLiveOptionSnapshotBadges(record) {
+  const snapshot = record?.optionQuoteSnapshot ?? {};
+  const badges = [];
+  if (record?.optionSnapshotStorageStatus === "snapshot_parse_failed") {
+    badges.push({ label: "Snapshot incomplet", tone: "risk" });
+  } else {
+    badges.push({ label: "Snapshot présent", tone: "neutral" });
+  }
+  if ((record?.optionDataCompletenessPct ?? 0) < 100) badges.push({ label: "Options incomplètes", tone: "warn" });
+  if (snapshot.impliedVolatility == null) badges.push({ label: "IV manquante", tone: "warn" });
+  if (snapshot.delta == null) badges.push({ label: "Delta manquant", tone: "warn" });
+  return badges.slice(0, 5);
 }
 
 function formatDteRange(minDte, maxDte) {
@@ -3094,6 +3145,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [onePercentAssignExploitableOnly, setOnePercentAssignExploitableOnly] = useState(false);
   const [onePercentTickerSearch, setOnePercentTickerSearch] = useState("");
   const [onePercentShowAll, setOnePercentShowAll] = useState(false);
+  const [latestOptionSnapshotsPayload, setLatestOptionSnapshotsPayload] = useState(null);
   const [dynamicTop20Payload, setDynamicTop20Payload] = useState(null);
   const [dynamicTop20HideInsufficient, setDynamicTop20HideInsufficient] = useState(true);
   const [dynamicTop20MinYield08, setDynamicTop20MinYield08] = useState(false);
@@ -3173,7 +3225,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, onePercentProfilesResponse, dynamicTop20Response, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, onePercentProfilesResponse, dynamicTop20Response, latestOptionSnapshotsResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
@@ -3183,6 +3235,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/one-percent-wheel-profiles`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/dynamic-top20-wheel`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/latest-option-snapshots?limit=50`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/ticker-ranking?limit=100`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/normalized-observations?limit=5000`).catch(() => null),
@@ -3202,6 +3255,9 @@ export default function JournalPopPanel({ apiBase, active }) {
         : null;
       const dynamicTop20Json = dynamicTop20Response
         ? await dynamicTop20Response.json().catch(() => null)
+        : null;
+      const latestOptionSnapshotsJson = latestOptionSnapshotsResponse
+        ? await latestOptionSnapshotsResponse.json().catch(() => null)
         : null;
       const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
       const tickerRankingPayload = tickerRankingResponse ? await tickerRankingResponse.json().catch(() => null) : null;
@@ -3242,6 +3298,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       );
       setOnePercentProfilesPayload(onePercentProfilesJson?.ok ? onePercentProfilesJson : null);
       setDynamicTop20Payload(dynamicTop20Json?.ok ? dynamicTop20Json : null);
+      setLatestOptionSnapshotsPayload(latestOptionSnapshotsJson?.ok ? latestOptionSnapshotsJson : null);
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -3712,6 +3769,14 @@ export default function JournalPopPanel({ apiBase, active }) {
     const limit = dynamicTop20ShowAllExcluded ? rows.length : 10;
     return rows.slice(0, limit);
   }, [dynamicTop20Payload, dynamicTop20ShowAllExcluded, applyDynamicTop20Filters]);
+
+  const latestOptionSnapshotRecords = useMemo(
+    () =>
+      Array.isArray(latestOptionSnapshotsPayload?.records)
+        ? latestOptionSnapshotsPayload.records.slice(0, 50)
+        : [],
+    [latestOptionSnapshotsPayload],
+  );
 
   const decisionWheelCcAttentionTickers = useMemo(() => {
     const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
@@ -6047,6 +6112,131 @@ export default function JournalPopPanel({ apiBase, active }) {
               <p className="text-[10px] text-slate-600 leading-relaxed">
                 Lecture prudente : POP gelé au scan · échantillon historique · verdicts préliminaires possibles · aucune recommandation de trade.
               </p>
+            </div>
+          )}
+        </CollapsibleSection>
+      )}
+
+      {/* ── SECTION — DERNIER SCAN LIVE OPTIONS IBKR ─────────────────────────── */}
+      {hasLoaded && activePopTab === "dataAudit" && (
+        <CollapsibleSection
+          title="Dernier scan live options IBKR"
+          badge="Snapshots live"
+          subtitle="Snapshots options capturés au moment du scan. Ces records peuvent être non résolus et ne sont pas encore utilisés dans les profils historiques."
+          defaultOpen
+          summaryRight={
+            latestOptionSnapshotsPayload
+              ? `Scan ${latestOptionSnapshotsPayload.latestScanTimestamp ?? "—"} · ${latestOptionSnapshotsPayload.latestScanSnapshotCount ?? 0} snapshot(s)`
+              : "Snapshots récents"
+          }
+        >
+          {!latestOptionSnapshotsPayload ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Snapshots live options indisponibles pour l&apos;instant.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-[11px] leading-relaxed text-sky-100/80">
+                Lecture diagnostic seulement : ces snapshots confirment les données live stockées dans SQLite, mais ils ne changent
+                pas encore le score Top 20, les verdicts Objectif 1 % ni la logique de sélection.
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  ["Scan", latestOptionSnapshotsPayload.latestScanTimestamp ?? "—"],
+                  ["Snapshots", latestOptionSnapshotsPayload.latestScanSnapshotCount ?? 0],
+                  ["IBKR observé", latestOptionSnapshotsPayload.summary?.ibkrObservedCount ?? 0],
+                  ["Yahoo fallback", latestOptionSnapshotsPayload.summary?.yahooFallbackCount ?? 0],
+                  ["Options incomplètes", latestOptionSnapshotsPayload.summary?.incompleteCount ?? 0],
+                  ["IV présente", latestOptionSnapshotsPayload.summary?.ivPresentCount ?? 0],
+                  ["Delta présent", latestOptionSnapshotsPayload.summary?.deltaPresentCount ?? 0],
+                  ["Bid/ask présents", latestOptionSnapshotsPayload.summary?.bidAskPresentCount ?? 0],
+                  ["OI/volume présents", latestOptionSnapshotsPayload.summary?.oiVolumePresentCount ?? 0],
+                  ["conId présent", latestOptionSnapshotsPayload.summary?.conIdPresentCount ?? 0],
+                  ["localSymbol présent", latestOptionSnapshotsPayload.summary?.localSymbolPresentCount ?? 0],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-3 py-2">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+                    <p className="mt-1 truncate text-sm font-semibold tabular-nums text-slate-100" title={String(value)}>
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <DarkTable
+                title={`Dernier scan avec snapshots — ${latestOptionSnapshotRecords.length}/${latestOptionSnapshotsPayload.latestScanSnapshotCount ?? latestOptionSnapshotRecords.length} ligne(s), max 50 affichées`}
+                headers={[
+                  "Ticker",
+                  "Mode",
+                  "Exp.",
+                  "Strike",
+                  "DTE",
+                  "Prime/Rend.",
+                  "POP",
+                  "Source",
+                  "Badge options",
+                  "Bid/Ask",
+                  "Mid",
+                  "Spread",
+                  "IV",
+                  "Delta",
+                  "OI/Vol.",
+                  "conId",
+                  "localSymbol",
+                  "Complétude",
+                  "Champs manquants",
+                ]}
+                rows={latestOptionSnapshotRecords.map((record, index) => {
+                  const snap = record?.optionQuoteSnapshot ?? {};
+                  const missingFields = record?.optionDataMissingFields ?? snap.missingFields ?? [];
+                  return (
+                    <tr
+                      key={`latest-option-${record?.ticker ?? "na"}-${record?.mode ?? "na"}-${record?.strike ?? index}`}
+                      className="hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{record?.ticker ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-400">{formatStrikeModeLabel(record?.mode)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{formatCompactNumber(record?.strike, 2)}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{record?.dteAtScan ?? "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{formatPercent(record?.premiumYieldPct, 2)}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{formatPop(record?.popEstimate)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        <span className="font-medium text-slate-200">{snap.source ?? record?.optionDataSourceSummary ?? "—"}</span>
+                        <span className="block text-[10px] text-slate-600">{snap.dataConfidence ?? "—"}</span>
+                      </td>
+                      <td className="px-3 py-2.5 min-w-[210px]">
+                        <div className="flex flex-wrap gap-1.5">
+                          <OptionDataBadge label={record?.optionDataBadge ?? "Snapshot présent"} />
+                          {getLiveOptionSnapshotBadges(record).map((badge) => (
+                            <LiveSnapshotBadge key={badge.label} label={badge.label} tone={badge.tone} />
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                        {formatMoney(snap.bid)} / {formatMoney(snap.ask)}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums">{formatMoney(snap.mid)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                        {formatMoney(snap.spreadAbs)} · {formatRatioPercent(snap.spreadPct)}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums">{formatRatioPercent(snap.impliedVolatility)}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{snap.delta != null ? Number(snap.delta).toFixed(3) : "—"}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                        {formatCompactNumber(snap.openInterest)} / {formatCompactNumber(snap.volume)}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums">{snap.conId ?? "—"}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-[11px] text-slate-400">{snap.localSymbol ?? "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{record?.optionDataCompletenessPct ?? 0}%</td>
+                      <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(missingFields) ? missingFields.join(", ") : ""}>
+                        {formatMissingFields(missingFields)}
+                      </td>
+                    </tr>
+                  );
+                })}
+                empty="Aucun snapshot option stocké pour le dernier scan."
+              />
             </div>
           )}
         </CollapsibleSection>

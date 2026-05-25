@@ -2943,6 +2943,21 @@ app.get("/journal/wheel-validation/one-percent-wheel-profiles", async (req, res)
   }
 });
 
+app.get("/journal/wheel-validation/latest-option-snapshots", async (req, res) => {
+  try {
+    const result = await wheelValidationService.getLatestOptionSnapshots({
+      limit: req.query?.limit != null ? Number(req.query.limit) : undefined,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[latest-option-snapshots]", error);
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "latest_option_snapshots_failed",
+    });
+  }
+});
+
 app.get("/journal/wheel-validation/dynamic-top20-wheel", async (req, res) => {
   try {
     const asOf = req.query?.asOf ?? req.query?.today ?? undefined;

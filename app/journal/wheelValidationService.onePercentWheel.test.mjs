@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createWheelValidationService,
   classifyLowerBoundStressForOnePercentProfile,
   computeDynamicTop20WheelProfiles,
   computeOnePercentWheelProfiles,
@@ -14,10 +15,11 @@ function buildResolvedRecord({
   assigned = false,
   expiration = "20250110",
   scanDate = "20250101",
+  optionQuoteSnapshot = null,
 }) {
   const strike = 100;
   const premium = (yieldPct / 100) * strike;
-  return {
+  const record = {
     symbol: ticker,
     strikeMode: mode,
     expiration,
@@ -34,6 +36,8 @@ function buildResolvedRecord({
       underlying_close_at_expiration: assigned ? strike - 0.5 : strike + 2,
     },
   };
+  if (optionQuoteSnapshot) record.optionQuoteSnapshot = optionQuoteSnapshot;
+  return record;
 }
 
 function buildClosedCycle({ ticker = "TEST", mode = "safe", pnl = 50, returnPct = 2 }) {
@@ -53,6 +57,137 @@ function buildClosedCycle({ ticker = "TEST", mode = "safe", pnl = 50, returnPct 
     first_cc_step: { cc_sold_theoretical: 1, cc_yield_conservative_pct: 1.2 },
   };
 }
+
+function buildStoredSnapshotRow({
+  ticker,
+  source = "IBKR",
+  dataConfidence = "observed_ibkr",
+  scanTimestamp = "2026-05-25T01:37:02.572Z",
+  snapshotOverrides = {},
+  rowOverrides = {},
+}) {
+  const snapshot = {
+    source,
+    primaryOptionDataSource: source,
+    ticker,
+    expiration: "20260529",
+    strike: 100,
+    dteAtScan: 4,
+    quote: {
+      bid: 1.1,
+      ask: 1.2,
+      mid: 1.15,
+      last: 1.08,
+      spreadAbs: 0.1,
+      spreadPct: 0.087,
+      quoteTimestamp: scanTimestamp,
+      scanTimestamp,
+    },
+    greeks: {
+      impliedVolatility: 0.72,
+      delta: -0.24,
+      gamma: null,
+      theta: null,
+      vega: null,
+    },
+    liquidity: {
+      volume: 120,
+      openInterest: 880,
+    },
+    contract: {
+      conId: 123456,
+      localSymbol: `${ticker}  260529P00100000`,
+    },
+    context: {
+      premiumYieldPct: 1.1,
+      popEstimate: 0.82,
+    },
+    dataConfidence,
+    missingFields: ["gamma", "theta", "vega"],
+    warnings: [],
+    optionChain: [{ shouldNotBeExposed: true }],
+    ...snapshotOverrides,
+  };
+
+  return {
+    id: `${ticker}-${dataConfidence}`,
+    scanTimestamp,
+    symbol: ticker,
+    strikeMode: "safe",
+    expiration: "20260529",
+    dteAtScan: 4,
+    strike: 100,
+    premium: 1.1,
+    popEstimate: 0.82,
+    option_quote_snapshot_json: JSON.stringify(snapshot),
+    ...rowOverrides,
+  };
+}
+
+test("latest-option-snapshots — retourne le dernier scan avec snapshots parsés et whitelistés", async () => {
+  const latestScan = "2026-05-25T01:37:02.572Z";
+  const service = createWheelValidationService({
+    store: {
+      load: async () => ({ version: "1.0", records: [] }),
+      listLatestOptionSnapshotRows: async () => ({
+        latestScanTimestamp: latestScan,
+        totalWithSnapshot: 4,
+        latestScanSnapshotCount: 3,
+        latestScanTotalCount: 4,
+        rows: [
+          buildStoredSnapshotRow({ ticker: "IBKR", scanTimestamp: latestScan }),
+          buildStoredSnapshotRow({
+            ticker: "YHOO",
+            source: "Yahoo",
+            dataConfidence: "observed_yahoo",
+            scanTimestamp: latestScan,
+            snapshotOverrides: {
+              greeks: {},
+              liquidity: {},
+              contract: {},
+              missingFields: ["impliedVolatility", "delta", "volume", "openInterest", "conId", "localSymbol"],
+            },
+          }),
+          {
+            id: "BROKEN",
+            scanTimestamp: latestScan,
+            symbol: "BROK",
+            strikeMode: "aggressive",
+            expiration: "20260529",
+            option_quote_snapshot_json: "{not-json",
+          },
+        ],
+      }),
+    },
+  });
+
+  const result = await service.getLatestOptionSnapshots({ limit: 50 });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.latestScanTimestamp, latestScan);
+  assert.equal(result.totalWithSnapshot, 4);
+  assert.equal(result.latestScanSnapshotCount, 3);
+  assert.equal(result.records.length, 3);
+  assert.equal(result.summary.snapshotAbsentCount, 1);
+  assert.equal(result.summary.ibkrObservedCount, 1);
+  assert.equal(result.summary.yahooFallbackCount, 1);
+  assert.equal(result.summary.ivPresentCount, 1);
+  assert.equal(result.summary.deltaPresentCount, 1);
+  assert.equal(result.summary.bidAskPresentCount, 2);
+  assert.equal(result.summary.oiVolumePresentCount, 1);
+  assert.equal(result.summary.conIdPresentCount, 1);
+  assert.equal(result.summary.localSymbolPresentCount, 1);
+
+  const ibkrRecord = result.records.find((record) => record.ticker === "IBKR");
+  assert.equal(ibkrRecord.optionDataBadge, "IBKR observé");
+  assert.equal(ibkrRecord.optionQuoteSnapshot.source, "IBKR");
+  assert.equal(ibkrRecord.optionQuoteSnapshot.dataConfidence, "observed_ibkr");
+  assert.equal(Object.hasOwn(ibkrRecord.optionQuoteSnapshot, "optionChain"), false);
+
+  const brokenRecord = result.records.find((record) => record.ticker === "BROK");
+  assert.equal(brokenRecord.optionSnapshotStorageStatus, "snapshot_parse_failed");
+  assert.ok(brokenRecord.optionQuoteSnapshot.warnings.includes("option_quote_snapshot_json_parse_failed"));
+});
 
 test("computeOnePercentWheelProfiles — n < 30 ne peut pas afficher 1 % défendable", () => {
   const records = Array.from({ length: 25 }, (_, index) =>
@@ -128,6 +263,37 @@ test("computeOnePercentWheelProfiles — profil ticker+mode seulement si échant
   const result = computeOnePercentWheelProfiles(records, [], { today: "2026-05-24", minModeProfileN: 15 });
   assert.ok(result.profiles.some((p) => p.ticker === "MODE" && p.groupType === "ticker"));
   assert.ok(!result.profiles.some((p) => p.ticker === "MODE" && p.groupType === "ticker_mode"));
+});
+
+test("computeOnePercentWheelProfiles — expose optionData top-level sans changer le verdict", () => {
+  const optionQuoteSnapshot = JSON.parse(
+    buildStoredSnapshotRow({ ticker: "OPTDATA" }).option_quote_snapshot_json,
+  );
+  const baseRecords = Array.from({ length: 35 }, (_, index) =>
+    buildResolvedRecord({
+      ticker: "OPTDATA",
+      yieldPct: 1.05,
+      expiration: `202503${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `202503${String((index % 24) + 1).padStart(2, "0")}`,
+    }),
+  );
+  const recordsWithSnapshot = baseRecords.map((record) => ({ ...record, optionQuoteSnapshot }));
+
+  const baseResult = computeOnePercentWheelProfiles(baseRecords, [], { today: "2026-05-24" });
+  const enrichedResult = computeOnePercentWheelProfiles(recordsWithSnapshot, [], { today: "2026-05-24" });
+  const baseProfile = baseResult.profiles.find((p) => p.ticker === "OPTDATA" && p.groupType === "ticker");
+  const enrichedProfile = enrichedResult.profiles.find((p) => p.ticker === "OPTDATA" && p.groupType === "ticker");
+
+  assert.ok(baseProfile);
+  assert.ok(enrichedProfile);
+  assert.equal(enrichedProfile.primaryVerdict, baseProfile.primaryVerdict);
+  assert.deepEqual(enrichedProfile.verdicts, baseProfile.verdicts);
+  assert.equal(enrichedProfile.hasObservedIbkrOptionData, true);
+  assert.equal(enrichedProfile.optionDataBadge, "IBKR observé");
+  assert.equal(enrichedProfile.optionDataSourceSummary, "IBKR");
+  assert.equal(enrichedProfile.optionSnapshotStorageStatus, "snapshot_sqlite_present");
+  assert.equal(typeof enrichedProfile.optionDataCompletenessPct, "number");
+  assert.ok(Array.isArray(enrichedProfile.optionDataMissingFields));
 });
 
 test("computeOnePercentWheelProfiles — verdictReasons explique un profil stressé", () => {

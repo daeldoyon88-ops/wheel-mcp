@@ -4,6 +4,7 @@ import {
   classifyLowerBoundStressForOnePercentProfile,
   computeDynamicTop20WheelProfiles,
   computeOnePercentWheelProfiles,
+  isEligibleForExperimentalTop20,
 } from "./wheelValidationService.js";
 
 function buildResolvedRecord({
@@ -346,7 +347,7 @@ test("computeDynamicTop20WheelProfiles — profil défavorable à rendement éle
   );
   if (fauxProfile.primaryVerdict === "faux 1 %") {
     assert.ok(result.excludedHighYield.some((row) => row.ticker === "FAUX1"));
-    assert.ok(!result.top20.some((row) => row.ticker === "FAUX1" && !row.avoidContext));
+    assert.ok(!result.top20.some((row) => row.ticker === "FAUX1"));
   }
 });
 
@@ -395,4 +396,188 @@ test("computeDynamicTop20WheelProfiles — contextAvailability indique IV/saison
   assert.equal(result.summary.contextAvailability.seasonalityIntegrated, false);
   assert.equal(result.summary.contextAvailability.marketContextIntegrated, false);
   assert.match(result.summary.contextAvailability.note, /non encore intégrés/i);
+});
+
+function buildStressedHighYieldRecords({
+  ticker,
+  yieldPct = 0.92,
+  assignedEvery = 4,
+  lbBreakEvery = 2,
+  count = 22,
+  prefix = "202507",
+}) {
+  return Array.from({ length: count }, (_, index) => ({
+    ...buildResolvedRecord({
+      ticker,
+      yieldPct,
+      assigned: index % assignedEvery === 0,
+      expiration: `${prefix}${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `${prefix}${String((index % 20) + 1).padStart(2, "0")}`,
+    }),
+    resolution: {
+      ...buildResolvedRecord({ ticker, assigned: index % assignedEvery === 0 }).resolution,
+      strikeTouched: index % 2 === 0,
+      brokeLowerBound: index % lbBreakEvery === 0 || index % 3 === 0,
+      popPredictionCorrect: index % assignedEvery !== 0,
+      expiredWorthless: index % assignedEvery !== 0,
+    },
+  }));
+}
+
+function buildSolidTop20Records({
+  ticker,
+  yieldPct = 0.98,
+  assigned = false,
+  lbBreakEvery = 12,
+  count = 40,
+  prefix = "202511",
+}) {
+  return Array.from({ length: count }, (_, index) => ({
+    ...buildResolvedRecord({
+      ticker,
+      yieldPct,
+      assigned,
+      expiration: `${prefix}${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `${prefix}${String((index % 24) + 1).padStart(2, "0")}`,
+    }),
+    resolution: {
+      ...buildResolvedRecord({ ticker, assigned }).resolution,
+      strikeTouched: index % 8 === 0,
+      brokeLowerBound: index % lbBreakEvery === 0,
+      popPredictionCorrect: true,
+      expiredWorthless: !assigned,
+    },
+  }));
+}
+
+test("V1B — LB critique exclu du Top 20 malgré rendement Wheel positif", () => {
+  const records = buildStressedHighYieldRecords({ ticker: "SMCI", count: 22 });
+  const cycles = [buildClosedCycle({ ticker: "SMCI", pnl: 120, returnPct: 5 })];
+  const profiles = buildTickerProfilesFromRecords(records, cycles, { today: "2026-05-24" });
+  const smci = profiles.find((profile) => profile.ticker === "SMCI");
+  assert.ok(smci);
+  assert.equal(smci.lowerBoundStress?.lbStressClass, "critique");
+  assert.equal(isEligibleForExperimentalTop20(smci).eligible, false);
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(!result.top20.some((row) => row.ticker === "SMCI"));
+  assert.ok(result.excludedHighYield.some((row) => row.ticker === "SMCI"));
+});
+
+test("V1B — winRate < 80 % exclu du Top 20", () => {
+  const records = buildStressedHighYieldRecords({ ticker: "LOWWIN", count: 35, lbBreakEvery: 6 });
+  const profiles = buildTickerProfilesFromRecords(records, [], { today: "2026-05-24" });
+  const profile = profiles.find((p) => p.ticker === "LOWWIN");
+  assert.ok(profile);
+  assert.ok((profile.csp?.realWinRate ?? 100) < 80);
+  assert.equal(isEligibleForExperimentalTop20(profile).eligible, false);
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(!result.top20.some((row) => row.ticker === "LOWWIN"));
+});
+
+test("V1B — assignmentRate > 20 % exclu du Top 20", () => {
+  const records = Array.from({ length: 35 }, (_, index) =>
+    buildResolvedRecord({
+      ticker: "HIGHAS",
+      yieldPct: 0.95,
+      assigned: index % 3 === 0,
+      expiration: `202508${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `202508${String((index % 24) + 1).padStart(2, "0")}`,
+    }),
+  );
+  const profiles = buildTickerProfilesFromRecords(records, [], { today: "2026-05-24" });
+  const profile = profiles.find((p) => p.ticker === "HIGHAS");
+  assert.ok(profile);
+  assert.ok((profile.csp?.assignmentRate ?? 0) > 20);
+  assert.equal(isEligibleForExperimentalTop20(profile).eligible, false);
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(!result.top20.some((row) => row.ticker === "HIGHAS"));
+});
+
+test("V1B — verdict 1 % stressé exclu du Top 20", () => {
+  const records = buildStressedHighYieldRecords({ ticker: "STRESSV1B", count: 22 });
+  const profiles = buildTickerProfilesFromRecords(records, [], { today: "2026-05-24" });
+  const profile = profiles.find((p) => p.ticker === "STRESSV1B");
+  assert.ok(profile);
+  assert.equal(profile.primaryVerdict, "1 % stressé");
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(!result.top20.some((row) => row.ticker === "STRESSV1B"));
+});
+
+test("V1B — aucun doublon Top 20 / excludedHighYield", () => {
+  const records = [];
+  records.push(...buildStressedHighYieldRecords({ ticker: "SMCI", count: 22, prefix: "202507" }));
+  records.push(...buildStressedHighYieldRecords({ ticker: "AAL", count: 22, prefix: "202508" }));
+  for (let tickerIndex = 0; tickerIndex < 25; tickerIndex += 1) {
+    const ticker = `GOOD${String(tickerIndex).padStart(2, "0")}`;
+    records.push(...buildSolidTop20Records({ ticker, yieldPct: 0.9 + (tickerIndex % 3) * 0.03, prefix: "202509" }));
+  }
+  const profiles = buildTickerProfilesFromRecords(records, [], { today: "2026-05-24" });
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  const top20Tickers = new Set(result.top20.map((row) => row.ticker));
+  const excludedTickers = new Set(result.excludedHighYield.map((row) => row.ticker));
+  const stressedTickers = new Set(result.stressed.map((row) => row.ticker));
+  for (const ticker of top20Tickers) {
+    assert.ok(!excludedTickers.has(ticker), `${ticker} ne doit pas être à la fois Top 20 et exclusion`);
+    assert.ok(!stressedTickers.has(ticker), `${ticker} ne doit pas être à la fois Top 20 et stressé`);
+  }
+});
+
+test("V1B — remplaçants admissibles remplissent le Top 20 après exclusions", () => {
+  const records = [];
+  records.push(...buildStressedHighYieldRecords({ ticker: "SMCI", count: 22, prefix: "202507" }));
+  records.push(...buildStressedHighYieldRecords({ ticker: "AAL", count: 22, prefix: "202508" }));
+  for (let tickerIndex = 0; tickerIndex < 25; tickerIndex += 1) {
+    const ticker = `ALT${String(tickerIndex).padStart(2, "0")}`;
+    records.push(
+      ...buildSolidTop20Records({
+        ticker,
+        yieldPct: 0.88 + (tickerIndex % 4) * 0.02,
+        prefix: "202510",
+      }),
+    );
+  }
+  const profiles = buildTickerProfilesFromRecords(records, [], { today: "2026-05-24" });
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(!result.top20.some((row) => row.ticker === "SMCI"));
+  assert.ok(!result.top20.some((row) => row.ticker === "AAL"));
+  assert.equal(result.top20.length, 20);
+  assert.ok(result.top20.some((row) => row.ticker.startsWith("ALT")));
+});
+
+test("V1B — profil TQQQ-like reste admissible Top 20", () => {
+  const records = buildSolidTop20Records({ ticker: "TQQQ", yieldPct: 0.98, count: 40 });
+  const cycles = [buildClosedCycle({ ticker: "TQQQ", pnl: 120, returnPct: 4.5 })];
+  const profiles = buildTickerProfilesFromRecords(records, cycles, { today: "2026-05-24" });
+  const tqqq = profiles.find((profile) => profile.ticker === "TQQQ");
+  assert.ok(tqqq);
+  assert.equal(isEligibleForExperimentalTop20(tqqq).eligible, true);
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(result.top20.some((row) => row.ticker === "TQQQ"));
+});
+
+test("V1B — profil CCL-like reste admissible Top 20", () => {
+  const records = Array.from({ length: 35 }, (_, index) => ({
+    ...buildResolvedRecord({
+      ticker: "CCL",
+      yieldPct: 0.85,
+      assigned: index % 10 === 0,
+      expiration: `202512${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `202512${String((index % 24) + 1).padStart(2, "0")}`,
+    }),
+    resolution: {
+      ...buildResolvedRecord({ ticker: "CCL", assigned: index % 10 === 0 }).resolution,
+      strikeTouched: index % 6 === 0,
+      brokeLowerBound: index % 15 === 0,
+      popPredictionCorrect: index % 10 !== 0,
+      expiredWorthless: index % 10 !== 0,
+    },
+  }));
+  const cycles = [buildClosedCycle({ ticker: "CCL", pnl: 60, returnPct: 2.5 })];
+  const profiles = buildTickerProfilesFromRecords(records, cycles, { today: "2026-05-24" });
+  const ccl = profiles.find((profile) => profile.ticker === "CCL");
+  assert.ok(ccl);
+  assert.ok((ccl.csp?.avgYieldPct ?? 0) >= 0.8);
+  assert.equal(isEligibleForExperimentalTop20(ccl).eligible, true);
+  const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
+  assert.ok(result.top20.some((row) => row.ticker === "CCL"));
 });

@@ -2428,28 +2428,88 @@ const DYNAMIC_TOP20_CONTEXT_AVAILABILITY = {
   note: "IV/saisonnalité/contexte marché non encore intégrés au score.",
 };
 
-function isDynamicTop20HardIneligible(profile) {
+function hasDefensibleCspQualityForTop20(profile) {
+  const win = profile?.csp?.realWinRate;
+  const assign = profile?.csp?.assignmentRate;
+  const profondeRate = profile?.assignment?.profondeRatePct;
+  const lbClass = profile?.lowerBoundStress?.lbStressClass ?? "none";
   const verdict = profile?.primaryVerdict ?? "";
-  return verdict === "assignation défavorable" || verdict === "faux 1 %";
+  return (
+    lbClass !== "critique" &&
+    (win == null || win >= 80) &&
+    (assign == null || assign <= 20) &&
+    (profondeRate == null || profondeRate === 0) &&
+    !["faux 1 %", "assignation défavorable", "1 % stressé"].includes(verdict)
+  );
+}
+
+export function getExperimentalTop20IneligibilityReasons(profile, enforceN15Guard = false) {
+  const reasons = [];
+  const n = profile?.csp?.recordsResolved ?? 0;
+  const verdict = profile?.primaryVerdict ?? "";
+  const win = profile?.csp?.realWinRate;
+  const assign = profile?.csp?.assignmentRate;
+  const avgYield = profile?.csp?.avgYieldPct;
+  const lbClass = profile?.lowerBoundStress?.lbStressClass ?? "none";
+  const lbLabel = String(profile?.lowerBoundStress?.lbStressLabel ?? "");
+  const lbCode = profile?.lowerBoundStress?.lbStressCode ?? lbClass;
+  const profondeRate = profile?.assignment?.profondeRatePct;
+  const verdictReasons = Array.isArray(profile?.verdictReasons) ? profile.verdictReasons : [];
+
+  if (lbClass === "critique" || lbCode === "critique" || lbLabel.includes("critique")) {
+    reasons.push("Exclu du Top 20 : LB critique");
+  } else if (verdictReasons.includes("LB cassé critique")) {
+    reasons.push("Exclu du Top 20 : LB critique");
+  }
+
+  if (verdict === "faux 1 %" || verdict.includes("faux 1 %")) {
+    reasons.push("Exclu du Top 20 : verdict stressé");
+  }
+  if (verdict === "assignation défavorable" || verdict.includes("assignation défavorable")) {
+    reasons.push("Exclu du Top 20 : verdict stressé");
+  }
+  if (verdict === "1 % stressé" || verdict.includes("1 % stressé")) {
+    reasons.push("Exclu du Top 20 : verdict stressé");
+  }
+  if (
+    (verdict === "CC insuffisants" || profile?.verdicts?.includes("CC insuffisants")) &&
+    ((avgYield != null && avgYield < 0.9) || (assign != null && assign > 20))
+  ) {
+    reasons.push("Exclu du Top 20 : verdict stressé");
+  }
+
+  if (win != null && win < 80) {
+    reasons.push("Exclu du Top 20 : win < 80 %");
+  }
+  if (assign != null && assign > 20) {
+    reasons.push("Exclu du Top 20 : assignation > 20 %");
+  }
+  if (profondeRate != null && profondeRate > 0) {
+    reasons.push("Exclu du Top 20 : assignation profonde");
+  }
+  if (n < 5) {
+    reasons.push("Exclu du Top 20 : échantillon insuffisant (n<5)");
+  } else if (enforceN15Guard && n < 15) {
+    reasons.push("Exclu du Top 20 : échantillon insuffisant (n<15)");
+  }
+
+  return [...new Set(reasons)];
+}
+
+export function isEligibleForExperimentalTop20(profile, options = {}) {
+  const enforceN15Guard = options.enforceN15Guard === true;
+  const reasons = getExperimentalTop20IneligibilityReasons(profile, enforceN15Guard);
+  return { eligible: reasons.length === 0, reasons };
 }
 
 function isDynamicTop20HighYieldExclusion(profile) {
   const avgYield = profile?.csp?.avgYieldPct;
   if (avgYield == null || avgYield < 0.8) return false;
 
-  const verdict = profile?.primaryVerdict ?? "";
-  const win = profile?.csp?.realWinRate;
-  const lbClass = profile?.lowerBoundStress?.lbStressClass ?? "none";
-  const profondeRate = profile?.assignment?.profondeRatePct;
-
-  return (
-    verdict === "faux 1 %" ||
-    verdict === "assignation défavorable" ||
-    verdict === "1 % stressé" ||
-    lbClass === "critique" ||
-    (profondeRate != null && profondeRate >= 30) ||
-    (win != null && win < 60)
+  const riskReasons = getExperimentalTop20IneligibilityReasons(profile, false).filter(
+    (reason) => !reason.includes("échantillon"),
   );
+  return riskReasons.length > 0;
 }
 
 function computeDynamicTop20LaboratoryScore(profile) {
@@ -2485,12 +2545,18 @@ function computeDynamicTop20LaboratoryScore(profile) {
     scoreWarnings.push("Rendement élevé mais qualité CSP faible");
   }
 
+  const cspDefensible = hasDefensibleCspQualityForTop20(profile);
+
   if (win != null && win >= 85) {
     score += 15;
     scoreReasons.push("Win CSP élevé");
-  } else if (win != null && win >= 70) {
+  } else if (win != null && win >= 80) {
     score += 8;
-  } else if (win != null && win < 60) {
+    scoreReasons.push("Win CSP acceptable");
+  } else if (win != null && win >= 70) {
+    score -= 5;
+    scoreWarnings.push("Win CSP modéré");
+  } else if (win != null && win < 70) {
     score -= 15;
     scoreWarnings.push("Win CSP faible");
   }
@@ -2498,9 +2564,12 @@ function computeDynamicTop20LaboratoryScore(profile) {
   if (assign != null && assign <= 15) {
     score += 10;
     scoreReasons.push("Assignation faible");
-  } else if (assign != null && assign >= 25) {
-    score -= 12;
+  } else if (assign != null && assign > 20) {
+    score -= 18;
     scoreWarnings.push("Assignation élevée");
+  } else if (assign != null && assign > 15) {
+    score -= 6;
+    scoreWarnings.push("Assignation modérée");
   }
 
   if (touch != null && touch >= 35) {
@@ -2523,10 +2592,11 @@ function computeDynamicTop20LaboratoryScore(profile) {
     scoreWarnings.push("LB non déterminant");
   }
 
-  if (profondeRate != null && profondeRate >= 30) {
-    score -= 30;
+  if (profondeRate != null && profondeRate > 0) {
+    score -= 35;
     scoreWarnings.push("Assignation profonde");
   } else if (
+    cspDefensible &&
     profondeRate != null &&
     profondeRate < 15 &&
     procheRate != null &&
@@ -2537,17 +2607,22 @@ function computeDynamicTop20LaboratoryScore(profile) {
     scoreReasons.push("Assignations proches maîtrisées");
   }
 
-  if (wheel.avgWheelReturnPct != null && wheel.avgWheelReturnPct > 0) {
-    score += 10;
-    scoreReasons.push("Rendement Wheel positif");
-  }
-  if (wheel.recoveryRatePct != null && wheel.recoveryRatePct >= 60) {
-    score += 8;
-    scoreReasons.push("Recovery favorable");
-  }
-  if ((wheel.avgCcSold ?? 0) >= 1) {
-    score += 6;
-    scoreReasons.push("CC vendus");
+  if (cspDefensible) {
+    if (wheel.avgWheelReturnPct != null && wheel.avgWheelReturnPct > 0) {
+      score += 10;
+      scoreReasons.push("Rendement Wheel positif");
+    }
+    if (wheel.recoveryRatePct != null && wheel.recoveryRatePct >= 60) {
+      score += 8;
+      scoreReasons.push("Recovery favorable");
+    }
+    if ((wheel.avgCcSold ?? 0) >= 1) {
+      score += 6;
+      scoreReasons.push("CC vendus");
+    }
+  } else if (wheel.avgWheelReturnPct != null && wheel.avgWheelReturnPct > 0) {
+    score -= 5;
+    scoreWarnings.push("Rendement Wheel insuffisant pour compenser CSP stressé");
   }
   if (verdict === "CC insuffisants" || profile?.verdicts?.includes("CC insuffisants")) {
     score -= 12;
@@ -2612,6 +2687,14 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
       : Array.isArray(profile?.verdictReasons)
       ? profile.verdictReasons.slice(0, 3)
       : [];
+  const top20ExclusionReasons =
+    Array.isArray(extra.top20ExclusionReasons) && extra.top20ExclusionReasons.length > 0
+      ? extra.top20ExclusionReasons
+      : status === "top20_experimental"
+      ? []
+      : getExperimentalTop20IneligibilityReasons(profile, false).filter(
+          (reason) => !reason.includes("échantillon"),
+        );
 
   return {
     rank,
@@ -2622,8 +2705,11 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
     dynamicTop20StatusLabel: DYNAMIC_TOP20_STATUS_LABELS[status] ?? status,
     scoreReasons,
     scoreWarnings: scoring.scoreWarnings,
+    top20ExclusionReasons,
     currentVerdict: profile.primaryVerdict,
     sampleLabel: profile.sampleCredibility,
+    sampleDisplayLabel:
+      status === "top20_experimental" && n >= 15 ? (n >= 30 ? "mesurable" : "préliminaire") : null,
     n,
     avgCspYieldPct: profile?.csp?.avgYieldPct ?? null,
     avgPop: profile?.csp?.avgPopAnnounced ?? null,
@@ -2635,7 +2721,6 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
     lbStressLabel: profile?.lowerBoundStress?.lbStressLabel ?? null,
     primaryReason: profile?.verdictReasons?.[0] ?? profile?.primaryVerdict ?? null,
     verdictReasons: profile?.verdictReasons ?? [],
-    avoidContext: extra.avoidContext === true,
   };
 }
 
@@ -2663,44 +2748,37 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
   const profilesN15Plus = scored.filter((item) => (item.profile?.csp?.recordsResolved ?? 0) >= 15);
   const enforceN15Guard = profilesN15Plus.length >= 20;
 
-  const softEligible = scored.filter((item) => {
-    const n = item.profile?.csp?.recordsResolved ?? 0;
-    if (n < 5) return false;
-    if (enforceN15Guard && n < 15) return false;
-    return true;
-  });
+  const eligibleItems = scored.filter(
+    (item) => isEligibleForExperimentalTop20(item.profile, { enforceN15Guard }).eligible,
+  );
 
-  const hardEligible = softEligible.filter((item) => !isDynamicTop20HardIneligible(item.profile));
-  const top20Pool = hardEligible.length >= 20 ? hardEligible : softEligible;
-
-  const top20Items = top20Pool.slice(0, 20);
+  const top20Items = eligibleItems.slice(0, 20);
   const top20Tickers = new Set(top20Items.map((item) => item.profile.ticker));
+
+  const excludedHighYield = scored
+    .filter((item) => !top20Tickers.has(item.profile.ticker))
+    .filter((item) => isDynamicTop20HighYieldExclusion(item.profile))
+    .map((item, index) => {
+      const riskReasons = getExperimentalTop20IneligibilityReasons(item.profile, false).filter(
+        (reason) => !reason.includes("échantillon"),
+      );
+      return mapDynamicTop20ProfileRow(item.profile, index + 1, "exclude_high_yield", {
+        top20ExclusionReasons: riskReasons,
+      });
+    });
+
+  const excludedTickers = new Set(excludedHighYield.map((row) => row.ticker));
+
+  const top20 = top20Items.map((item, index) =>
+    mapDynamicTop20ProfileRow(item.profile, index + 1, "top20_experimental"),
+  );
 
   const nearEntryItems = scored
     .filter((item) => !top20Tickers.has(item.profile.ticker))
+    .filter((item) => !excludedTickers.has(item.profile.ticker))
     .filter((item) => (item.profile?.csp?.recordsResolved ?? 0) >= 5)
     .filter((item) => !isDynamicTop20HighYieldExclusion(item.profile))
     .slice(0, 10);
-
-  const excludedHighYield = scored
-    .filter((item) => isDynamicTop20HighYieldExclusion(item.profile))
-    .map((item, index) =>
-      mapDynamicTop20ProfileRow(item.profile, index + 1, "exclude_high_yield"),
-    );
-
-  const top20 = top20Items.map((item, index) => {
-    const hardIneligible = isDynamicTop20HardIneligible(item.profile);
-    const status = hardIneligible && hardEligible.length < 20 ? "top20_experimental" : "top20_experimental";
-    return mapDynamicTop20ProfileRow(item.profile, index + 1, status, {
-      avoidContext: hardIneligible && hardEligible.length < 20,
-    });
-  });
-
-  for (const row of top20) {
-    if (row.avoidContext) {
-      row.scoreWarnings = [...new Set([...(row.scoreWarnings ?? []), "À éviter / contexte défavorable"])];
-    }
-  }
 
   const nearEntry = nearEntryItems.map((item, index) =>
     mapDynamicTop20ProfileRow(item.profile, top20.length + index + 1, "near_entry"),
@@ -2708,6 +2786,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
 
   const watchValidate = scored
     .filter((item) => !top20Tickers.has(item.profile.ticker))
+    .filter((item) => !excludedTickers.has(item.profile.ticker))
     .filter((item) => {
       const n = item.profile?.csp?.recordsResolved ?? 0;
       return (
@@ -2721,6 +2800,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
 
   const stressed = scored
     .filter((item) => !top20Tickers.has(item.profile.ticker))
+    .filter((item) => !excludedTickers.has(item.profile.ticker))
     .filter((item) => {
       const verdict = item.profile?.primaryVerdict ?? "";
       const lbClass = item.profile?.lowerBoundStress?.lbStressClass ?? "none";
@@ -2763,7 +2843,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
         "Score provisoire de laboratoire — ne constitue pas un score final ni une recommandation de trade.",
       guardrails: {
         enforceN15Guard,
-        hardEligibleCount: hardEligible.length,
+        eligibleForTop20Count: eligibleItems.length,
       },
     },
   };

@@ -1940,6 +1940,10 @@ function getDynamicTop20StatusTone(status) {
 }
 
 function formatDynamicTop20Reason(row) {
+  const exclusions = Array.isArray(row?.top20ExclusionReasons) ? row.top20ExclusionReasons : [];
+  if (exclusions.length > 0) return exclusions.slice(0, 2).join(" · ");
+  const warnings = Array.isArray(row?.scoreWarnings) ? row.scoreWarnings : [];
+  if (warnings.length > 0) return warnings.slice(0, 2).join(" · ");
   const reasons = Array.isArray(row?.scoreReasons) ? row.scoreReasons : [];
   if (reasons.length > 0) return reasons.slice(0, 3).join(" · ");
   if (Array.isArray(row?.verdictReasons) && row.verdictReasons.length > 0) {
@@ -6320,8 +6324,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
                       <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
                         {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
-                        {row.avoidContext ? (
-                          <span className="block text-[10px] text-rose-400">À éviter / contexte</span>
+                        {row.sampleDisplayLabel ? (
+                          <span className="block text-[10px] text-slate-500">{row.sampleDisplayLabel}</span>
                         ) : null}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>

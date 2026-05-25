@@ -244,6 +244,68 @@ function getTechnicalSnapshotDisplay(record) {
   };
 }
 
+function getMarketContextBadgeClass(label) {
+  const raw = String(label ?? "").trim().toLowerCase();
+  if (raw.includes("favorable")) return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  if (raw.includes("fragile")) return "border-amber-500/40 bg-amber-500/10 text-amber-300";
+  if (raw.includes("stress")) return "border-rose-500/40 bg-rose-500/10 text-rose-300";
+  if (raw.includes("neutre")) return "border-slate-600 bg-slate-800/40 text-slate-300";
+  if (raw.includes("incomplet")) return "border-orange-500/40 bg-orange-500/10 text-orange-300";
+  return "border-slate-700 bg-slate-800/70 text-slate-400";
+}
+
+function MarketContextBadge({ label, title }) {
+  if (!label) return null;
+  return (
+    <span
+      title={title ?? label}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${getMarketContextBadgeClass(label)}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function formatCompactIndexLine(return5dPct, priceVsMa50Pct) {
+  const ret = formatSignedPercent(return5dPct, 1);
+  const ma = formatSignedPercent(priceVsMa50Pct, 1);
+  if (ret === "—" && ma === "—") return "—";
+  if (ma === "—") return `${ret} 5j`;
+  if (ret === "—") return `${ma} vs MA50`;
+  return `${ret} 5j · ${ma} vs MA50`;
+}
+
+function formatCompactVixLine(vixLevel, vixRegimeLabel, vixTrendLabel) {
+  const level = numberOrNull(vixLevel);
+  if (level == null) return "—";
+  const regime = vixRegimeLabel && vixRegimeLabel !== "inconnu" ? vixRegimeLabel : null;
+  const trend = vixTrendLabel && vixTrendLabel !== "inconnu" ? vixTrendLabel : null;
+  const parts = [level.toFixed(1)];
+  if (regime) parts.push(regime);
+  if (trend) parts.push(trend);
+  return parts.join(" · ");
+}
+
+function getMarketContextSnapshotDisplay(record) {
+  const snap = record?.marketContextSnapshot ?? {};
+  return {
+    marketRegimeLabel: snap.marketRegimeLabel ?? record?.marketRegimeLabel ?? null,
+    marketRiskLabel: snap.marketRiskLabel ?? record?.marketRiskLabel ?? null,
+    riskOnOffLabel: snap.riskOnOffLabel ?? record?.riskOnOffLabel ?? null,
+    vixRegimeLabel: snap.vixRegimeLabel ?? record?.vixRegimeLabel ?? null,
+    qqqReturn5dPct: snap.qqqReturn5dPct,
+    qqqPriceVsMa50Pct: snap.qqqPriceVsMa50Pct,
+    spyReturn5dPct: snap.spyReturn5dPct,
+    spyPriceVsMa50Pct: snap.spyPriceVsMa50Pct,
+    vixLevel: snap.vixLevel,
+    vixTrendLabel: snap.vixTrendLabel,
+    s5thValue: snap.s5thValue,
+    missingFields: record?.marketContextMissingFields ?? snap.missingFields ?? [],
+    completenessPct: record?.marketContextCompletenessPct ?? 0,
+    badge: record?.marketContextBadge ?? "Snapshot absent",
+  };
+}
+
 function formatDteRange(minDte, maxDte) {
   const min = numberOrNull(minDte);
   const max = numberOrNull(maxDte);
@@ -7524,6 +7586,14 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <th className="px-3 py-3 font-semibold">Drawdown 20j</th>
                       <th className="px-3 py-3 font-semibold">Complétude tech</th>
                       <th className="px-3 py-3 font-semibold">Champs tech manquants</th>
+                      <th className="px-3 py-3 font-semibold">Marché</th>
+                      <th className="px-3 py-3 font-semibold">QQQ</th>
+                      <th className="px-3 py-3 font-semibold">SPY</th>
+                      <th className="px-3 py-3 font-semibold">VIX</th>
+                      <th className="px-3 py-3 font-semibold">S5TH</th>
+                      <th className="px-3 py-3 font-semibold">Risk</th>
+                      <th className="px-3 py-3 font-semibold">Complétude marché</th>
+                      <th className="px-3 py-3 font-semibold">Champs marché manquants</th>
                       <th className="px-3 py-3 font-semibold">Mode</th>
                       <th className="px-3 py-3 font-semibold">Strike</th>
                       <th className="px-3 py-3 font-semibold">Premium</th>
@@ -7542,8 +7612,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                       const pl = numberOrNull(record?.resolution?.realizedPl);
                       const snap = getOptionSnapshotDisplay(record);
                       const tech = getTechnicalSnapshotDisplay(record);
+                      const market = getMarketContextSnapshotDisplay(record);
                       const missingFields = snap.missingFields ?? [];
                       const techMissingFields = tech.missingFields ?? [];
+                      const marketMissingFields = market.missingFields ?? [];
                       return (
                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
                           <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
@@ -7600,6 +7672,29 @@ export default function JournalPopPanel({ apiBase, active }) {
                           <td className="px-3 py-2.5 tabular-nums">{tech.completenessPct}%</td>
                           <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(techMissingFields) ? techMissingFields.join(", ") : ""}>
                             {formatMissingFields(techMissingFields)}
+                          </td>
+                          <td className="px-3 py-2.5 min-w-[120px]">
+                            <MarketContextBadge
+                              label={market.badge}
+                              title={`Régime: ${market.marketRegimeLabel ?? "—"} · Complétude: ${market.completenessPct}%`}
+                            />
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap tabular-nums text-[11px]">
+                            {formatCompactIndexLine(market.qqqReturn5dPct, market.qqqPriceVsMa50Pct)}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap tabular-nums text-[11px]">
+                            {formatCompactIndexLine(market.spyReturn5dPct, market.spyPriceVsMa50Pct)}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap tabular-nums text-[11px]">
+                            {formatCompactVixLine(market.vixLevel, market.vixRegimeLabel, market.vixTrendLabel)}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">
+                            {numberOrNull(market.s5thValue) != null ? Number(market.s5thValue).toFixed(1) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] capitalize">{market.marketRiskLabel ?? "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{market.completenessPct}%</td>
+                          <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(marketMissingFields) ? marketMissingFields.join(", ") : ""}>
+                            {formatMissingFields(marketMissingFields)}
                           </td>
                           <td className="px-3 py-2.5">
                             <span className={record?.strikeMode === "safe" ? "font-semibold text-emerald-400" : record?.strikeMode === "aggressive" ? "font-semibold text-rose-400" : "text-slate-500"}>

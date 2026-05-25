@@ -67,6 +67,7 @@ const wheelValidationStore = useSqliteJournal
   : createWheelValidationStore();
 const wheelValidationService = createWheelValidationService({
   store: wheelValidationStore,
+  marketService,
   getHistoricalClose: (symbol, dateYmd) => marketService.getHistoricalClose(symbol, dateYmd),
   getHistoricalWindowMetrics: (symbol, scanDateYmd, expirationDateYmd) =>
     marketService.getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd),

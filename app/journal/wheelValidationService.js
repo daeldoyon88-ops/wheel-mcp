@@ -10,6 +10,10 @@ import {
   summarizeOptionQuoteDiagnostics,
 } from "./optionQuoteSnapshot.js";
 import {
+  buildMarketContextSnapshot,
+  enrichRecordWithMarketContextFields,
+} from "./marketContextSnapshot.js";
+import {
   buildTechnicalSnapshot,
   enrichRecordWithTechnicalSnapshotFields,
 } from "./technicalSnapshot.js";
@@ -1132,6 +1136,7 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
       candidate,
       scanTimestamp,
     }),
+    marketContextSnapshot: options.marketContextSnapshot ?? null,
   };
 }
 
@@ -3234,6 +3239,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
 
 export function createWheelValidationService(options = {}) {
   const store = options.store ?? createWheelValidationStore(options.journalPath);
+  const marketService = options.marketService ?? null;
   const getHistoricalClose =
     typeof options.getHistoricalClose === "function" ? options.getHistoricalClose : null;
   const getHistoricalWindowMetrics =
@@ -3314,6 +3320,7 @@ export function createWheelValidationService(options = {}) {
         pushSampleSkipped(candidate, `missingPremium:${strikeMode}`);
       }
     };
+    const sharedMarketContextSnapshot = options.marketContextSnapshot ?? null;
     for (let index = 0; index < finalCandidates.length; index += 1) {
       const candidate = finalCandidates[index];
       const perCandidateOptions = {
@@ -3321,6 +3328,7 @@ export function createWheelValidationService(options = {}) {
         captureSource: options.captureSource,
         dteAtScan: options.dteAtScan,
         candidateRank: toNumberOrNull(candidate?.rank) ?? index + 1,
+        marketContextSnapshot: sharedMarketContextSnapshot,
       };
       const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp, scanSessionId, perCandidateOptions);
       if (safeRecord) records.push(safeRecord);
@@ -3345,8 +3353,10 @@ export function createWheelValidationService(options = {}) {
     return {
       ...journal,
       records: records.map((record) =>
-        enrichRecordWithTechnicalSnapshotFields(
-          enrichRecordWithOptionQuoteFields(enrichWithAssignmentDepthFields(record))
+        enrichRecordWithMarketContextFields(
+          enrichRecordWithTechnicalSnapshotFields(
+            enrichRecordWithOptionQuoteFields(enrichWithAssignmentDepthFields(record))
+          )
         )
       ),
     };
@@ -3748,7 +3758,23 @@ export function createWheelValidationService(options = {}) {
   async function captureFromCandidates(candidates, options = {}) {
     return withWriteLock(async () => {
       const journal = await store.load();
-      const records = buildRecordsFromCandidates(candidates, options);
+      const scanTimestamp = normalizeIsoTimestamp(options.scanTimestamp);
+      let marketContextSnapshot = options.marketContextSnapshot ?? null;
+      if (!marketContextSnapshot && marketService) {
+        try {
+          marketContextSnapshot = await buildMarketContextSnapshot({
+            marketService,
+            scanTimestamp,
+          });
+        } catch (_err) {
+          marketContextSnapshot = null;
+        }
+      }
+      const records = buildRecordsFromCandidates(candidates, {
+        ...options,
+        scanTimestamp,
+        marketContextSnapshot,
+      });
       const buildDiagnostics = records._diagnostics ?? { skippedReasons: {}, sampleSkipped: [] };
       delete records._diagnostics;
       if (records.length === 0) {

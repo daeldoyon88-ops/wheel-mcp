@@ -644,4 +644,8 @@ export function buildTechnicalDataBadge(summary) {
   return "Tech incomplet";
 }
 
-export { TRACKED_FIELDS };
+export function computeSma(values, period) {
+  return sma(values, period);
+}
+
+export { toNum, roundNum, pctDiff, returnPct, TRACKED_FIELDS };

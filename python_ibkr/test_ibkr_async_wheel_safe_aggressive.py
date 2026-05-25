@@ -75,6 +75,152 @@ def _finite_number(value):
     return n
 
 
+def _finite_signed_number(value):
+    if value is None:
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n):
+        return None
+    return n
+
+
+def _safe_int_or_none(value):
+    if value is None:
+        return None
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
+
+
+def _clean_string(value):
+    if value is None:
+        return None
+    s = str(value).strip()
+    return s or None
+
+
+def _iso_timestamp(value):
+    if value is None:
+        return None
+    try:
+        if isinstance(value, datetime):
+            d = value
+        elif isinstance(value, (int, float)) and math.isfinite(float(value)):
+            raw = float(value)
+            d = datetime.fromtimestamp(raw / 1000 if raw > 10_000_000_000 else raw, timezone.utc)
+        else:
+            s = str(value).strip()
+            if not s:
+                return None
+            if s.endswith("Z"):
+                s = s[:-1] + "+00:00"
+            d = datetime.fromisoformat(s)
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        return d.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    except Exception:
+        return None
+
+
+def _contract_fields(contract) -> dict:
+    return {
+        "conId": _safe_int_or_none(_safe_attr(contract, "conId")),
+        "localSymbol": _clean_string(_safe_attr(contract, "localSymbol")),
+        "tradingClass": _clean_string(_safe_attr(contract, "tradingClass")),
+        "exchange": _clean_string(_safe_attr(contract, "exchange")),
+        "currency": _clean_string(_safe_attr(contract, "currency")),
+        "multiplier": _clean_string(_safe_attr(contract, "multiplier")),
+    }
+
+
+def _model_greeks_fields(ticker) -> dict:
+    greeks = _safe_attr(ticker, "modelGreeks")
+    implied_vol = _finite_number(_safe_attr(greeks, "impliedVol"))
+    if implied_vol is None:
+        implied_vol = _finite_number(_safe_attr(greeks, "impliedVolatility"))
+    if implied_vol is None:
+        implied_vol = _finite_number(_safe_attr(ticker, "impliedVolatility"))
+    if implied_vol is None:
+        implied_vol = _finite_number(_safe_attr(ticker, "impliedVol"))
+
+    model_price = _finite_number(_safe_attr(greeks, "optPrice"))
+    if model_price is None:
+        model_price = _finite_number(_safe_attr(greeks, "modelPrice"))
+
+    model_timestamp = (
+        _iso_timestamp(_safe_attr(greeks, "time"))
+        or _iso_timestamp(_safe_attr(greeks, "timestamp"))
+        or _iso_timestamp(_safe_attr(greeks, "lastUpdate"))
+    )
+    has_model_greeks = any(
+        value is not None
+        for value in (
+            implied_vol,
+            _finite_signed_number(_safe_attr(greeks, "delta")),
+            _finite_signed_number(_safe_attr(greeks, "gamma")),
+            _finite_signed_number(_safe_attr(greeks, "theta")),
+            _finite_signed_number(_safe_attr(greeks, "vega")),
+            model_price,
+        )
+    )
+
+    return {
+        "impliedVolatility": implied_vol,
+        "delta": _finite_signed_number(_safe_attr(greeks, "delta")),
+        "gamma": _finite_signed_number(_safe_attr(greeks, "gamma")),
+        "theta": _finite_signed_number(_safe_attr(greeks, "theta")),
+        "vega": _finite_signed_number(_safe_attr(greeks, "vega")),
+        "modelPrice": model_price,
+        "modelGreeksTimestamp": model_timestamp,
+        "modelGreeksSource": "modelGreeks" if has_model_greeks else None,
+    }
+
+
+def _option_liquidity_fields(ticker, right: str) -> dict:
+    right_u = str(right or "").upper()
+    volume = None
+    open_interest = None
+    if right_u == "P":
+        volume = _finite_number(_safe_attr(ticker, "putVolume"))
+        open_interest = _finite_number(_safe_attr(ticker, "putOpenInterest"))
+    elif right_u == "C":
+        volume = _finite_number(_safe_attr(ticker, "callVolume"))
+        open_interest = _finite_number(_safe_attr(ticker, "callOpenInterest"))
+    if volume is None:
+        volume = (
+            _finite_number(_safe_attr(ticker, "optionVolume"))
+            or _finite_number(_safe_attr(ticker, "volume"))
+        )
+    if open_interest is None:
+        open_interest = (
+            _finite_number(_safe_attr(ticker, "openInterest"))
+            or _finite_number(_safe_attr(ticker, "optOpenInterest"))
+        )
+    return {
+        "volume": volume,
+        "optionVolume": volume,
+        "openInterest": open_interest,
+        "putOpenInterest": _finite_number(_safe_attr(ticker, "putOpenInterest")),
+        "callOpenInterest": _finite_number(_safe_attr(ticker, "callOpenInterest")),
+    }
+
+
+def _option_enrichment_fields(ticker, contract, right: str) -> dict:
+    mark = _finite_number(_safe_attr(ticker, "markPrice"))
+    return {
+        **_contract_fields(contract),
+        **_model_greeks_fields(ticker),
+        **_option_liquidity_fields(ticker, right),
+        "mark": mark,
+        "quoteTimestamp": _iso_timestamp(_safe_attr(ticker, "time")),
+    }
+
+
 def _round_money_half_up(value: float | int | str) -> float:
     return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
@@ -221,7 +367,7 @@ def _leg_quotes(ticker) -> dict:
     }
 
 
-def _put_quotes(ticker) -> dict:
+def _put_quotes(ticker, contract=None, right: str = "P") -> dict:
     """Pour les puts wheel: primeUsed = bid (conservateur). Pas d'autre fallback."""
     bid = _finite_number(_safe_attr(ticker, "bid"))
     ask = _finite_number(_safe_attr(ticker, "ask"))
@@ -242,6 +388,7 @@ def _put_quotes(ticker) -> dict:
         "spread": spread,
         "spreadPct": spread_pct,
         "primeUsed": bid,
+        **_option_enrichment_fields(ticker, contract, right),
     }
 
 
@@ -430,6 +577,7 @@ def main() -> int:
     two_phase_put_window = max(
         1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", TWO_PHASE_DEFAULT_PUT_WINDOW)
     )
+    option_generic_ticks = _str_env("IBKR_OPTION_GENERIC_TICKS", "100,101,106,221")
     requested_expiration = os.environ.get("IBKR_OPTION_EXPIRATION")
     requested_expiration = (
         str(requested_expiration).strip() if requested_expiration is not None else ""
@@ -507,7 +655,8 @@ def main() -> int:
             _metric_add("stockMarketDataRequests")
         else:
             _metric_add("optionMarketDataRequests")
-        return ib.reqMktData(contract, "", False, False)
+        generic_ticks = "" if option_kind == "stock" else option_generic_ticks
+        return ib.reqMktData(contract, generic_ticks, False, False)
 
     def _cancel_mkt_data(contract):
         _metric_add("cancelMarketDataCalls")
@@ -1143,7 +1292,8 @@ def main() -> int:
         # =========================================================
         put_data: list[dict] = []
         for strike, tk in put_tickers:
-            q = _put_quotes(tk)
+            option_contract = valid_put_contracts.get(strike)
+            q = _put_quotes(tk, option_contract, right)
             bid = q["bid"]
             mid = q["mid"]
             prime_used = q["primeUsed"]
@@ -1301,6 +1451,27 @@ def main() -> int:
                 "isBelowLowerBound": pc["isBelowLowerBound"],
                 "distanceBelowLowerBound": pc["distanceBelowLowerBound"],
                 "selectionReason": sel_reason,
+                "conId": pc.get("conId"),
+                "localSymbol": pc.get("localSymbol"),
+                "tradingClass": pc.get("tradingClass"),
+                "exchange": pc.get("exchange"),
+                "currency": pc.get("currency"),
+                "multiplier": pc.get("multiplier"),
+                "impliedVolatility": pc.get("impliedVolatility"),
+                "delta": pc.get("delta"),
+                "gamma": pc.get("gamma"),
+                "theta": pc.get("theta"),
+                "vega": pc.get("vega"),
+                "modelPrice": pc.get("modelPrice"),
+                "modelGreeksTimestamp": pc.get("modelGreeksTimestamp"),
+                "modelGreeksSource": pc.get("modelGreeksSource"),
+                "mark": pc.get("mark"),
+                "volume": pc.get("volume"),
+                "optionVolume": pc.get("optionVolume"),
+                "openInterest": pc.get("openInterest"),
+                "putOpenInterest": pc.get("putOpenInterest"),
+                "callOpenInterest": pc.get("callOpenInterest"),
+                "quoteTimestamp": pc.get("quoteTimestamp"),
             }
 
         aggressive_obj = _selection_obj(

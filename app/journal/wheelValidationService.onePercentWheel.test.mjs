@@ -78,6 +78,7 @@ function buildStoredSnapshotRow({
       ask: 1.2,
       mid: 1.15,
       last: 1.08,
+      mark: 1.15,
       spreadAbs: 0.1,
       spreadPct: 0.087,
       quoteTimestamp: scanTimestamp,
@@ -89,6 +90,8 @@ function buildStoredSnapshotRow({
       gamma: null,
       theta: null,
       vega: null,
+      modelPrice: 1.16,
+      modelGreeksTimestamp: scanTimestamp,
     },
     liquidity: {
       volume: 120,
@@ -97,6 +100,10 @@ function buildStoredSnapshotRow({
     contract: {
       conId: 123456,
       localSymbol: `${ticker}  260529P00100000`,
+      tradingClass: ticker,
+      exchange: "SMART",
+      currency: "USD",
+      multiplier: "100",
     },
     context: {
       premiumYieldPct: 1.1,
@@ -182,6 +189,13 @@ test("latest-option-snapshots — retourne le dernier scan avec snapshots parsé
   assert.equal(ibkrRecord.optionDataBadge, "IBKR observé");
   assert.equal(ibkrRecord.optionQuoteSnapshot.source, "IBKR");
   assert.equal(ibkrRecord.optionQuoteSnapshot.dataConfidence, "observed_ibkr");
+  assert.equal(ibkrRecord.optionQuoteSnapshot.mark, 1.15);
+  assert.equal(ibkrRecord.optionQuoteSnapshot.modelPrice, 1.16);
+  assert.equal(ibkrRecord.optionQuoteSnapshot.modelGreeksTimestamp, latestScan);
+  assert.equal(ibkrRecord.optionQuoteSnapshot.tradingClass, "IBKR");
+  assert.equal(ibkrRecord.optionQuoteSnapshot.exchange, "SMART");
+  assert.equal(ibkrRecord.optionQuoteSnapshot.currency, "USD");
+  assert.equal(ibkrRecord.optionQuoteSnapshot.multiplier, "100");
   assert.equal(Object.hasOwn(ibkrRecord.optionQuoteSnapshot, "optionChain"), false);
 
   const brokenRecord = result.records.find((record) => record.ticker === "BROK");
@@ -455,6 +469,29 @@ test("computeDynamicTop20WheelProfiles — retourne au maximum 20 profils Top 20
   const result = computeDynamicTop20WheelProfiles(profiles, { today: "2026-05-24" });
   assert.ok(result.top20.length <= 20);
   assert.equal(result.summary.top20Count, result.top20.length);
+});
+
+test("computeDynamicTop20WheelProfiles — champs snapshot enrichis ne changent pas le Top 20", () => {
+  const records = [];
+  for (let tickerIndex = 0; tickerIndex < 24; tickerIndex += 1) {
+    const ticker = `SN${String(tickerIndex).padStart(2, "0")}`;
+    records.push(...buildSolidTop20Records({ ticker, yieldPct: 0.9 + (tickerIndex % 4) * 0.02 }));
+  }
+  const snapshot = JSON.parse(buildStoredSnapshotRow({ ticker: "SN00" }).option_quote_snapshot_json);
+  const profilesWithoutSnapshots = buildTickerProfilesFromRecords(records, [], { today: "2026-05-24" });
+  const profilesWithSnapshots = buildTickerProfilesFromRecords(
+    records.map((record) => ({ ...record, optionQuoteSnapshot: { ...snapshot, ticker: record.symbol } })),
+    [],
+    { today: "2026-05-24" },
+  );
+
+  const base = computeDynamicTop20WheelProfiles(profilesWithoutSnapshots, { today: "2026-05-24" });
+  const enriched = computeDynamicTop20WheelProfiles(profilesWithSnapshots, { today: "2026-05-24" });
+  assert.deepEqual(
+    enriched.top20.map((row) => row.ticker),
+    base.top20.map((row) => row.ticker),
+  );
+  assert.deepEqual(enriched.summary.top20Count, base.summary.top20Count);
 });
 
 test("computeDynamicTop20WheelProfiles — n < 15 plafonné hors Top 20 si assez de profils robustes", () => {

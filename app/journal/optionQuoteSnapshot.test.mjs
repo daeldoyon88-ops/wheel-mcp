@@ -24,7 +24,29 @@ test("buildOptionQuoteSnapshot — IBKR complet", () => {
       scanCompletedAt: "2026-05-24T14:59:50.000Z",
       safeStrike: { strike: 26, bid: 0.42, ask: 0.44, mid: 0.43, spreadPct: 0.047 },
       putCandidates: [
-        { strike: 26, bid: 0.42, ask: 0.44, mid: 0.43, volume: 120, openInterest: 800 },
+        {
+          strike: 26,
+          bid: 0.42,
+          ask: 0.44,
+          mid: 0.43,
+          mark: 0.43,
+          volume: 120,
+          openInterest: 800,
+          impliedVolatility: 0.62,
+          delta: -0.22,
+          gamma: 0.04,
+          theta: -0.03,
+          vega: 0.02,
+          modelPrice: 0.43,
+          modelGreeksTimestamp: "2026-05-24T14:59:49.000Z",
+          conId: 123456,
+          localSymbol: "SOXL  260530P00026000",
+          tradingClass: "SOXL",
+          exchange: "SMART",
+          currency: "USD",
+          multiplier: "100",
+          quoteTimestamp: "2026-05-24T14:59:50.000Z",
+        },
       ],
     },
     safeStrike: { strike: 26, bid: 0.4, ask: 0.45, mid: 0.425, impliedVolatility: 0.62, popEstimate: 0.91 },
@@ -38,10 +60,90 @@ test("buildOptionQuoteSnapshot — IBKR complet", () => {
   assert.equal(snapshot.primaryOptionDataSource, "IBKR");
   assert.equal(snapshot.quote.bid, 0.42);
   assert.equal(snapshot.quote.ask, 0.44);
+  assert.equal(snapshot.quote.mark, 0.43);
+  assert.equal(snapshot.greeks.delta, -0.22);
+  assert.equal(snapshot.greeks.gamma, 0.04);
+  assert.equal(snapshot.greeks.theta, -0.03);
+  assert.equal(snapshot.greeks.vega, 0.02);
+  assert.equal(snapshot.greeks.modelPrice, 0.43);
+  assert.equal(snapshot.contract.conId, 123456);
+  assert.equal(snapshot.contract.localSymbol, "SOXL  260530P00026000");
+  assert.equal(snapshot.contract.tradingClass, "SOXL");
   assert.equal(snapshot.liquidity.openInterest, 800);
+  assert.ok(!snapshot.missingFields.includes("delta"));
+  assert.ok(!snapshot.missingFields.includes("conId"));
+  assert.ok(!snapshot.missingFields.includes("localSymbol"));
   const diag = summarizeOptionQuoteDiagnostics({ optionQuoteSnapshot: snapshot });
   assert.equal(diag.hasObservedIbkrOptionData, true);
-  assert.ok(diag.optionDataCompletenessPct >= 50);
+  assert.ok(diag.optionDataCompletenessPct >= 95);
+});
+
+test("buildOptionQuoteSnapshot — completude augmente et NaN reste null", () => {
+  const baseCandidate = {
+    symbol: "SOXL",
+    source: "IBKR",
+    optionsSource: "IBKR live",
+    currentPrice: 28.5,
+    expiration: "20260530",
+    ibkrDirect: {
+      scanCompletedAt: "2026-05-24T14:59:50.000Z",
+      putCandidates: [
+        { strike: 26, bid: 0.42, ask: 0.44, mid: 0.43, impliedVolatility: 0.62 },
+      ],
+    },
+    safeStrike: { strike: 26, bid: 0.42, ask: 0.44, mid: 0.43 },
+  };
+  const enrichedCandidate = {
+    ...baseCandidate,
+    ibkrDirect: {
+      ...baseCandidate.ibkrDirect,
+      putCandidates: [
+        {
+          strike: 26,
+          bid: 0.42,
+          ask: 0.44,
+          mid: 0.43,
+          impliedVolatility: 0.62,
+          delta: -0.22,
+          gamma: 0.04,
+          theta: -0.03,
+          vega: 0.02,
+          modelPrice: 0.43,
+          conId: 123456,
+          localSymbol: "SOXL  260530P00026000",
+          tradingClass: "SOXL",
+          exchange: "SMART",
+          currency: "USD",
+          multiplier: "100",
+          volume: Number.NaN,
+          openInterest: undefined,
+          quoteTimestamp: "2026-05-24T14:59:50.000Z",
+          modelGreeksTimestamp: "date-invalide",
+        },
+      ],
+    },
+  };
+  const scanTimestamp = "2026-05-24T15:00:00.000Z";
+  const incomplete = buildOptionQuoteSnapshot({
+    candidate: baseCandidate,
+    strikeMode: "safe",
+    scanTimestamp,
+    strikeRow: baseCandidate.safeStrike,
+  });
+  const enriched = buildOptionQuoteSnapshot({
+    candidate: enrichedCandidate,
+    strikeMode: "safe",
+    scanTimestamp,
+    strikeRow: enrichedCandidate.safeStrike,
+  });
+  const incompleteDiag = summarizeOptionQuoteDiagnostics({ optionQuoteSnapshot: incomplete });
+  const enrichedDiag = summarizeOptionQuoteDiagnostics({ optionQuoteSnapshot: enriched });
+  assert.ok(enrichedDiag.optionDataCompletenessPct > incompleteDiag.optionDataCompletenessPct);
+  assert.equal(enriched.liquidity.volume, null);
+  assert.equal(enriched.liquidity.openInterest, null);
+  assert.equal(enriched.greeks.modelGreeksTimestamp, null);
+  assert.ok(!enriched.missingFields.includes("delta"));
+  assert.ok(enriched.missingFields.includes("volume"));
 });
 
 test("buildOptionQuoteSnapshot — sans snapshot record compatible", () => {

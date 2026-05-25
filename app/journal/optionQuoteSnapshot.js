@@ -20,7 +20,13 @@ const TRACKED_FIELDS = [
   "openInterest",
   "conId",
   "localSymbol",
+  "tradingClass",
+  "exchange",
+  "currency",
+  "multiplier",
+  "modelPrice",
   "quoteTimestamp",
+  "modelGreeksTimestamp",
 ];
 
 function toNum(value) {
@@ -32,6 +38,23 @@ function toNum(value) {
 function pickFirst(...values) {
   for (const value of values) {
     if (value != null && value !== "") return value;
+  }
+  return null;
+}
+
+function pickFirstNumber(...values) {
+  for (const value of values) {
+    const n = toNum(value);
+    if (n != null) return n;
+  }
+  return null;
+}
+
+function pickFirstText(...values) {
+  for (const value of values) {
+    if (value == null || value === "") continue;
+    const text = String(value).trim();
+    if (text) return text;
   }
   return null;
 }
@@ -157,7 +180,13 @@ function fieldPresent(snapshot, key) {
   if (key === "openInterest") return snapshot?.liquidity?.openInterest != null;
   if (key === "conId") return snapshot?.contract?.conId != null;
   if (key === "localSymbol") return snapshot?.contract?.localSymbol != null;
+  if (key === "tradingClass") return snapshot?.contract?.tradingClass != null;
+  if (key === "exchange") return snapshot?.contract?.exchange != null;
+  if (key === "currency") return snapshot?.contract?.currency != null;
+  if (key === "multiplier") return snapshot?.contract?.multiplier != null;
+  if (key === "modelPrice") return snapshot?.greeks?.modelPrice != null;
   if (key === "quoteTimestamp") return snapshot?.quote?.quoteTimestamp != null;
+  if (key === "modelGreeksTimestamp") return snapshot?.greeks?.modelGreeksTimestamp != null;
   return snapshot?.quote?.[key] != null;
 }
 
@@ -186,26 +215,29 @@ export function buildOptionQuoteSnapshot({ candidate, strikeMode, scanTimestamp,
       : candidate?.ibkrAggressivePutRow ?? findPutRowByStrike(candidate, strike);
 
   const ibkrUsed = isIbkrCandidate(candidate);
-  const ibkrStrikeRow = ibkrSelection ?? ibkrPutRow ?? null;
+  const ibkrStrikeRow =
+    ibkrSelection && ibkrPutRow
+      ? { ...ibkrPutRow, ...ibkrSelection }
+      : ibkrSelection ?? ibkrPutRow ?? null;
 
-  const bid = pickFirst(
+  const bid = pickFirstNumber(
     ibkrUsed ? ibkrStrikeRow?.bid : null,
     strikeRow?.bid,
     ibkrStrikeRow?.bid
   );
-  const ask = pickFirst(
+  const ask = pickFirstNumber(
     ibkrUsed ? ibkrStrikeRow?.ask : null,
     strikeRow?.ask,
     ibkrStrikeRow?.ask
   );
-  const mid = pickFirst(
+  const mid = pickFirstNumber(
     ibkrUsed ? ibkrStrikeRow?.mid : null,
     strikeRow?.mid,
     ibkrStrikeRow?.mid,
     bid != null && ask != null ? (bid + ask) / 2 : null
   );
-  const last = pickFirst(ibkrStrikeRow?.last, strikeRow?.last);
-  const mark = pickFirst(ibkrStrikeRow?.mark, strikeRow?.mark);
+  const last = pickFirstNumber(ibkrStrikeRow?.last, strikeRow?.last);
+  const mark = pickFirstNumber(ibkrStrikeRow?.mark, strikeRow?.mark);
   const spreadFromRow = computeSpread(
     bid,
     ask,
@@ -213,42 +245,48 @@ export function buildOptionQuoteSnapshot({ candidate, strikeMode, scanTimestamp,
       toNum(strikeRow?.mid) ??
       toNum(ibkrStrikeRow?.mid)
   );
-  const spreadAbs = pickFirst(
+  const spreadAbs = pickFirstNumber(
     toNum(strikeRow?.spread),
     toNum(strikeRow?.liquidity?.absoluteSpread),
     toNum(ibkrStrikeRow?.spread),
     spreadFromRow.spreadAbs
   );
-  const spreadPct = pickFirst(
+  const spreadPct = pickFirstNumber(
     toNum(strikeRow?.spreadPct),
     toNum(strikeRow?.liquidity?.spreadPct),
     toNum(ibkrStrikeRow?.spreadPct),
     spreadFromRow.spreadPct
   );
 
-  const impliedVolatility = pickFirst(
+  const impliedVolatility = pickFirstNumber(
     ibkrUsed ? ibkrStrikeRow?.impliedVolatility : null,
     strikeRow?.impliedVolatility,
     ibkrStrikeRow?.impliedVolatility,
     candidate?.diagnosticsV12?.safeStrikeIv
   );
 
-  const delta = pickFirst(ibkrStrikeRow?.delta, strikeRow?.delta);
-  const gamma = pickFirst(ibkrStrikeRow?.gamma, strikeRow?.gamma);
-  const theta = pickFirst(ibkrStrikeRow?.theta, strikeRow?.theta);
-  const vega = pickFirst(ibkrStrikeRow?.vega, strikeRow?.vega);
+  const delta = pickFirstNumber(ibkrStrikeRow?.delta, strikeRow?.delta);
+  const gamma = pickFirstNumber(ibkrStrikeRow?.gamma, strikeRow?.gamma);
+  const theta = pickFirstNumber(ibkrStrikeRow?.theta, strikeRow?.theta);
+  const vega = pickFirstNumber(ibkrStrikeRow?.vega, strikeRow?.vega);
 
-  const volume = pickFirst(
+  const volume = pickFirstNumber(
     ibkrUsed ? ibkrPutRow?.volume : null,
+    ibkrUsed ? ibkrPutRow?.optionVolume : null,
     strikeRow?.volume,
+    strikeRow?.optionVolume,
     strikeRow?.liquidity?.volume,
-    ibkrPutRow?.volume
+    ibkrPutRow?.volume,
+    ibkrPutRow?.optionVolume
   );
-  const openInterest = pickFirst(
+  const openInterest = pickFirstNumber(
     ibkrUsed ? ibkrPutRow?.openInterest : null,
+    ibkrUsed ? ibkrPutRow?.putOpenInterest : null,
     strikeRow?.openInterest,
+    strikeRow?.putOpenInterest,
     strikeRow?.liquidity?.openInterest,
-    ibkrPutRow?.openInterest
+    ibkrPutRow?.openInterest,
+    ibkrPutRow?.putOpenInterest
   );
 
   const quoteTimestamp = pickFirst(
@@ -307,12 +345,12 @@ export function buildOptionQuoteSnapshot({ candidate, strikeMode, scanTimestamp,
     strike,
     dteAtScan: toNum(dteAtScan),
     contract: {
-      conId: pickFirst(ibkrStrikeRow?.conId, strikeRow?.conId) ?? null,
-      localSymbol: pickFirst(ibkrStrikeRow?.localSymbol, strikeRow?.localSymbol) ?? null,
-      tradingClass: pickFirst(ibkrStrikeRow?.tradingClass, strikeRow?.tradingClass) ?? null,
-      exchange: pickFirst(ibkrStrikeRow?.exchange, strikeRow?.exchange) ?? null,
-      currency: pickFirst(ibkrStrikeRow?.currency, strikeRow?.currency, "USD"),
-      multiplier: pickFirst(ibkrStrikeRow?.multiplier, strikeRow?.multiplier) ?? null,
+      conId: pickFirstNumber(ibkrStrikeRow?.conId, strikeRow?.conId),
+      localSymbol: pickFirstText(ibkrStrikeRow?.localSymbol, strikeRow?.localSymbol),
+      tradingClass: pickFirstText(ibkrStrikeRow?.tradingClass, strikeRow?.tradingClass),
+      exchange: pickFirstText(ibkrStrikeRow?.exchange, strikeRow?.exchange),
+      currency: pickFirstText(ibkrStrikeRow?.currency, strikeRow?.currency, "USD"),
+      multiplier: pickFirstText(ibkrStrikeRow?.multiplier, strikeRow?.multiplier),
     },
     quote: {
       bid: bid ?? null,
@@ -334,15 +372,19 @@ export function buildOptionQuoteSnapshot({ candidate, strikeMode, scanTimestamp,
       gamma: gamma ?? null,
       theta: theta ?? null,
       vega: vega ?? null,
-      modelPrice: pickFirst(ibkrStrikeRow?.modelPrice, strikeRow?.modelPrice) ?? null,
-      modelGreeksSource: pickFirst(ibkrStrikeRow?.modelGreeksSource, strikeRow?.modelGreeksSource) ?? null,
+      modelPrice: pickFirstNumber(ibkrStrikeRow?.modelPrice, strikeRow?.modelPrice),
+      modelGreeksTimestamp: normalizeIso(
+        pickFirst(ibkrStrikeRow?.modelGreeksTimestamp, strikeRow?.modelGreeksTimestamp)
+      ),
+      modelGreeksSource: pickFirstText(ibkrStrikeRow?.modelGreeksSource, strikeRow?.modelGreeksSource),
     },
     liquidity: {
       volume: volume ?? null,
       openInterest: openInterest ?? null,
-      optionVolumeTimestamp: pickFirst(ibkrPutRow?.optionVolumeTimestamp, strikeRow?.optionVolumeTimestamp) ?? null,
+      optionVolumeTimestamp:
+        normalizeIso(pickFirst(ibkrPutRow?.optionVolumeTimestamp, strikeRow?.optionVolumeTimestamp)) ?? null,
       openInterestTimestamp:
-        pickFirst(ibkrPutRow?.openInterestTimestamp, strikeRow?.openInterestTimestamp) ?? null,
+        normalizeIso(pickFirst(ibkrPutRow?.openInterestTimestamp, strikeRow?.openInterestTimestamp)) ?? null,
     },
     underlying: {
       underlyingPriceAtScan: spot ?? null,

@@ -54,6 +54,52 @@ function formatYesNo(value) {
   return "—";
 }
 
+function getOptionDataBadgeClass(badge) {
+  const label = String(badge ?? "");
+  if (label.includes("IBKR observé")) return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  if (label.includes("Yahoo fallback")) return "border-amber-500/40 bg-amber-500/10 text-amber-300";
+  if (label.includes("incomplètes")) return "border-orange-500/40 bg-orange-500/10 text-orange-300";
+  if (label.includes("Snapshot absent")) return "border-slate-600 bg-slate-800/50 text-slate-500";
+  return "border-slate-600 bg-slate-800/40 text-slate-400";
+}
+
+function OptionDataBadge({ label, title }) {
+  if (!label) return null;
+  return (
+    <span
+      title={title ?? label}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${getOptionDataBadgeClass(label)}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function OptionQuoteDiagnosticPanel({ profile }) {
+  const od = profile?.optionData ?? {};
+  const diag = {
+    hasObservedIbkrOptionData: profile?.hasObservedIbkrOptionData ?? false,
+    optionDataCompletenessPct: profile?.optionDataCompletenessPct ?? od?.avgOptionDataCompletenessPct ?? 0,
+    optionDataSourceSummary: profile?.optionDataSourceSummary ?? od?.optionDataSourceSummary ?? "absent",
+    optionSnapshotStorageStatus:
+      profile?.optionSnapshotStorageStatus ?? od?.optionSnapshotStorageStatus ?? "snapshot_absent",
+    recordsWithSnapshot: od?.recordsWithSnapshot ?? 0,
+    recordsWithIbkrObserved: od?.recordsWithIbkrObserved ?? 0,
+  };
+  return (
+    <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3 text-[11px] text-slate-400 space-y-1">
+      <div className="font-semibold text-slate-300">Données options observées (diagnostic)</div>
+      <div>IBKR observé : {formatYesNo(diag.hasObservedIbkrOptionData)}</div>
+      <div>Complétude moyenne : {diag.optionDataCompletenessPct}%</div>
+      <div>Source dominante : {diag.optionDataSourceSummary}</div>
+      <div>
+        Snapshots : {diag.recordsWithSnapshot} · IBKR : {diag.recordsWithIbkrObserved}
+      </div>
+      <div>Stockage : {diag.optionSnapshotStorageStatus === "snapshot_sqlite_present" ? "SQLite présent" : "absent"}</div>
+    </div>
+  );
+}
+
 function formatDteRange(minDte, maxDte) {
   const min = numberOrNull(minDte);
   const max = numberOrNull(maxDte);
@@ -6105,12 +6151,17 @@ export default function JournalPopPanel({ apiBase, active }) {
                 />
               </div>
 
+              {displayedOnePercentProfiles[0] ? (
+                <OptionQuoteDiagnosticPanel profile={displayedOnePercentProfiles[0]} />
+              ) : null}
+
               <DarkTable
                 title={`Shortlist profils ticker (max 20 par défaut) — ${displayedOnePercentProfiles.length}/${filteredOnePercentProfiles.length}`}
                 headers={[
                   "Ticker",
                   "Mode",
                   "n",
+                  "Options",
                   "Rend. CSP moy.",
                   "POP moy.",
                   "Win CSP",
@@ -6127,6 +6178,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <td className="px-3 py-2.5 font-semibold text-slate-200">{profile.ticker}</td>
                     <td className="px-3 py-2.5 text-slate-400">{profile.mode}</td>
                     <td className="px-3 py-2.5 tabular-nums">{profile?.csp?.recordsResolved ?? 0}</td>
+                    <td className="px-3 py-2.5">
+                      <OptionDataBadge
+                        label={profile?.optionDataBadge ?? "Snapshot absent"}
+                        title={`Source: ${profile?.optionDataSourceSummary ?? "—"} · Complétude: ${profile?.optionDataCompletenessPct ?? 0}%`}
+                      />
+                    </td>
                     <td className="px-3 py-2.5 text-sky-400">{formatPercent(profile?.csp?.avgYieldPct, 2)}</td>
                     <td className="px-3 py-2.5">{formatPercent(profile?.csp?.avgPopAnnounced)}</td>
                     <td className="px-3 py-2.5">{formatPercent(profile?.csp?.realWinRate)}</td>
@@ -6306,6 +6363,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                   headers={[
                     "Rang",
                     "Ticker",
+                    "Options",
                     "Statut",
                     "Score exp.",
                     "n",
@@ -6322,6 +6380,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
                       <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className="px-3 py-2.5">
+                        <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
+                      </td>
                       <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
                         {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
                         {row.sampleDisplayLabel ? (

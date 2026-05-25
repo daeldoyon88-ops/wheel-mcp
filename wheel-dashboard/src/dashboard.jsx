@@ -4925,13 +4925,21 @@ function buildAutoJournalStrikePayload(strikeRow) {
     bid: strikeRow.bid ?? null,
     ask: strikeRow.ask ?? null,
     mid: strikeRow.mid ?? null,
+    last: strikeRow.last ?? null,
     spread: strikeRow.spread ?? null,
     spreadPct: strikeRow.spreadPct ?? null,
     annualizedYield: strikeRow.annualizedYield ?? null,
+    impliedVolatility: strikeRow.impliedVolatility ?? null,
     popEstimate: strikeRow.popEstimate ?? null,
     popProfitEstimated: strikeRow.popProfitEstimated ?? null,
     openInterest: strikeRow.openInterest ?? null,
     volume: strikeRow.volume ?? null,
+    conId: strikeRow.conId ?? null,
+    localSymbol: strikeRow.localSymbol ?? null,
+    delta: strikeRow.delta ?? null,
+    gamma: strikeRow.gamma ?? null,
+    theta: strikeRow.theta ?? null,
+    vega: strikeRow.vega ?? null,
   };
   if (liquidity) compact.liquidity = liquidity;
   return compact;
@@ -5047,8 +5055,45 @@ function buildAutoJournalCandidatePayload(candidate) {
   }
 
   if (candidate.ibkrDirect) {
-    compact.ibkrDirect = {};
+    const ibkr = candidate.ibkrDirect;
+    const puts = Array.isArray(ibkr.putCandidates)
+      ? ibkr.putCandidates
+      : Array.isArray(ibkr.raw?.putCandidates)
+      ? ibkr.raw.putCandidates
+      : [];
+    const findPut = (strike) => {
+      const st = Number(strike);
+      if (!Number.isFinite(st)) return null;
+      const row = puts.find((p) => Number(p?.strike) === st);
+      if (!row || typeof row !== "object") return null;
+      return {
+        strike: row.strike ?? null,
+        bid: row.bid ?? null,
+        ask: row.ask ?? null,
+        mid: row.mid ?? null,
+        last: row.last ?? null,
+        spread: row.spread ?? null,
+        spreadPct: row.spreadPct ?? null,
+        primeUsed: row.primeUsed ?? null,
+        volume: row.volume ?? null,
+        openInterest: row.openInterest ?? null,
+        impliedVolatility: row.impliedVolatility ?? null,
+        conId: row.conId ?? null,
+        localSymbol: row.localSymbol ?? null,
+        delta: row.delta ?? null,
+      };
+    };
+    compact.ibkrDirect = {
+      underlyingPrice: ibkr.underlyingPrice ?? null,
+      scanCompletedAt: ibkr.scanCompletedAt ?? null,
+      marketDataTypeReceivedLabel: ibkr.marketDataTypeReceivedLabel ?? null,
+      expiration: ibkr.expiration ?? null,
+    };
     if (!compact.optionsSource && !compact.source) compact.optionsSource = "IBKR live";
+    const safeSt = compact.safeStrike?.strike;
+    const aggSt = compact.aggressiveStrike?.strike;
+    if (safeSt != null) compact.ibkrSafePutRow = findPut(safeSt);
+    if (aggSt != null) compact.ibkrAggressivePutRow = findPut(aggSt);
   }
 
   return compact;

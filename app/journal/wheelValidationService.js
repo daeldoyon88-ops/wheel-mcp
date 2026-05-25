@@ -1,4 +1,11 @@
 import { createWheelValidationStore } from "./wheelValidationStore.js";
+import {
+  buildOptionDataBadge,
+  buildOptionQuoteSnapshot,
+  enrichRecordWithOptionQuoteFields,
+  summarizeOptionDataForProfile,
+  summarizeOptionQuoteDiagnostics,
+} from "./optionQuoteSnapshot.js";
 
 function toNumberOrNull(value) {
   if (value == null) return null;
@@ -766,6 +773,12 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
       options_quality_score: null,
     },
     resolution: buildResolutionDefaults(),
+    optionQuoteSnapshot: buildOptionQuoteSnapshot({
+      candidate,
+      strikeMode,
+      scanTimestamp,
+      strikeRow,
+    }),
   };
 }
 
@@ -2275,6 +2288,7 @@ function buildOnePercentProfile({
     },
     assignment,
     wheel,
+    optionData: summarizeOptionDataForProfile(records),
     sortScore: 0,
   };
 }
@@ -2721,6 +2735,19 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
     lbStressLabel: profile?.lowerBoundStress?.lbStressLabel ?? null,
     primaryReason: profile?.verdictReasons?.[0] ?? profile?.primaryVerdict ?? null,
     verdictReasons: profile?.verdictReasons ?? [],
+    ...summarizeOptionQuoteDiagnosticsFromProfile(profile),
+  };
+}
+
+function summarizeOptionQuoteDiagnosticsFromProfile(profile) {
+  const summary = profile?.optionData ?? summarizeOptionDataForProfile([]);
+  return {
+    hasObservedIbkrOptionData: (summary?.recordsWithIbkrObserved ?? 0) > 0,
+    optionDataCompletenessPct: summary?.avgOptionDataCompletenessPct ?? 0,
+    optionDataMissingFields: [],
+    optionDataSourceSummary: summary?.optionDataSourceSummary ?? "absent",
+    optionSnapshotStorageStatus: summary?.optionSnapshotStorageStatus ?? "snapshot_absent",
+    optionDataBadge: buildOptionDataBadge(summary),
   };
 }
 
@@ -2961,7 +2988,9 @@ export function createWheelValidationService(options = {}) {
     const records = Array.isArray(journal?.records) ? journal.records : [];
     return {
       ...journal,
-      records: records.map((record) => enrichWithAssignmentDepthFields(record)),
+      records: records.map((record) =>
+        enrichRecordWithOptionQuoteFields(enrichWithAssignmentDepthFields(record))
+      ),
     };
   }
 

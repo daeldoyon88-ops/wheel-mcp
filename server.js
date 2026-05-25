@@ -2943,6 +2943,27 @@ app.get("/journal/wheel-validation/one-percent-wheel-profiles", async (req, res)
   }
 });
 
+app.get("/journal/wheel-validation/dynamic-top20-wheel", async (req, res) => {
+  try {
+    const asOf = req.query?.asOf ?? req.query?.today ?? undefined;
+    const theoreticalCyclesData = readTheoreticalCyclesSnapshot({ limit: 1000 });
+    const theoreticalCycles = Array.isArray(theoreticalCyclesData?.cycles) ? theoreticalCyclesData.cycles : [];
+    const result = await wheelValidationService.computeDynamicTop20WheelProfiles({
+      today: asOf,
+      theoreticalCycles,
+      minModeProfileN:
+        req.query?.minModeProfileN != null ? Number(req.query.minModeProfileN) : undefined,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("[dynamic-top20-wheel]", error);
+    res.status(500).json({
+      ok: false,
+      error: error?.message || "dynamic_top20_wheel_failed",
+    });
+  }
+});
+
 app.get("/journal/wheel-validation/v3-candidate-profiles", async (req, res) => {
   try {
     const { limit, ticker, mode, minExpirations, includeWeak, scope } = req.query;

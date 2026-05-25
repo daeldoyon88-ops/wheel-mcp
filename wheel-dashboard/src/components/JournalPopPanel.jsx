@@ -1928,6 +1928,26 @@ function getOnePercentVerdictTone(verdict) {
   return "text-slate-400";
 }
 
+function getDynamicTop20StatusTone(status) {
+  const v = String(status ?? "").toLowerCase();
+  if (v === "top20_experimental") return "text-emerald-400 font-semibold";
+  if (v === "near_entry") return "text-sky-400 font-semibold";
+  if (v === "watch_validate") return "text-sky-300";
+  if (v === "stressed") return "text-amber-400 font-semibold";
+  if (v === "exclude_high_yield") return "text-rose-400 font-semibold";
+  if (v === "insufficient_sample") return "text-slate-500";
+  return "text-slate-400";
+}
+
+function formatDynamicTop20Reason(row) {
+  const reasons = Array.isArray(row?.scoreReasons) ? row.scoreReasons : [];
+  if (reasons.length > 0) return reasons.slice(0, 3).join(" · ");
+  if (Array.isArray(row?.verdictReasons) && row.verdictReasons.length > 0) {
+    return row.verdictReasons.slice(0, 3).join(" · ");
+  }
+  return row?.primaryReason ?? "—";
+}
+
 // ── Win Quality V2A ─────────────────────────────────────────────────────────
 
 function getWinQuality(record) {
@@ -3024,6 +3044,14 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [onePercentAssignExploitableOnly, setOnePercentAssignExploitableOnly] = useState(false);
   const [onePercentTickerSearch, setOnePercentTickerSearch] = useState("");
   const [onePercentShowAll, setOnePercentShowAll] = useState(false);
+  const [dynamicTop20Payload, setDynamicTop20Payload] = useState(null);
+  const [dynamicTop20HideInsufficient, setDynamicTop20HideInsufficient] = useState(true);
+  const [dynamicTop20MinYield08, setDynamicTop20MinYield08] = useState(false);
+  const [dynamicTop20MinYield09, setDynamicTop20MinYield09] = useState(false);
+  const [dynamicTop20TopOnly, setDynamicTop20TopOnly] = useState(false);
+  const [dynamicTop20NearOnly, setDynamicTop20NearOnly] = useState(false);
+  const [dynamicTop20TickerSearch, setDynamicTop20TickerSearch] = useState("");
+  const [dynamicTop20ShowAllExcluded, setDynamicTop20ShowAllExcluded] = useState(false);
   const [theoreticalTickerSearch, setTheoreticalTickerSearch] = useState("");
   const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
@@ -3095,7 +3123,7 @@ export default function JournalPopPanel({ apiBase, active }) {
     setLoading(true);
     setError("");
     try {
-      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, onePercentProfilesResponse, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
+      const [journalResponse, cohortResponse, calibrationResponse, realPopCalibrationResponse, capitalResponse, modeComparisonResponse, theoreticalCyclesResponse, onePercentProfilesResponse, dynamicTop20Response, premiumStabilityResponse, tickerRankingResponse, normalizedObsResponse, safeAggComparisonResponse] = await Promise.all([
         fetch(`${apiBase}/journal/wheel-validation`),
         fetch(`${apiBase}/journal/wheel-validation/cohort-summary`),
         fetch(`${apiBase}/journal/wheel-validation/calibration-summary`),
@@ -3104,6 +3132,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/one-percent-wheel-profiles`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/dynamic-top20-wheel`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/premium-stability?limit=5000`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/ticker-ranking?limit=100`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/normalized-observations?limit=5000`).catch(() => null),
@@ -3120,6 +3149,9 @@ export default function JournalPopPanel({ apiBase, active }) {
       const theoreticalCyclesJson = theoreticalCyclesResponse ? await theoreticalCyclesResponse.json().catch(() => null) : null;
       const onePercentProfilesJson = onePercentProfilesResponse
         ? await onePercentProfilesResponse.json().catch(() => null)
+        : null;
+      const dynamicTop20Json = dynamicTop20Response
+        ? await dynamicTop20Response.json().catch(() => null)
         : null;
       const premiumStabilityPayload = premiumStabilityResponse ? await premiumStabilityResponse.json().catch(() => null) : null;
       const tickerRankingPayload = tickerRankingResponse ? await tickerRankingResponse.json().catch(() => null) : null;
@@ -3159,6 +3191,7 @@ export default function JournalPopPanel({ apiBase, active }) {
           : { summary: null, cycles: [], assignmentDepthSummary: null }
       );
       setOnePercentProfilesPayload(onePercentProfilesJson?.ok ? onePercentProfilesJson : null);
+      setDynamicTop20Payload(dynamicTop20Json?.ok ? dynamicTop20Json : null);
       setHasLoaded(true);
     } catch (err) {
       setError(String(err?.message || err || "journal_fetch_failed"));
@@ -3590,6 +3623,45 @@ export default function JournalPopPanel({ apiBase, active }) {
     const limit = onePercentShowAll ? filteredOnePercentProfiles.length : 20;
     return filteredOnePercentProfiles.slice(0, limit);
   }, [filteredOnePercentProfiles, onePercentShowAll]);
+
+  const applyDynamicTop20Filters = useCallback(
+    (rows) => {
+      const search = dynamicTop20TickerSearch.trim().toUpperCase();
+      return (Array.isArray(rows) ? rows : []).filter((row) => {
+        if (dynamicTop20HideInsufficient && row.dynamicTop20Status === "insufficient_sample") return false;
+        if (dynamicTop20MinYield09 && (row.avgCspYieldPct ?? 0) < 0.9) return false;
+        if (dynamicTop20MinYield08 && !dynamicTop20MinYield09 && (row.avgCspYieldPct ?? 0) < 0.8) return false;
+        if (search && !String(row.ticker ?? "").toUpperCase().includes(search)) return false;
+        return true;
+      });
+    },
+    [
+      dynamicTop20HideInsufficient,
+      dynamicTop20MinYield08,
+      dynamicTop20MinYield09,
+      dynamicTop20TickerSearch,
+    ],
+  );
+
+  const filteredDynamicTop20Main = useMemo(() => {
+    const source = dynamicTop20TopOnly
+      ? dynamicTop20Payload?.top20 ?? []
+      : dynamicTop20NearOnly
+      ? dynamicTop20Payload?.nearEntry ?? []
+      : dynamicTop20Payload?.top20 ?? [];
+    return applyDynamicTop20Filters(source).slice(0, 20);
+  }, [dynamicTop20Payload, dynamicTop20TopOnly, dynamicTop20NearOnly, applyDynamicTop20Filters]);
+
+  const filteredDynamicTop20Near = useMemo(() => {
+    if (dynamicTop20TopOnly) return [];
+    return applyDynamicTop20Filters(dynamicTop20Payload?.nearEntry ?? []).slice(0, 10);
+  }, [dynamicTop20Payload, dynamicTop20TopOnly, applyDynamicTop20Filters]);
+
+  const filteredDynamicTop20Excluded = useMemo(() => {
+    const rows = applyDynamicTop20Filters(dynamicTop20Payload?.excludedHighYield ?? []);
+    const limit = dynamicTop20ShowAllExcluded ? rows.length : 10;
+    return rows.slice(0, limit);
+  }, [dynamicTop20Payload, dynamicTop20ShowAllExcluded, applyDynamicTop20Filters]);
 
   const decisionWheelCcAttentionTickers = useMemo(() => {
     const rankings = Array.isArray(tickerRanking?.rankings) ? tickerRanking.rankings : [];
@@ -6099,6 +6171,249 @@ export default function JournalPopPanel({ apiBase, active }) {
               <p className="text-[10px] text-slate-600 leading-relaxed">
                 Ce module ne recommande pas un trade. Il compare des profils historiques et doit être lu avec la taille de
                 l&apos;échantillon. P/L Wheel et rendement Wheel : cycles fermés seulement. POP annoncé gelé au scan.
+              </p>
+            </div>
+          )}
+        </CollapsibleSection>
+      )}
+
+      {/* ── SECTION — TOP 20 DYNAMIQUE EXPÉRIMENTAL ───────────────────────────── */}
+      {hasLoaded && activePopTab === "dataAudit" && (
+        <CollapsibleSection
+          title="Top 20 dynamique — expérimental"
+          badge="Laboratoire"
+          subtitle="Classement de laboratoire pour construire un univers CSP/CC concentré. Ne constitue pas une recommandation de trade."
+          defaultOpen
+          summaryRight={
+            dynamicTop20Payload?.summary
+              ? `${dynamicTop20Payload.summary.top20Count ?? 0} Top 20 · ${dynamicTop20Payload.summary.nearEntryCount ?? 0} proches`
+              : "Classement expérimental"
+          }
+        >
+          {!dynamicTop20Payload?.top20 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Top 20 dynamique indisponible pour l&apos;instant.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <ProKpi label="Top 20 expérimental" value={dynamicTop20Payload.summary?.top20Count ?? 0} tone="good" />
+                <ProKpi label="Proches d'entrer" value={dynamicTop20Payload.summary?.nearEntryCount ?? 0} tone="info" />
+                <ProKpi label="À valider" value={dynamicTop20Payload.summary?.watchValidateCount ?? 0} tone="info" />
+                <ProKpi label="Stressés" value={dynamicTop20Payload.summary?.stressedCount ?? 0} tone="warn" />
+                <ProKpi
+                  label="À exclure malgré rendement"
+                  value={dynamicTop20Payload.summary?.excludedHighYieldCount ?? 0}
+                  tone="risk"
+                />
+                <ProKpi
+                  label="Échantillons insuffisants"
+                  value={dynamicTop20Payload.summary?.insufficientSampleCount ?? 0}
+                  tone="neutral"
+                />
+              </div>
+
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[11px] leading-relaxed text-amber-200/90">
+                Classement expérimental basé sur les profils Journal POP. IV, saisonnalité et contexte marché ne sont pas
+                encore intégrés au score.
+                <span className="mt-1 flex flex-wrap gap-2">
+                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
+                    IV non intégré
+                  </span>
+                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
+                    Saisonnalité non intégrée
+                  </span>
+                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
+                    Contexte marché non intégré
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20HideInsufficient}
+                    onChange={(e) => setDynamicTop20HideInsufficient(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Masquer échantillons insuffisants
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20MinYield08}
+                    onChange={(e) => {
+                      setDynamicTop20MinYield08(e.target.checked);
+                      if (e.target.checked) setDynamicTop20MinYield09(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Rendement &ge; 0,8 %
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20MinYield09}
+                    onChange={(e) => {
+                      setDynamicTop20MinYield09(e.target.checked);
+                      if (e.target.checked) setDynamicTop20MinYield08(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Rendement &ge; 0,9 %
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20TopOnly}
+                    onChange={(e) => {
+                      setDynamicTop20TopOnly(e.target.checked);
+                      if (e.target.checked) setDynamicTop20NearOnly(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Afficher seulement Top 20
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20NearOnly}
+                    onChange={(e) => {
+                      setDynamicTop20NearOnly(e.target.checked);
+                      if (e.target.checked) setDynamicTop20TopOnly(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Afficher proches d&apos;entrer
+                </label>
+                <input
+                  type="search"
+                  value={dynamicTop20TickerSearch}
+                  onChange={(e) => setDynamicTop20TickerSearch(e.target.value)}
+                  placeholder="Recherche ticker"
+                  className="ml-auto min-w-[140px] rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600"
+                />
+              </div>
+
+              {!dynamicTop20NearOnly && (
+                <DarkTable
+                  title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
+                  headers={[
+                    "Rang",
+                    "Ticker",
+                    "Statut",
+                    "Score exp.",
+                    "n",
+                    "Rend. CSP",
+                    "Win",
+                    "Assign.",
+                    "Assign. proche",
+                    "Assign. profonde",
+                    "Rend. Wheel",
+                    "LB",
+                    "Raison",
+                  ]}
+                  rows={filteredDynamicTop20Main.map((row) => (
+                    <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
+                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
+                        {row.avoidContext ? (
+                          <span className="block text-[10px] text-rose-400">À éviter / contexte</span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{row.n ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.nearAssignmentRate, 0)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.deepAssignmentRate, 0)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.avgWheelReturnPct, 2)}</td>
+                      <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
+                      <td
+                        className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
+                        title={formatDynamicTop20Reason(row)}
+                      >
+                        {formatDynamicTop20Reason(row)}
+                      </td>
+                    </tr>
+                  ))}
+                  empty="Aucun profil ne correspond aux filtres Top 20."
+                />
+              )}
+
+              {!dynamicTop20TopOnly && filteredDynamicTop20Near.length > 0 && (
+                <DarkTable
+                  title={`Proches d'entrer (rangs 21–30) — ${filteredDynamicTop20Near.length} profil(s)`}
+                  headers={["Rang", "Ticker", "Score exp.", "Rend. CSP", "Win", "Assign.", "Statut", "Raison"]}
+                  rows={filteredDynamicTop20Near.map((row) => (
+                    <tr key={`dyn-near-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
+                      <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
+                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
+                      </td>
+                      <td
+                        className="px-3 py-2.5 text-[10px] max-w-[200px] text-slate-500"
+                        title={formatDynamicTop20Reason(row)}
+                      >
+                        {formatDynamicTop20Reason(row)}
+                      </td>
+                    </tr>
+                  ))}
+                  empty="Aucun profil proche d'entrer."
+                />
+              )}
+
+              {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 0 && (
+                <>
+                  <DarkTable
+                    title={`À exclure malgré rendement — ${filteredDynamicTop20Excluded.length}/${dynamicTop20Payload.excludedHighYield?.length ?? 0}`}
+                    headers={["Ticker", "Rend. CSP", "Win", "Assign.", "LB", "Verdict", "Raison"]}
+                    rows={filteredDynamicTop20Excluded.map((row) => (
+                      <tr key={`dyn-excl-${row.ticker}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                        <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                        <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
+                        <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
+                        <td className={`px-3 py-2.5 text-[11px] ${getOnePercentVerdictTone(row.currentVerdict)}`}>
+                          {row.currentVerdict ?? "—"}
+                        </td>
+                        <td
+                          className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
+                          title={formatDynamicTop20Reason(row)}
+                        >
+                          {formatDynamicTop20Reason(row)}
+                        </td>
+                      </tr>
+                    ))}
+                    empty="Aucun profil à exclure."
+                  />
+                  {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 10 && (
+                    <button
+                      type="button"
+                      onClick={() => setDynamicTop20ShowAllExcluded((value) => !value)}
+                      className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+                    >
+                      {dynamicTop20ShowAllExcluded
+                        ? "Réduire à 10 profils"
+                        : `Afficher plus (${(dynamicTop20Payload.excludedHighYield?.length ?? 0) - 10} de plus)`}
+                    </button>
+                  )}
+                </>
+              )}
+
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Score expérimental de laboratoire — ne constitue pas un score final. Les profils n &lt; 30 restent
+                préliminaires. {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
               </p>
             </div>
           )}

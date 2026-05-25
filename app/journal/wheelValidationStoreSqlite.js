@@ -178,6 +178,8 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     iv_hv_edge_at_scan: diagnostics?.ivHvEdge === true ? 1 : diagnostics?.ivHvEdge === false ? 0 : null,
     option_quote_snapshot_json:
       record?.optionQuoteSnapshot != null ? JSON.stringify(record.optionQuoteSnapshot) : null,
+    technical_snapshot_json:
+      record?.technicalSnapshot != null ? JSON.stringify(record.technicalSnapshot) : null,
     rawJson: JSON.stringify(record ?? {}),
     createdAt: nowIso,
     updatedAt: nowIso,
@@ -407,6 +409,9 @@ export function createWheelValidationStoreSqlite(options = {}) {
     // Patch A — option quote snapshot minimal (per record, not full chain)
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN option_quote_snapshot_json TEXT`);
 
+    // Patch A2 — technical snapshot minimal (per record, calculated values only)
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN technical_snapshot_json TEXT`);
+
     // Phase POP V2-A — local backfill from rawJson (no network, only fills NULL rows)
     {
       const backfillRows = conn.prepare(
@@ -529,7 +534,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
         hv10_at_scan, hv20_at_scan, hv30_at_scan, atm_iv_at_scan,
         safe_strike_iv_at_scan, iv_hv_ratio_at_scan, iv_hv_edge_at_scan,
-        option_quote_snapshot_json,
+        option_quote_snapshot_json, technical_snapshot_json,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -560,7 +565,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
         @hv10_at_scan, @hv20_at_scan, @hv30_at_scan, @atm_iv_at_scan,
         @safe_strike_iv_at_scan, @iv_hv_ratio_at_scan, @iv_hv_edge_at_scan,
-        @option_quote_snapshot_json,
+        @option_quote_snapshot_json, @technical_snapshot_json,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO NOTHING
     `);
@@ -654,7 +659,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
         hv10_at_scan, hv20_at_scan, hv30_at_scan, atm_iv_at_scan,
         safe_strike_iv_at_scan, iv_hv_ratio_at_scan, iv_hv_edge_at_scan,
-        option_quote_snapshot_json,
+        option_quote_snapshot_json, technical_snapshot_json,
         rawJson, createdAt, updatedAt
       ) VALUES (
         @id, @scanSessionId, @scanTimestamp, @scanDate, @selectedExpiration, @expiration, @expirationCohort,
@@ -685,7 +690,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
         @hv10_at_scan, @hv20_at_scan, @hv30_at_scan, @atm_iv_at_scan,
         @safe_strike_iv_at_scan, @iv_hv_ratio_at_scan, @iv_hv_edge_at_scan,
-        @option_quote_snapshot_json,
+        @option_quote_snapshot_json, @technical_snapshot_json,
         @rawJson, @createdAt, @updatedAt
       ) ON CONFLICT(id) DO UPDATE SET
         scanSessionId=excluded.scanSessionId,
@@ -806,6 +811,7 @@ export function createWheelValidationStoreSqlite(options = {}) {
         iv_hv_ratio_at_scan=excluded.iv_hv_ratio_at_scan,
         iv_hv_edge_at_scan=excluded.iv_hv_edge_at_scan,
         option_quote_snapshot_json=excluded.option_quote_snapshot_json,
+        technical_snapshot_json=excluded.technical_snapshot_json,
         rawJson=excluded.rawJson,
         createdAt=COALESCE(wheel_validation_records.createdAt, excluded.createdAt),
         updatedAt=excluded.updatedAt

@@ -55,6 +55,32 @@ function formatRatioPercent(value, digits = 1) {
   return `${pct.toFixed(digits)}%`;
 }
 
+function formatSignedPercent(value, digits = 1) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(digits)} %`;
+}
+
+function formatRelativeVolume(value) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  return `${n.toFixed(2)}x`;
+}
+
+function formatMacdHist(value) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}`;
+}
+
+function formatRsi(value) {
+  const n = numberOrNull(value);
+  if (n == null) return "—";
+  return n.toFixed(1);
+}
+
 function formatCompactNumber(value, digits = 0) {
   const n = numberOrNull(value);
   if (n == null) return "—";
@@ -86,6 +112,27 @@ function OptionDataBadge({ label, title }) {
     <span
       title={title ?? label}
       className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${getOptionDataBadgeClass(label)}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function getTechnicalDataBadgeClass(label) {
+  const raw = String(label ?? "").trim().toLowerCase();
+  if (raw.includes("haussier")) return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  if (raw.includes("baissier")) return "border-rose-500/40 bg-rose-500/10 text-rose-300";
+  if (raw.includes("neutre")) return "border-slate-600 bg-slate-800/40 text-slate-300";
+  if (raw.includes("incomplet")) return "border-amber-500/40 bg-amber-500/10 text-amber-300";
+  return "border-slate-700 bg-slate-800/70 text-slate-400";
+}
+
+function TechnicalDataBadge({ label, title }) {
+  if (!label) return null;
+  return (
+    <span
+      title={title ?? label}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${getTechnicalDataBadgeClass(label)}`}
     >
       {label}
     </span>
@@ -175,6 +222,25 @@ function getOptionSnapshotDisplay(record) {
     conId: contract?.conId,
     localSymbol: contract?.localSymbol,
     missingFields: record?.optionDataMissingFields ?? snapshot?.missingFields ?? [],
+  };
+}
+
+function getTechnicalSnapshotDisplay(record) {
+  const snap = record?.technicalSnapshot ?? {};
+  return {
+    rsi14: snap.rsi14,
+    macdHistogram: snap.macdHistogram,
+    priceVsMa50Pct: snap.priceVsMa50Pct,
+    priceVsMa200Pct: snap.priceVsMa200Pct,
+    atrPct: snap.atrPct,
+    return5dPct: snap.return5dPct,
+    return20dPct: snap.return20dPct,
+    relativeVolume: snap.relativeVolume,
+    drawdownFrom20dHighPct: snap.drawdownFrom20dHighPct,
+    technicalTrendLabel: snap.technicalTrendLabel ?? record?.technicalTrendLabel ?? null,
+    missingFields: record?.technicalDataMissingFields ?? snap.missingFields ?? [],
+    completenessPct: record?.technicalDataCompletenessPct ?? 0,
+    badge: record?.technicalDataBadge ?? "Snapshot absent",
   };
 }
 
@@ -7446,6 +7512,18 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <th className="px-3 py-3 font-semibold">localSymbol</th>
                       <th className="px-3 py-3 font-semibold">Complétude</th>
                       <th className="px-3 py-3 font-semibold">Champs manquants</th>
+                      <th className="px-3 py-3 font-semibold">Tech</th>
+                      <th className="px-3 py-3 font-semibold">RSI14</th>
+                      <th className="px-3 py-3 font-semibold">MACD hist.</th>
+                      <th className="px-3 py-3 font-semibold">Prix vs MA50</th>
+                      <th className="px-3 py-3 font-semibold">Prix vs MA200</th>
+                      <th className="px-3 py-3 font-semibold">ATR %</th>
+                      <th className="px-3 py-3 font-semibold">Ret. 5j</th>
+                      <th className="px-3 py-3 font-semibold">Ret. 20j</th>
+                      <th className="px-3 py-3 font-semibold">Vol. relatif</th>
+                      <th className="px-3 py-3 font-semibold">Drawdown 20j</th>
+                      <th className="px-3 py-3 font-semibold">Complétude tech</th>
+                      <th className="px-3 py-3 font-semibold">Champs tech manquants</th>
                       <th className="px-3 py-3 font-semibold">Mode</th>
                       <th className="px-3 py-3 font-semibold">Strike</th>
                       <th className="px-3 py-3 font-semibold">Premium</th>
@@ -7463,7 +7541,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                     {unresolvedRecords.map((record) => {
                       const pl = numberOrNull(record?.resolution?.realizedPl);
                       const snap = getOptionSnapshotDisplay(record);
+                      const tech = getTechnicalSnapshotDisplay(record);
                       const missingFields = snap.missingFields ?? [];
+                      const techMissingFields = tech.missingFields ?? [];
                       return (
                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
                           <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
@@ -7501,6 +7581,25 @@ export default function JournalPopPanel({ apiBase, active }) {
                           <td className="px-3 py-2.5 tabular-nums">{record?.optionDataCompletenessPct ?? 0}%</td>
                           <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(missingFields) ? missingFields.join(", ") : ""}>
                             {formatMissingFields(missingFields)}
+                          </td>
+                          <td className="px-3 py-2.5 min-w-[120px]">
+                            <TechnicalDataBadge
+                              label={tech.badge}
+                              title={`Tendance: ${tech.technicalTrendLabel ?? "—"} · Complétude: ${tech.completenessPct}%`}
+                            />
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatRsi(tech.rsi14)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatMacdHist(tech.macdHistogram)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatSignedPercent(tech.priceVsMa50Pct)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatSignedPercent(tech.priceVsMa200Pct)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatSignedPercent(tech.atrPct)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatSignedPercent(tech.return5dPct)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatSignedPercent(tech.return20dPct)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatRelativeVolume(tech.relativeVolume)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatSignedPercent(tech.drawdownFrom20dHighPct)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{tech.completenessPct}%</td>
+                          <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(techMissingFields) ? techMissingFields.join(", ") : ""}>
+                            {formatMissingFields(techMissingFields)}
                           </td>
                           <td className="px-3 py-2.5">
                             <span className={record?.strikeMode === "safe" ? "font-semibold text-emerald-400" : record?.strikeMode === "aggressive" ? "font-semibold text-rose-400" : "text-slate-500"}>

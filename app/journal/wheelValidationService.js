@@ -9,6 +9,10 @@ import {
   summarizeOptionDataForProfile,
   summarizeOptionQuoteDiagnostics,
 } from "./optionQuoteSnapshot.js";
+import {
+  buildTechnicalSnapshot,
+  enrichRecordWithTechnicalSnapshotFields,
+} from "./technicalSnapshot.js";
 
 function toNumberOrNull(value) {
   if (value == null) return null;
@@ -1123,6 +1127,10 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
       strikeMode,
       scanTimestamp,
       strikeRow,
+    }),
+    technicalSnapshot: buildTechnicalSnapshot({
+      candidate,
+      scanTimestamp,
     }),
   };
 }
@@ -3337,7 +3345,9 @@ export function createWheelValidationService(options = {}) {
     return {
       ...journal,
       records: records.map((record) =>
-        enrichRecordWithOptionQuoteFields(enrichWithAssignmentDepthFields(record))
+        enrichRecordWithTechnicalSnapshotFields(
+          enrichRecordWithOptionQuoteFields(enrichWithAssignmentDepthFields(record))
+        )
       ),
     };
   }

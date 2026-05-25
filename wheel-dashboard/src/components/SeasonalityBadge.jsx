@@ -13,17 +13,17 @@ function cn(...classes) {
 const BIAS_CONFIG = {
   favorable: {
     label: "Sais ↑",
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    className: "bg-emerald-950/50 text-emerald-400 border-emerald-800",
     title: "Fenêtre saisonnière favorable (historique bullish sur cette période)",
   },
   unfavorable: {
     label: "Sais ↓",
-    className: "bg-rose-50 text-rose-700 border-rose-200",
+    className: "bg-rose-950/50 text-rose-400 border-rose-800",
     title: "Fenêtre saisonnière défavorable (risque strike élevé sur cette période)",
   },
   neutral: {
     label: "Sais →",
-    className: "bg-slate-50 text-slate-500 border-slate-200",
+    className: "bg-slate-800/60 text-slate-400 border-slate-600",
     title: "Fenêtre saisonnière neutre",
   },
 };

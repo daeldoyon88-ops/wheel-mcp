@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+﻿import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ShieldCheck,
@@ -121,9 +121,9 @@ const alerts = [
 ];
 
 const verdictStyle = {
-  conservative: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  balanced: "bg-amber-50 text-amber-700 border-amber-200",
-  aggressive: "bg-rose-50 text-rose-700 border-rose-200",
+  conservative: "bg-emerald-950/50 text-emerald-400 border-emerald-800",
+  balanced: "bg-amber-950/50 text-amber-400 border-amber-800",
+  aggressive: "bg-rose-950/50 text-rose-400 border-rose-800",
 };
 
 const riskToProgress = {
@@ -1534,7 +1534,7 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
 
 
 function Card({ className = "", children }) {
-  return <div className={cn("rounded-2xl border bg-white", className)}>{children}</div>;
+  return <div className={cn("rounded-2xl border border-slate-700/60 bg-slate-900", className)}>{children}</div>;
 }
 
 function CardHeader({ className = "", children }) {
@@ -1550,12 +1550,26 @@ function CardTitle({ className = "", children }) {
 }
 
 function Input({ className = "", ...props }) {
-  return <input {...props} className={cn("border bg-white px-3 py-2 outline-none", className)} />;
+  return (
+    <input
+      {...props}
+      className={cn(
+        "rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 outline-none placeholder:text-slate-500 focus:border-slate-500",
+        className
+      )}
+    />
+  );
 }
 
 function Select({ className = "", children, ...props }) {
   return (
-    <select {...props} className={cn("border bg-white px-3 py-2 outline-none", className)}>
+    <select
+      {...props}
+      className={cn(
+        "rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 outline-none focus:border-slate-500",
+        className
+      )}
+    >
       {children}
     </select>
   );
@@ -1571,8 +1585,8 @@ function Badge({ className = "", children }) {
 function Button({ className = "", variant = "default", size = "default", children, ...props }) {
   const variantClass =
     variant === "outline"
-      ? "border border-slate-300 bg-white text-slate-700"
-      : "border border-slate-900 bg-slate-900 text-white";
+      ? "border border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700"
+      : "border border-sky-700 bg-sky-900 text-sky-100 hover:bg-sky-800";
   const sizeClass = size === "icon" ? "h-9 w-9 justify-center p-0" : "px-4 py-2";
 
   return (
@@ -1592,9 +1606,9 @@ function Button({ className = "", variant = "default", size = "default", childre
 
 function Progress({ value }) {
   return (
-    <div className="h-2 w-full rounded-full bg-slate-200">
+    <div className="h-2 w-full rounded-full bg-slate-700">
       <div
-        className="h-2 rounded-full bg-slate-900"
+        className="h-2 rounded-full bg-sky-500"
         style={{ width: `${Math.max(0, Math.min(100, value || 0))}%` }}
       />
     </div>
@@ -1605,16 +1619,16 @@ function StatCard({ item }) {
   const Icon = item.icon;
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-slate-700/60 shadow-sm">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">{item.title}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{item.value}</p>
-            <p className="mt-1 text-sm text-slate-500">{item.sub}</p>
+            <p className="text-sm text-slate-400">{item.title}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-100">{item.value}</p>
+            <p className="mt-1 text-sm text-slate-400">{item.sub}</p>
           </div>
-          <div className="rounded-2xl bg-slate-100 p-3">
-            <Icon className="h-5 w-5 text-slate-700" />
+          <div className="rounded-2xl bg-slate-800 p-3">
+            <Icon className="h-5 w-5 text-slate-300" />
           </div>
         </div>
       </CardContent>
@@ -1631,22 +1645,22 @@ function AlertPanel() {
           className={cn(
             "shadow-sm",
             alert.type === "earnings"
-              ? "border-rose-200 bg-rose-50/70"
-              : "border-emerald-200 bg-emerald-50/70"
+              ? "border-rose-800 bg-rose-950/40"
+              : "border-emerald-800 bg-emerald-950/40"
           )}
         >
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-xl bg-white/80 p-2">
+              <div className="mt-0.5 rounded-xl bg-slate-800/80 p-2">
                 {alert.type === "earnings" ? (
-                  <AlertTriangle className="h-4 w-4 text-rose-600" />
+                  <AlertTriangle className="h-4 w-4 text-rose-400" />
                 ) : (
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">{alert.title}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-700">{alert.body}</p>
+                <p className="text-sm font-semibold text-slate-100">{alert.title}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-300">{alert.body}</p>
               </div>
             </div>
           </CardContent>
@@ -1659,16 +1673,16 @@ function AlertPanel() {
 function Metric({ label, value, strong = false, tone = "default" }) {
   const toneClass =
     tone === "good"
-      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+      ? "bg-emerald-950/40 border-emerald-800 text-emerald-300"
       : tone === "warn"
-      ? "bg-amber-50 border-amber-200 text-amber-800"
+      ? "bg-amber-950/40 border-amber-800 text-amber-300"
       : tone === "bad"
-      ? "bg-rose-50 border-rose-200 text-rose-800"
-      : "bg-white border-slate-200 text-slate-700";
+      ? "bg-rose-950/40 border-rose-800 text-rose-300"
+      : "bg-slate-800/50 border-slate-700 text-slate-200";
 
   return (
     <div className={cn("rounded-xl border p-3", toneClass)}>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
       <p className={cn("mt-1 text-sm", strong && "font-semibold")}>{value}</p>
     </div>
   );
@@ -1750,8 +1764,8 @@ function FaceplateStrikeColumn({
     ? "border-amber-500 ring-2 ring-amber-300/55 shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
     : "border-emerald-500 ring-2 ring-emerald-300/55 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]";
   const selectionBadgeClass = selectedGrade === "WATCH"
-    ? "border border-amber-300 bg-amber-50 text-amber-900"
-    : "border border-emerald-300 bg-emerald-50 text-emerald-800";
+    ? "border border-amber-700 bg-amber-950/40 text-amber-300"
+    : "border border-emerald-300 bg-emerald-950/40 text-emerald-300";
   const titleText = tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)";
   const subtitleText = tone === "safe" ? "safe IBKR live" : "agressif IBKR live";
   const metricRows = [
@@ -2609,7 +2623,7 @@ function StrikeCard({
     ? selectedGrade === "WATCH"
       ? "border-amber-500 ring-2 ring-amber-300/60 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]"
       : "border-emerald-500 ring-2 ring-emerald-300/60 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]"
-    : "border-slate-200";
+    : "border-slate-700";
   const diagGrade =
     legKey === "safe" ? recommendationDiagnostics?.safeGrade : recommendationDiagnostics?.aggressiveGrade;
   const diagYield =
@@ -2625,10 +2639,10 @@ function StrikeCard({
   const diagPop = legKey === "safe" ? mainPop : recommendationDiagnostics?.aggressivePop;
 
   return (
-    <div className={cn("rounded-2xl border bg-white p-4 shadow-sm", selectedBorder, className)}>
+    <div className={cn("rounded-2xl border bg-slate-900 p-4 shadow-sm", selectedBorder, className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">{title}</p>
+          <p className="text-sm font-semibold text-slate-100">{title}</p>
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -2636,21 +2650,21 @@ function StrikeCard({
             <Badge className={cn(
               "rounded-full text-xs",
               selectedGrade === "WATCH"
-                ? "border border-amber-300 bg-amber-50 text-amber-800"
-                : "border border-emerald-300 bg-emerald-50 text-emerald-800"
+                ? "border border-amber-700 bg-amber-950/40 text-amber-300"
+                : "border border-emerald-300 bg-emerald-950/40 text-emerald-300"
             )}>
               Sélectionné{selectedGrade ? ` [${selectedGrade}]` : ""}
             </Badge>
           )}
-          <Badge className="rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
+          <Badge className="rounded-full border border-indigo-800 bg-indigo-950/40 text-indigo-700">
             {label}
           </Badge>
           <Badge
             className={cn(
               "rounded-full",
               objectiveResolved
-                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border border-rose-200 bg-rose-50 text-rose-700"
+                ? "border border-emerald-800 bg-emerald-950/40 text-emerald-400"
+                : "border border-rose-800 bg-rose-950/40 text-rose-400"
             )}
           >
             {!hasPremiumNumber
@@ -2741,8 +2755,8 @@ function StrikeCard({
         />
       </div>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600">
-        <span className="font-semibold text-slate-700">Diag reco</span>
+      <div className="mt-4 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-[11px] leading-5 text-slate-400">
+        <span className="font-semibold text-slate-300">Diag reco</span>
         {` • grade ${diagGrade ?? "—"}`}
         {` • yld ${Number.isFinite(Number(diagYield)) ? `${Number(diagYield).toFixed(2)}%` : "—"}`}
         {` • spread ${Number.isFinite(Number(diagSpread)) ? `${Number(diagSpread).toFixed(1)}%` : "—"}`}
@@ -2769,23 +2783,23 @@ function StrikeOpportunities({ item }) {
     Number(item.safeStrike.strike) === Number(item.aggressiveStrike.strike);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+    <div className="rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-50 to-white p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-semibold text-slate-900">Opportunités sous la borne basse attendue</p>
-          <p className="mt-1 text-sm text-slate-600">
-            Spot actuel <span className="font-medium text-slate-900">${item.price.toFixed(2)}</span> · borne basse attendue{" "}
-            <span className="font-medium text-rose-700">${item.expectedMoveLow.toFixed(2)}</span> · borne haute attendue{" "}
-            <span className="font-medium text-emerald-700">${item.expectedMoveHigh.toFixed(2)}</span>
+          <p className="text-sm font-semibold text-slate-100">Opportunités sous la borne basse attendue</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Spot actuel <span className="font-medium text-slate-100">${item.price.toFixed(2)}</span> · borne basse attendue{" "}
+            <span className="font-medium text-rose-400">${item.expectedMoveLow.toFixed(2)}</span> · borne haute attendue{" "}
+            <span className="font-medium text-emerald-400">${item.expectedMoveHigh.toFixed(2)}</span>
           </p>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-slate-400">
             Prime minimale cible safe :{" "}
-            <span className="font-semibold text-slate-900">${Number(item.minPremium || 0).toFixed(2)}</span>
+            <span className="font-semibold text-slate-100">${Number(item.minPremium || 0).toFixed(2)}</span>
             {" "}· semaines cible :{" "}
-            <span className="font-semibold text-slate-900">{item.targetWeeks ?? 1}</span>
+            <span className="font-semibold text-slate-100">{item.targetWeeks ?? 1}</span>
           </p>
           {item.earningsMode && (
-            <p className="mt-2 text-sm text-violet-700">
+            <p className="mt-2 text-sm text-violet-400">
               Mode earnings actif : mouvement attendu normal{" "}
               <span className="font-semibold">{item.expectedMovePct.toFixed(2)}%</span> ×{" "}
               {item.expectedMoveMultiplier || 2} ={" "}
@@ -2794,13 +2808,13 @@ function StrikeOpportunities({ item }) {
           )}
         </div>
 
-        <Badge className="rounded-full border border-slate-300 bg-white text-slate-700">
+        <Badge className="rounded-full border border-slate-600 bg-slate-900 text-slate-300">
           objectif 0.5% / semaine sur spot
         </Badge>
       </div>
 
       {safeEqualsAggressive && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+        <div className="mt-3 rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-sm font-semibold text-amber-300">
           Safe = agressif : même strike retenu
         </div>
       )}
@@ -2874,7 +2888,7 @@ function StrikeOpportunities({ item }) {
           )}
         </div>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
           Aucun strike local à afficher.
         </div>
       )}
@@ -3295,7 +3309,7 @@ function SupportResistanceV4CompactPanel({ data, variant = "dark", className = "
     <div
       className={cn(
         isLight
-          ? "rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800"
+          ? "rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-200"
           : "rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]",
         className
       )}
@@ -3303,31 +3317,31 @@ function SupportResistanceV4CompactPanel({ data, variant = "dark", className = "
       <p className={isLight ? "text-xs font-semibold uppercase tracking-wide text-slate-500" : "text-xs font-semibold uppercase tracking-wide text-slate-400"}>
         Support/RÃ©sistance V4 â€” diagnostic
       </p>
-      <div className={isLight ? "mt-2 rounded-xl border border-slate-200 bg-white px-3 py-3" : "mt-2 rounded-[6px] border border-[#132536] bg-[#020811]/70 px-3 py-3"}>
+      <div className={isLight ? "mt-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-3" : "mt-2 rounded-[6px] border border-[#132536] bg-[#020811]/70 px-3 py-3"}>
         {!data || typeof data !== "object" ? (
-          <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+          <p className={isLight ? "text-sm font-semibold text-slate-100" : "text-sm font-semibold text-slate-100"}>
             V4 : indisponible
           </p>
         ) : (
           <>
-            <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+            <p className={isLight ? "text-sm font-semibold text-slate-100" : "text-sm font-semibold text-slate-100"}>
               {protectionLine}
             </p>
-            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+            <p className={isLight ? "mt-1 leading-5 text-slate-400" : "mt-1 leading-5 text-slate-300"}>
               RÃ©sumÃ© : {summaryLine}
             </p>
-            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+            <p className={isLight ? "mt-1 leading-5 text-slate-400" : "mt-1 leading-5 text-slate-300"}>
               Support utile : {usefulSupportLine}
             </p>
-            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+            <p className={isLight ? "mt-1 leading-5 text-slate-400" : "mt-1 leading-5 text-slate-300"}>
               RÃ©sistance proche : {nearbyResistanceLine}
             </p>
           </>
         )}
       </div>
       {data && typeof data === "object" ? (
-        <details className={isLight ? "mt-3 rounded-xl border border-slate-200 bg-white p-3" : "mt-3 rounded-[6px] border border-[#132536] bg-[#020811]/60 p-3"}>
-          <summary className={isLight ? "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-900 after:ml-auto after:text-lg after:leading-none after:text-slate-500 after:content-['â€º'] [&::-webkit-details-marker]:hidden" : "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-400 after:content-['â€º'] [&::-webkit-details-marker]:hidden"}>
+        <details className={isLight ? "mt-3 rounded-xl border border-slate-700 bg-slate-900 p-3" : "mt-3 rounded-[6px] border border-[#132536] bg-[#020811]/60 p-3"}>
+          <summary className={isLight ? "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-500 after:content-['â€º'] [&::-webkit-details-marker]:hidden" : "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-400 after:content-['â€º'] [&::-webkit-details-marker]:hidden"}>
             Voir dÃ©tails V4
           </summary>
           <div className="mt-3">
@@ -3374,7 +3388,7 @@ function SupportResistanceV4CompactPanelClean({ data, variant = "dark", classNam
     <div
       className={cn(
         isLight
-          ? "rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800"
+          ? "rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-200"
           : "rounded-[7px] border border-[#172637] bg-[#06101a]/95 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_0_20px_rgba(0,170,255,0.025)]",
         className
       )}
@@ -3382,31 +3396,31 @@ function SupportResistanceV4CompactPanelClean({ data, variant = "dark", classNam
       <p className={isLight ? "text-xs font-semibold uppercase tracking-wide text-slate-500" : "text-xs font-semibold uppercase tracking-wide text-slate-400"}>
         Support/Résistance V4 — diagnostic
       </p>
-      <div className={isLight ? "mt-2 rounded-xl border border-slate-200 bg-white px-3 py-3" : "mt-2 rounded-[6px] border border-[#132536] bg-[#020811]/70 px-3 py-3"}>
+      <div className={isLight ? "mt-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-3" : "mt-2 rounded-[6px] border border-[#132536] bg-[#020811]/70 px-3 py-3"}>
         {!data || typeof data !== "object" ? (
-          <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+          <p className={isLight ? "text-sm font-semibold text-slate-100" : "text-sm font-semibold text-slate-100"}>
             V4 : indisponible
           </p>
         ) : (
           <>
-            <p className={isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-slate-100"}>
+            <p className={isLight ? "text-sm font-semibold text-slate-100" : "text-sm font-semibold text-slate-100"}>
               {protectionLine}
             </p>
-            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+            <p className={isLight ? "mt-1 leading-5 text-slate-400" : "mt-1 leading-5 text-slate-300"}>
               Résumé : {summaryLine}
             </p>
-            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+            <p className={isLight ? "mt-1 leading-5 text-slate-400" : "mt-1 leading-5 text-slate-300"}>
               Support utile : {usefulSupportLine}
             </p>
-            <p className={isLight ? "mt-1 leading-5 text-slate-600" : "mt-1 leading-5 text-slate-300"}>
+            <p className={isLight ? "mt-1 leading-5 text-slate-400" : "mt-1 leading-5 text-slate-300"}>
               Résistance proche : {nearbyResistanceLine}
             </p>
           </>
         )}
       </div>
       {data && typeof data === "object" ? (
-        <details className={isLight ? "mt-3 rounded-xl border border-slate-200 bg-white p-3" : "mt-3 rounded-[6px] border border-[#132536] bg-[#020811]/60 p-3"}>
-          <summary className={isLight ? "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-900 after:ml-auto after:text-lg after:leading-none after:text-slate-500 after:content-['>'] [&::-webkit-details-marker]:hidden" : "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-400 after:content-['>'] [&::-webkit-details-marker]:hidden"}>
+        <details className={isLight ? "mt-3 rounded-xl border border-slate-700 bg-slate-900 p-3" : "mt-3 rounded-[6px] border border-[#132536] bg-[#020811]/60 p-3"}>
+          <summary className={isLight ? "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-500 after:content-['>'] [&::-webkit-details-marker]:hidden" : "flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-slate-100 after:ml-auto after:text-lg after:leading-none after:text-slate-400 after:content-['>'] [&::-webkit-details-marker]:hidden"}>
             Voir détails V4
           </summary>
           <div className="mt-3">
@@ -3443,13 +3457,13 @@ function SupportResistanceV4InlineLine({ data, className = "" }) {
         <span className="font-semibold text-slate-300">V4</span>
         {statusLabel && (
           <>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-400">·</span>
             <span>{statusLabel}</span>
           </>
         )}
         {supportLabel && (
           <>
-            <span className="text-slate-600">·</span>
+            <span className="text-slate-400">·</span>
             <span>support {supportLabel}</span>
           </>
         )}
@@ -3524,16 +3538,16 @@ function buildIbkrRetainedViewModel(item) {
 
 function IbkrMiniStrikeDetails({ title, strike }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
+    <div className="rounded-xl border border-slate-700 bg-slate-800/80 p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-900">
+      <p className="mt-1 text-sm font-semibold text-slate-100">
         Strike {formatStrikeOrDash(strike?.strike)}
       </p>
-      <p className="mt-2 text-xs leading-5 text-slate-600">
+      <p className="mt-2 text-xs leading-5 text-slate-400">
         Bid {formatMoneyOrDash(strike?.bid)} / Ask {formatMoneyOrDash(strike?.ask)} / Mid{" "}
         {formatMoneyOrDash(strike?.mid)}
       </p>
-      <p className="text-xs leading-5 text-slate-600">
+      <p className="text-xs leading-5 text-slate-400">
         Spread {formatMoneyOrDash(strike?.spread)} / {formatIbkrPercent(strike?.spreadPct)} · Prime{" "}
         {formatMoneyOrDash(strike?.primeUsed)}
       </p>
@@ -3549,19 +3563,19 @@ function IbkrMiniStrikeDetailsSelected({
   selectedMode = null,
 }) {
   const selectedBorder = !isSelected
-    ? "border-slate-200"
+    ? "border-slate-700"
     : selectedGrade === "WATCH"
     ? "border-amber-500 ring-2 ring-amber-300/55 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]"
     : "border-emerald-500 ring-2 ring-emerald-300/55 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]";
   const selectedBadgeClass = selectedGrade === "WATCH"
-    ? "border border-amber-300 bg-amber-50 text-amber-900"
-    : "border border-emerald-300 bg-emerald-50 text-emerald-800";
+    ? "border border-amber-700 bg-amber-950/40 text-amber-300"
+    : "border border-emerald-300 bg-emerald-950/40 text-emerald-300";
   return (
-    <div className={cn("rounded-xl border bg-white/80 p-3", selectedBorder)}>
+    <div className={cn("rounded-xl border bg-slate-800/80 p-3", selectedBorder)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">
+          <p className="mt-1 text-sm font-semibold text-slate-100">
             Strike {formatStrikeOrDash(strike?.strike)}
           </p>
         </div>
@@ -3571,11 +3585,11 @@ function IbkrMiniStrikeDetailsSelected({
           </Badge>
         )}
       </div>
-      <p className="mt-2 text-xs leading-5 text-slate-600">
+      <p className="mt-2 text-xs leading-5 text-slate-400">
         Bid {formatMoneyOrDash(strike?.bid)} / Ask {formatMoneyOrDash(strike?.ask)} / Mid{" "}
         {formatMoneyOrDash(strike?.mid)}
       </p>
-      <p className="text-xs leading-5 text-slate-600">
+      <p className="text-xs leading-5 text-slate-400">
         Spread {formatMoneyOrDash(strike?.spread)} / {formatIbkrPercent(strike?.spreadPct)} · Prime{" "}
         {formatMoneyOrDash(strike?.primeUsed)}
       </p>
@@ -4124,17 +4138,17 @@ function MergedCandidateCard({ item }) {
     }).earningsWarning;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
+            <Badge className="rounded-full border border-slate-600 bg-slate-800/50 text-slate-300">
               {item.symbol}
             </Badge>
             <Badge className="rounded-full border border-sky-200 bg-sky-50 text-sky-700">
               Technique : {techniqueBadgeLabel(item)}
             </Badge>
-            <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
+            <Badge className="rounded-full border border-emerald-800 bg-emerald-950/40 text-emerald-400">
               Options : {item.optionsSource}
             </Badge>
             {Number.isFinite(Number(item.eliteScore)) && (
@@ -4145,14 +4159,14 @@ function MergedCandidateCard({ item }) {
           </div>
 
           <div>
-            <h3 className="text-xl font-semibold tracking-tight text-slate-900">{item.symbol}</h3>
-            <p className="mt-1 text-sm text-slate-600">
+            <h3 className="text-xl font-semibold tracking-tight text-slate-100">{item.symbol}</h3>
+            <p className="mt-1 text-sm text-slate-400">
               Yahoo pour le contexte technique (si disponible) · IBKR pour les options live.
             </p>
             {earningsDisplay ? (
-              <p className="mt-1 text-sm text-amber-700">{earningsDisplay}</p>
+              <p className="mt-1 text-sm text-amber-400">{earningsDisplay}</p>
             ) : item.earningsDate || item.nextEarningsDate ? (
-              <p className="mt-1 text-sm text-violet-700">
+              <p className="mt-1 text-sm text-violet-400">
                 Earnings : {formatShortDate(item.nextEarningsDate || item.earningsDate) || "—"}
               </p>
             ) : null}
@@ -4172,7 +4186,7 @@ function MergedCandidateCard({ item }) {
           </div>
 
           {item.qualityReasons.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-slate-300">
               Raisons : {item.qualityReasons.join(" · ")}
             </div>
           )}
@@ -4200,8 +4214,8 @@ function MergedCandidateCard({ item }) {
               className={cn(
                 "rounded-xl border px-3 py-2 text-sm font-semibold",
                 spreadPct > 0.5
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
+                  ? "border-rose-800 bg-rose-950/40 text-rose-400"
+                  : "border-amber-800 bg-amber-950/40 text-amber-300"
               )}
             >
               {spreadWarning}
@@ -4215,9 +4229,9 @@ function MergedCandidateCard({ item }) {
 
 function MergedShortlistSection({ candidates }) {
   return (
-    <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
+    <Card className="mb-6 rounded-[28px] border-slate-700 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl text-slate-900">
+        <CardTitle className="text-xl text-slate-100">
           Shortlist fusionnée — Yahoo technique + IBKR options live
         </CardTitle>
         <p className="mt-1 text-sm text-slate-500">
@@ -4228,7 +4242,7 @@ function MergedShortlistSection({ candidates }) {
         {candidates.length > 0 ? (
           candidates.map((item) => <MergedCandidateCard key={`merged-${item.symbol}`} item={item} />)
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-800/50 p-8 text-center text-sm text-slate-500">
             Lance IBKR Direct Scan pour afficher la shortlist fusionnée.
           </div>
         )}
@@ -4290,7 +4304,7 @@ function IbkrBatchCardDetails({ item, row }) {
           )}
 
           {hasWideIbkrSpread && (
-            <p className="rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900">
+            <p className="rounded-xl border border-amber-700 bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-300">
               Spread IBKR très large — prudence
             </p>
           )}
@@ -4506,7 +4520,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   {/* Ligne méta : type · secteur */}
                   <p className="text-[11px] leading-tight text-slate-500 mt-0.5 truncate">
                     {tickerMeta.type && <span className="text-slate-400">{tickerMeta.type}</span>}
-                    {tickerMeta.type && tickerMeta.sector && <span className="mx-1 text-slate-600">·</span>}
+                    {tickerMeta.type && tickerMeta.sector && <span className="mx-1 text-slate-400">·</span>}
                     {tickerMeta.sector && <span>{tickerMeta.sector}</span>}
                     {!tickerMeta.type && !tickerMeta.sector && (
                       <span className="italic">secteur non renseigné</span>
@@ -4530,16 +4544,16 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                     {item.verdict}
                   </Badge>
                   {item.earningsMode && (
-                    <Badge className="rounded-[4px] border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs text-violet-700">
+                    <Badge className="rounded-[4px] border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs text-violet-400">
                       mode earnings x{item.expectedMoveMultiplier || 2}
                     </Badge>
                   )}
                   {item.ok && !item.ibkrDevObjectiveBlocked ? (
-                    <Badge className="rounded-[4px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                    <Badge className="rounded-[4px] border border-emerald-800 bg-emerald-950/40 px-2 py-0.5 text-xs text-emerald-400">
                       objectif validé
                     </Badge>
                   ) : (
-                    <Badge className="rounded-[4px] border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
+                    <Badge className="rounded-[4px] border border-slate-700 bg-slate-800/50 px-2 py-0.5 text-xs text-slate-400">
                       à surveiller
                     </Badge>
                   )}
@@ -4549,7 +4563,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                     </Badge>
                   )}
                   {item.optionsSource === "IBKR live" && (
-                    <Badge className="rounded-[4px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                    <Badge className="rounded-[4px] border border-emerald-800 bg-emerald-950/40 px-2 py-0.5 text-xs text-emerald-400">
                       {formatIbkrOptionsProvenanceLabel(item.dataProvenance)}
                     </Badge>
                   )}
@@ -4629,17 +4643,17 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
               {(item.ibkrDirect?.devScanEnabled || (item.indicativeShortlistSession && !item.ibkrDirect?.devScanEnabled) || item.ibkrDevIncompleteSurface) && (
                 <div className="flex justify-center gap-1">
                   {item.ibkrDirect?.devScanEnabled && (
-                    <Badge className="rounded-[4px] border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs text-amber-950">
+                    <Badge className="rounded-[4px] border border-amber-400 bg-amber-950/40 px-2 py-0.5 text-xs text-amber-950">
                       DEV TEST — données hors marché / non tradables
                     </Badge>
                   )}
                   {item.indicativeShortlistSession && !item.ibkrDirect?.devScanEnabled && (
-                    <Badge className="rounded-[4px] border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs text-amber-950">
+                    <Badge className="rounded-[4px] border border-amber-400 bg-amber-950/40 px-2 py-0.5 text-xs text-amber-950">
                       DEV TEST — marche ferme / donnees indicatives / non tradables
                     </Badge>
                   )}
                   {item.ibkrDevIncompleteSurface && (
-                    <Badge className="rounded-[4px] border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs text-amber-950">
+                    <Badge className="rounded-[4px] border border-amber-700 bg-amber-100 px-2 py-0.5 text-xs text-amber-950">
                       Données IBKR incomplètes — affichage DEV seulement
                     </Badge>
                   )}
@@ -4818,7 +4832,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                         </div>
                       )}
                     {rsiHigh && (
-                      <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 font-semibold text-amber-300">
+                      <div className="rounded-xl border border-amber-400/30 bg-amber-950/400/10 px-3 py-2 font-semibold text-amber-300">
                         RSI élevé : surachat court terme
                       </div>
                     )}
@@ -5475,7 +5489,7 @@ function classifySpreadPctPercent(raw) {
     return {
       label: "spread inconnu",
       reason: "spread indisponible",
-      badgeClass: "border-slate-200 bg-slate-50 text-slate-600",
+      badgeClass: "border-slate-700 bg-slate-800/50 text-slate-400",
       textClass: "text-slate-500",
       metricTone: "default",
     };
@@ -5484,8 +5498,8 @@ function classifySpreadPctPercent(raw) {
     return {
       label: "liquide",
       reason: "spread faible",
-      badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
-      textClass: "text-emerald-700",
+      badgeClass: "border-emerald-800 bg-emerald-950/40 text-emerald-400",
+      textClass: "text-emerald-400",
       metricTone: "good",
     };
   }
@@ -5502,26 +5516,26 @@ function classifySpreadPctPercent(raw) {
     return {
       label: "spread limite",
       reason: "spread limite",
-      badgeClass: "border-amber-300 bg-amber-50 text-amber-900",
-      textClass: "text-amber-900",
+      badgeClass: "border-amber-700 bg-amber-950/40 text-amber-300",
+      textClass: "text-amber-300",
       metricTone: "warn",
     };
   }
   return {
     label: "non actionnable",
     reason: "spread trop large",
-    badgeClass: "border-rose-200 bg-rose-50 text-rose-700",
-    textClass: "text-rose-700",
+    badgeClass: "border-rose-800 bg-rose-950/40 text-rose-400",
+    textClass: "text-rose-400",
     metricTone: "bad",
   };
 }
 
 function classifyEliteBadge(eliteBadge) {
   const badge = String(eliteBadge || "");
-  if (badge === "Elite") return "border-emerald-300 bg-emerald-50 text-emerald-800";
+  if (badge === "Elite") return "border-emerald-300 bg-emerald-950/40 text-emerald-300";
   if (badge === "Strong") return "border-cyan-300 bg-cyan-50 text-cyan-800";
-  if (badge === "Moderate") return "border-amber-300 bg-amber-50 text-amber-900";
-  return "border-rose-300 bg-rose-50 text-rose-800";
+  if (badge === "Moderate") return "border-amber-700 bg-amber-950/40 text-amber-300";
+  return "border-rose-300 bg-rose-950/40 text-rose-800";
 }
 
 function hasEarningsBeforeExpirationUi(item) {
@@ -5694,28 +5708,28 @@ function sortByLiveActionability(a, b) {
 
 function getIbkrActionabilityStatus(item) {
   if (!item || typeof item !== "object") {
-    return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
+    return { label: "À surveiller", tone: "warn", className: "border-amber-800 bg-amber-950/40 text-amber-300" };
   }
   const { finalDisplayMode: mode, finalDisplayGrade: grade } = getFinalDisplayRecommendation(item);
   if (mode === "REJECT" || mode === "SAFE" || mode === "AGGRESSIVE") {
     if (mode === "REJECT") {
-      return { label: "Non actionnable", tone: "bad", className: "border-rose-200 bg-rose-50 text-rose-700" };
+      return { label: "Non actionnable", tone: "bad", className: "border-rose-800 bg-rose-950/40 text-rose-400" };
     }
     if (grade === "A" || grade === "B") {
-      return { label: "Actionnable", tone: "good", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+      return { label: "Actionnable", tone: "good", className: "border-emerald-800 bg-emerald-950/40 text-emerald-400" };
     }
     if (grade === "WATCH") {
-      return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
+      return { label: "À surveiller", tone: "warn", className: "border-amber-800 bg-amber-950/40 text-amber-300" };
     }
-    return { label: "Non actionnable", tone: "bad", className: "border-rose-200 bg-rose-50 text-rose-700" };
+    return { label: "Non actionnable", tone: "bad", className: "border-rose-800 bg-rose-950/40 text-rose-400" };
   }
   const profile = getIbkrActionabilityProfile(item);
   if (!profile || typeof profile !== "object") {
-    return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
+    return { label: "À surveiller", tone: "warn", className: "border-amber-800 bg-amber-950/40 text-amber-300" };
   }
-  if (profile.bucket === 2) return { label: "Non actionnable", tone: "bad", className: "border-rose-200 bg-rose-50 text-rose-700" };
-  if (profile.bucket === 0) return { label: "Actionnable", tone: "good", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
-  return { label: "À surveiller", tone: "warn", className: "border-amber-200 bg-amber-50 text-amber-900" };
+  if (profile.bucket === 2) return { label: "Non actionnable", tone: "bad", className: "border-rose-800 bg-rose-950/40 text-rose-400" };
+  if (profile.bucket === 0) return { label: "Actionnable", tone: "good", className: "border-emerald-800 bg-emerald-950/40 text-emerald-400" };
+  return { label: "À surveiller", tone: "warn", className: "border-amber-800 bg-amber-950/40 text-amber-300" };
 }
 
 function getRetainedNotDisplayedReason(item, displayedCutoffScore) {
@@ -6312,21 +6326,21 @@ function ibkrBatchStatusUi(status) {
     return {
       label: "Confirmé",
       summary: "IBKR confirme les strikes Yahoo",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+      className: "border-emerald-800 bg-emerald-950/40 text-emerald-300",
     };
   }
   if (status === "different") {
     return {
       label: "Différent",
       summary: "IBKR diffère de Yahoo — vérifier les détails",
-      className: "border-amber-200 bg-amber-50 text-amber-800",
+      className: "border-amber-800 bg-amber-950/40 text-amber-300",
     };
   }
   if (status === "ibkr_unavailable") {
     return {
       label: "IBKR indisponible",
       summary: "IBKR n’a pas pu valider ce ticker",
-      className: "border-rose-200 bg-rose-50 text-rose-800",
+      className: "border-rose-800 bg-rose-950/40 text-rose-800",
     };
   }
   if (status === "yahoo_unavailable") {
@@ -6340,7 +6354,7 @@ function ibkrBatchStatusUi(status) {
     return {
       label: "Échec deux côtés",
       summary: "Yahoo et IBKR indisponibles",
-      className: "border-rose-200 bg-rose-50 text-rose-800",
+      className: "border-rose-800 bg-rose-950/40 text-rose-800",
     };
   }
   return null;
@@ -6348,8 +6362,8 @@ function ibkrBatchStatusUi(status) {
 
 function IbkrStrikeBlock({ title, strike }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="mb-3 text-sm font-semibold text-slate-900">{title}</p>
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+      <p className="mb-3 text-sm font-semibold text-slate-100">{title}</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Metric label="Strike" value={formatIbkrPrice(strike?.strike)} strong />
         <Metric label="Bid" value={formatIbkrPrice(strike?.bid)} />
@@ -6378,12 +6392,12 @@ function IbkrShadowCard({
   onRun,
 }) {
   return (
-    <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
+    <Card className="mb-6 rounded-[28px] border-slate-700 shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
-              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
+              <ShieldCheck className="h-5 w-5 text-emerald-400" />
               IBKR Shadow — lecture seule
             </CardTitle>
             <p className="mt-1 text-sm text-slate-500">
@@ -6399,28 +6413,28 @@ function IbkrShadowCard({
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Symbole</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Symbole</label>
             <Input
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Expiration</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>
             <Input
               value={expiration}
               onChange={(e) => setExpiration(e.target.value)}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Client ID</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Client ID</label>
             <Input
               type="number"
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
           <div className="flex items-end">
@@ -6431,19 +6445,19 @@ function IbkrShadowCard({
         </div>
 
         {loading && (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
             Analyse IBKR Shadow en cours…
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
             Erreur réseau IBKR Shadow : {error}
           </div>
         )}
 
         {result?.ok === false && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300">
             <p className="font-semibold">IBKR Shadow a retourné une erreur métier.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <Metric label="Symbol" value={result.symbol || "—"} tone="warn" />
@@ -6670,13 +6684,13 @@ function IbkrDirectScanPanel({
   }, [forensicExportRows]);
 
   return (
-    <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
+    <Card className="mb-6 rounded-[28px] border-slate-700 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="flex flex-wrap items-center gap-2 text-xl text-slate-900">
-          <ShieldCheck className="h-5 w-5 text-emerald-600" />
+        <CardTitle className="flex flex-wrap items-center gap-2 text-xl text-slate-100">
+          <ShieldCheck className="h-5 w-5 text-emerald-400" />
           IBKR Direct Scan — lecture seule
           {result?.configuredDevScanMode === "auto" ? (
-            <Badge className="rounded-full border border-slate-400 bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-800">
+            <Badge className="rounded-full border border-slate-400 bg-slate-800 text-xs font-semibold uppercase tracking-wide text-slate-200">
               Mode auto
             </Badge>
           ) : null}
@@ -6686,12 +6700,12 @@ function IbkrDirectScanPanel({
           seule. Aucun ordre envoyé.
         </p>
         <p className="mt-1 text-xs text-slate-500">
-          Expiration IBKR : <span className="font-medium text-slate-700">{expiration || "—"}</span> ·
-          Watchlist disponible : <span className="font-medium text-slate-700">{tickerCount}</span> titres
+          Expiration IBKR : <span className="font-medium text-slate-300">{expiration || "—"}</span> ·
+          Watchlist disponible : <span className="font-medium text-slate-300">{tickerCount}</span> titres
         </p>
         <p className="mt-2 text-xs leading-5 text-slate-500">
           Tickers envoyés :{" "}
-          <span className="font-medium text-slate-700">
+          <span className="font-medium text-slate-300">
             {sentTickers.length ? sentTickers.join(", ") : "—"}
           </span>
         </p>
@@ -6700,20 +6714,20 @@ function IbkrDirectScanPanel({
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Client ID start</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Client ID start</label>
             <Input
               type="number"
               value={clientIdStart}
               onChange={(e) => setClientIdStart(e.target.value)}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Max titres</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Max titres</label>
             <Select
               value={String(maxTickers)}
               onChange={(e) => setMaxTickers(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             >
               <option value="3">3</option>
               <option value="10">10</option>
@@ -6723,11 +6737,11 @@ function IbkrDirectScanPanel({
             </Select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Top N</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Top N</label>
             <Select
               value={String(topN)}
               onChange={(e) => setTopN(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             >
               <option value="10">10</option>
               <option value="25">25</option>
@@ -6745,25 +6759,25 @@ function IbkrDirectScanPanel({
         </div>
 
         {Number(maxTickers) >= 20 && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          <div className="rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm font-medium text-amber-300">
             IBKR complet peut être lent : environ 9-10 sec par ticker. 20 titres peut dépasser 3 minutes.
           </div>
         )}
 
         {loading && (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
             Scan direct IBKR en cours…
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
             Erreur IBKR Direct Scan : {error}
           </div>
         )}
 
         {result?.ok === false && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
             <p className="font-semibold">IBKR Direct Scan a retourné ok:false.</p>
             <p className="mt-1">Erreur : {result.error || "non retournée"}</p>
           </div>
@@ -6771,24 +6785,24 @@ function IbkrDirectScanPanel({
 
         {result?.ok === true && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+            <div className="rounded-2xl border border-emerald-800 bg-emerald-950/40 p-4 text-sm font-medium text-emerald-300">
               Source active : IBKR Shadow Scan direct
             </div>
 
             {Boolean(result.warning || result.devScanEnabled) && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+              <div className="rounded-2xl border border-amber-700 bg-amber-950/40 p-4 text-sm font-semibold text-amber-950">
                 {result.warning || "DEV TEST — données possiblement figées / non tradables"}
               </div>
             )}
 
             {hasBatchTimeout && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+              <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm font-semibold text-rose-400">
                 Timeout IBKR : le batch a dépassé la limite avant de retourner les résultats. Réduire Max titres à 10 ou moins.
               </div>
             )}
 
             {isSuspiciousEmpty && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-100 p-4 text-sm font-semibold text-amber-900">
+              <div className="rounded-2xl border border-amber-700 bg-amber-100 p-4 text-sm font-semibold text-amber-300">
                 {IBKR_TWS_EMPTY_MESSAGE}
               </div>
             )}
@@ -6797,7 +6811,7 @@ function IbkrDirectScanPanel({
               !isSuspiciousEmpty &&
               Number(result?.kept ?? 0) === 0 &&
               rejected.length > 0 && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                <div className="rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-950">
                   <p className="font-semibold">
                     0 retenu IBKR — rejets connus par symbole (pas une réponse « vide » type TWS si cette liste est
                     remplie).
@@ -6805,14 +6819,14 @@ function IbkrDirectScanPanel({
                   <ul className="mt-2 max-h-56 list-disc space-y-1 overflow-y-auto pl-5 text-sm">
                     {rejected.slice(0, 30).map((r, i) => (
                       <li key={`ibkr-panel-rej-${r?.symbol ?? i}-${i}`}>
-                        <span className="font-medium text-slate-900">{r?.symbol ?? "—"}</span>
+                        <span className="font-medium text-slate-100">{r?.symbol ?? "—"}</span>
                         {" — "}
                         {formatIbkrReason(r?.reason)}
                       </li>
                     ))}
                   </ul>
                   {rejectedReasonSummary.topLines.length > 0 && (
-                    <p className="mt-2 text-xs text-amber-900">
+                    <p className="mt-2 text-xs text-amber-300">
                       Synthèse : {rejectedReasonSummary.topLines.join(" · ")}
                     </p>
                   )}
@@ -6845,8 +6859,8 @@ function IbkrDirectScanPanel({
               )}
             </div>
 
-            <div className="rounded-2xl border border-sky-100 bg-white p-4 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">Traçabilité Yahoo → IBKR (panneau)</p>
+            <div className="rounded-2xl border border-sky-900 bg-slate-900 p-4 text-sm text-slate-300">
+              <p className="font-semibold text-slate-100">Traçabilité Yahoo → IBKR (panneau)</p>
               <div className="mt-3 grid gap-3 md:grid-cols-4">
                 <Metric label="Yahoo Returned" value={String(ibkrPanelYahooReturned)} />
                 <Metric label="IBKR Sent / Tested" value={String(ibkrPanelTestedCount)} />
@@ -6855,8 +6869,8 @@ function IbkrDirectScanPanel({
                 <Metric label="IBKR Non Tested" value={String(ibkrPanelNonTested)} />
                 <Metric label="Fusion IBKR (batches)" value={String(result.progressiveIbkrBatchCount ?? 1)} />
               </div>
-              <p className="mt-2 text-xs leading-5 text-slate-600">
-                <span className="font-semibold text-slate-800">Top IBKR rejection reasons:</span>{" "}
+              <p className="mt-2 text-xs leading-5 text-slate-400">
+                <span className="font-semibold text-slate-200">Top IBKR rejection reasons:</span>{" "}
                 {rejectionReasonAggPanelLines.length
                   ? rejectionReasonAggPanelLines.join(" · ")
                   : "(aucune raison agrégée disponible pour ce résultat)"}
@@ -6890,8 +6904,8 @@ function IbkrDirectScanPanel({
             <ScanDiagBlock ibkrResult={result} yahooScanTiming={yahooScanTiming} />
 
             {perfSummary && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <p className="font-semibold text-slate-900">Instrumentation performance IBKR</p>
+              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
+                <p className="font-semibold text-slate-100">Instrumentation performance IBKR</p>
                 <div className="mt-3 grid gap-3 md:grid-cols-4">
                   <Metric label="Durée moyenne / ticker" value={perfSummary.avgDurationMs == null ? "—" : `${perfSummary.avgDurationMs} ms`} />
                   <Metric label="Médiane / ticker" value={perfSummary.medianDurationMs == null ? "—" : `${perfSummary.medianDurationMs} ms`} />
@@ -6903,11 +6917,11 @@ function IbkrDirectScanPanel({
                   <Metric label="Durée endpoint" value={perfSummary.serverDurationMs == null ? "—" : `${perfSummary.serverDurationMs} ms`} />
                 </div>
                 <div className="mt-3">
-                  <p className="font-medium text-slate-900">Top 10 tickers les plus lents</p>
+                  <p className="font-medium text-slate-100">Top 10 tickers les plus lents</p>
                   {slowestTickers.length === 0 ? (
                     <p className="mt-1 text-xs text-slate-500">Aucune donnée de latence ticker.</p>
                   ) : (
-                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                    <div className="mt-2 space-y-1 text-xs text-slate-300">
                       {slowestTickers.slice(0, 10).map((row, index) => (
                         <div key={`ibkr-slowest-${row.symbol || index}-${index}`}>
                           {index + 1}. {row.symbol || "—"} · {row.durationMs == null ? "durée ?" : `${row.durationMs} ms`} · {String(row.status || "unknown")} · {formatIbkrReason(row.reason)} · approx calls {row.approxCalls ?? 0} · timeouts {row.timeouts ?? 0}
@@ -6920,7 +6934,7 @@ function IbkrDirectScanPanel({
             )}
 
             <div className="space-y-3">
-              <p className="font-semibold text-slate-900">Retenus IBKR total — bassin testé</p>
+              <p className="font-semibold text-slate-100">Retenus IBKR total — bassin testé</p>
               {shortlist.map((item) => {
                 const viewModel = buildIbkrRetainedViewModel(item);
                 const selectedSpreadDisplay =
@@ -6928,16 +6942,16 @@ function IbkrDirectScanPanel({
                     ? "—"
                     : `${Number(viewModel.selectedSpreadPct).toFixed(2)}%`;
                 return (
-                  <div key={`ibkr-direct-${item.symbol}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div key={`ibkr-direct-${item.symbol}`} className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
                     <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">{item.symbol}</p>
+                        <p className="text-lg font-semibold text-slate-100">{item.symbol}</p>
                         <p className="mt-1 text-xs text-slate-500">
                           Spot {formatMoneyOrDash(item.currentPrice ?? item.underlyingPrice)} · Borne basse{" "}
                           {formatMoneyOrDash(item.lowerBound)} · Prime cible {formatMoneyOrDash(item.targetPremium)}
                         </p>
                       </div>
-                      <div className="text-sm font-medium text-slate-700">
+                      <div className="text-sm font-medium text-slate-300">
                         Mode {viewModel.finalDisplayMode} {viewModel.finalDisplayGrade ? `[${viewModel.finalDisplayGrade}]` : ""} · Yield{" "}
                         {viewModel.selectedYieldPct == null ? "—" : `${Number(viewModel.selectedYieldPct).toFixed(2)}%`} · Spread{" "}
                         {selectedSpreadDisplay} · Prime {formatMoneyOrDash(viewModel.selectedPremium)}
@@ -6962,7 +6976,7 @@ function IbkrDirectScanPanel({
                     </div>
 
                     {Array.isArray(item.qualityReasons) && item.qualityReasons.length > 0 && (
-                      <p className="mt-3 text-xs leading-5 text-slate-600">
+                      <p className="mt-3 text-xs leading-5 text-slate-400">
                         {item.qualityReasons.filter(Boolean).join(" · ")}
                       </p>
                     )}
@@ -6970,7 +6984,7 @@ function IbkrDirectScanPanel({
                 );
               })}
               {shortlist.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+                <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-6 text-center text-sm text-slate-500">
                   Aucun candidat IBKR direct retenu (mode LIVE).
                 </div>
               )}
@@ -6979,18 +6993,18 @@ function IbkrDirectScanPanel({
             {shortlistDev.length > 0 && (
               <div className="space-y-3">
                 <p className="font-semibold text-amber-950">Shortlist DEV — affichage hors marché uniquement</p>
-                <p className="text-xs text-amber-900">
+                <p className="text-xs text-amber-300">
                   Ces cartes servent à tester l’UI ; ne pas utiliser pour prendre des décisions réelles.
                 </p>
                 {shortlistDev.map((item) => (
                   <div
                     key={`ibkr-direct-dev-${item.symbol}`}
-                    className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4"
+                    className="rounded-2xl border border-amber-800 bg-amber-950/40/80 p-4"
                   >
                     <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">{item.symbol}</p>
-                        <p className="mt-1 text-xs text-slate-600">
+                        <p className="text-lg font-semibold text-slate-100">{item.symbol}</p>
+                        <p className="mt-1 text-xs text-slate-400">
                           statut {formatIbkrReason(item.status)} · {formatIbkrReason(item.reason)}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
@@ -6999,7 +7013,7 @@ function IbkrDirectScanPanel({
                           {formatMoneyOrDash(item.targetPremium)}
                         </p>
                       </div>
-                      <div className="text-sm font-medium text-slate-700">
+                      <div className="text-sm font-medium text-slate-300">
                         Yield {formatIbkrPercent(item.weeklyYield)} · Spread{" "}
                         {formatIbkrPercent(item.spreadPct)} · Prime {formatMoneyOrDash(item.premiumUsed)}
                       </div>
@@ -7019,7 +7033,7 @@ function IbkrDirectScanPanel({
             )}
 
             {rejected.length > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300">
                 <p className="mb-2 font-semibold">Principaux rejetés IBKR</p>
                 <div className="space-y-1">
                   {rejected.slice(0, 10).map((row) => {
@@ -7031,7 +7045,7 @@ function IbkrDirectScanPanel({
                       {formatMoneyOrDash(row.targetPremium)} · agressif{" "}
                       {formatStrikeOrDash(row.aggressiveStrike?.strike)}
                       {isMissingQuote ? (
-                        <> · <span className="font-semibold text-rose-700">quote absente</span></>
+                        <> · <span className="font-semibold text-rose-400">quote absente</span></>
                       ) : isBelowPremium ? (
                         <> · meilleur bid safe{" "}{formatMoneyOrDash(row.bestSafeBid ?? row.aggressiveStrike?.bid)} vs cible {formatMoneyOrDash(row.targetPremium)}</>
                       ) : (
@@ -7047,7 +7061,7 @@ function IbkrDirectScanPanel({
             )}
 
             {(hasMissingIbkrDuration || isSuspiciousEmpty) && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-xs text-slate-100">
+              <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 text-xs text-slate-100">
                 <p className="mb-2 font-semibold">Payload brut compact</p>
                 <pre className="max-h-80 overflow-auto whitespace-pre-wrap">{rawPayload}</pre>
               </div>
@@ -7138,7 +7152,7 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
             <div key={bucket}>
               <button
                 onClick={() => toggle(bucket)}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/5"
+                className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-slate-700/40"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-sm">{CREAM_BUCKET_ICON[bucket]}</span>
@@ -7167,8 +7181,8 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
                         {bucket === "unknownReview" && (
                           <>
                             <span className="italic text-slate-500">Nom indisponible</span>
-                            <span className="text-slate-600">·</span>
-                            <span className="italic text-slate-600">secteur non renseigné</span>
+                            <span className="text-slate-400">·</span>
+                            <span className="italic text-slate-400">secteur non renseigné</span>
                             <span className="ml-auto rounded bg-slate-800 px-1.5 py-0.5 text-slate-500">
                               à ajouter dans tickerMeta.js
                             </span>
@@ -7436,19 +7450,19 @@ function DetailModal({ item, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
-      <div className="mx-auto flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+      <div className="mx-auto flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-slate-900 shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-900 px-6 py-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">
+            <h2 className="text-xl font-semibold text-slate-100">
               {item.ticker} — {item.name}
             </h2>
             <p className="mt-1 text-sm text-slate-500">{item.setup}</p>
             {earningsDisplay ? (
-              <p className="mt-1 text-sm text-amber-700">
+              <p className="mt-1 text-sm text-amber-400">
                 {earningsDisplay}
               </p>
             ) : relevantEarningsDate ? (
-              <p className="mt-1 text-sm text-violet-700">
+              <p className="mt-1 text-sm text-violet-400">
                 Earnings: {formatShortDate(relevantEarningsDate) || relevantEarningsDate}
               </p>
             ) : null}
@@ -7465,19 +7479,19 @@ function DetailModal({ item, onClose }) {
 
         <div className="flex-1 overflow-y-auto space-y-6 px-6 py-5">
           {loading && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-400">
               Chargement des données live...
             </div>
           )}
 
           {error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
               {error}
             </div>
           )}
 
           {!loading && !error && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            <div className="rounded-2xl border border-emerald-800 bg-emerald-950/40 p-4 text-sm text-emerald-400">
               Données live chargées pour le modal.
             </div>
           )}
@@ -7504,15 +7518,15 @@ function DetailModal({ item, onClose }) {
             <Metric label="Prime cible safe" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Fiche entreprise</p>
-            <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-2">
+          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+            <p className="text-sm font-semibold text-slate-100">Fiche entreprise</p>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-slate-300 md:grid-cols-2">
               <p><span className="font-semibold">Nom complet :</span> {companyName}</p>
               <p><span className="font-semibold">Type :</span> {instrumentType}</p>
               <p><span className="font-semibold">Secteur :</span> {sector}</p>
               <p><span className="font-semibold">Industrie :</span> {industry}</p>
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{businessSummary}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{businessSummary}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -7575,19 +7589,19 @@ function DetailModal({ item, onClose }) {
           </div>
 
           <details className="mt-2">
-            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 [&::-webkit-details-marker]:hidden">
               <span>Support / Résistance V4</span>
               <span>›</span>
             </summary>
             <div className="mt-2">
               <SupportResistanceV4CompactPanelClean
                 data={item.supportResistanceV4}
-                variant="light"
+                variant="dark"
               />
             </div>
           </details>
           <details className="hidden">
-            <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold text-slate-900 after:ml-auto after:text-xl after:leading-none after:text-slate-500 after:content-['›'] [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold text-slate-100 after:ml-auto after:text-xl after:leading-none after:text-slate-500 after:content-['›'] [&::-webkit-details-marker]:hidden">
               Support/Résistance V4 — zones confirmées
             </summary>
             <div className="mt-3">
@@ -7595,12 +7609,12 @@ function DetailModal({ item, onClose }) {
             </div>
           </details>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Résumé</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{item.note}</p>
-            <p className="mt-2 text-sm text-slate-600">
+          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+            <p className="text-sm font-semibold text-slate-100">Résumé</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{item.note}</p>
+            <p className="mt-2 text-sm text-slate-400">
               Borne basse snapshot :{" "}
-              <span className="font-semibold text-rose-700">
+              <span className="font-semibold text-rose-400">
                 ${Number(item.expectedMoveLow || 0).toFixed(2)}
               </span>
               {" "}· cible safe snapshot :{" "}
@@ -7643,7 +7657,7 @@ function DetailModal({ item, onClose }) {
                 legKey="safe"
               />
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
                 Aucun strike safe snapshot.
               </div>
             )}
@@ -7680,7 +7694,7 @@ function DetailModal({ item, onClose }) {
                 legKey="aggressive"
               />
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
                 Aucun strike agressif snapshot.
               </div>
             )}
@@ -8176,16 +8190,16 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital, ibkrRejected
 }
 
 function _inspStatusBadge(status) {
-  if (status === "sélectionné") return "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700";
-  if (status === "dans scoredPool — non retenu greedy") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
-  if (status === "admissible statique non sélectionné") return "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700";
-  if (status === "admissible, trop cher en fin de combo") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700";
-  if (status === "admissible statique, trop cher") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700";
-  if (status === "rejeté avant scoredPool") return "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700";
-  if (status === "rejeté par filterCandidate") return "rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700";
-  if (status === "hors basePool — IBKR rejeté") return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700";
-  if (status === "aucune jambe bucket") return "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500";
-  return "rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600";
+  if (status === "sélectionné") return "rounded-full border border-emerald-800 bg-emerald-950/50 px-2 py-0.5 text-xs font-medium text-emerald-300";
+  if (status === "dans scoredPool — non retenu greedy") return "rounded-full border border-sky-800 bg-sky-950/50 px-2 py-0.5 text-xs font-medium text-sky-300";
+  if (status === "admissible statique non sélectionné") return "rounded-full border border-sky-800 bg-sky-950/50 px-2 py-0.5 text-xs font-medium text-sky-300";
+  if (status === "admissible, trop cher en fin de combo") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
+  if (status === "admissible statique, trop cher") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
+  if (status === "rejeté avant scoredPool") return "rounded-full border border-amber-800 bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-300";
+  if (status === "rejeté par filterCandidate") return "rounded-full border border-orange-800 bg-orange-950/40 px-2 py-0.5 text-xs font-medium text-orange-300";
+  if (status === "hors basePool — IBKR rejeté") return "rounded-full border border-rose-800 bg-rose-950/40 px-2 py-0.5 text-xs font-medium text-rose-300";
+  if (status === "aucune jambe bucket") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-500";
+  return "rounded-full border border-rose-800 bg-rose-950/40 px-2 py-0.5 text-xs font-medium text-rose-300";
 }
 
 const _inspFmt = (v, suffix = "", digits = 2) =>
@@ -8209,13 +8223,13 @@ function _inspLineStatus(diag) {
 }
 
 function _inspLineStatusCls(diag) {
-  if (diag.inPicks) return "text-green-700 font-semibold";
-  if (diag.diagCategory === "non_selected") return "text-sky-700";
-  if (diag.diagCategory === "capital_envelope") return "text-slate-700";
+  if (diag.inPicks) return "text-emerald-400 font-semibold";
+  if (diag.diagCategory === "non_selected") return "text-sky-300";
+  if (diag.diagCategory === "capital_envelope") return "text-slate-300";
   if (diag.diagCategory === "no_bucket_leg") return "text-slate-400";
-  if (diag.diagCategory === "ibkr_rejected") return "text-rose-700";
-  if (diag.diagCategory === "filtered_quality" || diag.diagCategory === "filtered_dynamic") return "text-orange-700";
-  return "text-amber-700";
+  if (diag.diagCategory === "ibkr_rejected") return "text-rose-400";
+  if (diag.diagCategory === "filtered_quality" || diag.diagCategory === "filtered_dynamic") return "text-orange-400";
+  return "text-amber-400";
 }
 
 function BucketTickerLine({ diag }) {
@@ -8226,8 +8240,8 @@ function BucketTickerLine({ diag }) {
       ? ` · blocage greedy: ${diag.greedyPoolDiag.rejectionReason}`
       : "";
   return (
-    <div className="text-xs text-slate-700 py-px leading-snug">
-      <span className="font-semibold text-slate-900">{diag.ticker}</span>
+    <div className="text-xs text-slate-300 py-px leading-snug">
+      <span className="font-semibold text-slate-100">{diag.ticker}</span>
       {" — "}{diag.bucket} {diag.grade || "n/d"}
       {" — "}yield {_inspFmt(diag.yieldPct, "%")}
       {" — "}spread {_inspFmt(diag.spread, "%", 1)}
@@ -8245,9 +8259,9 @@ function BucketSection({ title, items, limit = 15 }) {
   const overflow = items.length - visible.length;
   return (
     <div className="mt-1.5">
-      <p className="text-xs font-semibold text-slate-700">{title} : {items.length}</p>
+      <p className="text-xs font-semibold text-slate-300">{title} : {items.length}</p>
       {visible.length > 0 && (
-        <div className="mt-0.5 pl-2 border-l-2 border-slate-200 space-y-0">
+        <div className="mt-0.5 pl-2 border-l-2 border-slate-700 space-y-0">
           {visible.map((d) => <BucketTickerLine key={d.ticker} diag={d} />)}
           {overflow > 0 && (
             <p className="text-xs text-slate-400 italic">+ {overflow} autres dans Export JSON</p>
@@ -8408,19 +8422,19 @@ function CapitalCombosInspector({
 
   const bucketColorCls = { SAFE: "green", BALANCED: "sky", AGGRESSIVE: "orange" };
   const bucketHeaderCls = {
-    SAFE: "border-green-200 bg-green-50 text-green-800",
-    BALANCED: "border-sky-200 bg-sky-50 text-sky-800",
-    AGGRESSIVE: "border-orange-200 bg-orange-50 text-orange-800",
+    SAFE: "border-emerald-800/70 bg-emerald-950/50 text-emerald-200",
+    BALANCED: "border-sky-800/70 bg-[#101a27] text-sky-200",
+    AGGRESSIVE: "border-orange-800/70 bg-orange-950/40 text-orange-200",
   };
 
   return (
-    <div className="mt-4 rounded-2xl border border-slate-200 bg-white">
+    <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left hover:bg-slate-50"
+        className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left hover:bg-slate-700/400"
       >
-        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <span className="flex items-center gap-2 text-sm font-semibold text-slate-300">
           <Search className="h-4 w-4 text-slate-400" />
           Inspecteur Combinaisons capital
         </span>
@@ -8428,7 +8442,7 @@ function CapitalCombosInspector({
       </button>
 
       {open && (
-        <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
+        <div className="border-t border-slate-800 px-4 pb-4 pt-3 space-y-4">
           {/* Header actions */}
           <div className="flex flex-wrap items-center gap-3">
             <input
@@ -8436,12 +8450,12 @@ function CapitalCombosInspector({
               value={tickerSearch}
               onChange={(e) => setTickerSearch(e.target.value)}
               placeholder="Ex: TQQQ, APLD, HOOD, HAL, GM"
-              className="flex-1 min-w-48 rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-sky-400 focus:bg-white"
+              className="flex-1 min-w-48 rounded-xl border border-slate-600 bg-slate-800/50 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-sky-400 focus:bg-slate-900"
             />
             <button
               type="button"
               onClick={handleExportJSON}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700/400"
             >
               <Database className="h-3.5 w-3.5" />
               Export JSON
@@ -8451,7 +8465,7 @@ function CapitalCombosInspector({
           {/* Ticker diagnostic */}
           {diagnostics && (
             <div>
-              <p className="mb-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <p className="mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">
                 Diagnostic — {searchedTicker}
               </p>
               <div className="grid gap-3 md:grid-cols-3">
@@ -8482,7 +8496,7 @@ function CapitalCombosInspector({
                       <span className={_inspStatusBadge(diag.statusProbable)}>{diag.statusProbable}</span>
                       <p className="text-xs mt-1 italic">{diag.raisonProbable}</p>
                       {diag.blockedByExecutionScore && diag.executionBreakdown && (
-                        <div className="mt-1 rounded border border-amber-200 bg-amber-50/80 px-2 py-1 text-[11px] leading-snug text-amber-950">
+                        <div className="mt-1 rounded border border-amber-800 bg-amber-950/35 px-2 py-1 text-[11px] leading-snug text-amber-300">
                           <p className="font-semibold">Execution</p>
                           <p>
                             score {Number(diag.executionBreakdown.executionScore).toFixed(2)} / min{" "}
@@ -8499,7 +8513,7 @@ function CapitalCombosInspector({
                           </p>
                         </div>
                       )}
-                      <div className="mt-2 space-y-0.5 text-slate-700">
+                      <div className="mt-2 space-y-0.5 text-slate-300">
                         <Row label="Dans scan" val={diag.inScanData ? "oui" : "non"} />
                         <Row label="Sélectionné" val={diag.inPicks ? "oui" : "non"} />
                         {diag.inScanData && (
@@ -8593,7 +8607,7 @@ function CapitalCombosInspector({
                                 <Row label="Score combo" val={diag.scoreCombo ?? "n/d"} />
                               </>
                             )}
-                            <div className="mt-1 border-t border-slate-200 pt-1">
+                            <div className="mt-1 border-t border-slate-700 pt-1">
                               <p className="text-slate-500">
                                 Critères {diag.bucket} — yield [{cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}]
                                 · spread max {cfg.maxSpread}%
@@ -8612,7 +8626,7 @@ function CapitalCombosInspector({
 
           {/* Bucket summary */}
           <div>
-            <p className="mb-1 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wide">
               Résumé par bucket (approximatif, read-only)
             </p>
             <p className="mb-2 text-xs text-slate-400">
@@ -8666,10 +8680,10 @@ function CapitalCombosInspector({
                       );
                     })()}
                     <Row label="Total scan" val={s.totalScanCards} />
-                    <div className="border-t border-slate-200 mt-2 pt-1">
+                    <div className="border-t border-slate-700 mt-2 pt-1">
                       <BucketSection title="Sélectionnés" items={s.selected} />
                       <div className="mt-1.5">
-                        <p className="text-xs font-medium text-slate-600">Affiliés au bucket : {s.affiliated.length}</p>
+                        <p className="text-xs font-medium text-slate-400">Affiliés au bucket : {s.affiliated.length}</p>
                       </div>
                       <BucketSection title="Admissibles statiques non sélectionnés" items={s.eligibleNotSelected} />
                       <BucketSection title="Rejetés par filtre bucket" items={s.rejectedByBucketFilter} />
@@ -8693,7 +8707,7 @@ function Row({ label, val }) {
   return (
     <div className="flex justify-between gap-2">
       <span className="text-slate-500 shrink-0">{label}</span>
-      <span className="font-medium text-slate-800 text-right">{val ?? "n/d"}</span>
+      <span className="font-medium text-slate-200 text-right">{val ?? "n/d"}</span>
     </div>
   );
 }
@@ -8788,11 +8802,11 @@ function PortfolioCombos({
 
   const snapshotHeader = (
     <div className="flex items-center justify-between">
-      <CardTitle className="text-xl text-slate-900">Combinaisons capital</CardTitle>
+      <CardTitle className="text-xl text-slate-100">Combinaisons capital</CardTitle>
       <button
         onClick={handleSaveSnapshot}
         disabled={snapshotStatus === "loading" || !hasAnyPicks}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700/400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Database className="h-3.5 w-3.5" />
         {snapshotStatus === "loading" ? "Sauvegarde…" : "Sauvegarder snapshot"}
@@ -8801,22 +8815,22 @@ function PortfolioCombos({
   );
 
   return (
-    <Card className="rounded-[28px] border-slate-200 shadow-sm">
+    <Card className="rounded-[28px] border-slate-700 shadow-sm">
       <CardHeader>
         {snapshotHeader}
         {snapshotStatus === "ok" && (
-          <p className="mt-1.5 text-xs text-green-600">Snapshot sauvegardé dans SQLite. {snapshotMsg}</p>
+          <p className="mt-1.5 text-xs text-emerald-400">Snapshot sauvegardé dans SQLite. {snapshotMsg}</p>
         )}
         {snapshotStatus === "error" && (
-          <p className="mt-1.5 text-xs text-rose-600">Erreur : {snapshotMsg}</p>
+          <p className="mt-1.5 text-xs text-rose-400">Erreur : {snapshotMsg}</p>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm text-slate-700">
-          <p className="font-medium text-slate-900">
+        <div className="rounded-2xl border border-slate-700/70 bg-[#101a27]/95 px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <p className="font-medium text-slate-100">
             Chaque bloc représente une simulation indépendante utilisant le capital complet. Les montants ne s&apos;additionnent pas.
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             SAFE, BALANCED et AGGRESSIVE comparent trois politiques de sélection sur le même capital simulé.
           </p>
         </div>
@@ -8828,11 +8842,11 @@ function PortfolioCombos({
           const popWeighted = weightedMetricByCapital(combo.picks, (p) => p.popEstimate);
           const otmWeighted = weightedMetricByCapital(combo.picks, (p) => p.distancePct);
           return (
-          <div key={combo.label} className="rounded-2xl border border-slate-200 p-4">
+          <div key={combo.label} className="rounded-2xl border border-slate-700 p-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-base font-semibold text-slate-900">{combo.label}</p>
-                <p className="text-sm font-medium text-slate-700">
+                <p className="text-base font-semibold text-slate-100">{combo.label}</p>
+                <p className="text-sm font-medium text-slate-300">
                   Simulation {combo.label} · {combo.positions} pos. · Rend. port. ~{portfolioReturnPct.toFixed(2)}%
                   {(combo.picks?.length ?? 0) > 0 ? (
                     <>
@@ -8842,21 +8856,21 @@ function PortfolioCombos({
                   ) : null}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%) · Utilisé {combo.totalCapital.toFixed(0)}$ · <span className="font-medium text-slate-700">Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$</span>
+                  Total {capital.toFixed(0)}$ · Déployable {usableCapital.toFixed(0)}$ ({maxCapitalPct}%) · Utilisé {combo.totalCapital.toFixed(0)}$ · <span className="font-medium text-slate-300">Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$</span>
                 </p>
                 {combo.label === "BALANCED" && (
-                  <p className="mt-0.5 text-[10px] text-sky-600/80 leading-snug">
-                    <span className="font-medium text-sky-800">Core Institutional Yield (BALANCED V3)</span>
+                  <p className="mt-0.5 text-[10px] text-sky-400/90 leading-snug">
+                    <span className="font-medium text-sky-300">Core Institutional Yield (BALANCED V3)</span>
                     {" "}· yield filtre V3 ≥0,675%–1,05% · spread ≤22% · caps ticker / thème / secteur / high beta{" "}
                     <span className="whitespace-nowrap">scalés au capital</span>
                     {" "}· jusqu&apos;à 6–8 lignes · POP spéc. ≥82% · BITX max 1 contrat
                     {combo.balancedInstitutionalV3Audit?.effectiveMaxPositions != null ? (
-                      <span className="ml-1 text-sky-900 font-medium">
+                      <span className="ml-1 text-sky-200 font-medium">
                         · lignes max effectives {combo.balancedInstitutionalV3Audit.effectiveMaxPositions}
                       </span>
                     ) : null}
                     {!combo.capitalTargetReached && combo.capitalShortfallReason
-                      ? <span className="ml-1 text-amber-600 font-medium">· Capital incomplet : {formatCapitalShortfallReason(combo.capitalShortfallReason)}</span>
+                      ? <span className="ml-1 text-amber-400 font-medium">· Capital incomplet : {formatCapitalShortfallReason(combo.capitalShortfallReason)}</span>
                       : null}
                   </p>
                 )}
@@ -8880,7 +8894,7 @@ function PortfolioCombos({
                   <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-slate-500">
                     <span>Concentration : <span className={cn(
                       "font-medium",
-                      combo.concentrationRiskScore > 0.65 ? "text-rose-600" :
+                      combo.concentrationRiskScore > 0.65 ? "text-rose-400" :
                       combo.concentrationRiskScore > 0.45 ? "text-amber-500" : "text-green-600"
                     )}>{combo.concentrationRiskScore > 0.65 ? "élevée" : combo.concentrationRiskScore > 0.45 ? "moyenne" : "faible"}</span></span>
                     {combo.cryptoMinerCapitalPct > 0 && (
@@ -8895,22 +8909,22 @@ function PortfolioCombos({
                 {combo.clusterWarnings?.length > 0 && (
                   <div className="mt-1 space-y-0.5">
                     {combo.clusterWarnings.map((w, i) => (
-                      <p key={i} className="text-xs text-rose-600">Concentration élevée : {w}</p>
+                      <p key={i} className="text-xs text-rose-400">Concentration élevée : {w}</p>
                     ))}
                   </div>
                 )}
                 {combo.capDiagnosticsV2 && (
-                  <details className="group mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs">
-                    <summary className="cursor-pointer list-none font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+                  <details className="group mt-2 rounded-xl border border-slate-700 bg-slate-800/50/70 px-3 py-2 text-xs">
+                    <summary className="cursor-pointer list-none font-semibold text-slate-300 [&::-webkit-details-marker]:hidden">
                       <span className="underline-offset-2 group-open:underline">Diagnostics allocateur V2</span>
                       <span className="ml-2 font-normal text-slate-500">
                         Remplissage {(combo.capDiagnosticsV2.fillEfficiencyPct ?? (usableCapital > 0 ? (combo.totalCapital / usableCapital) * 100 : 0)).toFixed(1)}%
                       </span>
                     </summary>
-                    <div className="mt-2 space-y-1.5 text-slate-600">
+                    <div className="mt-2 space-y-1.5 text-slate-400">
                       {combo.label === "BALANCED" && combo.capDiagnosticsV2?.institutionalYieldV3 && (
-                        <div className="rounded-lg border border-sky-200 bg-sky-50/60 px-2.5 py-2 text-[11px] leading-snug space-y-1">
-                          <p className="font-semibold text-sky-900">Institutionnel V3 — garde-fous actifs</p>
+                        <div className="rounded-lg border border-sky-800/60 bg-[#101a27]/95 px-2.5 py-2 text-[11px] leading-snug space-y-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                          <p className="font-semibold text-sky-200">Institutionnel V3 — garde-fous actifs</p>
                           <p>
                             Caps (fraction du déployable) : ticker{" "}
                             {(combo.capDiagnosticsV2.institutionalYieldV3.capsFraction?.tickerCap * 100).toFixed(0)}%
@@ -8924,22 +8938,22 @@ function PortfolioCombos({
                             {" · "}clusters stricts après {combo.capDiagnosticsV2.institutionalYieldV3.minTargetPositionsBeforeStrictClusters} ligne(s)
                           </p>
                           {combo.capDiagnosticsV2.dominantFillBlocker && (
-                            <p className="text-amber-800">
+                            <p className="text-amber-300">
                               Cap / blocage dominant (cycles + résidu) :{" "}
                               <span className="font-medium">{formatCapBlockerReason(combo.capDiagnosticsV2.dominantFillBlocker.reason)}</span>
                               {" "}× {combo.capDiagnosticsV2.dominantFillBlocker.count}
                             </p>
                           )}
                           {combo.capDiagnosticsV2.lostPremiumNoteFr && (
-                            <p className="text-amber-800">{combo.capDiagnosticsV2.lostPremiumNoteFr}</p>
+                            <p className="text-amber-300">{combo.capDiagnosticsV2.lostPremiumNoteFr}</p>
                           )}
                           {Array.isArray(combo.capDiagnosticsV2.balancedPerPickInsights) && combo.capDiagnosticsV2.balancedPerPickInsights.length > 0 && (
-                            <div className="text-[10px] text-slate-600 space-y-0.5 border-t border-sky-100 pt-1 mt-1">
-                              <p className="font-medium text-slate-700">Efficacité par ligne (prime / capital déployable)</p>
+                            <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-sky-900 pt-1 mt-1">
+                              <p className="font-medium text-slate-300">Efficacité par ligne (prime / capital déployable)</p>
                               <ul className="list-disc pl-4 space-y-0.5">
                                 {combo.capDiagnosticsV2.balancedPerPickInsights.map((row) => (
                                   <li key={row.ticker}>
-                                    <span className="font-semibold text-slate-800">{row.ticker}</span>
+                                    <span className="font-semibold text-slate-200">{row.ticker}</span>
                                     {row.premiumUsdPer1000Collateral != null && (
                                       <> · {row.premiumUsdPer1000Collateral.toFixed(1)} $ prime / 1000 $ collat</>
                                     )}
@@ -8957,20 +8971,20 @@ function PortfolioCombos({
                       )}
                       {(combo.capDiagnosticsV2.blockerSummaryMerged ?? []).slice(0, 6).map((b, idx) => (
                         <div key={`${b.reason}-${b.source}-${idx}`} className="flex gap-2 justify-between leading-snug">
-                          <span className="font-medium text-slate-800">{formatCapBlockerReason(b.reason)}</span>
+                          <span className="font-medium text-slate-200">{formatCapBlockerReason(b.reason)}</span>
                           <span className="shrink-0 text-slate-500">{b.count}x · <span className="italic">{b.source ?? "?"}</span></span>
                         </div>
                       ))}
                       {"potentialPremiumStrandedUsd" in (combo.capDiagnosticsV2 ?? {}) &&
                         combo.capDiagnosticsV2.potentialPremiumStrandedUsd != null &&
                         combo.capDiagnosticsV2.potentialPremiumStrandedUsd > 10 && (
-                        <p className="text-amber-700">
+                        <p className="text-amber-400">
                           Premium théorique bloquée (caps diversification) ≈{" "}
                           {combo.capDiagnosticsV2.potentialPremiumStrandedUsd.toFixed(0)}$
                         </p>
                       )}
                       {"leftoverDensityPass" in (combo.capDiagnosticsV2 ?? {}) && combo.capDiagnosticsV2.leftoverDensityPass?.enabled === true ? (
-                        <p className="text-sky-700">
+                        <p className="text-sky-400">
                           Passe leftover densité · +{combo.capDiagnosticsV2.leftoverDensityPass.adds ?? 0} lot(s)
                           {(combo.capDiagnosticsV2.leftoverDensityPass.premiumDeltaUsd ?? 0) !== 0
                             ? <> · Δ prime ≈ {combo.capDiagnosticsV2.leftoverDensityPass.premiumDeltaUsd.toFixed(0)}$</>
@@ -9000,28 +9014,28 @@ function PortfolioCombos({
                   </div>
                 )}
               </div>
-              <Badge className="rounded-full border border-slate-300 bg-slate-50 text-slate-700">
+              <Badge className="rounded-full border border-slate-600 bg-slate-800/50 text-slate-300">
                 Libre dép. {Math.max(0, usableCapital - combo.totalCapital).toFixed(0)}$
               </Badge>
             </div>
 
             <div className="mt-4 space-y-2">
               {combo.picks.length === 0 && (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
+                <div className="rounded-xl border border-dashed border-slate-600 bg-slate-800/50 p-3 text-sm text-slate-500">
                   {combo.emptyMessage ?? "Aucune combinaison propre selon les critères actuels."}
                 </div>
               )}
               {combo.picks.map((pick) => (
                 <div
                   key={`${combo.label}-${pick.ticker}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                  className="rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm"
                 >
-                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-slate-700">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-slate-300">
                     <button
                       type="button"
                       onClick={() => onTickerClick?.(pick.ticker)}
                       title={`Aller à la carte principale ${pick.ticker}`}
-                      className="cursor-pointer font-bold text-slate-900 transition hover:text-sky-700 hover:underline"
+                      className="cursor-pointer font-bold text-slate-100 transition hover:text-sky-400 hover:underline"
                     >
                       {pick.ticker}
                     </button>
@@ -9030,13 +9044,13 @@ function PortfolioCombos({
                         "text-xs font-medium",
                         pick.qualityTier === "medium" && "text-slate-400",
                         pick.qualityTier === "speculative" && "text-amber-500",
-                        pick.qualityTier === "avoid" && "text-rose-600",
+                        pick.qualityTier === "avoid" && "text-rose-400",
                       )}>
                         {pick.qualityTier}
                       </span>
                     )}
                     <span className="text-slate-300">|</span>
-                    <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs font-semibold text-slate-700">
+                    <span className="rounded bg-slate-700 px-1.5 py-0.5 text-xs font-semibold text-slate-300">
                       {pick.mode ?? "—"}{pick.grade ? ` ${pick.grade}` : ""}
                     </span>
                     <span className="text-slate-300">|</span>
@@ -9056,10 +9070,10 @@ function PortfolioCombos({
                       title="Phase greedy / filler / optimiseur leftover"
                       className={cn(
                         "rounded border px-1 text-[11px]",
-                        pick.comboAllocationPhase === "leftover_density_v2" && "border-sky-300 bg-sky-50 text-sky-900",
-                        pick.comboAllocationPhase === "filler_primary" && "border-amber-200 bg-amber-50 text-amber-900",
-                        pick.comboAllocationPhase === "primary_soft_cap" && "border-violet-200 bg-violet-50 text-violet-900",
-                        (!pick.comboAllocationPhase || pick.comboAllocationPhase === "primary_strict") && "border-slate-200 bg-white text-slate-600",
+                        pick.comboAllocationPhase === "leftover_density_v2" && "border-sky-600 bg-sky-950/55 text-sky-200",
+                        pick.comboAllocationPhase === "filler_primary" && "border-amber-800 bg-amber-950/40 text-amber-300",
+                        pick.comboAllocationPhase === "primary_soft_cap" && "border-violet-700 bg-violet-950/50 text-violet-200",
+                        (!pick.comboAllocationPhase || pick.comboAllocationPhase === "primary_strict") && "border-slate-700 bg-slate-900 text-slate-400",
                       )}
                     >
                       {pick.comboAllocationPhase ?? "primary_strict"}
@@ -9078,7 +9092,7 @@ function PortfolioCombos({
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
                     <span
-                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-medium"
+                      className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 font-medium"
                       title={pick.selectionTooltip ?? undefined}
                     >
                       Score {pick.selectionScore}
@@ -9086,7 +9100,7 @@ function PortfolioCombos({
                     {pick.source && <span>{pick.source}</span>}
                     {pick.selectionSummary && <span>{pick.selectionSummary.replace(/\byield\b/g, "rendement").replace(/\bquality\b/g, "qualité").replace(/\brisk\b/g, "risque")}</span>}
                     {combo.label === "BALANCED" && pick.balancedInstitutionalV3Pick && (
-                      <span className="text-sky-800">
+                      <span className="text-sky-300">
                         {pick.balancedInstitutionalV3Pick.premiumUsdPer1000Collateral != null && (
                           <>Efficacité prime ≈ {pick.balancedInstitutionalV3Pick.premiumUsdPer1000Collateral.toFixed(1)} $/1000$ collat · </>
                         )}
@@ -9109,17 +9123,17 @@ function PortfolioCombos({
               ))}
             </div>
 
-            <div className="mt-4 text-sm text-slate-600">
+            <div className="mt-4 text-sm text-slate-400">
               Prime totale estimée :{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-100">
                 {combo.picks.reduce((sum, p) => sum + p.premiumCollected, 0).toFixed(0)}$
               </span>
               {" "}· Capital du compte :{" "}
-              <span className="font-semibold text-slate-900">{capital.toFixed(0)}$</span>
+              <span className="font-semibold text-slate-100">{capital.toFixed(0)}$</span>
             </div>
 
             {!combo.capitalTargetReached && combo.capitalShortfallReason && (
-              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              <div className="mt-2 rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-xs text-amber-400">
                 Capital non utilisé — {formatCapitalShortfallReason(combo.capitalShortfallReason)}
               </div>
             )}
@@ -11521,23 +11535,23 @@ export default function Dashboard() {
     !showClosedValidBanner;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-[#0b1117] text-slate-100">
       <div className="w-full px-2 py-3 md:px-3 lg:px-4">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
+          className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
         >
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400">
                 <Layers3 className="h-3.5 w-3.5" />
                 Wheel Strategy Dashboard — backend shortlist + modal live
               </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
+              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-50 md:text-4xl">
                 Dashboard options lisible, premium et actionnable
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">
                 La watchlist est construite via /universe/build ; le bouton Refresh shortlist interroge /scan_shortlist avec cette liste. Le modal reste live pour lecture détaillée.
               </p>
             </div>
@@ -11569,13 +11583,13 @@ export default function Dashboard() {
 
         {activeView === "dashboard" ? (
           <>
-            <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
+            <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Expiration</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>
             <Select
               value={selectedExpiration}
               onChange={(e) => setSelectedExpiration(e.target.value)}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             >
               {expirationOptions.map((exp) => (
                 <option key={exp} value={exp}>
@@ -11586,14 +11600,14 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Top Yahoo retournés</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Top Yahoo retournés</label>
             <Input
               type="number"
               min="1"
               max="200"
               value={topN}
               onChange={(e) => setTopN(Number(e.target.value || 1))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
             <p className="mt-1 text-xs text-slate-500">
               Plafond renvoyé par Yahoo (/scan_shortlist, + challengers si tri qualité). Avec IBKR auto, l’affichage final suit surtout « IBKR Audit Depth ».
@@ -11601,43 +11615,43 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Capital compte</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Capital compte</label>
             <Input
               type="number"
               min="1000"
               step="100"
               value={capital}
               onChange={(e) => setCapital(Number(e.target.value || 0))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">% max utilisé</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">% max utilisé</label>
             <Input
               type="number"
               min="10"
               max="100"
               value={maxCapitalPct}
               onChange={(e) => setMaxCapitalPct(Number(e.target.value || 0))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Nb max positions</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Nb max positions</label>
             <Input
               type="number"
               min="1"
               max="10"
               value={maxPositions}
               onChange={(e) => setMaxPositions(Number(e.target.value || 1))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
               <input
                 type="checkbox"
                 checked={autoIbkrDirectScan}
@@ -11650,12 +11664,12 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <label className="mb-2 block text-sm font-medium text-slate-700">Auto Journal POP</label>
+          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+            <label className="mb-2 block text-sm font-medium text-slate-300">Auto Journal POP</label>
             <Select
               value={autoJournalPop}
               onChange={(e) => setAutoJournalPop(String(e.target.value || "off"))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             >
               <option value="off">OFF</option>
               <option value="10">Top 10</option>
@@ -11671,11 +11685,11 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">IBKR Audit Depth</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">IBKR Audit Depth</label>
             <Select
               value={String(ibkrAutoMaxTickers)}
               onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
               disabled={!autoIbkrDirectScan}
             >
               <option value="10">10</option>
@@ -11687,11 +11701,11 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Sonde liquidité OTM Yahoo</label>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Sonde liquidité OTM Yahoo</label>
             <Select
               value={String(watchlistOtmProbePct)}
               onChange={(e) => setWatchlistOtmProbePct(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-200"
+              className="w-full rounded-xl border-slate-700"
             >
               {LIQUIDITY_OTM_PROBE_PCT_CHOICES.map((p) => (
                 <option key={p} value={String(p)}>
@@ -11704,8 +11718,8 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 xl:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-slate-800">Pool pré-IBKR</label>
+          <div className="rounded-xl border border-indigo-800 bg-indigo-950/40 p-3 xl:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-slate-200">Pool pré-IBKR</label>
             <div className="flex flex-wrap gap-2">
               {[
                 { id: "strict_watchlist", label: "Strict Watchlist" },
@@ -11725,11 +11739,11 @@ export default function Dashboard() {
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-700">Research limit</label>
+                <label className="mb-1 block text-xs font-medium text-slate-300">Research limit</label>
                 <Select
                   value={String(researchExpandedLimit)}
                   onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
-                  className="w-full rounded-xl border-slate-200"
+                  className="w-full rounded-xl border-slate-700"
                   disabled={preIbkrPoolMode !== "research_expanded"}
                 >
                   <option value="150">150</option>
@@ -11748,7 +11762,7 @@ export default function Dashboard() {
                 </Button>
               </div>
             </div>
-            <p className="mt-2 text-xs leading-5 text-slate-600">
+            <p className="mt-2 text-xs leading-5 text-slate-400">
               Mode choisi : {formatPoolSourceLabel(preIbkrPoolMode)}
               {lastScanPoolMeta.poolSource ? (
                 <>
@@ -11763,12 +11777,12 @@ export default function Dashboard() {
                 ? "…"
                 : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
               {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
-                <span className="mt-1 block font-medium text-amber-800">
+                <span className="mt-1 block font-medium text-amber-300">
                   ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
                 </span>
               ) : null}
               {researchExpandedPoolError ? (
-                <span className="mt-1 block text-amber-800">{researchExpandedPoolError}</span>
+                <span className="mt-1 block text-amber-300">{researchExpandedPoolError}</span>
               ) : null}
             </p>
           </div>
@@ -11793,80 +11807,80 @@ export default function Dashboard() {
         </div>
 
         {refreshStage && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm font-medium text-slate-300 shadow-sm">
             {refreshStage}
           </div>
         )}
         {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult || lastScanPoolMeta.preIbkrCount > 0) && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details open>
-              <summary className="cursor-pointer font-semibold text-slate-900">Résumé du funnel</summary>
-              <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 text-xs text-slate-700">
+              <summary className="cursor-pointer font-semibold text-slate-100">Résumé du funnel</summary>
+              <div className="mt-3 rounded-xl border border-indigo-900 bg-indigo-950/40 p-3 text-xs text-slate-300">
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                   <div>
                     <span className="text-slate-500">Mode choisi</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {formatPoolSourceLabel(preIbkrPoolMode)}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Pool effectif (dernier scan)</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {formatPoolSourceLabel(lastScanPoolMeta.poolSource || resolvedPreIbkrPool.poolSource)}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Pool pré-Yahoo</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.preIbkrCount || _rawWatchlist.length || 0}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Yahoo sent/scanned</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.yahooSent || yahooScanMeta.scanned || yahooSentToScanCount || 0}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Yahoo retournés</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR Audit Depth</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR testés</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.ibkrTested || ibkrTestedCount}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR retenus</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.ibkrRetained || ibkrKeptCount}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Journal POP capturés</span>
-                    <div className="font-semibold text-slate-900">{lastJournalPopCaptured}</div>
+                    <div className="font-semibold text-slate-100">{lastJournalPopCaptured}</div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR auto lancé</span>
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-slate-100">
                       {lastScanPoolMeta.ibkrAutoLaunched || ibkrSentCount > 0 ? "oui" : "non"}
                     </div>
                   </div>
                 </div>
                 {lastScanPoolMeta.ibkrAutoSkipReason ? (
-                  <p className="mt-2 text-amber-800">{lastScanPoolMeta.ibkrAutoSkipReason}</p>
+                  <p className="mt-2 text-amber-300">{lastScanPoolMeta.ibkrAutoSkipReason}</p>
                 ) : null}
                 {lastScanPoolMeta.usedFallbackUltimate ? (
-                  <p className="mt-2 text-amber-800">
+                  <p className="mt-2 text-amber-300">
                     Pool Research Expanded indisponible — secours fallback 65 utilisé pour ce scan.
                   </p>
                 ) : null}
@@ -11875,7 +11889,7 @@ export default function Dashboard() {
                   lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget,
                   lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0
                 ) ? (
-                  <p className="mt-2 text-slate-600">
+                  <p className="mt-2 text-slate-400">
                     IBKR testés &lt; Audit Depth : Yahoo a renvoyé{" "}
                     {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0} candidats (plafond réel = min(Yahoo
                     retournés, Audit Depth)).
@@ -11922,8 +11936,8 @@ export default function Dashboard() {
               <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
             </div>
             {ibkrDirectResult?.ok === true && (
-              <div className="mt-4 rounded-xl border border-sky-100 bg-slate-50/80 px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="mt-4 rounded-xl border border-sky-900 bg-slate-800/80 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Traçabilité Yahoo → IBKR (observabilité)
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -11934,8 +11948,8 @@ export default function Dashboard() {
                   <Metric label="IBKR Non Tested" value={String(ibkrNonTestedCount)} />
                   <Metric label="Fusion IBKR (batches)" value={String(ibkrDirectResult.progressiveIbkrBatchCount ?? "—")} />
                 </div>
-                <p className="mt-2 text-xs leading-5 text-slate-600">
-                  <span className="font-semibold text-slate-800">Top IBKR rejection reasons:</span>{" "}
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  <span className="font-semibold text-slate-200">Top IBKR rejection reasons:</span>{" "}
                   {ibkrTraceTopReasonLines.length
                     ? ibkrTraceTopReasonLines.join(" · ")
                     : "(aucune raison agrégée — voir tableau rejetés par symbole)"}
@@ -11946,7 +11960,7 @@ export default function Dashboard() {
               Lecture visuelle seulement : actionnable = finalDisplayMode SAFE/AGGRESSIVE avec finalDisplayGrade A/B.
             </p>
             {ibkrDirectResult?.progressiveAutoIbkr && ibkrTotalKeptCollected < ibkrFinalTarget && (
-              <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+              <p className="mt-2 rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-sm font-semibold text-amber-300">
                 Seulement {ibkrTotalKeptCollected} retenus IBKR disponibles dans le bassin Yahoo testé.
               </p>
             )}
@@ -11955,16 +11969,16 @@ export default function Dashboard() {
         )}
 
         {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details open>
-              <summary className="cursor-pointer font-semibold text-slate-900">
+              <summary className="cursor-pointer font-semibold text-slate-100">
                 PIPELINE FUNNEL DIAGNOSTICS
               </summary>
-              <p className="mt-2 text-xs text-slate-600">
+              <p className="mt-2 text-xs text-slate-400">
                 Universe: {pipelineFunnelDiagnostics.universeMasterActive} · Watchlist: {pipelineFunnelDiagnostics.watchlistKept} · Yahoo Sent: {pipelineFunnelDiagnostics.tickersSentToScan} · Yahoo Qualified: {pipelineFunnelDiagnostics.passesFilterTrue} · Yahoo Unreliable: {pipelineFunnelDiagnostics.keptUnreliable} · Yahoo Returned: {pipelineFunnelDiagnostics.returned} · UI Visible: {pipelineFunnelDiagnostics.visibleAfterTopN} · Filtered Final: {pipelineFunnelDiagnostics.filteredFinalCount} · Combo Pool: {pipelineFunnelDiagnostics.comboBasePoolCount}
               </p>
               {dataSource === "ibkr_direct" && primaryIbkrSourceInfo && (
-                <p className="mt-1 text-xs text-amber-900">
+                <p className="mt-1 text-xs text-amber-300">
                   IBKR auto : affichage prima limité à {ibkrFinalTarget} lignes — shortlist Yahoo en mémoire{" "}
                   {yahooReturnedCount}, fusion IBKR avant cap{" "}
                   {Number(primaryIbkrSourceInfo.totalKeptCollected) || "—"}, hors écran{" "}
@@ -12002,41 +12016,41 @@ export default function Dashboard() {
                 <Metric label="Combo usable S/B/A" value={`${pipelineFunnelDiagnostics.usableForSAFE} / ${pipelineFunnelDiagnostics.usableForBALANCED} / ${pipelineFunnelDiagnostics.usableForAGGRESSIVE}`} />
               </div>
 
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="font-medium text-slate-900">Conversion rates</p>
-                <div className="mt-2 space-y-2 text-xs text-slate-700">
+              <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                <p className="font-medium text-slate-100">Conversion rates</p>
+                <div className="mt-2 space-y-2 text-xs text-slate-300">
                   <div>
                     Fill rate watchlist: {pipelineFunnelDiagnostics.fillRatePct.toFixed(1)}%
-                    <div className="mt-1 h-2 w-full rounded bg-slate-200">
+                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
                       <div className="h-2 rounded bg-sky-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.fillRatePct)}%` }} />
                     </div>
                   </div>
                   <div>
                     Qualification rate: {pipelineFunnelDiagnostics.qualificationRatePct.toFixed(1)}%
-                    <div className="mt-1 h-2 w-full rounded bg-slate-200">
-                      <div className="h-2 rounded bg-emerald-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.qualificationRatePct)}%` }} />
+                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
+                      <div className="h-2 rounded bg-emerald-950/400" style={{ width: `${clampPct(pipelineFunnelDiagnostics.qualificationRatePct)}%` }} />
                     </div>
                   </div>
                   <div>
                     Final combo conversion rate: {pipelineFunnelDiagnostics.finalComboConversionRatePct.toFixed(1)}%
-                    <div className="mt-1 h-2 w-full rounded bg-slate-200">
-                      <div className="h-2 rounded bg-amber-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.finalComboConversionRatePct)}%` }} />
+                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
+                      <div className="h-2 rounded bg-amber-950/400" style={{ width: `${clampPct(pipelineFunnelDiagnostics.finalComboConversionRatePct)}%` }} />
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="font-medium text-slate-900">Pertes par étape</p>
-                  <div className="mt-2 space-y-2 text-xs text-slate-700">
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Pertes par étape</p>
+                  <div className="mt-2 space-y-2 text-xs text-slate-300">
                     {pipelineFunnelDiagnostics.stageLossRows.map((row) => (
-                      <div key={`stage-loss-${row.from}-${row.to}`} className="rounded border border-slate-200 bg-white p-2">
+                      <div key={`stage-loss-${row.from}-${row.to}`} className="rounded border border-slate-700 bg-slate-900 p-2">
                         <div className="flex items-center justify-between">
                           <span>{row.from} → {row.to}</span>
                           <span className="font-medium">{row.before} → {row.after} (perte {row.lost})</span>
                         </div>
-                        <div className="mt-1 h-2 w-full rounded bg-slate-200">
+                        <div className="mt-1 h-2 w-full rounded bg-slate-700">
                           <div className="h-2 rounded bg-slate-600" style={{ width: `${clampPct(row.conversionPct)}%` }} />
                         </div>
                         <div className="mt-1 text-right">{row.conversionPct.toFixed(1)}%</div>
@@ -12044,15 +12058,15 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="font-medium text-slate-900">Rejection Dashboard</p>
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Rejection Dashboard</p>
                   {pipelineFunnelDiagnostics.rejectionRows.length === 0 ? (
                     <p className="mt-2 text-xs text-slate-500">Aucun rejet comptabilisé.</p>
                   ) : (
                     <div className="mt-2 overflow-x-auto">
-                      <table className="min-w-full text-left text-xs text-slate-700">
+                      <table className="min-w-full text-left text-xs text-slate-300">
                         <thead>
-                          <tr className="border-b border-slate-200 text-slate-500">
+                          <tr className="border-b border-slate-700 text-slate-500">
                             <th className="py-1 pr-2 font-medium">Reason</th>
                             <th className="py-1 pr-2 font-medium">Count</th>
                             <th className="py-1 font-medium">Severity</th>
@@ -12060,7 +12074,7 @@ export default function Dashboard() {
                         </thead>
                         <tbody>
                           {pipelineFunnelDiagnostics.rejectionRows.map((row) => (
-                            <tr key={`reject-row-${row.reason}`} className="border-b border-slate-100 last:border-0">
+                            <tr key={`reject-row-${row.reason}`} className="border-b border-slate-800 last:border-0">
                               <td className="py-1 pr-2">{row.reason}</td>
                               <td className="py-1 pr-2">{row.count}</td>
                               <td className="py-1">{row.severity}</td>
@@ -12070,9 +12084,9 @@ export default function Dashboard() {
                       </table>
                     </div>
                   )}
-                  <div className="mt-3 rounded border border-slate-200 bg-white p-2 text-xs">
-                    <div className="font-medium text-slate-800">Yahoo qualification reasons</div>
-                    <div className="mt-1 text-slate-600">
+                  <div className="mt-3 rounded border border-slate-700 bg-slate-900 p-2 text-xs">
+                    <div className="font-medium text-slate-200">Yahoo qualification reasons</div>
+                    <div className="mt-1 text-slate-400">
                       no_put_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_put_below_lower_bound} ·
                       no_liquid_strike_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_liquid_strike_below_lower_bound} ·
                       premium_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.premium_below_target} ·
@@ -12086,9 +12100,9 @@ export default function Dashboard() {
               </div>
 
               {pipelineFunnelDiagnostics.watchlistBuildRejections.length > 0 && (
-                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="font-medium text-slate-900">Watchlist build rejection reasons</p>
-                  <div className="mt-2 grid gap-1 text-xs text-slate-700 md:grid-cols-2">
+                <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Watchlist build rejection reasons</p>
+                  <div className="mt-2 grid gap-1 text-xs text-slate-300 md:grid-cols-2">
                     {pipelineFunnelDiagnostics.watchlistBuildRejections.map((row) => (
                       <div key={`watchlist-build-reason-${row.reason}`}>
                         {formatIbkrReason(row.reason)} : {row.count}
@@ -12102,9 +12116,9 @@ export default function Dashboard() {
         )}
 
         {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details>
-              <summary className="cursor-pointer font-semibold text-slate-900">
+              <summary className="cursor-pointer font-semibold text-slate-100">
                 Diagnostic Yahoo (dernier scan)
               </summary>
               <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -12114,12 +12128,12 @@ export default function Dashboard() {
                 <Metric label="Yahoo rejected" value={String(yahooRejectedCount)} />
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="font-medium text-slate-900">Top rejectionReasonCounts</p>
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Top rejectionReasonCounts</p>
                   {yahooTopRejectionReasons.length === 0 ? (
                     <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
                   ) : (
-                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                    <div className="mt-2 space-y-1 text-xs text-slate-300">
                       {yahooTopRejectionReasons.map((row) => (
                         <div key={`yahoo-reason-${row.reason}`}>
                           {formatIbkrReason(row.reason)} : {row.count}
@@ -12128,12 +12142,12 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="font-medium text-slate-900">Top stageRejectCounts</p>
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Top stageRejectCounts</p>
                   {yahooTopStageRejectCounts.length === 0 ? (
                     <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
                   ) : (
-                    <div className="mt-2 space-y-1 text-xs text-slate-700">
+                    <div className="mt-2 space-y-1 text-xs text-slate-300">
                       {yahooTopStageRejectCounts.map((row) => (
                         <div key={`yahoo-stage-${row.reason}`}>
                           {formatIbkrReason(row.reason)} : {row.count}
@@ -12143,12 +12157,12 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="font-medium text-slate-900">Exemples rejetés (max 20)</p>
+              <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                <p className="font-medium text-slate-100">Exemples rejetés (max 20)</p>
                 {yahooRejectedSampleRows.length === 0 ? (
                   <p className="mt-1 text-xs text-slate-500">Aucun exemple disponible.</p>
                 ) : (
-                  <div className="mt-2 space-y-1 text-xs text-slate-700">
+                  <div className="mt-2 space-y-1 text-xs text-slate-300">
                     {yahooRejectedSampleRows.map((row, index) => (
                       <div key={`yahoo-rejected-sample-${row.symbol}-${index}`}>
                         {row.symbol} : {formatIbkrReason(row.reason)}
@@ -12162,9 +12176,9 @@ export default function Dashboard() {
         )}
 
         {yahooReturnedCount > 0 && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details>
-              <summary className="cursor-pointer font-semibold text-slate-900">Candidats Yahoo non envoyés à IBKR</summary>
+              <summary className="cursor-pointer font-semibold text-slate-100">Candidats Yahoo non envoyés à IBKR</summary>
             {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 120)) ? (
               <p className="mt-2 text-slate-500">
                 Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
@@ -12188,14 +12202,14 @@ export default function Dashboard() {
         )}
 
         {ibkrAutoRankDiagnostics.length > 0 && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details>
-              <summary className="cursor-pointer font-semibold text-slate-900">
+              <summary className="cursor-pointer font-semibold text-slate-100">
                 Rangs Yahoo — testés IBKR : {ibkrTestedCount} / {yahooReturnedCount}
               </summary>
             <p className="mt-1 text-xs text-slate-500">
               Source :{" "}
-              <span className="font-mono font-medium text-slate-800">
+              <span className="font-mono font-medium text-slate-200">
                 {ibkrAutoTickerSource === "yahoo_shortlist"
                   ? "yahoo_shortlist"
                   : ibkrAutoTickerSource === "watchlist_fallback"
@@ -12253,16 +12267,16 @@ export default function Dashboard() {
           </div>
         )}
 
-        <details className="mb-6 rounded-[28px] border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-          <summary className="cursor-pointer text-base font-semibold text-slate-900">
+        <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-5 text-sm text-slate-400 shadow-sm">
+          <summary className="cursor-pointer text-base font-semibold text-slate-100">
             Diagnostics IBKR avancés
           </summary>
           <div className="mt-4 space-y-6">
-            <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <summary className="cursor-pointer font-semibold text-slate-900">
+            <details className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+              <summary className="cursor-pointer font-semibold text-slate-100">
                 Compteurs appels Yahoo / IBKR
               </summary>
-              <div className="mt-3 space-y-3 text-sm text-slate-700">
+              <div className="mt-3 space-y-3 text-sm text-slate-300">
                 <div className="flex flex-wrap gap-2">
                   <Button
                     className="rounded-xl"
@@ -12286,7 +12300,7 @@ export default function Dashboard() {
 
                 {scanMetricsLoading && <p className="text-slate-500">Chargement métriques…</p>}
                 {scanMetricsError && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                  <div className="rounded-xl border border-amber-800 bg-amber-950/40 p-3 text-amber-300">
                     {scanMetricsError}
                   </div>
                 )}
@@ -12371,12 +12385,12 @@ export default function Dashboard() {
                         value={`${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionQualifyAvoided ?? 0} / ${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionMarketDataAvoided ?? 0}`}
                       />
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <p className="font-medium text-slate-900">Top 5 tickers IBKR les plus coûteux</p>
+                    <div className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+                      <p className="font-medium text-slate-100">Top 5 tickers IBKR les plus coûteux</p>
                       {ibkrTopCostlySymbols.length === 0 ? (
                         <p className="mt-1 text-slate-500">Aucune donnée ticker disponible.</p>
                       ) : (
-                        <div className="mt-2 space-y-1 text-xs text-slate-700">
+                        <div className="mt-2 space-y-1 text-xs text-slate-300">
                           {ibkrTopCostlySymbols.map((row) => (
                             <div key={`ibkr-cost-${row.symbol}`}>
                               {row.symbol} — approx {row.approxIbkrCalls} · qualify opt {row.optionQualifyCalls} ·
@@ -12387,8 +12401,8 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
-                    <details className="rounded-xl border border-slate-200 bg-white p-3">
-                      <summary className="cursor-pointer font-medium text-slate-900">
+                    <details className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+                      <summary className="cursor-pointer font-medium text-slate-100">
                         Détail IBKR par ticker
                       </summary>
                       <p className="mt-2 text-xs leading-5 text-slate-500">
@@ -12398,8 +12412,8 @@ export default function Dashboard() {
                         <p className="mt-2 text-slate-500">Aucun détail IBKR par ticker disponible.</p>
                       ) : (
                         <div className="mt-3 overflow-x-auto">
-                          <table className="min-w-full text-left text-xs text-slate-700">
-                            <thead className="border-b border-slate-200 text-slate-500">
+                          <table className="min-w-full text-left text-xs text-slate-300">
+                            <thead className="border-b border-slate-700 text-slate-500">
                               <tr>
                                 <th className="py-2 pr-4 font-medium">Ticker</th>
                                 <th className="py-2 pr-4 font-medium">Statut</th>
@@ -12412,8 +12426,8 @@ export default function Dashboard() {
                             </thead>
                             <tbody>
                               {ibkrTickerDetailRows.map((row) => (
-                                <tr key={`ibkr-detail-${row.symbol}`} className="border-b border-slate-100 last:border-0">
-                                  <td className="py-2 pr-4 font-semibold text-slate-900">{row.symbol}</td>
+                                <tr key={`ibkr-detail-${row.symbol}`} className="border-b border-slate-800 last:border-0">
+                                  <td className="py-2 pr-4 font-semibold text-slate-100">{row.symbol}</td>
                                   <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
                                   <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
                                   <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
@@ -12430,16 +12444,16 @@ export default function Dashboard() {
                   </>
                 )}
                 {!scanMetricsData && ibkrTickerDetailRows.length > 0 && (
-                  <details className="rounded-xl border border-slate-200 bg-white p-3">
-                    <summary className="cursor-pointer font-medium text-slate-900">
+                  <details className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+                    <summary className="cursor-pointer font-medium text-slate-100">
                       Détail IBKR par ticker
                     </summary>
                     <p className="mt-2 text-xs leading-5 text-slate-500">
                       IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
                     </p>
                     <div className="mt-3 overflow-x-auto">
-                      <table className="min-w-full text-left text-xs text-slate-700">
-                        <thead className="border-b border-slate-200 text-slate-500">
+                      <table className="min-w-full text-left text-xs text-slate-300">
+                        <thead className="border-b border-slate-700 text-slate-500">
                           <tr>
                             <th className="py-2 pr-4 font-medium">Ticker</th>
                             <th className="py-2 pr-4 font-medium">Statut</th>
@@ -12452,8 +12466,8 @@ export default function Dashboard() {
                         </thead>
                         <tbody>
                           {ibkrTickerDetailRows.map((row) => (
-                            <tr key={`ibkr-detail-fallback-${row.symbol}`} className="border-b border-slate-100 last:border-0">
-                              <td className="py-2 pr-4 font-semibold text-slate-900">{row.symbol}</td>
+                            <tr key={`ibkr-detail-fallback-${row.symbol}`} className="border-b border-slate-800 last:border-0">
+                              <td className="py-2 pr-4 font-semibold text-slate-100">{row.symbol}</td>
                               <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
                               <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
                               <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
@@ -12470,8 +12484,8 @@ export default function Dashboard() {
               </div>
             </details>
 
-            <details className="mb-6 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
-              <summary className="cursor-pointer text-base font-semibold text-slate-900">
+            <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 shadow-sm">
+              <summary className="cursor-pointer text-base font-semibold text-slate-100">
                 Diagnostic manuel IBKR Shadow single ticker
               </summary>
               <div className="mt-4">
@@ -12490,23 +12504,23 @@ export default function Dashboard() {
               </div>
             </details>
 
-        <Card className="mb-6 rounded-[28px] border-slate-200 shadow-sm">
+        <Card className="mb-6 rounded-[28px] border-slate-700 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xl text-slate-900">IBKR Shadow Batch — Diagnostic</CardTitle>
+            <CardTitle className="text-xl text-slate-100">IBKR Shadow Batch — Diagnostic</CardTitle>
             <p className="mt-1 text-sm text-slate-500">
               IBKR Shadow Batch est en lecture seule. Aucun ordre envoyé. Les données peuvent être
               frozen/delayed hors marché.
             </p>
             <p className="mt-1 text-xs text-slate-500">
               Expiration utilisée pour IBKR :{" "}
-              <span className="font-medium text-slate-700">
+              <span className="font-medium text-slate-300">
                 {(ibkrBatchExpirationInfo.usedExpiration || "—")} /{" "}
                 {(ibkrBatchExpirationInfo.ibkrExpiration || "—")}
               </span>
             </p>
             <p className="mt-1 text-xs text-slate-500">
               Titres envoyés :{" "}
-              <span className="font-medium text-slate-700">
+              <span className="font-medium text-slate-300">
                 {ibkrBatchTickersForSend.length} / {ibkrBatchTickers.length} affichés
               </span>
             </p>
@@ -12518,12 +12532,12 @@ export default function Dashboard() {
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Client ID start</label>
+                <label className="mb-2 block text-sm font-medium text-slate-300">Client ID start</label>
                 <Input
                   type="number"
                   value={ibkrBatchClientIdStart}
                   onChange={(e) => setIbkrBatchClientIdStart(e.target.value)}
-                  className="w-full rounded-xl border-slate-200"
+                  className="w-full rounded-xl border-slate-700"
                 />
               </div>
               <div className="md:col-span-3 flex items-end">
@@ -12538,13 +12552,13 @@ export default function Dashboard() {
             </div>
 
             {ibkrBatchLoading && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
                 Validation IBKR Shadow en cours…
               </div>
             )}
 
             {ibkrBatchError && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
                 Erreur batch IBKR Shadow : {ibkrBatchError}
               </div>
             )}
@@ -12581,8 +12595,8 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  <p className="mb-2 font-medium text-slate-900">Résultats compacts</p>
+                <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
+                  <p className="mb-2 font-medium text-slate-100">Résultats compacts</p>
                   <div className="space-y-1">
                     {(ibkrBatchResult?.results || []).map((row) => (
                       <div key={`ibkr-batch-${row.symbol}`} className="text-sm">
@@ -12616,8 +12630,8 @@ export default function Dashboard() {
           onRunTest={handleIbkrDirectTestScan}
         />
 
-        <details className="mb-6 rounded-[28px] border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
-          <summary className="cursor-pointer font-semibold text-slate-900">
+        <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 text-sm text-slate-400 shadow-sm">
+          <summary className="cursor-pointer font-semibold text-slate-100">
             Diagnostic secondaire : ancienne vue fusionnée
           </summary>
           <div className="mt-4">
@@ -12628,14 +12642,14 @@ export default function Dashboard() {
         </details>
 
         {watchlistBuildError && watchlistSource === "fallback" && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+          <div className="mb-6 rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300 shadow-sm">
             Watchlist : secours liste statique ({FALLBACK_TICKERS.length} tickers). Raison : {watchlistBuildError}
           </div>
         )}
 
         {(watchlistLoading || loadingScan) && (
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between text-sm text-slate-700">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">
+            <div className="flex items-center justify-between text-sm text-slate-300">
               <span>{watchlistLoading ? "Construction watchlist (/universe/build)…" : "Scan backend en cours…"}</span>
               <span>
                 {watchlistLoading
@@ -12652,7 +12666,7 @@ export default function Dashboard() {
         {!loadingScan && !watchlistLoading && (
           <>
             {showClosedValidBanner && (
-              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 shadow-sm">
+              <div className="mb-6 rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-400 shadow-sm">
                 Marche ferme — dernier scan valide affiche (cache local). Donnees indicatives / non
                 tradables.
               </div>
@@ -12671,8 +12685,8 @@ export default function Dashboard() {
                 className={cn(
                   "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
                   dataSource === "backend" || dataSource === "ibkr_direct"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-amber-200 bg-amber-50 text-amber-700"
+                    ? "border-emerald-800 bg-emerald-950/40 text-emerald-400"
+                    : "border-amber-800 bg-amber-950/40 text-amber-400"
                 )}
               >
                 {dataSource === "ibkr_direct"
@@ -12684,13 +12698,13 @@ export default function Dashboard() {
             )}
 
             {showClosedNoCacheBanner && (
-              <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+              <div className="mb-6 rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400 shadow-sm">
                 Marche ferme et aucun scan valide en cache local.
               </div>
             )}
 
             {scanError && !showClosedNoCacheBanner && (
-              <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+              <div className="mb-6 rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400 shadow-sm">
                 {scanError}
               </div>
             )}
@@ -12700,11 +12714,11 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <div className="space-y-6">
-            <Card className="rounded-[28px] border-slate-200 shadow-sm">
+            <Card className="rounded-[28px] border-slate-700 shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <CardTitle className="text-xl text-slate-900">Shortlist hebdomadaire</CardTitle>
+                    <CardTitle className="text-xl text-slate-100">Shortlist hebdomadaire</CardTitle>
                     <p className="mt-1 text-sm text-slate-500">
                       {dataSource === "ibkr_direct"
                         ? "Shortlist chargée depuis IBKR Direct Scan."
@@ -12727,7 +12741,7 @@ export default function Dashboard() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Ticker ou nom..."
-                        className="rounded-xl border-slate-200 pl-9"
+                        className="rounded-xl border-slate-700 pl-9"
                       />
                     </div>
 
@@ -12752,7 +12766,7 @@ export default function Dashboard() {
                     <Select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="rounded-xl border-slate-200"
+                      className="rounded-xl border-slate-700"
                     >
                       <option value="quality">Trier par: qualité Wheel</option>
                       <option value="strikeDistance">Trier par: distance strike</option>
@@ -12762,7 +12776,7 @@ export default function Dashboard() {
                     <Select
                       value={sortOrder}
                       onChange={(e) => setSortOrder(e.target.value)}
-                      className="rounded-xl border-slate-200"
+                      className="rounded-xl border-slate-700"
                     >
                       <option value="asc">Ordre: asc</option>
                       <option value="desc">Ordre: desc</option>
@@ -12776,7 +12790,7 @@ export default function Dashboard() {
 
               <CardContent className="px-2 py-3 md:px-3">
                 {filtered.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">
+                  <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-800/50 p-10 text-center text-sm text-slate-500">
                     Aucun résultat avec ce filtre.
                   </div>
                 ) : (
@@ -12812,25 +12826,25 @@ export default function Dashboard() {
           <div className="space-y-6">
             <AlertPanel />
 
-            <Card className="rounded-[28px] border-slate-200 shadow-sm">
+            <Card className="rounded-[28px] border-slate-700 shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
                   <Activity className="h-5 w-5" />
                   Résumé semaine
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm text-slate-600">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-medium text-slate-900">Lecture rapide</p>
+              <CardContent className="space-y-4 text-sm text-slate-400">
+                <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+                  <p className="font-medium text-slate-100">Lecture rapide</p>
                   <p className="mt-2 leading-6">
                     Le scan principal est calculé côté backend sur la watchlist chargée. Le frontend ne fait pas le scan ticker par ticker.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="rounded-2xl border border-slate-700 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Source active</span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-slate-100">
                       {dataSource === "ibkr_direct"
                         ? "IBKR Direct Scan"
                         : dataSource === "backend"
@@ -12848,34 +12862,34 @@ export default function Dashboard() {
                       <>
                         <div className="mt-3 flex items-center justify-between">
                           <span className="text-slate-500">Retenus IBKR total</span>
-                          <span className="font-semibold text-slate-900">{filtered.length}</span>
+                          <span className="font-semibold text-slate-100">{filtered.length}</span>
                         </div>
                         <div className="mt-3 flex items-center justify-between">
                           <span className="text-slate-500">Admissibles panneau crème</span>
-                          <span className="font-semibold text-slate-900">{admis}</span>
+                          <span className="font-semibold text-slate-100">{admis}</span>
                         </div>
                         <div className="mt-3 flex items-center justify-between">
                           <span className="text-slate-500">Exclus crypto masqués</span>
-                          <span className="font-semibold text-slate-900">{cryptoCount}</span>
+                          <span className="font-semibold text-slate-100">{cryptoCount}</span>
                         </div>
                         <div className="mt-3 flex items-center justify-between">
                           <span className="text-slate-500">Non remplacés après exclusion</span>
-                          <span className="font-semibold text-amber-600">{cryptoCount}</span>
+                          <span className="font-semibold text-amber-400">{cryptoCount}</span>
                         </div>
                       </>
                     );
                   })()}
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Scannés backend</span>
-                    <span className="font-semibold text-slate-900">{scanMeta.scanned}</span>
+                    <span className="font-semibold text-slate-100">{scanMeta.scanned}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Retenus backend</span>
-                    <span className="font-semibold text-slate-900">{scanMeta.kept}</span>
+                    <span className="font-semibold text-slate-100">{scanMeta.kept}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-slate-500">Capital compte</span>
-                    <span className="font-semibold text-slate-900">${Number(capital).toFixed(0)}</span>
+                    <span className="font-semibold text-slate-100">${Number(capital).toFixed(0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -12886,7 +12900,7 @@ export default function Dashboard() {
         ) : (
           <React.Suspense
             fallback={
-              <div className="rounded-[28px] border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
+              <div className="rounded-[28px] border border-slate-700 bg-slate-900 p-8 text-sm text-slate-500 shadow-sm">
                 Chargement du journal...
               </div>
             }

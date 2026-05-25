@@ -1,0 +1,44 @@
+/* Base sombre globale — évite flash blanc autour du dashboard */
+html,
+body,
+#root {
+  min-height: 100%;
+  background-color: #0b1117;
+  color: #e2e8f0;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar discrète (WebKit) */
+* {
+  scrollbar-color: #334155 #0b1117;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0b1117;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Champs natifs dans les selects/options */
+select option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}

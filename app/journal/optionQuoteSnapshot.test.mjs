@@ -185,6 +185,47 @@ test("parseOptionQuoteSnapshot — round-trip JSON SQLite", () => {
   assert.equal(parsed.quote.bid, 1);
 });
 
+test("enrichRecordWithOptionQuoteFields — record à résoudre expose les champs optionData", () => {
+  const snapshot = {
+    source: "IBKR",
+    primaryOptionDataSource: "IBKR",
+    dataConfidence: "observed_ibkr",
+    quote: { bid: 0.64, ask: 0.72, mid: 0.68, spreadAbs: 0.08, spreadPct: 0.118 },
+    greeks: { impliedVolatility: 0.753, delta: -0.22 },
+    liquidity: { openInterest: 800, volume: 120 },
+    contract: { conId: 123456, localSymbol: "TQQQ  260529P00050000" },
+    missingFields: ["gamma", "theta", "vega"],
+    warnings: [],
+  };
+  const record = {
+    symbol: "TQQQ",
+    resolution: { resolved: false },
+    option_quote_snapshot_json: JSON.stringify(snapshot),
+  };
+  const enriched = enrichRecordWithOptionQuoteFields(record);
+  assert.equal(enriched.optionQuoteSnapshot.quote.bid, 0.64);
+  assert.equal(enriched.optionQuoteSnapshot.greeks.delta, -0.22);
+  assert.equal(enriched.hasObservedIbkrOptionData, true);
+  assert.equal(enriched.optionDataBadge, "IBKR observé");
+  assert.equal(enriched.optionSnapshotStorageStatus, "snapshot_sqlite_present");
+  assert.ok(enriched.optionDataCompletenessPct > 0);
+  assert.deepEqual(enriched.optionDataMissingFields, ["gamma", "theta", "vega"]);
+});
+
+test("enrichRecordWithOptionQuoteFields — JSON snapshot invalide ne plante pas", () => {
+  const record = {
+    symbol: "BROK",
+    resolution: { resolved: false },
+    option_quote_snapshot_json: "{not-json",
+  };
+  const enriched = enrichRecordWithOptionQuoteFields(record);
+  assert.equal(enriched.optionDataBadge, "Snapshot invalide");
+  assert.equal(enriched.optionSnapshotStorageStatus, "snapshot_parse_failed");
+  assert.equal(enriched.hasObservedIbkrOptionData, false);
+  assert.ok(enriched.optionDataWarnings.includes("option_quote_snapshot_json_parse_failed"));
+  assert.doesNotThrow(() => JSON.stringify(enriched));
+});
+
 test("computeOnePercentWheelProfiles — verdict inchangé avec snapshot présent", () => {
   const records = Array.from({ length: 35 }, (_, index) => ({
     symbol: "SNAP",

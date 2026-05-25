@@ -443,6 +443,46 @@ export function parseOptionQuoteSnapshot(record) {
   return null;
 }
 
+function parseOptionQuoteSnapshotWithStatus(record) {
+  if (!record || typeof record !== "object") {
+    return { snapshot: null, storageStatus: "snapshot_absent", warnings: [] };
+  }
+  const direct = record?.optionQuoteSnapshot;
+  if (direct && typeof direct === "object") {
+    return { snapshot: direct, storageStatus: "snapshot_sqlite_present", warnings: [] };
+  }
+  const raw = record?.option_quote_snapshot_json;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        return { snapshot: parsed, storageStatus: "snapshot_sqlite_present", warnings: [] };
+      }
+      return {
+        snapshot: null,
+        storageStatus: "snapshot_parse_failed",
+        warnings: ["option_quote_snapshot_json_not_object"],
+      };
+    } catch (_err) {
+      return {
+        snapshot: null,
+        storageStatus: "snapshot_parse_failed",
+        warnings: ["option_quote_snapshot_json_parse_failed"],
+      };
+    }
+  }
+  return { snapshot: null, storageStatus: "snapshot_absent", warnings: ["snapshot_absent"] };
+}
+
+function buildRecordOptionDataBadge(diagnostics, storageStatus) {
+  if (storageStatus === "snapshot_parse_failed") return "Snapshot invalide";
+  if (diagnostics?.hasObservedIbkrOptionData) return "IBKR observé";
+  if (diagnostics?.optionDataSourceSummary === "Yahoo") return "Yahoo fallback";
+  if (storageStatus === "snapshot_absent") return "Snapshot absent";
+  if ((diagnostics?.optionDataCompletenessPct ?? 0) < 100) return "Options incomplètes";
+  return "Snapshot présent";
+}
+
 export function summarizeOptionQuoteDiagnostics(record) {
   const snapshot = parseOptionQuoteSnapshot(record);
   const hasSnapshot = Boolean(snapshot);
@@ -479,8 +519,20 @@ export function summarizeOptionQuoteDiagnostics(record) {
 
 export function enrichRecordWithOptionQuoteFields(record) {
   if (!record || typeof record !== "object") return record;
-  const diagnostics = summarizeOptionQuoteDiagnostics(record);
-  return { ...record, ...diagnostics };
+  const parsed = parseOptionQuoteSnapshotWithStatus(record);
+  const diagnosticsRecord = parsed.snapshot ? { ...record, optionQuoteSnapshot: parsed.snapshot } : record;
+  const diagnostics = summarizeOptionQuoteDiagnostics(diagnosticsRecord);
+  return {
+    ...record,
+    ...(parsed.snapshot ? { optionQuoteSnapshot: parsed.snapshot } : {}),
+    ...diagnostics,
+    optionSnapshotStorageStatus: parsed.storageStatus,
+    optionDataWarnings:
+      parsed.warnings.length > 0
+        ? [...new Set([...(diagnostics.optionDataWarnings ?? []), ...parsed.warnings])]
+        : diagnostics.optionDataWarnings,
+    optionDataBadge: buildRecordOptionDataBadge(diagnostics, parsed.storageStatus),
+  };
 }
 
 export function summarizeOptionDataForProfile(records) {

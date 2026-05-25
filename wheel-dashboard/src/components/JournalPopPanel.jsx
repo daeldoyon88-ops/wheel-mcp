@@ -74,6 +74,7 @@ function getOptionDataBadgeClass(badge) {
   const label = String(badge ?? "");
   if (label.includes("IBKR observé")) return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
   if (label.includes("Yahoo fallback")) return "border-amber-500/40 bg-amber-500/10 text-amber-300";
+  if (label.includes("invalide")) return "border-rose-500/40 bg-rose-500/10 text-rose-300";
   if (label.includes("incomplètes")) return "border-orange-500/40 bg-orange-500/10 text-orange-300";
   if (label.includes("Snapshot absent")) return "border-slate-600 bg-slate-800/50 text-slate-500";
   return "border-slate-600 bg-slate-800/40 text-slate-400";
@@ -141,7 +142,9 @@ function getLiveOptionSnapshotBadges(record) {
   const snapshot = record?.optionQuoteSnapshot ?? {};
   const badges = [];
   if (record?.optionSnapshotStorageStatus === "snapshot_parse_failed") {
-    badges.push({ label: "Snapshot incomplet", tone: "risk" });
+    badges.push({ label: "Snapshot invalide", tone: "risk" });
+  } else if (record?.optionSnapshotStorageStatus === "snapshot_absent" || !record?.optionQuoteSnapshot) {
+    badges.push({ label: "Snapshot absent", tone: "neutral" });
   } else {
     badges.push({ label: "Snapshot présent", tone: "neutral" });
   }
@@ -149,6 +152,30 @@ function getLiveOptionSnapshotBadges(record) {
   if (snapshot.impliedVolatility == null) badges.push({ label: "IV manquante", tone: "warn" });
   if (snapshot.delta == null) badges.push({ label: "Delta manquant", tone: "warn" });
   return badges.slice(0, 5);
+}
+
+function getOptionSnapshotDisplay(record) {
+  const snapshot = record?.optionQuoteSnapshot ?? {};
+  const quote = snapshot?.quote ?? snapshot;
+  const greeks = snapshot?.greeks ?? snapshot;
+  const liquidity = snapshot?.liquidity ?? snapshot;
+  const contract = snapshot?.contract ?? snapshot;
+  return {
+    source: snapshot?.source ?? record?.optionDataSourceSummary ?? null,
+    dataConfidence: snapshot?.dataConfidence ?? null,
+    bid: quote?.bid,
+    ask: quote?.ask,
+    mid: quote?.mid,
+    spreadAbs: quote?.spreadAbs,
+    spreadPct: quote?.spreadPct,
+    impliedVolatility: greeks?.impliedVolatility,
+    delta: greeks?.delta,
+    volume: liquidity?.volume,
+    openInterest: liquidity?.openInterest,
+    conId: contract?.conId,
+    localSymbol: contract?.localSymbol,
+    missingFields: record?.optionDataMissingFields ?? snapshot?.missingFields ?? [],
+  };
 }
 
 function formatDteRange(minDte, maxDte) {
@@ -7408,6 +7435,17 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <th className="px-3 py-3 font-semibold">DTE</th>
                       <th className="px-3 py-3 font-semibold">Rang</th>
                       <th className="px-3 py-3 font-semibold">Source</th>
+                      <th className="px-3 py-3 font-semibold">Options</th>
+                      <th className="px-3 py-3 font-semibold">Bid/Ask</th>
+                      <th className="px-3 py-3 font-semibold">Mid</th>
+                      <th className="px-3 py-3 font-semibold">Spread</th>
+                      <th className="px-3 py-3 font-semibold">IV</th>
+                      <th className="px-3 py-3 font-semibold">Delta</th>
+                      <th className="px-3 py-3 font-semibold">OI/Vol.</th>
+                      <th className="px-3 py-3 font-semibold">conId</th>
+                      <th className="px-3 py-3 font-semibold">localSymbol</th>
+                      <th className="px-3 py-3 font-semibold">Complétude</th>
+                      <th className="px-3 py-3 font-semibold">Champs manquants</th>
                       <th className="px-3 py-3 font-semibold">Mode</th>
                       <th className="px-3 py-3 font-semibold">Strike</th>
                       <th className="px-3 py-3 font-semibold">Premium</th>
@@ -7424,6 +7462,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                   <tbody className="divide-y divide-slate-800/70">
                     {unresolvedRecords.map((record) => {
                       const pl = numberOrNull(record?.resolution?.realizedPl);
+                      const snap = getOptionSnapshotDisplay(record);
+                      const missingFields = snap.missingFields ?? [];
                       return (
                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
                           <td className="px-3 py-2.5 text-slate-500">{formatDate(record?.scanTimestamp ?? record?.scanDate)}</td>
@@ -7433,6 +7473,35 @@ export default function JournalPopPanel({ apiBase, active }) {
                           <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
                           <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
                           <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
+                          <td className="px-3 py-2.5 min-w-[210px]">
+                            <div className="flex flex-wrap gap-1.5">
+                              <OptionDataBadge
+                                label={record?.optionDataBadge ?? "Snapshot absent"}
+                                title={`Source: ${snap.source ?? "—"} · Complétude: ${record?.optionDataCompletenessPct ?? 0}%`}
+                              />
+                              {getLiveOptionSnapshotBadges(record).map((badge) => (
+                                <LiveSnapshotBadge key={badge.label} label={badge.label} tone={badge.tone} />
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                            {formatMoney(snap.bid)} / {formatMoney(snap.ask)}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatMoney(snap.mid)}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                            {formatMoney(snap.spreadAbs)} · {formatRatioPercent(snap.spreadPct)}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{formatRatioPercent(snap.impliedVolatility)}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{snap.delta != null ? Number(snap.delta).toFixed(3) : "—"}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                            {formatCompactNumber(snap.openInterest)} / {formatCompactNumber(snap.volume)}
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums">{snap.conId ?? "—"}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap text-[11px] text-slate-400">{snap.localSymbol ?? "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{record?.optionDataCompletenessPct ?? 0}%</td>
+                          <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(missingFields) ? missingFields.join(", ") : ""}>
+                            {formatMissingFields(missingFields)}
+                          </td>
                           <td className="px-3 py-2.5">
                             <span className={record?.strikeMode === "safe" ? "font-semibold text-emerald-400" : record?.strikeMode === "aggressive" ? "font-semibold text-rose-400" : "text-slate-500"}>
                               {record?.strikeMode || "—"}

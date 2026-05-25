@@ -72,3 +72,26 @@ export function logIbkrTwoPhaseScanConfig(env = process.env) {
   }
   return cfg;
 }
+
+/** Diagnostic console IBKR strike window ; actif seulement si IBKR_STRIKE_WINDOW_DEBUG=1. */
+export function resolveIbkrStrikeWindowDebugEnabled(rawValue = process.env.IBKR_STRIKE_WINDOW_DEBUG) {
+  return parseBoolean(rawValue, false);
+}
+
+export function strikeVsLowerBound(strike, lowerBound) {
+  if (strike == null || lowerBound == null) {
+    return { relation: "unknown", distancePct: null };
+  }
+  const strikeValue = Number(strike);
+  const lowerBoundValue = Number(lowerBound);
+  if (
+    !Number.isFinite(strikeValue) ||
+    !Number.isFinite(lowerBoundValue) ||
+    lowerBoundValue <= 0
+  ) {
+    return { relation: "unknown", distancePct: null };
+  }
+  const relation = strikeValue < lowerBoundValue ? "below" : "equal_or_above";
+  const distancePct = Number((((strikeValue - lowerBoundValue) / lowerBoundValue) * 100).toFixed(2));
+  return { relation, distancePct };
+}

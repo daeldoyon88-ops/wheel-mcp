@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from ib_async import IB, Option, Stock
 from ib_async.ib import StartupFetchNONE
 
+from ibkr_strike_window_debug import log_strike_window_debug
+
 W_ATM = 0.60
 W_S1 = 0.30
 W_S2 = 0.10
@@ -859,6 +861,7 @@ def main() -> int:
         valid_straddle_strikes: list[float] = []
         strike_validation: dict = {}
         chosen_put_strikes: list[float] = []
+        aggressive_reference_strike: float | None = None
 
         s_atm_c = s_atm_p = None
         c_atm_c = c_atm_p = None
@@ -1499,6 +1502,22 @@ def main() -> int:
             aggressive_pc, "directly_below_lower_bound"
         )
         safe_obj = _selection_obj(safe_pc, safe_selection_reason or "")
+
+        log_strike_window_debug(
+            ticker=symbol,
+            expiration=expiration,
+            spot=float(underlying_price),
+            expected_move=expected_move,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            two_phase_enabled=two_phase_enabled,
+            two_phase_put_window=two_phase_put_window,
+            strikes=strikes,
+            chosen_put_strikes=chosen_put_strikes,
+            aggressive_reference_strike=aggressive_reference_strike,
+            safe_strike=safe_obj.get("strike") if safe_obj else None,
+            aggressive_strike=aggressive_obj.get("strike") if aggressive_obj else None,
+        )
 
         put_data.sort(
             key=lambda r: (r.get("strike") is None, -(r.get("strike") or 0))

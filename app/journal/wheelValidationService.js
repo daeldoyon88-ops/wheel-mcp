@@ -1661,6 +1661,111 @@ export function computeRealPopCalibration(records, options = {}) {
 
 const ONE_PERCENT_YIELD_TARGET_PCT = 0.9;
 const ONE_PERCENT_MIN_MODE_PROFILE_N = 15;
+const ONE_PERCENT_LB_ELEVATED_MIN_PCT = 15;
+
+/**
+ * Classifie le signal LB cassé pour un profil Objectif 1 %+ (stress de modèle vs dommage réel).
+ */
+export function classifyLowerBoundStressForOnePercentProfile(profileMetrics) {
+  const n =
+    toNumberOrNull(profileMetrics?.n) ??
+    toNumberOrNull(profileMetrics?.recordsResolved) ??
+    toNumberOrNull(profileMetrics?.csp?.recordsResolved) ??
+    0;
+  const lb =
+    toNumberOrNull(profileMetrics?.lowerBoundBreakRate) ??
+    toNumberOrNull(profileMetrics?.csp?.lowerBoundBreakRate);
+  const win =
+    toNumberOrNull(profileMetrics?.realWinRate) ?? toNumberOrNull(profileMetrics?.csp?.realWinRate);
+  const assign =
+    toNumberOrNull(profileMetrics?.assignmentRate) ??
+    toNumberOrNull(profileMetrics?.csp?.assignmentRate);
+  const touch =
+    toNumberOrNull(profileMetrics?.strikeTouchRate) ??
+    toNumberOrNull(profileMetrics?.csp?.strikeTouchRate);
+  const profondeRate =
+    toNumberOrNull(profileMetrics?.profondeRatePct) ??
+    toNumberOrNull(profileMetrics?.assignment?.profondeRatePct);
+  const profondeCount =
+    toNumberOrNull(profileMetrics?.profondeCount) ??
+    toNumberOrNull(profileMetrics?.assignment?.profondeCount) ??
+    0;
+  const wheel = profileMetrics?.wheel ?? {};
+  const hasClosedCycles = (wheel.cyclesClosed ?? 0) > 0;
+  const closedPnl = toNumberOrNull(wheel.avgWheelPnl);
+  const recoveryRate = toNumberOrNull(wheel.recoveryRatePct);
+  const cyclesAvailable = wheel.cyclesAvailable ?? 0;
+  const recoveryWeak =
+    recoveryRate != null && recoveryRate < 40 && cyclesAvailable >= 2;
+  const wheelPnlWeak = hasClosedCycles && closedPnl != null && closedPnl <= 0;
+
+  if (n < 15 || lb == null) {
+    return {
+      lbStressClass: "non_determinant",
+      lbStressLabel: "LB non déterminant",
+      lbStressReason:
+        n < 15
+          ? "Échantillon limité pour interpréter le LB cassé"
+          : "Taux LB cassé non disponible sur l'échantillon",
+    };
+  }
+
+  if (lb < ONE_PERCENT_LB_ELEVATED_MIN_PCT) {
+    return {
+      lbStressClass: "none",
+      lbStressLabel: "LB non problématique",
+      lbStressReason: `LB cassé faible (${roundMetric(lb, 1)}% sous le seuil ${ONE_PERCENT_LB_ELEVATED_MIN_PCT}%)`,
+    };
+  }
+
+  const assignHigh = assign != null && assign >= 25;
+  const profondeHigh = profondeRate != null && profondeRate >= 30;
+  const touchStressLevel = touch != null && touch >= 35;
+  const winStrong = win == null || win >= 85;
+  const assignLow = assign == null || assign <= 15;
+  const profondeLow = profondeRate == null || profondeRate < 20;
+  const wheelOk = !hasClosedCycles || closedPnl == null || closedPnl > 0;
+
+  if (
+    (lb >= 25 && (assignHigh || profondeHigh || wheelPnlWeak)) ||
+    (lb >= 15 && recoveryWeak && (assignHigh || profondeCount >= 1)) ||
+    (lb >= 50 && win != null && win < 80)
+  ) {
+    const parts = [`LB cassé ${roundMetric(lb, 1)}%`];
+    if (assignHigh) parts.push(`assignation ${roundMetric(assign, 1)}%`);
+    if (profondeHigh) parts.push(`profondeur ${roundMetric(profondeRate, 1)}%`);
+    if (wheelPnlWeak) parts.push("P/L Wheel faible");
+    if (recoveryWeak) parts.push("recovery faible");
+    return {
+      lbStressClass: "critique",
+      lbStressLabel: "LB cassé critique",
+      lbStressReason: `${parts.join(" · ")} — risque réel sur le cycle`,
+    };
+  }
+
+  if (winStrong && assignLow && profondeLow && wheelOk && !touchStressLevel && !assignHigh) {
+    return {
+      lbStressClass: "sans_dommage",
+      lbStressLabel: "LB cassé sans dommage",
+      lbStressReason: `LB cassé ${roundMetric(lb, 1)}% mais win CSP ${win == null ? "N/D" : `${roundMetric(win, 1)}%`} et assignation faible — stress théorique`,
+    };
+  }
+
+  const stressParts = [`LB cassé ${roundMetric(lb, 1)}%`];
+  if (touchStressLevel) stressParts.push(`touch ${roundMetric(touch, 1)}%`);
+  if (assign != null && assign > 15) stressParts.push(`assignation ${roundMetric(assign, 1)}%`);
+  if (win != null && win < 85) stressParts.push(`win CSP ${roundMetric(win, 1)}%`);
+
+  return {
+    lbStressClass: "avec_stress",
+    lbStressLabel: "LB cassé avec stress",
+    lbStressReason: `${stressParts.join(" · ")} — surveiller touch et assignation`,
+  };
+}
+
+function isLowerBoundStressDamagingForOnePercent(lbStressClass) {
+  return lbStressClass === "avec_stress" || lbStressClass === "critique";
+}
 
 function isOnePercentProfileRecord(record, todayYmd) {
   if (!getResolvedFlag(record)) return false;
@@ -1862,6 +1967,7 @@ function buildOnePercentVerdictReasons(metrics) {
     moderateYieldSignal,
     touchStress,
     lbStress,
+    lowerBoundStress,
     assignHigh,
     profondeHigh,
     wheel,
@@ -1890,7 +1996,11 @@ function buildOnePercentVerdictReasons(metrics) {
   else if (moderateYieldSignal) reasons.push("Rendement CSP modéré");
 
   if (touchStress) reasons.push("Touch élevé");
-  if (lbStress) reasons.push("LB cassé élevé");
+  if (lowerBoundStress?.lbStressClass && lowerBoundStress.lbStressClass !== "none") {
+    reasons.push(lowerBoundStress.lbStressLabel);
+  } else if (lbStress) {
+    reasons.push("LB cassé élevé");
+  }
   if (assignHigh) reasons.push("Assignation élevée");
   if (profondeHigh) reasons.push("Assignation profonde");
   if (assignHigh && procheRate != null && procheRate < 20) reasons.push("Peu d'assignations proches");
@@ -1902,7 +2012,12 @@ function buildOnePercentVerdictReasons(metrics) {
   if (!winOk && win != null) reasons.push("Win CSP faible");
 
   if (primaryVerdict === "1 % défendable") {
-    if (!touchStress && !lbStress) reasons.push("Stress maîtrisé");
+    if (
+      !touchStress &&
+      (!lbStress || lowerBoundStress?.lbStressClass === "sans_dommage")
+    ) {
+      reasons.push("Stress maîtrisé");
+    }
     if (wheelPnlPositive) reasons.push("P/L Wheel positif");
   } else if (primaryVerdict === "faux 1 %") {
     reasons.push("Prime élevée mais cycle fragile");
@@ -1959,7 +2074,14 @@ function buildOnePercentProfileVerdicts(ctx) {
   const profondeHigh = profondeRate != null && profondeRate >= 30;
   const profondeLow = profondeRate == null || profondeRate < 20;
   const touchStress = touch != null && touch >= 35;
-  const lbStress = lb != null && lb >= 15;
+  const lbStress = lb != null && lb >= ONE_PERCENT_LB_ELEVATED_MIN_PCT;
+  const lowerBoundStress = classifyLowerBoundStressForOnePercentProfile({
+    n,
+    csp: ctx.csp,
+    assignment: ctx.assignment,
+    wheel,
+  });
+  const lbStressDamaging = isLowerBoundStressDamagingForOnePercent(lowerBoundStress.lbStressClass);
   const wheelPnlWeak = hasClosedCycles && closedPnl != null && closedPnl <= 0;
   const wheelPnlPositive = hasClosedCycles && closedPnl != null && closedPnl > 0;
   const recoveryWeak =
@@ -1975,12 +2097,15 @@ function buildOnePercentProfileVerdicts(ctx) {
     winOk &&
     profondeLow &&
     !touchStress &&
-    !lbStress &&
+    !lbStressDamaging &&
     (!hasClosedCycles || wheelPnlPositive) &&
     !ccWaitDominant
   ) {
     verdicts.push("1 % défendable");
-  } else if (highYieldSignal && (touchStress || lbStress || assignHigh || profondeHigh || wheelPnlWeak)) {
+  } else if (
+    highYieldSignal &&
+    (touchStress || lbStressDamaging || assignHigh || profondeHigh || wheelPnlWeak)
+  ) {
     verdicts.push("1 % stressé");
   } else if (n >= 15 && n < 30 && (moderateYieldSignal || highYieldSignal)) {
     verdicts.push("1 % à valider");
@@ -2033,6 +2158,7 @@ function buildOnePercentProfileVerdicts(ctx) {
     moderateYieldSignal,
     touchStress,
     lbStress,
+    lowerBoundStress,
     assignHigh,
     profondeHigh,
     wheel,
@@ -2058,6 +2184,7 @@ function buildOnePercentProfileVerdicts(ctx) {
       verdicts: filtered,
       primaryVerdict: adjustedPrimary,
       sampleCredibility: credibility,
+      lowerBoundStress,
       verdictReasons: buildOnePercentVerdictReasons({
         ...verdictReasonMetrics,
         primaryVerdict: adjustedPrimary,
@@ -2069,6 +2196,7 @@ function buildOnePercentProfileVerdicts(ctx) {
     verdicts: unique,
     primaryVerdict,
     sampleCredibility: credibility,
+    lowerBoundStress,
     verdictReasons: buildOnePercentVerdictReasons(verdictReasonMetrics),
   };
 }
@@ -2110,12 +2238,13 @@ function buildOnePercentProfile({
   csp.recordsTotal = recordsTotalInTicker ?? n;
   const assignment = summarizeOnePercentAssignmentMetrics(records);
   const wheel = summarizeOnePercentWheelMetrics(cycles);
-  const { verdicts, primaryVerdict, sampleCredibility, verdictReasons } = buildOnePercentProfileVerdicts({
-    n,
-    csp,
-    assignment,
-    wheel,
-  });
+  const { verdicts, primaryVerdict, sampleCredibility, verdictReasons, lowerBoundStress } =
+    buildOnePercentProfileVerdicts({
+      n,
+      csp,
+      assignment,
+      wheel,
+    });
 
   const displayMode =
     groupType === "ticker"
@@ -2134,6 +2263,7 @@ function buildOnePercentProfile({
     verdicts,
     primaryVerdict,
     verdictReasons,
+    lowerBoundStress,
     csp,
     onePercentObjective: {
       highYieldCount: csp.highYieldCount,

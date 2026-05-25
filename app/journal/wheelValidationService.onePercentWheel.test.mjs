@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computeOnePercentWheelProfiles } from "./wheelValidationService.js";
+import {
+  classifyLowerBoundStressForOnePercentProfile,
+  computeOnePercentWheelProfiles,
+} from "./wheelValidationService.js";
 
 function buildResolvedRecord({
   ticker = "TEST",
@@ -148,10 +151,100 @@ test("computeOnePercentWheelProfiles — verdictReasons explique un profil stres
   if (profile.primaryVerdict === "1 % stressé") {
     assert.ok(
       profile.verdictReasons.some((reason) =>
-        ["Touch élevé", "LB cassé élevé", "Wheel non disponible", "Assignation élevée"].includes(reason),
+        [
+          "Touch élevé",
+          "LB cassé élevé",
+          "LB cassé avec stress",
+          "LB cassé critique",
+          "Wheel non disponible",
+          "Assignation élevée",
+        ].includes(reason),
       ),
     );
   }
+});
+
+test("classifyLowerBoundStressForOnePercentProfile — LB élevé sans dommage (profil type APLD)", () => {
+  const result = classifyLowerBoundStressForOnePercentProfile({
+    n: 26,
+    csp: {
+      recordsResolved: 26,
+      lowerBoundBreakRate: 38.5,
+      realWinRate: 100,
+      assignmentRate: 0,
+      strikeTouchRate: 23.1,
+    },
+    assignment: { profondeRatePct: null, profondeCount: 0 },
+    wheel: { cyclesClosed: 0, cyclesAvailable: 0 },
+  });
+  assert.equal(result.lbStressClass, "sans_dommage");
+  assert.equal(result.lbStressLabel, "LB cassé sans dommage");
+});
+
+test("classifyLowerBoundStressForOnePercentProfile — LB critique (profil type SMCI)", () => {
+  const result = classifyLowerBoundStressForOnePercentProfile({
+    n: 22,
+    csp: {
+      recordsResolved: 22,
+      lowerBoundBreakRate: 90.9,
+      realWinRate: 77.3,
+      assignmentRate: 22.7,
+      strikeTouchRate: 54.5,
+    },
+    assignment: { profondeRatePct: 0, profondeCount: 0 },
+    wheel: { cyclesClosed: 12, cyclesAvailable: 12, avgWheelPnl: 97, recoveryRatePct: 100 },
+  });
+  assert.equal(result.lbStressClass, "critique");
+  assert.equal(result.lbStressLabel, "LB cassé critique");
+});
+
+test("computeOnePercentWheelProfiles — LB élevé sans dommage ne force plus 1 % stressé seul", () => {
+  const records = Array.from({ length: 26 }, (_, index) => ({
+    ...buildResolvedRecord({
+      ticker: "APLD",
+      yieldPct: 1.09,
+      expiration: `202506${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `202506${String((index % 24) + 1).padStart(2, "0")}`,
+    }),
+    resolution: {
+      ...buildResolvedRecord({ ticker: "APLD" }).resolution,
+      strikeTouched: index % 5 === 0,
+      brokeLowerBound: index % 3 === 0,
+      popPredictionCorrect: true,
+      expiredWorthless: true,
+      assigned: false,
+    },
+  }));
+  const result = computeOnePercentWheelProfiles(records, [], { today: "2026-05-24" });
+  const profile = result.profiles.find((p) => p.ticker === "APLD" && p.groupType === "ticker");
+  assert.ok(profile);
+  assert.equal(profile.lowerBoundStress?.lbStressClass, "sans_dommage");
+  assert.notEqual(profile.primaryVerdict, "1 % stressé");
+  assert.ok(profile.verdictReasons.includes("LB cassé sans dommage"));
+});
+
+test("computeOnePercentWheelProfiles — LB critique garde 1 % stressé", () => {
+  const records = Array.from({ length: 22 }, (_, index) => ({
+    ...buildResolvedRecord({
+      ticker: "SMCI",
+      yieldPct: 0.95,
+      assigned: index % 4 === 0,
+      expiration: `202507${String(10 + (index % 18)).padStart(2, "0")}`,
+      scanDate: `202507${String((index % 20) + 1).padStart(2, "0")}`,
+    }),
+    resolution: {
+      ...buildResolvedRecord({ ticker: "SMCI", assigned: index % 4 === 0 }).resolution,
+      strikeTouched: index % 2 === 0,
+      brokeLowerBound: index % 2 === 0 || index % 3 === 0,
+      popPredictionCorrect: index % 4 !== 0,
+      expiredWorthless: index % 4 !== 0,
+    },
+  }));
+  const result = computeOnePercentWheelProfiles(records, [], { today: "2026-05-24" });
+  const profile = result.profiles.find((p) => p.ticker === "SMCI" && p.groupType === "ticker");
+  assert.ok(profile);
+  assert.ok(["avec_stress", "critique"].includes(profile.lowerBoundStress?.lbStressClass));
+  assert.equal(profile.primaryVerdict, "1 % stressé");
 });
 
 test("computeOnePercentWheelProfiles — verdictReasons mentionne échantillon préliminaire", () => {

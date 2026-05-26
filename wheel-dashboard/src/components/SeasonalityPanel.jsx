@@ -96,6 +96,31 @@ function getCurrentWeekRange() {
   return { range: `${fmt(mon)} → ${fmt(sun)}`, weekNum: `Semaine ${weekNum}` };
 }
 
+/** Libellé principal fenêtre saisonnière (dates lisibles). */
+function seasonalWindowPrimaryLabel(w) {
+  return w?.displayLabel || w?.label || "—";
+}
+
+/** Sous-texte optionnel : format moteur + durée en jours. */
+function seasonalWindowSubLabel(w) {
+  if (!w?.label) return null;
+  const days = w.windowDays ?? w.days;
+  return days ? `${w.label} · ${days}j` : w.label;
+}
+
+function SeasonalWindowLabel({ window: w, primaryStyle, subStyle }) {
+  const primary = seasonalWindowPrimaryLabel(w);
+  const sub = seasonalWindowSubLabel(w);
+  return (
+    <span style={{ display: "inline-flex", flexDirection: "column", gap: "1px" }}>
+      <span style={primaryStyle}>{primary}</span>
+      {sub && sub !== primary && (
+        <span style={subStyle ?? { fontSize: "9px", color: C.textFaint, fontWeight: 400 }}>{sub}</span>
+      )}
+    </span>
+  );
+}
+
 // ─── Badge verdict ──────────────────────────────────────────────────────────────
 function VerdictBadge({ verdict, size = "sm" }) {
   if (!verdict) return <span style={{ color:C.textFaint }}>—</span>;
@@ -299,8 +324,8 @@ function ShortTermTable({ shortTerm }) {
       </div>
       {shortTerm.summary && (
         <div style={{ marginTop:"8px", fontSize:"10.5px", color:C.textFaint, fontStyle:"italic" }}>
-          Meilleure fenêtre CSP : <strong style={{ color:C.textMuted }}>{shortTerm.summary.bestCspWindow?.label ?? "—"}</strong>
-          {" · "}Fenêtre CC : <strong style={{ color:C.textMuted }}>{shortTerm.summary.bestCcWindow?.label ?? "—"}</strong>
+          Meilleure fenêtre CSP : <strong style={{ color:C.textMuted }}>{seasonalWindowPrimaryLabel(shortTerm.summary.bestCspWindow)}</strong>
+          {" · "}Fenêtre CC : <strong style={{ color:C.textMuted }}>{seasonalWindowPrimaryLabel(shortTerm.summary.bestCcWindow)}</strong>
           {" · "}Source : {shortTerm.summary.source ?? "Yahoo Finance"}
           {" · "}Cache {shortTerm.summary.cacheTtlHours}h
         </div>
@@ -368,7 +393,7 @@ function LongTermWindowsCard({ windows }) {
             const vs = verdictStyleObj(bias);
             return (
               <span key={i} style={{ background:vs.bg, border:`1px solid ${vs.border}`, borderRadius:"6px", padding:"2px 10px", fontSize:"11px", color:vs.color, fontWeight:600 }}>
-                {w.label} · {formatPct(w.avgReturn)}
+                {seasonalWindowPrimaryLabel(w)} · {formatPct(w.avgReturn)}
               </span>
             );
           })}
@@ -391,7 +416,9 @@ function LongTermWindowsCard({ windows }) {
               <tr><td colSpan={6} style={{ padding:"14px", textAlign:"center", fontSize:"12px", color:C.textFaint }}>Aucune fenêtre haussière</td></tr>
             ) : rows.map((w, i) => (
               <tr key={i}>
-                <td style={{ ...tdBase, fontWeight:600, color:C.text }}>{w.label ?? "—"}</td>
+                <td style={{ ...tdBase, fontWeight:600, color:C.text }}>
+                  <SeasonalWindowLabel window={w} />
+                </td>
                 <td style={{ ...tdBase, textAlign:"center", color:C.textMuted }}>{w.days ? `${w.days}j` : "—"}</td>
                 <td style={{ ...tdBase, textAlign:"right" }}>{formatWinRate(w.winRate)}</td>
                 <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.avgReturn), fontWeight:600 }}>{formatPct(w.avgReturn)}</td>
@@ -442,7 +469,9 @@ function BestWorstWindowsCard({ windows }) {
         ) : rows.slice(0, 4).map((w, i) => (
           <tr key={i}>
             <td style={{ ...tdBase, textAlign:"center", color:C.textFaint }}>{i + 1}</td>
-            <td style={{ ...tdBase, fontWeight:500 }}>{w.label ?? "—"}</td>
+            <td style={{ ...tdBase, fontWeight:500 }}>
+              <SeasonalWindowLabel window={w} />
+            </td>
             <td style={{ ...tdBase, textAlign:"right" }}>{formatWinRate(w.winRate)}</td>
             <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.avgReturn), fontWeight:600 }}>{formatPct(w.avgReturn)}</td>
             <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.worstReturn) }}>{formatPct(w.worstReturn)}</td>
@@ -469,16 +498,18 @@ function BestWorstWindowsCard({ windows }) {
 function buildCspReading(shortTerm) {
   const w = shortTerm?.windows?.find((x) => x.days === 7) ?? shortTerm?.windows?.[0];
   if (!w) return { text:"Données court terme insuffisantes.", icon:"neutral" };
-  if (w.cspVerdict === "favorable") return { text:`Fenêtre favorable (${w.label}). Taux haussier ${formatWinRate(w.winRate)} · Baisse >5% : ${formatWinRate(w.pctBelow5)}. Strike sous lowerBound recommandé. Viser 1 %+ défendable.`, icon:"green" };
-  if (w.cspVerdict === "defavorable") return { text:`Risque de baisse élevé sur ${w.label} (Baisse >5% : ${formatWinRate(w.pctBelow5)}). Réduire l'agressivité ou attendre.`, icon:"red" };
-  return { text:`Fenêtre neutre sur ${w.label}. Prime acceptable seulement avec strike prudent sous lowerBound. Surveillez la volatilité.`, icon:"yellow" };
+  const wl = seasonalWindowPrimaryLabel(w);
+  if (w.cspVerdict === "favorable") return { text:`Fenêtre favorable (${wl}). Taux haussier ${formatWinRate(w.winRate)} · Baisse >5% : ${formatWinRate(w.pctBelow5)}. Strike sous lowerBound recommandé. Viser 1 %+ défendable.`, icon:"green" };
+  if (w.cspVerdict === "defavorable") return { text:`Risque de baisse élevé sur ${wl} (Baisse >5% : ${formatWinRate(w.pctBelow5)}). Réduire l'agressivité ou attendre.`, icon:"red" };
+  return { text:`Fenêtre neutre sur ${wl}. Prime acceptable seulement avec strike prudent sous lowerBound. Surveillez la volatilité.`, icon:"yellow" };
 }
 function buildCcReading(shortTerm) {
   const w = shortTerm?.windows?.find((x) => x.days === 14) ?? shortTerm?.windows?.find((x) => x.days === 7);
   if (!w) return { text:"Données court terme insuffisantes.", icon:"neutral" };
-  if (w.ccVerdict === "risque_hausse") return { text:`Risque de rally élevé sur ${w.label} (Rally >5% : ${formatWinRate(w.pctAbove5)}). Éviter les strikes CC trop proches. Attendre un repli.`, icon:"red" };
-  if (w.ccVerdict === "favorable") return { text:`Fenêtre peu explosive sur ${w.label} (Rally >5% : ${formatWinRate(w.pctAbove5)}). CC acceptable. Strike at-the-money envisageable.`, icon:"green" };
-  return { text:`Fenêtre neutre pour CC sur ${w.label}. Prudence : choisir strike plus élevé pour éviter le call away.`, icon:"yellow" };
+  const wl = seasonalWindowPrimaryLabel(w);
+  if (w.ccVerdict === "risque_hausse") return { text:`Risque de rally élevé sur ${wl} (Rally >5% : ${formatWinRate(w.pctAbove5)}). Éviter les strikes CC trop proches. Attendre un repli.`, icon:"red" };
+  if (w.ccVerdict === "favorable") return { text:`Fenêtre peu explosive sur ${wl} (Rally >5% : ${formatWinRate(w.pctAbove5)}). CC acceptable. Strike at-the-money envisageable.`, icon:"green" };
+  return { text:`Fenêtre neutre pour CC sur ${wl}. Prudence : choisir strike plus élevé pour éviter le call away.`, icon:"yellow" };
 }
 function buildLongTermReading(windows) {
   const activeNow = windows?.summary?.activeNow ?? [];
@@ -486,11 +517,15 @@ function buildLongTermReading(windows) {
   if (activeNow.length > 0) {
     const a = activeNow[0];
     const isBull = a.avgReturn > 0 && a.winRate >= 0.5;
+    const al = seasonalWindowPrimaryLabel(a);
     return isBull
-      ? { text:`Fenêtre saisonnière forte active : ${a.label} (${formatPct(a.avgReturn)} · ${formatWinRate(a.winRate)} haussier). Maintenir positions. Période d'accumulation en cours.`, icon:"green" }
-      : { text:`Fenêtre saisonnièrement faible : ${a.label} (${formatPct(a.avgReturn)}). Garder du cash, éviter de suracheter.`, icon:"red" };
+      ? { text:`Fenêtre saisonnière forte active : ${al} (${formatPct(a.avgReturn)} · ${formatWinRate(a.winRate)} haussier). Maintenir positions. Période d'accumulation en cours.`, icon:"green" }
+      : { text:`Fenêtre saisonnièrement faible : ${al} (${formatPct(a.avgReturn)}). Garder du cash, éviter de suracheter.`, icon:"red" };
   }
-  if (bestBullish) return { text:`Meilleure fenêtre : ${bestBullish.label} (${formatPct(bestBullish.avgReturn)} · ${formatWinRate(bestBullish.winRate)}). Idéale pour accumuler ou renforcer.`, icon:"yellow" };
+  if (bestBullish) {
+    const bl = seasonalWindowPrimaryLabel(bestBullish);
+    return { text:`Meilleure fenêtre : ${bl} (${formatPct(bestBullish.avgReturn)} · ${formatWinRate(bestBullish.winRate)}). Idéale pour accumuler ou renforcer.`, icon:"yellow" };
+  }
   return { text:"Analyser le calendrier mensuel pour planifier les entrées.", icon:"neutral" };
 }
 function ReadingCard({ title, text, icon: Icon, iconColor, bgColor, borderColor }) {
@@ -756,7 +791,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
       cspVerdict7j: win7?.cspVerdict ?? null,
       ccVerdict7j:  win7?.ccVerdict  ?? null,
       ltBias:  active ? (active.avgReturn > 0 && active.winRate >= 0.5 ? "bullish" : "bearish") : (best ? "bullish" : null),
-      ltLabel: active?.label ?? (best ? "Très haussier" : null),
+      ltLabel: active ? seasonalWindowPrimaryLabel(active) : (best ? seasonalWindowPrimaryLabel(best) : null),
     };
   }, [shortTermData, windowsData]);
 

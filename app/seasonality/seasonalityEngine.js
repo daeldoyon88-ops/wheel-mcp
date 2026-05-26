@@ -12,6 +12,15 @@
  */
 
 import YahooFinance from "yahoo-finance2";
+import { enrichSeasonalityWindowDisplay, enrichSeasonalityWindowsResult } from "./seasonalityWindowDisplay.js";
+
+export {
+  buildSeasonalWindowDisplayFields,
+  enrichSeasonalityWindowDisplay,
+  enrichSeasonalityWindowsResult,
+  weekOfMonthToDay,
+  resolveEndYear,
+} from "./seasonalityWindowDisplay.js";
 
 // ─── Configuration ─────────────────────────────────────────────────────────────
 const WINDOW_SIZES_WEEKS    = [2, 4, 8, 12, 16];
@@ -939,7 +948,7 @@ function _finalizeWindowGroup(g, horizonYears, windowDays) {
   const bullishScore = _computeBullishWindowScore(rawStats);
   const bearishScore = _computeBearishWindowScore(rawStats);
 
-  return {
+  const base = {
     horizonYears,
     windowDays,
     label:           _windowSeasonLabel(g.startMonth, g.startWeekOfMonth, g.endMonth, g.endWeekOfMonth),
@@ -961,6 +970,8 @@ function _finalizeWindowGroup(g, horizonYears, windowDays) {
     bullishScore:    _r3(bullishScore),
     bearishScore:    _r3(bearishScore),
   };
+
+  return enrichSeasonalityWindowDisplay(base);
 }
 
 function _analyzeHorizonWindows(rows, horizonYears, windowDaysList, topN) {
@@ -1069,7 +1080,7 @@ export function computeSeasonalityWindowsFromRows(rows, options = {}) {
 
   if (!horizons.length) return null;
 
-  return {
+  return enrichSeasonalityWindowsResult({
     horizons,
     summary: {
       bestOverallBullish:  _pickBestOverallBullish(horizons),
@@ -1079,7 +1090,7 @@ export function computeSeasonalityWindowsFromRows(rows, options = {}) {
       source:              'Yahoo Finance',
       cacheTtlHours:       RESULT_CACHE_TTL_MS / 3_600_000,
     },
-  };
+  });
 }
 
 /**

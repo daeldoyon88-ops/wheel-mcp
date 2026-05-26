@@ -9,6 +9,7 @@ import {
   computeSeasonality,
   computeSeasonalityCalendar,
   computeSeasonalityShortTerm,
+  computeSeasonalityWindows,
   computeSeasonalityScanSummary,
   getSeasonalityCacheStats,
   getSeasonalityDiagnostic,
@@ -93,6 +94,30 @@ router.get("/:ticker/short-term", async (req, res) => {
     res.json({ ok: true, symbol, shortTerm });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "short_term_compute_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/:ticker/windows
+ * Fenêtres saisonnières long terme (20 / 40 / 60 / 90 jours de bourse) — Phase C Saisonnalité V2.
+ * Lecture seule, aucun impact sur les endpoints existants.
+ */
+router.get("/:ticker/windows", async (req, res) => {
+  try {
+    const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+    if (!symbol || !TICKER_RE.test(symbol)) {
+      return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
+    }
+    const windows = await computeSeasonalityWindows(symbol);
+    if (!windows) {
+      return res.status(404).json({
+        ok: false,
+        error: `no seasonality windows data available for ${symbol}`,
+      });
+    }
+    res.json({ ok: true, symbol, windows });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "windows_compute_failed") });
   }
 });
 

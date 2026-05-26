@@ -37,6 +37,7 @@ const _histCache   = new Map(); // sym → { value: rows|null, expiresAt }
 const _resultCache = new Map(); // sym → { value: result, expiresAt } — NEVER stores null
 const _calendarCache = new Map(); // sym → { value: calendarResult, expiresAt } — NEVER stores null
 const _shortTermCache = new Map(); // sym → { value: shortTermResult, expiresAt } — NEVER stores null
+const _windowsCache = new Map(); // sym → { value: windowsResult, expiresAt } — NEVER stores null
 const _inFlight    = new Map(); // key → Promise — dedup concurrent requests
 
 // ─── Lazy isolated Yahoo client ────────────────────────────────────────────────
@@ -797,6 +798,341 @@ export async function computeSeasonalityShortTerm(symbol, options = {}) {
   return promise;
 }
 
+// ─── Seasonal windows computation (Phase C — Seasonality V2) ──────────────────
+
+const WINDOWS_HORIZONS_YEARS = [3, 5, 10, 15];
+const WINDOWS_DAYS_LIST      = [20, 40, 60, 90];
+const WINDOWS_TOP_N          = 5;
+
+function _weekOfMonth(date) {
+  const day = date.getUTCDate();
+  if (day <= 7)  return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  if (day <= 28) return 4;
+  return 5;
+}
+
+function _windowSeasonLabel(startMonth, startWeek, endMonth, endWeek) {
+  return `${MONTH_LABELS[startMonth - 1]} W${startWeek} → ${MONTH_LABELS[endMonth - 1]} W${endWeek}`;
+}
+
+function _sampleStatus(sampleSize) {
+  if (sampleSize >= 10) return 'robuste';
+  if (sampleSize >= 5)  return 'mesurable';
+  if (sampleSize >= 3)  return 'préliminaire';
+  return 'insuffisant';
+}
+
+function _filterRowsByHorizon(rows, horizonYears) {
+  const now         = new Date();
+  const currentYear = now.getUTCFullYear();
+  const startYear   = currentYear - horizonYears;
+  const cutoff      = new Date(Date.UTC(startYear, 0, 1));
+  return rows.filter(r => r.date >= cutoff && r.date.getUTCFullYear() < currentYear);
+}
+
+function _seasonalIndex(month, week) {
+  return (month - 1) * 5 + (week - 1);
+}
+
+function _isSeasonalWindowActiveNow(startMonth, startWeek, endMonth, endWeek) {
+  const now       = new Date();
+  const nowMonth  = now.getUTCMonth() + 1;
+  const nowWeek   = _weekOfMonth(now);
+  const startIdx  = _seasonalIndex(startMonth, startWeek);
+  const endIdx    = _seasonalIndex(endMonth, endWeek);
+  const nowIdx    = _seasonalIndex(nowMonth, nowWeek);
+
+  if (startIdx <= endIdx) {
+    return nowIdx >= startIdx && nowIdx <= endIdx;
+  }
+  return nowIdx >= startIdx || nowIdx <= endIdx;
+}
+
+function _computeBullishWindowScore({ winRate, avgReturn, sampleSize, worstReturn }) {
+  const sampleFactor = Math.min(sampleSize / 10, 1);
+  const winFactor    = winRate;
+  const returnFactor = Math.max(avgReturn, 0);
+  const worstPenalty = Math.max(0, -worstReturn) * 0.5;
+  return winFactor * 2 + returnFactor * 10 + sampleFactor - worstPenalty;
+}
+
+function _computeBearishWindowScore({ winRate, avgReturn, sampleSize, worstReturn }) {
+  const sampleFactor = Math.min(sampleSize / 10, 1);
+  const lossFactor   = Math.max(-avgReturn, 0);
+  const lowWinFactor = 1 - winRate;
+  const worstFactor  = Math.max(-worstReturn, 0);
+  return lowWinFactor * 2 + lossFactor * 10 + worstFactor * 5 + sampleFactor;
+}
+
+function _collectSeasonalWindowGroups(rows, windowDays) {
+  const groups = new Map();
+  const today  = new Date();
+  today.setUTCHours(23, 59, 59, 999);
+
+  for (let i = 0; i < rows.length - windowDays; i++) {
+    const startRow = rows[i];
+    const endRow   = rows[i + windowDays];
+
+    if (!startRow || !endRow) continue;
+    if (endRow.date > today) continue;
+
+    const startClose = startRow.close;
+    const endClose   = endRow.close;
+
+    if (!Number.isFinite(startClose) || startClose <= 0) continue;
+    if (!Number.isFinite(endClose)   || endClose   <= 0) continue;
+
+    const ret = (endClose - startClose) / startClose;
+
+    const windowPrices = rows
+      .slice(i, i + windowDays + 1)
+      .map(r => r.close)
+      .filter(p => Number.isFinite(p) && p > 0);
+
+    const dd = windowPrices.length >= 2 ? _maxDrawdown(windowPrices) : null;
+
+    const startMonth = startRow.date.getUTCMonth() + 1;
+    const startWeek  = _weekOfMonth(startRow.date);
+    const endMonth   = endRow.date.getUTCMonth() + 1;
+    const endWeek    = _weekOfMonth(endRow.date);
+
+    const key = `${startMonth}-W${startWeek}:${endMonth}-W${endWeek}:${windowDays}`;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        startMonth,
+        startWeekOfMonth: startWeek,
+        endMonth,
+        endWeekOfMonth: endWeek,
+        returns: [],
+        drawdowns: [],
+      });
+    }
+
+    const g = groups.get(key);
+    g.returns.push(ret);
+    if (dd != null) g.drawdowns.push(dd);
+  }
+
+  return groups;
+}
+
+function _finalizeWindowGroup(g, horizonYears, windowDays) {
+  const n = g.returns.length;
+  if (n < MIN_SAMPLE_SIZE) return null;
+
+  const avgReturn     = g.returns.reduce((s, r) => s + r, 0) / n;
+  const medianReturn  = _median(g.returns);
+  const positiveCount = g.returns.filter(r => r > 0).length;
+  const negativeCount = g.returns.filter(r => r < 0).length;
+  const winRate       = positiveCount / n;
+  const bestReturn    = Math.max(...g.returns);
+  const worstReturn   = Math.min(...g.returns);
+  const avgDrawdown   = g.drawdowns.length
+    ? g.drawdowns.reduce((s, d) => s + d, 0) / g.drawdowns.length
+    : null;
+  const worstDrawdown = g.drawdowns.length ? Math.min(...g.drawdowns) : null;
+
+  const rawStats = { winRate, avgReturn, sampleSize: n, worstReturn };
+  const bullishScore = _computeBullishWindowScore(rawStats);
+  const bearishScore = _computeBearishWindowScore(rawStats);
+
+  return {
+    horizonYears,
+    windowDays,
+    label:           _windowSeasonLabel(g.startMonth, g.startWeekOfMonth, g.endMonth, g.endWeekOfMonth),
+    startMonth:      g.startMonth,
+    startWeekOfMonth: g.startWeekOfMonth,
+    endMonth:        g.endMonth,
+    endWeekOfMonth:  g.endWeekOfMonth,
+    sampleSize:      n,
+    avgReturn:       _r4(avgReturn),
+    medianReturn:    medianReturn != null ? _r4(medianReturn) : null,
+    winRate:         _r3(winRate),
+    positiveCount,
+    negativeCount,
+    bestReturn:      _r4(bestReturn),
+    worstReturn:     _r4(worstReturn),
+    avgDrawdown:     avgDrawdown != null ? _r4(avgDrawdown) : null,
+    worstDrawdown:   worstDrawdown != null ? _r4(worstDrawdown) : null,
+    status:          _sampleStatus(n),
+    bullishScore:    _r3(bullishScore),
+    bearishScore:    _r3(bearishScore),
+  };
+}
+
+function _analyzeHorizonWindows(rows, horizonYears, windowDaysList, topN) {
+  const filtered = _filterRowsByHorizon(rows, horizonYears);
+  if (filtered.length < 100) return null;
+
+  const windows = [];
+
+  for (const windowDays of windowDaysList) {
+    const groups = _collectSeasonalWindowGroups(filtered, windowDays);
+    const all    = [];
+
+    for (const g of groups.values()) {
+      const w = _finalizeWindowGroup(g, horizonYears, windowDays);
+      if (w) all.push(w);
+    }
+
+    const bestBullish = all
+      .filter(w => w.avgReturn > 0 && w.winRate >= 0.5)
+      .sort((a, b) => b.bullishScore - a.bullishScore)
+      .slice(0, topN)
+      .map(({ bullishScore, bearishScore, ...rest }) => ({
+        ...rest,
+        score: bullishScore,
+      }));
+
+    const worstBearish = all
+      .filter(w => w.avgReturn < 0 || w.winRate < 0.5)
+      .sort((a, b) => b.bearishScore - a.bearishScore)
+      .slice(0, topN)
+      .map(({ bullishScore, bearishScore, ...rest }) => ({
+        ...rest,
+        score: bearishScore,
+      }));
+
+    windows.push({ windowDays, bestBullish, worstBearish });
+  }
+
+  return { horizonYears, windows };
+}
+
+function _pickBestOverallBullish(horizons) {
+  let best = null;
+  for (const h of horizons) {
+    for (const wBlock of h.windows) {
+      for (const w of wBlock.bestBullish) {
+        if (!best || w.score > best.score) best = w;
+      }
+    }
+  }
+  return best;
+}
+
+function _pickWorstOverallBearish(horizons) {
+  let worst = null;
+  for (const h of horizons) {
+    for (const wBlock of h.windows) {
+      for (const w of wBlock.worstBearish) {
+        if (!worst || w.score > worst.score) worst = w;
+      }
+    }
+  }
+  return worst;
+}
+
+function _collectActiveNowWindows(horizons) {
+  const active = [];
+
+  for (const h of horizons) {
+    for (const wBlock of h.windows) {
+      for (const w of [...wBlock.bestBullish, ...wBlock.worstBearish]) {
+        if (w.sampleSize < MIN_SAMPLE_SIZE) continue;
+        if (!_isSeasonalWindowActiveNow(
+          w.startMonth, w.startWeekOfMonth, w.endMonth, w.endWeekOfMonth,
+        )) continue;
+
+        active.push({
+          ...w,
+          horizonYears: h.horizonYears,
+          bias: w.avgReturn > 0 && w.winRate >= 0.5 ? 'bullish' : 'bearish',
+        });
+      }
+    }
+  }
+
+  return active.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+}
+
+/**
+ * Pure computation: détecte les meilleures/pires fenêtres saisonnières historiques.
+ * Exported for unit testing — no Yahoo calls, no cache side-effects.
+ */
+export function computeSeasonalityWindowsFromRows(rows, options = {}) {
+  if (!rows?.length) return null;
+
+  const horizonsYears = options.horizonsYears ?? WINDOWS_HORIZONS_YEARS;
+  const windowDaysList  = options.windowDays    ?? WINDOWS_DAYS_LIST;
+  const topN            = options.topN          ?? WINDOWS_TOP_N;
+
+  const horizons = [];
+
+  for (const horizonYears of horizonsYears) {
+    const h = _analyzeHorizonWindows(rows, horizonYears, windowDaysList, topN);
+    if (h) horizons.push(h);
+  }
+
+  if (!horizons.length) return null;
+
+  return {
+    horizons,
+    summary: {
+      bestOverallBullish:  _pickBestOverallBullish(horizons),
+      worstOverallBearish: _pickWorstOverallBearish(horizons),
+      activeNow:           _collectActiveNowWindows(horizons),
+      generatedAt:         new Date().toISOString(),
+      source:              'Yahoo Finance',
+      cacheTtlHours:       RESULT_CACHE_TTL_MS / 3_600_000,
+    },
+  };
+}
+
+/**
+ * Computes long-term seasonal windows for one ticker (20 / 40 / 60 / 90 trading days).
+ * Reuses _fetchHistory / _histCache — no extra Yahoo calls.
+ * Returns null on failure — null is NEVER stored in _windowsCache (always retried).
+ */
+export async function computeSeasonalityWindows(symbol, options = {}) {
+  const sym = String(symbol ?? '').trim().toUpperCase();
+  if (!sym) return null;
+
+  const winKey = `windows:${sym}`;
+  const cached = _getCached(_windowsCache, winKey);
+  if (cached !== undefined) {
+    _log(`windows cache HIT for ${sym}`);
+    return cached;
+  }
+
+  const flying = _inFlight.get(winKey);
+  if (flying) return flying;
+
+  const promise = (async () => {
+    try {
+      const rows = await _fetchHistory(sym);
+      if (!rows?.length) {
+        _log(`no rows for ${sym} windows — returning null`);
+        return null;
+      }
+
+      _log(`computing windows for ${sym} with ${rows.length} rows`);
+      const result = computeSeasonalityWindowsFromRows(rows, options);
+
+      if (!result) {
+        _log(`computeSeasonalityWindowsFromRows returned null for ${sym} (données insuffisantes)`);
+        return null;
+      }
+
+      _setCached(_windowsCache, winKey, result, RESULT_CACHE_TTL_MS);
+      _log(`windows cached for ${sym}: ${result.horizons.length} horizons`);
+      return result;
+
+    } catch (err) {
+      _warn(`computeSeasonalityWindows threw for ${sym}: ${err?.message ?? String(err)}`);
+      return null;
+    } finally {
+      _inFlight.delete(winKey);
+    }
+  })();
+
+  _inFlight.set(winKey, promise);
+  return promise;
+}
+
 /**
  * Batch seasonality for multiple tickers with bounded concurrency.
  * Returns { symbols, results: { SYMBOL: data|null }, generatedAt }.
@@ -834,16 +1170,19 @@ export async function getSeasonalityDiagnostic(symbol) {
   const resultKey    = `result:${sym}`;
   const calendarKey  = `calendar:${sym}`;
   const shortTermKey = `short-term:${sym}`;
+  const windowsKey   = `windows:${sym}`;
 
   const histEntry      = _histCache.get(histKey);
   const resultEntry    = _resultCache.get(resultKey);
   const calendarEntry  = _calendarCache.get(calendarKey);
   const shortTermEntry = _shortTermCache.get(shortTermKey);
+  const windowsEntry   = _windowsCache.get(windowsKey);
 
   const histStatus      = !histEntry      ? "miss" : Date.now() >= histEntry.expiresAt      ? "expired" : histEntry.value      ? "hit" : "cached-null";
   const resultStatus    = !resultEntry    ? "miss" : Date.now() >= resultEntry.expiresAt    ? "expired" : "hit";
   const calendarStatus  = !calendarEntry  ? "miss" : Date.now() >= calendarEntry.expiresAt  ? "expired" : "hit";
   const shortTermStatus = !shortTermEntry ? "miss" : Date.now() >= shortTermEntry.expiresAt ? "expired" : "hit";
+  const windowsStatus   = !windowsEntry   ? "miss" : Date.now() >= windowsEntry.expiresAt   ? "expired" : "hit";
 
   return {
     symbol:        sym,
@@ -851,7 +1190,8 @@ export async function getSeasonalityDiagnostic(symbol) {
     resultCache:   { status: resultStatus,      hasBias:     resultEntry?.value?.seasonalBias ?? null,          expiresAt: resultEntry?.expiresAt    ?? null },
     calendarCache: { status: calendarStatus,  monthCount:  calendarEntry?.value?.months?.length ?? null,      expiresAt: calendarEntry?.expiresAt  ?? null },
     shortTermCache:{ status: shortTermStatus, windowCount: shortTermEntry?.value?.windows?.length ?? null, expiresAt: shortTermEntry?.expiresAt ?? null },
-    inFlight:      { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey), calendar: _inFlight.has(calendarKey), shortTerm: _inFlight.has(shortTermKey) },
+    windowsCache:  { status: windowsStatus,   horizonCount: windowsEntry?.value?.horizons?.length ?? null,   expiresAt: windowsEntry?.expiresAt   ?? null },
+    inFlight:      { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey), calendar: _inFlight.has(calendarKey), shortTerm: _inFlight.has(shortTermKey), windows: _inFlight.has(windowsKey) },
   };
 }
 
@@ -862,6 +1202,7 @@ export function getSeasonalityCacheStats() {
     resultCacheSize:      _resultCache.size,
     calendarCacheSize:    _calendarCache.size,
     shortTermCacheSize:   _shortTermCache.size,
+    windowsCacheSize:     _windowsCache.size,
     inFlightCount:        _inFlight.size,
     histCacheTtlHours:    HISTORY_CACHE_TTL_MS  / 3_600_000,
     resultCacheTtlHours:  RESULT_CACHE_TTL_MS   / 3_600_000,

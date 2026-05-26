@@ -2673,9 +2673,95 @@ function computeOnePercentReadiness({
 
 // ── Main component ──────────────────────────────────────────────────────────
 
+// ── Prime Quality helpers (snapshot-aware) ───────────────────────────────────
+
+function pqResolveSnapshot(r) {
+  if (!r || typeof r !== "object") return null;
+  const direct = r?.optionQuoteSnapshot;
+  if (direct && typeof direct === "object") return direct;
+  const raw = r?.option_quote_snapshot_json;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (_e) { return null; }
+  }
+  return null;
+}
+
+// Returns { bid, ask, mid, spreadPct } where spreadPct is in % scale (5.0 = 5%).
+function pqResolveSpreadData(r) {
+  const snap = pqResolveSnapshot(r);
+  const quote = snap?.quote ?? {};
+  const bid = numberOrNull(quote?.bid ?? snap?.bid) ?? numberOrNull(r?.bid) ?? numberOrNull(r?.optionBid) ?? numberOrNull(r?.strike?.bid);
+  const ask = numberOrNull(quote?.ask ?? snap?.ask) ?? numberOrNull(r?.ask) ?? numberOrNull(r?.optionAsk) ?? numberOrNull(r?.strike?.ask);
+  const mid = bid != null && ask != null ? (bid + ask) / 2 : numberOrNull(quote?.mid ?? snap?.mid ?? r?.mid);
+
+  let spreadPct = null;
+  const rawSnapSpreadPct = numberOrNull(quote?.spreadPct ?? snap?.spreadPct);
+  if (rawSnapSpreadPct != null) {
+    // Snapshot stores spreadPct as ratio (0–1) → convert to %
+    spreadPct = rawSnapSpreadPct * 100;
+  } else if (bid != null && ask != null && mid != null && mid > 0) {
+    spreadPct = ((ask - bid) / mid) * 100;
+  } else {
+    const flatSpreadPct = numberOrNull(r?.spreadPct) ?? numberOrNull(r?.bidAskSpreadPct);
+    if (flatSpreadPct != null) {
+      // Heuristic: ratio (<1) → ×100; already in % otherwise
+      spreadPct = flatSpreadPct < 1 ? flatSpreadPct * 100 : flatSpreadPct;
+    } else {
+      const flatSpread = numberOrNull(r?.spread) ?? numberOrNull(r?.bidAskSpread);
+      const flatAsk = ask ?? numberOrNull(r?.ask) ?? numberOrNull(r?.optionAsk) ?? numberOrNull(r?.strike?.ask);
+      if (flatSpread != null && flatAsk != null && flatAsk > 0) spreadPct = (flatSpread / flatAsk) * 100;
+    }
+  }
+  return { bid, ask, mid, spreadPct };
+}
+
+function pqResolveDelta(r) {
+  const snap = pqResolveSnapshot(r);
+  const greeks = snap?.greeks ?? {};
+  return numberOrNull(greeks?.delta ?? snap?.delta ?? r?.delta ?? r?.strike?.delta);
+}
+
+function pqResolveIv(r) {
+  const snap = pqResolveSnapshot(r);
+  const greeks = snap?.greeks ?? {};
+  return numberOrNull(greeks?.impliedVolatility ?? snap?.impliedVolatility ?? r?.impliedVolatility ?? r?.iv);
+}
+
+function pqResolveLiquidity(r) {
+  const snap = pqResolveSnapshot(r);
+  const liquidity = snap?.liquidity ?? {};
+  const volume = numberOrNull(liquidity?.volume ?? snap?.volume ?? r?.volume ?? r?.strike?.volume);
+  const oi = numberOrNull(liquidity?.openInterest ?? snap?.openInterest ?? r?.openInterest ?? r?.strike?.openInterest);
+  return { volume, oi };
+}
+
+function pqResolveSnapshotMeta(r) {
+  const snap = pqResolveSnapshot(r);
+  if (!snap) return { hasSnapshot: false, source: "absent", isIbkr: false, completeness: null, missingFields: [] };
+  const source = snap?.source ?? snap?.primaryOptionDataSource ?? r?.optionDataSourceSummary ?? "unknown";
+  const isIbkr =
+    snap?.dataConfidence === "observed_ibkr" ||
+    (snap?.source === "IBKR" && (snap?.quote?.bid != null || snap?.bid != null));
+  const completeness = numberOrNull(r?.optionDataCompletenessPct);
+  const missingFields = Array.isArray(snap?.missingFields) ? snap.missingFields :
+    Array.isArray(r?.optionDataMissingFields) ? r.optionDataMissingFields : [];
+  return { hasSnapshot: true, source, isIbkr, completeness, missingFields };
+}
+
 function computePrimeQualityStats(records) {
   const rows = Array.isArray(records) ? records : [];
   const avg = (vals) => (vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null);
+
+  let snapshotCount = 0;
+  let ibkrObservedCount = 0;
+  let bidAskValidCount = 0;
+  let spreadPctValidCount = 0;
+  let deltaValidCount = 0;
+  let liquidityValidCount = 0;
+  let spreadCoverageKnown = 0;
 
   const bidVals = [];
   const askVals = [];
@@ -2683,26 +2769,53 @@ function computePrimeQualityStats(records) {
   const spreadPctVals = [];
   const premiumVals = [];
   const efficiencyVals = [];
+  const deltaVals = [];
+  const ivVals = [];
+  const volumeVals = [];
+  const oiVals = [];
+  const completenessVals = [];
   const staleFlags = [];
   const earningsFlags = [];
-  let spreadCoverageKnown = 0;
+  const sources = new Map();
+  const missingFieldsCount = new Map();
 
   for (const r of rows) {
-    const bid = numberOrNull(r?.bid) ?? numberOrNull(r?.optionBid) ?? numberOrNull(r?.strike?.bid);
-    const ask = numberOrNull(r?.ask) ?? numberOrNull(r?.optionAsk) ?? numberOrNull(r?.strike?.ask);
-    const spread = numberOrNull(r?.spread) ?? numberOrNull(r?.bidAskSpread) ?? (bid != null && ask != null ? ask - bid : null);
-    const spreadPct = numberOrNull(r?.spreadPct) ?? numberOrNull(r?.bidAskSpreadPct) ?? (spread != null && ask != null && ask > 0 ? (spread / ask) * 100 : null);
-    const premium = numberOrNull(r?.premium) ?? numberOrNull(r?.mid) ?? numberOrNull(r?.strike?.premium);
-    const premiumEfficiency = numberOrNull(r?.premiumToSpotPct) ?? numberOrNull(r?.premium_to_spot_pct) ??
-      numberOrNull(r?.weeklyYield) ?? numberOrNull(r?.annualizedYield) ?? numberOrNull(r?.returnPct) ?? numberOrNull(r?.premiumYield);
+    const meta = pqResolveSnapshotMeta(r);
+    if (meta.hasSnapshot) {
+      snapshotCount += 1;
+      if (meta.isIbkr) ibkrObservedCount += 1;
+      if (meta.completeness != null) completenessVals.push(meta.completeness);
+      for (const f of meta.missingFields) {
+        missingFieldsCount.set(f, (missingFieldsCount.get(f) ?? 0) + 1);
+      }
+    }
+    sources.set(meta.source, (sources.get(meta.source) ?? 0) + 1);
 
-    if (bid != null || ask != null || spread != null || spreadPct != null) spreadCoverageKnown += 1;
+    const { bid, ask, mid, spreadPct } = pqResolveSpreadData(r);
+    const hasBidAsk = bid != null && ask != null;
+    if (hasBidAsk) bidAskValidCount += 1;
+    if (bid != null || ask != null || spreadPct != null) spreadCoverageKnown += 1;
+    if (spreadPct != null) { spreadPctValidCount += 1; spreadPctVals.push(spreadPct); }
     if (bid != null) bidVals.push(bid);
     if (ask != null) askVals.push(ask);
-    if (spread != null) spreadVals.push(spread);
-    if (spreadPct != null) spreadPctVals.push(spreadPct);
+    if (hasBidAsk) spreadVals.push(ask - bid);
+
+    const premium = numberOrNull(r?.premium) ?? numberOrNull(r?.mid) ?? numberOrNull(r?.strike?.premium) ??
+      (mid != null ? mid : null);
+    const premiumEfficiency = numberOrNull(r?.premiumToSpotPct) ?? numberOrNull(r?.premium_to_spot_pct) ??
+      numberOrNull(r?.weeklyYield) ?? numberOrNull(r?.annualizedYield) ?? numberOrNull(r?.returnPct) ?? numberOrNull(r?.premiumYield);
     if (premium != null) premiumVals.push(premium);
     if (premiumEfficiency != null) efficiencyVals.push(premiumEfficiency);
+
+    const delta = pqResolveDelta(r);
+    if (delta != null) { deltaValidCount += 1; deltaVals.push(Math.abs(delta)); }
+    const iv = pqResolveIv(r);
+    if (iv != null) ivVals.push(iv);
+
+    const { volume, oi } = pqResolveLiquidity(r);
+    if (volume != null || oi != null) liquidityValidCount += 1;
+    if (volume != null && volume > 0) volumeVals.push(volume);
+    if (oi != null) oiVals.push(oi);
 
     const staleRaw = r?.staleQuote ?? r?.stale_quote;
     if (typeof staleRaw === "boolean") staleFlags.push(staleRaw);
@@ -2711,30 +2824,57 @@ function computePrimeQualityStats(records) {
     if (typeof earningsRaw === "boolean") earningsFlags.push(earningsRaw);
   }
 
-  const spreadCoveragePct = rows.length > 0 && spreadCoverageKnown > 0 ? (spreadCoverageKnown / rows.length) * 100 : null;
+  const total = rows.length;
+  const avgSpreadPct = avg(spreadPctVals);
+  const avgDeltaAbs = avg(deltaVals);
+  const avgIv = avg(ivVals);
+  const avgVolume = avg(volumeVals);
+  const avgOi = avg(oiVals);
+  const avgCompleteness = avg(completenessVals);
+  const spreadCoveragePct = total > 0 && spreadCoverageKnown > 0 ? (spreadCoverageKnown / total) * 100 : null;
+  const snapshotCoveragePct = total > 0 ? (snapshotCount / total) * 100 : null;
+  const bidAskCoveragePct = total > 0 ? (bidAskValidCount / total) * 100 : null;
   const staleQuoteCount = staleFlags.length > 0 ? staleFlags.filter(Boolean).length : null;
   const staleQuoteRate = staleFlags.length > 0 ? (staleFlags.filter(Boolean).length / staleFlags.length) * 100 : null;
   const earningsRiskCount = earningsFlags.length > 0 ? earningsFlags.filter(Boolean).length : null;
   const earningsRiskRate = earningsFlags.length > 0 ? (earningsFlags.filter(Boolean).length / earningsFlags.length) * 100 : null;
 
-  let qualityVerdict = "Spread N/D";
-  const avgSpreadPct = avg(spreadPctVals);
-  if (avgSpreadPct != null) {
-    if (avgSpreadPct <= 5) qualityVerdict = "Prime propre";
-    else if (avgSpreadPct <= 10) qualityVerdict = "Prime correcte";
-    else if (avgSpreadPct <= 20) qualityVerdict = "Spread limite";
-    else qualityVerdict = "Spread risqué";
+  const dominantSource = [...sources.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "absent";
+  const topMissingFields = [...missingFieldsCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([f]) => f);
+
+  let liquidityStatus = "N/D";
+  if (liquidityValidCount > 0) {
+    liquidityStatus = (avgOi != null && avgOi >= 100) || (avgVolume != null && avgVolume >= 50) ? "OK" : "faible";
+  }
+
+  let qualityVerdict;
+  if (spreadPctVals.length === 0) {
+    qualityVerdict = snapshotCount === 0 ? "Données insuffisantes" : "Lecture indicative";
+  } else if (avgSpreadPct != null && avgSpreadPct > 20) {
+    qualityVerdict = "Spread risqué";
+  } else if (avgSpreadPct != null && avgSpreadPct > 10) {
+    qualityVerdict = "Spread limite";
+  } else if (liquidityStatus === "faible") {
+    qualityVerdict = "Liquidité faible";
+  } else {
+    qualityVerdict = "Prime tradable";
   }
   if (staleQuoteRate != null && staleQuoteRate > 20) qualityVerdict = "Qualité quote faible";
 
   const warnings = [];
   if (earningsRiskRate != null && earningsRiskRate > 0) warnings.push("Earnings risk présent");
-  if (avgSpreadPct == null) {
+  if (avgSpreadPct == null && snapshotCount === 0) {
     const avgPremium = avg(premiumVals);
     if (avgPremium != null && avgPremium >= 1) warnings.push("Prime élevée mais liquidité non confirmée");
   }
+  if (deltaValidCount > 0 && avgDeltaAbs != null && avgDeltaAbs > 0.45) warnings.push("Delta agressif");
+  if (snapshotCount > 0 && topMissingFields.length >= 3) warnings.push("Snapshot incomplet");
 
   return {
+    // Legacy fields (backward-compatible)
     avgBid: avg(bidVals),
     avgAsk: avg(askVals),
     avgSpread: avg(spreadVals),
@@ -2750,6 +2890,24 @@ function computePrimeQualityStats(records) {
     warnings,
     staleCoverageCount: staleFlags.length,
     earningsCoverageCount: earningsFlags.length,
+    // Snapshot-aware fields
+    snapshotCount,
+    snapshotTotal: total,
+    ibkrObservedCount,
+    bidAskValidCount,
+    spreadPctValidCount,
+    deltaValidCount,
+    liquidityValidCount,
+    snapshotCoveragePct,
+    bidAskCoveragePct,
+    dominantSource,
+    avgDeltaAbs,
+    avgIv,
+    avgVolume,
+    avgOi,
+    avgCompleteness,
+    liquidityStatus,
+    topMissingFields,
   };
 }
 
@@ -5089,38 +5247,100 @@ export default function JournalPopPanel({ apiBase, active }) {
         <CollapsibleSection
           title="Prime Quality — Spread, liquidité et risque événementiel"
           badge="V2D-C"
-          subtitle="V2D-C : vérifie si les primes observées sont réellement tradables. N/D si les champs ne sont pas encore capturés. · Lecture indicative."
+          subtitle="V2D-C : vérifie si les primes observées sont réellement tradables via les snapshots IBKR enrichis."
           defaultOpen={false}
-          summaryRight={`Spread moy. ${primeQualityStats.avgSpreadPct != null ? primeQualityStats.avgSpreadPct.toFixed(1) + "%" : "N/D"} · ${primeQualityStats.qualityVerdict}`}
+          summaryRight={`${primeQualityStats.qualityVerdict} · snapshot ${primeQualityStats.snapshotCount}/${primeQualityStats.snapshotTotal}`}
         >
-          <p className="mb-3 text-[10px] italic text-slate-600">Lecture indicative — ne remplace pas une quote live au moment du trade.</p>
+          <p className="mb-3 text-[10px] italic text-slate-500">
+            Les anciens records sans snapshot ne sont pas pénalisés comme mauvais spreads. Les métriques spread/liquidité sont calculées seulement sur les records avec données exploitables.
+            {primeQualityStats.snapshotCoveragePct != null && primeQualityStats.snapshotCoveragePct < 50 && (
+              <span className="ml-1 text-amber-500">· Lecture indicative — couverture snapshot insuffisante.</span>
+            )}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <ProKpi
-              label="Spread coverage"
-              value={primeQualityStats.spreadCoveragePct != null ? `${primeQualityStats.spreadCoveragePct.toFixed(0)}%` : null}
-              tone={primeQualityStats.spreadCoveragePct != null && primeQualityStats.spreadCoveragePct >= 70 ? "good" : "default"}
-              sub={primeQualityStats.spreadCoveragePct != null ? "Records avec bid/ask/spread disponibles" : "Aucun champ spread détecté"}
+              label="Couverture snapshot"
+              value={primeQualityStats.snapshotTotal > 0 ? `${primeQualityStats.snapshotCount}/${primeQualityStats.snapshotTotal}` : null}
+              tone={
+                primeQualityStats.snapshotCoveragePct != null && primeQualityStats.snapshotCoveragePct >= 70 ? "good" :
+                primeQualityStats.snapshotCoveragePct != null && primeQualityStats.snapshotCoveragePct >= 30 ? "warn" : "muted"
+              }
+              sub={primeQualityStats.ibkrObservedCount > 0
+                ? `IBKR observé : ${primeQualityStats.ibkrObservedCount} · source : ${primeQualityStats.dominantSource}`
+                : `Source dominante : ${primeQualityStats.dominantSource}`}
+            />
+            <ProKpi
+              label="Bid/Ask valides"
+              value={primeQualityStats.snapshotTotal > 0 ? `${primeQualityStats.bidAskValidCount}/${primeQualityStats.snapshotTotal}` : null}
+              tone={
+                primeQualityStats.bidAskCoveragePct != null && primeQualityStats.bidAskCoveragePct >= 70 ? "good" :
+                primeQualityStats.bidAskCoveragePct != null && primeQualityStats.bidAskCoveragePct > 0 ? "warn" : "muted"
+              }
+              sub={primeQualityStats.avgSpreadPct != null ? `Spread moy. ${primeQualityStats.avgSpreadPct.toFixed(1)} %` : "Spread non calculable"}
             />
             <ProKpi
               label="Spread moyen"
               value={primeQualityStats.avgSpreadPct != null
                 ? `${primeQualityStats.avgSpreadPct.toFixed(1)}%`
                 : (primeQualityStats.avgSpread != null ? formatMoney(primeQualityStats.avgSpread) : null)}
-              tone={primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 10 ? "good" : primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 20 ? "warn" : "default"}
+              tone={
+                primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 10 ? "good" :
+                primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 20 ? "warn" :
+                primeQualityStats.avgSpreadPct != null ? "risk" : "default"
+              }
               sub={primeQualityStats.avgBid != null && primeQualityStats.avgAsk != null ? `Bid ${formatMoney(primeQualityStats.avgBid)} · Ask ${formatMoney(primeQualityStats.avgAsk)}` : "N/D"}
-            />
-            <ProKpi
-              label="Prime moyenne"
-              value={primeQualityStats.avgPremium != null ? formatMoney(primeQualityStats.avgPremium) : null}
-              tone="info"
-              sub={primeQualityStats.premiumEfficiency != null ? `Premium efficiency ${primeQualityStats.premiumEfficiency.toFixed(2)}%` : "N/D"}
             />
             <ProKpi
               label="Qualité prime"
               value={primeQualityStats.qualityVerdict}
-              tone={primeQualityStats.qualityVerdict === "Prime propre" ? "good" : primeQualityStats.qualityVerdict === "Prime correcte" ? "info" : primeQualityStats.qualityVerdict === "Spread limite" ? "warn" : primeQualityStats.qualityVerdict === "Spread risqué" || primeQualityStats.qualityVerdict === "Qualité quote faible" ? "risk" : "muted"}
+              tone={
+                primeQualityStats.qualityVerdict === "Prime tradable" ? "good" :
+                primeQualityStats.qualityVerdict === "Spread limite" || primeQualityStats.qualityVerdict === "Liquidité faible" ? "warn" :
+                primeQualityStats.qualityVerdict === "Spread risqué" || primeQualityStats.qualityVerdict === "Qualité quote faible" ? "risk" :
+                "muted"
+              }
               sub={primeQualityStats.warnings.length > 0 ? primeQualityStats.warnings.join(" · ") : "Aucun warning détecté"}
             />
+            <ProKpi
+              label="Delta disponible"
+              value={primeQualityStats.snapshotTotal > 0 ? `${primeQualityStats.deltaValidCount}/${primeQualityStats.snapshotTotal}` : null}
+              tone={
+                primeQualityStats.deltaValidCount > 0 && primeQualityStats.avgDeltaAbs != null && primeQualityStats.avgDeltaAbs > 0.45 ? "warn" :
+                primeQualityStats.deltaValidCount > 0 ? "good" : "muted"
+              }
+              sub={primeQualityStats.avgDeltaAbs != null
+                ? `Delta moy. |${primeQualityStats.avgDeltaAbs.toFixed(3)}|${primeQualityStats.avgIv != null ? ` · IV ${(primeQualityStats.avgIv * 100).toFixed(1)}%` : ""}`
+                : "Delta non disponible"}
+            />
+            <ProKpi
+              label="Liquidité"
+              value={primeQualityStats.liquidityStatus !== "N/D" ? primeQualityStats.liquidityStatus : null}
+              tone={primeQualityStats.liquidityStatus === "OK" ? "good" : primeQualityStats.liquidityStatus === "faible" ? "warn" : "muted"}
+              sub={
+                primeQualityStats.avgOi != null || primeQualityStats.avgVolume != null
+                  ? `OI moy. ${primeQualityStats.avgOi != null ? formatCompactNumber(primeQualityStats.avgOi) : "N/D"} · Vol moy. ${primeQualityStats.avgVolume != null ? formatCompactNumber(primeQualityStats.avgVolume) : "N/D"}`
+                  : "Volume/OI non disponibles"
+              }
+            />
+          </div>
+          {primeQualityStats.snapshotCount > 0 && (
+            <div className="mt-3 rounded-md border border-slate-700/50 bg-slate-800/40 p-3 text-[10px] text-slate-400 space-y-1">
+              <div className="font-semibold text-slate-300 mb-1">Détail snapshot</div>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                <span>Source : <span className="text-slate-200">{primeQualityStats.dominantSource}</span></span>
+                {primeQualityStats.avgCompleteness != null && (
+                  <span>Complétude moy. : <span className="text-slate-200">{primeQualityStats.avgCompleteness.toFixed(0)}%</span></span>
+                )}
+                {primeQualityStats.ibkrObservedCount > 0 && (
+                  <span>IBKR observé : <span className="text-slate-200">{primeQualityStats.ibkrObservedCount}</span></span>
+                )}
+                {primeQualityStats.topMissingFields.length > 0 && (
+                  <span>Champs manquants : <span className="text-amber-400">{primeQualityStats.topMissingFields.join(", ")}</span></span>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <ProKpi
               label="Earnings risk"
               value={primeQualityStats.earningsRiskRate != null ? `${primeQualityStats.earningsRiskCount}/${primeQualityStats.earningsCoverageCount} (${primeQualityStats.earningsRiskRate.toFixed(0)}%)` : null}

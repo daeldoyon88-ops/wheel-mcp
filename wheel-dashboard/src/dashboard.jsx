@@ -4959,6 +4959,29 @@ function buildAutoJournalStrikePayload(strikeRow) {
   return compact;
 }
 
+const JOURNAL_TECHNICAL_CANDLE_LIMIT = 220;
+
+function trimOhlcCandlesForJournal(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const trimmed = raw.slice(-JOURNAL_TECHNICAL_CANDLE_LIMIT);
+  const compact = trimmed
+    .map((candle) => {
+      if (!candle || typeof candle !== "object") return null;
+      const close = candle.close ?? null;
+      if (close == null) return null;
+      return {
+        date: candle.date ?? null,
+        open: candle.open ?? null,
+        high: candle.high ?? null,
+        low: candle.low ?? null,
+        close,
+        volume: candle.volume ?? null,
+      };
+    })
+    .filter(Boolean);
+  return compact.length > 0 ? compact : null;
+}
+
 function buildAutoJournalCandidatePayload(candidate) {
   if (!candidate || typeof candidate !== "object") return candidate;
   const raw = candidate.raw && typeof candidate.raw === "object" ? candidate.raw : null;
@@ -5048,6 +5071,29 @@ function buildAutoJournalCandidatePayload(candidate) {
   if (compact.resistance != null) supportResistance.resistance = compact.resistance;
   if (compact.supportStatus != null) supportResistance.supportStatus = compact.supportStatus;
   if (Object.keys(supportResistance).length > 0) compact.supportResistance = supportResistance;
+
+  const ohlcSource =
+    candidate.ohlcCandles ??
+    candidate.supportResistance?.ohlcCandles ??
+    raw?.ohlcCandles ??
+    null;
+  const journalOhlcCandles = trimOhlcCandlesForJournal(ohlcSource);
+  if (journalOhlcCandles) {
+    compact.ohlcCandles = journalOhlcCandles;
+  } else {
+    const closes =
+      candidate.priceSeries?.closes ??
+      candidate.technicals?.closes60 ??
+      raw?.technicals?.closes60 ??
+      null;
+    if (Array.isArray(closes) && closes.length >= 2) {
+      compact.priceSeries = {
+        interval: candidate.priceSeries?.interval ?? "1d",
+        closes: closes.slice(-JOURNAL_TECHNICAL_CANDLE_LIMIT),
+        count: Math.min(closes.length, JOURNAL_TECHNICAL_CANDLE_LIMIT),
+      };
+    }
+  }
 
   if (raw) {
     const rawCompact = {};

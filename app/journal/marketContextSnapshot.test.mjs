@@ -218,7 +218,13 @@ test("snapshot n'inclut pas de candles brutes", () => {
   assert.equal(json.includes('"ohlcCandles"'), false);
   assert.equal(json.includes('"quotes"'), false);
   assert.ok(snapshot.candlesUsed.qqq > 0);
-  assert.ok(Object.keys(snapshot).every((key) => !Array.isArray(snapshot[key]) || key === "missingFields" || key === "warnings"));
+  assert.ok(Object.keys(snapshot).every(
+    (key) =>
+      !Array.isArray(snapshot[key]) ||
+      key === "missingFields" ||
+      key === "warnings" ||
+      key === "fetchDiagnostics"
+  ));
 });
 
 test("enrichRecordWithMarketContextFields expose les champs backend", () => {
@@ -238,6 +244,34 @@ test("enrichRecordWithMarketContextFields expose les champs backend", () => {
   assert.ok(enriched.marketContextCompletenessPct >= 0);
   assert.ok(["favorable", "neutre", "fragile", "stress", "inconnu"].includes(enriched.marketRegimeLabel));
   assert.ok(["calme", "normal", "volatil", "extrême", "inconnu"].includes(enriched.marketRiskLabel));
+});
+
+test("buildMarketContextSnapshotFromInputs — fetchDiagnostics exposés si fetch vide", () => {
+  const snapshot = buildMarketContextSnapshotFromInputs({
+    scanTimestamp: "2026-05-24T15:00:00.000Z",
+    qqqCandles: [],
+    spyCandles: [],
+    vixCandles: [],
+    fetchDiagnostics: [
+      {
+        symbol: "QQQ",
+        label: "qqq",
+        status: "empty",
+        candleCount: 0,
+        reason: "yahoo_zero_candle",
+      },
+      {
+        symbol: "^VIX",
+        label: "vix",
+        status: "empty",
+        candleCount: 0,
+        reason: "symbole_vix_sans_candles",
+      },
+    ],
+  });
+  assert.equal(snapshot.fetchDiagnostics.length, 2);
+  assert.ok(snapshot.warnings.includes("fetch_qqq_yahoo_zero_candle"));
+  assert.ok(snapshot.warnings.includes("fetch_vix_symbole_vix_sans_candles"));
 });
 
 test("deriveVixRegimeLabel et deriveRiskOnOffLabel", () => {

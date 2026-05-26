@@ -299,6 +299,7 @@ export function buildMarketContextSnapshotFromInputs({
   s5thValue = null,
   s5thSignal = null,
   s5thTrend = null,
+  fetchDiagnostics = null,
 }) {
   const qqqBlock = buildIndexBlock(qqqCandles, "qqq");
   const spyBlock = buildIndexBlock(spyCandles, "spy");
@@ -332,6 +333,7 @@ export function buildMarketContextSnapshotFromInputs({
     dataConfidence: "missing",
     missingFields: [],
     warnings: [],
+    fetchDiagnostics: Array.isArray(fetchDiagnostics) ? fetchDiagnostics : [],
     candlesUsed: {
       qqq: normalizeCandles(qqqCandles).length,
       spy: normalizeCandles(spyCandles).length,
@@ -381,6 +383,14 @@ export function buildMarketContextSnapshotFromInputs({
   if (snapshot.candlesUsed.spy === 0) snapshot.warnings.push("spy_candles_absentes");
   if (snapshot.candlesUsed.vix === 0) snapshot.warnings.push("vix_candles_absentes");
   if (snapshot.s5thValue == null) snapshot.warnings.push("s5th_non_disponible");
+  if (Array.isArray(fetchDiagnostics)) {
+    for (const entry of fetchDiagnostics) {
+      if (!entry || entry.status === "ok") continue;
+      const label = entry.label ?? entry.symbol ?? "?";
+      const reason = entry.reason ?? entry.status ?? "inconnu";
+      snapshot.warnings.push(`fetch_${label}_${reason}`);
+    }
+  }
 
   return snapshot;
 }
@@ -399,30 +409,78 @@ export async function buildMarketContextSnapshot({ marketService, scanTimestamp 
     });
   }
 
-  const fetchCandles = async (symbol) => {
+  const fetchCandlesWithDiagnostic = async (symbol, label) => {
+    const diagnostic = {
+      symbol,
+      label,
+      status: "unknown",
+      candleCount: 0,
+      availableCandlesCount: null,
+      reason: null,
+      errorMessage: null,
+    };
     try {
       const result = await marketService.getSupportResistance(symbol);
-      return Array.isArray(result?.ohlcCandles) ? result.ohlcCandles : [];
-    } catch (_err) {
-      return [];
+      const candles = Array.isArray(result?.ohlcCandles) ? result.ohlcCandles : [];
+      diagnostic.candleCount = candles.length;
+      diagnostic.availableCandlesCount = toNum(result?.availableCandlesCount);
+
+      if (candles.length > 0) {
+        diagnostic.status = "ok";
+        return { candles, diagnostic };
+      }
+
+      diagnostic.status = "empty";
+      if (result?.ohlcCandles == null) {
+        if (diagnostic.availableCandlesCount === 0) {
+          diagnostic.reason = "yahoo_zero_candle";
+        } else if (diagnostic.availableCandlesCount == null) {
+          diagnostic.reason = "ohlc_candles_null";
+        } else {
+          diagnostic.reason = "ohlc_candles_null_malgré_compteur";
+        }
+      } else {
+        diagnostic.reason = "tableau_vide";
+      }
+      if (label === "vix" && diagnostic.reason === "yahoo_zero_candle") {
+        diagnostic.reason = "symbole_vix_sans_candles";
+      }
+      console.warn(
+        `[marketContextSnapshot] ${label} (${symbol}): ${diagnostic.reason} — candles=${diagnostic.candleCount}`
+      );
+      return { candles: [], diagnostic };
+    } catch (err) {
+      diagnostic.status = "error";
+      diagnostic.reason = "api_exception";
+      diagnostic.errorMessage = err?.message ? String(err.message) : String(err);
+      console.warn(
+        `[marketContextSnapshot] ${label} (${symbol}): ${diagnostic.errorMessage}`
+      );
+      return { candles: [], diagnostic };
     }
   };
 
-  const [qqqCandles, spyCandles, iwmCandles, vixCandles] = await Promise.all([
-    fetchCandles("QQQ"),
-    fetchCandles("SPY"),
-    fetchCandles("IWM"),
-    fetchCandles("^VIX"),
+  const [qqqResult, spyResult, iwmResult, vixResult] = await Promise.all([
+    fetchCandlesWithDiagnostic("QQQ", "qqq"),
+    fetchCandlesWithDiagnostic("SPY", "spy"),
+    fetchCandlesWithDiagnostic("IWM", "iwm"),
+    fetchCandlesWithDiagnostic("^VIX", "vix"),
   ]);
 
   return buildMarketContextSnapshotFromInputs({
     scanTimestamp,
     source: "Yahoo",
     marketSessionStatus: resolveMarketSessionStatus(new Date(scanTimestamp)),
-    qqqCandles,
-    spyCandles,
-    iwmCandles,
-    vixCandles,
+    qqqCandles: qqqResult.candles,
+    spyCandles: spyResult.candles,
+    iwmCandles: iwmResult.candles,
+    vixCandles: vixResult.candles,
+    fetchDiagnostics: [
+      qqqResult.diagnostic,
+      spyResult.diagnostic,
+      iwmResult.diagnostic,
+      vixResult.diagnostic,
+    ],
   });
 }
 

@@ -185,6 +185,21 @@ function formatMissingFields(fields) {
   return fields.length > 4 ? `${shown} +${fields.length - 4}` : shown;
 }
 
+function resolveImpliedVolatility(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") return null;
+  const candidates = [
+    snapshot.impliedVolatility,
+    snapshot.greeks?.impliedVolatility,
+    snapshot.iv,
+    snapshot.context?.impliedVolatility,
+  ];
+  for (const value of candidates) {
+    const n = numberOrNull(value);
+    if (n != null) return n;
+  }
+  return null;
+}
+
 function getLiveOptionSnapshotBadges(record) {
   const snapshot = record?.optionQuoteSnapshot ?? {};
   const badges = [];
@@ -196,8 +211,9 @@ function getLiveOptionSnapshotBadges(record) {
     badges.push({ label: "Snapshot présent", tone: "neutral" });
   }
   if ((record?.optionDataCompletenessPct ?? 0) < 100) badges.push({ label: "Options incomplètes", tone: "warn" });
-  if (snapshot.impliedVolatility == null) badges.push({ label: "IV manquante", tone: "warn" });
-  if (snapshot.delta == null) badges.push({ label: "Delta manquant", tone: "warn" });
+  if (resolveImpliedVolatility(snapshot) == null) badges.push({ label: "IV manquante", tone: "warn" });
+  const delta = snapshot?.greeks?.delta ?? snapshot?.delta;
+  if (delta == null) badges.push({ label: "Delta manquant", tone: "warn" });
   return badges.slice(0, 5);
 }
 
@@ -215,8 +231,8 @@ function getOptionSnapshotDisplay(record) {
     mid: quote?.mid,
     spreadAbs: quote?.spreadAbs,
     spreadPct: quote?.spreadPct,
-    impliedVolatility: greeks?.impliedVolatility,
-    delta: greeks?.delta,
+    impliedVolatility: resolveImpliedVolatility(snapshot),
+    delta: greeks?.delta ?? snapshot?.delta,
     volume: liquidity?.volume,
     openInterest: liquidity?.openInterest,
     conId: contract?.conId,
@@ -286,8 +302,22 @@ function formatCompactVixLine(vixLevel, vixRegimeLabel, vixTrendLabel) {
   return parts.join(" · ");
 }
 
+function formatMarketFetchDiagnostics(fetchDiagnostics) {
+  if (!Array.isArray(fetchDiagnostics) || fetchDiagnostics.length === 0) return "";
+  return fetchDiagnostics
+    .filter((entry) => entry && entry.status !== "ok")
+    .map((entry) => {
+      const label = entry.label ?? entry.symbol ?? "?";
+      const reason = entry.reason ?? entry.status ?? "inconnu";
+      const err = entry.errorMessage ? ` (${entry.errorMessage})` : "";
+      return `${label}: ${reason}${err}`;
+    })
+    .join(" · ");
+}
+
 function getMarketContextSnapshotDisplay(record) {
   const snap = record?.marketContextSnapshot ?? {};
+  const fetchDiagnostics = snap.fetchDiagnostics ?? [];
   return {
     marketRegimeLabel: snap.marketRegimeLabel ?? record?.marketRegimeLabel ?? null,
     marketRiskLabel: snap.marketRiskLabel ?? record?.marketRiskLabel ?? null,
@@ -300,6 +330,8 @@ function getMarketContextSnapshotDisplay(record) {
     vixLevel: snap.vixLevel,
     vixTrendLabel: snap.vixTrendLabel,
     s5thValue: snap.s5thValue,
+    fetchDiagnostics,
+    fetchDiagnosticSummary: formatMarketFetchDiagnostics(fetchDiagnostics),
     missingFields: record?.marketContextMissingFields ?? snap.missingFields ?? [],
     completenessPct: record?.marketContextCompletenessPct ?? 0,
     badge: record?.marketContextBadge ?? "Snapshot absent",
@@ -7693,7 +7725,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                           </td>
                           <td className="px-3 py-2.5 text-[11px] capitalize">{market.marketRiskLabel ?? "—"}</td>
                           <td className="px-3 py-2.5 tabular-nums">{market.completenessPct}%</td>
-                          <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={Array.isArray(marketMissingFields) ? marketMissingFields.join(", ") : ""}>
+                          <td className="px-3 py-2.5 max-w-[220px] text-[10px] text-slate-500" title={[Array.isArray(marketMissingFields) ? marketMissingFields.join(", ") : "", market.fetchDiagnosticSummary].filter(Boolean).join(" · ")}>
                             {formatMissingFields(marketMissingFields)}
                           </td>
                           <td className="px-3 py-2.5">

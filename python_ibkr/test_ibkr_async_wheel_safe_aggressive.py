@@ -28,6 +28,30 @@ MAX_STRIKE_ATTEMPTS = 10
 MIN_PREMIUM_YIELD = 0.005
 TWO_PHASE_DEFAULT_PUT_WINDOW = 10
 
+_PUT_ENRICHMENT_KEYS = (
+    "conId",
+    "localSymbol",
+    "tradingClass",
+    "exchange",
+    "currency",
+    "multiplier",
+    "delta",
+    "gamma",
+    "theta",
+    "vega",
+    "modelPrice",
+    "mark",
+    "impliedVolatility",
+    "volume",
+    "optionVolume",
+    "openInterest",
+    "putOpenInterest",
+    "callOpenInterest",
+    "quoteTimestamp",
+    "modelGreeksTimestamp",
+    "modelGreeksSource",
+)
+
 
 def _parse_bool(v: str | None, default: bool) -> bool:
     if v is None or str(v).strip() == "":
@@ -1357,6 +1381,11 @@ def main() -> int:
                 status = "kept"
                 reason = "passes_min_premium"
 
+            enrichment = {
+                key: q.get(key)
+                for key in _PUT_ENRICHMENT_KEYS
+                if q.get(key) is not None
+            }
             put_data.append(
                 {
                     "strike": strike,
@@ -1378,6 +1407,7 @@ def main() -> int:
                     "distanceBelowLowerBound": distance_below,
                     "status": status,
                     "reason": reason,
+                    **enrichment,
                 }
             )
 

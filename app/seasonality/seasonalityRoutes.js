@@ -20,6 +20,11 @@ import {
   parseBacktestOutputOptions,
   resolveBacktestTickerList,
 } from "./seasonalityBacktest.js";
+import {
+  computeSeasonalityHighProbabilityWindows,
+  buildHighProbabilityWindowsApiResponse,
+  parseHighProbabilityWindowsParams,
+} from "./seasonalityHighProbabilityWindows.js";
 
 const router   = Router();
 const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
@@ -197,6 +202,86 @@ router.get("/backtest", async (req, res) => {
     res.status(500).json({
       ok:       false,
       error:    String(err?.message ?? "backtest_failed"),
+      warnings: [],
+    });
+  }
+});
+
+/**
+ * GET /seasonality/high-probability-windows?tickers=TQQQ,NVDA&minWinRate=0.9
+ * Fenêtres swing saisonnières à haute probabilité (5–16 semaines).
+ *
+ * Paramètres :
+ *   tickers            Liste séparée par virgule (prioritaire sur source).
+ *   source             top20-wheel | strict-watchlist | fallback65.
+ *   minWeeks           Semaines min (défaut 5).
+ *   maxWeeks           Semaines max (défaut 16).
+ *   stepDays           Pas en jours de bourse (défaut 5).
+ *   minWinRate         Win rate minimum (défaut 0.9).
+ *   minAvgReturn       Rendement moyen minimum (défaut 0.10).
+ *   minMedianReturn    Rendement médian minimum (défaut 0.05).
+ *   minSamples         Occurrences minimum (défaut 8).
+ *   maxResultsPerTicker Max fenêtres par ticker (défaut 10).
+ *   direction          bullish | bearish | both (défaut both).
+ *   includeAll         1/true pour inclure toutes les fenêtres avec minSamples.
+ */
+router.get("/high-probability-windows", async (req, res) => {
+  try {
+    const resolved = resolveBacktestTickerList({
+      tickersRaw: req.query.tickers,
+      sourceRaw:  req.query.source,
+    });
+
+    if (!resolved.ok) {
+      const status = resolved.error?.includes('Source inconnue') ? 200 : 400;
+      return res.status(status).json({
+        ok: false,
+        error: resolved.error,
+        warnings: [],
+      });
+    }
+
+    const { tickers, source: sourceLabel } = resolved;
+
+    if (!tickers.length) {
+      return res.status(400).json({ ok: false, error: "Aucun ticker fourni.", warnings: [] });
+    }
+
+    if (tickers.length > 50) {
+      return res.status(400).json({ ok: false, error: "Maximum 50 tickers par requête.", warnings: [] });
+    }
+
+    const invalidTickers = tickers.filter(t => !TICKER_RE.test(t));
+    if (invalidTickers.length) {
+      return res.status(400).json({
+        ok: false,
+        error: `Tickers au format invalide : ${invalidTickers.join(", ")}`,
+        warnings: [],
+      });
+    }
+
+    const parameters = parseHighProbabilityWindowsParams(req.query);
+
+    const result = await computeSeasonalityHighProbabilityWindows({
+      tickers,
+      parameters,
+    });
+
+    return res.json(buildHighProbabilityWindowsApiResponse({
+      source: sourceLabel,
+      parameters,
+      byTicker: result.byTicker,
+      topBullishWindows: result.topBullishWindows,
+      topBearishWindows: result.topBearishWindows,
+      warnings: result.warnings,
+      tickersRequested: tickers.length,
+      tickersAnalyzed: result.tickersAnalyzed,
+    }));
+
+  } catch (err) {
+    res.status(500).json({
+      ok:       false,
+      error:    String(err?.message ?? "high_probability_windows_failed"),
       warnings: [],
     });
   }

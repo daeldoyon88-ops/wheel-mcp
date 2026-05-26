@@ -25,6 +25,7 @@ const MIN_SAMPLE_SIZE       = 3;
 const SCORE_NORMALIZER      = 0.05;            // 5 % return → raw score ~1
 const BIAS_THRESHOLD        = 0.25;
 const CONCURRENCY_LIMIT     = 3;
+const MONTH_LABELS          = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
 // ─── Debug logging (controlled — set DEBUG_SEASONALITY=true to enable) ─────────
 const _debug = String(process.env.DEBUG_SEASONALITY ?? "").toLowerCase() === "true";
@@ -34,6 +35,7 @@ function _warn(...args) { console.warn("[SEASONALITY]", ...args); }
 // ─── Isolated in-memory caches ─────────────────────────────────────────────────
 const _histCache   = new Map(); // sym → { value: rows|null, expiresAt }
 const _resultCache = new Map(); // sym → { value: result, expiresAt } — NEVER stores null
+const _calendarCache = new Map(); // sym → { value: calendarResult, expiresAt } — NEVER stores null
 const _inFlight    = new Map(); // key → Promise — dedup concurrent requests
 
 // ─── Lazy isolated Yahoo client ────────────────────────────────────────────────
@@ -183,6 +185,18 @@ function _maxDrawdown(prices) {
     if (peak > 0) dd = Math.min(dd, (p - peak) / peak);
   }
   return dd;
+}
+
+function _groupByMonth(rows) {
+  const byYM = {};
+  for (const r of rows) {
+    const year  = r.date.getUTCFullYear();
+    const month = r.date.getUTCMonth() + 1;
+    if (!byYM[year]) byYM[year] = {};
+    if (!byYM[year][month]) byYM[year][month] = [];
+    byYM[year][month].push(r);
+  }
+  return byYM;
 }
 
 const _r4 = n => Math.round(n * 10_000) / 10_000;
@@ -401,6 +415,162 @@ export async function computeSeasonality(symbol) {
   return promise;
 }
 
+// ─── Monthly calendar computation (Phase A — Seasonality V2) ──────────────────
+
+/**
+ * Pure computation: groups normalized rows by calendar month and returns statistics.
+ * Exported for unit testing — no Yahoo calls, no cache side-effects.
+ */
+export function computeCalendarFromRows(rows) {
+  if (!rows?.length) return null;
+
+  const byYM     = _groupByMonth(rows);
+  const allYears = Object.keys(byYM).map(Number).sort((a, b) => a - b);
+  const now      = new Date();
+  const currentYear  = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+
+  const months = [];
+
+  for (let month = 1; month <= 12; month++) {
+    const monthReturns   = [];
+    const monthDrawdowns = [];
+
+    for (const year of allYears) {
+      // Skip the current month and future months of the current year (données incomplètes)
+      if (year === currentYear && month >= currentMonth) continue;
+
+      const monthRows = byYM[year]?.[month];
+      if (!monthRows || monthRows.length < 2) continue;
+
+      const sorted     = [...monthRows].sort((a, b) => a.date - b.date);
+      const firstClose = sorted[0].close;
+      const lastClose  = sorted[sorted.length - 1].close;
+
+      if (!Number.isFinite(firstClose) || firstClose <= 0) continue;
+      if (!Number.isFinite(lastClose)  || lastClose  <= 0) continue;
+
+      const ret = (lastClose - firstClose) / firstClose;
+      monthReturns.push(ret);
+      monthDrawdowns.push(_maxDrawdown(sorted.map(r => r.close)));
+    }
+
+    if (monthReturns.length < MIN_SAMPLE_SIZE) continue;
+
+    const n             = monthReturns.length;
+    const avgReturn     = monthReturns.reduce((s, r) => s + r, 0) / n;
+    const medianReturn  = _median(monthReturns);
+    const positiveYears = monthReturns.filter(r => r > 0).length;
+    const negativeYears = monthReturns.filter(r => r < 0).length;
+    const winRate       = positiveYears / n;
+    const bestReturn    = Math.max(...monthReturns);
+    const worstReturn   = Math.min(...monthReturns);
+    const avgDrawdown   = monthDrawdowns.reduce((s, d) => s + d, 0) / monthDrawdowns.length;
+    const worstDrawdown = Math.min(...monthDrawdowns);
+
+    let verdict;
+    if (winRate >= 0.65 && avgReturn > 0)      verdict = 'favorable';
+    else if (winRate <= 0.45 && avgReturn < 0) verdict = 'faible';
+    else                                        verdict = 'neutre';
+
+    months.push({
+      month,
+      label:         MONTH_LABELS[month - 1],
+      sampleSize:    n,
+      avgReturn:     _r4(avgReturn),
+      medianReturn:  medianReturn != null ? _r4(medianReturn) : null,
+      winRate:       _r3(winRate),
+      positiveYears,
+      negativeYears,
+      bestReturn:    _r4(bestReturn),
+      worstReturn:   _r4(worstReturn),
+      avgDrawdown:   _r4(avgDrawdown),
+      worstDrawdown: _r4(worstDrawdown),
+      verdict,
+    });
+  }
+
+  if (!months.length) return null;
+
+  const bestMonth  = months.reduce((b, m) => !b || m.avgReturn > b.avgReturn ? m : b, null);
+  const worstMonth = months.reduce((w, m) => !w || m.avgReturn < w.avgReturn ? m : w, null);
+  const favorableMonths = months.filter(m => m.verdict === 'favorable');
+  const faibleMonths    = months.filter(m => m.verdict === 'faible');
+  const strongestPositiveMonth = favorableMonths.length
+    ? favorableMonths.reduce((b, m) => !b || m.avgReturn > b.avgReturn ? m : b, null)
+    : bestMonth;
+  const strongestNegativeMonth = faibleMonths.length
+    ? faibleMonths.reduce((w, m) => !w || m.avgReturn < w.avgReturn ? m : w, null)
+    : worstMonth;
+
+  const yearsCovered = allYears.filter(y => y < currentYear).length;
+
+  return {
+    months,
+    summary: {
+      bestMonth,
+      worstMonth,
+      strongestPositiveMonth,
+      strongestNegativeMonth,
+      yearsCovered,
+      generatedAt:   new Date().toISOString(),
+      source:        'Yahoo Finance',
+      cacheTtlHours: RESULT_CACHE_TTL_MS / 3_600_000,
+    },
+  };
+}
+
+/**
+ * Computes monthly calendar seasonality for one ticker.
+ * Reuses _fetchHistory / _histCache — no extra Yahoo calls.
+ * Returns null on failure — null is NEVER stored in _calendarCache (always retried).
+ */
+export async function computeSeasonalityCalendar(symbol) {
+  const sym = String(symbol ?? '').trim().toUpperCase();
+  if (!sym) return null;
+
+  const calKey = `calendar:${sym}`;
+  const cached = _getCached(_calendarCache, calKey);
+  if (cached !== undefined) {
+    _log(`calendar cache HIT for ${sym}`);
+    return cached;
+  }
+
+  const flying = _inFlight.get(calKey);
+  if (flying) return flying;
+
+  const promise = (async () => {
+    try {
+      const rows = await _fetchHistory(sym);
+      if (!rows?.length) {
+        _log(`no rows for ${sym} calendar — returning null`);
+        return null;
+      }
+
+      _log(`computing calendar for ${sym} with ${rows.length} rows`);
+      const result = computeCalendarFromRows(rows);
+
+      if (!result) {
+        _log(`computeCalendarFromRows returned null for ${sym} (données insuffisantes)`);
+        return null;
+      }
+
+      _setCached(_calendarCache, calKey, result, RESULT_CACHE_TTL_MS);
+      _log(`calendar cached for ${sym}: ${result.months.length} mois, ${result.summary.yearsCovered} ans`);
+      return result;
+
+    } catch (err) {
+      _warn(`computeSeasonalityCalendar threw for ${sym}: ${err?.message ?? String(err)}`);
+      return null;
+    } finally {
+      _inFlight.delete(calKey);
+    }
+  })();
+
+  _inFlight.set(calKey, promise);
+  return promise;
+}
+
 /**
  * Batch seasonality for multiple tickers with bounded concurrency.
  * Returns { symbols, results: { SYMBOL: data|null }, generatedAt }.
@@ -434,32 +604,37 @@ export async function computeSeasonalityScanSummary(symbols) {
  */
 export async function getSeasonalityDiagnostic(symbol) {
   const sym = String(symbol ?? "").trim().toUpperCase();
-  const histKey   = `hist:${sym}`;
-  const resultKey = `result:${sym}`;
+  const histKey     = `hist:${sym}`;
+  const resultKey   = `result:${sym}`;
+  const calendarKey = `calendar:${sym}`;
 
-  const histEntry   = _histCache.get(histKey);
-  const resultEntry = _resultCache.get(resultKey);
+  const histEntry     = _histCache.get(histKey);
+  const resultEntry   = _resultCache.get(resultKey);
+  const calendarEntry = _calendarCache.get(calendarKey);
 
-  const histStatus  = !histEntry   ? "miss" : Date.now() >= histEntry.expiresAt   ? "expired" : histEntry.value   ? "hit"  : "cached-null";
-  const resultStatus = !resultEntry ? "miss" : Date.now() >= resultEntry.expiresAt ? "expired" : "hit";
+  const histStatus     = !histEntry     ? "miss" : Date.now() >= histEntry.expiresAt     ? "expired" : histEntry.value   ? "hit" : "cached-null";
+  const resultStatus   = !resultEntry   ? "miss" : Date.now() >= resultEntry.expiresAt   ? "expired" : "hit";
+  const calendarStatus = !calendarEntry ? "miss" : Date.now() >= calendarEntry.expiresAt ? "expired" : "hit";
 
   return {
-    symbol:      sym,
-    histCache:   { status: histStatus,   rowCount: histEntry?.value?.length ?? null, expiresAt: histEntry?.expiresAt  ?? null },
-    resultCache: { status: resultStatus, hasBias:  resultEntry?.value?.seasonalBias ?? null, expiresAt: resultEntry?.expiresAt ?? null },
-    inFlight:    { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey) },
+    symbol:        sym,
+    histCache:     { status: histStatus,     rowCount:   histEntry?.value?.length ?? null,               expiresAt: histEntry?.expiresAt     ?? null },
+    resultCache:   { status: resultStatus,   hasBias:    resultEntry?.value?.seasonalBias ?? null,       expiresAt: resultEntry?.expiresAt   ?? null },
+    calendarCache: { status: calendarStatus, monthCount: calendarEntry?.value?.months?.length ?? null,   expiresAt: calendarEntry?.expiresAt ?? null },
+    inFlight:      { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey), calendar: _inFlight.has(calendarKey) },
   };
 }
 
 /** Ops diagnostic — cache sizes and configuration. */
 export function getSeasonalityCacheStats() {
   return {
-    histCacheSize:       _histCache.size,
-    resultCacheSize:     _resultCache.size,
-    inFlightCount:       _inFlight.size,
-    histCacheTtlHours:   HISTORY_CACHE_TTL_MS  / 3_600_000,
-    resultCacheTtlHours: RESULT_CACHE_TTL_MS   / 3_600_000,
-    histFailTtlMin:      HISTORY_FAIL_TTL_MS   / 60_000,
-    debugEnabled:        _debug,
+    histCacheSize:        _histCache.size,
+    resultCacheSize:      _resultCache.size,
+    calendarCacheSize:    _calendarCache.size,
+    inFlightCount:        _inFlight.size,
+    histCacheTtlHours:    HISTORY_CACHE_TTL_MS  / 3_600_000,
+    resultCacheTtlHours:  RESULT_CACHE_TTL_MS   / 3_600_000,
+    histFailTtlMin:       HISTORY_FAIL_TTL_MS   / 60_000,
+    debugEnabled:         _debug,
   };
 }

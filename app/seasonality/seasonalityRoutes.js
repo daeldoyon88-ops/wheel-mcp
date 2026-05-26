@@ -7,6 +7,7 @@
 import { Router } from "express";
 import {
   computeSeasonality,
+  computeSeasonalityCalendar,
   computeSeasonalityScanSummary,
   getSeasonalityCacheStats,
   getSeasonalityDiagnostic,
@@ -67,6 +68,30 @@ router.get("/scan-summary", async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "scan_summary_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/:ticker/calendar
+ * Statistiques mensuelles historiques pour Wheel / CSP / CC — Phase A Saisonnalité V2.
+ * Lecture seule, aucun impact sur les endpoints existants.
+ */
+router.get("/:ticker/calendar", async (req, res) => {
+  try {
+    const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+    if (!symbol || !TICKER_RE.test(symbol)) {
+      return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
+    }
+    const calendar = await computeSeasonalityCalendar(symbol);
+    if (!calendar) {
+      return res.status(404).json({
+        ok: false,
+        error: `no calendar seasonality data available for ${symbol}`,
+      });
+    }
+    res.json({ ok: true, symbol, calendar });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "calendar_compute_failed") });
   }
 });
 

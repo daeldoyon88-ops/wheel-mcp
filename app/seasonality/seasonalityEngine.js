@@ -36,6 +36,7 @@ function _warn(...args) { console.warn("[SEASONALITY]", ...args); }
 const _histCache   = new Map(); // sym → { value: rows|null, expiresAt }
 const _resultCache = new Map(); // sym → { value: result, expiresAt } — NEVER stores null
 const _calendarCache = new Map(); // sym → { value: calendarResult, expiresAt } — NEVER stores null
+const _shortTermCache = new Map(); // sym → { value: shortTermResult, expiresAt } — NEVER stores null
 const _inFlight    = new Map(); // key → Promise — dedup concurrent requests
 
 // ─── Lazy isolated Yahoo client ────────────────────────────────────────────────
@@ -571,6 +572,231 @@ export async function computeSeasonalityCalendar(symbol) {
   return promise;
 }
 
+// ─── Short-term window computation (Phase B — Seasonality V2) ───────────────────
+
+const SHORT_TERM_DAYS_LIST = [3, 4, 7, 14];
+const SHORT_TERM_THRESHOLDS = [0.03, 0.05, 0.10];
+const SHORT_TERM_LABELS = { 3: '3j', 4: '4j', 7: '7j', 14: '14j' };
+
+function _computeCspVerdict({ winRate, avgReturn, pctBelow5, pctBelow10 }) {
+  if (winRate >= 0.60 && avgReturn >= 0 && pctBelow5 <= 0.20 && pctBelow10 <= 0.08) {
+    return 'favorable';
+  }
+  if (pctBelow5 >= 0.35 || pctBelow10 >= 0.15 || (avgReturn < 0 && winRate < 0.50)) {
+    return 'defavorable';
+  }
+  return 'neutre';
+}
+
+function _computeCcVerdict({ winRate, avgReturn, pctAbove5, pctAbove10 }) {
+  if (pctAbove5 >= 0.30 || pctAbove10 >= 0.12 || (avgReturn > 0.03 && winRate >= 0.60)) {
+    return 'risque_hausse';
+  }
+  if (pctAbove5 <= 0.15 && pctAbove10 <= 0.05 && avgReturn <= 0.01) {
+    return 'favorable';
+  }
+  return 'neutre';
+}
+
+function _analyzeShortTermWindow(rows, days, thresholds) {
+  const returns = [];
+  const drawdowns = [];
+  const today = new Date();
+  today.setUTCHours(23, 59, 59, 999);
+
+  for (let i = 0; i < rows.length - days; i++) {
+    const startRow = rows[i];
+    const endRow   = rows[i + days];
+
+    if (!startRow || !endRow) continue;
+
+    const startClose = startRow.close;
+    const endClose   = endRow.close;
+
+    if (!Number.isFinite(startClose) || startClose <= 0) continue;
+    if (!Number.isFinite(endClose)   || endClose   <= 0) continue;
+
+    // Exclure fenêtres dont la fin dépasse les données disponibles (incomplètes)
+    if (endRow.date > today) continue;
+
+    const ret = (endClose - startClose) / startClose;
+    returns.push(ret);
+
+    const windowPrices = rows.slice(i, i + days + 1).map(r => r.close).filter(p => Number.isFinite(p) && p > 0);
+    if (windowPrices.length >= 2) {
+      drawdowns.push(_maxDrawdown(windowPrices));
+    }
+  }
+
+  if (returns.length < MIN_SAMPLE_SIZE) return null;
+
+  const n             = returns.length;
+  const avgReturn     = returns.reduce((s, r) => s + r, 0) / n;
+  const medianReturn  = _median(returns);
+  const positiveCount = returns.filter(r => r > 0).length;
+  const negativeCount = returns.filter(r => r < 0).length;
+  const winRate       = positiveCount / n;
+  const bestReturn    = Math.max(...returns);
+  const worstReturn   = Math.min(...returns);
+
+  const [t3, t5, t10] = thresholds;
+  const pctBelow3  = returns.filter(r => r <= -t3).length / n;
+  const pctBelow5  = returns.filter(r => r <= -t5).length / n;
+  const pctBelow10 = returns.filter(r => r <= -t10).length / n;
+  const pctAbove3  = returns.filter(r => r >= t3).length / n;
+  const pctAbove5  = returns.filter(r => r >= t5).length / n;
+  const pctAbove10 = returns.filter(r => r >= t10).length / n;
+
+  const avgDrawdown   = drawdowns.length ? drawdowns.reduce((s, d) => s + d, 0) / drawdowns.length : null;
+  const worstDrawdown = drawdowns.length ? Math.min(...drawdowns) : null;
+
+  const stats = {
+    winRate: _r3(winRate),
+    avgReturn: _r4(avgReturn),
+    pctBelow5: _r3(pctBelow5),
+    pctBelow10: _r3(pctBelow10),
+    pctAbove5: _r3(pctAbove5),
+    pctAbove10: _r3(pctAbove10),
+  };
+
+  return {
+    days,
+    label:         SHORT_TERM_LABELS[days] ?? `${days}j`,
+    sampleSize:    n,
+    avgReturn:     stats.avgReturn,
+    medianReturn:  medianReturn != null ? _r4(medianReturn) : null,
+    winRate:       stats.winRate,
+    positiveCount,
+    negativeCount,
+    bestReturn:    _r4(bestReturn),
+    worstReturn:   _r4(worstReturn),
+    avgDrawdown:   avgDrawdown != null ? _r4(avgDrawdown) : null,
+    worstDrawdown: worstDrawdown != null ? _r4(worstDrawdown) : null,
+    pctBelow3:     _r3(pctBelow3),
+    pctBelow5:     stats.pctBelow5,
+    pctBelow10:    stats.pctBelow10,
+    pctAbove3:     _r3(pctAbove3),
+    pctAbove5:     stats.pctAbove5,
+    pctAbove10:    stats.pctAbove10,
+    cspVerdict:    _computeCspVerdict(stats),
+    ccVerdict:     _computeCcVerdict(stats),
+  };
+}
+
+function _pickBestCspWindow(windows) {
+  const candidates = windows.filter(w => w.avgReturn >= 0);
+  const pool = candidates.length ? candidates : windows;
+  return [...pool].sort((a, b) => {
+    const scoreA = a.winRate * 2 - a.pctBelow5 * 3 - a.pctBelow10 * 2 + a.avgReturn;
+    const scoreB = b.winRate * 2 - b.pctBelow5 * 3 - b.pctBelow10 * 2 + b.avgReturn;
+    return scoreB - scoreA;
+  })[0] ?? null;
+}
+
+function _pickWorstCspWindow(windows) {
+  return [...windows].sort((a, b) => {
+    if (b.pctBelow5 !== a.pctBelow5) return b.pctBelow5 - a.pctBelow5;
+    return b.pctBelow10 - a.pctBelow10;
+  })[0] ?? null;
+}
+
+function _pickBestCcWindow(windows) {
+  return [...windows].sort((a, b) => {
+    if (a.pctAbove5 !== b.pctAbove5) return a.pctAbove5 - b.pctAbove5;
+    return a.pctAbove10 - b.pctAbove10;
+  })[0] ?? null;
+}
+
+function _pickRiskiestCcWindow(windows) {
+  return [...windows].sort((a, b) => {
+    if (b.pctAbove5 !== a.pctAbove5) return b.pctAbove5 - a.pctAbove5;
+    return b.pctAbove10 - a.pctAbove10;
+  })[0] ?? null;
+}
+
+/**
+ * Pure computation: rolling N-trading-day forward returns from historical rows.
+ * Exported for unit testing — no Yahoo calls, no cache side-effects.
+ */
+export function computeShortTermFromRows(rows, options = {}) {
+  if (!rows?.length) return null;
+
+  const daysList    = options.daysList    ?? SHORT_TERM_DAYS_LIST;
+  const thresholds  = options.thresholds  ?? SHORT_TERM_THRESHOLDS;
+
+  const windows = [];
+  for (const days of daysList) {
+    const w = _analyzeShortTermWindow(rows, days, thresholds);
+    if (w) windows.push(w);
+  }
+
+  if (!windows.length) return null;
+
+  return {
+    windows,
+    summary: {
+      bestCspWindow:    _pickBestCspWindow(windows),
+      worstCspWindow:   _pickWorstCspWindow(windows),
+      bestCcWindow:     _pickBestCcWindow(windows),
+      riskiestCcWindow: _pickRiskiestCcWindow(windows),
+      generatedAt:      new Date().toISOString(),
+      source:           'Yahoo Finance',
+      cacheTtlHours:    RESULT_CACHE_TTL_MS / 3_600_000,
+    },
+  };
+}
+
+/**
+ * Computes short-term seasonality for one ticker (3j / 4j / 7j / 14j windows).
+ * Reuses _fetchHistory / _histCache — no extra Yahoo calls.
+ * Returns null on failure — null is NEVER stored in _shortTermCache (always retried).
+ */
+export async function computeSeasonalityShortTerm(symbol, options = {}) {
+  const sym = String(symbol ?? '').trim().toUpperCase();
+  if (!sym) return null;
+
+  const stKey  = `short-term:${sym}`;
+  const cached = _getCached(_shortTermCache, stKey);
+  if (cached !== undefined) {
+    _log(`short-term cache HIT for ${sym}`);
+    return cached;
+  }
+
+  const flying = _inFlight.get(stKey);
+  if (flying) return flying;
+
+  const promise = (async () => {
+    try {
+      const rows = await _fetchHistory(sym);
+      if (!rows?.length) {
+        _log(`no rows for ${sym} short-term — returning null`);
+        return null;
+      }
+
+      _log(`computing short-term for ${sym} with ${rows.length} rows`);
+      const result = computeShortTermFromRows(rows, options);
+
+      if (!result) {
+        _log(`computeShortTermFromRows returned null for ${sym} (données insuffisantes)`);
+        return null;
+      }
+
+      _setCached(_shortTermCache, stKey, result, RESULT_CACHE_TTL_MS);
+      _log(`short-term cached for ${sym}: ${result.windows.length} fenêtres`);
+      return result;
+
+    } catch (err) {
+      _warn(`computeSeasonalityShortTerm threw for ${sym}: ${err?.message ?? String(err)}`);
+      return null;
+    } finally {
+      _inFlight.delete(stKey);
+    }
+  })();
+
+  _inFlight.set(stKey, promise);
+  return promise;
+}
+
 /**
  * Batch seasonality for multiple tickers with bounded concurrency.
  * Returns { symbols, results: { SYMBOL: data|null }, generatedAt }.
@@ -604,24 +830,28 @@ export async function computeSeasonalityScanSummary(symbols) {
  */
 export async function getSeasonalityDiagnostic(symbol) {
   const sym = String(symbol ?? "").trim().toUpperCase();
-  const histKey     = `hist:${sym}`;
-  const resultKey   = `result:${sym}`;
-  const calendarKey = `calendar:${sym}`;
+  const histKey      = `hist:${sym}`;
+  const resultKey    = `result:${sym}`;
+  const calendarKey  = `calendar:${sym}`;
+  const shortTermKey = `short-term:${sym}`;
 
-  const histEntry     = _histCache.get(histKey);
-  const resultEntry   = _resultCache.get(resultKey);
-  const calendarEntry = _calendarCache.get(calendarKey);
+  const histEntry      = _histCache.get(histKey);
+  const resultEntry    = _resultCache.get(resultKey);
+  const calendarEntry  = _calendarCache.get(calendarKey);
+  const shortTermEntry = _shortTermCache.get(shortTermKey);
 
-  const histStatus     = !histEntry     ? "miss" : Date.now() >= histEntry.expiresAt     ? "expired" : histEntry.value   ? "hit" : "cached-null";
-  const resultStatus   = !resultEntry   ? "miss" : Date.now() >= resultEntry.expiresAt   ? "expired" : "hit";
-  const calendarStatus = !calendarEntry ? "miss" : Date.now() >= calendarEntry.expiresAt ? "expired" : "hit";
+  const histStatus      = !histEntry      ? "miss" : Date.now() >= histEntry.expiresAt      ? "expired" : histEntry.value      ? "hit" : "cached-null";
+  const resultStatus    = !resultEntry    ? "miss" : Date.now() >= resultEntry.expiresAt    ? "expired" : "hit";
+  const calendarStatus  = !calendarEntry  ? "miss" : Date.now() >= calendarEntry.expiresAt  ? "expired" : "hit";
+  const shortTermStatus = !shortTermEntry ? "miss" : Date.now() >= shortTermEntry.expiresAt ? "expired" : "hit";
 
   return {
     symbol:        sym,
-    histCache:     { status: histStatus,     rowCount:   histEntry?.value?.length ?? null,               expiresAt: histEntry?.expiresAt     ?? null },
-    resultCache:   { status: resultStatus,   hasBias:    resultEntry?.value?.seasonalBias ?? null,       expiresAt: resultEntry?.expiresAt   ?? null },
-    calendarCache: { status: calendarStatus, monthCount: calendarEntry?.value?.months?.length ?? null,   expiresAt: calendarEntry?.expiresAt ?? null },
-    inFlight:      { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey), calendar: _inFlight.has(calendarKey) },
+    histCache:     { status: histStatus,      rowCount:    histEntry?.value?.length ?? null,                  expiresAt: histEntry?.expiresAt      ?? null },
+    resultCache:   { status: resultStatus,      hasBias:     resultEntry?.value?.seasonalBias ?? null,          expiresAt: resultEntry?.expiresAt    ?? null },
+    calendarCache: { status: calendarStatus,  monthCount:  calendarEntry?.value?.months?.length ?? null,      expiresAt: calendarEntry?.expiresAt  ?? null },
+    shortTermCache:{ status: shortTermStatus, windowCount: shortTermEntry?.value?.windows?.length ?? null, expiresAt: shortTermEntry?.expiresAt ?? null },
+    inFlight:      { hist: _inFlight.has(histKey), result: _inFlight.has(resultKey), calendar: _inFlight.has(calendarKey), shortTerm: _inFlight.has(shortTermKey) },
   };
 }
 
@@ -631,6 +861,7 @@ export function getSeasonalityCacheStats() {
     histCacheSize:        _histCache.size,
     resultCacheSize:      _resultCache.size,
     calendarCacheSize:    _calendarCache.size,
+    shortTermCacheSize:   _shortTermCache.size,
     inFlightCount:        _inFlight.size,
     histCacheTtlHours:    HISTORY_CACHE_TTL_MS  / 3_600_000,
     resultCacheTtlHours:  RESULT_CACHE_TTL_MS   / 3_600_000,

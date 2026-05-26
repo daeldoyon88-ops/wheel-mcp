@@ -8,6 +8,7 @@ import { Router } from "express";
 import {
   computeSeasonality,
   computeSeasonalityCalendar,
+  computeSeasonalityShortTerm,
   computeSeasonalityScanSummary,
   getSeasonalityCacheStats,
   getSeasonalityDiagnostic,
@@ -68,6 +69,30 @@ router.get("/scan-summary", async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "scan_summary_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/:ticker/short-term
+ * Statistiques court terme (3j / 4j / 7j / 14j) pour CSP / CC / Wheel — Phase B Saisonnalité V2.
+ * Lecture seule, aucun impact sur les endpoints existants.
+ */
+router.get("/:ticker/short-term", async (req, res) => {
+  try {
+    const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+    if (!symbol || !TICKER_RE.test(symbol)) {
+      return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
+    }
+    const shortTerm = await computeSeasonalityShortTerm(symbol);
+    if (!shortTerm) {
+      return res.status(404).json({
+        ok: false,
+        error: `no short-term seasonality data available for ${symbol}`,
+      });
+    }
+    res.json({ ok: true, symbol, shortTerm });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "short_term_compute_failed") });
   }
 });
 

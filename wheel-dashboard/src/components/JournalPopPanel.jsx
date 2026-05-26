@@ -1896,6 +1896,27 @@ function ProSection({ title, badge, subtitle, children }) {
   );
 }
 
+
+function DataAuditGroup({ title, subtitle, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-[28px] border border-slate-600/40 bg-slate-950/50 p-4 sm:p-5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-start justify-between gap-4 text-left"
+      >
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold tracking-tight text-slate-200">{title}</h2>
+          {subtitle && <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>}
+        </div>
+        <span className="flex-shrink-0 text-[10px] text-slate-500 pt-0.5">{open ? "Replier le groupe ▼" : "Déplier le groupe ▶"}</span>
+      </button>
+      {open && <div className="mt-4 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
 function CollapsibleSection({ title, badge, subtitle, defaultOpen = false, summaryRight, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -4505,133 +4526,454 @@ export default function JournalPopPanel({ apiBase, active }) {
         </CollapsibleSection>
       )}
 
-      {/* ── SECTION V2A — WIN QUALITY ───────────────────────────────────────── */}
       {hasLoaded && activePopTab === "dataAudit" && (
+        <>
+          <DataAuditGroup
+            title="Décision rapide"
+            subtitle="Watchlist concentrée, objectif 1 % et signaux exploitables au quotidien."
+            defaultOpen
+          >
+      {/* ── SECTION — TOP 20 DYNAMIQUE EXPÉRIMENTAL ───────────────────────────── */}
+      
         <CollapsibleSection
-          title="Win Quality — Qualité réelle des victoires"
-          badge="V2A"
-          subtitle="Classification des victoires selon les métriques de stress disponibles. Basé sur les records résolus uniquement."
-          defaultOpen={false}
+          title="Top 20 dynamique — expérimental"
+          badge="Laboratoire"
+          subtitle="Classement de laboratoire pour construire un univers CSP/CC concentré. Ne constitue pas une recommandation de trade."
+          defaultOpen
           summaryRight={
-            winQualityStats.resolvedCount > 0
-              ? `Clean ${winQualityStats.cleanWinRate != null ? winQualityStats.cleanWinRate.toFixed(1) + "%" : "N/D"} · Lucky ${winQualityStats.luckyWinRate != null ? winQualityStats.luckyWinRate.toFixed(1) + "%" : "N/D"} · Assignments ${winQualityStats.assignmentRate != null ? winQualityStats.assignmentRate.toFixed(1) + "%" : "N/D"}`
-              : "Aucun record résolu"
+            dynamicTop20Payload?.summary
+              ? `${dynamicTop20Payload.summary.top20Count ?? 0} Top 20 · ${dynamicTop20Payload.summary.nearEntryCount ?? 0} proches`
+              : "Classement expérimental"
           }
         >
-          {winQualityStats.resolvedCount === 0 ? (
+          {!dynamicTop20Payload?.top20 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Aucun record résolu. Les classifications apparaîtront après expiration des premières positions.
+              Top 20 dynamique indisponible pour l&apos;instant.
             </div>
           ) : (
-            <>
+            <div className="space-y-4">
+              <p className="text-[10px] italic text-slate-600 leading-relaxed">
+                Snapshot absent peut être normal sur les anciens records historiques. Les snapshots enrichis sont surtout présents sur les nouveaux scans.
+              </p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <ProKpi label="Top 20 expérimental" value={dynamicTop20Payload.summary?.top20Count ?? 0} tone="good" />
+                <ProKpi label="Proches d'entrer" value={dynamicTop20Payload.summary?.nearEntryCount ?? 0} tone="info" />
+                <ProKpi label="À valider" value={dynamicTop20Payload.summary?.watchValidateCount ?? 0} tone="info" />
+                <ProKpi label="Stressés" value={dynamicTop20Payload.summary?.stressedCount ?? 0} tone="warn" />
                 <ProKpi
-                  label="Clean wins"
-                  value={winQualityStats.cleanWinCount}
-                  tone="good"
-                  sub={winQualityStats.cleanWinRate != null ? `${winQualityStats.cleanWinRate.toFixed(1)}% résolus` : undefined}
-                />
-                <ProKpi
-                  label="Normal wins"
-                  value={winQualityStats.normalWinCount}
-                  tone="info"
-                  sub={winQualityStats.normalWinRate != null ? `${winQualityStats.normalWinRate.toFixed(1)}% résolus` : undefined}
-                />
-                <ProKpi
-                  label="Stressed wins"
-                  value={winQualityStats.stressedWinCount}
-                  tone="warn"
-                  sub={winQualityStats.stressedWinRate != null ? `${winQualityStats.stressedWinRate.toFixed(1)}% résolus` : undefined}
-                />
-                <ProKpi
-                  label="Lucky wins"
-                  value={winQualityStats.luckyWinCount}
-                  tone="warn"
-                  sub={winQualityStats.luckyWinRate != null ? `${winQualityStats.luckyWinRate.toFixed(1)}% résolus` : undefined}
-                />
-                <ProKpi
-                  label="Assignments"
-                  value={winQualityStats.assignmentCount}
+                  label="À exclure malgré rendement"
+                  value={dynamicTop20Payload.summary?.excludedHighYieldCount ?? 0}
                   tone="risk"
-                  sub={winQualityStats.assignmentRate != null ? `${winQualityStats.assignmentRate.toFixed(1)}% résolus` : undefined}
                 />
                 <ProKpi
-                  label="Pending"
-                  value={winQualityStats.pendingCount}
-                  tone={winQualityStats.pendingCount > 0 ? "warn" : "muted"}
-                  sub="Non résolus"
+                  label="Échantillons insuffisants"
+                  value={dynamicTop20Payload.summary?.insufficientSampleCount ?? 0}
+                  tone="neutral"
                 />
               </div>
 
-              <div className="mt-4 rounded-xl border border-slate-700/40 bg-slate-800/20 px-4 py-3 space-y-1">
-                <p className="text-[11px] text-slate-500"><span className="text-emerald-400 font-semibold">Clean win</span> — Expired worthless, aucun stress détecté.</p>
-                <p className="text-[11px] text-slate-500"><span className="text-sky-400 font-semibold">Normal win</span> — Expired worthless, catégorie résiduelle.</p>
-                <p className="text-[11px] text-slate-500"><span className="text-amber-400 font-semibold">Stressed win</span> — Strike touché OU drawdown ≥ 5%.</p>
-                <p className="text-[11px] text-slate-500"><span className="text-amber-400 font-semibold">Lucky win</span> — LowerBound cassé mais expiré OTM.</p>
-                <p className="text-[11px] text-slate-500"><span className="text-rose-400 font-semibold">Assignment</span> — Option assignée.</p>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[11px] leading-relaxed text-amber-200/90">
+                Classement expérimental basé sur les profils Journal POP. IV, saisonnalité et contexte marché ne sont pas
+                encore intégrés au score.
+                <span className="mt-1 flex flex-wrap gap-2">
+                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
+                    IV non intégré
+                  </span>
+                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
+                    Saisonnalité non intégrée
+                  </span>
+                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
+                    Contexte marché non intégré
+                  </span>
+                </span>
               </div>
 
-              {/* Stress Data Coverage */}
-              <div className="mt-5 rounded-2xl border border-slate-700/40 bg-slate-800/30 p-4">
-                <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 mb-4">
-                  Stress Data Coverage
-                </h4>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Strike touch</p>
-                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
-                      {stressCoverage.strikeTouchedCoverage != null ? `${stressCoverage.strikeTouchedCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-600">Records avec strikeTouched connu</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">LowerBound break</p>
-                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
-                      {stressCoverage.lowerBoundCoverage != null ? `${stressCoverage.lowerBoundCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-600">Records avec brokeLowerBound connu</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Drawdown</p>
-                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
-                      {stressCoverage.drawdownCoverage != null ? `${stressCoverage.drawdownCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-600">Records avec drawdownPct connu</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Coverage global</p>
-                    <p className={`mt-2 text-xl font-bold tabular-nums ${stressCoverage.globalCoverage == null ? "text-slate-600" : stressCoverage.globalCoverage > 70 ? "text-emerald-400" : stressCoverage.globalCoverage >= 30 ? "text-amber-400" : "text-rose-400"}`}>
-                      {stressCoverage.globalCoverage != null ? `${stressCoverage.globalCoverage.toFixed(0)}%` : <span className="text-base">N/D</span>}
-                    </p>
-                    <p className="mt-1.5">
-                      <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${
-                        stressCoverage.verdict === "Bon"
-                          ? "border-emerald-800/50 bg-emerald-900/40 text-emerald-400"
-                          : stressCoverage.verdict === "Partiel"
-                          ? "border-amber-800/50 bg-amber-900/40 text-amber-400"
-                          : "border-rose-800/50 bg-rose-900/40 text-rose-400"
-                      }`}>
-                        {stressCoverage.verdict}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-3 text-[11px] text-slate-600">
-                  Coverage calculé sur {winQualityStats.resolvedCount} records résolus. &lt;30% : Faible · 30–70% : Partiel · &gt;70% : Bon.
-                </p>
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20HideInsufficient}
+                    onChange={(e) => setDynamicTop20HideInsufficient(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Masquer échantillons insuffisants
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20MinYield08}
+                    onChange={(e) => {
+                      setDynamicTop20MinYield08(e.target.checked);
+                      if (e.target.checked) setDynamicTop20MinYield09(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Rendement &ge; 0,8 %
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20MinYield09}
+                    onChange={(e) => {
+                      setDynamicTop20MinYield09(e.target.checked);
+                      if (e.target.checked) setDynamicTop20MinYield08(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Rendement &ge; 0,9 %
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20TopOnly}
+                    onChange={(e) => {
+                      setDynamicTop20TopOnly(e.target.checked);
+                      if (e.target.checked) setDynamicTop20NearOnly(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Afficher seulement Top 20
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={dynamicTop20NearOnly}
+                    onChange={(e) => {
+                      setDynamicTop20NearOnly(e.target.checked);
+                      if (e.target.checked) setDynamicTop20TopOnly(false);
+                    }}
+                    className="rounded border-slate-600"
+                  />
+                  Afficher proches d&apos;entrer
+                </label>
+                <input
+                  type="search"
+                  value={dynamicTop20TickerSearch}
+                  onChange={(e) => setDynamicTop20TickerSearch(e.target.value)}
+                  placeholder="Recherche ticker"
+                  className="ml-auto min-w-[140px] rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600"
+                />
               </div>
-            </>
+
+              {!dynamicTop20NearOnly && (
+                <DarkTable
+                  title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
+                  headers={[
+                    "Rang",
+                    "Ticker",
+                    "Options",
+                    "Statut",
+                    "Score exp.",
+                    "n",
+                    "Rend. CSP",
+                    "Win",
+                    "Assign.",
+                    "Assign. proche",
+                    "Assign. profonde",
+                    "Rend. Wheel",
+                    "LB",
+                    "Raison",
+                  ]}
+                  rows={filteredDynamicTop20Main.map((row) => (
+                    <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className="px-3 py-2.5">
+                        <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
+                      </td>
+                      <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
+                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
+                        {row.sampleDisplayLabel ? (
+                          <span className="block text-[10px] text-slate-500">{row.sampleDisplayLabel}</span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{row.n ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.nearAssignmentRate, 0)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.deepAssignmentRate, 0)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.avgWheelReturnPct, 2)}</td>
+                      <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
+                      <td
+                        className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
+                        title={formatDynamicTop20Reason(row)}
+                      >
+                        {formatDynamicTop20Reason(row)}
+                      </td>
+                    </tr>
+                  ))}
+                  empty="Aucun profil ne correspond aux filtres Top 20."
+                />
+              )}
+
+              {!dynamicTop20TopOnly && filteredDynamicTop20Near.length > 0 && (
+                <DarkTable
+                  title={`Proches d'entrer (rangs 21–30) — ${filteredDynamicTop20Near.length} profil(s)`}
+                  headers={["Rang", "Ticker", "Score exp.", "Rend. CSP", "Win", "Assign.", "Statut", "Raison"]}
+                  rows={filteredDynamicTop20Near.map((row) => (
+                    <tr key={`dyn-near-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
+                      <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
+                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
+                      </td>
+                      <td
+                        className="px-3 py-2.5 text-[10px] max-w-[200px] text-slate-500"
+                        title={formatDynamicTop20Reason(row)}
+                      >
+                        {formatDynamicTop20Reason(row)}
+                      </td>
+                    </tr>
+                  ))}
+                  empty="Aucun profil proche d'entrer."
+                />
+              )}
+
+              {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 0 && (
+                <>
+                  <DarkTable
+                    title={`À exclure malgré rendement — ${filteredDynamicTop20Excluded.length}/${dynamicTop20Payload.excludedHighYield?.length ?? 0}`}
+                    headers={["Ticker", "Rend. CSP", "Win", "Assign.", "LB", "Verdict", "Raison"]}
+                    rows={filteredDynamicTop20Excluded.map((row) => (
+                      <tr key={`dyn-excl-${row.ticker}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                        <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                        <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
+                        <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
+                        <td className={`px-3 py-2.5 text-[11px] ${getOnePercentVerdictTone(row.currentVerdict)}`}>
+                          {row.currentVerdict ?? "—"}
+                        </td>
+                        <td
+                          className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
+                          title={formatDynamicTop20Reason(row)}
+                        >
+                          {formatDynamicTop20Reason(row)}
+                        </td>
+                      </tr>
+                    ))}
+                    empty="Aucun profil à exclure."
+                  />
+                  {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 10 && (
+                    <button
+                      type="button"
+                      onClick={() => setDynamicTop20ShowAllExcluded((value) => !value)}
+                      className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+                    >
+                      {dynamicTop20ShowAllExcluded
+                        ? "Réduire à 10 profils"
+                        : `Afficher plus (${(dynamicTop20Payload.excludedHighYield?.length ?? 0) - 10} de plus)`}
+                    </button>
+                  )}
+                </>
+              )}
+
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Score expérimental de laboratoire — ne constitue pas un score final. Les profils n &lt; 30 restent
+                préliminaires. {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
+              </p>
+            </div>
           )}
         </CollapsibleSection>
-      )}
+
+      {/* ── SECTION — OBJECTIF 1 %+ WHEEL COMPLET ─────────────────────────────── */}
+      
+        <CollapsibleSection
+          title="Objectif 1 %+ — Wheel complet"
+          badge="Read-only"
+          subtitle="Repère les tickers où une prime CSP élevée reste défendable après assignation, recovery et CC."
+          defaultOpen
+          summaryRight={
+            onePercentProfilesPayload?.summary
+              ? `${onePercentProfilesPayload.summary.tickersAnalyzed ?? 0} ticker(s) · ${onePercentProfilesPayload.summary.profilesOnePercentDefendable ?? 0} défendable(s)`
+              : "Profils historiques"
+          }
+        >
+          {!onePercentProfilesPayload?.profiles ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Profils 1 %+ indisponibles pour l&apos;instant.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <ProKpi label="Tickers analysés" value={onePercentProfilesPayload.summary?.tickersAnalyzed ?? 0} large />
+                <ProKpi
+                  label="Profils mesurables"
+                  value={onePercentProfilesPayload.summary?.profilesMesurables ?? 0}
+                  tone="info"
+                />
+                <ProKpi
+                  label="1 % défendable"
+                  value={onePercentProfilesPayload.summary?.profilesOnePercentDefendable ?? 0}
+                  tone="good"
+                />
+                <ProKpi
+                  label="1 % stressé"
+                  value={onePercentProfilesPayload.summary?.profilesOnePercentStresse ?? 0}
+                  tone="warn"
+                />
+                <ProKpi
+                  label="Faux 1 %"
+                  value={onePercentProfilesPayload.summary?.profilesFauxOnePercent ?? 0}
+                  tone="risk"
+                />
+                <ProKpi
+                  label="Assignation exploitable"
+                  value={onePercentProfilesPayload.summary?.profilesAssignationExploitable ?? 0}
+                  tone="good"
+                />
+                <ProKpi
+                  label="CC insuffisants"
+                  value={onePercentProfilesPayload.summary?.profilesCcInsuffisants ?? 0}
+                  tone="warn"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentHideNonProven}
+                    onChange={(e) => setOnePercentHideNonProven(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Masquer non prouvés
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentMinYieldFilter}
+                    onChange={(e) => setOnePercentMinYieldFilter(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Rendement CSP &ge; 0,9 %
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentWheelFavorableOnly}
+                    onChange={(e) => setOnePercentWheelFavorableOnly(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Wheel favorable seulement
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={onePercentAssignExploitableOnly}
+                    onChange={(e) => setOnePercentAssignExploitableOnly(e.target.checked)}
+                    className="rounded border-slate-600"
+                  />
+                  Assignation exploitable seulement
+                </label>
+                <input
+                  type="search"
+                  value={onePercentTickerSearch}
+                  onChange={(e) => setOnePercentTickerSearch(e.target.value)}
+                  placeholder="Recherche ticker"
+                  className="ml-auto min-w-[140px] rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600"
+                />
+              </div>
+
+              {displayedOnePercentProfiles[0] ? (
+                <OptionQuoteDiagnosticPanel profile={displayedOnePercentProfiles[0]} />
+              ) : null}
+
+              <DarkTable
+                title={`Shortlist profils ticker (max 20 par défaut) — ${displayedOnePercentProfiles.length}/${filteredOnePercentProfiles.length}`}
+                headers={[
+                  "Ticker",
+                  "Mode",
+                  "n",
+                  "Options",
+                  "Rend. CSP moy.",
+                  "POP moy.",
+                  "Win CSP",
+                  "Assign.",
+                  "Assign. proche",
+                  "Assign. profonde",
+                  "Recovery",
+                  "CC vendus",
+                  "Rend. Wheel",
+                  "Verdict",
+                ]}
+                rows={displayedOnePercentProfiles.map((profile) => (
+                  <tr key={`one-pct-${profile.ticker}-${profile.mode}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">{profile.ticker}</td>
+                    <td className="px-3 py-2.5 text-slate-400">{profile.mode}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{profile?.csp?.recordsResolved ?? 0}</td>
+                    <td className="px-3 py-2.5">
+                      <OptionDataBadge
+                        label={profile?.optionDataBadge ?? "Snapshot absent"}
+                        title={`Source: ${profile?.optionDataSourceSummary ?? "—"} · Complétude: ${profile?.optionDataCompletenessPct ?? 0}%`}
+                      />
+                    </td>
+                    <td className="px-3 py-2.5 text-sky-400">{formatPercent(profile?.csp?.avgYieldPct, 2)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.avgPopAnnounced)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.realWinRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.assignmentRate)}</td>
+                    <td className="px-3 py-2.5">
+                      {profile?.assignment?.procheRatePct != null
+                        ? `${profile.assignment.procheCount} (${formatPercent(profile.assignment.procheRatePct, 0)})`
+                        : profile?.assignment?.procheCount ?? "—"}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {profile?.assignment?.profondeRatePct != null
+                        ? `${profile.assignment.profondeCount} (${formatPercent(profile.assignment.profondeRatePct, 0)})`
+                        : profile?.assignment?.profondeCount ?? "—"}
+                    </td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.recoveryRatePct)}</td>
+                    <td className="px-3 py-2.5 tabular-nums">
+                      {profile?.wheel?.avgCcSold != null ? profile.wheel.avgCcSold.toFixed(1) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.avgWheelReturnPct, 2)}</td>
+                    <td className={`px-3 py-2.5 text-[11px] max-w-[220px] ${getOnePercentVerdictTone(profile?.primaryVerdict)}`}>
+                      {profile?.primaryVerdict ?? "—"}
+                      <span className="block text-[10px] text-slate-600">{profile?.sampleCredibility ?? ""}</span>
+                      {Array.isArray(profile?.verdictReasons) && profile.verdictReasons.length > 0 ? (
+                        <span className="mt-0.5 block text-[10px] leading-snug text-slate-500">
+                          {profile.verdictReasons.join(" · ")}
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+                empty="Aucun profil ne correspond aux filtres."
+              />
+
+              {filteredOnePercentProfiles.length > 20 && (
+                <button
+                  type="button"
+                  onClick={() => setOnePercentShowAll((value) => !value)}
+                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+                >
+                  {onePercentShowAll
+                    ? "Réduire à 20 profils"
+                    : `Afficher plus (${filteredOnePercentProfiles.length - 20} de plus)`}
+                </button>
+              )}
+
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Ce module ne recommande pas un trade. Il compare des profils historiques et doit être lu avec la taille de
+                l&apos;échantillon. P/L Wheel et rendement Wheel : cycles fermés seulement. POP annoncé gelé au scan.
+              </p>
+            </div>
+          )}
+        </CollapsibleSection>
 
       {/* ── SECTION V2B — 1% READINESS ──────────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
+      
         <CollapsibleSection
           title="1% Readiness — Capacité statistique à viser 1% / semaine"
           badge="V2B"
           subtitle="Score calculé sur les données résolues actuelles. Indicatif uniquement — aucun impact scanner, IBKR, EliteScore."
-          defaultOpen={true}
+          defaultOpen={false}
           summaryRight={
             stats.resolvedCount > 0
               ? `Score ${readiness.score}/100 · ${readiness.verdict} · ${readiness.targetBand}`
@@ -4742,10 +5084,393 @@ export default function JournalPopPanel({ apiBase, active }) {
             </>
           )}
         </CollapsibleSection>
-      )}
+
+      
+        <CollapsibleSection
+          title="Prime Quality — Spread, liquidité et risque événementiel"
+          badge="V2D-C"
+          subtitle="V2D-C : vérifie si les primes observées sont réellement tradables. N/D si les champs ne sont pas encore capturés. · Lecture indicative."
+          defaultOpen={false}
+          summaryRight={`Spread moy. ${primeQualityStats.avgSpreadPct != null ? primeQualityStats.avgSpreadPct.toFixed(1) + "%" : "N/D"} · ${primeQualityStats.qualityVerdict}`}
+        >
+          <p className="mb-3 text-[10px] italic text-slate-600">Lecture indicative — ne remplace pas une quote live au moment du trade.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ProKpi
+              label="Spread coverage"
+              value={primeQualityStats.spreadCoveragePct != null ? `${primeQualityStats.spreadCoveragePct.toFixed(0)}%` : null}
+              tone={primeQualityStats.spreadCoveragePct != null && primeQualityStats.spreadCoveragePct >= 70 ? "good" : "default"}
+              sub={primeQualityStats.spreadCoveragePct != null ? "Records avec bid/ask/spread disponibles" : "Aucun champ spread détecté"}
+            />
+            <ProKpi
+              label="Spread moyen"
+              value={primeQualityStats.avgSpreadPct != null
+                ? `${primeQualityStats.avgSpreadPct.toFixed(1)}%`
+                : (primeQualityStats.avgSpread != null ? formatMoney(primeQualityStats.avgSpread) : null)}
+              tone={primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 10 ? "good" : primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 20 ? "warn" : "default"}
+              sub={primeQualityStats.avgBid != null && primeQualityStats.avgAsk != null ? `Bid ${formatMoney(primeQualityStats.avgBid)} · Ask ${formatMoney(primeQualityStats.avgAsk)}` : "N/D"}
+            />
+            <ProKpi
+              label="Prime moyenne"
+              value={primeQualityStats.avgPremium != null ? formatMoney(primeQualityStats.avgPremium) : null}
+              tone="info"
+              sub={primeQualityStats.premiumEfficiency != null ? `Premium efficiency ${primeQualityStats.premiumEfficiency.toFixed(2)}%` : "N/D"}
+            />
+            <ProKpi
+              label="Qualité prime"
+              value={primeQualityStats.qualityVerdict}
+              tone={primeQualityStats.qualityVerdict === "Prime propre" ? "good" : primeQualityStats.qualityVerdict === "Prime correcte" ? "info" : primeQualityStats.qualityVerdict === "Spread limite" ? "warn" : primeQualityStats.qualityVerdict === "Spread risqué" || primeQualityStats.qualityVerdict === "Qualité quote faible" ? "risk" : "muted"}
+              sub={primeQualityStats.warnings.length > 0 ? primeQualityStats.warnings.join(" · ") : "Aucun warning détecté"}
+            />
+            <ProKpi
+              label="Earnings risk"
+              value={primeQualityStats.earningsRiskRate != null ? `${primeQualityStats.earningsRiskCount}/${primeQualityStats.earningsCoverageCount} (${primeQualityStats.earningsRiskRate.toFixed(0)}%)` : null}
+              tone={primeQualityStats.earningsRiskRate != null && primeQualityStats.earningsRiskRate > 0 ? "warn" : "default"}
+              sub={primeQualityStats.earningsRiskRate != null ? "Sur les records avec champ earnings" : "N/D"}
+            />
+            <ProKpi
+              label="Stale quote / data quality"
+              value={primeQualityStats.staleQuoteRate != null ? `${primeQualityStats.staleQuoteCount}/${primeQualityStats.staleCoverageCount} (${primeQualityStats.staleQuoteRate.toFixed(0)}%)` : null}
+              tone={primeQualityStats.staleQuoteRate != null && primeQualityStats.staleQuoteRate > 20 ? "risk" : "default"}
+              sub={primeQualityStats.staleQuoteRate != null ? "Stale quote sur records couverts" : "N/D"}
+            />
+          </div>
+        </CollapsibleSection>
+
+      {/* ── SECTION D — TICKER LEADERBOARD ─────────────────────────────────── */}
+      
+        <CollapsibleSection
+          title="Ticker Leaderboard — Calibration par actif"
+          badge="V2D-B"
+          subtitle="Tickers avec au moins 3 records résolus. Split Safe / Aggressive par ticker — prime, touch rate, clean rate et mode recommandé."
+          defaultOpen={false}
+          summaryRight={
+            tickerLeaderboard.length > 0
+              ? `${tickerLeaderboard.length} ticker${tickerLeaderboard.length !== 1 ? "s" : ""} · meilleur : ${tickerLeaderboard[0]?.ticker ?? "voir détail"}`
+              : "Aucun ticker calibré"
+          }
+        >
+          <p className="mb-4 text-[10px] text-slate-600 italic">
+            V2C + V2D-B : stress metrics intégrées · split Safe/Aggressive par ticker · luckyWinRate ≥ 25% / LB break ≥ 25% entraînent downgrade automatique.
+          </p>
+          {tickerLeaderboard.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Aucun ticker avec assez de records résolus (minimum 3). Revenez après expiration de davantage de positions.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    {/* ── Global columns ── */}
+                    <th className="px-3 py-3 font-semibold text-left whitespace-nowrap">Ticker</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Résolus</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Win rate</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">POP moy.</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Prime moy.</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Safe total</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Agg total</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Clean</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Lucky</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">LB break</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Assign</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Confiance</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict V2C</th>
+                    {/* ── V2D-B split columns ── */}
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap border-l border-slate-700/60 text-emerald-600/70">S n</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Prime</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Touch</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Clean</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A n</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Prime</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Touch</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Clean</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Spread %</th>
+                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Earn</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Prime Q</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Mode rec.</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {tickerLeaderboard.map((row) => {
+                    const ss    = row.stressStats;
+                    const ms    = row.modeSplit;
+                    const sMs   = ms?.safe;
+                    const aMs   = ms?.aggressive;
+                    const pq    = row.primeQuality;
+                    const recMode = ms?.recommendedMode ?? "Données insuff.";
+                    const recModeCls =
+                      recMode === "Safe préféré"
+                        ? "rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 font-bold text-emerald-400"
+                        : recMode === "Aggressive possible"
+                        ? "rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 font-bold text-amber-400"
+                        : recMode === "Aggressive à limiter" || recMode === "Stress élevé"
+                        ? "rounded border border-rose-800/50 bg-rose-900/30 px-1.5 py-0.5 font-bold text-rose-400"
+                        : recMode === "Spéculatif"
+                        ? "rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 font-bold text-amber-400"
+                        : recMode === "Balanced / à accumuler"
+                        ? "rounded border border-sky-800/50 bg-sky-900/30 px-1.5 py-0.5 font-bold text-sky-400"
+                        : "text-slate-600";
+                    return (
+                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors">
+                        {/* ── Global cells ── */}
+                        <td className="px-3 py-3 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.resolvedCount ?? "—"}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.actualWinRate != null ? (
+                            <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : row.actualWinRate >= 60 ? "text-amber-400" : "text-rose-400"}>
+                              {row.actualWinRate.toFixed(1)} %
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-slate-400">
+                          {row.avgPop != null ? `${row.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                          {row.avgPremium != null ? formatMoney(row.avgPremium) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{row.safeCount || 0}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-rose-400">{row.aggressiveCount || 0}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.cleanWinRate != null ? <span className="text-emerald-400">{ss.cleanWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.luckyWinRate != null ? (
+                            <span className={ss.luckyWinRate >= 25 ? "text-rose-400 font-semibold" : ss.luckyWinRate >= 10 ? "text-amber-400" : "text-slate-400"}>
+                              {ss.luckyWinRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.lowerBoundBreakRate != null ? (
+                            <span className={ss.lowerBoundBreakRate >= 25 ? "text-rose-400 font-semibold" : ss.lowerBoundBreakRate >= 10 ? "text-amber-400" : "text-slate-400"}>
+                              {ss.lowerBoundBreakRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {ss?.assignmentRate != null ? (
+                            <span className={ss.assignmentRate > 5 ? "text-rose-400 font-semibold" : ss.assignmentRate > 0 ? "text-amber-400" : "text-slate-400"}>
+                              {ss.assignmentRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap"><ConfidenceBadge sample={row.resolvedCount} /></td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <TickerVerdictBadge ticker={row.ticker} resolvedCount={row.resolvedCount} winRate={row.actualWinRate} avgPremium={row.avgPremium} stressStats={ss} />
+                        </td>
+                        {/* ── V2D-B split cells (Safe) ── */}
+                        <td className="px-3 py-3 text-right tabular-nums border-l border-slate-700/60">
+                          <span className={sMs?.resolvedCount ? "text-emerald-500 font-semibold" : "text-slate-700"}>{sMs?.resolvedCount ?? 0}</span>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {sMs?.avgPremium != null ? <span className="text-emerald-300">{formatMoney(sMs.avgPremium)}</span> : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {sMs?.strikeTouchRate != null ? (
+                            <span className={sMs.strikeTouchRate >= 25 ? "text-rose-400" : sMs.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {sMs.strikeTouchRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {sMs?.cleanWinRate != null ? (
+                            <span className={sMs.cleanWinRate >= 70 ? "text-emerald-400" : sMs.cleanWinRate >= 50 ? "text-amber-400" : "text-rose-400"}>
+                              {sMs.cleanWinRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        {/* ── V2D-B split cells (Aggressive) ── */}
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          <span className={aMs?.resolvedCount ? "text-rose-400 font-semibold" : "text-slate-700"}>{aMs?.resolvedCount ?? 0}</span>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {aMs?.avgPremium != null ? <span className="text-rose-300">{formatMoney(aMs.avgPremium)}</span> : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {aMs?.strikeTouchRate != null ? (
+                            <span className={aMs.strikeTouchRate >= 25 ? "text-rose-400 font-semibold" : aMs.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {aMs.strikeTouchRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {aMs?.cleanWinRate != null ? (
+                            <span className={aMs.cleanWinRate >= 70 ? "text-emerald-400" : aMs.cleanWinRate >= 50 ? "text-amber-400" : "text-rose-400"}>
+                              {aMs.cleanWinRate.toFixed(0)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {pq?.avgSpreadPct != null ? (
+                            <span className={pq.avgSpreadPct <= 10 ? "text-emerald-400" : pq.avgSpreadPct <= 20 ? "text-amber-400" : "text-rose-400"}>
+                              {pq.avgSpreadPct.toFixed(1)}%
+                            </span>
+                          ) : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {pq?.earningsRiskRate != null
+                            ? <span className={pq.earningsRiskRate > 0 ? "text-amber-400" : "text-emerald-400"}>{pq.earningsRiskRate.toFixed(0)}%</span>
+                            : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {pq?.qualityVerdict ? <span className="text-[10px] text-slate-400">{pq.qualityVerdict}</span> : <span className="text-slate-700">N/D</span>}
+                        </td>
+                        {/* ── Mode recommandé ── */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={`text-[10px] ${recModeCls}`} title={ms?.recommendationReason ?? ""}>{recMode}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="mt-3 text-[11px] text-slate-600">
+            V2D-B : le leaderboard sépare maintenant Safe et Aggressive par ticker. La prime moyenne globale ne suffit pas à recommander un mode.
+          </p>
+        </CollapsibleSection>
+          </DataAuditGroup>
+
+          <DataAuditGroup
+            title="Calibration"
+            subtitle="Fiabilité POP, buckets historiques et qualité statistique des victoires."
+            defaultOpen
+          >
+      {/* ── SECTION — CALIBRATION POP RÉELLE ─────────────────────────────────── */}
+      
+        <CollapsibleSection
+          title="Calibration POP réelle"
+          badge="Read-only"
+          subtitle="Compare le POP annoncé au moment du scan avec le résultat réel observé après expiration."
+          defaultOpen
+          summaryRight={
+            realPopCalibration?.calibration?.primaryResolvedExpired != null
+              ? `Base n=${realPopCalibration.calibration.primaryResolvedExpired} · ref ${realPopCalibration.calibration.asOfDate ?? "—"}`
+              : "Historique observé"
+          }
+        >
+          {!realPopCalibration?.calibration ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Données de calibration réelle indisponibles pour l&apos;instant.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Base de calibration</p>
+                  <p className="mt-1 text-lg font-bold text-slate-100">
+                    {numberOrNull(realPopCalibration.calibration.primaryResolvedExpired) ?? 0} records résolus
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-600">Primary · expiration échue · POP gelé au scan</p>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Futures exclues</p>
+                  <p className="mt-1 text-lg font-bold text-amber-400">
+                    {numberOrNull(realPopCalibration.pending?.futureExpiration) ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Échues non résolues</p>
+                  <p className="mt-1 text-lg font-bold text-amber-400">
+                    {numberOrNull(realPopCalibration.pending?.pastUnresolved) ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Date de référence</p>
+                  <p className="mt-1 text-lg font-bold text-slate-100">
+                    {realPopCalibration.calibration.asOfDate ?? "—"}
+                  </p>
+                </div>
+              </div>
+
+              {(numberOrNull(realPopCalibration.pending?.futureExpiration) ?? 0) > 0 && (
+                <div className="rounded-xl border border-amber-800/40 bg-amber-900/20 px-4 py-2.5 text-[11px] text-amber-300">
+                  Les expirations futures sont exclues de la calibration réelle.
+                </div>
+              )}
+              {(numberOrNull(realPopCalibration.pending?.pastUnresolved) ?? 0) > 0 && (
+                <div className="rounded-xl border border-amber-800/40 bg-amber-900/20 px-4 py-2.5 text-[11px] text-amber-300">
+                  Certaines expirations échues ne sont pas encore résolues.
+                </div>
+              )}
+
+              <DarkTable
+                title="Buckets POP — historique observé"
+                headers={[
+                  "Bucket POP",
+                  "Trades",
+                  "POP annoncé moyen",
+                  "Win réel",
+                  "Écart",
+                  "Assign.",
+                  "Touch",
+                  "LB cassé",
+                  "Rend. moyen",
+                  "Verdict",
+                ]}
+                rows={(realPopCalibration.calibration.buckets ?? []).map((row) => (
+                  <tr key={`real-pop-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket ?? "—"}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.tradesResolved) ?? 0}</td>
+                    <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.avgPopAnnounced)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.realWinRate)}</td>
+                    <td className="px-3 py-2.5">{formatPopRealDelta(row?.popRealDelta)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.assignmentRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.strikeTouchRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.lowerBoundBreakRate)}</td>
+                    <td className="px-3 py-2.5">{formatPercent(row?.avgYieldPct, 2)}</td>
+                    <td className={`px-3 py-2.5 text-[11px] ${getRealPopVerdictTone(row?.verdict)}`}>
+                      {row?.verdict ?? "—"}
+                      {row?.confidenceWarning ? (
+                        <span className="block text-[10px] text-slate-600">{row.confidenceWarning}</span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              />
+
+              <DarkTable
+                title="POP × rendement — échantillon observé"
+                headers={[
+                  "Bucket POP",
+                  "Bucket rendement",
+                  "Trades",
+                  "Win réel",
+                  "Assign.",
+                  "Écart POP",
+                  "Verdict",
+                ]}
+                rows={(realPopCalibration.matrix ?? [])
+                  .filter((row) => (numberOrNull(row?.count) ?? 0) > 0)
+                  .map((row) => (
+                    <tr
+                      key={`real-pop-matrix-${String(row?.popBucket ?? "na")}-${String(row?.yieldBucket ?? "na")}`}
+                      className="hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.popBucket ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-300">{row?.yieldBucket ?? "—"}</td>
+                      <td className="px-3 py-2.5">{numberOrNull(row?.count) ?? 0}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row?.winRate)}</td>
+                      <td className="px-3 py-2.5">{formatPercent(row?.assignmentRate)}</td>
+                      <td className="px-3 py-2.5">{formatPopRealDelta(row?.popRealDelta)}</td>
+                      <td className={`px-3 py-2.5 text-[11px] ${getRealPopVerdictTone(row?.verdict)}`}>
+                        {row?.verdict ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                empty="Aucune combinaison POP × rendement avec trades observés."
+              />
+
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Lecture prudente : POP gelé au scan · échantillon historique · verdicts préliminaires possibles · aucune recommandation de trade.
+              </p>
+            </div>
+          )}
+        </CollapsibleSection>
 
       {/* ── SECTION B — OBJECTIF 1 % / SEMAINE ─────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
+      
         <CollapsibleSection
           title="Objectif 1 % / Semaine — Buckets de rendement prime"
           badge="Premium / Spot"
@@ -4757,6 +5482,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             return `Meilleur bucket : ${best ? best.label : "N/D"} · Bucket 1% n=${b1?.resolvedCount ?? 0} · ${readiness.verdict}`;
           })()}
         >
+          <p className="mb-2 text-[10px] italic text-slate-600">Records bruts — à lire avec prudence (peut inclure futurs / non résolus).</p>
           <p className="mb-4 text-[10px] text-slate-600 italic">
             V2C : verdicts tenant compte de la qualité réelle des victoires (clean/lucky/LB break) — "Core défensif" exige n≥30 + stress faible · 1.25%+ toujours spéculatif.
           </p>
@@ -4997,1320 +5723,181 @@ export default function JournalPopPanel({ apiBase, active }) {
             })}
           </div>
         </CollapsibleSection>
-      )}
 
-      {/* ── SECTION C — SAFE vs AGGRESSIVE ─────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
+      {/* ── SECTION V2A — WIN QUALITY ───────────────────────────────────────── */}
+      
         <CollapsibleSection
-          title="Capital Combination Risk Overlay"
-          badge="V2E"
-          subtitle="Croise les combinaisons de capital avec les résultats réels du Journal POP. Read-only : aucun impact scanner ou SQLite."
+          title="Win Quality — Qualité réelle des victoires"
+          badge="V2A"
+          subtitle="Classification des victoires selon les métriques de stress disponibles. Basé sur les records résolus uniquement."
           defaultOpen={false}
           summaryRight={
-            capitalCombinationOverlay.hasCapitalData
-              ? `${capitalCombinationOverlay.rows.length} mode${capitalCombinationOverlay.rows.length !== 1 ? "s" : ""} · ${capitalCombinationOverlay.rows[0]?.verdict ?? "voir détail"}`
-              : "Capital data N/D"
-          }
-        >
-          {capitalCombinationOverlay.hasCapitalData !== true ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-100">Capital data N/D</p>
-                  <span className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
-                    Read-only
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-slate-400">
-                  Les tables ou données de combinaisons capital ne sont pas encore exposées dans le payload actuel du Journal POP. V2E est prête côté UI/calcul, mais nécessite un branchement read-only futur.
-                </p>
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  {[
-                    "Aucun appel backend ajoute",
-                    "Aucune ecriture SQLite",
-                    "Aucun impact scanner",
-                  ].map((line) => (
-                    <div key={line} className="rounded-xl border border-slate-700/50 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-400">
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                  Ce que V2E mesurera
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-400">
-                  <li>concentration sur tickers stressés</li>
-                  <li>exposition a lucky / lowerBound break</li>
-                  <li>exposition a spread eleve</li>
-                  <li>équilibre Safe vs Aggressive</li>
-                  <li>robustesse statistique de la combinaison</li>
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-xs text-slate-300">
-                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                  <tr>
-                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">Combinaison</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Tickers</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Capital</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Resolus</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Clean</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Lucky</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">LB Break</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Touch</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Spread %</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Tickers a risque</th>
-                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Inconnus</th>
-                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/70">
-                  {capitalCombinationOverlay.rows.map((row) => {
-                    const verdictClass =
-                      row.verdict === "Conservateur sain"
-                        ? "border-emerald-800/50 bg-emerald-900/20 text-emerald-400"
-                        : row.verdict === "Équilibre propre"
-                        ? "border-sky-800/50 bg-sky-900/20 text-sky-400"
-                        : row.verdict === "Agressif sain"
-                        ? "border-indigo-800/50 bg-indigo-900/20 text-indigo-400"
-                        : row.verdict === "Agressif stressé" || row.verdict === "À limiter"
-                        ? "border-rose-800/50 bg-rose-900/20 text-rose-400"
-                        : "border-slate-700 bg-slate-800 text-slate-400";
-                    return (
-                      <tr key={row.id} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-3 py-3">
-                          <div className="font-bold text-slate-100 whitespace-nowrap">{row.combinationName}</div>
-                          <div className="mt-1 text-[11px] text-slate-600">
-                            Score {row.overlayScore != null ? row.overlayScore : "N/D"}
-                            {row.concentrationRiskPct != null ? ` · concentration ${row.concentrationRiskPct.toFixed(0)}%` : ""}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">{row.tickerCount}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-sky-400">
-                          {row.capitalUsed != null ? formatMoney(row.capitalUsed) : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">{row.resolvedSampleTotal != null ? row.resolvedSampleTotal : <span className="text-slate-600">N/D</span>}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.avgCleanRate != null ? <span className="text-emerald-400">{row.avgCleanRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.avgLuckyRate != null ? <span className={row.avgLuckyRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.avgLuckyRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.avgLowerBoundBreakRate != null ? <span className={row.avgLowerBoundBreakRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.avgLowerBoundBreakRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.avgStrikeTouchRate != null ? <span className={row.avgStrikeTouchRate >= 25 ? "text-rose-400 font-semibold" : row.avgStrikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>{row.avgStrikeTouchRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.avgSpreadPct != null ? <span className={row.avgSpreadPct > 20 ? "text-rose-400 font-semibold" : row.avgSpreadPct > 10 ? "text-amber-400" : "text-emerald-400"}>{row.avgSpreadPct.toFixed(1)}%</span> : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.highRiskTickerCount}
-                          <span className="text-slate-600"> / {row.tickerCount}</span>
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.unknownTickerCount}
-                          <span className="text-slate-600"> / {row.tickerCount}</span>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <span className={`rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${verdictClass}`}>
-                            {row.verdict}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CollapsibleSection>
-      )}
-
-      {hasLoaded && activePopTab === "safeAggressive" && (
-        <CollapsibleSection
-          title="Safe vs Aggressive — Comparaison mode strike"
-          badge="V2 calibration"
-          subtitle="Données issues de la calibration probabilistique V2. Stress metrics disponibles uniquement pour records avec window data."
-          defaultOpen={false}
-          summaryRight={
-            hasProbabilisticCalibrationData
-              ? `Safe n=${safeModeData?.resolvedCount ?? 0} · Agg n=${aggressiveModeData?.resolvedCount ?? 0}`
+            winQualityStats.resolvedCount > 0
+              ? `Clean ${winQualityStats.cleanWinRate != null ? winQualityStats.cleanWinRate.toFixed(1) + "%" : "N/D"} · Lucky ${winQualityStats.luckyWinRate != null ? winQualityStats.luckyWinRate.toFixed(1) + "%" : "N/D"} · Assignments ${winQualityStats.assignmentRate != null ? winQualityStats.assignmentRate.toFixed(1) + "%" : "N/D"}`
               : "Aucun record résolu"
           }
         >
-          {!hasProbabilisticCalibrationData ? (
+          {winQualityStats.resolvedCount === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Aucun record résolu — calibration Safe/Aggressive disponible après expiration des premières positions.
+              Aucun record résolu. Les classifications apparaîtront après expiration des premières positions.
             </div>
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2">
-                {/* SAFE */}
-                {(() => {
-                  const ss = safeModeStressStats;
-                  const riskAdj = ss?.luckyWinRate != null && safeModeData?.avgPremium != null
-                    ? safeModeData.avgPremium * (1 - ss.luckyWinRate / 100)
-                    : null;
-                  const modeVerdict = (() => {
-                    const rc = ss?.resolvedCount ?? 0;
-                    const cwr = ss?.cleanWinRate ?? 0;
-                    const lwr = ss?.luckyWinRate ?? 0;
-                    if (rc < 30) return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
-                    if (lwr >= 20) return { label: "Défensif stressé", cls: "border-amber-800/50 bg-amber-900/30 text-amber-400" };
-                    if (cwr >= 70 && lwr < 15) return { label: "Défensif propre", cls: "border-emerald-800/50 bg-emerald-900/30 text-emerald-400" };
-                    return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
-                  })();
-                  return (
-                    <div className="rounded-2xl border border-emerald-800/30 bg-emerald-900/10 p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="rounded border border-emerald-700/50 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-400">Safe</span>
-                        <span className="text-[11px] text-slate-500">Strike défensif · POP haute attendue</span>
-                        <span className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-bold ${modeVerdict.cls}`}>{modeVerdict.label}</span>
-                      </div>
-                      <div className="space-y-2 text-xs">
-                        {[
-                          ["Records résolus", safeModeData?.resolvedCount != null ? String(safeModeData.resolvedCount) : "N/D", "default"],
-                          ["Win rate", safeModeData?.actualWinRate != null ? formatPercent(safeModeData.actualWinRate) : "N/D", safeModeData?.actualWinRate >= 80 ? "good" : "default"],
-                          ["POP moyenne", safeModeData?.avgPop != null ? formatPercent(safeModeData.avgPop) : "N/D", "info"],
-                          ["Prime moyenne", safeModeData?.avgPremium != null ? formatMoney(safeModeData.avgPremium) : "N/D", "default"],
-                          ["Assignment rate", safeModeData?.assignmentRate != null ? formatPercent(safeModeData.assignmentRate) : "N/D", "default"],
-                          ["Drawdown moyen", safeModeData?.avgDrawdownPct != null ? formatPercent(safeModeData.avgDrawdownPct) : "N/D", "default"],
-                          ["LowerBound cassé", safeModeData?.lowerBoundBreakRate != null ? formatPercent(safeModeData.lowerBoundBreakRate) : "N/D", "default"],
-                        ].map(([lbl, val, tone]) => (
-                          <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
-                            <span className="text-slate-500">{lbl}</span>
-                            <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>{val}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-2 py-1.5 mt-0.5">
-                          <span className="font-semibold text-emerald-400">Strike touch rate</span>
-                          <span className="font-bold text-emerald-300">
-                            {safeModeData?.strikeTouchRate != null ? formatPercent(safeModeData.strikeTouchRate) : "N/D"}
-                          </span>
-                        </div>
-                        <div className="border-t border-slate-700/40 pt-2 mt-1 space-y-1.5">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">V2C — Qualité des victoires</p>
-                          {[
-                            ["Clean win %", ss?.cleanWinRate != null ? `${ss.cleanWinRate.toFixed(1)}%` : "N/D", "emerald"],
-                            ["Stressed win %", ss?.stressedWinRate != null ? `${ss.stressedWinRate.toFixed(1)}%` : "N/D", "amber"],
-                            ["Lucky win %", ss?.luckyWinRate != null ? `${ss.luckyWinRate.toFixed(1)}%` : "N/D", ss?.luckyWinRate >= 20 ? "rose" : "amber"],
-                            ["LB break %", ss?.lowerBoundBreakRate != null ? `${ss.lowerBoundBreakRate.toFixed(1)}%` : "N/D", ss?.lowerBoundBreakRate >= 20 ? "rose" : "default"],
-                            ["Assignment %", ss?.assignmentRate != null ? `${ss.assignmentRate.toFixed(1)}%` : "N/D", ss?.assignmentRate > 5 ? "rose" : "default"],
-                            ["Prime aj. risque", riskAdj != null ? formatMoney(riskAdj) : "N/D", "info"],
-                          ].map(([lbl, val, col]) => (
-                            <div key={lbl} className="flex justify-between items-center">
-                              <span className="text-slate-600">{lbl}</span>
-                              <span className={col === "emerald" ? "text-emerald-400" : col === "amber" ? "text-amber-400" : col === "rose" ? "text-rose-400 font-semibold" : col === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-700" : "text-slate-400"}>
-                                {val}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-2 pt-1">
-                          <ConfidenceBadge sample={safeModeData?.resolvedCount} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* AGGRESSIVE */}
-                {(() => {
-                  const ss = aggressiveModeStressStats;
-                  const riskAdj = ss?.luckyWinRate != null && aggressiveModeData?.avgPremium != null
-                    ? aggressiveModeData.avgPremium * (1 - ss.luckyWinRate / 100)
-                    : null;
-                  const modeVerdict = (() => {
-                    const rc = ss?.resolvedCount ?? 0;
-                    const cwr = ss?.cleanWinRate ?? 0;
-                    const lwr = ss?.luckyWinRate ?? 0;
-                    const lbr = ss?.lowerBoundBreakRate ?? 0;
-                    const ar  = ss?.assignmentRate ?? 0;
-                    if (rc < 30) return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
-                    if (lbr >= 25 || ar > 5) return { label: "À limiter", cls: "border-rose-800/50 bg-rose-900/30 text-rose-400" };
-                    if (lwr >= 20) return { label: "Agressif stressé", cls: "border-amber-800/50 bg-amber-900/30 text-amber-400" };
-                    if (cwr >= 60 && lwr < 20 && ar <= 2) return { label: "Agressif sain", cls: "border-indigo-800/50 bg-indigo-900/30 text-indigo-400" };
-                    return { label: "À valider", cls: "border-slate-700 bg-slate-800 text-slate-400" };
-                  })();
-                  return (
-                    <div className="rounded-2xl border border-rose-800/30 bg-rose-900/10 p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="rounded border border-rose-700/50 bg-rose-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rose-400">Aggressive</span>
-                        <span className="text-[11px] text-slate-500">Strike agressif · Prime plus haute</span>
-                        <span className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-bold ${modeVerdict.cls}`}>{modeVerdict.label}</span>
-                      </div>
-                      <div className="space-y-2 text-xs">
-                        {[
-                          ["Records résolus", aggressiveModeData?.resolvedCount != null ? String(aggressiveModeData.resolvedCount) : "N/D", "default"],
-                          ["Win rate", aggressiveModeData?.actualWinRate != null ? formatPercent(aggressiveModeData.actualWinRate) : "N/D", aggressiveModeData?.actualWinRate >= 80 ? "good" : "default"],
-                          ["POP moyenne", aggressiveModeData?.avgPop != null ? formatPercent(aggressiveModeData.avgPop) : "N/D", "info"],
-                          ["Prime moyenne", aggressiveModeData?.avgPremium != null ? formatMoney(aggressiveModeData.avgPremium) : "N/D", "default"],
-                          ["Assignment rate", aggressiveModeData?.assignmentRate != null ? formatPercent(aggressiveModeData.assignmentRate) : "N/D", "default"],
-                          ["Drawdown moyen", aggressiveModeData?.avgDrawdownPct != null ? formatPercent(aggressiveModeData.avgDrawdownPct) : "N/D", "default"],
-                          ["LowerBound cassé", aggressiveModeData?.lowerBoundBreakRate != null ? formatPercent(aggressiveModeData.lowerBoundBreakRate) : "N/D", "default"],
-                        ].map(([lbl, val, tone]) => (
-                          <div key={lbl} className="flex justify-between items-center border-b border-slate-800/60 pb-1.5">
-                            <span className="text-slate-500">{lbl}</span>
-                            <span className={tone === "good" ? "text-emerald-400 font-semibold" : tone === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-600" : "text-slate-300"}>{val}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center rounded-lg border border-rose-800/40 bg-rose-900/20 px-2 py-1.5 mt-0.5">
-                          <span className="font-semibold text-rose-400">Strike touch rate</span>
-                          <span className="font-bold text-rose-300">
-                            {aggressiveModeData?.strikeTouchRate != null ? formatPercent(aggressiveModeData.strikeTouchRate) : "N/D"}
-                          </span>
-                        </div>
-                        <div className="border-t border-slate-700/40 pt-2 mt-1 space-y-1.5">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">V2C — Qualité des victoires</p>
-                          {[
-                            ["Clean win %", ss?.cleanWinRate != null ? `${ss.cleanWinRate.toFixed(1)}%` : "N/D", "emerald"],
-                            ["Stressed win %", ss?.stressedWinRate != null ? `${ss.stressedWinRate.toFixed(1)}%` : "N/D", "amber"],
-                            ["Lucky win %", ss?.luckyWinRate != null ? `${ss.luckyWinRate.toFixed(1)}%` : "N/D", ss?.luckyWinRate >= 20 ? "rose" : "amber"],
-                            ["LB break %", ss?.lowerBoundBreakRate != null ? `${ss.lowerBoundBreakRate.toFixed(1)}%` : "N/D", ss?.lowerBoundBreakRate >= 20 ? "rose" : "default"],
-                            ["Assignment %", ss?.assignmentRate != null ? `${ss.assignmentRate.toFixed(1)}%` : "N/D", ss?.assignmentRate > 5 ? "rose" : "default"],
-                            ["Prime aj. risque", riskAdj != null ? formatMoney(riskAdj) : "N/D", "info"],
-                          ].map(([lbl, val, col]) => (
-                            <div key={lbl} className="flex justify-between items-center">
-                              <span className="text-slate-600">{lbl}</span>
-                              <span className={col === "emerald" ? "text-emerald-400" : col === "amber" ? "text-amber-400" : col === "rose" ? "text-rose-400 font-semibold" : col === "info" ? "text-sky-400" : val === "N/D" ? "text-slate-700" : "text-slate-400"}>
-                                {val}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-2 pt-1">
-                          <ConfidenceBadge sample={aggressiveModeData?.resolvedCount} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <ProKpi
+                  label="Clean wins"
+                  value={winQualityStats.cleanWinCount}
+                  tone="good"
+                  sub={winQualityStats.cleanWinRate != null ? `${winQualityStats.cleanWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Normal wins"
+                  value={winQualityStats.normalWinCount}
+                  tone="info"
+                  sub={winQualityStats.normalWinRate != null ? `${winQualityStats.normalWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Stressed wins"
+                  value={winQualityStats.stressedWinCount}
+                  tone="warn"
+                  sub={winQualityStats.stressedWinRate != null ? `${winQualityStats.stressedWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Lucky wins"
+                  value={winQualityStats.luckyWinCount}
+                  tone="warn"
+                  sub={winQualityStats.luckyWinRate != null ? `${winQualityStats.luckyWinRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Assignments"
+                  value={winQualityStats.assignmentCount}
+                  tone="risk"
+                  sub={winQualityStats.assignmentRate != null ? `${winQualityStats.assignmentRate.toFixed(1)}% résolus` : undefined}
+                />
+                <ProKpi
+                  label="Pending"
+                  value={winQualityStats.pendingCount}
+                  tone={winQualityStats.pendingCount > 0 ? "warn" : "muted"}
+                  sub="Non résolus"
+                />
               </div>
 
-              {(() => {
-                const safeTouch = numberOrNull(safeModeData?.strikeTouchRate);
-                const aggTouch = numberOrNull(aggressiveModeData?.strikeTouchRate);
-                const gap = safeTouch != null && aggTouch != null ? aggTouch - safeTouch : null;
-                const ratio = safeTouch != null && aggTouch != null && safeTouch > 0 ? aggTouch / safeTouch : null;
-                return (
-                  <div className="mt-4 rounded-2xl border border-slate-600/50 bg-slate-800/50 p-4 space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Différence réelle de risque</p>
-                    <div className="grid grid-cols-3 gap-3 text-xs">
-                      <div className="rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-3 py-2.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-600 mb-1">Safe</p>
-                        <p className="text-xl font-bold text-emerald-300 tabular-nums">
-                          {safeTouch != null ? `${safeTouch.toFixed(1)}%` : "N/D"}
-                        </p>
-                        <p className="text-[9px] text-slate-600 mt-0.5">Strike touch rate</p>
-                      </div>
-                      <div className="rounded-lg border border-rose-800/40 bg-rose-900/20 px-3 py-2.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-rose-600 mb-1">Aggressive</p>
-                        <p className="text-xl font-bold text-rose-300 tabular-nums">
-                          {aggTouch != null ? `${aggTouch.toFixed(1)}%` : "N/D"}
-                        </p>
-                        <p className="text-[9px] text-slate-600 mt-0.5">Strike touch rate</p>
-                      </div>
-                      <div className="rounded-lg border border-amber-800/40 bg-amber-900/20 px-3 py-2.5 text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-600 mb-1">Écart</p>
-                        <p className="text-xl font-bold text-amber-300 tabular-nums">
-                          {gap != null ? (gap >= 0 ? `+${gap.toFixed(1)} pts` : `${gap.toFixed(1)} pts`) : "N/D"}
-                        </p>
-                        <p className="text-[9px] text-slate-600 mt-0.5">Aggressive vs Safe</p>
-                      </div>
-                    </div>
-                    {ratio != null && (
-                      <p className="text-[11px] text-slate-500 text-center">
-                        Aggressive touche le strike environ{" "}
-                        <span className="text-amber-400 font-semibold">{ratio.toFixed(1)}×</span>{" "}
-                        plus souvent que Safe.
-                      </p>
-                    )}
-                    {safeTouch == null && aggTouch == null && (
-                      <p className="text-[11px] text-slate-600 text-center">Strike touch rate indisponible — données insuffisantes.</p>
-                    )}
+              <div className="mt-4 rounded-xl border border-slate-700/40 bg-slate-800/20 px-4 py-3 space-y-1">
+                <p className="text-[11px] text-slate-500"><span className="text-emerald-400 font-semibold">Clean win</span> — Expired worthless, aucun stress détecté.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-sky-400 font-semibold">Normal win</span> — Expired worthless, catégorie résiduelle.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-amber-400 font-semibold">Stressed win</span> — Strike touché OU drawdown ≥ 5%.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-amber-400 font-semibold">Lucky win</span> — LowerBound cassé mais expiré OTM.</p>
+                <p className="text-[11px] text-slate-500"><span className="text-rose-400 font-semibold">Assignment</span> — Option assignée.</p>
+              </div>
+
+              {/* Stress Data Coverage */}
+              <div className="mt-5 rounded-2xl border border-slate-700/40 bg-slate-800/30 p-4">
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 mb-4">
+                  Stress Data Coverage
+                </h4>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Strike touch</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
+                      {stressCoverage.strikeTouchedCoverage != null ? `${stressCoverage.strikeTouchedCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-600">Records avec strikeTouched connu</p>
                   </div>
-                );
-              })()}
-              <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
-                <span className="text-slate-600 text-sm">ℹ</span>
-                <p className="text-[11px] text-slate-600">
-                  V2C : les verdicts tiennent maintenant compte de la qualité des victoires et du stress réel, pas seulement du win rate. Safe et Aggressive peuvent avoir le même win rate — V2C montre lequel est plus propre.
-                  <span className="block mt-1.5">Lucky win % et LowerBound break % sont basés sur le comportement du sous-jacent — ils peuvent être identiques entre Safe et Aggressive. Le <span className="text-slate-400 font-medium">strike touch rate</span> reste la métrique la plus discriminante entre modes.</span>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">LowerBound break</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
+                      {stressCoverage.lowerBoundCoverage != null ? `${stressCoverage.lowerBoundCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-600">Records avec brokeLowerBound connu</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Drawdown</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-100">
+                      {stressCoverage.drawdownCoverage != null ? `${stressCoverage.drawdownCoverage.toFixed(0)}%` : <span className="text-slate-600 text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-600">Records avec drawdownPct connu</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Coverage global</p>
+                    <p className={`mt-2 text-xl font-bold tabular-nums ${stressCoverage.globalCoverage == null ? "text-slate-600" : stressCoverage.globalCoverage > 70 ? "text-emerald-400" : stressCoverage.globalCoverage >= 30 ? "text-amber-400" : "text-rose-400"}`}>
+                      {stressCoverage.globalCoverage != null ? `${stressCoverage.globalCoverage.toFixed(0)}%` : <span className="text-base">N/D</span>}
+                    </p>
+                    <p className="mt-1.5">
+                      <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${
+                        stressCoverage.verdict === "Bon"
+                          ? "border-emerald-800/50 bg-emerald-900/40 text-emerald-400"
+                          : stressCoverage.verdict === "Partiel"
+                          ? "border-amber-800/50 bg-amber-900/40 text-amber-400"
+                          : "border-rose-800/50 bg-rose-900/40 text-rose-400"
+                      }`}>
+                        {stressCoverage.verdict}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] text-slate-600">
+                  Coverage calculé sur {winQualityStats.resolvedCount} records résolus. &lt;30% : Faible · 30–70% : Partiel · &gt;70% : Bon.
                 </p>
               </div>
             </>
           )}
         </CollapsibleSection>
-      )}
 
-      {/* ── SECTION V2-G — COMPARAISON SAFE vs AGRESSIF ─────────────────────── */}
-      {hasLoaded && activePopTab === "safeAggressive" && modeComparison && (() => {
-        const mc = modeComparison;
-        const safe = mc.modes.safe;
-        const agg = mc.modes.aggressive;
-        const cmp = mc.comparison;
-
-        const interpretiveText = (() => {
-          const v = cmp.aggressiveRiskVerdict;
-          const safeN = safe.resolved_records;
-          const aggN = agg.resolved_records;
-          if (v === "insufficient_data" || safeN < 10 || aggN < 10)
-            return "Échantillon encore faible : interpréter avec prudence.";
-          if (v === "similar_risk")
-            return "SAFE et AGRESSIF ont des taux d'assignation proches sur l'échantillon actuel.";
-          if (v === "higher_risk_not_compensated")
-            return `AGRESSIF s'assigne significativement plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts) sans compensation de prime visible.`;
-          if (v === "higher_risk_partially_compensated")
-            return `AGRESSIF s'assigne plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts), mais paie une prime moyenne plus élevée (+${cmp.premiumDeltaDollar != null ? `$${cmp.premiumDeltaDollar.toFixed(2)}` : "N/D"}).`;
-          return `AGRESSIF s'assigne légèrement plus souvent que SAFE (+${cmp.assignmentRateDeltaPct?.toFixed(1)} pts).`;
-        })();
-
-        const getTickerModeReading = (row) => {
-          const tier = getSafeAggSampleTierFromModeComparisonRow(row);
-          if (tier === "faible") return "Échantillon faible";
-          const pd = numberOrNull(row.premium_delta);
-          const ad = numberOrNull(row.assignment_delta_pct);
-          let reading;
-          if (pd == null || ad == null) reading = "Données insuffisantes";
-          else if (pd > 0 && ad <= 0) reading = "AGRESSIF paie plus sans plus d'assignation";
-          else if (pd > 0 && ad > 0 && ad <= 5) reading = "AGRESSIF paie plus avec risque légèrement supérieur";
-          else if (pd > 0 && ad > 5) reading = "AGRESSIF paie plus mais assigne davantage";
-          else if (pd <= 0 && ad > 0) reading = "SAFE préférable";
-          else reading = "Écart faible";
-          return applySafeAggSamplePrudenceToReading(reading, tier);
-        };
-
-        const getReadingTone = (reading) => {
-          if (reading.includes("données insuffisantes")) return "text-slate-500 italic";
-          if (reading.includes("Prime AGRESSIF supérieure, mais données insuffisantes")) return "text-amber-400";
-          if (reading.includes("préliminaire")) return "text-amber-300/90";
-          if (reading === "AGRESSIF paie plus sans plus d'assignation") return "text-sky-400";
-          if (reading === "AGRESSIF paie plus avec risque légèrement supérieur") return "text-amber-400";
-          if (reading === "AGRESSIF paie plus mais assigne davantage") return "text-orange-400";
-          if (reading === "SAFE préférable") return "text-emerald-400";
-          if (reading === "Échantillon faible") return "text-slate-500 italic";
-          return "text-slate-400";
-        };
-
-        const allTickers = Array.isArray(mc.byTicker) ? mc.byTicker : [];
-
-        // Sort: OK samples first, then by total resolved desc, then by premium_delta desc
-        const sortedTickers = [...allTickers].sort((a, b) => {
-          const aOk = a.sample_size_status === "ok" ? 0 : 1;
-          const bOk = b.sample_size_status === "ok" ? 0 : 1;
-          if (aOk !== bOk) return aOk - bOk;
-          const aTotal = (a.safe_resolved ?? 0) + (a.aggressive_resolved ?? 0);
-          const bTotal = (b.safe_resolved ?? 0) + (b.aggressive_resolved ?? 0);
-          if (bTotal !== aTotal) return bTotal - aTotal;
-          const aPd = numberOrNull(a.premium_delta) ?? -Infinity;
-          const bPd = numberOrNull(b.premium_delta) ?? -Infinity;
-          return bPd - aPd;
-        });
-
-        const filterLabels = {
-          tous: "Tous",
-          ok: "Échantillon OK",
-          faible: "Échantillon faible",
-          "agressif-paie-plus": "AGRESSIF paie plus",
-          "agressif-plus-risque": "AGRESSIF plus risqué",
-          "safe-preferable": "SAFE préférable",
-        };
-
-        const searchTerm = modeComparisonTickerSearch.trim().toUpperCase();
-
-        const filteredTickers = (() => {
-          let base = sortedTickers;
-          if (modeComparisonTickerFilter === "ok") base = base.filter((t) => t.sample_size_status === "ok");
-          else if (modeComparisonTickerFilter === "faible") base = base.filter((t) => t.sample_size_status === "faible");
-          else if (modeComparisonTickerFilter === "agressif-paie-plus") {
-            base = base.filter((t) => {
-              const pd = numberOrNull(t.premium_delta);
-              return pd != null && pd > 0;
-            });
-          } else if (modeComparisonTickerFilter === "agressif-plus-risque") {
-            base = base.filter((t) => {
-              const ad = numberOrNull(t.assignment_delta_pct);
-              return ad != null && ad > 5;
-            });
-          } else if (modeComparisonTickerFilter === "safe-preferable") {
-            base = base.filter((t) => {
-              const reading = getTickerModeReading(t);
-              return reading === "SAFE préférable";
-            });
-          }
-          if (searchTerm) base = base.filter((t) => String(t.symbol ?? "").toUpperCase().includes(searchTerm));
-          return base;
-        })();
-
-        // "Tickers à regarder" — échantillon correct, premium_delta > 0, assignment_delta_pct <= 5
-        const spotlightTickers = sortedTickers
-          .filter((t) => {
-            const pd = numberOrNull(t.premium_delta);
-            const ad = numberOrNull(t.assignment_delta_pct);
-            return (
-              getSafeAggSampleTierFromModeComparisonRow(t) === "correct" &&
-              pd != null && pd > 0 &&
-              ad != null && ad <= 5
-            );
-          })
-          .slice(0, 5);
-
-        return (
-          <CollapsibleSection
-            title="Comparaison SAFE vs AGRESSIF"
-            badge="V2-G"
-            subtitle="Taux d'assignation réelle par mode. Calculé sur records résolus uniquement. Source locale, aucun appel réseau."
-            defaultOpen={false}
-            summaryRight={
-              cmp.assignmentRateDeltaPct != null
-                ? `Assign. SAFE ${safe.assigned_rate_pct?.toFixed(1)}% · AGRESSIF ${agg.assigned_rate_pct?.toFixed(1)}% · Δ ${cmp.assignmentRateDeltaPct >= 0 ? "+" : ""}${cmp.assignmentRateDeltaPct.toFixed(1)} pts`
-                : "Données insuffisantes"
-            }
-          >
-            {/* 10 KPI cards */}
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-5 mb-5">
-              <ProKpi
-                label="Assign. SAFE"
-                value={safe.assigned_rate_pct != null ? `${safe.assigned_rate_pct.toFixed(1)}%` : "N/D"}
-                tone="good"
-                sub={`${safe.assigned_count} / ${safe.resolved_records} résolus`}
-              />
-              <ProKpi
-                label="Assign. AGRESSIF"
-                value={agg.assigned_rate_pct != null ? `${agg.assigned_rate_pct.toFixed(1)}%` : "N/D"}
-                tone={agg.assigned_rate_pct != null && safe.assigned_rate_pct != null && agg.assigned_rate_pct > safe.assigned_rate_pct + 5 ? "risk" : "default"}
-                sub={`${agg.assigned_count} / ${agg.resolved_records} résolus`}
-              />
-              <ProKpi
-                label="Écart assignation"
-                value={cmp.assignmentRateDeltaPct != null ? `${cmp.assignmentRateDeltaPct >= 0 ? "+" : ""}${cmp.assignmentRateDeltaPct.toFixed(1)} pts` : "N/D"}
-                tone={cmp.assignmentRateDeltaPct != null && cmp.assignmentRateDeltaPct > 5 ? "risk" : cmp.assignmentRateDeltaPct != null && cmp.assignmentRateDeltaPct <= 2 ? "good" : "warn"}
-                sub="AGRESSIF − SAFE"
-              />
-              <ProKpi
-                label="Strike touché SAFE"
-                value={safe.strike_touched_rate_pct != null ? `${safe.strike_touched_rate_pct.toFixed(1)}%` : "N/D"}
-                tone="default"
-                sub={`${safe.strike_touched_count} records`}
-              />
-              <ProKpi
-                label="Strike touché AGRES."
-                value={agg.strike_touched_rate_pct != null ? `${agg.strike_touched_rate_pct.toFixed(1)}%` : "N/D"}
-                tone={agg.strike_touched_rate_pct != null && safe.strike_touched_rate_pct != null && agg.strike_touched_rate_pct > safe.strike_touched_rate_pct + 8 ? "risk" : "default"}
-                sub={`${agg.strike_touched_count} records`}
-              />
-              <ProKpi
-                label="Prime moy. SAFE"
-                value={safe.avg_premium != null ? `$${safe.avg_premium.toFixed(2)}` : "N/D"}
-                tone="default"
-              />
-              <ProKpi
-                label="Prime moy. AGRESSIF"
-                value={agg.avg_premium != null ? `$${agg.avg_premium.toFixed(2)}` : "N/D"}
-                tone="info"
-              />
-              <ProKpi
-                label="Écart prime"
-                value={cmp.premiumDeltaDollar != null ? `${cmp.premiumDeltaDollar >= 0 ? "+" : ""}$${cmp.premiumDeltaDollar.toFixed(2)}` : "N/D"}
-                tone={cmp.premiumDeltaDollar != null && cmp.premiumDeltaDollar > 0 ? "info" : "muted"}
-                sub="AGRESSIF − SAFE"
-              />
-              <ProKpi
-                label="Rend. moy. SAFE"
-                value={safe.avg_yield_pct != null ? `${safe.avg_yield_pct.toFixed(1)}%` : "N/D"}
-                tone="default"
-                sub="Annualisé"
-              />
-              <ProKpi
-                label="Rend. moy. AGRESSIF"
-                value={agg.avg_yield_pct != null ? `${agg.avg_yield_pct.toFixed(1)}%` : "N/D"}
-                tone={agg.avg_yield_pct != null && safe.avg_yield_pct != null && agg.avg_yield_pct > safe.avg_yield_pct ? "info" : "default"}
-                sub="Annualisé"
-              />
-            </div>
-
-            {/* Interpretive sentence */}
-            <div className="mb-5 flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-3">
-              <span className="text-slate-500 text-sm shrink-0">ℹ</span>
-              <p className="text-[12px] text-slate-300">{interpretiveText}</p>
-            </div>
-
-            {/* Spotlight — tickers where AGRESSIF looks interesting */}
-            {spotlightTickers.length > 0 && (
-              <div className="mb-5">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Tickers à regarder</span>
-                  <span className="text-[9px] text-slate-600">Échantillon OK · prime AGRESSIF supérieure · écart assignation ≤ 5 pts</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {spotlightTickers.map((t) => {
-                    const pd = numberOrNull(t.premium_delta);
-                    const ad = numberOrNull(t.assignment_delta_pct);
-                    return (
-                      <div
-                        key={t.symbol}
-                        className="rounded-xl border border-sky-800/40 bg-sky-900/20 px-3 py-2 min-w-[110px]"
-                      >
-                        <div className="text-[11px] font-bold text-sky-300 mb-1">{t.symbol}</div>
-                        <div className="text-[10px] text-slate-400">
-                          AGRESSIF {pd != null ? <span className="text-sky-400 font-semibold">{pd >= 0 ? "+" : ""}${pd.toFixed(2)} prime</span> : "—"}
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          Écart assign. : {ad != null ? <span className={ad <= 0 ? "text-emerald-400" : "text-amber-400"}>{ad >= 0 ? "+" : ""}{ad.toFixed(1)} pts</span> : "—"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Ticker table */}
-            <div>
-              {/* Filters + search row */}
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 shrink-0">Filtre</span>
-                {Object.entries(filterLabels).map(([f, label]) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setModeComparisonTickerFilter(f)}
-                    className={`rounded border px-2 py-0.5 text-[10px] transition-colors ${
-                      modeComparisonTickerFilter === f
-                        ? "border-sky-700 bg-sky-900/40 text-sky-300 font-bold"
-                        : "border-slate-700 bg-slate-800/60 text-slate-500 hover:text-slate-300"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <div className="ml-auto flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={modeComparisonTickerSearch}
-                    onChange={(e) => setModeComparisonTickerSearch(e.target.value)}
-                    placeholder="Filtrer ticker..."
-                    className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-300 placeholder:text-slate-600 focus:border-sky-700 focus:outline-none w-28"
-                  />
-                  {modeComparisonTickerSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setModeComparisonTickerSearch("")}
-                      className="text-[10px] text-slate-600 hover:text-slate-400"
-                    >
-                      ✕
-                    </button>
-                  )}
-                  <span className="text-[10px] text-slate-600">{filteredTickers.length} ticker{filteredTickers.length !== 1 ? "s" : ""}</span>
-                </div>
-              </div>
-
-              {filteredTickers.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-                  Aucun ticker pour ce filtre.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-xs text-slate-300">
-                    <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                      <tr>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. SAFE</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. SAFE</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime SAFE</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. AGRES.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. AGRES.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime AGRES.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart assign.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart prime</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. SAFE</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. AGRES.</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Échantillon</th>
-                        <th className="px-3 py-3 font-semibold whitespace-nowrap">Lecture</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/70">
-                      {filteredTickers.map((row) => {
-                        const assignDelta = numberOrNull(row.assignment_delta_pct);
-                        const sampleTier = getSafeAggSampleTierFromModeComparisonRow(row);
-                        const sampleBadge = getSafeAggSampleQualityBadge(sampleTier);
-                        const reading = getTickerModeReading(row);
-                        const readingTone = getReadingTone(reading);
-                        return (
-                          <tr key={row.symbol} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.symbol}</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{row.safe_resolved}</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {row.safe_assigned_rate_pct != null ? `${row.safe_assigned_rate_pct.toFixed(1)}%` : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">
-                              {row.safe_avg_premium != null ? `$${row.safe_avg_premium.toFixed(2)}` : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-rose-400">{row.aggressive_resolved}</td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {row.aggressive_assigned_rate_pct != null ? (
-                                <span className={row.aggressive_assigned_rate_pct > (row.safe_assigned_rate_pct ?? 0) + 5 ? "text-rose-400 font-semibold" : ""}>
-                                  {row.aggressive_assigned_rate_pct.toFixed(1)}%
-                                </span>
-                              ) : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">
-                              {row.aggressive_avg_premium != null ? `$${row.aggressive_avg_premium.toFixed(2)}` : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {assignDelta != null ? (
-                                <span className={assignDelta > 5 ? "text-rose-400 font-semibold" : assignDelta <= 0 ? "text-emerald-400" : "text-amber-400"}>
-                                  {assignDelta >= 0 ? "+" : ""}{assignDelta.toFixed(1)} pts
-                                </span>
-                              ) : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {row.premium_delta != null ? (
-                                <span className={row.premium_delta > 0 ? "text-sky-400" : "text-slate-400"}>
-                                  {row.premium_delta >= 0 ? "+" : ""}${row.premium_delta.toFixed(2)}
-                                </span>
-                              ) : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
-                              {row.safe_avg_yield_pct != null ? `${row.safe_avg_yield_pct.toFixed(0)}%` : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {row.aggressive_avg_yield_pct != null ? `${row.aggressive_avg_yield_pct.toFixed(0)}%` : "—"}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {sampleBadge ? (
-                                <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold ${sampleBadge.className}`}>
-                                  {sampleBadge.label}
-                                </span>
-                              ) : (
-                                <span className="text-slate-600">—</span>
-                              )}
-                            </td>
-                            <td className={`px-3 py-2.5 text-[10px] whitespace-nowrap ${readingTone}`}>
-                              {reading}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* ── Par ticker et DTE / jour d'entrée ─────────────────────── */}
-            {Array.isArray(mc.byTickerDte) && mc.byTickerDte.length > 0 && (() => {
-              const allDteRows = mc.byTickerDte;
-              const uniqueDtes = [...new Set(allDteRows.map((r) => r.dteAtScan).filter((d) => d != null))].sort((a, b) => a - b);
-
-              const getTickerDteModeReading = (row) => {
-                const tier = getSafeAggSampleTierFromCounts(row.safe_resolved, row.aggressive_resolved);
-                if (tier === "faible") return "Échantillon faible · décision non robuste";
-                const pd = numberOrNull(row.premium_delta);
-                const ad = numberOrNull(row.assignment_delta_pct);
-                let reading;
-                if (pd == null || ad == null) reading = "Données insuffisantes";
-                else if (pd > 0 && ad <= 0) reading = "AGRESSIF paie plus sans plus d'assignation";
-                else if (pd > 0 && ad > 0 && ad <= 5) reading = "AGRESSIF paie plus avec risque légèrement supérieur";
-                else if (pd > 0 && ad > 5) reading = "AGRESSIF paie plus mais assigne davantage";
-                else if (pd <= 0 && ad > 0) reading = "SAFE préférable";
-                else reading = "Écart faible";
-                return applySafeAggSamplePrudenceToReading(reading, tier);
-              };
-
-              const getDteReadingTone = (reading) => {
-                if (reading === "AGRESSIF paie plus sans plus d'assignation") return "text-sky-400";
-                if (reading === "AGRESSIF paie plus avec risque légèrement supérieur") return "text-amber-400";
-                if (reading === "AGRESSIF paie plus mais assigne davantage") return "text-orange-400";
-                if (reading === "SAFE préférable") return "text-emerald-400";
-                if (reading === "Échantillon faible") return "text-slate-500 italic";
-                return "text-slate-400";
-              };
-
-              let filteredDteRows = allDteRows.filter((r) => r.safe_total > 0 || r.aggressive_total > 0);
-
-              if (dteSampleFilter === "ok") filteredDteRows = filteredDteRows.filter((r) => r.sample_size_status === "ok");
-              else if (dteSampleFilter === "faible") filteredDteRows = filteredDteRows.filter((r) => r.sample_size_status === "faible");
-
-              if (dteDteFilter !== "tous") {
-                const dteVal = Number(dteDteFilter);
-                filteredDteRows = filteredDteRows.filter((r) => r.dteAtScan === dteVal);
-              }
-
-              if (dteReadingFilter === "agressif-paie-plus") {
-                filteredDteRows = filteredDteRows.filter((r) => {
-                  const reading = getTickerDteModeReading(r);
-                  return (
-                    reading === "AGRESSIF paie plus sans plus d'assignation" ||
-                    reading === "AGRESSIF paie plus avec risque légèrement supérieur" ||
-                    reading === "AGRESSIF paie plus mais assigne davantage"
-                  );
-                });
-              } else if (dteReadingFilter === "agressif-plus-risque") {
-                filteredDteRows = filteredDteRows.filter((r) => getTickerDteModeReading(r) === "AGRESSIF paie plus mais assigne davantage");
-              } else if (dteReadingFilter === "safe-preferable") {
-                filteredDteRows = filteredDteRows.filter((r) => getTickerDteModeReading(r) === "SAFE préférable");
-              }
-
-              const dteSearch = dteTickerSearch.trim().toUpperCase();
-              if (dteSearch) filteredDteRows = filteredDteRows.filter((r) => String(r.symbol ?? "").toUpperCase().includes(dteSearch));
-
-              return (
-                <div className="mt-8 border-t border-slate-700/40 pt-6">
-                  <div className="mb-3">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-1">Par ticker et DTE / jour d'entrée</div>
-                    <div className="text-[10px] text-slate-600">Compare SAFE et AGRESSIF selon le moment où le candidat a été scanné.</div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={dteTickerSearch}
-                      onChange={(e) => setDteTickerSearch(e.target.value)}
-                      placeholder="Filtrer ticker..."
-                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-300 placeholder:text-slate-600 focus:border-sky-700 focus:outline-none w-28"
-                    />
-                    {dteTickerSearch && (
-                      <button type="button" onClick={() => setDteTickerSearch("")} className="text-[10px] text-slate-600 hover:text-slate-400">✕</button>
-                    )}
-                    <select
-                      value={dteDteFilter}
-                      onChange={(e) => setDteDteFilter(e.target.value)}
-                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
-                    >
-                      <option value="tous">Tous DTE</option>
-                      {uniqueDtes.map((d) => (
-                        <option key={d} value={String(d)}>DTE {d}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={dteSampleFilter}
-                      onChange={(e) => setDteSampleFilter(e.target.value)}
-                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
-                    >
-                      <option value="tous">Tous échantillons</option>
-                      <option value="ok">Échantillon OK</option>
-                      <option value="faible">Échantillon faible</option>
-                    </select>
-                    <select
-                      value={dteReadingFilter}
-                      onChange={(e) => setDteReadingFilter(e.target.value)}
-                      className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 focus:border-sky-700 focus:outline-none"
-                    >
-                      <option value="tous">Toutes lectures</option>
-                      <option value="agressif-paie-plus">AGRESSIF paie plus</option>
-                      <option value="agressif-plus-risque">AGRESSIF plus risqué</option>
-                      <option value="safe-preferable">SAFE préférable</option>
-                    </select>
-                    <span className="text-[10px] text-slate-600 ml-auto">{filteredDteRows.length} ligne{filteredDteRows.length !== 1 ? "s" : ""}</span>
-                  </div>
-
-                  {filteredDteRows.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-4 text-sm text-slate-600">
-                      Aucune ligne pour ces filtres.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-left text-xs text-slate-300">
-                        <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                          <tr>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Ticker</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">DTE</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Jour</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. SAFE</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. SAFE</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime SAFE</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. hebdo SAFE</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rés. AGRES.</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Assign. AGRES.</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Prime AGRES.</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Rend. hebdo AGRES.</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart assign.</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart prime</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">Écart rend. hebdo</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Échantillon</th>
-                            <th className="px-3 py-3 font-semibold whitespace-nowrap">Lecture</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/70">
-                          {filteredDteRows.map((row) => {
-                            const assignDelta = numberOrNull(row.assignment_delta_pct);
-                            const weeklyDelta = numberOrNull(row.weekly_yield_delta_pct);
-                            const isSampleOk = row.sample_size_status === "ok";
-                            const reading = getTickerDteModeReading(row);
-                            const readingTone = getDteReadingTone(reading);
-                            return (
-                              <tr key={`${row.symbol}__${row.dteAtScan}`} className={`hover:bg-slate-800/30 transition-colors ${!isSampleOk ? "opacity-60" : ""}`}>
-                                <td className="px-3 py-2.5 font-bold text-slate-100 whitespace-nowrap">{row.symbol}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">{row.dteAtScan}</td>
-                                <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{row.scanDayLabel}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{row.safe_resolved}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">
-                                  {row.safe_assigned_rate_pct != null ? `${row.safe_assigned_rate_pct.toFixed(1)}%` : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">
-                                  {row.safe_avg_premium != null ? `$${row.safe_avg_premium.toFixed(2)}` : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
-                                  {row.safe_avg_weekly_yield_pct != null ? `${row.safe_avg_weekly_yield_pct.toFixed(2)}%` : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-rose-400">{row.aggressive_resolved}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">
-                                  {row.aggressive_assigned_rate_pct != null ? (
-                                    <span className={row.aggressive_assigned_rate_pct > (row.safe_assigned_rate_pct ?? 0) + 5 ? "text-rose-400 font-semibold" : ""}>
-                                      {row.aggressive_assigned_rate_pct.toFixed(1)}%
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-sky-400">
-                                  {row.aggressive_avg_premium != null ? `$${row.aggressive_avg_premium.toFixed(2)}` : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">
-                                  {row.aggressive_avg_weekly_yield_pct != null ? (
-                                    <span className={row.aggressive_avg_weekly_yield_pct > (row.safe_avg_weekly_yield_pct ?? 0) ? "text-sky-400" : "text-slate-400"}>
-                                      {row.aggressive_avg_weekly_yield_pct.toFixed(2)}%
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">
-                                  {assignDelta != null ? (
-                                    <span className={assignDelta > 5 ? "text-rose-400 font-semibold" : assignDelta <= 0 ? "text-emerald-400" : "text-amber-400"}>
-                                      {assignDelta >= 0 ? "+" : ""}{assignDelta.toFixed(1)} pts
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">
-                                  {row.premium_delta != null ? (
-                                    <span className={row.premium_delta > 0 ? "text-sky-400" : "text-slate-400"}>
-                                      {row.premium_delta >= 0 ? "+" : ""}${row.premium_delta.toFixed(2)}
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">
-                                  {weeklyDelta != null ? (
-                                    <span className={weeklyDelta > 0 ? "text-sky-400" : "text-slate-400"}>
-                                      {weeklyDelta >= 0 ? "+" : ""}{weeklyDelta.toFixed(2)} pts
-                                    </span>
-                                  ) : "—"}
-                                </td>
-                                <td className="px-3 py-2.5">
-                                  {isSampleOk ? (
-                                    <span className="rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">OK</span>
-                                  ) : (
-                                    <span className="rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Faible</span>
-                                  )}
-                                </td>
-                                <td className={`px-3 py-2.5 text-[10px] whitespace-nowrap ${readingTone}`}>
-                                  {reading}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </CollapsibleSection>
-        );
-      })()}
-
-      {/* ── SECTION D — TICKER LEADERBOARD ─────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
+      {/* ── SECTION E — DATA CONFIDENCE ─────────────────────────────────────── */}
+      
         <CollapsibleSection
-          title="Ticker Leaderboard — Calibration par actif"
-          badge="V2D-B"
-          subtitle="Tickers avec au moins 3 records résolus. Split Safe / Aggressive par ticker — prime, touch rate, clean rate et mode recommandé."
+          title="Confiance statistique — État de la calibration"
+          badge="Read-only"
+          subtitle="Évaluation de la fiabilité des résultats actuels."
           defaultOpen={false}
-          summaryRight={
-            tickerLeaderboard.length > 0
-              ? `${tickerLeaderboard.length} ticker${tickerLeaderboard.length !== 1 ? "s" : ""} · meilleur : ${tickerLeaderboard[0]?.ticker ?? "voir détail"}`
-              : "Aucun ticker calibré"
-          }
-        >
-          <p className="mb-4 text-[10px] text-slate-600 italic">
-            V2C + V2D-B : stress metrics intégrées · split Safe/Aggressive par ticker · luckyWinRate ≥ 25% / LB break ≥ 25% entraînent downgrade automatique.
-          </p>
-          {tickerLeaderboard.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Aucun ticker avec assez de records résolus (minimum 3). Revenez après expiration de davantage de positions.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-xs text-slate-300">
-                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                  <tr>
-                    {/* ── Global columns ── */}
-                    <th className="px-3 py-3 font-semibold text-left whitespace-nowrap">Ticker</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Résolus</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Win rate</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">POP moy.</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Prime moy.</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Safe total</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Agg total</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Clean</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Lucky</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">LB break</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Assign</th>
-                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Confiance</th>
-                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict V2C</th>
-                    {/* ── V2D-B split columns ── */}
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap border-l border-slate-700/60 text-emerald-600/70">S n</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Prime</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Touch</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-emerald-600/70">S Clean</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A n</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Prime</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Touch</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap text-rose-600/70">A Clean</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Spread %</th>
-                    <th className="px-3 py-3 font-semibold text-right whitespace-nowrap">Earn</th>
-                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Prime Q</th>
-                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Mode rec.</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/70">
-                  {tickerLeaderboard.map((row) => {
-                    const ss    = row.stressStats;
-                    const ms    = row.modeSplit;
-                    const sMs   = ms?.safe;
-                    const aMs   = ms?.aggressive;
-                    const pq    = row.primeQuality;
-                    const recMode = ms?.recommendedMode ?? "Données insuff.";
-                    const recModeCls =
-                      recMode === "Safe préféré"
-                        ? "rounded border border-emerald-800/50 bg-emerald-900/30 px-1.5 py-0.5 font-bold text-emerald-400"
-                        : recMode === "Aggressive possible"
-                        ? "rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 font-bold text-amber-400"
-                        : recMode === "Aggressive à limiter" || recMode === "Stress élevé"
-                        ? "rounded border border-rose-800/50 bg-rose-900/30 px-1.5 py-0.5 font-bold text-rose-400"
-                        : recMode === "Spéculatif"
-                        ? "rounded border border-amber-800/50 bg-amber-900/30 px-1.5 py-0.5 font-bold text-amber-400"
-                        : recMode === "Balanced / à accumuler"
-                        ? "rounded border border-sky-800/50 bg-sky-900/30 px-1.5 py-0.5 font-bold text-sky-400"
-                        : "text-slate-600";
-                    return (
-                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors">
-                        {/* ── Global cells ── */}
-                        <td className="px-3 py-3 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">{row.resolvedCount ?? "—"}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {row.actualWinRate != null ? (
-                            <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : row.actualWinRate >= 60 ? "text-amber-400" : "text-rose-400"}>
-                              {row.actualWinRate.toFixed(1)} %
-                            </span>
-                          ) : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums text-slate-400">
-                          {row.avgPop != null ? `${row.avgPop.toFixed(1)} %` : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums text-sky-400">
-                          {row.avgPremium != null ? formatMoney(row.avgPremium) : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums text-emerald-500">{row.safeCount || 0}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-rose-400">{row.aggressiveCount || 0}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {ss?.cleanWinRate != null ? <span className="text-emerald-400">{ss.cleanWinRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {ss?.luckyWinRate != null ? (
-                            <span className={ss.luckyWinRate >= 25 ? "text-rose-400 font-semibold" : ss.luckyWinRate >= 10 ? "text-amber-400" : "text-slate-400"}>
-                              {ss.luckyWinRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {ss?.lowerBoundBreakRate != null ? (
-                            <span className={ss.lowerBoundBreakRate >= 25 ? "text-rose-400 font-semibold" : ss.lowerBoundBreakRate >= 10 ? "text-amber-400" : "text-slate-400"}>
-                              {ss.lowerBoundBreakRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {ss?.assignmentRate != null ? (
-                            <span className={ss.assignmentRate > 5 ? "text-rose-400 font-semibold" : ss.assignmentRate > 0 ? "text-amber-400" : "text-slate-400"}>
-                              {ss.assignmentRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-600">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap"><ConfidenceBadge sample={row.resolvedCount} /></td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <TickerVerdictBadge ticker={row.ticker} resolvedCount={row.resolvedCount} winRate={row.actualWinRate} avgPremium={row.avgPremium} stressStats={ss} />
-                        </td>
-                        {/* ── V2D-B split cells (Safe) ── */}
-                        <td className="px-3 py-3 text-right tabular-nums border-l border-slate-700/60">
-                          <span className={sMs?.resolvedCount ? "text-emerald-500 font-semibold" : "text-slate-700"}>{sMs?.resolvedCount ?? 0}</span>
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {sMs?.avgPremium != null ? <span className="text-emerald-300">{formatMoney(sMs.avgPremium)}</span> : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {sMs?.strikeTouchRate != null ? (
-                            <span className={sMs.strikeTouchRate >= 25 ? "text-rose-400" : sMs.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>
-                              {sMs.strikeTouchRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {sMs?.cleanWinRate != null ? (
-                            <span className={sMs.cleanWinRate >= 70 ? "text-emerald-400" : sMs.cleanWinRate >= 50 ? "text-amber-400" : "text-rose-400"}>
-                              {sMs.cleanWinRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        {/* ── V2D-B split cells (Aggressive) ── */}
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          <span className={aMs?.resolvedCount ? "text-rose-400 font-semibold" : "text-slate-700"}>{aMs?.resolvedCount ?? 0}</span>
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {aMs?.avgPremium != null ? <span className="text-rose-300">{formatMoney(aMs.avgPremium)}</span> : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {aMs?.strikeTouchRate != null ? (
-                            <span className={aMs.strikeTouchRate >= 25 ? "text-rose-400 font-semibold" : aMs.strikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>
-                              {aMs.strikeTouchRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {aMs?.cleanWinRate != null ? (
-                            <span className={aMs.cleanWinRate >= 70 ? "text-emerald-400" : aMs.cleanWinRate >= 50 ? "text-amber-400" : "text-rose-400"}>
-                              {aMs.cleanWinRate.toFixed(0)}%
-                            </span>
-                          ) : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {pq?.avgSpreadPct != null ? (
-                            <span className={pq.avgSpreadPct <= 10 ? "text-emerald-400" : pq.avgSpreadPct <= 20 ? "text-amber-400" : "text-rose-400"}>
-                              {pq.avgSpreadPct.toFixed(1)}%
-                            </span>
-                          ) : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums">
-                          {pq?.earningsRiskRate != null
-                            ? <span className={pq.earningsRiskRate > 0 ? "text-amber-400" : "text-emerald-400"}>{pq.earningsRiskRate.toFixed(0)}%</span>
-                            : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          {pq?.qualityVerdict ? <span className="text-[10px] text-slate-400">{pq.qualityVerdict}</span> : <span className="text-slate-700">N/D</span>}
-                        </td>
-                        {/* ── Mode recommandé ── */}
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <span className={`text-[10px] ${recModeCls}`} title={ms?.recommendationReason ?? ""}>{recMode}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p className="mt-3 text-[11px] text-slate-600">
-            V2D-B : le leaderboard sépare maintenant Safe et Aggressive par ticker. La prime moyenne globale ne suffit pas à recommander un mode.
-          </p>
-        </CollapsibleSection>
-      )}
-
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <CollapsibleSection
-          title="Prime Quality — Spread, liquidité et risque événementiel"
-          badge="V2D-C"
-          subtitle="V2D-C : vérifie si les primes observées sont réellement tradables. N/D si les champs ne sont pas encore capturés."
-          defaultOpen={false}
-          summaryRight={`Spread moy. ${primeQualityStats.avgSpreadPct != null ? primeQualityStats.avgSpreadPct.toFixed(1) + "%" : "N/D"} · ${primeQualityStats.qualityVerdict}`}
+          summaryRight={`Sample résolu n=${stats.resolvedCount} · ${confidenceLevel(stats.resolvedCount).label} · Non résolu n=${stats.unresolvedCount}`}
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <ProKpi
-              label="Spread coverage"
-              value={primeQualityStats.spreadCoveragePct != null ? `${primeQualityStats.spreadCoveragePct.toFixed(0)}%` : null}
-              tone={primeQualityStats.spreadCoveragePct != null && primeQualityStats.spreadCoveragePct >= 70 ? "good" : "default"}
-              sub={primeQualityStats.spreadCoveragePct != null ? "Records avec bid/ask/spread disponibles" : "Aucun champ spread détecté"}
-            />
-            <ProKpi
-              label="Spread moyen"
-              value={primeQualityStats.avgSpreadPct != null
-                ? `${primeQualityStats.avgSpreadPct.toFixed(1)}%`
-                : (primeQualityStats.avgSpread != null ? formatMoney(primeQualityStats.avgSpread) : null)}
-              tone={primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 10 ? "good" : primeQualityStats.avgSpreadPct != null && primeQualityStats.avgSpreadPct <= 20 ? "warn" : "default"}
-              sub={primeQualityStats.avgBid != null && primeQualityStats.avgAsk != null ? `Bid ${formatMoney(primeQualityStats.avgBid)} · Ask ${formatMoney(primeQualityStats.avgAsk)}` : "N/D"}
-            />
-            <ProKpi
-              label="Prime moyenne"
-              value={primeQualityStats.avgPremium != null ? formatMoney(primeQualityStats.avgPremium) : null}
-              tone="info"
-              sub={primeQualityStats.premiumEfficiency != null ? `Premium efficiency ${primeQualityStats.premiumEfficiency.toFixed(2)}%` : "N/D"}
-            />
-            <ProKpi
-              label="Qualité prime"
-              value={primeQualityStats.qualityVerdict}
-              tone={primeQualityStats.qualityVerdict === "Prime propre" ? "good" : primeQualityStats.qualityVerdict === "Prime correcte" ? "info" : primeQualityStats.qualityVerdict === "Spread limite" ? "warn" : primeQualityStats.qualityVerdict === "Spread risqué" || primeQualityStats.qualityVerdict === "Qualité quote faible" ? "risk" : "muted"}
-              sub={primeQualityStats.warnings.length > 0 ? primeQualityStats.warnings.join(" · ") : "Aucun warning détecté"}
-            />
-            <ProKpi
-              label="Earnings risk"
-              value={primeQualityStats.earningsRiskRate != null ? `${primeQualityStats.earningsRiskCount}/${primeQualityStats.earningsCoverageCount} (${primeQualityStats.earningsRiskRate.toFixed(0)}%)` : null}
-              tone={primeQualityStats.earningsRiskRate != null && primeQualityStats.earningsRiskRate > 0 ? "warn" : "default"}
-              sub={primeQualityStats.earningsRiskRate != null ? "Sur les records avec champ earnings" : "N/D"}
-            />
-            <ProKpi
-              label="Stale quote / data quality"
-              value={primeQualityStats.staleQuoteRate != null ? `${primeQualityStats.staleQuoteCount}/${primeQualityStats.staleCoverageCount} (${primeQualityStats.staleQuoteRate.toFixed(0)}%)` : null}
-              tone={primeQualityStats.staleQuoteRate != null && primeQualityStats.staleQuoteRate > 20 ? "risk" : "default"}
-              sub={primeQualityStats.staleQuoteRate != null ? "Stale quote sur records couverts" : "N/D"}
-            />
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sample total</p>
+              <p className="mt-2 text-xl font-bold text-slate-100">{stats.totalRecords}</p>
+              <p className="mt-1 text-[11px] text-slate-600">Tous records (safe + aggressive)</p>
+            </div>
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sample résolu</p>
+              <p className="mt-2 text-xl font-bold text-slate-100">{stats.resolvedCount}</p>
+              <div className="mt-1.5"><ConfidenceBadge sample={stats.resolvedCount} /></div>
+            </div>
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Non résolu</p>
+              <p className="mt-2 text-xl font-bold text-amber-400">{stats.unresolvedCount}</p>
+              <p className="mt-1 text-[11px] text-slate-600">En cours d'accumulation</p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {[
+              stats.resolvedCount < 30 && "Échantillon résolu encore limité pour valider 1 % systématique.",
+              stats.winRate != null && stats.winRate >= 95 && "Le win rate élevé doit être interprété avec stress metrics et régimes de marché.",
+              "Les résultats doivent être segmentés par régime de marché (bull/bear/sideways) pour une validation complète.",
+              "V2C + V2D-B actifs : stress metrics intégrées dans les buckets de rendement, les modes Safe/Aggressive et le Ticker Leaderboard · split Safe/Aggressive par ticker · verdicts prudents, aucun faux chiffre, read-only.",
+            ].filter(Boolean).map((msg, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-2.5">
+                <span className="text-slate-600 text-sm mt-0.5">›</span>
+                <p className="text-[11px] text-slate-500 leading-relaxed">{msg}</p>
+              </div>
+            ))}
           </div>
         </CollapsibleSection>
-      )}
+          </DataAuditGroup>
 
-      {/* ── SECTION — CALIBRATION POP RÉELLE ─────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <CollapsibleSection
-          title="Calibration POP réelle"
-          badge="Read-only"
-          subtitle="Compare le POP annoncé au moment du scan avec le résultat réel observé après expiration."
-          defaultOpen
-          summaryRight={
-            realPopCalibration?.calibration?.primaryResolvedExpired != null
-              ? `Base n=${realPopCalibration.calibration.primaryResolvedExpired} · ref ${realPopCalibration.calibration.asOfDate ?? "—"}`
-              : "Historique observé"
-          }
-        >
-          {!realPopCalibration?.calibration ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Données de calibration réelle indisponibles pour l&apos;instant.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Base de calibration</p>
-                  <p className="mt-1 text-lg font-bold text-slate-100">
-                    {numberOrNull(realPopCalibration.calibration.primaryResolvedExpired) ?? 0} records résolus
-                  </p>
-                  <p className="mt-1 text-[10px] text-slate-600">Primary · expiration échue · POP gelé au scan</p>
-                </div>
-                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Futures exclues</p>
-                  <p className="mt-1 text-lg font-bold text-amber-400">
-                    {numberOrNull(realPopCalibration.pending?.futureExpiration) ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Échues non résolues</p>
-                  <p className="mt-1 text-lg font-bold text-amber-400">
-                    {numberOrNull(realPopCalibration.pending?.pastUnresolved) ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Date de référence</p>
-                  <p className="mt-1 text-lg font-bold text-slate-100">
-                    {realPopCalibration.calibration.asOfDate ?? "—"}
-                  </p>
-                </div>
-              </div>
-
-              {(numberOrNull(realPopCalibration.pending?.futureExpiration) ?? 0) > 0 && (
-                <div className="rounded-xl border border-amber-800/40 bg-amber-900/20 px-4 py-2.5 text-[11px] text-amber-300">
-                  Les expirations futures sont exclues de la calibration réelle.
-                </div>
-              )}
-              {(numberOrNull(realPopCalibration.pending?.pastUnresolved) ?? 0) > 0 && (
-                <div className="rounded-xl border border-amber-800/40 bg-amber-900/20 px-4 py-2.5 text-[11px] text-amber-300">
-                  Certaines expirations échues ne sont pas encore résolues.
-                </div>
-              )}
-
-              <DarkTable
-                title="Buckets POP — historique observé"
-                headers={[
-                  "Bucket POP",
-                  "Trades",
-                  "POP annoncé moyen",
-                  "Win réel",
-                  "Écart",
-                  "Assign.",
-                  "Touch",
-                  "LB cassé",
-                  "Rend. moyen",
-                  "Verdict",
-                ]}
-                rows={(realPopCalibration.calibration.buckets ?? []).map((row) => (
-                  <tr key={`real-pop-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket ?? "—"}</td>
-                    <td className="px-3 py-2.5">{numberOrNull(row?.tradesResolved) ?? 0}</td>
-                    <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.avgPopAnnounced)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(row?.realWinRate)}</td>
-                    <td className="px-3 py-2.5">{formatPopRealDelta(row?.popRealDelta)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(row?.assignmentRate)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(row?.strikeTouchRate)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(row?.lowerBoundBreakRate)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(row?.avgYieldPct, 2)}</td>
-                    <td className={`px-3 py-2.5 text-[11px] ${getRealPopVerdictTone(row?.verdict)}`}>
-                      {row?.verdict ?? "—"}
-                      {row?.confidenceWarning ? (
-                        <span className="block text-[10px] text-slate-600">{row.confidenceWarning}</span>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              />
-
-              <DarkTable
-                title="POP × rendement — échantillon observé"
-                headers={[
-                  "Bucket POP",
-                  "Bucket rendement",
-                  "Trades",
-                  "Win réel",
-                  "Assign.",
-                  "Écart POP",
-                  "Verdict",
-                ]}
-                rows={(realPopCalibration.matrix ?? [])
-                  .filter((row) => (numberOrNull(row?.count) ?? 0) > 0)
-                  .map((row) => (
-                    <tr
-                      key={`real-pop-matrix-${String(row?.popBucket ?? "na")}-${String(row?.yieldBucket ?? "na")}`}
-                      className="hover:bg-slate-800/30 transition-colors"
-                    >
-                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.popBucket ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-slate-300">{row?.yieldBucket ?? "—"}</td>
-                      <td className="px-3 py-2.5">{numberOrNull(row?.count) ?? 0}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row?.winRate)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row?.assignmentRate)}</td>
-                      <td className="px-3 py-2.5">{formatPopRealDelta(row?.popRealDelta)}</td>
-                      <td className={`px-3 py-2.5 text-[11px] ${getRealPopVerdictTone(row?.verdict)}`}>
-                        {row?.verdict ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                empty="Aucune combinaison POP × rendement avec trades observés."
-              />
-
-              <p className="text-[10px] text-slate-600 leading-relaxed">
-                Lecture prudente : POP gelé au scan · échantillon historique · verdicts préliminaires possibles · aucune recommandation de trade.
-              </p>
-            </div>
-          )}
-        </CollapsibleSection>
-      )}
-
+          <DataAuditGroup
+            title="Audit / historique"
+            subtitle="Scans bruts, records journaliers, saisonnalité et métriques avancées."
+            defaultOpen={false}
+          >
       {/* ── SECTION — DERNIER SCAN LIVE OPTIONS IBKR ─────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
+      
         <CollapsibleSection
           title="Dernier scan live options IBKR"
           badge="Snapshots live"
           subtitle="Snapshots options capturés au moment du scan. Ces records peuvent être non résolus et ne sont pas encore utilisés dans les profils historiques."
-          defaultOpen
+          defaultOpen={false}
           summaryRight={
             latestOptionSnapshotsPayload
               ? `Scan ${latestOptionSnapshotsPayload.latestScanTimestamp ?? "—"} · ${latestOptionSnapshotsPayload.latestScanSnapshotCount ?? 0} snapshot(s)`
@@ -6427,1142 +6014,9 @@ export default function JournalPopPanel({ apiBase, active }) {
             </div>
           )}
         </CollapsibleSection>
-      )}
-
-      {/* ── SECTION — OBJECTIF 1 %+ WHEEL COMPLET ─────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <CollapsibleSection
-          title="Objectif 1 %+ — Wheel complet"
-          badge="Read-only"
-          subtitle="Repère les tickers où une prime CSP élevée reste défendable après assignation, recovery et CC."
-          defaultOpen
-          summaryRight={
-            onePercentProfilesPayload?.summary
-              ? `${onePercentProfilesPayload.summary.tickersAnalyzed ?? 0} ticker(s) · ${onePercentProfilesPayload.summary.profilesOnePercentDefendable ?? 0} défendable(s)`
-              : "Profils historiques"
-          }
-        >
-          {!onePercentProfilesPayload?.profiles ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Profils 1 %+ indisponibles pour l&apos;instant.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <ProKpi label="Tickers analysés" value={onePercentProfilesPayload.summary?.tickersAnalyzed ?? 0} large />
-                <ProKpi
-                  label="Profils mesurables"
-                  value={onePercentProfilesPayload.summary?.profilesMesurables ?? 0}
-                  tone="info"
-                />
-                <ProKpi
-                  label="1 % défendable"
-                  value={onePercentProfilesPayload.summary?.profilesOnePercentDefendable ?? 0}
-                  tone="good"
-                />
-                <ProKpi
-                  label="1 % stressé"
-                  value={onePercentProfilesPayload.summary?.profilesOnePercentStresse ?? 0}
-                  tone="warn"
-                />
-                <ProKpi
-                  label="Faux 1 %"
-                  value={onePercentProfilesPayload.summary?.profilesFauxOnePercent ?? 0}
-                  tone="risk"
-                />
-                <ProKpi
-                  label="Assignation exploitable"
-                  value={onePercentProfilesPayload.summary?.profilesAssignationExploitable ?? 0}
-                  tone="good"
-                />
-                <ProKpi
-                  label="CC insuffisants"
-                  value={onePercentProfilesPayload.summary?.profilesCcInsuffisants ?? 0}
-                  tone="warn"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={onePercentHideNonProven}
-                    onChange={(e) => setOnePercentHideNonProven(e.target.checked)}
-                    className="rounded border-slate-600"
-                  />
-                  Masquer non prouvés
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={onePercentMinYieldFilter}
-                    onChange={(e) => setOnePercentMinYieldFilter(e.target.checked)}
-                    className="rounded border-slate-600"
-                  />
-                  Rendement CSP &ge; 0,9 %
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={onePercentWheelFavorableOnly}
-                    onChange={(e) => setOnePercentWheelFavorableOnly(e.target.checked)}
-                    className="rounded border-slate-600"
-                  />
-                  Wheel favorable seulement
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={onePercentAssignExploitableOnly}
-                    onChange={(e) => setOnePercentAssignExploitableOnly(e.target.checked)}
-                    className="rounded border-slate-600"
-                  />
-                  Assignation exploitable seulement
-                </label>
-                <input
-                  type="search"
-                  value={onePercentTickerSearch}
-                  onChange={(e) => setOnePercentTickerSearch(e.target.value)}
-                  placeholder="Recherche ticker"
-                  className="ml-auto min-w-[140px] rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600"
-                />
-              </div>
-
-              {displayedOnePercentProfiles[0] ? (
-                <OptionQuoteDiagnosticPanel profile={displayedOnePercentProfiles[0]} />
-              ) : null}
-
-              <DarkTable
-                title={`Shortlist profils ticker (max 20 par défaut) — ${displayedOnePercentProfiles.length}/${filteredOnePercentProfiles.length}`}
-                headers={[
-                  "Ticker",
-                  "Mode",
-                  "n",
-                  "Options",
-                  "Rend. CSP moy.",
-                  "POP moy.",
-                  "Win CSP",
-                  "Assign.",
-                  "Assign. proche",
-                  "Assign. profonde",
-                  "Recovery",
-                  "CC vendus",
-                  "Rend. Wheel",
-                  "Verdict",
-                ]}
-                rows={displayedOnePercentProfiles.map((profile) => (
-                  <tr key={`one-pct-${profile.ticker}-${profile.mode}`} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2.5 font-semibold text-slate-200">{profile.ticker}</td>
-                    <td className="px-3 py-2.5 text-slate-400">{profile.mode}</td>
-                    <td className="px-3 py-2.5 tabular-nums">{profile?.csp?.recordsResolved ?? 0}</td>
-                    <td className="px-3 py-2.5">
-                      <OptionDataBadge
-                        label={profile?.optionDataBadge ?? "Snapshot absent"}
-                        title={`Source: ${profile?.optionDataSourceSummary ?? "—"} · Complétude: ${profile?.optionDataCompletenessPct ?? 0}%`}
-                      />
-                    </td>
-                    <td className="px-3 py-2.5 text-sky-400">{formatPercent(profile?.csp?.avgYieldPct, 2)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.avgPopAnnounced)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.realWinRate)}</td>
-                    <td className="px-3 py-2.5">{formatPercent(profile?.csp?.assignmentRate)}</td>
-                    <td className="px-3 py-2.5">
-                      {profile?.assignment?.procheRatePct != null
-                        ? `${profile.assignment.procheCount} (${formatPercent(profile.assignment.procheRatePct, 0)})`
-                        : profile?.assignment?.procheCount ?? "—"}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {profile?.assignment?.profondeRatePct != null
-                        ? `${profile.assignment.profondeCount} (${formatPercent(profile.assignment.profondeRatePct, 0)})`
-                        : profile?.assignment?.profondeCount ?? "—"}
-                    </td>
-                    <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.recoveryRatePct)}</td>
-                    <td className="px-3 py-2.5 tabular-nums">
-                      {profile?.wheel?.avgCcSold != null ? profile.wheel.avgCcSold.toFixed(1) : "—"}
-                    </td>
-                    <td className="px-3 py-2.5">{formatPercent(profile?.wheel?.avgWheelReturnPct, 2)}</td>
-                    <td className={`px-3 py-2.5 text-[11px] max-w-[220px] ${getOnePercentVerdictTone(profile?.primaryVerdict)}`}>
-                      {profile?.primaryVerdict ?? "—"}
-                      <span className="block text-[10px] text-slate-600">{profile?.sampleCredibility ?? ""}</span>
-                      {Array.isArray(profile?.verdictReasons) && profile.verdictReasons.length > 0 ? (
-                        <span className="mt-0.5 block text-[10px] leading-snug text-slate-500">
-                          {profile.verdictReasons.join(" · ")}
-                        </span>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-                empty="Aucun profil ne correspond aux filtres."
-              />
-
-              {filteredOnePercentProfiles.length > 20 && (
-                <button
-                  type="button"
-                  onClick={() => setOnePercentShowAll((value) => !value)}
-                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
-                >
-                  {onePercentShowAll
-                    ? "Réduire à 20 profils"
-                    : `Afficher plus (${filteredOnePercentProfiles.length - 20} de plus)`}
-                </button>
-              )}
-
-              <p className="text-[10px] text-slate-600 leading-relaxed">
-                Ce module ne recommande pas un trade. Il compare des profils historiques et doit être lu avec la taille de
-                l&apos;échantillon. P/L Wheel et rendement Wheel : cycles fermés seulement. POP annoncé gelé au scan.
-              </p>
-            </div>
-          )}
-        </CollapsibleSection>
-      )}
-
-      {/* ── SECTION — TOP 20 DYNAMIQUE EXPÉRIMENTAL ───────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <CollapsibleSection
-          title="Top 20 dynamique — expérimental"
-          badge="Laboratoire"
-          subtitle="Classement de laboratoire pour construire un univers CSP/CC concentré. Ne constitue pas une recommandation de trade."
-          defaultOpen
-          summaryRight={
-            dynamicTop20Payload?.summary
-              ? `${dynamicTop20Payload.summary.top20Count ?? 0} Top 20 · ${dynamicTop20Payload.summary.nearEntryCount ?? 0} proches`
-              : "Classement expérimental"
-          }
-        >
-          {!dynamicTop20Payload?.top20 ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Top 20 dynamique indisponible pour l&apos;instant.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <ProKpi label="Top 20 expérimental" value={dynamicTop20Payload.summary?.top20Count ?? 0} tone="good" />
-                <ProKpi label="Proches d'entrer" value={dynamicTop20Payload.summary?.nearEntryCount ?? 0} tone="info" />
-                <ProKpi label="À valider" value={dynamicTop20Payload.summary?.watchValidateCount ?? 0} tone="info" />
-                <ProKpi label="Stressés" value={dynamicTop20Payload.summary?.stressedCount ?? 0} tone="warn" />
-                <ProKpi
-                  label="À exclure malgré rendement"
-                  value={dynamicTop20Payload.summary?.excludedHighYieldCount ?? 0}
-                  tone="risk"
-                />
-                <ProKpi
-                  label="Échantillons insuffisants"
-                  value={dynamicTop20Payload.summary?.insufficientSampleCount ?? 0}
-                  tone="neutral"
-                />
-              </div>
-
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[11px] leading-relaxed text-amber-200/90">
-                Classement expérimental basé sur les profils Journal POP. IV, saisonnalité et contexte marché ne sont pas
-                encore intégrés au score.
-                <span className="mt-1 flex flex-wrap gap-2">
-                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
-                    IV non intégré
-                  </span>
-                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
-                    Saisonnalité non intégrée
-                  </span>
-                  <span className="rounded-md border border-slate-700/70 bg-slate-900/50 px-2 py-0.5 text-[10px] text-slate-400">
-                    Contexte marché non intégré
-                  </span>
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={dynamicTop20HideInsufficient}
-                    onChange={(e) => setDynamicTop20HideInsufficient(e.target.checked)}
-                    className="rounded border-slate-600"
-                  />
-                  Masquer échantillons insuffisants
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={dynamicTop20MinYield08}
-                    onChange={(e) => {
-                      setDynamicTop20MinYield08(e.target.checked);
-                      if (e.target.checked) setDynamicTop20MinYield09(false);
-                    }}
-                    className="rounded border-slate-600"
-                  />
-                  Rendement &ge; 0,8 %
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={dynamicTop20MinYield09}
-                    onChange={(e) => {
-                      setDynamicTop20MinYield09(e.target.checked);
-                      if (e.target.checked) setDynamicTop20MinYield08(false);
-                    }}
-                    className="rounded border-slate-600"
-                  />
-                  Rendement &ge; 0,9 %
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={dynamicTop20TopOnly}
-                    onChange={(e) => {
-                      setDynamicTop20TopOnly(e.target.checked);
-                      if (e.target.checked) setDynamicTop20NearOnly(false);
-                    }}
-                    className="rounded border-slate-600"
-                  />
-                  Afficher seulement Top 20
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={dynamicTop20NearOnly}
-                    onChange={(e) => {
-                      setDynamicTop20NearOnly(e.target.checked);
-                      if (e.target.checked) setDynamicTop20TopOnly(false);
-                    }}
-                    className="rounded border-slate-600"
-                  />
-                  Afficher proches d&apos;entrer
-                </label>
-                <input
-                  type="search"
-                  value={dynamicTop20TickerSearch}
-                  onChange={(e) => setDynamicTop20TickerSearch(e.target.value)}
-                  placeholder="Recherche ticker"
-                  className="ml-auto min-w-[140px] rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600"
-                />
-              </div>
-
-              {!dynamicTop20NearOnly && (
-                <DarkTable
-                  title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
-                  headers={[
-                    "Rang",
-                    "Ticker",
-                    "Options",
-                    "Statut",
-                    "Score exp.",
-                    "n",
-                    "Rend. CSP",
-                    "Win",
-                    "Assign.",
-                    "Assign. proche",
-                    "Assign. profonde",
-                    "Rend. Wheel",
-                    "LB",
-                    "Raison",
-                  ]}
-                  rows={filteredDynamicTop20Main.map((row) => (
-                    <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
-                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
-                      <td className="px-3 py-2.5">
-                        <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
-                      </td>
-                      <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
-                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
-                        {row.sampleDisplayLabel ? (
-                          <span className="block text-[10px] text-slate-500">{row.sampleDisplayLabel}</span>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
-                      <td className="px-3 py-2.5 tabular-nums">{row.n ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.nearAssignmentRate, 0)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.deepAssignmentRate, 0)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.avgWheelReturnPct, 2)}</td>
-                      <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
-                      <td
-                        className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
-                        title={formatDynamicTop20Reason(row)}
-                      >
-                        {formatDynamicTop20Reason(row)}
-                      </td>
-                    </tr>
-                  ))}
-                  empty="Aucun profil ne correspond aux filtres Top 20."
-                />
-              )}
-
-              {!dynamicTop20TopOnly && filteredDynamicTop20Near.length > 0 && (
-                <DarkTable
-                  title={`Proches d'entrer (rangs 21–30) — ${filteredDynamicTop20Near.length} profil(s)`}
-                  headers={["Rang", "Ticker", "Score exp.", "Rend. CSP", "Win", "Assign.", "Statut", "Raison"]}
-                  rows={filteredDynamicTop20Near.map((row) => (
-                    <tr key={`dyn-near-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
-                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
-                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
-                      <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
-                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
-                      </td>
-                      <td
-                        className="px-3 py-2.5 text-[10px] max-w-[200px] text-slate-500"
-                        title={formatDynamicTop20Reason(row)}
-                      >
-                        {formatDynamicTop20Reason(row)}
-                      </td>
-                    </tr>
-                  ))}
-                  empty="Aucun profil proche d'entrer."
-                />
-              )}
-
-              {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 0 && (
-                <>
-                  <DarkTable
-                    title={`À exclure malgré rendement — ${filteredDynamicTop20Excluded.length}/${dynamicTop20Payload.excludedHighYield?.length ?? 0}`}
-                    headers={["Ticker", "Rend. CSP", "Win", "Assign.", "LB", "Verdict", "Raison"]}
-                    rows={filteredDynamicTop20Excluded.map((row) => (
-                      <tr key={`dyn-excl-${row.ticker}`} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
-                        <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
-                        <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
-                        <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
-                        <td className={`px-3 py-2.5 text-[11px] ${getOnePercentVerdictTone(row.currentVerdict)}`}>
-                          {row.currentVerdict ?? "—"}
-                        </td>
-                        <td
-                          className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
-                          title={formatDynamicTop20Reason(row)}
-                        >
-                          {formatDynamicTop20Reason(row)}
-                        </td>
-                      </tr>
-                    ))}
-                    empty="Aucun profil à exclure."
-                  />
-                  {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 10 && (
-                    <button
-                      type="button"
-                      onClick={() => setDynamicTop20ShowAllExcluded((value) => !value)}
-                      className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
-                    >
-                      {dynamicTop20ShowAllExcluded
-                        ? "Réduire à 10 profils"
-                        : `Afficher plus (${(dynamicTop20Payload.excludedHighYield?.length ?? 0) - 10} de plus)`}
-                    </button>
-                  )}
-                </>
-              )}
-
-              <p className="text-[10px] text-slate-600 leading-relaxed">
-                Score expérimental de laboratoire — ne constitue pas un score final. Les profils n &lt; 30 restent
-                préliminaires. {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
-              </p>
-            </div>
-          )}
-        </CollapsibleSection>
-      )}
-
-      {/* ── SECTION E — DATA CONFIDENCE ─────────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <CollapsibleSection
-          title="Confiance statistique — État de la calibration"
-          badge="Read-only"
-          subtitle="Évaluation de la fiabilité des résultats actuels."
-          defaultOpen={false}
-          summaryRight={`Sample résolu n=${stats.resolvedCount} · ${confidenceLevel(stats.resolvedCount).label} · Non résolu n=${stats.unresolvedCount}`}
-        >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sample total</p>
-              <p className="mt-2 text-xl font-bold text-slate-100">{stats.totalRecords}</p>
-              <p className="mt-1 text-[11px] text-slate-600">Tous records (safe + aggressive)</p>
-            </div>
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Sample résolu</p>
-              <p className="mt-2 text-xl font-bold text-slate-100">{stats.resolvedCount}</p>
-              <div className="mt-1.5"><ConfidenceBadge sample={stats.resolvedCount} /></div>
-            </div>
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Non résolu</p>
-              <p className="mt-2 text-xl font-bold text-amber-400">{stats.unresolvedCount}</p>
-              <p className="mt-1 text-[11px] text-slate-600">En cours d'accumulation</p>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-2">
-            {[
-              stats.resolvedCount < 30 && "Échantillon résolu encore limité pour valider 1 % systématique.",
-              stats.winRate != null && stats.winRate >= 95 && "Le win rate élevé doit être interprété avec stress metrics et régimes de marché.",
-              "Les résultats doivent être segmentés par régime de marché (bull/bear/sideways) pour une validation complète.",
-              "V2C + V2D-B actifs : stress metrics intégrées dans les buckets de rendement, les modes Safe/Aggressive et le Ticker Leaderboard · split Safe/Aggressive par ticker · verdicts prudents, aucun faux chiffre, read-only.",
-            ].filter(Boolean).map((msg, i) => (
-              <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-700/40 bg-slate-800/30 px-4 py-2.5">
-                <span className="text-slate-600 text-sm mt-0.5">›</span>
-                <p className="text-[11px] text-slate-500 leading-relaxed">{msg}</p>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* ── SECTION F — MÉTRIQUES V2 PRÉPARÉES ─────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <CollapsibleSection
-          title="Métriques avancées — Préparées pour V2"
-          badge="Prochaine phase"
-          subtitle="Placeholders visuels. Aucune donnée inventée — tracking requis pour activation."
-          defaultOpen={false}
-          summaryRight="6 métriques préparées · tracking requis · N/D"
-        >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[
-              { label: "Days to First Touch", note: "Tracking requis" },
-              { label: "Premium Efficiency", note: "Prime / Strike %" },
-              { label: "Market Regime", note: "Bull / Bear / Sideways" },
-              { label: "VIX Bucket", note: "Volatilité marché" },
-              { label: "Cluster Risk", note: "Secteur / corrélation" },
-              { label: "IV Rank at Scan", note: "IVR au moment scan" },
-            ].map(({ label, note }) => (
-              <div key={label} className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                <p className="mt-2 text-lg font-bold text-slate-700">N/D</p>
-                <p className="mt-1 text-[10px] text-slate-700">{note}</p>
-                <div className="mt-2">
-                  <PlaceholderBadge label="À venir V2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* ── SECTION G — DÉTAILS AVANCÉS (preserved, togglable) ─────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
-          <button
-            type="button"
-            onClick={() => setShowRawSections((s) => !s)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                Détails historiques — Calibration complète
-              </h3>
-              <p className="mt-0.5 text-[11px] text-slate-600">
-                Cohorts d'expiration · POP buckets · DTE stress · FTQS · Tickers calibrés · Secteurs · Tables raw
-              </p>
-            </div>
-            <span className="ml-4 text-[10px] text-slate-500">{showRawSections ? "Masquer ▼" : "Afficher ▶"}</span>
-          </button>
-
-          {showRawSections && (
-            <div className="mt-5 space-y-4">
-
-              {/* Cohort summary */}
-              <DarkTable
-                title="Vue cohorte d'expiration"
-                headers={["Expiration", "Scans", "Candidats", "Symboles uniq.", "DTE min/max", "POP moy.", "EliteScore moy.", "Résolus / Non résolus"]}
-                rows={cohortSummary.map((row) => (
-                  <tr key={`cohort-${String(row?.expirationCohort ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2.5 font-semibold text-slate-200">{formatCompactExpiration(row?.expirationCohort)}</td>
-                    <td className="px-3 py-2.5">{numberOrNull(row?.scanCount) ?? 0}</td>
-                    <td className="px-3 py-2.5">{numberOrNull(row?.candidateCount) ?? 0}</td>
-                    <td className="px-3 py-2.5">{numberOrNull(row?.uniqueSymbols) ?? 0}</td>
-                    <td className="px-3 py-2.5">{formatDteRange(row?.minDte, row?.maxDte)}</td>
-                    <td className="px-3 py-2.5 text-sky-400">{formatPop(row?.avgPopEstimate)}</td>
-                    <td className="px-3 py-2.5">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "—"}</td>
-                    <td className="px-3 py-2.5">
-                      <span className="text-emerald-400">{numberOrNull(row?.resolvedCount) ?? 0}</span>
-                      <span className="text-slate-600"> / </span>
-                      <span className="text-amber-400">{numberOrNull(row?.unresolvedCount) ?? 0}</span>
-                    </td>
-                  </tr>
-                ))}
-              />
-
-              {/* Calibration probabilistique */}
-              {!hasProbabilisticCalibrationData ? (
-                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-                  Aucun record résolu pour l'instant. La calibration commencera après expiration.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* V1 buckets */}
-                  {[
-                    { title: "POP buckets — Calibration V1", data: calibrationSummary?.popBuckets ?? [] },
-                    { title: "DTE buckets — Calibration V1", data: calibrationSummary?.dteBuckets ?? [] },
-                    { title: "Strike mode — Calibration V1", data: calibrationSummary?.strikeModeBuckets ?? [] },
-                  ].map(({ title, data }) => (
-                    <DarkTable
-                      key={title}
-                      title={title}
-                      headers={["Bucket", "Sample", "POP préd. moy.", "Win rate réel", "Correct", "Incorrect", "Brier", "Warning"]}
-                      rows={data.map((row) => (
-                        <tr key={`${title}-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket || "—"}</td>
-                          <td className="px-3 py-2.5">{numberOrNull(row?.sampleSize) ?? 0}</td>
-                          <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.predictedAvgPop)}</td>
-                          <td className="px-3 py-2.5">
-                            {row?.actualWinRate != null ? (
-                              <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>
-                                {formatPercent(row.actualWinRate)}
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td className="px-3 py-2.5 text-emerald-500">{numberOrNull(row?.correctCount) ?? 0}</td>
-                          <td className="px-3 py-2.5 text-rose-400">{numberOrNull(row?.incorrectCount) ?? 0}</td>
-                          <td className="px-3 py-2.5 text-slate-400">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "—"}</td>
-                          <td className="px-3 py-2.5">
-                            {row?.confidenceWarning ? (
-                              <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span>
-                            ) : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    />
-                  ))}
-
-                  {/* FTQS V1 */}
-                  {(calibrationSummary?.hasFtqsData ?? false) && (
-                    <DarkTable
-                      title="FTQS buckets — Calibration V1"
-                      headers={["Bucket", "Sample", "POP préd. moy.", "Win rate réel", "Correct", "Incorrect", "Brier", "Warning"]}
-                      rows={(calibrationSummary?.ftqsBuckets ?? []).map((row) => (
-                        <tr key={`ftqs-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket || "—"}</td>
-                          <td className="px-3 py-2.5">{numberOrNull(row?.sampleSize) ?? 0}</td>
-                          <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.predictedAvgPop)}</td>
-                          <td className="px-3 py-2.5">{row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—"}</td>
-                          <td className="px-3 py-2.5 text-emerald-500">{numberOrNull(row?.correctCount) ?? 0}</td>
-                          <td className="px-3 py-2.5 text-rose-400">{numberOrNull(row?.incorrectCount) ?? 0}</td>
-                          <td className="px-3 py-2.5 text-slate-400">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "—"}</td>
-                          <td className="px-3 py-2.5">{row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—"}</td>
-                        </tr>
-                      ))}
-                    />
-                  )}
-
-                  {/* V2 Advanced sections */}
-                  <DarkTable
-                    title="POP Calibration avancée — V2"
-                    headers={["Bucket", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "LowerBound cassé %", "Support cassé %", "Assignment %", "Warning"]}
-                    rows={(calibrationSummary?.v2?.popBucketsV2 ?? []).map((row) => (
-                      <DarkCalibV2Row
-                        key={`v2-pop-${String(row?.bucket ?? "na")}`}
-                        cells={[
-                          <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
-                          numberOrNull(row?.resolvedCount) ?? 0,
-                          <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
-                          row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
-                          formatPercent(row?.strikeTouchRate),
-                          formatPercent(row?.avgDrawdownPct),
-                          formatPercent(row?.lowerBoundBreakRate),
-                          formatPercent(row?.supportBreakRate),
-                          formatPercent(row?.assignmentRate),
-                          row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
-                        ]}
-                      />
-                    ))}
-                  />
-
-                  <DarkTable
-                    title="DTE Stress Analysis — V2"
-                    headers={["Bucket DTE", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "LowerBound cassé %", "Warning"]}
-                    rows={(calibrationSummary?.v2?.dteBucketsV2 ?? []).map((row) => (
-                      <DarkCalibV2Row
-                        key={`v2-dte-${String(row?.bucket ?? "na")}`}
-                        cells={[
-                          <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
-                          numberOrNull(row?.resolvedCount) ?? 0,
-                          row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
-                          formatPercent(row?.strikeTouchRate),
-                          formatPercent(row?.avgDrawdownPct),
-                          formatPercent(row?.assignmentRate),
-                          formatPercent(row?.lowerBoundBreakRate),
-                          row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
-                        ]}
-                      />
-                    ))}
-                  />
-
-                  <DarkTable
-                    title="SAFE vs AGGRESSIVE — V2 avancé"
-                    headers={["Mode", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Prime moy.", "Prime eff %", "LowerBound %", "Support %", "Warning"]}
-                    rows={(calibrationSummary?.v2?.strikeModeV2 ?? [])
-                      .filter((row) => row?.bucket !== "unknown" || (row?.resolvedCount ?? 0) > 0)
-                      .map((row) => (
-                        <DarkCalibV2Row
-                          key={`v2-mode-${String(row?.bucket ?? "na")}`}
-                          cells={[
-                            <span className={row?.bucket === "safe" ? "font-bold text-emerald-400" : row?.bucket === "aggressive" ? "font-bold text-rose-400" : "text-slate-500"}>
-                              {row?.bucket || "—"}
-                            </span>,
-                            numberOrNull(row?.resolvedCount) ?? 0,
-                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
-                            formatPercent(row?.strikeTouchRate),
-                            formatPercent(row?.avgDrawdownPct),
-                            formatPercent(row?.assignmentRate),
-                            <span className="text-sky-400">{formatMoney(row?.avgPremium)}</span>,
-                            formatPercent(row?.premiumEfficiency),
-                            formatPercent(row?.lowerBoundBreakRate),
-                            formatPercent(row?.supportBreakRate),
-                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
-                          ]}
-                        />
-                      ))}
-                  />
-
-                  {(calibrationSummary?.v2?.hasFtqsV2Data ?? false) && (
-                    <DarkTable
-                      title="FTQS réel — V2"
-                      headers={["Bucket FTQS", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Support cassé %", "LowerBound cassé %", "Warning"]}
-                      rows={(calibrationSummary?.v2?.ftqsBucketsV2 ?? []).map((row) => (
-                        <DarkCalibV2Row
-                          key={`v2-ftqs-${String(row?.bucket ?? "na")}`}
-                          cells={[
-                            <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
-                            numberOrNull(row?.resolvedCount) ?? 0,
-                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
-                            formatPercent(row?.strikeTouchRate),
-                            formatPercent(row?.avgDrawdownPct),
-                            formatPercent(row?.supportBreakRate),
-                            formatPercent(row?.lowerBoundBreakRate),
-                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
-                          ]}
-                        />
-                      ))}
-                    />
-                  )}
-
-                  {(calibrationSummary?.v2?.tickerCohorts ?? []).length > 0 && (
-                    <DarkTable
-                      title="Top tickers calibrés — V2"
-                      headers={["Ticker", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Support %", "LowerBound %", "Warning"]}
-                      rows={(calibrationSummary?.v2?.tickerCohorts ?? []).map((row) => (
-                        <DarkCalibV2Row
-                          key={`v2-ticker-${String(row?.ticker ?? "na")}`}
-                          cells={[
-                            <span className="font-bold text-slate-100">{row?.ticker || "—"}</span>,
-                            numberOrNull(row?.resolvedCount) ?? 0,
-                            <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
-                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
-                            formatPercent(row?.strikeTouchRate),
-                            formatPercent(row?.avgDrawdownPct),
-                            formatPercent(row?.assignmentRate),
-                            formatPercent(row?.supportBreakRate),
-                            formatPercent(row?.lowerBoundBreakRate),
-                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
-                          ]}
-                        />
-                      ))}
-                    />
-                  )}
-
-                  {(calibrationSummary?.v2?.hasSectorData ?? false) && (
-                    <DarkTable
-                      title="Top secteurs calibrés — V2"
-                      headers={["Secteur", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Warning"]}
-                      rows={(calibrationSummary?.v2?.sectorCohorts ?? []).map((row) => (
-                        <DarkCalibV2Row
-                          key={`v2-sector-${String(row?.sector ?? "na")}`}
-                          cells={[
-                            row?.sector || "—",
-                            numberOrNull(row?.resolvedCount) ?? 0,
-                            <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
-                            formatPercent(row?.actualWinRate),
-                            formatPercent(row?.strikeTouchRate),
-                            formatPercent(row?.avgDrawdownPct),
-                            formatPercent(row?.assignmentRate),
-                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
-                          ]}
-                        />
-                      ))}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── Seasonality V1 — read-only ──────────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
-        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-            <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Saisonnalité V1 — Lecture seule</h3>
-              <p className="mt-1 text-[11px] text-slate-600">
-                Fenêtres saisonnières historiques (Yahoo, cache 6h). Aucun impact scanner, EliteScore, ranking.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={fetchJournalSeasonality}
-              disabled={seasonalityLoading || !hasLoaded || !uniqueJournalSymbols.length}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Charger saisonnalité
-              <RefreshCw className={`ml-2 h-4 w-4 ${seasonalityLoading ? "animate-spin" : ""}`} />
-            </button>
-          </div>
-
-          {!hasLoaded && (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Chargez d&apos;abord le journal.
-            </div>
-          )}
-          {hasLoaded && !journalSeasonality && !seasonalityLoading && (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              {uniqueJournalSymbols.length > 0
-                ? `${uniqueJournalSymbols.length} tickers détectés — cliquez sur "Charger saisonnalité".`
-                : "Aucun ticker dans le journal."}
-            </div>
-          )}
-          {seasonalityLoading && (
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-              Calcul en cours — Yahoo Finance historique, résultat mis en cache 6h…
-            </div>
-          )}
-          {journalSeasonality && !seasonalityLoading && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-xs text-slate-300">
-                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                  <tr>
-                    <th className="px-3 py-3 font-semibold">Ticker</th>
-                    <th className="px-3 py-3 font-semibold">Biais actuel</th>
-                    <th className="px-3 py-3 font-semibold">Score</th>
-                    <th className="px-3 py-3 font-semibold">Risque strike</th>
-                    <th className="px-3 py-3 font-semibold">Fenêtre active</th>
-                    <th className="px-3 py-3 font-semibold">Win rate</th>
-                    <th className="px-3 py-3 font-semibold">Données</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/70">
-                  {(journalSeasonality.symbols ?? []).map((sym) => {
-                    const d = journalSeasonality.results?.[sym];
-                    return (
-                      <tr key={`seas-${sym}`} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-3 py-2.5 font-bold text-slate-100">{sym}</td>
-                        <td className="px-3 py-2.5">
-                          {d?.seasonalBias ? (
-                            <span className={d.seasonalBias === "favorable" ? "font-medium text-emerald-400" : d.seasonalBias === "unfavorable" ? "font-medium text-rose-400" : "text-slate-500"}>
-                              {d.seasonalBias === "favorable" ? "↑ Favorable" : d.seasonalBias === "unfavorable" ? "↓ Défavorable" : "→ Neutre"}
-                            </span>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {d?.seasonalityScore != null ? (
-                            <span className={d.seasonalityScore >= 0.25 ? "text-emerald-400" : d.seasonalityScore <= -0.25 ? "text-rose-400" : "text-slate-500"}>
-                              {d.seasonalityScore >= 0 ? "+" : ""}{Math.round(d.seasonalityScore * 100)}
-                            </span>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {d?.seasonalStrikeRisk ? (
-                            <span className={d.seasonalStrikeRisk === "high" ? "font-medium text-rose-400" : d.seasonalStrikeRisk === "low" ? "font-medium text-emerald-400" : "text-amber-400"}>
-                              {d.seasonalStrikeRisk === "high" ? "Élevé" : d.seasonalStrikeRisk === "low" ? "Faible" : "Moyen"}
-                            </span>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 text-slate-500">
-                          {d?.activeWindowNow
-                            ? `S${d.activeWindowNow.windowStart}–S${d.activeWindowNow.windowEnd} · ${d.activeWindowNow.windowSizeWeeks}sem · ${d.activeWindowNow.bias}`
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {d?.activeWindowNow?.winRate != null ? `${Math.round(d.activeWindowNow.winRate * 100)}%` : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 text-slate-600">
-                          {d?.dataPointCount != null ? `${d.dataPointCount} j` : "n/a"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <p className="mt-3 text-[10px] text-slate-600">
-                V1 — lecture seule · aucun impact scanner · calibration saisonnière automatique prévue V2 ·
-                généré {journalSeasonality.generatedAt ? new Date(journalSeasonality.generatedAt).toLocaleTimeString() : "—"}
-              </p>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── V3 Candidate Profiles V3B ─────────────────────────────────────── */}
-      {hasLoaded && activePopTab === "decision" && (
-        <V3CandidateProfilesPanel apiBase={apiBase} />
-      )}
-
-      {/* ── Ticker Ranking V2-L ─────────────────────────────────────────────── */}
-      {hasLoaded && activePopTab === "decision" && tickerRanking && (() => {
-        const rankings = Array.isArray(tickerRanking.rankings) ? tickerRanking.rankings : [];
-        const summary = tickerRanking.summary ?? {};
-        const saSummary = safeAggComparison?.summary ?? {};
-        const saConfirmed = getSafeAggConfirmedCounts(saSummary);
-
-        const search = rankingTickerSearch.trim().toUpperCase();
-        let filtered = rankings;
-        if (search) filtered = filtered.filter((r) => r.ticker.includes(search));
-        if (rankingScoreFilter !== "tous") {
-          const scoreMap = { excellent: [85, 100], bon: [70, 84], moyen: [55, 69], faible: [1, 54] };
-          const [lo, hi] = scoreMap[rankingScoreFilter] ?? [1, 100];
-          filtered = filtered.filter((r) => r.score >= lo && r.score <= hi);
-        }
-        if (rankingModeFilter !== "tous") {
-          const normalizedFilterMode = normalizeDecisionMode(rankingModeFilter);
-          if (normalizedFilterMode !== "all") {
-            filtered = filtered.filter((r) => {
-              const decisionInsight = getDecisionInsightForRanking(r, safeAggComparison);
-              const displayMode = getDisplayModeForDecision(r, decisionInsight);
-              return normalizeDecisionMode(displayMode) === normalizedFilterMode;
-            });
-          }
-        }
-        if (rankingConfidenceFilter !== "tous") {
-          filtered = filtered.filter((r) => r.confidence === rankingConfidenceFilter);
-        }
-
-        const executableInPool = filtered.filter((ranking) => {
-          const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
-          return isExecutableRanking(ranking, insight);
-        }).length;
-
-        if (rankingExecutableOnly) {
-          filtered = filtered.filter((ranking) => {
-            const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
-            return isExecutableRanking(ranking, insight);
-          });
-        }
-
-        const scoreLabelColor = (label) => {
-          if (label === "Excellent") return "text-emerald-400";
-          if (label === "Bon") return "text-sky-400";
-          if (label === "Moyen") return "text-amber-400";
-          if (label === "Faible") return "text-rose-400";
-          return "text-slate-500";
-        };
-        const modeColor = (mode) => {
-          if (mode === "AGRESSIF") return "text-rose-400";
-          if (mode === "SAFE") return "text-emerald-400";
-          return "text-slate-500";
-        };
-
-        return (
-          <CollapsibleSection
-            title="Top CSP selon Journal — candidats à valider Wheel/CC"
-            badge={`${summary.tickers_ranked ?? 0} tickers`}
-            subtitle="Score CSP 1-100 · mode SAFE/AGR · indicateurs Wheel/CC résumés si cycles disponibles · pas une recommandation Wheel finale."
-            defaultOpen={false}
-            summaryRight={
-              summary.top_score != null
-                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR confirmés · ${saConfirmed.safe} SAFE confirmés`
-                : undefined
-            }
-          >
-            {/* Filters */}
-            <div className="mb-4 flex flex-wrap gap-3">
-              <input
-                type="text"
-                placeholder="Recherche ticker…"
-                value={rankingTickerSearch}
-                onChange={(e) => setRankingTickerSearch(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-36"
-              />
-              <select
-                value={rankingScoreFilter}
-                onChange={(e) => setRankingScoreFilter(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
-              >
-                <option value="tous">Score : tous</option>
-                <option value="excellent">Excellent (85+)</option>
-                <option value="bon">Bon (70-84)</option>
-                <option value="moyen">Moyen (55-69)</option>
-                <option value="faible">Faible (&lt;55)</option>
-              </select>
-              <select
-                value={rankingModeFilter}
-                onChange={(e) => setRankingModeFilter(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
-              >
-                <option value="tous">Mode : tous</option>
-                <option value="SAFE">SAFE</option>
-                <option value="AGRESSIF">AGRESSIF</option>
-                <option value="confirmer">À confirmer</option>
-              </select>
-              <select
-                value={rankingConfidenceFilter}
-                onChange={(e) => setRankingConfidenceFilter(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
-              >
-                <option value="tous">Confiance : tous</option>
-                <option value="élevée">Élevée</option>
-                <option value="moyenne">Moyenne</option>
-                <option value="faible">Faible</option>
-              </select>
-              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rankingExecutableOnly}
-                  onChange={(e) => setRankingExecutableOnly(e.target.checked)}
-                  className="accent-emerald-500"
-                />
-                Exécutables seulement
-              </label>
-              <span className="self-center text-[11px] text-slate-600">
-                {rankingExecutableOnly
-                  ? `${filtered.length} affiché${filtered.length !== 1 ? "s" : ""}`
-                  : `${executableInPool} exécutable${executableInPool !== 1 ? "s" : ""} / ${filtered.length}`}
-              </span>
-              {(search || rankingScoreFilter !== "tous" || rankingModeFilter !== "tous" || rankingConfidenceFilter !== "tous" || rankingExecutableOnly) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRankingTickerSearch("");
-                    setRankingScoreFilter("tous");
-                    setRankingModeFilter("tous");
-                    setRankingConfidenceFilter("tous");
-                    setRankingExecutableOnly(false);
-                  }}
-                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
-                >
-                  Réinitialiser
-                </button>
-              )}
-            </div>
-
-            {/* Ranking table */}
-            {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
-                Aucun ticker ne correspond aux filtres.
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
-                <table className="min-w-full text-left text-xs text-slate-300">
-                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">Rang CSP</th>
-                      <th className="px-3 py-2 font-semibold">Ticker</th>
-                      <th className="px-3 py-2 font-semibold">Score CSP</th>
-                      <th className="px-3 py-2 font-semibold">Statut Wheel</th>
-                      <th className="px-3 py-2 font-semibold">Called away</th>
-                      <th className="px-3 py-2 font-semibold">CC</th>
-                      <th className="px-3 py-2 font-semibold">Rend. Wheel</th>
-                      <th className="px-3 py-2 font-semibold">P/L Wheel</th>
-                      <th className="px-3 py-2 font-semibold">Note Wheel</th>
-                      <th className="px-3 py-2 font-semibold">Mode</th>
-                      <th className="px-3 py-2 font-semibold">DTE</th>
-                      <th className="px-3 py-2 font-semibold">Assign.</th>
-                      <th className="px-3 py-2 font-semibold">Exécution</th>
-                      <th className="px-3 py-2 font-semibold">Lecture CSP</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/70">
-                    {filtered.map((row) => {
-                      const decisionInsight = getDecisionInsightForRanking(row, safeAggComparison);
-                      const displayMode = getDisplayModeForDecision(row, decisionInsight);
-                      const decisionLine = formatSafeAggressiveDecisionLine(decisionInsight);
-                      const decisionBadge = getExecutionDecisionBadge(row, decisionInsight);
-                      const executionDisplay = getExecutionColumnDisplay(row);
-                      const wheelSummary = getWheelCcSummaryForTicker(wheelCcTickerSummaryMap, row.ticker);
-                      const modeTooltipParts = [
-                        decisionInsight?.modeDecision ?? decisionLine,
-                        row.preferredMode && row.preferredMode !== displayMode
-                          ? `mode ranking : ${row.preferredMode}`
-                          : null,
-                      ].filter(Boolean);
-
-                      return (
-                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors align-top">
-                        <td className="px-3 py-2 text-slate-500 tabular-nums">#{row.rank}</td>
-                        <td className="px-3 py-2 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
-                        <td className="px-3 py-2 whitespace-nowrap" title={formatScoreComponentsTooltip(row)}>
-                          <div className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</div>
-                          <div className={`mt-0.5 text-[10px] leading-tight ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap" title={wheelSummary.wheelStatusReason}>
-                          <span className={`inline-block rounded border px-1.5 py-0.5 text-[9px] font-semibold leading-tight ${getWheelStatusBadgeClass(wheelSummary.wheelStatusLabel)}`}>
-                            {wheelSummary.wheelStatusLabel}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
-                          {wheelSummary.calledAwayCount > 0 ? wheelSummary.calledAwayCount : "—"}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-[10px] text-slate-400" title={`${wheelSummary.ccSoldCount} vendu(s) · ${wheelSummary.ccWaitCount} attente(s)`}>
-                          {wheelSummary.cyclesCount > 0
-                            ? `${wheelSummary.ccSoldCount} / ${wheelSummary.ccWaitCount}`
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
-                          {wheelSummary.bestReturnOnAssignmentPct != null
-                            ? `${wheelSummary.bestReturnOnAssignmentPct.toFixed(1)} %`
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
-                          {wheelSummary.bestTotalPnlContract != null
-                            ? formatMoney(wheelSummary.bestTotalPnlContract)
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-[10px] text-slate-500 max-w-[140px] leading-tight" title={wheelSummary.attentionReasons.join(" · ") || wheelSummary.wheelStatusReason}>
-                          {wheelSummary.wheelStatusReason}
-                        </td>
-                        <td className="px-3 py-2 max-w-[190px]" title={modeTooltipParts.join("\n")}>
-                          <div className={`font-semibold whitespace-nowrap ${modeColor(displayMode)}`}>{displayMode}</div>
-                          {decisionBadge && (
-                            <span className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[9px] leading-tight ${decisionBadge.className}`}>
-                              {decisionBadge.label}
-                            </span>
-                          )}
-                          <div className="mt-0.5 text-[10px] leading-tight text-slate-500">
-                            {decisionLine}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-slate-300" title={getRankingDecisionDteTooltip(row, decisionInsight)}>
-                          {getRankingDecisionDteDisplay(row, decisionInsight)}
-                        </td>
-                        <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                          {row.assignmentRatePct != null ? (
-                            <span className={row.assignmentRatePct > 20 ? "text-rose-400" : row.assignmentRatePct > 10 ? "text-amber-400" : "text-emerald-400"}>
-                              {row.assignmentRatePct.toFixed(1)}%
-                            </span>
-                          ) : "—"}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap" title={getExecutionColumnTooltip(row)}>
-                          <div className={`text-[11px] leading-tight ${
-                            executionDisplay.label === "Spread très large" ? "text-rose-400" :
-                            executionDisplay.label === "Spread large" ? "text-amber-400" :
-                            executionDisplay.label === "Exécution bonne" ? "text-emerald-400" :
-                            executionDisplay.label === "Exécution correcte" ? "text-sky-400" :
-                            "text-slate-400"
-                          }`}>
-                            {executionDisplay.label}
-                          </div>
-                          <div className="text-[10px] text-slate-600">
-                            Spread: {executionDisplay.spread != null ? `${executionDisplay.spread.toFixed(1)}%` : "n/d"}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-[11px] text-slate-300 max-w-[180px] leading-tight" title={getReadingTooltip(row)}>
-                          {row.reading ?? "—"}
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {summary.generatedAt && (
-              <p className="mt-3 text-[10px] text-slate-600">
-                V2-L-D · lecture seule · généré {new Date(summary.generatedAt).toLocaleTimeString()}
-              </p>
-            )}
-          </CollapsibleSection>
-        );
-      })()}
 
       {/* ── Raw journal tables ──────────────────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && (
+      
         <>
           <CollapsibleSection
             title="À résoudre"
@@ -7852,9 +6306,1211 @@ export default function JournalPopPanel({ apiBase, active }) {
             )}
           </CollapsibleSection>
         </>
+
+      {/* ── Observations normalisées V2-M ─────────────────────────────────── */}
+      {normalizedObs && (() => {
+        const summary = normalizedObs.summary ?? {};
+        const diagnostics = normalizedObs.diagnostics ?? {};
+        const allObs = Array.isArray(normalizedObs.observations) ? normalizedObs.observations : [];
+
+        const tickerSearch = normTickerFilter.trim().toUpperCase();
+        let filtered = allObs;
+        if (tickerSearch) filtered = filtered.filter((o) => o.ticker.includes(tickerSearch));
+        if (normModeFilter !== "all") filtered = filtered.filter((o) => o.mode === normModeFilter);
+        if (normMultiScanOnly) filtered = filtered.filter((o) => o.rawScanCount > 1);
+
+        const compressionPct = summary.compression_ratio != null
+          ? `${summary.compression_ratio.toFixed(2)}x`
+          : "—";
+
+        return (
+          <CollapsibleSection
+            title="Observations normalisées"
+            badge={`${summary.normalized_observations ?? 0} observations`}
+            subtitle="Regroupe les scans similaires d'une même journée pour éviter de surpondérer un ticker scanné plusieurs fois."
+            defaultOpen={false}
+            summaryRight={summary.compression_ratio != null ? `Compression : ${compressionPct}` : undefined}
+          >
+            {/* Summary cards */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+              <ProKpi label="Records bruts" value={summary.raw_records_used ?? "—"} tone="default" />
+              <ProKpi label="Observations normalisées" value={summary.normalized_observations ?? "—"} tone="info" />
+              <ProKpi label="Compression" value={compressionPct} tone={summary.compression_ratio > 1 ? "warn" : "good"} />
+              <ProKpi label="Groupes multi-scan" value={summary.multi_scan_groups ?? "—"} tone={summary.multi_scan_groups > 0 ? "warn" : "default"} />
+            </div>
+
+            {/* Diagnostics row */}
+            <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-[11px] text-slate-500">
+              <div>Tickers : <span className="text-slate-300">{summary.tickers_count ?? "—"}</span></div>
+              <div>Moy. scans/obs : <span className="text-slate-300">{summary.avg_scans_per_observation ?? "—"}</span></div>
+              <div>Max scans/groupe : <span className="text-slate-300">{summary.max_scans_in_one_group ?? "—"}</span></div>
+              <div>Outcomes mixtes : <span className={diagnostics.groups_with_mixed_outcomes > 0 ? "text-amber-400" : "text-slate-300"}>{diagnostics.groups_with_mixed_outcomes ?? 0}</span></div>
+            </div>
+
+            {/* Filters */}
+            <div className="mb-4 flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Ticker…"
+                value={normTickerFilter}
+                onChange={(e) => setNormTickerFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-28"
+              />
+              <select
+                value={normModeFilter}
+                onChange={(e) => setNormModeFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="all">Mode : tous</option>
+                <option value="safe">Safe</option>
+                <option value="aggressive">Aggressive</option>
+              </select>
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={normMultiScanOnly}
+                  onChange={(e) => setNormMultiScanOnly(e.target.checked)}
+                  className="accent-amber-500"
+                />
+                Multi-scan seulement
+              </label>
+              <span className="self-center text-[11px] text-slate-600">{filtered.length} / {allObs.length} obs.</span>
+            </div>
+
+            {/* Table */}
+            {filtered.length === 0 ? (
+              <p className="text-sm text-slate-600 py-4">Aucune observation ne correspond aux filtres.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      {["Ticker", "Mode", "DTE", "Strike", "Date scan", "Scans", "Prime norm.", "Variation intraday"].map((h) => (
+                        <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filtered.slice(0, 200).map((obs, idx) => {
+                      const isMulti = obs.rawScanCount > 1;
+                      const rangePct = obs.intradayPremiumRangePct;
+                      const rangeColor = rangePct == null ? "text-slate-500" : rangePct > 20 ? "text-rose-400" : rangePct > 8 ? "text-amber-400" : "text-emerald-400";
+                      return (
+                        <tr key={`${obs.ticker}-${obs.mode}-${obs.scanDate}-${obs.strike}-${idx}`} className="align-top">
+                          <td className="px-3 py-2.5 font-semibold text-slate-100 whitespace-nowrap">{obs.ticker}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <span className={obs.mode === "aggressive" ? "text-rose-400" : "text-emerald-400"}>
+                              {obs.mode === "aggressive" ? "Agressif" : "Safe"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{obs.dteAtScan ?? "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{obs.strike != null ? `$${obs.strike}` : "—"}</td>
+                          <td className="px-3 py-2.5 whitespace-nowrap text-slate-400">{obs.scanDate || "—"}</td>
+                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                            <span className={isMulti ? "text-amber-400 font-semibold" : "text-slate-500"}>{obs.rawScanCount}</span>
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <div className="tabular-nums text-slate-100 font-semibold">
+                              {obs.normalizedPremium != null ? `$${obs.normalizedPremium.toFixed(2)}` : "—"}
+                            </div>
+                            {isMulti && (
+                              <div className="mt-0.5 text-[10px] text-slate-500 tabular-nums">
+                                1er ${obs.firstPremium?.toFixed(2) ?? "—"} · méd. ${obs.medianPremium?.toFixed(2) ?? "—"}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            {isMulti ? (
+                              <div>
+                                <span className={`tabular-nums ${rangeColor}`}>
+                                  {obs.intradayPremiumRange != null ? `$${obs.intradayPremiumRange.toFixed(2)}` : "—"}
+                                </span>
+                                {rangePct != null && (
+                                  <span className={`ml-1 text-[10px] ${rangeColor}`}>({rangePct.toFixed(1)}%)</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filtered.length > 200 && (
+                  <p className="px-4 py-2 text-[11px] text-slate-600">
+                    Affichage limité à 200 lignes sur {filtered.length} ({filtered.length - 200} masquées).
+                  </p>
+                )}
+              </div>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
+
+      {/* ── SECTION G — DÉTAILS AVANCÉS (preserved, togglable) ─────────────── */}
+      
+        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+          <button
+            type="button"
+            onClick={() => setShowRawSections((s) => !s)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                Détails historiques — Calibration complète
+              </h3>
+              <p className="mt-0.5 text-[11px] text-slate-600">
+                Cohorts d'expiration · POP buckets · DTE stress · FTQS · Tickers calibrés · Secteurs · Tables raw
+              </p>
+            </div>
+            <span className="ml-4 text-[10px] text-slate-500">{showRawSections ? "Masquer ▼" : "Afficher ▶"}</span>
+          </button>
+
+          {showRawSections && (
+            <div className="mt-5 space-y-4">
+
+              {/* Cohort summary */}
+              <DarkTable
+                title="Vue cohorte d'expiration"
+                headers={["Expiration", "Scans", "Candidats", "Symboles uniq.", "DTE min/max", "POP moy.", "EliteScore moy.", "Résolus / Non résolus"]}
+                rows={cohortSummary.map((row) => (
+                  <tr key={`cohort-${String(row?.expirationCohort ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">{formatCompactExpiration(row?.expirationCohort)}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.scanCount) ?? 0}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.candidateCount) ?? 0}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.uniqueSymbols) ?? 0}</td>
+                    <td className="px-3 py-2.5">{formatDteRange(row?.minDte, row?.maxDte)}</td>
+                    <td className="px-3 py-2.5 text-sky-400">{formatPop(row?.avgPopEstimate)}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(row?.avgEliteScore)?.toFixed(1) ?? "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="text-emerald-400">{numberOrNull(row?.resolvedCount) ?? 0}</span>
+                      <span className="text-slate-600"> / </span>
+                      <span className="text-amber-400">{numberOrNull(row?.unresolvedCount) ?? 0}</span>
+                    </td>
+                  </tr>
+                ))}
+              />
+
+              {/* Calibration probabilistique */}
+              {!hasProbabilisticCalibrationData ? (
+                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                  Aucun record résolu pour l'instant. La calibration commencera après expiration.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* V1 buckets */}
+                  {[
+                    { title: "POP buckets — Calibration V1", data: calibrationSummary?.popBuckets ?? [] },
+                    { title: "DTE buckets — Calibration V1", data: calibrationSummary?.dteBuckets ?? [] },
+                    { title: "Strike mode — Calibration V1", data: calibrationSummary?.strikeModeBuckets ?? [] },
+                  ].map(({ title, data }) => (
+                    <DarkTable
+                      key={title}
+                      title={title}
+                      headers={["Bucket", "Sample", "POP préd. moy.", "Win rate réel", "Correct", "Incorrect", "Brier", "Warning"]}
+                      rows={data.map((row) => (
+                        <tr key={`${title}-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket || "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.predictedAvgPop)}</td>
+                          <td className="px-3 py-2.5">
+                            {row?.actualWinRate != null ? (
+                              <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>
+                                {formatPercent(row.actualWinRate)}
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 text-emerald-500">{numberOrNull(row?.correctCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-rose-400">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "—"}</td>
+                          <td className="px-3 py-2.5">
+                            {row?.confidenceWarning ? (
+                              <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span>
+                            ) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    />
+                  ))}
+
+                  {/* FTQS V1 */}
+                  {(calibrationSummary?.hasFtqsData ?? false) && (
+                    <DarkTable
+                      title="FTQS buckets — Calibration V1"
+                      headers={["Bucket", "Sample", "POP préd. moy.", "Win rate réel", "Correct", "Incorrect", "Brier", "Warning"]}
+                      rows={(calibrationSummary?.ftqsBuckets ?? []).map((row) => (
+                        <tr key={`ftqs-${String(row?.bucket ?? "na")}`} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold text-slate-200">{row?.bucket || "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(row?.sampleSize) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-sky-400">{formatPercent(row?.predictedAvgPop)}</td>
+                          <td className="px-3 py-2.5">{row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—"}</td>
+                          <td className="px-3 py-2.5 text-emerald-500">{numberOrNull(row?.correctCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-rose-400">{numberOrNull(row?.incorrectCount) ?? 0}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{numberOrNull(row?.brierScore)?.toFixed(3) ?? "—"}</td>
+                          <td className="px-3 py-2.5">{row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—"}</td>
+                        </tr>
+                      ))}
+                    />
+                  )}
+
+                  {/* V2 Advanced sections */}
+                  <DarkTable
+                    title="POP Calibration avancée — V2"
+                    headers={["Bucket", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "LowerBound cassé %", "Support cassé %", "Assignment %", "Warning"]}
+                    rows={(calibrationSummary?.v2?.popBucketsV2 ?? []).map((row) => (
+                      <DarkCalibV2Row
+                        key={`v2-pop-${String(row?.bucket ?? "na")}`}
+                        cells={[
+                          <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
+                          numberOrNull(row?.resolvedCount) ?? 0,
+                          <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
+                          row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                          formatPercent(row?.strikeTouchRate),
+                          formatPercent(row?.avgDrawdownPct),
+                          formatPercent(row?.lowerBoundBreakRate),
+                          formatPercent(row?.supportBreakRate),
+                          formatPercent(row?.assignmentRate),
+                          row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                        ]}
+                      />
+                    ))}
+                  />
+
+                  <DarkTable
+                    title="DTE Stress Analysis — V2"
+                    headers={["Bucket DTE", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "LowerBound cassé %", "Warning"]}
+                    rows={(calibrationSummary?.v2?.dteBucketsV2 ?? []).map((row) => (
+                      <DarkCalibV2Row
+                        key={`v2-dte-${String(row?.bucket ?? "na")}`}
+                        cells={[
+                          <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
+                          numberOrNull(row?.resolvedCount) ?? 0,
+                          row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                          formatPercent(row?.strikeTouchRate),
+                          formatPercent(row?.avgDrawdownPct),
+                          formatPercent(row?.assignmentRate),
+                          formatPercent(row?.lowerBoundBreakRate),
+                          row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                        ]}
+                      />
+                    ))}
+                  />
+
+                  <DarkTable
+                    title="SAFE vs AGGRESSIVE — V2 avancé"
+                    headers={["Mode", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Prime moy.", "Prime eff %", "LowerBound %", "Support %", "Warning"]}
+                    rows={(calibrationSummary?.v2?.strikeModeV2 ?? [])
+                      .filter((row) => row?.bucket !== "unknown" || (row?.resolvedCount ?? 0) > 0)
+                      .map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-mode-${String(row?.bucket ?? "na")}`}
+                          cells={[
+                            <span className={row?.bucket === "safe" ? "font-bold text-emerald-400" : row?.bucket === "aggressive" ? "font-bold text-rose-400" : "text-slate-500"}>
+                              {row?.bucket || "—"}
+                            </span>,
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.assignmentRate),
+                            <span className="text-sky-400">{formatMoney(row?.avgPremium)}</span>,
+                            formatPercent(row?.premiumEfficiency),
+                            formatPercent(row?.lowerBoundBreakRate),
+                            formatPercent(row?.supportBreakRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                  />
+
+                  {(calibrationSummary?.v2?.hasFtqsV2Data ?? false) && (
+                    <DarkTable
+                      title="FTQS réel — V2"
+                      headers={["Bucket FTQS", "N résolu", "Win Rate", "Strike touché %", "Drawdown moy %", "Support cassé %", "LowerBound cassé %", "Warning"]}
+                      rows={(calibrationSummary?.v2?.ftqsBucketsV2 ?? []).map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-ftqs-${String(row?.bucket ?? "na")}`}
+                          cells={[
+                            <span className="font-semibold text-slate-200">{row?.bucket || "—"}</span>,
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.supportBreakRate),
+                            formatPercent(row?.lowerBoundBreakRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                    />
+                  )}
+
+                  {(calibrationSummary?.v2?.tickerCohorts ?? []).length > 0 && (
+                    <DarkTable
+                      title="Top tickers calibrés — V2"
+                      headers={["Ticker", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Support %", "LowerBound %", "Warning"]}
+                      rows={(calibrationSummary?.v2?.tickerCohorts ?? []).map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-ticker-${String(row?.ticker ?? "na")}`}
+                          cells={[
+                            <span className="font-bold text-slate-100">{row?.ticker || "—"}</span>,
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
+                            row?.actualWinRate != null ? <span className={row.actualWinRate >= 80 ? "text-emerald-400 font-semibold" : "text-amber-400"}>{formatPercent(row.actualWinRate)}</span> : "—",
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.assignmentRate),
+                            formatPercent(row?.supportBreakRate),
+                            formatPercent(row?.lowerBoundBreakRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                    />
+                  )}
+
+                  {(calibrationSummary?.v2?.hasSectorData ?? false) && (
+                    <DarkTable
+                      title="Top secteurs calibrés — V2"
+                      headers={["Secteur", "N résolu", "Avg POP", "Win Rate", "Strike touché %", "Drawdown moy %", "Assignment %", "Warning"]}
+                      rows={(calibrationSummary?.v2?.sectorCohorts ?? []).map((row) => (
+                        <DarkCalibV2Row
+                          key={`v2-sector-${String(row?.sector ?? "na")}`}
+                          cells={[
+                            row?.sector || "—",
+                            numberOrNull(row?.resolvedCount) ?? 0,
+                            <span className="text-sky-400">{formatPercent(row?.avgPop)}</span>,
+                            formatPercent(row?.actualWinRate),
+                            formatPercent(row?.strikeTouchRate),
+                            formatPercent(row?.avgDrawdownPct),
+                            formatPercent(row?.assignmentRate),
+                            row?.confidenceWarning ? <span className="rounded bg-amber-900/40 border border-amber-800/50 px-1.5 py-0.5 text-[10px] text-amber-400">{row.confidenceWarning}</span> : "—",
+                          ]}
+                        />
+                      ))}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+      {/* ── SECTION C — SAFE vs AGGRESSIVE ─────────────────────────────────── */}
+      
+        <CollapsibleSection
+          title="Capital Combination Risk Overlay"
+          badge="V2E"
+          subtitle="Croise les combinaisons de capital avec les résultats réels du Journal POP. Read-only : aucun impact scanner ou SQLite."
+          defaultOpen={false}
+          summaryRight={
+            capitalCombinationOverlay.hasCapitalData
+              ? `${capitalCombinationOverlay.rows.length} mode${capitalCombinationOverlay.rows.length !== 1 ? "s" : ""} · ${capitalCombinationOverlay.rows[0]?.verdict ?? "voir détail"}`
+              : "Capital data N/D"
+          }
+        >
+          {capitalCombinationOverlay.hasCapitalData !== true ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-slate-100">Capital data N/D</p>
+                  <span className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500">
+                    Read-only
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-slate-400">
+                  Les tables ou données de combinaisons capital ne sont pas encore exposées dans le payload actuel du Journal POP. V2E est prête côté UI/calcul, mais nécessite un branchement read-only futur.
+                </p>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {[
+                    "Aucun appel backend ajoute",
+                    "Aucune ecriture SQLite",
+                    "Aucun impact scanner",
+                  ].map((line) => (
+                    <div key={line} className="rounded-xl border border-slate-700/50 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-400">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-700/50 bg-slate-800/20 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  Ce que V2E mesurera
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-slate-400">
+                  <li>concentration sur tickers stressés</li>
+                  <li>exposition a lucky / lowerBound break</li>
+                  <li>exposition a spread eleve</li>
+                  <li>équilibre Safe vs Aggressive</li>
+                  <li>robustesse statistique de la combinaison</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">Combinaison</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Tickers</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Capital</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Resolus</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Clean</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Lucky</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">LB Break</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Touch</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Spread %</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Tickers a risque</th>
+                    <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">Inconnus</th>
+                    <th className="px-3 py-3 font-semibold whitespace-nowrap">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {capitalCombinationOverlay.rows.map((row) => {
+                    const verdictClass =
+                      row.verdict === "Conservateur sain"
+                        ? "border-emerald-800/50 bg-emerald-900/20 text-emerald-400"
+                        : row.verdict === "Équilibre propre"
+                        ? "border-sky-800/50 bg-sky-900/20 text-sky-400"
+                        : row.verdict === "Agressif sain"
+                        ? "border-indigo-800/50 bg-indigo-900/20 text-indigo-400"
+                        : row.verdict === "Agressif stressé" || row.verdict === "À limiter"
+                        ? "border-rose-800/50 bg-rose-900/20 text-rose-400"
+                        : "border-slate-700 bg-slate-800 text-slate-400";
+                    return (
+                      <tr key={row.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-3">
+                          <div className="font-bold text-slate-100 whitespace-nowrap">{row.combinationName}</div>
+                          <div className="mt-1 text-[11px] text-slate-600">
+                            Score {row.overlayScore != null ? row.overlayScore : "N/D"}
+                            {row.concentrationRiskPct != null ? ` · concentration ${row.concentrationRiskPct.toFixed(0)}%` : ""}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.tickerCount}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-sky-400">
+                          {row.capitalUsed != null ? formatMoney(row.capitalUsed) : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.resolvedSampleTotal != null ? row.resolvedSampleTotal : <span className="text-slate-600">N/D</span>}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgCleanRate != null ? <span className="text-emerald-400">{row.avgCleanRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgLuckyRate != null ? <span className={row.avgLuckyRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.avgLuckyRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgLowerBoundBreakRate != null ? <span className={row.avgLowerBoundBreakRate >= 20 ? "text-rose-400 font-semibold" : "text-amber-400"}>{row.avgLowerBoundBreakRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgStrikeTouchRate != null ? <span className={row.avgStrikeTouchRate >= 25 ? "text-rose-400 font-semibold" : row.avgStrikeTouchRate >= 10 ? "text-amber-400" : "text-emerald-400"}>{row.avgStrikeTouchRate.toFixed(0)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.avgSpreadPct != null ? <span className={row.avgSpreadPct > 20 ? "text-rose-400 font-semibold" : row.avgSpreadPct > 10 ? "text-amber-400" : "text-emerald-400"}>{row.avgSpreadPct.toFixed(1)}%</span> : <span className="text-slate-600">N/D</span>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.highRiskTickerCount}
+                          <span className="text-slate-600"> / {row.tickerCount}</span>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {row.unknownTickerCount}
+                          <span className="text-slate-600"> / {row.tickerCount}</span>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={`rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${verdictClass}`}>
+                            {row.verdict}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CollapsibleSection>
+
+      {/* ── Seasonality V1 — read-only ──────────────────────────────────────── */}
+      
+        <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Saisonnalité V1 — Lecture seule</h3>
+              <p className="mt-1 text-[11px] text-slate-600">
+                Fenêtres saisonnières historiques (Yahoo, cache 6h). Aucun impact scanner, EliteScore, ranking.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchJournalSeasonality}
+              disabled={seasonalityLoading || !hasLoaded || !uniqueJournalSymbols.length}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Charger saisonnalité
+              <RefreshCw className={`ml-2 h-4 w-4 ${seasonalityLoading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+
+          {!hasLoaded && (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Chargez d&apos;abord le journal.
+            </div>
+          )}
+          {hasLoaded && !journalSeasonality && !seasonalityLoading && (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              {uniqueJournalSymbols.length > 0
+                ? `${uniqueJournalSymbols.length} tickers détectés — cliquez sur "Charger saisonnalité".`
+                : "Aucun ticker dans le journal."}
+            </div>
+          )}
+          {seasonalityLoading && (
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+              Calcul en cours — Yahoo Finance historique, résultat mis en cache 6h…
+            </div>
+          )}
+          {journalSeasonality && !seasonalityLoading && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-xs text-slate-300">
+                <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3 font-semibold">Ticker</th>
+                    <th className="px-3 py-3 font-semibold">Biais actuel</th>
+                    <th className="px-3 py-3 font-semibold">Score</th>
+                    <th className="px-3 py-3 font-semibold">Risque strike</th>
+                    <th className="px-3 py-3 font-semibold">Fenêtre active</th>
+                    <th className="px-3 py-3 font-semibold">Win rate</th>
+                    <th className="px-3 py-3 font-semibold">Données</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {(journalSeasonality.symbols ?? []).map((sym) => {
+                    const d = journalSeasonality.results?.[sym];
+                    return (
+                      <tr key={`seas-${sym}`} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-slate-100">{sym}</td>
+                        <td className="px-3 py-2.5">
+                          {d?.seasonalBias ? (
+                            <span className={d.seasonalBias === "favorable" ? "font-medium text-emerald-400" : d.seasonalBias === "unfavorable" ? "font-medium text-rose-400" : "text-slate-500"}>
+                              {d.seasonalBias === "favorable" ? "↑ Favorable" : d.seasonalBias === "unfavorable" ? "↓ Défavorable" : "→ Neutre"}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {d?.seasonalityScore != null ? (
+                            <span className={d.seasonalityScore >= 0.25 ? "text-emerald-400" : d.seasonalityScore <= -0.25 ? "text-rose-400" : "text-slate-500"}>
+                              {d.seasonalityScore >= 0 ? "+" : ""}{Math.round(d.seasonalityScore * 100)}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {d?.seasonalStrikeRisk ? (
+                            <span className={d.seasonalStrikeRisk === "high" ? "font-medium text-rose-400" : d.seasonalStrikeRisk === "low" ? "font-medium text-emerald-400" : "text-amber-400"}>
+                              {d.seasonalStrikeRisk === "high" ? "Élevé" : d.seasonalStrikeRisk === "low" ? "Faible" : "Moyen"}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-500">
+                          {d?.activeWindowNow
+                            ? `S${d.activeWindowNow.windowStart}–S${d.activeWindowNow.windowEnd} · ${d.activeWindowNow.windowSizeWeeks}sem · ${d.activeWindowNow.bias}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {d?.activeWindowNow?.winRate != null ? `${Math.round(d.activeWindowNow.winRate * 100)}%` : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-600">
+                          {d?.dataPointCount != null ? `${d.dataPointCount} j` : "n/a"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <p className="mt-3 text-[10px] text-slate-600">
+                V1 — lecture seule · aucun impact scanner · calibration saisonnière automatique prévue V2 ·
+                généré {journalSeasonality.generatedAt ? new Date(journalSeasonality.generatedAt).toLocaleTimeString() : "—"}
+              </p>
+            </div>
+          )}
+        </section>
+
+
+      {/* ── V3 Candidate Profiles V3B ─────────────────────────────────────── */}
+      {hasLoaded && activePopTab === "decision" && (
+        <V3CandidateProfilesPanel apiBase={apiBase} />
       )}
 
-      {hasLoaded && activePopTab === "wheelCycles" && (
+      {/* ── Ticker Ranking V2-L ─────────────────────────────────────────────── */}
+      {hasLoaded && activePopTab === "decision" && tickerRanking && (() => {
+        const rankings = Array.isArray(tickerRanking.rankings) ? tickerRanking.rankings : [];
+        const summary = tickerRanking.summary ?? {};
+        const saSummary = safeAggComparison?.summary ?? {};
+        const saConfirmed = getSafeAggConfirmedCounts(saSummary);
+
+        const search = rankingTickerSearch.trim().toUpperCase();
+        let filtered = rankings;
+        if (search) filtered = filtered.filter((r) => r.ticker.includes(search));
+        if (rankingScoreFilter !== "tous") {
+          const scoreMap = { excellent: [85, 100], bon: [70, 84], moyen: [55, 69], faible: [1, 54] };
+          const [lo, hi] = scoreMap[rankingScoreFilter] ?? [1, 100];
+          filtered = filtered.filter((r) => r.score >= lo && r.score <= hi);
+        }
+        if (rankingModeFilter !== "tous") {
+          const normalizedFilterMode = normalizeDecisionMode(rankingModeFilter);
+          if (normalizedFilterMode !== "all") {
+            filtered = filtered.filter((r) => {
+              const decisionInsight = getDecisionInsightForRanking(r, safeAggComparison);
+              const displayMode = getDisplayModeForDecision(r, decisionInsight);
+              return normalizeDecisionMode(displayMode) === normalizedFilterMode;
+            });
+          }
+        }
+        if (rankingConfidenceFilter !== "tous") {
+          filtered = filtered.filter((r) => r.confidence === rankingConfidenceFilter);
+        }
+
+        const executableInPool = filtered.filter((ranking) => {
+          const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
+          return isExecutableRanking(ranking, insight);
+        }).length;
+
+        if (rankingExecutableOnly) {
+          filtered = filtered.filter((ranking) => {
+            const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
+            return isExecutableRanking(ranking, insight);
+          });
+        }
+
+        const scoreLabelColor = (label) => {
+          if (label === "Excellent") return "text-emerald-400";
+          if (label === "Bon") return "text-sky-400";
+          if (label === "Moyen") return "text-amber-400";
+          if (label === "Faible") return "text-rose-400";
+          return "text-slate-500";
+        };
+        const modeColor = (mode) => {
+          if (mode === "AGRESSIF") return "text-rose-400";
+          if (mode === "SAFE") return "text-emerald-400";
+          return "text-slate-500";
+        };
+
+        return (
+          <CollapsibleSection
+            title="Top CSP selon Journal — candidats à valider Wheel/CC"
+            badge={`${summary.tickers_ranked ?? 0} tickers`}
+            subtitle="Score CSP 1-100 · mode SAFE/AGR · indicateurs Wheel/CC résumés si cycles disponibles · pas une recommandation Wheel finale."
+            defaultOpen={false}
+            summaryRight={
+              summary.top_score != null
+                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR confirmés · ${saConfirmed.safe} SAFE confirmés`
+                : undefined
+            }
+          >
+            {/* Filters */}
+            <div className="mb-4 flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Recherche ticker…"
+                value={rankingTickerSearch}
+                onChange={(e) => setRankingTickerSearch(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-36"
+              />
+              <select
+                value={rankingScoreFilter}
+                onChange={(e) => setRankingScoreFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Score : tous</option>
+                <option value="excellent">Excellent (85+)</option>
+                <option value="bon">Bon (70-84)</option>
+                <option value="moyen">Moyen (55-69)</option>
+                <option value="faible">Faible (&lt;55)</option>
+              </select>
+              <select
+                value={rankingModeFilter}
+                onChange={(e) => setRankingModeFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Mode : tous</option>
+                <option value="SAFE">SAFE</option>
+                <option value="AGRESSIF">AGRESSIF</option>
+                <option value="confirmer">À confirmer</option>
+              </select>
+              <select
+                value={rankingConfidenceFilter}
+                onChange={(e) => setRankingConfidenceFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Confiance : tous</option>
+                <option value="élevée">Élevée</option>
+                <option value="moyenne">Moyenne</option>
+                <option value="faible">Faible</option>
+              </select>
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rankingExecutableOnly}
+                  onChange={(e) => setRankingExecutableOnly(e.target.checked)}
+                  className="accent-emerald-500"
+                />
+                Exécutables seulement
+              </label>
+              <span className="self-center text-[11px] text-slate-600">
+                {rankingExecutableOnly
+                  ? `${filtered.length} affiché${filtered.length !== 1 ? "s" : ""}`
+                  : `${executableInPool} exécutable${executableInPool !== 1 ? "s" : ""} / ${filtered.length}`}
+              </span>
+              {(search || rankingScoreFilter !== "tous" || rankingModeFilter !== "tous" || rankingConfidenceFilter !== "tous" || rankingExecutableOnly) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRankingTickerSearch("");
+                    setRankingScoreFilter("tous");
+                    setRankingModeFilter("tous");
+                    setRankingConfidenceFilter("tous");
+                    setRankingExecutableOnly(false);
+                  }}
+                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+
+            {/* Ranking table */}
+            {filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                Aucun ticker ne correspond aux filtres.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Rang CSP</th>
+                      <th className="px-3 py-2 font-semibold">Ticker</th>
+                      <th className="px-3 py-2 font-semibold">Score CSP</th>
+                      <th className="px-3 py-2 font-semibold">Statut Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Called away</th>
+                      <th className="px-3 py-2 font-semibold">CC</th>
+                      <th className="px-3 py-2 font-semibold">Rend. Wheel</th>
+                      <th className="px-3 py-2 font-semibold">P/L Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Note Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Mode</th>
+                      <th className="px-3 py-2 font-semibold">DTE</th>
+                      <th className="px-3 py-2 font-semibold">Assign.</th>
+                      <th className="px-3 py-2 font-semibold">Exécution</th>
+                      <th className="px-3 py-2 font-semibold">Lecture CSP</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filtered.map((row) => {
+                      const decisionInsight = getDecisionInsightForRanking(row, safeAggComparison);
+                      const displayMode = getDisplayModeForDecision(row, decisionInsight);
+                      const decisionLine = formatSafeAggressiveDecisionLine(decisionInsight);
+                      const decisionBadge = getExecutionDecisionBadge(row, decisionInsight);
+                      const executionDisplay = getExecutionColumnDisplay(row);
+                      const wheelSummary = getWheelCcSummaryForTicker(wheelCcTickerSummaryMap, row.ticker);
+                      const modeTooltipParts = [
+                        decisionInsight?.modeDecision ?? decisionLine,
+                        row.preferredMode && row.preferredMode !== displayMode
+                          ? `mode ranking : ${row.preferredMode}`
+                          : null,
+                      ].filter(Boolean);
+
+                      return (
+                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors align-top">
+                        <td className="px-3 py-2 text-slate-500 tabular-nums">#{row.rank}</td>
+                        <td className="px-3 py-2 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={formatScoreComponentsTooltip(row)}>
+                          <div className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</div>
+                          <div className={`mt-0.5 text-[10px] leading-tight ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={wheelSummary.wheelStatusReason}>
+                          <span className={`inline-block rounded border px-1.5 py-0.5 text-[9px] font-semibold leading-tight ${getWheelStatusBadgeClass(wheelSummary.wheelStatusLabel)}`}>
+                            {wheelSummary.wheelStatusLabel}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.calledAwayCount > 0 ? wheelSummary.calledAwayCount : "—"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-[10px] text-slate-400" title={`${wheelSummary.ccSoldCount} vendu(s) · ${wheelSummary.ccWaitCount} attente(s)`}>
+                          {wheelSummary.cyclesCount > 0
+                            ? `${wheelSummary.ccSoldCount} / ${wheelSummary.ccWaitCount}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.bestReturnOnAssignmentPct != null
+                            ? `${wheelSummary.bestReturnOnAssignmentPct.toFixed(1)} %`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.bestTotalPnlContract != null
+                            ? formatMoney(wheelSummary.bestTotalPnlContract)
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-[10px] text-slate-500 max-w-[140px] leading-tight" title={wheelSummary.attentionReasons.join(" · ") || wheelSummary.wheelStatusReason}>
+                          {wheelSummary.wheelStatusReason}
+                        </td>
+                        <td className="px-3 py-2 max-w-[190px]" title={modeTooltipParts.join("\n")}>
+                          <div className={`font-semibold whitespace-nowrap ${modeColor(displayMode)}`}>{displayMode}</div>
+                          {decisionBadge && (
+                            <span className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[9px] leading-tight ${decisionBadge.className}`}>
+                              {decisionBadge.label}
+                            </span>
+                          )}
+                          <div className="mt-0.5 text-[10px] leading-tight text-slate-500">
+                            {decisionLine}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-slate-300" title={getRankingDecisionDteTooltip(row, decisionInsight)}>
+                          {getRankingDecisionDteDisplay(row, decisionInsight)}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                          {row.assignmentRatePct != null ? (
+                            <span className={row.assignmentRatePct > 20 ? "text-rose-400" : row.assignmentRatePct > 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {row.assignmentRatePct.toFixed(1)}%
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={getExecutionColumnTooltip(row)}>
+                          <div className={`text-[11px] leading-tight ${
+                            executionDisplay.label === "Spread très large" ? "text-rose-400" :
+                            executionDisplay.label === "Spread large" ? "text-amber-400" :
+                            executionDisplay.label === "Exécution bonne" ? "text-emerald-400" :
+                            executionDisplay.label === "Exécution correcte" ? "text-sky-400" :
+                            "text-slate-400"
+                          }`}>
+                            {executionDisplay.label}
+                          </div>
+                          <div className="text-[10px] text-slate-600">
+                            Spread: {executionDisplay.spread != null ? `${executionDisplay.spread.toFixed(1)}%` : "n/d"}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-[11px] text-slate-300 max-w-[180px] leading-tight" title={getReadingTooltip(row)}>
+                          {row.reading ?? "—"}
+                        </td>
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {summary.generatedAt && (
+              <p className="mt-3 text-[10px] text-slate-600">
+                V2-L-D · lecture seule · généré {new Date(summary.generatedAt).toLocaleTimeString()}
+              </p>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
+
+      {/* ── SECTION F — MÉTRIQUES V2 PRÉPARÉES ─────────────────────────────── */}
+      
+        <CollapsibleSection
+          title="Métriques avancées — Préparées pour V2"
+          badge="Prochaine phase"
+          subtitle="Placeholders visuels. Aucune donnée inventée — tracking requis pour activation."
+          defaultOpen={false}
+          summaryRight="6 métriques préparées · tracking requis · N/D"
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[
+              { label: "Days to First Touch", note: "Tracking requis" },
+              { label: "Premium Efficiency", note: "Prime / Strike %" },
+              { label: "Market Regime", note: "Bull / Bear / Sideways" },
+              { label: "VIX Bucket", note: "Volatilité marché" },
+              { label: "Cluster Risk", note: "Secteur / corrélation" },
+              { label: "IV Rank at Scan", note: "IVR au moment scan" },
+            ].map(({ label, note }) => (
+              <div key={label} className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+                <p className="mt-2 text-lg font-bold text-slate-700">N/D</p>
+                <p className="mt-1 text-[10px] text-slate-700">{note}</p>
+                <div className="mt-2">
+                  <PlaceholderBadge label="À venir V2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+          </DataAuditGroup>
+        </>
+      )}
+
+      {/* ── V3 Candidate Profiles V3B ─────────────────────────────────────── */}
+      {hasLoaded && activePopTab === "decision" && (
+        <V3CandidateProfilesPanel apiBase={apiBase} />
+      )}
+
+      {/* ── Ticker Ranking V2-L ─────────────────────────────────────────────── */}
+      {hasLoaded && activePopTab === "decision" && tickerRanking && (() => {
+        const rankings = Array.isArray(tickerRanking.rankings) ? tickerRanking.rankings : [];
+        const summary = tickerRanking.summary ?? {};
+        const saSummary = safeAggComparison?.summary ?? {};
+        const saConfirmed = getSafeAggConfirmedCounts(saSummary);
+
+        const search = rankingTickerSearch.trim().toUpperCase();
+        let filtered = rankings;
+        if (search) filtered = filtered.filter((r) => r.ticker.includes(search));
+        if (rankingScoreFilter !== "tous") {
+          const scoreMap = { excellent: [85, 100], bon: [70, 84], moyen: [55, 69], faible: [1, 54] };
+          const [lo, hi] = scoreMap[rankingScoreFilter] ?? [1, 100];
+          filtered = filtered.filter((r) => r.score >= lo && r.score <= hi);
+        }
+        if (rankingModeFilter !== "tous") {
+          const normalizedFilterMode = normalizeDecisionMode(rankingModeFilter);
+          if (normalizedFilterMode !== "all") {
+            filtered = filtered.filter((r) => {
+              const decisionInsight = getDecisionInsightForRanking(r, safeAggComparison);
+              const displayMode = getDisplayModeForDecision(r, decisionInsight);
+              return normalizeDecisionMode(displayMode) === normalizedFilterMode;
+            });
+          }
+        }
+        if (rankingConfidenceFilter !== "tous") {
+          filtered = filtered.filter((r) => r.confidence === rankingConfidenceFilter);
+        }
+
+        const executableInPool = filtered.filter((ranking) => {
+          const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
+          return isExecutableRanking(ranking, insight);
+        }).length;
+
+        if (rankingExecutableOnly) {
+          filtered = filtered.filter((ranking) => {
+            const insight = getDecisionInsightForRanking(ranking, safeAggComparison);
+            return isExecutableRanking(ranking, insight);
+          });
+        }
+
+        const scoreLabelColor = (label) => {
+          if (label === "Excellent") return "text-emerald-400";
+          if (label === "Bon") return "text-sky-400";
+          if (label === "Moyen") return "text-amber-400";
+          if (label === "Faible") return "text-rose-400";
+          return "text-slate-500";
+        };
+        const modeColor = (mode) => {
+          if (mode === "AGRESSIF") return "text-rose-400";
+          if (mode === "SAFE") return "text-emerald-400";
+          return "text-slate-500";
+        };
+
+        return (
+          <CollapsibleSection
+            title="Top CSP selon Journal — candidats à valider Wheel/CC"
+            badge={`${summary.tickers_ranked ?? 0} tickers`}
+            subtitle="Score CSP 1-100 · mode SAFE/AGR · indicateurs Wheel/CC résumés si cycles disponibles · pas une recommandation Wheel finale."
+            defaultOpen={false}
+            summaryRight={
+              summary.top_score != null
+                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR confirmés · ${saConfirmed.safe} SAFE confirmés`
+                : undefined
+            }
+          >
+            {/* Filters */}
+            <div className="mb-4 flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Recherche ticker…"
+                value={rankingTickerSearch}
+                onChange={(e) => setRankingTickerSearch(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-36"
+              />
+              <select
+                value={rankingScoreFilter}
+                onChange={(e) => setRankingScoreFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Score : tous</option>
+                <option value="excellent">Excellent (85+)</option>
+                <option value="bon">Bon (70-84)</option>
+                <option value="moyen">Moyen (55-69)</option>
+                <option value="faible">Faible (&lt;55)</option>
+              </select>
+              <select
+                value={rankingModeFilter}
+                onChange={(e) => setRankingModeFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Mode : tous</option>
+                <option value="SAFE">SAFE</option>
+                <option value="AGRESSIF">AGRESSIF</option>
+                <option value="confirmer">À confirmer</option>
+              </select>
+              <select
+                value={rankingConfidenceFilter}
+                onChange={(e) => setRankingConfidenceFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+              >
+                <option value="tous">Confiance : tous</option>
+                <option value="élevée">Élevée</option>
+                <option value="moyenne">Moyenne</option>
+                <option value="faible">Faible</option>
+              </select>
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rankingExecutableOnly}
+                  onChange={(e) => setRankingExecutableOnly(e.target.checked)}
+                  className="accent-emerald-500"
+                />
+                Exécutables seulement
+              </label>
+              <span className="self-center text-[11px] text-slate-600">
+                {rankingExecutableOnly
+                  ? `${filtered.length} affiché${filtered.length !== 1 ? "s" : ""}`
+                  : `${executableInPool} exécutable${executableInPool !== 1 ? "s" : ""} / ${filtered.length}`}
+              </span>
+              {(search || rankingScoreFilter !== "tous" || rankingModeFilter !== "tous" || rankingConfidenceFilter !== "tous" || rankingExecutableOnly) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRankingTickerSearch("");
+                    setRankingScoreFilter("tous");
+                    setRankingModeFilter("tous");
+                    setRankingConfidenceFilter("tous");
+                    setRankingExecutableOnly(false);
+                  }}
+                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+
+            {/* Ranking table */}
+            {filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/30 p-6 text-sm text-slate-600">
+                Aucun ticker ne correspond aux filtres.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
+                <table className="min-w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Rang CSP</th>
+                      <th className="px-3 py-2 font-semibold">Ticker</th>
+                      <th className="px-3 py-2 font-semibold">Score CSP</th>
+                      <th className="px-3 py-2 font-semibold">Statut Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Called away</th>
+                      <th className="px-3 py-2 font-semibold">CC</th>
+                      <th className="px-3 py-2 font-semibold">Rend. Wheel</th>
+                      <th className="px-3 py-2 font-semibold">P/L Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Note Wheel</th>
+                      <th className="px-3 py-2 font-semibold">Mode</th>
+                      <th className="px-3 py-2 font-semibold">DTE</th>
+                      <th className="px-3 py-2 font-semibold">Assign.</th>
+                      <th className="px-3 py-2 font-semibold">Exécution</th>
+                      <th className="px-3 py-2 font-semibold">Lecture CSP</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {filtered.map((row) => {
+                      const decisionInsight = getDecisionInsightForRanking(row, safeAggComparison);
+                      const displayMode = getDisplayModeForDecision(row, decisionInsight);
+                      const decisionLine = formatSafeAggressiveDecisionLine(decisionInsight);
+                      const decisionBadge = getExecutionDecisionBadge(row, decisionInsight);
+                      const executionDisplay = getExecutionColumnDisplay(row);
+                      const wheelSummary = getWheelCcSummaryForTicker(wheelCcTickerSummaryMap, row.ticker);
+                      const modeTooltipParts = [
+                        decisionInsight?.modeDecision ?? decisionLine,
+                        row.preferredMode && row.preferredMode !== displayMode
+                          ? `mode ranking : ${row.preferredMode}`
+                          : null,
+                      ].filter(Boolean);
+
+                      return (
+                      <tr key={row.ticker} className="hover:bg-slate-800/30 transition-colors align-top">
+                        <td className="px-3 py-2 text-slate-500 tabular-nums">#{row.rank}</td>
+                        <td className="px-3 py-2 font-bold text-slate-100 whitespace-nowrap">{row.ticker}</td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={formatScoreComponentsTooltip(row)}>
+                          <div className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(row.scoreLabel)}`}>{row.score}</div>
+                          <div className={`mt-0.5 text-[10px] leading-tight ${scoreLabelColor(row.scoreLabel)}`}>{row.scoreLabel}</div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={wheelSummary.wheelStatusReason}>
+                          <span className={`inline-block rounded border px-1.5 py-0.5 text-[9px] font-semibold leading-tight ${getWheelStatusBadgeClass(wheelSummary.wheelStatusLabel)}`}>
+                            {wheelSummary.wheelStatusLabel}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.calledAwayCount > 0 ? wheelSummary.calledAwayCount : "—"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-[10px] text-slate-400" title={`${wheelSummary.ccSoldCount} vendu(s) · ${wheelSummary.ccWaitCount} attente(s)`}>
+                          {wheelSummary.cyclesCount > 0
+                            ? `${wheelSummary.ccSoldCount} / ${wheelSummary.ccWaitCount}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.bestReturnOnAssignmentPct != null
+                            ? `${wheelSummary.bestReturnOnAssignmentPct.toFixed(1)} %`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap text-slate-300">
+                          {wheelSummary.bestTotalPnlContract != null
+                            ? formatMoney(wheelSummary.bestTotalPnlContract)
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-[10px] text-slate-500 max-w-[140px] leading-tight" title={wheelSummary.attentionReasons.join(" · ") || wheelSummary.wheelStatusReason}>
+                          {wheelSummary.wheelStatusReason}
+                        </td>
+                        <td className="px-3 py-2 max-w-[190px]" title={modeTooltipParts.join("\n")}>
+                          <div className={`font-semibold whitespace-nowrap ${modeColor(displayMode)}`}>{displayMode}</div>
+                          {decisionBadge && (
+                            <span className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[9px] leading-tight ${decisionBadge.className}`}>
+                              {decisionBadge.label}
+                            </span>
+                          )}
+                          <div className="mt-0.5 text-[10px] leading-tight text-slate-500">
+                            {decisionLine}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-slate-300" title={getRankingDecisionDteTooltip(row, decisionInsight)}>
+                          {getRankingDecisionDteDisplay(row, decisionInsight)}
+                        </td>
+                        <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                          {row.assignmentRatePct != null ? (
+                            <span className={row.assignmentRatePct > 20 ? "text-rose-400" : row.assignmentRatePct > 10 ? "text-amber-400" : "text-emerald-400"}>
+                              {row.assignmentRatePct.toFixed(1)}%
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap" title={getExecutionColumnTooltip(row)}>
+                          <div className={`text-[11px] leading-tight ${
+                            executionDisplay.label === "Spread très large" ? "text-rose-400" :
+                            executionDisplay.label === "Spread large" ? "text-amber-400" :
+                            executionDisplay.label === "Exécution bonne" ? "text-emerald-400" :
+                            executionDisplay.label === "Exécution correcte" ? "text-sky-400" :
+                            "text-slate-400"
+                          }`}>
+                            {executionDisplay.label}
+                          </div>
+                          <div className="text-[10px] text-slate-600">
+                            Spread: {executionDisplay.spread != null ? `${executionDisplay.spread.toFixed(1)}%` : "n/d"}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-[11px] text-slate-300 max-w-[180px] leading-tight" title={getReadingTooltip(row)}>
+                          {row.reading ?? "—"}
+                        </td>
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {summary.generatedAt && (
+              <p className="mt-3 text-[10px] text-slate-600">
+                V2-L-D · lecture seule · généré {new Date(summary.generatedAt).toLocaleTimeString()}
+              </p>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
+
+{hasLoaded && activePopTab === "wheelCycles" && (
           <CollapsibleSection
             title="Cycles théoriques Wheel"
             badge="POP V2-II"
@@ -8579,147 +8235,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         );
       })()}
 
-      {/* ── Observations normalisées V2-M ─────────────────────────────────── */}
-      {hasLoaded && activePopTab === "dataAudit" && normalizedObs && (() => {
-        const summary = normalizedObs.summary ?? {};
-        const diagnostics = normalizedObs.diagnostics ?? {};
-        const allObs = Array.isArray(normalizedObs.observations) ? normalizedObs.observations : [];
 
-        const tickerSearch = normTickerFilter.trim().toUpperCase();
-        let filtered = allObs;
-        if (tickerSearch) filtered = filtered.filter((o) => o.ticker.includes(tickerSearch));
-        if (normModeFilter !== "all") filtered = filtered.filter((o) => o.mode === normModeFilter);
-        if (normMultiScanOnly) filtered = filtered.filter((o) => o.rawScanCount > 1);
-
-        const compressionPct = summary.compression_ratio != null
-          ? `${summary.compression_ratio.toFixed(2)}x`
-          : "—";
-
-        return (
-          <CollapsibleSection
-            title="Observations normalisées"
-            badge={`${summary.normalized_observations ?? 0} observations`}
-            subtitle="Regroupe les scans similaires d'une même journée pour éviter de surpondérer un ticker scanné plusieurs fois."
-            defaultOpen={false}
-            summaryRight={summary.compression_ratio != null ? `Compression : ${compressionPct}` : undefined}
-          >
-            {/* Summary cards */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-              <ProKpi label="Records bruts" value={summary.raw_records_used ?? "—"} tone="default" />
-              <ProKpi label="Observations normalisées" value={summary.normalized_observations ?? "—"} tone="info" />
-              <ProKpi label="Compression" value={compressionPct} tone={summary.compression_ratio > 1 ? "warn" : "good"} />
-              <ProKpi label="Groupes multi-scan" value={summary.multi_scan_groups ?? "—"} tone={summary.multi_scan_groups > 0 ? "warn" : "default"} />
-            </div>
-
-            {/* Diagnostics row */}
-            <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-[11px] text-slate-500">
-              <div>Tickers : <span className="text-slate-300">{summary.tickers_count ?? "—"}</span></div>
-              <div>Moy. scans/obs : <span className="text-slate-300">{summary.avg_scans_per_observation ?? "—"}</span></div>
-              <div>Max scans/groupe : <span className="text-slate-300">{summary.max_scans_in_one_group ?? "—"}</span></div>
-              <div>Outcomes mixtes : <span className={diagnostics.groups_with_mixed_outcomes > 0 ? "text-amber-400" : "text-slate-300"}>{diagnostics.groups_with_mixed_outcomes ?? 0}</span></div>
-            </div>
-
-            {/* Filters */}
-            <div className="mb-4 flex flex-wrap gap-3">
-              <input
-                type="text"
-                placeholder="Ticker…"
-                value={normTickerFilter}
-                onChange={(e) => setNormTickerFilter(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 w-28"
-              />
-              <select
-                value={normModeFilter}
-                onChange={(e) => setNormModeFilter(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
-              >
-                <option value="all">Mode : tous</option>
-                <option value="safe">Safe</option>
-                <option value="aggressive">Aggressive</option>
-              </select>
-              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={normMultiScanOnly}
-                  onChange={(e) => setNormMultiScanOnly(e.target.checked)}
-                  className="accent-amber-500"
-                />
-                Multi-scan seulement
-              </label>
-              <span className="self-center text-[11px] text-slate-600">{filtered.length} / {allObs.length} obs.</span>
-            </div>
-
-            {/* Table */}
-            {filtered.length === 0 ? (
-              <p className="text-sm text-slate-600 py-4">Aucune observation ne correspond aux filtres.</p>
-            ) : (
-              <div className="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-900/60">
-                <table className="min-w-full text-left text-xs text-slate-300">
-                  <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                    <tr>
-                      {["Ticker", "Mode", "DTE", "Strike", "Date scan", "Scans", "Prime norm.", "Variation intraday"].map((h) => (
-                        <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/70">
-                    {filtered.slice(0, 200).map((obs, idx) => {
-                      const isMulti = obs.rawScanCount > 1;
-                      const rangePct = obs.intradayPremiumRangePct;
-                      const rangeColor = rangePct == null ? "text-slate-500" : rangePct > 20 ? "text-rose-400" : rangePct > 8 ? "text-amber-400" : "text-emerald-400";
-                      return (
-                        <tr key={`${obs.ticker}-${obs.mode}-${obs.scanDate}-${obs.strike}-${idx}`} className="align-top">
-                          <td className="px-3 py-2.5 font-semibold text-slate-100 whitespace-nowrap">{obs.ticker}</td>
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            <span className={obs.mode === "aggressive" ? "text-rose-400" : "text-emerald-400"}>
-                              {obs.mode === "aggressive" ? "Agressif" : "Safe"}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{obs.dteAtScan ?? "—"}</td>
-                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{obs.strike != null ? `$${obs.strike}` : "—"}</td>
-                          <td className="px-3 py-2.5 whitespace-nowrap text-slate-400">{obs.scanDate || "—"}</td>
-                          <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
-                            <span className={isMulti ? "text-amber-400 font-semibold" : "text-slate-500"}>{obs.rawScanCount}</span>
-                          </td>
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            <div className="tabular-nums text-slate-100 font-semibold">
-                              {obs.normalizedPremium != null ? `$${obs.normalizedPremium.toFixed(2)}` : "—"}
-                            </div>
-                            {isMulti && (
-                              <div className="mt-0.5 text-[10px] text-slate-500 tabular-nums">
-                                1er ${obs.firstPremium?.toFixed(2) ?? "—"} · méd. ${obs.medianPremium?.toFixed(2) ?? "—"}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            {isMulti ? (
-                              <div>
-                                <span className={`tabular-nums ${rangeColor}`}>
-                                  {obs.intradayPremiumRange != null ? `$${obs.intradayPremiumRange.toFixed(2)}` : "—"}
-                                </span>
-                                {rangePct != null && (
-                                  <span className={`ml-1 text-[10px] ${rangeColor}`}>({rangePct.toFixed(1)}%)</span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-600">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {filtered.length > 200 && (
-                  <p className="px-4 py-2 text-[11px] text-slate-600">
-                    Affichage limité à 200 lignes sur {filtered.length} ({filtered.length - 200} masquées).
-                  </p>
-                )}
-              </div>
-            )}
-          </CollapsibleSection>
-        );
-      })()}
     </div>
   );
 }

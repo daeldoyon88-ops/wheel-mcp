@@ -14,6 +14,12 @@ import {
   getSeasonalityCacheStats,
   getSeasonalityDiagnostic,
 } from "./seasonalityEngine.js";
+import {
+  computeSeasonalityBacktest,
+  buildBacktestApiResponse,
+  parseBacktestOutputOptions,
+  resolveBacktestTickerList,
+} from "./seasonalityBacktest.js";
 
 const router   = Router();
 const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
@@ -70,6 +76,129 @@ router.get("/scan-summary", async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "scan_summary_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/backtest?year=2025&tickers=TQQQ,NVDA,PLTR
+ * Backtest saisonnier par année cible — anti-lookahead strict.
+ * Les signaux pour l'année N sont construits uniquement avec les données des années < N.
+ *
+ * Paramètres :
+ *   year          Année cible (défaut : année précédente). Doit être < année courante.
+ *   tickers       Liste de tickers séparés par virgule (prioritaire sur source).
+ *   source        Source prédéfinie : top20-wheel | strict-watchlist | fallback65.
+ *   windows       Durées de fenêtre en jours (défaut : 20,40,60,90).
+ *   minSamples    Taille d'échantillon minimum (défaut : 5).
+ *   bullishWinRate Taux de réussite minimum pour signal haussier (défaut : 0.65).
+ *   bearishWinRate Taux de réussite maximum pour signal baissier (défaut : 0.45).
+ *   includeSignals  Si 1/true : inclut signals[] (défaut : absent).
+ *   signalsLimit    Max signaux détaillés si includeSignals (défaut 100, max 500).
+ *   bestLimit       Top signaux réussis dans globalSummary.bestSignals (défaut 10).
+ *   worstLimit      Top signaux échoués dans globalSummary.worstSignals (défaut 10).
+ */
+router.get("/backtest", async (req, res) => {
+  try {
+    // ── Année cible ──────────────────────────────────────────────────────────
+    const currentYear = new Date().getUTCFullYear();
+    const yearRaw     = req.query.year;
+    const year        = yearRaw ? parseInt(yearRaw, 10) : currentYear - 1;
+
+    if (!Number.isFinite(year) || year < 2010 || year >= currentYear) {
+      return res.status(400).json({
+        ok: false,
+        error: `Paramètre year invalide: ${yearRaw ?? "(absent)"}. Attendu entre 2010 et ${currentYear - 1}.`,
+        warnings: [],
+      });
+    }
+
+    // ── Tickers ou source ────────────────────────────────────────────────────
+    const resolved = resolveBacktestTickerList({
+      tickersRaw: req.query.tickers,
+      sourceRaw:  req.query.source,
+    });
+
+    if (!resolved.ok) {
+      const status = resolved.error?.includes('Source inconnue') ? 200 : 400;
+      return res.status(status).json({
+        ok: false,
+        error: resolved.error,
+        warnings: [],
+      });
+    }
+
+    const { tickers, source: sourceLabel } = resolved;
+
+    if (!tickers.length) {
+      return res.status(400).json({ ok: false, error: "Aucun ticker fourni.", warnings: [] });
+    }
+
+    if (tickers.length > 50) {
+      return res.status(400).json({ ok: false, error: "Maximum 50 tickers par requête.", warnings: [] });
+    }
+
+    // Validation format tickers
+    const invalidTickers = tickers.filter(t => !TICKER_RE.test(t));
+    if (invalidTickers.length) {
+      return res.status(400).json({
+        ok: false,
+        error: `Tickers au format invalide : ${invalidTickers.join(", ")}`,
+        warnings: [],
+      });
+    }
+
+    // ── Paramètres optionnels ────────────────────────────────────────────────
+    const windowsRaw  = String(req.query.windows ?? "").trim();
+    const windowDays  = windowsRaw
+      ? windowsRaw.split(",").map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n) && n > 0)
+      : [20, 40, 60, 90];
+
+    const minSamples    = Math.max(1, parseInt(req.query.minSamples    ?? "5",    10) || 5);
+    const bullishWinRate = Math.min(1, Math.max(0, parseFloat(req.query.bullishWinRate ?? "0.65") || 0.65));
+    const bearishWinRate = Math.min(1, Math.max(0, parseFloat(req.query.bearishWinRate ?? "0.45") || 0.45));
+    const outputOptions  = parseBacktestOutputOptions(req.query);
+
+    if (!windowDays.length) {
+      return res.status(400).json({ ok: false, error: "Paramètre windows invalide.", warnings: [] });
+    }
+
+    const parameters = {
+      windows:        windowDays,
+      minSamples,
+      bullishWinRate,
+      bearishWinRate,
+      includeSignals: outputOptions.includeSignals,
+      signalsLimit:   outputOptions.signalsLimit,
+      bestLimit:      outputOptions.bestLimit,
+      worstLimit:     outputOptions.worstLimit,
+    };
+
+    // ── Backtest ─────────────────────────────────────────────────────────────
+    const result = await computeSeasonalityBacktest({
+      year,
+      tickers,
+      windowDays,
+      minSamples,
+      bullishWinRate,
+      bearishWinRate,
+      bestLimit:  outputOptions.bestLimit,
+      worstLimit: outputOptions.worstLimit,
+    });
+
+    return res.json(buildBacktestApiResponse({
+      year,
+      source: sourceLabel,
+      parameters,
+      result,
+      outputOptions,
+    }));
+
+  } catch (err) {
+    res.status(500).json({
+      ok:       false,
+      error:    String(err?.message ?? "backtest_failed"),
+      warnings: [],
+    });
   }
 });
 

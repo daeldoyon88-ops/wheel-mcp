@@ -1206,6 +1206,17 @@ export async function getSeasonalityDiagnostic(symbol) {
   };
 }
 
+/**
+ * Expose l'historique brut pour le backtest saisonnier.
+ * Partage le _histCache existant — aucun appel Yahoo supplémentaire si déjà en cache.
+ * Retourne null si l'historique est indisponible ou insuffisant.
+ */
+export async function fetchHistoryRows(symbol) {
+  const sym = String(symbol ?? '').trim().toUpperCase();
+  if (!sym) return null;
+  return _fetchHistory(sym);
+}
+
 /** Ops diagnostic — cache sizes and configuration. */
 export function getSeasonalityCacheStats() {
   return {

@@ -51,6 +51,7 @@ import {
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
+const SeasonalityPanel = React.lazy(() => import("./components/SeasonalityPanel.jsx"));
 
 function nextNFridays(n = 6) {
   const fridays = [];
@@ -11582,8 +11583,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0b1117] text-slate-100">
-      <div className="w-full px-2 py-3 md:px-3 lg:px-4">
-        <motion.div
+      <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
+        {activeView !== "seasonality" && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
@@ -11608,26 +11609,47 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-        </motion.div>
+        </motion.div>}
 
-        <div className="mb-6 flex items-center justify-end gap-2">
-          <Button
-            variant={activeView === "dashboard" ? "default" : "outline"}
-            className="rounded-xl"
-            onClick={() => setActiveView("dashboard")}
-          >
-            Dashboard
-          </Button>
-          <Button
-            variant={activeView === "journal" ? "default" : "outline"}
-            className="rounded-xl"
-            onClick={() => setActiveView("journal")}
-          >
-            Journal POP <Database className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+        {activeView !== "seasonality" && (
+          <div className="mb-6 flex items-center justify-end gap-2">
+            <Button
+              variant={activeView === "dashboard" ? "default" : "outline"}
+              className="rounded-xl"
+              onClick={() => setActiveView("dashboard")}
+            >
+              Dashboard
+            </Button>
+            <Button
+              variant={activeView === "seasonality" ? "default" : "outline"}
+              className="rounded-xl"
+              onClick={() => setActiveView("seasonality")}
+              style={activeView === "seasonality" ? { background: "#7c3aed", borderColor: "#7c3aed" } : {}}
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Saisonnalité
+            </Button>
+            <Button
+              variant={activeView === "journal" ? "default" : "outline"}
+              className="rounded-xl"
+              onClick={() => setActiveView("journal")}
+            >
+              Journal POP <Database className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
-        {activeView === "dashboard" ? (
+        {activeView === "seasonality" ? (
+          <React.Suspense
+            fallback={
+              <div className="rounded-[28px] border border-slate-700 bg-slate-900 p-8 text-sm text-slate-500 shadow-sm">
+                Chargement de la saisonnalité…
+              </div>
+            }
+          >
+            <SeasonalityPanel apiBase={API_BASE} onNavigate={setActiveView} />
+          </React.Suspense>
+        ) : activeView === "dashboard" ? (
           <>
             <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>

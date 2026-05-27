@@ -28,6 +28,10 @@ import {
   resolvedV3SimulationMaxAbsoluteSpread,
 } from "../diagnostics/yahooLiquidityV3Simulation.js";
 import { loadMasterUniverse, loadMergedUniverse } from "./universeLoader.js";
+import {
+  collectCryptoFilterDiagnostics,
+  isCryptoDigitalAssetBlocked,
+} from "./cryptoWheelFilter.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -77,12 +81,6 @@ const PRIORITY_WHEEL_SET = new Set(PRIORITY_WHEEL_SYMBOLS);
 
 /** ETF à levier favoris pour le classement Strict Watchlist (bonus sortScore uniquement, sans effet sur les filtres). */
 const STRICT_WATCHLIST_FAVORITE_ETFS = new Set(["TQQQ", "TNA", "SSO"]);
-
-/** Tickers crypto exclus définitivement du pipeline Wheel. BITX n'est pas dans cette liste. */
-const CRYPTO_BLOCKED_SYMBOLS = new Set([
-  "IBIT", "BITO", "RIOT", "CIFR", "WULF", "IREN",
-  "MARA", "CLSK", "HUT", "BTBT", "COIN", "BITF", "BMNR",
-]);
 
 const CATEGORY_PRIORITY = {
   weekly: 1,
@@ -453,11 +451,14 @@ export function createWatchlistBuilder(deps) {
     };
 
     const rawUniverse = loadMergedUniverse({ categories: criteria.categories }).filter((r) => r.enabled);
-    const cryptoBlockedRemovedCount = rawUniverse.filter(
-      (r) => CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase())
-    ).length;
+    const cryptoFilterDiag = collectCryptoFilterDiagnostics(
+      rawUniverse.map((r) => r.symbol)
+    );
+    const cryptoBlockedRemovedCount = cryptoFilterDiag.cryptoBlockedRemovedCount;
+    const cryptoBlockedRemovedSymbols = cryptoFilterDiag.cryptoBlockedRemovedSymbols;
+    const cryptoAllowedRetained = cryptoFilterDiag.cryptoAllowedRetained;
     const source = rawUniverse
-      .filter((r) => !CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase()))
+      .filter((r) => !isCryptoDigitalAssetBlocked(r.symbol))
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
 
     const otmReplayExport =
@@ -982,12 +983,16 @@ export function createWatchlistBuilder(deps) {
           ? criteria.liquidityOtmProbePct
           : DEFAULT_LIQUIDITY_OTM_PROBE_PCT;
 
+    const truncatedSymbols = keptRows.slice(limit).map((r) => r.symbol);
+
     const stats = {
       sourceCount: source.length,
       keptCount: watchlist.length,
       retainedAfterFiltersCount: keptRows.length,
       rejectedCount: rejected.length,
       truncated: overflow > 0 ? overflow : 0,
+      /** Diagnostic seulement — symboles viables exclus par la limite watchlist (n’altère pas la sélection). */
+      truncatedSymbols,
       limitApplied: limit,
       priorityCount,
       tier1Count,
@@ -997,6 +1002,9 @@ export function createWatchlistBuilder(deps) {
       top30Tickers: top30,
       top30HardcodedTierCount,
       cryptoBlockedRemovedCount,
+      cryptoBlockedRemovedSymbols,
+      cryptoAllowedRetained,
+      cryptoRelatedEquityPresent: cryptoFilterDiag.cryptoRelatedEquityPresent,
       rejectedByReason,
       fundamentalsCachePath: fundamentalsCachePathAbs(),
       fundamentalsCacheLoaded: fundamentalsBySymbol.size,

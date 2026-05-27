@@ -14,8 +14,24 @@ import {
   Database,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
+import {
+  buildOtmPoolSourceBannerMessage,
+  buildOtmRebuildRequiredMessage,
+  buildPreIbkrCutTickerList,
+  buildTickerPipelineDiagnostic,
+  buildWatchlistRejectedBySymbol,
+  buildYahooRejectedBySymbol,
+  isOtmRebuildRequired,
+  normalizeTickerQueryForDiagnostic,
+  summarizePreIbkrCutByCategory,
+} from "./tickerPipelineDiagnostic.js";
+import {
+  normalizeExpirationKey,
+  candidateRowMatchesSelectedExpiration,
+} from "./expirationKey.js";
 import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
-import { getTickerDisplayMeta, QUALITY_TIER_STYLE, USER_PREFS } from "./tickerMeta.js";
+import { getTickerDisplayMeta, QUALITY_TIER_STYLE, USER_PREFS, CRYPTO_BLOCK_REASON } from "./tickerMeta.js";
+import { isCryptoDigitalAssetBlocked } from "../../app/watchlist/cryptoWheelFilter.js";
 import {
   buildPortfolioCombos,
   buildCapitalComboCandidate,
@@ -49,6 +65,11 @@ import {
   readStoredResearchExpandedLimit,
   resolvePreIbkrTickers,
 } from "./preIbkrPool.js";
+import {
+  attemptSafeSpreadRescue,
+  getActiveSpreadPctForSelectedMode,
+  shouldGlobalSpreadReject,
+} from "../../app/calculations/safeSpreadRescue.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -372,6 +393,7 @@ function computeModeRecommendation({
   hasUpcomingEarningsBeforeExpiration,
   hasEarningsBeforeExpiration,
   earningsDaysUntil,
+  safeSpreadRescueDiagnostics = null,
 }) {
   const safePremium = Number(
     safeStrike?.premiumUsed ?? safeStrike?.bid ?? safeStrike?.mid ?? safeStrike?.premium
@@ -588,6 +610,9 @@ function computeModeRecommendation({
       recommendedMode,
       recommendedGrade,
       reasons,
+      ...(safeSpreadRescueDiagnostics && typeof safeSpreadRescueDiagnostics === "object"
+        ? safeSpreadRescueDiagnostics
+        : {}),
     },
   };
 }
@@ -915,13 +940,7 @@ function isPastYmd(value, today = ymdTodayLocal()) {
 
 /** YYYY-MM-DD ou YYYYMMDD → YYYY-MM-DD pour comparaisons. */
 function normalizeExpirationYmd(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  if (!s) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  return null;
+  return normalizeExpirationKey(value);
 }
 
 function computeDteAtScan(scanTimestamp, expirationYmd) {
@@ -949,23 +968,6 @@ function resolveMergedDteDays({ ibkrDte, yahooDte, expirationYmd, todayYmd = ymd
   if (Number.isFinite(yahoo) && yahoo >= 0) return Math.max(0, Math.ceil(yahoo));
 
   return null;
-}
-
-/** Filtre d’affichage : aucune carte dont l’expiration explicite ne correspond pas à la sélection. */
-function candidateRowMatchesSelectedExpiration(item, selectedExp) {
-  const sel = normalizeExpirationYmd(selectedExp);
-  if (!sel) return true;
-  const fields = [
-    item?.targetExpiration,
-    item?.expiration,
-    item?.raw?.expiration,
-    item?.yahoo?.targetExpiration,
-  ];
-  for (const f of fields) {
-    const n = normalizeExpirationYmd(f);
-    if (n && n !== sel) return false;
-  }
-  return true;
 }
 
 /**
@@ -1117,6 +1119,19 @@ function buildYahooDiagnosticsFromScanPayload(payload, fallbackMeta = {}) {
     },
     fallbackMeta
   );
+}
+
+/** Extrait les index diagnostic watchlist depuis le payload /universe/build. */
+function extractWatchlistBuildDiagnostics(payload) {
+  const rejectedRows = Array.isArray(payload?.rejected) ? payload.rejected : [];
+  const truncatedSymbols = Array.isArray(payload?.stats?.truncatedSymbols)
+    ? payload.stats.truncatedSymbols
+    : [];
+  return {
+    watchlistRejectedRows: rejectedRows,
+    watchlistTruncatedSymbols: truncatedSymbols,
+    watchlistRejectedBySymbol: buildWatchlistRejectedBySymbol({ rejectedRows, truncatedSymbols }),
+  };
 }
 
 /** Hors marché : marque les candidats /scan_shortlist comme indicatifs (non décision de trade). */
@@ -1298,8 +1313,29 @@ function toDashboardCandidate(item, index, selectedExpiration) {
 
 function toDashboardCandidate_V12(item, index, selectedExpiration) {
   const activeEarningsMode = item?.earningsMode === true;
-  const safe = item?.ibkrSafeStrike ?? item?.safeStrike ?? null;
+  let safe = item?.ibkrSafeStrike ?? item?.safeStrike ?? null;
   const aggressive = item?.ibkrAggressiveStrike ?? item?.aggressiveStrike ?? item?.maxPremiumStrike ?? null;
+  const putCandidatesForRescue =
+    item?.putCandidates ?? item?.raw?.putCandidates ?? item?.ibkr?.putCandidates ?? [];
+  const safeSpreadRescueFromIbkr = item?.safeSpreadRescue ?? item?.raw?.safeSpreadRescue ?? null;
+  const alreadyRescuedByIbkr =
+    safe?.safeSpreadRescueApplied === true || safeSpreadRescueFromIbkr?.safeSpreadRescueTriggered === true;
+  const safeSpreadRescueResult = attemptSafeSpreadRescue({
+    safeStrike: safe,
+    aggressiveStrike: aggressive,
+    putCandidates: putCandidatesForRescue,
+    lowerBound: item?.lowerBound ?? item?.expectedMoveLow ?? null,
+    targetPremium: item?.targetPremium ?? item?.minPremium ?? null,
+    spot: item?.currentPrice ?? item?.underlyingPrice ?? item?.price ?? null,
+    allStrikes: putCandidatesForRescue.map((p) => p?.strike).filter((s) => s != null),
+    skipIfAlreadyRescued: alreadyRescuedByIbkr,
+  });
+  safe = safeSpreadRescueResult.safeStrike ?? safe;
+  const safeSpreadRescueDiagnostics =
+    safeSpreadRescueFromIbkr ??
+    safeSpreadRescueResult.diagnostics ??
+    safe?.safeSpreadRescueDiagnostics ??
+    null;
   const primaryStrike = safe || aggressive;
   const impliedVolatility = safe?.impliedVolatility ?? aggressive?.impliedVolatility ?? null;
   const preferredExpectedMove = item?.ibkrExpectedMove ?? item?.expectedMove ?? null;
@@ -1395,6 +1431,7 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     hasUpcomingEarningsBeforeExpiration: item.hasUpcomingEarningsBeforeExpiration ?? false,
     hasEarningsBeforeExpiration: item.hasEarningsBeforeExpiration ?? false,
     earningsDaysUntil,
+    safeSpreadRescueDiagnostics,
   });
   const finalDisplayRecommendation = getFinalDisplayRecommendation({
     safeStrike: safeStrikeMapped,
@@ -1458,6 +1495,7 @@ function toDashboardCandidate_V12(item, index, selectedExpiration) {
     finalDisplayGrade: finalDisplayRecommendation.finalDisplayGrade,
     recommendedReason: modeRecommendation.recommendedReason,
     recommendationDiagnostics: modeRecommendation.recommendationDiagnostics,
+    safeSpreadRescue: safeSpreadRescueDiagnostics,
     premium:
       safe && aggressive
         ? `${safe.premium?.toFixed(2) ?? "—"} / ${aggressive.premium?.toFixed(2) ?? "—"}`
@@ -5478,14 +5516,27 @@ function getCreamQualityBucket(card) {
   }
 
   if (meta.isCryptoBlocked && !meta.isCryptoAllowed) {
-    return { bucket: "cryptoBlocked", label: "Crypto bloqués / exclus", reasons: ["crypto non autorisé stratégie Wheel"] };
+    return {
+      bucket: "cryptoBlocked",
+      label: "Crypto bloqués / exclus",
+      reasons: [meta.cryptoBlockReason || CRYPTO_BLOCK_REASON],
+    };
   }
   if (meta.qualityTier === "Inconnu à valider") {
     return { bucket: "unknownReview", label: "Inconnus à valider", reasons: ["Ajouter à tickerMeta.js pour le classer"] };
   }
-  if ((safe != null && safe > 80) || (agg != null && agg > 80)) {
-    const worst = Math.max(safe ?? 0, agg ?? 0);
-    return { bucket: "spreadRejected", label: "Rejetés pour spread", reasons: [`spread extrême ${worst.toFixed(0)}%`] };
+  if (shouldGlobalSpreadReject(card)) {
+    const activeSpread =
+      getActiveSpreadPctForSelectedMode({
+        safeSpreadPct: safe,
+        aggressiveSpreadPct: agg,
+        card,
+      }) ?? Math.max(safe ?? 0, agg ?? 0);
+    return {
+      bucket: "spreadRejected",
+      label: "Rejetés pour spread",
+      reasons: [`spread extrême ${activeSpread.toFixed(0)}%`],
+    };
   }
   const { finalDisplayMode: mode, finalDisplayGrade: recGrade } = getFinalDisplayRecommendation(card);
   const isTopGrade = (mode === "SAFE" || mode === "AGGRESSIVE") && (recGrade === "A" || recGrade === "B");
@@ -9218,6 +9269,179 @@ function PortfolioCombos({
   );
 }
 
+function formatPipelineYesNo(value) {
+  return value ? "oui" : "non";
+}
+
+function formatPipelineLegSummary(leg) {
+  if (!leg || leg.status === "absent") return "—";
+  const parts = [];
+  if (leg.strike != null) parts.push(`strike ${leg.strike}`);
+  if (leg.yieldPct != null) parts.push(`yield ${leg.yieldPct.toFixed(2)}%`);
+  if (leg.spreadPct != null) parts.push(`spread ${leg.spreadPct.toFixed(1)}%`);
+  if (leg.bid != null) parts.push(`bid ${leg.bid.toFixed(2)}`);
+  parts.push(`[${leg.status}]`);
+  return parts.join(" · ");
+}
+
+/** Panneau read-only sous la barre de recherche (ticker exact seulement). */
+function TickerPipelineDiagnosticPanel({ diagnostic }) {
+  if (!diagnostic) return null;
+  const d = diagnostic;
+  return (
+    <div
+      className="mt-2 w-full rounded-xl border border-cyan-800/50 bg-cyan-950/25 p-3 text-xs text-cyan-50"
+      data-testid="ticker-pipeline-diagnostic"
+    >
+      <p className="font-semibold text-cyan-100">
+        Diagnostic pipeline pour {d.ticker}
+      </p>
+      <ul className="mt-2 space-y-1 text-cyan-100/90">
+        <li>
+          Yahoo : {formatPipelineYesNo(d.presentInYahoo)}
+          {d.yahooRank != null ? ` · rang ${d.yahooRank}` : ""}
+          {d.yahooStatus ? ` · ${d.yahooStatus}` : ""}
+        </li>
+        <li>IBKR envoyé : {formatPipelineYesNo(d.sentToIbkr)}</li>
+        <li>IBKR shortlist : {formatPipelineYesNo(d.presentInIbkrShortlist)}</li>
+        <li>
+          IBKR rejected : {formatPipelineYesNo(d.presentInIbkrRejected)}
+          {d.ibkrRejectReason ? ` · ${d.ibkrRejectReason}` : ""}
+        </li>
+        <li>Cartes primaires (backendCandidates) : {formatPipelineYesNo(d.presentInBackendCandidates)}</li>
+        <li>Cartes filtrées (filtered) : {formatPipelineYesNo(d.presentInFilteredCards)}</li>
+        <li>Combo pool éligible : {formatPipelineYesNo(d.presentInComboPool)}</li>
+        <li>SAFE : {formatPipelineLegSummary(d.safeCandidateSummary)}</li>
+        <li>AGGRESSIVE : {formatPipelineLegSummary(d.aggressiveCandidateSummary)}</li>
+        <li>
+          Mode sélectionné : {d.selectedMode ?? "—"} · Statut : {d.finalStatus ?? "—"}
+        </li>
+        <li>
+          Perdu à l&apos;étape : {d.lostAtStep ?? "— (visible)"}
+        </li>
+        <li className="text-cyan-200/80">Raison probable : {d.likelyReason ?? "—"}</li>
+        {d.yahooRejectReason ? (
+          <li className="text-amber-200/90">Rejet Yahoo : {d.yahooRejectReason}</li>
+        ) : null}
+        {d.preScanAbsentReason ? (
+          <li className="text-amber-200/90">Pré-scan : {d.preScanAbsentReason}</li>
+        ) : null}
+        <li className="mt-1 border-t border-cyan-900/40 pt-2 font-medium text-cyan-100">Sonde OTM watchlist</li>
+        <li>
+          UI sélectionnée : {d.liquidityOtmProbePctSelected ?? "—"}% · Dernier rebuild :{" "}
+          {d.liquidityOtmProbePctApplied ?? "—"}%
+        </li>
+        <li>Pool scan : {d.poolSource ?? "—"}</li>
+        <li>
+          Statut sonde : {d.otmProbeStatus ?? "unknown"}
+          {d.otmProbeNote ? ` · ${d.otmProbeNote}` : ""}
+        </li>
+        {d.otmMismatchNote ? (
+          <li className="text-amber-200/90">{d.otmMismatchNote}</li>
+        ) : null}
+        {d.otmRebuildRequiredMessage ? (
+          <li className="text-amber-200/90">{d.otmRebuildRequiredMessage}</li>
+        ) : null}
+      </ul>
+      {Array.isArray(d.pipelineTrace) && d.pipelineTrace.length > 0 && (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-cyan-900/40">
+          <table className="min-w-full text-[10px]">
+            <thead>
+              <tr className="border-b border-cyan-900/50 text-left text-cyan-300/80">
+                <th className="px-2 py-1 font-medium">Étape</th>
+                <th className="px-2 py-1 font-medium">Présent</th>
+                <th className="px-2 py-1 font-medium">Raison</th>
+                <th className="px-2 py-1 font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.pipelineTrace.map((row) => (
+                <tr key={row.step} className="border-b border-cyan-950/60 text-cyan-100/85">
+                  <td className="px-2 py-1">{row.step}</td>
+                  <td className="px-2 py-1">{formatPipelineYesNo(row.present)}</td>
+                  <td className="px-2 py-1">{row.reason || "—"}</td>
+                  <td className="px-2 py-1 text-cyan-300/60">{row.source || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-2 text-[10px] text-cyan-300/60">
+        Lecture seule — ne modifie pas les cartes ni les combos. Source : {d.dataSource ?? "—"}
+        {d.topN != null ? ` · topN ${d.topN}` : ""}
+        {d.ibkrAutoMaxTickers != null ? ` · IBKR depth ${d.ibkrAutoMaxTickers}` : ""}
+      </p>
+    </div>
+  );
+}
+
+/** Panneau global — tickers coupés avant IBKR. */
+function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return (
+    <div
+      className="mt-4 rounded-xl border border-amber-900/40 bg-amber-950/15 p-3"
+      data-testid="pre-ibkr-cut-diagnostics"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-medium text-amber-100">Tickers coupés avant IBKR ({rows.length})</p>
+        {typeof onExportCsv === "function" && (
+          <button
+            type="button"
+            className="rounded-lg border border-amber-800/60 px-2 py-1 text-[11px] text-amber-200 hover:bg-amber-900/30"
+            onClick={onExportCsv}
+          >
+            Exporter CSV
+          </button>
+        )}
+      </div>
+      {summary?.counts && (
+        <p className="mt-1 text-[11px] text-amber-200/80">
+          {Object.entries(summary.counts)
+            .filter(([, n]) => Number(n) > 0)
+            .map(([key, n]) => `${summary.labels?.[key] ?? key}: ${n}`)
+            .join(" · ")}
+        </p>
+      )}
+      <div className="mt-2 max-h-64 overflow-auto">
+        <table className="min-w-full text-[11px] text-amber-50/90">
+          <thead>
+            <tr className="border-b border-amber-900/40 text-left text-amber-200/70">
+              <th className="px-2 py-1">Ticker</th>
+              <th className="px-2 py-1">Stage perdu</th>
+              <th className="px-2 py-1">Raison</th>
+              <th className="px-2 py-1">Universe</th>
+              <th className="px-2 py-1">Watchlist</th>
+              <th className="px-2 py-1">Yahoo</th>
+              <th className="px-2 py-1">Rejet Y.</th>
+              <th className="px-2 py-1">Crypto</th>
+              <th className="px-2 py-1">OTM</th>
+              <th className="px-2 py-1">Commentaire</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.ticker} className="border-b border-amber-950/50">
+                <td className="px-2 py-1 font-medium">{row.ticker}</td>
+                <td className="px-2 py-1">{row.stageLost ?? "—"}</td>
+                <td className="px-2 py-1">{row.reason ?? "—"}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.wasInUniverse)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.wasInWatchlist)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.sentYahoo)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.rejectedYahoo)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(!row.cryptoBlocked)}</td>
+                <td className="px-2 py-1">{row.otmProbeStatus ?? "—"}</td>
+                <td className="px-2 py-1 text-amber-100/70">{row.comment ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const readStoredNumber = (key, fallback) => {
     const raw = window.localStorage.getItem(key);
@@ -9368,6 +9592,10 @@ export default function Dashboard() {
   });
   const [yahooReturnedCandidates, setYahooReturnedCandidates] = useState([]);
   const [yahooDiagnostics, setYahooDiagnostics] = useState(() => createEmptyYahooDiagnostics());
+  const [yahooRejectedBySymbol, setYahooRejectedBySymbol] = useState({});
+  const [watchlistRejectedBySymbol, setWatchlistRejectedBySymbol] = useState({});
+  const [watchlistRejectedRows, setWatchlistRejectedRows] = useState([]);
+  const [watchlistTruncatedSymbols, setWatchlistTruncatedSymbols] = useState([]);
   const [yahooSentToScanCount, setYahooSentToScanCount] = useState(0);
   const [yahooScanErrorCount, setYahooScanErrorCount] = useState(0);
   const [yahooRequestedTopN, setYahooRequestedTopN] = useState(0);
@@ -9454,6 +9682,7 @@ export default function Dashboard() {
     setYahooScanMeta({ scanned: 0, kept: 0, returned: 0 });
     setYahooReturnedCandidates([]);
     setYahooDiagnostics(createEmptyYahooDiagnostics());
+    setYahooRejectedBySymbol({});
     setYahooSentToScanCount(0);
     setYahooScanErrorCount(0);
     setYahooRequestedTopN(0);
@@ -9693,10 +9922,23 @@ export default function Dashboard() {
   );
 
   const _rawWatchlist = resolvedPreIbkrPool.tickers;
-  const tickersForScan = _rawWatchlist.filter(
-    (t) => !USER_PREFS.cryptoBlocked.has(String(t || "").trim().toUpperCase())
-  );
-  const cryptoRemovedFromWatchlistCount = _rawWatchlist.length - tickersForScan.length;
+  const cryptoRemovedFromPreIbkrPool = resolvedPreIbkrPool.cryptoRemovedFromPool ?? [];
+  const tickersForScan = _rawWatchlist.filter((t) => !isCryptoDigitalAssetBlocked(t));
+  const cryptoRemovedFromWatchlistCount = cryptoRemovedFromPreIbkrPool.length;
+  const cryptoBlockedRemovedSymbols = useMemo(() => {
+    const fromBuild = Array.isArray(watchlistStats?.cryptoBlockedRemovedSymbols)
+      ? watchlistStats.cryptoBlockedRemovedSymbols
+      : [];
+    const fromPreIbkr = cryptoRemovedFromPreIbkrPool;
+    return [...new Set([...fromBuild, ...fromPreIbkr].map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))].sort();
+  }, [watchlistStats, cryptoRemovedFromPreIbkrPool]);
+  const cryptoAllowedRetained = useMemo(() => {
+    const fromBuild = Array.isArray(watchlistStats?.cryptoAllowedRetained)
+      ? watchlistStats.cryptoAllowedRetained
+      : [];
+    const fromPool = tickersForScan.filter((t) => USER_PREFS.cryptoAllowed.has(String(t || "").trim().toUpperCase()));
+    return [...new Set([...fromBuild, ...fromPool])].sort();
+  }, [watchlistStats, tickersForScan]);
   const ibkrDirectTickers = useMemo(
     () => [...new Set((tickersForScan || []).map((t) => String(t || "").trim().toUpperCase()).filter(Boolean))],
     [tickersForScan]
@@ -9903,7 +10145,10 @@ export default function Dashboard() {
   }, [filtered]);
   const pipelineFunnelDiagnostics = useMemo(() => {
     const universeSourceCount = Number(watchlistStats?.sourceCount ?? 0);
-    const excludedCrypto = Number(watchlistStats?.cryptoBlockedRemovedCount ?? cryptoRemovedFromWatchlistCount ?? 0);
+    const excludedCrypto = Math.max(
+      Number(watchlistStats?.cryptoBlockedRemovedCount ?? 0),
+      Number(cryptoRemovedFromWatchlistCount ?? 0)
+    );
     const universeMasterActive = Math.max(
       0,
       universeSourceCount > 0 ? universeSourceCount + excludedCrypto : (watchlistTickers?.length ?? 0) + excludedCrypto
@@ -10038,6 +10283,8 @@ export default function Dashboard() {
       universeMasterActive,
       categoriesSelected,
       excludedCrypto,
+      cryptoBlockedRemovedSymbols,
+      cryptoAllowedRetained,
       buildExcluded: Number(watchlistStats?.rejectedCount ?? 0),
       watchlistKept,
       watchlistRejected,
@@ -10084,6 +10331,8 @@ export default function Dashboard() {
   }, [
     watchlistStats,
     cryptoRemovedFromWatchlistCount,
+    cryptoBlockedRemovedSymbols,
+    cryptoAllowedRetained,
     watchlistTickers,
     yahooSentToScanCount,
     yahooScanMeta,
@@ -10171,6 +10420,183 @@ export default function Dashboard() {
       ),
     [enrichedCandidates]
   );
+
+  const pipelineTickerDiagnosticQuery = useMemo(
+    () => normalizeTickerQueryForDiagnostic(query),
+    [query]
+  );
+
+  const pipelineTickerDiagnostic = useMemo(() => {
+    if (!pipelineTickerDiagnosticQuery) return null;
+    const sym = pipelineTickerDiagnosticQuery;
+    let notDisplayedReason = null;
+    if (ibkrKeptSymbols.has(sym) && !ibkrDisplayedSymbols.has(sym)) {
+      const retainedRow = ibkrRetainedBySymbol.get(sym);
+      const preYahoo = candidateByTickerForPreIbkr.get(sym) ?? null;
+      const mergedForReason =
+        retainedRow != null
+          ? {
+              ...(preYahoo || {}),
+              ...retainedRow,
+              safeStrike: retainedRow?.safeStrike ?? preYahoo?.safeStrike,
+              aggressiveStrike: retainedRow?.aggressiveStrike ?? preYahoo?.aggressiveStrike,
+              ticker: sym,
+            }
+          : preYahoo;
+      if (mergedForReason) {
+        notDisplayedReason = getRetainedNotDisplayedReason(mergedForReason, ibkrDisplayedScoreFloor);
+      }
+    }
+    return buildTickerPipelineDiagnostic(sym, {
+      tickersForScan,
+      yahooReturnedCandidates,
+      yahooDiagnostics,
+      yahooRejectedBySymbol,
+      watchlistRejectedBySymbol,
+      watchlistTickers: watchlistTickers ?? [],
+      watchlistTruncatedSymbols,
+      researchExpandedPool,
+      preIbkrPoolMode,
+      cryptoBlockedRemovedSymbols,
+      ibkrDirectSentTickers,
+      ibkrDirectResult,
+      backendCandidates: backendCandidates ?? [],
+      enrichedCandidates,
+      filtered,
+      combos,
+      capital: Number(capital),
+      maxCapitalPct: Number(maxCapitalPct),
+      ibkrRejectedSymbols,
+      yahooRankForIbkrBySymbol,
+      selectedExpiration,
+      filter,
+      dataSource,
+      topN,
+      ibkrAutoMaxTickers,
+      notDisplayedReason,
+      liquidityOtmProbePctSelected: watchlistOtmProbePct,
+      liquidityOtmProbePctApplied: watchlistStats?.liquidityOtmProbePctApplied ?? null,
+      scanPoolSource: lastScanPoolMeta.poolSource || preIbkrPoolMode,
+      watchlistMode: watchlistStats?.watchlistMode ?? DEFAULT_BUILD_WATCHLIST_BODY.watchlistMode,
+    });
+  }, [
+    pipelineTickerDiagnosticQuery,
+    tickersForScan,
+    yahooReturnedCandidates,
+    yahooDiagnostics,
+    yahooRejectedBySymbol,
+    watchlistRejectedBySymbol,
+    watchlistTickers,
+    watchlistTruncatedSymbols,
+    researchExpandedPool,
+    preIbkrPoolMode,
+    cryptoBlockedRemovedSymbols,
+    ibkrDirectSentTickers,
+    ibkrDirectResult,
+    backendCandidates,
+    enrichedCandidates,
+    filtered,
+    combos,
+    capital,
+    maxCapitalPct,
+    ibkrRejectedSymbols,
+    yahooRankForIbkrBySymbol,
+    selectedExpiration,
+    filter,
+    dataSource,
+    topN,
+    ibkrAutoMaxTickers,
+    ibkrKeptSymbols,
+    ibkrDisplayedSymbols,
+    ibkrRetainedBySymbol,
+    candidateByTickerForPreIbkr,
+    ibkrDisplayedScoreFloor,
+    watchlistOtmProbePct,
+    watchlistStats,
+    lastScanPoolMeta.poolSource,
+  ]);
+
+  const liquidityOtmProbePctApplied = watchlistStats?.liquidityOtmProbePctApplied ?? null;
+  const otmRebuildRequired = useMemo(
+    () => isOtmRebuildRequired(watchlistOtmProbePct, liquidityOtmProbePctApplied),
+    [watchlistOtmProbePct, liquidityOtmProbePctApplied]
+  );
+  const otmRebuildRequiredMessage = useMemo(
+    () => (otmRebuildRequired ? buildOtmRebuildRequiredMessage(watchlistOtmProbePct) : null),
+    [otmRebuildRequired, watchlistOtmProbePct]
+  );
+  const otmPoolSourceBannerMessage = useMemo(
+    () => buildOtmPoolSourceBannerMessage(lastScanPoolMeta.poolSource || preIbkrPoolMode),
+    [lastScanPoolMeta.poolSource, preIbkrPoolMode]
+  );
+
+  const preIbkrCutTickerList = useMemo(
+    () =>
+      buildPreIbkrCutTickerList({
+        watchlistTickers: watchlistTickers ?? [],
+        watchlistRejectedBySymbol,
+        watchlistTruncatedSymbols,
+        cryptoBlockedRemovedSymbols,
+        tickersForScan,
+        yahooRejectedBySymbol,
+        yahooReturnedCandidates,
+        ibkrDirectSentTickers,
+        preIbkrPoolMode,
+        researchExpandedPool,
+      }),
+    [
+      watchlistTickers,
+      watchlistRejectedBySymbol,
+      watchlistTruncatedSymbols,
+      cryptoBlockedRemovedSymbols,
+      tickersForScan,
+      yahooRejectedBySymbol,
+      yahooReturnedCandidates,
+      ibkrDirectSentTickers,
+      preIbkrPoolMode,
+      researchExpandedPool,
+    ]
+  );
+
+  const preIbkrCutSummary = useMemo(
+    () => summarizePreIbkrCutByCategory(preIbkrCutTickerList),
+    [preIbkrCutTickerList]
+  );
+
+  const exportPreIbkrCutCsv = useCallback(() => {
+    const header = [
+      "ticker",
+      "stageLost",
+      "reason",
+      "wasInUniverse",
+      "wasInWatchlist",
+      "sentYahoo",
+      "rejectedYahoo",
+      "cryptoBlocked",
+      "otmProbeStatus",
+      "comment",
+      "category",
+    ];
+    const escape = (value) => {
+      const s = String(value ?? "");
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+    const lines = [
+      header.join(","),
+      ...preIbkrCutTickerList.map((row) =>
+        header.map((key) => escape(row[key])).join(",")
+      ),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `pre-ibkr-cut-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [preIbkrCutTickerList]);
 
   const rememberTechnicalCandidates = useCallback((items) => {
     if (!Array.isArray(items) || items.length === 0) return;
@@ -10842,7 +11268,9 @@ export default function Dashboard() {
         kept: payload.kept ?? mapped.length,
         returned: payload.returned ?? mapped.length,
       });
+      const nextYahooRejectedBySymbol = buildYahooRejectedBySymbol(payload?.rejected);
       setYahooDiagnostics(nextYahooDiagnostics);
+      setYahooRejectedBySymbol(nextYahooRejectedBySymbol);
 
       setLastScanPoolMeta((prev) => ({
         ...prev,
@@ -11016,6 +11444,7 @@ export default function Dashboard() {
             returned: 0,
           })
         );
+        setYahooRejectedBySymbol({});
         setClosedMarketCacheFallback(false);
       }
       if (shouldRunAutoIbkr && runAutoIbkrDirectScanRef.current) {
@@ -11146,10 +11575,17 @@ export default function Dashboard() {
       setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
       setWatchlistSource("backend");
       setWatchlistStats(payload.stats ?? null);
+      const wlDiag = extractWatchlistBuildDiagnostics(payload);
+      setWatchlistRejectedRows(wlDiag.watchlistRejectedRows);
+      setWatchlistTruncatedSymbols(wlDiag.watchlistTruncatedSymbols);
+      setWatchlistRejectedBySymbol(wlDiag.watchlistRejectedBySymbol);
     } catch (err) {
       setWatchlistTickers(FALLBACK_TICKERS);
       setWatchlistSource("fallback");
       setWatchlistStats(null);
+      setWatchlistRejectedRows([]);
+      setWatchlistTruncatedSymbols([]);
+      setWatchlistRejectedBySymbol({});
       setWatchlistBuildError(String(err?.message || err || "universe/build indisponible"));
     } finally {
       setWatchlistLoading(false);
@@ -11407,11 +11843,18 @@ export default function Dashboard() {
         setWatchlistTickers(Array.isArray(payload.watchlist) ? payload.watchlist : []);
         setWatchlistSource("backend");
         setWatchlistStats(payload.stats ?? null);
+        const wlDiag = extractWatchlistBuildDiagnostics(payload);
+        setWatchlistRejectedRows(wlDiag.watchlistRejectedRows);
+        setWatchlistTruncatedSymbols(wlDiag.watchlistTruncatedSymbols);
+        setWatchlistRejectedBySymbol(wlDiag.watchlistRejectedBySymbol);
       } catch (err) {
         if (cancelled) return;
         setWatchlistTickers(FALLBACK_TICKERS);
         setWatchlistSource("fallback");
         setWatchlistStats(null);
+        setWatchlistRejectedRows([]);
+        setWatchlistTruncatedSymbols([]);
+        setWatchlistRejectedBySymbol({});
         setWatchlistBuildError(String(err?.message || err || "universe/build indisponible"));
       } finally {
         if (!cancelled) {
@@ -11802,6 +12245,20 @@ export default function Dashboard() {
             <p className="mt-2 text-xs leading-5 text-slate-500">
               Appliqué au prochain « Rebuild watchlist ». 0 % désactive la sonde OTM (garde le test ATM).
             </p>
+            {otmRebuildRequired && otmRebuildRequiredMessage ? (
+              <p
+                className="mt-2 rounded-lg border border-amber-700/60 bg-amber-950/40 px-2 py-1.5 text-xs font-medium text-amber-200"
+                data-testid="otm-rebuild-required-banner"
+              >
+                {otmRebuildRequiredMessage}
+              </p>
+            ) : null}
+            {!otmRebuildRequired && liquidityOtmProbePctApplied != null ? (
+              <p className="mt-2 text-xs text-slate-500">
+                Dernier rebuild appliqué : {liquidityOtmProbePctApplied}%
+                {watchlistStats?.liquidityOtmProbeActive === false ? " (sonde off)" : ""}
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-xl border border-indigo-800 bg-indigo-950/40 p-3 xl:col-span-2">
@@ -11871,6 +12328,19 @@ export default function Dashboard() {
                 <span className="mt-1 block text-amber-300">{researchExpandedPoolError}</span>
               ) : null}
             </p>
+            {otmPoolSourceBannerMessage ? (
+              <p
+                className={`mt-2 rounded-lg border px-2 py-1.5 text-xs leading-5 ${
+                  preIbkrPoolMode === "research_expanded" ||
+                  lastScanPoolMeta.poolSource === "research_expanded"
+                    ? "border-amber-700/60 bg-amber-950/40 text-amber-200"
+                    : "border-sky-800/50 bg-sky-950/30 text-sky-200"
+                }`}
+                data-testid="otm-pool-source-banner"
+              >
+                {otmPoolSourceBannerMessage}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2 justify-end">
@@ -12078,6 +12548,26 @@ export default function Dashboard() {
                 <Metric label="Catégories sélectionnées" value={String(pipelineFunnelDiagnostics.categoriesSelected)} />
                 <Metric label="Exclus crypto (univers)" value={String(pipelineFunnelDiagnostics.excludedCrypto)} tone={pipelineFunnelDiagnostics.excludedCrypto > 0 ? "warn" : "default"} />
                 <Metric label="Exclus filtres build" value={String(pipelineFunnelDiagnostics.buildExcluded)} tone={pipelineFunnelDiagnostics.buildExcluded > 0 ? "warn" : "default"} />
+              </div>
+              {(pipelineFunnelDiagnostics.excludedCrypto > 0 ||
+                (pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols?.length ?? 0) > 0) && (
+                <div className="mt-2 rounded-lg border border-amber-900/40 bg-amber-950/20 p-2 text-[11px] text-amber-100/90">
+                  <p>
+                    <span className="font-medium text-amber-200">Crypto supprimées :</span>{" "}
+                    {pipelineFunnelDiagnostics.excludedCrypto}
+                    {pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols?.length
+                      ? ` — ${pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols.join(", ")}`
+                      : ""}
+                  </p>
+                  {pipelineFunnelDiagnostics.cryptoAllowedRetained?.length > 0 && (
+                    <p className="mt-1 text-emerald-300/90">
+                      Exception conservée : {pipelineFunnelDiagnostics.cryptoAllowedRetained.join(", ")} (BITX autorisé)
+                    </p>
+                  )}
+                  <p className="mt-1 text-amber-200/70">Raison : {CRYPTO_BLOCK_REASON}</p>
+                </div>
+              )}
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Metric label="Watchlist kept/rejected" value={`${pipelineFunnelDiagnostics.watchlistKept} / ${pipelineFunnelDiagnostics.watchlistRejected}`} />
                 <Metric label="Watchlist limit applied" value={String(pipelineFunnelDiagnostics.watchlistLimitApplied)} />
                 <Metric
@@ -12197,6 +12687,11 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+              <PreIbkrCutDiagnosticsPanel
+                rows={preIbkrCutTickerList}
+                summary={preIbkrCutSummary}
+                onExportCsv={exportPreIbkrCutCsv}
+              />
             </details>
           </div>
         )}
@@ -12213,6 +12708,10 @@ export default function Dashboard() {
                 <Metric label="Yahoo returned" value={String(yahooScanMeta.returned || 0)} />
                 <Metric label="Yahoo rejected" value={String(yahooRejectedCount)} />
               </div>
+              <p className="mt-2 text-xs text-slate-400">
+                Index complet rejets Yahoo : {Object.keys(yahooRejectedBySymbol || {}).length} symboles
+                (utilisé par le diagnostic ticker exact — indépendant de l&apos;échantillon 20).
+              </p>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
                   <p className="font-medium text-slate-100">Top rejectionReasonCounts</p>
@@ -12821,7 +13320,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-                    <div className="relative min-w-[240px]">
+                    <div className="relative min-w-[240px] flex-1">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                       <Input
                         value={query}
@@ -12829,6 +13328,7 @@ export default function Dashboard() {
                         placeholder="Ticker ou nom..."
                         className="rounded-xl border-slate-700 pl-9"
                       />
+                      <TickerPipelineDiagnosticPanel diagnostic={pipelineTickerDiagnostic} />
                     </div>
 
                     <div className="flex flex-wrap gap-2">

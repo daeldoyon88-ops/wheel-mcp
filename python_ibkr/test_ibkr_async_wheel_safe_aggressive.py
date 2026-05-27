@@ -20,6 +20,11 @@ from ib_async import IB, Option, Stock
 from ib_async.ib import StartupFetchNONE
 
 from ibkr_strike_window_debug import log_strike_window_debug
+from safe_spread_rescue import (
+    attempt_safe_spread_rescue,
+    build_safe_rescue_strike_window,
+    is_safe_rejected_for_spread,
+)
 
 W_ATM = 0.60
 W_S1 = 0.30
@@ -1483,6 +1488,121 @@ def main() -> int:
         if aggressive_pc is None:
             warnings.append("no_put_below_lower_bound")
 
+        safe_spread_rescue_diag: dict | None = None
+        if safe_pc is not None and is_safe_rejected_for_spread(safe_pc.get("spreadPct")):
+            rescue_strikes = build_safe_rescue_strike_window(
+                float(safe_pc["strike"]),
+                [float(s) for s in strikes if s is not None],
+            )
+            existing_strikes = {float(p["strike"]) for p in put_data if p.get("strike") is not None}
+            missing_rescue = [s for s in rescue_strikes if float(s) not in existing_strikes]
+            for strike in missing_rescue:
+                qc = valid_put_contracts.get(strike)
+                if qc is None:
+                    qc = _one_option(strike, "P")
+                if qc is None:
+                    rejected.append(
+                        {
+                            "role": "safe_spread_rescue",
+                            "right": right,
+                            "strike": strike,
+                            "reason": "option_contract_not_qualified",
+                        }
+                    )
+                    continue
+                valid_put_contracts[strike] = qc
+                tk = _req_mkt_data(qc, option_kind="put_candidate")
+                requested_contracts.append(qc)
+                put_tickers.append((strike, tk))
+            if missing_rescue:
+                wait_for_quotes(
+                    ib,
+                    [pt[1] for pt in put_tickers if pt[0] in missing_rescue],
+                    has_valid_option_quote,
+                    timeout_s=2.0,
+                    poll_ms=100,
+                )
+                for strike in missing_rescue:
+                    tk = next((t for s, t in put_tickers if s == strike), None)
+                    if tk is None:
+                        continue
+                    option_contract = valid_put_contracts.get(strike)
+                    q = _put_quotes(tk, option_contract, right)
+                    bid = q["bid"]
+                    mid = q["mid"]
+                    prime_used = q["primeUsed"]
+                    premium_yield = (
+                        (prime_used / strike)
+                        if (prime_used is not None and strike and strike > 0)
+                        else None
+                    )
+                    passes_min = bool(prime_used is not None and prime_used >= target_premium)
+                    is_below = bool(strike < lower_bound)
+                    if not is_below:
+                        status = "rejected"
+                        reason = "above_or_equal_lower_bound"
+                    elif bid is None:
+                        status = "rejected"
+                        reason = "invalid_bid"
+                    elif q["ask"] is None:
+                        status = "rejected"
+                        reason = "invalid_ask"
+                    elif mid is None or mid <= 0:
+                        status = "rejected"
+                        reason = "invalid_mid"
+                    elif not passes_min:
+                        status = "rejected"
+                        reason = "premium_below_min"
+                    else:
+                        status = "kept"
+                        reason = "passes_min_premium"
+                    enrichment = {
+                        key: q.get(key)
+                        for key in _PUT_ENRICHMENT_KEYS
+                        if q.get(key) is not None
+                    }
+                    put_data.append(
+                        {
+                            "strike": strike,
+                            "bid": bid,
+                            "ask": q["ask"],
+                            "last": q["last"],
+                            "close": q["close"],
+                            "mid": mid,
+                            "spread": q["spread"],
+                            "spreadPct": q["spreadPct"],
+                            "primeUsed": prime_used,
+                            "premiumYield": premium_yield,
+                            "targetPremiumRaw": target_premium_raw,
+                            "targetPremium": target_premium,
+                            "premiumVsTarget": (
+                                prime_used - target_premium if prime_used is not None else None
+                            ),
+                            "premiumYieldOnUnderlying": (
+                                prime_used / float(underlying_price)
+                                if prime_used is not None and float(underlying_price) > 0
+                                else None
+                            ),
+                            "passesMinPremium": passes_min,
+                            "isBelowLowerBound": is_below,
+                            "distanceBelowLowerBound": (lower_bound - strike) if is_below else None,
+                            "status": status,
+                            "reason": reason,
+                            **enrichment,
+                        }
+                    )
+            safe_pc, safe_spread_rescue_diag = attempt_safe_spread_rescue(
+                safe_pc=safe_pc,
+                aggressive_pc=aggressive_pc,
+                put_data=put_data,
+                strikes=strikes,
+                lower_bound=lower_bound,
+                target_premium=target_premium,
+                spot=float(underlying_price),
+            )
+            if safe_pc is not None and safe_pc.get("safeSpreadRescueApplied"):
+                safe_selection_reason = "safe_spread_rescue_local"
+
         def _selection_obj(pc: dict | None, sel_reason: str) -> dict | None:
             if pc is None:
                 return None
@@ -1590,6 +1710,7 @@ def main() -> int:
             "aggressiveStrike": aggressive_obj,
             "safeStrike": safe_obj,
             "safeSelectionReason": safe_selection_reason,
+            "safeSpreadRescue": safe_spread_rescue_diag,
             "putCandidates": put_data,
             "rejected": rejected,
             "warnings": warnings,

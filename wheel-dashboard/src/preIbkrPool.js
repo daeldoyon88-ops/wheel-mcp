@@ -1,4 +1,5 @@
 import { FALLBACK_RESEARCH_TICKERS } from "./data/fallbackResearchTickers.js";
+import { filterCryptoBlockedSymbols } from "../../app/watchlist/cryptoWheelFilter.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 
@@ -83,6 +84,19 @@ export function readStoredResearchExpandedLimit(raw) {
  * }} params
  * @returns {{ tickers: string[], poolSource: PreIbkrPoolMode | "strict_watchlist" | "research_expanded" | "fallback_65" | "unknown", requestedMode: PreIbkrPoolMode | "unknown", usedFallbackUltimate: boolean, researchExpandedDiagnostics?: ReturnType<typeof buildResearchExpandedPoolDiagnostics> }}
  */
+/**
+ * @param {string[]} tickers
+ */
+function applyCryptoWheelPoolFilter(tickers) {
+  const normalized = (Array.isArray(tickers) ? tickers : [])
+    .map((symbol) => String(symbol || "").trim().toUpperCase())
+    .filter(Boolean);
+  const kept = filterCryptoBlockedSymbols(normalized);
+  const keptSet = new Set(kept);
+  const cryptoRemovedFromPool = normalized.filter((sym) => !keptSet.has(sym));
+  return { tickers: kept, cryptoRemovedFromPool };
+}
+
 export function resolvePreIbkrTickers({
   watchlistTickers,
   preIbkrPoolMode,
@@ -93,9 +107,12 @@ export function resolvePreIbkrTickers({
   const mode = preIbkrPoolMode || "strict_watchlist";
 
   if (mode === "strict_watchlist") {
-    const tickers = Array.isArray(watchlistTickers) ? watchlistTickers : [];
+    const { tickers, cryptoRemovedFromPool } = applyCryptoWheelPoolFilter(
+      Array.isArray(watchlistTickers) ? watchlistTickers : []
+    );
     return {
       tickers,
+      cryptoRemovedFromPool,
       poolSource: "strict_watchlist",
       requestedMode: mode,
       usedFallbackUltimate: false,
@@ -107,11 +124,14 @@ export function resolvePreIbkrTickers({
     const pool = (Array.isArray(researchExpandedPool) ? researchExpandedPool : [])
       .map((t) => String(t || "").trim().toUpperCase())
       .filter(Boolean);
-    const tickers = applyResearchExpandedPinnedTickers(pool, limit);
+    const { tickers, cryptoRemovedFromPool } = applyCryptoWheelPoolFilter(
+      applyResearchExpandedPinnedTickers(pool, limit)
+    );
     const researchExpandedDiagnostics = buildResearchExpandedPoolDiagnostics(pool, limit);
 
     return {
       tickers,
+      cryptoRemovedFromPool,
       poolSource: "research_expanded",
       requestedMode: mode,
       usedFallbackUltimate: false,
@@ -120,9 +140,12 @@ export function resolvePreIbkrTickers({
   }
 
   if (mode === "fallback_65") {
-    const tickers = Array.isArray(fallbackTickers) ? fallbackTickers : [];
+    const { tickers, cryptoRemovedFromPool } = applyCryptoWheelPoolFilter(
+      Array.isArray(fallbackTickers) ? fallbackTickers : []
+    );
     return {
       tickers,
+      cryptoRemovedFromPool,
       poolSource: "fallback_65",
       requestedMode: mode,
       usedFallbackUltimate: true,
@@ -131,6 +154,7 @@ export function resolvePreIbkrTickers({
 
   return {
     tickers: [],
+    cryptoRemovedFromPool: [],
     poolSource: "unknown",
     requestedMode: mode,
     usedFallbackUltimate: false,

@@ -2,6 +2,16 @@
 // Local static table only: fills what the scanner does not return.
 // Update this file to add/correct entries; never edit IBKR or scanner logic here.
 
+import {
+  CRYPTO_ALLOWED_SYMBOLS,
+  CRYPTO_BLOCK_REASON,
+  CRYPTO_DIGITAL_ASSET_BLOCKED_SYMBOLS,
+  CRYPTO_RELATED_EQUITY_SYMBOLS,
+  getCryptoBlockReason,
+  isCryptoDigitalAssetBlocked,
+  isCryptoRelatedEquity,
+} from "../../app/watchlist/cryptoWheelFilter.js";
+
 /** @type {Record<string, { name: string, type: string, sector: string, qualityTier: string }>} */
 export const TICKER_META = {
   // ─── Favoris utilisateur ───────────────────────────────────────────────────
@@ -12,8 +22,19 @@ export const TICKER_META = {
   AFRM: { name: "Affirm Holdings", type: "Fintech / BNPL", sector: "Consumer Finance", qualityTier: "Spéculatif favori" },
   BITX: { name: "2× Bitcoin Strategy ETF", type: "Crypto ETF Levier", sector: "Crypto", qualityTier: "Thématique risqué" },
 
-  // ─── Crypto bloqués ────────────────────────────────────────────────────────
+  // ─── Crypto bloqués (digital asset — aligné cryptoWheelFilter.js) ───────────
   IBIT: { name: "iShares Bitcoin Trust", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  GBTC: { name: "Grayscale Bitcoin Trust ETF", type: "Crypto ETF Spot / Bitcoin", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  ETHE: { name: "Grayscale Ethereum Trust ETF", type: "Crypto ETF Spot / Ethereum", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  BITB: { name: "Bitwise Bitcoin ETF", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  ARKB: { name: "ARK 21Shares Bitcoin ETF", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  FBTC: { name: "Fidelity Wise Origin Bitcoin Fund", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  EZBC: { name: "Franklin Bitcoin ETF", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  HODL: { name: "VanEck Bitcoin ETF", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  BRRR: { name: "Valkyrie Bitcoin Fund", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  BTCW: { name: "WisdomTree Bitcoin Fund", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  BTCO: { name: "Invesco Galaxy Bitcoin ETF", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
+  DEFI: { name: "Hashdex Bitcoin ETF", type: "Crypto ETF Spot", sector: "Crypto", qualityTier: "Crypto bloqué" },
   BITO: { name: "ProShares Bitcoin Strategy ETF", type: "Crypto ETF", sector: "Crypto", qualityTier: "Crypto bloqué" },
   RIOT: { name: "Riot Platforms", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
   CIFR: { name: "Cipher Mining", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
@@ -23,7 +44,7 @@ export const TICKER_META = {
   CLSK: { name: "CleanSpark", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
   HUT:  { name: "Hut 8 Corp.", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
   BTBT: { name: "Bit Digital", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
-  COIN: { name: "Coinbase Global", type: "Crypto Exchange", sector: "Financial Services", qualityTier: "Crypto bloqué" },
+  COIN: { name: "Coinbase Global", type: "Crypto Exchange (équité)", sector: "Financial Services", qualityTier: "Crypto relié (équité)" },
   BITF: { name: "Bitfarms Ltd.", type: "Crypto Miner", sector: "Crypto", qualityTier: "Crypto bloqué" },
   CORZ: { name: "Core Scientific Inc.", type: "Crypto Miner / Infrastructure HPC", sector: "Crypto", qualityTier: "Crypto bloqué" },
   ETHA: { name: "iShares Ethereum Trust ETF", type: "Crypto ETF Spot / Ethereum", sector: "Crypto", qualityTier: "Crypto bloqué" },
@@ -297,7 +318,7 @@ export const TICKER_META = {
   DDOG:  { name: "Datadog Inc.", type: "Observabilité Cloud / Software", sector: "Technology", qualityTier: "Core Quality" },
   DOCN:  { name: "DigitalOcean Holdings", type: "Cloud Infrastructure", sector: "Technology", qualityTier: "Spéculatif favori" },
   IWM:   { name: "iShares Russell 2000 ETF", type: "ETF Small Caps / Russell 2000", sector: "ETF", qualityTier: "Thématique risqué" },
-  MSTR:  { name: "MicroStrategy Inc.", type: "Logiciel / Bitcoin Treasury", sector: "Technology", qualityTier: "Spéculatif favori" },
+  MSTR:  { name: "MicroStrategy Inc.", type: "Logiciel / Bitcoin Treasury (équité)", sector: "Technology", qualityTier: "Crypto relié (équité)" },
   TSLA:  { name: "Tesla Inc.", type: "EV / Énergie / High Beta", sector: "Consumer Discretionary", qualityTier: "Spéculatif favori" },
 
   // ─── Priorité A+ — enrichissement tickerMeta (audit 2026-05) ───────────────
@@ -345,13 +366,11 @@ export const USER_PREFS = {
   /** Tickers suivis en priorité — badge favori affiché sur la carte. */
   favorites: new Set(["TQQQ", "SOFI", "APLD", "HOOD", "AFRM", "BITX"]),
   /** Seul crypto autorisé explicitement dans la stratégie Wheel. */
-  cryptoAllowed: new Set(["BITX"]),
-  /** Crypto à masquer / déclasser — ne conviennent pas à la stratégie Wheel. */
-  cryptoBlocked: new Set([
-    "IBIT", "BITO", "RIOT", "CIFR", "WULF", "IREN",
-    "MARA", "CLSK", "HUT", "BTBT", "COIN", "BITF", "BMNR",
-    "BTDR", "BLSH", "CRCL",
-  ]),
+  cryptoAllowed: CRYPTO_ALLOWED_SYMBOLS,
+  /** Digital assets exclus (source : app/watchlist/cryptoWheelFilter.js). */
+  cryptoBlocked: CRYPTO_DIGITAL_ASSET_BLOCKED_SYMBOLS,
+  /** Équités crypto-adjacentes — non bloquées automatiquement. */
+  cryptoRelatedEquity: CRYPTO_RELATED_EQUITY_SYMBOLS,
 };
 
 // ─── Styles dark-premium par tier ─────────────────────────────────────────────
@@ -361,6 +380,7 @@ export const QUALITY_TIER_STYLE = {
   "Spéculatif favori":  { badge: "border-violet-700  bg-violet-950  text-violet-300"  },
   "Thématique risqué":  { badge: "border-orange-700  bg-orange-950  text-orange-300"  },
   "Crypto bloqué":      { badge: "border-rose-700    bg-rose-950    text-rose-300"    },
+  "Crypto relié (équité)": { badge: "border-amber-800 bg-amber-950/80 text-amber-200" },
   "Inconnu à valider":  { badge: "border-slate-600   bg-slate-800   text-slate-400"   },
 };
 
@@ -369,18 +389,23 @@ export const QUALITY_TIER_STYLE = {
  * Toujours retourne un objet valide — jamais null.
  *
  * @param {string} symbol
- * @returns {{ name: string|null, type: string|null, sector: string|null, qualityTier: string, isFavorite: boolean, isCryptoBlocked: boolean, isCryptoAllowed: boolean }}
+ * @returns {{ name: string|null, type: string|null, sector: string|null, qualityTier: string, isFavorite: boolean, isCryptoBlocked: boolean, isCryptoAllowed: boolean, isCryptoRelatedEquity: boolean, cryptoBlockReason: string|null }}
  */
 export function getTickerDisplayMeta(symbol) {
   const sym = String(symbol || "").trim().toUpperCase();
   const meta = TICKER_META[sym] ?? null;
+  const cryptoBlockReason = getCryptoBlockReason(sym);
   return {
     name:            meta?.name    ?? null,
     type:            meta?.type    ?? null,
     sector:          meta?.sector  ?? null,
     qualityTier:     meta?.qualityTier ?? "Inconnu à valider",
     isFavorite:      USER_PREFS.favorites.has(sym),
-    isCryptoBlocked: USER_PREFS.cryptoBlocked.has(sym),
+    isCryptoBlocked: isCryptoDigitalAssetBlocked(sym),
     isCryptoAllowed: USER_PREFS.cryptoAllowed.has(sym),
+    isCryptoRelatedEquity: isCryptoRelatedEquity(sym),
+    cryptoBlockReason,
   };
 }
+
+export { CRYPTO_BLOCK_REASON };

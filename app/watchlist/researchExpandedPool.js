@@ -4,14 +4,12 @@ import { fileURLToPath } from "node:url";
 
 import { toNumber } from "../utils/number.js";
 import { loadMergedUniverse } from "./universeLoader.js";
+import {
+  collectCryptoFilterDiagnostics,
+  isCryptoDigitalAssetBlocked,
+} from "./cryptoWheelFilter.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/** Tickers crypto exclus du pipeline Wheel (aligné watchlistBuilder). */
-const CRYPTO_BLOCKED_SYMBOLS = new Set([
-  "IBIT", "BITO", "RIOT", "CIFR", "WULF", "IREN",
-  "MARA", "CLSK", "HUT", "BTBT", "COIN", "BITF", "BMNR",
-]);
 
 const TIER_1_ULTRA_LIQUID = [
   "TQQQ", "SOXL", "TNA", "SSO", "QQQ", "SPY", "IWM",
@@ -125,9 +123,12 @@ export function buildResearchExpandedPool(criteria = {}) {
 
   const fundamentalsBySymbol = loadFundamentalsBySymbolMap();
   const rawUniverse = loadMergedUniverse({ categories }).filter((r) => r.enabled);
-  const cryptoBlockedRemovedCount = rawUniverse.filter((r) =>
-    CRYPTO_BLOCKED_SYMBOLS.has(String(r.symbol || "").toUpperCase())
-  ).length;
+  const cryptoFilterDiag = collectCryptoFilterDiagnostics(
+    rawUniverse.map((r) => r.symbol)
+  );
+  const cryptoBlockedRemovedCount = cryptoFilterDiag.cryptoBlockedRemovedCount;
+  const cryptoBlockedRemovedSymbols = cryptoFilterDiag.cryptoBlockedRemovedSymbols;
+  const cryptoAllowedRetained = cryptoFilterDiag.cryptoAllowedRetained;
 
   const seen = new Set();
   /** @type {{ symbol: string, category: UniverseCategory, sortTier: number, sortCategory: number, researchUnreliable?: boolean, knownPrice?: number | null }[]} */
@@ -136,7 +137,7 @@ export function buildResearchExpandedPool(criteria = {}) {
   for (const row of rawUniverse) {
     const symbol = String(row.symbol || "").trim().toUpperCase();
     if (!symbol || seen.has(symbol)) continue;
-    if (CRYPTO_BLOCKED_SYMBOLS.has(symbol)) continue;
+    if (isCryptoDigitalAssetBlocked(symbol)) continue;
     seen.add(symbol);
 
     const fundRow = fundamentalsBySymbol.get(symbol);
@@ -162,7 +163,7 @@ export function buildResearchExpandedPool(criteria = {}) {
   }
 
   for (const symbol of LEVERAGED_ETF_RESEARCH_PINNED) {
-    if (!symbol || seen.has(symbol) || CRYPTO_BLOCKED_SYMBOLS.has(symbol)) continue;
+    if (!symbol || seen.has(symbol) || isCryptoDigitalAssetBlocked(symbol)) continue;
     seen.add(symbol);
     const fundRow = fundamentalsBySymbol.get(symbol);
     const knownPrice =
@@ -225,6 +226,9 @@ export function buildResearchExpandedPool(criteria = {}) {
       limitApplied: limit,
       keptCount: pool.length,
       cryptoBlockedRemovedCount,
+      cryptoBlockedRemovedSymbols,
+      cryptoAllowedRetained,
+      cryptoRelatedEquityPresent: cryptoFilterDiag.cryptoRelatedEquityPresent,
       maxPriceApplied: hasMaxPrice ? maxPrice : null,
       includeAboveMaxPrice,
       flagUnreliable,

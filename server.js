@@ -1877,6 +1877,7 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
     weeklyYield,
     annualizedYield,
     putCandidates: Array.isArray(row.putCandidates) ? row.putCandidates : [],
+    safeSpreadRescue: row?.safeSpreadRescue ?? null,
     putCandidatesSummary: {
       total: Array.isArray(row.putCandidates) ? row.putCandidates.length : 0,
       kept: Array.isArray(row.putCandidates)

@@ -3,7 +3,8 @@
  * Sidebar gauche + toutes les sections visibles sur une seule page, sans sous-onglets.
  * UI seulement — aucun impact backend, IBKR, scanner ou logique Wheel.
  */
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import ThreeYearSeasonalityChart from "./ThreeYearSeasonalityChart.jsx";
 import {
   TrendingUp, TrendingDown, RefreshCw, Search, Info, Star,
   AlertTriangle, BarChart3, CalendarDays, Activity, Shield, Loader2,
@@ -377,15 +378,15 @@ function SeasonalForceGauge({ score }) {
   );
 }
 
-// ─── Histogramme mensuel ────────────────────────────────────────────────────────
+// ─── Histogramme mensuel (rendement + probabilité hausse) ───────────────────────
 function MonthlyBarChart({ months }) {
   if (!months?.length) return <div style={{ color:C.textFaint, textAlign:"center", padding:"28px 0", fontSize:"12px" }}>Données mensuelles non disponibles</div>;
   const aligned = MONTH_ABBREV.map((label, i) => {
     const m = months.find((x) => x.month === i + 1);
-    return { label, avgReturn: m?.avgReturn ?? null, winRate: m?.winRate ?? null };
+    return { label, avgReturn: m?.avgReturn ?? null, winRate: m?.winRate ?? null, verdict: m?.verdict ?? null };
   });
-  const W = 560, H = 130;
-  const PAD = { left:36, right:6, top:14, bottom:22 };
+  const W = 560, H = 138;
+  const PAD = { left:36, right:6, top:14, bottom:28 };
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
   const maxAbs = Math.max(...aligned.map((m) => Math.abs(m.avgReturn ?? 0)), 0.03);
@@ -396,6 +397,12 @@ function MonthlyBarChart({ months }) {
     y: zeroY - (v / maxAbs) * (chartH / 2),
     label: v === 0 ? "0%" : `${v > 0 ? "+" : ""}${(v * 100).toFixed(0)}%`,
   }));
+  const buildTooltip = (m) => {
+    const parts = [`${m.label} — rendement moy. ${m.avgReturn != null ? formatPct(m.avgReturn) : "—"}`];
+    if (m.winRate != null) parts.push(`Probabilité hausse : ${formatWinRate(m.winRate)}`);
+    if (m.verdict) parts.push(`Statut : ${verdictLabel(m.verdict)}`);
+    return parts.join(" · ");
+  };
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", display:"block" }} preserveAspectRatio="xMidYMid meet">
       {gridLines.map((gl, gi) => (
@@ -415,13 +422,18 @@ function MonthlyBarChart({ months }) {
           : ret > 0.01 ? C.green : ret > 0 ? "#86efac"
           : ret < -0.01 ? C.red : ret < 0 ? "#fca5a5"
           : "rgba(143,163,191,0.35)";
+        const winPct = m.winRate != null ? `${Math.round(m.winRate * 100)}%` : null;
         return (
-          <g key={i}>
+          <g key={i} style={{ cursor: "default" }}>
+            <title>{buildTooltip(m)}</title>
             <rect x={x - barW / 2} y={y} width={barW} height={Math.max(barH, 1.5)} fill={fill} rx="1.5" opacity="0.85" />
             {m.avgReturn !== null && Math.abs(ret) > 0.005 && (
               <text x={x} y={ret >= 0 ? y - 2 : y + barH + 8} textAnchor="middle" fontSize="7" fill={fill} opacity="0.9">
                 {formatPct(ret)}
               </text>
+            )}
+            {winPct && (
+              <text x={x} y={H - 13} textAnchor="middle" fontSize="6.5" fill={C.textFaint} opacity="0.85">{winPct}</text>
             )}
             <text x={x} y={H - 4} textAnchor="middle" fontSize="8" fill={C.textFaint}>{m.label}</text>
           </g>
@@ -706,6 +718,163 @@ function CalendarHeatmap({ calendar }) {
         <div style={{ marginTop:"8px", fontSize:"10px", color:C.textFaint }}>
           Source : {calendar.summary.source ?? "Yahoo Finance"} · {calendar.summary.yearsCovered ?? "—"} ans · Cache {calendar.summary.cacheTtlHours}h
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Panneau compact swing (fenêtre active + fenêtres clés) ───────────────────
+
+const CHART3Y_PACE_LABELS = {
+  behind: "En retard",
+  on_track: "Normal",
+  ahead: "En avance",
+  too_advanced: "Très avancé",
+};
+
+function formatPctWhole(val) {
+  if (typeof val !== "number" || !isFinite(val)) return "—";
+  return `${Math.round(val * 100)} %`;
+}
+
+function CompactWindowLine({ window: w }) {
+  const label = seasonalWindowPrimaryLabel(w);
+  return (
+    <div style={{ fontSize: "11px", color: C.textMuted, lineHeight: 1.5, padding: "3px 0" }}>
+      <span style={{ color: C.text, fontWeight: 600 }}>{label}</span>
+      {" · "}
+      <span style={{ color: pctColor(w.avgReturn), fontWeight: 700 }}>{formatPct(w.avgReturn)}</span>
+      {" · "}
+      <span style={{ color: C.textFaint, fontWeight: 500 }}>{formatConfidenceLabel(w.confidence ?? w.status)}</span>
+    </div>
+  );
+}
+
+function SwingCompactSidePanel({ activeProgress, windows, chart3yLoading }) {
+  const bullish = getSwingOrDistinctBullish(windows ?? {});
+  const bearish = getSwingOrDistinctBearish(windows ?? {});
+  const bullRows = bullish.rows.slice(0, 2);
+  const bearRows = bearish.rows.slice(0, 2);
+  const active = activeProgress;
+  const hasWindows = bullRows.length > 0 || bearRows.length > 0;
+
+  const miniLabel = {
+    fontSize: "11px",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: C.textMuted,
+    marginBottom: "6px",
+  };
+  const cellLabel = { fontSize: "10.5px", color: C.textFaint, marginBottom: "3px", fontWeight: 600 };
+  const cellVal = { fontSize: "15px", fontWeight: 700, color: C.text, lineHeight: 1.25 };
+  const cellValSecondary = { fontSize: "14px", fontWeight: 700, color: C.text, lineHeight: 1.25 };
+  const typeBadge = (isBull) => ({
+    marginLeft: "8px",
+    fontSize: "10.5px",
+    fontWeight: 700,
+    padding: "3px 9px",
+    borderRadius: "10px",
+    background: isBull ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+    border: `1px solid ${isBull ? "rgba(34,197,94,0.38)" : "rgba(239,68,68,0.38)"}`,
+    color: isBull ? C.green : C.red,
+    verticalAlign: "middle",
+  });
+  const paceBadge = (pace) => {
+    const color = pace === "behind" ? C.yellow
+      : pace === "too_advanced" ? C.accentLight
+        : pace === "ahead" ? C.green
+          : C.text;
+    const bg = pace === "behind" ? "rgba(250,204,21,0.12)"
+      : pace === "too_advanced" ? "rgba(167,139,250,0.12)"
+        : pace === "ahead" ? "rgba(34,197,94,0.12)"
+          : "rgba(143,163,191,0.14)";
+    const border = pace === "behind" ? "rgba(250,204,21,0.32)"
+      : pace === "too_advanced" ? "rgba(167,139,250,0.32)"
+        : pace === "ahead" ? "rgba(34,197,94,0.32)"
+          : "rgba(143,163,191,0.28)";
+    return {
+      display: "inline-block",
+      fontSize: "12px",
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: "10px",
+      background: bg,
+      border: `1px solid ${border}`,
+      color,
+    };
+  };
+
+  return (
+    <div style={{
+      background: C.cardInner,
+      border: `1px solid ${C.border}`,
+      borderRadius: "10px",
+      padding: "12px 14px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "11px",
+      height: "100%",
+      minHeight: 0,
+    }}>
+      {/* Fenêtre active */}
+      <div>
+        <div style={miniLabel}>Fenêtre active</div>
+        {chart3yLoading ? (
+          <div style={{ fontSize: "11px", color: C.textFaint }}>Chargement…</div>
+        ) : active?.isActive ? (
+          <>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: C.text, marginBottom: "9px", lineHeight: 1.45 }}>
+              {active.displayLabel ?? "—"}
+              <span style={typeBadge(active.type === "bullish")}>
+                {active.type === "bullish" ? "Haussière" : "Baissière"}
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px 14px" }}>
+              <div>
+                <div style={cellLabel}>Attendu historique</div>
+                <div style={{ ...cellVal, color: active.type === "bullish" ? C.green : C.red }}>
+                  {formatPct(active.expectedReturn)}
+                </div>
+              </div>
+              <div>
+                <div style={cellLabel}>Réalisé actuel</div>
+                <div style={{ ...cellVal, color: active.realizedReturn >= 0 ? C.green : C.red }}>
+                  {formatPct(active.realizedReturn)}
+                </div>
+              </div>
+              <div>
+                <div style={cellLabel}>Temps écoulé</div>
+                <div style={cellValSecondary}>{formatPctWhole(active.progressTimePct)}</div>
+              </div>
+              <div>
+                <div style={cellLabel}>Rythme</div>
+                <div style={paceBadge(active.paceStatus)}>
+                  {CHART3Y_PACE_LABELS[active.paceStatus] ?? "—"}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: "11px", color: C.textMuted }}>Aucune fenêtre swing active</div>
+        )}
+      </div>
+
+      {hasWindows && (
+        <>
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "9px" }}>
+            <div style={{ ...miniLabel, color: C.green, opacity: 0.9 }}>Haussières</div>
+            {bullRows.length === 0
+              ? <div style={{ fontSize: "11px", color: C.textFaint }}>—</div>
+              : bullRows.map((w, i) => <CompactWindowLine key={i} window={w} />)}
+          </div>
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "9px" }}>
+            <div style={{ ...miniLabel, color: C.red, opacity: 0.9 }}>Baissières</div>
+            {bearRows.length === 0
+              ? <div style={{ fontSize: "11px", color: C.textFaint }}>—</div>
+              : bearRows.map((w, i) => <CompactWindowLine key={i} window={w} />)}
+          </div>
+        </>
       )}
     </div>
   );
@@ -1066,6 +1235,10 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [chart3yData, setChart3yData]       = useState(null);
+  const [chart3yLoading, setChart3yLoading] = useState(false);
+  const [chart3yError, setChart3yError]     = useState(false);
+  const chart3yAbortRef = useRef(null);
 
   const loadData = useCallback(async (sym) => {
     if (!sym) return;
@@ -1095,6 +1268,34 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
   }, [apiBase]);
 
   useEffect(() => { loadData(ticker); }, [ticker, loadData]);
+
+  useEffect(() => {
+    if (!ticker) return undefined;
+    if (chart3yAbortRef.current) chart3yAbortRef.current.abort();
+    const controller = new AbortController();
+    chart3yAbortRef.current = controller;
+
+    setChart3yLoading(true);
+    setChart3yError(false);
+    setChart3yData(null);
+
+    fetch(`${apiBase}/seasonality/${ticker}/chart-3y`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((json) => {
+        if (controller.signal.aborted) return;
+        if (json.ok) setChart3yData(json);
+        else setChart3yError(true);
+      })
+      .catch((err) => {
+        if (err?.name === "AbortError") return;
+        setChart3yError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setChart3yLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [ticker, apiBase]);
 
   const handleAnalyze = () => {
     const sym = tickerInput.trim().toUpperCase();
@@ -1164,6 +1365,8 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .sea-nav-btn:hover { background: rgba(139,92,246,0.1) !important; color: ${C.textMuted} !important; }
         .sea-refresh-btn:hover { opacity:0.85; }
+        .sea-swing-row { display: grid; grid-template-columns: minmax(0, 1.58fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
+        @media (max-width: 960px) { .sea-swing-row { grid-template-columns: 1fr; } }
       `}</style>
 
       {/* ── SIDEBAR ── */}
@@ -1342,34 +1545,26 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                   />
                   <ShortTermTable shortTerm={shortTermData} />
                 </div>
-                {/* Intra-année */}
+                {/* Mensuel compact — rendement + probabilité */}
                 <div style={cardStyle}>
                   <SectionHeader
-                    title="Saisonnalité intra-année — rendement moyen par mois"
+                    title="Saisonnalité mensuelle — rendement et probabilité"
                     icon={BarChart3}
-                    info="Rendement moyen historique par mois calendaire."
+                    info="Rendement moyen et probabilité de hausse par mois calendaire. Survoler une barre pour le détail."
                     right={calendarData?.summary ? `${calendarData.summary.yearsCovered} ans` : undefined}
                   />
                   {calendarData?.months
                     ? <MonthlyBarChart months={calendarData.months} />
                     : <div style={{ textAlign:"center", padding:"28px 0", color:C.textFaint, fontSize:"12px" }}>Histogramme non disponible.</div>
                   }
+                  <div style={{ marginTop:"4px", fontSize:"9px", color:C.textFaint }}>
+                    % sous chaque mois = probabilité de hausse historique
+                  </div>
                 </div>
               </div>
 
-              {/* ── LIGNE E : Calendrier saisonnier (pleine largeur) ── */}
-              <div style={cardStyle}>
-                <SectionHeader
-                  title="Calendrier saisonnier — probabilité de hausse par mois"
-                  icon={CalendarDays}
-                  info="Rendement moyen et taux de hausse par mois calendaire."
-                />
-                <CalendarHeatmap calendar={calendarData} />
-              </div>
-
-              {/* ── LIGNE F : Courbe cumulée | Meilleures/Pires fenêtres ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"55% 45%", gap:"12px" }}>
-                {/* Courbe cumulée */}
+              {/* ── LIGNE F : Swing — carte annuelle + panneau compact ── */}
+              <div className="sea-swing-row">
                 <div style={cardStyle}>
                   <SectionHeader
                     title="Carte swing saisonnière — haussier / baissier"
@@ -1381,13 +1576,37 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                     ? <CumulativeLineChart months={calendarData.months} swingWindows={windowsData?.swingWindows} />
                     : <div style={{ textAlign:"center", padding:"36px 0", color:C.textFaint, fontSize:"12px" }}>Courbe cumulée non disponible — endpoint /calendar requis.</div>
                   }
-                  <div style={{ marginTop:"8px", fontSize:"10px", color:C.textFaint }}>
+                  <div style={{ marginTop:"6px", fontSize:"9.5px", color:C.textFaint }}>
                     Indice base 100 au 1er janvier. Données ajustées des dividendes.
                   </div>
                 </div>
-                {/* Meilleures / Pires fenêtres */}
-                <BestWorstWindowsCard windows={windowsData} />
+                <SwingCompactSidePanel
+                  activeProgress={chart3yData?.activeWindowProgress}
+                  windows={windowsData}
+                  chart3yLoading={chart3yLoading}
+                />
               </div>
+
+              {/* ── LIGNE F2 : Graphique 3 ans compact ── */}
+              {ticker && (chart3yLoading || chart3yData || chart3yError) && (
+                <div style={cardStyle}>
+                  <SectionHeader
+                    title="Graphique 3 ans — prix réel et fenêtres saisonnières"
+                    icon={BarChart2}
+                    info="Prix daily 3 ans avec occurrences réelles des fenêtres swing haussières et baissières."
+                    right={chart3yData?.range ? `${chart3yData.range.years} ans` : undefined}
+                  />
+                  <div style={{ fontSize: "10.5px", color: C.textMuted, marginBottom: "8px", lineHeight: 1.4 }}>
+                    Prix réel 3 ans avec occurrences saisonnières.
+                  </div>
+                  <ThreeYearSeasonalityChart
+                    data={chart3yData}
+                    loading={chart3yLoading}
+                    error={chart3yError}
+                    symbol={ticker}
+                  />
+                </div>
+              )}
 
               {/* ── LIGNE G : Lecture stratégique | Confiance ── */}
               <div style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:"12px" }}>

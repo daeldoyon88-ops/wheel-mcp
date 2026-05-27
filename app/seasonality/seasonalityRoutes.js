@@ -25,6 +25,10 @@ import {
   buildHighProbabilityWindowsApiResponse,
   parseHighProbabilityWindowsParams,
 } from "./seasonalityHighProbabilityWindows.js";
+import {
+  computeSeasonalityChart3y,
+  buildChart3yApiResponse,
+} from "./seasonalityChart3y.js";
 
 const router   = Router();
 const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
@@ -284,6 +288,30 @@ router.get("/high-probability-windows", async (req, res) => {
       error:    String(err?.message ?? "high_probability_windows_failed"),
       warnings: [],
     });
+  }
+});
+
+/**
+ * GET /seasonality/:ticker/chart-3y
+ * Série prix 3 ans + overlays swing + occurrences + progression fenêtre active — Patch 2C-B.
+ * Lecture seule, réutilise fetchHistoryRows + swingWindows (max 2 haussier / 2 baissier).
+ */
+router.get("/:ticker/chart-3y", async (req, res) => {
+  try {
+    const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+    if (!symbol || !TICKER_RE.test(symbol)) {
+      return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
+    }
+    const chart = await computeSeasonalityChart3y(symbol);
+    if (!chart) {
+      return res.status(404).json({
+        ok: false,
+        error: `no chart-3y seasonality data available for ${symbol}`,
+      });
+    }
+    res.json(buildChart3yApiResponse(chart));
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "chart_3y_compute_failed") });
   }
 });
 

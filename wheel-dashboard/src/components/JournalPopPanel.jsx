@@ -2361,10 +2361,39 @@ function getCycleOriginalDte(cycle) {
   );
 }
 
+function getDteBreakdownWheelReturnPct(source) {
+  return (
+    numberOrNull(source?.avgWheelReturnPct) ??
+    numberOrNull(source?.wheelReturnPct) ??
+    numberOrNull(source?.wheelReturn) ??
+    numberOrNull(source?.rendementWheel) ??
+    numberOrNull(source?.postAssignmentReturnPct) ??
+    numberOrNull(source?.postAssignmentReturn) ??
+    numberOrNull(source?.return_on_assignment_pct) ??
+    numberOrNull(source?.returnOnAssignmentPct) ??
+    null
+  );
+}
+
+function getRecordWheelReturnForDteBreakdown(record) {
+  return getDteBreakdownWheelReturnPct(record?.resolution) ?? getDteBreakdownWheelReturnPct(record);
+}
+
 function getClosedCycleWheelReturn(cycle) {
   const status = getTheoreticalCycleExitStatus(cycle);
   if (status !== "closed") return null;
-  return numberOrNull(cycle?.return_on_assignment_pct);
+  return getDteBreakdownWheelReturnPct(cycle);
+}
+
+function formatDteBreakdownSummaryPercent(value, digits = 1) {
+  const n = numberOrNull(value);
+  return n == null ? "non disponible" : formatPercent(n, digits);
+}
+
+function formatDteBreakdownWheelReturnCell(row) {
+  if (row?.avgWheelReturnPct != null) return formatPercent(row.avgWheelReturnPct, 2);
+  if ((row?.assignedCount ?? 0) > 0) return "données insuffisantes";
+  return "—";
 }
 
 function getDteBreakdownLbLabel({ lbKnownCount, lbBreakCount, assignmentRate, deepAssignmentRate }) {
@@ -2387,7 +2416,7 @@ function getDteBreakdownVerdict(row) {
   return "préliminaire";
 }
 
-function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
+function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, globalProfile }) {
   const normalizedTicker = normalizeTicker(ticker);
   if (!normalizedTicker) {
     return {
@@ -2402,6 +2431,9 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
         riskyDteLabel: "DTE risqué : non confirmé",
         warningLabel: "Aucune donnée Journal POP disponible.",
         insufficientLabel: "Données insuffisantes — ticker à suivre statistiquement",
+        globalWheelReturnPct: null,
+        globalAssignmentRate: null,
+        globalNearAssignmentRate: null,
       },
     };
   }
@@ -2423,6 +2455,18 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
     return cycleTicker === normalizedTicker && DYNAMIC_TOP20_DTE_TARGETS.includes(dte);
   });
 
+  const totalAssignedRows = eligibleRecords.filter((record) => getRecordAssignedFlag(record) === true);
+  const totalNearAssignmentCount = totalAssignedRows.filter(
+    (record) => classifyDteBreakdownAssignmentDepth(record) === "proche",
+  ).length;
+  const globalWheelReturnPct = getDteBreakdownWheelReturnPct(globalProfile);
+  const globalAssignmentRate =
+    numberOrNull(globalProfile?.assignmentRate) ??
+    (eligibleRecords.length > 0 ? (totalAssignedRows.length / eligibleRecords.length) * 100 : null);
+  const globalNearAssignmentRate =
+    numberOrNull(globalProfile?.nearAssignmentRate) ??
+    (eligibleRecords.length > 0 ? (totalNearAssignmentCount / eligibleRecords.length) * 100 : null);
+
   const rows = DYNAMIC_TOP20_DTE_TARGETS.map((dte) => {
     const dteRecords = eligibleRecords.filter((record) => numberOrNull(record?.dteAtScan) === dte);
     const n = dteRecords.length;
@@ -2442,18 +2486,24 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
       .filter((cycle) => getCycleOriginalDte(cycle) === dte)
       .map((cycle) => getClosedCycleWheelReturn(cycle))
       .filter((value) => value != null);
+    const dteRecordReturns = assignedRows
+      .map((record) => getRecordWheelReturnForDteBreakdown(record))
+      .filter((value) => value != null);
+    const dteWheelReturns = dteCycleReturns.length > 0 ? dteCycleReturns : dteRecordReturns;
 
     const assignmentRate = n > 0 ? (assignedRows.length / n) * 100 : null;
     const deepAssignmentRate = n > 0 ? (deepAssignmentCount / n) * 100 : null;
     const row = {
       dte,
       n,
+      assignedCount: assignedRows.length,
       avgCspYieldPct: yieldValues.length > 0 ? avgNumericValues(yieldValues) : null,
       winRate: winKnownRows.length > 0 ? (winCount / winKnownRows.length) * 100 : null,
       assignmentRate,
       nearAssignmentRate: n > 0 ? (nearAssignmentCount / n) * 100 : null,
       deepAssignmentRate,
-      avgWheelReturnPct: dteCycleReturns.length > 0 ? avgNumericValues(dteCycleReturns) : null,
+      avgWheelReturnPct: dteWheelReturns.length > 0 ? avgNumericValues(dteWheelReturns) : null,
+      wheelReturnSampleCount: dteWheelReturns.length,
       lbLabel: getDteBreakdownLbLabel({
         lbKnownCount: lbKnownRows.length,
         lbBreakCount,
@@ -2499,6 +2549,9 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
           : "Échantillon utilisable sur les DTE affichés.",
       insufficientLabel:
         totalN === 0 ? "Données insuffisantes — ticker à suivre statistiquement" : null,
+      globalWheelReturnPct,
+      globalAssignmentRate,
+      globalNearAssignmentRate,
     },
   };
 }
@@ -2506,6 +2559,11 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
 function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
   const rows = Array.isArray(breakdown?.rows) ? breakdown.rows : [];
   const summary = breakdown?.summary ?? {};
+  const globalCards = [
+    { label: "Rend. Wheel global", value: formatDteBreakdownSummaryPercent(summary.globalWheelReturnPct, 2) },
+    { label: "Assignation globale", value: formatDteBreakdownSummaryPercent(summary.globalAssignmentRate, 1) },
+    { label: "Assignation proche", value: formatDteBreakdownSummaryPercent(summary.globalNearAssignmentRate, 1) },
+  ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
       <div className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl">
@@ -2517,6 +2575,13 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
             <p className="mt-1 text-[11px] text-slate-500">
               DTE ciblés : 2, 3, 4 et 7. Les chiffres viennent seulement des observations Journal POP disponibles.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {globalCards.map((card) => (
+                <div key={card.label} className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-[11px] text-slate-400">
+                  {card.label} : <span className="font-semibold text-slate-200">{card.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
           <button
             type="button"
@@ -2567,7 +2632,18 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
                     <td className="px-3 py-2">{formatPercent(row.assignmentRate)}</td>
                     <td className="px-3 py-2">{formatPercent(row.nearAssignmentRate, 0)}</td>
                     <td className="px-3 py-2">{formatPercent(row.deepAssignmentRate, 0)}</td>
-                    <td className="px-3 py-2">{formatPercent(row.avgWheelReturnPct, 2)}</td>
+                    <td
+                      className="px-3 py-2"
+                      title={
+                        row.avgWheelReturnPct != null
+                          ? `Calculé sur ${row.wheelReturnSampleCount ?? 0} cycle(s) Wheel fermé(s) ou observation(s).`
+                          : (row.assignedCount ?? 0) > 0
+                          ? "Assignation détectée, mais aucun rendement Wheel exploitable pour ce DTE."
+                          : "Aucune assignation observée pour ce DTE."
+                      }
+                    >
+                      {formatDteBreakdownWheelReturnCell(row)}
+                    </td>
                     <td
                       className="px-3 py-2 text-slate-400"
                       title={[
@@ -3931,7 +4007,7 @@ export default function JournalPopPanel({ apiBase, active }) {
         fetch(`${apiBase}/journal/wheel-validation/real-pop-calibration`).catch(() => null),
         fetch(`${apiBase}/capital-combinations/latest-full`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/mode-comparison`).catch(() => null),
-        fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=200`).catch(() => null),
+        fetch(`${apiBase}/journal/wheel-validation/theoretical-cycles?limit=1000`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/one-percent-wheel-profiles`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/dynamic-top20-wheel`).catch(() => null),
         fetch(`${apiBase}/journal/wheel-validation/latest-option-snapshots?limit=50`).catch(() => null),
@@ -4469,14 +4545,31 @@ export default function JournalPopPanel({ apiBase, active }) {
     return rows.slice(0, limit);
   }, [dynamicTop20Payload, dynamicTop20ShowAllExcluded, applyDynamicTop20Filters]);
 
+  const selectedDynamicTop20Profile = useMemo(() => {
+    const selectedTicker = normalizeTicker(dynamicTop20DteTicker);
+    if (!selectedTicker) return null;
+    const groups = [
+      dynamicTop20Payload?.top20,
+      dynamicTop20Payload?.nearEntry,
+      dynamicTop20Payload?.watchValidate,
+      dynamicTop20Payload?.stressed,
+      dynamicTop20Payload?.excludedHighYield,
+      dynamicTop20Payload?.insufficientSample,
+    ];
+    return groups
+      .flatMap((group) => (Array.isArray(group) ? group : []))
+      .find((row) => normalizeTicker(row?.ticker) === selectedTicker) ?? null;
+  }, [dynamicTop20Payload, dynamicTop20DteTicker]);
+
   const dynamicTop20DteBreakdown = useMemo(
     () =>
       buildDynamicTop20DteBreakdown({
         ticker: dynamicTop20DteTicker,
         records,
         theoreticalCycles,
+        globalProfile: selectedDynamicTop20Profile,
       }),
-    [dynamicTop20DteTicker, records, theoreticalCycles],
+    [dynamicTop20DteTicker, records, theoreticalCycles, selectedDynamicTop20Profile],
   );
 
   const latestOptionSnapshotRecords = useMemo(

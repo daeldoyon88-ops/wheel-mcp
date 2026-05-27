@@ -43,6 +43,7 @@ const SCAN_SOURCE_TICKERS = {
 };
 const SCAN_SOURCE_LABELS = { "top20-wheel":"Top 20 Wheel","strict-watchlist":"Strict Watchlist","fallback65":"Fallback 65" };
 const QUICK_TICKERS = ["TQQQ","NVDA","AAPL","TSLA","SOXL","AMD","PLTR","AMZN"];
+const SEASONAL_UNIVERSE = ["TQQQ","SOXL","NVDA","TSLA","AMD","AAPL","SOFI","PLTR","APLD","UPRO","AVGO"];
 const MONTH_ABBREV  = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 const MONTHS_FR_LONG = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -1511,6 +1512,137 @@ function DataConfidenceCard({ calendar, shortTerm }) {
   );
 }
 
+// ─── Barre horizontale Univers saisonnier ───────────────────────────────────────
+function SeasonalUniverseBar({ ticker, onSelectTicker, winRate7j, search, onSearchChange }) {
+  const filtered = useMemo(() => {
+    const q = String(search ?? "").trim().toUpperCase();
+    if (!q) return SEASONAL_UNIVERSE;
+    return SEASONAL_UNIVERSE.filter((t) => t.includes(q));
+  }, [search]);
+
+  const handleKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+    const sym = String(search ?? "").trim().toUpperCase();
+    if (sym) onSelectTicker(sym);
+  };
+
+  const activeSym = String(ticker ?? "").trim().toUpperCase() || "—";
+  const showExtraActive = activeSym !== "—" && !filtered.includes(activeSym);
+
+  const activeMetaParts = [activeSym, "Yahoo Finance"];
+  if (typeof winRate7j === "number" && isFinite(winRate7j)) {
+    activeMetaParts.push(`${formatWinRate(winRate7j)} des années ↑`);
+  }
+
+  const chipStyle = (isActive) => ({
+    flex: "0 0 auto",
+    padding: "4px 9px",
+    borderRadius: "5px",
+    border: `1px solid ${isActive ? C.borderAccent : C.border}`,
+    background: isActive ? "rgba(139,92,246,0.2)" : "rgba(120,150,190,0.06)",
+    color: isActive ? C.accentLight : C.textMuted,
+    fontSize: "11px",
+    fontWeight: isActive ? 700 : 500,
+    cursor: "pointer",
+    outline: "none",
+    letterSpacing: "0.03em",
+    whiteSpace: "nowrap",
+    transition: "background 0.12s, border-color 0.12s",
+  });
+
+  return (
+    <div className="sea-universe-bar" style={{
+      background: C.panel,
+      border: `1px solid ${C.border}`,
+      borderRadius: "10px",
+      padding: "8px 12px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px",
+      flexShrink: 0,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", minHeight: "16px" }}>
+        <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: C.textMuted, flexShrink: 0 }}>
+          Univers saisonnier
+        </span>
+        <span style={{ fontSize: "10px", color: C.textFaint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
+          {activeMetaParts.map((part, i) => (
+            <React.Fragment key={part}>
+              {i > 0 && <span style={{ margin: "0 5px", opacity: 0.5 }}>·</span>}
+              {i === 0 ? (
+                <span style={{ color: C.accentLight, fontWeight: 700 }}>{part}</span>
+              ) : i === activeMetaParts.length - 1 && typeof winRate7j === "number" ? (
+                <span style={{ color: C.green, fontWeight: 600 }}>{part}</span>
+              ) : (
+                <span>{part}</span>
+              )}
+            </React.Fragment>
+          ))}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "28px" }}>
+        <div style={{ position: "relative", flexShrink: 0, width: "132px" }}>
+          <Search size={11} style={{ position: "absolute", left: "7px", top: "50%", transform: "translateY(-50%)", color: C.textFaint, pointerEvents: "none" }} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value.toUpperCase())}
+            onKeyDown={handleKeyDown}
+            placeholder="Rechercher ticker..."
+            aria-label="Rechercher ticker"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: C.cardInner,
+              border: `1px solid ${C.border}`,
+              borderRadius: "6px",
+              color: C.text,
+              padding: "5px 8px 5px 24px",
+              fontSize: "10.5px",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <nav className="sea-universe-chips" style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          overflowX: "auto",
+          overflowY: "hidden",
+          paddingBottom: "1px",
+        }}>
+          {filtered.length === 0 && !showExtraActive ? (
+            <span style={{ fontSize: "10px", color: C.textFaint, whiteSpace: "nowrap" }}>Aucun ticker · Entrée pour charger</span>
+          ) : (
+            <>
+              {showExtraActive && (
+                <button type="button" onClick={() => onSelectTicker(activeSym)} className="sea-universe-chip" style={chipStyle(true)}>
+                  {activeSym}
+                </button>
+              )}
+              {filtered.map((sym) => (
+                <button
+                  key={sym}
+                  type="button"
+                  onClick={() => onSelectTicker(sym)}
+                  className="sea-universe-chip"
+                  style={chipStyle(sym === activeSym)}
+                >
+                  {sym}
+                </button>
+              ))}
+            </>
+          )}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sidebar ────────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { key:"dashboard", label:"Accueil",    Icon:Home },
@@ -1615,8 +1747,7 @@ function Sidebar({ onNavigate, ticker, onSelectTicker, lastUpdated }) {
 // ─── Composant principal ────────────────────────────────────────────────────────
 export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", onNavigate }) {
   const [ticker, setTicker]         = useState("TQQQ");
-  const [tickerInput, setTickerInput] = useState("");
-  const [showTickerInput, setShowTickerInput] = useState(false);
+  const [universeSearch, setUniverseSearch] = useState("");
   const [calendarData, setCalendarData]   = useState(null);
   const [shortTermData, setShortTermData] = useState(null);
   const [windowsData, setWindowsData]     = useState(null);
@@ -1685,14 +1816,12 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
     return () => controller.abort();
   }, [ticker, apiBase]);
 
-  const handleAnalyze = () => {
-    const sym = tickerInput.trim().toUpperCase();
-    if (/^[A-Z0-9.\-^]{1,10}$/.test(sym)) {
-      setTicker(sym);
-      setTickerInput("");
-      setShowTickerInput(false);
-    }
-  };
+  const selectTicker = useCallback((sym) => {
+    const normalized = String(sym ?? "").trim().toUpperCase();
+    if (!normalized || !/^[A-Z0-9.\-^]{1,10}$/.test(normalized)) return;
+    setTicker(normalized);
+    setUniverseSearch("");
+  }, []);
 
   // Stats dérivées pour le résumé
   const summary = useMemo(() => {
@@ -1776,14 +1905,19 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         .sea-nav-btn:hover { background: rgba(139,92,246,0.1) !important; color: ${C.textMuted} !important; }
         .sea-refresh-btn:hover { opacity:0.85; }
         .sea-swing-row { display: grid; grid-template-columns: minmax(0, 1.58fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
-        @media (max-width: 960px) { .sea-swing-row { grid-template-columns: 1fr; } }
+        .sea-universe-chip:hover { background: rgba(139,92,246,0.12) !important; color: ${C.text} !important; border-color: ${C.borderAccent} !important; }
+        .sea-universe-chips::-webkit-scrollbar { height: 3px; }
+        .sea-universe-chips::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.35); border-radius: 2px; }
+        @media (max-width: 960px) {
+          .sea-swing-row { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       {/* ── SIDEBAR ── */}
       <Sidebar
         onNavigate={onNavigate}
         ticker={ticker}
-        onSelectTicker={(t) => { setTicker(t); setShowTickerInput(false); }}
+        onSelectTicker={selectTicker}
         lastUpdated={lastUpdated}
       />
 
@@ -1827,50 +1961,16 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         {/* ── ZONE SCROLLABLE ── */}
         <div style={{ flex:1, overflowY:"auto", padding:"14px 20px", display:"flex", flexDirection:"column", gap:"12px" }}>
 
-          {/* ── LIGNE A : TICKER + RÉSUMÉ STATS ── */}
-          <div style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:"12px", alignItems:"stretch" }}>
+          <SeasonalUniverseBar
+            ticker={ticker}
+            onSelectTicker={selectTicker}
+            winRate7j={summary.winRate7j}
+            search={universeSearch}
+            onSearchChange={setUniverseSearch}
+          />
 
-            {/* Carte ticker */}
-            <div style={{ ...cardStyle, display:"flex", flexDirection:"column", gap:"10px" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                <div style={{ width:"44px", height:"44px", borderRadius:"10px", background:"rgba(139,92,246,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", fontWeight:800, color:C.accentLight, flexShrink:0 }}>
-                  {ticker.slice(0, 2)}
-                </div>
-                <div>
-                  <div style={{ fontSize:"22px", fontWeight:800, color:C.text, lineHeight:1 }}>{ticker}</div>
-                  <div style={{ fontSize:"10px", color:C.textFaint, marginTop:"2px" }}>Yahoo Finance</div>
-                </div>
-              </div>
-              {showTickerInput ? (
-                <div style={{ display:"flex", gap:"5px" }}>
-                  <input
-                    value={tickerInput}
-                    onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                    placeholder="Ex: NVDA"
-                    autoFocus
-                    style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:"7px", color:C.text, padding:"5px 9px", fontSize:"12px", flex:1, outline:"none", minWidth:0 }}
-                  />
-                  <button onClick={handleAnalyze} style={{ background:"rgba(139,92,246,0.8)", border:"none", borderRadius:"7px", color:"#fff", padding:"5px 10px", fontSize:"11px", fontWeight:700, cursor:"pointer", outline:"none", flexShrink:0 }}>OK</button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowTickerInput(true)}
-                  style={{ background:"rgba(139,92,246,0.1)", border:`1px solid rgba(139,92,246,0.25)`, borderRadius:"7px", color:C.accentLight, padding:"5px 10px", fontSize:"11px", fontWeight:600, cursor:"pointer", outline:"none", textAlign:"left", display:"flex", alignItems:"center", gap:"5px" }}
-                >
-                  <Search size={11} /> Changer de ticker
-                </button>
-              )}
-              {summary.winRate7j !== null && (
-                <div style={{ fontSize:"11px", color:C.textMuted }}>
-                  <span style={{ color:C.green, fontWeight:700 }}>{formatWinRate(summary.winRate7j)} des années</span>
-                  <span style={{ marginLeft:"4px" }}>↑</span>
-                </div>
-              )}
-            </div>
-
-            {/* Résumé saisonnalité */}
-            <div style={{ ...cardStyle, display:"flex", flexDirection:"column", gap:"10px" }}>
+          {/* ── LIGNE A : RÉSUMÉ STATS ── */}
+          <div style={{ ...cardStyle, display:"flex", flexDirection:"column", gap:"10px" }}>
               <div style={{ fontSize:"10px", fontWeight:700, color:C.textFaint, letterSpacing:"0.1em", textTransform:"uppercase" }}>Résumé saisonnalité actuelle</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto 1fr 1fr 1fr 1fr", gap:"10px", alignItems:"center" }}>
                 {/* Fenêtre actuelle */}
@@ -1918,7 +2018,6 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                   {summary.ltLabel && <div style={{ fontSize:"10px", color:C.textFaint, marginTop:"3px" }}>{summary.ltLabel}</div>}
                 </div>
               </div>
-            </div>
           </div>
 
           {/* ── LOADING ── */}
@@ -2041,7 +2140,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
             <div style={{ ...cardStyle, textAlign:"center", padding:"44px 24px", color:C.textMuted }}>
               <Activity size={28} style={{ color:C.textFaint, marginBottom:"10px" }} />
               <div style={{ fontSize:"13px", fontWeight:600, marginBottom:"5px" }}>Aucune donnée chargée</div>
-              <div style={{ fontSize:"11px" }}>Sélectionnez un ticker dans la sidebar ou saisissez un symbole.</div>
+              <div style={{ fontSize:"11px" }}>Sélectionnez un ticker dans l&apos;univers saisonnier ou saisissez un symbole.</div>
             </div>
           )}
         </div>

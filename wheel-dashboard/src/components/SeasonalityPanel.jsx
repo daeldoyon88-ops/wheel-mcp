@@ -734,18 +734,114 @@ const CHART3Y_PACE_LABELS = {
 
 function formatPctWhole(val) {
   if (typeof val !== "number" || !isFinite(val)) return "—";
-  return `${Math.round(val * 100)} %`;
+  if (val >= 0 && val <= 1) return `${Math.round(val * 100)} %`;
+  if (val > 1 && val <= 100) return `${Math.round(val)} %`;
+  return "—";
 }
 
-function CompactWindowLine({ window: w }) {
+/** Nombre d'années / occurrences testées — null si indisponible. */
+function getSampleSize(window) {
+  if (!window || typeof window !== "object") return null;
+  const candidates = [
+    window.sampleSize,
+    typeof window.occurrences === "number" ? window.occurrences : null,
+    window.years,
+    window.observations,
+    window.occurrencesCount,
+  ];
+  for (const n of candidates) {
+    if (typeof n === "number" && isFinite(n) && n > 0) return Math.round(n);
+  }
+  return null;
+}
+
+function normalizeRateFraction(val) {
+  if (typeof val !== "number" || !isFinite(val)) return null;
+  if (val >= 0 && val <= 1) return val;
+  if (val > 1 && val <= 100) return val / 100;
+  return null;
+}
+
+/** Taux directionnel : haussier pour bullish, baissier pour bearish (winRate backend = % haussier). */
+function getDirectionalWinRate(window, type) {
+  if (!window) return null;
+  const isBullish = type === "bullish" || type === true;
+
+  if (isBullish && typeof window.bullishWinRate === "number") {
+    return normalizeRateFraction(window.bullishWinRate);
+  }
+  if (!isBullish && typeof window.bearishWinRate === "number") {
+    return normalizeRateFraction(window.bearishWinRate);
+  }
+  if (!isBullish && typeof window.downRate === "number") {
+    return normalizeRateFraction(window.downRate);
+  }
+
+  const winRate = normalizeRateFraction(window.winRate);
+  if (winRate == null) return null;
+  return isBullish ? winRate : 1 - winRate;
+}
+
+function formatWindowConfidenceDetails(window, type) {
+  const conf = formatConfidenceLabel(window?.confidence ?? window?.status);
+  const rateFrac = getDirectionalWinRate(window, type);
+  const sample = getSampleSize(window);
+  const typeWord = type === "bullish" || type === true ? "haussier" : "baissier";
+
+  if (rateFrac != null && sample != null) {
+    return `${Math.round(rateFrac * 100)} % ${typeWord} sur ${sample} ${sample === 1 ? "an" : "ans"} · ${conf}`;
+  }
+  if (rateFrac != null) {
+    return `${Math.round(rateFrac * 100)} % ${typeWord} · ${conf}`;
+  }
+  if (sample != null) {
+    return `${sample} ${sample === 1 ? "an" : "ans"} testé${sample === 1 ? "" : "s"} · ${conf}`;
+  }
+  if (conf && conf !== "—") {
+    return `Historique disponible · ${conf}`;
+  }
+  return null;
+}
+
+/** Enrichit swingOverlays chart-3y avec sampleSize depuis /windows (même ticker, déjà chargé). */
+function enrichChart3yWithWindowStats(chartData, windows) {
+  if (!chartData?.swingOverlays?.length || !windows?.swingWindows) return chartData;
+
+  const lookup = new Map();
+  for (const w of [
+    ...(windows.swingWindows.bullish ?? []),
+    ...(windows.swingWindows.bearish ?? []),
+  ]) {
+    if (w?.displayLabel) lookup.set(w.displayLabel, w);
+  }
+  if (lookup.size === 0) return chartData;
+
+  return {
+    ...chartData,
+    swingOverlays: chartData.swingOverlays.map((overlay) => {
+      const src = lookup.get(overlay.displayLabel);
+      if (!src) return overlay;
+      const sampleSize = getSampleSize(src);
+      return sampleSize != null ? { ...overlay, sampleSize } : overlay;
+    }),
+  };
+}
+
+function CompactWindowLine({ window: w, isBullish }) {
   const label = seasonalWindowPrimaryLabel(w);
+  const details = formatWindowConfidenceDetails(w, isBullish ? "bullish" : "bearish");
   return (
-    <div style={{ fontSize: "11px", color: C.textMuted, lineHeight: 1.5, padding: "3px 0" }}>
-      <span style={{ color: C.text, fontWeight: 600 }}>{label}</span>
-      {" · "}
-      <span style={{ color: pctColor(w.avgReturn), fontWeight: 700 }}>{formatPct(w.avgReturn)}</span>
-      {" · "}
-      <span style={{ color: C.textFaint, fontWeight: 500 }}>{formatConfidenceLabel(w.confidence ?? w.status)}</span>
+    <div style={{ padding: "4px 0", lineHeight: 1.45 }}>
+      <div style={{ fontSize: "11px", color: C.textMuted }}>
+        <span style={{ color: C.text, fontWeight: 600 }}>{label}</span>
+        {" · "}
+        <span style={{ color: pctColor(w.avgReturn), fontWeight: 700 }}>{formatPct(w.avgReturn)}</span>
+      </div>
+      {details && (
+        <div style={{ fontSize: "10px", color: C.textFaint, marginTop: "2px", fontWeight: 500 }}>
+          {details}
+        </div>
+      )}
     </div>
   );
 }
@@ -866,13 +962,13 @@ function SwingCompactSidePanel({ activeProgress, windows, chart3yLoading }) {
             <div style={{ ...miniLabel, color: C.green, opacity: 0.9 }}>Haussières</div>
             {bullRows.length === 0
               ? <div style={{ fontSize: "11px", color: C.textFaint }}>—</div>
-              : bullRows.map((w, i) => <CompactWindowLine key={i} window={w} />)}
+              : bullRows.map((w, i) => <CompactWindowLine key={i} window={w} isBullish />)}
           </div>
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "9px" }}>
             <div style={{ ...miniLabel, color: C.red, opacity: 0.9 }}>Baissières</div>
             {bearRows.length === 0
               ? <div style={{ fontSize: "11px", color: C.textFaint }}>—</div>
-              : bearRows.map((w, i) => <CompactWindowLine key={i} window={w} />)}
+              : bearRows.map((w, i) => <CompactWindowLine key={i} window={w} isBullish={false} />)}
           </div>
         </>
       )}
@@ -1358,6 +1454,10 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
 
   const cardStyle = { background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" };
   const hasData   = !loading && (calendarData || shortTermData || windowsData);
+  const chart3yEnriched = useMemo(
+    () => enrichChart3yWithWindowStats(chart3yData, windowsData),
+    [chart3yData, windowsData],
+  );
 
   return (
     <div style={{ display:"flex", background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"inherit" }}>
@@ -1600,7 +1700,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                     Prix réel 3 ans avec occurrences saisonnières.
                   </div>
                   <ThreeYearSeasonalityChart
-                    data={chart3yData}
+                    data={chart3yEnriched}
                     loading={chart3yLoading}
                     error={chart3yError}
                     symbol={ticker}

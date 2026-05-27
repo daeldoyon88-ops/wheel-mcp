@@ -78,7 +78,9 @@ function formatDateRangeShort(startIso, endIso) {
 
 function formatPctWhole(val) {
   if (typeof val !== "number" || !isFinite(val)) return "—";
-  return `${Math.round(val * 100)} %`;
+  if (val >= 0 && val <= 1) return `${Math.round(val * 100)} %`;
+  if (val > 1 && val <= 100) return `${Math.round(val)} %`;
+  return "—";
 }
 
 function formatConfidenceLabel(raw) {
@@ -88,6 +90,71 @@ function formatConfidenceLabel(raw) {
   if (v === "préliminaire" || v === "preliminaire") return "Préliminaire";
   if (raw) return String(raw);
   return "—";
+}
+
+function getSampleSize(source) {
+  if (!source || typeof source !== "object") return null;
+  const candidates = [
+    source.sampleSize,
+    typeof source.occurrences === "number" ? source.occurrences : null,
+    source.years,
+    source.observations,
+    source.occurrencesCount,
+  ];
+  for (const n of candidates) {
+    if (typeof n === "number" && isFinite(n) && n > 0) return Math.round(n);
+  }
+  return null;
+}
+
+function normalizeRateFraction(val) {
+  if (typeof val !== "number" || !isFinite(val)) return null;
+  if (val >= 0 && val <= 1) return val;
+  if (val > 1 && val <= 100) return val / 100;
+  return null;
+}
+
+function getDirectionalWinRate(source, type) {
+  if (!source) return null;
+  const isBullish = type === "bullish";
+
+  if (isBullish && typeof source.bullishWinRate === "number") {
+    return normalizeRateFraction(source.bullishWinRate);
+  }
+  if (!isBullish && typeof source.bearishWinRate === "number") {
+    return normalizeRateFraction(source.bearishWinRate);
+  }
+  if (!isBullish && typeof source.downRate === "number") {
+    return normalizeRateFraction(source.downRate);
+  }
+
+  const winRate = normalizeRateFraction(source.winRate);
+  if (winRate == null) return null;
+  return isBullish ? winRate : 1 - winRate;
+}
+
+function buildHistoricalContextLines(overlay) {
+  const lines = [];
+  const sample = getSampleSize(overlay);
+  if (sample != null) {
+    lines.push({
+      text: `Historique : ${sample} ${sample === 1 ? "an" : "ans"}`,
+      color: C.textMuted,
+    });
+  }
+  const rateFrac = getDirectionalWinRate(overlay, overlay.type);
+  if (rateFrac != null) {
+    const typeWord = overlay.type === "bullish" ? "haussier" : "baissier";
+    lines.push({
+      text: `Réussite : ${Math.round(rateFrac * 100)} % ${typeWord}`,
+      color: C.textMuted,
+    });
+  }
+  const conf = formatConfidenceLabel(overlay.confidence);
+  if (conf && conf !== "—") {
+    lines.push({ text: `Confiance : ${conf}`, color: C.textFaint });
+  }
+  return lines;
 }
 
 function findMixedZones(bands) {
@@ -517,7 +584,7 @@ function SeasonalityChartSvg({ data }) {
       if (mx >= band.left && mx <= band.left + band.width) {
         const { overlay, occ } = band;
         const isActive = occ.status === "in_progress";
-        const confLabel = formatConfidenceLabel(overlay.confidence);
+        const historyLines = buildHistoricalContextLines(overlay);
 
         if (isActive) {
           setHover({
@@ -528,6 +595,7 @@ function SeasonalityChartSvg({ data }) {
               { text: `Fenêtre active : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
               { text: `Attendu historique : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
               { text: `Réalisé depuis début fenêtre : ${formatPct(occ.realizedReturn ?? activeProgress?.realizedReturn)}`, color: (occ.realizedReturn ?? activeProgress?.realizedReturn ?? 0) >= 0 ? C.green : C.red },
+              ...historyLines,
               ...(activeProgress?.progressTimePct != null
                 ? [{ text: `Temps écoulé : ${formatPctWhole(activeProgress.progressTimePct)}`, color: C.textMuted }]
                 : []),
@@ -546,8 +614,8 @@ function SeasonalityChartSvg({ data }) {
               ...(occ.year ? [{ text: `Occurrence : ${occ.year}`, color: C.textMuted }] : []),
               { text: `Attendu historique : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
               { text: `Réalisé occurrence : ${formatPct(occ.realizedReturn)}`, color: occ.realizedReturn >= 0 ? C.green : C.red },
+              ...historyLines,
               { text: `Statut : ${STATUS_LABELS[occ.status] ?? occ.status}`, color: C.textMuted },
-              { text: `Confiance : ${confLabel}`, color: C.textFaint },
             ],
           });
         }

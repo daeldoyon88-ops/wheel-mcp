@@ -2257,6 +2257,338 @@ function formatDynamicTop20Reason(row) {
   return row?.primaryReason ?? "—";
 }
 
+const DYNAMIC_TOP20_DTE_TARGETS = [2, 3, 4, 7];
+const DYNAMIC_TOP20_WEAK_DTE_SAMPLE = 5;
+
+function normalizeTicker(value) {
+  return String(value ?? "").trim().toUpperCase();
+}
+
+function getRecordResolvedFlag(record) {
+  return record?.resolution?.resolved === true;
+}
+
+function getRecordAssignedFlag(record) {
+  if (record?.resolution?.assigned_flag === true || record?.resolution?.assigned === true) return true;
+  if (record?.resolution?.assigned_flag === false || record?.resolution?.assigned === false) return false;
+  if (record?.assigned_flag === true || record?.assigned === true) return true;
+  if (record?.assigned_flag === false || record?.assigned === false) return false;
+  return null;
+}
+
+function getRecordWinFlag(record) {
+  if (record?.resolution?.popPredictionCorrect === true) return true;
+  if (record?.resolution?.popPredictionCorrect === false) return false;
+  if (record?.resolution?.expiredWorthless === true) return true;
+  if (record?.resolution?.expiredWorthless === false) return false;
+  return null;
+}
+
+function getRecordBrokeLowerBoundFlag(record) {
+  if (record?.resolution?.brokeLowerBound === true || record?.brokeLowerBound === true) return true;
+  if (record?.resolution?.brokeLowerBound === false || record?.brokeLowerBound === false) return false;
+  return null;
+}
+
+function getRecordCspYieldPct(record) {
+  const premium = numberOrNull(record?.strike?.premium ?? record?.premium);
+  const strike = numberOrNull(record?.strike?.strike ?? record?.strike);
+  if (premium != null && strike != null && strike > 0) return (premium / strike) * 100;
+  return (
+    numberOrNull(record?.strike?.annualizedYield) ??
+    numberOrNull(record?.annualizedYield) ??
+    numberOrNull(record?.snapshot?.premium_to_spot_pct) ??
+    null
+  );
+}
+
+function getAssignmentStrikeForDteBreakdown(record) {
+  return (
+    numberOrNull(record?.strike?.strike) ??
+    numberOrNull(record?.strike) ??
+    numberOrNull(record?.assignment_strike) ??
+    null
+  );
+}
+
+function getExpirationCloseForDteBreakdown(record) {
+  return (
+    numberOrNull(record?.resolution?.underlying_close_at_expiration) ??
+    numberOrNull(record?.resolution?.expirationClosePrice) ??
+    numberOrNull(record?.underlying_close_at_expiration) ??
+    numberOrNull(record?.expirationClosePrice) ??
+    numberOrNull(record?.assignment_price) ??
+    null
+  );
+}
+
+function classifyDteBreakdownAssignmentDepth(record) {
+  if (getRecordAssignedFlag(record) !== true) return "na";
+  const strike = getAssignmentStrikeForDteBreakdown(record);
+  const close = getExpirationCloseForDteBreakdown(record);
+  if (strike == null || close == null || strike <= 0) return "na";
+  const depthPct = ((close - strike) / strike) * 100;
+  if (depthPct <= 0 && depthPct >= -1.5) return "proche";
+  if (depthPct < -4) return "profonde";
+  if (depthPct < -1.5) return "moderee";
+  return "na";
+}
+
+function normalizeYmdForDteBreakdown(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const compact = raw.replace(/-/g, "");
+  return /^\d{8}$/.test(compact) ? compact : "";
+}
+
+function computeDteForDteBreakdown(scanDateRaw, expirationRaw) {
+  const exp = normalizeYmdForDteBreakdown(expirationRaw);
+  if (!exp) return null;
+  const scanRaw = String(scanDateRaw ?? "").trim();
+  const scanYmd = normalizeYmdForDteBreakdown(scanRaw.slice(0, 10));
+  if (!scanYmd) return null;
+  const scanUtc = new Date(`${scanYmd.slice(0, 4)}-${scanYmd.slice(4, 6)}-${scanYmd.slice(6, 8)}T00:00:00.000Z`);
+  const expUtc = new Date(`${exp.slice(0, 4)}-${exp.slice(4, 6)}-${exp.slice(6, 8)}T00:00:00.000Z`);
+  if (Number.isNaN(scanUtc.getTime()) || Number.isNaN(expUtc.getTime())) return null;
+  return Math.round((expUtc.getTime() - scanUtc.getTime()) / 86400000);
+}
+
+function getCycleOriginalDte(cycle) {
+  return (
+    numberOrNull(cycle?.dteAtScan) ??
+    numberOrNull(cycle?.dte_at_scan) ??
+    computeDteForDteBreakdown(cycle?.scan_date ?? cycle?.scanDate ?? cycle?.scan_timestamp, cycle?.expiration)
+  );
+}
+
+function getClosedCycleWheelReturn(cycle) {
+  const status = getTheoreticalCycleExitStatus(cycle);
+  if (status !== "closed") return null;
+  return numberOrNull(cycle?.return_on_assignment_pct);
+}
+
+function getDteBreakdownLbLabel({ lbKnownCount, lbBreakCount, assignmentRate, deepAssignmentRate }) {
+  if (lbKnownCount === 0) return "N/D";
+  if (lbBreakCount === 0) return "0% cassé";
+  const lbRate = (lbBreakCount / lbKnownCount) * 100;
+  if ((deepAssignmentRate ?? 0) > 0 || (assignmentRate ?? 0) >= 25) {
+    return `LB critique ${lbRate.toFixed(0)}%`;
+  }
+  if ((assignmentRate ?? 0) === 0) return `LB cassé sans dommage ${lbRate.toFixed(0)}%`;
+  return `LB à surveiller ${lbRate.toFixed(0)}%`;
+}
+
+function getDteBreakdownVerdict(row) {
+  if (!row || row.n === 0) return "données insuffisantes";
+  if (row.n < DYNAMIC_TOP20_WEAK_DTE_SAMPLE) return "préliminaire";
+  if ((row.deepAssignmentRate ?? 0) > 0 || (row.assignmentRate ?? 0) >= 25) return "assignation élevée";
+  if (row.dte <= 3 && (row.assignmentRate ?? 0) >= 10) return "court DTE à surveiller";
+  if ((row.winRate ?? 0) >= 80 && (row.assignmentRate ?? 0) <= 10) return "solide";
+  return "préliminaire";
+}
+
+function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles }) {
+  const normalizedTicker = normalizeTicker(ticker);
+  if (!normalizedTicker) {
+    return {
+      rows: DYNAMIC_TOP20_DTE_TARGETS.map((dte) => ({
+        dte,
+        n: 0,
+        sampleLabel: "aucune donnée",
+        verdict: "données insuffisantes",
+      })),
+      summary: {
+        bestDteLabel: "Meilleur DTE : non identifiable",
+        riskyDteLabel: "DTE risqué : non confirmé",
+        warningLabel: "Aucune donnée Journal POP disponible.",
+        insufficientLabel: "Données insuffisantes — ticker à suivre statistiquement",
+      },
+    };
+  }
+
+  const eligibleRecords = (Array.isArray(records) ? records : []).filter((record) => {
+    const symbol = normalizeTicker(record?.symbol ?? record?.ticker);
+    const dte = numberOrNull(record?.dteAtScan);
+    return (
+      symbol === normalizedTicker &&
+      DYNAMIC_TOP20_DTE_TARGETS.includes(dte) &&
+      getRecordResolvedFlag(record) &&
+      (record?.captureClass ?? "primaryDaily") !== "intradayRetest"
+    );
+  });
+
+  const cyclesForTicker = (Array.isArray(theoreticalCycles) ? theoreticalCycles : []).filter((cycle) => {
+    const cycleTicker = normalizeTicker(cycle?.ticker);
+    const dte = getCycleOriginalDte(cycle);
+    return cycleTicker === normalizedTicker && DYNAMIC_TOP20_DTE_TARGETS.includes(dte);
+  });
+
+  const rows = DYNAMIC_TOP20_DTE_TARGETS.map((dte) => {
+    const dteRecords = eligibleRecords.filter((record) => numberOrNull(record?.dteAtScan) === dte);
+    const n = dteRecords.length;
+    const assignedRows = dteRecords.filter((record) => getRecordAssignedFlag(record) === true);
+    const nearAssignmentCount = assignedRows.filter(
+      (record) => classifyDteBreakdownAssignmentDepth(record) === "proche",
+    ).length;
+    const deepAssignmentCount = assignedRows.filter(
+      (record) => classifyDteBreakdownAssignmentDepth(record) === "profonde",
+    ).length;
+    const winKnownRows = dteRecords.filter((record) => getRecordWinFlag(record) != null);
+    const winCount = winKnownRows.filter((record) => getRecordWinFlag(record) === true).length;
+    const yieldValues = dteRecords.map((record) => getRecordCspYieldPct(record)).filter((value) => value != null);
+    const lbKnownRows = dteRecords.filter((record) => getRecordBrokeLowerBoundFlag(record) != null);
+    const lbBreakCount = lbKnownRows.filter((record) => getRecordBrokeLowerBoundFlag(record) === true).length;
+    const dteCycleReturns = cyclesForTicker
+      .filter((cycle) => getCycleOriginalDte(cycle) === dte)
+      .map((cycle) => getClosedCycleWheelReturn(cycle))
+      .filter((value) => value != null);
+
+    const assignmentRate = n > 0 ? (assignedRows.length / n) * 100 : null;
+    const deepAssignmentRate = n > 0 ? (deepAssignmentCount / n) * 100 : null;
+    const row = {
+      dte,
+      n,
+      avgCspYieldPct: yieldValues.length > 0 ? avgNumericValues(yieldValues) : null,
+      winRate: winKnownRows.length > 0 ? (winCount / winKnownRows.length) * 100 : null,
+      assignmentRate,
+      nearAssignmentRate: n > 0 ? (nearAssignmentCount / n) * 100 : null,
+      deepAssignmentRate,
+      avgWheelReturnPct: dteCycleReturns.length > 0 ? avgNumericValues(dteCycleReturns) : null,
+      lbLabel: getDteBreakdownLbLabel({
+        lbKnownCount: lbKnownRows.length,
+        lbBreakCount,
+        assignmentRate,
+        deepAssignmentRate,
+      }),
+      sampleLabel: n === 0 ? "aucune donnée" : n < DYNAMIC_TOP20_WEAK_DTE_SAMPLE ? "échantillon faible" : "échantillon utilisable",
+      expirations: [...new Set(dteRecords.map((record) => record?.expiration).filter(Boolean))].slice(0, 4),
+      scanDates: [...new Set(dteRecords.map((record) => record?.scanDate).filter(Boolean))].slice(0, 4),
+    };
+    return { ...row, verdict: getDteBreakdownVerdict(row) };
+  });
+
+  const measurableRows = rows.filter((row) => row.n >= DYNAMIC_TOP20_WEAK_DTE_SAMPLE);
+  const bestRow = [...measurableRows].sort((a, b) => {
+    const assignDelta = (a.assignmentRate ?? 1000) - (b.assignmentRate ?? 1000);
+    if (assignDelta !== 0) return assignDelta;
+    const winDelta = (b.winRate ?? -1) - (a.winRate ?? -1);
+    if (winDelta !== 0) return winDelta;
+    return (b.avgCspYieldPct ?? -1) - (a.avgCspYieldPct ?? -1);
+  })[0] ?? null;
+  const riskyRows = rows.filter(
+    (row) => row.n > 0 && ((row.assignmentRate ?? 0) >= 25 || (row.deepAssignmentRate ?? 0) > 0),
+  );
+  const weakRows = rows.filter((row) => row.n > 0 && row.n < DYNAMIC_TOP20_WEAK_DTE_SAMPLE);
+  const totalN = rows.reduce((sum, row) => sum + row.n, 0);
+
+  return {
+    rows,
+    summary: {
+      bestDteLabel: bestRow
+        ? `Meilleur DTE identifiable : ${bestRow.dte} DTE`
+        : "Meilleur DTE : non identifiable",
+      riskyDteLabel:
+        riskyRows.length > 0
+          ? `DTE risqué : ${riskyRows.map((row) => `${row.dte} DTE`).join(", ")}`
+          : "DTE risqué : non confirmé",
+      warningLabel:
+        totalN === 0
+          ? "Aucune donnée disponible sur 2/3/4/7 DTE."
+          : weakRows.length > 0
+          ? `Attention : n faible sur ${weakRows.map((row) => `${row.dte} DTE`).join(", ")}.`
+          : "Échantillon utilisable sur les DTE affichés.",
+      insufficientLabel:
+        totalN === 0 ? "Données insuffisantes — ticker à suivre statistiquement" : null,
+    },
+  };
+}
+
+function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
+  const rows = Array.isArray(breakdown?.rows) ? breakdown.rows : [];
+  const summary = breakdown?.summary ?? {};
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+      <div className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-5 py-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-100">
+              {ticker} — Détail Journal POP par DTE
+            </h3>
+            <p className="mt-1 text-[11px] text-slate-500">
+              DTE ciblés : 2, 3, 4 et 7. Les chiffres viennent seulement des observations Journal POP disponibles.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-bold text-slate-300 hover:bg-slate-800"
+            aria-label="Fermer le détail DTE"
+          >
+            X
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4">
+          {summary.insufficientLabel ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12px] font-semibold text-amber-200">
+              {summary.insufficientLabel}
+            </div>
+          ) : null}
+
+          <div className="grid gap-2 md:grid-cols-3">
+            {[summary.bestDteLabel, summary.riskyDteLabel, summary.warningLabel].filter(Boolean).map((label) => (
+              <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-300">
+                {label}
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-800">
+            <table className="min-w-full divide-y divide-slate-800 text-left text-[11px]">
+              <thead className="bg-slate-900/80 text-slate-500">
+                <tr>
+                  {["DTE", "n", "Rend. CSP", "Win", "Assign.", "Assign. proche", "Assign. profonde", "Rend. Wheel", "LB", "Verdict"].map((header) => (
+                    <th key={header} className="px-3 py-2 font-semibold">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 bg-slate-950">
+                {rows.map((row) => (
+                  <tr key={`dte-breakdown-${ticker}-${row.dte}`} className="hover:bg-slate-900/70">
+                    <td className="px-3 py-2 font-semibold text-slate-200">{row.dte} DTE</td>
+                    <td className="px-3 py-2 tabular-nums text-slate-300">
+                      {row.n}
+                      <span className="block text-[10px] text-slate-600">{row.sampleLabel}</span>
+                    </td>
+                    <td className="px-3 py-2 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
+                    <td className="px-3 py-2">{formatPercent(row.winRate)}</td>
+                    <td className="px-3 py-2">{formatPercent(row.assignmentRate)}</td>
+                    <td className="px-3 py-2">{formatPercent(row.nearAssignmentRate, 0)}</td>
+                    <td className="px-3 py-2">{formatPercent(row.deepAssignmentRate, 0)}</td>
+                    <td className="px-3 py-2">{formatPercent(row.avgWheelReturnPct, 2)}</td>
+                    <td
+                      className="px-3 py-2 text-slate-400"
+                      title={[
+                        row.expirations?.length ? `Expirations: ${row.expirations.map(formatCompactExpiration).join(", ")}` : null,
+                        row.scanDates?.length ? `Scan: ${row.scanDates.join(", ")}` : null,
+                      ].filter(Boolean).join(" · ")}
+                    >
+                      {row.lbLabel ?? "N/D"}
+                    </td>
+                    <td className="px-3 py-2 text-slate-300">{row.verdict}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Win Quality V2A ─────────────────────────────────────────────────────────
 
 function getWinQuality(record) {
@@ -3520,6 +3852,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [dynamicTop20NearOnly, setDynamicTop20NearOnly] = useState(false);
   const [dynamicTop20TickerSearch, setDynamicTop20TickerSearch] = useState("");
   const [dynamicTop20ShowAllExcluded, setDynamicTop20ShowAllExcluded] = useState(false);
+  const [dynamicTop20DteTicker, setDynamicTop20DteTicker] = useState(null);
   const [theoreticalTickerSearch, setTheoreticalTickerSearch] = useState("");
   const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
@@ -4135,6 +4468,16 @@ export default function JournalPopPanel({ apiBase, active }) {
     const limit = dynamicTop20ShowAllExcluded ? rows.length : 10;
     return rows.slice(0, limit);
   }, [dynamicTop20Payload, dynamicTop20ShowAllExcluded, applyDynamicTop20Filters]);
+
+  const dynamicTop20DteBreakdown = useMemo(
+    () =>
+      buildDynamicTop20DteBreakdown({
+        ticker: dynamicTop20DteTicker,
+        records,
+        theoreticalCycles,
+      }),
+    [dynamicTop20DteTicker, records, theoreticalCycles],
+  );
 
   const latestOptionSnapshotRecords = useMemo(
     () =>
@@ -4835,7 +5178,16 @@ export default function JournalPopPanel({ apiBase, active }) {
                   rows={filteredDynamicTop20Main.map((row) => (
                     <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
-                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className="px-3 py-2.5 font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setDynamicTop20DteTicker(row.ticker)}
+                          className="text-left text-sky-300 underline decoration-sky-500/40 underline-offset-4 hover:text-sky-200"
+                          title="Voir le détail Journal POP par DTE"
+                        >
+                          {row.ticker}
+                        </button>
+                      </td>
                       <td className="px-3 py-2.5">
                         <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
                       </td>
@@ -4936,6 +5288,14 @@ export default function JournalPopPanel({ apiBase, active }) {
                 Score expérimental de laboratoire — ne constitue pas un score final. Les profils n &lt; 30 restent
                 préliminaires. {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
               </p>
+
+              {dynamicTop20DteTicker ? (
+                <DynamicTop20DteBreakdownModal
+                  ticker={dynamicTop20DteTicker}
+                  breakdown={dynamicTop20DteBreakdown}
+                  onClose={() => setDynamicTop20DteTicker(null)}
+                />
+              ) : null}
             </div>
           )}
         </CollapsibleSection>

@@ -294,8 +294,37 @@ function formatConfidenceLabel(raw) {
   if (v === "robuste") return "Robuste";
   if (v === "mesurable") return "Mesurable";
   if (v === "préliminaire" || v === "preliminaire") return "Préliminaire";
+  if (v === "échantillon limité" || v === "echantillon limite") return "Échantillon limité";
   if (raw) return String(raw);
   return "—";
+}
+
+/** Normalise un taux en fraction 0–1 (accepte aussi 0–100). */
+function normalizeRate(val) {
+  if (typeof val !== "number" || !isFinite(val)) return null;
+  if (val >= 0 && val <= 1) return val;
+  if (val > 1 && val <= 100) return val / 100;
+  return null;
+}
+
+/** Confiance affichée — plafonnée selon sampleSize (ne jamais « Robuste » si n < 12). */
+function getDisplayConfidence(rawConfidence, sampleSize) {
+  if (sampleSize == null) {
+    const formatted = formatConfidenceLabel(rawConfidence);
+    return formatted !== "—" ? formatted : "Historique disponible";
+  }
+  if (sampleSize < 5) return "Échantillon limité";
+  if (sampleSize < 8) return "Préliminaire";
+  if (sampleSize < 12) return "Mesurable";
+  const formatted = formatConfidenceLabel(rawConfidence);
+  return formatted !== "—" ? formatted : "Robuste possible";
+}
+
+/** Libellé occurrences testées — « 1 occurrence » ou « N occurrences ». */
+function formatOccurrenceCount(sampleSize) {
+  if (typeof sampleSize !== "number" || !isFinite(sampleSize) || sampleSize <= 0) return null;
+  const n = Math.round(sampleSize);
+  return n === 1 ? "1 occurrence" : `${n} occurrences`;
 }
 
 function momentumHintShort(sw, isBullish) {
@@ -720,7 +749,9 @@ function CalendarHeatmap({ calendar }) {
       </div>
       {calendar.summary && (
         <div style={{ marginTop:"8px", fontSize:"10px", color:C.textFaint }}>
-          Source : {calendar.summary.source ?? "Yahoo Finance"} · {calendar.summary.yearsCovered ?? "—"} ans · Cache {calendar.summary.cacheTtlHours}h
+          Source : {calendar.summary.source ?? "Yahoo Finance"}
+          {calendar.summary.yearsCovered != null ? ` · ${calendar.summary.yearsCovered} ans` : ""}
+          {" · "}Cache {calendar.summary.cacheTtlHours}h
         </div>
       )}
     </div>
@@ -759,29 +790,22 @@ function getSampleSize(window) {
   return null;
 }
 
-function normalizeRateFraction(val) {
-  if (typeof val !== "number" || !isFinite(val)) return null;
-  if (val >= 0 && val <= 1) return val;
-  if (val > 1 && val <= 100) return val / 100;
-  return null;
-}
-
 /** Taux directionnel : haussier pour bullish, baissier pour bearish (winRate backend = % haussier). */
 function getDirectionalWinRate(window, type) {
   if (!window) return null;
   const isBullish = type === "bullish" || type === true;
 
   if (isBullish && typeof window.bullishWinRate === "number") {
-    return normalizeRateFraction(window.bullishWinRate);
+    return normalizeRate(window.bullishWinRate);
   }
   if (!isBullish && typeof window.bearishWinRate === "number") {
-    return normalizeRateFraction(window.bearishWinRate);
+    return normalizeRate(window.bearishWinRate);
   }
   if (!isBullish && typeof window.downRate === "number") {
-    return normalizeRateFraction(window.downRate);
+    return normalizeRate(window.downRate);
   }
 
-  const winRate = normalizeRateFraction(window.winRate);
+  const winRate = normalizeRate(window.winRate);
   if (winRate == null) return null;
   return isBullish ? winRate : 1 - winRate;
 }
@@ -845,8 +869,9 @@ function resolveNextWindowStartIso(window, todayIso = getTodayIsoUtc()) {
 }
 
 function isRobustOrMeasurable(window) {
-  const conf = String(window?.confidence ?? "").toLowerCase();
-  return conf === "robuste" || conf === "mesurable";
+  const sample = getSampleSize(window);
+  const conf = String(getDisplayConfidence(window?.confidence ?? window?.status, sample)).toLowerCase();
+  return conf === "robuste" || conf === "robuste possible" || conf === "mesurable";
 }
 
 function upcomingDistanceLabel(daysUntil) {
@@ -856,11 +881,14 @@ function upcomingDistanceLabel(daysUntil) {
   return null;
 }
 
-function confidenceRank(conf) {
+function confidenceRank(window) {
+  const sample = getSampleSize(window);
+  const conf = getDisplayConfidence(window?.confidence ?? window?.status, sample);
   const v = String(conf ?? "").toLowerCase();
-  if (v === "robuste") return 3;
+  if (v === "robuste" || v === "robuste possible") return 3;
   if (v === "mesurable") return 2;
   if (v === "préliminaire" || v === "preliminaire") return 1;
+  if (v === "échantillon limité") return 0;
   return 0;
 }
 
@@ -889,7 +917,7 @@ function pickUpcomingBullishWindow(windows, activeProgress) {
   if (!candidates.length) return null;
 
   candidates.sort((a, b) => {
-    const confDiff = confidenceRank(b.window.confidence) - confidenceRank(a.window.confidence);
+    const confDiff = confidenceRank(b.window) - confidenceRank(a.window);
     if (confDiff !== 0) return confDiff;
     const winA = getDirectionalWinRate(a.window, "bullish") ?? 0;
     const winB = getDirectionalWinRate(b.window, "bullish") ?? 0;
@@ -971,22 +999,23 @@ function buildCombinedMomentumReading({ upcoming, rsiMomentum, activeProgress })
 }
 
 function formatWindowConfidenceDetails(window, type) {
-  const conf = formatConfidenceLabel(window?.confidence ?? window?.status);
-  const rateFrac = getDirectionalWinRate(window, type);
   const sample = getSampleSize(window);
+  const conf = getDisplayConfidence(window?.confidence ?? window?.status, sample);
+  const rateFrac = getDirectionalWinRate(window, type);
   const typeWord = type === "bullish" || type === true ? "haussier" : "baissier";
+  const occLabel = formatOccurrenceCount(sample);
 
-  if (rateFrac != null && sample != null) {
-    return `${Math.round(rateFrac * 100)} % ${typeWord} sur ${sample} ${sample === 1 ? "an" : "ans"} · ${conf}`;
+  if (rateFrac != null && occLabel) {
+    return `${Math.round(rateFrac * 100)} % ${typeWord} sur ${occLabel} · ${conf}`;
   }
   if (rateFrac != null) {
     return `${Math.round(rateFrac * 100)} % ${typeWord} · ${conf}`;
   }
-  if (sample != null) {
-    return `${sample} ${sample === 1 ? "an" : "ans"} testé${sample === 1 ? "" : "s"} · ${conf}`;
+  if (occLabel) {
+    return `${occLabel} testée${sample === 1 ? "" : "s"} · ${conf}`;
   }
   if (conf && conf !== "—") {
-    return `Historique disponible · ${conf}`;
+    return conf === "Historique disponible" ? conf : `Historique disponible · ${conf}`;
   }
   return null;
 }
@@ -1302,11 +1331,21 @@ function SwingWindowsList({ rows, isBullish, activeWindows }) {
           <div style={{ fontSize:"11px", color:C.textMuted, lineHeight:1.55 }}>
             <span style={{ color:pctColor(sw.avgReturn), fontWeight:600 }}>{formatPct(sw.avgReturn)}</span>
             {" · "}
-            <span>{isBullish ? "Win" : "% haussier"} {formatWinRate(sw.winRate)}</span>
+            <span>
+              {(() => {
+                const dirRate = getDirectionalWinRate(sw, isBullish ? "bullish" : "bearish");
+                const typeWord = isBullish ? "haussier" : "baissier";
+                return dirRate != null
+                  ? `${Math.round(dirRate * 100)} % ${typeWord}`
+                  : `${isBullish ? "Win" : "% haussier"} ${formatWinRate(sw.winRate)}`;
+              })()}
+            </span>
             {" · "}
             <span>Pire {formatPct(sw.worstReturn)}</span>
             {" · "}
-            <span style={{ fontWeight:600 }}>{formatConfidenceLabel(sw.confidence ?? sw.status)}</span>
+            <span style={{ fontWeight:600 }}>
+              {getDisplayConfidence(sw.confidence ?? sw.status, getSampleSize(sw))}
+            </span>
           </div>
           {sw.confidenceReason && (
             <div style={{ fontSize:"10px", color:C.yellow, marginTop:"3px" }}>
@@ -1531,7 +1570,7 @@ function SeasonalUniverseBar({ ticker, onSelectTicker, winRate7j, search, onSear
 
   const activeMetaParts = [activeSym, "Yahoo Finance"];
   if (typeof winRate7j === "number" && isFinite(winRate7j)) {
-    activeMetaParts.push(`${formatWinRate(winRate7j)} des années ↑`);
+    activeMetaParts.push(`7j positif : ${formatWinRate(winRate7j)}`);
   }
 
   const chipStyle = (isActive) => ({
@@ -2050,7 +2089,13 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                     title="Court terme — Vente d'options (CSP / CC)"
                     icon={Shield}
                     info="Statistiques historiques basées sur l'historique complet disponible."
-                    right={shortTermData?.summary ? `${shortTermData.summary.yearsCovered ?? "—"} ans` : undefined}
+                    right={
+                      shortTermData?.summary
+                        ? (shortTermData.summary.yearsCovered != null
+                          ? `${shortTermData.summary.yearsCovered} ans`
+                          : "Historique disponible")
+                        : undefined
+                    }
                   />
                   <ShortTermTable shortTerm={shortTermData} />
                 </div>

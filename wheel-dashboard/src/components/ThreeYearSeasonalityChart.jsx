@@ -217,8 +217,34 @@ function formatConfidenceLabel(raw) {
   if (v === "robuste") return "Robuste";
   if (v === "mesurable") return "Mesurable";
   if (v === "préliminaire" || v === "preliminaire") return "Préliminaire";
+  if (v === "échantillon limité" || v === "echantillon limite") return "Échantillon limité";
   if (raw) return String(raw);
   return "—";
+}
+
+function normalizeRate(val) {
+  if (typeof val !== "number" || !isFinite(val)) return null;
+  if (val >= 0 && val <= 1) return val;
+  if (val > 1 && val <= 100) return val / 100;
+  return null;
+}
+
+function getDisplayConfidence(rawConfidence, sampleSize) {
+  if (sampleSize == null) {
+    const formatted = formatConfidenceLabel(rawConfidence);
+    return formatted !== "—" ? formatted : "Historique disponible";
+  }
+  if (sampleSize < 5) return "Échantillon limité";
+  if (sampleSize < 8) return "Préliminaire";
+  if (sampleSize < 12) return "Mesurable";
+  const formatted = formatConfidenceLabel(rawConfidence);
+  return formatted !== "—" ? formatted : "Robuste possible";
+}
+
+function formatOccurrenceCount(sampleSize) {
+  if (typeof sampleSize !== "number" || !isFinite(sampleSize) || sampleSize <= 0) return null;
+  const n = Math.round(sampleSize);
+  return n === 1 ? "1 occurrence" : `${n} occurrences`;
 }
 
 function getSampleSize(source) {
@@ -237,10 +263,7 @@ function getSampleSize(source) {
 }
 
 function normalizeRateFraction(val) {
-  if (typeof val !== "number" || !isFinite(val)) return null;
-  if (val >= 0 && val <= 1) return val;
-  if (val > 1 && val <= 100) return val / 100;
-  return null;
+  return normalizeRate(val);
 }
 
 function getDirectionalWinRate(source, type) {
@@ -248,16 +271,16 @@ function getDirectionalWinRate(source, type) {
   const isBullish = type === "bullish";
 
   if (isBullish && typeof source.bullishWinRate === "number") {
-    return normalizeRateFraction(source.bullishWinRate);
+    return normalizeRate(source.bullishWinRate);
   }
   if (!isBullish && typeof source.bearishWinRate === "number") {
-    return normalizeRateFraction(source.bearishWinRate);
+    return normalizeRate(source.bearishWinRate);
   }
   if (!isBullish && typeof source.downRate === "number") {
-    return normalizeRateFraction(source.downRate);
+    return normalizeRate(source.downRate);
   }
 
-  const winRate = normalizeRateFraction(source.winRate);
+  const winRate = normalizeRate(source.winRate);
   if (winRate == null) return null;
   return isBullish ? winRate : 1 - winRate;
 }
@@ -265,9 +288,10 @@ function getDirectionalWinRate(source, type) {
 function buildHistoricalContextLines(overlay) {
   const lines = [];
   const sample = getSampleSize(overlay);
-  if (sample != null) {
+  const occLabel = formatOccurrenceCount(sample);
+  if (occLabel) {
     lines.push({
-      text: `Historique : ${sample} ${sample === 1 ? "an" : "ans"}`,
+      text: `Historique : ${occLabel}`,
       color: C.textMuted,
     });
   }
@@ -279,7 +303,7 @@ function buildHistoricalContextLines(overlay) {
       color: C.textMuted,
     });
   }
-  const conf = formatConfidenceLabel(overlay.confidence);
+  const conf = getDisplayConfidence(overlay.confidence, sample);
   if (conf && conf !== "—") {
     lines.push({ text: `Confiance : ${conf}`, color: C.textFaint });
   }

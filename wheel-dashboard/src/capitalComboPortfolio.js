@@ -33,6 +33,9 @@ function resolveOptimizerV2ForCombo(overrideFlags) {
 }
 
 /** Symboles focal — même liste que dans l’export `nearMissFocus` (diagnostic lecture seule). */
+/** Seuil executionScore AGGRESSIVE — distinct de SAFE/BALANCED (0). Candidats ≥ seuil admissibles au scoredPool. */
+export const CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE = 0.40;
+
 export const CAPITAL_COMBO_ALLOCATION_TRACE_FOCUS_SYMBOLS = [
   "OKLO",
   "SHOP",
@@ -1295,7 +1298,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       maxHighBetaCapitalPct: 0.60,
       minWeeklyYield: 0.95,
       maxWeeklyYield: null,
-      minExecutionScore: 0.45,
+      minExecutionScore: CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE,
       maxSpreadPct: 25,
       allowedModes: new Set(["AGGRESSIVE"]),
       allowedGrades: new Set(["A", "B"]),

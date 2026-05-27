@@ -29,6 +29,7 @@ import {
   getLegYieldPct,
   getCandidateExecutionScore,
   getLegExecutionBreakdown,
+  CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE,
   getModeGradeRank,
   gradeLeg,
   isUnknownUnvalidatedTicker,
@@ -7851,7 +7852,7 @@ const _INSP_BUCKETS = {
     filterSpeculativeRequireNoEarnings: false,
     filterPremiumTrapPenaltyMin: 0.40,
     filterPremiumTrapPopMin: 82,
-    minExecutionScore: 0.45,
+    minExecutionScore: CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE,
   },
 };
 const _INSP_BUCKET_KEYS = ["SAFE", "BALANCED", "AGGRESSIVE"];
@@ -8286,6 +8287,10 @@ function BucketTickerLine({ diag }) {
     diag.greedyPoolDiag.rejectionReason !== "not_selected_greedy_lower_marginalScore"
       ? ` · blocage greedy: ${diag.greedyPoolDiag.rejectionReason}`
       : "";
+  const execRejectHint =
+    diag.blockedByExecutionScore && diag.executionBreakdown
+      ? ` · executionScore ${Number(diag.executionBreakdown.executionScore).toFixed(2)} < min AGGRESSIVE ${Number(diag.executionBreakdown.minExecutionScore).toFixed(2)}`
+      : "";
   return (
     <div className="text-xs text-slate-300 py-px leading-snug">
       <span className="font-semibold text-slate-100">{diag.ticker}</span>
@@ -8296,6 +8301,7 @@ function BucketTickerLine({ diag }) {
       {" — "}POP {_inspFmt(diag.pop, "%", 0)}
       {" — "}capital {capStr}
       {" — "}<span className={_inspLineStatusCls(diag)}>{_inspLineStatus(diag)}</span>
+      {execRejectHint ? <span className="text-amber-400">{execRejectHint}</span> : null}
       {greedyReason ? <span className="text-slate-500">{greedyReason}</span> : null}
     </div>
   );
@@ -8659,6 +8665,9 @@ function CapitalCombosInspector({
                                 Critères {diag.bucket} — yield [{cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}]
                                 · spread max {cfg.maxSpread}%
                                 · modes {[...cfg.allowedModes].join("/")}
+                                {(cfg.minExecutionScore ?? 0) > 0
+                                  ? ` · min executionScore ${Number(cfg.minExecutionScore).toFixed(2)}`
+                                  : ""}
                               </p>
                             </div>
                           </>
@@ -8690,6 +8699,7 @@ function CapitalCombosInspector({
                     {(() => {
                       const cfg = _INSP_BUCKETS[b];
                       const isBalanced = b === "BALANCED";
+                      const isAggressive = b === "AGGRESSIVE";
                       return (
                         <div className="text-[10px] text-slate-500 italic mb-1.5 space-y-0.5">
                           <p>
@@ -8697,6 +8707,14 @@ function CapitalCombosInspector({
                             {" · "}Spread ≤{cfg.maxSpread}%
                             {" · "}Grades {[...cfg.allowedGrades ?? ["A","B"]].join("/")}
                           </p>
+                          {isAggressive && (
+                            <p>
+                              Seuil executionScore AGGRESSIVE : {Number(CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE).toFixed(2)}
+                              {" · "}yield ≥0.95%
+                              {" · "}POP WATCH premium ≥85% (max 1 contrat)
+                              {" · "}distance OTM ≤ -5%
+                            </p>
+                          )}
                           {isBalanced && (
                             <p>
                               POP speculative ≥82%

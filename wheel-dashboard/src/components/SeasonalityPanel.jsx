@@ -1568,11 +1568,6 @@ function SeasonalUniverseBar({ ticker, onSelectTicker, winRate7j, search, onSear
   const activeSym = String(ticker ?? "").trim().toUpperCase() || "—";
   const showExtraActive = activeSym !== "—" && !filtered.includes(activeSym);
 
-  const activeMetaParts = [activeSym, "Yahoo Finance"];
-  if (typeof winRate7j === "number" && isFinite(winRate7j)) {
-    activeMetaParts.push(`7j positif : ${formatWinRate(winRate7j)}`);
-  }
-
   const chipStyle = (isActive) => ({
     flex: "0 0 auto",
     padding: "4px 9px",
@@ -1594,33 +1589,74 @@ function SeasonalUniverseBar({ ticker, onSelectTicker, winRate7j, search, onSear
       background: C.panel,
       border: `1px solid ${C.border}`,
       borderRadius: "10px",
-      padding: "8px 12px",
+      padding: "7px 12px 8px",
       display: "flex",
       flexDirection: "column",
-      gap: "6px",
+      gap: "5px",
       flexShrink: 0,
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", minHeight: "16px" }}>
-        <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: C.textMuted, flexShrink: 0 }}>
+      {/* Ligne 1 — ticker actif dominant + label discret */}
+      <div className="sea-universe-hero" style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "10px",
+        minWidth: 0,
+      }}>
+        <div style={{ minWidth: 0, flex: "1 1 auto", paddingLeft: "8px" }}>
+          <div
+            className="sea-universe-active-ticker"
+            style={{
+              fontSize: "clamp(22px, 4.5vw, 26px)",
+              fontWeight: 900,
+              letterSpacing: "0.06em",
+              color: activeSym !== "—" ? C.text : C.textFaint,
+              lineHeight: 1.05,
+              paddingLeft: "10px",
+              borderLeft: activeSym !== "—" ? `3px solid ${C.accent}` : `3px solid ${C.border}`,
+              textShadow: activeSym !== "—" ? "0 0 20px rgba(139,92,246,0.18)" : "none",
+            }}
+            aria-label={`Ticker actif : ${activeSym}`}
+          >
+            {activeSym}
+          </div>
+          <div style={{
+            fontSize: "10.5px",
+            color: C.textMuted,
+            marginTop: "3px",
+            paddingLeft: "13px",
+            lineHeight: 1.35,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            <span>Yahoo Finance</span>
+            {typeof winRate7j === "number" && isFinite(winRate7j) && (
+              <>
+                <span style={{ margin: "0 5px", opacity: 0.45 }}>·</span>
+                <span style={{ color: C.green, fontWeight: 600 }}>
+                  7j positif : {formatWinRate(winRate7j)}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <span style={{
+          fontSize: "9px",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: C.textFaint,
+          flexShrink: 0,
+          paddingTop: "2px",
+          whiteSpace: "nowrap",
+        }}>
           Univers saisonnier
-        </span>
-        <span style={{ fontSize: "10px", color: C.textFaint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
-          {activeMetaParts.map((part, i) => (
-            <React.Fragment key={part}>
-              {i > 0 && <span style={{ margin: "0 5px", opacity: 0.5 }}>·</span>}
-              {i === 0 ? (
-                <span style={{ color: C.accentLight, fontWeight: 700 }}>{part}</span>
-              ) : i === activeMetaParts.length - 1 && typeof winRate7j === "number" ? (
-                <span style={{ color: C.green, fontWeight: 600 }}>{part}</span>
-              ) : (
-                <span>{part}</span>
-              )}
-            </React.Fragment>
-          ))}
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "28px" }}>
+      {/* Ligne 2 — recherche + chips */}
+      <div className="sea-universe-controls" style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "26px", minWidth: 0 }}>
         <div style={{ position: "relative", flexShrink: 0, width: "132px" }}>
           <Search size={11} style={{ position: "absolute", left: "7px", top: "50%", transform: "translateY(-50%)", color: C.textFaint, pointerEvents: "none" }} />
           <input
@@ -1947,6 +1983,10 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         .sea-universe-chip:hover { background: rgba(139,92,246,0.12) !important; color: ${C.text} !important; border-color: ${C.borderAccent} !important; }
         .sea-universe-chips::-webkit-scrollbar { height: 3px; }
         .sea-universe-chips::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.35); border-radius: 2px; }
+        @media (max-width: 640px) {
+          .sea-universe-hero { flex-wrap: wrap; gap: 4px !important; }
+          .sea-universe-active-ticker { font-size: 22px !important; }
+        }
         @media (max-width: 960px) {
           .sea-swing-row { grid-template-columns: 1fr; }
         }

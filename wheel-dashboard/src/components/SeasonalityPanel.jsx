@@ -108,6 +108,52 @@ function seasonalWindowSubLabel(w) {
   return days ? `${w.label} · ${days}j` : w.label;
 }
 
+/** Aplatit horizons (fallback si distinct absent). */
+function flattenHorizonWindows(windows, direction = "bullish") {
+  if (!windows?.horizons?.length) return [];
+  const key = direction === "bearish" ? "worstBearish" : "bestBullish";
+  const out = [];
+  for (const h of windows.horizons) {
+    for (const wBlock of h.windows ?? []) {
+      for (const w of wBlock[key] ?? []) {
+        out.push({ ...w, days: w.days ?? wBlock.windowDays });
+      }
+    }
+  }
+  return out;
+}
+
+function getDistinctOrLegacyBullish(windows) {
+  if (windows?.distinct?.bullish?.length) return windows.distinct.bullish;
+  const flat = flattenHorizonWindows(windows, "bullish");
+  flat.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  return flat.slice(0, 4);
+}
+
+function getDistinctOrLegacyBearish(windows) {
+  if (windows?.distinct?.bearish?.length) return windows.distinct.bearish;
+  const flat = flattenHorizonWindows(windows, "bearish");
+  flat.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  return flat.slice(0, 4);
+}
+
+/** Long terme : fenêtres distinctes, priorité durées ≥ 40j, tri par durée décroissante. */
+function getLongTermBullishRows(windows) {
+  const distinct = windows?.distinct?.bullish;
+  if (distinct?.length) {
+    const longDur = [...distinct]
+      .filter((w) => (w.days ?? w.windowDays ?? 0) >= 40)
+      .sort((a, b) => (b.days ?? b.windowDays ?? 0) - (a.days ?? a.windowDays ?? 0));
+    if (longDur.length) return longDur.slice(0, 4);
+    return [...distinct]
+      .sort((a, b) => (b.days ?? b.windowDays ?? 0) - (a.days ?? a.windowDays ?? 0))
+      .slice(0, 4);
+  }
+  const flat = flattenHorizonWindows(windows, "bullish");
+  flat.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  return flat.slice(0, 6);
+}
+
 function SeasonalWindowLabel({ window: w, primaryStyle, subStyle }) {
   const primary = seasonalWindowPrimaryLabel(w);
   const sub = seasonalWindowSubLabel(w);
@@ -371,15 +417,10 @@ function CalendarHeatmap({ calendar }) {
 
 // ─── Tableau fenêtres longues ───────────────────────────────────────────────────
 function LongTermWindowsCard({ windows }) {
-  if (!windows?.horizons?.length) return <div style={{ color:C.textFaint, fontSize:"12px", padding:"18px 0" }}>Fenêtres saisonnières non disponibles.</div>;
-  const allBullish = [];
-  for (const h of windows.horizons) {
-    for (const wBlock of h.windows ?? []) {
-      for (const w of wBlock.bestBullish ?? []) allBullish.push({ ...w, days: wBlock.windowDays });
-    }
+  if (!windows?.horizons?.length && !windows?.distinct?.bullish?.length) {
+    return <div style={{ color:C.textFaint, fontSize:"12px", padding:"18px 0" }}>Fenêtres saisonnières non disponibles.</div>;
   }
-  allBullish.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  const rows = allBullish.slice(0, 6);
+  const rows = getLongTermBullishRows(windows);
   const thBase = { padding:"6px 8px", fontSize:"9.5px", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:C.textFaint, borderBottom:`1px solid ${C.border}`, background:C.cardInner, whiteSpace:"nowrap" };
   const tdBase = { padding:"8px 8px", fontSize:"11.5px", color:C.text, borderBottom:`1px solid rgba(120,150,190,0.07)`, verticalAlign:"middle" };
   const activeNow = windows.summary?.activeNow ?? [];
@@ -440,16 +481,11 @@ function LongTermWindowsCard({ windows }) {
 
 // ─── Meilleures / Pires fenêtres ───────────────────────────────────────────────
 function BestWorstWindowsCard({ windows }) {
-  if (!windows?.horizons?.length) return <div style={{ color:C.textFaint, fontSize:"12px", padding:"16px 0" }}>Fenêtres non disponibles.</div>;
-  const allBullish = [], allBearish = [];
-  for (const h of windows.horizons) {
-    for (const wBlock of h.windows ?? []) {
-      for (const w of wBlock.bestBullish ?? []) allBullish.push({ ...w, days: wBlock.windowDays });
-      for (const w of wBlock.worstBearish ?? []) allBearish.push({ ...w, days: wBlock.windowDays });
-    }
+  if (!windows?.horizons?.length && !windows?.distinct) {
+    return <div style={{ color:C.textFaint, fontSize:"12px", padding:"16px 0" }}>Fenêtres non disponibles.</div>;
   }
-  allBullish.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  allBearish.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const allBullish = getDistinctOrLegacyBullish(windows);
+  const allBearish = getDistinctOrLegacyBearish(windows);
   const thBase = { padding:"5px 7px", fontSize:"9px", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:C.textFaint, borderBottom:`1px solid ${C.border}`, background:C.cardInner };
   const tdBase = { padding:"7px 7px", fontSize:"11px", color:C.text, borderBottom:`1px solid rgba(120,150,190,0.07)`, verticalAlign:"middle" };
   const MiniTable = ({ rows, isBullish }) => (
@@ -466,7 +502,7 @@ function BestWorstWindowsCard({ windows }) {
       <tbody>
         {rows.length === 0 ? (
           <tr><td colSpan={5} style={{ padding:"12px", textAlign:"center", fontSize:"11px", color:C.textFaint }}>Aucune fenêtre</td></tr>
-        ) : rows.slice(0, 4).map((w, i) => (
+        ) : rows.map((w, i) => (
           <tr key={i}>
             <td style={{ ...tdBase, textAlign:"center", color:C.textFaint }}>{i + 1}</td>
             <td style={{ ...tdBase, fontWeight:500 }}>

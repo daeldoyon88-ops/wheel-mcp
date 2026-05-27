@@ -203,6 +203,19 @@ test("computeSeasonalityWindowsFromRows: summary.bestOverallBullish et worstOver
   assert.ok(Array.isArray(result.summary.activeNow));
 });
 
+test("computeSeasonalityWindowsFromRows: distinct.bullish et distinct.bearish présents (additif)", () => {
+  const rows   = makeAprilRallyRows(8);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(result.distinct);
+  assert.ok(Array.isArray(result.distinct.bullish));
+  assert.ok(Array.isArray(result.distinct.bearish));
+  assert.ok(result.distinct.bullish.length <= 4);
+  assert.ok(result.distinct.bearish.length <= 4);
+  assert.equal(result.distinct.meta.algorithm, "greedy-by-score");
+  assert.ok(result.horizons.length >= 1);
+});
+
 test("computeSeasonality, computeSeasonalityCalendar et computeSeasonalityShortTerm restent exportés", () => {
   assert.equal(typeof computeSeasonality,         "function");
   assert.equal(typeof computeSeasonalityCalendar, "function");

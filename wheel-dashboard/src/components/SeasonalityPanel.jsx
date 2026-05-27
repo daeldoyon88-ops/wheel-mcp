@@ -4,7 +4,10 @@
  * UI seulement — aucun impact backend, IBKR, scanner ou logique Wheel.
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import ThreeYearSeasonalityChart from "./ThreeYearSeasonalityChart.jsx";
+import ThreeYearSeasonalityChart, {
+  computeRsi14,
+  getRsiMomentumState,
+} from "./ThreeYearSeasonalityChart.jsx";
 import {
   TrendingUp, TrendingDown, RefreshCw, Search, Info, Star,
   AlertTriangle, BarChart3, CalendarDays, Activity, Shield, Loader2,
@@ -782,6 +785,190 @@ function getDirectionalWinRate(window, type) {
   return isBullish ? winRate : 1 - winRate;
 }
 
+const DAYS_IN_MONTH_ISO = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+function doyToIsoDate(year, doy) {
+  let remaining = Math.max(1, Math.min(366, doy));
+  for (let m = 1; m <= 12; m++) {
+    const dim = DAYS_IN_MONTH_ISO[m];
+    if (remaining <= dim) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${year}-${pad(m)}-${pad(remaining)}`;
+    }
+    remaining -= dim;
+  }
+  return `${year}-12-31`;
+}
+
+function getTodayIsoUtc() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function daysBetweenIso(fromIso, toIso) {
+  const a = new Date(`${fromIso}T00:00:00.000Z`).getTime();
+  const b = new Date(`${toIso}T00:00:00.000Z`).getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+/** Prochaine date de début d'une fenêtre swing dans l'année courante ou suivante. */
+function resolveNextWindowStartIso(window, todayIso = getTodayIsoUtc()) {
+  const year = parseInt(String(todayIso).slice(0, 4), 10);
+  if (!year) return null;
+
+  if (window.startDayOfYear != null) {
+    const startThisYear = doyToIsoDate(year, window.startDayOfYear);
+    if (startThisYear >= todayIso) return startThisYear;
+    return doyToIsoDate(year + 1, window.startDayOfYear);
+  }
+
+  if (window.startMonth != null) {
+    const sm = window.startMonth;
+    const sd = window.startDay ?? 15;
+    const pad = (n) => String(n).padStart(2, "0");
+    const startThisYear = `${year}-${pad(sm)}-${pad(sd)}`;
+    if (startThisYear >= todayIso) return startThisYear;
+    return `${year + 1}-${pad(sm)}-${pad(sd)}`;
+  }
+
+  if (window.displayLabel?.includes("→")) {
+    const startPart = window.displayLabel.split("→")[0].trim();
+    const parsed = parseFrenchDayMonth(startPart);
+    if (parsed) {
+      const startThisYear = doyToIsoDate(year, dayOfYearFromMonthDay(parsed.month, parsed.day));
+      if (startThisYear >= todayIso) return startThisYear;
+      return doyToIsoDate(year + 1, dayOfYearFromMonthDay(parsed.month, parsed.day));
+    }
+  }
+
+  return null;
+}
+
+function isRobustOrMeasurable(window) {
+  const conf = String(window?.confidence ?? "").toLowerCase();
+  return conf === "robuste" || conf === "mesurable";
+}
+
+function upcomingDistanceLabel(daysUntil) {
+  if (daysUntil <= 14) return "Fenêtre imminente";
+  if (daysUntil <= 30) return "Préparation idéale";
+  if (daysUntil <= 45) return "Surveillance avancée";
+  return null;
+}
+
+function confidenceRank(conf) {
+  const v = String(conf ?? "").toLowerCase();
+  if (v === "robuste") return 3;
+  if (v === "mesurable") return 2;
+  if (v === "préliminaire" || v === "preliminaire") return 1;
+  return 0;
+}
+
+/** Fenêtre haussière robuste/mesurable dont le début est dans 14–45 jours (pas active). */
+function pickUpcomingBullishWindow(windows, activeProgress) {
+  if (activeProgress?.isActive) return null;
+
+  const bullish = windows?.swingWindows?.bullish ?? [];
+  const todayIso = getTodayIsoUtc();
+  const candidates = [];
+
+  for (const w of bullish) {
+    if (!isRobustOrMeasurable(w)) continue;
+    const startIso = resolveNextWindowStartIso(w, todayIso);
+    if (!startIso) continue;
+    const daysUntil = daysBetweenIso(todayIso, startIso);
+    if (daysUntil < 14 || daysUntil > 45) continue;
+    candidates.push({
+      window: w,
+      startIso,
+      daysUntil,
+      distanceLabel: upcomingDistanceLabel(daysUntil),
+    });
+  }
+
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => {
+    const confDiff = confidenceRank(b.window.confidence) - confidenceRank(a.window.confidence);
+    if (confDiff !== 0) return confDiff;
+    const winA = getDirectionalWinRate(a.window, "bullish") ?? 0;
+    const winB = getDirectionalWinRate(b.window, "bullish") ?? 0;
+    if (winB !== winA) return winB - winA;
+    if (a.daysUntil !== b.daysUntil) return a.daysUntil - b.daysUntil;
+    return (b.window.avgReturn ?? 0) - (a.window.avgReturn ?? 0);
+  });
+
+  return candidates[0];
+}
+
+function buildCombinedMomentumReading({ upcoming, rsiMomentum, activeProgress }) {
+  if (!rsiMomentum) return null;
+
+  const rsi = rsiMomentum.rsiCurrent;
+  const rising = rsiMomentum.rising;
+  const near50 = rsiMomentum.approaching50FromBelow || rsiMomentum.crossedAbove50Recently
+    || (rsi >= 45 && rsi < 55);
+
+  if (activeProgress?.isActive) {
+    const isBull = activeProgress.type === "bullish";
+    if (!isBull) {
+      return {
+        headline: rsiMomentum.label,
+        detail: "Fenêtre baissière active — prudence sur le momentum.",
+      };
+    }
+    if (rsi >= 70) {
+      return {
+        headline: "Fenêtre active, mouvement avancé",
+        detail: "Fenêtre favorable, mais RSI déjà en surchauffe. Surveillance prudente.",
+      };
+    }
+    if (rsi >= 45 && rsi <= 60 && rising) {
+      return {
+        headline: "Fenêtre active avec momentum favorable",
+        detail: "RSI en pente montante pendant la fenêtre haussière active.",
+      };
+    }
+    return {
+      headline: rsiMomentum.label,
+      detail: "Fenêtre active — momentum à confirmer avant d'accélérer.",
+    };
+  }
+
+  if (!upcoming) return null;
+
+  const days = upcoming.daysUntil;
+  const daysText = days === 1 ? "1 jour" : `${days} jours`;
+
+  if (rsi >= 70) {
+    return {
+      headline: "Fenêtre favorable, RSI élevé",
+      detail: `Fenêtre haussière dans ${daysText}, mais RSI déjà en surchauffe. Prudence.`,
+    };
+  }
+  if (rsiMomentum.crossedAbove50Recently) {
+    return {
+      headline: "Momentum naissant",
+      detail: `RSI vient de repasser au-dessus de 50. Fenêtre haussière dans ${daysText}.`,
+    };
+  }
+  if (rising && near50) {
+    return {
+      headline: "Préparation momentum",
+      detail: `Fenêtre haussière robuste dans ${daysText}. RSI en pente montante près de 50.`,
+    };
+  }
+  if (rising) {
+    return {
+      headline: "Surveillance momentum",
+      detail: `Fenêtre favorable dans ${daysText}. RSI montant — confirmer avant activation.`,
+    };
+  }
+  return {
+    headline: upcoming.distanceLabel ?? "Surveillance avancée",
+    detail: `Fenêtre haussière dans ${daysText}. RSI pas encore en phase de préparation.`,
+  };
+}
+
 function formatWindowConfidenceDetails(window, type) {
   const conf = formatConfidenceLabel(window?.confidence ?? window?.status);
   const rateFrac = getDirectionalWinRate(window, type);
@@ -846,13 +1033,84 @@ function CompactWindowLine({ window: w, isBullish }) {
   );
 }
 
-function SwingCompactSidePanel({ activeProgress, windows, chart3yLoading }) {
+function SeasonalPreparationBlock({ upcoming, rsiMomentum, combinedReading }) {
+  if (!upcoming?.window) return null;
+  const w = upcoming.window;
+  const label = seasonalWindowPrimaryLabel(w);
+  const details = formatWindowConfidenceDetails(w, "bullish");
+  const daysText = upcoming.daysUntil === 1 ? "1 jour" : `${upcoming.daysUntil} jours`;
+
+  return (
+    <div style={{
+      borderTop: `1px solid ${C.border}`,
+      paddingTop: "9px",
+    }}>
+      <div style={{
+        fontSize: "11px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: C.green,
+        marginBottom: "8px",
+      }}>
+        Préparation saisonnière
+      </div>
+      <div style={{ fontSize: "14px", fontWeight: 700, color: C.text, marginBottom: "4px", lineHeight: 1.4 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "6px" }}>
+        Début dans {daysText}
+        {upcoming.distanceLabel && (
+          <span style={{ color: C.accentLight, fontWeight: 600 }}> · {upcoming.distanceLabel}</span>
+        )}
+      </div>
+      <div style={{ fontSize: "11px", color: pctColor(w.avgReturn), fontWeight: 700, marginBottom: "4px" }}>
+        {formatPct(w.avgReturn)} attendu historique
+      </div>
+      {details && (
+        <div style={{ fontSize: "10px", color: C.textFaint, marginBottom: "8px", lineHeight: 1.45 }}>
+          {details}
+        </div>
+      )}
+      {rsiMomentum && (
+        <div style={{ fontSize: "11px", color: C.textMuted, lineHeight: 1.5 }}>
+          <span style={{ color: C.text, fontWeight: 600 }}>
+            RSI 14 : {rsiMomentum.rsiCurrent.toFixed(1)}
+          </span>
+          {" · "}
+          <span style={{ color: C.accentLight }}>{rsiMomentum.label}</span>
+        </div>
+      )}
+      {combinedReading?.detail && (
+        <div style={{
+          marginTop: "6px",
+          fontSize: "10px",
+          color: C.textFaint,
+          fontStyle: "italic",
+          lineHeight: 1.5,
+        }}>
+          {combinedReading.detail}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SwingCompactSidePanel({
+  activeProgress,
+  windows,
+  chart3yLoading,
+  rsiMomentum,
+  upcoming,
+  combinedReading,
+}) {
   const bullish = getSwingOrDistinctBullish(windows ?? {});
   const bearish = getSwingOrDistinctBearish(windows ?? {});
   const bullRows = bullish.rows.slice(0, 2);
   const bearRows = bearish.rows.slice(0, 2);
   const active = activeProgress;
   const hasWindows = bullRows.length > 0 || bearRows.length > 0;
+  const showPreparation = !active?.isActive && upcoming?.window;
 
   const miniLabel = {
     fontSize: "11px",
@@ -949,12 +1207,46 @@ function SwingCompactSidePanel({ activeProgress, windows, chart3yLoading }) {
                   {CHART3Y_PACE_LABELS[active.paceStatus] ?? "—"}
                 </div>
               </div>
+              {rsiMomentum && (
+                <>
+                  <div>
+                    <div style={cellLabel}>RSI 14</div>
+                    <div style={cellValSecondary}>{rsiMomentum.rsiCurrent.toFixed(1)}</div>
+                  </div>
+                  <div>
+                    <div style={cellLabel}>Momentum</div>
+                    <div style={{ ...cellValSecondary, color: C.accentLight, fontSize: "13px" }}>
+                      {rsiMomentum.shortLabel ?? rsiMomentum.label}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+            {combinedReading?.headline && (
+              <div style={{
+                marginTop: "8px",
+                fontSize: "10px",
+                color: C.textFaint,
+                fontStyle: "italic",
+                lineHeight: 1.5,
+              }}>
+                {combinedReading.headline}
+                {combinedReading.detail ? ` — ${combinedReading.detail}` : ""}
+              </div>
+            )}
           </>
         ) : (
           <div style={{ fontSize: "11px", color: C.textMuted }}>Aucune fenêtre swing active</div>
         )}
       </div>
+
+      {showPreparation && (
+        <SeasonalPreparationBlock
+          upcoming={upcoming}
+          rsiMomentum={rsiMomentum}
+          combinedReading={combinedReading}
+        />
+      )}
 
       {hasWindows && (
         <>
@@ -1459,6 +1751,24 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
     [chart3yData, windowsData],
   );
 
+  const rsiSeries = useMemo(
+    () => computeRsi14(chart3yData?.priceSeries ?? []),
+    [chart3yData?.priceSeries],
+  );
+  const rsiMomentum = useMemo(() => getRsiMomentumState(rsiSeries), [rsiSeries]);
+  const upcomingBullish = useMemo(
+    () => pickUpcomingBullishWindow(windowsData, chart3yData?.activeWindowProgress),
+    [windowsData, chart3yData?.activeWindowProgress],
+  );
+  const combinedMomentumReading = useMemo(
+    () => buildCombinedMomentumReading({
+      upcoming: upcomingBullish,
+      rsiMomentum,
+      activeProgress: chart3yData?.activeWindowProgress,
+    }),
+    [upcomingBullish, rsiMomentum, chart3yData?.activeWindowProgress],
+  );
+
   return (
     <div style={{ display:"flex", background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"inherit" }}>
       <style>{`
@@ -1684,6 +1994,9 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                   activeProgress={chart3yData?.activeWindowProgress}
                   windows={windowsData}
                   chart3yLoading={chart3yLoading}
+                  rsiMomentum={rsiMomentum}
+                  upcoming={upcomingBullish}
+                  combinedReading={combinedMomentumReading}
                 />
               </div>
 

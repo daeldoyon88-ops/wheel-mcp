@@ -40,7 +40,136 @@ const STATUS_LABELS = {
 
 const W = 920;
 const H = 330;
+const H_RSI = 100;
 const PAD = { top: 14, right: 52, bottom: 28, left: 8 };
+const PAD_RSI = { top: 8, right: 52, bottom: 18, left: 8 };
+const RSI_MIN_VALID_POINTS = 20;
+
+// ─── RSI 14 (série alignée priceSeries, sans appel API) ───────────────────────
+
+export function computeRsi14(priceSeries) {
+  if (!Array.isArray(priceSeries) || !priceSeries.length) return [];
+
+  const PERIOD = 14;
+  const points = priceSeries.map((p) => ({
+    date: p.date,
+    close: typeof p.close === "number" && isFinite(p.close) ? p.close : null,
+    rsi: null,
+  }));
+
+  const validIndices = [];
+  const closes = [];
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].close != null) {
+      validIndices.push(i);
+      closes.push(points[i].close);
+    }
+  }
+
+  if (closes.length < PERIOD + 1) return points;
+
+  let avgGain = 0;
+  let avgLoss = 0;
+  for (let i = 1; i <= PERIOD; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change >= 0) avgGain += change;
+    else avgLoss += Math.abs(change);
+  }
+  avgGain /= PERIOD;
+  avgLoss /= PERIOD;
+
+  const calcRsi = (ag, al) => {
+    if (al === 0) return 100;
+    const rs = ag / al;
+    return Math.round((100 - 100 / (1 + rs)) * 10) / 10;
+  };
+
+  points[validIndices[PERIOD]].rsi = calcRsi(avgGain, avgLoss);
+
+  for (let vi = PERIOD + 1; vi < closes.length; vi++) {
+    const change = closes[vi] - closes[vi - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? Math.abs(change) : 0;
+    avgGain = (avgGain * (PERIOD - 1) + gain) / PERIOD;
+    avgLoss = (avgLoss * (PERIOD - 1) + loss) / PERIOD;
+    points[validIndices[vi]].rsi = calcRsi(avgGain, avgLoss);
+  }
+
+  return points;
+}
+
+export function getRsiMomentumState(rsiSeries) {
+  const valid = (rsiSeries ?? []).filter(
+    (p) => typeof p.rsi === "number" && isFinite(p.rsi),
+  );
+  if (valid.length < 6) return null;
+
+  const rsiCurrent = valid[valid.length - 1].rsi;
+  const rsiPrev5 = valid.length > 5 ? valid[valid.length - 6].rsi : rsiCurrent;
+  const rsiPrev10 = valid.length > 10 ? valid[valid.length - 11].rsi : rsiPrev5;
+
+  const slope5 = rsiCurrent - rsiPrev5;
+  const slope10 = rsiCurrent - rsiPrev10;
+
+  const last10 = valid.slice(-10);
+  const crossedAbove50Recently = last10.some((p, i) => {
+    if (i === last10.length - 1) return false;
+    return p.rsi < 50 && last10[i + 1].rsi >= 50;
+  });
+
+  const approaching50FromBelow = rsiCurrent >= 45 && rsiCurrent < 50 && slope5 > 0;
+  const rising = slope5 > 0 && slope10 > 0;
+
+  let label;
+  let shortLabel;
+  if (rsiCurrent >= 70) {
+    label = "Surchauffe";
+    shortLabel = "Surchauffe";
+  } else if (rsiCurrent >= 55 && rsiCurrent < 70 && rising) {
+    label = "Momentum positif";
+    shortLabel = "Positif";
+  } else if (
+    (rsiCurrent >= 45 && rsiCurrent < 55 && (rising || crossedAbove50Recently))
+    || approaching50FromBelow
+  ) {
+    label = "Préparation momentum";
+    shortLabel = "Préparation";
+  } else if (rsiCurrent < 45 && rising) {
+    label = "Reprise précoce";
+    shortLabel = "Reprise";
+  } else if (slope5 <= 0 || slope10 <= 0) {
+    label = "Momentum faible";
+    shortLabel = "Faible";
+  } else {
+    label = "Momentum neutre";
+    shortLabel = "Neutre";
+  }
+
+  return {
+    rsiCurrent,
+    rsiPrev5,
+    rsiPrev10,
+    slope5,
+    slope10,
+    crossedAbove50Recently,
+    approaching50FromBelow,
+    rising,
+    label,
+    shortLabel,
+  };
+}
+
+function countValidRsiPoints(rsiSeries) {
+  return (rsiSeries ?? []).filter((p) => typeof p.rsi === "number" && isFinite(p.rsi)).length;
+}
+
+function rsiByDateMap(rsiSeries) {
+  const map = new Map();
+  for (const p of rsiSeries ?? []) {
+    if (p.date && typeof p.rsi === "number" && isFinite(p.rsi)) map.set(p.date, p.rsi);
+  }
+  return map;
+}
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -396,7 +525,7 @@ function ActiveWindowSummary({ active }) {
 
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
 
-function ChartTooltip({ tooltip }) {
+function ChartTooltip({ tooltip, chartHeight = H }) {
   if (!tooltip) return null;
   const { x, y, lines } = tooltip;
   const maxW = 220;
@@ -409,7 +538,7 @@ function ChartTooltip({ tooltip }) {
   let top = y - boxH / 2;
   if (left + boxW > W - 4) left = x - boxW - 12;
   if (top < 4) top = 4;
-  if (top + boxH > H - 4) top = H - boxH - 4;
+  if (top + boxH > chartHeight - 4) top = chartHeight - boxH - 4;
 
   return (
     <g style={{ pointerEvents: "none" }}>
@@ -441,7 +570,7 @@ function ChartTooltip({ tooltip }) {
 
 // ─── Main chart ───────────────────────────────────────────────────────────────
 
-function SeasonalityChartSvg({ data }) {
+function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
   const svgRef = useRef(null);
   const [hover, setHover] = useState(null);
   const activeProgress = data?.activeWindowProgress;
@@ -547,8 +676,10 @@ function SeasonalityChartSvg({ data }) {
       rangeEnd,
       firstClose,
       priceSeries,
+      rsiByDate: rsiByDateMap(rsiSeries),
+      rsiMomentum,
     };
-  }, [data]);
+  }, [data, rsiSeries, rsiMomentum]);
 
   const handleMouseMove = useCallback((e) => {
     if (!chartModel || !svgRef.current) return;
@@ -636,13 +767,21 @@ function SeasonalityChartSvg({ data }) {
 
     if (nearest && minDist < 40) {
       const chg = firstClose > 0 ? (nearest.close / firstClose) - 1 : null;
+      const rsiVal = chartModel.rsiByDate?.get(nearest.date);
+      const momentum = chartModel.rsiMomentum;
       setHover({
         x: xOf(nearest.date),
         y: yOf(nearest.close),
         lines: [
           { text: formatDateIso(nearest.date), bold: true, color: C.text },
           { text: `Close : ${formatPrice(nearest.close)}`, color: C.line },
+          ...(typeof rsiVal === "number" && isFinite(rsiVal)
+            ? [{ text: `RSI 14 : ${rsiVal.toFixed(1)}`, color: C.accentLight }]
+            : []),
           ...(chg != null ? [{ text: `Depuis début : ${formatPct(chg)}`, color: chg >= 0 ? C.green : C.red }] : []),
+          ...(momentum?.label && typeof rsiVal === "number"
+            ? [{ text: momentum.label, color: C.textFaint }]
+            : []),
         ],
       });
       return;
@@ -864,9 +1003,163 @@ function SeasonalityChartSvg({ data }) {
   );
 }
 
+// ─── RSI compact (sous le prix) ───────────────────────────────────────────────
+
+function RsiChartSvg({ data, rsiSeries, rsiMomentum }) {
+  const svgRef = useRef(null);
+  const [hover, setHover] = useState(null);
+
+  const chartModel = useMemo(() => {
+    const range = data?.range ?? {};
+    const rangeStart = range.startDate;
+    const rangeEnd = range.endDate;
+    if (!rsiSeries?.length || !rangeStart || !rangeEnd) return null;
+
+    const chartW = W - PAD_RSI.left - PAD_RSI.right;
+    const chartH = H_RSI - PAD_RSI.top - PAD_RSI.bottom;
+    const t0 = dateToMs(rangeStart);
+    const t1 = dateToMs(rangeEnd);
+    const span = t1 - t0 || 1;
+
+    const xOf = (iso) => {
+      const ratio = (dateToMs(iso) - t0) / span;
+      return PAD_RSI.left + Math.max(0, Math.min(1, ratio)) * chartW;
+    };
+
+    const rsiPoints = rsiSeries.filter((p) => typeof p.rsi === "number" && isFinite(p.rsi));
+    if (!rsiPoints.length) return null;
+
+    const yOf = (rsi) => PAD_RSI.top + (1 - rsi / 100) * chartH;
+
+    const linePath = rsiPoints
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(p.date).toFixed(1)} ${yOf(p.rsi).toFixed(1)}`)
+      .join(" ");
+
+    const refLines = [30, 50, 70].map((level) => ({ level, y: yOf(level) }));
+
+    return { chartW, chartH, xOf, yOf, linePath, rsiPoints, refLines, rangeStart, rangeEnd };
+  }, [data, rsiSeries]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!chartModel || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const mx = (e.clientX - rect.left) * scaleX;
+
+    const { rsiPoints, xOf } = chartModel;
+    let nearest = null;
+    let minDist = Infinity;
+    for (const p of rsiPoints) {
+      const dist = Math.abs(xOf(p.date) - mx);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = p;
+      }
+    }
+
+    if (nearest && minDist < 40) {
+      setHover({
+        x: xOf(nearest.date),
+        y: chartModel.yOf(nearest.rsi),
+        lines: [
+          { text: formatDateIso(nearest.date), bold: true, color: C.text },
+          { text: `RSI 14 : ${nearest.rsi.toFixed(1)}`, color: C.accentLight },
+          ...(rsiMomentum?.label
+            ? [{ text: `État : ${rsiMomentum.label}`, color: C.textMuted }]
+            : []),
+        ],
+      });
+      return;
+    }
+    setHover(null);
+  }, [chartModel, rsiMomentum]);
+
+  const handleMouseLeave = useCallback(() => setHover(null), []);
+
+  if (!chartModel) return null;
+
+  const { chartW, chartH, linePath, refLines, xOf, yOf, rsiPoints } = chartModel;
+  const chartBottom = PAD_RSI.top + chartH;
+  const chartRight = PAD_RSI.left + chartW;
+
+  return (
+    <div style={{ marginTop: "6px" }}>
+      {rsiMomentum && (
+        <div style={{
+          fontSize: "10.5px",
+          color: C.textMuted,
+          marginBottom: "4px",
+          lineHeight: 1.4,
+        }}>
+          <span style={{ color: C.text, fontWeight: 600 }}>
+            RSI 14 : {rsiMomentum.rsiCurrent.toFixed(1)}
+          </span>
+          {" · "}
+          <span style={{ color: C.accentLight }}>{rsiMomentum.label}</span>
+        </div>
+      )}
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H_RSI}`}
+        style={{ width: "100%", display: "block", cursor: "crosshair" }}
+        preserveAspectRatio="xMidYMid meet"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <g>
+          {refLines.map((rl) => (
+            <g key={rl.level}>
+              <line
+                x1={PAD_RSI.left}
+                y1={rl.y}
+                x2={chartRight}
+                y2={rl.y}
+                stroke={rl.level === 50 ? "rgba(143,163,191,0.22)" : "rgba(143,163,191,0.1)"}
+                strokeWidth="0.5"
+                strokeDasharray={rl.level === 50 ? "none" : "2 3"}
+              />
+              <text
+                x={chartRight + 5}
+                y={rl.y + 3}
+                fontSize="7"
+                fill={C.textFaint}
+              >
+                {rl.level}
+              </text>
+            </g>
+          ))}
+          <rect
+            x={PAD_RSI.left}
+            y={PAD_RSI.top}
+            width={chartW}
+            height={chartH}
+            fill="none"
+            stroke="rgba(143,163,191,0.1)"
+            strokeWidth="0.5"
+            rx="2"
+          />
+          <path
+            d={linePath}
+            fill="none"
+            stroke={C.accentLight}
+            strokeWidth="1.25"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
+          {hover && rsiPoints.some((p) => Math.abs(xOf(p.date) - hover.x) < 1) && (
+            <circle cx={hover.x} cy={hover.y} r="3" fill={C.accentLight} stroke={C.panel} strokeWidth="1.2" />
+          )}
+        </g>
+        <ChartTooltip tooltip={hover} chartHeight={H_RSI} />
+      </svg>
+    </div>
+  );
+}
+
 // ─── Legend ───────────────────────────────────────────────────────────────────
 
-function ChartLegend() {
+function ChartLegend({ showRsi = false }) {
   return (
     <div style={{
       display: "flex",
@@ -896,6 +1189,12 @@ function ChartLegend() {
         <span style={{ width: 12, height: 10, borderRadius: 2, background: "rgba(139,92,246,0.25)", border: "1px solid rgba(139,92,246,0.4)" }} />
         Signal mixte (chevauchement)
       </span>
+      {showRsi && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ width: 14, height: 0, borderTop: `1.25px solid ${C.accentLight}` }} />
+          RSI 14
+        </span>
+      )}
     </div>
   );
 }
@@ -903,6 +1202,16 @@ function ChartLegend() {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export default function ThreeYearSeasonalityChart({ data, loading, error, symbol, showActiveSummary = false }) {
+  const rsiSeries = useMemo(
+    () => computeRsi14(data?.priceSeries ?? []),
+    [data?.priceSeries],
+  );
+  const rsiMomentum = useMemo(
+    () => getRsiMomentumState(rsiSeries),
+    [rsiSeries],
+  );
+  const showRsiPanel = countValidRsiPoints(rsiSeries) >= RSI_MIN_VALID_POINTS;
+
   if (loading) {
     return (
       <div style={{
@@ -938,9 +1247,12 @@ export default function ThreeYearSeasonalityChart({ data, loading, error, symbol
     <div>
       {showActiveSummary && <ActiveWindowSummary active={data.activeWindowProgress} />}
       <div style={showActiveSummary ? { marginTop: "12px" } : undefined}>
-        <SeasonalityChartSvg data={data} />
+        <SeasonalityChartSvg data={data} rsiSeries={rsiSeries} rsiMomentum={rsiMomentum} />
+        {showRsiPanel && (
+          <RsiChartSvg data={data} rsiSeries={rsiSeries} rsiMomentum={rsiMomentum} />
+        )}
       </div>
-      <ChartLegend />
+      <ChartLegend showRsi={showRsiPanel} />
       {data.range && (
         <div style={{ marginTop: "4px", fontSize: "9px", color: C.textFaint }}>
           {data.range.points ?? "—"} séances · {formatDateIso(data.range.startDate)} → {formatDateIso(data.range.endDate)}

@@ -41,6 +41,13 @@ const SCAN_SOURCE_LABELS = { "top20-wheel":"Top 20 Wheel","strict-watchlist":"St
 const QUICK_TICKERS = ["TQQQ","NVDA","AAPL","TSLA","SOXL","AMD","PLTR","AMZN"];
 const MONTH_ABBREV  = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 const MONTHS_FR_LONG = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const WEEK_TO_DAY_CHART = { 1: 1, 2: 8, 3: 15, 4: 22, 5: 29 };
+const FR_MONTH_PARSE = [
+  ["jan", 1], ["fév", 2], ["fev", 2], ["mar", 3], ["mars", 3], ["avr", 4],
+  ["mai", 5], ["juin", 6], ["juil", 7], ["jul", 7], ["août", 8], ["aout", 8], ["aoû", 8],
+  ["sep", 9], ["sept", 9], ["oct", 10], ["nov", 11], ["déc", 12], ["dec", 12],
+];
 
 // ─── Utilitaires ───────────────────────────────────────────────────────────────
 function formatPct(val, signed = true) {
@@ -96,6 +103,133 @@ function getCurrentWeekRange() {
   return { range: `${fmt(mon)} → ${fmt(sun)}`, weekNum: `Semaine ${weekNum}` };
 }
 
+function dayOfYearFromMonthDay(month, day) {
+  const m = Math.min(12, Math.max(1, Number(month) || 1));
+  const d = Math.min(31, Math.max(1, Number(day) || 1));
+  let doy = d;
+  for (let i = 1; i < m; i++) doy += DAYS_IN_MONTH[i];
+  return doy;
+}
+
+function weekOfMonthToDayChart(month, week) {
+  const m = Math.min(12, Math.max(1, Number(month) || 1));
+  const w = Math.min(5, Math.max(1, Number(week) || 1));
+  if (w < 5) return WEEK_TO_DAY_CHART[w];
+  return Math.min(29, DAYS_IN_MONTH[m]);
+}
+
+function parseFrenchDayMonth(str) {
+  if (!str) return null;
+  const s = String(str).trim().toLowerCase().replace(/\./g, "");
+  const m = s.match(/^(\d{1,2})\s+(.+)$/);
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  const monthPart = m[2].trim();
+  for (const [key, num] of FR_MONTH_PARSE) {
+    if (monthPart === key || monthPart.startsWith(key)) return { month: num, day };
+  }
+  return null;
+}
+
+/** Résout startDOY / endDOY pour overlay graphique (traversement d'année inclus). */
+function resolveSwingDayRange(sw) {
+  if (sw?.startDayOfYear != null && sw?.endDayOfYear != null) {
+    const startDOY = Number(sw.startDayOfYear);
+    const endDOY = Number(sw.endDayOfYear);
+    return { startDOY, endDOY, wraps: startDOY > endDOY };
+  }
+  if (sw?.startDay != null && sw?.startMonth != null && sw?.endDay != null && sw?.endMonth != null) {
+    const startDOY = dayOfYearFromMonthDay(sw.startMonth, sw.startDay);
+    const endDOY = dayOfYearFromMonthDay(sw.endMonth, sw.endDay);
+    return { startDOY, endDOY, wraps: startDOY > endDOY };
+  }
+  if (sw?.startWeekOfMonth != null && sw?.startMonth != null) {
+    const startDay = weekOfMonthToDayChart(sw.startMonth, sw.startWeekOfMonth);
+    const endDay = weekOfMonthToDayChart(sw.endMonth, sw.endWeekOfMonth ?? sw.startWeekOfMonth ?? 1);
+    const startDOY = dayOfYearFromMonthDay(sw.startMonth, startDay);
+    const endDOY = dayOfYearFromMonthDay(sw.endMonth, endDay);
+    return { startDOY, endDOY, wraps: startDOY > endDOY };
+  }
+  if (sw?.displayLabel?.includes("→")) {
+    const [a, b] = sw.displayLabel.split("→").map((x) => x.trim());
+    const start = parseFrenchDayMonth(a);
+    const end = parseFrenchDayMonth(b);
+    if (start && end) {
+      const startDOY = dayOfYearFromMonthDay(start.month, start.day);
+      const endDOY = dayOfYearFromMonthDay(end.month, end.day);
+      return { startDOY, endDOY, wraps: startDOY > endDOY };
+    }
+  }
+  if (sw?.startMonth && sw?.endMonth) {
+    const startDOY = dayOfYearFromMonthDay(sw.startMonth, 15);
+    const endDOY = dayOfYearFromMonthDay(sw.endMonth, 15);
+    return { startDOY, endDOY, wraps: startDOY > endDOY };
+  }
+  return null;
+}
+
+function swingZoneSegments({ startDOY, endDOY, wraps }) {
+  if (wraps) return [[startDOY, 365], [1, endDOY]];
+  return [[startDOY, endDOY]];
+}
+
+function swingZoneBestSegment(zone, xOfDay) {
+  let best = { left: 0, right: 0, width: 0, centerX: 0 };
+  for (const [s, e] of swingZoneSegments(zone)) {
+    const left = Math.min(xOfDay(s), xOfDay(e));
+    const right = Math.max(xOfDay(s), xOfDay(e));
+    const width = Math.max(right - left, 2);
+    if (width > best.width) {
+      best = { left, right, width, centerX: (left + right) / 2 };
+    }
+  }
+  return best;
+}
+
+/** Seuils label zone swing (px) — UI seulement, logique simple. */
+const SWING_ZONE_LABEL = {
+  padX: 8,
+  minFullWidth: 88,
+  rightEdgeRatio: 0.72,
+  bearishYRatio: 0.20,
+  bullishYRatio: 0.30,
+};
+
+function resolveSwingZoneLabelPlacement(zone, xOfDay, ctx) {
+  const { zoneTop, chartH, chartRight, chartLeft, chartW } = ctx;
+  const seg = swingZoneBestSegment(zone, xOfDay);
+  const { padX, minFullWidth, rightEdgeRatio, bearishYRatio, bullishYRatio } = SWING_ZONE_LABEL;
+
+  const rightEdge = chartLeft + chartW * rightEdgeRatio;
+  const nearRight = seg.right >= rightEdge;
+  const tooNarrow = seg.width < minFullWidth;
+  const forceCompact = nearRight || tooNarrow;
+
+  const pct = typeof zone.avgReturn === "number" ? formatPct(zone.avgReturn) : null;
+  const labelText = forceCompact || !pct
+    ? (pct ?? zone.label)
+    : `${zone.label} · ${pct} attendu`;
+
+  let x = seg.centerX;
+  x = Math.max(seg.left + padX, Math.min(x, seg.right - padX));
+  x = Math.max(chartLeft + padX, Math.min(x, chartRight - padX));
+
+  const y = zoneTop + chartH * (zone.kind === "bearish" ? bearishYRatio : bullishYRatio);
+
+  return {
+    x,
+    y,
+    textAnchor: "middle",
+    labelText,
+    fontSize: 7.5,
+  };
+}
+
+function getTodayDayOfYear() {
+  const now = new Date();
+  return dayOfYearFromMonthDay(now.getMonth() + 1, now.getDate());
+}
+
 /** Libellé principal fenêtre saisonnière (dates lisibles). */
 function seasonalWindowPrimaryLabel(w) {
   return w?.displayLabel || w?.label || "—";
@@ -137,21 +271,45 @@ function getDistinctOrLegacyBearish(windows) {
   return flat.slice(0, 4);
 }
 
-/** Long terme : fenêtres distinctes, priorité durées ≥ 40j, tri par durée décroissante. */
-function getLongTermBullishRows(windows) {
-  const distinct = windows?.distinct?.bullish;
-  if (distinct?.length) {
-    const longDur = [...distinct]
-      .filter((w) => (w.days ?? w.windowDays ?? 0) >= 40)
-      .sort((a, b) => (b.days ?? b.windowDays ?? 0) - (a.days ?? a.windowDays ?? 0));
-    if (longDur.length) return longDur.slice(0, 4);
-    return [...distinct]
-      .sort((a, b) => (b.days ?? b.windowDays ?? 0) - (a.days ?? a.windowDays ?? 0))
-      .slice(0, 4);
-  }
-  const flat = flattenHorizonWindows(windows, "bullish");
-  flat.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  return flat.slice(0, 6);
+/** Priorité swingWindows, sinon distinct / legacy. */
+function getSwingOrDistinctBullish(windows) {
+  const swing = windows?.swingWindows?.bullish;
+  if (swing?.length) return { rows: swing.slice(0, 3), mode: "swing" };
+  return { rows: getDistinctOrLegacyBullish(windows), mode: "distinct" };
+}
+
+function getSwingOrDistinctBearish(windows) {
+  const swing = windows?.swingWindows?.bearish;
+  if (swing?.length) return { rows: swing.slice(0, 3), mode: "swing" };
+  return { rows: getDistinctOrLegacyBearish(windows), mode: "distinct" };
+}
+
+function formatConfidenceLabel(raw) {
+  const v = String(raw ?? "").toLowerCase();
+  if (v === "robuste") return "Robuste";
+  if (v === "mesurable") return "Mesurable";
+  if (v === "préliminaire" || v === "preliminaire") return "Préliminaire";
+  if (raw) return String(raw);
+  return "—";
+}
+
+function momentumHintShort(sw, isBullish) {
+  const h = sw?.momentumTriggerHint ?? "";
+  if (isBullish) return "RSI > 50";
+  if (h.toLowerCase().includes("70")) return "Prudence si RSI > 70";
+  return "Momentum cassé possible";
+}
+
+function SeasonalWideContextLine({ windows }) {
+  const cluster = windows?.clusters?.bullish?.[0];
+  if (!cluster?.displayLabel) return null;
+  return (
+    <div style={{ fontSize:"10px", color:C.textFaint, marginBottom:"10px", lineHeight:1.5 }}>
+      Contexte saisonnier large :{" "}
+      <span style={{ color:C.textMuted, fontWeight:600 }}>{cluster.displayLabel}</span>
+      {cluster.durationDays ? ` (${cluster.durationDays}j)` : ""}
+    </div>
+  );
 }
 
 function SeasonalWindowLabel({ window: w, primaryStyle, subStyle }) {
@@ -273,8 +431,8 @@ function MonthlyBarChart({ months }) {
   );
 }
 
-// ─── Courbe cumulée ─────────────────────────────────────────────────────────────
-function CumulativeLineChart({ months }) {
+// ─── Courbe cumulée (+ zones swing) ─────────────────────────────────────────────
+function CumulativeLineChart({ months, swingWindows }) {
   if (!months?.length) return <div style={{ color:C.textFaint, textAlign:"center", padding:"36px 0", fontSize:"12px" }}>Courbe cumulée non disponible</div>;
   const aligned = MONTH_ABBREV.map((label, i) => {
     const m = months.find((x) => x.month === i + 1);
@@ -283,50 +441,188 @@ function CumulativeLineChart({ months }) {
   const cumPoints = [{ label:"Départ", cum:0 }];
   let cum = 0;
   for (const m of aligned) { cum += m.avgReturn; cumPoints.push({ label:m.label, cum }); }
-  const W = 600, H = 165;
-  const PAD = { left:40, right:14, top:18, bottom:28 };
+  const W = 600, H = 185;
+  const PAD = { left:40, right:18, top:32, bottom:28 };
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
+  const chartRight = W - PAD.right;
+  const chartLeft = PAD.left;
   const minV = Math.min(...cumPoints.map((p) => p.cum), -0.02);
   const maxV = Math.max(...cumPoints.map((p) => p.cum), 0.05);
   const range = maxV - minV || 0.1;
   const xOf = (i) => PAD.left + (i / (cumPoints.length - 1)) * chartW;
+  const xOfDay = (doy) => PAD.left + ((Math.min(365, Math.max(1, doy)) - 1) / 364) * chartW;
   const yOf = (v) => PAD.top + (1 - (v - minV) / range) * chartH;
   const linePath = cumPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(i).toFixed(1)} ${yOf(p.cum).toFixed(1)}`).join(" ");
   const zeroY = yOf(0);
   const areaPath = `${linePath} L ${xOf(cumPoints.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${xOf(0).toFixed(1)} ${zeroY.toFixed(1)} Z`;
   const gridLines = Array.from({ length: 5 }, (_, i) => { const v = minV + (range / 4) * i; return { v, y: yOf(v) }; });
   const finalColor = cum >= 0 ? "#8b5cf6" : C.red;
+
+  const swingZones = [];
+  (swingWindows?.bullish ?? []).slice(0, 2).forEach((sw, i) => {
+    const rangeDOY = resolveSwingDayRange(sw);
+    if (rangeDOY) {
+      swingZones.push({
+        ...rangeDOY,
+        kind: "bullish",
+        label: `Haussier #${i + 1}`,
+        avgReturn: sw.avgReturn,
+      });
+    }
+  });
+  (swingWindows?.bearish ?? []).slice(0, 2).forEach((sw, i) => {
+    const rangeDOY = resolveSwingDayRange(sw);
+    if (rangeDOY) {
+      swingZones.push({
+        ...rangeDOY,
+        kind: "bearish",
+        label: `Baissier #${i + 1}`,
+        avgReturn: sw.avgReturn,
+      });
+    }
+  });
+  const hasSwingOverlay = swingZones.length > 0;
+  const todayDOY = getTodayDayOfYear();
+  const todayX = xOfDay(todayDOY);
+  const zoneTop = PAD.top;
+  const zoneBottom = PAD.top + chartH;
+  const labelCtx = { zoneTop, chartH, chartRight, chartLeft, chartW };
+
+  const zoneLabelPlacements = hasSwingOverlay
+    ? swingZones.map((zone) => resolveSwingZoneLabelPlacement(zone, xOfDay, labelCtx))
+    : [];
+
+  const renderZoneRects = (zone) => {
+    const fill = zone.kind === "bullish"
+      ? "rgba(34,197,94,0.14)"
+      : "rgba(239,68,68,0.14)";
+    const stroke = zone.kind === "bullish"
+      ? "rgba(34,197,94,0.35)"
+      : "rgba(239,68,68,0.35)";
+    return swingZoneSegments(zone).map(([s, e], segIdx) => {
+      const x1 = xOfDay(s);
+      const x2 = xOfDay(e);
+      const left = Math.min(x1, x2);
+      const width = Math.max(Math.abs(x2 - x1), 2);
+      return (
+        <rect
+          key={`${zone.label}-${segIdx}`}
+          x={left}
+          y={zoneTop}
+          width={width}
+          height={zoneBottom - zoneTop}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth="0.5"
+          rx="2"
+        />
+      );
+    });
+  };
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", display:"block" }} preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="cumGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={finalColor} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={finalColor} stopOpacity="0.02" />
-        </linearGradient>
-        <filter id="cumGlow"><feGaussianBlur stdDeviation="2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-      </defs>
-      {gridLines.map((gl, gi) => (
-        <g key={gi}>
-          <line x1={PAD.left} y1={gl.y} x2={W - PAD.right} y2={gl.y}
-            stroke={Math.abs(gl.v) < 0.001 ? "rgba(143,163,191,0.3)" : "rgba(143,163,191,0.07)"}
-            strokeWidth={Math.abs(gl.v) < 0.001 ? 1 : 0.5} />
-          <text x={PAD.left - 4} y={gl.y + 3.5} textAnchor="end" fontSize="7.5" fill={C.textFaint}>
-            {gl.v >= 0 ? "+" : ""}{(gl.v * 100).toFixed(0)}%
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", display:"block" }} preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="cumGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={finalColor} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={finalColor} stopOpacity="0.02" />
+          </linearGradient>
+          <filter id="cumGlow"><feGaussianBlur stdDeviation="2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        </defs>
+        {hasSwingOverlay && swingZones.map((zone) => (
+          <g key={zone.label}>{renderZoneRects(zone)}</g>
+        ))}
+        {gridLines.map((gl, gi) => (
+          <g key={gi}>
+            <line x1={PAD.left} y1={gl.y} x2={W - PAD.right} y2={gl.y}
+              stroke={Math.abs(gl.v) < 0.001 ? "rgba(143,163,191,0.3)" : "rgba(143,163,191,0.07)"}
+              strokeWidth={Math.abs(gl.v) < 0.001 ? 1 : 0.5} />
+            <text x={PAD.left - 4} y={gl.y + 3.5} textAnchor="end" fontSize="7.5" fill={C.textFaint}>
+              {gl.v >= 0 ? "+" : ""}{(gl.v * 100).toFixed(0)}%
+            </text>
+          </g>
+        ))}
+        <path d={areaPath} fill="url(#cumGrad)" />
+        <path d={linePath} fill="none" stroke={finalColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {hasSwingOverlay && swingZones.map((zone, zi) => {
+          const labelColor = zone.kind === "bullish" ? C.green : C.red;
+          const placement = zoneLabelPlacements[zi];
+          if (!placement) return null;
+          return (
+            <text
+              key={`lbl-${zone.label}-${zone.kind}`}
+              x={placement.x}
+              y={placement.y}
+              textAnchor={placement.textAnchor}
+              fontSize={placement.fontSize}
+              fill={labelColor}
+              fontWeight="700"
+              opacity="0.92"
+              style={{ pointerEvents:"none" }}
+            >
+              {placement.labelText}
+            </text>
+          );
+        })}
+        <line
+          x1={todayX}
+          y1={zoneTop}
+          x2={todayX}
+          y2={zoneBottom}
+          stroke="rgba(167,139,250,0.85)"
+          strokeWidth="1.25"
+          strokeDasharray="4 3"
+        />
+        <circle cx={xOf(0)} cy={yOf(0)} r="3" fill={C.panel} stroke={finalColor} strokeWidth="1.5" />
+        <circle cx={xOf(cumPoints.length - 1)} cy={yOf(cum)} r="3" fill={finalColor} filter="url(#cumGlow)" />
+        <g>
+          <rect
+            x={todayX - 26}
+            y={PAD.top - 15}
+            width={52}
+            height={11}
+            fill={C.panel}
+            opacity="0.92"
+            rx="2"
+          />
+          <text
+            x={todayX}
+            y={PAD.top - 6}
+            textAnchor="middle"
+            fontSize="7.5"
+            fill={C.accentLight}
+            fontWeight="600"
+          >
+            Aujourd&apos;hui
           </text>
         </g>
-      ))}
-      <path d={areaPath} fill="url(#cumGrad)" />
-      <path d={linePath} fill="none" stroke={finalColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={xOf(0)} cy={yOf(0)} r="3" fill={C.panel} stroke={finalColor} strokeWidth="1.5" />
-      <circle cx={xOf(cumPoints.length - 1)} cy={yOf(cum)} r="4" fill={finalColor} filter="url(#cumGlow)" />
-      <text x={xOf(cumPoints.length - 1) + 6} y={yOf(cum) + 4} fontSize="9.5" fill={finalColor} fontWeight="700">
-        {cum >= 0 ? "+" : ""}{(cum * 100).toFixed(1)}%
-      </text>
-      {cumPoints.slice(1).map((p, i) => (
-        <text key={i} x={xOf(i + 1).toFixed(1)} y={H - 6} textAnchor="middle" fontSize="8.5" fill={C.textFaint}>{p.label}</text>
-      ))}
-    </svg>
+        {cumPoints.slice(1).map((p, i) => (
+          <text key={i} x={xOf(i + 1).toFixed(1)} y={H - 6} textAnchor="middle" fontSize="8.5" fill={C.textFaint}>{p.label}</text>
+        ))}
+      </svg>
+      {hasSwingOverlay && (
+        <div style={{ display:"flex", flexWrap:"wrap", gap:"12px 16px", marginTop:"8px", fontSize:"10px", color:C.textMuted }}>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            <span style={{ width:12, height:10, borderRadius:2, background:"rgba(34,197,94,0.35)", border:"1px solid rgba(34,197,94,0.5)" }} />
+            Vert = fenêtre swing haussière
+          </span>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            <span style={{ width:12, height:10, borderRadius:2, background:"rgba(239,68,68,0.35)", border:"1px solid rgba(239,68,68,0.5)" }} />
+            Rouge = fenêtre swing baissière
+          </span>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            <span style={{ width:14, height:0, borderTop:`2px solid ${finalColor}` }} />
+            Ligne = saisonnalité cumulée moyenne
+          </span>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            <span style={{ width:14, height:0, borderTop:"1.25px dashed rgba(167,139,250,0.85)" }} />
+            Pointillé = aujourd&apos;hui
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -415,77 +711,78 @@ function CalendarHeatmap({ calendar }) {
   );
 }
 
-// ─── Tableau fenêtres longues ───────────────────────────────────────────────────
-function LongTermWindowsCard({ windows }) {
-  if (!windows?.horizons?.length && !windows?.distinct?.bullish?.length) {
-    return <div style={{ color:C.textFaint, fontSize:"12px", padding:"18px 0" }}>Fenêtres saisonnières non disponibles.</div>;
+// ─── Meilleures / Pires fenêtres (swing 5–17 sem. en priorité) ───────────────────
+// TODO(Patch-2C): afficher « Réalisé cette année » et « Écart vs attendu » quand
+// prix début fenêtre active + prix courant seront exposés par l'API graphique 3 ans.
+
+function SwingWindowsList({ rows, isBullish, activeWindows }) {
+  if (!rows?.length) {
+    return <div style={{ padding:"12px 0", fontSize:"11px", color:C.textFaint, textAlign:"center" }}>Aucune fenêtre</div>;
   }
-  const rows = getLongTermBullishRows(windows);
-  const thBase = { padding:"6px 8px", fontSize:"9.5px", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:C.textFaint, borderBottom:`1px solid ${C.border}`, background:C.cardInner, whiteSpace:"nowrap" };
-  const tdBase = { padding:"8px 8px", fontSize:"11.5px", color:C.text, borderBottom:`1px solid rgba(120,150,190,0.07)`, verticalAlign:"middle" };
-  const activeNow = windows.summary?.activeNow ?? [];
   return (
-    <div>
-      {activeNow.length > 0 && (
-        <div style={{ background:"rgba(139,92,246,0.07)", border:`1px solid rgba(139,92,246,0.2)`, borderRadius:"8px", padding:"8px 12px", marginBottom:"10px", display:"flex", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
-          <span style={{ fontSize:"10px", fontWeight:700, color:C.accentLight, letterSpacing:"0.08em", textTransform:"uppercase" }}>⚡ Actives</span>
-          {activeNow.slice(0, 3).map((w, i) => {
-            const bias = (w.avgReturn > 0 && w.winRate >= 0.5) ? "favorable" : "faible";
-            const vs = verdictStyleObj(bias);
-            return (
-              <span key={i} style={{ background:vs.bg, border:`1px solid ${vs.border}`, borderRadius:"6px", padding:"2px 10px", fontSize:"11px", color:vs.color, fontWeight:600 }}>
-                {seasonalWindowPrimaryLabel(w)} · {formatPct(w.avgReturn)}
-              </span>
-            );
-          })}
+    <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+      {rows.map((sw, i) => {
+        const isActive = activeWindows?.some(
+          (a) => a.displayLabel && sw.displayLabel && a.displayLabel === sw.displayLabel,
+        );
+        return (
+        <div
+          key={i}
+          style={{
+            background:C.cardInner,
+            border:`1px solid ${C.border}`,
+            borderRadius:"8px",
+            padding:"10px 12px",
+          }}
+        >
+          <div style={{ fontSize:"12.5px", fontWeight:700, color:C.text, marginBottom:"5px" }}>
+            {sw.displayLabel || `${sw.startLabel} → ${sw.endLabel}`}
+            {sw.durationWeeks ? (
+              <span style={{ fontWeight:500, color:C.textMuted }}> · ~{sw.durationWeeks} sem.</span>
+            ) : null}
+          </div>
+          <div style={{ fontSize:"11px", color:C.textMuted, lineHeight:1.55 }}>
+            <span style={{ color:pctColor(sw.avgReturn), fontWeight:600 }}>{formatPct(sw.avgReturn)}</span>
+            {" · "}
+            <span>{isBullish ? "Win" : "% haussier"} {formatWinRate(sw.winRate)}</span>
+            {" · "}
+            <span>Pire {formatPct(sw.worstReturn)}</span>
+            {" · "}
+            <span style={{ fontWeight:600 }}>{formatConfidenceLabel(sw.confidence ?? sw.status)}</span>
+          </div>
+          {sw.confidenceReason && (
+            <div style={{ fontSize:"10px", color:C.yellow, marginTop:"3px" }}>
+              {sw.confidenceReason}
+            </div>
+          )}
+          {isActive && typeof sw.avgReturn === "number" && (
+            <div style={{ fontSize:"10px", color:C.textMuted, marginTop:"4px" }}>
+              Attendu historique : {formatPct(sw.avgReturn)}
+            </div>
+          )}
+          {sw.horizonsConfirmedLabel && (
+            <div style={{ fontSize:"10px", color:C.accentLight, marginTop:"4px", fontWeight:600 }}>
+              {sw.horizonsConfirmedLabel}
+            </div>
+          )}
+          <div style={{ fontSize:"9.5px", color:C.textFaint, marginTop:"3px", fontStyle:"italic" }}>
+            {momentumHintShort(sw, isBullish)}
+          </div>
         </div>
-      )}
-      <div style={{ overflowX:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"400px" }}>
-          <thead>
-            <tr>
-              <th style={{ ...thBase, textAlign:"left" }}>Fenêtre</th>
-              <th style={{ ...thBase, textAlign:"center" }}>Jours</th>
-              <th style={{ ...thBase, textAlign:"right" }}>% Haussier</th>
-              <th style={{ ...thBase, textAlign:"right" }}>Rend. moy.</th>
-              <th style={{ ...thBase, textAlign:"right" }}>Pire rend.</th>
-              <th style={{ ...thBase, textAlign:"center" }}>Verdict LT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding:"14px", textAlign:"center", fontSize:"12px", color:C.textFaint }}>Aucune fenêtre haussière</td></tr>
-            ) : rows.map((w, i) => (
-              <tr key={i}>
-                <td style={{ ...tdBase, fontWeight:600, color:C.text }}>
-                  <SeasonalWindowLabel window={w} />
-                </td>
-                <td style={{ ...tdBase, textAlign:"center", color:C.textMuted }}>{w.days ? `${w.days}j` : "—"}</td>
-                <td style={{ ...tdBase, textAlign:"right" }}>{formatWinRate(w.winRate)}</td>
-                <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.avgReturn), fontWeight:600 }}>{formatPct(w.avgReturn)}</td>
-                <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.worstReturn) }}>{formatPct(w.worstReturn)}</td>
-                <td style={{ ...tdBase, textAlign:"center" }}>
-                  <VerdictBadge verdict={w.status ?? (w.avgReturn > 0 ? "favorable" : "faible")} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ marginTop:"7px", fontSize:"10px", color:C.textFaint, fontStyle:"italic" }}>
-        Ces fenêtres aident à déterminer les meilleures périodes pour accumuler ou alléger une position.
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-// ─── Meilleures / Pires fenêtres ───────────────────────────────────────────────
 function BestWorstWindowsCard({ windows }) {
-  if (!windows?.horizons?.length && !windows?.distinct) {
+  const hasData = windows?.horizons?.length || windows?.distinct || windows?.swingWindows;
+  if (!hasData) {
     return <div style={{ color:C.textFaint, fontSize:"12px", padding:"16px 0" }}>Fenêtres non disponibles.</div>;
   }
-  const allBullish = getDistinctOrLegacyBullish(windows);
-  const allBearish = getDistinctOrLegacyBearish(windows);
+
+  const bullish = getSwingOrDistinctBullish(windows);
+  const bearish = getSwingOrDistinctBearish(windows);
   const thBase = { padding:"5px 7px", fontSize:"9px", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:C.textFaint, borderBottom:`1px solid ${C.border}`, background:C.cardInner };
   const tdBase = { padding:"7px 7px", fontSize:"11px", color:C.text, borderBottom:`1px solid rgba(120,150,190,0.07)`, verticalAlign:"middle" };
   const MiniTable = ({ rows, isBullish }) => (
@@ -516,15 +813,35 @@ function BestWorstWindowsCard({ windows }) {
       </tbody>
     </table>
   );
+  const bullishTitle = bullish.mode === "swing"
+    ? "Meilleures fenêtres haussières — swing 5 à 17 semaines"
+    : "Meilleures fenêtres haussières";
+  const bearishTitle = bearish.mode === "swing"
+    ? "Pires fenêtres baissières — swing 5 à 17 semaines"
+    : "Pires fenêtres baissières";
+
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:"14px" }}>
+      <SeasonalWideContextLine windows={windows} />
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" }}>
-        <SectionHeader title="Meilleures fenêtres haussières" icon={TrendingUp} right={`${Math.min(allBullish.length, 4)} fenêtres`} />
-        <div style={{ overflowX:"auto" }}><MiniTable rows={allBullish} isBullish={true} /></div>
+        <SectionHeader
+          title={bullishTitle}
+          icon={TrendingUp}
+          right={`${bullish.rows.length} fenêtre${bullish.rows.length > 1 ? "s" : ""}`}
+        />
+        {bullish.mode === "swing"
+          ? <SwingWindowsList rows={bullish.rows} isBullish={true} activeWindows={windows?.summary?.activeNow} />
+          : <div style={{ overflowX:"auto" }}><MiniTable rows={bullish.rows} isBullish={true} /></div>}
       </div>
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" }}>
-        <SectionHeader title="Pires fenêtres baissières" icon={TrendingDown} right={`${Math.min(allBearish.length, 4)} fenêtres`} />
-        <div style={{ overflowX:"auto" }}><MiniTable rows={allBearish} isBullish={false} /></div>
+        <SectionHeader
+          title={bearishTitle}
+          icon={TrendingDown}
+          right={`${bearish.rows.length} fenêtre${bearish.rows.length > 1 ? "s" : ""}`}
+        />
+        {bearish.mode === "swing"
+          ? <SwingWindowsList rows={bearish.rows} isBullish={false} activeWindows={windows?.summary?.activeNow} />
+          : <div style={{ overflowX:"auto" }}><MiniTable rows={bearish.rows} isBullish={false} /></div>}
       </div>
     </div>
   );
@@ -1040,26 +1357,14 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                 </div>
               </div>
 
-              {/* ── LIGNE E : Fenêtres longues | Calendrier ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-                {/* Fenêtres longues */}
-                <div style={cardStyle}>
-                  <SectionHeader
-                    title="Fenêtres saisonnières longues — investissement long terme"
-                    icon={TrendingUp}
-                    info="Fenêtres analysées sur 3/5/10/15 ans d'historique."
-                  />
-                  <LongTermWindowsCard windows={windowsData} />
-                </div>
-                {/* Calendrier heatmap */}
-                <div style={cardStyle}>
-                  <SectionHeader
-                    title="Calendrier saisonnier — probabilité de hausse par mois"
-                    icon={CalendarDays}
-                    info="Rendement moyen et taux de hausse par mois calendaire."
-                  />
-                  <CalendarHeatmap calendar={calendarData} />
-                </div>
+              {/* ── LIGNE E : Calendrier saisonnier (pleine largeur) ── */}
+              <div style={cardStyle}>
+                <SectionHeader
+                  title="Calendrier saisonnier — probabilité de hausse par mois"
+                  icon={CalendarDays}
+                  info="Rendement moyen et taux de hausse par mois calendaire."
+                />
+                <CalendarHeatmap calendar={calendarData} />
               </div>
 
               {/* ── LIGNE F : Courbe cumulée | Meilleures/Pires fenêtres ── */}
@@ -1067,13 +1372,13 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                 {/* Courbe cumulée */}
                 <div style={cardStyle}>
                   <SectionHeader
-                    title="Courbe saisonnière — rendement cumulé moyen"
+                    title="Carte swing saisonnière — haussier / baissier"
                     icon={Activity}
-                    info="Somme des rendements mensuels moyens de janvier à décembre."
+                    info="Zones vertes/rouges = fenêtres swing 5–17 sem. · Ligne = rendement cumulé moyen par mois."
                     right={calendarData?.summary ? `${calendarData.summary.yearsCovered} ans d'historique` : undefined}
                   />
                   {calendarData?.months
-                    ? <CumulativeLineChart months={calendarData.months} />
+                    ? <CumulativeLineChart months={calendarData.months} swingWindows={windowsData?.swingWindows} />
                     : <div style={{ textAlign:"center", padding:"36px 0", color:C.textFaint, fontSize:"12px" }}>Courbe cumulée non disponible — endpoint /calendar requis.</div>
                   }
                   <div style={{ marginTop:"8px", fontSize:"10px", color:C.textFaint }}>

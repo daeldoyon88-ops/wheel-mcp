@@ -14,6 +14,8 @@
 import YahooFinance from "yahoo-finance2";
 import { enrichSeasonalityWindowDisplay, enrichSeasonalityWindowsResult } from "./seasonalityWindowDisplay.js";
 import { attachDistinctSeasonalityWindows } from "./seasonalityWindowDistinct.js";
+import { attachSeasonalityClusters } from "./seasonalityWindowClusters.js";
+import { attachSwingSeasonalityWindows } from "./seasonalitySwingWindows.js";
 
 export {
   buildSeasonalWindowDisplayFields,
@@ -1081,7 +1083,7 @@ export function computeSeasonalityWindowsFromRows(rows, options = {}) {
 
   if (!horizons.length) return null;
 
-  return attachDistinctSeasonalityWindows(enrichSeasonalityWindowsResult({
+  return attachSwingSeasonalityWindows(attachSeasonalityClusters(attachDistinctSeasonalityWindows(enrichSeasonalityWindowsResult({
     horizons,
     summary: {
       bestOverallBullish:  _pickBestOverallBullish(horizons),
@@ -1091,7 +1093,7 @@ export function computeSeasonalityWindowsFromRows(rows, options = {}) {
       source:              'Yahoo Finance',
       cacheTtlHours:       RESULT_CACHE_TTL_MS / 3_600_000,
     },
-  }));
+  }))));
 }
 
 /**

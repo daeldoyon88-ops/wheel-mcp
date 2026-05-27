@@ -216,6 +216,31 @@ test("computeSeasonalityWindowsFromRows: distinct.bullish et distinct.bearish pr
   assert.ok(result.horizons.length >= 1);
 });
 
+test("computeSeasonalityWindowsFromRows: clusters.bullish et clusters.bearish présents (additif)", () => {
+  const rows   = makeAprilRallyRows(8);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(result.clusters);
+  assert.ok(Array.isArray(result.clusters.bullish));
+  assert.ok(Array.isArray(result.clusters.bearish));
+  assert.equal(result.clusters.meta.algorithm, "merge-overlap-and-nearby-calendar-windows");
+  assert.equal(result.clusters.meta.gapToleranceDays, 21);
+  assert.ok(result.distinct);
+  assert.ok(result.horizons.length >= 1);
+});
+
+test("computeSeasonalityWindowsFromRows: swingWindows présent (additif)", () => {
+  const rows   = makeAprilRallyRows(8);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(result.swingWindows);
+  assert.ok(Array.isArray(result.swingWindows.bullish));
+  assert.ok(Array.isArray(result.swingWindows.bearish));
+  assert.equal(result.swingWindows.meta.algorithm, "adaptive-ranked-seasonality-swing-windows");
+  assert.ok(result.distinct);
+  assert.ok(result.clusters);
+});
+
 test("computeSeasonality, computeSeasonalityCalendar et computeSeasonalityShortTerm restent exportés", () => {
   assert.equal(typeof computeSeasonality,         "function");
   assert.equal(typeof computeSeasonalityCalendar, "function");

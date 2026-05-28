@@ -236,7 +236,7 @@ test("computeSeasonalityWindowsFromRows: swingWindows présent (additif)", () =>
   assert.ok(result.swingWindows);
   assert.ok(Array.isArray(result.swingWindows.bullish));
   assert.ok(Array.isArray(result.swingWindows.bearish));
-  assert.equal(result.swingWindows.meta.algorithm, "adaptive-ranked-seasonality-swing-windows");
+  assert.equal(result.swingWindows.meta.algorithm, "multi-horizon-adaptive-seasonality-swing-windows");
   assert.ok(result.distinct);
   assert.ok(result.clusters);
 });

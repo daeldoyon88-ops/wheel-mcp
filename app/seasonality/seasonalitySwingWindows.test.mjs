@@ -4,11 +4,16 @@ import test   from "node:test";
 import {
   flattenSwingCandidates,
   consolidateSwingFamilies,
+  buildSwingHorizonFamilies,
+  buildHorizonStatsForMembers,
+  scoreMultiHorizonSwingFamily,
+  multiHorizonConfidenceFromFamily,
   selectAdaptiveSwingSeasonalityWindows,
   attachSwingSeasonalityWindows,
   swingConfidenceFromHorizons,
 } from "./seasonalitySwingWindows.js";
 import { computeSeasonalityWindowsFromRows } from "./seasonalityEngine.js";
+import { buildCalendarCoverageMask } from "./seasonalityWindowDistinct.js";
 
 function win(overrides) {
   return {
@@ -210,15 +215,208 @@ test("swing format inclut startDayOfYear/endDayOfYear pour fenêtre cross-year",
 
 test("fenêtre multi-horizons (3y/5y/10y/15y) affiche confiance robuste", () => {
   const variants = [
-    win({ horizonYears: 3, score: 9 }),
-    win({ horizonYears: 5, score: 11 }),
-    win({ horizonYears: 10, score: 10 }),
-    win({ horizonYears: 15, score: 10 }),
+    win({ horizonYears: 3, score: 9, sampleSize: 3, winRate: 1.0, avgReturn: 0.537 }),
+    win({ horizonYears: 5, score: 11, sampleSize: 5, winRate: 1.0, avgReturn: 0.283 }),
+    win({ horizonYears: 10, score: 10, sampleSize: 10, winRate: 1.0, avgReturn: 0.19 }),
+    win({ horizonYears: 15, score: 10, sampleSize: 16, winRate: 0.875, avgReturn: 0.166 }),
   ];
   const result = selectAdaptiveSwingSeasonalityWindows(mockWindowsData(variants));
   assert.equal(result.bullish.length, 1);
-  assert.equal(result.bullish[0].confidence, "robuste");
-  assert.equal(result.bullish[0].horizonsFound.length, 4);
+  const w = result.bullish[0];
+  assert.ok(w.horizonStats);
+  assert.equal(w.horizonStats["3y"].sampleSize, 3);
+  assert.equal(w.horizonStats["15y"].sampleSize, 16);
+  assert.equal(w.multiHorizonConfidence, "robuste multi-horizons");
+  assert.deepEqual(w.confirmedHorizons, ["3y", "5y", "10y", "15y"]);
+  assert.equal(w.avgReturn, 0.166, "expectedReturn = horizon 15y confirmé");
+  assert.equal(w.shortTermReturn, 0.537);
+  assert.ok(w.selectionReason);
+  assert.ok(!String(w.selectionReason).includes("undefined"));
+  assert.equal(w.primaryHorizon, "15y");
+  assert.equal(w.displaySampleSize, 16);
+  assert.notEqual(w.displaySampleSize, w.totalOccurrences);
+  assert.equal(w.displayAvgReturn, 0.166);
+  assert.equal(w.expectedReturn, 0.166);
+  assert.equal(w.displayWinRate, 0.875);
+  assert.equal(w.occurrences, 16);
+  assert.equal(w.sampleSize, 16);
+});
+
+test("displaySampleSize utilise primaryHorizon, pas la somme totalOccurrences", () => {
+  const variants = [
+    win({ horizonYears: 3, sampleSize: 3, winRate: 1.0, avgReturn: 0.537 }),
+    win({ horizonYears: 5, sampleSize: 5, winRate: 1.0, avgReturn: 0.283 }),
+    win({ horizonYears: 10, sampleSize: 10, winRate: 1.0, avgReturn: 0.19 }),
+    win({ horizonYears: 15, sampleSize: 16, winRate: 0.875, avgReturn: 0.166 }),
+  ];
+  const w = selectAdaptiveSwingSeasonalityWindows(mockWindowsData(variants)).bullish[0];
+  assert.equal(w.totalOccurrences, 34);
+  assert.equal(w.displaySampleSize, 16);
+  assert.notEqual(w.displaySampleSize, 34);
+});
+
+test("15y confirmé → primaryHorizon 15y", () => {
+  const variants = [
+    win({ horizonYears: 15, sampleSize: 16, winRate: 0.875, avgReturn: 0.166 }),
+  ];
+  const w = selectAdaptiveSwingSeasonalityWindows(mockWindowsData(variants)).bullish[0];
+  assert.equal(w.primaryHorizon, "15y");
+  assert.equal(w.primaryHorizonSampleSize, 16);
+});
+
+test("15y absent mais 10y confirmé → primaryHorizon 10y", () => {
+  const variants = [
+    win({ horizonYears: 10, sampleSize: 10, winRate: 0.8, avgReturn: 0.19 }),
+    win({ horizonYears: 5, sampleSize: 5, winRate: 1.0, avgReturn: 0.283 }),
+  ];
+  const w = selectAdaptiveSwingSeasonalityWindows(mockWindowsData(variants)).bullish[0];
+  assert.equal(w.primaryHorizon, "10y");
+  assert.equal(w.displaySampleSize, 10);
+  assert.equal(w.displayAvgReturn, 0.19);
+  assert.equal(w.displayWinRate, 0.8);
+});
+
+test("rendement affiché aligné sur primaryHorizon (pas winRate agrégé)", () => {
+  const variants = [
+    win({ horizonYears: 3, sampleSize: 3, winRate: 1.0, avgReturn: 0.80 }),
+    win({ horizonYears: 15, sampleSize: 16, winRate: 0.875, avgReturn: 0.166 }),
+  ];
+  const w = selectAdaptiveSwingSeasonalityWindows(mockWindowsData(variants)).bullish[0];
+  assert.equal(w.primaryHorizon, "15y");
+  assert.equal(w.displayAvgReturn, 0.166);
+  assert.equal(w.displayWinRate, 0.875);
+  assert.notEqual(w.displayWinRate, 1.0);
+});
+
+test("fenêtre seulement 3y ne peut pas devenir Robuste multi-horizons", () => {
+  const only3y = win({
+    horizonYears: 3,
+    score: 50,
+    sampleSize: 3,
+    winRate: 1.0,
+    avgReturn: 0.516,
+    displayLabel: "1 avr. → 1 juil.",
+  });
+  const result = selectAdaptiveSwingSeasonalityWindows(mockWindowsData([only3y]));
+  assert.equal(result.bullish.length, 1);
+  assert.notEqual(result.bullish[0].multiHorizonConfidence, "robuste multi-horizons");
+  assert.equal(Object.keys(result.bullish[0].horizonStats ?? {}).length, 1);
+});
+
+test("fenêtre 15y confirmée préférée à fenêtre 3y spectaculaire", () => {
+  const spectacular3y = win({
+    horizonYears: 3,
+    score: 99,
+    sampleSize: 3,
+    winRate: 1.0,
+    avgReturn: 0.80,
+    startMonth: 4,
+    endMonth: 7,
+    displayLabel: "1 avr. → 1 juil.",
+  });
+  const robust15y = win({
+    horizonYears: 15,
+    score: 20,
+    sampleSize: 16,
+    winRate: 0.875,
+    avgReturn: 0.166,
+    startMonth: 9,
+    startWeekOfMonth: 1,
+    endMonth: 12,
+    endWeekOfMonth: 2,
+    displayLabel: "Sep W1 → Dec W2",
+  });
+  const result = selectAdaptiveSwingSeasonalityWindows(
+    mockWindowsData([spectacular3y, robust15y]),
+    { maxBullish: 2 },
+  );
+  assert.equal(result.bullish.length, 2);
+  const first = result.bullish[0];
+  const second = result.bullish[1];
+  assert.ok(first.horizonStats?.["15y"], "fenêtre 15y classée avant la 3y spectaculaire");
+  assert.ok((first.multiHorizonScore ?? 0) > (second.multiHorizonScore ?? 0));
+  assert.ok(first.longHorizonConfirmed);
+  assert.ok(second.horizonStats?.["3y"] || (second.confirmedHorizons ?? []).includes("3y"));
+});
+
+test("bearish : downRate = 1 - winRate et direction confirmée", () => {
+  const bear = win({
+    horizonYears: 10,
+    avgReturn: -0.12,
+    winRate: 0.30,
+    sampleSize: 10,
+    displayLabel: "Sep → Oct",
+    startMonth: 9,
+    endMonth: 10,
+  });
+  const stats = buildHorizonStatsForMembers([bear], "bearish");
+  assert.equal(stats["10y"].downRate, 0.7);
+  assert.equal(stats["10y"].directionConfirmed, true);
+});
+
+test("cross-year : Sep → Jan dans buildSwingHorizonFamilies", () => {
+  const fall = win({
+    startMonth: 10,
+    startDay: 29,
+    endMonth: 1,
+    endDay: 29,
+    windowDays: 60,
+    score: 11,
+    horizonYears: 10,
+    sampleSize: 10,
+    winRate: 0.8,
+    avgReturn: 0.15,
+    displayLabel: "29 oct. → 29 jan.",
+  });
+  const families = buildSwingHorizonFamilies([fall], { direction: "bullish" });
+  assert.equal(families.length, 1);
+  const { startDOY, endDOY } = buildCalendarCoverageMask(families[0]);
+  assert.ok(startDOY > endDOY, "oct→jan traverse l'année");
+});
+
+test("totalOccurrences somme les horizons", () => {
+  const members = [
+    win({ horizonYears: 3, sampleSize: 3, winRate: 1, avgReturn: 0.5 }),
+    win({ horizonYears: 15, sampleSize: 16, winRate: 0.875, avgReturn: 0.166 }),
+  ];
+  const family = buildSwingHorizonFamilies(members, { direction: "bullish" })[0];
+  assert.equal(family.totalOccurrences, 19);
+});
+
+test("scoreMultiHorizonSwingFamily pénalise 3y seul", () => {
+  const only3 = {
+    horizonStats: {
+      "3y": { sampleSize: 3, avgReturn: 0.5, winRate: 1, downRate: 0, directionConfirmed: true },
+    },
+    totalOccurrences: 3,
+  };
+  const multi = {
+    horizonStats: {
+      "3y": { sampleSize: 3, avgReturn: 0.5, winRate: 1, downRate: 0, directionConfirmed: true },
+      "15y": { sampleSize: 16, avgReturn: 0.166, winRate: 0.875, downRate: 0.125, directionConfirmed: true },
+    },
+    totalOccurrences: 19,
+  };
+  assert.ok(scoreMultiHorizonSwingFamily(multi, "bullish") > scoreMultiHorizonSwingFamily(only3, "bullish"));
+});
+
+test("multiHorizonConfidenceFromFamily : règles clés", () => {
+  const robustMulti = {
+    horizonStats: {
+      "3y": { directionConfirmed: true, sampleSize: 3 },
+      "5y": { directionConfirmed: true, sampleSize: 5 },
+      "10y": { directionConfirmed: true, sampleSize: 10 },
+      "15y": { directionConfirmed: true, sampleSize: 16 },
+    },
+    totalOccurrences: 34,
+  };
+  assert.equal(multiHorizonConfidenceFromFamily(robustMulti), "robuste multi-horizons");
+
+  const only3 = {
+    horizonStats: { "3y": { directionConfirmed: true, sampleSize: 3 } },
+    totalOccurrences: 3,
+  };
+  assert.equal(multiHorizonConfidenceFromFamily(only3), "échantillon limité");
 });
 
 test("computeSeasonalityWindowsFromRows expose swingWindows", () => {
@@ -249,5 +447,9 @@ test("computeSeasonalityWindowsFromRows expose swingWindows", () => {
     assert.ok(w.durationDays >= 35 && w.durationDays <= 119);
     assert.ok(w.horizonsFound);
     assert.ok(w.momentumTriggerHint);
+    if (w.horizonStats) {
+      assert.ok(w.multiHorizonConfidence);
+      assert.ok(w.selectionReason);
+    }
   }
 });

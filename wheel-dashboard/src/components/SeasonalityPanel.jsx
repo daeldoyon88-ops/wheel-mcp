@@ -291,12 +291,43 @@ function getSwingOrDistinctBearish(windows) {
 
 function formatConfidenceLabel(raw) {
   const v = String(raw ?? "").toLowerCase();
+  if (v.includes("multi")) return "Robuste multi-horizons";
   if (v === "robuste") return "Robuste";
   if (v === "mesurable") return "Mesurable";
   if (v === "préliminaire" || v === "preliminaire") return "Préliminaire";
   if (v === "échantillon limité" || v === "echantillon limite") return "Échantillon limité";
   if (raw) return String(raw);
   return "—";
+}
+
+/** Confiance effective — multiHorizonConfidence prioritaire si présent. */
+function getEffectiveConfidence(window) {
+  return window?.multiHorizonConfidence ?? window?.confidence ?? window?.status;
+}
+
+/** Matrice compacte horizonStats pour title/tooltip. */
+function formatHorizonStatsMatrix(horizonStats, isBullish) {
+  if (!horizonStats || typeof horizonStats !== "object") return null;
+  const order = ["3y", "5y", "10y", "15y"];
+  const lines = [];
+  for (const key of order) {
+    const s = horizonStats[key];
+    if (!s || s.sampleSize == null) continue;
+    const rate = isBullish ? s.winRate : (s.downRate ?? (s.winRate != null ? 1 - s.winRate : null));
+    const ratePct = rate != null ? `${Math.round(rate * 100)} %` : "—";
+    const ret = typeof s.avgReturn === "number" ? formatPct(s.avgReturn) : "—";
+    lines.push(`${key}  ${ret} · ${ratePct} · n=${s.sampleSize}`);
+  }
+  return lines.length ? lines.join("\n") : null;
+}
+
+function formatHorizonConfirmedLine(window) {
+  const confirmed = window?.confirmedHorizons;
+  if (Array.isArray(confirmed) && confirmed.length) {
+    return `Confirmée ${confirmed.join(" / ")}`;
+  }
+  if (window?.horizonsConfirmedLabel) return window.horizonsConfirmedLabel;
+  return null;
 }
 
 /** Normalise un taux en fraction 0–1 (accepte aussi 0–100). */
@@ -308,16 +339,34 @@ function normalizeRate(val) {
 }
 
 /** Confiance affichée — plafonnée selon sampleSize (ne jamais « Robuste » si n < 12). */
-function getDisplayConfidence(rawConfidence, sampleSize) {
+function getDisplayConfidence(rawConfidence, sampleSize, multiHorizonConfidence) {
+  const raw = multiHorizonConfidence ?? rawConfidence;
   if (sampleSize == null) {
-    const formatted = formatConfidenceLabel(rawConfidence);
+    const formatted = formatConfidenceLabel(raw);
     return formatted !== "—" ? formatted : "Historique disponible";
   }
+  const multi = String(multiHorizonConfidence ?? "").toLowerCase();
+  if (multi.includes("multi")) return "Robuste multi-horizons";
   if (sampleSize < 5) return "Échantillon limité";
-  if (sampleSize < 8) return "Préliminaire";
-  if (sampleSize < 12) return "Mesurable";
-  const formatted = formatConfidenceLabel(rawConfidence);
+  if (sampleSize < 8) {
+    if (multi === "robuste" || multi === "mesurable") return formatConfidenceLabel(multi);
+    return "Préliminaire";
+  }
+  if (sampleSize < 12) {
+    if (multi === "robuste multi-horizons" || multi.includes("multi")) return "Robuste multi-horizons";
+    if (multi === "robuste") return "Robuste";
+    return "Mesurable";
+  }
+  const formatted = formatConfidenceLabel(raw);
   return formatted !== "—" ? formatted : "Robuste possible";
+}
+
+function getWindowDisplayConfidence(window) {
+  return getDisplayConfidence(
+    window?.confidence ?? window?.status,
+    getSampleSize(window),
+    window?.multiHorizonConfidence,
+  );
 }
 
 /** Libellé occurrences testées — « 1 occurrence » ou « N occurrences ». */
@@ -774,26 +823,48 @@ function formatPctWhole(val) {
   return "—";
 }
 
-/** Nombre d'années / occurrences testées — null si indisponible. */
+/** Nombre d'occurrences du primaryHorizon — jamais totalOccurrences (horizons chevauchants). */
 function getSampleSize(window) {
   if (!window || typeof window !== "object") return null;
+  const totalOcc = typeof window.totalOccurrences === "number" ? window.totalOccurrences : null;
+  const occ = typeof window.occurrences === "number" ? window.occurrences : null;
   const candidates = [
+    window.displaySampleSize,
+    window.primaryHorizonSampleSize,
+    window.primaryHorizon && window.horizonStats?.[window.primaryHorizon]?.sampleSize,
     window.sampleSize,
-    typeof window.occurrences === "number" ? window.occurrences : null,
-    window.years,
-    window.observations,
-    window.occurrencesCount,
   ];
+  if (occ != null && (totalOcc == null || occ !== totalOcc)) {
+    candidates.push(occ);
+  }
+  candidates.push(window.years, window.observations, window.occurrencesCount);
   for (const n of candidates) {
     if (typeof n === "number" && isFinite(n) && n > 0) return Math.round(n);
   }
   return null;
 }
 
+function getPrimaryHorizonSuffix(window) {
+  const h = window?.primaryHorizon;
+  return h ? ` ${h}` : "";
+}
+
+function getSwingDisplayReturn(window) {
+  if (typeof window?.displayAvgReturn === "number" && isFinite(window.displayAvgReturn)) {
+    return window.displayAvgReturn;
+  }
+  return window?.avgReturn ?? null;
+}
+
 /** Taux directionnel : haussier pour bullish, baissier pour bearish (winRate backend = % haussier). */
 function getDirectionalWinRate(window, type) {
   if (!window) return null;
   const isBullish = type === "bullish" || type === true;
+
+  if (typeof window.displayWinRate === "number" && isFinite(window.displayWinRate)) {
+    const dr = normalizeRate(window.displayWinRate);
+    if (dr != null) return dr;
+  }
 
   if (isBullish && typeof window.bullishWinRate === "number") {
     return normalizeRate(window.bullishWinRate);
@@ -869,9 +940,8 @@ function resolveNextWindowStartIso(window, todayIso = getTodayIsoUtc()) {
 }
 
 function isRobustOrMeasurable(window) {
-  const sample = getSampleSize(window);
-  const conf = String(getDisplayConfidence(window?.confidence ?? window?.status, sample)).toLowerCase();
-  return conf === "robuste" || conf === "robuste possible" || conf === "mesurable";
+  const conf = String(getWindowDisplayConfidence(window)).toLowerCase();
+  return conf.includes("robuste") || conf === "mesurable";
 }
 
 function upcomingDistanceLabel(daysUntil) {
@@ -882,9 +952,9 @@ function upcomingDistanceLabel(daysUntil) {
 }
 
 function confidenceRank(window) {
-  const sample = getSampleSize(window);
-  const conf = getDisplayConfidence(window?.confidence ?? window?.status, sample);
+  const conf = getWindowDisplayConfidence(window);
   const v = String(conf ?? "").toLowerCase();
+  if (v.includes("multi")) return 4;
   if (v === "robuste" || v === "robuste possible") return 3;
   if (v === "mesurable") return 2;
   if (v === "préliminaire" || v === "preliminaire") return 1;
@@ -1000,13 +1070,14 @@ function buildCombinedMomentumReading({ upcoming, rsiMomentum, activeProgress })
 
 function formatWindowConfidenceDetails(window, type) {
   const sample = getSampleSize(window);
-  const conf = getDisplayConfidence(window?.confidence ?? window?.status, sample);
+  const conf = getWindowDisplayConfidence(window);
   const rateFrac = getDirectionalWinRate(window, type);
   const typeWord = type === "bullish" || type === true ? "haussier" : "baissier";
   const occLabel = formatOccurrenceCount(sample);
+  const horizonSuffix = getPrimaryHorizonSuffix(window);
 
   if (rateFrac != null && occLabel) {
-    return `${Math.round(rateFrac * 100)} % ${typeWord} sur ${occLabel} · ${conf}`;
+    return `${Math.round(rateFrac * 100)} % ${typeWord} sur ${occLabel}${horizonSuffix} · ${conf}`;
   }
   if (rateFrac != null) {
     return `${Math.round(rateFrac * 100)} % ${typeWord} · ${conf}`;
@@ -1039,7 +1110,22 @@ function enrichChart3yWithWindowStats(chartData, windows) {
       const src = lookup.get(overlay.displayLabel);
       if (!src) return overlay;
       const sampleSize = getSampleSize(src);
-      return sampleSize != null ? { ...overlay, sampleSize } : overlay;
+      return {
+        ...overlay,
+        ...(sampleSize != null ? { sampleSize } : {}),
+        displaySampleSize: src.displaySampleSize ?? sampleSize,
+        primaryHorizon: src.primaryHorizon ?? overlay.primaryHorizon,
+        primaryHorizonSampleSize: src.primaryHorizonSampleSize ?? overlay.primaryHorizonSampleSize,
+        displayWinRate: src.displayWinRate ?? overlay.displayWinRate,
+        displayAvgReturn: src.displayAvgReturn ?? overlay.displayAvgReturn,
+        displayConfidence: src.displayConfidence ?? overlay.displayConfidence,
+        multiHorizonConfidence: src.multiHorizonConfidence ?? overlay.multiHorizonConfidence,
+        confirmedHorizons: src.confirmedHorizons ?? overlay.confirmedHorizons,
+        horizonStats: src.horizonStats ?? overlay.horizonStats,
+        winRate: src.displayWinRate ?? src.winRate ?? overlay.winRate,
+        expectedReturn: getSwingDisplayReturn(src) ?? overlay.expectedReturn,
+        confidence: src.displayConfidence ?? src.multiHorizonConfidence ?? src.confidence ?? overlay.confidence,
+      };
     }),
   };
 }
@@ -1047,16 +1133,23 @@ function enrichChart3yWithWindowStats(chartData, windows) {
 function CompactWindowLine({ window: w, isBullish }) {
   const label = seasonalWindowPrimaryLabel(w);
   const details = formatWindowConfidenceDetails(w, isBullish ? "bullish" : "bearish");
+  const confirmedLine = formatHorizonConfirmedLine(w);
+  const matrixTitle = formatHorizonStatsMatrix(w?.horizonStats, isBullish);
   return (
-    <div style={{ padding: "4px 0", lineHeight: 1.45 }}>
+    <div style={{ padding: "4px 0", lineHeight: 1.45 }} title={matrixTitle ?? undefined}>
       <div style={{ fontSize: "11px", color: C.textMuted }}>
         <span style={{ color: C.text, fontWeight: 600 }}>{label}</span>
         {" · "}
-        <span style={{ color: pctColor(w.avgReturn), fontWeight: 700 }}>{formatPct(w.avgReturn)}</span>
+        <span style={{ color: pctColor(getSwingDisplayReturn(w)), fontWeight: 700 }}>{formatPct(getSwingDisplayReturn(w))}</span>
       </div>
       {details && (
         <div style={{ fontSize: "10px", color: C.textFaint, marginTop: "2px", fontWeight: 500 }}>
           {details}
+        </div>
+      )}
+      {confirmedLine && (
+        <div style={{ fontSize: "9.5px", color: C.accentLight, marginTop: "2px", fontWeight: 600 }}>
+          {confirmedLine}
         </div>
       )}
     </div>
@@ -1094,8 +1187,8 @@ function SeasonalPreparationBlock({ upcoming, rsiMomentum, combinedReading }) {
           <span style={{ color: C.accentLight, fontWeight: 600 }}> · {upcoming.distanceLabel}</span>
         )}
       </div>
-      <div style={{ fontSize: "11px", color: pctColor(w.avgReturn), fontWeight: 700, marginBottom: "4px" }}>
-        {formatPct(w.avgReturn)} attendu historique
+      <div style={{ fontSize: "11px", color: pctColor(getSwingDisplayReturn(w)), fontWeight: 700, marginBottom: "4px" }}>
+        {formatPct(getSwingDisplayReturn(w))} attendu historique
       </div>
       {details && (
         <div style={{ fontSize: "10px", color: C.textFaint, marginBottom: "8px", lineHeight: 1.45 }}>
@@ -1315,6 +1408,7 @@ function SwingWindowsList({ rows, isBullish, activeWindows }) {
         return (
         <div
           key={i}
+          title={formatHorizonStatsMatrix(sw?.horizonStats, isBullish) ?? undefined}
           style={{
             background:C.cardInner,
             border:`1px solid ${C.border}`,
@@ -1329,7 +1423,7 @@ function SwingWindowsList({ rows, isBullish, activeWindows }) {
             ) : null}
           </div>
           <div style={{ fontSize:"11px", color:C.textMuted, lineHeight:1.55 }}>
-            <span style={{ color:pctColor(sw.avgReturn), fontWeight:600 }}>{formatPct(sw.avgReturn)}</span>
+            <span style={{ color:pctColor(getSwingDisplayReturn(sw)), fontWeight:600 }}>{formatPct(getSwingDisplayReturn(sw))}</span>
             {" · "}
             <span>
               {(() => {
@@ -1344,7 +1438,7 @@ function SwingWindowsList({ rows, isBullish, activeWindows }) {
             <span>Pire {formatPct(sw.worstReturn)}</span>
             {" · "}
             <span style={{ fontWeight:600 }}>
-              {getDisplayConfidence(sw.confidence ?? sw.status, getSampleSize(sw))}
+              {getWindowDisplayConfidence(sw)}
             </span>
           </div>
           {sw.confidenceReason && (
@@ -1352,14 +1446,14 @@ function SwingWindowsList({ rows, isBullish, activeWindows }) {
               {sw.confidenceReason}
             </div>
           )}
-          {isActive && typeof sw.avgReturn === "number" && (
+          {isActive && typeof getSwingDisplayReturn(sw) === "number" && (
             <div style={{ fontSize:"10px", color:C.textMuted, marginTop:"4px" }}>
-              Attendu historique : {formatPct(sw.avgReturn)}
+              Attendu historique : {formatPct(getSwingDisplayReturn(sw))}
             </div>
           )}
-          {sw.horizonsConfirmedLabel && (
+          {formatHorizonConfirmedLine(sw) && (
             <div style={{ fontSize:"10px", color:C.accentLight, marginTop:"4px", fontWeight:600 }}>
-              {sw.horizonsConfirmedLabel}
+              {formatHorizonConfirmedLine(sw)}
             </div>
           )}
           <div style={{ fontSize:"9.5px", color:C.textFaint, marginTop:"3px", fontStyle:"italic" }}>

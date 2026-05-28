@@ -214,6 +214,7 @@ function formatPctWhole(val) {
 
 function formatConfidenceLabel(raw) {
   const v = String(raw ?? "").toLowerCase();
+  if (v.includes("multi")) return "Robuste multi-horizons";
   if (v === "robuste") return "Robuste";
   if (v === "mesurable") return "Mesurable";
   if (v === "préliminaire" || v === "preliminaire") return "Préliminaire";
@@ -229,16 +230,44 @@ function normalizeRate(val) {
   return null;
 }
 
-function getDisplayConfidence(rawConfidence, sampleSize) {
+function getDisplayConfidence(rawConfidence, sampleSize, multiHorizonConfidence) {
+  const raw = multiHorizonConfidence ?? rawConfidence;
   if (sampleSize == null) {
-    const formatted = formatConfidenceLabel(rawConfidence);
+    const formatted = formatConfidenceLabel(raw);
     return formatted !== "—" ? formatted : "Historique disponible";
   }
+  const multi = String(multiHorizonConfidence ?? "").toLowerCase();
+  if (multi.includes("multi")) return "Robuste multi-horizons";
   if (sampleSize < 5) return "Échantillon limité";
-  if (sampleSize < 8) return "Préliminaire";
-  if (sampleSize < 12) return "Mesurable";
-  const formatted = formatConfidenceLabel(rawConfidence);
+  if (sampleSize < 8) {
+    if (multi === "robuste" || multi === "mesurable") return formatConfidenceLabel(multi);
+    return "Préliminaire";
+  }
+  if (sampleSize < 12) {
+    if (multi.includes("multi")) return "Robuste multi-horizons";
+    if (multi === "robuste") return "Robuste";
+    return "Mesurable";
+  }
+  const formatted = formatConfidenceLabel(raw);
   return formatted !== "—" ? formatted : "Robuste possible";
+}
+
+function formatHorizonStatsMatrix(horizonStats, isBullish) {
+  if (!horizonStats || typeof horizonStats !== "object") return [];
+  const order = ["3y", "5y", "10y", "15y"];
+  const lines = [];
+  for (const key of order) {
+    const s = horizonStats[key];
+    if (!s || s.sampleSize == null) continue;
+    const rate = isBullish ? s.winRate : (s.downRate ?? (s.winRate != null ? 1 - s.winRate : null));
+    const ratePct = rate != null ? `${Math.round(rate * 100)} %` : "—";
+    const ret = typeof s.avgReturn === "number" ? formatPct(s.avgReturn) : "—";
+    lines.push({
+      text: `${key}  ${ret} · ${ratePct} · n=${s.sampleSize}`,
+      color: C.textFaint,
+    });
+  }
+  return lines;
 }
 
 function formatOccurrenceCount(sampleSize) {
@@ -249,13 +278,18 @@ function formatOccurrenceCount(sampleSize) {
 
 function getSampleSize(source) {
   if (!source || typeof source !== "object") return null;
+  const totalOcc = typeof source.totalOccurrences === "number" ? source.totalOccurrences : null;
+  const occ = typeof source.occurrences === "number" ? source.occurrences : null;
   const candidates = [
+    source.displaySampleSize,
+    source.primaryHorizonSampleSize,
+    source.primaryHorizon && source.horizonStats?.[source.primaryHorizon]?.sampleSize,
     source.sampleSize,
-    typeof source.occurrences === "number" ? source.occurrences : null,
-    source.years,
-    source.observations,
-    source.occurrencesCount,
   ];
+  if (occ != null && (totalOcc == null || occ !== totalOcc)) {
+    candidates.push(occ);
+  }
+  candidates.push(source.years, source.observations, source.occurrencesCount);
   for (const n of candidates) {
     if (typeof n === "number" && isFinite(n) && n > 0) return Math.round(n);
   }
@@ -269,6 +303,11 @@ function normalizeRateFraction(val) {
 function getDirectionalWinRate(source, type) {
   if (!source) return null;
   const isBullish = type === "bullish";
+
+  if (typeof source.displayWinRate === "number" && isFinite(source.displayWinRate)) {
+    const dr = normalizeRateFraction(source.displayWinRate);
+    if (dr != null) return dr;
+  }
 
   if (isBullish && typeof source.bullishWinRate === "number") {
     return normalizeRate(source.bullishWinRate);
@@ -289,9 +328,10 @@ function buildHistoricalContextLines(overlay) {
   const lines = [];
   const sample = getSampleSize(overlay);
   const occLabel = formatOccurrenceCount(sample);
+  const horizonSuffix = overlay.primaryHorizon ? ` ${overlay.primaryHorizon}` : "";
   if (occLabel) {
     lines.push({
-      text: `Historique : ${occLabel}`,
+      text: `Historique principal : ${occLabel}${horizonSuffix}`,
       color: C.textMuted,
     });
   }
@@ -303,10 +343,21 @@ function buildHistoricalContextLines(overlay) {
       color: C.textMuted,
     });
   }
-  const conf = getDisplayConfidence(overlay.confidence, sample);
+  const conf = getDisplayConfidence(
+    overlay.confidence,
+    sample,
+    overlay.multiHorizonConfidence,
+  );
   if (conf && conf !== "—") {
     lines.push({ text: `Confiance : ${conf}`, color: C.textFaint });
   }
+  if (Array.isArray(overlay.confirmedHorizons) && overlay.confirmedHorizons.length) {
+    lines.push({
+      text: `Confirmée : ${overlay.confirmedHorizons.join(" / ")}`,
+      color: C.accentLight,
+    });
+  }
+  lines.push(...formatHorizonStatsMatrix(overlay.horizonStats, overlay.type === "bullish"));
   return lines;
 }
 
@@ -748,7 +799,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
             bandKey: band.key,
             lines: [
               { text: `Fenêtre active : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
-              { text: `Attendu historique : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
+              { text: `Attendu long terme : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
               { text: `Réalisé depuis début fenêtre : ${formatPct(occ.realizedReturn ?? activeProgress?.realizedReturn)}`, color: (occ.realizedReturn ?? activeProgress?.realizedReturn ?? 0) >= 0 ? C.green : C.red },
               ...historyLines,
               ...(activeProgress?.progressTimePct != null
@@ -767,7 +818,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
             lines: [
               { text: `Fenêtre : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
               ...(occ.year ? [{ text: `Occurrence : ${occ.year}`, color: C.textMuted }] : []),
-              { text: `Attendu historique : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
+              { text: `Attendu long terme : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
               { text: `Réalisé occurrence : ${formatPct(occ.realizedReturn)}`, color: occ.realizedReturn >= 0 ? C.green : C.red },
               ...historyLines,
               { text: `Statut : ${STATUS_LABELS[occ.status] ?? occ.status}`, color: C.textMuted },

@@ -347,7 +347,12 @@ export function buildSwingOverlay(window, type, rank, rows, rangeStartIso, range
     expectedReturn,
     winRate: window.winRate ?? null,
     worstReturn: window.worstReturn ?? null,
-    confidence: _formatConfidence(window.confidence),
+    confidence: _formatConfidence(window.multiHorizonConfidence ?? window.confidence),
+    multiHorizonConfidence: _formatConfidence(window.multiHorizonConfidence),
+    confirmedHorizons: window.confirmedHorizons ?? null,
+    horizonStats: window.horizonStats ?? null,
+    shortTermReturn: window.shortTermReturn ?? null,
+    selectionReason: window.selectionReason ?? null,
     occurrences: computeOccurrencesForWindow(window, rows, rangeStartIso, rangeEndIso, asOfDate),
   };
 }

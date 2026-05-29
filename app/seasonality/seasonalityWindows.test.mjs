@@ -229,6 +229,17 @@ test("computeSeasonalityWindowsFromRows: clusters.bullish et clusters.bearish pr
   assert.ok(result.horizons.length >= 1);
 });
 
+test("computeSeasonalityWindowsFromRows: bestAnnualWindow présent (stats annuelles)", () => {
+  const rows   = makeAprilRallyRows(8);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(result.bestAnnualWindow, "bestAnnualWindow manquant");
+  assert.ok(result.bestAnnualWindow.window?.displayLabel);
+  assert.ok(result.bestAnnualWindow.annualHorizons?.["5y"]);
+  assert.ok(result.bestAnnualWindow.glidingRobustness?.["5y"]);
+  assert.equal(result.bestAnnualWindow.annualHorizons["5y"].yearsCount, 5, "5y = max 5 années");
+});
+
 test("computeSeasonalityWindowsFromRows: swingWindows présent (additif)", () => {
   const rows   = makeAprilRallyRows(8);
   const result = computeSeasonalityWindowsFromRows(rows);
@@ -239,6 +250,74 @@ test("computeSeasonalityWindowsFromRows: swingWindows présent (additif)", () =>
   assert.equal(result.swingWindows.meta.algorithm, "multi-horizon-adaptive-seasonality-swing-windows");
   assert.ok(result.distinct);
   assert.ok(result.clusters);
+});
+
+test("computeSeasonalityWindowsFromRows: swing bullish/bearish exposent annualHorizons et strength", () => {
+  const rows = makeAprilRallyRows(10);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  const allSwing = [
+    ...(result.swingWindows?.bullish ?? []),
+    ...(result.swingWindows?.bearish ?? []),
+  ];
+  assert.ok(allSwing.length >= 1, "au moins une fenêtre swing attendue");
+  for (const w of allSwing) {
+    assert.ok(w.annualHorizons?.["5y"], `swing ${w.displayLabel ?? w.label} sans annualHorizons`);
+    assert.equal(w.annualHorizons["5y"].yearsCount, 5, "5y = max 5 années");
+    assert.ok(w.strength, `swing ${w.displayLabel ?? w.label} sans strength`);
+  }
+  assert.ok(result.bestAnnualWindow?.annualHorizons?.["5y"]);
+  assert.ok(result.bestAnnualWindow?.strength);
+});
+
+test("computeSeasonalityWindowsFromRows: expose bestBearishAnnualWindows et meta grille", () => {
+  const rows = makeSeptemberDropRows(10);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(Array.isArray(result.bestBearishAnnualWindows));
+  assert.ok("noStrongBearishAnnualWindow" in result);
+  assert.ok(result.bearishAnnualMeta?.gridCandidatesTotal > 0);
+  assert.ok(Array.isArray(result.recentBearishVigilance));
+});
+
+test("computeSeasonalityWindowsFromRows: expose bestBullishAnnualWindows et meta grille", () => {
+  const rows = makeAprilRallyRows(10);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(Array.isArray(result.bestBullishAnnualWindows), "bestBullishAnnualWindows doit être un tableau");
+  assert.ok("noStrongBullishAnnualWindow" in result, "noStrongBullishAnnualWindow manquant");
+  assert.ok(result.bullishAnnualMeta?.gridCandidatesTotal > 0, "grille bullish doit avoir des candidats");
+});
+
+test("computeSeasonalityWindowsFromRows: bestBullishAnnualWindows contient fenêtre forte/confirmée sur données avril", () => {
+  const rows = makeAprilRallyRows(10);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  if (result.bestBullishAnnualWindows.length > 0) {
+    const w = result.bestBullishAnnualWindows[0];
+    assert.ok(w.displayLabel, "displayLabel requis");
+    assert.ok(w.annualHorizons?.["5y"], "annualHorizons 5y requis");
+    assert.ok(["Forte", "Confirmée"].includes(w.strength), `strength inattendue: ${w.strength}`);
+    assert.ok(w.strengthDirection === "bullish", "strengthDirection doit être bullish");
+  }
+});
+
+test("computeSeasonalityWindowsFromRows: expose annualDisplayWindows aligné panneau + graphiques", () => {
+  const rows = makeAprilRallyRows(10);
+  const result = computeSeasonalityWindowsFromRows(rows);
+
+  assert.ok(result.annualDisplayWindows, "annualDisplayWindows requis");
+  assert.ok(Array.isArray(result.annualDisplayWindows.bullish));
+  assert.ok(Array.isArray(result.annualDisplayWindows.bullishVariants));
+  assert.ok(Array.isArray(result.annualDisplayWindows.bearishConfirmed));
+  assert.ok(Array.isArray(result.annualDisplayWindows.vigilance));
+
+  for (const w of result.annualDisplayWindows.bullish) {
+    assert.ok(w.displayLabel, "displayLabel requis sur fenêtre haussière affichée");
+  }
+  for (const w of result.annualDisplayWindows.bearishConfirmed) {
+    assert.ok(w.displayLabel, "displayLabel requis sur fenêtre baissière confirmée");
+  }
 });
 
 test("computeSeasonality, computeSeasonalityCalendar et computeSeasonalityShortTerm restent exportés", () => {

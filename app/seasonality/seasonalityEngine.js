@@ -16,6 +16,7 @@ import { enrichSeasonalityWindowDisplay, enrichSeasonalityWindowsResult } from "
 import { attachDistinctSeasonalityWindows } from "./seasonalityWindowDistinct.js";
 import { attachSeasonalityClusters } from "./seasonalityWindowClusters.js";
 import { attachSwingSeasonalityWindows } from "./seasonalitySwingWindows.js";
+import { attachBestAnnualWindowToResult } from "./seasonalityAnnualStats.js";
 
 export {
   buildSeasonalWindowDisplayFields,
@@ -1070,6 +1071,7 @@ function _collectActiveNowWindows(horizons) {
 export function computeSeasonalityWindowsFromRows(rows, options = {}) {
   if (!rows?.length) return null;
 
+  const tTotal0 = performance.now();
   const horizonsYears = options.horizonsYears ?? WINDOWS_HORIZONS_YEARS;
   const windowDaysList  = options.windowDays    ?? WINDOWS_DAYS_LIST;
   const topN            = options.topN          ?? WINDOWS_TOP_N;
@@ -1083,7 +1085,9 @@ export function computeSeasonalityWindowsFromRows(rows, options = {}) {
 
   if (!horizons.length) return null;
 
-  return attachSwingSeasonalityWindows(attachSeasonalityClusters(attachDistinctSeasonalityWindows(enrichSeasonalityWindowsResult({
+  const tCoreMs = Math.round(performance.now() - tTotal0);
+
+  const base = attachSwingSeasonalityWindows(attachSeasonalityClusters(attachDistinctSeasonalityWindows(enrichSeasonalityWindowsResult({
     horizons,
     summary: {
       bestOverallBullish:  _pickBestOverallBullish(horizons),
@@ -1094,6 +1098,26 @@ export function computeSeasonalityWindowsFromRows(rows, options = {}) {
       cacheTtlHours:       RESULT_CACHE_TTL_MS / 3_600_000,
     },
   }))));
+
+  const result = attachBestAnnualWindowToResult(base, rows, options.ticker ?? null, {
+    totalWindowsMs: Math.round(performance.now() - tTotal0),
+    skipCache: options.skipBestAnnualCache,
+  });
+
+  if (
+    String(process.env.SEASONALITY_PERF ?? process.env.DEBUG_SEASONALITY ?? '').toLowerCase() === 'true'
+    && result
+  ) {
+    console.log('[SEASONALITY_PERF]', JSON.stringify({
+      ticker: options.ticker ?? null,
+      rowsCount: rows.length,
+      computeSeasonalityWindowsCoreMs: tCoreMs,
+      totalWindowsMs: Math.round(performance.now() - tTotal0),
+      cacheHit: false,
+    }));
+  }
+
+  return result;
 }
 
 /**
@@ -1124,7 +1148,7 @@ export async function computeSeasonalityWindows(symbol, options = {}) {
       }
 
       _log(`computing windows for ${sym} with ${rows.length} rows`);
-      const result = computeSeasonalityWindowsFromRows(rows, options);
+      const result = computeSeasonalityWindowsFromRows(rows, { ...options, ticker: sym });
 
       if (!result) {
         _log(`computeSeasonalityWindowsFromRows returned null for ${sym} (données insuffisantes)`);

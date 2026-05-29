@@ -126,15 +126,18 @@ test('occurrence cross-year — une seule occurrence continue oct→jan', () => 
   assert.equal(occ.realizedReturn, 0.2);
 
   const chart = buildSeasonalityChart3yFromRows(rows, {
-    bullish: [crossWindow],
-    bearish: [],
-  }, {
     asOfDate: new Date(Date.UTC(2025, 2, 1)),
     symbol: 'TEST',
     years: 3,
+    annualDisplayWindows: {
+      bullish: [crossWindow],
+      bearishConfirmed: [],
+      vigilance: [],
+    },
+    swingWindows: { bullish: [crossWindow], bearish: [] },
   });
 
-  const overlay = chart.swingOverlays.find((o) => o.id === 'bullish-1');
+  const overlay = chart.annualOverlays.find((o) => o.id === 'bullish-1');
   const occ2024 = overlay.occurrences.filter((o) => o.year === 2024);
   assert.equal(occ2024.length, 1, 'une seule occurrence cross-year, pas deux segments');
 });
@@ -193,15 +196,18 @@ test('données insuffisantes — status insufficient_data sans crash', () => {
   assert.equal(occ.realizedReturn, null);
 
   const chart = buildSeasonalityChart3yFromRows(rows, {
-    bullish: [window],
-    bearish: [],
-  }, {
     asOfDate: new Date(Date.UTC(2025, 1, 1)),
     symbol: 'TEST',
+    annualDisplayWindows: {
+      bullish: [window],
+      bearishConfirmed: [],
+      vigilance: [],
+    },
+    swingWindows: { bullish: [window], bearish: [] },
   });
 
   assert.ok(chart);
-  assert.ok(chart.swingOverlays[0].occurrences.every(
+  assert.ok(chart.annualOverlays[0].occurrences.every(
     (o) => o.status === 'insufficient_data' || o.realizedReturn == null || typeof o.realizedReturn === 'number',
   ));
 });

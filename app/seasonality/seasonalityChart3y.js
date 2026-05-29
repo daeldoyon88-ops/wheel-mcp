@@ -9,11 +9,12 @@ import {
   computeSeasonalityWindowsFromRows,
 } from './seasonalityEngine.js';
 import { selectAdaptiveSwingSeasonalityWindows } from './seasonalitySwingWindows.js';
+import { normalizeWindowChartDates } from './seasonalityAnnualDisplayWindows.js';
 
 export const CHART_YEARS = 3;
 export const SOURCE_LABEL = 'Yahoo Finance';
 export const CACHE_TTL_HOURS = 6;
-export const ALGORITHM = 'seasonality-chart-3y';
+export const ALGORITHM = 'seasonality-chart-3y-annual';
 export const MAX_BULLISH_OVERLAYS = 2;
 export const MAX_BEARISH_OVERLAYS = 2;
 
@@ -387,12 +388,100 @@ export function buildSwingOverlays(swingWindows, rows, rangeStartIso, rangeEndIs
   return overlays;
 }
 
+// ─── Overlays annuels officiels (panneau) ─────────────────────────────────────
+
+function _annualExpectedReturn(window, type) {
+  if (type === 'vigilance') {
+    return window.avgReturnAnnual5y ?? window.avgReturnAnnual ?? null;
+  }
+  const ah = window.annualHorizons;
+  for (const key of ['15y', '10y', '5y', '3y']) {
+    const s = ah?.[key];
+    if (s && !s.insufficient && typeof s.avgReturnAnnual === 'number') {
+      return s.avgReturnAnnual;
+    }
+  }
+  return window.avgReturnAnnual ?? null;
+}
+
+export function buildAnnualOverlay(window, type, rank, rows, rangeStartIso, rangeEndIso, asOfDate) {
+  const chartWindow = normalizeWindowChartDates(window);
+
+  return {
+    id: `${type}-${rank}`,
+    type,
+    rank,
+    displayLabel: window.displayLabel ?? '—',
+    expectedReturn: _annualExpectedReturn(window, type),
+    annualHorizons: window.annualHorizons ?? null,
+    strength: window.strength ?? null,
+    status: window.status ?? null,
+    clusterLabel: window.clusterLabel ?? null,
+    startMonth: chartWindow.startMonth,
+    startDay: chartWindow.startDay,
+    endMonth: chartWindow.endMonth,
+    endDay: chartWindow.endDay,
+    occurrences: computeOccurrencesForWindow(chartWindow, rows, rangeStartIso, rangeEndIso, asOfDate),
+  };
+}
+
+export function buildAnnualOverlays(annualDisplayWindows, rows, rangeStartIso, rangeEndIso, asOfDate) {
+  const display = annualDisplayWindows ?? {};
+  const overlays = [];
+
+  for (let i = 0; i < (display.bullish?.length ?? 0); i++) {
+    overlays.push(buildAnnualOverlay(
+      display.bullish[i],
+      'bullish',
+      i + 1,
+      rows,
+      rangeStartIso,
+      rangeEndIso,
+      asOfDate,
+    ));
+  }
+
+  for (let i = 0; i < (display.bearishConfirmed?.length ?? 0); i++) {
+    overlays.push(buildAnnualOverlay(
+      display.bearishConfirmed[i],
+      'bearish',
+      i + 1,
+      rows,
+      rangeStartIso,
+      rangeEndIso,
+      asOfDate,
+    ));
+  }
+
+  for (let i = 0; i < (display.vigilance?.length ?? 0); i++) {
+    overlays.push(buildAnnualOverlay(
+      display.vigilance[i],
+      'vigilance',
+      i + 1,
+      rows,
+      rangeStartIso,
+      rangeEndIso,
+      asOfDate,
+    ));
+  }
+
+  return overlays;
+}
+
+function buildActiveCandidatesFromAnnualOverlays(overlays) {
+  return (overlays ?? []).map((o) => ({
+    ...o,
+    displayLabel: o.displayLabel,
+    expectedReturn: o.expectedReturn,
+  }));
+}
+
 // ─── Construction réponse ─────────────────────────────────────────────────────
 
 /**
- * Calcul pur (testable) — pas d'appel réseau.
+ * Calcul pur (testable) — overlays annuels officiels (panneau), swing réservé au diagnostic.
  */
-export function buildSeasonalityChart3yFromRows(rows, swingWindows, options = {}) {
+export function buildSeasonalityChart3yFromRows(rows, options = {}) {
   if (!rows?.length) return null;
 
   const asOfDate = options.asOfDate ?? new Date();
@@ -404,16 +493,32 @@ export function buildSeasonalityChart3yFromRows(rows, swingWindows, options = {}
   const rangeStartIso = toIsoDate(filtered[0].date);
   const rangeEndIso = toIsoDate(filtered[filtered.length - 1].date);
 
-  const swingOverlays = buildSwingOverlays(
-    swingWindows ?? { bullish: [], bearish: [] },
+  const annualDisplayWindows = options.annualDisplayWindows ?? {
+    bullish: [],
+    bearishConfirmed: [],
+    vigilance: [],
+  };
+
+  const annualOverlays = buildAnnualOverlays(
+    annualDisplayWindows,
     rows,
     rangeStartIso,
     rangeEndIso,
     asOfDate,
   );
 
+  const swingOverlays = options.swingWindows
+    ? buildSwingOverlays(
+      options.swingWindows,
+      rows,
+      rangeStartIso,
+      rangeEndIso,
+      asOfDate,
+    )
+    : [];
+
   const activeWindowProgress = computeActiveWindowProgress(
-    buildActiveCandidates(swingWindows ?? { bullish: [], bearish: [] }),
+    buildActiveCandidatesFromAnnualOverlays(annualOverlays),
     rows,
     asOfDate,
   );
@@ -428,19 +533,32 @@ export function buildSeasonalityChart3yFromRows(rows, swingWindows, options = {}
       points: filtered.length,
     },
     priceSeries: filtered.map(formatPriceRow),
+    annualOverlays,
     swingOverlays,
     activeWindowProgress,
     meta: {
       generatedAt: new Date().toISOString(),
       cacheTtlHours: CACHE_TTL_HOURS,
       algorithm: ALGORITHM,
-      // TODO Patch 2C-E : rsiSeries via computeRsi (technicalSnapshot.js)
     },
   };
 }
 
+/** @deprecated Utiliser buildSeasonalityChart3yFromRows(rows, { annualDisplayWindows, ... }). */
+export function buildSeasonalityChart3yFromRowsLegacy(rows, swingWindows, options = {}) {
+  return buildSeasonalityChart3yFromRows(rows, {
+    ...options,
+    swingWindows,
+    annualDisplayWindows: options.annualDisplayWindows ?? {
+      bullish: [],
+      bearishConfirmed: [],
+      vigilance: [],
+    },
+  });
+}
+
 /**
- * Endpoint principal — fetchHistoryRows + swingWindows adaptatives (max 2/2).
+ * Endpoint principal — fetchHistoryRows + fenêtres annuelles officielles du panneau.
  */
 export async function computeSeasonalityChart3y(symbol, options = {}) {
   const sym = String(symbol ?? '').trim().toUpperCase();
@@ -452,15 +570,23 @@ export async function computeSeasonalityChart3y(symbol, options = {}) {
   const windowsData = computeSeasonalityWindowsFromRows(rows, options.windowsOptions);
   if (!windowsData) return null;
 
-  const swingWindows = selectAdaptiveSwingSeasonalityWindows(windowsData, {
-    maxBullish: options.maxBullish ?? MAX_BULLISH_OVERLAYS,
-    maxBearish: options.maxBearish ?? MAX_BEARISH_OVERLAYS,
-    ...(options.swingOptions ?? {}),
-  });
+  const swingWindows = options.includeSwingDiagnostic
+    ? selectAdaptiveSwingSeasonalityWindows(windowsData, {
+      maxBullish: options.maxBullish ?? MAX_BULLISH_OVERLAYS,
+      maxBearish: options.maxBearish ?? MAX_BEARISH_OVERLAYS,
+      ...(options.swingOptions ?? {}),
+    })
+    : null;
 
-  const chart = buildSeasonalityChart3yFromRows(rows, swingWindows, {
+  const chart = buildSeasonalityChart3yFromRows(rows, {
     ...options,
     symbol: sym,
+    annualDisplayWindows: windowsData.annualDisplayWindows ?? {
+      bullish: [],
+      bearishConfirmed: [],
+      vigilance: [],
+    },
+    swingWindows,
   });
 
   return chart;

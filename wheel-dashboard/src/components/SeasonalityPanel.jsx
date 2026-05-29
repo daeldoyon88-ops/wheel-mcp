@@ -30,6 +30,7 @@ const C = {
   green:       "#22c55e",
   red:         "#ef4444",
   yellow:      "#facc15",
+  amber:       "#f59e0b",
   text:        "#e5edf8",
   textMuted:   "#8fa3bf",
   textFaint:   "#4a6580",
@@ -44,6 +45,8 @@ const SCAN_SOURCE_TICKERS = {
 const SCAN_SOURCE_LABELS = { "top20-wheel":"Top 20 Wheel","strict-watchlist":"Strict Watchlist","fallback65":"Fallback 65" };
 const QUICK_TICKERS = ["TQQQ","NVDA","AAPL","TSLA","SOXL","AMD","PLTR","AMZN"];
 const SEASONAL_UNIVERSE = ["TQQQ","SOXL","NVDA","TSLA","AMD","AAPL","SOFI","PLTR","APLD","UPRO","AVGO"];
+/** FUTUR filtre univers par mois (bestAnnualWindow.startMonth) — voir getWindowStartMonth().
+ *  Le frontend ne charge qu’un ticker à la fois (/seasonality/:sym/windows) : pas de bestAnnualWindow multi-tickers. */
 const MONTH_ABBREV  = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 const MONTHS_FR_LONG = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -200,7 +203,7 @@ const SWING_ZONE_LABEL = {
   bullishYRatio: 0.30,
 };
 
-function resolveSwingZoneLabelPlacement(zone, xOfDay, ctx) {
+function resolveAnnualZoneLabelPlacement(zone, xOfDay, ctx) {
   const { zoneTop, chartH, chartRight, chartLeft, chartW } = ctx;
   const seg = swingZoneBestSegment(zone, xOfDay);
   const { padX, minFullWidth, rightEdgeRatio, bearishYRatio, bullishYRatio } = SWING_ZONE_LABEL;
@@ -211,15 +214,17 @@ function resolveSwingZoneLabelPlacement(zone, xOfDay, ctx) {
   const forceCompact = nearRight || tooNarrow;
 
   const pct = typeof zone.avgReturn === "number" ? formatPct(zone.avgReturn) : null;
+  const baseLabel = zone.shortLabel ?? zone.label ?? "Fenêtre annuelle";
   const labelText = forceCompact || !pct
-    ? (pct ?? zone.label)
-    : `${zone.label} · ${pct} attendu`;
+    ? (pct ? `${baseLabel} · ${pct}` : baseLabel)
+    : `${baseLabel} · ${pct} annuel moy.`;
 
   let x = seg.centerX;
   x = Math.max(seg.left + padX, Math.min(x, seg.right - padX));
   x = Math.max(chartLeft + padX, Math.min(x, chartRight - padX));
 
-  const y = zoneTop + chartH * (zone.kind === "bearish" ? bearishYRatio : bullishYRatio);
+  const yRatio = zone.kind === "vigilance" ? 0.22 : zone.kind === "bearish" ? bearishYRatio : bullishYRatio;
+  const y = zoneTop + chartH * yRatio;
 
   return {
     x,
@@ -230,6 +235,28 @@ function resolveSwingZoneLabelPlacement(zone, xOfDay, ctx) {
   };
 }
 
+function getAnnualReturnForZone(w, kind) {
+  if (kind === "vigilance") {
+    return w.avgReturnAnnual5y ?? w.avgReturnAnnual ?? null;
+  }
+  const ah = w?.annualHorizons;
+  for (const key of ["15y", "10y", "5y", "3y"]) {
+    const s = ah?.[key];
+    if (s && !s.insufficient && typeof s.avgReturnAnnual === "number") return s.avgReturnAnnual;
+  }
+  return w?.avgReturnAnnual ?? null;
+}
+
+function zoneColors(kind) {
+  if (kind === "bullish") {
+    return { fill: "rgba(34,197,94,0.14)", stroke: "rgba(34,197,94,0.35)", label: C.green };
+  }
+  if (kind === "vigilance") {
+    return { fill: "rgba(245,158,11,0.16)", stroke: "rgba(245,158,11,0.4)", label: C.amber };
+  }
+  return { fill: "rgba(239,68,68,0.14)", stroke: "rgba(239,68,68,0.35)", label: C.red };
+}
+
 function getTodayDayOfYear() {
   const now = new Date();
   return dayOfYearFromMonthDay(now.getMonth() + 1, now.getDate());
@@ -238,6 +265,17 @@ function getTodayDayOfYear() {
 /** Libellé principal fenêtre saisonnière (dates lisibles). */
 function seasonalWindowPrimaryLabel(w) {
   return w?.displayLabel || w?.label || "—";
+}
+
+function getWindowDisplayLabel(w) {
+  return w?.displayLabel ?? w?.window?.displayLabel ?? null;
+}
+
+/** Même signature calendaire affichée (ex. 22 avr. ≠ 15 avr.). */
+function windowsHaveSameDisplayLabel(a, b) {
+  const la = getWindowDisplayLabel(a);
+  const lb = getWindowDisplayLabel(b);
+  return Boolean(la && lb && la === lb);
 }
 
 /** Sous-texte optionnel : format moteur + durée en jours. */
@@ -289,6 +327,10 @@ function getSwingOrDistinctBearish(windows) {
   return { rows: getDistinctOrLegacyBearish(windows), mode: "distinct" };
 }
 
+function getSwingBullishRows(windows) {
+  return getSwingOrDistinctBullish(windows ?? {}).rows;
+}
+
 function formatConfidenceLabel(raw) {
   const v = String(raw ?? "").toLowerCase();
   if (v.includes("multi")) return "Robuste multi-horizons";
@@ -305,7 +347,7 @@ function getEffectiveConfidence(window) {
   return window?.multiHorizonConfidence ?? window?.confidence ?? window?.status;
 }
 
-/** Matrice compacte horizonStats pour title/tooltip. */
+/** Matrice compacte horizonStats (robustesse glissante) pour title/tooltip. */
 function formatHorizonStatsMatrix(horizonStats, isBullish) {
   if (!horizonStats || typeof horizonStats !== "object") return null;
   const order = ["3y", "5y", "10y", "15y"];
@@ -314,11 +356,104 @@ function formatHorizonStatsMatrix(horizonStats, isBullish) {
     const s = horizonStats[key];
     if (!s || s.sampleSize == null) continue;
     const rate = isBullish ? s.winRate : (s.downRate ?? (s.winRate != null ? 1 - s.winRate : null));
-    const ratePct = rate != null ? `${Math.round(rate * 100)} %` : "—";
+    const ratePct = rate != null ? `${Math.round(rate * 100)} % positif` : "—";
     const ret = typeof s.avgReturn === "number" ? formatPct(s.avgReturn) : "—";
-    lines.push(`${key}  ${ret} · ${ratePct} · n=${s.sampleSize}`);
+    lines.push(`${key}  ${ret} · ${ratePct} · n=${s.sampleSize} tests glissants`);
   }
   return lines.length ? lines.join("\n") : null;
+}
+
+const ANNUAL_HORIZON_ORDER = ["3y", "5y", "10y", "15y"];
+
+function formatAnnualHorizonCompactUI(horizonKey, stats) {
+  if (!stats || stats.insufficient || stats.yearsCount == null) return null;
+  const pos = stats.positiveYears ?? 0;
+  const total = stats.yearsCount;
+  const avg = stats.avgReturnAnnual;
+  return {
+    key: horizonKey,
+    ratio: `${pos}/${total}`,
+    avg,
+    avgStr: typeof avg === "number" ? formatPct(avg) : "—",
+  };
+}
+
+function formatGlidingRobustnessCompactUI(horizonKey, stats) {
+  if (!stats || stats.sampleSize == null) return null;
+  return {
+    key: horizonKey,
+    pct: stats.winRateGliding != null ? `${Math.round(stats.winRateGliding * 100)} %` : "—",
+    n: stats.sampleSize,
+  };
+}
+
+function BestAnnualSeasonalityBlock({ bestAnnual }) {
+  if (!bestAnnual?.window) return null;
+  const w = bestAnnual.window;
+  const label = w.displayLabel ?? seasonalWindowPrimaryLabel(w);
+  const strength = bestAnnual.strength ?? w.strength ?? null;
+  const annualRows = ANNUAL_HORIZON_ORDER
+    .map((k) => formatAnnualHorizonCompactUI(k, bestAnnual.annualHorizons?.[k]))
+    .filter(Boolean);
+  const glideRows = ANNUAL_HORIZON_ORDER
+    .map((k) => formatGlidingRobustnessCompactUI(k, bestAnnual.glidingRobustness?.[k]))
+    .filter(Boolean);
+
+  const colTitle = {
+    fontSize: "9px",
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    color: C.textFaint,
+    marginBottom: "3px",
+  };
+  const rowKey = { fontSize: "10px", color: C.textFaint, width: "24px", flexShrink: 0 };
+  const rowStyle = { display: "flex", gap: "5px", alignItems: "baseline", lineHeight: 1.35, padding: "1px 0" };
+
+  return (
+    <div style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: "7px" }}>
+      <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.accentLight, marginBottom: "2px" }}>
+        Meilleure fenêtre annuelle
+      </div>
+      <div style={{ fontSize: "9.5px", color: C.textFaint, lineHeight: 1.4, marginBottom: "4px" }}>
+        Stats annuelles réelles · signature calendaire (semaine du mois)
+      </div>
+      <div style={{ fontSize: "12.5px", fontWeight: 700, color: C.text, marginBottom: "5px", lineHeight: 1.3 }}>
+        {label}
+        {strengthTag(strength) && (
+          <span style={{ fontWeight: 500, color: C.textMuted, marginLeft: "6px", fontSize: "11px" }}>
+            {strengthTag(strength)}
+          </span>
+        )}
+      </div>
+      {annualRows.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 8px" }}>
+          <div>
+            <div style={colTitle}>Annuel réel</div>
+            {annualRows.map((r) => (
+              <div key={r.key} style={rowStyle}>
+                <span style={rowKey}>{r.key}</span>
+                <span style={{ fontSize: "10px", color: C.textMuted, minWidth: "34px" }}>{r.ratio}</span>
+                <span style={{ fontSize: "10px", fontWeight: 600, color: pctColor(r.avg) }}>{r.avgStr}</span>
+              </div>
+            ))}
+          </div>
+          {glideRows.length > 0 && (
+            <div>
+              <div style={colTitle}>Robustesse</div>
+              {glideRows.map((r) => (
+                <div key={r.key} style={{ ...rowStyle, color: C.textFaint }}>
+                  <span style={rowKey}>{r.key}</span>
+                  <span style={{ fontSize: "10px", minWidth: "34px" }}>{r.pct}</span>
+                  <span style={{ fontSize: "10px" }}>{r.n} tests</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function formatHorizonConfirmedLine(window) {
@@ -369,11 +504,756 @@ function getWindowDisplayConfidence(window) {
   );
 }
 
-/** Libellé occurrences testées — « 1 occurrence » ou « N occurrences ». */
-function formatOccurrenceCount(sampleSize) {
+/** Libellé robustesse glissante (tests glissants). */
+function formatGlidingTestsLabel(sampleSize) {
   if (typeof sampleSize !== "number" || !isFinite(sampleSize) || sampleSize <= 0) return null;
   const n = Math.round(sampleSize);
-  return n === 1 ? "1 occurrence" : `${n} occurrences`;
+  return n === 1 ? "1 test glissant" : `${n} tests glissants`;
+}
+
+function isStrongOrConfirmedStrengthUI(strength) {
+  return strength === "Forte" || strength === "Confirmée";
+}
+
+function getAnnualReturnForDisplay(window, isBullish) {
+  const picked = pickBestAnnualHorizonStats(window?.annualHorizons);
+  if (picked?.stats?.avgReturnAnnual != null) return picked.stats.avgReturnAnnual;
+  return getSwingDisplayReturn(window);
+}
+
+function strengthTag(strength) {
+  if (!isStrongOrConfirmedStrengthUI(strength)) return null;
+  return `[${strength}]`;
+}
+
+function formatAnnualHorizonRatioUI(stats, isBullish) {
+  if (!stats || stats.insufficient || stats.yearsCount == null) return "—";
+  const dir = isBullish ? (stats.positiveYears ?? 0) : (stats.negativeYears ?? 0);
+  return `${dir}/${stats.yearsCount}`;
+}
+
+function getWindowCalendarStatusBadge(window, today = getTodayIsoUtc()) {
+  const st = getWindowStatus(window, today);
+  if (st.isActive) return { text: "Actif", color: C.green };
+  if (st.isUpcoming && (st.daysUntilStart ?? 999) <= 60) return { text: "À venir", color: C.accentLight };
+  if (st.isPastThisYear) return { text: "Terminé", color: C.textFaint };
+  return null;
+}
+
+const BULLISH_SEASON_CLUSTERS = [
+  {
+    id: "spring_summer",
+    label: "Printemps / été",
+    preferredDisplay: "15 avril → 15 juillet",
+    preferredStart: { month: 4, day: 15 },
+    preferredEnd: { month: 7, day: 15 },
+    sortOrder: 0,
+  },
+  {
+    id: "autumn_winter",
+    label: "Automne / hiver",
+    preferredDisplay: "15 oct. → 8 déc.",
+    preferredStart: { month: 10, day: 15 },
+    preferredEnd: { month: 12, day: 8 },
+    sortOrder: 1,
+  },
+];
+
+function resolveWindowMonthDay(w) {
+  if (!w) return null;
+  const sm = w.startMonth;
+  const em = w.endMonth;
+  if (sm == null || em == null) return null;
+  return {
+    startMonth: sm,
+    startDay: w.startDay ?? weekOfMonthToDayChart(sm, w.startWeekOfMonth ?? 1),
+    endMonth: em,
+    endDay: w.endDay ?? weekOfMonthToDayChart(em, w.endWeekOfMonth ?? 1),
+  };
+}
+
+function classifyBullishSeasonCluster(w) {
+  const md = resolveWindowMonthDay(w);
+  if (!md) return null;
+  const { startMonth, endMonth } = md;
+  if (startMonth >= 3 && startMonth <= 5 && endMonth >= 5 && endMonth <= 8) return "spring_summer";
+  if (startMonth >= 9 && startMonth <= 11 && endMonth >= 10 && endMonth <= 12) return "autumn_winter";
+  if (startMonth >= 3 && startMonth <= 6) return "spring_summer";
+  if (startMonth >= 9 && startMonth <= 12) return "autumn_winter";
+  return null;
+}
+
+function calendarMaskOverlapFraction(w1, w2) {
+  const r1 = resolveSwingDayRange(w1);
+  const r2 = resolveSwingDayRange(w2);
+  if (!r1 || !r2) return 0;
+
+  const mask = (range) => {
+    const m = new Array(367).fill(false);
+    const addSeg = (s, e) => {
+      for (let d = s; d <= e; d++) m[d] = true;
+    };
+    if (range.wraps) {
+      addSeg(range.startDOY, 365);
+      addSeg(1, range.endDOY);
+    } else {
+      addSeg(range.startDOY, range.endDOY);
+    }
+    return m;
+  };
+
+  const m1 = mask(r1);
+  const m2 = mask(r2);
+  let overlap = 0;
+  let count1 = 0;
+  let count2 = 0;
+  for (let d = 1; d <= 365; d++) {
+    if (m1[d]) count1++;
+    if (m2[d]) count2++;
+    if (m1[d] && m2[d]) overlap++;
+  }
+  const minCount = Math.min(count1, count2);
+  return minCount > 0 ? overlap / minCount : 0;
+}
+
+function scoreBullishClusterRepresentative(w, cluster) {
+  const md = resolveWindowMonthDay(w);
+  if (!md) return -Infinity;
+
+  const startDOY = dayOfYearFromMonthDay(md.startMonth, md.startDay);
+  const endDOY = dayOfYearFromMonthDay(md.endMonth, md.endDay);
+  const prefStart = dayOfYearFromMonthDay(cluster.preferredStart.month, cluster.preferredStart.day);
+  const prefEnd = dayOfYearFromMonthDay(cluster.preferredEnd.month, cluster.preferredEnd.day);
+
+  let score = 1000;
+  score -= Math.abs(startDOY - prefStart) * 2;
+  score -= Math.abs(endDOY - prefEnd) * 2;
+
+  if (cluster.id === "spring_summer") {
+    if (md.startMonth === 3) score -= 50;
+    if (md.startMonth >= 4) score += 20;
+  }
+
+  if (w.strength === "Forte") score += 40;
+  else if (w.strength === "Confirmée") score += 20;
+
+  const picked = pickBestAnnualHorizonStats(w?.annualHorizons);
+  if (picked?.stats?.avgReturnAnnual != null) score += picked.stats.avgReturnAnnual * 100;
+
+  return score;
+}
+
+function pickBullishClusterRepresentative(group, cluster) {
+  let candidates = group;
+  if (cluster.id === "spring_summer") {
+    const laterSpring = group.filter((w) => (resolveWindowMonthDay(w)?.startMonth ?? 0) >= 4);
+    if (laterSpring.length > 0) candidates = laterSpring;
+  }
+
+  const sorted = [...candidates].sort(
+    (a, b) => scoreBullishClusterRepresentative(b, cluster) - scoreBullishClusterRepresentative(a, cluster),
+  );
+  const best = sorted[0];
+  if (!best) return null;
+
+  return {
+    ...best,
+    clusterId: cluster.id,
+    clusterLabel: cluster.label,
+    displayLabel: cluster.preferredDisplay,
+    representativeSourceLabel: best.displayLabel ?? best.label ?? null,
+  };
+}
+
+/**
+ * Regroupe bestBullishAnnualWindows par cluster saisonnier.
+ * Vue principale = 1 fenêtre représentative par cluster (ex. 15 avr → 15 juil, 15 oct → 8 déc).
+ * Variantes chevauchantes → diagnostic avancé seulement.
+ */
+function groupBullishAnnualWindowsForDisplay(rawWindows) {
+  const windows = rawWindows ?? [];
+  if (!windows.length) return { primaryWindows: [], variantWindows: [] };
+
+  const groups = new Map(BULLISH_SEASON_CLUSTERS.map((c) => [c.id, []]));
+  const unassigned = [];
+
+  for (const w of windows) {
+    let clusterId = classifyBullishSeasonCluster(w);
+    if (!clusterId) {
+      let bestOverlap = 0;
+      let bestCluster = null;
+      for (const cluster of BULLISH_SEASON_CLUSTERS) {
+        for (const existing of groups.get(cluster.id) ?? []) {
+          const ov = calendarMaskOverlapFraction(w, existing);
+          if (ov > bestOverlap) {
+            bestOverlap = ov;
+            bestCluster = cluster.id;
+          }
+        }
+      }
+      clusterId = bestOverlap >= 0.45 ? bestCluster : null;
+    }
+
+    if (clusterId && groups.has(clusterId)) {
+      const group = groups.get(clusterId);
+      const overlapsExisting = group.some((g) => calendarMaskOverlapFraction(w, g) >= 0.45);
+      const sameCluster = classifyBullishSeasonCluster(w) === clusterId;
+      if (sameCluster || overlapsExisting || group.length === 0) {
+        group.push(w);
+        continue;
+      }
+    }
+    unassigned.push(w);
+  }
+
+  for (const w of [...unassigned]) {
+    let bestCluster = null;
+    let bestOverlap = 0;
+    for (const cluster of BULLISH_SEASON_CLUSTERS) {
+      for (const existing of groups.get(cluster.id) ?? []) {
+        const ov = calendarMaskOverlapFraction(w, existing);
+        if (ov > bestOverlap) {
+          bestOverlap = ov;
+          bestCluster = cluster.id;
+        }
+      }
+    }
+    if (bestCluster && bestOverlap >= 0.45) {
+      groups.get(bestCluster).push(w);
+      unassigned.splice(unassigned.indexOf(w), 1);
+    }
+  }
+
+  const primaryWindows = [];
+  const variantWindows = [...unassigned];
+
+  for (const cluster of BULLISH_SEASON_CLUSTERS) {
+    const group = groups.get(cluster.id) ?? [];
+    if (!group.length) continue;
+    const rep = pickBullishClusterRepresentative(group, cluster);
+    if (!rep) continue;
+    primaryWindows.push(rep);
+    for (const w of group) {
+      if (getWindowDisplayLabel(w) !== rep.representativeSourceLabel) {
+        variantWindows.push(w);
+      }
+    }
+  }
+
+  primaryWindows.sort(
+    (a, b) => (BULLISH_SEASON_CLUSTERS.find((c) => c.id === a.clusterId)?.sortOrder ?? 9)
+      - (BULLISH_SEASON_CLUSTERS.find((c) => c.id === b.clusterId)?.sortOrder ?? 9),
+  );
+
+  return { primaryWindows, variantWindows };
+}
+
+/** Carte fenêtre annuelle réelle — horizons 3y/5y/10y/15y, sans glissant. */
+function AnnualRealWindowRow({ window: w, isBullish }) {
+  if (!w) return null;
+  const label = seasonalWindowPrimaryLabel(w);
+  const tag = strengthTag(w?.strength);
+  const horizons = w?.annualHorizons ?? {};
+  const picked = pickBestAnnualHorizonStats(horizons);
+  const avg = picked?.stats?.avgReturnAnnual ?? w?.avgReturnAnnual ?? null;
+  const med = picked?.stats?.medianReturnAnnual ?? w?.medianReturnAnnual ?? null;
+  const statusBadge = getWindowCalendarStatusBadge(w);
+  const dirWord = isBullish ? "années positives" : "années négatives";
+  const returnWord = isBullish ? "Rendement annuel moyen" : "Baisse annuelle moyenne";
+  const medianWord = isBullish ? "Rendement annuel médian" : "Baisse annuelle médiane";
+
+  const horizonMini = {
+    fontSize: "9.5px",
+    color: C.textFaint,
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "2px 4px",
+    marginTop: "4px",
+  };
+  const horizonKey = { fontSize: "9px", color: C.textFaint, fontWeight: 600 };
+
+  return (
+    <div style={{
+      padding: "7px 0",
+      borderBottom: `1px solid rgba(120,150,190,0.08)`,
+      lineHeight: 1.45,
+    }}>
+      {w.clusterLabel && (
+        <div style={{
+          fontSize: "9px",
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: C.textFaint,
+          marginBottom: "2px",
+        }}>
+          {w.clusterLabel}
+        </div>
+      )}
+      <div style={{ fontSize: "11px", color: C.text }}>
+        <span style={{ fontWeight: 600 }}>{label}</span>
+        {tag && <span style={{ color: C.textMuted, fontWeight: 500, marginLeft: "5px" }}>{tag}</span>}
+        {statusBadge && (
+          <span style={{
+            marginLeft: "6px",
+            fontSize: "9px",
+            fontWeight: 700,
+            color: statusBadge.color,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}>
+            {statusBadge.text}
+          </span>
+        )}
+      </div>
+      <div style={horizonMini}>
+        {ANNUAL_HORIZON_ORDER.map((key) => (
+          <div key={key}>
+            <span style={horizonKey}>{key}</span>
+            {" "}
+            <span style={{ color: C.textMuted }}>
+              {formatAnnualHorizonRatioUI(horizons[key], isBullish)} {dirWord}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: "10px", color: C.textMuted, marginTop: "3px" }}>
+        {typeof avg === "number" && (
+          <span>{returnWord} {formatPct(avg)}</span>
+        )}
+        {typeof med === "number" && (
+          <span style={{ marginLeft: typeof avg === "number" ? "8px" : 0 }}>
+            · {medianWord} {formatPct(med)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RealAnnualSeasonalityHeader() {
+  return (
+    <div style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: "7px" }}>
+      <div style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: C.accentLight,
+        marginBottom: "2px",
+      }}>
+        Saisonnalité annuelle réelle
+      </div>
+      <div style={{ fontSize: "9.5px", color: C.textFaint, lineHeight: 1.4 }}>
+        1 année = 1 occurrence · close(fin) / close(début) − 1
+      </div>
+    </div>
+  );
+}
+
+function AnnualRealSection({ title, titleColor, emptyMessage, windows, isBullish }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: titleColor,
+        opacity: 0.9,
+        marginBottom: "4px",
+      }}>
+        {title}
+      </div>
+      {windows?.length > 0 ? (
+        windows.map((w, i) => (
+          <AnnualRealWindowRow
+            key={`${isBullish ? "bull" : "bear"}-annual-${w.displayLabel ?? i}`}
+            window={w}
+            isBullish={isBullish}
+          />
+        ))
+      ) : (
+        <div style={{ fontSize: "10.5px", color: C.textMuted, lineHeight: 1.55, padding: "4px 0 6px" }}>
+          {emptyMessage}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecentBearishVigilanceRow({ window: w }) {
+  if (!w) return null;
+  const label = w.displayLabel ?? seasonalWindowPrimaryLabel(w);
+  const horizons = w.annualHorizons ?? {};
+  const avg5 = w.avgReturnAnnual5y ?? horizons["5y"]?.avgReturnAnnual ?? null;
+  const avg15 = horizons["15y"]?.avgReturnAnnual ?? w.avgReturnAnnual ?? null;
+
+  const horizonMini = {
+    fontSize: "9.5px",
+    color: C.textFaint,
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "2px 4px",
+    marginTop: "4px",
+  };
+  const horizonKey = { fontSize: "9px", color: C.textFaint, fontWeight: 600 };
+
+  return (
+    <div style={{
+      padding: "7px 0",
+      borderBottom: `1px solid rgba(245,158,11,0.12)`,
+      lineHeight: 1.45,
+    }}>
+      <div style={{ fontSize: "11px", color: C.text }}>
+        <span style={{ fontWeight: 600 }}>{label}</span>
+        <span style={{
+          marginLeft: "6px",
+          fontSize: "9px",
+          fontWeight: 700,
+          color: C.amber,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+        }}>
+          [{w.status ?? "Récente seulement"}]
+        </span>
+      </div>
+      <div style={horizonMini}>
+        {ANNUAL_HORIZON_ORDER.map((key) => (
+          <div key={key}>
+            <span style={horizonKey}>{key}</span>
+            {" "}
+            <span style={{ color: C.textMuted }}>
+              {formatAnnualHorizonRatioUI(horizons[key], false)} années baissières
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: "10px", color: C.textMuted, marginTop: "3px" }}>
+        {typeof avg5 === "number" && (
+          <span>Baisse annuelle moyenne 5y : {formatPct(avg5)}</span>
+        )}
+        {typeof avg15 === "number" && (
+          <span style={{ marginLeft: typeof avg5 === "number" ? "8px" : 0 }}>
+            · Baisse annuelle moyenne 15y : {formatPct(avg15)}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: "9.5px", color: C.textFaint, marginTop: "4px", lineHeight: 1.45, fontStyle: "italic" }}>
+        Faiblesse récente forte, mais insuffisante sur 10y/15y pour être une fenêtre baissière confirmée.
+      </div>
+    </div>
+  );
+}
+
+function RecentBearishVigilanceBlock({ windows }) {
+  if (!windows?.length) return null;
+  return (
+    <div style={{ marginTop: "8px", paddingTop: "6px", borderTop: "1px solid rgba(245,158,11,0.18)" }}>
+      <div style={{
+        fontSize: "9.5px",
+        fontWeight: 700,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        color: C.amber,
+        marginBottom: "3px",
+      }}>
+        Vigilance récente — non confirmée long terme
+      </div>
+      <div style={{ fontSize: "9px", color: C.textFaint, lineHeight: 1.4, marginBottom: "4px" }}>
+        Signal de prudence CSP — pas une fenêtre baissière annuelle confirmée.
+      </div>
+      {windows.map((w, i) => (
+        <RecentBearishVigilanceRow key={`vigilance-${w.displayLabel ?? i}`} window={w} />
+      ))}
+    </div>
+  );
+}
+
+/** Bloc baissier unifié : confirmées long terme + vigilance récente (ambre). */
+function BearishAnnualRealSection({ confirmedWindows, vigilanceWindows }) {
+  const confirmed = confirmedWindows ?? [];
+  const vigilance = vigilanceWindows ?? [];
+
+  return (
+    <div>
+      <div style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: C.red,
+        opacity: 0.9,
+        marginBottom: "4px",
+      }}>
+        Fenêtres annuelles baissières
+      </div>
+
+      <div style={{
+        fontSize: "9px",
+        fontWeight: 600,
+        letterSpacing: "0.05em",
+        textTransform: "uppercase",
+        color: C.textFaint,
+        marginBottom: "3px",
+      }}>
+        Confirmées long terme
+      </div>
+
+      {confirmed.length > 0 ? (
+        confirmed.map((w, i) => (
+          <AnnualRealWindowRow
+            key={`bear-confirmed-${w.displayLabel ?? i}`}
+            window={w}
+            isBullish={false}
+          />
+        ))
+      ) : (
+        <div style={{ fontSize: "10.5px", color: C.textMuted, lineHeight: 1.55, padding: "2px 0 4px" }}>
+          Aucune fenêtre baissière annuelle confirmée détectée.
+        </div>
+      )}
+
+      <RecentBearishVigilanceBlock windows={vigilance} />
+    </div>
+  );
+}
+
+function SwingActiveDiagnosticCard({
+  activeProgress,
+  chart3yLoading,
+  rsiMomentum,
+  primaryAnnualWindow,
+  combinedReading,
+}) {
+  if (chart3yLoading || !activeProgress?.isActive) return null;
+
+  const isBull = activeProgress.type === "bullish";
+  const pace = CHART3Y_PACE_LABELS[activeProgress.paceStatus] ?? "—";
+  const rsi = rsiMomentum?.rsiCurrent != null ? rsiMomentum.rsiCurrent.toFixed(1) : "—";
+  const annualLabel = getWindowDisplayLabel(primaryAnnualWindow);
+  const activeDiffersFromAnnual = Boolean(
+    annualLabel
+    && activeProgress.displayLabel
+    && activeProgress.displayLabel !== annualLabel,
+  );
+  const parts = [
+    `Réalisé ${formatPct(activeProgress.realizedReturn)}`,
+    `Attendu glissant ${formatPct(activeProgress.expectedReturn)}`,
+    `Temps ${formatPctWhole(activeProgress.progressTimePct)}`,
+    `RSI ${rsi}`,
+    pace,
+  ];
+
+  return (
+    <div style={{
+      background: "rgba(139,92,246,0.06)",
+      border: `1px solid ${C.border}`,
+      borderRadius: "8px",
+      padding: "8px 10px",
+      marginBottom: "8px",
+    }}>
+      <div style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: C.accentLight,
+        marginBottom: "3px",
+      }}>
+        Fenêtre swing active
+      </div>
+      <div style={{ fontSize: "9.5px", color: C.textFaint, marginBottom: "4px", lineHeight: 1.45 }}>
+        Signal glissant secondaire — ne remplace pas les fenêtres annuelles principales.
+      </div>
+      <div style={{ fontSize: "11.5px", fontWeight: 700, color: C.text, lineHeight: 1.35 }}>
+        {activeProgress.displayLabel ?? "—"}
+        <span style={{
+          marginLeft: "6px",
+          fontSize: "10px",
+          fontWeight: 700,
+          padding: "2px 7px",
+          borderRadius: "10px",
+          background: isBull ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+          border: `1px solid ${isBull ? "rgba(34,197,94,0.38)" : "rgba(239,68,68,0.38)"}`,
+          color: isBull ? C.green : C.red,
+        }}>
+          {isBull ? "Haussière" : "Baissière"}
+        </span>
+      </div>
+      {activeDiffersFromAnnual && (
+        <div style={{ fontSize: "9.5px", color: C.textFaint, marginTop: "3px", lineHeight: 1.45 }}>
+          Fenêtre annuelle principale : <span style={{ color: C.textMuted }}>{annualLabel}</span>
+        </div>
+      )}
+      <div style={{ fontSize: "10px", color: C.textMuted, lineHeight: 1.5, marginTop: "4px" }}>
+        {parts.join(" | ")}
+      </div>
+      {combinedReading?.headline && (
+        <div style={{
+          fontSize: "10px",
+          color: C.textFaint,
+          fontStyle: "italic",
+          lineHeight: 1.45,
+          marginTop: "5px",
+        }}>
+          {combinedReading.headline}
+          {combinedReading.detail ? ` — ${combinedReading.detail}` : ""}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdvancedGlidingDiagnosticSection({
+  windows,
+  activeProgress,
+  chart3yLoading,
+  rsiMomentum,
+  primaryAnnualWindow,
+  variantWindows = [],
+  combinedReading,
+}) {
+  const [open, setOpen] = useState(false);
+  const swingBull = windows?.swingWindows?.bullish ?? [];
+  const swingBear = windows?.swingWindows?.bearish ?? [];
+  const hasSwingActive = Boolean(activeProgress?.isActive);
+  const hasContent = swingBull.length > 0
+    || swingBear.length > 0
+    || hasSwingActive
+    || variantWindows.length > 0;
+  if (!hasContent) return null;
+
+  return (
+    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "7px" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          background: "transparent",
+          border: "none",
+          color: C.textFaint,
+          fontSize: "10px",
+          fontWeight: 600,
+          cursor: "pointer",
+          padding: 0,
+          textAlign: "left",
+          letterSpacing: "0.03em",
+        }}
+      >
+        {open ? "Masquer" : "Afficher"} diagnostic avancé — tests glissants
+      </button>
+      {open && (
+        <div style={{ marginTop: "6px" }}>
+          <SwingActiveDiagnosticCard
+            activeProgress={activeProgress}
+            chart3yLoading={chart3yLoading}
+            rsiMomentum={rsiMomentum}
+            primaryAnnualWindow={primaryAnnualWindow}
+            combinedReading={combinedReading}
+          />
+          {variantWindows.length > 0 && (
+            <div style={{ marginBottom: "8px" }}>
+              <div style={{
+                fontSize: "9px",
+                color: C.textFaint,
+                marginBottom: "3px",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}>
+                Variantes annuelles secondaires
+              </div>
+              {variantWindows.map((w, i) => (
+                <SoberGlidingWeakRow
+                  key={`variant-${w.displayLabel ?? i}`}
+                  window={w}
+                  isBullish={true}
+                />
+              ))}
+            </div>
+          )}
+          {swingBull.length > 0 && (
+            <div style={{ marginBottom: swingBear.length ? "8px" : 0 }}>
+              <div style={{ fontSize: "9px", color: C.textFaint, marginBottom: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Haussier glissant
+              </div>
+              {swingBull.slice(0, 4).map((w, i) => (
+                <SoberGlidingWeakRow key={`adv-bull-${w.displayLabel ?? i}`} window={w} isBullish={true} />
+              ))}
+            </div>
+          )}
+          {swingBear.length > 0 && (
+            <div>
+              <div style={{ fontSize: "9px", color: C.textFaint, marginBottom: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Baissier glissant
+              </div>
+              {swingBear.slice(0, 4).map((w, i) => (
+                <SoberGlidingWeakRow key={`adv-bear-${w.displayLabel ?? i}`} window={w} isBullish={false} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Ligne sobre — annuel réel principal, glissant secondaire (diagnostic seulement). */
+function SoberSeasonalWindowRow({ window: w, isBullish, bestAnnualWindow, muted = false, labelPrefix = null, hideGliding = false }) {
+  const label = seasonalWindowPrimaryLabel(w);
+  const tag = strengthTag(w?.strength);
+  const annualHorizons = resolveWindowAnnualHorizons(w, bestAnnualWindow);
+  const picked = pickBestAnnualHorizonStats(annualHorizons);
+  const annualLine = picked
+    ? formatAnnualPrimaryLine(picked.stats, picked.key, isBullish)
+    : null;
+  const robustLine = getWindowGlidingDisplay(w, bestAnnualWindow, isBullish);
+  const ret = getAnnualReturnForDisplay(w, isBullish);
+
+  return (
+    <div style={{
+      padding: muted ? "4px 0" : "6px 0",
+      lineHeight: 1.45,
+      opacity: muted ? 0.72 : 1,
+    }}>
+      <div style={{ fontSize: "11px", color: muted ? C.textFaint : C.text }}>
+        {labelPrefix && (
+          <span style={{ fontWeight: 500, color: C.textMuted }}>{labelPrefix}</span>
+        )}
+        <span style={{ fontWeight: 600 }}>{label}</span>
+        {tag && (
+          <span style={{ color: C.textMuted, fontWeight: 500, marginLeft: "5px" }}>{tag}</span>
+        )}
+        {typeof ret === "number" && (
+          <span style={{ color: muted ? C.textFaint : C.textMuted, marginLeft: "6px" }}>
+            {formatPct(ret)}
+          </span>
+        )}
+      </div>
+      {annualLine && (
+        <div style={{ fontSize: "10px", color: muted ? C.textFaint : C.textMuted, marginTop: "1px" }}>
+          {annualLine}
+        </div>
+      )}
+      {!hideGliding && robustLine && (
+        <div style={{ fontSize: "10px", color: C.textFaint, marginTop: "1px" }}>{robustLine}</div>
+      )}
+    </div>
+  );
+}
+
+/** Faiblesse glissante — détail repliable, texte gris uniquement. */
+function SoberGlidingWeakRow({ window: w, isBullish, bestAnnualWindow }) {
+  const label = seasonalWindowPrimaryLabel(w);
+  const robustLine = getWindowGlidingDisplay(w, bestAnnualWindow, isBullish);
+  const ret = getSwingDisplayReturn(w);
+  return (
+    <div style={{ padding: "3px 0", fontSize: "10px", color: C.textFaint, lineHeight: 1.4 }}>
+      {label}
+      {typeof ret === "number" && ` · ${formatPct(ret)}`}
+      {robustLine && ` · ${robustLine.replace(/^Robustesse : /, "")}`}
+    </div>
+  );
 }
 
 function momentumHintShort(sw, isBullish) {
@@ -525,8 +1405,8 @@ function MonthlyBarChart({ months }) {
   );
 }
 
-// ─── Courbe cumulée (+ zones swing) ─────────────────────────────────────────────
-function CumulativeLineChart({ months, swingWindows }) {
+// ─── Courbe cumulée (+ zones annuelles officielles) ─────────────────────────────
+function CumulativeLineChart({ months, annualDisplayWindows }) {
   if (!months?.length) return <div style={{ color:C.textFaint, textAlign:"center", padding:"36px 0", fontSize:"12px" }}>Courbe cumulée non disponible</div>;
   const aligned = MONTH_ABBREV.map((label, i) => {
     const m = months.find((x) => x.month === i + 1);
@@ -553,47 +1433,56 @@ function CumulativeLineChart({ months, swingWindows }) {
   const gridLines = Array.from({ length: 5 }, (_, i) => { const v = minV + (range / 4) * i; return { v, y: yOf(v) }; });
   const finalColor = cum >= 0 ? "#8b5cf6" : C.red;
 
-  const swingZones = [];
-  (swingWindows?.bullish ?? []).slice(0, 2).forEach((sw, i) => {
-    const rangeDOY = resolveSwingDayRange(sw);
+  const annualZones = [];
+  (annualDisplayWindows?.bullish ?? []).forEach((w, i) => {
+    const rangeDOY = resolveSwingDayRange(w);
     if (rangeDOY) {
-      swingZones.push({
+      annualZones.push({
         ...rangeDOY,
         kind: "bullish",
-        label: `Haussier #${i + 1}`,
-        avgReturn: sw.avgReturn,
+        label: w.displayLabel ?? `Haussier annuel #${i + 1}`,
+        shortLabel: "Haussier annuel",
+        avgReturn: getAnnualReturnForZone(w, "bullish"),
       });
     }
   });
-  (swingWindows?.bearish ?? []).slice(0, 2).forEach((sw, i) => {
-    const rangeDOY = resolveSwingDayRange(sw);
+  (annualDisplayWindows?.bearishConfirmed ?? []).forEach((w, i) => {
+    const rangeDOY = resolveSwingDayRange(w);
     if (rangeDOY) {
-      swingZones.push({
+      annualZones.push({
         ...rangeDOY,
         kind: "bearish",
-        label: `Baissier #${i + 1}`,
-        avgReturn: sw.avgReturn,
+        label: w.displayLabel ?? `Baissier annuel #${i + 1}`,
+        shortLabel: "Baissier annuel confirmé",
+        avgReturn: getAnnualReturnForZone(w, "bearish"),
       });
     }
   });
-  const hasSwingOverlay = swingZones.length > 0;
+  (annualDisplayWindows?.vigilance ?? []).forEach((w, i) => {
+    const rangeDOY = resolveSwingDayRange(w);
+    if (rangeDOY) {
+      annualZones.push({
+        ...rangeDOY,
+        kind: "vigilance",
+        label: w.displayLabel ?? `Vigilance #${i + 1}`,
+        shortLabel: "Vigilance récente",
+        avgReturn: getAnnualReturnForZone(w, "vigilance"),
+      });
+    }
+  });
+  const hasAnnualOverlay = annualZones.length > 0;
   const todayDOY = getTodayDayOfYear();
   const todayX = xOfDay(todayDOY);
   const zoneTop = PAD.top;
   const zoneBottom = PAD.top + chartH;
   const labelCtx = { zoneTop, chartH, chartRight, chartLeft, chartW };
 
-  const zoneLabelPlacements = hasSwingOverlay
-    ? swingZones.map((zone) => resolveSwingZoneLabelPlacement(zone, xOfDay, labelCtx))
+  const zoneLabelPlacements = hasAnnualOverlay
+    ? annualZones.map((zone) => resolveAnnualZoneLabelPlacement(zone, xOfDay, labelCtx))
     : [];
 
   const renderZoneRects = (zone) => {
-    const fill = zone.kind === "bullish"
-      ? "rgba(34,197,94,0.14)"
-      : "rgba(239,68,68,0.14)";
-    const stroke = zone.kind === "bullish"
-      ? "rgba(34,197,94,0.35)"
-      : "rgba(239,68,68,0.35)";
+    const colors = zoneColors(zone.kind);
     return swingZoneSegments(zone).map(([s, e], segIdx) => {
       const x1 = xOfDay(s);
       const x2 = xOfDay(e);
@@ -606,8 +1495,8 @@ function CumulativeLineChart({ months, swingWindows }) {
           y={zoneTop}
           width={width}
           height={zoneBottom - zoneTop}
-          fill={fill}
-          stroke={stroke}
+          fill={colors.fill}
+          stroke={colors.stroke}
           strokeWidth="0.5"
           rx="2"
         />
@@ -625,7 +1514,7 @@ function CumulativeLineChart({ months, swingWindows }) {
           </linearGradient>
           <filter id="cumGlow"><feGaussianBlur stdDeviation="2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         </defs>
-        {hasSwingOverlay && swingZones.map((zone) => (
+        {hasAnnualOverlay && annualZones.map((zone) => (
           <g key={zone.label}>{renderZoneRects(zone)}</g>
         ))}
         {gridLines.map((gl, gi) => (
@@ -640,8 +1529,8 @@ function CumulativeLineChart({ months, swingWindows }) {
         ))}
         <path d={areaPath} fill="url(#cumGrad)" />
         <path d={linePath} fill="none" stroke={finalColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {hasSwingOverlay && swingZones.map((zone, zi) => {
-          const labelColor = zone.kind === "bullish" ? C.green : C.red;
+        {hasAnnualOverlay && annualZones.map((zone, zi) => {
+          const colors = zoneColors(zone.kind);
           const placement = zoneLabelPlacements[zi];
           if (!placement) return null;
           return (
@@ -651,7 +1540,7 @@ function CumulativeLineChart({ months, swingWindows }) {
               y={placement.y}
               textAnchor={placement.textAnchor}
               fontSize={placement.fontSize}
-              fill={labelColor}
+              fill={colors.label}
               fontWeight="700"
               opacity="0.92"
               style={{ pointerEvents:"none" }}
@@ -696,15 +1585,19 @@ function CumulativeLineChart({ months, swingWindows }) {
           <text key={i} x={xOf(i + 1).toFixed(1)} y={H - 6} textAnchor="middle" fontSize="8.5" fill={C.textFaint}>{p.label}</text>
         ))}
       </svg>
-      {hasSwingOverlay && (
+      {hasAnnualOverlay && (
         <div style={{ display:"flex", flexWrap:"wrap", gap:"12px 16px", marginTop:"8px", fontSize:"10px", color:C.textMuted }}>
           <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
             <span style={{ width:12, height:10, borderRadius:2, background:"rgba(34,197,94,0.35)", border:"1px solid rgba(34,197,94,0.5)" }} />
-            Vert = fenêtre swing haussière
+            Vert = fenêtre annuelle haussière confirmée
           </span>
           <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
             <span style={{ width:12, height:10, borderRadius:2, background:"rgba(239,68,68,0.35)", border:"1px solid rgba(239,68,68,0.5)" }} />
-            Rouge = fenêtre swing baissière
+            Rouge = fenêtre annuelle baissière confirmée
+          </span>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
+            <span style={{ width:12, height:10, borderRadius:2, background:"rgba(245,158,11,0.35)", border:"1px solid rgba(245,158,11,0.5)" }} />
+            Ambre = vigilance récente non confirmée
           </span>
           <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}>
             <span style={{ width:14, height:0, borderTop:`2px solid ${finalColor}` }} />
@@ -906,6 +1799,263 @@ function daysBetweenIso(fromIso, toIso) {
   return Math.round((b - a) / 86400000);
 }
 
+function resolveWindowAnnualHorizons(window, bestAnnualWindow) {
+  const label = window?.displayLabel;
+  const bestLabel = bestAnnualWindow?.window?.displayLabel;
+  if (label && bestLabel && label === bestLabel && bestAnnualWindow?.annualHorizons) {
+    return bestAnnualWindow.annualHorizons;
+  }
+  return window?.annualHorizons ?? null;
+}
+
+function pickBestAnnualHorizonStats(annualHorizons) {
+  if (!annualHorizons) return null;
+  for (const key of ["15y", "10y", "5y", "3y"]) {
+    const stats = annualHorizons[key];
+    if (stats && !stats.insufficient && stats.yearsCount != null) return { key, stats };
+  }
+  return null;
+}
+
+function formatAnnualPrimaryLine(stats, horizonKey, isBullish) {
+  if (!stats || stats.yearsCount == null) return "Annuel réel : non disponible";
+  const total = stats.yearsCount;
+  if (isBullish) {
+    const pos = stats.positiveYears ?? 0;
+    return `Annuel ${horizonKey} : ${pos}/${total} années haussières`;
+  }
+  const bearCount = stats.negativeYears
+    ?? stats.annualReturns?.filter((a) => a.returnPct < 0).length
+    ?? Math.max(0, total - (stats.positiveYears ?? 0));
+  return `Annuel ${horizonKey} : ${bearCount}/${total} années baissières`;
+}
+
+function getWindowGlidingDisplay(window, bestAnnualWindow, isBullish) {
+  const label = window?.displayLabel;
+  const bestLabel = bestAnnualWindow?.window?.displayLabel;
+  if (label && bestLabel && label === bestLabel && bestAnnualWindow?.glidingRobustness) {
+    const picked = pickBestAnnualHorizonStats(bestAnnualWindow.annualHorizons);
+    const h = picked?.key ?? window?.primaryHorizon ?? "15y";
+    const g = bestAnnualWindow.glidingRobustness[h]
+      ?? bestAnnualWindow.glidingRobustness["15y"]
+      ?? Object.values(bestAnnualWindow.glidingRobustness).find((x) => x?.sampleSize);
+    if (g?.sampleSize != null) {
+      const pct = g.winRateGliding != null ? Math.round(g.winRateGliding * 100) : null;
+      const nLabel = formatGlidingTestsLabel(g.sampleSize);
+      if (pct != null && nLabel) return `Robustesse : ${pct} % · ${nLabel}`;
+    }
+  }
+  const hs = window?.horizonStats;
+  const h = window?.primaryHorizon ?? "15y";
+  const s = hs?.[h] ?? hs?.["15y"] ?? hs?.["10y"] ?? hs?.["5y"] ?? hs?.["3y"];
+  if (s?.sampleSize != null) {
+    const rate = isBullish ? s.winRate : (s.downRate ?? (s.winRate != null ? 1 - s.winRate : null));
+    const pct = rate != null ? Math.round(rate * 100) : null;
+    const nLabel = formatGlidingTestsLabel(s.sampleSize);
+    if (pct != null && nLabel) return `Robustesse : ${pct} % · ${nLabel}`;
+  }
+  const glide = getGlidingRobustnessSnippet(window, bestAnnualWindow);
+  if (glide?.sampleSize != null) {
+    const pct = glide.winRate != null ? Math.round(glide.winRate * 100) : null;
+    const nLabel = formatGlidingTestsLabel(glide.sampleSize);
+    if (pct != null && nLabel) return `Robustesse : ${pct} % · ${nLabel}`;
+  }
+  return null;
+}
+
+/** Mois de départ calendaire (traversement d'année = mois de début). Utile pour futur filtre univers par mois. */
+function getWindowStartMonth(window) {
+  if (window?.startMonth != null) return window.startMonth;
+  if (window?.displayLabel?.includes("→")) {
+    const parsed = parseFrenchDayMonth(window.displayLabel.split("→")[0].trim());
+    if (parsed?.month) return parsed.month;
+  }
+  if (window?.startDayOfYear != null) {
+    let remaining = Number(window.startDayOfYear);
+    for (let m = 1; m <= 12; m++) {
+      if (remaining <= DAYS_IN_MONTH_ISO[m]) return m;
+      remaining -= DAYS_IN_MONTH_ISO[m];
+    }
+  }
+  return null;
+}
+
+function resolveWindowOccurrenceDates(window, anchorYear) {
+  const range = resolveSwingDayRange(window);
+  if (!range || !anchorYear) return null;
+  const { startDOY, endDOY, wraps } = range;
+  return {
+    startDate: doyToIsoDate(anchorYear, startDOY),
+    endDate: doyToIsoDate(wraps ? anchorYear + 1 : anchorYear, endDOY),
+  };
+}
+
+/** Statut calendaire d'une fenêtre pour la date du jour. */
+function getWindowStatus(window, today = new Date()) {
+  const todayIso = typeof today === "string"
+    ? today.slice(0, 10)
+    : today.toISOString().slice(0, 10);
+  const year = parseInt(todayIso.slice(0, 4), 10);
+  const empty = {
+    isActive: false,
+    isUpcoming: false,
+    isPastThisYear: false,
+    daysUntilStart: null,
+    daysUntilEnd: null,
+    progressPct: 0,
+    startDateThisYear: null,
+    endDateThisYear: null,
+  };
+
+  if (!window || !year) return empty;
+
+  for (const anchor of [year - 1, year, year + 1]) {
+    const occ = resolveWindowOccurrenceDates(window, anchor);
+    if (!occ) continue;
+    if (todayIso >= occ.startDate && todayIso <= occ.endDate) {
+      const span = daysBetweenIso(occ.startDate, occ.endDate);
+      const elapsed = daysBetweenIso(occ.startDate, todayIso);
+      return {
+        isActive: true,
+        isUpcoming: false,
+        isPastThisYear: false,
+        daysUntilStart: 0,
+        daysUntilEnd: daysBetweenIso(todayIso, occ.endDate),
+        progressPct: span > 0 ? Math.min(1, Math.max(0, elapsed / span)) : 0,
+        startDateThisYear: occ.startDate,
+        endDateThisYear: occ.endDate,
+      };
+    }
+  }
+
+  const startIso = resolveNextWindowStartIso(window, todayIso);
+  if (!startIso) return empty;
+
+  const anchorYear = parseInt(startIso.slice(0, 4), 10);
+  const occ = resolveWindowOccurrenceDates(window, anchorYear);
+  const endIso = occ?.endDate ?? startIso;
+  const daysUntilStart = daysBetweenIso(todayIso, startIso);
+
+  const pastThisYearOcc = resolveWindowOccurrenceDates(window, year);
+  const isPastThisYear = pastThisYearOcc
+    ? todayIso > pastThisYearOcc.endDate
+    : daysUntilStart > 0;
+
+  return {
+    isActive: false,
+    isUpcoming: daysUntilStart >= 0,
+    isPastThisYear,
+    daysUntilStart,
+    daysUntilEnd: daysBetweenIso(todayIso, endIso),
+    progressPct: 0,
+    startDateThisYear: startIso,
+    endDateThisYear: endIso,
+  };
+}
+
+function windowListKey(window, direction) {
+  return `${direction}:${window?.displayLabel ?? window?.label ?? ""}`;
+}
+
+function collectAllSeasonalityWindows(windows) {
+  const list = [];
+  const seen = new Set();
+
+  const add = (w, direction) => {
+    if (!w) return;
+    const key = windowListKey(w, direction);
+    if (seen.has(key)) return;
+    seen.add(key);
+    list.push({
+      window: w,
+      direction: direction === "bearish" ? "bearish" : "bullish",
+    });
+  };
+
+  for (const w of groupBullishAnnualWindowsForDisplay(windows?.bestBullishAnnualWindows).primaryWindows) {
+    add(
+      {
+        ...w,
+        displayAvgReturn: w.avgReturnAnnual ?? w.annualHorizons?.["15y"]?.avgReturnAnnual,
+      },
+      "bullish",
+    );
+  }
+  for (const w of windows?.bestBearishAnnualWindows ?? []) {
+    add(
+      {
+        ...w,
+        displayAvgReturn: w.avgReturnAnnual ?? w.annualHorizons?.["15y"]?.avgReturnAnnual,
+      },
+      "bearish",
+    );
+  }
+
+  return list;
+}
+
+function getGlidingRobustnessSnippet(window, bestAnnualWindow) {
+  const label = window?.displayLabel;
+  const bestLabel = bestAnnualWindow?.window?.displayLabel;
+  if (label && bestLabel && label === bestLabel) {
+    const g5 = bestAnnualWindow?.glidingRobustness?.["5y"];
+    if (g5?.sampleSize != null) {
+      return {
+        winRate: g5.winRateGliding,
+        sampleSize: g5.sampleSize,
+      };
+    }
+  }
+  const s5 = window?.horizonStats?.["5y"];
+  if (s5?.sampleSize != null) {
+    return {
+      winRate: s5.winRate ?? s5.downRate,
+      sampleSize: s5.sampleSize,
+    };
+  }
+  const sample = getSampleSize(window);
+  const wr = getDirectionalWinRate(window, window?.direction ?? "bullish");
+  if (sample != null) return { winRate: wr, sampleSize: sample };
+  return null;
+}
+
+/** Prochaine fenêtre (ou active) — tri par date de début la plus proche. */
+function findNextSeasonalityWindow(windows, today = new Date()) {
+  const todayIso = typeof today === "string"
+    ? today.slice(0, 10)
+    : today.toISOString().slice(0, 10);
+  const items = collectAllSeasonalityWindows(windows);
+  const ranked = [];
+
+  for (const { window: w, direction } of items) {
+    const status = getWindowStatus(w, todayIso);
+    const sortKey = status.isActive
+      ? 0
+      : (status.daysUntilStart ?? 9999);
+    ranked.push({
+      window: w,
+      direction,
+      status,
+      sortKey,
+      startIso: status.startDateThisYear,
+    });
+  }
+
+  ranked.sort((a, b) => {
+    if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
+    const strengthRank = (s) => (s === "Forte" ? 2 : s === "Confirmée" ? 1 : 0);
+    const sr = strengthRank(b.window?.strength) - strengthRank(a.window?.strength);
+    if (sr !== 0) return sr;
+    return (getAnnualReturnForDisplay(b.window, b.direction === "bullish") ?? 0)
+      - (getAnnualReturnForDisplay(a.window, a.direction === "bullish") ?? 0);
+  });
+
+  const active = ranked.find((r) => r.status.isActive);
+  if (active) return active;
+
+  return ranked.find((r) => r.status.isUpcoming && (r.status.daysUntilStart ?? 9999) >= 0) ?? ranked[0] ?? null;
+}
+
 /** Prochaine date de début d'une fenêtre swing dans l'année courante ou suivante. */
 function resolveNextWindowStartIso(window, todayIso = getTodayIsoUtc()) {
   const year = parseInt(String(todayIso).slice(0, 4), 10);
@@ -962,16 +2112,16 @@ function confidenceRank(window) {
   return 0;
 }
 
-/** Fenêtre haussière robuste/mesurable dont le début est dans 14–45 jours (pas active). */
+/** Fenêtre haussière annuelle robuste dont le début est dans 14–45 jours (pas active). */
 function pickUpcomingBullishWindow(windows, activeProgress) {
   if (activeProgress?.isActive) return null;
 
-  const bullish = windows?.swingWindows?.bullish ?? [];
+  const bullish = groupBullishAnnualWindowsForDisplay(windows?.bestBullishAnnualWindows).primaryWindows;
   const todayIso = getTodayIsoUtc();
   const candidates = [];
 
   for (const w of bullish) {
-    if (!isRobustOrMeasurable(w)) continue;
+    if (!isStrongOrConfirmedStrengthUI(w?.strength)) continue;
     const startIso = resolveNextWindowStartIso(w, todayIso);
     if (!startIso) continue;
     const daysUntil = daysBetweenIso(todayIso, startIso);
@@ -987,13 +2137,11 @@ function pickUpcomingBullishWindow(windows, activeProgress) {
   if (!candidates.length) return null;
 
   candidates.sort((a, b) => {
-    const confDiff = confidenceRank(b.window) - confidenceRank(a.window);
-    if (confDiff !== 0) return confDiff;
-    const winA = getDirectionalWinRate(a.window, "bullish") ?? 0;
-    const winB = getDirectionalWinRate(b.window, "bullish") ?? 0;
-    if (winB !== winA) return winB - winA;
+    const strengthRank = (s) => (s === "Forte" ? 2 : s === "Confirmée" ? 1 : 0);
+    const sr = strengthRank(b.window?.strength) - strengthRank(a.window?.strength);
+    if (sr !== 0) return sr;
     if (a.daysUntil !== b.daysUntil) return a.daysUntil - b.daysUntil;
-    return (b.window.avgReturn ?? 0) - (a.window.avgReturn ?? 0);
+    return (b.window?.avgReturnAnnual ?? 0) - (a.window?.avgReturnAnnual ?? 0);
   });
 
   return candidates[0];
@@ -1073,17 +2221,17 @@ function formatWindowConfidenceDetails(window, type) {
   const conf = getWindowDisplayConfidence(window);
   const rateFrac = getDirectionalWinRate(window, type);
   const typeWord = type === "bullish" || type === true ? "haussier" : "baissier";
-  const occLabel = formatOccurrenceCount(sample);
+  const glideLabel = formatGlidingTestsLabel(sample);
   const horizonSuffix = getPrimaryHorizonSuffix(window);
 
-  if (rateFrac != null && occLabel) {
-    return `${Math.round(rateFrac * 100)} % ${typeWord} sur ${occLabel}${horizonSuffix} · ${conf}`;
+  if (rateFrac != null && glideLabel) {
+    return `${Math.round(rateFrac * 100)} % ${typeWord} · ${glideLabel}${horizonSuffix} · ${conf}`;
   }
   if (rateFrac != null) {
     return `${Math.round(rateFrac * 100)} % ${typeWord} · ${conf}`;
   }
-  if (occLabel) {
-    return `${occLabel} testée${sample === 1 ? "" : "s"} · ${conf}`;
+  if (glideLabel) {
+    return `${glideLabel} · ${conf}`;
   }
   if (conf && conf !== "—") {
     return conf === "Historique disponible" ? conf : `Historique disponible · ${conf}`;
@@ -1130,28 +2278,258 @@ function enrichChart3yWithWindowStats(chartData, windows) {
   };
 }
 
-function CompactWindowLine({ window: w, isBullish }) {
-  const label = seasonalWindowPrimaryLabel(w);
-  const details = formatWindowConfidenceDetails(w, isBullish ? "bullish" : "bearish");
-  const confirmedLine = formatHorizonConfirmedLine(w);
-  const matrixTitle = formatHorizonStatsMatrix(w?.horizonStats, isBullish);
+function CompactAnnualWindowLine({ window: w, isBullish, bestAnnualWindow, muted = false, labelPrefix = null }) {
   return (
-    <div style={{ padding: "4px 0", lineHeight: 1.45 }} title={matrixTitle ?? undefined}>
-      <div style={{ fontSize: "11px", color: C.textMuted }}>
-        <span style={{ color: C.text, fontWeight: 600 }}>{label}</span>
-        {" · "}
-        <span style={{ color: pctColor(getSwingDisplayReturn(w)), fontWeight: 700 }}>{formatPct(getSwingDisplayReturn(w))}</span>
+    <SoberSeasonalWindowRow
+      window={w}
+      isBullish={isBullish}
+      bestAnnualWindow={bestAnnualWindow}
+      muted={muted}
+      labelPrefix={labelPrefix}
+    />
+  );
+}
+
+/** Rendu d'une fenêtre haussière annuelle (grille) — forme plate (pas de window imbriqué). */
+function BullishAnnualGridWindowRow({ window: w }) {
+  const label = w?.displayLabel ?? w?.label ?? "—";
+  const tag = strengthTag(w?.strength);
+  const picked = pickBestAnnualHorizonStats(w?.annualHorizons);
+  const ret = picked?.stats?.avgReturnAnnual ?? null;
+
+  let annualLine = null;
+  if (picked) {
+    annualLine = formatAnnualPrimaryLine(picked.stats, picked.key, true);
+  }
+
+  return (
+    <div style={{ padding: "6px 0", lineHeight: 1.45 }}>
+      <div style={{ fontSize: "11px", color: C.text }}>
+        <span style={{ fontWeight: 600 }}>{label}</span>
+        {tag && <span style={{ color: C.textMuted, fontWeight: 500, marginLeft: "5px" }}>{tag}</span>}
+        {typeof ret === "number" && (
+          <span style={{ color: C.textMuted, marginLeft: "6px" }}>{formatPct(ret)}</span>
+        )}
       </div>
-      {details && (
-        <div style={{ fontSize: "10px", color: C.textFaint, marginTop: "2px", fontWeight: 500 }}>
-          {details}
+      {annualLine && (
+        <div style={{ fontSize: "10px", color: C.textMuted, marginTop: "1px" }}>{annualLine}</div>
+      )}
+    </div>
+  );
+}
+
+/** Première ligne Haussières — bestAnnualWindow (annuel réel, pas swing). */
+function AnnualPrimaryDetailRow({ bestAnnualWindow }) {
+  if (!bestAnnualWindow?.window) return null;
+  const w = {
+    ...bestAnnualWindow.window,
+    strength: bestAnnualWindow.strength ?? bestAnnualWindow.window.strength,
+    annualHorizons: bestAnnualWindow.annualHorizons ?? bestAnnualWindow.window.annualHorizons,
+  };
+  const label = seasonalWindowPrimaryLabel(w);
+  const tag = strengthTag(w?.strength);
+  const annualHorizons = resolveWindowAnnualHorizons(w, bestAnnualWindow);
+  const picked = pickBestAnnualHorizonStats(annualHorizons);
+  const ret = getAnnualReturnForDisplay(w, true);
+  const robustLine = getWindowGlidingDisplay(w, bestAnnualWindow, true);
+
+  let annualCompact = null;
+  if (picked) {
+    const pos = picked.stats.positiveYears ?? 0;
+    const total = picked.stats.yearsCount;
+    annualCompact = `${pos}/${total} années haussières`;
+  }
+
+  let robustCompact = null;
+  if (robustLine) {
+    const m = robustLine.match(/Robustesse\s*:\s*(\d+)\s*%/);
+    if (m) robustCompact = `robustesse ${m[1]} %`;
+  }
+
+  const secondLine = [annualCompact, robustCompact].filter(Boolean).join(" · ");
+
+  return (
+    <div style={{ padding: "6px 0", lineHeight: 1.45 }}>
+      <div style={{ fontSize: "9px", color: C.textFaint, fontWeight: 500, letterSpacing: "0.04em", marginBottom: "2px" }}>
+        Principale annuelle
+      </div>
+      <div style={{ fontSize: "11px", color: C.text }}>
+        <span style={{ fontWeight: 600 }}>{label}</span>
+        {tag && <span style={{ color: C.textMuted, fontWeight: 500, marginLeft: "5px" }}>{tag}</span>}
+        {typeof ret === "number" && (
+          <span style={{ color: C.textMuted, marginLeft: "6px" }}>{formatPct(ret)}</span>
+        )}
+      </div>
+      {secondLine && (
+        <div style={{ fontSize: "10px", color: C.textFaint, marginTop: "1px" }}>
+          {secondLine}
         </div>
       )}
-      {confirmedLine && (
-        <div style={{ fontSize: "9.5px", color: C.accentLight, marginTop: "2px", fontWeight: 600 }}>
-          {confirmedLine}
+    </div>
+  );
+}
+
+const WINDOW_DETAILS_DEFAULT = 3;
+
+function WindowDetailsColumn({
+  title,
+  titleColor,
+  rows,
+  isBullish,
+  bestAnnualWindow,
+  expanded,
+  headerNote,
+  headerNote2,
+  showAnnualPrimary = false,
+  swingHeaderNote = null,
+  bullishAnnualWindows = [],
+}) {
+  const swingRows = showAnnualPrimary && bestAnnualWindow?.window
+    ? rows.filter((w) => !windowsHaveSameDisplayLabel(w, bestAnnualWindow.window))
+    : rows;
+
+  const bestAnnualLabel = bestAnnualWindow?.window?.displayLabel;
+  const extraAnnualWindows = isBullish && showAnnualPrimary
+    ? bullishAnnualWindows.filter((w) => !bestAnnualLabel || w.displayLabel !== bestAnnualLabel)
+    : [];
+  const extraAnnualVisible = expanded ? extraAnnualWindows : extraAnnualWindows.slice(0, 2);
+
+  const hasAnnualPrimary = showAnnualPrimary && bestAnnualWindow?.window;
+  const swingSlotLeft = Math.max(0, WINDOW_DETAILS_DEFAULT - (hasAnnualPrimary ? 1 : 0) - extraAnnualVisible.length);
+  const swingVisible = expanded ? swingRows : swingRows.slice(0, swingSlotLeft);
+
+  const totalRows = (hasAnnualPrimary ? 1 : 0) + extraAnnualWindows.length + swingRows.length;
+
+  const effectiveSwingNote = extraAnnualWindows.length > 0 && swingRows.length > 0
+    ? "Fenêtres swing glissantes secondaires"
+    : (swingRows.length > 0 ? swingHeaderNote : null);
+
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: titleColor,
+        opacity: 0.9,
+        marginBottom: "4px",
+      }}>
+        {title}
+      </div>
+      {headerNote && (
+        <div style={{ fontSize: "9.5px", color: C.textFaint, lineHeight: 1.55, marginBottom: headerNote2 ? "2px" : "5px" }}>
+          {headerNote}
         </div>
       )}
+      {headerNote2 && (
+        <div style={{ fontSize: "9px", color: C.textFaint, lineHeight: 1.45, marginBottom: "5px" }}>
+          {headerNote2}
+        </div>
+      )}
+      {totalRows === 0
+        ? (!headerNote && <div style={{ fontSize: "10px", color: C.textFaint }}>—</div>)
+        : (
+          <>
+            {hasAnnualPrimary && (
+              <AnnualPrimaryDetailRow bestAnnualWindow={bestAnnualWindow} />
+            )}
+            {extraAnnualVisible.map((w, i) => (
+              <BullishAnnualGridWindowRow
+                key={`bull-extra-${w.displayLabel ?? i}`}
+                window={w}
+              />
+            ))}
+            {effectiveSwingNote && (
+              <div style={{ fontSize: "9.5px", color: C.textFaint, lineHeight: 1.45, marginTop: (hasAnnualPrimary || extraAnnualWindows.length > 0) ? "4px" : 0, marginBottom: "4px" }}>
+                {effectiveSwingNote}
+              </div>
+            )}
+            {swingVisible.map((w, i) => (
+              <CompactAnnualWindowLine
+                key={`${w.displayLabel ?? "w"}-${i}`}
+                window={w}
+                isBullish={isBullish}
+                bestAnnualWindow={bestAnnualWindow}
+              />
+            ))}
+          </>
+        )}
+    </div>
+  );
+}
+
+function WindowDetailsSection({ bullRows, bearRows, bestAnnualWindow, bearHeaderNote, bearSubNote, bullishAnnualWindows = [] }) {
+  const [expanded, setExpanded] = useState(false);
+  const bestAnnualLabel = bestAnnualWindow?.window?.displayLabel;
+  const extraAnnualCount = bullishAnnualWindows.filter(
+    (w) => !bestAnnualLabel || w.displayLabel !== bestAnnualLabel,
+  ).length;
+  const swingBullCount = bestAnnualWindow?.window
+    ? bullRows.filter((w) => !windowsHaveSameDisplayLabel(w, bestAnnualWindow.window)).length
+    : bullRows.length;
+  const bullTotal = (bestAnnualWindow?.window ? 1 : 0) + extraAnnualCount + swingBullCount;
+  const maxLen = Math.max(bullTotal, bearRows.length);
+  const hasMore = maxLen > WINDOW_DETAILS_DEFAULT;
+  const bullSwingNote = swingBullCount > 0
+    ? "Fenêtres swing glissantes · robustesse tests glissants"
+    : null;
+
+  if (bullTotal === 0 && bearRows.length === 0) return null;
+
+  return (
+    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "7px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+        <div style={{
+          fontSize: "10px",
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: C.textMuted,
+        }}>
+          Détails fenêtres
+        </div>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: C.accentLight,
+              fontSize: "10px",
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            {expanded ? "Réduire" : "Voir détails"}
+          </button>
+        )}
+      </div>
+      <div className="sea-window-details-cols">
+        <WindowDetailsColumn
+          title="Haussières"
+          titleColor={C.green}
+          rows={bullRows}
+          isBullish
+          bestAnnualWindow={bestAnnualWindow}
+          expanded={expanded}
+          showAnnualPrimary
+          swingHeaderNote={bullSwingNote}
+          bullishAnnualWindows={bullishAnnualWindows}
+        />
+        <WindowDetailsColumn
+          title="Baissières"
+          titleColor={C.red}
+          rows={bearRows}
+          isBullish={false}
+          bestAnnualWindow={bestAnnualWindow}
+          expanded={expanded}
+          headerNote={bearHeaderNote}
+          headerNote2={bearSubNote}
+        />
+      </div>
     </div>
   );
 }
@@ -1160,7 +2538,11 @@ function SeasonalPreparationBlock({ upcoming, rsiMomentum, combinedReading }) {
   if (!upcoming?.window) return null;
   const w = upcoming.window;
   const label = seasonalWindowPrimaryLabel(w);
-  const details = formatWindowConfidenceDetails(w, "bullish");
+  const ret = getAnnualReturnForDisplay(w, true);
+  const picked = pickBestAnnualHorizonStats(w?.annualHorizons);
+  const annualDetail = picked
+    ? formatAnnualPrimaryLine(picked.stats, picked.key, true)
+    : null;
   const daysText = upcoming.daysUntil === 1 ? "1 jour" : `${upcoming.daysUntil} jours`;
 
   return (
@@ -1187,12 +2569,12 @@ function SeasonalPreparationBlock({ upcoming, rsiMomentum, combinedReading }) {
           <span style={{ color: C.accentLight, fontWeight: 600 }}> · {upcoming.distanceLabel}</span>
         )}
       </div>
-      <div style={{ fontSize: "11px", color: pctColor(getSwingDisplayReturn(w)), fontWeight: 700, marginBottom: "4px" }}>
-        {formatPct(getSwingDisplayReturn(w))} attendu historique
+      <div style={{ fontSize: "11px", color: pctColor(ret), fontWeight: 700, marginBottom: "4px" }}>
+        {formatPct(ret)} rendement annuel moyen
       </div>
-      {details && (
+      {annualDetail && (
         <div style={{ fontSize: "10px", color: C.textFaint, marginBottom: "8px", lineHeight: 1.45 }}>
-          {details}
+          {annualDetail}
         </div>
       )}
       {rsiMomentum && (
@@ -1219,174 +2601,194 @@ function SeasonalPreparationBlock({ upcoming, rsiMomentum, combinedReading }) {
   );
 }
 
-function SwingCompactSidePanel({
+function ActiveOrNextWindowBand({
   activeProgress,
-  windows,
   chart3yLoading,
   rsiMomentum,
-  upcoming,
-  combinedReading,
+  nextWindow,
+  primaryAnnualWindow,
 }) {
-  const bullish = getSwingOrDistinctBullish(windows ?? {});
-  const bearish = getSwingOrDistinctBearish(windows ?? {});
-  const bullRows = bullish.rows.slice(0, 2);
-  const bearRows = bearish.rows.slice(0, 2);
-  const active = activeProgress;
-  const hasWindows = bullRows.length > 0 || bearRows.length > 0;
-  const showPreparation = !active?.isActive && upcoming?.window;
-
   const miniLabel = {
-    fontSize: "11px",
+    fontSize: "10px",
     fontWeight: 700,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
     color: C.textMuted,
-    marginBottom: "6px",
+    marginBottom: "5px",
   };
-  const cellLabel = { fontSize: "10.5px", color: C.textFaint, marginBottom: "3px", fontWeight: 600 };
-  const cellVal = { fontSize: "15px", fontWeight: 700, color: C.text, lineHeight: 1.25 };
-  const cellValSecondary = { fontSize: "14px", fontWeight: 700, color: C.text, lineHeight: 1.25 };
+  const metricsStyle = {
+    fontSize: "10px",
+    color: C.textMuted,
+    lineHeight: 1.5,
+    marginTop: "4px",
+  };
   const typeBadge = (isBull) => ({
-    marginLeft: "8px",
-    fontSize: "10.5px",
+    marginLeft: "6px",
+    fontSize: "10px",
     fontWeight: 700,
-    padding: "3px 9px",
+    padding: "2px 7px",
     borderRadius: "10px",
     background: isBull ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
     border: `1px solid ${isBull ? "rgba(34,197,94,0.38)" : "rgba(239,68,68,0.38)"}`,
     color: isBull ? C.green : C.red,
     verticalAlign: "middle",
   });
-  const paceBadge = (pace) => {
-    const color = pace === "behind" ? C.yellow
-      : pace === "too_advanced" ? C.accentLight
-        : pace === "ahead" ? C.green
-          : C.text;
-    const bg = pace === "behind" ? "rgba(250,204,21,0.12)"
-      : pace === "too_advanced" ? "rgba(167,139,250,0.12)"
-        : pace === "ahead" ? "rgba(34,197,94,0.12)"
-          : "rgba(143,163,191,0.14)";
-    const border = pace === "behind" ? "rgba(250,204,21,0.32)"
-      : pace === "too_advanced" ? "rgba(167,139,250,0.32)"
-        : pace === "ahead" ? "rgba(34,197,94,0.32)"
-          : "rgba(143,163,191,0.28)";
-    return {
-      display: "inline-block",
-      fontSize: "12px",
-      fontWeight: 700,
-      padding: "3px 10px",
-      borderRadius: "10px",
-      background: bg,
-      border: `1px solid ${border}`,
-      color,
-    };
-  };
+
+  if (chart3yLoading) {
+    return (
+      <div style={{ padding: "6px 0", fontSize: "10.5px", color: C.textFaint }}>
+        Chargement fenêtre active…
+      </div>
+    );
+  }
+
+  if (activeProgress?.isActive) {
+    const isBull = activeProgress.type === "bullish";
+    const pace = CHART3Y_PACE_LABELS[activeProgress.paceStatus] ?? "—";
+    const rsi = rsiMomentum?.rsiCurrent != null ? rsiMomentum.rsiCurrent.toFixed(1) : "—";
+    const annualLabel = getWindowDisplayLabel(primaryAnnualWindow);
+    const activeDiffersFromAnnual = Boolean(
+      annualLabel
+      && activeProgress.displayLabel
+      && activeProgress.displayLabel !== annualLabel,
+    );
+    const parts = [
+      `Réalisé ${formatPct(activeProgress.realizedReturn)}`,
+      `Temps ${formatPctWhole(activeProgress.progressTimePct)}`,
+      `RSI ${rsi}`,
+      pace,
+    ];
+    return (
+      <div style={{
+        background: "rgba(139,92,246,0.08)",
+        border: `1px solid ${C.borderAccent}`,
+        borderRadius: "8px",
+        padding: "8px 10px",
+      }}>
+        <div style={{ ...miniLabel, color: C.accentLight }}>Fenêtre swing active</div>
+        <div style={{ fontSize: "9.5px", color: C.textFaint, marginBottom: "3px", lineHeight: 1.4 }}>
+          Suivie sur le graphique · tests glissants (≠ principale annuelle)
+        </div>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: C.text, lineHeight: 1.35 }}>
+          {activeProgress.displayLabel ?? "—"}
+          <span style={typeBadge(isBull)}>{isBull ? "Haussière" : "Baissière"}</span>
+        </div>
+        {activeDiffersFromAnnual && (
+          <div style={{ fontSize: "9.5px", color: C.textFaint, marginTop: "3px", lineHeight: 1.45 }}>
+            Fenêtre annuelle principale : <span style={{ color: C.textMuted }}>{annualLabel}</span>
+          </div>
+        )}
+        <div style={metricsStyle}>{parts.join(" | ")}</div>
+      </div>
+    );
+  }
+
+  if (!nextWindow?.window) {
+    return (
+      <div style={{ fontSize: "10.5px", color: C.textFaint, padding: "4px 0" }}>
+        Aucune fenêtre active ni prochaine fenêtre identifiée.
+      </div>
+    );
+  }
+
+  const w = nextWindow.window;
+  const isBull = nextWindow.direction !== "bearish";
+  const days = nextWindow.status?.daysUntilStart ?? 0;
+  const daysText = days === 1 ? "1 jour" : `${days} jours`;
+  const annualRet = getAnnualReturnForDisplay(w, isBull);
+
+  return (
+    <div style={{
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: "8px",
+      padding: "8px 10px",
+    }}>
+      <div style={miniLabel}>Prochaine fenêtre annuelle</div>
+      <div style={{ fontSize: "12px", fontWeight: 700, color: C.text, lineHeight: 1.35 }}>
+        {seasonalWindowPrimaryLabel(w)}
+        <span style={typeBadge(isBull)}>
+          {isBull ? "Haussière" : "Baissière / zone défavorable"}
+        </span>
+        {strengthTag(w?.strength) && (
+          <span style={{ color: C.textMuted, fontWeight: 500, marginLeft: "5px", fontSize: "10px" }}>
+            {strengthTag(w?.strength)}
+          </span>
+        )}
+      </div>
+      <div style={metricsStyle}>
+        Débute dans {daysText}
+        {typeof annualRet === "number" && (
+          <>
+            {" | "}
+            {isBull ? "Rendement annuel moyen" : "Baisse annuelle moyenne"} {formatPct(annualRet)}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SwingCompactSidePanel({
+  activeProgress,
+  windows,
+  chart3yLoading,
+  rsiMomentum,
+  combinedReading,
+}) {
+  const { primaryWindows: bullishAnnual, variantWindows } = useMemo(() => {
+    if (windows?.annualDisplayWindows) {
+      return {
+        primaryWindows: windows.annualDisplayWindows.bullish ?? [],
+        variantWindows: windows.annualDisplayWindows.bullishVariants ?? [],
+      };
+    }
+    return groupBullishAnnualWindowsForDisplay(windows?.bestBullishAnnualWindows);
+  }, [windows?.annualDisplayWindows, windows?.bestBullishAnnualWindows]);
+  const bearishAnnual = windows?.annualDisplayWindows?.bearishConfirmed
+    ?? windows?.bestBearishAnnualWindows
+    ?? [];
+  const recentVigilance = windows?.annualDisplayWindows?.vigilance
+    ?? windows?.recentBearishVigilance
+    ?? [];
+  const primaryAnnualWindow = bullishAnnual[0] ?? null;
 
   return (
     <div style={{
       background: C.cardInner,
       border: `1px solid ${C.border}`,
       borderRadius: "10px",
-      padding: "12px 14px",
+      padding: "9px 10px",
       display: "flex",
       flexDirection: "column",
-      gap: "11px",
+      gap: "7px",
       height: "100%",
       minHeight: 0,
     }}>
-      {/* Fenêtre active */}
-      <div>
-        <div style={miniLabel}>Fenêtre active</div>
-        {chart3yLoading ? (
-          <div style={{ fontSize: "11px", color: C.textFaint }}>Chargement…</div>
-        ) : active?.isActive ? (
-          <>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: C.text, marginBottom: "9px", lineHeight: 1.45 }}>
-              {active.displayLabel ?? "—"}
-              <span style={typeBadge(active.type === "bullish")}>
-                {active.type === "bullish" ? "Haussière" : "Baissière"}
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px 14px" }}>
-              <div>
-                <div style={cellLabel}>Attendu historique</div>
-                <div style={{ ...cellVal, color: active.type === "bullish" ? C.green : C.red }}>
-                  {formatPct(active.expectedReturn)}
-                </div>
-              </div>
-              <div>
-                <div style={cellLabel}>Réalisé actuel</div>
-                <div style={{ ...cellVal, color: active.realizedReturn >= 0 ? C.green : C.red }}>
-                  {formatPct(active.realizedReturn)}
-                </div>
-              </div>
-              <div>
-                <div style={cellLabel}>Temps écoulé</div>
-                <div style={cellValSecondary}>{formatPctWhole(active.progressTimePct)}</div>
-              </div>
-              <div>
-                <div style={cellLabel}>Rythme</div>
-                <div style={paceBadge(active.paceStatus)}>
-                  {CHART3Y_PACE_LABELS[active.paceStatus] ?? "—"}
-                </div>
-              </div>
-              {rsiMomentum && (
-                <>
-                  <div>
-                    <div style={cellLabel}>RSI 14</div>
-                    <div style={cellValSecondary}>{rsiMomentum.rsiCurrent.toFixed(1)}</div>
-                  </div>
-                  <div>
-                    <div style={cellLabel}>Momentum</div>
-                    <div style={{ ...cellValSecondary, color: C.accentLight, fontSize: "13px" }}>
-                      {rsiMomentum.shortLabel ?? rsiMomentum.label}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            {combinedReading?.headline && (
-              <div style={{
-                marginTop: "8px",
-                fontSize: "10px",
-                color: C.textFaint,
-                fontStyle: "italic",
-                lineHeight: 1.5,
-              }}>
-                {combinedReading.headline}
-                {combinedReading.detail ? ` — ${combinedReading.detail}` : ""}
-              </div>
-            )}
-          </>
-        ) : (
-          <div style={{ fontSize: "11px", color: C.textMuted }}>Aucune fenêtre swing active</div>
-        )}
-      </div>
+      <RealAnnualSeasonalityHeader />
 
-      {showPreparation && (
-        <SeasonalPreparationBlock
-          upcoming={upcoming}
-          rsiMomentum={rsiMomentum}
-          combinedReading={combinedReading}
-        />
-      )}
+      <AnnualRealSection
+        title="Fenêtres annuelles haussières"
+        titleColor={C.green}
+        windows={bullishAnnual}
+        isBullish
+        emptyMessage="Aucune fenêtre haussière annuelle confirmée détectée."
+      />
 
-      {hasWindows && (
-        <>
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "9px" }}>
-            <div style={{ ...miniLabel, color: C.green, opacity: 0.9 }}>Haussières</div>
-            {bullRows.length === 0
-              ? <div style={{ fontSize: "11px", color: C.textFaint }}>—</div>
-              : bullRows.map((w, i) => <CompactWindowLine key={i} window={w} isBullish />)}
-          </div>
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: "9px" }}>
-            <div style={{ ...miniLabel, color: C.red, opacity: 0.9 }}>Baissières</div>
-            {bearRows.length === 0
-              ? <div style={{ fontSize: "11px", color: C.textFaint }}>—</div>
-              : bearRows.map((w, i) => <CompactWindowLine key={i} window={w} isBullish={false} />)}
-          </div>
-        </>
-      )}
+      <BearishAnnualRealSection
+        confirmedWindows={bearishAnnual}
+        vigilanceWindows={recentVigilance}
+      />
+
+      <AdvancedGlidingDiagnosticSection
+        windows={windows}
+        activeProgress={activeProgress}
+        chart3yLoading={chart3yLoading}
+        rsiMomentum={rsiMomentum}
+        primaryAnnualWindow={primaryAnnualWindow}
+        variantWindows={variantWindows}
+        combinedReading={combinedReading}
+      />
     </div>
   );
 }
@@ -1395,144 +2797,165 @@ function SwingCompactSidePanel({
 // TODO(Patch-2C): afficher « Réalisé cette année » et « Écart vs attendu » quand
 // prix début fenêtre active + prix courant seront exposés par l'API graphique 3 ans.
 
-function SwingWindowsList({ rows, isBullish, activeWindows }) {
+function SwingWindowsList({ rows, isBullish, activeWindows, bestAnnualWindow }) {
   if (!rows?.length) {
     return <div style={{ padding:"12px 0", fontSize:"11px", color:C.textFaint, textAlign:"center" }}>Aucune fenêtre</div>;
   }
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-      {rows.map((sw, i) => {
-        const isActive = activeWindows?.some(
-          (a) => a.displayLabel && sw.displayLabel && a.displayLabel === sw.displayLabel,
-        );
-        return (
-        <div
-          key={i}
-          title={formatHorizonStatsMatrix(sw?.horizonStats, isBullish) ?? undefined}
-          style={{
-            background:C.cardInner,
-            border:`1px solid ${C.border}`,
-            borderRadius:"8px",
-            padding:"10px 12px",
-          }}
-        >
-          <div style={{ fontSize:"12.5px", fontWeight:700, color:C.text, marginBottom:"5px" }}>
-            {sw.displayLabel || `${sw.startLabel} → ${sw.endLabel}`}
-            {sw.durationWeeks ? (
-              <span style={{ fontWeight:500, color:C.textMuted }}> · ~{sw.durationWeeks} sem.</span>
-            ) : null}
-          </div>
-          <div style={{ fontSize:"11px", color:C.textMuted, lineHeight:1.55 }}>
-            <span style={{ color:pctColor(getSwingDisplayReturn(sw)), fontWeight:600 }}>{formatPct(getSwingDisplayReturn(sw))}</span>
-            {" · "}
-            <span>
-              {(() => {
-                const dirRate = getDirectionalWinRate(sw, isBullish ? "bullish" : "bearish");
-                const typeWord = isBullish ? "haussier" : "baissier";
-                return dirRate != null
-                  ? `${Math.round(dirRate * 100)} % ${typeWord}`
-                  : `${isBullish ? "Win" : "% haussier"} ${formatWinRate(sw.winRate)}`;
-              })()}
-            </span>
-            {" · "}
-            <span>Pire {formatPct(sw.worstReturn)}</span>
-            {" · "}
-            <span style={{ fontWeight:600 }}>
-              {getWindowDisplayConfidence(sw)}
-            </span>
-          </div>
-          {sw.confidenceReason && (
-            <div style={{ fontSize:"10px", color:C.yellow, marginTop:"3px" }}>
-              {sw.confidenceReason}
-            </div>
-          )}
-          {isActive && typeof getSwingDisplayReturn(sw) === "number" && (
-            <div style={{ fontSize:"10px", color:C.textMuted, marginTop:"4px" }}>
-              Attendu historique : {formatPct(getSwingDisplayReturn(sw))}
-            </div>
-          )}
-          {formatHorizonConfirmedLine(sw) && (
-            <div style={{ fontSize:"10px", color:C.accentLight, marginTop:"4px", fontWeight:600 }}>
-              {formatHorizonConfirmedLine(sw)}
-            </div>
-          )}
-          <div style={{ fontSize:"9.5px", color:C.textFaint, marginTop:"3px", fontStyle:"italic" }}>
-            {momentumHintShort(sw, isBullish)}
-          </div>
-        </div>
-        );
-      })}
+    <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+      {rows.map((sw, i) => (
+        <SoberSeasonalWindowRow
+          key={`${sw.displayLabel ?? "w"}-${i}`}
+          window={sw}
+          isBullish={isBullish}
+          bestAnnualWindow={bestAnnualWindow}
+        />
+      ))}
     </div>
   );
 }
 
-function BestWorstWindowsCard({ windows }) {
+function BullishAnnualSection({ windows, bestAnnualWindow }) {
+  const [showSwing, setShowSwing] = useState(false);
+  const strongAnnual = windows?.bestBullishAnnualWindows ?? [];
+  const swingBull = windows?.swingWindows?.bullish ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {strongAnnual.length > 0 ? (
+        strongAnnual.map((w, i) => (
+          <BullishAnnualGridWindowRow
+            key={`bull-annual-${w.displayLabel ?? i}`}
+            window={w}
+          />
+        ))
+      ) : (
+        <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "8px", lineHeight: 1.55, padding: "4px 0" }}>
+          Aucune fenêtre haussière annuelle confirmée détectée.
+        </div>
+      )}
+      {swingBull.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowSwing((v) => !v)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: C.textFaint,
+              fontSize: "10px",
+              cursor: "pointer",
+              padding: 0,
+              marginBottom: showSwing ? "6px" : 0,
+            }}
+          >
+            {showSwing ? "Masquer swing glissant" : "Voir swing glissant"}
+          </button>
+          {showSwing && swingBull.map((w, i) => (
+            <SoberGlidingWeakRow
+              key={`swing-bull-${w.displayLabel ?? i}`}
+              window={w}
+              isBullish={true}
+              bestAnnualWindow={bestAnnualWindow}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BearishAnnualSection({ windows, bestAnnualWindow }) {
+  const [showWeak, setShowWeak] = useState(false);
+  const strongAnnual = windows?.bestBearishAnnualWindows ?? [];
+  const swingWeak = windows?.swingWindows?.bearish ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {strongAnnual.length > 0 ? (
+        strongAnnual.map((w, i) => (
+          <SoberSeasonalWindowRow
+            key={`bear-annual-${w.displayLabel ?? i}`}
+            window={w}
+            isBullish={false}
+            bestAnnualWindow={bestAnnualWindow}
+          />
+        ))
+      ) : (
+        <div style={{ fontSize: "10px", color: C.textMuted, marginBottom: "8px", lineHeight: 1.55, padding: "4px 0" }}>
+          Aucune fenêtre baissière annuelle confirmée détectée.
+        </div>
+      )}
+
+      {strongAnnual.length === 0 && swingWeak.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowWeak((v) => !v)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: C.textFaint,
+              fontSize: "10px",
+              cursor: "pointer",
+              padding: 0,
+              marginBottom: showWeak ? "6px" : 0,
+            }}
+          >
+            {showWeak ? "Masquer faiblesses glissantes non confirmées" : "Voir faiblesses glissantes non confirmées"}
+          </button>
+          {showWeak && swingWeak.map((w, i) => (
+            <SoberGlidingWeakRow
+              key={`weak-${w.displayLabel ?? i}`}
+              window={w}
+              isBullish={false}
+              bestAnnualWindow={bestAnnualWindow}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BestWorstWindowsCard({ windows, bestAnnualWindow }) {
   const hasData = windows?.horizons?.length || windows?.distinct || windows?.swingWindows;
   if (!hasData) {
     return <div style={{ color:C.textFaint, fontSize:"12px", padding:"16px 0" }}>Fenêtres non disponibles.</div>;
   }
 
   const bullish = getSwingOrDistinctBullish(windows);
-  const bearish = getSwingOrDistinctBearish(windows);
-  const thBase = { padding:"5px 7px", fontSize:"9px", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:C.textFaint, borderBottom:`1px solid ${C.border}`, background:C.cardInner };
-  const tdBase = { padding:"7px 7px", fontSize:"11px", color:C.text, borderBottom:`1px solid rgba(120,150,190,0.07)`, verticalAlign:"middle" };
-  const MiniTable = ({ rows, isBullish }) => (
-    <table style={{ width:"100%", borderCollapse:"collapse" }}>
-      <thead>
-        <tr>
-          <th style={{ ...thBase, textAlign:"center" }}>#</th>
-          <th style={{ ...thBase, textAlign:"left" }}>Fenêtre</th>
-          <th style={{ ...thBase, textAlign:"right" }}>% Haussier</th>
-          <th style={{ ...thBase, textAlign:"right" }}>Rend. moy.</th>
-          <th style={{ ...thBase, textAlign:"right" }}>Pire rend.</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          <tr><td colSpan={5} style={{ padding:"12px", textAlign:"center", fontSize:"11px", color:C.textFaint }}>Aucune fenêtre</td></tr>
-        ) : rows.map((w, i) => (
-          <tr key={i}>
-            <td style={{ ...tdBase, textAlign:"center", color:C.textFaint }}>{i + 1}</td>
-            <td style={{ ...tdBase, fontWeight:500 }}>
-              <SeasonalWindowLabel window={w} />
-            </td>
-            <td style={{ ...tdBase, textAlign:"right" }}>{formatWinRate(w.winRate)}</td>
-            <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.avgReturn), fontWeight:600 }}>{formatPct(w.avgReturn)}</td>
-            <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.worstReturn) }}>{formatPct(w.worstReturn)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-  const bullishTitle = bullish.mode === "swing"
-    ? "Meilleures fenêtres haussières — swing 5 à 17 semaines"
-    : "Meilleures fenêtres haussières";
-  const bearishTitle = bearish.mode === "swing"
-    ? "Pires fenêtres baissières — swing 5 à 17 semaines"
-    : "Pires fenêtres baissières";
+  const strongBullishCount = windows?.bestBullishAnnualWindows?.length ?? 0;
+  const strongBearishCount = windows?.bestBearishAnnualWindows?.length ?? 0;
+  const bullishAnnualTitle = strongBullishCount > 0
+    ? "Fenêtres haussières annuelles"
+    : "Haussières — annuel réel";
+  const bearishTitle = strongBearishCount > 0
+    ? "Fenêtres baissières annuelles"
+    : "Baissières — annuel réel";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:"14px" }}>
       <SeasonalWideContextLine windows={windows} />
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" }}>
         <SectionHeader
-          title={bullishTitle}
+          title={bullishAnnualTitle}
           icon={TrendingUp}
-          right={`${bullish.rows.length} fenêtre${bullish.rows.length > 1 ? "s" : ""}`}
+          right={strongBullishCount > 0
+            ? `${strongBullishCount} fenêtre${strongBullishCount > 1 ? "s" : ""}`
+            : "0 confirmée"}
         />
-        {bullish.mode === "swing"
-          ? <SwingWindowsList rows={bullish.rows} isBullish={true} activeWindows={windows?.summary?.activeNow} />
-          : <div style={{ overflowX:"auto" }}><MiniTable rows={bullish.rows} isBullish={true} /></div>}
+        <BullishAnnualSection windows={windows} bestAnnualWindow={bestAnnualWindow} />
       </div>
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" }}>
         <SectionHeader
           title={bearishTitle}
           icon={TrendingDown}
-          right={`${bearish.rows.length} fenêtre${bearish.rows.length > 1 ? "s" : ""}`}
+          right={strongBearishCount > 0
+            ? `${strongBearishCount} fenêtre${strongBearishCount > 1 ? "s" : ""}`
+            : "0 confirmée"}
         />
-        {bearish.mode === "swing"
-          ? <SwingWindowsList rows={bearish.rows} isBullish={false} activeWindows={windows?.summary?.activeNow} />
-          : <div style={{ overflowX:"auto" }}><MiniTable rows={bearish.rows} isBullish={false} /></div>}
+        <BearishAnnualSection windows={windows} bestAnnualWindow={bestAnnualWindow} />
       </div>
     </div>
   );
@@ -2044,9 +3467,14 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
 
   const cardStyle = { background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" };
   const hasData   = !loading && (calendarData || shortTermData || windowsData);
-  const chart3yEnriched = useMemo(
-    () => enrichChart3yWithWindowStats(chart3yData, windowsData),
-    [chart3yData, windowsData],
+  const chart3yForDisplay = useMemo(() => {
+    if (!chart3yData?.ok && !chart3yData?.priceSeries) return chart3yData;
+    return chart3yData;
+  }, [chart3yData]);
+
+  const annualDisplayWindows = useMemo(
+    () => windowsData?.annualDisplayWindows ?? null,
+    [windowsData?.annualDisplayWindows],
   );
 
   const rsiSeries = useMemo(
@@ -2074,6 +3502,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         .sea-nav-btn:hover { background: rgba(139,92,246,0.1) !important; color: ${C.textMuted} !important; }
         .sea-refresh-btn:hover { opacity:0.85; }
         .sea-swing-row { display: grid; grid-template-columns: minmax(0, 1.58fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
+        .sea-window-details-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
         .sea-universe-chip:hover { background: rgba(139,92,246,0.12) !important; color: ${C.text} !important; border-color: ${C.borderAccent} !important; }
         .sea-universe-chips::-webkit-scrollbar { height: 3px; }
         .sea-universe-chips::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.35); border-radius: 2px; }
@@ -2083,6 +3512,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         }
         @media (max-width: 960px) {
           .sea-swing-row { grid-template-columns: 1fr; }
+          .sea-window-details-cols { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -2255,13 +3685,16 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
               <div className="sea-swing-row">
                 <div style={cardStyle}>
                   <SectionHeader
-                    title="Carte swing saisonnière — haussier / baissier"
+                    title="Carte saisonnière annuelle"
                     icon={Activity}
-                    info="Zones vertes/rouges = fenêtres swing 5–17 sem. · Ligne = rendement cumulé moyen par mois."
+                    info="Zones = fenêtres du panneau Saisonnalité annuelle réelle · ligne = rendement cumulé moyen par mois."
                     right={calendarData?.summary ? `${calendarData.summary.yearsCovered} ans d'historique` : undefined}
                   />
+                  <div style={{ fontSize: "10.5px", color: C.textMuted, marginBottom: "8px", lineHeight: 1.4 }}>
+                    Zones = fenêtres du panneau Saisonnalité annuelle réelle · ligne = saisonnalité cumulée moyenne.
+                  </div>
                   {calendarData?.months
-                    ? <CumulativeLineChart months={calendarData.months} swingWindows={windowsData?.swingWindows} />
+                    ? <CumulativeLineChart months={calendarData.months} annualDisplayWindows={annualDisplayWindows} />
                     : <div style={{ textAlign:"center", padding:"36px 0", color:C.textFaint, fontSize:"12px" }}>Courbe cumulée non disponible — endpoint /calendar requis.</div>
                   }
                   <div style={{ marginTop:"6px", fontSize:"9.5px", color:C.textFaint }}>
@@ -2273,7 +3706,6 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
                   windows={windowsData}
                   chart3yLoading={chart3yLoading}
                   rsiMomentum={rsiMomentum}
-                  upcoming={upcomingBullish}
                   combinedReading={combinedMomentumReading}
                 />
               </div>
@@ -2282,16 +3714,16 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
               {ticker && (chart3yLoading || chart3yData || chart3yError) && (
                 <div style={cardStyle}>
                   <SectionHeader
-                    title="Graphique 3 ans — prix réel et fenêtres saisonnières"
+                    title="Graphique 3 ans — prix réel et fenêtres annuelles"
                     icon={BarChart2}
-                    info="Prix daily 3 ans avec occurrences réelles des fenêtres swing haussières et baissières."
+                    info="Prix daily 3 ans · bandes = fenêtres annuelles du panneau · rendements par année civile."
                     right={chart3yData?.range ? `${chart3yData.range.years} ans` : undefined}
                   />
                   <div style={{ fontSize: "10.5px", color: C.textMuted, marginBottom: "8px", lineHeight: 1.4 }}>
-                    Prix réel 3 ans avec occurrences saisonnières.
+                    Prix réel 3 ans · bandes = fenêtres annuelles du panneau · rendements par année civile.
                   </div>
                   <ThreeYearSeasonalityChart
-                    data={chart3yEnriched}
+                    data={chart3yForDisplay}
                     loading={chart3yLoading}
                     error={chart3yError}
                     symbol={ticker}

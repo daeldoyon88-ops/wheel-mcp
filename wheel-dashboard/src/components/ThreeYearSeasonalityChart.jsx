@@ -1,5 +1,5 @@
 /**
- * Graphique 3 ans — prix réel + fenêtres swing saisonnières (Patch 2C-C).
+ * Graphique 3 ans — prix réel + fenêtres annuelles officielles (panneau Saisonnalité annuelle réelle).
  * SVG maison, thème sombre cohérent avec SeasonalityPanel.
  */
 import React, { useMemo, useState, useCallback, useRef } from "react";
@@ -14,6 +14,7 @@ const C = {
   green:       "#22c55e",
   red:         "#ef4444",
   yellow:      "#facc15",
+  amber:       "#f59e0b",
   text:        "#e5edf8",
   textMuted:   "#8fa3bf",
   textFaint:   "#4a6580",
@@ -324,46 +325,62 @@ function getDirectionalWinRate(source, type) {
   return isBullish ? winRate : 1 - winRate;
 }
 
+function getChartOverlays(data) {
+  return data?.annualOverlays ?? [];
+}
+
+function overlayTypeLabel(type) {
+  if (type === "bullish") return "Fenêtre annuelle haussière";
+  if (type === "vigilance") return "Vigilance récente — non confirmée long terme";
+  return "Fenêtre annuelle baissière confirmée";
+}
+
+function overlayTypeColor(type) {
+  if (type === "bullish") return C.green;
+  if (type === "vigilance") return C.amber;
+  return C.red;
+}
+
 function buildHistoricalContextLines(overlay) {
   const lines = [];
-  const sample = getSampleSize(overlay);
-  const occLabel = formatOccurrenceCount(sample);
-  const horizonSuffix = overlay.primaryHorizon ? ` ${overlay.primaryHorizon}` : "";
-  if (occLabel) {
+  lines.push({
+    text: overlayTypeLabel(overlay.type),
+    color: overlayTypeColor(overlay.type),
+    bold: true,
+  });
+
+  const realYears = (overlay.occurrences ?? []).filter(
+    (o) => o.status === "complete" && o.realizedReturn != null,
+  ).length;
+  if (realYears > 0) {
     lines.push({
-      text: `Historique principal : ${occLabel}${horizonSuffix}`,
+      text: realYears === 1
+        ? "1 rendement par année civile"
+        : `${realYears} rendements par année civile`,
       color: C.textMuted,
     });
   }
-  const rateFrac = getDirectionalWinRate(overlay, overlay.type);
-  if (rateFrac != null) {
-    const typeWord = overlay.type === "bullish" ? "haussier" : "baissier";
+
+  if (typeof overlay.expectedReturn === "number" && isFinite(overlay.expectedReturn)) {
     lines.push({
-      text: `Réussite : ${Math.round(rateFrac * 100)} % ${typeWord}`,
-      color: C.textMuted,
+      text: `Rendement annuel moyen : ${formatPct(overlay.expectedReturn)}`,
+      color: overlayTypeColor(overlay.type),
     });
   }
-  const conf = getDisplayConfidence(
-    overlay.confidence,
-    sample,
-    overlay.multiHorizonConfidence,
-  );
-  if (conf && conf !== "—") {
-    lines.push({ text: `Confiance : ${conf}`, color: C.textFaint });
+
+  if (overlay.strength) {
+    lines.push({ text: `Force : ${overlay.strength}`, color: C.textFaint });
   }
-  if (Array.isArray(overlay.confirmedHorizons) && overlay.confirmedHorizons.length) {
-    lines.push({
-      text: `Confirmée : ${overlay.confirmedHorizons.join(" / ")}`,
-      color: C.accentLight,
-    });
+  if (overlay.type === "vigilance" && overlay.status) {
+    lines.push({ text: `Statut : ${overlay.status}`, color: C.textFaint });
   }
-  lines.push(...formatHorizonStatsMatrix(overlay.horizonStats, overlay.type === "bullish"));
+
   return lines;
 }
 
 function findMixedZones(bands) {
   const bullish = bands.filter((b) => b.type === "bullish");
-  const bearish = bands.filter((b) => b.type === "bearish");
+  const bearish = bands.filter((b) => b.type === "bearish" || b.type === "vigilance");
   const mixed = [];
   for (const bull of bullish) {
     for (const bear of bearish) {
@@ -523,13 +540,21 @@ function ActiveWindowSummary({ active }) {
         fontSize: "11.5px",
         color: C.textMuted,
       }}>
-        Aucune fenêtre swing active aujourd&apos;hui.
+        Aucune fenêtre annuelle active aujourd&apos;hui.
       </div>
     );
   }
 
-  const typeLabel = active.type === "bullish" ? "Haussière" : "Baissière";
-  const typeColor = active.type === "bullish" ? C.green : C.red;
+  const typeLabel = active.type === "bullish"
+    ? "Haussière"
+    : active.type === "vigilance"
+      ? "Vigilance récente"
+      : "Baissière";
+  const typeColor = active.type === "bullish"
+    ? C.green
+    : active.type === "vigilance"
+      ? C.amber
+      : C.red;
   const paceLabel = PACE_LABELS[active.paceStatus] ?? active.paceStatus ?? "—";
   const interpretation = buildInterpretation(active);
 
@@ -551,11 +576,19 @@ function ActiveWindowSummary({ active }) {
     }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", marginBottom: "10px" }}>
         <span style={{ fontSize: "12.5px", fontWeight: 700, color: C.text }}>
-          Fenêtre active : {active.displayLabel ?? formatDateRangeShort(active.startDate, active.endDate)}
+          Fenêtre annuelle active : {active.displayLabel ?? formatDateRangeShort(active.startDate, active.endDate)}
         </span>
         <span style={{
-          background: active.type === "bullish" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-          border: `1px solid ${active.type === "bullish" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+          background: active.type === "bullish"
+            ? "rgba(34,197,94,0.12)"
+            : active.type === "vigilance"
+              ? "rgba(245,158,11,0.12)"
+              : "rgba(239,68,68,0.12)",
+          border: `1px solid ${active.type === "bullish"
+            ? "rgba(34,197,94,0.3)"
+            : active.type === "vigilance"
+              ? "rgba(245,158,11,0.35)"
+              : "rgba(239,68,68,0.3)"}`,
           color: typeColor,
           borderRadius: "20px",
           padding: "2px 10px",
@@ -567,7 +600,7 @@ function ActiveWindowSummary({ active }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px 16px" }}>
         <div>
-          <div style={statStyle}>Attendu historique</div>
+          <div style={statStyle}>Rendement annuel moyen</div>
           <div style={{ ...valStyle, color: typeColor }}>{formatPct(active.expectedReturn)}</div>
         </div>
         <div>
@@ -704,7 +737,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
     });
 
     const overlayBands = [];
-    for (const overlay of data?.swingOverlays ?? []) {
+    for (const overlay of getChartOverlays(data)) {
       for (const occ of overlay.occurrences ?? []) {
         const clipped = clipDates(occ.startDate, occ.endDate, rangeStart, rangeEnd);
         if (!clipped) continue;
@@ -798,8 +831,8 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
             y: my,
             bandKey: band.key,
             lines: [
-              { text: `Fenêtre active : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
-              { text: `Attendu long terme : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
+              { text: `${overlayTypeLabel(overlay.type)} : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
+              { text: `Rendement annuel moyen : ${formatPct(overlay.expectedReturn)}`, color: overlayTypeColor(overlay.type) },
               { text: `Réalisé depuis début fenêtre : ${formatPct(occ.realizedReturn ?? activeProgress?.realizedReturn)}`, color: (occ.realizedReturn ?? activeProgress?.realizedReturn ?? 0) >= 0 ? C.green : C.red },
               ...historyLines,
               ...(activeProgress?.progressTimePct != null
@@ -816,10 +849,10 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
             y: my,
             bandKey: band.key,
             lines: [
-              { text: `Fenêtre : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
-              ...(occ.year ? [{ text: `Occurrence : ${occ.year}`, color: C.textMuted }] : []),
-              { text: `Attendu long terme : ${formatPct(overlay.expectedReturn)}`, color: overlay.type === "bullish" ? C.green : C.red },
-              { text: `Réalisé occurrence : ${formatPct(occ.realizedReturn)}`, color: occ.realizedReturn >= 0 ? C.green : C.red },
+              { text: `${overlayTypeLabel(overlay.type)} : ${formatDateRangeShort(occ.startDate, occ.endDate)}`, bold: true, color: C.text },
+              ...(occ.year ? [{ text: `Année civile : ${occ.year}`, color: C.textMuted }] : []),
+              { text: `Rendement de cette année : ${formatPct(occ.realizedReturn)}`, color: occ.realizedReturn >= 0 ? C.green : C.red },
+              { text: `Rendement annuel moyen : ${formatPct(overlay.expectedReturn)}`, color: overlayTypeColor(overlay.type) },
               ...historyLines,
               { text: `Statut : ${STATUS_LABELS[occ.status] ?? occ.status}`, color: C.textMuted },
             ],
@@ -960,15 +993,20 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
       <g clipPath="url(#chartClip)">
         {overlayBands.map((band) => {
           const isBull = band.type === "bullish";
+          const isVigilance = band.type === "vigilance";
           const inProgress = band.status === "in_progress";
           const isHovered = hoveredBandKey === band.key;
           const fill = isBull
             ? (inProgress ? "rgba(34,197,94,0.10)" : "rgba(34,197,94,0.06)")
-            : (inProgress ? "rgba(239,68,68,0.10)" : "rgba(239,68,68,0.06)");
+            : isVigilance
+              ? (inProgress ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.08)")
+              : (inProgress ? "rgba(239,68,68,0.10)" : "rgba(239,68,68,0.06)");
           const showBorder = inProgress || isHovered;
           const stroke = isBull
             ? (inProgress ? "rgba(34,197,94,0.50)" : "rgba(34,197,94,0.35)")
-            : (inProgress ? "rgba(239,68,68,0.50)" : "rgba(239,68,68,0.35)");
+            : isVigilance
+              ? (inProgress ? "rgba(245,158,11,0.55)" : "rgba(245,158,11,0.4)")
+              : (inProgress ? "rgba(239,68,68,0.50)" : "rgba(239,68,68,0.35)");
           return (
             <g key={band.key}>
               <rect
@@ -1019,6 +1057,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
       <g clipPath="url(#chartClip)" style={{ pointerEvents: "none" }}>
         {overlayBands.filter((b) => b.showLabel).map((band) => {
           const isBull = band.type === "bullish";
+          const isVigilance = band.type === "vigilance";
           const inProgress = band.status === "in_progress";
           const baseY = inProgress ? 14 : 12;
           const yOff = band.labelYOffset ?? 0;
@@ -1029,7 +1068,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
               y={PAD.top + baseY + yOff}
               textAnchor="middle"
               fontSize="7"
-              fill={isBull ? C.green : C.red}
+              fill={isBull ? C.green : isVigilance ? C.amber : C.red}
               fontWeight="700"
               opacity={inProgress ? 0.95 : 0.82}
             >
@@ -1250,11 +1289,15 @@ function ChartLegend({ showRsi = false }) {
       </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
         <span style={{ width: 12, height: 10, borderRadius: 2, background: "rgba(34,197,94,0.35)", border: "1px solid rgba(34,197,94,0.5)" }} />
-        Fenêtre haussière
+        Fenêtre annuelle haussière
       </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
         <span style={{ width: 12, height: 10, borderRadius: 2, background: "rgba(239,68,68,0.35)", border: "1px solid rgba(239,68,68,0.5)" }} />
-        Fenêtre baissière
+        Fenêtre annuelle baissière confirmée
+      </span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+        <span style={{ width: 12, height: 10, borderRadius: 2, background: "rgba(245,158,11,0.35)", border: "1px solid rgba(245,158,11,0.5)" }} />
+        Vigilance récente
       </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
         <span style={{ width: 12, height: 10, borderRadius: 2, background: "rgba(34,197,94,0.2)", border: "1px dashed rgba(34,197,94,0.55)" }} />

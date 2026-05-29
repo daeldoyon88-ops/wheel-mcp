@@ -56,6 +56,8 @@ const FR_MONTH_PARSE = [
   ["mai", 5], ["juin", 6], ["juil", 7], ["jul", 7], ["août", 8], ["aout", 8], ["aoû", 8],
   ["sep", 9], ["sept", 9], ["oct", 10], ["nov", 11], ["déc", 12], ["dec", 12],
 ];
+// Cache frontend TTL = 4h (synchrone avec le backend RESULT_CACHE_TTL_MS)
+const SEASONALITY_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 // ─── Utilitaires ───────────────────────────────────────────────────────────────
 function formatPct(val, signed = true) {
@@ -1407,79 +1409,95 @@ function MonthlyBarChart({ months }) {
 
 // ─── Courbe cumulée (+ zones annuelles officielles) ─────────────────────────────
 function CumulativeLineChart({ months, annualDisplayWindows }) {
-  if (!months?.length) return <div style={{ color:C.textFaint, textAlign:"center", padding:"36px 0", fontSize:"12px" }}>Courbe cumulée non disponible</div>;
-  const aligned = MONTH_ABBREV.map((label, i) => {
-    const m = months.find((x) => x.month === i + 1);
-    return { label, avgReturn: m?.avgReturn ?? 0 };
-  });
-  const cumPoints = [{ label:"Départ", cum:0 }];
-  let cum = 0;
-  for (const m of aligned) { cum += m.avgReturn; cumPoints.push({ label:m.label, cum }); }
-  const W = 600, H = 185;
-  const PAD = { left:40, right:18, top:32, bottom:28 };
-  const chartW = W - PAD.left - PAD.right;
-  const chartH = H - PAD.top - PAD.bottom;
-  const chartRight = W - PAD.right;
-  const chartLeft = PAD.left;
-  const minV = Math.min(...cumPoints.map((p) => p.cum), -0.02);
-  const maxV = Math.max(...cumPoints.map((p) => p.cum), 0.05);
-  const range = maxV - minV || 0.1;
-  const xOf = (i) => PAD.left + (i / (cumPoints.length - 1)) * chartW;
-  const xOfDay = (doy) => PAD.left + ((Math.min(365, Math.max(1, doy)) - 1) / 364) * chartW;
-  const yOf = (v) => PAD.top + (1 - (v - minV) / range) * chartH;
-  const linePath = cumPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(i).toFixed(1)} ${yOf(p.cum).toFixed(1)}`).join(" ");
-  const zeroY = yOf(0);
-  const areaPath = `${linePath} L ${xOf(cumPoints.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${xOf(0).toFixed(1)} ${zeroY.toFixed(1)} Z`;
-  const gridLines = Array.from({ length: 5 }, (_, i) => { const v = minV + (range / 4) * i; return { v, y: yOf(v) }; });
-  const finalColor = cum >= 0 ? "#8b5cf6" : C.red;
+  const geo = useMemo(() => {
+    if (!months?.length) return null;
+    const aligned = MONTH_ABBREV.map((label, i) => {
+      const m = months.find((x) => x.month === i + 1);
+      return { label, avgReturn: m?.avgReturn ?? 0 };
+    });
+    const cumPoints = [{ label:"Départ", cum:0 }];
+    let cum = 0;
+    for (const m of aligned) { cum += m.avgReturn; cumPoints.push({ label:m.label, cum }); }
+    const W = 600, H = 185;
+    const PAD = { left:40, right:18, top:32, bottom:28 };
+    const chartW = W - PAD.left - PAD.right;
+    const chartH = H - PAD.top - PAD.bottom;
+    const chartRight = W - PAD.right;
+    const chartLeft = PAD.left;
+    const minV = Math.min(...cumPoints.map((p) => p.cum), -0.02);
+    const maxV = Math.max(...cumPoints.map((p) => p.cum), 0.05);
+    const range = maxV - minV || 0.1;
+    const xOf = (i) => PAD.left + (i / (cumPoints.length - 1)) * chartW;
+    const xOfDay = (doy) => PAD.left + ((Math.min(365, Math.max(1, doy)) - 1) / 364) * chartW;
+    const yOf = (v) => PAD.top + (1 - (v - minV) / range) * chartH;
+    const linePath = cumPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(i).toFixed(1)} ${yOf(p.cum).toFixed(1)}`).join(" ");
+    const zeroY = yOf(0);
+    const areaPath = `${linePath} L ${xOf(cumPoints.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${xOf(0).toFixed(1)} ${zeroY.toFixed(1)} Z`;
+    const gridLines = Array.from({ length: 5 }, (_, i) => { const v = minV + (range / 4) * i; return { v, y: yOf(v) }; });
+    const finalColor = cum >= 0 ? "#8b5cf6" : C.red;
 
-  const annualZones = [];
-  (annualDisplayWindows?.bullish ?? []).forEach((w, i) => {
-    const rangeDOY = resolveSwingDayRange(w);
-    if (rangeDOY) {
-      annualZones.push({
-        ...rangeDOY,
-        kind: "bullish",
-        label: w.displayLabel ?? `Haussier annuel #${i + 1}`,
-        shortLabel: "Haussier annuel",
-        avgReturn: getAnnualReturnForZone(w, "bullish"),
-      });
-    }
-  });
-  (annualDisplayWindows?.bearishConfirmed ?? []).forEach((w, i) => {
-    const rangeDOY = resolveSwingDayRange(w);
-    if (rangeDOY) {
-      annualZones.push({
-        ...rangeDOY,
-        kind: "bearish",
-        label: w.displayLabel ?? `Baissier annuel #${i + 1}`,
-        shortLabel: "Baissier annuel confirmé",
-        avgReturn: getAnnualReturnForZone(w, "bearish"),
-      });
-    }
-  });
-  (annualDisplayWindows?.vigilance ?? []).forEach((w, i) => {
-    const rangeDOY = resolveSwingDayRange(w);
-    if (rangeDOY) {
-      annualZones.push({
-        ...rangeDOY,
-        kind: "vigilance",
-        label: w.displayLabel ?? `Vigilance #${i + 1}`,
-        shortLabel: "Vigilance récente",
-        avgReturn: getAnnualReturnForZone(w, "vigilance"),
-      });
-    }
-  });
-  const hasAnnualOverlay = annualZones.length > 0;
-  const todayDOY = getTodayDayOfYear();
-  const todayX = xOfDay(todayDOY);
-  const zoneTop = PAD.top;
-  const zoneBottom = PAD.top + chartH;
-  const labelCtx = { zoneTop, chartH, chartRight, chartLeft, chartW };
+    const annualZones = [];
+    (annualDisplayWindows?.bullish ?? []).forEach((w, i) => {
+      const rangeDOY = resolveSwingDayRange(w);
+      if (rangeDOY) {
+        annualZones.push({
+          ...rangeDOY,
+          kind: "bullish",
+          label: w.displayLabel ?? `Haussier annuel #${i + 1}`,
+          shortLabel: "Haussier annuel",
+          avgReturn: getAnnualReturnForZone(w, "bullish"),
+        });
+      }
+    });
+    (annualDisplayWindows?.bearishConfirmed ?? []).forEach((w, i) => {
+      const rangeDOY = resolveSwingDayRange(w);
+      if (rangeDOY) {
+        annualZones.push({
+          ...rangeDOY,
+          kind: "bearish",
+          label: w.displayLabel ?? `Baissier annuel #${i + 1}`,
+          shortLabel: "Baissier annuel confirmé",
+          avgReturn: getAnnualReturnForZone(w, "bearish"),
+        });
+      }
+    });
+    (annualDisplayWindows?.vigilance ?? []).forEach((w, i) => {
+      const rangeDOY = resolveSwingDayRange(w);
+      if (rangeDOY) {
+        annualZones.push({
+          ...rangeDOY,
+          kind: "vigilance",
+          label: w.displayLabel ?? `Vigilance #${i + 1}`,
+          shortLabel: "Vigilance récente",
+          avgReturn: getAnnualReturnForZone(w, "vigilance"),
+        });
+      }
+    });
+    const hasAnnualOverlay = annualZones.length > 0;
+    const todayDOY = getTodayDayOfYear();
+    const todayX = xOfDay(todayDOY);
+    const zoneTop = PAD.top;
+    const zoneBottom = PAD.top + chartH;
+    const labelCtx = { zoneTop, chartH, chartRight, chartLeft, chartW };
 
-  const zoneLabelPlacements = hasAnnualOverlay
-    ? annualZones.map((zone) => resolveAnnualZoneLabelPlacement(zone, xOfDay, labelCtx))
-    : [];
+    const zoneLabelPlacements = hasAnnualOverlay
+      ? annualZones.map((zone) => resolveAnnualZoneLabelPlacement(zone, xOfDay, labelCtx))
+      : [];
+
+    return {
+      cumPoints, cum, W, H, PAD, chartW, chartH, chartRight,
+      xOf, xOfDay, yOf, linePath, areaPath, gridLines, finalColor,
+      annualZones, hasAnnualOverlay, todayX, zoneTop, zoneBottom, zoneLabelPlacements,
+    };
+  }, [months, annualDisplayWindows]);
+
+  if (!geo) return <div style={{ color:C.textFaint, textAlign:"center", padding:"36px 0", fontSize:"12px" }}>Courbe cumulée non disponible</div>;
+
+  const {
+    cumPoints, cum, W, H, PAD, chartW, chartH, chartRight,
+    xOf, xOfDay, yOf, linePath, areaPath, gridLines, finalColor,
+    annualZones, hasAnnualOverlay, todayX, zoneTop, zoneBottom, zoneLabelPlacements,
+  } = geo;
 
   const renderZoneRects = (zone) => {
     const colors = zoneColors(zone.kind);
@@ -3349,64 +3367,126 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
   const [chart3yData, setChart3yData]       = useState(null);
   const [chart3yLoading, setChart3yLoading] = useState(false);
   const [chart3yError, setChart3yError]     = useState(false);
-  const chart3yAbortRef = useRef(null);
 
-  const loadData = useCallback(async (sym) => {
+  // ── Cache frontend ─────────────────────────────────────────────────────────────
+  // Chaque entrée : { ticker, calendarData, shortTermData, windowsData, chart3yData, loadedAt }
+  const seasonalityCacheRef = useRef(new Map());
+  const requestIdRef        = useRef(0);  // protection race condition
+  const prefetchActiveRef   = useRef(0);  // slots de préchargement actifs (max 2)
+
+  // Applique un bundle au state d'affichage (cache hit ou fetch terminé)
+  const applyBundle = useCallback((bundle) => {
+    setCalendarData(bundle.calendarData ?? null);
+    setShortTermData(bundle.shortTermData ?? null);
+    setWindowsData(bundle.windowsData ?? null);
+    setChart3yData(bundle.chart3yData ?? null);
+    setChart3yError(!bundle.chart3yData);
+    setChart3yLoading(false);
+    setLoading(false);
+    setError(
+      !bundle.calendarData && !bundle.shortTermData && !bundle.windowsData
+        ? `Aucune donnée disponible pour ${bundle.ticker}. Historique insuffisant ou ticker invalide.`
+        : null,
+    );
+    setLastUpdated(new Date().toLocaleTimeString("fr-CA"));
+  }, []);
+
+  // Fetch le bundle (4 sources en 1 requête) et stocke le résultat dans le cache frontend
+  const fetchAndCacheBundle = useCallback(async (sym) => {
+    try {
+      const res  = await fetch(`${apiBase}/seasonality/${sym}/bundle`);
+      const json = await res.json();
+      if (!json.ok) return null;
+      const bundle = {
+        ticker:        sym,
+        calendarData:  json.calendarData  ?? null,
+        shortTermData: json.shortTermData ?? null,
+        windowsData:   json.windowsData   ?? null,
+        chart3yData:   json.chart3yData?.ok ? json.chart3yData : null,
+        cacheMeta:     json.cacheMeta      ?? null,
+        loadedAt:      Date.now(),
+      };
+      seasonalityCacheRef.current.set(sym, bundle);
+      return bundle;
+    } catch (_err) {
+      return null;
+    }
+  }, [apiBase]);
+
+  // loadData : cache chaud → affichage instantané ; cache froid → fetch + cache
+  // forceRefresh=true : efface l'entrée cache et recharge depuis le backend
+  const loadData = useCallback(async (sym, { forceRefresh = false } = {}) => {
     if (!sym) return;
+    const myId = ++requestIdRef.current;
+
+    if (forceRefresh) seasonalityCacheRef.current.delete(sym);
+
+    const cached  = seasonalityCacheRef.current.get(sym);
+    const isFresh = cached?.loadedAt && (Date.now() - cached.loadedAt < SEASONALITY_CACHE_TTL_MS);
+
+    if (cached) {
+      // Cache disponible : affichage immédiat même si périmé
+      applyBundle(cached);
+
+      if (!isFresh) {
+        // Cache périmé : rafraîchissement silencieux en arrière-plan
+        fetchAndCacheBundle(sym).then((bundle) => {
+          if (bundle && myId === requestIdRef.current) applyBundle(bundle);
+        });
+      }
+      return;
+    }
+
+    // Cache vide : chargement classique avec indicateur
     setLoading(true);
+    setChart3yLoading(true);
+    setChart3yError(false);
     setError(null);
     setCalendarData(null);
     setShortTermData(null);
     setWindowsData(null);
-    try {
-      const [calRes, stRes, winRes] = await Promise.all([
-        fetch(`${apiBase}/seasonality/${sym}/calendar`),
-        fetch(`${apiBase}/seasonality/${sym}/short-term`),
-        fetch(`${apiBase}/seasonality/${sym}/windows`),
-      ]);
-      const [calJson, stJson, winJson] = await Promise.all([calRes.json(), stRes.json(), winRes.json()]);
-      if (calJson.ok && calJson.calendar) setCalendarData(calJson.calendar);
-      if (stJson.ok  && stJson.shortTerm) setShortTermData(stJson.shortTerm);
-      if (winJson.ok && winJson.windows)  setWindowsData(winJson.windows);
-      if (!calJson.ok && !stJson.ok && !winJson.ok)
-        setError(`Aucune donnée disponible pour ${sym}. Historique insuffisant ou ticker invalide.`);
-      setLastUpdated(new Date().toLocaleTimeString("fr-CA"));
-    } catch (err) {
-      setError(`Erreur réseau : ${err?.message ?? err}. Vérifiez que le backend tourne.`);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiBase]);
-
-  useEffect(() => { loadData(ticker); }, [ticker, loadData]);
-
-  useEffect(() => {
-    if (!ticker) return undefined;
-    if (chart3yAbortRef.current) chart3yAbortRef.current.abort();
-    const controller = new AbortController();
-    chart3yAbortRef.current = controller;
-
-    setChart3yLoading(true);
-    setChart3yError(false);
     setChart3yData(null);
 
-    fetch(`${apiBase}/seasonality/${ticker}/chart-3y`, { signal: controller.signal })
-      .then((res) => res.json())
-      .then((json) => {
-        if (controller.signal.aborted) return;
-        if (json.ok) setChart3yData(json);
-        else setChart3yError(true);
-      })
-      .catch((err) => {
-        if (err?.name === "AbortError") return;
-        setChart3yError(true);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setChart3yLoading(false);
-      });
+    const bundle = await fetchAndCacheBundle(sym);
 
-    return () => controller.abort();
-  }, [ticker, apiBase]);
+    // Réponse obsolète — ticker changé pendant le fetch
+    if (myId !== requestIdRef.current) return;
+
+    if (!bundle) {
+      setError(`Erreur réseau pour ${sym}. Vérifiez que le backend tourne.`);
+      setLoading(false);
+      setChart3yLoading(false);
+      return;
+    }
+
+    applyBundle(bundle);
+  }, [apiBase, applyBundle, fetchAndCacheBundle]);
+
+  // Préchargement discret de l'univers saisonnier — concurrence max 2
+  const prefetchTickers = useCallback((tickers) => {
+    const toLoad = tickers.filter((sym) => {
+      const c = seasonalityCacheRef.current.get(sym);
+      return !c?.loadedAt || (Date.now() - c.loadedAt >= SEASONALITY_CACHE_TTL_MS);
+    });
+    let idx = 0;
+    function next() {
+      while (idx < toLoad.length && prefetchActiveRef.current < 2) {
+        const sym = toLoad[idx++];
+        prefetchActiveRef.current++;
+        fetchAndCacheBundle(sym).finally(() => { prefetchActiveRef.current--; next(); });
+      }
+    }
+    next();
+  }, [fetchAndCacheBundle]);
+
+  // Charge le ticker actif à chaque changement
+  useEffect(() => { loadData(ticker); }, [ticker, loadData]);
+
+  // Préchargement de l'univers après chaque chargement réussi du ticker actif
+  useEffect(() => {
+    if (loading || !calendarData) return;
+    prefetchTickers(SEASONAL_UNIVERSE.filter((sym) => sym !== ticker));
+  }, [loading, calendarData, ticker, prefetchTickers]);
 
   const selectTicker = useCallback((sym) => {
     const normalized = String(sym ?? "").trim().toUpperCase();
@@ -3467,10 +3547,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
 
   const cardStyle = { background:C.card, border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 16px" };
   const hasData   = !loading && (calendarData || shortTermData || windowsData);
-  const chart3yForDisplay = useMemo(() => {
-    if (!chart3yData?.ok && !chart3yData?.priceSeries) return chart3yData;
-    return chart3yData;
-  }, [chart3yData]);
+  const chart3yForDisplay = chart3yData;
 
   const annualDisplayWindows = useMemo(
     () => windowsData?.annualDisplayWindows ?? null,
@@ -3551,7 +3628,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
             </button>
             <button
               className="sea-refresh-btn"
-              onClick={() => loadData(ticker)}
+              onClick={() => loadData(ticker, { forceRefresh: true })}
               disabled={loading}
               style={{ background:"rgba(34,211,238,0.08)", border:"1px solid rgba(34,211,238,0.2)", borderRadius:"8px", color:C.cyan, padding:"6px 13px", fontSize:"11.5px", fontWeight:600, cursor:"pointer", outline:"none", display:"flex", alignItems:"center", gap:"6px" }}
             >

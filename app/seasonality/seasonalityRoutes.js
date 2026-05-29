@@ -29,12 +29,75 @@ import {
   computeSeasonalityChart3y,
   buildChart3yApiResponse,
 } from "./seasonalityChart3y.js";
+import {
+  createSeasonalityPersistentCache,
+  SEASONALITY_CACHE_VERSION,
+} from "./seasonalityPersistentCache.js";
 
 const router   = Router();
 const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
 
+// Cache SQLite persistant (expiration quotidienne UTC) — partagé par toutes les requêtes /bundle
+const persistentCache = createSeasonalityPersistentCache();
+
+// Calcule les 4 sources en parallèle et retourne le payload bundle
+async function computeSeasonalityBundle(ticker) {
+  const [calendar, shortTerm, windows, chart3yRaw] = await Promise.all([
+    computeSeasonalityCalendar(ticker),
+    computeSeasonalityShortTerm(ticker),
+    computeSeasonalityWindows(ticker),
+    computeSeasonalityChart3y(ticker),
+  ]);
+  return {
+    ok:            true,
+    ticker,
+    calendarData:  calendar  ?? null,
+    shortTermData: shortTerm ?? null,
+    windowsData:   windows   ?? null,
+    chart3yData:   buildChart3yApiResponse(chart3yRaw),
+  };
+}
+
 // NOTE: specific routes must be registered BEFORE the /:ticker param route
 // so Express matches them before the wildcard.
+
+/**
+ * POST /seasonality/warmup
+ * Body: { tickers: ["TQQQ", "SOXL", ...] }
+ * Lance le préchauffage discret des 4 endpoints pour chaque ticker (max 20).
+ * Réponse immédiate — traitement en arrière-plan avec concurrence max 2.
+ */
+router.post("/warmup", (req, res) => {
+  const raw = Array.isArray(req.body?.tickers) ? req.body.tickers : [];
+  const tickers = raw
+    .map(t => String(t ?? "").trim().toUpperCase())
+    .filter(t => t && TICKER_RE.test(t))
+    .slice(0, 20);
+
+  if (!tickers.length) {
+    return res.status(400).json({ ok: false, error: "tickers array required (max 20)" });
+  }
+
+  // Réponse immédiate
+  res.json({ ok: true, warming: tickers });
+
+  // Préchauffage en arrière-plan — concurrence max 2
+  let idx = 0;
+  let active = 0;
+  function next() {
+    while (idx < tickers.length && active < 2) {
+      const sym = tickers[idx++];
+      active++;
+      Promise.all([
+        computeSeasonalityCalendar(sym),
+        computeSeasonalityShortTerm(sym),
+        computeSeasonalityWindows(sym),
+        computeSeasonalityChart3y(sym),
+      ]).catch(() => {}).finally(() => { active--; next(); });
+    }
+  }
+  next();
+});
 
 /**
  * GET /seasonality/cache-stats
@@ -45,6 +108,19 @@ router.get("/cache-stats", (_req, res) => {
     res.json({ ok: true, ...getSeasonalityCacheStats() });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "cache_stats_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/cache/status
+ * Diagnostic SQLite — résumé du cache persistant (entries, versions, dates).
+ */
+router.get("/cache/status", async (_req, res) => {
+  try {
+    await persistentCache.ensureInitialized();
+    res.json({ ok: true, ...persistentCache.getCacheStatus() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "cache_status_failed") });
   }
 });
 
@@ -384,6 +460,87 @@ router.get("/:ticker/calendar", async (req, res) => {
     res.json({ ok: true, symbol, calendar });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "calendar_compute_failed") });
+  }
+});
+
+/**
+ * GET /seasonality/:ticker/bundle
+ * Retourne les 4 sources (calendar + short-term + windows + chart-3y) en une requête.
+ * Cache SQLite quotidien (UTC) — stale-while-revalidate si entrée existante périmée.
+ */
+router.get("/:ticker/bundle", async (req, res) => {
+  const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+  if (!symbol || !TICKER_RE.test(symbol)) {
+    return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
+  }
+  try {
+    await persistentCache.ensureInitialized();
+    const entry = persistentCache.getCache(symbol);
+
+    // Cache frais — réponse immédiate depuis SQLite
+    if (entry?.fresh) {
+      return res.json({
+        ok: true,
+        ...entry.payload,
+        cacheMeta: {
+          hit:            true,
+          fresh:          true,
+          computedAt:     entry.computedAt,
+          sourceLastDate: entry.sourceLastDate,
+          cacheVersion:   entry.cacheVersion,
+        },
+      });
+    }
+
+    // Cache périmé — réponse immédiate avec données stale + refresh silencieux
+    if (entry) {
+      res.json({
+        ok: true,
+        ...entry.payload,
+        cacheMeta: {
+          hit:            true,
+          fresh:          false,
+          refreshing:     true,
+          computedAt:     entry.computedAt,
+          sourceLastDate: entry.sourceLastDate,
+          cacheVersion:   entry.cacheVersion,
+        },
+      });
+      computeSeasonalityBundle(symbol).then((bundle) => {
+        if (bundle?.ok) {
+          persistentCache.setCache(symbol, {
+            calendarData:  bundle.calendarData,
+            shortTermData: bundle.shortTermData,
+            windowsData:   bundle.windowsData,
+            chart3yData:   bundle.chart3yData,
+          });
+        }
+      }).catch(() => {});
+      return;
+    }
+
+    // Aucun cache — calcul complet, stockage, réponse
+    const bundle = await computeSeasonalityBundle(symbol);
+    const payload = {
+      calendarData:  bundle.calendarData,
+      shortTermData: bundle.shortTermData,
+      windowsData:   bundle.windowsData,
+      chart3yData:   bundle.chart3yData,
+    };
+    persistentCache.setCache(symbol, payload);
+    return res.json({
+      ok: true,
+      ...payload,
+      cacheMeta: {
+        hit:          false,
+        fresh:        true,
+        computedAt:   new Date().toISOString().slice(0, 10),
+        cacheVersion: SEASONALITY_CACHE_VERSION,
+      },
+    });
+
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "bundle_failed") });
   }
 });
 

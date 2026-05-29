@@ -768,6 +768,9 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
     }
     const yearLines = buildYearLines(rangeStart, rangeEnd, xOf);
 
+    const pointsWithX = priceSeries.map((p) => ({ ...p, px: xOf(p.date) }));
+    const xValues = pointsWithX.map((p) => p.px);
+
     return {
       chartW,
       chartH,
@@ -784,6 +787,8 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
       rangeEnd,
       firstClose,
       priceSeries,
+      pointsWithX,
+      xValues,
       rsiByDate: rsiByDateMap(rsiSeries),
       rsiMomentum,
     };
@@ -797,7 +802,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
     const mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * (H / rect.height);
 
-    const { overlayBands, mixedZones, priceSeries, xOf, yOf, firstClose } = chartModel;
+    const { overlayBands, mixedZones, yOf, firstClose } = chartModel;
 
     for (const mix of mixedZones ?? []) {
       if (mx >= mix.left && mx <= mix.left + mix.width) {
@@ -862,23 +867,23 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
       }
     }
 
-    let nearest = null;
-    let minDist = Infinity;
-    for (const p of priceSeries) {
-      const px = xOf(p.date);
-      const dist = Math.abs(px - mx);
-      if (dist < minDist) {
-        minDist = dist;
-        nearest = p;
-      }
+    const { pointsWithX, xValues } = chartModel;
+    let lo = 0, hi = xValues.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (xValues[mid] < mx) lo = mid + 1;
+      else hi = mid;
     }
+    const idx = lo > 0 && Math.abs(xValues[lo - 1] - mx) < Math.abs(xValues[lo] - mx) ? lo - 1 : lo;
+    const nearest = pointsWithX[idx] ?? null;
+    const minDist = nearest ? Math.abs(nearest.px - mx) : Infinity;
 
     if (nearest && minDist < 40) {
       const chg = firstClose > 0 ? (nearest.close / firstClose) - 1 : null;
       const rsiVal = chartModel.rsiByDate?.get(nearest.date);
       const momentum = chartModel.rsiMomentum;
       setHover({
-        x: xOf(nearest.date),
+        x: nearest.px,
         y: yOf(nearest.close),
         lines: [
           { text: formatDateIso(nearest.date), bold: true, color: C.text },
@@ -910,7 +915,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
 
   const {
     chartW, chartH, linePath, areaPath, gridLines, timeTicks,
-    overlayBands, mixedZones, yearLines, xOf, yOf, priceSeries,
+    overlayBands, mixedZones, yearLines, pointsWithX,
   } = chartModel;
 
   const hoveredBandKey = hover?.bandKey ?? null;
@@ -1079,10 +1084,7 @@ function SeasonalityChartSvg({ data, rsiSeries, rsiMomentum }) {
       </g>
 
       {/* Hover dot on price */}
-      {hover && priceSeries.some((p) => {
-        const px = xOf(p.date);
-        return Math.abs(px - hover.x) < 1;
-      }) && (
+      {hover && pointsWithX.some((p) => Math.abs(p.px - hover.x) < 1) && (
         <circle cx={hover.x} cy={hover.y} r="3.5" fill={C.accentLight} stroke={C.panel} strokeWidth="1.5" />
       )}
 
@@ -1145,13 +1147,16 @@ function RsiChartSvg({ data, rsiSeries, rsiMomentum }) {
 
     const yOf = (rsi) => PAD_RSI.top + (1 - rsi / 100) * chartH;
 
-    const linePath = rsiPoints
-      .map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(p.date).toFixed(1)} ${yOf(p.rsi).toFixed(1)}`)
+    const rsiPointsWithX = rsiPoints.map((p) => ({ ...p, px: xOf(p.date) }));
+    const rsiXValues = rsiPointsWithX.map((p) => p.px);
+
+    const linePath = rsiPointsWithX
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${p.px.toFixed(1)} ${yOf(p.rsi).toFixed(1)}`)
       .join(" ");
 
     const refLines = [30, 50, 70].map((level) => ({ level, y: yOf(level) }));
 
-    return { chartW, chartH, xOf, yOf, linePath, rsiPoints, refLines, rangeStart, rangeEnd };
+    return { chartW, chartH, xOf, yOf, linePath, rsiPoints, rsiPointsWithX, rsiXValues, refLines, rangeStart, rangeEnd };
   }, [data, rsiSeries]);
 
   const handleMouseMove = useCallback((e) => {
@@ -1160,21 +1165,21 @@ function RsiChartSvg({ data, rsiSeries, rsiMomentum }) {
     const scaleX = W / rect.width;
     const mx = (e.clientX - rect.left) * scaleX;
 
-    const { rsiPoints, xOf } = chartModel;
-    let nearest = null;
-    let minDist = Infinity;
-    for (const p of rsiPoints) {
-      const dist = Math.abs(xOf(p.date) - mx);
-      if (dist < minDist) {
-        minDist = dist;
-        nearest = p;
-      }
+    const { rsiPointsWithX, rsiXValues, yOf } = chartModel;
+    let lo = 0, hi = rsiXValues.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (rsiXValues[mid] < mx) lo = mid + 1;
+      else hi = mid;
     }
+    const idx = lo > 0 && Math.abs(rsiXValues[lo - 1] - mx) < Math.abs(rsiXValues[lo] - mx) ? lo - 1 : lo;
+    const nearest = rsiPointsWithX[idx] ?? null;
+    const minDist = nearest ? Math.abs(nearest.px - mx) : Infinity;
 
     if (nearest && minDist < 40) {
       setHover({
-        x: xOf(nearest.date),
-        y: chartModel.yOf(nearest.rsi),
+        x: nearest.px,
+        y: yOf(nearest.rsi),
         lines: [
           { text: formatDateIso(nearest.date), bold: true, color: C.text },
           { text: `RSI 14 : ${nearest.rsi.toFixed(1)}`, color: C.accentLight },
@@ -1192,8 +1197,7 @@ function RsiChartSvg({ data, rsiSeries, rsiMomentum }) {
 
   if (!chartModel) return null;
 
-  const { chartW, chartH, linePath, refLines, xOf, yOf, rsiPoints } = chartModel;
-  const chartBottom = PAD_RSI.top + chartH;
+  const { chartW, chartH, linePath, refLines, rsiPointsWithX } = chartModel;
   const chartRight = PAD_RSI.left + chartW;
 
   return (
@@ -1261,7 +1265,7 @@ function RsiChartSvg({ data, rsiSeries, rsiMomentum }) {
             strokeLinecap="round"
             opacity="0.9"
           />
-          {hover && rsiPoints.some((p) => Math.abs(xOf(p.date) - hover.x) < 1) && (
+          {hover && rsiPointsWithX.some((p) => Math.abs(p.px - hover.x) < 1) && (
             <circle cx={hover.x} cy={hover.y} r="3" fill={C.accentLight} stroke={C.panel} strokeWidth="1.2" />
           )}
         </g>

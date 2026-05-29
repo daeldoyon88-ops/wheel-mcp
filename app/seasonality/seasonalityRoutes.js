@@ -33,6 +33,9 @@ import {
   createSeasonalityPersistentCache,
   SEASONALITY_CACHE_VERSION,
 } from "./seasonalityPersistentCache.js";
+import {
+  analyzeBundlePayload,
+} from "./seasonalityBundleValidation.js";
 
 const router   = Router();
 const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
@@ -108,6 +111,48 @@ router.get("/cache-stats", (_req, res) => {
     res.json({ ok: true, ...getSeasonalityCacheStats() });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? "cache_stats_failed") });
+  }
+});
+
+/**
+ * POST /seasonality/cache/clear
+ * Body: { tickers: ["TSLA", "AMD", ...] }
+ * Supprime les entrées SQLite du cache bundle pour les tickers listés.
+ */
+router.post("/cache/clear", async (req, res) => {
+  try {
+    const raw = Array.isArray(req.body?.tickers) ? req.body.tickers : [];
+    const tickers = raw
+      .map(t => String(t ?? "").trim().toUpperCase())
+      .filter(t => t && TICKER_RE.test(t));
+
+    if (!tickers.length) {
+      return res.status(400).json({ ok: false, error: "tickers array required" });
+    }
+
+    await persistentCache.ensureInitialized();
+    const cleared = persistentCache.clearCaches(tickers);
+    return res.json({ ok: true, cleared, count: cleared.length, requested: tickers.length });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "cache_clear_failed") });
+  }
+});
+
+/**
+ * DELETE /seasonality/cache/:ticker
+ * Supprime l'entrée SQLite du cache bundle pour un ticker.
+ */
+router.delete("/cache/:ticker", async (req, res) => {
+  try {
+    const symbol = String(req.params.ticker ?? "").trim().toUpperCase();
+    if (!symbol || !TICKER_RE.test(symbol)) {
+      return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
+    }
+    await persistentCache.ensureInitialized();
+    const removed = persistentCache.clearCache(symbol);
+    return res.json({ ok: true, cleared: removed ? [symbol] : [], count: removed ? 1 : 0 });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message ?? "cache_delete_failed") });
   }
 });
 
@@ -473,53 +518,64 @@ router.get("/:ticker/bundle", async (req, res) => {
   if (!symbol || !TICKER_RE.test(symbol)) {
     return res.status(400).json({ ok: false, error: "invalid ticker symbol" });
   }
+  const forceRefresh = req.query.force === "1" || req.query.force === "true";
   try {
     await persistentCache.ensureInitialized();
-    const entry = persistentCache.getCache(symbol);
 
-    // Cache frais — réponse immédiate depuis SQLite
-    if (entry?.fresh) {
-      return res.json({
-        ok: true,
-        ...entry.payload,
-        cacheMeta: {
-          hit:            true,
-          fresh:          true,
-          computedAt:     entry.computedAt,
-          sourceLastDate: entry.sourceLastDate,
-          cacheVersion:   entry.cacheVersion,
-        },
-      });
+    if (!forceRefresh) {
+      const entry = persistentCache.getCache(symbol);
+
+      // Cache frais — réponse immédiate depuis SQLite
+      if (entry?.fresh) {
+        const analysis = analyzeBundlePayload(entry.payload);
+        return res.json({
+          ok: true,
+          ...entry.payload,
+          cacheMeta: {
+            hit:            true,
+            fresh:          true,
+            validBundle:    analysis.validBundle,
+            computedAt:     entry.computedAt,
+            sourceLastDate: entry.sourceLastDate,
+            cacheVersion:   entry.cacheVersion,
+          },
+        });
+      }
+
+      // Cache périmé — réponse immédiate avec données stale + refresh silencieux
+      if (entry) {
+        const analysis = analyzeBundlePayload(entry.payload);
+        res.json({
+          ok: true,
+          ...entry.payload,
+          cacheMeta: {
+            hit:            true,
+            fresh:          false,
+            validBundle:    analysis.validBundle,
+            refreshing:     true,
+            computedAt:     entry.computedAt,
+            sourceLastDate: entry.sourceLastDate,
+            cacheVersion:   entry.cacheVersion,
+          },
+        });
+        computeSeasonalityBundle(symbol).then((bundle) => {
+          if (bundle?.ok) {
+            const payload = {
+              calendarData:  bundle.calendarData,
+              shortTermData: bundle.shortTermData,
+              windowsData:   bundle.windowsData,
+              chart3yData:   bundle.chart3yData,
+            };
+            persistentCache.setCache(symbol, payload);
+          }
+        }).catch(() => {});
+        return;
+      }
+    } else {
+      persistentCache.clearCache(symbol);
     }
 
-    // Cache périmé — réponse immédiate avec données stale + refresh silencieux
-    if (entry) {
-      res.json({
-        ok: true,
-        ...entry.payload,
-        cacheMeta: {
-          hit:            true,
-          fresh:          false,
-          refreshing:     true,
-          computedAt:     entry.computedAt,
-          sourceLastDate: entry.sourceLastDate,
-          cacheVersion:   entry.cacheVersion,
-        },
-      });
-      computeSeasonalityBundle(symbol).then((bundle) => {
-        if (bundle?.ok) {
-          persistentCache.setCache(symbol, {
-            calendarData:  bundle.calendarData,
-            shortTermData: bundle.shortTermData,
-            windowsData:   bundle.windowsData,
-            chart3yData:   bundle.chart3yData,
-          });
-        }
-      }).catch(() => {});
-      return;
-    }
-
-    // Aucun cache — calcul complet, stockage, réponse
+    // Aucun cache (ou force=1) — calcul complet, stockage si valide, réponse
     const bundle = await computeSeasonalityBundle(symbol);
     const payload = {
       calendarData:  bundle.calendarData,
@@ -527,16 +583,22 @@ router.get("/:ticker/bundle", async (req, res) => {
       windowsData:   bundle.windowsData,
       chart3yData:   bundle.chart3yData,
     };
-    persistentCache.setCache(symbol, payload);
+    const analysis = analyzeBundlePayload(payload);
+    if (analysis.validBundle) {
+      persistentCache.setCache(symbol, payload);
+    }
     return res.json({
-      ok: true,
+      ok: analysis.validBundle,
       ...payload,
       cacheMeta: {
         hit:          false,
         fresh:        true,
+        forced:       forceRefresh,
+        validBundle:  analysis.validBundle,
         computedAt:   new Date().toISOString().slice(0, 10),
         cacheVersion: SEASONALITY_CACHE_VERSION,
       },
+      ...(analysis.validBundle ? {} : { error: "invalid bundle — all sources empty" }),
     });
 
   } catch (err) {

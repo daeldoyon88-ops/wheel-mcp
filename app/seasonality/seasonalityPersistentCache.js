@@ -7,6 +7,7 @@
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { isValidBundlePayload } from "./seasonalityBundleValidation.js";
 
 const DEFAULT_SQLITE_PATH = path.resolve(process.cwd(), "data", "wheelValidationJournal.sqlite");
 
@@ -74,6 +75,13 @@ export function createSeasonalityPersistentCache(options = {}) {
       return null;
     }
 
+    // Bundle logiquement invalide — supprimer pour forcer un recalcul
+    if (!isValidBundlePayload(payload)) {
+      conn.prepare(`DELETE FROM seasonality_cache WHERE ticker = ? AND cache_version = ?`)
+          .run(sym, cacheVersion);
+      return null;
+    }
+
     const entry = {
       ticker:         row.ticker,
       payload,
@@ -88,7 +96,8 @@ export function createSeasonalityPersistentCache(options = {}) {
 
   function setCache(ticker, payload, meta = {}) {
     const sym = String(ticker ?? "").trim().toUpperCase();
-    if (!sym) return;
+    if (!sym) return false;
+    if (!isValidBundlePayload(payload)) return false;
     const conn           = _db();
     const computedAt     = meta.computedAt      ?? todayUtc();
     const sourceLastDate = meta.sourceLastDate   ?? null;
@@ -99,6 +108,27 @@ export function createSeasonalityPersistentCache(options = {}) {
        (ticker, cache_version, payload_json, computed_at, source_last_date, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`
     ).run(sym, cacheVersion, payloadJson, computedAt, sourceLastDate, updatedAt);
+    return true;
+  }
+
+  function clearCache(ticker) {
+    const sym = String(ticker ?? "").trim().toUpperCase();
+    if (!sym) return false;
+    const result = _db().prepare(
+      `DELETE FROM seasonality_cache WHERE ticker = ? AND cache_version = ?`
+    ).run(sym, cacheVersion);
+    return result.changes > 0;
+  }
+
+  function clearCaches(tickers) {
+    const list = (Array.isArray(tickers) ? tickers : [])
+      .map(t => String(t ?? "").trim().toUpperCase())
+      .filter(Boolean);
+    const cleared = [];
+    for (const sym of list) {
+      if (clearCache(sym)) cleared.push(sym);
+    }
+    return cleared;
   }
 
   function isFresh(entry) {
@@ -129,5 +159,14 @@ export function createSeasonalityPersistentCache(options = {}) {
     };
   }
 
-  return { ensureInitialized, getCache, setCache, isFresh, cleanOldVersions, getCacheStatus };
+  return {
+    ensureInitialized,
+    getCache,
+    setCache,
+    isFresh,
+    cleanOldVersions,
+    getCacheStatus,
+    clearCache,
+    clearCaches,
+  };
 }

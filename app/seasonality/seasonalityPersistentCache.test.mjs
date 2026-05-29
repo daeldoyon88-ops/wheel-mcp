@@ -70,11 +70,11 @@ test("cleanOldVersions supprime les anciennes versions", async () => {
   // Instance V1 (active)
   const cacheNew = createSeasonalityPersistentCache({ sqlitePath: dbPath, cacheVersion: "v-new" });
   await cacheNew.ensureInitialized();
-  cacheNew.setCache("NVDA", { data: "new" });
+  cacheNew.setCache("NVDA", SAMPLE_PAYLOAD);
 
   // Instance V0 (ancienne — réutilise la même DB, table déjà créée)
   const cacheOld = createSeasonalityPersistentCache({ sqlitePath: dbPath, cacheVersion: "v-old" });
-  cacheOld.setCache("NVDA", { data: "old" });
+  cacheOld.setCache("NVDA", SAMPLE_PAYLOAD);
 
   // Vérification avant nettoyage
   assert.ok(cacheOld.getCache("NVDA"), "old entry should exist before clean");
@@ -108,4 +108,59 @@ test("payload JSON corrompu retourne null et ne crash pas", async () => {
   // Deuxième appel : l'entrée a été supprimée, toujours null
   const entry2 = cache.getCache("AMD");
   assert.equal(entry2, null, "second call after corrupt cleanup should be null");
+});
+
+// ── 7. bundle logiquement invalide — getCache supprime et retourne null ───────
+test("bundle logiquement invalide supprimé par getCache", async () => {
+  const dbPath = tmpDb();
+  const cache = createSeasonalityPersistentCache({ sqlitePath: dbPath });
+  await cache.ensureInitialized();
+
+  const invalidJson = JSON.stringify({
+    calendarData:  null,
+    shortTermData: null,
+    windowsData:   null,
+    chart3yData:   { ok: false },
+  });
+  const db = new DatabaseSync(dbPath);
+  db.prepare(
+    `INSERT OR REPLACE INTO seasonality_cache
+     (ticker, cache_version, payload_json, computed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run("TSLA", SEASONALITY_CACHE_VERSION, invalidJson, "2026-05-28", new Date().toISOString());
+
+  assert.equal(cache.getCache("TSLA"), null, "invalid logical bundle should be purged");
+  assert.equal(cache.getCache("TSLA"), null, "second call confirms deletion");
+});
+
+// ── 8. setCache refuse un bundle invalide ─────────────────────────────────────
+test("setCache refuse un bundle invalide", async () => {
+  const cache = createSeasonalityPersistentCache({ sqlitePath: tmpDb() });
+  await cache.ensureInitialized();
+  const invalid = {
+    calendarData:  null,
+    shortTermData: null,
+    windowsData:   null,
+    chart3yData:   { ok: false },
+  };
+  const written = cache.setCache("AMD", invalid);
+  assert.equal(written, false);
+  assert.equal(cache.getCache("AMD"), null);
+});
+
+// ── 9. clearCache et clearCaches ──────────────────────────────────────────────
+test("clearCache et clearCaches suppriment les entrées", async () => {
+  const cache = createSeasonalityPersistentCache({ sqlitePath: tmpDb() });
+  await cache.ensureInitialized();
+  cache.setCache("TSLA", SAMPLE_PAYLOAD);
+  cache.setCache("AMD", SAMPLE_PAYLOAD);
+  assert.ok(cache.getCache("TSLA"));
+  assert.ok(cache.getCache("AMD"));
+
+  assert.equal(cache.clearCache("TSLA"), true);
+  assert.equal(cache.getCache("TSLA"), null);
+
+  const cleared = cache.clearCaches(["AMD", "MISSING"]);
+  assert.deepEqual(cleared, ["AMD"]);
+  assert.equal(cache.getCache("AMD"), null);
 });

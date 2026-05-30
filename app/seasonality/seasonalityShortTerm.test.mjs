@@ -194,3 +194,43 @@ test("computeShortTermFromRows: summary contient bestCspWindow et riskiestCcWind
   assert.equal(result.summary.source, "Yahoo Finance");
   assert.equal(result.summary.cacheTtlHours, 4);
 });
+
+// ─── Tests calendarWeek avec Date-object rows (format live server) ────────────
+
+test("computeShortTermFromRows: calendarWeek présent dans le résultat (Date-object rows)", () => {
+  // makeStableBullishRows crée des rows avec date = Date object (format live _fetchHistory)
+  const rows = makeStableBullishRows(3000); // ~8 ans de données calendar daily
+  const result = computeShortTermFromRows(rows);
+
+  assert.ok(result, "result ne doit pas être null — les Date-object rows ne doivent pas thrower");
+  assert.ok("calendarWeek" in result, "la clé calendarWeek doit être présente dans le résultat");
+
+  if (result.calendarWeek) {
+    assert.ok(typeof result.calendarWeek.sampleSize === "number", "sampleSize doit être un nombre");
+    assert.ok(Array.isArray(result.calendarWeek.yearlyReturns), "yearlyReturns doit être un tableau");
+    if (result.calendarWeek.yearlyReturns.length > 0) {
+      const r = result.calendarWeek.yearlyReturns[0];
+      assert.equal(typeof r.startDate, "string", `startDate doit être une string (got ${typeof r.startDate})`);
+      assert.equal(typeof r.endDate, "string", `endDate doit être une string (got ${typeof r.endDate})`);
+      assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(r.startDate), `startDate doit être YYYY-MM-DD: ${r.startDate}`);
+    }
+  }
+});
+
+test("computeShortTermFromRows: calendarWeek.sampleSize en années, pas en fenêtres roulantes", () => {
+  const rows   = makeStableBullishRows(3000);
+  const result = computeShortTermFromRows(rows);
+
+  assert.ok(result, "result ne doit pas être null");
+
+  // La fenêtre roulante 7j doit avoir sampleSize >> 100
+  const w7j = result.windows.find(w => w.days === 7);
+  assert.ok(w7j, "fenêtre 7j doit exister");
+  assert.ok(w7j.sampleSize > 100, `sampleSize roulant 7j=${w7j.sampleSize} doit être > 100`);
+
+  // calendarWeek.sampleSize doit être en années (jamais des milliers de fenêtres)
+  if (result.calendarWeek && result.calendarWeek.sampleSize > 0) {
+    assert.ok(result.calendarWeek.sampleSize < 100,
+      `calendarWeek.sampleSize=${result.calendarWeek.sampleSize} doit être en années (~2-15), pas ~${w7j.sampleSize}`);
+  }
+});

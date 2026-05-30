@@ -1320,6 +1320,170 @@ function SectionHeader({ title, icon: Icon, right, info }) {
 }
 
 // ─── Jauge circulaire force saisonnière ─────────────────────────────────────────
+// ─── Composant bloc de score décisionnel ───────────────────────────────────────
+function DecisionScoreBlock({ title, score, label, confidence, reasons, warnings, extra, accent }) {
+  const [open, setOpen] = useState(false);
+  const sc  = score ?? null;
+  const col = sc == null ? C.textMuted : sc >= 65 ? C.green : sc >= 45 ? C.yellow : C.red;
+  const confColors = { robuste:"#22c55e", mesurable:"#facc15", préliminaire:"#f59e0b", faible:"#ef4444", insuffisant:"rgba(143,163,191,0.5)" };
+  const confCol = confColors[confidence] ?? C.textMuted;
+
+  return (
+    <div style={{ background:C.cardInner, border:`1px solid ${accent ? "rgba(139,92,246,0.25)" : C.border}`, borderRadius:"10px", padding:"11px 13px", display:"flex", flexDirection:"column", gap:"5px" }}>
+      <div style={{ fontSize:"9px", fontWeight:700, color:C.textFaint, letterSpacing:"0.1em", textTransform:"uppercase" }}>{title}</div>
+      <div style={{ display:"flex", alignItems:"baseline", gap:"6px" }}>
+        <span style={{ fontSize:"22px", fontWeight:800, color:col }}>{sc ?? "—"}</span>
+        {sc != null && <span style={{ fontSize:"11px", color:C.textFaint }}>/100</span>}
+        <span style={{ fontSize:"12px", fontWeight:700, color:col, marginLeft:"2px" }}>{label}</span>
+      </div>
+      {confidence && (
+        <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:confCol, display:"inline-block" }} />
+          <span style={{ fontSize:"9.5px", color:confCol, fontWeight:600 }}>{confidence.charAt(0).toUpperCase() + confidence.slice(1)}</span>
+        </div>
+      )}
+      {extra && <div style={{ fontSize:"10px", color:C.textMuted, lineHeight:1.4 }}>{extra}</div>}
+      {(reasons?.length > 0 || warnings?.length > 0) && (
+        <button
+          onClick={() => setOpen(v => !v)}
+          style={{ background:"none", border:"none", padding:"2px 0", cursor:"pointer", fontSize:"9.5px", color:C.accent, fontWeight:600, textAlign:"left", marginTop:"2px" }}
+        >
+          {open ? "▲ Masquer détails" : "▼ Pourquoi ce score ?"}
+        </button>
+      )}
+      {open && (
+        <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:"8px", display:"flex", flexDirection:"column", gap:"4px" }}>
+          {reasons?.map((r, i) => {
+            const pts = r.contribution != null && r.maxContribution != null
+              ? `${r.contribution >= 0 ? "+" : ""}${r.contribution}/${r.maxContribution}`
+              : null;
+            const barW = r.contribution != null && r.maxContribution != null
+              ? Math.max(0, Math.round(Math.abs(r.contribution) / r.maxContribution * 60))
+              : 0;
+            const barCol = r.contribution > 0 ? "rgba(34,197,94,0.5)" : r.contribution < 0 ? "rgba(239,68,68,0.5)" : "rgba(143,163,191,0.3)";
+            return (
+              <div key={i} title={r.explanation} style={{ display:"flex", alignItems:"center", gap:"6px", cursor:"default" }}>
+                <div style={{ width:"60px", height:"5px", background:"rgba(143,163,191,0.1)", borderRadius:"3px", flexShrink:0 }}>
+                  <div style={{ width:`${barW}px`, height:"100%", background:barCol, borderRadius:"3px" }} />
+                </div>
+                <span style={{ fontSize:"9px", color:C.textFaint, width:"36px", textAlign:"right", flexShrink:0 }}>{pts ?? "—"}</span>
+                <span style={{ fontSize:"9px", color:C.textMuted }}>{r.label}: <strong style={{ color:C.text }}>{r.value}</strong></span>
+              </div>
+            );
+          })}
+          {warnings?.length > 0 && (
+            <div style={{ marginTop:"4px" }}>
+              {warnings.map((w, i) => (
+                <div key={i} style={{ fontSize:"9px", color:C.amber, display:"flex", gap:"4px", alignItems:"flex-start" }}>
+                  <span style={{ flexShrink:0 }}>⚠</span><span>{w}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Header décisionnel complet (5 blocs) ─────────────────────────────────────
+function DecisionHeader({ decisionHeader: dh, shortTermData, summary, tendanceBiasStyle }) {
+  const C_local = C;
+  const w7j = shortTermData?.windows?.find((w) => w.days === 7) ?? null;
+
+  // Extra info pour bloc Score hebdo 7j
+  const weeklyExtra = w7j ? [
+    w7j.winRate    != null ? `7j positif : ${Math.round(w7j.winRate * 100)}%`           : null,
+    w7j.pctBelow5  != null ? `Risque baisse >5% : ${Math.round(w7j.pctBelow5 * 100)}%`  : null,
+    w7j.avgReturn  != null ? `Rendement moy. : ${(w7j.avgReturn * 100).toFixed(2)}%`     : null,
+    dh?.weeklyScore?.yearsOfData ? `Échantillon : ≈ ${dh.weeklyScore.yearsOfData} ans`  : null,
+  ].filter(Boolean).join(" · ") : null;
+
+  // Extra info pour fenêtre annuelle
+  const aw = dh?.annualWindowScore?.activeWindow;
+  const annualExtra = aw
+    ? [
+        aw.displayLabel ?? null,
+        aw.winRateAnnual    != null ? `Win rate ${Math.round(aw.winRateAnnual * 100)}%`       : null,
+        aw.avgReturnAnnual  != null ? `Moy. ${(aw.avgReturnAnnual * 100).toFixed(1)}%`        : null,
+        aw.bestHorizonKey   ? `(${aw.bestHorizonKey})`                                        : null,
+      ].filter(Boolean).join(" · ")
+    : "Aucune fenêtre active";
+
+  // Verdict texte
+  const verdictText = dh?.wheelVerdict
+    ? dh.wheelVerdict.explanation
+    : summary.tendance
+      ? `Tendance 7j : ${summary.tendance}`
+      : "Données en cours de chargement…";
+
+  const cardS = { background:C_local.card, border:`1px solid ${C_local.border}`, borderRadius:"12px", padding:"12px 14px" };
+
+  return (
+    <div style={cardS}>
+      <div style={{ fontSize:"10px", fontWeight:700, color:C_local.textFaint, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"10px" }}>
+        Analyse décisionnelle — {summary.weekNum} · {summary.range}
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:"8px" }}>
+        {/* Bloc 1 — Score hebdo 7j */}
+        <DecisionScoreBlock
+          title="Score hebdo 7j"
+          score={dh?.weeklyScore?.score ?? null}
+          label={dh?.weeklyScore?.label ?? (w7j ? (w7j.winRate >= 0.6 ? "Modéré" : "N/D") : "N/D")}
+          confidence={dh?.weeklyScore?.confidence ?? null}
+          reasons={dh?.weeklyScore?.reasons}
+          warnings={dh?.weeklyScore?.warnings}
+          extra={weeklyExtra}
+        />
+        {/* Bloc 2 — Fenêtre annuelle */}
+        <DecisionScoreBlock
+          title="Fenêtre annuelle"
+          score={dh?.annualWindowScore?.score ?? null}
+          label={dh?.annualWindowScore?.label ?? "Neutre"}
+          confidence={dh?.annualWindowScore?.confidence ?? null}
+          reasons={dh?.annualWindowScore?.reasons}
+          warnings={dh?.annualWindowScore?.warnings}
+          extra={annualExtra}
+        />
+        {/* Bloc 3 — Score CSP */}
+        <DecisionScoreBlock
+          title="CSP 7j"
+          score={dh?.cspScore?.score ?? null}
+          label={dh?.cspScore?.label ?? (summary.cspVerdict7j ? (summary.cspVerdict7j === "favorable" ? "Favorable" : summary.cspVerdict7j === "defavorable" ? "Risqué" : "Neutre") : "N/D")}
+          confidence={dh?.cspScore?.confidence ?? null}
+          reasons={dh?.cspScore?.reasons}
+          warnings={dh?.cspScore?.warnings}
+          accent
+        />
+        {/* Bloc 4 — Score CC */}
+        <DecisionScoreBlock
+          title="CC 7j"
+          score={dh?.ccScore?.score ?? null}
+          label={dh?.ccScore?.label ?? (summary.ccVerdict7j ? (summary.ccVerdict7j === "favorable" ? "Favorable" : summary.ccVerdict7j === "risque_hausse" ? "Risque hausse" : "Neutre") : "N/D")}
+          confidence={dh?.ccScore?.confidence ?? null}
+          reasons={dh?.ccScore?.reasons}
+          warnings={dh?.ccScore?.warnings}
+        />
+        {/* Bloc 5 — Verdict Wheel */}
+        <div style={{ background:C_local.cardInner, border:`1px solid rgba(139,92,246,0.3)`, borderRadius:"10px", padding:"11px 13px", display:"flex", flexDirection:"column", gap:"5px" }}>
+          <div style={{ fontSize:"9px", fontWeight:700, color:C_local.textFaint, letterSpacing:"0.1em", textTransform:"uppercase" }}>Verdict Wheel</div>
+          <div style={{ fontSize:"12px", fontWeight:700, color:C_local.accentLight, lineHeight:1.3 }}>
+            {dh?.wheelVerdict?.label ?? "—"}
+          </div>
+          <div style={{ fontSize:"9.5px", color:C_local.textMuted, lineHeight:1.4, marginTop:"2px" }}>
+            {verdictText}
+          </div>
+          {dh?.wheelVerdict?.confidence && (
+            <div style={{ fontSize:"9px", color:C_local.textFaint, marginTop:"2px" }}>
+              Confiance : {dh.wheelVerdict.confidence}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SeasonalForceGauge({ score }) {
   const R = 32, cx = 44, cy = 44;
   const circ = 2 * Math.PI * R;
@@ -3367,6 +3531,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
   const [chart3yData, setChart3yData]       = useState(null);
   const [chart3yLoading, setChart3yLoading] = useState(false);
   const [chart3yError, setChart3yError]     = useState(false);
+  const [decisionHeader, setDecisionHeader] = useState(null);
 
   // ── Cache frontend ─────────────────────────────────────────────────────────────
   // Chaque entrée : { ticker, calendarData, shortTermData, windowsData, chart3yData, loadedAt }
@@ -3380,6 +3545,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
     setShortTermData(bundle.shortTermData ?? null);
     setWindowsData(bundle.windowsData ?? null);
     setChart3yData(bundle.chart3yData ?? null);
+    setDecisionHeader(bundle.decisionHeader ?? null);
     setChart3yError(!bundle.chart3yData);
     setChart3yLoading(false);
     setLoading(false);
@@ -3403,6 +3569,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         shortTermData: json.shortTermData ?? null,
         windowsData:   json.windowsData   ?? null,
         chart3yData:   json.chart3yData?.ok ? json.chart3yData : null,
+        decisionHeader: json.decisionHeader ?? null,
         cacheMeta:     json.cacheMeta      ?? null,
         loadedAt:      Date.now(),
       };
@@ -3649,56 +3816,14 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
             onSearchChange={setUniverseSearch}
           />
 
-          {/* ── LIGNE A : RÉSUMÉ STATS ── */}
-          <div style={{ ...cardStyle, display:"flex", flexDirection:"column", gap:"10px" }}>
-              <div style={{ fontSize:"10px", fontWeight:700, color:C.textFaint, letterSpacing:"0.1em", textTransform:"uppercase" }}>Résumé saisonnalité actuelle</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto 1fr 1fr 1fr 1fr", gap:"10px", alignItems:"center" }}>
-                {/* Fenêtre actuelle */}
-                <div>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"3px" }}>Fenêtre actuelle</div>
-                  <div style={{ fontSize:"12.5px", fontWeight:700, color:C.text }}>{summary.range}</div>
-                  <div style={{ fontSize:"10px", color:C.textFaint }}>{summary.weekNum}</div>
-                </div>
-                {/* Tendance */}
-                <div>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"4px" }}>Tendance actuelle</div>
-                  <span style={{ background:tendanceBiasStyle.bg, border:`1px solid ${tendanceBiasStyle.border}`, color:tendanceBiasStyle.color, borderRadius:"20px", padding:"3px 10px", fontSize:"12px", fontWeight:700, display:"inline-block" }}>
-                    {summary.tendance}
-                  </span>
-                </div>
-                {/* Jauge force */}
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"3px", textAlign:"center" }}>Force saisonnière</div>
-                  {summary.force !== null ? <SeasonalForceGauge score={summary.force} /> : <div style={{ fontSize:"14px", color:C.textFaint, padding:"8px 0" }}>N/D</div>}
-                </div>
-                {/* Risque baisse 7j */}
-                <div>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"3px" }}>Risque baisse 7j</div>
-                  <div style={{ fontSize:"20px", fontWeight:800, color:summary.downside7j > 0.2 ? C.red : summary.downside7j > 0.1 ? C.yellow : C.green }}>
-                    {summary.downside7j !== null ? formatWinRate(summary.downside7j) : "—"}
-                  </div>
-                  {summary.downside7j !== null && <div style={{ fontSize:"10px", color:C.textFaint }}>{summary.downside7j > 0.2 ? "Risque élevé" : summary.downside7j > 0.1 ? "Risque modéré" : "Risque faible"}</div>}
-                </div>
-                {/* CSP 7j */}
-                <div>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"5px" }}>CSP (7j)</div>
-                  <VerdictBadge verdict={summary.cspVerdict7j} size="md" />
-                  <div style={{ fontSize:"10px", color:C.textFaint, marginTop:"3px" }}>Risque modéré</div>
-                </div>
-                {/* CC 7j */}
-                <div>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"5px" }}>CC (7j)</div>
-                  <VerdictBadge verdict={summary.ccVerdict7j} size="md" />
-                  <div style={{ fontSize:"10px", color:C.textFaint, marginTop:"3px" }}>Strike plus haut</div>
-                </div>
-                {/* Biais LT */}
-                <div>
-                  <div style={{ fontSize:"9.5px", color:C.textFaint, fontWeight:600, letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:"5px" }}>Biais long terme</div>
-                  <VerdictBadge verdict={summary.ltBias} size="md" />
-                  {summary.ltLabel && <div style={{ fontSize:"10px", color:C.textFaint, marginTop:"3px" }}>{summary.ltLabel}</div>}
-                </div>
-              </div>
-          </div>
+          {/* ── LIGNE A : HEADER DÉCISIONNEL V2 ── */}
+          <DecisionHeader
+            decisionHeader={decisionHeader}
+            shortTermData={shortTermData}
+            windowsData={windowsData}
+            summary={summary}
+            tendanceBiasStyle={tendanceBiasStyle}
+          />
 
           {/* ── LOADING ── */}
           {loading && (

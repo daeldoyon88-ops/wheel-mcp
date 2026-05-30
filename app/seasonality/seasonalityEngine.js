@@ -728,6 +728,124 @@ function _pickRiskiestCcWindow(windows) {
   })[0] ?? null;
 }
 
+const _MONTH_ABBR_CAL = ["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"];
+function _medianArr(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
+}
+
+/**
+ * Pure: saisonnalité calendrier hebdomadaire — 1 observation par année.
+ * Pour chaque année historique, prend le jour de bourse le plus proche de
+ * (targetMonth / targetDay) et calcule le rendement sur 7 jours de bourse.
+ *
+ * Exported pour tests unitaires.
+ */
+export function computeCalendarWeekFromRows(rows, today = new Date()) {
+  if (!rows || rows.length < 8) return null;
+
+  const targetMonth = today.getUTCMonth() + 1;
+  const targetDay   = today.getUTCDate();
+  const todayYear   = today.getUTCFullYear();
+
+  // Gère les dates sous forme d'objet Date (live) ou de string ISO (tests)
+  const _toYear   = (d) => d instanceof Date ? d.getUTCFullYear()        : parseInt(String(d).slice(0, 4), 10);
+  const _toDateStr = (d) => d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10);
+
+  // Regrouper par année
+  const byYear = new Map();
+  for (const row of rows) {
+    if (!row?.date || !Number.isFinite(row.close) || row.close <= 0) continue;
+    const year = _toYear(row.date);
+    if (isNaN(year)) continue;
+    if (!byYear.has(year)) byYear.set(year, []);
+    byYear.get(year).push(row);
+  }
+
+  const yearlyReturns = [];
+  const mm = String(targetMonth).padStart(2, '0');
+  const dd = String(targetDay).padStart(2, '0');
+
+  for (const [year, yearRows] of byYear) {
+    if (year >= todayYear) continue; // Année en cours : possiblement incomplète
+
+    const sorted = [...yearRows].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+    const targetMs = new Date(`${year}-${mm}-${dd}T00:00:00Z`).getTime();
+
+    // Trouver le jour de bourse le plus proche de la date cible
+    let startIdx = -1;
+    let minDiff  = Infinity;
+    for (let i = 0; i < sorted.length; i++) {
+      const diff = Math.abs(new Date(sorted[i].date).getTime() - targetMs);
+      if (diff < minDiff) { minDiff = diff; startIdx = i; }
+    }
+
+    // Ignorer si aucun jour de bourse dans les 7 jours calendrier autour de la cible
+    if (startIdx === -1 || minDiff > 7 * 86_400_000) continue;
+
+    // 7 jours de bourse en avant
+    const endIdx = startIdx + 7;
+    if (endIdx >= sorted.length) continue;
+
+    const startRow = sorted[startIdx];
+    const endRow   = sorted[endIdx];
+    if (!Number.isFinite(startRow.close) || startRow.close <= 0) continue;
+    if (!Number.isFinite(endRow.close)   || endRow.close   <= 0) continue;
+
+    const ret = (endRow.close - startRow.close) / startRow.close;
+    yearlyReturns.push({ year, startDate: _toDateStr(startRow.date), endDate: _toDateStr(endRow.date), returnPct: ret });
+  }
+
+  const n = yearlyReturns.length;
+  if (n === 0) return null;
+
+  const returns       = yearlyReturns.map(r => r.returnPct);
+  const avgReturn     = returns.reduce((s, r) => s + r, 0) / n;
+  const medianReturn  = _medianArr(returns);
+  const positiveYears = returns.filter(r => r > 0).length;
+  const winRate       = positiveYears / n;
+  const worstReturn   = Math.min(...returns);
+  const bestReturn    = Math.max(...returns);
+  const downsideRisk5  = returns.filter(r => r <= -0.05).length / n;
+  const downsideRisk10 = returns.filter(r => r <= -0.10).length / n;
+  const upsideRisk5    = returns.filter(r => r >= 0.05).length / n;
+  const upsideRisk10   = returns.filter(r => r >= 0.10).length / n;
+
+  const confidence = n < 5 ? 'insuffisant' : n < 10 ? 'préliminaire' : n < 15 ? 'mesurable' : 'robuste';
+
+  const startMonthDay = `${targetDay} ${_MONTH_ABBR_CAL[targetMonth - 1]}.`;
+  const approxEnd = new Date(today);
+  approxEnd.setUTCDate(approxEnd.getUTCDate() + 10);
+  const endMonthDay = `${approxEnd.getUTCDate()} ${_MONTH_ABBR_CAL[approxEnd.getUTCMonth()]}.`;
+
+  return {
+    startMonthDay,
+    endMonthDay,
+    sampleYears:    n,
+    sampleSize:     n,
+    positiveYears,
+    winRate:        _r3(winRate),
+    averageReturn:  _r4(avgReturn),
+    medianReturn:   medianReturn != null ? _r4(medianReturn) : null,
+    downsideRisk5:  _r3(downsideRisk5),
+    downsideRisk10: _r3(downsideRisk10),
+    upsideRisk5:    _r3(upsideRisk5),
+    upsideRisk10:   _r3(upsideRisk10),
+    worstReturn:    _r4(worstReturn),
+    bestReturn:     _r4(bestReturn),
+    yearlyReturns:  yearlyReturns.map(r => ({
+      year:      r.year,
+      startDate: r.startDate,
+      endDate:   r.endDate,
+      returnPct: _r4(r.returnPct),
+    })),
+    confidence,
+  };
+}
+
 /**
  * Pure computation: rolling N-trading-day forward returns from historical rows.
  * Exported for unit testing — no Yahoo calls, no cache side-effects.
@@ -737,6 +855,7 @@ export function computeShortTermFromRows(rows, options = {}) {
 
   const daysList    = options.daysList    ?? SHORT_TERM_DAYS_LIST;
   const thresholds  = options.thresholds  ?? SHORT_TERM_THRESHOLDS;
+  const today       = options.today       ?? new Date();
 
   const windows = [];
   for (const days of daysList) {
@@ -748,6 +867,7 @@ export function computeShortTermFromRows(rows, options = {}) {
 
   return {
     windows,
+    calendarWeek: computeCalendarWeekFromRows(rows, today),
     summary: {
       bestCspWindow:    _pickBestCspWindow(windows),
       worstCspWindow:   _pickWorstCspWindow(windows),
@@ -791,7 +911,7 @@ export async function computeSeasonalityShortTerm(symbol, options = {}) {
       const result = computeShortTermFromRows(rows, options);
 
       if (!result) {
-        _log(`computeShortTermFromRows returned null for ${sym} (données insuffisantes)`);
+        _warn(`[seasonality short-term] ${sym}: computeShortTermFromRows returned null (données insuffisantes ou erreur)`);
         return null;
       }
 
@@ -800,7 +920,7 @@ export async function computeSeasonalityShortTerm(symbol, options = {}) {
       return result;
 
     } catch (err) {
-      _warn(`computeSeasonalityShortTerm threw for ${sym}: ${err?.message ?? String(err)}`);
+      _warn(`[seasonality short-term] ${sym} failed: ${err?.message ?? String(err)}`);
       return null;
     } finally {
       _inFlight.delete(stKey);

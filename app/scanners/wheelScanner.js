@@ -23,6 +23,9 @@ const MOVE_DEBUG_ENABLED = String(process.env.WHEEL_MOVE_DEBUG || "").trim() ===
 const SUPPORT_RESISTANCE_V4_STRIKE_DEBUG_ENABLED =
   String(process.env.SUPPORT_RESISTANCE_V4_STRIKE_DEBUG || "").trim() === "1";
 const MOVE_DEBUG_SYMBOLS = new Set(["INTC"]);
+// Earnings imminent: widen the expected move for lower-bound/strike selection.
+// Must stay aligned with the UI multiplier (expectedMoveMultiplier) shown on cards.
+const EARNINGS_EXPECTED_MOVE_MULTIPLIER = 2;
 const TIER_1_ULTRA_LIQUID = new Set([
   "TQQQ", "SOXL", "QQQ", "SPY", "IWM",
   "NVDA", "TSLA", "AMD", "PLTR", "SOFI",
@@ -543,7 +546,9 @@ export function createWheelScanner(marketService) {
         }`
       : null;
     const earningsWarningLevel = earningsWithinWarningWindow ? "warning" : null;
-    const adjustedMove = earningsMode ? expectedMoveAbs * 1.8 : expectedMoveAbs;
+    const adjustedMove = earningsMode
+      ? expectedMoveAbs * EARNINGS_EXPECTED_MOVE_MULTIPLIER
+      : expectedMoveAbs;
     const lowerBound = spot - adjustedMove;
     if (!lowerBound || lowerBound <= 0) return { symbol, ok: false, reason: "invalid_lower_bound" };
 

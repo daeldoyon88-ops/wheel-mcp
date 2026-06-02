@@ -7,11 +7,13 @@ import {
   Target,
   Search,
   Activity,
-  BarChart3,
   Layers3,
   X,
   RefreshCw,
   Database,
+  PieChart,
+  Settings,
+  Server,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 import {
@@ -9449,6 +9451,99 @@ function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
   );
 }
 
+// ─── Sidebar de navigation (habillage UI uniquement — aucune logique métier) ───
+// Phase 1 : navigation par changement de vue (Opportunités / Saisonnalité / Journal POP)
+// + ancrages scrollIntoView vers les sections existantes du dashboard.
+const SIDEBAR_ITEMS = [
+  { key: "opportunites", label: "Opportunités", icon: Target, view: "dashboard", anchor: "section-opportunites" },
+  { key: "scan", label: "Scan", icon: RefreshCw, view: "dashboard", anchor: "section-scan" },
+  { key: "portefeuille", label: "Portefeuille", icon: PieChart, view: "dashboard", anchor: "section-portefeuille" },
+  { key: "ticker", label: "Ticker", icon: Search, view: "dashboard", anchor: "section-opportunites" },
+  { key: "diagnostics", label: "Diagnostics", icon: Activity, view: "dashboard", anchor: "section-diagnostics" },
+  { key: "saisonnalite", label: "Saisonnalité", icon: CalendarDays, view: "seasonality" },
+  { key: "journal", label: "Journal POP", icon: Database, view: "journal" },
+];
+const SIDEBAR_FOOTER_ITEMS = [
+  { key: "parametres", label: "Paramètres", icon: Settings, view: "dashboard", anchor: "section-scan" },
+  { key: "systeme", label: "Système", icon: Server, view: "dashboard", anchor: "section-diagnostics" },
+];
+
+function SidebarButton({ item, active, onClick }) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={item.label}
+      className={
+        "flex w-[64px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] leading-tight transition-colors " +
+        (active
+          ? "border border-sky-700/60 bg-sky-900/60 text-sky-100"
+          : "border border-transparent text-slate-400 hover:bg-slate-800/70 hover:text-slate-100")
+      }
+    >
+      <Icon className="h-4 w-4" />
+      <span className="text-center">{item.label}</span>
+    </button>
+  );
+}
+
+function WheelSidebar({ activeView, onNavigate }) {
+  const isActive = (item) => {
+    if (item.view === "seasonality") return activeView === "seasonality";
+    if (item.view === "journal") return activeView === "journal";
+    if (item.key === "opportunites") return activeView === "dashboard";
+    return false;
+  };
+  const isLab =
+    typeof window !== "undefined" && window.location.port === "5174";
+  return (
+    <aside className="sticky top-0 z-30 flex h-screen w-[76px] shrink-0 flex-col items-center border-r border-slate-800 bg-[#050b12] py-3">
+      <div className="mb-3 flex flex-col items-center gap-1">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-700/60 bg-sky-900/40 text-[12px] font-bold tracking-tight text-sky-100">
+          W
+        </div>
+        <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+          Wheel
+        </span>
+      </div>
+
+      <nav className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto">
+        {SIDEBAR_ITEMS.map((item) => (
+          <SidebarButton
+            key={item.key}
+            item={item}
+            active={isActive(item)}
+            onClick={() => onNavigate(item)}
+          />
+        ))}
+      </nav>
+
+      <div className="mt-auto flex w-full flex-col items-center gap-1 pt-2">
+        <div className="my-2 h-px w-8 bg-slate-800" />
+        {SIDEBAR_FOOTER_ITEMS.map((item) => (
+          <SidebarButton
+            key={item.key}
+            item={item}
+            active={false}
+            onClick={() => onNavigate(item)}
+          />
+        ))}
+        <div className="mt-2 flex flex-col items-center gap-1">
+          <span className="flex items-center gap-1 text-[9px] font-medium text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> OK
+          </span>
+          {isLab && (
+            <span className="rounded-md bg-rose-700/80 px-1.5 py-0.5 text-[8px] font-bold text-white">
+              LAB
+            </span>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export default function Dashboard() {
   const readStoredNumber = (key, fallback) => {
     const raw = window.localStorage.getItem(key);
@@ -12049,8 +12144,33 @@ export default function Dashboard() {
     (dataSource === "backend" || dataSource === "ibkr_direct") &&
     !showClosedValidBanner;
 
+  // Navigation sidebar : change de vue si besoin puis scroll vers l'ancre.
+  // Aucune logique métier — uniquement setActiveView (handlers existants) + scrollIntoView.
+  const handleSidebarNavigate = useCallback(
+    (item) => {
+      const targetView = item.view || "dashboard";
+      const needsSwitch = activeView !== targetView;
+      if (needsSwitch) setActiveView(targetView);
+      if (item.anchor) {
+        const doScroll = () => {
+          const el = document.getElementById(item.anchor);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+        // Laisse React rendre la vue dashboard avant de scroller.
+        if (needsSwitch) window.setTimeout(doScroll, 90);
+        else doScroll();
+      } else if (needsSwitch) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    [activeView]
+  );
+
   return (
     <div className="min-h-screen bg-[#0b1117] text-slate-100">
+      <div className="flex min-h-screen">
+        <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
+        <main className="min-w-0 flex-1">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
         {activeView !== "seasonality" && <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -12079,34 +12199,6 @@ export default function Dashboard() {
           </div>
         </motion.div>}
 
-        {activeView !== "seasonality" && (
-          <div className="mb-6 flex items-center justify-end gap-2">
-            <Button
-              variant={activeView === "dashboard" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setActiveView("dashboard")}
-            >
-              Dashboard
-            </Button>
-            <Button
-              variant={activeView === "seasonality" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setActiveView("seasonality")}
-              style={activeView === "seasonality" ? { background: "#7c3aed", borderColor: "#7c3aed" } : {}}
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Saisonnalité
-            </Button>
-            <Button
-              variant={activeView === "journal" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setActiveView("journal")}
-            >
-              Journal POP <Database className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
         {activeView === "seasonality" ? (
           <React.Suspense
             fallback={
@@ -12119,7 +12211,7 @@ export default function Dashboard() {
           </React.Suspense>
         ) : activeView === "dashboard" ? (
           <>
-            <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
+            <div id="section-scan" className="mb-6 grid scroll-mt-4 gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>
             <Select
@@ -12368,6 +12460,8 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        <div id="section-diagnostics" className="scroll-mt-4" />
 
         {refreshStage && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm font-medium text-slate-300 shadow-sm">
@@ -13304,7 +13398,7 @@ export default function Dashboard() {
         )}
 
 
-        <div className="space-y-6">
+        <div id="section-opportunites" className="space-y-6 scroll-mt-4">
           <div className="space-y-6">
             <Card className="rounded-[28px] border-slate-700 shadow-sm">
               <CardHeader className="pb-2">
@@ -13405,6 +13499,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            <div id="section-portefeuille" className="scroll-mt-4" />
             <PortfolioCombos
               combos={combos}
               candidates={filtered}
@@ -13501,6 +13596,8 @@ export default function Dashboard() {
             <JournalPopPanel apiBase={API_BASE} active={activeView === "journal"} />
           </React.Suspense>
         )}
+      </div>
+        </main>
       </div>
 
       <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />

@@ -13018,6 +13018,132 @@ export default function Dashboard() {
                 )}
               </div>
             </details>
+
+            <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 shadow-sm">
+              <summary className="cursor-pointer text-base font-semibold text-slate-100">
+                Diagnostic manuel IBKR Shadow single ticker
+              </summary>
+              <div className="mt-4">
+                <IbkrShadowCard
+                  symbol={ibkrShadowSymbol}
+                  setSymbol={setIbkrShadowSymbol}
+                  expiration={ibkrShadowExpiration}
+                  setExpiration={setIbkrShadowExpiration}
+                  clientId={ibkrShadowClientId}
+                  setClientId={setIbkrShadowClientId}
+                  loading={ibkrShadowLoading}
+                  error={ibkrShadowError}
+                  result={ibkrShadowResult}
+                  onRun={handleIbkrShadowTest}
+                />
+              </div>
+            </details>
+
+        <Card className="mb-6 rounded-[28px] border-slate-700 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl text-slate-100">IBKR Shadow Batch — Diagnostic</CardTitle>
+            <p className="mt-1 text-sm text-slate-500">
+              IBKR Shadow Batch est en lecture seule. Aucun ordre envoyé. Les données peuvent être
+              frozen/delayed hors marché.
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Expiration utilisée pour IBKR :{" "}
+              <span className="font-medium text-slate-300">
+                {(ibkrBatchExpirationInfo.usedExpiration || "—")} /{" "}
+                {(ibkrBatchExpirationInfo.ibkrExpiration || "—")}
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Titres envoyés :{" "}
+              <span className="font-medium text-slate-300">
+                {ibkrBatchTickersForSend.length} / {ibkrBatchTickers.length} affichés
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Maximum 50 titres par validation IBKR Shadow. Si plus de 50 titres sont affichés,
+              seuls les 50 premiers sont envoyés.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-300">Client ID start</label>
+                <Input
+                  type="number"
+                  value={ibkrBatchClientIdStart}
+                  onChange={(e) => setIbkrBatchClientIdStart(e.target.value)}
+                  className="w-full rounded-xl border-slate-700"
+                />
+              </div>
+              <div className="md:col-span-3 flex items-end">
+                <Button
+                  className="w-full rounded-xl"
+                  onClick={handleIbkrBatchValidate}
+                  disabled={ibkrBatchLoading || filtered.length === 0}
+                >
+                  Valider shortlist avec IBKR Shadow
+                </Button>
+              </div>
+            </div>
+
+            {ibkrBatchLoading && (
+              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
+                Validation IBKR Shadow en cours…
+              </div>
+            )}
+
+            {ibkrBatchError && (
+              <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
+                Erreur batch IBKR Shadow : {ibkrBatchError}
+              </div>
+            )}
+
+            {ibkrBatchResult?.ok === true && (
+              <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-4">
+                  <Metric label="Total" value={String(ibkrBatchResult?.total ?? "—")} strong />
+                  <Metric label="Complétés" value={String(ibkrBatchResult?.completed ?? "—")} />
+                  <Metric
+                    label="Confirmés"
+                    value={String(ibkrBatchResult?.summary?.confirmed ?? 0)}
+                    tone="good"
+                  />
+                  <Metric
+                    label="Différents"
+                    value={String(ibkrBatchResult?.summary?.different ?? 0)}
+                    tone="warn"
+                  />
+                  <Metric
+                    label="IBKR indisponible"
+                    value={String(ibkrBatchResult?.summary?.ibkr_unavailable ?? 0)}
+                    tone="warn"
+                  />
+                  <Metric
+                    label="Yahoo indisponible"
+                    value={String(ibkrBatchResult?.summary?.yahoo_unavailable ?? 0)}
+                    tone="warn"
+                  />
+                  <Metric
+                    label="Échec deux côtés"
+                    value={String(ibkrBatchResult?.summary?.both_failed ?? 0)}
+                    tone="bad"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
+                  <p className="mb-2 font-medium text-slate-100">Résultats compacts</p>
+                  <div className="space-y-1">
+                    {(ibkrBatchResult?.results || []).map((row) => (
+                      <div key={`ibkr-batch-${row.symbol}`} className="text-sm">
+                        {row.symbol}: {row.status}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         </div>
           </section>
         ) : activeView === "dashboard" ? (
@@ -13252,132 +13378,6 @@ export default function Dashboard() {
             Diagnostics IBKR avancés
           </summary>
           <div className="mt-4 space-y-6">
-            <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 shadow-sm">
-              <summary className="cursor-pointer text-base font-semibold text-slate-100">
-                Diagnostic manuel IBKR Shadow single ticker
-              </summary>
-              <div className="mt-4">
-                <IbkrShadowCard
-                  symbol={ibkrShadowSymbol}
-                  setSymbol={setIbkrShadowSymbol}
-                  expiration={ibkrShadowExpiration}
-                  setExpiration={setIbkrShadowExpiration}
-                  clientId={ibkrShadowClientId}
-                  setClientId={setIbkrShadowClientId}
-                  loading={ibkrShadowLoading}
-                  error={ibkrShadowError}
-                  result={ibkrShadowResult}
-                  onRun={handleIbkrShadowTest}
-                />
-              </div>
-            </details>
-
-        <Card className="mb-6 rounded-[28px] border-slate-700 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl text-slate-100">IBKR Shadow Batch — Diagnostic</CardTitle>
-            <p className="mt-1 text-sm text-slate-500">
-              IBKR Shadow Batch est en lecture seule. Aucun ordre envoyé. Les données peuvent être
-              frozen/delayed hors marché.
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Expiration utilisée pour IBKR :{" "}
-              <span className="font-medium text-slate-300">
-                {(ibkrBatchExpirationInfo.usedExpiration || "—")} /{" "}
-                {(ibkrBatchExpirationInfo.ibkrExpiration || "—")}
-              </span>
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Titres envoyés :{" "}
-              <span className="font-medium text-slate-300">
-                {ibkrBatchTickersForSend.length} / {ibkrBatchTickers.length} affichés
-              </span>
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Maximum 50 titres par validation IBKR Shadow. Si plus de 50 titres sont affichés,
-              seuls les 50 premiers sont envoyés.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Client ID start</label>
-                <Input
-                  type="number"
-                  value={ibkrBatchClientIdStart}
-                  onChange={(e) => setIbkrBatchClientIdStart(e.target.value)}
-                  className="w-full rounded-xl border-slate-700"
-                />
-              </div>
-              <div className="md:col-span-3 flex items-end">
-                <Button
-                  className="w-full rounded-xl"
-                  onClick={handleIbkrBatchValidate}
-                  disabled={ibkrBatchLoading || filtered.length === 0}
-                >
-                  Valider shortlist avec IBKR Shadow
-                </Button>
-              </div>
-            </div>
-
-            {ibkrBatchLoading && (
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
-                Validation IBKR Shadow en cours…
-              </div>
-            )}
-
-            {ibkrBatchError && (
-              <div className="rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400">
-                Erreur batch IBKR Shadow : {ibkrBatchError}
-              </div>
-            )}
-
-            {ibkrBatchResult?.ok === true && (
-              <div className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-4">
-                  <Metric label="Total" value={String(ibkrBatchResult?.total ?? "—")} strong />
-                  <Metric label="Complétés" value={String(ibkrBatchResult?.completed ?? "—")} />
-                  <Metric
-                    label="Confirmés"
-                    value={String(ibkrBatchResult?.summary?.confirmed ?? 0)}
-                    tone="good"
-                  />
-                  <Metric
-                    label="Différents"
-                    value={String(ibkrBatchResult?.summary?.different ?? 0)}
-                    tone="warn"
-                  />
-                  <Metric
-                    label="IBKR indisponible"
-                    value={String(ibkrBatchResult?.summary?.ibkr_unavailable ?? 0)}
-                    tone="warn"
-                  />
-                  <Metric
-                    label="Yahoo indisponible"
-                    value={String(ibkrBatchResult?.summary?.yahoo_unavailable ?? 0)}
-                    tone="warn"
-                  />
-                  <Metric
-                    label="Échec deux côtés"
-                    value={String(ibkrBatchResult?.summary?.both_failed ?? 0)}
-                    tone="bad"
-                  />
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 text-sm text-slate-300">
-                  <p className="mb-2 font-medium text-slate-100">Résultats compacts</p>
-                  <div className="space-y-1">
-                    {(ibkrBatchResult?.results || []).map((row) => (
-                      <div key={`ibkr-batch-${row.symbol}`} className="text-sm">
-                        {row.symbol}: {row.status}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         <IbkrDirectScanPanel
           clientIdStart={ibkrDirectClientIdStart}
           setClientIdStart={setIbkrDirectClientIdStart}

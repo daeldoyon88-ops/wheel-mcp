@@ -10842,7 +10842,9 @@ export default function Dashboard() {
         ),
       });
       setScanError("");
-      return mapped;
+      // displayed = cartes affichées (plafonnées à finalDisplayedTarget, comme avant).
+      // retained  = tous les retenus IBKR enrichis (mappedAll), source du Journal POP ON.
+      return { displayed: mapped, retained: mappedAll };
     },
     [
       selectedExpiration,
@@ -10865,16 +10867,21 @@ export default function Dashboard() {
       // Apply the same guards the dashboard uses:
       // 1. Exclude IBKR-rejected symbols (ibkrRejectedSymbols mirrors ibkrDirectResult.rejected)
       // 2. Exclude candidates whose embedded expiration fields don't match the active selection
-      // Slice to captureTopN AFTER filtering so Top N means N *admissible* candidates.
       const rawCount = Array.isArray(candidates) ? candidates.length : 0;
-      const finalCandidates = (Array.isArray(candidates) ? candidates : [])
+      const admissibleCandidates = (Array.isArray(candidates) ? candidates : [])
         .filter((c) => {
           const sym = String(c?.ticker || "").trim().toUpperCase();
           if (sym && ibkrRejectedSymbols.has(sym)) return false;
           if (!candidateRowMatchesSelectedExpiration(c, selectedExpiration)) return false;
           return true;
-        })
-        .slice(0, captureTopN);
+        });
+      // Patch 3B : Journal POP ON capture TOUS les retenus IBKR admissibles (plus de plafond Top N).
+      // OFF est court-circuité plus bas. Le slice legacy n'est conservé que si une valeur Top N
+      // explicite réapparaît (autoJournalPop hors "off"/"on").
+      const finalCandidates =
+        autoJournalPop === "off"
+          ? admissibleCandidates.slice(0, captureTopN)
+          : admissibleCandidates;
 
       const compactCandidates = finalCandidates.map(buildAutoJournalCandidatePayload);
       const approxPayloadKb = Math.round(
@@ -11215,9 +11222,11 @@ export default function Dashboard() {
           setIbkrDirectError(IBKR_TWS_EMPTY_MESSAGE);
           setRefreshStage("IBKR : aucune donnée par symbole — vérifie TWS / IB Gateway.");
         } else {
-          const applied = applyIbkrDirectShortlistToPrimary(payload);
+          const appliedResult = applyIbkrDirectShortlistToPrimary(payload);
+          const displayed = appliedResult?.displayed ?? [];
+          const retained = appliedResult?.retained ?? displayed;
           const warnings = Array.isArray(payload?.warnings) ? payload.warnings : [];
-          if (!applied) {
+          if (!appliedResult) {
             const slen = Array.isArray(payload?.shortlist) ? payload.shortlist.length : 0;
             if (slen === 0) {
               setIbkrDirectError(buildIbkrZeroKeptUserMessage(payload));
@@ -11233,7 +11242,7 @@ export default function Dashboard() {
             setRefreshStage("Timeout IBKR : réduire IBKR Audit Depth. Yahoo/fallback conservé.");
           } else {
             void captureWheelJournalSnapshot({
-              candidates: applied,
+              candidates: retained,
               scanSessionId: scanId,
               scanTimestamp,
               source: "ibkr_auto_final",
@@ -11874,8 +11883,10 @@ export default function Dashboard() {
       if (isIbkrDirectScanSuspiciousEmpty(payload)) {
         setIbkrDirectError(IBKR_TWS_EMPTY_MESSAGE);
       } else {
-        const applied = applyIbkrDirectShortlistToPrimary(payload);
-        if (!applied) {
+        const appliedResult = applyIbkrDirectShortlistToPrimary(payload);
+        const displayed = appliedResult?.displayed ?? [];
+        const retained = appliedResult?.retained ?? displayed;
+        if (!appliedResult) {
           const slen = Array.isArray(payload?.shortlist) ? payload.shortlist.length : 0;
           if (slen === 0) {
             setIbkrDirectError(buildIbkrZeroKeptUserMessage(payload));
@@ -11886,7 +11897,7 @@ export default function Dashboard() {
           }
         } else {
           void captureWheelJournalSnapshot({
-            candidates: applied,
+            candidates: retained,
             scanSessionId,
             scanTimestamp,
             source: "ibkr_manual_final",
@@ -12358,7 +12369,15 @@ export default function Dashboard() {
               label="POP"
               value={autoJournalPop === "off" ? "off" : "on"}
               onChange={(e) => setAutoJournalPop(e.target.value === "on" ? "200" : "off")}
-              title="Journal POP — capture automatique (Patch 3A : OFF / ON)."
+              title={
+                autoJournalPop === "off"
+                  ? "Journal POP OFF : aucune capture automatique."
+                  : `Journal POP ON : capture tous les retenus IBKR disponibles après scan${
+                      lastScanPoolMeta?.ibkrRetained
+                        ? ` (${lastScanPoolMeta.ibkrRetained} retenus IBKR au dernier scan)`
+                        : ""
+                    }.`
+              }
               wrapperClassName="w-[95px] shrink-0"
             >
               <option value="off">OFF</option>

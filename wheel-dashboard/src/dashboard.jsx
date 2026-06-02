@@ -13144,6 +13144,35 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        <IbkrDirectScanPanel
+          clientIdStart={ibkrDirectClientIdStart}
+          setClientIdStart={setIbkrDirectClientIdStart}
+          maxTickers={ibkrDirectMaxTickers}
+          setMaxTickers={setIbkrDirectMaxTickers}
+          topN={ibkrDirectTopN}
+          setTopN={setIbkrDirectTopN}
+          expiration={ymdToIbkr(selectedExpiration)}
+          tickerCount={ibkrDirectTickers.length}
+          loading={ibkrDirectLoading}
+          error={ibkrDirectError}
+          result={ibkrDirectResult}
+          sentTickers={ibkrDirectSentTickers.length ? ibkrDirectSentTickers : ibkrDirectTickersForSend}
+          yahooReturnedCandidates={yahooReturnedCandidates}
+          yahooRankForIbkrBySymbol={yahooRankForIbkrBySymbol}
+          yahooScanTiming={yahooScanTiming}
+          onRun={handleIbkrDirectScan}
+          onRunTest={handleIbkrDirectTestScan}
+        />
+
+        <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 text-sm text-slate-400 shadow-sm">
+          <summary className="cursor-pointer font-semibold text-slate-100">
+            Diagnostic secondaire : ancienne vue fusionnée
+          </summary>
+          <div className="mt-4">
+            <MergedShortlistSection candidates={mergedIbkrYahooCandidatesForPanel} />
+          </div>
+        </details>
         </div>
           </section>
         ) : activeView === "dashboard" ? (
@@ -13372,42 +13401,6 @@ export default function Dashboard() {
             {refreshStage}
           </div>
         )}
-
-        <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-5 text-sm text-slate-400 shadow-sm">
-          <summary className="cursor-pointer text-base font-semibold text-slate-100">
-            Diagnostics IBKR avancés
-          </summary>
-          <div className="mt-4 space-y-6">
-        <IbkrDirectScanPanel
-          clientIdStart={ibkrDirectClientIdStart}
-          setClientIdStart={setIbkrDirectClientIdStart}
-          maxTickers={ibkrDirectMaxTickers}
-          setMaxTickers={setIbkrDirectMaxTickers}
-          topN={ibkrDirectTopN}
-          setTopN={setIbkrDirectTopN}
-          expiration={ymdToIbkr(selectedExpiration)}
-          tickerCount={ibkrDirectTickers.length}
-          loading={ibkrDirectLoading}
-          error={ibkrDirectError}
-          result={ibkrDirectResult}
-          sentTickers={ibkrDirectSentTickers.length ? ibkrDirectSentTickers : ibkrDirectTickersForSend}
-          yahooReturnedCandidates={yahooReturnedCandidates}
-          yahooRankForIbkrBySymbol={yahooRankForIbkrBySymbol}
-          yahooScanTiming={yahooScanTiming}
-          onRun={handleIbkrDirectScan}
-          onRunTest={handleIbkrDirectTestScan}
-        />
-
-        <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 text-sm text-slate-400 shadow-sm">
-          <summary className="cursor-pointer font-semibold text-slate-100">
-            Diagnostic secondaire : ancienne vue fusionnée
-          </summary>
-          <div className="mt-4">
-            <MergedShortlistSection candidates={mergedIbkrYahooCandidatesForPanel} />
-          </div>
-        </details>
-          </div>
-        </details>
 
         {watchlistBuildError && watchlistSource === "fallback" && (
           <div className="mb-6 rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300 shadow-sm">

@@ -12806,6 +12806,218 @@ export default function Dashboard() {
             </details>
           </div>
         )}
+
+            <details className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+              <summary className="cursor-pointer font-semibold text-slate-100">
+                Compteurs appels Yahoo / IBKR
+              </summary>
+              <div className="mt-3 space-y-3 text-sm text-slate-300">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    className="rounded-xl"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRefreshScanMetrics}
+                    disabled={scanMetricsLoading}
+                  >
+                    Rafraîchir métriques
+                  </Button>
+                  <Button
+                    className="rounded-xl"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleResetScanMetrics}
+                    disabled={scanMetricsLoading}
+                  >
+                    Reset métriques
+                  </Button>
+                </div>
+
+                {scanMetricsLoading && <p className="text-slate-500">Chargement métriques…</p>}
+                {scanMetricsError && (
+                  <div className="rounded-xl border border-amber-800 bg-amber-950/40 p-3 text-amber-300">
+                    {scanMetricsError}
+                  </div>
+                )}
+                {!scanMetricsLoading && !scanMetricsError && !scanMetricsData && (
+                  <p className="text-slate-500">métriques non disponibles</p>
+                )}
+
+                {scanMetricsData && (
+                  <>
+                    <p className="text-xs text-slate-500">
+                      Dernier refresh détecté : {scanMetricsData?.lastRefreshAt || "—"}
+                    </p>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <Metric
+                        label="Yahoo appels réels"
+                        value={String(scanMetricsData?.yahoo?.totals?.totalYahooRealCalls ?? 0)}
+                        strong
+                      />
+                      <Metric
+                        label="Yahoo cache hits"
+                        value={String(scanMetricsData?.yahoo?.totals?.totalYahooCacheHits ?? 0)}
+                      />
+                      <Metric
+                        label="Yahoo cache misses"
+                        value={String(scanMetricsData?.yahoo?.totals?.totalYahooCacheMisses ?? 0)}
+                      />
+                      <Metric
+                        label="Yahoo quote calls"
+                        value={String(scanMetricsData?.yahoo?.totals?.quoteCalls ?? 0)}
+                      />
+                      <Metric
+                        label="Yahoo options all/date calls"
+                        value={`${scanMetricsData?.yahoo?.totals?.optionsAllCalls ?? 0} / ${scanMetricsData?.yahoo?.totals?.optionsDateCalls ?? 0}`}
+                      />
+                      <Metric
+                        label="Yahoo chart calls"
+                        value={String(scanMetricsData?.yahoo?.totals?.chartCalls ?? 0)}
+                      />
+                      <Metric
+                        label="Yahoo chart 120j/180j calls"
+                        value={`${scanMetricsData?.yahoo?.totals?.chart120dCalls ?? 0} / ${scanMetricsData?.yahoo?.totals?.chart180dCalls ?? 0}`}
+                      />
+                      <Metric
+                        label="IBKR approx calls"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalApproxIbkrCalls ?? 0)}
+                        strong
+                      />
+                      <Metric
+                        label="IBKR option MktData"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionMarketDataRequests ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR option qualify"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionQualifyCalls ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR EM contracts req"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalExpectedMoveContractsRequested ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR put contracts req"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalPutCandidateContractsRequested ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR cancel calls"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalCancelMarketDataCalls ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR timeouts"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalTimeouts ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR qualify cache hits"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionQualifyCacheHits ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR mktData cache hits"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionMarketDataCacheHits ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR duplicates évités"
+                        value={`${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionQualifyAvoided ?? 0} / ${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionMarketDataAvoided ?? 0}`}
+                      />
+                    </div>
+                    <div className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+                      <p className="font-medium text-slate-100">Top 5 tickers IBKR les plus coûteux</p>
+                      {ibkrTopCostlySymbols.length === 0 ? (
+                        <p className="mt-1 text-slate-500">Aucune donnée ticker disponible.</p>
+                      ) : (
+                        <div className="mt-2 space-y-1 text-xs text-slate-300">
+                          {ibkrTopCostlySymbols.map((row) => (
+                            <div key={`ibkr-cost-${row.symbol}`}>
+                              {row.symbol} — approx {row.approxIbkrCalls} · qualify opt {row.optionQualifyCalls} ·
+                              mktData opt {row.optionMarketDataRequests} · cancel {row.cancelMarketDataCalls} ·
+                              durée {row.durationMs} ms
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <details className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+                      <summary className="cursor-pointer font-medium text-slate-100">
+                        Détail IBKR par ticker
+                      </summary>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
+                      </p>
+                      {ibkrTickerDetailRows.length === 0 ? (
+                        <p className="mt-2 text-slate-500">Aucun détail IBKR par ticker disponible.</p>
+                      ) : (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="min-w-full text-left text-xs text-slate-300">
+                            <thead className="border-b border-slate-700 text-slate-500">
+                              <tr>
+                                <th className="py-2 pr-4 font-medium">Ticker</th>
+                                <th className="py-2 pr-4 font-medium">Statut</th>
+                                <th className="py-2 pr-4 font-medium">Durée</th>
+                                <th className="py-2 pr-4 font-medium">Approx calls</th>
+                                <th className="py-2 pr-4 font-medium">Qualify opt</th>
+                                <th className="py-2 pr-4 font-medium">MktData opt</th>
+                                <th className="py-2 pr-4 font-medium">Raison</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ibkrTickerDetailRows.map((row) => (
+                                <tr key={`ibkr-detail-${row.symbol}`} className="border-b border-slate-800 last:border-0">
+                                  <td className="py-2 pr-4 font-semibold text-slate-100">{row.symbol}</td>
+                                  <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
+                                  <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
+                                  <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
+                                  <td className="py-2 pr-4">{String(row.optionQualifyCalls ?? 0)}</td>
+                                  <td className="py-2 pr-4">{String(row.optionMarketDataRequests ?? 0)}</td>
+                                  <td className="py-2 pr-4">{formatIbkrReason(row.reason)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </details>
+                  </>
+                )}
+                {!scanMetricsData && ibkrTickerDetailRows.length > 0 && (
+                  <details className="rounded-xl border border-slate-700 bg-slate-900 p-3">
+                    <summary className="cursor-pointer font-medium text-slate-100">
+                      Détail IBKR par ticker
+                    </summary>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
+                    </p>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="min-w-full text-left text-xs text-slate-300">
+                        <thead className="border-b border-slate-700 text-slate-500">
+                          <tr>
+                            <th className="py-2 pr-4 font-medium">Ticker</th>
+                            <th className="py-2 pr-4 font-medium">Statut</th>
+                            <th className="py-2 pr-4 font-medium">Durée</th>
+                            <th className="py-2 pr-4 font-medium">Approx calls</th>
+                            <th className="py-2 pr-4 font-medium">Qualify opt</th>
+                            <th className="py-2 pr-4 font-medium">MktData opt</th>
+                            <th className="py-2 pr-4 font-medium">Raison</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ibkrTickerDetailRows.map((row) => (
+                            <tr key={`ibkr-detail-fallback-${row.symbol}`} className="border-b border-slate-800 last:border-0">
+                              <td className="py-2 pr-4 font-semibold text-slate-100">{row.symbol}</td>
+                              <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
+                              <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
+                              <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
+                              <td className="py-2 pr-4">{String(row.optionQualifyCalls ?? 0)}</td>
+                              <td className="py-2 pr-4">{String(row.optionMarketDataRequests ?? 0)}</td>
+                              <td className="py-2 pr-4">{formatIbkrReason(row.reason)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                )}
+              </div>
+            </details>
         </div>
           </section>
         ) : activeView === "dashboard" ? (
@@ -13040,218 +13252,6 @@ export default function Dashboard() {
             Diagnostics IBKR avancés
           </summary>
           <div className="mt-4 space-y-6">
-            <details className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
-              <summary className="cursor-pointer font-semibold text-slate-100">
-                Compteurs appels Yahoo / IBKR
-              </summary>
-              <div className="mt-3 space-y-3 text-sm text-slate-300">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    className="rounded-xl"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRefreshScanMetrics}
-                    disabled={scanMetricsLoading}
-                  >
-                    Rafraîchir métriques
-                  </Button>
-                  <Button
-                    className="rounded-xl"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleResetScanMetrics}
-                    disabled={scanMetricsLoading}
-                  >
-                    Reset métriques
-                  </Button>
-                </div>
-
-                {scanMetricsLoading && <p className="text-slate-500">Chargement métriques…</p>}
-                {scanMetricsError && (
-                  <div className="rounded-xl border border-amber-800 bg-amber-950/40 p-3 text-amber-300">
-                    {scanMetricsError}
-                  </div>
-                )}
-                {!scanMetricsLoading && !scanMetricsError && !scanMetricsData && (
-                  <p className="text-slate-500">métriques non disponibles</p>
-                )}
-
-                {scanMetricsData && (
-                  <>
-                    <p className="text-xs text-slate-500">
-                      Dernier refresh détecté : {scanMetricsData?.lastRefreshAt || "—"}
-                    </p>
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <Metric
-                        label="Yahoo appels réels"
-                        value={String(scanMetricsData?.yahoo?.totals?.totalYahooRealCalls ?? 0)}
-                        strong
-                      />
-                      <Metric
-                        label="Yahoo cache hits"
-                        value={String(scanMetricsData?.yahoo?.totals?.totalYahooCacheHits ?? 0)}
-                      />
-                      <Metric
-                        label="Yahoo cache misses"
-                        value={String(scanMetricsData?.yahoo?.totals?.totalYahooCacheMisses ?? 0)}
-                      />
-                      <Metric
-                        label="Yahoo quote calls"
-                        value={String(scanMetricsData?.yahoo?.totals?.quoteCalls ?? 0)}
-                      />
-                      <Metric
-                        label="Yahoo options all/date calls"
-                        value={`${scanMetricsData?.yahoo?.totals?.optionsAllCalls ?? 0} / ${scanMetricsData?.yahoo?.totals?.optionsDateCalls ?? 0}`}
-                      />
-                      <Metric
-                        label="Yahoo chart calls"
-                        value={String(scanMetricsData?.yahoo?.totals?.chartCalls ?? 0)}
-                      />
-                      <Metric
-                        label="Yahoo chart 120j/180j calls"
-                        value={`${scanMetricsData?.yahoo?.totals?.chart120dCalls ?? 0} / ${scanMetricsData?.yahoo?.totals?.chart180dCalls ?? 0}`}
-                      />
-                      <Metric
-                        label="IBKR approx calls"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalApproxIbkrCalls ?? 0)}
-                        strong
-                      />
-                      <Metric
-                        label="IBKR option MktData"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionMarketDataRequests ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR option qualify"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionQualifyCalls ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR EM contracts req"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalExpectedMoveContractsRequested ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR put contracts req"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalPutCandidateContractsRequested ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR cancel calls"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalCancelMarketDataCalls ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR timeouts"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalTimeouts ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR qualify cache hits"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionQualifyCacheHits ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR mktData cache hits"
-                        value={String(scanMetricsData?.ibkr?.totals?.totalOptionMarketDataCacheHits ?? 0)}
-                      />
-                      <Metric
-                        label="IBKR duplicates évités"
-                        value={`${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionQualifyAvoided ?? 0} / ${scanMetricsData?.ibkr?.totals?.totalDuplicateOptionMarketDataAvoided ?? 0}`}
-                      />
-                    </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900 p-3">
-                      <p className="font-medium text-slate-100">Top 5 tickers IBKR les plus coûteux</p>
-                      {ibkrTopCostlySymbols.length === 0 ? (
-                        <p className="mt-1 text-slate-500">Aucune donnée ticker disponible.</p>
-                      ) : (
-                        <div className="mt-2 space-y-1 text-xs text-slate-300">
-                          {ibkrTopCostlySymbols.map((row) => (
-                            <div key={`ibkr-cost-${row.symbol}`}>
-                              {row.symbol} — approx {row.approxIbkrCalls} · qualify opt {row.optionQualifyCalls} ·
-                              mktData opt {row.optionMarketDataRequests} · cancel {row.cancelMarketDataCalls} ·
-                              durée {row.durationMs} ms
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <details className="rounded-xl border border-slate-700 bg-slate-900 p-3">
-                      <summary className="cursor-pointer font-medium text-slate-100">
-                        Détail IBKR par ticker
-                      </summary>
-                      <p className="mt-2 text-xs leading-5 text-slate-500">
-                        IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
-                      </p>
-                      {ibkrTickerDetailRows.length === 0 ? (
-                        <p className="mt-2 text-slate-500">Aucun détail IBKR par ticker disponible.</p>
-                      ) : (
-                        <div className="mt-3 overflow-x-auto">
-                          <table className="min-w-full text-left text-xs text-slate-300">
-                            <thead className="border-b border-slate-700 text-slate-500">
-                              <tr>
-                                <th className="py-2 pr-4 font-medium">Ticker</th>
-                                <th className="py-2 pr-4 font-medium">Statut</th>
-                                <th className="py-2 pr-4 font-medium">Durée</th>
-                                <th className="py-2 pr-4 font-medium">Approx calls</th>
-                                <th className="py-2 pr-4 font-medium">Qualify opt</th>
-                                <th className="py-2 pr-4 font-medium">MktData opt</th>
-                                <th className="py-2 pr-4 font-medium">Raison</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {ibkrTickerDetailRows.map((row) => (
-                                <tr key={`ibkr-detail-${row.symbol}`} className="border-b border-slate-800 last:border-0">
-                                  <td className="py-2 pr-4 font-semibold text-slate-100">{row.symbol}</td>
-                                  <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
-                                  <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
-                                  <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
-                                  <td className="py-2 pr-4">{String(row.optionQualifyCalls ?? 0)}</td>
-                                  <td className="py-2 pr-4">{String(row.optionMarketDataRequests ?? 0)}</td>
-                                  <td className="py-2 pr-4">{formatIbkrReason(row.reason)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </details>
-                  </>
-                )}
-                {!scanMetricsData && ibkrTickerDetailRows.length > 0 && (
-                  <details className="rounded-xl border border-slate-700 bg-slate-900 p-3">
-                    <summary className="cursor-pointer font-medium text-slate-100">
-                      Détail IBKR par ticker
-                    </summary>
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
-                      IBKR est plus lent que Yahoo : surveiller surtout durée, option qualify et option market data.
-                    </p>
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="min-w-full text-left text-xs text-slate-300">
-                        <thead className="border-b border-slate-700 text-slate-500">
-                          <tr>
-                            <th className="py-2 pr-4 font-medium">Ticker</th>
-                            <th className="py-2 pr-4 font-medium">Statut</th>
-                            <th className="py-2 pr-4 font-medium">Durée</th>
-                            <th className="py-2 pr-4 font-medium">Approx calls</th>
-                            <th className="py-2 pr-4 font-medium">Qualify opt</th>
-                            <th className="py-2 pr-4 font-medium">MktData opt</th>
-                            <th className="py-2 pr-4 font-medium">Raison</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ibkrTickerDetailRows.map((row) => (
-                            <tr key={`ibkr-detail-fallback-${row.symbol}`} className="border-b border-slate-800 last:border-0">
-                              <td className="py-2 pr-4 font-semibold text-slate-100">{row.symbol}</td>
-                              <td className="py-2 pr-4">{formatIbkrStatus(row.status)}</td>
-                              <td className="py-2 pr-4">{formatDurationShort(row.durationMs)}</td>
-                              <td className="py-2 pr-4">{String(row.approxCalls ?? 0)}</td>
-                              <td className="py-2 pr-4">{String(row.optionQualifyCalls ?? 0)}</td>
-                              <td className="py-2 pr-4">{String(row.optionMarketDataRequests ?? 0)}</td>
-                              <td className="py-2 pr-4">{formatIbkrReason(row.reason)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                )}
-              </div>
-            </details>
-
             <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 shadow-sm">
               <summary className="cursor-pointer text-base font-semibold text-slate-100">
                 Diagnostic manuel IBKR Shadow single ticker

@@ -9544,7 +9544,7 @@ const SIDEBAR_ITEMS = [
   { key: "scan", label: "Scan", icon: RefreshCw, view: "dashboard", anchor: "section-scan" },
   { key: "portefeuille", label: "Portefeuille", icon: PieChart, view: "dashboard", anchor: "section-portefeuille" },
   { key: "ticker", label: "Ticker", icon: Search, view: "dashboard", anchor: "section-opportunites" },
-  { key: "diagnostics", label: "Diagnostics", icon: Activity, view: "dashboard", anchor: "section-diagnostics" },
+  { key: "diagnostics", label: "Diagnostics", icon: Activity, view: "diagnostics" },
   { key: "saisonnalite", label: "Saisonnalité", icon: CalendarDays, view: "seasonality" },
   { key: "journal", label: "Journal POP", icon: Database, view: "journal" },
 ];
@@ -9577,6 +9577,7 @@ function WheelSidebar({ activeView, onNavigate }) {
   const isActive = (item) => {
     if (item.view === "seasonality") return activeView === "seasonality";
     if (item.view === "journal") return activeView === "journal";
+    if (item.view === "diagnostics") return activeView === "diagnostics";
     if (item.key === "opportunites") return activeView === "dashboard";
     return false;
   };
@@ -12268,7 +12269,7 @@ export default function Dashboard() {
         <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
         <main className="min-w-0 flex-1">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
-        {activeView !== "seasonality" && <motion.div
+        {activeView !== "seasonality" && activeView !== "diagnostics" && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
@@ -12305,6 +12306,23 @@ export default function Dashboard() {
           >
             <SeasonalityPanel apiBase={API_BASE} onNavigate={setActiveView} />
           </React.Suspense>
+        ) : activeView === "diagnostics" ? (
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">
+                Diagnostics
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-white">
+                Diagnostics du scan
+              </h1>
+              <p className="mt-2 text-sm text-slate-400">
+                Vue dédiée en préparation. Les blocs diagnostics seront déplacés ici progressivement.
+              </p>
+              <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
+                Page Diagnostics active — aucun scroll automatique vers la page Opportunités.
+              </div>
+            </div>
+          </section>
         ) : activeView === "dashboard" ? (
           <>
             <div id="section-scan" className="mb-6 scroll-mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">

@@ -12322,6 +12322,162 @@ export default function Dashboard() {
                 Page Diagnostics active — aucun scroll automatique vers la page Opportunités.
               </div>
             </div>
+        {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult || lastScanPoolMeta.preIbkrCount > 0) && (
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
+            <details open>
+              <summary className="cursor-pointer font-semibold text-slate-100">Résumé du funnel</summary>
+              <div className="mt-3 rounded-xl border border-indigo-900 bg-indigo-950/40 p-3 text-xs text-slate-300">
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  <div>
+                    <span className="text-slate-500">Mode choisi</span>
+                    <div className="font-semibold text-slate-100">
+                      {formatPoolSourceLabel(preIbkrPoolMode)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Pool effectif (dernier scan)</span>
+                    <div className="font-semibold text-slate-100">
+                      {formatPoolSourceLabel(lastScanPoolMeta.poolSource || resolvedPreIbkrPool.poolSource)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Pool pré-Yahoo</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.preIbkrCount || _rawWatchlist.length || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Yahoo sent/scanned</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.yahooSent || yahooScanMeta.scanned || yahooSentToScanCount || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Yahoo retournés</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR Audit Depth</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR testés</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.ibkrTested || ibkrTestedCount}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR retenus</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.ibkrRetained || ibkrKeptCount}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Journal POP capturés</span>
+                    <div className="font-semibold text-slate-100">{lastJournalPopCaptured}</div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IBKR auto lancé</span>
+                    <div className="font-semibold text-slate-100">
+                      {lastScanPoolMeta.ibkrAutoLaunched || ibkrSentCount > 0 ? "oui" : "non"}
+                    </div>
+                  </div>
+                </div>
+                {lastScanPoolMeta.ibkrAutoSkipReason ? (
+                  <p className="mt-2 text-amber-300">{lastScanPoolMeta.ibkrAutoSkipReason}</p>
+                ) : null}
+                {lastScanPoolMeta.usedFallbackUltimate ? (
+                  <p className="mt-2 text-amber-300">
+                    Pool Research Expanded indisponible — secours fallback 65 utilisé pour ce scan.
+                  </p>
+                ) : null}
+                {(lastScanPoolMeta.ibkrTested || ibkrTestedCount) <
+                Math.min(
+                  lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget,
+                  lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0
+                ) ? (
+                  <p className="mt-2 text-slate-400">
+                    IBKR testés &lt; Audit Depth : Yahoo a renvoyé{" "}
+                    {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0} candidats (plafond réel = min(Yahoo
+                    retournés, Audit Depth)).
+                  </p>
+                ) : null}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
+              <Metric
+                label="Cryptos supprimées watchlist"
+                value={String(cryptoRemovedFromWatchlistCount)}
+                tone={cryptoRemovedFromWatchlistCount > 0 ? "warn" : "default"}
+              />
+              <Metric label="Yahoo retenus" value={String(yahooScanMeta.kept || 0)} />
+              <Metric label="Yahoo retournés" value={String(yahooReturnedCount)} />
+              <Metric label="Objectif cartes finales" value={String(ibkrFinalTarget)} />
+              <Metric label="IBKR testés" value={String(ibkrTestedCount)} />
+              <Metric label="Envoyés à IBKR" value={String(ibkrSentCount)} />
+              <Metric label="Retenus IBKR total" value={String(ibkrTotalKeptCollected)} />
+              <Metric
+                label="Admissibles panneau crème"
+                value={String(
+                  filtered.length -
+                  filtered.filter(it => {
+                    const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
+                    return m.isCryptoBlocked && !m.isCryptoAllowed;
+                  }).length
+                )}
+              />
+              <Metric label="Retenus non affichés après tri" value={String(ibkrRetainedNotDisplayed)} tone={ibkrRetainedNotDisplayed > 0 ? "warn" : "default"} />
+              <Metric label="Rejetés IBKR" value={String(ibkrRejectedCount)} />
+              <Metric label="Rejetés remplacés" value={String(ibkrRejectedReplaced)} tone={ibkrRejectedReplaced ? "warn" : "default"} />
+              <Metric label="Non testés IBKR" value={String(ibkrNonTestedCount)} />
+              <Metric
+                label="Non envoyés à IBKR"
+                value={String(Math.max(0, yahooReturnedCount - ibkrSentCount))}
+                tone={yahooReturnedCount > ibkrSentCount ? "warn" : "default"}
+              />
+              <Metric label="Actionnables Yahoo" value={String(yahooActionabilityCounts.actionable)} tone="good" />
+              <Metric label="À surveiller Yahoo" value={String(yahooActionabilityCounts.watch)} tone="warn" />
+              <Metric label="Non actionnables Yahoo" value={String(yahooActionabilityCounts.nonActionable)} tone="bad" />
+              <Metric label="Actionnables IBKR" value={String(ibkrActionabilityCounts.actionable)} tone="good" />
+              <Metric label="À surveiller IBKR" value={String(ibkrActionabilityCounts.watch)} tone="warn" />
+              <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
+            </div>
+            {ibkrDirectResult?.ok === true && (
+              <div className="mt-4 rounded-xl border border-sky-900 bg-slate-800/80 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Traçabilité Yahoo → IBKR (observabilité)
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <Metric label="Yahoo Returned" value={String(ibkrTraceYahooReturnedForFunnel)} />
+                  <Metric label="IBKR Sent / Tested" value={String(ibkrTestedCount)} />
+                  <Metric label="IBKR Retained" value={String(ibkrTotalKeptCollected)} tone="good" />
+                  <Metric label="IBKR Rejected" value={String(ibkrRejectedCount)} tone={ibkrRejectedCount ? "warn" : "default"} />
+                  <Metric label="IBKR Non Tested" value={String(ibkrNonTestedCount)} />
+                  <Metric label="Fusion IBKR (batches)" value={String(ibkrDirectResult.progressiveIbkrBatchCount ?? "—")} />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  <span className="font-semibold text-slate-200">Top IBKR rejection reasons:</span>{" "}
+                  {ibkrTraceTopReasonLines.length
+                    ? ibkrTraceTopReasonLines.join(" · ")
+                    : "(aucune raison agrégée — voir tableau rejetés par symbole)"}
+                </p>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-slate-500">
+              Lecture visuelle seulement : actionnable = finalDisplayMode SAFE/AGGRESSIVE avec finalDisplayGrade A/B.
+            </p>
+            {ibkrDirectResult?.progressiveAutoIbkr && ibkrTotalKeptCollected < ibkrFinalTarget && (
+              <p className="mt-2 rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-sm font-semibold text-amber-300">
+                Seulement {ibkrTotalKeptCollected} retenus IBKR disponibles dans le bassin Yahoo testé.
+              </p>
+            )}
+            </details>
+          </div>
+        )}
           </section>
         ) : activeView === "dashboard" ? (
           <>
@@ -12547,162 +12703,6 @@ export default function Dashboard() {
         {refreshStage && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm font-medium text-slate-300 shadow-sm">
             {refreshStage}
-          </div>
-        )}
-        {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult || lastScanPoolMeta.preIbkrCount > 0) && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
-            <details open>
-              <summary className="cursor-pointer font-semibold text-slate-100">Résumé du funnel</summary>
-              <div className="mt-3 rounded-xl border border-indigo-900 bg-indigo-950/40 p-3 text-xs text-slate-300">
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  <div>
-                    <span className="text-slate-500">Mode choisi</span>
-                    <div className="font-semibold text-slate-100">
-                      {formatPoolSourceLabel(preIbkrPoolMode)}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Pool effectif (dernier scan)</span>
-                    <div className="font-semibold text-slate-100">
-                      {formatPoolSourceLabel(lastScanPoolMeta.poolSource || resolvedPreIbkrPool.poolSource)}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Pool pré-Yahoo</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.preIbkrCount || _rawWatchlist.length || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Yahoo sent/scanned</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.yahooSent || yahooScanMeta.scanned || yahooSentToScanCount || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Yahoo retournés</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">IBKR Audit Depth</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">IBKR testés</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrTested || ibkrTestedCount}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">IBKR retenus</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrRetained || ibkrKeptCount}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Journal POP capturés</span>
-                    <div className="font-semibold text-slate-100">{lastJournalPopCaptured}</div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">IBKR auto lancé</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrAutoLaunched || ibkrSentCount > 0 ? "oui" : "non"}
-                    </div>
-                  </div>
-                </div>
-                {lastScanPoolMeta.ibkrAutoSkipReason ? (
-                  <p className="mt-2 text-amber-300">{lastScanPoolMeta.ibkrAutoSkipReason}</p>
-                ) : null}
-                {lastScanPoolMeta.usedFallbackUltimate ? (
-                  <p className="mt-2 text-amber-300">
-                    Pool Research Expanded indisponible — secours fallback 65 utilisé pour ce scan.
-                  </p>
-                ) : null}
-                {(lastScanPoolMeta.ibkrTested || ibkrTestedCount) <
-                Math.min(
-                  lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget,
-                  lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0
-                ) ? (
-                  <p className="mt-2 text-slate-400">
-                    IBKR testés &lt; Audit Depth : Yahoo a renvoyé{" "}
-                    {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0} candidats (plafond réel = min(Yahoo
-                    retournés, Audit Depth)).
-                  </p>
-                ) : null}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
-              <Metric
-                label="Cryptos supprimées watchlist"
-                value={String(cryptoRemovedFromWatchlistCount)}
-                tone={cryptoRemovedFromWatchlistCount > 0 ? "warn" : "default"}
-              />
-              <Metric label="Yahoo retenus" value={String(yahooScanMeta.kept || 0)} />
-              <Metric label="Yahoo retournés" value={String(yahooReturnedCount)} />
-              <Metric label="Objectif cartes finales" value={String(ibkrFinalTarget)} />
-              <Metric label="IBKR testés" value={String(ibkrTestedCount)} />
-              <Metric label="Envoyés à IBKR" value={String(ibkrSentCount)} />
-              <Metric label="Retenus IBKR total" value={String(ibkrTotalKeptCollected)} />
-              <Metric
-                label="Admissibles panneau crème"
-                value={String(
-                  filtered.length -
-                  filtered.filter(it => {
-                    const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
-                    return m.isCryptoBlocked && !m.isCryptoAllowed;
-                  }).length
-                )}
-              />
-              <Metric label="Retenus non affichés après tri" value={String(ibkrRetainedNotDisplayed)} tone={ibkrRetainedNotDisplayed > 0 ? "warn" : "default"} />
-              <Metric label="Rejetés IBKR" value={String(ibkrRejectedCount)} />
-              <Metric label="Rejetés remplacés" value={String(ibkrRejectedReplaced)} tone={ibkrRejectedReplaced ? "warn" : "default"} />
-              <Metric label="Non testés IBKR" value={String(ibkrNonTestedCount)} />
-              <Metric
-                label="Non envoyés à IBKR"
-                value={String(Math.max(0, yahooReturnedCount - ibkrSentCount))}
-                tone={yahooReturnedCount > ibkrSentCount ? "warn" : "default"}
-              />
-              <Metric label="Actionnables Yahoo" value={String(yahooActionabilityCounts.actionable)} tone="good" />
-              <Metric label="À surveiller Yahoo" value={String(yahooActionabilityCounts.watch)} tone="warn" />
-              <Metric label="Non actionnables Yahoo" value={String(yahooActionabilityCounts.nonActionable)} tone="bad" />
-              <Metric label="Actionnables IBKR" value={String(ibkrActionabilityCounts.actionable)} tone="good" />
-              <Metric label="À surveiller IBKR" value={String(ibkrActionabilityCounts.watch)} tone="warn" />
-              <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
-            </div>
-            {ibkrDirectResult?.ok === true && (
-              <div className="mt-4 rounded-xl border border-sky-900 bg-slate-800/80 px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Traçabilité Yahoo → IBKR (observabilité)
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <Metric label="Yahoo Returned" value={String(ibkrTraceYahooReturnedForFunnel)} />
-                  <Metric label="IBKR Sent / Tested" value={String(ibkrTestedCount)} />
-                  <Metric label="IBKR Retained" value={String(ibkrTotalKeptCollected)} tone="good" />
-                  <Metric label="IBKR Rejected" value={String(ibkrRejectedCount)} tone={ibkrRejectedCount ? "warn" : "default"} />
-                  <Metric label="IBKR Non Tested" value={String(ibkrNonTestedCount)} />
-                  <Metric label="Fusion IBKR (batches)" value={String(ibkrDirectResult.progressiveIbkrBatchCount ?? "—")} />
-                </div>
-                <p className="mt-2 text-xs leading-5 text-slate-400">
-                  <span className="font-semibold text-slate-200">Top IBKR rejection reasons:</span>{" "}
-                  {ibkrTraceTopReasonLines.length
-                    ? ibkrTraceTopReasonLines.join(" · ")
-                    : "(aucune raison agrégée — voir tableau rejetés par symbole)"}
-                </p>
-              </div>
-            )}
-            <p className="mt-2 text-xs text-slate-500">
-              Lecture visuelle seulement : actionnable = finalDisplayMode SAFE/AGGRESSIVE avec finalDisplayGrade A/B.
-            </p>
-            {ibkrDirectResult?.progressiveAutoIbkr && ibkrTotalKeptCollected < ibkrFinalTarget && (
-              <p className="mt-2 rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-sm font-semibold text-amber-300">
-                Seulement {ibkrTotalKeptCollected} retenus IBKR disponibles dans le bassin Yahoo testé.
-              </p>
-            )}
-            </details>
           </div>
         )}
 

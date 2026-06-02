@@ -9643,6 +9643,193 @@ function buildTickerSummaryRows(obj) {
   return { symbol, rows };
 }
 
+// ─── Fiche décisionnelle Ticker (habillage UI uniquement) ────────────────────
+// Réutilise STRICTEMENT les mêmes champs/priorités que buildTickerSummaryRows :
+// aucune nouvelle logique de données, aucune valeur inventée. Les champs absents
+// restent à null et sont rendus "—". Sert à présenter le résumé brut sous forme
+// de fiche SAFE / AGRESSIF / Diagnostic au lieu d'une table plate.
+function buildTickerDecision(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const up = (v) => String(v ?? "").trim().toUpperCase();
+  const symbol = up(obj.ticker ?? obj.symbol) || null;
+  const name = obj.name && up(obj.name) !== symbol ? obj.name : null;
+  const price = num(
+    obj.price ?? obj.currentPrice ?? obj.underlyingPrice ?? obj.lastPrice ?? obj.last
+  );
+  const actionable =
+    typeof obj.ok === "boolean"
+      ? obj.ok
+      : typeof obj.passesFilter === "boolean"
+      ? obj.passesFilter
+      : typeof obj.dataTradable === "boolean"
+      ? obj.dataTradable
+      : null;
+  const grade =
+    obj.finalDisplayGrade ?? obj.displayGrade ?? obj.recommendedGrade ?? obj.grade ?? null;
+  const expiration = obj.targetExpiration ?? obj.expiration ?? null;
+  const reason =
+    obj.recommendedReason ?? obj.rejectionReason ?? obj.reason ?? obj.note ?? null;
+  const safe = {
+    strike: num(obj.safeStrike?.strike),
+    weeklyYield: num(obj.safeStrike?.weeklyYield),
+    pop: num(
+      obj.safeStrike?.popProfitEstimated ??
+        obj.safeStrike?.popEstimate ??
+        obj.popProfitEstimated ??
+        obj.popEstimate
+    ),
+  };
+  const aggressive = {
+    strike: num(obj.aggressiveStrike?.strike),
+    weeklyYield: num(obj.aggressiveStrike?.weeklyYield),
+    // POP agressive : seulement si réellement fournie (jamais déduite de SAFE).
+    pop: num(obj.aggressiveStrike?.popProfitEstimated ?? obj.aggressiveStrike?.popEstimate),
+  };
+  return { symbol, name, price, actionable, grade, expiration, reason, safe, aggressive };
+}
+
+// Formatage cohérent avec buildTickerSummaryRows : rendement déjà en %, POP en décimale.
+const fmtTickerMoney = (n) => (n != null ? `$${n.toFixed(2)}` : "—");
+const fmtTickerPct = (n) => (n != null ? `${n.toFixed(2)} %` : "—");
+const fmtTickerPop = (n) => (n != null ? `${(n * 100).toFixed(0)} %` : "—");
+
+const TICKER_BADGE_TONES = {
+  green: "border-emerald-700/60 bg-emerald-900/40 text-emerald-200",
+  cyan: "border-sky-700/60 bg-sky-900/50 text-sky-100",
+  amber: "border-amber-700/60 bg-amber-900/30 text-amber-200",
+  red: "border-rose-800/60 bg-rose-950/50 text-rose-200",
+  gray: "border-slate-700 bg-slate-800/60 text-slate-300",
+};
+
+function TickerBadge({ tone = "gray", children }) {
+  return (
+    <span
+      className={
+        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
+        (TICKER_BADGE_TONES[tone] || TICKER_BADGE_TONES.gray)
+      }
+    >
+      {children}
+    </span>
+  );
+}
+
+// Bloc SAFE ou AGRESSIF. Garde toujours le bloc visible : si le strike manque,
+// affiche un message explicite plutôt que de masquer la donnée.
+function TickerStrikeBlock({ kind, data }) {
+  const isSafe = kind === "safe";
+  const Icon = isSafe ? ShieldCheck : AlertTriangle;
+  const accent = isSafe
+    ? { border: "border-emerald-800/50", text: "text-emerald-300" }
+    : { border: "border-amber-800/50", text: "text-amber-300" };
+  const hasStrike = data.strike != null;
+  return (
+    <div className={"rounded-xl border bg-slate-950/50 p-3 " + accent.border}>
+      <div className="flex items-center gap-1.5">
+        <Icon className={"h-4 w-4 " + accent.text} />
+        <p className={"text-[11px] font-semibold uppercase tracking-wide " + accent.text}>
+          {isSafe ? "SAFE" : "Agressif"}
+        </p>
+      </div>
+      {hasStrike ? (
+        <dl className="mt-2 space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-slate-500">Strike</dt>
+            <dd className="text-sm font-semibold text-slate-100">{fmtTickerMoney(data.strike)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-slate-500">Rendement</dt>
+            <dd className="text-sm font-medium text-slate-100">{fmtTickerPct(data.weeklyYield)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-slate-500">POP</dt>
+            <dd className="text-sm font-medium text-slate-100">{fmtTickerPop(data.pop)}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="mt-2 text-xs text-slate-500">Non disponible dans le dernier scan.</p>
+      )}
+    </div>
+  );
+}
+
+// Fiche décisionnelle réutilisable (résumé du scan + résultat de scan individuel).
+function TickerDecisionCard({ decision, source, heading, statusLabel, statusTone, rawObj }) {
+  const status =
+    statusLabel != null
+      ? { label: statusLabel, tone: statusTone || "gray" }
+      : decision.actionable === true
+      ? { label: "Actionnable", tone: "green" }
+      : decision.actionable === false
+      ? { label: "Non actionnable", tone: "red" }
+      : { label: "Statut inconnu", tone: "gray" };
+  // Fallback brut repliable (étape 8) : garantit qu'aucune donnée ne disparaît.
+  const fallback = rawObj ? buildTickerSummaryRows(rawObj) : { rows: [] };
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          {heading && <p className="text-xs uppercase tracking-wide text-slate-500">{heading}</p>}
+          <h2 className="mt-1 text-xl font-semibold text-slate-50">{decision.symbol ?? "—"}</h2>
+          {decision.name && <p className="text-xs text-slate-400">{decision.name}</p>}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <TickerBadge tone={status.tone}>{status.label}</TickerBadge>
+          {decision.grade && <TickerBadge tone="cyan">Grade {decision.grade}</TickerBadge>}
+          {source && <TickerBadge tone="gray">Source : {source}</TickerBadge>}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500">Prix actuel</span>
+          <span className="font-semibold text-slate-100">{fmtTickerMoney(decision.price)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
+          <span className="text-slate-500">Expiration</span>
+          <span className="font-medium text-slate-100">{decision.expiration ?? "—"}</span>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <TickerStrikeBlock kind="safe" data={decision.safe} />
+        <TickerStrikeBlock kind="aggressive" data={decision.aggressive} />
+      </div>
+
+      <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-sky-300" />
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-300">Diagnostic</p>
+        </div>
+        <p className="mt-1.5 text-sm text-slate-200">
+          {decision.reason || "Aucun diagnostic détaillé disponible dans le dernier scan."}
+        </p>
+      </div>
+
+      {fallback.rows.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-300">
+            Données brutes du dernier scan
+          </summary>
+          <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+            {fallback.rows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between gap-3 border-b border-slate-800/70 py-1"
+              >
+                <dt className="text-xs text-slate-500">{row.label}</dt>
+                <dd className="text-right text-xs font-medium text-slate-300">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      )}
+    </div>
+  );
+}
+
 // ─── Sidebar de navigation (habillage UI uniquement — aucune logique métier) ───
 // Phase 1 : navigation par changement de vue (Opportunités / Saisonnalité / Journal POP)
 // + ancrages scrollIntoView vers les sections existantes du dashboard.
@@ -13474,42 +13661,23 @@ export default function Dashboard() {
 
               const match = findTickerInCurrentScan(tickerActive);
               if (match) {
-                const summary = buildTickerSummaryRows(match.data);
-                return (
-                  <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-slate-500">
-                          Résumé du dernier scan
-                        </p>
-                        <h2 className="mt-1 text-xl font-semibold text-slate-50">
-                          {summary.symbol ?? tickerActive}
-                        </h2>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-sky-700/60 bg-sky-900/50 px-3 py-1 text-xs text-sky-100">
-                        Source : {match.source}
-                      </span>
-                    </div>
-                    {summary.rows.length === 0 ? (
-                      <p className="mt-4 text-sm text-slate-500">
-                        Aucun champ exploitable disponible pour ce symbole dans le dernier scan.
+                const decision = buildTickerDecision(match.data);
+                if (!decision) {
+                  return (
+                    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+                      <p className="text-sm text-slate-500">
+                        Aucun champ exploitable disponible pour {tickerActive} dans le dernier scan.
                       </p>
-                    ) : (
-                      <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                        {summary.rows.map((row) => (
-                          <div
-                            key={row.label}
-                            className="flex items-center justify-between gap-3 border-b border-slate-800 py-1.5"
-                          >
-                            <dt className="text-sm text-slate-500">{row.label}</dt>
-                            <dd className="text-right text-sm font-medium text-slate-100">
-                              {row.value}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
-                  </div>
+                    </div>
+                  );
+                }
+                return (
+                  <TickerDecisionCard
+                    decision={decision}
+                    source={match.source}
+                    heading="Résumé du dernier scan"
+                    rawObj={match.data}
+                  />
                 );
               }
 
@@ -13520,7 +13688,7 @@ export default function Dashboard() {
                     n'est pas présent dans le dernier scan.
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Scan individuel manuel disponible (lecture seule) — n'affecte pas Opportunités.
+                    Scan lecture seule via IBKR Shadow. N'affecte pas la shortlist Opportunités.
                   </p>
                   <Button
                     className="mt-3 rounded-xl border-emerald-700 bg-emerald-900/60 px-4 py-1.5 text-xs text-emerald-100 hover:bg-emerald-800/60 disabled:opacity-50"
@@ -13548,43 +13716,41 @@ export default function Dashboard() {
                     const keptRow = shortlist.find((r) => up(r?.symbol) === tickerActive);
                     const rejRow = rejected.find((r) => up(r?.symbol) === tickerActive);
                     const row = keptRow ?? rejRow ?? null;
-                    const status = keptRow
-                      ? "Retenu IBKR"
-                      : rejRow
-                      ? "Rejeté IBKR"
-                      : "Aucun résultat exploitable";
-                    const summary = row ? buildTickerSummaryRows(row) : null;
+                    const statusLabel = keptRow ? "Retenu" : rejRow ? "Rejeté" : "Aucun résultat";
+                    const statusTone = keptRow ? "green" : rejRow ? "red" : "gray";
+                    const decision = row ? buildTickerDecision(row) : null;
+                    if (decision && decision.expiration == null) {
+                      decision.expiration = tickerScanResult.expiration; // expiration réellement scannée
+                    }
                     return (
-                      <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/60 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs uppercase tracking-wide text-slate-500">
-                            Résultat du scan individuel
-                          </p>
-                          <span className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200">
-                            {status}
-                          </span>
-                        </div>
-                        {summary && summary.rows.length > 0 ? (
-                          <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                            {summary.rows.map((r) => (
-                              <div
-                                key={r.label}
-                                className="flex items-center justify-between gap-3 border-b border-slate-800 py-1.5"
-                              >
-                                <dt className="text-sm text-slate-500">{r.label}</dt>
-                                <dd className="text-right text-sm font-medium text-slate-100">
-                                  {r.value}
-                                </dd>
-                              </div>
-                            ))}
-                          </dl>
+                      <div className="mt-4">
+                        {decision ? (
+                          <TickerDecisionCard
+                            decision={decision}
+                            source="IBKR Shadow"
+                            heading="Résultat du scan individuel"
+                            statusLabel={statusLabel}
+                            statusTone={statusTone}
+                            rawObj={row}
+                          />
                         ) : (
-                          <p className="mt-3 text-sm text-slate-400">
-                            Le scan n'a retourné aucune ligne exploitable pour {tickerActive}
-                            {Array.isArray(payload.errors) && payload.errors.length > 0
-                              ? " (voir erreurs backend)."
-                              : "."}
-                          </p>
+                          <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs uppercase tracking-wide text-slate-500">
+                                Résultat du scan individuel
+                              </p>
+                              <TickerBadge tone={statusTone}>{statusLabel}</TickerBadge>
+                            </div>
+                            <p className="mt-3 text-sm text-slate-400">
+                              Le scan n'a retourné aucune ligne exploitable pour {tickerActive}
+                              {Array.isArray(payload.errors) && payload.errors.length > 0
+                                ? " (voir erreurs backend)."
+                                : "."}
+                            </p>
+                            <p className="mt-2 text-[11px] text-slate-500">
+                              Source : IBKR Shadow · lecture seule.
+                            </p>
+                          </div>
                         )}
                       </div>
                     );

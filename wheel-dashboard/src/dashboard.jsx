@@ -3021,6 +3021,74 @@ function formatMoneyOrDash(value) {
   return value == null || !Number.isFinite(Number(value)) ? "—" : `$${Number(value).toFixed(2)}`;
 }
 
+function ScanCompactBadge({ label, value, tone = "default" }) {
+  const toneClasses =
+    tone === "on"
+      ? "border-emerald-700/60 bg-emerald-900/40 text-emerald-100"
+      : tone === "off"
+      ? "border-slate-700 bg-slate-800/70 text-slate-400"
+      : "border-slate-700 bg-slate-800/70 text-slate-300";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs ${toneClasses}`}>
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium text-slate-100">{value ?? "—"}</span>
+    </span>
+  );
+}
+
+// Patch 3A — chips éditables de la barre de scan (UI uniquement, states/handlers existants).
+function EditableScanInput({ label, value, onChange, type = "number", min, max, step, title, suffix, list, wrapperClassName = "", inputClassName = "w-full min-w-0 flex-1" }) {
+  return (
+    <label
+      title={title}
+      className={`inline-flex min-w-0 items-center gap-0.5 overflow-hidden rounded-lg border border-slate-700 bg-slate-800/70 px-1.5 py-1 text-xs text-slate-300 focus-within:border-sky-600 ${wrapperClassName}`}
+    >
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <input
+        type={type}
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        list={list}
+        onChange={onChange}
+        className={`${inputClassName} bg-transparent font-medium text-slate-100 outline-none`}
+      />
+      {suffix ? <span className="shrink-0 text-slate-500">{suffix}</span> : null}
+    </label>
+  );
+}
+
+function EditableScanSelect({ label, value, onChange, children, title, wrapperClassName = "" }) {
+  return (
+    <label
+      title={title}
+      className={`inline-flex min-w-0 items-center gap-0.5 overflow-hidden rounded-lg border border-slate-700 bg-slate-800/70 px-1.5 py-1 text-xs text-slate-300 focus-within:border-sky-600 ${wrapperClassName}`}
+    >
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full min-w-0 flex-1 bg-transparent font-medium text-slate-100 outline-none [&>option]:bg-slate-900"
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function LockedScanBadge({ label, value, title, wrapperClassName = "" }) {
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center gap-0.5 rounded-lg border border-emerald-800 bg-emerald-950/40 px-1.5 py-1 text-xs text-emerald-200 ${wrapperClassName}`}
+    >
+      <span className="text-emerald-400">{label}</span>
+      <span className="font-medium">{value}</span>
+    </span>
+  );
+}
+
 function formatSignedMoneyOrDash(value) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
   const n = Number(value);
@@ -12211,254 +12279,213 @@ export default function Dashboard() {
           </React.Suspense>
         ) : activeView === "dashboard" ? (
           <>
-            <div id="section-scan" className="mb-6 grid scroll-mt-4 gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>
-            <Select
+            <div id="section-scan" className="mb-6 scroll-mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">
+          <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
+            <Button
+              title="Scanner maintenant"
+              className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-3 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
+              onClick={handleRefreshShortlist}
+              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+            >
+              Scanner <RefreshCw className="ml-1.5 h-4 w-4" />
+            </Button>
+            <Button
+              title="Rebuild watchlist"
+              className="shrink-0 rounded-xl px-3 py-1.5 text-xs"
+              variant="outline"
+              onClick={handleRebuildWatchlist}
+              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+            >
+              Rebuild <Database className="ml-1.5 h-4 w-4" />
+            </Button>
+
+            <EditableScanSelect
+              label="Exp."
               value={selectedExpiration}
               onChange={(e) => setSelectedExpiration(e.target.value)}
-              className="w-full rounded-xl border-slate-700"
+              title="Expiration utilisée pour le scan backend."
+              wrapperClassName="w-[150px] shrink-0"
             >
               {expirationOptions.map((exp) => (
                 <option key={exp} value={exp}>
                   {exp}
                 </option>
               ))}
-            </Select>
-          </div>
+            </EditableScanSelect>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Top Yahoo retournés</label>
-            <Input
-              type="number"
-              min="1"
-              max="200"
-              value={topN}
-              onChange={(e) => setTopN(Number(e.target.value || 1))}
-              className="w-full rounded-xl border-slate-700"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Plafond renvoyé par Yahoo (/scan_shortlist, + challengers si tri qualité). Avec IBKR auto, l’affichage final suit surtout « IBKR Audit Depth ».
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Capital compte</label>
-            <Input
-              type="number"
-              min="1000"
-              step="100"
+            <EditableScanInput
+              label="Capital"
               value={capital}
               onChange={(e) => setCapital(Number(e.target.value || 0))}
-              className="w-full rounded-xl border-slate-700"
+              min={1000}
+              step={100}
+              suffix="$"
+              inputClassName="w-[70px] min-w-0"
+              wrapperClassName="w-[150px] shrink-0"
+              title="Capital compte utilisé par les moteurs de combinaisons."
             />
-          </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">% max utilisé</label>
-            <Input
-              type="number"
-              min="10"
-              max="100"
+            <EditableScanInput
+              label="Max"
               value={maxCapitalPct}
               onChange={(e) => setMaxCapitalPct(Number(e.target.value || 0))}
-              className="w-full rounded-xl border-slate-700"
+              min={10}
+              max={100}
+              suffix="%"
+              inputClassName="w-[42px] min-w-0"
+              wrapperClassName="w-[95px] shrink-0"
+              title="% maximal du capital utilisé."
             />
-          </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Nb max positions</label>
-            <Input
-              type="number"
-              min="1"
-              max="10"
+            <EditableScanInput
+              label="Positions"
               value={maxPositions}
               onChange={(e) => setMaxPositions(Number(e.target.value || 1))}
-              className="w-full rounded-xl border-slate-700"
+              min={1}
+              max={10}
+              wrapperClassName="w-[125px] shrink-0"
+              title="Nombre maximal de positions visées."
             />
-          </div>
 
-          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-              <input
-                type="checkbox"
-                checked={autoIbkrDirectScan}
-                onChange={(e) => setAutoIbkrDirectScan(e.target.checked)}
-              />
-              IBKR auto
-            </label>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              Refresh lance Yahoo puis IBKR Direct Scan en lecture seule.
-            </p>
-          </div>
+            <LockedScanBadge
+              label="IBKR"
+              value="ON 🔒"
+              title="IBKR auto verrouillé ON dans le workflow principal."
+              wrapperClassName="shrink-0"
+            />
 
-          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-            <label className="mb-2 block text-sm font-medium text-slate-300">Auto Journal POP</label>
-            <Select
-              value={autoJournalPop}
-              onChange={(e) => setAutoJournalPop(String(e.target.value || "off"))}
-              className="w-full rounded-xl border-slate-700"
+            <EditableScanSelect
+              label="POP"
+              value={autoJournalPop === "off" ? "off" : "on"}
+              onChange={(e) => setAutoJournalPop(e.target.value === "on" ? "200" : "off")}
+              title="Journal POP — capture automatique (Patch 3A : OFF / ON)."
+              wrapperClassName="w-[95px] shrink-0"
             >
               <option value="off">OFF</option>
-              <option value="10">Top 10</option>
-              <option value="30">Top 30</option>
-              <option value="50">Top 50</option>
-              <option value="100">Top 100</option>
-              <option value="150">Top 150</option>
-              <option value="200">Top 200</option>
-            </Select>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              Etat actuel : {autoJournalPop === "off" ? "OFF" : `Top ${autoJournalPop}`}.
-            </p>
-          </div>
+              <option value="on">ON</option>
+            </EditableScanSelect>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">IBKR Audit Depth</label>
-            <Select
-              value={String(ibkrAutoMaxTickers)}
-              onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-700"
-              disabled={!autoIbkrDirectScan}
+            <EditableScanInput
+              label="Depth"
+              value={ibkrAutoMaxTickers}
+              onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value || 0))}
+              min={1}
+              list="scan-depth-suggestions"
+              wrapperClassName="w-[105px] shrink-0"
+              title="IBKR Audit Depth — nombre de tickers audités via IBKR."
+            />
+            <datalist id="scan-depth-suggestions">
+              <option value="10" />
+              <option value="20" />
+              <option value="30" />
+              <option value="50" />
+              <option value="120" />
+            </datalist>
+
+            <EditableScanSelect
+              label="Pool"
+              value={preIbkrPoolMode}
+              onChange={(e) => setPreIbkrPoolMode(e.target.value)}
+              title="Pool pré-IBKR utilisé avant l'audit IBKR."
+              wrapperClassName="w-[125px] shrink-0"
             >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-              <option value="120">120</option>
-            </Select>
-          </div>
+              <option value="strict_watchlist">Strict</option>
+              <option value="research_expanded">Research</option>
+              <option value="fallback_65">Fallback</option>
+            </EditableScanSelect>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Sonde liquidité OTM Yahoo</label>
-            <Select
+            <EditableScanSelect
+              label="OTM"
               value={String(watchlistOtmProbePct)}
               onChange={(e) => setWatchlistOtmProbePct(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-700"
+              title="Sonde liquidité OTM Yahoo appliquée au prochain « Rebuild watchlist » (0 % = ATM seulement)."
+              wrapperClassName="w-[90px] shrink-0"
             >
               {LIQUIDITY_OTM_PROBE_PCT_CHOICES.map((p) => (
                 <option key={p} value={String(p)}>
-                  {p}% OTM{p === 0 ? " — ATM seulement" : ""}
+                  {p}%
                 </option>
               ))}
-            </Select>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              Appliqué au prochain « Rebuild watchlist ». 0 % désactive la sonde OTM (garde le test ATM).
-            </p>
-            {otmRebuildRequired && otmRebuildRequiredMessage ? (
-              <p
-                className="mt-2 rounded-lg border border-amber-700/60 bg-amber-950/40 px-2 py-1.5 text-xs font-medium text-amber-200"
-                data-testid="otm-rebuild-required-banner"
-              >
-                {otmRebuildRequiredMessage}
-              </p>
-            ) : null}
-            {!otmRebuildRequired && liquidityOtmProbePctApplied != null ? (
-              <p className="mt-2 text-xs text-slate-500">
-                Dernier rebuild appliqué : {liquidityOtmProbePctApplied}%
-                {watchlistStats?.liquidityOtmProbeActive === false ? " (sonde off)" : ""}
-              </p>
+            </EditableScanSelect>
+
+            <EditableScanInput
+              label="Yahoo"
+              value={topN}
+              onChange={(e) => setTopN(Number(e.target.value || 1))}
+              min={1}
+              max={200}
+              wrapperClassName="w-[105px] shrink-0"
+              title="Limite Yahoo — nombre maximal de candidats Yahoo gardés avant test IBKR."
+            />
+
+            {refreshStage ? (
+              <span className="min-w-0 truncate">
+                <ScanCompactBadge label="État" value={refreshStage} />
+              </span>
             ) : null}
           </div>
 
-          <div className="rounded-xl border border-indigo-800 bg-indigo-950/40 p-3 xl:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-slate-200">Pool pré-IBKR</label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: "strict_watchlist", label: "Strict Watchlist" },
-                { id: "research_expanded", label: "Research Expanded" },
-                { id: "fallback_65", label: "Fallback 65" },
-              ].map((mode) => (
-                <Button
-                  key={mode.id}
-                  type="button"
-                  variant={preIbkrPoolMode === mode.id ? "default" : "outline"}
-                  className="rounded-xl text-xs"
-                  onClick={() => setPreIbkrPoolMode(mode.id)}
-                >
-                  {mode.label}
-                </Button>
-              ))}
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">Research limit</label>
-                <Select
-                  value={String(researchExpandedLimit)}
-                  onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
-                  className="w-full rounded-xl border-slate-700"
-                  disabled={preIbkrPoolMode !== "research_expanded"}
-                >
-                  <option value="150">150</option>
-                  <option value="200">200</option>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full rounded-xl"
-                  onClick={handleReloadResearchExpandedPool}
-                  disabled={preIbkrPoolMode !== "research_expanded" || researchExpandedPoolSource === "loading"}
-                >
-                  Recharger pool research
-                </Button>
-              </div>
-            </div>
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              Mode choisi : {formatPoolSourceLabel(preIbkrPoolMode)}
-              {lastScanPoolMeta.poolSource ? (
-                <>
-                  {" "}
-                  · Pool effectif (dernier scan) :{" "}
-                  {formatPoolSourceLabel(lastScanPoolMeta.poolSource)} ({lastScanPoolMeta.preIbkrCount}{" "}
-                  tickers)
-                </>
-              ) : null}{" "}
-              · Pool research chargé :{" "}
-              {researchExpandedPoolSource === "loading"
-                ? "…"
-                : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
-              {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
-                <span className="mt-1 block font-medium text-amber-300">
-                  ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
-                </span>
-              ) : null}
+          {/* Patch 3A — contrôles research conservés, visibles seulement en mode Research Expanded. */}
+          {preIbkrPoolMode === "research_expanded" && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <EditableScanSelect
+                label="Research limit"
+                value={String(researchExpandedLimit)}
+                onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
+                title="Plafond du pool Research Expanded."
+              >
+                <option value="150">150</option>
+                <option value="200">200</option>
+              </EditableScanSelect>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-lg border-slate-600 bg-slate-800 text-xs text-slate-200"
+                onClick={handleReloadResearchExpandedPool}
+                disabled={researchExpandedPoolSource === "loading"}
+              >
+                Recharger pool research
+              </Button>
+              <span className="text-xs text-slate-500">
+                Pool research chargé :{" "}
+                {researchExpandedPoolSource === "loading"
+                  ? "…"
+                  : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
+              </span>
               {researchExpandedPoolError ? (
-                <span className="mt-1 block text-amber-300">{researchExpandedPoolError}</span>
+                <span className="text-xs text-amber-300">{researchExpandedPoolError}</span>
               ) : null}
-            </p>
-            {otmPoolSourceBannerMessage ? (
-              <p
-                className={`mt-2 rounded-lg border px-2 py-1.5 text-xs leading-5 ${
-                  preIbkrPoolMode === "research_expanded" ||
-                  lastScanPoolMeta.poolSource === "research_expanded"
-                    ? "border-amber-700/60 bg-amber-950/40 text-amber-200"
-                    : "border-sky-800/50 bg-sky-950/30 text-sky-200"
-                }`}
-                data-testid="otm-pool-source-banner"
-              >
-                {otmPoolSourceBannerMessage}
-              </p>
-            ) : null}
-          </div>
+            </div>
+          )}
 
-          <div className="flex flex-col gap-2 justify-end">
-            <Button
-              className="w-full rounded-xl"
-              onClick={handleRefreshShortlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+          {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
+            <p className="mt-2 text-xs font-medium text-amber-300">
+              ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
+            </p>
+          ) : null}
+
+          {otmRebuildRequired && otmRebuildRequiredMessage ? (
+            <p
+              className="mt-2 rounded-lg border border-amber-700/60 bg-amber-950/40 px-2 py-1.5 text-xs font-medium text-amber-200"
+              data-testid="otm-rebuild-required-banner"
             >
-              Refresh shortlist <RefreshCw className="ml-2 h-4 w-4" />
-            </Button>
-            <Button
-              className="w-full rounded-xl"
-              variant="outline"
-              onClick={handleRebuildWatchlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+              {otmRebuildRequiredMessage}
+            </p>
+          ) : null}
+
+          {otmPoolSourceBannerMessage ? (
+            <p
+              className={`mt-2 rounded-lg border px-2 py-1.5 text-xs leading-5 ${
+                preIbkrPoolMode === "research_expanded" ||
+                lastScanPoolMeta.poolSource === "research_expanded"
+                  ? "border-amber-700/60 bg-amber-950/40 text-amber-200"
+                  : "border-sky-800/50 bg-sky-950/30 text-sky-200"
+              }`}
+              data-testid="otm-pool-source-banner"
             >
-              Rebuild watchlist <Database className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
+              {otmPoolSourceBannerMessage}
+            </p>
+          ) : null}
         </div>
 
         <div id="section-diagnostics" className="scroll-mt-4" />

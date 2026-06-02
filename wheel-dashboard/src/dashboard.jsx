@@ -1745,6 +1745,27 @@ function Metric({ label, value, strong = false, tone = "default", sub = null }) 
   );
 }
 
+// Layout-only wrapper for the Diagnostics page. No business logic, no mutation,
+// no API call — it only groups already-rendered blocks under a titled section.
+function DiagnosticsSection({ eyebrow, title, description, children }) {
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-sm">
+      <div className="mb-3">
+        {eyebrow && (
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
+            {eyebrow}
+          </p>
+        )}
+        <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
+        {description && (
+          <p className="mt-1 text-sm text-slate-400">{description}</p>
+        )}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
 function FaceplateMetric({ label, value, sub = null, tone = "default", strong = false }) {
   const toneClass =
     tone === "good"
@@ -12346,6 +12367,10 @@ export default function Dashboard() {
                 Page Diagnostics active — aucun scroll automatique vers la page Opportunités.
               </div>
             </div>
+        <DiagnosticsSection
+          title="Vue rapide"
+          description="Synthèse des volumes, conversions et goulots du dernier scan."
+        >
         {(yahooScanMeta.scanned > 0 || ibkrSentCount > 0 || ibkrDirectResult || lastScanPoolMeta.preIbkrCount > 0) && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details open>
@@ -12532,7 +12557,12 @@ export default function Dashboard() {
             </details>
           </div>
         )}
+        </DiagnosticsSection>
         <div className="space-y-4">
+        <DiagnosticsSection
+          title="Yahoo"
+          description="Qualité du retour Yahoo, rejets et candidats non envoyés à IBKR."
+        >
         {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details>
@@ -12622,7 +12652,11 @@ export default function Dashboard() {
             </details>
           </div>
         )}
-
+        </DiagnosticsSection>
+        <DiagnosticsSection
+          title="IBKR"
+          description="Validation IBKR, coût des appels et outils de test Shadow / Direct Scan."
+        >
         {ibkrAutoRankDiagnostics.length > 0 && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
             <details>
@@ -12685,178 +12719,6 @@ export default function Dashboard() {
             <p className="mt-2 text-xs text-slate-500">
               Tickers envoyés à IBKR auto : {(ibkrDirectSentTickers || []).join(", ") || "—"}
             </p>
-            </details>
-          </div>
-        )}
-
-        {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
-            <details open>
-              <summary className="cursor-pointer font-semibold text-slate-100">
-                PIPELINE FUNNEL DIAGNOSTICS
-              </summary>
-              <p className="mt-2 text-xs text-slate-400">
-                Universe: {pipelineFunnelDiagnostics.universeMasterActive} · Watchlist: {pipelineFunnelDiagnostics.watchlistKept} · Yahoo Sent: {pipelineFunnelDiagnostics.tickersSentToScan} · Yahoo Qualified: {pipelineFunnelDiagnostics.passesFilterTrue} · Yahoo Unreliable: {pipelineFunnelDiagnostics.keptUnreliable} · Yahoo Returned: {pipelineFunnelDiagnostics.returned} · UI Visible: {pipelineFunnelDiagnostics.visibleAfterTopN} · Filtered Final: {pipelineFunnelDiagnostics.filteredFinalCount} · Combo Pool: {pipelineFunnelDiagnostics.comboBasePoolCount}
-              </p>
-              {dataSource === "ibkr_direct" && primaryIbkrSourceInfo && (
-                <p className="mt-1 text-xs text-amber-300">
-                  IBKR auto : affichage prima limité à {ibkrFinalTarget} lignes — shortlist Yahoo en mémoire{" "}
-                  {yahooReturnedCount}, fusion IBKR avant cap{" "}
-                  {Number(primaryIbkrSourceInfo.totalKeptCollected) || "—"}, hors écran{" "}
-                  {Number(primaryIbkrSourceInfo.retainedNotDisplayed) || 0}. L’écart « Yahoo Returned vs UI Visible » vient
-                  surtout de ce plafond / des rejets IBKR, pas du SAFE Wheel.
-                </p>
-              )}
-
-              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Metric label="Master actifs (univers)" value={String(pipelineFunnelDiagnostics.universeMasterActive)} />
-                <Metric label="Catégories sélectionnées" value={String(pipelineFunnelDiagnostics.categoriesSelected)} />
-                <Metric label="Exclus crypto (univers)" value={String(pipelineFunnelDiagnostics.excludedCrypto)} tone={pipelineFunnelDiagnostics.excludedCrypto > 0 ? "warn" : "default"} />
-                <Metric label="Exclus filtres build" value={String(pipelineFunnelDiagnostics.buildExcluded)} tone={pipelineFunnelDiagnostics.buildExcluded > 0 ? "warn" : "default"} />
-              </div>
-              {(pipelineFunnelDiagnostics.excludedCrypto > 0 ||
-                (pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols?.length ?? 0) > 0) && (
-                <div className="mt-2 rounded-lg border border-amber-900/40 bg-amber-950/20 p-2 text-[11px] text-amber-100/90">
-                  <p>
-                    <span className="font-medium text-amber-200">Crypto supprimées :</span>{" "}
-                    {pipelineFunnelDiagnostics.excludedCrypto}
-                    {pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols?.length
-                      ? ` — ${pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols.join(", ")}`
-                      : ""}
-                  </p>
-                  {pipelineFunnelDiagnostics.cryptoAllowedRetained?.length > 0 && (
-                    <p className="mt-1 text-emerald-300/90">
-                      Exception conservée : {pipelineFunnelDiagnostics.cryptoAllowedRetained.join(", ")} (BITX autorisé)
-                    </p>
-                  )}
-                  <p className="mt-1 text-amber-200/70">Raison : {CRYPTO_BLOCK_REASON}</p>
-                </div>
-              )}
-              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Metric label="Watchlist kept/rejected" value={`${pipelineFunnelDiagnostics.watchlistKept} / ${pipelineFunnelDiagnostics.watchlistRejected}`} />
-                <Metric label="Watchlist limit applied" value={String(pipelineFunnelDiagnostics.watchlistLimitApplied)} />
-                <Metric
-                  label="Sonde OTM % (dernier build)"
-                  value={
-                    watchlistStats?.liquidityOtmProbePctApplied == null
-                      ? "—"
-                      : `${watchlistStats.liquidityOtmProbePctApplied}%${
-                          watchlistStats.liquidityOtmProbeActive ? "" : " (off)"
-                        }`
-                  }
-                />
-                <Metric label="Yahoo sent/scanned" value={`${pipelineFunnelDiagnostics.tickersSentToScan} / ${pipelineFunnelDiagnostics.scanned}`} />
-                <Metric label="Scan failures" value={String(pipelineFunnelDiagnostics.scanFailures)} tone={pipelineFunnelDiagnostics.scanFailures > 0 ? "warn" : "default"} />
-                <Metric label="Expiration unavailable" value={String(pipelineFunnelDiagnostics.expirationUnavailable)} tone={pipelineFunnelDiagnostics.expirationUnavailable > 0 ? "warn" : "default"} />
-                <Metric label="Duplicate removed" value={String(pipelineFunnelDiagnostics.duplicateRemoved)} />
-                <Metric label="passesFilter TRUE" value={String(pipelineFunnelDiagnostics.passesFilterTrue)} tone="good" />
-                <Metric label="keptUnreliable" value={String(pipelineFunnelDiagnostics.keptUnreliable)} tone={pipelineFunnelDiagnostics.keptUnreliable > 0 ? "warn" : "default"} />
-                <Metric label="requestedTopN/challenger" value={`${pipelineFunnelDiagnostics.requestedTopN} / ${pipelineFunnelDiagnostics.challengerCount}`} />
-                <Metric label="returned/hiddenReturned" value={`${pipelineFunnelDiagnostics.returned} / ${pipelineFunnelDiagnostics.hiddenReturnedCandidates}`} />
-                <Metric label="UI removed S/V/E" value={`${pipelineFunnelDiagnostics.removedBySearch} / ${pipelineFunnelDiagnostics.removedByVerdict} / ${pipelineFunnelDiagnostics.removedByExpiration}`} />
-                <Metric label="Combo usable S/B/A" value={`${pipelineFunnelDiagnostics.usableForSAFE} / ${pipelineFunnelDiagnostics.usableForBALANCED} / ${pipelineFunnelDiagnostics.usableForAGGRESSIVE}`} />
-              </div>
-
-              <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                <p className="font-medium text-slate-100">Conversion rates</p>
-                <div className="mt-2 space-y-2 text-xs text-slate-300">
-                  <div>
-                    Fill rate watchlist: {pipelineFunnelDiagnostics.fillRatePct.toFixed(1)}%
-                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
-                      <div className="h-2 rounded bg-sky-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.fillRatePct)}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    Qualification rate: {pipelineFunnelDiagnostics.qualificationRatePct.toFixed(1)}%
-                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
-                      <div className="h-2 rounded bg-emerald-950/400" style={{ width: `${clampPct(pipelineFunnelDiagnostics.qualificationRatePct)}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    Final combo conversion rate: {pipelineFunnelDiagnostics.finalComboConversionRatePct.toFixed(1)}%
-                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
-                      <div className="h-2 rounded bg-amber-950/400" style={{ width: `${clampPct(pipelineFunnelDiagnostics.finalComboConversionRatePct)}%` }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                  <p className="font-medium text-slate-100">Pertes par étape</p>
-                  <div className="mt-2 space-y-2 text-xs text-slate-300">
-                    {pipelineFunnelDiagnostics.stageLossRows.map((row) => (
-                      <div key={`stage-loss-${row.from}-${row.to}`} className="rounded border border-slate-700 bg-slate-900 p-2">
-                        <div className="flex items-center justify-between">
-                          <span>{row.from} → {row.to}</span>
-                          <span className="font-medium">{row.before} → {row.after} (perte {row.lost})</span>
-                        </div>
-                        <div className="mt-1 h-2 w-full rounded bg-slate-700">
-                          <div className="h-2 rounded bg-slate-600" style={{ width: `${clampPct(row.conversionPct)}%` }} />
-                        </div>
-                        <div className="mt-1 text-right">{row.conversionPct.toFixed(1)}%</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                  <p className="font-medium text-slate-100">Rejection Dashboard</p>
-                  {pipelineFunnelDiagnostics.rejectionRows.length === 0 ? (
-                    <p className="mt-2 text-xs text-slate-500">Aucun rejet comptabilisé.</p>
-                  ) : (
-                    <div className="mt-2 overflow-x-auto">
-                      <table className="min-w-full text-left text-xs text-slate-300">
-                        <thead>
-                          <tr className="border-b border-slate-700 text-slate-500">
-                            <th className="py-1 pr-2 font-medium">Reason</th>
-                            <th className="py-1 pr-2 font-medium">Count</th>
-                            <th className="py-1 font-medium">Severity</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pipelineFunnelDiagnostics.rejectionRows.map((row) => (
-                            <tr key={`reject-row-${row.reason}`} className="border-b border-slate-800 last:border-0">
-                              <td className="py-1 pr-2">{row.reason}</td>
-                              <td className="py-1 pr-2">{row.count}</td>
-                              <td className="py-1">{row.severity}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  <div className="mt-3 rounded border border-slate-700 bg-slate-900 p-2 text-xs">
-                    <div className="font-medium text-slate-200">Yahoo qualification reasons</div>
-                    <div className="mt-1 text-slate-400">
-                      no_put_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_put_below_lower_bound} ·
-                      no_liquid_strike_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_liquid_strike_below_lower_bound} ·
-                      premium_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.premium_below_target} ·
-                      yield_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.yield_below_target} ·
-                      safe_strike_not_liquid: {pipelineFunnelDiagnostics.reasonBreakdown.safe_strike_not_liquid} ·
-                      failed_final_filter: {pipelineFunnelDiagnostics.reasonBreakdown.failed_final_filter} ·
-                      unknown: {pipelineFunnelDiagnostics.reasonBreakdown.unknown}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {pipelineFunnelDiagnostics.watchlistBuildRejections.length > 0 && (
-                <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                  <p className="font-medium text-slate-100">Watchlist build rejection reasons</p>
-                  <div className="mt-2 grid gap-1 text-xs text-slate-300 md:grid-cols-2">
-                    {pipelineFunnelDiagnostics.watchlistBuildRejections.map((row) => (
-                      <div key={`watchlist-build-reason-${row.reason}`}>
-                        {formatIbkrReason(row.reason)} : {row.count}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <PreIbkrCutDiagnosticsPanel
-                rows={preIbkrCutTickerList}
-                summary={preIbkrCutSummary}
-                onExportCsv={exportPreIbkrCutCsv}
-              />
             </details>
           </div>
         )}
@@ -13218,7 +13080,187 @@ export default function Dashboard() {
           onRun={handleIbkrDirectScan}
           onRunTest={handleIbkrDirectTestScan}
         />
+        </DiagnosticsSection>
+        <DiagnosticsSection
+          title="Pipeline complet"
+          description="Vue détaillée du funnel complet, pertes par étape, exclusions et pré-IBKR."
+        >
+        {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
+            <details open>
+              <summary className="cursor-pointer font-semibold text-slate-100">
+                PIPELINE FUNNEL DIAGNOSTICS
+              </summary>
+              <p className="mt-2 text-xs text-slate-400">
+                Universe: {pipelineFunnelDiagnostics.universeMasterActive} · Watchlist: {pipelineFunnelDiagnostics.watchlistKept} · Yahoo Sent: {pipelineFunnelDiagnostics.tickersSentToScan} · Yahoo Qualified: {pipelineFunnelDiagnostics.passesFilterTrue} · Yahoo Unreliable: {pipelineFunnelDiagnostics.keptUnreliable} · Yahoo Returned: {pipelineFunnelDiagnostics.returned} · UI Visible: {pipelineFunnelDiagnostics.visibleAfterTopN} · Filtered Final: {pipelineFunnelDiagnostics.filteredFinalCount} · Combo Pool: {pipelineFunnelDiagnostics.comboBasePoolCount}
+              </p>
+              {dataSource === "ibkr_direct" && primaryIbkrSourceInfo && (
+                <p className="mt-1 text-xs text-amber-300">
+                  IBKR auto : affichage prima limité à {ibkrFinalTarget} lignes — shortlist Yahoo en mémoire{" "}
+                  {yahooReturnedCount}, fusion IBKR avant cap{" "}
+                  {Number(primaryIbkrSourceInfo.totalKeptCollected) || "—"}, hors écran{" "}
+                  {Number(primaryIbkrSourceInfo.retainedNotDisplayed) || 0}. L’écart « Yahoo Returned vs UI Visible » vient
+                  surtout de ce plafond / des rejets IBKR, pas du SAFE Wheel.
+                </p>
+              )}
 
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Master actifs (univers)" value={String(pipelineFunnelDiagnostics.universeMasterActive)} />
+                <Metric label="Catégories sélectionnées" value={String(pipelineFunnelDiagnostics.categoriesSelected)} />
+                <Metric label="Exclus crypto (univers)" value={String(pipelineFunnelDiagnostics.excludedCrypto)} tone={pipelineFunnelDiagnostics.excludedCrypto > 0 ? "warn" : "default"} />
+                <Metric label="Exclus filtres build" value={String(pipelineFunnelDiagnostics.buildExcluded)} tone={pipelineFunnelDiagnostics.buildExcluded > 0 ? "warn" : "default"} />
+              </div>
+              {(pipelineFunnelDiagnostics.excludedCrypto > 0 ||
+                (pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols?.length ?? 0) > 0) && (
+                <div className="mt-2 rounded-lg border border-amber-900/40 bg-amber-950/20 p-2 text-[11px] text-amber-100/90">
+                  <p>
+                    <span className="font-medium text-amber-200">Crypto supprimées :</span>{" "}
+                    {pipelineFunnelDiagnostics.excludedCrypto}
+                    {pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols?.length
+                      ? ` — ${pipelineFunnelDiagnostics.cryptoBlockedRemovedSymbols.join(", ")}`
+                      : ""}
+                  </p>
+                  {pipelineFunnelDiagnostics.cryptoAllowedRetained?.length > 0 && (
+                    <p className="mt-1 text-emerald-300/90">
+                      Exception conservée : {pipelineFunnelDiagnostics.cryptoAllowedRetained.join(", ")} (BITX autorisé)
+                    </p>
+                  )}
+                  <p className="mt-1 text-amber-200/70">Raison : {CRYPTO_BLOCK_REASON}</p>
+                </div>
+              )}
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Watchlist kept/rejected" value={`${pipelineFunnelDiagnostics.watchlistKept} / ${pipelineFunnelDiagnostics.watchlistRejected}`} />
+                <Metric label="Watchlist limit applied" value={String(pipelineFunnelDiagnostics.watchlistLimitApplied)} />
+                <Metric
+                  label="Sonde OTM % (dernier build)"
+                  value={
+                    watchlistStats?.liquidityOtmProbePctApplied == null
+                      ? "—"
+                      : `${watchlistStats.liquidityOtmProbePctApplied}%${
+                          watchlistStats.liquidityOtmProbeActive ? "" : " (off)"
+                        }`
+                  }
+                />
+                <Metric label="Yahoo sent/scanned" value={`${pipelineFunnelDiagnostics.tickersSentToScan} / ${pipelineFunnelDiagnostics.scanned}`} />
+                <Metric label="Scan failures" value={String(pipelineFunnelDiagnostics.scanFailures)} tone={pipelineFunnelDiagnostics.scanFailures > 0 ? "warn" : "default"} />
+                <Metric label="Expiration unavailable" value={String(pipelineFunnelDiagnostics.expirationUnavailable)} tone={pipelineFunnelDiagnostics.expirationUnavailable > 0 ? "warn" : "default"} />
+                <Metric label="Duplicate removed" value={String(pipelineFunnelDiagnostics.duplicateRemoved)} />
+                <Metric label="passesFilter TRUE" value={String(pipelineFunnelDiagnostics.passesFilterTrue)} tone="good" />
+                <Metric label="keptUnreliable" value={String(pipelineFunnelDiagnostics.keptUnreliable)} tone={pipelineFunnelDiagnostics.keptUnreliable > 0 ? "warn" : "default"} />
+                <Metric label="requestedTopN/challenger" value={`${pipelineFunnelDiagnostics.requestedTopN} / ${pipelineFunnelDiagnostics.challengerCount}`} />
+                <Metric label="returned/hiddenReturned" value={`${pipelineFunnelDiagnostics.returned} / ${pipelineFunnelDiagnostics.hiddenReturnedCandidates}`} />
+                <Metric label="UI removed S/V/E" value={`${pipelineFunnelDiagnostics.removedBySearch} / ${pipelineFunnelDiagnostics.removedByVerdict} / ${pipelineFunnelDiagnostics.removedByExpiration}`} />
+                <Metric label="Combo usable S/B/A" value={`${pipelineFunnelDiagnostics.usableForSAFE} / ${pipelineFunnelDiagnostics.usableForBALANCED} / ${pipelineFunnelDiagnostics.usableForAGGRESSIVE}`} />
+              </div>
+
+              <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                <p className="font-medium text-slate-100">Conversion rates</p>
+                <div className="mt-2 space-y-2 text-xs text-slate-300">
+                  <div>
+                    Fill rate watchlist: {pipelineFunnelDiagnostics.fillRatePct.toFixed(1)}%
+                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
+                      <div className="h-2 rounded bg-sky-500" style={{ width: `${clampPct(pipelineFunnelDiagnostics.fillRatePct)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    Qualification rate: {pipelineFunnelDiagnostics.qualificationRatePct.toFixed(1)}%
+                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
+                      <div className="h-2 rounded bg-emerald-950/400" style={{ width: `${clampPct(pipelineFunnelDiagnostics.qualificationRatePct)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    Final combo conversion rate: {pipelineFunnelDiagnostics.finalComboConversionRatePct.toFixed(1)}%
+                    <div className="mt-1 h-2 w-full rounded bg-slate-700">
+                      <div className="h-2 rounded bg-amber-950/400" style={{ width: `${clampPct(pipelineFunnelDiagnostics.finalComboConversionRatePct)}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Pertes par étape</p>
+                  <div className="mt-2 space-y-2 text-xs text-slate-300">
+                    {pipelineFunnelDiagnostics.stageLossRows.map((row) => (
+                      <div key={`stage-loss-${row.from}-${row.to}`} className="rounded border border-slate-700 bg-slate-900 p-2">
+                        <div className="flex items-center justify-between">
+                          <span>{row.from} → {row.to}</span>
+                          <span className="font-medium">{row.before} → {row.after} (perte {row.lost})</span>
+                        </div>
+                        <div className="mt-1 h-2 w-full rounded bg-slate-700">
+                          <div className="h-2 rounded bg-slate-600" style={{ width: `${clampPct(row.conversionPct)}%` }} />
+                        </div>
+                        <div className="mt-1 text-right">{row.conversionPct.toFixed(1)}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Rejection Dashboard</p>
+                  {pipelineFunnelDiagnostics.rejectionRows.length === 0 ? (
+                    <p className="mt-2 text-xs text-slate-500">Aucun rejet comptabilisé.</p>
+                  ) : (
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="min-w-full text-left text-xs text-slate-300">
+                        <thead>
+                          <tr className="border-b border-slate-700 text-slate-500">
+                            <th className="py-1 pr-2 font-medium">Reason</th>
+                            <th className="py-1 pr-2 font-medium">Count</th>
+                            <th className="py-1 font-medium">Severity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pipelineFunnelDiagnostics.rejectionRows.map((row) => (
+                            <tr key={`reject-row-${row.reason}`} className="border-b border-slate-800 last:border-0">
+                              <td className="py-1 pr-2">{row.reason}</td>
+                              <td className="py-1 pr-2">{row.count}</td>
+                              <td className="py-1">{row.severity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <div className="mt-3 rounded border border-slate-700 bg-slate-900 p-2 text-xs">
+                    <div className="font-medium text-slate-200">Yahoo qualification reasons</div>
+                    <div className="mt-1 text-slate-400">
+                      no_put_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_put_below_lower_bound} ·
+                      no_liquid_strike_below_lower_bound: {pipelineFunnelDiagnostics.reasonBreakdown.no_liquid_strike_below_lower_bound} ·
+                      premium_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.premium_below_target} ·
+                      yield_below_target: {pipelineFunnelDiagnostics.reasonBreakdown.yield_below_target} ·
+                      safe_strike_not_liquid: {pipelineFunnelDiagnostics.reasonBreakdown.safe_strike_not_liquid} ·
+                      failed_final_filter: {pipelineFunnelDiagnostics.reasonBreakdown.failed_final_filter} ·
+                      unknown: {pipelineFunnelDiagnostics.reasonBreakdown.unknown}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {pipelineFunnelDiagnostics.watchlistBuildRejections.length > 0 && (
+                <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Watchlist build rejection reasons</p>
+                  <div className="mt-2 grid gap-1 text-xs text-slate-300 md:grid-cols-2">
+                    {pipelineFunnelDiagnostics.watchlistBuildRejections.map((row) => (
+                      <div key={`watchlist-build-reason-${row.reason}`}>
+                        {formatIbkrReason(row.reason)} : {row.count}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <PreIbkrCutDiagnosticsPanel
+                rows={preIbkrCutTickerList}
+                summary={preIbkrCutSummary}
+                onExportCsv={exportPreIbkrCutCsv}
+              />
+            </details>
+          </div>
+        )}
+        </DiagnosticsSection>
+        <DiagnosticsSection
+          title="Debug / ancienne vue"
+          description="Vue fusionnée conservée pour comparaison et audit temporaire."
+        >
         <details className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-4 text-sm text-slate-400 shadow-sm">
           <summary className="cursor-pointer font-semibold text-slate-100">
             Diagnostic secondaire : ancienne vue fusionnée
@@ -13227,6 +13269,7 @@ export default function Dashboard() {
             <MergedShortlistSection candidates={mergedIbkrYahooCandidatesForPanel} />
           </div>
         </details>
+        </DiagnosticsSection>
         </div>
           </section>
         ) : activeView === "dashboard" ? (

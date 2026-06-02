@@ -1712,7 +1712,21 @@ function AlertPanel() {
   );
 }
 
-function Metric({ label, value, strong = false, tone = "default" }) {
+/** Format diagnostic d'un ratio en pourcentage ; "—" si le dénominateur est nul/invalide. */
+function formatDiagPct(numerator, denominator) {
+  const n = Number(numerator) || 0;
+  const d = Number(denominator) || 0;
+  if (d <= 0) return "—";
+  return `${((n / d) * 100).toFixed(1)} %`;
+}
+
+/** Variante avec libellé court de dénominateur ("X % scannés"), neutre quand le ratio vaut "—". */
+function formatDiagPctOf(numerator, denominator, base) {
+  const pct = formatDiagPct(numerator, denominator);
+  return base && pct !== "—" ? `${pct} ${base}` : pct;
+}
+
+function Metric({ label, value, strong = false, tone = "default", sub = null }) {
   const toneClass =
     tone === "good"
       ? "bg-emerald-950/40 border-emerald-800 text-emerald-300"
@@ -1726,6 +1740,7 @@ function Metric({ label, value, strong = false, tone = "default" }) {
     <div className={cn("rounded-xl border p-3", toneClass)}>
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
       <p className={cn("mt-1 text-sm", strong && "font-semibold")}>{value}</p>
+      {sub ? <p className="mt-0.5 text-xs text-slate-500">{sub}</p> : null}
     </div>
   );
 }
@@ -10186,6 +10201,15 @@ export default function Dashboard() {
   const ibkrNonTestedCount = Number.isFinite(Number(ibkrDirectResult?.nonTestedCandidates))
     ? Number(ibkrDirectResult.nonTestedCandidates)
     : Math.max(0, yahooReturnedCount - ibkrTestedCount);
+  /** Base "watchlist scannable" : aligne le dénominateur sur la valeur affichée par la carte. */
+  const watchlistScannable = yahooScanMeta.scanned || tickersForScan.length || 0;
+  /** Candidats admissibles au panneau crème (= valeur affichée par la carte, hors cryptos bloquées). */
+  const admissibleCremeCount =
+    filtered.length -
+    filtered.filter((it) => {
+      const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
+      return m.isCryptoBlocked && !m.isCryptoAllowed;
+    }).length;
 
   /** Bassin Yahoo côté dernier résultat IBKR auto (fallback : compteur courant Yahoo retournés). */
   const ibkrTraceYahooReturnedForFunnel = useMemo(() => {
@@ -12407,44 +12431,74 @@ export default function Dashboard() {
                   </p>
                 ) : null}
               </div>
+              <p className="mt-3 text-xs leading-5 text-slate-400">
+                <span className="font-semibold text-slate-300">Lecture rapide :</span>{" "}
+                IBKR teste {formatDiagPct(ibkrTestedCount, yahooReturnedCount)} des Yahoo retournés ·{" "}
+                IBKR retient {formatDiagPct(ibkrTotalKeptCollected, ibkrTestedCount)} des testés ·{" "}
+                Non envoyés IBKR {formatDiagPct(Math.max(0, yahooReturnedCount - ibkrSentCount), yahooReturnedCount)}
+              </p>
               <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Metric label="Watchlist scannable" value={String(yahooScanMeta.scanned || tickersForScan.length || 0)} />
+              <Metric label="Watchlist scannable" value={String(watchlistScannable)} />
               <Metric
                 label="Cryptos supprimées watchlist"
                 value={String(cryptoRemovedFromWatchlistCount)}
                 tone={cryptoRemovedFromWatchlistCount > 0 ? "warn" : "default"}
               />
-              <Metric label="Yahoo retenus" value={String(yahooScanMeta.kept || 0)} />
-              <Metric label="Yahoo retournés" value={String(yahooReturnedCount)} />
+              <Metric
+                label="Yahoo retenus"
+                value={String(yahooScanMeta.kept || 0)}
+                sub={formatDiagPctOf(yahooScanMeta.kept || 0, yahooReturnedCount, "retournés")}
+              />
+              <Metric
+                label="Yahoo retournés"
+                value={String(yahooReturnedCount)}
+                sub={formatDiagPctOf(yahooReturnedCount, watchlistScannable, "scannés")}
+              />
               <Metric label="Objectif cartes finales" value={String(ibkrFinalTarget)} />
-              <Metric label="IBKR testés" value={String(ibkrTestedCount)} />
-              <Metric label="Envoyés à IBKR" value={String(ibkrSentCount)} />
-              <Metric label="Retenus IBKR total" value={String(ibkrTotalKeptCollected)} />
+              <Metric
+                label="IBKR testés"
+                value={String(ibkrTestedCount)}
+                sub={formatDiagPctOf(ibkrTestedCount, yahooReturnedCount, "retournés")}
+              />
+              <Metric
+                label="Envoyés à IBKR"
+                value={String(ibkrSentCount)}
+                sub={formatDiagPctOf(ibkrSentCount, yahooReturnedCount, "retournés")}
+              />
+              <Metric
+                label="Retenus IBKR total"
+                value={String(ibkrTotalKeptCollected)}
+                sub={formatDiagPctOf(ibkrTotalKeptCollected, ibkrTestedCount, "testés")}
+              />
               <Metric
                 label="Admissibles panneau crème"
-                value={String(
-                  filtered.length -
-                  filtered.filter(it => {
-                    const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
-                    return m.isCryptoBlocked && !m.isCryptoAllowed;
-                  }).length
-                )}
+                value={String(admissibleCremeCount)}
+                sub={formatDiagPctOf(admissibleCremeCount, yahooReturnedCount, "retournés")}
               />
               <Metric label="Retenus non affichés après tri" value={String(ibkrRetainedNotDisplayed)} tone={ibkrRetainedNotDisplayed > 0 ? "warn" : "default"} />
-              <Metric label="Rejetés IBKR" value={String(ibkrRejectedCount)} />
+              <Metric
+                label="Rejetés IBKR"
+                value={String(ibkrRejectedCount)}
+                sub={formatDiagPctOf(ibkrRejectedCount, ibkrTestedCount, "testés")}
+              />
               <Metric label="Rejetés remplacés" value={String(ibkrRejectedReplaced)} tone={ibkrRejectedReplaced ? "warn" : "default"} />
-              <Metric label="Non testés IBKR" value={String(ibkrNonTestedCount)} />
+              <Metric
+                label="Non testés IBKR"
+                value={String(ibkrNonTestedCount)}
+                sub={formatDiagPctOf(ibkrNonTestedCount, yahooReturnedCount, "retournés")}
+              />
               <Metric
                 label="Non envoyés à IBKR"
                 value={String(Math.max(0, yahooReturnedCount - ibkrSentCount))}
+                sub={formatDiagPctOf(Math.max(0, yahooReturnedCount - ibkrSentCount), yahooReturnedCount, "retournés")}
                 tone={yahooReturnedCount > ibkrSentCount ? "warn" : "default"}
               />
-              <Metric label="Actionnables Yahoo" value={String(yahooActionabilityCounts.actionable)} tone="good" />
-              <Metric label="À surveiller Yahoo" value={String(yahooActionabilityCounts.watch)} tone="warn" />
-              <Metric label="Non actionnables Yahoo" value={String(yahooActionabilityCounts.nonActionable)} tone="bad" />
-              <Metric label="Actionnables IBKR" value={String(ibkrActionabilityCounts.actionable)} tone="good" />
-              <Metric label="À surveiller IBKR" value={String(ibkrActionabilityCounts.watch)} tone="warn" />
-              <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} tone="bad" />
+              <Metric label="Actionnables Yahoo" value={String(yahooActionabilityCounts.actionable)} sub={formatDiagPctOf(yahooActionabilityCounts.actionable, yahooReturnedCount, "retournés")} tone="good" />
+              <Metric label="À surveiller Yahoo" value={String(yahooActionabilityCounts.watch)} sub={formatDiagPctOf(yahooActionabilityCounts.watch, yahooReturnedCount, "retournés")} tone="warn" />
+              <Metric label="Non actionnables Yahoo" value={String(yahooActionabilityCounts.nonActionable)} sub={formatDiagPctOf(yahooActionabilityCounts.nonActionable, yahooReturnedCount, "retournés")} tone="bad" />
+              <Metric label="Actionnables IBKR" value={String(ibkrActionabilityCounts.actionable)} sub={formatDiagPctOf(ibkrActionabilityCounts.actionable, ibkrTestedCount, "testés")} tone="good" />
+              <Metric label="À surveiller IBKR" value={String(ibkrActionabilityCounts.watch)} sub={formatDiagPctOf(ibkrActionabilityCounts.watch, ibkrTestedCount, "testés")} tone="warn" />
+              <Metric label="Non actionnables IBKR" value={String(ibkrActionabilityCounts.nonActionable)} sub={formatDiagPctOf(ibkrActionabilityCounts.nonActionable, ibkrTestedCount, "testés")} tone="bad" />
             </div>
             {ibkrDirectResult?.ok === true && (
               <div className="mt-4 rounded-xl border border-sky-900 bg-slate-800/80 px-3 py-3">

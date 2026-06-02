@@ -12366,11 +12366,14 @@ export default function Dashboard() {
               <h1 className="mt-2 text-2xl font-semibold text-white">
                 Diagnostics du scan
               </h1>
-              <p className="mt-2 text-sm text-slate-400">
-                Vue dédiée en préparation. Les blocs diagnostics seront déplacés ici progressivement.
+              <p className="mt-2 text-sm text-slate-300">
+                Vue de contrôle complète du pipeline Yahoo → IBKR → affichage final.
+              </p>
+              <p className="mt-1 text-xs text-sky-300/70">
+                LAB — diagnostics en lecture seule. Aucun ordre envoyé.
               </p>
               <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
-                Page Diagnostics active — aucun scroll automatique vers la page Opportunités.
+                Utilise cette page pour identifier où les candidats sont coupés : Yahoo, pré-IBKR, IBKR ou affichage final.
               </div>
             </div>
         <DiagnosticsSection

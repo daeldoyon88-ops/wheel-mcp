@@ -4526,6 +4526,13 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
     ? Number(displayLeg.weeklyYield)
     : (item.weeklyReturn != null && Number(item.weeklyReturn) > 0 ? Number(item.weeklyReturn) : null);
   const displayDistance = displayLeg?.distancePct ?? item.strikeDistance;
+  // Capital / contrat doit refléter la jambe réellement sélectionnée (SAFE ou AGRESSIF),
+  // pas systématiquement primaryStrike (= SAFE). On réutilise displayLeg ci-dessus.
+  // Fallback legacy vers item.capitalPerContract si le strike de la jambe est absent.
+  const displayCapitalPerContract =
+    Number.isFinite(Number(displayLeg?.strike)) && Number(displayLeg.strike) > 0
+      ? Number(displayLeg.strike) * 100
+      : item.capitalPerContract;
   const isTickerHighlighted = highlightedTicker === String(item?.ticker || "").trim().toUpperCase();
 
   return (
@@ -4732,7 +4739,7 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
                   value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
                   strong
                 />
-                <FaceplateMetric label="Capital / contrat" value={`$${item.capitalPerContract.toFixed(0)}`} />
+                <FaceplateMetric label="Capital / contrat" value={`$${displayCapitalPerContract.toFixed(0)}`} />
               </div>
 
               {isExpanded && (<>

@@ -12568,6 +12568,72 @@ export default function Dashboard() {
             </details>
           </div>
         )}
+
+        {ibkrAutoRankDiagnostics.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
+            <details>
+              <summary className="cursor-pointer font-semibold text-slate-100">
+                Rangs Yahoo — testés IBKR : {ibkrTestedCount} / {yahooReturnedCount}
+              </summary>
+            <p className="mt-1 text-xs text-slate-500">
+              Source :{" "}
+              <span className="font-mono font-medium text-slate-200">
+                {ibkrAutoTickerSource === "yahoo_shortlist"
+                  ? "yahoo_shortlist"
+                  : ibkrAutoTickerSource === "watchlist_fallback"
+                    ? "watchlist_fallback (pré-score technique)"
+                    : "—"}
+              </span>
+            </p>
+            <div className="mt-2 space-y-1">
+              {ibkrAutoRankDiagnostics.map((row) => {
+                const symbol = String(row.symbol || "").trim().toUpperCase();
+                const tested = ibkrSentSet.has(symbol);
+                const rejected = ibkrRejectedSymbols.has(symbol);
+                const kept = ibkrKeptSymbols.has(symbol);
+                const displayed = ibkrDisplayedSymbols.has(symbol);
+                const retainedRow = ibkrRetainedBySymbol.get(symbol);
+                const preYahoo = candidateByTickerForPreIbkr.get(symbol) ?? null;
+                const mergedForReason =
+                  retainedRow != null
+                    ? {
+                        ...(preYahoo || {}),
+                        ...retainedRow,
+                        safeStrike: retainedRow?.safeStrike ?? preYahoo?.safeStrike,
+                        aggressiveStrike: retainedRow?.aggressiveStrike ?? preYahoo?.aggressiveStrike,
+                      }
+                    : preYahoo;
+                const nonTestedCapReached = !tested && Number(ibkrNonTestedCount) > 0;
+                const status = rejected
+                  ? "testé puis rejeté"
+                  : kept && displayed
+                  ? "retenu affiché"
+                  : kept && !displayed
+                  ? "testé mais non affiché après tri"
+                  : nonTestedCapReached
+                  ? "non testé car cap IBKR atteint"
+                  : tested
+                  ? "testé"
+                  : "non testé";
+                const exclusionReason =
+                  kept && !displayed && mergedForReason
+                    ? getRetainedNotDisplayedReason(mergedForReason, ibkrDisplayedScoreFloor)
+                    : null;
+                return (
+                  <div key={`pre-ibkr-${row.symbol}`}>
+                    {row.selectionMode === "yahoo_shortlist" && row.rank != null
+                      ? `${row.symbol} : rang Yahoo #${row.rank} — ${status}${exclusionReason ? ` (${exclusionReason})` : ""} — ${row.reasons.join(" · ") || "ordre shortlist"}`
+                      : `${row.symbol} : score ${Math.round(Number(row.score) || 0)} — ${status}${exclusionReason ? ` (${exclusionReason})` : ""} — ${row.reasons.join(" · ") || "base"}`}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Tickers envoyés à IBKR auto : {(ibkrDirectSentTickers || []).join(", ") || "—"}
+            </p>
+            </details>
+          </div>
+        )}
         </div>
           </section>
         ) : activeView === "dashboard" ? (
@@ -12965,72 +13031,6 @@ export default function Dashboard() {
                 summary={preIbkrCutSummary}
                 onExportCsv={exportPreIbkrCutCsv}
               />
-            </details>
-          </div>
-        )}
-
-        {ibkrAutoRankDiagnostics.length > 0 && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
-            <details>
-              <summary className="cursor-pointer font-semibold text-slate-100">
-                Rangs Yahoo — testés IBKR : {ibkrTestedCount} / {yahooReturnedCount}
-              </summary>
-            <p className="mt-1 text-xs text-slate-500">
-              Source :{" "}
-              <span className="font-mono font-medium text-slate-200">
-                {ibkrAutoTickerSource === "yahoo_shortlist"
-                  ? "yahoo_shortlist"
-                  : ibkrAutoTickerSource === "watchlist_fallback"
-                    ? "watchlist_fallback (pré-score technique)"
-                    : "—"}
-              </span>
-            </p>
-            <div className="mt-2 space-y-1">
-              {ibkrAutoRankDiagnostics.map((row) => {
-                const symbol = String(row.symbol || "").trim().toUpperCase();
-                const tested = ibkrSentSet.has(symbol);
-                const rejected = ibkrRejectedSymbols.has(symbol);
-                const kept = ibkrKeptSymbols.has(symbol);
-                const displayed = ibkrDisplayedSymbols.has(symbol);
-                const retainedRow = ibkrRetainedBySymbol.get(symbol);
-                const preYahoo = candidateByTickerForPreIbkr.get(symbol) ?? null;
-                const mergedForReason =
-                  retainedRow != null
-                    ? {
-                        ...(preYahoo || {}),
-                        ...retainedRow,
-                        safeStrike: retainedRow?.safeStrike ?? preYahoo?.safeStrike,
-                        aggressiveStrike: retainedRow?.aggressiveStrike ?? preYahoo?.aggressiveStrike,
-                      }
-                    : preYahoo;
-                const nonTestedCapReached = !tested && Number(ibkrNonTestedCount) > 0;
-                const status = rejected
-                  ? "testé puis rejeté"
-                  : kept && displayed
-                  ? "retenu affiché"
-                  : kept && !displayed
-                  ? "testé mais non affiché après tri"
-                  : nonTestedCapReached
-                  ? "non testé car cap IBKR atteint"
-                  : tested
-                  ? "testé"
-                  : "non testé";
-                const exclusionReason =
-                  kept && !displayed && mergedForReason
-                    ? getRetainedNotDisplayedReason(mergedForReason, ibkrDisplayedScoreFloor)
-                    : null;
-                return (
-                  <div key={`pre-ibkr-${row.symbol}`}>
-                    {row.selectionMode === "yahoo_shortlist" && row.rank != null
-                      ? `${row.symbol} : rang Yahoo #${row.rank} — ${status}${exclusionReason ? ` (${exclusionReason})` : ""} — ${row.reasons.join(" · ") || "ordre shortlist"}`
-                      : `${row.symbol} : score ${Math.round(Number(row.score) || 0)} — ${status}${exclusionReason ? ` (${exclusionReason})` : ""} — ${row.reasons.join(" · ") || "base"}`}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Tickers envoyés à IBKR auto : {(ibkrDirectSentTickers || []).join(", ") || "—"}
-            </p>
             </details>
           </div>
         )}

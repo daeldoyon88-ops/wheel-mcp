@@ -9578,6 +9578,71 @@ function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
   );
 }
 
+// ─── Page Ticker / Analyse titre (lecture seule) ───
+// Construit des lignes d'affichage à partir d'un objet déjà présent en mémoire
+// (carte finale, ligne IBKR, candidat Yahoo ou ligne de rejet). N'invente aucun
+// champ : chaque ligne n'est ajoutée que si la valeur existe réellement.
+function buildTickerSummaryRows(obj) {
+  if (!obj || typeof obj !== "object") return { symbol: null, rows: [] };
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const up = (v) => String(v ?? "").trim().toUpperCase();
+  const symbol = up(obj.ticker ?? obj.symbol) || null;
+  const rows = [];
+  const push = (label, value) => {
+    if (value === null || value === undefined || value === "") return;
+    rows.push({ label, value });
+  };
+
+  const name = obj.name && up(obj.name) !== symbol ? obj.name : null;
+  push("Nom / sous-jacent", name);
+
+  const price = num(
+    obj.price ?? obj.currentPrice ?? obj.underlyingPrice ?? obj.lastPrice ?? obj.last
+  );
+  push("Prix actuel", price != null ? `$${price.toFixed(2)}` : null);
+
+  const actionable =
+    typeof obj.ok === "boolean"
+      ? obj.ok
+      : typeof obj.passesFilter === "boolean"
+      ? obj.passesFilter
+      : typeof obj.dataTradable === "boolean"
+      ? obj.dataTradable
+      : null;
+  push("Statut", actionable === null ? null : actionable ? "Actionnable" : "Non actionnable");
+
+  const grade =
+    obj.finalDisplayGrade ?? obj.displayGrade ?? obj.recommendedGrade ?? obj.grade ?? null;
+  push("Grade final", grade);
+
+  const safeStrike = num(obj.safeStrike?.strike);
+  push("SAFE strike", safeStrike != null ? `$${safeStrike.toFixed(2)}` : null);
+  const aggStrike = num(obj.aggressiveStrike?.strike);
+  push("AGGRESSIVE strike", aggStrike != null ? `$${aggStrike.toFixed(2)}` : null);
+
+  const safeYield = num(obj.safeStrike?.weeklyYield);
+  push("Rendement SAFE", safeYield != null ? `${safeYield.toFixed(2)}%` : null);
+  const aggYield = num(obj.aggressiveStrike?.weeklyYield);
+  push("Rendement AGGRESSIVE", aggYield != null ? `${aggYield.toFixed(2)}%` : null);
+
+  const pop = num(
+    obj.safeStrike?.popProfitEstimated ??
+      obj.safeStrike?.popEstimate ??
+      obj.popProfitEstimated ??
+      obj.popEstimate
+  );
+  push("POP (SAFE)", pop != null ? `${(pop * 100).toFixed(0)}%` : null);
+
+  const expiration = obj.targetExpiration ?? obj.expiration ?? null;
+  push("Expiration utilisée", expiration);
+
+  const reason =
+    obj.recommendedReason ?? obj.rejectionReason ?? obj.reason ?? obj.note ?? null;
+  push("Raison / diagnostic", reason);
+
+  return { symbol, rows };
+}
+
 // ─── Sidebar de navigation (habillage UI uniquement — aucune logique métier) ───
 // Phase 1 : navigation par changement de vue (Opportunités / Saisonnalité / Journal POP)
 // + ancrages scrollIntoView vers les sections existantes du dashboard.
@@ -9585,7 +9650,7 @@ const SIDEBAR_ITEMS = [
   { key: "opportunites", label: "Opportunités", icon: Target, view: "dashboard", anchor: "section-opportunites" },
   { key: "scan", label: "Scan", icon: RefreshCw, view: "dashboard", anchor: "section-scan" },
   { key: "portefeuille", label: "Portefeuille", icon: PieChart, view: "dashboard", anchor: "section-portefeuille" },
-  { key: "ticker", label: "Ticker", icon: Search, view: "dashboard", anchor: "section-opportunites" },
+  { key: "ticker", label: "Ticker", icon: Search, view: "ticker" },
   { key: "diagnostics", label: "Diagnostics", icon: Activity, view: "diagnostics" },
   { key: "saisonnalite", label: "Saisonnalité", icon: CalendarDays, view: "seasonality" },
   { key: "journal", label: "Journal POP", icon: Database, view: "journal" },
@@ -9620,6 +9685,7 @@ function WheelSidebar({ activeView, onNavigate }) {
     if (item.view === "seasonality") return activeView === "seasonality";
     if (item.view === "journal") return activeView === "journal";
     if (item.view === "diagnostics") return activeView === "diagnostics";
+    if (item.view === "ticker") return activeView === "ticker";
     if (item.key === "opportunites") return activeView === "dashboard";
     return false;
   };
@@ -9699,6 +9765,13 @@ export default function Dashboard() {
   const [highlightedTicker, setHighlightedTicker] = useState(null);
   const [activeView, setActiveView] = useState("dashboard");
   const tickerHighlightTimeoutRef = useRef(null);
+
+  // Page "Analyse titre" (activeView === "ticker") — lecture seule, isolée d'Opportunités.
+  const [tickerInput, setTickerInput] = useState(""); // champ contrôlé (uppercase)
+  const [tickerActive, setTickerActive] = useState(""); // symbole réellement recherché (au clic "Rechercher")
+  const [tickerScanResult, setTickerScanResult] = useState(null); // { symbol, expiration, payload } du scan individuel
+  const [tickerScanLoading, setTickerScanLoading] = useState(false);
+  const [tickerScanError, setTickerScanError] = useState("");
 
   const [selectedExpiration, setSelectedExpiration] = useState(() =>
     pickDefaultExpiration(DEFAULT_EXPIRATIONS)
@@ -12054,6 +12127,74 @@ export default function Dashboard() {
     }
   }, [selectedExpiration, ibkrDirectClientIdStart, applyIbkrDirectShortlistToPrimary]);
 
+  // Page "Analyse titre" : recherche le symbole dans les données déjà chargées.
+  // Aucun appel API — uniquement les collections déjà en mémoire. Priorité :
+  // 1) carte finale affichée, 2) résultat IBKR direct, 3) Yahoo/backend, 4) rejet/diagnostic.
+  const findTickerInCurrentScan = useCallback(
+    (rawSymbol) => {
+      const symbol = String(rawSymbol || "").trim().toUpperCase();
+      if (!symbol) return null;
+      const up = (v) => String(v ?? "").trim().toUpperCase();
+
+      const finalHit = enrichedCandidates.find(
+        (it) => up(it?.ticker ?? it?.symbol) === symbol
+      );
+      if (finalHit) return { data: finalHit, source: "cartes finales" };
+
+      const ibkrHit = ibkrDirectByTicker.get(symbol);
+      if (ibkrHit) return { data: ibkrHit, source: "IBKR" };
+
+      const yahooHit = yahooCandidateByTicker.get(symbol);
+      if (yahooHit) return { data: yahooHit, source: "Yahoo" };
+
+      const rejected = Array.isArray(ibkrDirectResult?.rejected)
+        ? ibkrDirectResult.rejected
+        : [];
+      const rejectHit = rejected.find((r) => up(r?.symbol) === symbol);
+      if (rejectHit) return { data: rejectHit, source: "diagnostic" };
+
+      return null;
+    },
+    [enrichedCandidates, ibkrDirectByTicker, yahooCandidateByTicker, ibkrDirectResult]
+  );
+
+  // Scan individuel MANUEL (au clic seulement). Réutilise l'endpoint shadow existant
+  // /ibkr/shadow/scan (lecture seule, aucun ordre) via callIbkrDirectScan, mais stocke
+  // le résultat dans un état LOCAL à la page Ticker : ne touche ni ibkrDirectResult ni la
+  // shortlist principale (Opportunités reste intacte).
+  const handleScanSingleTicker = useCallback(async () => {
+    const symbol = String(tickerInput || "").trim().toUpperCase();
+    if (!symbol) return;
+    setTickerActive(symbol);
+    setTickerScanLoading(true);
+    setTickerScanError("");
+    setTickerScanResult(null);
+    try {
+      const expLocked = selectedExpirationRef.current;
+      const payload = await callIbkrDirectScan({
+        tickers: [symbol],
+        expiration: ymdToIbkr(expLocked),
+        clientIdStart: ibkrDirectClientIdStart,
+        maxTickers: 1,
+        topN: 1,
+        auditDepth: 1,
+      });
+      setTickerScanResult({ symbol, expiration: expLocked, payload });
+    } catch (err) {
+      setTickerScanError(String(err?.message || err || "Scan individuel indisponible"));
+    } finally {
+      setTickerScanLoading(false);
+    }
+  }, [tickerInput, ibkrDirectClientIdStart]);
+
+  // "Rechercher" : ne fait QUE chercher en mémoire (aucun appel API). Réinitialise le
+  // résultat de scan individuel précédent pour éviter d'afficher une fiche périmée.
+  const handleSearchTicker = useCallback(() => {
+    setTickerActive(String(tickerInput || "").trim().toUpperCase());
+    setTickerScanResult(null);
+    setTickerScanError("");
+  }, [tickerInput]);
+
   const handleRefreshScanMetrics = useCallback(async () => {
     setScanMetricsLoading(true);
     setScanMetricsError("");
@@ -12320,7 +12461,7 @@ export default function Dashboard() {
         <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
         <main className="min-w-0 flex-1">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
-        {activeView !== "seasonality" && activeView !== "diagnostics" && <motion.div
+        {activeView !== "seasonality" && activeView !== "diagnostics" && activeView !== "ticker" && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
@@ -13280,6 +13421,177 @@ export default function Dashboard() {
         </details>
         </DiagnosticsSection>
         </div>
+          </section>
+        ) : activeView === "ticker" ? (
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">
+                Ticker
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-white">Analyse titre</h1>
+              <p className="mt-2 text-sm text-slate-300">
+                Fiche individuelle d'un symbole. Recherche d'abord dans le dernier scan, puis scan manuel possible si absent.
+              </p>
+              <p className="mt-1 text-xs text-sky-300/70">
+                Lecture seule — aucun ordre envoyé.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={tickerInput}
+                    onChange={(e) => setTickerInput(String(e.target.value || "").toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSearchTicker();
+                    }}
+                    placeholder="Ex. TQQQ"
+                    className="rounded-xl border-slate-700 pl-9 uppercase"
+                  />
+                </div>
+                <Button
+                  className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-4 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
+                  onClick={handleSearchTicker}
+                >
+                  Rechercher <Search className="ml-1.5 h-4 w-4" />
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                La recherche interroge uniquement les données déjà chargées (dernier scan). Aucun appel réseau, aucun scan automatique.
+              </p>
+            </div>
+
+            {(() => {
+              if (!tickerActive) {
+                return (
+                  <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center text-sm text-slate-400">
+                    Entre un symbole pour analyser son état dans le dernier scan.
+                  </div>
+                );
+              }
+
+              const match = findTickerInCurrentScan(tickerActive);
+              if (match) {
+                const summary = buildTickerSummaryRows(match.data);
+                return (
+                  <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Résumé du dernier scan
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold text-slate-50">
+                          {summary.symbol ?? tickerActive}
+                        </h2>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-sky-700/60 bg-sky-900/50 px-3 py-1 text-xs text-sky-100">
+                        Source : {match.source}
+                      </span>
+                    </div>
+                    {summary.rows.length === 0 ? (
+                      <p className="mt-4 text-sm text-slate-500">
+                        Aucun champ exploitable disponible pour ce symbole dans le dernier scan.
+                      </p>
+                    ) : (
+                      <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                        {summary.rows.map((row) => (
+                          <div
+                            key={row.label}
+                            className="flex items-center justify-between gap-3 border-b border-slate-800 py-1.5"
+                          >
+                            <dt className="text-sm text-slate-500">{row.label}</dt>
+                            <dd className="text-right text-sm font-medium text-slate-100">
+                              {row.value}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+                  <p className="text-sm text-slate-200">
+                    <span className="font-semibold text-slate-50">{tickerActive}</span>{" "}
+                    n'est pas présent dans le dernier scan.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Scan individuel manuel disponible (lecture seule) — n'affecte pas Opportunités.
+                  </p>
+                  <Button
+                    className="mt-3 rounded-xl border-emerald-700 bg-emerald-900/60 px-4 py-1.5 text-xs text-emerald-100 hover:bg-emerald-800/60 disabled:opacity-50"
+                    onClick={handleScanSingleTicker}
+                    disabled={tickerScanLoading}
+                  >
+                    {tickerScanLoading ? "Scan en cours…" : "Scanner ce ticker"}
+                    {!tickerScanLoading && <RefreshCw className="ml-1.5 h-4 w-4" />}
+                  </Button>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Endpoint réutilisé : /ibkr/shadow/scan (shadow, lecture seule) · expiration {selectedExpiration}.
+                  </p>
+
+                  {tickerScanError && (
+                    <p className="mt-3 rounded-lg border border-rose-800 bg-rose-950/50 px-3 py-2 text-xs text-rose-200">
+                      {tickerScanError}
+                    </p>
+                  )}
+
+                  {tickerScanResult && tickerScanResult.symbol === tickerActive && (() => {
+                    const payload = tickerScanResult.payload || {};
+                    const up = (v) => String(v ?? "").trim().toUpperCase();
+                    const shortlist = Array.isArray(payload.shortlist) ? payload.shortlist : [];
+                    const rejected = Array.isArray(payload.rejected) ? payload.rejected : [];
+                    const keptRow = shortlist.find((r) => up(r?.symbol) === tickerActive);
+                    const rejRow = rejected.find((r) => up(r?.symbol) === tickerActive);
+                    const row = keptRow ?? rejRow ?? null;
+                    const status = keptRow
+                      ? "Retenu IBKR"
+                      : rejRow
+                      ? "Rejeté IBKR"
+                      : "Aucun résultat exploitable";
+                    const summary = row ? buildTickerSummaryRows(row) : null;
+                    return (
+                      <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/60 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs uppercase tracking-wide text-slate-500">
+                            Résultat du scan individuel
+                          </p>
+                          <span className="shrink-0 rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200">
+                            {status}
+                          </span>
+                        </div>
+                        {summary && summary.rows.length > 0 ? (
+                          <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                            {summary.rows.map((r) => (
+                              <div
+                                key={r.label}
+                                className="flex items-center justify-between gap-3 border-b border-slate-800 py-1.5"
+                              >
+                                <dt className="text-sm text-slate-500">{r.label}</dt>
+                                <dd className="text-right text-sm font-medium text-slate-100">
+                                  {r.value}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        ) : (
+                          <p className="mt-3 text-sm text-slate-400">
+                            Le scan n'a retourné aucune ligne exploitable pour {tickerActive}
+                            {Array.isArray(payload.errors) && payload.errors.length > 0
+                              ? " (voir erreurs backend)."
+                              : "."}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
           </section>
         ) : activeView === "dashboard" ? (
           <>

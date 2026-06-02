@@ -9830,6 +9830,318 @@ function TickerDecisionCard({ decision, source, heading, statusLabel, statusTone
   );
 }
 
+// ─── Diagnostic pipeline Ticker (présentation compacte) ──────────────────────
+// Mappe le diagnostic pipeline riche (buildTickerPipelineDiagnostic, flat booleans)
+// en étapes compactes pour la fiche Ticker. Pur, sans effet de bord, jamais throw.
+// N'invente aucune donnée : tout champ absent => "Inconnu" / status "unknown".
+const TICKER_PIPELINE_STAGE_TONE = {
+  ok: "border-emerald-700/60 bg-emerald-900/30 text-emerald-200",
+  warning: "border-amber-700/60 bg-amber-900/30 text-amber-200",
+  fail: "border-rose-800/60 bg-rose-950/50 text-rose-200",
+  unknown: "border-slate-700 bg-slate-800/60 text-slate-400",
+};
+const TICKER_PIPELINE_CONFIDENCE_LABEL = {
+  high: "élevée",
+  medium: "moyenne",
+  low: "faible",
+  unknown: "indéterminée",
+};
+
+function buildTickerPipelineStages(diagnostic, extras = {}) {
+  const d = diagnostic || {};
+  const scanLoaded = extras.scanLoaded !== false;
+  const inPreScanPool = extras.inPreScanPool === true;
+  const inScan = extras.inScan === true;
+  const unknownStage = (key, label) => ({
+    key,
+    label,
+    status: "unknown",
+    value: "Inconnu",
+    detail: "Donnée non disponible — aucun scan chargé.",
+  });
+
+  // 1. Dernier scan
+  let scan;
+  if (!scanLoaded) {
+    scan = unknownStage("scan", "Dernier scan");
+  } else if (inScan) {
+    scan = {
+      key: "scan",
+      label: "Dernier scan",
+      status: "ok",
+      value: "Présent",
+      detail: inPreScanPool
+        ? "Présent dans le pool pré-scan."
+        : "Présent dans les données du dernier scan.",
+    };
+  } else {
+    scan = {
+      key: "scan",
+      label: "Dernier scan",
+      status: "fail",
+      value: "Absent",
+      detail: d.preScanAbsentReason || d.cryptoBlockReason || "Absent du pool scanné au dernier refresh.",
+    };
+  }
+
+  // 2. Yahoo
+  let yahoo;
+  if (!scanLoaded) {
+    yahoo = unknownStage("yahoo", "Yahoo");
+  } else if (d.presentInYahoo) {
+    const detail =
+      [d.yahooRank != null ? `rang ${d.yahooRank}` : null, d.yahooStatus]
+        .filter(Boolean)
+        .join(" · ") || "Retenu par le scan Yahoo.";
+    yahoo = { key: "yahoo", label: "Yahoo", status: "ok", value: "Retenu", detail };
+  } else if (d.yahooRejectReason) {
+    yahoo = { key: "yahoo", label: "Yahoo", status: "fail", value: "Rejeté", detail: d.yahooRejectReason };
+  } else {
+    yahoo = {
+      key: "yahoo",
+      label: "Yahoo",
+      status: inScan ? "warning" : "unknown",
+      value: inScan ? "Non retenu" : "Non trouvé",
+      detail: inScan
+        ? "Présent au scan mais pas dans la shortlist Yahoo."
+        : "Aucune trace dans le retour Yahoo.",
+    };
+  }
+
+  // 3. Pré-IBKR (envoyé / coupé)
+  let preIbkr;
+  if (!scanLoaded) {
+    preIbkr = unknownStage("preIbkr", "Pré-IBKR");
+  } else if (d.sentToIbkr) {
+    preIbkr = {
+      key: "preIbkr",
+      label: "Pré-IBKR",
+      status: "ok",
+      value: "Envoyé à IBKR",
+      detail: "Transmis au scan IBKR auto.",
+    };
+  } else if (d.presentInYahoo) {
+    preIbkr = {
+      key: "preIbkr",
+      label: "Pré-IBKR",
+      status: "warning",
+      value: "Non envoyé",
+      detail: "Retenu Yahoo mais non envoyé (cap Audit Depth, priorité ou scan IBKR non lancé).",
+    };
+  } else {
+    preIbkr = {
+      key: "preIbkr",
+      label: "Pré-IBKR",
+      status: "fail",
+      value: "Coupé",
+      detail:
+        d.yahooRejectReason || d.preScanAbsentReason || d.cryptoBlockReason || "Coupé avant l'étape IBKR.",
+    };
+  }
+
+  // 4. IBKR (testé / retenu / rejeté)
+  let ibkr;
+  if (!scanLoaded) {
+    ibkr = unknownStage("ibkr", "IBKR");
+  } else if (d.presentInIbkrShortlist) {
+    ibkr = { key: "ibkr", label: "IBKR", status: "ok", value: "Testé / retenu", detail: "Validé par le scan IBKR." };
+  } else if (d.presentInIbkrRejected) {
+    ibkr = {
+      key: "ibkr",
+      label: "IBKR",
+      status: "fail",
+      value: "Testé / rejeté",
+      detail: d.ibkrRejectReason || "Rejeté par IBKR (pas de jambe safe/aggressive valide).",
+    };
+  } else if (d.sentToIbkr || d.ibkrTested) {
+    ibkr = {
+      key: "ibkr",
+      label: "IBKR",
+      status: "warning",
+      value: "Testé / sans résultat",
+      detail: "Envoyé à IBKR mais ni retenu ni rejeté enregistré.",
+    };
+  } else {
+    ibkr = {
+      key: "ibkr",
+      label: "IBKR",
+      status: "warning",
+      value: "Non testé",
+      detail: "Pas envoyé au scan IBKR.",
+    };
+  }
+
+  // 5. Cartes finales
+  let finalCards;
+  if (!scanLoaded) {
+    finalCards = unknownStage("finalCards", "Cartes finales");
+  } else if (d.presentInFilteredCards) {
+    finalCards = {
+      key: "finalCards",
+      label: "Cartes finales",
+      status: "ok",
+      value: "Oui",
+      detail: d.finalStatus ? `Affiché — ${d.finalStatus}.` : "Présent dans les cartes affichées.",
+    };
+  } else if (d.presentInEnriched || d.presentInBackendCandidates) {
+    finalCards = {
+      key: "finalCards",
+      label: "Cartes finales",
+      status: "warning",
+      value: "Non (filtré)",
+      detail: d.likelyReason || "Présent en amont mais masqué par un filtre / tri UI.",
+    };
+  } else {
+    finalCards = {
+      key: "finalCards",
+      label: "Cartes finales",
+      status: "fail",
+      value: "Non",
+      detail: "Absent des cartes finales du scan courant.",
+    };
+  }
+
+  // 6. Combo pool
+  let comboPool;
+  if (!scanLoaded) {
+    comboPool = unknownStage("comboPool", "Combo pool");
+  } else if (d.presentInComboPool) {
+    comboPool = {
+      key: "comboPool",
+      label: "Combo pool",
+      status: "ok",
+      value: "Oui",
+      detail: "Éligible au pool de combinaisons capital.",
+    };
+  } else if (d.presentInFilteredCards) {
+    comboPool = {
+      key: "comboPool",
+      label: "Combo pool",
+      status: "warning",
+      value: "Non",
+      detail: d.likelyReason || "Carte visible mais non éligible au combo pool.",
+    };
+  } else {
+    comboPool = {
+      key: "comboPool",
+      label: "Combo pool",
+      status: "unknown",
+      value: "Non",
+      detail: "Hors cartes finales — combo pool non applicable.",
+    };
+  }
+
+  const stages = [scan, yahoo, preIbkr, ibkr, finalCards, comboPool];
+
+  // Raison principale — priorité : IBKR rejet → crypto → coupure pré-IBKR → Yahoo → fiche → probable.
+  let mainReason;
+  if (d.presentInIbkrRejected && d.ibkrRejectReason) mainReason = `IBKR — ${d.ibkrRejectReason}`;
+  else if (d.cryptoBlockReason) mainReason = d.cryptoBlockReason;
+  else if (!inPreScanPool && d.preScanAbsentReason) mainReason = d.preScanAbsentReason;
+  else if (!d.presentInYahoo && d.yahooRejectReason) mainReason = `Yahoo — ${d.yahooRejectReason}`;
+  else if (extras.decisionReason) mainReason = extras.decisionReason;
+  else if (d.likelyReason) mainReason = d.likelyReason;
+  else mainReason = "Aucune raison détaillée disponible.";
+
+  let confidence;
+  if (!scanLoaded) confidence = "unknown";
+  else if (d.presentInIbkrShortlist || d.presentInFilteredCards) confidence = "high";
+  else if (inScan) confidence = "medium";
+  else confidence = "low";
+
+  const sourcesDetected = {
+    finalCards: Boolean(d.presentInFilteredCards),
+    yahoo: Boolean(d.presentInYahoo),
+    ibkr: Boolean(d.presentInIbkrShortlist),
+    rejected: Boolean(d.presentInIbkrRejected),
+    comboPool: Boolean(d.presentInComboPool),
+  };
+
+  return { stages, mainReason, confidence, sourcesDetected };
+}
+
+// Carte UI compacte "Diagnostic pipeline" pour la page Ticker (lecture seule).
+function TickerPipelineStagesCard({ view, symbol }) {
+  if (!view) return null;
+  if (!view.available) {
+    return (
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm" data-testid="ticker-pipeline-stages">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-cyan-300" />
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">Diagnostic pipeline</p>
+        </div>
+        <p className="mt-2 text-sm text-slate-400">
+          Diagnostic pipeline indisponible — {symbol} absent des données chargées.
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Lance un scan pour reconstruire le chemin pipeline de ce ticker.
+        </p>
+      </div>
+    );
+  }
+  const { stages = [], mainReason, confidence, sourcesDetected } = view;
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm" data-testid="ticker-pipeline-stages">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-cyan-300" />
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">Diagnostic pipeline</p>
+        </div>
+        {confidence && (
+          <span className="text-[10px] text-slate-500">
+            Confiance : {TICKER_PIPELINE_CONFIDENCE_LABEL[confidence] || confidence}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-slate-400">
+        Chemin du ticker dans le dernier scan : Yahoo → pré-IBKR → IBKR → affichage final.
+      </p>
+
+      <dl className="mt-3 space-y-0.5">
+        {stages.map((stage) => (
+          <div
+            key={stage.key}
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-800/70 py-1.5"
+          >
+            <div className="min-w-0">
+              <dt className="text-sm text-slate-200">{stage.label}</dt>
+              {stage.detail && <p className="text-[11px] text-slate-500">{stage.detail}</p>}
+            </div>
+            <dd className="shrink-0">
+              <span
+                className={
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
+                  (TICKER_PIPELINE_STAGE_TONE[stage.status] || TICKER_PIPELINE_STAGE_TONE.unknown)
+                }
+              >
+                {stage.value}
+              </span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Raison principale</p>
+        <p className="mt-1 text-sm text-slate-200">{mainReason || "Aucune raison détaillée disponible."}</p>
+      </div>
+
+      {sourcesDetected && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-300">Sources détectées</summary>
+          <ul className="mt-2 grid grid-cols-1 gap-y-0.5 text-[11px] text-slate-400 sm:grid-cols-2">
+            <li>Cartes finales : {sourcesDetected.finalCards ? "oui" : "non"}</li>
+            <li>Yahoo : {sourcesDetected.yahoo ? "oui" : "non"}</li>
+            <li>IBKR retenu : {sourcesDetected.ibkr ? "oui" : "non"}</li>
+            <li>IBKR rejeté : {sourcesDetected.rejected ? "oui" : "non"}</li>
+            <li>Combo pool : {sourcesDetected.comboPool ? "oui" : "non"}</li>
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
 // ─── Sidebar de navigation (habillage UI uniquement — aucune logique métier) ───
 // Phase 1 : navigation par changement de vue (Opportunités / Saisonnalité / Journal POP)
 // + ancrages scrollIntoView vers les sections existantes du dashboard.
@@ -12382,6 +12694,115 @@ export default function Dashboard() {
     setTickerScanError("");
   }, [tickerInput]);
 
+  // Diagnostic pipeline de la page Ticker — reconstruit le chemin pipeline du
+  // symbole recherché (tickerActive) à partir de l'état déjà chargé. Lecture
+  // seule, aucun fetch, isolé d'Opportunités et du scan individuel manuel.
+  const tickerPipelineView = useMemo(() => {
+    const sym = String(tickerActive || "").trim().toUpperCase();
+    if (!sym) return null;
+    const up = (v) => String(v ?? "").trim().toUpperCase();
+
+    const scanLoaded =
+      (Array.isArray(tickersForScan) && tickersForScan.length > 0) ||
+      (Array.isArray(yahooReturnedCandidates) && yahooReturnedCandidates.length > 0) ||
+      (Array.isArray(enrichedCandidates) && enrichedCandidates.length > 0) ||
+      ibkrDirectResult != null;
+
+    if (!scanLoaded) return { available: false, symbol: sym, scanLoaded: false };
+
+    let diagnostic = null;
+    try {
+      diagnostic = buildTickerPipelineDiagnostic(sym, {
+        tickersForScan,
+        yahooReturnedCandidates,
+        yahooDiagnostics,
+        yahooRejectedBySymbol,
+        watchlistRejectedBySymbol,
+        watchlistTickers: watchlistTickers ?? [],
+        watchlistTruncatedSymbols,
+        researchExpandedPool,
+        preIbkrPoolMode,
+        cryptoBlockedRemovedSymbols,
+        ibkrDirectSentTickers,
+        ibkrDirectResult,
+        backendCandidates: backendCandidates ?? [],
+        enrichedCandidates,
+        filtered,
+        combos,
+        capital: Number(capital),
+        maxCapitalPct: Number(maxCapitalPct),
+        ibkrRejectedSymbols,
+        yahooRankForIbkrBySymbol,
+        selectedExpiration,
+        filter,
+        dataSource,
+        topN,
+        ibkrAutoMaxTickers,
+        liquidityOtmProbePctSelected: watchlistOtmProbePct,
+        liquidityOtmProbePctApplied: watchlistStats?.liquidityOtmProbePctApplied ?? null,
+        scanPoolSource: lastScanPoolMeta.poolSource || preIbkrPoolMode,
+        watchlistMode: watchlistStats?.watchlistMode ?? DEFAULT_BUILD_WATCHLIST_BODY.watchlistMode,
+      });
+    } catch {
+      diagnostic = null;
+    }
+    if (!diagnostic) return { available: false, symbol: sym, scanLoaded };
+
+    const inPreScanPool = (tickersForScan || []).some((t) => up(t) === sym);
+    const inScan =
+      inPreScanPool ||
+      diagnostic.presentInYahoo ||
+      diagnostic.presentInIbkrShortlist ||
+      diagnostic.presentInIbkrRejected ||
+      diagnostic.presentInEnriched ||
+      diagnostic.presentInBackendCandidates ||
+      diagnostic.presentInFilteredCards;
+
+    // Raison de la fiche décisionnelle (priorité 4 de la raison principale).
+    const match = findTickerInCurrentScan(sym);
+    const decisionReason = match ? buildTickerDecision(match.data)?.reason ?? null : null;
+
+    const built = buildTickerPipelineStages(diagnostic, {
+      symbol: sym,
+      scanLoaded,
+      inPreScanPool,
+      inScan,
+      decisionReason,
+    });
+    return { available: true, symbol: sym, scanLoaded, diagnostic, ...built };
+  }, [
+    tickerActive,
+    tickersForScan,
+    yahooReturnedCandidates,
+    yahooDiagnostics,
+    yahooRejectedBySymbol,
+    watchlistRejectedBySymbol,
+    watchlistTickers,
+    watchlistTruncatedSymbols,
+    researchExpandedPool,
+    preIbkrPoolMode,
+    cryptoBlockedRemovedSymbols,
+    ibkrDirectSentTickers,
+    ibkrDirectResult,
+    backendCandidates,
+    enrichedCandidates,
+    filtered,
+    combos,
+    capital,
+    maxCapitalPct,
+    ibkrRejectedSymbols,
+    yahooRankForIbkrBySymbol,
+    selectedExpiration,
+    filter,
+    dataSource,
+    topN,
+    ibkrAutoMaxTickers,
+    watchlistOtmProbePct,
+    watchlistStats,
+    lastScanPoolMeta.poolSource,
+    findTickerInCurrentScan,
+  ]);
+
   const handleRefreshScanMetrics = useCallback(async () => {
     setScanMetricsLoading(true);
     setScanMetricsError("");
@@ -13758,6 +14179,10 @@ export default function Dashboard() {
                 </div>
               );
             })()}
+
+            {tickerActive && (
+              <TickerPipelineStagesCard view={tickerPipelineView} symbol={tickerActive} />
+            )}
           </section>
         ) : activeView === "dashboard" ? (
           <>

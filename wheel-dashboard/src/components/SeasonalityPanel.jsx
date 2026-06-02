@@ -1795,56 +1795,6 @@ function CumulativeLineChart({ months, annualDisplayWindows }) {
   );
 }
 
-// ─── Tableau court terme CSP/CC ─────────────────────────────────────────────────
-function ShortTermTable({ shortTerm }) {
-  if (!shortTerm?.windows?.length) return <div style={{ color:C.textFaint, fontSize:"12px", padding:"18px 0" }}>Données court terme non disponibles.</div>;
-  const windows = shortTerm.windows;
-  const thBase = { padding:"6px 8px", fontSize:"9.5px", fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:C.textFaint, borderBottom:`1px solid ${C.border}`, background:C.cardInner, whiteSpace:"nowrap" };
-  const tdBase = { padding:"9px 8px", fontSize:"11.5px", color:C.text, borderBottom:`1px solid rgba(120,150,190,0.07)`, verticalAlign:"middle" };
-  return (
-    <div>
-      <div style={{ overflowX:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"520px" }}>
-          <thead>
-            <tr>
-              <th style={{ ...thBase, textAlign:"left" }}>Fenêtre</th>
-              <th style={{ ...thBase, textAlign:"right" }}>% Haussier</th>
-              <th style={{ ...thBase, textAlign:"right" }}>Rend. moy.</th>
-              <th style={{ ...thBase, textAlign:"right" }}>Pire rend.</th>
-              <th style={{ ...thBase, textAlign:"right" }}>Baisse &gt;5%</th>
-              <th style={{ ...thBase, textAlign:"right" }}>Baisse &gt;10%</th>
-              <th style={{ ...thBase, textAlign:"center" }}>CSP</th>
-              <th style={{ ...thBase, textAlign:"center" }}>CC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {windows.map((w, ri) => (
-              <tr key={ri}>
-                <td style={{ ...tdBase, textAlign:"left", fontWeight:600, color:C.accentLight }}>{w.label ?? "—"}</td>
-                <td style={{ ...tdBase, textAlign:"right" }}>{formatWinRate(w.winRate)}</td>
-                <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.avgReturn), fontWeight:600 }}>{formatPct(w.avgReturn)}</td>
-                <td style={{ ...tdBase, textAlign:"right", color:pctColor(w.worstReturn) }}>{formatPct(w.worstReturn)}</td>
-                <td style={{ ...tdBase, textAlign:"right", color:w.pctBelow5 > 0.2 ? C.red : w.pctBelow5 > 0.12 ? C.yellow : C.text }}>{formatWinRate(w.pctBelow5)}</td>
-                <td style={{ ...tdBase, textAlign:"right", color:w.pctBelow10 > 0.12 ? C.red : C.text }}>{formatWinRate(w.pctBelow10)}</td>
-                <td style={{ ...tdBase, textAlign:"center" }}><VerdictBadge verdict={w.cspVerdict} /></td>
-                <td style={{ ...tdBase, textAlign:"center" }}><VerdictBadge verdict={w.ccVerdict} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {shortTerm.summary && (
-        <div style={{ marginTop:"8px", fontSize:"10.5px", color:C.textFaint, fontStyle:"italic" }}>
-          Meilleure fenêtre CSP : <strong style={{ color:C.textMuted }}>{seasonalWindowPrimaryLabel(shortTerm.summary.bestCspWindow)}</strong>
-          {" · "}Fenêtre CC : <strong style={{ color:C.textMuted }}>{seasonalWindowPrimaryLabel(shortTerm.summary.bestCcWindow)}</strong>
-          {" · "}Source : {shortTerm.summary.source ?? "Yahoo Finance"}
-          {" · "}Cache {shortTerm.summary.cacheTtlHours}h
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Calendrier heatmap mensuel ─────────────────────────────────────────────────
 function CalendarHeatmap({ calendar }) {
   if (!calendar?.months?.length) return <div style={{ color:C.textFaint, fontSize:"12px", padding:"18px 0" }}>Données calendrier non disponibles.</div>;
@@ -3847,39 +3797,20 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
           {/* ── CONTENU DONNÉES ── */}
           {hasData && (
             <>
-              {/* ── LIGNE D : Court terme | Intra-année ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-                {/* Court terme */}
-                <div style={cardStyle}>
-                  <SectionHeader
-                    title="Court terme — Vente d'options (CSP / CC)"
-                    icon={Shield}
-                    info="Statistiques historiques basées sur l'historique complet disponible."
-                    right={
-                      shortTermData?.summary
-                        ? (shortTermData.summary.yearsCovered != null
-                          ? `${shortTermData.summary.yearsCovered} ans`
-                          : "Historique disponible")
-                        : undefined
-                    }
-                  />
-                  <ShortTermTable shortTerm={shortTermData} />
-                </div>
-                {/* Mensuel compact — rendement + probabilité */}
-                <div style={cardStyle}>
-                  <SectionHeader
-                    title="Saisonnalité mensuelle — rendement et probabilité"
-                    icon={BarChart3}
-                    info="Rendement moyen et probabilité de hausse par mois calendaire. Survoler une barre pour le détail."
-                    right={calendarData?.summary ? `${calendarData.summary.yearsCovered} ans` : undefined}
-                  />
-                  {calendarData?.months
-                    ? <MonthlyBarChart months={calendarData.months} />
-                    : <div style={{ textAlign:"center", padding:"28px 0", color:C.textFaint, fontSize:"12px" }}>Histogramme non disponible.</div>
-                  }
-                  <div style={{ marginTop:"4px", fontSize:"9px", color:C.textFaint }}>
-                    % sous chaque mois = probabilité de hausse historique
-                  </div>
+              {/* ── LIGNE D : Saisonnalité mensuelle ── */}
+              <div style={cardStyle}>
+                <SectionHeader
+                  title="Saisonnalité mensuelle — rendement et probabilité"
+                  icon={BarChart3}
+                  info="Rendement moyen et probabilité de hausse par mois calendaire. Survoler une barre pour le détail."
+                  right={calendarData?.summary ? `${calendarData.summary.yearsCovered} ans` : undefined}
+                />
+                {calendarData?.months
+                  ? <MonthlyBarChart months={calendarData.months} />
+                  : <div style={{ textAlign:"center", padding:"28px 0", color:C.textFaint, fontSize:"12px" }}>Histogramme non disponible.</div>
+                }
+                <div style={{ marginTop:"4px", fontSize:"9px", color:C.textFaint }}>
+                  % sous chaque mois = probabilité de hausse historique
                 </div>
               </div>
 

@@ -4091,6 +4091,19 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
       : yahooCandidate?.premium ?? "—";
   console.log("[FTQS_DIAG]", ftqs.logPayload);
 
+  // Faux positif "marché fermé / données indicatives" : le flag indicativeShortlistSession
+  // (posé par tagCandidatesOffMarketNonTradable lors d'un scan hors marché) reste collé au
+  // candidat Yahoo et se propage ici via le spread. Si le marché est ouvert ET que le candidat
+  // IBKR est live/valide (non DEV, surface complète, tradable), on neutralise le flag indicatif.
+  // On NE touche PAS aux vrais cas : DEV backend, surface incomplète, non tradable réel.
+  const marketClosedNow = isUsMarketClosedNow();
+  const ibkrLiveValid =
+    Boolean(ibkrCandidate) &&
+    ibkrCandidate.devScanEnabled !== true &&
+    ibkrCandidate.devIncompleteMarketData !== true &&
+    ibkrCandidate.dataTradable !== false;
+  const shouldClearIndicativeSession = !marketClosedNow && ibkrLiveValid;
+
   return {
     ...(yahooCandidate ?? {}),
     rank: index + 1,
@@ -4225,6 +4238,10 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     ibkrSpreadPct: ibkrCandidate?.spreadPct ?? primaryStrike?.raw?.spreadPct ?? null,
     ibkrDevIncompleteSurface: ibkrCandidate?.devIncompleteMarketData === true,
     ibkrDevObjectiveBlocked: ibkrObjectiveBlock,
+    indicativeShortlistSession: shouldClearIndicativeSession
+      ? false
+      : yahooCandidate?.indicativeShortlistSession,
+    dataTradable: shouldClearIndicativeSession ? true : yahooCandidate?.dataTradable,
     raw: yahooCandidate?.raw ?? null,
   };
 }

@@ -12478,6 +12478,97 @@ export default function Dashboard() {
             </details>
           </div>
         )}
+        <div className="space-y-4">
+        {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
+            <details>
+              <summary className="cursor-pointer font-semibold text-slate-100">
+                Diagnostic Yahoo (dernier scan)
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Metric label="Yahoo scanned" value={String(yahooScanMeta.scanned || 0)} />
+                <Metric label="Yahoo kept" value={String(yahooScanMeta.kept || 0)} />
+                <Metric label="Yahoo returned" value={String(yahooScanMeta.returned || 0)} />
+                <Metric label="Yahoo rejected" value={String(yahooRejectedCount)} />
+              </div>
+              <p className="mt-2 text-xs text-slate-400">
+                Index complet rejets Yahoo : {Object.keys(yahooRejectedBySymbol || {}).length} symboles
+                (utilisé par le diagnostic ticker exact — indépendant de l&apos;échantillon 20).
+              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Top rejectionReasonCounts</p>
+                  {yahooTopRejectionReasons.length === 0 ? (
+                    <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1 text-xs text-slate-300">
+                      {yahooTopRejectionReasons.map((row) => (
+                        <div key={`yahoo-reason-${row.reason}`}>
+                          {formatIbkrReason(row.reason)} : {row.count}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                  <p className="font-medium text-slate-100">Top stageRejectCounts</p>
+                  {yahooTopStageRejectCounts.length === 0 ? (
+                    <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1 text-xs text-slate-300">
+                      {yahooTopStageRejectCounts.map((row) => (
+                        <div key={`yahoo-stage-${row.reason}`}>
+                          {formatIbkrReason(row.reason)} : {row.count}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                <p className="font-medium text-slate-100">Exemples rejetés (max 20)</p>
+                {yahooRejectedSampleRows.length === 0 ? (
+                  <p className="mt-1 text-xs text-slate-500">Aucun exemple disponible.</p>
+                ) : (
+                  <div className="mt-2 space-y-1 text-xs text-slate-300">
+                    {yahooRejectedSampleRows.map((row, index) => (
+                      <div key={`yahoo-rejected-sample-${row.symbol}-${index}`}>
+                        {row.symbol} : {formatIbkrReason(row.reason)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
+        )}
+
+        {yahooReturnedCount > 0 && (
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
+            <details>
+              <summary className="cursor-pointer font-semibold text-slate-100">Candidats Yahoo non envoyés à IBKR</summary>
+            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 120)) ? (
+              <p className="mt-2 text-slate-500">
+                Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
+              </p>
+            ) : yahooNonSentCandidates.length === 0 ? (
+              <p className="mt-2 text-slate-500">
+                Aucun candidat Yahoo prioritaire non envoyé à IBKR.
+              </p>
+            ) : (
+              <div className="mt-2 space-y-1">
+                {yahooNonSentCandidates.map((item) => (
+                  <div key={`yahoo-not-sent-${item.ticker ?? item.symbol}`}>
+                    Rang Yahoo #{item.rank} · {item.ticker ?? item.symbol} · qualité {item.qualityScore ?? "—"} · RSI{" "}
+                    {item.rsi ?? "—"}
+                  </div>
+                ))}
+              </div>
+            )}
+            </details>
+          </div>
+        )}
+        </div>
           </section>
         ) : activeView === "dashboard" ? (
           <>
@@ -12874,96 +12965,6 @@ export default function Dashboard() {
                 summary={preIbkrCutSummary}
                 onExportCsv={exportPreIbkrCutCsv}
               />
-            </details>
-          </div>
-        )}
-
-        {(Number(yahooScanMeta.scanned) > 0 || yahooRejectedCount > 0) && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
-            <details>
-              <summary className="cursor-pointer font-semibold text-slate-100">
-                Diagnostic Yahoo (dernier scan)
-              </summary>
-              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Metric label="Yahoo scanned" value={String(yahooScanMeta.scanned || 0)} />
-                <Metric label="Yahoo kept" value={String(yahooScanMeta.kept || 0)} />
-                <Metric label="Yahoo returned" value={String(yahooScanMeta.returned || 0)} />
-                <Metric label="Yahoo rejected" value={String(yahooRejectedCount)} />
-              </div>
-              <p className="mt-2 text-xs text-slate-400">
-                Index complet rejets Yahoo : {Object.keys(yahooRejectedBySymbol || {}).length} symboles
-                (utilisé par le diagnostic ticker exact — indépendant de l&apos;échantillon 20).
-              </p>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                  <p className="font-medium text-slate-100">Top rejectionReasonCounts</p>
-                  {yahooTopRejectionReasons.length === 0 ? (
-                    <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
-                  ) : (
-                    <div className="mt-2 space-y-1 text-xs text-slate-300">
-                      {yahooTopRejectionReasons.map((row) => (
-                        <div key={`yahoo-reason-${row.reason}`}>
-                          {formatIbkrReason(row.reason)} : {row.count}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                  <p className="font-medium text-slate-100">Top stageRejectCounts</p>
-                  {yahooTopStageRejectCounts.length === 0 ? (
-                    <p className="mt-1 text-xs text-slate-500">Aucun détail disponible.</p>
-                  ) : (
-                    <div className="mt-2 space-y-1 text-xs text-slate-300">
-                      {yahooTopStageRejectCounts.map((row) => (
-                        <div key={`yahoo-stage-${row.reason}`}>
-                          {formatIbkrReason(row.reason)} : {row.count}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-                <p className="font-medium text-slate-100">Exemples rejetés (max 20)</p>
-                {yahooRejectedSampleRows.length === 0 ? (
-                  <p className="mt-1 text-xs text-slate-500">Aucun exemple disponible.</p>
-                ) : (
-                  <div className="mt-2 space-y-1 text-xs text-slate-300">
-                    {yahooRejectedSampleRows.map((row, index) => (
-                      <div key={`yahoo-rejected-sample-${row.symbol}-${index}`}>
-                        {row.symbol} : {formatIbkrReason(row.reason)}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </details>
-          </div>
-        )}
-
-        {yahooReturnedCount > 0 && (
-          <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300 shadow-sm">
-            <details>
-              <summary className="cursor-pointer font-semibold text-slate-100">Candidats Yahoo non envoyés à IBKR</summary>
-            {yahooReturnedCount <= (ibkrTestedCount || Math.min(Number(ibkrAutoMaxTickers) || 20, 120)) ? (
-              <p className="mt-2 text-slate-500">
-                Impossible d’afficher les rangs 11-30 : /scan_shortlist retourne seulement le Top Yahoo actuel.
-              </p>
-            ) : yahooNonSentCandidates.length === 0 ? (
-              <p className="mt-2 text-slate-500">
-                Aucun candidat Yahoo prioritaire non envoyé à IBKR.
-              </p>
-            ) : (
-              <div className="mt-2 space-y-1">
-                {yahooNonSentCandidates.map((item) => (
-                  <div key={`yahoo-not-sent-${item.ticker ?? item.symbol}`}>
-                    Rang Yahoo #{item.rank} · {item.ticker ?? item.symbol} · qualité {item.qualityScore ?? "—"} · RSI{" "}
-                    {item.rsi ?? "—"}
-                  </div>
-                ))}
-              </div>
-            )}
             </details>
           </div>
         )}

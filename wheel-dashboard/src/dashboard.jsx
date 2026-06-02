@@ -9510,12 +9510,18 @@ function TickerPipelineDiagnosticPanel({ diagnostic }) {
 function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
   if (!Array.isArray(rows) || rows.length === 0) return null;
   return (
-    <div
+    <details
       className="mt-4 rounded-xl border border-amber-900/40 bg-amber-950/15 p-3"
       data-testid="pre-ibkr-cut-diagnostics"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium text-amber-100">Tickers coupés avant IBKR ({rows.length})</p>
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
+        <span className="font-medium text-amber-100">Tickers coupés avant IBKR ({rows.length})</span>
+        <span className="text-[10px] text-amber-300/50">table lourde repliée par défaut — ouvrir pour inspecter les {rows.length} tickers coupés</span>
+      </summary>
+      <p className="mt-2 text-[10px] text-amber-300/60">
+        Table détaillée conservée pour audit. Ouvre seulement si tu veux inspecter les tickers rejetés.
+      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
         {typeof onExportCsv === "function" && (
           <button
             type="button"
@@ -9568,7 +9574,7 @@ function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </details>
   );
 }
 

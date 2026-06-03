@@ -14397,7 +14397,7 @@ export default function Dashboard() {
         ) : activeView === "dashboard" ? (
           <>
             <div id="section-scan" className="mb-6 scroll-mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">
-          <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <Button
               title="Scanner maintenant"
               className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-3 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
@@ -14542,13 +14542,13 @@ export default function Dashboard() {
               wrapperClassName="w-[105px] shrink-0"
               title="Limite Yahoo — nombre maximal de candidats Yahoo gardés avant test IBKR."
             />
-
-            {refreshStage ? (
-              <span className="min-w-0 truncate">
-                <ScanCompactBadge label="État" value={refreshStage} />
-              </span>
-            ) : null}
           </div>
+
+          {refreshStage ? (
+            <div className="mt-2 w-full min-w-0">
+              <ScanCompactBadge label="État" value={refreshStage} />
+            </div>
+          ) : null}
 
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span className="text-cyan-600/80">

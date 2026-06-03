@@ -105,6 +105,56 @@ const FALLBACK_TICKERS = [
   "NVO", "PHM", "DXCM", "USB", "PDD"
 ];
 
+/** Libellé UI pour strict_watchlist | research_expanded | fallback_65 */
+function getPoolModeLabel(modeOrSource) {
+  return formatPoolSourceLabel(modeOrSource);
+}
+
+/** Nombre de tickers du pool actuellement sélectionné (pas le dernier scan). */
+function getCurrentPoolCount({ resolvedPreIbkrPool, tickersForScan, preIbkrPoolMode }) {
+  if (Array.isArray(tickersForScan)) {
+    return tickersForScan.length;
+  }
+  if (Array.isArray(resolvedPreIbkrPool?.tickers)) {
+    return resolvedPreIbkrPool.tickers.length;
+  }
+  if (preIbkrPoolMode === "fallback_65") {
+    return FALLBACK_TICKERS.length;
+  }
+  return 0;
+}
+
+/** True si le mode sélectionné diffère du pool du dernier scan. */
+function isLastScanPoolStale({ preIbkrPoolMode, lastScanPoolMeta }) {
+  const lastSource = String(lastScanPoolMeta?.poolSource || "").trim();
+  if (!lastSource) return false;
+  return preIbkrPoolMode !== lastSource;
+}
+
+function hasRecentScanPoolMeta(lastScanPoolMeta) {
+  return Boolean(String(lastScanPoolMeta?.poolSource || "").trim());
+}
+
+/** Message fallback diagnostics — volontaire vs secours involontaire. */
+function buildFallbackPoolDiagnosticMessage({ preIbkrPoolMode, lastScanPoolMeta, isStale }) {
+  const lastSource = lastScanPoolMeta?.poolSource;
+  if (lastSource !== "fallback_65") return null;
+  if (isStale) return null;
+  if (preIbkrPoolMode === "fallback_65") {
+    return {
+      tone: "neutral",
+      text: "Fallback sélectionné manuellement — pool statique utilisé.",
+    };
+  }
+  if (lastScanPoolMeta.usedFallbackUltimate) {
+    return {
+      tone: "warn",
+      text: "Research Expanded indisponible — secours fallback utilisé.",
+    };
+  }
+  return null;
+}
+
 /** Aligné sur ton backend (schema zod dans server.js) — à ajuster si tes critères changent. */
 const DEFAULT_BUILD_WATCHLIST_BODY = {
   /** Plafond spot CSP : 200 couvre plus de noms institutionnels tout en restant sous beaucoup de caps 25,5k$/contrat. */
@@ -10822,6 +10872,23 @@ export default function Dashboard() {
   const _rawWatchlist = resolvedPreIbkrPool.tickers;
   const cryptoRemovedFromPreIbkrPool = resolvedPreIbkrPool.cryptoRemovedFromPool ?? [];
   const tickersForScan = _rawWatchlist.filter((t) => !isCryptoDigitalAssetBlocked(t));
+  const currentPoolCount = useMemo(
+    () => getCurrentPoolCount({ resolvedPreIbkrPool, tickersForScan, preIbkrPoolMode }),
+    [resolvedPreIbkrPool, tickersForScan, preIbkrPoolMode]
+  );
+  const lastScanPoolStale = useMemo(
+    () => isLastScanPoolStale({ preIbkrPoolMode, lastScanPoolMeta }),
+    [preIbkrPoolMode, lastScanPoolMeta]
+  );
+  const fallbackPoolDiagnosticMessage = useMemo(
+    () =>
+      buildFallbackPoolDiagnosticMessage({
+        preIbkrPoolMode,
+        lastScanPoolMeta,
+        isStale: lastScanPoolStale,
+      }),
+    [preIbkrPoolMode, lastScanPoolMeta, lastScanPoolStale]
+  );
   const cryptoRemovedFromWatchlistCount = cryptoRemovedFromPreIbkrPool.length;
   const cryptoBlockedRemovedSymbols = useMemo(() => {
     const fromBuild = Array.isArray(watchlistStats?.cryptoBlockedRemovedSymbols)
@@ -13075,7 +13142,7 @@ export default function Dashboard() {
   const stats = useMemo(
     () => [
       {
-        title: "Watchlist",
+        title: "Strict Watchlist",
         value:
           watchlistTickers === null
             ? "…"
@@ -13230,53 +13297,85 @@ export default function Dashboard() {
             <details open>
               <summary className="cursor-pointer font-semibold text-slate-100">Résumé du funnel</summary>
               <div className="mt-3 rounded-xl border border-indigo-900 bg-indigo-950/40 p-3 text-xs text-slate-300">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Pool actuel sélectionné
+                </p>
+                <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3">
+                  <div>
+                    <span className="text-slate-500">Mode actuel</span>
+                    <div className="font-semibold text-slate-100">
+                      {getPoolModeLabel(preIbkrPoolMode)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Pool actif actuel</span>
+                    <div className="font-semibold text-slate-100">
+                      {getPoolModeLabel(resolvedPreIbkrPool.poolSource)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Tickers pool actuel</span>
+                    <div className="font-semibold text-slate-100">{currentPoolCount}</div>
+                  </div>
+                </div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Dernier scan
+                </p>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                   <div>
-                    <span className="text-slate-500">Mode choisi</span>
+                    <span className="text-slate-500">Pool dernier scan</span>
                     <div className="font-semibold text-slate-100">
-                      {formatPoolSourceLabel(preIbkrPoolMode)}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? getPoolModeLabel(lastScanPoolMeta.poolSource)
+                        : "Aucun scan récent"}
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-500">Pool effectif (dernier scan)</span>
+                    <span className="text-slate-500">Pré-Yahoo dernier scan</span>
                     <div className="font-semibold text-slate-100">
-                      {formatPoolSourceLabel(lastScanPoolMeta.poolSource || resolvedPreIbkrPool.poolSource)}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.preIbkrCount
+                        : "—"}
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-500">Pool pré-Yahoo</span>
+                    <span className="text-slate-500">Yahoo sent dernier scan</span>
                     <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.preIbkrCount || _rawWatchlist.length || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Yahoo sent/scanned</span>
-                    <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.yahooSent || yahooScanMeta.scanned || yahooSentToScanCount || 0}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.yahooSent
+                        : "—"}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Yahoo retournés</span>
                     <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.yahooReturned || yahooReturnedCount || 0}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.yahooReturned
+                        : "—"}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR Audit Depth</span>
                     <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrAuditDepth || ibkrFinalTarget}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.ibkrAuditDepth
+                        : ibkrFinalTarget}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR testés</span>
                     <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrTested || ibkrTestedCount}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.ibkrTested
+                        : ibkrTestedCount}
                     </div>
                   </div>
                   <div>
                     <span className="text-slate-500">IBKR retenus</span>
                     <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrRetained || ibkrKeptCount}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.ibkrRetained
+                        : ibkrKeptCount}
                     </div>
                   </div>
                   <div>
@@ -13286,16 +13385,31 @@ export default function Dashboard() {
                   <div>
                     <span className="text-slate-500">IBKR auto lancé</span>
                     <div className="font-semibold text-slate-100">
-                      {lastScanPoolMeta.ibkrAutoLaunched || ibkrSentCount > 0 ? "oui" : "non"}
+                      {hasRecentScanPoolMeta(lastScanPoolMeta)
+                        ? lastScanPoolMeta.ibkrAutoLaunched
+                          ? "oui"
+                          : "non"
+                        : ibkrSentCount > 0
+                        ? "oui"
+                        : "non"}
                     </div>
                   </div>
                 </div>
+                {lastScanPoolStale ? (
+                  <p className="mt-2 text-xs text-amber-300">
+                    Le mode sélectionné a changé depuis le dernier scan.
+                  </p>
+                ) : null}
                 {lastScanPoolMeta.ibkrAutoSkipReason ? (
                   <p className="mt-2 text-amber-300">{lastScanPoolMeta.ibkrAutoSkipReason}</p>
                 ) : null}
-                {lastScanPoolMeta.usedFallbackUltimate ? (
-                  <p className="mt-2 text-amber-300">
-                    Pool Research Expanded indisponible — secours fallback 65 utilisé pour ce scan.
+                {fallbackPoolDiagnosticMessage ? (
+                  <p
+                    className={`mt-2 ${
+                      fallbackPoolDiagnosticMessage.tone === "warn" ? "text-amber-300" : "text-slate-400"
+                    }`}
+                  >
+                    {fallbackPoolDiagnosticMessage.text}
                   </p>
                 ) : null}
                 {(lastScanPoolMeta.ibkrTested || ibkrTestedCount) <
@@ -14432,6 +14546,17 @@ export default function Dashboard() {
             {refreshStage ? (
               <span className="min-w-0 truncate">
                 <ScanCompactBadge label="État" value={refreshStage} />
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="text-cyan-600/80">
+              Pool actif : {getPoolModeLabel(preIbkrPoolMode)} — {currentPoolCount} tickers
+            </span>
+            {lastScanPoolStale ? (
+              <span className="rounded-full border border-amber-700/60 bg-amber-950/40 px-2 py-0.5 text-[11px] font-medium text-amber-200">
+                Mode changé — clique Scanner pour appliquer.
               </span>
             ) : null}
           </div>

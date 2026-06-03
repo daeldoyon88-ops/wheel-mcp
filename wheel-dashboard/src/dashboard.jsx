@@ -9803,8 +9803,13 @@ function TickerDecisionCard({ decision, source, heading, statusLabel, statusTone
           <Activity className="h-4 w-4 text-sky-300" />
           <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-300">Diagnostic</p>
         </div>
-        <p className="mt-1.5 text-sm text-slate-200">
-          {decision.reason || "Aucun diagnostic détaillé disponible dans le dernier scan."}
+        <p
+          className="mt-1.5 text-sm text-slate-200"
+          title={decision.reason && translateTickerReason(decision.reason) !== decision.reason ? decision.reason : undefined}
+        >
+          {decision.reason
+            ? translateTickerReason(decision.reason)
+            : "Aucun diagnostic détaillé disponible dans le dernier scan."}
         </p>
       </div>
 
@@ -9828,6 +9833,81 @@ function TickerDecisionCard({ decision, source, heading, statusLabel, statusTone
       )}
     </div>
   );
+}
+
+// ─── Traduction UI des raisons techniques (page Ticker uniquement) ─────────────
+// Pur affichage : ne modifie jamais les codes dans le state ni les données brutes.
+function translateTickerReasonCode(code) {
+  const TICKER_REASON_TRANSLATIONS = {
+    absent_from_strict_watchlist_after_rebuild: "Absent de la watchlist stricte après rebuild",
+    above_max_price: "Prix au-dessus du maximum autorisé",
+    market_cap_below_min: "Capitalisation trop faible",
+    below_min_price: "Prix sous le minimum autorisé",
+    price_unavailable: "Prix indisponible",
+    below_score_floor: "Score sous le seuil minimal",
+    below_min_volume: "Volume sous le minimum requis",
+    crypto_blocked_except_bitx: "Crypto bloqué — seul BITX est autorisé",
+    expiration_not_available: "Expiration non disponible",
+    failed_final_filter: "Échec du filtre final",
+    no_put_below_lower_bound: "Aucun put disponible sous la borne basse",
+    no_liquid_strike_below_lower_bound: "Aucun strike liquide sous la borne basse",
+    premium_below_target: "Prime sous la cible minimale",
+    yield_below_target: "Rendement sous la cible minimale",
+    safe_strike_not_liquid: "Strike SAFE insuffisamment liquide",
+    ibkr_rejected: "Rejeté par IBKR",
+    not_sent_to_ibkr: "Non envoyé à IBKR",
+    not_tested: "Non testé",
+    not_found: "Non trouvé",
+    unknown: "Inconnu",
+    excluded_by_watchlist_limit: "Exclu par la limite de la watchlist",
+    watchlist_rebuild: "Coupé au rebuild de la watchlist",
+    pool_pre_scan: "Coupé avant le scan",
+    yahoo_returned: "Retourné par Yahoo",
+    ibkr_retained: "Retenu par IBKR",
+    ibkr_rejected_spread: "Rejeté par IBKR — spread trop large",
+    spread_too_wide: "Spread trop large",
+    no_valid_safe_strike: "Aucun strike SAFE valide",
+    no_valid_aggressive_strike: "Aucun strike AGRESSIF valide",
+    insufficient_premium: "Prime insuffisante",
+    insufficient_yield: "Rendement insuffisant",
+  };
+  const t = String(code ?? "").trim();
+  if (!t) return "—";
+  if (TICKER_REASON_TRANSLATIONS[t]) return TICKER_REASON_TRANSLATIONS[t];
+  const ibkrLabel = formatIbkrReason(t);
+  if (ibkrLabel !== t.replaceAll("_", " ")) return ibkrLabel;
+  return t.replaceAll("_", " ");
+}
+
+function translateTickerReason(reason) {
+  if (reason == null || reason === "") return "—";
+  const s = String(reason).trim();
+  if (!s) return "—";
+
+  if (/^(SAFE|AGGRESSIVE|AGRESSIF|REJECT|WATCH)\s*—/i.test(s)) return s;
+  if (/[àâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ]/.test(s)) return s;
+  if (!s.includes("_") && /\s/.test(s) && !/^[a-z0-9_]+$/i.test(s)) return s;
+
+  const prefixed = s.match(/^(IBKR|Yahoo)\s*—\s*(.+)$/i);
+  if (prefixed) return `${prefixed[1]} — ${translateTickerReasonPart(prefixed[2])}`;
+
+  return translateTickerReasonPart(s);
+}
+
+function translateTickerReasonPart(part) {
+  const p = String(part ?? "").trim();
+  if (!p) return "—";
+  if (p.includes(": ")) {
+    return p
+      .split(": ")
+      .map((seg) => translateTickerReasonCode(seg.trim()))
+      .join(" : ");
+  }
+  if (/^[a-z][a-z0-9_]*$/i.test(p) && (p.includes("_") || p === "unknown")) {
+    return translateTickerReasonCode(p);
+  }
+  if (p.includes("_")) return translateTickerReasonCode(p);
+  return p;
 }
 
 // ─── Diagnostic pipeline Ticker (présentation compacte) ──────────────────────
@@ -10105,7 +10185,16 @@ function TickerPipelineStagesCard({ view, symbol }) {
           >
             <div className="min-w-0">
               <dt className="text-sm text-slate-200">{stage.label}</dt>
-              {stage.detail && <p className="text-[11px] text-slate-500">{stage.detail}</p>}
+              {stage.detail && (
+                <p
+                  className="text-[11px] text-slate-500"
+                  title={
+                    translateTickerReason(stage.detail) !== stage.detail ? stage.detail : undefined
+                  }
+                >
+                  {translateTickerReason(stage.detail)}
+                </p>
+              )}
             </div>
             <dd className="shrink-0">
               <span
@@ -10123,7 +10212,14 @@ function TickerPipelineStagesCard({ view, symbol }) {
 
       <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Raison principale</p>
-        <p className="mt-1 text-sm text-slate-200">{mainReason || "Aucune raison détaillée disponible."}</p>
+        <p
+          className="mt-1 text-sm text-slate-200"
+          title={
+            mainReason && translateTickerReason(mainReason) !== mainReason ? mainReason : undefined
+          }
+        >
+          {mainReason ? translateTickerReason(mainReason) : "Aucune raison détaillée disponible."}
+        </p>
       </div>
 
       {sourcesDetected && (

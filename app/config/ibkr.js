@@ -12,10 +12,10 @@ function parseInteger(value, fallback) {
 }
 
 export const IBKR_CONFIG = {
-  enabled: parseBoolean(process.env.IBKR_ENABLED, false),
+  enabled: parseBoolean(process.env.IBKR_ENABLED, true),
   readOnly: parseBoolean(process.env.IBKR_READ_ONLY, true),
   host: process.env.IBKR_HOST || "127.0.0.1",
-  port: parseInteger(process.env.IBKR_PORT, 7497),
+  port: parseInteger(process.env.IBKR_PORT, 4002),
   clientId: parseInteger(process.env.IBKR_CLIENT_ID, 101),
   connectTimeoutMs: parseInteger(process.env.IBKR_CONNECT_TIMEOUT_MS, 5000),
 };

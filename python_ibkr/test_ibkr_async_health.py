@@ -50,7 +50,7 @@ def _emit(base: dict, **extra) -> None:
 
 def main() -> int:
     host = _str_env("IBKR_HOST", "127.0.0.1")
-    port = _int_env("IBKR_PORT", 7497)
+    port = _int_env("IBKR_PORT", 4002)
     client_id = _int_env("IBKR_CLIENT_ID", 201)
     read_only = _parse_bool(os.environ.get("IBKR_READ_ONLY"), True)
 

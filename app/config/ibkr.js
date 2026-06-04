@@ -49,6 +49,23 @@ export function resolveIbkrScanConcurrency(rawValue = process.env.IBKR_SCAN_CONC
   return Math.max(IBKR_SCAN_CONCURRENCY_MIN, Math.min(IBKR_SCAN_CONCURRENCY_MAX, n));
 }
 
+/**
+ * Taille de lot du scan IBKR UI/backend (chunk envoyé par requête).
+ * Défaut 50 afin qu'un scan Depth 30 parte en 1 lot de 30 et Depth 50 en 1 lot de 50
+ * (le moteur Python encaisse 50 titres avec concurrency=3). Bornée [5, 50] :
+ * le plafond 50 reflète « Maximum 50 titres par validation IBKR Shadow ».
+ * Un opérateur prudent peut forcer IBKR_SCAN_BATCH_SIZE=30 (ou moins, min 5).
+ */
+export const IBKR_SCAN_BATCH_SIZE_DEFAULT = 50;
+export const IBKR_SCAN_BATCH_SIZE_MIN = 5;
+export const IBKR_SCAN_BATCH_SIZE_MAX = 50;
+
+export function resolveIbkrScanBatchSize(rawValue = process.env.IBKR_SCAN_BATCH_SIZE) {
+  const n = parseInteger(rawValue, IBKR_SCAN_BATCH_SIZE_DEFAULT);
+  if (!Number.isFinite(n)) return IBKR_SCAN_BATCH_SIZE_DEFAULT;
+  return Math.max(IBKR_SCAN_BATCH_SIZE_MIN, Math.min(IBKR_SCAN_BATCH_SIZE_MAX, n));
+}
+
 export function formatIbkrTwoPhaseScanLog(env = process.env) {
   const raw = env.IBKR_TWO_PHASE_SCAN;
   const enabled = resolveIbkrTwoPhaseScanEnabled(raw);

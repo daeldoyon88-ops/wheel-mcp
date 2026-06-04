@@ -13,8 +13,12 @@ import { DEFAULT_BACKEND_PORT, DEFAULT_LIQUIDITY_OTM_PROBE_PCT } from "./app/con
 import {
   formatIbkrTwoPhaseScanLog,
   logIbkrTwoPhaseScanConfig,
+  resolveIbkrScanBatchSize,
   resolveIbkrScanConcurrency,
   resolveIbkrTwoPhaseScanEnabled,
+  IBKR_SCAN_BATCH_SIZE_DEFAULT,
+  IBKR_SCAN_BATCH_SIZE_MIN,
+  IBKR_SCAN_BATCH_SIZE_MAX,
 } from "./app/config/ibkr.js";
 import { createMarketDataProvider } from "./app/data_providers/createMarketDataProvider.js";
 import { createMarketService } from "./app/services/marketService.js";
@@ -936,6 +940,22 @@ app.post("/metrics/scan/reset", (_req, res) => {
     ok: true,
     resetAt: new Date().toISOString(),
     metrics: getScanMetricsSnapshot(),
+  });
+});
+
+/**
+ * Config de batching IBKR exposée au dashboard pour qu'il chunke en gros lots
+ * (au lieu de 10 puis 5+5+5). Source de vérité unique : IBKR_SCAN_BATCH_SIZE.
+ */
+app.get("/ibkr/scan-config", (_req, res) => {
+  res.json({
+    ok: true,
+    ibkrScanBatchSize: resolveIbkrScanBatchSize(),
+    ibkrScanBatchSizeMin: IBKR_SCAN_BATCH_SIZE_MIN,
+    ibkrScanBatchSizeMax: IBKR_SCAN_BATCH_SIZE_MAX,
+    ibkrScanBatchSizeDefault: IBKR_SCAN_BATCH_SIZE_DEFAULT,
+    ibkrScanConcurrency: resolveIbkrScanConcurrency(),
+    source: process.env.IBKR_SCAN_BATCH_SIZE ? "env" : "default",
   });
 });
 
@@ -2146,6 +2166,14 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     const ibkrDebug = process.env.WHEEL_IBKR_DEBUG === "1";
     const twoPhaseScanEnabled = resolveIbkrTwoPhaseScanEnabled();
 
+    // Batching IBKR : chaque requête = 1 spawn Python. Le dashboard chunke déjà
+    // par IBKR_SCAN_BATCH_SIZE, donc ibkrActualSent <= configuredBatchSize en UI.
+    const ibkrConfiguredBatchSize = resolveIbkrScanBatchSize();
+    const ibkrActualSent = tickers.length;
+    const ibkrBatchSize = Math.min(ibkrActualSent, ibkrConfiguredBatchSize) || ibkrActualSent;
+    const ibkrBatchCount = ibkrBatchSize > 0 ? Math.ceil(ibkrActualSent / ibkrBatchSize) : 1;
+    const ibkrBatchingMode = process.env.IBKR_SCAN_BATCH_SIZE ? "env" : "default";
+
     console.log(
       "[WHEEL_DEV_SCAN]",
       `${devMode.configuredMode}`,
@@ -2155,6 +2183,15 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     );
 
     console.log("[IBKR_SHADOW_SCAN_START]", expiration || "default", "tickers", tickers.length);
+    console.log(
+      "[IBKR BATCHING] totalTickers=" + ibkrActualSent +
+        " batchSize=" + ibkrBatchSize +
+        " batchCount=" + ibkrBatchCount +
+        " requestedDepth=" + clampedAuditDepth +
+        " configuredBatchSize=" + ibkrConfiguredBatchSize +
+        " mode=" + ibkrBatchingMode
+    );
+    console.log("[IBKR BATCHING] batchIndex=0 symbols=" + tickers.join(","));
     const twoPhaseScanLog = formatIbkrTwoPhaseScanLog();
     for (const line of twoPhaseScanLog.logLines) {
       console.log(line);
@@ -2330,6 +2367,11 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       ibkrTotalCalls: Number(_totals.totalApproxIbkrCalls) || null,
       ibkrOptionMarketDataRequests: Number(_totals.totalOptionMarketDataRequests) || null,
       ibkrQualifyCalls: _qualifyCalls || null,
+      ibkrBatchSize,
+      ibkrBatchCount,
+      ibkrBatchingMode,
+      ibkrRequestedDepth: clampedAuditDepth,
+      ibkrActualSent,
     };
 
     res.json({

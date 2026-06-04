@@ -101,6 +101,39 @@ export function logIbkrTwoPhaseScanConfig(env = process.env) {
   return cfg;
 }
 
+/** Quick premium gate : OFF par défaut ; actif seulement en TWO_PHASE côté Python. */
+export function resolveIbkrQuickPremiumGateEnabled(rawValue = process.env.IBKR_QUICK_PREMIUM_GATE) {
+  return parseBoolean(rawValue, false);
+}
+
+export function formatIbkrQuickPremiumGateLog(env = process.env) {
+  const raw = env.IBKR_QUICK_PREMIUM_GATE;
+  const enabled = resolveIbkrQuickPremiumGateEnabled(raw);
+  const trimmed = raw == null ? "" : String(raw).trim();
+  let source;
+  if (trimmed === "") {
+    source = "default off, enable with IBKR_QUICK_PREMIUM_GATE=1";
+  } else if (trimmed === "0") {
+    source = "explicit off, IBKR_QUICK_PREMIUM_GATE=0";
+  } else if (trimmed === "1") {
+    source = "explicit on, IBKR_QUICK_PREMIUM_GATE=1";
+  } else {
+    source = `IBKR_QUICK_PREMIUM_GATE=${trimmed}`;
+  }
+  return {
+    enabled,
+    state: enabled ? "ON" : "OFF",
+    source,
+    logLine: `IBKR quick premium gate: ${enabled ? "ON" : "OFF"} (${source})`,
+  };
+}
+
+export function logIbkrQuickPremiumGateConfig(env = process.env) {
+  const cfg = formatIbkrQuickPremiumGateLog(env);
+  console.log(cfg.logLine);
+  return cfg;
+}
+
 /** Diagnostic console IBKR strike window ; actif seulement si IBKR_STRIKE_WINDOW_DEBUG=1. */
 export function resolveIbkrStrikeWindowDebugEnabled(rawValue = process.env.IBKR_STRIKE_WINDOW_DEBUG) {
   return parseBoolean(rawValue, false);

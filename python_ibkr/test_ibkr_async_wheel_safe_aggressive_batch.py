@@ -166,6 +166,14 @@ def _empty_ticker_metrics() -> dict:
         "putCandidateOptionRequests": 0,
         "expectedMoveContractsRequested": 0,
         "putCandidateContractsRequested": 0,
+        "putCandidateContractsActuallyRequested": 0,
+        "putQuotesAvoidedByQuickGate": 0,
+        "quickGateEvaluated": 0,
+        "quickGateSkipped": 0,
+        "quickGateFallback": 0,
+        "quickGatePassed": 0,
+        "quickGateRejected": 0,
+        "quickGateSavedApproxCalls": 0,
         "cancelMarketDataCalls": 0,
         "marketDataWaits": 0,
         "timeouts": 0,
@@ -189,6 +197,14 @@ def _empty_totals() -> dict:
         "totalPutCandidateOptionRequests": 0,
         "totalExpectedMoveContractsRequested": 0,
         "totalPutCandidateContractsRequested": 0,
+        "totalPutCandidateContractsActuallyRequested": 0,
+        "totalPutQuotesAvoidedByQuickGate": 0,
+        "totalQuickGateEvaluated": 0,
+        "totalQuickGateSkipped": 0,
+        "totalQuickGateFallback": 0,
+        "totalQuickGatePassed": 0,
+        "totalQuickGateRejected": 0,
+        "totalQuickGateSavedApproxCalls": 0,
         "totalCancelMarketDataCalls": 0,
         "totalMarketDataWaits": 0,
         "totalTimeouts": 0,
@@ -311,6 +327,13 @@ def _finalize_ticker_payload(
     row_metrics["putCandidateContractsRequested"] = int(
         row_metrics.get("putCandidateContractsRequested", 0) or 0
     )
+    row_metrics["putCandidateContractsActuallyRequested"] = int(
+        row_metrics.get(
+            "putCandidateContractsActuallyRequested",
+            row_metrics.get("putCandidateOptionRequests", 0),
+        )
+        or 0
+    )
     row_metrics["totalApproxCalls"] = int(
         row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
     )
@@ -345,6 +368,20 @@ def _accumulate_into_totals(
     ibkr_totals["totalPutCandidateContractsRequested"] += int(
         row_metrics.get("putCandidateContractsRequested", 0) or 0
     )
+    ibkr_totals["totalPutCandidateContractsActuallyRequested"] += int(
+        row_metrics.get("putCandidateContractsActuallyRequested", 0) or 0
+    )
+    ibkr_totals["totalPutQuotesAvoidedByQuickGate"] += int(
+        row_metrics.get("putQuotesAvoidedByQuickGate", 0) or 0
+    )
+    ibkr_totals["totalQuickGateEvaluated"] += int(row_metrics.get("quickGateEvaluated", 0) or 0)
+    ibkr_totals["totalQuickGateSkipped"] += int(row_metrics.get("quickGateSkipped", 0) or 0)
+    ibkr_totals["totalQuickGateFallback"] += int(row_metrics.get("quickGateFallback", 0) or 0)
+    ibkr_totals["totalQuickGatePassed"] += int(row_metrics.get("quickGatePassed", 0) or 0)
+    ibkr_totals["totalQuickGateRejected"] += int(row_metrics.get("quickGateRejected", 0) or 0)
+    ibkr_totals["totalQuickGateSavedApproxCalls"] += int(
+        row_metrics.get("quickGateSavedApproxCalls", 0) or 0
+    )
     ibkr_totals["totalCancelMarketDataCalls"] += int(row_metrics.get("cancelMarketDataCalls", 0) or 0)
     ibkr_totals["totalMarketDataWaits"] += int(row_metrics.get("marketDataWaits", 0) or 0)
     ibkr_totals["totalTimeouts"] += int(row_metrics.get("timeouts", 0) or 0)
@@ -375,6 +412,7 @@ def _emit_batch_payload(
     concurrency_mode: str,
     max_active: int,
     wheel_dev_scan_batch: bool,
+    quick_premium_gate_enabled: bool = False,
     extra: dict | None = None,
 ) -> dict:
     dev_displayed = sum(
@@ -404,6 +442,7 @@ def _emit_batch_payload(
         "ok": True,
         "connected": connected,
         "twoPhaseEnabled": two_phase_enabled,
+        "quickPremiumGateEnabled": bool(two_phase_enabled and quick_premium_gate_enabled),
         "ibkrMode": "TWO_PHASE" if two_phase_enabled else "NORMAL",
         "symbols": symbols,
         "total": len(symbols),
@@ -423,6 +462,8 @@ def _emit_batch_payload(
         "ibkrCallMetrics": {
             "totals": ibkr_totals,
             "bySymbol": ibkr_by_symbol,
+            "twoPhaseEnabled": two_phase_enabled,
+            "quickPremiumGateEnabled": bool(two_phase_enabled and quick_premium_gate_enabled),
         },
         "results": results,
     }
@@ -462,6 +503,8 @@ def _build_config() -> dict:
         1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", single.TWO_PHASE_DEFAULT_PUT_WINDOW)
     )
     single._log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
+    quick_premium_gate_enabled = single._ibkr_quick_premium_gate_enabled()
+    single._log_ibkr_quick_gate_config(quick_premium_gate_enabled)
     concurrency = _resolve_scan_concurrency()
     symbols = _parse_symbols()
 
@@ -490,6 +533,7 @@ def _build_config() -> dict:
         "debug": debug,
         "two_phase_enabled": two_phase_enabled,
         "two_phase_put_window": two_phase_put_window,
+        "quick_premium_gate_enabled": quick_premium_gate_enabled,
         "concurrency": concurrency,
         "symbols": symbols,
         "base": base,
@@ -507,6 +551,7 @@ def _run_sequential_shared(cfg: dict) -> int:
     option_wait = cfg["option_wait"]
     debug = cfg["debug"]
     two_phase_enabled = cfg["two_phase_enabled"]
+    quick_premium_gate_enabled = cfg["quick_premium_gate_enabled"]
     symbols = cfg["symbols"]
     base = cfg["base"]
     wheel_dev_scan_batch = cfg["wheel_dev_scan"]
@@ -612,6 +657,7 @@ def _run_sequential_shared(cfg: dict) -> int:
             concurrency_mode="sequential_shared",
             max_active=1,
             wheel_dev_scan_batch=wheel_dev_scan_batch,
+            quick_premium_gate_enabled=quick_premium_gate_enabled,
         )
         return 0
     except Exception as exc:
@@ -767,6 +813,7 @@ async def _run_concurrent(symbols: list[str], concurrency: int, cfg: dict) -> in
     market_data_type = cfg["market_data_type"]
     per_ticker_timeout_ms = cfg["per_ticker_timeout_ms"]
     two_phase_enabled = cfg["two_phase_enabled"]
+    quick_premium_gate_enabled = cfg["quick_premium_gate_enabled"]
     base_client_id = cfg["client_id"]
     debug = cfg["debug"]
     wheel_dev_scan_batch = cfg["wheel_dev_scan"]
@@ -880,6 +927,7 @@ async def _run_concurrent(symbols: list[str], concurrency: int, cfg: dict) -> in
         concurrency_mode="concurrent_subprocess",
         max_active=state["max_active"],
         wheel_dev_scan_batch=wheel_dev_scan_batch,
+        quick_premium_gate_enabled=quick_premium_gate_enabled,
         extra={"clientIdRange": [base_client_id, base_client_id + concurrency - 1]},
     )
     print(

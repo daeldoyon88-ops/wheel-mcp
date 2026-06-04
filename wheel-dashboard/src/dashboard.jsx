@@ -5906,6 +5906,14 @@ const IBKR_SNAPSHOT_TOTAL_SUM_KEYS = [
   "totalPutCandidateOptionRequests",
   "totalExpectedMoveContractsRequested",
   "totalPutCandidateContractsRequested",
+  "totalPutCandidateContractsActuallyRequested",
+  "totalPutQuotesAvoidedByQuickGate",
+  "totalQuickGateEvaluated",
+  "totalQuickGateSkipped",
+  "totalQuickGateFallback",
+  "totalQuickGatePassed",
+  "totalQuickGateRejected",
+  "totalQuickGateSavedApproxCalls",
   "totalCancelMarketDataCalls",
   "totalMarketDataWaits",
   "totalTimeouts",
@@ -12987,8 +12995,52 @@ export default function Dashboard() {
                         value={String(scanMetricsData?.ibkr?.totals?.totalExpectedMoveContractsRequested ?? 0)}
                       />
                       <Metric
-                        label="IBKR put contracts req"
+                        label="IBKR put contracts théoriques"
                         value={String(scanMetricsData?.ibkr?.totals?.totalPutCandidateContractsRequested ?? 0)}
+                      />
+                      <Metric
+                        label="IBKR put contracts réellement demandées"
+                        value={String(
+                          scanMetricsData?.ibkr?.totals?.totalPutCandidateContractsActuallyRequested ?? 0
+                        )}
+                      />
+                      <Metric
+                        label="IBKR put quotes évitées (quick gate)"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalPutQuotesAvoidedByQuickGate ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — ignorés (gate OFF)"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalQuickGateSkipped ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — évalués"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalQuickGateEvaluated ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — passés"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalQuickGatePassed ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — fallback"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalQuickGateFallback ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — rejetés rapides"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalQuickGateRejected ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — appels économisés (approx)"
+                        value={String(scanMetricsData?.ibkr?.totals?.totalQuickGateSavedApproxCalls ?? 0)}
+                      />
+                      <Metric
+                        label="Quick gate — état"
+                        value={
+                          scanMetricsData?.ibkr?.quickPremiumGateEnabled === true
+                            ? "ON"
+                            : scanMetricsData?.ibkr?.quickPremiumGateEnabled === false
+                              ? "OFF"
+                              : "—"
+                        }
                       />
                       <Metric
                         label="IBKR cancel calls"

@@ -13,6 +13,8 @@ import { DEFAULT_BACKEND_PORT, DEFAULT_LIQUIDITY_OTM_PROBE_PCT } from "./app/con
 import {
   formatIbkrTwoPhaseScanLog,
   logIbkrTwoPhaseScanConfig,
+  formatIbkrQuickPremiumGateLog,
+  logIbkrQuickPremiumGateConfig,
   resolveIbkrScanBatchSize,
   resolveIbkrScanConcurrency,
   resolveIbkrTwoPhaseScanEnabled,
@@ -543,6 +545,7 @@ function createEmptyIbkrCallMetrics() {
     startedAt: new Date().toISOString(),
     lastUpdatedAt: null,
     twoPhaseEnabled: false,
+    quickPremiumGateEnabled: false,
     totals: {
       totalStockQualifyCalls: 0,
       totalOptionQualifyCalls: 0,
@@ -553,6 +556,14 @@ function createEmptyIbkrCallMetrics() {
       totalPutCandidateOptionRequests: 0,
       totalExpectedMoveContractsRequested: 0,
       totalPutCandidateContractsRequested: 0,
+      totalPutCandidateContractsActuallyRequested: 0,
+      totalPutQuotesAvoidedByQuickGate: 0,
+      totalQuickGateEvaluated: 0,
+      totalQuickGateSkipped: 0,
+      totalQuickGateFallback: 0,
+      totalQuickGatePassed: 0,
+      totalQuickGateRejected: 0,
+      totalQuickGateSavedApproxCalls: 0,
       totalCancelMarketDataCalls: 0,
       totalMarketDataWaits: 0,
       totalTimeouts: 0,
@@ -592,6 +603,9 @@ function mergeIbkrCallMetricsIntoState(metrics) {
   if (typeof metrics.twoPhaseEnabled === "boolean") {
     ibkrState.twoPhaseEnabled = metrics.twoPhaseEnabled;
   }
+  if (typeof metrics.quickPremiumGateEnabled === "boolean") {
+    ibkrState.quickPremiumGateEnabled = metrics.quickPremiumGateEnabled;
+  }
   const sourceTotals = metrics.totals ?? {};
   const targetTotals = ibkrState.totals;
   const totalKeys = [
@@ -604,6 +618,14 @@ function mergeIbkrCallMetricsIntoState(metrics) {
     "totalPutCandidateOptionRequests",
     "totalExpectedMoveContractsRequested",
     "totalPutCandidateContractsRequested",
+    "totalPutCandidateContractsActuallyRequested",
+    "totalPutQuotesAvoidedByQuickGate",
+    "totalQuickGateEvaluated",
+    "totalQuickGateSkipped",
+    "totalQuickGateFallback",
+    "totalQuickGatePassed",
+    "totalQuickGateRejected",
+    "totalQuickGateSavedApproxCalls",
     "totalCancelMarketDataCalls",
     "totalMarketDataWaits",
     "totalTimeouts",
@@ -644,6 +666,14 @@ function mergeIbkrCallMetricsIntoState(metrics) {
         putCandidateOptionRequests: 0,
         expectedMoveContractsRequested: 0,
         putCandidateContractsRequested: 0,
+        putCandidateContractsActuallyRequested: 0,
+        putQuotesAvoidedByQuickGate: 0,
+        quickGateEvaluated: 0,
+        quickGateSkipped: 0,
+        quickGateFallback: 0,
+        quickGatePassed: 0,
+        quickGateRejected: 0,
+        quickGateSavedApproxCalls: 0,
         cancelMarketDataCalls: 0,
         marketDataWaits: 0,
         timeouts: 0,
@@ -678,6 +708,14 @@ function mergeIbkrCallMetricsIntoState(metrics) {
       "putCandidateOptionRequests",
       "expectedMoveContractsRequested",
       "putCandidateContractsRequested",
+      "putCandidateContractsActuallyRequested",
+      "putQuotesAvoidedByQuickGate",
+      "quickGateEvaluated",
+      "quickGateSkipped",
+      "quickGateFallback",
+      "quickGatePassed",
+      "quickGateRejected",
+      "quickGateSavedApproxCalls",
       "cancelMarketDataCalls",
       "marketDataWaits",
       "timeouts",
@@ -2196,6 +2234,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     for (const line of twoPhaseScanLog.logLines) {
       console.log(line);
     }
+    console.log(formatIbkrQuickPremiumGateLog().logLine);
 
     const { payload } = await runIbkrShadowWheelBatch({
       ...body,
@@ -2238,6 +2277,12 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       rejectionReasons
     );
     enrichedIbkrCallMetrics.twoPhaseEnabled = responseTwoPhaseEnabled;
+    enrichedIbkrCallMetrics.quickPremiumGateEnabled =
+      typeof payload?.quickPremiumGateEnabled === "boolean"
+        ? payload.quickPremiumGateEnabled
+        : typeof enrichedIbkrCallMetrics.quickPremiumGateEnabled === "boolean"
+          ? enrichedIbkrCallMetrics.quickPremiumGateEnabled
+          : false;
     if (!enrichedIbkrCallMetrics.totals || typeof enrichedIbkrCallMetrics.totals !== "object") {
       enrichedIbkrCallMetrics.totals = {};
     }
@@ -3309,6 +3354,7 @@ app.delete("/mcp", handleMcpSessionRequest);
 app.listen(PORT, () => {
   console.log(`Wheel backend listening on port ${PORT}`);
   logIbkrTwoPhaseScanConfig();
+  logIbkrQuickPremiumGateConfig();
 });
 
 

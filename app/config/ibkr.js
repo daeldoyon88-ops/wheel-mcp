@@ -38,6 +38,17 @@ export function resolveIbkrTwoPhasePutWindow(rawValue = process.env.IBKR_TWO_PHA
   return Math.max(1, n);
 }
 
+/** Concurrence du scan IBKR : défaut prudent 3, bornée [1, 5]. */
+export const IBKR_SCAN_CONCURRENCY_DEFAULT = 3;
+export const IBKR_SCAN_CONCURRENCY_MIN = 1;
+export const IBKR_SCAN_CONCURRENCY_MAX = 5;
+
+export function resolveIbkrScanConcurrency(rawValue = process.env.IBKR_SCAN_CONCURRENCY) {
+  const n = parseInteger(rawValue, IBKR_SCAN_CONCURRENCY_DEFAULT);
+  if (!Number.isFinite(n)) return IBKR_SCAN_CONCURRENCY_DEFAULT;
+  return Math.max(IBKR_SCAN_CONCURRENCY_MIN, Math.min(IBKR_SCAN_CONCURRENCY_MAX, n));
+}
+
 export function formatIbkrTwoPhaseScanLog(env = process.env) {
   const raw = env.IBKR_TWO_PHASE_SCAN;
   const enabled = resolveIbkrTwoPhaseScanEnabled(raw);

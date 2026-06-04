@@ -1,10 +1,20 @@
 """
 Batch read-only IBKR Shadow validation for Wheel safe/aggressive puts.
-Uses one TWS/Gateway connection for the whole batch.
+
+Deux modes d'exécution, choisis par IBKR_SCAN_CONCURRENCY (défaut 3, borné [1, 5]) :
+  - concurrency == 1 : mode séquentiel partagé historique (une seule connexion
+    TWS/Gateway pour tout le lot, traitement ticker par ticker). Comportement
+    strictement équivalent à l'ancien batch.
+  - concurrency  > 1 : mode concurrent borné. Chaque ticker est traité dans un
+    sous-processus isolé qui lance le single scanner inchangé avec un clientId
+    distinct (pool de taille = concurrency). Un ticker bloqué/timeout est tué
+    sans bloquer les autres. La logique métier de sélection n'est pas modifiée.
+
 Aucun ordre, aucun placeOrder, aucun cancelOrder, aucun positions.
 """
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import io
 import json
@@ -52,8 +62,27 @@ def _str_env(name: str, default: str) -> str:
     return str(raw).strip()
 
 
+def _force_utf8_streams() -> None:
+    """Force stdout/stderr en UTF-8 (Node lit le batch en UTF-8 ; défaut Windows = cp1252).
+
+    Évite UnicodeEncodeError à l'émission du JSON final et le mojibake des accents.
+    Bénéficie aux deux modes (séquentiel et concurrent).
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="backslashreplace")
+            except Exception:
+                pass
+
+
 def _emit(payload: dict) -> None:
-    print(json.dumps(payload, ensure_ascii=False))
+    try:
+        print(json.dumps(payload, ensure_ascii=False))
+    except UnicodeEncodeError:
+        # Filet de sécurité ultime : ASCII pur (échappe tout non-ASCII), encodable partout.
+        print(json.dumps(payload, ensure_ascii=True))
 
 
 def _market_data_type_label(value) -> str:
@@ -149,6 +178,43 @@ def _empty_ticker_metrics() -> dict:
     }
 
 
+def _empty_totals() -> dict:
+    return {
+        "totalStockQualifyCalls": 0,
+        "totalOptionQualifyCalls": 0,
+        "totalOptionChainRequests": 0,
+        "totalStockMarketDataRequests": 0,
+        "totalOptionMarketDataRequests": 0,
+        "totalExpectedMoveOptionRequests": 0,
+        "totalPutCandidateOptionRequests": 0,
+        "totalExpectedMoveContractsRequested": 0,
+        "totalPutCandidateContractsRequested": 0,
+        "totalCancelMarketDataCalls": 0,
+        "totalMarketDataWaits": 0,
+        "totalTimeouts": 0,
+        "totalRawStrikesChecked": 0,
+        "totalValidCallStrikesCount": 0,
+        "totalValidPutStrikesCount": 0,
+        "totalApproxIbkrCalls": 0,
+        "totalApproxCalls": 0,
+        "totalDurationMs": 0,
+        "totalTickersObserved": 0,
+    }
+
+
+def _resolve_scan_concurrency() -> int:
+    """Concurrence du scan IBKR : défaut prudent 3, bornée [1, 5].
+
+    Doit rester alignée avec resolveIbkrScanConcurrency() côté Node (app/config/ibkr.js).
+    """
+    n = _int_env("IBKR_SCAN_CONCURRENCY", 3)
+    if n < 1:
+        return 1
+    if n > 5:
+        return 5
+    return n
+
+
 class SharedIbProxy:
     def __init__(self, ib: IB, underlying_wait: float, option_wait: float):
         self._ib = ib
@@ -176,7 +242,208 @@ class SharedIbProxy:
         return getattr(self._ib, name)
 
 
-def main() -> int:
+def _perf_symbol_log(payload: dict) -> None:
+    sym = payload.get("symbol")
+    dur = payload.get("durationMs")
+    if payload.get("reason") == "timeout":
+        print(f"[IBKR PERF] symbol_timeout symbol={sym} durationMs={dur}", file=sys.stderr, flush=True)
+    else:
+        ok = bool(payload.get("ok"))
+        print(f"[IBKR PERF] symbol_done symbol={sym} durationMs={dur} ok={ok}", file=sys.stderr, flush=True)
+
+
+def _finalize_ticker_payload(
+    symbol: str,
+    payload: dict | None,
+    exit_code: int | None,
+    duration_ms: int,
+    market_data_type: int,
+    per_ticker_timeout_ms: int,
+    apply_soft_timeout_label: bool = True,
+) -> dict:
+    """Normalise le payload d'un ticker (commun aux modes séquentiel et concurrent).
+
+    Reproduit exactement la normalisation de l'ancienne boucle séquentielle :
+    métadonnées, reason, détection de timeout post-hoc, ligne ibkrCallMetrics.
+
+    apply_soft_timeout_label : en mode concurrent, un enfant qui a réellement terminé
+    (exitCode connu) conserve sa vraie raison ; le timeout dur (kill) gère les vrais
+    blocages. Le relabel soft basé sur per_ticker_timeout_ms ne sert qu'au mode
+    séquentiel in-process (sans kill), où il reste actif par défaut.
+    """
+    if not isinstance(payload, dict):
+        payload = {
+            "ok": False,
+            "provider": "IBKR",
+            "mode": "ibkr_readonly_shadow",
+            "symbol": symbol,
+            "error": "ibkr_shadow_no_json_output",
+        }
+    payload["symbol"] = symbol
+    payload["durationMs"] = duration_ms
+    payload["twoPhaseEnabled"] = bool(payload.get("twoPhaseEnabled", False))
+    payload["marketDataTypeRequested"] = market_data_type
+    payload["marketDataTypeRequestedLabel"] = _market_data_type_label(market_data_type)
+    if "marketDataTypeReceivedLabel" not in payload:
+        payload["marketDataTypeReceivedLabel"] = "unknown"
+    payload["scanCompletedAt"] = _utc_iso_now()
+    if payload.get("ok") is not True:
+        payload["reason"] = _reason_for_payload(payload)
+        if apply_soft_timeout_label and payload["durationMs"] >= per_ticker_timeout_ms:
+            payload["reason"] = "timeout"
+            payload["error"] = payload.get("error") or "ibkr_shadow_ticker_timeout"
+    if exit_code is not None and exit_code != 0 and payload.get("ok") is True:
+        payload["ok"] = False
+        payload["error"] = "ibkr_shadow_exit_nonzero"
+        payload["reason"] = "ibkr_unavailable"
+    row_metrics = payload.get("ibkrCallMetrics") if isinstance(payload, dict) else None
+    if not isinstance(row_metrics, dict):
+        row_metrics = _empty_ticker_metrics()
+    else:
+        row_metrics = {
+            **_empty_ticker_metrics(),
+            **row_metrics,
+        }
+    row_metrics["durationMs"] = payload.get("durationMs", row_metrics.get("durationMs", 0))
+    row_metrics["expectedMoveContractsRequested"] = int(
+        row_metrics.get("expectedMoveContractsRequested", 0) or 0
+    )
+    row_metrics["putCandidateContractsRequested"] = int(
+        row_metrics.get("putCandidateContractsRequested", 0) or 0
+    )
+    row_metrics["totalApproxCalls"] = int(
+        row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
+    )
+    if payload.get("reason") == "timeout":
+        row_metrics["timeouts"] = int(row_metrics.get("timeouts", 0)) + 1
+    payload["ibkrCallMetrics"] = row_metrics
+    return payload
+
+
+def _accumulate_into_totals(
+    ibkr_totals: dict,
+    ibkr_by_symbol: dict,
+    symbol: str,
+    payload: dict,
+) -> None:
+    row_metrics = payload.get("ibkrCallMetrics")
+    if not isinstance(row_metrics, dict):
+        row_metrics = _empty_ticker_metrics()
+        payload["ibkrCallMetrics"] = row_metrics
+    ibkr_by_symbol[symbol] = row_metrics
+
+    ibkr_totals["totalStockQualifyCalls"] += int(row_metrics.get("stockQualifyCalls", 0) or 0)
+    ibkr_totals["totalOptionQualifyCalls"] += int(row_metrics.get("optionQualifyCalls", 0) or 0)
+    ibkr_totals["totalOptionChainRequests"] += int(row_metrics.get("optionChainRequests", 0) or 0)
+    ibkr_totals["totalStockMarketDataRequests"] += int(row_metrics.get("stockMarketDataRequests", 0) or 0)
+    ibkr_totals["totalOptionMarketDataRequests"] += int(row_metrics.get("optionMarketDataRequests", 0) or 0)
+    ibkr_totals["totalExpectedMoveOptionRequests"] += int(row_metrics.get("expectedMoveOptionRequests", 0) or 0)
+    ibkr_totals["totalPutCandidateOptionRequests"] += int(row_metrics.get("putCandidateOptionRequests", 0) or 0)
+    ibkr_totals["totalExpectedMoveContractsRequested"] += int(
+        row_metrics.get("expectedMoveContractsRequested", 0) or 0
+    )
+    ibkr_totals["totalPutCandidateContractsRequested"] += int(
+        row_metrics.get("putCandidateContractsRequested", 0) or 0
+    )
+    ibkr_totals["totalCancelMarketDataCalls"] += int(row_metrics.get("cancelMarketDataCalls", 0) or 0)
+    ibkr_totals["totalMarketDataWaits"] += int(row_metrics.get("marketDataWaits", 0) or 0)
+    ibkr_totals["totalTimeouts"] += int(row_metrics.get("timeouts", 0) or 0)
+    ibkr_totals["totalRawStrikesChecked"] += int(row_metrics.get("rawStrikesChecked", 0) or 0)
+    ibkr_totals["totalValidCallStrikesCount"] += int(row_metrics.get("validCallStrikesCount", 0) or 0)
+    ibkr_totals["totalValidPutStrikesCount"] += int(row_metrics.get("validPutStrikesCount", 0) or 0)
+    ibkr_totals["totalApproxIbkrCalls"] += int(row_metrics.get("approxIbkrCalls", 0) or 0)
+    ibkr_totals["totalApproxCalls"] += int(
+        row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
+    )
+    ibkr_totals["totalDurationMs"] += int(row_metrics.get("durationMs", 0) or 0)
+    ibkr_totals["totalTickersObserved"] += 1
+
+
+def _emit_batch_payload(
+    *,
+    base: dict,
+    results: list[dict],
+    ibkr_totals: dict,
+    ibkr_by_symbol: dict,
+    symbols: list[str],
+    two_phase_enabled: bool,
+    market_data_type: int,
+    per_ticker_timeout_ms: int,
+    started: float,
+    connected: bool,
+    concurrency: int,
+    concurrency_mode: str,
+    max_active: int,
+    wheel_dev_scan_batch: bool,
+    extra: dict | None = None,
+) -> dict:
+    dev_displayed = sum(
+        1 for row in results if isinstance(row, dict) and row.get("ibkrDevDisplay") is True
+    )
+    dev_incomplete = sum(
+        1 for row in results if isinstance(row, dict) and row.get("devIncompleteMarketData") is True
+    )
+    ok_count = sum(1 for row in results if isinstance(row, dict) and row.get("ok") is True)
+    timeout_count = sum(
+        1 for row in results if isinstance(row, dict) and row.get("reason") == "timeout"
+    )
+    error_count = sum(
+        1
+        for row in results
+        if isinstance(row, dict) and row.get("ok") is not True and row.get("reason") != "timeout"
+    )
+    total_dur_ms = round((time.monotonic() - started) * 1000)
+    tickers_observed = max(1, ibkr_totals["totalTickersObserved"])
+    avg_ticker_ms = (
+        round(ibkr_totals["totalDurationMs"] / tickers_observed)
+        if ibkr_totals["totalTickersObserved"] > 0
+        else None
+    )
+    payload_out = {
+        **base,
+        "ok": True,
+        "connected": connected,
+        "twoPhaseEnabled": two_phase_enabled,
+        "ibkrMode": "TWO_PHASE" if two_phase_enabled else "NORMAL",
+        "symbols": symbols,
+        "total": len(symbols),
+        "completed": len(results),
+        "durationMs": total_dur_ms,
+        "avgTickerDurationMs": avg_ticker_ms,
+        "perTickerTimeoutMs": per_ticker_timeout_ms,
+        "marketDataTypeRequested": market_data_type,
+        "marketDataTypeRequestedLabel": _market_data_type_label(market_data_type),
+        "scanCompletedAt": _utc_iso_now(),
+        "concurrency": concurrency,
+        "concurrencyMode": concurrency_mode,
+        "maxActiveTasks": max_active,
+        "okCount": ok_count,
+        "timeoutCount": timeout_count,
+        "errorCount": error_count,
+        "ibkrCallMetrics": {
+            "totals": ibkr_totals,
+            "bySymbol": ibkr_by_symbol,
+        },
+        "results": results,
+    }
+    if isinstance(extra, dict):
+        payload_out.update(extra)
+    if wheel_dev_scan_batch:
+        payload_out["devScanEnabled"] = True
+        payload_out["dataTradable"] = False
+        payload_out["devDisplayed"] = dev_displayed
+        payload_out["devIncompleteTickers"] = dev_incomplete
+    _emit(payload_out)
+    print(
+        f"[IBKR PERF] batch_done symbols={len(symbols)} ok={ok_count} timeout={timeout_count} "
+        f"error={error_count} durationMs={total_dur_ms} concurrency={concurrency} maxActive={max_active}",
+        file=sys.stderr,
+        flush=True,
+    )
+    return payload_out
+
+
+def _build_config() -> dict:
     wheel_dev_scan_batch = _parse_bool(os.environ.get("WHEEL_DEV_SCAN"), False)
     if wheel_dev_scan_batch:
         print("[WHEEL_DEV_SCAN] enabled=true", file=sys.stderr, flush=True)
@@ -195,6 +462,7 @@ def main() -> int:
         1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", single.TWO_PHASE_DEFAULT_PUT_WINDOW)
     )
     single._log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
+    concurrency = _resolve_scan_concurrency()
     symbols = _parse_symbols()
 
     base = {
@@ -209,16 +477,46 @@ def main() -> int:
         "clientId": client_id,
     }
 
+    return {
+        "wheel_dev_scan": wheel_dev_scan_batch,
+        "host": host,
+        "port": port,
+        "client_id": client_id,
+        "read_only": read_only,
+        "market_data_type": market_data_type,
+        "per_ticker_timeout_ms": per_ticker_timeout_ms,
+        "underlying_wait": underlying_wait,
+        "option_wait": option_wait,
+        "debug": debug,
+        "two_phase_enabled": two_phase_enabled,
+        "two_phase_put_window": two_phase_put_window,
+        "concurrency": concurrency,
+        "symbols": symbols,
+        "base": base,
+    }
+
+
+def _run_sequential_shared(cfg: dict) -> int:
+    """Mode historique : une seule connexion partagée, traitement ticker par ticker."""
+    host = cfg["host"]
+    port = cfg["port"]
+    client_id = cfg["client_id"]
+    market_data_type = cfg["market_data_type"]
+    per_ticker_timeout_ms = cfg["per_ticker_timeout_ms"]
+    underlying_wait = cfg["underlying_wait"]
+    option_wait = cfg["option_wait"]
+    debug = cfg["debug"]
+    two_phase_enabled = cfg["two_phase_enabled"]
+    symbols = cfg["symbols"]
+    base = cfg["base"]
+    wheel_dev_scan_batch = cfg["wheel_dev_scan"]
+
     started = time.monotonic()
-    if not read_only:
-        _emit({**base, "error": "IBKR_READ_ONLY doit être true pour ce batch (sécurité)."})
-        return 1
-    if not symbols:
-        _emit({**base, "error": "missing_symbols", "results": []})
-        return 1
-    if len(symbols) > 50:
-        _emit({**base, "error": "too_many_symbols", "results": []})
-        return 1
+    print(
+        f"[IBKR PERF] batch_start symbols={len(symbols)} concurrency=1 mode=sequential_shared",
+        file=sys.stderr,
+        flush=True,
+    )
 
     ib = IB()
     original_ib_factory = single.IB
@@ -242,29 +540,9 @@ def main() -> int:
             ib.RequestTimeout = per_ticker_timeout_ms / 1000
 
         single.IB = lambda: proxy
-        results = []
-        ibkr_by_symbol = {}
-        ibkr_totals = {
-            "totalStockQualifyCalls": 0,
-            "totalOptionQualifyCalls": 0,
-            "totalOptionChainRequests": 0,
-            "totalStockMarketDataRequests": 0,
-            "totalOptionMarketDataRequests": 0,
-            "totalExpectedMoveOptionRequests": 0,
-            "totalPutCandidateOptionRequests": 0,
-            "totalExpectedMoveContractsRequested": 0,
-            "totalPutCandidateContractsRequested": 0,
-            "totalCancelMarketDataCalls": 0,
-            "totalMarketDataWaits": 0,
-            "totalTimeouts": 0,
-            "totalRawStrikesChecked": 0,
-            "totalValidCallStrikesCount": 0,
-            "totalValidPutStrikesCount": 0,
-            "totalApproxIbkrCalls": 0,
-            "totalApproxCalls": 0,
-            "totalDurationMs": 0,
-            "totalTickersObserved": 0,
-        }
+        results: list[dict] = []
+        ibkr_by_symbol: dict[str, dict] = {}
+        ibkr_totals = _empty_totals()
         for symbol in symbols:
             ticker_started = time.monotonic()
             previous_symbol = os.environ.get("IBKR_SYMBOL")
@@ -275,118 +553,40 @@ def main() -> int:
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf):
                     exit_code = single.main()
-                payload = _last_json_line(buf.getvalue()) or {
-                    "ok": False,
-                    "provider": "IBKR",
-                    "mode": "ibkr_readonly_shadow",
-                    "symbol": symbol,
-                    "error": "ibkr_shadow_no_json_output",
-                }
-                payload["symbol"] = symbol
-                payload["durationMs"] = round((time.monotonic() - ticker_started) * 1000)
-                payload["twoPhaseEnabled"] = bool(payload.get("twoPhaseEnabled", False))
-                payload["marketDataTypeRequested"] = market_data_type
-                payload["marketDataTypeRequestedLabel"] = _market_data_type_label(market_data_type)
-                if "marketDataTypeReceivedLabel" not in payload:
-                    payload["marketDataTypeReceivedLabel"] = "unknown"
-                payload["scanCompletedAt"] = _utc_iso_now()
-                if payload.get("ok") is not True:
-                    payload["reason"] = _reason_for_payload(payload)
-                    if payload["durationMs"] >= per_ticker_timeout_ms:
-                        payload["reason"] = "timeout"
-                        payload["error"] = payload.get("error") or "ibkr_shadow_ticker_timeout"
-                if exit_code != 0 and payload.get("ok") is True:
-                    payload["ok"] = False
-                    payload["error"] = "ibkr_shadow_exit_nonzero"
-                    payload["reason"] = "ibkr_unavailable"
-                row_metrics = payload.get("ibkrCallMetrics") if isinstance(payload, dict) else None
-                if not isinstance(row_metrics, dict):
-                    row_metrics = _empty_ticker_metrics()
-                else:
-                    row_metrics = {
-                        **_empty_ticker_metrics(),
-                        **row_metrics,
-                    }
-                row_metrics["durationMs"] = payload.get("durationMs", row_metrics.get("durationMs", 0))
-                row_metrics["expectedMoveContractsRequested"] = int(
-                    row_metrics.get("expectedMoveContractsRequested", 0) or 0
+                duration_ms = round((time.monotonic() - ticker_started) * 1000)
+                payload = _finalize_ticker_payload(
+                    symbol,
+                    _last_json_line(buf.getvalue()),
+                    exit_code,
+                    duration_ms,
+                    market_data_type,
+                    per_ticker_timeout_ms,
                 )
-                row_metrics["putCandidateContractsRequested"] = int(
-                    row_metrics.get("putCandidateContractsRequested", 0) or 0
-                )
-                row_metrics["totalApproxCalls"] = int(
-                    row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
-                )
-                if payload.get("reason") == "timeout":
-                    row_metrics["timeouts"] = int(row_metrics.get("timeouts", 0)) + 1
-                payload["ibkrCallMetrics"] = row_metrics
-                ibkr_by_symbol[symbol] = row_metrics
-
-                ibkr_totals["totalStockQualifyCalls"] += int(row_metrics.get("stockQualifyCalls", 0) or 0)
-                ibkr_totals["totalOptionQualifyCalls"] += int(row_metrics.get("optionQualifyCalls", 0) or 0)
-                ibkr_totals["totalOptionChainRequests"] += int(row_metrics.get("optionChainRequests", 0) or 0)
-                ibkr_totals["totalStockMarketDataRequests"] += int(row_metrics.get("stockMarketDataRequests", 0) or 0)
-                ibkr_totals["totalOptionMarketDataRequests"] += int(row_metrics.get("optionMarketDataRequests", 0) or 0)
-                ibkr_totals["totalExpectedMoveOptionRequests"] += int(row_metrics.get("expectedMoveOptionRequests", 0) or 0)
-                ibkr_totals["totalPutCandidateOptionRequests"] += int(row_metrics.get("putCandidateOptionRequests", 0) or 0)
-                ibkr_totals["totalExpectedMoveContractsRequested"] += int(
-                    row_metrics.get("expectedMoveContractsRequested", 0) or 0
-                )
-                ibkr_totals["totalPutCandidateContractsRequested"] += int(
-                    row_metrics.get("putCandidateContractsRequested", 0) or 0
-                )
-                ibkr_totals["totalCancelMarketDataCalls"] += int(row_metrics.get("cancelMarketDataCalls", 0) or 0)
-                ibkr_totals["totalMarketDataWaits"] += int(row_metrics.get("marketDataWaits", 0) or 0)
-                ibkr_totals["totalTimeouts"] += int(row_metrics.get("timeouts", 0) or 0)
-                ibkr_totals["totalRawStrikesChecked"] += int(row_metrics.get("rawStrikesChecked", 0) or 0)
-                ibkr_totals["totalValidCallStrikesCount"] += int(row_metrics.get("validCallStrikesCount", 0) or 0)
-                ibkr_totals["totalValidPutStrikesCount"] += int(row_metrics.get("validPutStrikesCount", 0) or 0)
-                ibkr_totals["totalApproxIbkrCalls"] += int(row_metrics.get("approxIbkrCalls", 0) or 0)
-                ibkr_totals["totalApproxCalls"] += int(
-                    row_metrics.get("totalApproxCalls", row_metrics.get("approxIbkrCalls", 0)) or 0
-                )
-                ibkr_totals["totalDurationMs"] += int(row_metrics.get("durationMs", 0) or 0)
-                ibkr_totals["totalTickersObserved"] += 1
+                _accumulate_into_totals(ibkr_totals, ibkr_by_symbol, symbol, payload)
                 results.append(payload)
+                _perf_symbol_log(payload)
             except Exception as exc:
                 duration_ms = round((time.monotonic() - ticker_started) * 1000)
                 err = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
                 if debug:
                     err = err + " | " + traceback.format_exc().replace("\n", " ")
-                results.append({
-                    "ok": False,
-                    "provider": "IBKR",
-                    "mode": "ibkr_readonly_shadow",
-                    "symbol": symbol,
-                    "error": err,
-                    "reason": "timeout" if duration_ms >= per_ticker_timeout_ms else "ibkr_unavailable",
-                    "durationMs": duration_ms,
-                    "marketDataTypeRequested": market_data_type,
-                    "marketDataTypeRequestedLabel": _market_data_type_label(market_data_type),
-                    "marketDataTypeReceivedLabel": "unknown",
-                    "scanCompletedAt": _utc_iso_now(),
-                    "ibkrCallMetrics": {
-                        **_empty_ticker_metrics(),
-                        "durationMs": duration_ms,
-                        "timeouts": 1 if duration_ms >= per_ticker_timeout_ms else 0,
+                payload = _finalize_ticker_payload(
+                    symbol,
+                    {
+                        "ok": False,
+                        "provider": "IBKR",
+                        "mode": "ibkr_readonly_shadow",
+                        "symbol": symbol,
+                        "error": err,
                     },
-                })
-                row_metrics = results[-1]["ibkrCallMetrics"]
-                row_metrics["approxIbkrCalls"] = int(
-                    row_metrics.get("stockQualifyCalls", 0)
-                    + row_metrics.get("optionQualifyCalls", 0)
-                    + row_metrics.get("optionChainRequests", 0)
-                    + row_metrics.get("stockMarketDataRequests", 0)
-                    + row_metrics.get("optionMarketDataRequests", 0)
-                    + row_metrics.get("cancelMarketDataCalls", 0)
+                    None,
+                    duration_ms,
+                    market_data_type,
+                    per_ticker_timeout_ms,
                 )
-                row_metrics["totalApproxCalls"] = int(row_metrics.get("approxIbkrCalls", 0) or 0)
-                ibkr_by_symbol[symbol] = row_metrics
-                ibkr_totals["totalTimeouts"] += int(row_metrics.get("timeouts", 0) or 0)
-                ibkr_totals["totalDurationMs"] += int(row_metrics.get("durationMs", 0) or 0)
-                ibkr_totals["totalApproxIbkrCalls"] += int(row_metrics.get("approxIbkrCalls", 0) or 0)
-                ibkr_totals["totalApproxCalls"] += int(row_metrics.get("totalApproxCalls", 0) or 0)
-                ibkr_totals["totalTickersObserved"] += 1
+                _accumulate_into_totals(ibkr_totals, ibkr_by_symbol, symbol, payload)
+                results.append(payload)
+                _perf_symbol_log(payload)
             finally:
                 if previous_symbol is None:
                     os.environ.pop("IBKR_SYMBOL", None)
@@ -397,42 +597,22 @@ def main() -> int:
                 else:
                     os.environ["IBKR_TWO_PHASE_SCAN"] = previous_two_phase
 
-        dev_displayed = sum(
-            1 for row in results if isinstance(row, dict) and row.get("ibkrDevDisplay") is True
+        _emit_batch_payload(
+            base=base,
+            results=results,
+            ibkr_totals=ibkr_totals,
+            ibkr_by_symbol=ibkr_by_symbol,
+            symbols=symbols,
+            two_phase_enabled=two_phase_enabled,
+            market_data_type=market_data_type,
+            per_ticker_timeout_ms=per_ticker_timeout_ms,
+            started=started,
+            connected=True,
+            concurrency=1,
+            concurrency_mode="sequential_shared",
+            max_active=1,
+            wheel_dev_scan_batch=wheel_dev_scan_batch,
         )
-        dev_incomplete = sum(
-            1 for row in results if isinstance(row, dict) and row.get("devIncompleteMarketData") is True
-        )
-        total_dur_ms = round((time.monotonic() - started) * 1000)
-        tickers_observed = max(1, ibkr_totals["totalTickersObserved"])
-        avg_ticker_ms = round(ibkr_totals["totalDurationMs"] / tickers_observed) if ibkr_totals["totalTickersObserved"] > 0 else None
-        _emit_payload = {
-            **base,
-            "ok": True,
-            "connected": True,
-            "twoPhaseEnabled": two_phase_enabled,
-            "ibkrMode": "TWO_PHASE" if two_phase_enabled else "NORMAL",
-            "symbols": symbols,
-            "total": len(symbols),
-            "completed": len(results),
-            "durationMs": total_dur_ms,
-            "avgTickerDurationMs": avg_ticker_ms,
-            "perTickerTimeoutMs": per_ticker_timeout_ms,
-            "marketDataTypeRequested": market_data_type,
-            "marketDataTypeRequestedLabel": _market_data_type_label(market_data_type),
-            "scanCompletedAt": _utc_iso_now(),
-            "ibkrCallMetrics": {
-                "totals": ibkr_totals,
-                "bySymbol": ibkr_by_symbol,
-            },
-            "results": results,
-        }
-        if wheel_dev_scan_batch:
-            _emit_payload["devScanEnabled"] = True
-            _emit_payload["dataTradable"] = False
-            _emit_payload["devDisplayed"] = dev_displayed
-            _emit_payload["devIncompleteTickers"] = dev_incomplete
-        _emit(_emit_payload)
         return 0
     except Exception as exc:
         err = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
@@ -447,6 +627,295 @@ def main() -> int:
                 ib.disconnect()
         except Exception:
             pass
+
+
+async def _run_one_subprocess(
+    symbol: str,
+    client_id: int,
+    single_script: str,
+    base_env: dict,
+    market_data_type: int,
+    per_ticker_timeout_ms: int,
+    hard_timeout_s: float,
+    debug: bool,
+) -> dict:
+    """Lance le single scanner inchangé dans un sous-processus isolé pour un symbole.
+
+    Timeout dur : si le sous-processus dépasse hard_timeout_s, il est tué et le
+    ticker est marqué en timeout sans bloquer les autres.
+    """
+    ticker_started = time.monotonic()
+    env = dict(base_env)
+    env["IBKR_SYMBOL"] = symbol
+    env["IBKR_CLIENT_ID"] = str(client_id)
+    print(
+        f"[IBKR PERF] concurrent_child_start symbol={symbol} clientId={client_id}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable,
+            single_script,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+            cwd=os.getcwd(),
+        )
+    except Exception as exc:
+        duration_ms = round((time.monotonic() - ticker_started) * 1000)
+        err = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+        return _finalize_ticker_payload(
+            symbol,
+            {
+                "ok": False,
+                "provider": "IBKR",
+                "mode": "ibkr_readonly_shadow",
+                "symbol": symbol,
+                "error": f"subprocess_spawn_failed: {err}",
+            },
+            None,
+            duration_ms,
+            market_data_type,
+            per_ticker_timeout_ms,
+        )
+
+    try:
+        stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=hard_timeout_s)
+    except asyncio.TimeoutError:
+        with contextlib.suppress(ProcessLookupError):
+            proc.kill()
+        with contextlib.suppress(Exception):
+            await proc.wait()
+        duration_ms = round((time.monotonic() - ticker_started) * 1000)
+        return _finalize_ticker_payload(
+            symbol,
+            {
+                "ok": False,
+                "provider": "IBKR",
+                "mode": "ibkr_readonly_shadow",
+                "symbol": symbol,
+                "error": "ibkr_shadow_ticker_timeout",
+            },
+            None,
+            duration_ms,
+            market_data_type,
+            per_ticker_timeout_ms,
+        )
+    except Exception as exc:
+        with contextlib.suppress(Exception):
+            proc.kill()
+            await proc.wait()
+        duration_ms = round((time.monotonic() - ticker_started) * 1000)
+        err = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+        return _finalize_ticker_payload(
+            symbol,
+            {
+                "ok": False,
+                "provider": "IBKR",
+                "mode": "ibkr_readonly_shadow",
+                "symbol": symbol,
+                "error": err,
+            },
+            None,
+            duration_ms,
+            market_data_type,
+            per_ticker_timeout_ms,
+        )
+
+    duration_ms = round((time.monotonic() - ticker_started) * 1000)
+    exit_code = proc.returncode
+    text = stdout_b.decode("utf-8", errors="replace") if stdout_b else ""
+    stderr_text = stderr_b.decode("utf-8", errors="replace") if stderr_b else ""
+    raw = _last_json_line(text)
+    print(
+        f"[IBKR PERF] concurrent_child_exit symbol={symbol} exitCode={exit_code} durationMs={duration_ms}",
+        file=sys.stderr,
+        flush=True,
+    )
+    if raw is None:
+        print(f"[IBKR PERF] concurrent_child_no_json symbol={symbol}", file=sys.stderr, flush=True)
+        tail = stderr_text[-300:].strip()
+        if tail:
+            print(
+                f"[IBKR PERF] concurrent_child_stderr symbol={symbol} tail={tail!r}",
+                file=sys.stderr,
+                flush=True,
+            )
+    payload = _finalize_ticker_payload(
+        symbol,
+        raw,
+        exit_code,
+        duration_ms,
+        market_data_type,
+        per_ticker_timeout_ms,
+        apply_soft_timeout_label=False,
+    )
+    if debug and stderr_text.strip():
+        payload["_stderrTail"] = stderr_text[-400:]
+    return payload
+
+
+async def _run_concurrent(symbols: list[str], concurrency: int, cfg: dict) -> int:
+    """Mode concurrent borné : un sous-processus isolé par symbole, clientId distinct.
+
+    La concurrence est bornée par un pool de clientId de taille `concurrency`
+    (sert simultanément de sémaphore et d'attribution de clientId sans collision).
+    """
+    base = cfg["base"]
+    market_data_type = cfg["market_data_type"]
+    per_ticker_timeout_ms = cfg["per_ticker_timeout_ms"]
+    two_phase_enabled = cfg["two_phase_enabled"]
+    base_client_id = cfg["client_id"]
+    debug = cfg["debug"]
+    wheel_dev_scan_batch = cfg["wheel_dev_scan"]
+
+    started = time.monotonic()
+    # Timeout dur volontairement plus large que le timeout "soft" par ticker afin de
+    # ne pas tuer un ticker légitimement lent (les attentes internes ~9s + connexion).
+    hard_timeout_s = max(30.0, per_ticker_timeout_ms / 1000.0 + 8.0)
+    single_script = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "test_ibkr_async_wheel_safe_aggressive.py",
+    )
+
+    base_env = {
+        **os.environ,
+        "IBKR_READ_ONLY": "true",
+        "IBKR_TWO_PHASE_SCAN": "1" if two_phase_enabled else "0",
+        "IBKR_MARKET_DATA_TYPE": str(market_data_type),
+        "IBKR_PER_TICKER_TIMEOUT_MS": str(per_ticker_timeout_ms),
+        # Force le single sous-processus à écrire son JSON en UTF-8. Sinon il écrit
+        # en cp1252 sous Windows -> octets invalides en UTF-8 -> '�' -> crash
+        # à l'émission du JSON final du batch.
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+    }
+    # Le single scanner ne lit qu'un symbole ; on retire toute liste de lot héritée.
+    base_env.pop("IBKR_SYMBOLS_JSON", None)
+    base_env.pop("IBKR_SYMBOLS", None)
+
+    client_id_queue: asyncio.Queue = asyncio.Queue()
+    for i in range(concurrency):
+        client_id_queue.put_nowait(base_client_id + i)
+
+    results_map: dict[str, dict] = {}
+    state = {"active": 0, "max_active": 0}
+    state_lock = asyncio.Lock()
+
+    async def worker(symbol: str) -> None:
+        cid = await client_id_queue.get()
+        async with state_lock:
+            state["active"] += 1
+            if state["active"] > state["max_active"]:
+                state["max_active"] = state["active"]
+        try:
+            payload = await _run_one_subprocess(
+                symbol,
+                cid,
+                single_script,
+                base_env,
+                market_data_type,
+                per_ticker_timeout_ms,
+                hard_timeout_s,
+                debug,
+            )
+        finally:
+            async with state_lock:
+                state["active"] -= 1
+            client_id_queue.put_nowait(cid)
+        results_map[symbol] = payload
+        _perf_symbol_log(payload)
+
+    print(
+        f"[IBKR PERF] batch_start symbols={len(symbols)} concurrency={concurrency} "
+        f"mode=concurrent_subprocess",
+        file=sys.stderr,
+        flush=True,
+    )
+
+    await asyncio.gather(*(worker(s) for s in symbols))
+
+    # Préserve l'ordre d'entrée des symboles dans la sortie.
+    results: list[dict] = []
+    for s in symbols:
+        payload = results_map.get(s)
+        if payload is None:
+            payload = _finalize_ticker_payload(
+                s,
+                {
+                    "ok": False,
+                    "provider": "IBKR",
+                    "mode": "ibkr_readonly_shadow",
+                    "symbol": s,
+                    "error": "ibkr_shadow_no_result",
+                },
+                None,
+                0,
+                market_data_type,
+                per_ticker_timeout_ms,
+            )
+        results.append(payload)
+
+    ibkr_totals = _empty_totals()
+    ibkr_by_symbol: dict[str, dict] = {}
+    for payload in results:
+        _accumulate_into_totals(ibkr_totals, ibkr_by_symbol, payload.get("symbol"), payload)
+
+    connected = any(bool(r.get("ok")) or bool(r.get("connected")) for r in results)
+
+    _emit_batch_payload(
+        base=base,
+        results=results,
+        ibkr_totals=ibkr_totals,
+        ibkr_by_symbol=ibkr_by_symbol,
+        symbols=symbols,
+        two_phase_enabled=two_phase_enabled,
+        market_data_type=market_data_type,
+        per_ticker_timeout_ms=per_ticker_timeout_ms,
+        started=started,
+        connected=connected,
+        concurrency=concurrency,
+        concurrency_mode="concurrent_subprocess",
+        max_active=state["max_active"],
+        wheel_dev_scan_batch=wheel_dev_scan_batch,
+        extra={"clientIdRange": [base_client_id, base_client_id + concurrency - 1]},
+    )
+    print(
+        f"[IBKR PERF] concurrent_batch_json_emitted symbols={len(symbols)}",
+        file=sys.stderr,
+        flush=True,
+    )
+    return 0
+
+
+def main() -> int:
+    _force_utf8_streams()
+    cfg = _build_config()
+    base = cfg["base"]
+    symbols = cfg["symbols"]
+
+    if not cfg["read_only"]:
+        _emit({**base, "error": "IBKR_READ_ONLY doit être true pour ce batch (sécurité)."})
+        return 1
+    if not symbols:
+        _emit({**base, "error": "missing_symbols", "results": []})
+        return 1
+    if len(symbols) > 50:
+        _emit({**base, "error": "too_many_symbols", "results": []})
+        return 1
+
+    concurrency = cfg["concurrency"]
+    # concurrency==1 (ou un seul symbole) : on garde le chemin partagé historique.
+    if concurrency <= 1 or len(symbols) <= 1:
+        return _run_sequential_shared(cfg)
+
+    # Sous-processus asyncio : exige la ProactorEventLoop sous Windows.
+    if sys.platform.startswith("win"):
+        with contextlib.suppress(Exception):
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    return asyncio.run(_run_concurrent(symbols, concurrency, cfg))
 
 
 if __name__ == "__main__":

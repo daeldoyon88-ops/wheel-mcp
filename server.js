@@ -13,6 +13,7 @@ import { DEFAULT_BACKEND_PORT, DEFAULT_LIQUIDITY_OTM_PROBE_PCT } from "./app/con
 import {
   formatIbkrTwoPhaseScanLog,
   logIbkrTwoPhaseScanConfig,
+  resolveIbkrScanConcurrency,
   resolveIbkrTwoPhaseScanEnabled,
 } from "./app/config/ibkr.js";
 import { createMarketDataProvider } from "./app/data_providers/createMarketDataProvider.js";
@@ -1088,6 +1089,7 @@ function runIbkrShadowWheelBatch(body = {}) {
   const requestedTimeoutMs = toPositiveInt(body.batchTimeoutMs, 0);
   const debug = body.debug === true;
   const twoPhaseScanEnabled = resolveIbkrTwoPhaseScanEnabled();
+  const scanConcurrency = resolveIbkrScanConcurrency();
 
   const pythonExe = pickIbkrShadowPython();
   const scriptPath = path.join(process.cwd(), "python_ibkr", "test_ibkr_async_wheel_safe_aggressive_batch.py");
@@ -1105,11 +1107,16 @@ function runIbkrShadowWheelBatch(body = {}) {
     IBKR_OPTION_EXPIRATION: expiration,
     IBKR_PER_TICKER_TIMEOUT_MS: String(perTickerTimeoutMs),
     IBKR_TWO_PHASE_SCAN: twoPhaseScanEnabled ? "1" : "0",
+    IBKR_SCAN_CONCURRENCY: String(scanConcurrency),
     WHEEL_DEV_SCAN: getWheelDevScanMode().devScanEnabled ? "1" : "0",
   };
   const timeoutMs = requestedTimeoutMs > 0
     ? requestedTimeoutMs
     : Math.max(IBKR_SHADOW_TIMEOUT_MS, perTickerTimeoutMs * Math.max(tickers.length, 1) + 20_000);
+
+  console.log(
+    "[IBKR PERF] spawning batch symbols=" + tickers.length + " concurrency=" + scanConcurrency
+  );
 
   return new Promise((resolve, reject) => {
     let stdout = "";
@@ -1219,6 +1226,11 @@ function runIbkrShadowWheelBatch(body = {}) {
       }
 
       if (!payload) {
+        console.warn(
+          "[IBKR PERF] batch_no_json_output exitCode=" + exitCode +
+            " stderrTail=" + JSON.stringify(String(stderr).slice(-1500)) +
+            " stdoutTail=" + JSON.stringify(String(stdout).slice(-400))
+        );
         payload = {
           ok: false,
           provider: "IBKR",
@@ -2308,6 +2320,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
         ? +(ibkrPerfSummary.avgDurationMs / 1000).toFixed(1)
         : null,
       ibkrMode: responseTwoPhaseEnabled ? "TWO_PHASE" : "NORMAL",
+      concurrency: numberOrNull(payload?.concurrency) ?? resolveIbkrScanConcurrency(),
+      concurrencyMode: typeof payload?.concurrencyMode === "string" ? payload.concurrencyMode : null,
+      maxActiveTasks: numberOrNull(payload?.maxActiveTasks),
       tickerCount: tickers.length,
       keptCount: shortlist.length,
       rejectedCount: rejected.length,

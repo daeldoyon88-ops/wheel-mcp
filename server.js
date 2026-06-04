@@ -15,6 +15,9 @@ import {
   logIbkrTwoPhaseScanConfig,
   formatIbkrQuickPremiumGateLog,
   logIbkrQuickPremiumGateConfig,
+  logIbkrScanBatchSizeConfig,
+  logIbkrScanConcurrencyConfig,
+  resolveIbkrQuickPremiumGateEnabled,
   resolveIbkrScanBatchSize,
   resolveIbkrScanConcurrency,
   resolveIbkrTwoPhaseScanEnabled,
@@ -545,7 +548,7 @@ function createEmptyIbkrCallMetrics() {
     startedAt: new Date().toISOString(),
     lastUpdatedAt: null,
     twoPhaseEnabled: false,
-    quickPremiumGateEnabled: false,
+    quickPremiumGateEnabled: resolveIbkrQuickPremiumGateEnabled(),
     totals: {
       totalStockQualifyCalls: 0,
       totalOptionQualifyCalls: 0,
@@ -3353,6 +3356,8 @@ app.delete("/mcp", handleMcpSessionRequest);
 
 app.listen(PORT, () => {
   console.log(`Wheel backend listening on port ${PORT}`);
+  logIbkrScanConcurrencyConfig();
+  logIbkrScanBatchSizeConfig();
   logIbkrTwoPhaseScanConfig();
   logIbkrQuickPremiumGateConfig();
 });

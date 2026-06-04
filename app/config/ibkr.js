@@ -101,9 +101,9 @@ export function logIbkrTwoPhaseScanConfig(env = process.env) {
   return cfg;
 }
 
-/** Quick premium gate : OFF par défaut ; actif seulement en TWO_PHASE côté Python. */
+/** Quick premium gate : ON par défaut ; actif seulement en TWO_PHASE côté Python. */
 export function resolveIbkrQuickPremiumGateEnabled(rawValue = process.env.IBKR_QUICK_PREMIUM_GATE) {
-  return parseBoolean(rawValue, false);
+  return parseBoolean(rawValue, true);
 }
 
 export function formatIbkrQuickPremiumGateLog(env = process.env) {
@@ -112,7 +112,7 @@ export function formatIbkrQuickPremiumGateLog(env = process.env) {
   const trimmed = raw == null ? "" : String(raw).trim();
   let source;
   if (trimmed === "") {
-    source = "default off, enable with IBKR_QUICK_PREMIUM_GATE=1";
+    source = "default on, disable with IBKR_QUICK_PREMIUM_GATE=0";
   } else if (trimmed === "0") {
     source = "explicit off, IBKR_QUICK_PREMIUM_GATE=0";
   } else if (trimmed === "1") {
@@ -132,6 +132,18 @@ export function logIbkrQuickPremiumGateConfig(env = process.env) {
   const cfg = formatIbkrQuickPremiumGateLog(env);
   console.log(cfg.logLine);
   return cfg;
+}
+
+export function logIbkrScanConcurrencyConfig(env = process.env) {
+  const value = resolveIbkrScanConcurrency(env.IBKR_SCAN_CONCURRENCY);
+  console.log(`IBKR scan concurrency: ${value}`);
+  return value;
+}
+
+export function logIbkrScanBatchSizeConfig(env = process.env) {
+  const value = resolveIbkrScanBatchSize(env.IBKR_SCAN_BATCH_SIZE);
+  console.log(`IBKR scan batch size: ${value}`);
+  return value;
 }
 
 /** Diagnostic console IBKR strike window ; actif seulement si IBKR_STRIKE_WINDOW_DEBUG=1. */

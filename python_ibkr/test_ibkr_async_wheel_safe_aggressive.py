@@ -87,14 +87,14 @@ def _ibkr_two_phase_enabled() -> bool:
 
 
 def _ibkr_quick_premium_gate_enabled() -> bool:
-    # Quick premium gate : OFF par défaut ; TWO_PHASE seulement (voir main).
-    return _parse_bool(os.environ.get("IBKR_QUICK_PREMIUM_GATE"), False)
+    # Quick premium gate : ON par défaut ; TWO_PHASE seulement (voir main).
+    return _parse_bool(os.environ.get("IBKR_QUICK_PREMIUM_GATE"), True)
 
 
 def _log_ibkr_quick_gate_config(enabled: bool) -> None:
     raw = os.environ.get("IBKR_QUICK_PREMIUM_GATE")
     if raw is None or str(raw).strip() == "":
-        source = "default off, enable with IBKR_QUICK_PREMIUM_GATE=1"
+        source = "default on, disable with IBKR_QUICK_PREMIUM_GATE=0"
     elif str(raw).strip() == "0":
         source = "explicit off, IBKR_QUICK_PREMIUM_GATE=0"
     elif str(raw).strip() == "1":

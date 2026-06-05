@@ -5537,6 +5537,29 @@ async function callIbkrDirectScan({
   return payload;
 }
 
+// Taille de lot IBKR : source de vérité = backend (IBKR_SCAN_BATCH_SIZE).
+// Permet d'envoyer Depth 30 en 1 lot de 30 et Depth 50 en 1 lot de 50,
+// au lieu de l'ancien découpage 10 puis 5+5+5. Fallback prudent si offline.
+const IBKR_UI_SCAN_BATCH_SIZE_FALLBACK = 50;
+const IBKR_UI_SCAN_BATCH_SIZE_MIN = 5;
+const IBKR_UI_SCAN_BATCH_SIZE_MAX = 50;
+
+async function fetchIbkrScanBatchSize() {
+  try {
+    const response = await fetch(`${API_BASE}/ibkr/scan-config`);
+    if (!response.ok) return IBKR_UI_SCAN_BATCH_SIZE_FALLBACK;
+    const payload = await response.json();
+    const raw = Number(payload?.ibkrScanBatchSize);
+    if (!Number.isFinite(raw)) return IBKR_UI_SCAN_BATCH_SIZE_FALLBACK;
+    return Math.max(
+      IBKR_UI_SCAN_BATCH_SIZE_MIN,
+      Math.min(IBKR_UI_SCAN_BATCH_SIZE_MAX, Math.trunc(raw))
+    );
+  } catch {
+    return IBKR_UI_SCAN_BATCH_SIZE_FALLBACK;
+  }
+}
+
 async function callScanMetrics() {
   const response = await fetch(`${API_BASE}/metrics/scan`);
   const payload = await response.json();
@@ -11930,10 +11953,21 @@ export default function Dashboard() {
         const payloads = [];
         const testedSymbols = [];
         const retainedSymbols = new Set();
+        // Gros lots IBKR (défaut 50) au lieu de 10 puis 5+5+5 : 1 lot pour Depth <= 50.
+        const ibkrScanBatchSize = await fetchIbkrScanBatchSize();
+        console.log("[IBKR BATCHING][UI]", {
+          totalTickers: Math.min(candidatePool.length, hardEvaluationCap),
+          batchSize: ibkrScanBatchSize,
+          batchCount: Math.max(
+            1,
+            Math.ceil(Math.min(candidatePool.length, hardEvaluationCap) / ibkrScanBatchSize)
+          ),
+          requestedDepth: finalTarget,
+        });
         let cursor = 0;
         while (cursor < hardEvaluationCap && retainedSymbols.size < desiredFinalKept) {
           const remainingToEvaluate = hardEvaluationCap - cursor;
-          const batchSize = cursor === 0 ? Math.min(10, remainingToEvaluate) : Math.min(5, remainingToEvaluate);
+          const batchSize = Math.min(ibkrScanBatchSize, remainingToEvaluate);
           const batch = candidatePool.slice(cursor, cursor + batchSize);
           if (!batch.length) break;
           testedSymbols.push(...batch);

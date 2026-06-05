@@ -38,8 +38,14 @@ export function resolveIbkrTwoPhasePutWindow(rawValue = process.env.IBKR_TWO_PHA
   return Math.max(1, n);
 }
 
-/** Concurrence du scan IBKR : défaut prudent 3, bornée [1, 5]. */
-export const IBKR_SCAN_CONCURRENCY_DEFAULT = 3;
+/**
+ * Concurrence du scan IBKR : défaut 5, bornée [1, 5].
+ * Défaut 5 validé en marché ouvert (TWO_PHASE ON, batch 50, quick gate ON) :
+ * meilleur temps/ticker observé (~2.6s) sur deux scans, 0 timeout / 0 erreur.
+ * Un opérateur prudent peut forcer IBKR_SCAN_CONCURRENCY=3 (ou moins, min 1) ;
+ * le plafond reste 5 (6 non autorisé).
+ */
+export const IBKR_SCAN_CONCURRENCY_DEFAULT = 5;
 export const IBKR_SCAN_CONCURRENCY_MIN = 1;
 export const IBKR_SCAN_CONCURRENCY_MAX = 5;
 

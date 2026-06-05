@@ -17,6 +17,7 @@ import {
   buildTechnicalSnapshot,
   enrichRecordWithTechnicalSnapshotFields,
 } from "./technicalSnapshot.js";
+import { buildSeasonalitySnapshotFromCache } from "./seasonalitySnapshot.js";
 
 function toNumberOrNull(value) {
   if (value == null) return null;
@@ -1077,8 +1078,9 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
     snapshot: snapshotAtScan,
     // Phase 3 — stress at scan time (resolution-time stress fields stay in resolution object)
     stress: stressAtScan,
-    // Phase 4A.1 — seasonality snapshot (dormant: null until seasonality engine feeds it)
-    seasonality: {
+    // Phase 4A.1 — seasonality snapshot (Phase 1 cache-only : rempli depuis
+    // seasonality_cache via options.seasonalitySnapshot quand disponible, sinon null).
+    seasonality: options.seasonalitySnapshot ?? {
       seasonality_score_at_scan: null,
       seasonality_win_rate_at_scan: null,
       seasonality_best_window_start: null,
@@ -3321,6 +3323,27 @@ export function createWheelValidationService(options = {}) {
       }
     };
     const sharedMarketContextSnapshot = options.marketContextSnapshot ?? null;
+    // Phase 1 — saisonnalité cache-only, best-effort, dédupliquée par symbole
+    // (une seule lecture cache pour les records safe + aggressive d'un ticker).
+    // Injectable pour les tests via options.resolveSeasonalitySnapshot.
+    const seasonalityBySymbol = new Map();
+    const resolveSeasonalitySnapshot =
+      typeof options.resolveSeasonalitySnapshot === "function"
+        ? options.resolveSeasonalitySnapshot
+        : (sym) => buildSeasonalitySnapshotFromCache(sym);
+    const getSeasonalitySnapshot = (symbolRaw) => {
+      const sym = normalizeSymbol(symbolRaw);
+      if (!sym) return null;
+      if (seasonalityBySymbol.has(sym)) return seasonalityBySymbol.get(sym);
+      let snapshot = null;
+      try {
+        snapshot = resolveSeasonalitySnapshot(sym) ?? null;
+      } catch (_) {
+        snapshot = null; // best-effort : jamais bloquant pour la capture
+      }
+      seasonalityBySymbol.set(sym, snapshot);
+      return snapshot;
+    };
     for (let index = 0; index < finalCandidates.length; index += 1) {
       const candidate = finalCandidates[index];
       const perCandidateOptions = {
@@ -3329,6 +3352,7 @@ export function createWheelValidationService(options = {}) {
         dteAtScan: options.dteAtScan,
         candidateRank: toNumberOrNull(candidate?.rank) ?? index + 1,
         marketContextSnapshot: sharedMarketContextSnapshot,
+        seasonalitySnapshot: getSeasonalitySnapshot(candidate?.symbol ?? candidate?.ticker),
       };
       const safeRecord = normalizeRecord(candidate, "safe", scanTimestamp, scanSessionId, perCandidateOptions);
       if (safeRecord) records.push(safeRecord);

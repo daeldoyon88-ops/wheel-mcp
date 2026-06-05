@@ -9500,6 +9500,261 @@ function YahooIbkrFunnelPanel({ rows, summary, topN, ibkrSentCount, onExportCsv 
   );
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Panneau « Mémoire IBKR » — LECTURE SEULE.
+ * Affiche un résumé read-only de ticker_scan_memory (Phase 1) : quels tickers
+ * sont souvent retenus / rejetés par IBKR. Ne déclenche AUCUN scan IBKR, ne
+ * touche pas au scoring / sélection. Source unique : GET /ticker-scan-memory.
+ * ────────────────────────────────────────────────────────────────────────── */
+const IBKR_MEMORY_REJECT_REASON_FR = {
+  no_safe_candidate_meets_min_premium: "Prime insuffisante",
+  no_bid_ask: "Aucun bid/ask",
+  timeout: "Délai dépassé",
+  ibkr_unavailable: "IBKR indisponible",
+  no_market_data: "Aucune donnée marché",
+  spread_too_wide: "Spread trop large",
+  unknown: "Raison inconnue",
+};
+
+/** Traduit une raison de rejet IBKR en français (fallback : raison brute). */
+function translateIbkrRejectReason(reason) {
+  if (!reason) return "—";
+  return IBKR_MEMORY_REJECT_REASON_FR[reason] || String(reason);
+}
+
+/** Ratio décimal (0.0054) → pourcentage français (« 0,54 % »). null → « — ». */
+function formatMemoryRatioPct(value) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+  return `${(Number(value) * 100).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} %`;
+}
+
+/** Date ISO → format court français (« 31 mai 2026 »). null/invalide → « — ». */
+function formatMemoryDateFr(value) {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+/** Affiche un entier sans plantage si valeur manquante. */
+function memoryCount(value) {
+  return value === null || value === undefined || !Number.isFinite(Number(value)) ? "—" : String(value);
+}
+
+function IbkrMemoryPanel({ apiBase }) {
+  const [open, setOpen] = useState(false);
+  // idle | loading | ok | empty | error
+  const [status, setStatus] = useState("idle");
+  const [data, setData] = useState(null);
+
+  const loadMemory = useCallback(async () => {
+    setStatus((prev) => (prev === "idle" ? "loading" : prev));
+    try {
+      const res = await fetch(`${apiBase}/ticker-scan-memory`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json || json.ok === false) throw new Error("payload");
+      setData(json);
+      setStatus(Number(json.totalTickers) > 0 ? "ok" : "empty");
+    } catch {
+      // Échec discret : le dashboard continue de fonctionner, pas de boucle.
+      setData(null);
+      setStatus("error");
+    }
+  }, [apiBase]);
+
+  // Chargement unique au montage du dashboard. Aucun polling, aucune boucle.
+  useEffect(() => {
+    loadMemory();
+  }, [loadMemory]);
+
+  const total = Number(data?.totalTickers) || 0;
+  const shortHistory = status === "ok" && total < 40;
+
+  const renderTable = (columns, rows, mapRow, keyFn) => {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return <p className="text-xs text-slate-500">Aucune donnée pour le moment.</p>;
+    }
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="text-slate-400">
+              {columns.map((c) => (
+                <th key={c} className="border-b border-slate-700 px-2 py-1 font-medium">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={keyFn(row, i)} className="text-slate-200">
+                {mapRow(row).map((cell, j) => (
+                  <td key={j} className="border-b border-slate-800 px-2 py-1">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const section = (title, node) => (
+    <div className="mt-4">
+      <h4 className="mb-2 text-sm font-semibold text-slate-200">{title}</h4>
+      {node}
+    </div>
+  );
+
+  return (
+    <div className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+      >
+        <span className="flex items-center gap-3">
+          <span className="text-base font-semibold text-slate-100">Mémoire IBKR</span>
+          <Badge className="rounded-full border-amber-700/60 bg-amber-950/40 text-amber-300">
+            Lecture seule
+          </Badge>
+          {status === "ok" ? (
+            <span className="text-xs text-slate-400">{total} tickers mémorisés</span>
+          ) : status === "error" ? (
+            <span className="text-xs text-slate-500">Mémoire IBKR indisponible</span>
+          ) : null}
+        </span>
+        <span className="text-xs text-slate-500">{open ? "▲ masquer" : "▼ afficher"}</span>
+      </button>
+
+      {open ? (
+        <div className="border-t border-slate-800 px-5 pb-5 pt-4">
+          {status === "loading" || status === "idle" ? (
+            <p className="text-sm text-slate-500">Chargement de la mémoire IBKR…</p>
+          ) : status === "error" ? (
+            <p className="text-sm text-slate-500">Mémoire IBKR indisponible</p>
+          ) : status === "empty" ? (
+            <p className="text-sm text-slate-400">
+              Mémoire IBKR pas encore suffisante — lancer quelques scans IBKR.
+            </p>
+          ) : (
+            <>
+              {/* 1. Résumé */}
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-lg font-semibold text-slate-100">{total} tickers mémorisés</span>
+                <span className="text-xs text-slate-500">Historique court — lecture seule</span>
+              </div>
+              {shortHistory ? (
+                <p className="mt-2 rounded-lg border border-amber-700/50 bg-amber-950/30 px-3 py-2 text-xs text-amber-300">
+                  Historique court — ne pas utiliser comme score
+                </p>
+              ) : null}
+
+              {/* 2. Top retenus IBKR */}
+              {section(
+                "Top retenus IBKR",
+                renderTable(
+                  ["Symbole", "Retenus / envoyés", "Dernière rétention"],
+                  data?.topRetained,
+                  (r) => [
+                    <span className="font-semibold">{r.symbol}</span>,
+                    `${memoryCount(r.timesIbkrRetained)} / ${memoryCount(r.timesSentIbkr)}`,
+                    formatMemoryDateFr(r.lastRetainedAt),
+                  ],
+                  (r, i) => `ret-${r.symbol ?? i}`
+                )
+              )}
+
+              {/* 3. Rejets récurrents */}
+              {section(
+                "Rejets récurrents",
+                renderTable(
+                  ["Symbole", "Rejetés / envoyés", "Raison principale"],
+                  data?.topRejected,
+                  (r) => [
+                    <span className="font-semibold">{r.symbol}</span>,
+                    `${memoryCount(r.timesIbkrRejected)} / ${memoryCount(r.timesSentIbkr)}`,
+                    translateIbkrRejectReason(r.mainRejectReason),
+                  ],
+                  (r, i) => `rej-${r.symbol ?? i}`
+                )
+              )}
+
+              {/* 4. Prime insuffisante récurrente */}
+              {section(
+                "Prime insuffisante récurrente",
+                renderTable(
+                  ["Symbole", "Série", "Prime moyenne"],
+                  data?.topNoPremium,
+                  (r) => [
+                    <span className="font-semibold">{r.symbol}</span>,
+                    memoryCount(r.consecutiveNoPremium),
+                    formatMemoryRatioPct(r.avgPremiumYield),
+                  ],
+                  (r, i) => `noprem-${r.symbol ?? i}`
+                )
+              )}
+
+              {/* 5. Données absentes / aucun bid-ask */}
+              {section(
+                "Données absentes / aucun bid-ask",
+                renderTable(
+                  ["Symbole", "Série no data", "Nombre no data"],
+                  data?.topNoData,
+                  (r) => [
+                    <span className="font-semibold">{r.symbol}</span>,
+                    memoryCount(r.consecutiveNoData),
+                    memoryCount(r.timesNoData),
+                  ],
+                  (r, i) => `nodata-${r.symbol ?? i}`
+                )
+              )}
+
+              {/* 6. Spread problématique */}
+              {section(
+                "Spread problématique",
+                renderTable(
+                  ["Symbole", "Série spread", "Spread moyen"],
+                  data?.topWideSpread,
+                  (r) => [
+                    <span className="font-semibold">{r.symbol}</span>,
+                    memoryCount(r.consecutiveWideSpread),
+                    formatMemoryRatioPct(r.avgSpreadPct),
+                  ],
+                  (r, i) => `spread-${r.symbol ?? i}`
+                )
+              )}
+
+              {/* 7. Raisons de rejet principales */}
+              {section(
+                "Raisons de rejet principales",
+                renderTable(
+                  ["Raison", "Nombre"],
+                  data?.topRejectReasons,
+                  (r) => [translateIbkrRejectReason(r.reason), memoryCount(r.count)],
+                  (r, i) => `reason-${r.reason ?? i}`
+                )
+              )}
+
+              <p className="mt-4 text-[11px] text-slate-600">
+                Panneau read-only : aucune influence sur SAFE/AGG, Expected Move, POP, quick gate
+                ou la sélection des tickers.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const readStoredNumber = (key, fallback) => {
     const raw = window.localStorage.getItem(key);
@@ -12184,6 +12439,7 @@ export default function Dashboard() {
           </React.Suspense>
         ) : activeView === "dashboard" ? (
           <>
+            <IbkrMemoryPanel apiBase={API_BASE} />
             <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>

@@ -46,6 +46,39 @@ function normalizeSymbol(value) {
   return String(value ?? "").trim().toUpperCase();
 }
 
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+/**
+ * Un snapshot n'est ÉCRIVABLE dans Journal POP que s'il est décisionnellement
+ * complet : le cœur de décision doit être présent. Empêche d'écrire un snapshot
+ * partiel (cas OKLO observé en runtime : winRate/window/version présents mais
+ * score/direction/confidence null ⇒ entête décisionnel inexploitable).
+ *
+ * Minimum requis :
+ *   - seasonality_score_at_scan : nombre fini
+ *   - seasonality_direction : string non vide
+ *   - seasonality_confidence : string non vide
+ *   - seasonality_snapshot_version : string non vide
+ *
+ * NB : ne change pas le calcul de saisonnalité — c'est une garde de validation
+ * côté backfill uniquement.
+ */
+function isDecisionCompleteSnapshot(snapshot) {
+  return (
+    !!snapshot &&
+    isFiniteNumber(snapshot.seasonality_score_at_scan) &&
+    isNonEmptyString(snapshot.seasonality_direction) &&
+    isNonEmptyString(snapshot.seasonality_confidence) &&
+    isNonEmptyString(snapshot.seasonality_snapshot_version)
+  );
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -303,6 +336,25 @@ export async function runJournalSeasonalityBackfill(options = {}) {
           if (i < selected.length - 1 && delayMs > 0) await sleep(delayMs);
           continue;
         }
+      }
+
+      // Garde anti-snapshot partiel : on n'écrit JAMAIS dans Journal POP un
+      // snapshot décisionnellement incomplet (score/direction/confidence/version
+      // requis). Compté ni comme updated ni dans recordsWouldUpdate.
+      if (!isDecisionCompleteSnapshot(snapshot)) {
+        const reason = didFetchThisTicker ? "fetch_incomplete_snapshot" : "incomplete_snapshot";
+        summary.tickersSkipped += 1;
+        bumpReason(reason);
+        pushSample({
+          symbol,
+          status: "skipped",
+          reason,
+          version: snapshot?.seasonality_snapshot_version ?? null,
+        });
+        if (didFetchThisTicker && i < selected.length - 1 && delayMs > 0) {
+          await sleep(delayMs);
+        }
+        continue;
       }
 
       const nullCount = Number(countNullStmt.get({ symbol })?.cnt ?? 0);

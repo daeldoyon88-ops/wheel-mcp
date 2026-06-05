@@ -351,3 +351,93 @@ test("seasonalityBundleCompute ne référence pas warmup ni scan-summary", () =>
   assert.doesNotMatch(src, /warmup/i);
   assert.doesNotMatch(src, /scan-summary|scanSummary|computeSeasonalityScanSummary/i);
 });
+
+// Snapshot partiel type OKLO : winRate/window/version présents mais score,
+// direction et confidence null ⇒ entête décisionnel inexploitable.
+const PARTIAL_SNAPSHOT_OKLO = {
+  seasonality_score_at_scan: null,
+  seasonality_win_rate_at_scan: 0.75,
+  seasonality_best_window_start: "10-15",
+  seasonality_best_window_end: "12-08",
+  seasonality_direction: null,
+  seasonality_confidence: null,
+  seasonality_snapshot_version: "decision-header-v1@2026-06-05",
+};
+
+// ── 16. Snapshot partiel (cache-only) → skip incomplete_snapshot ──────────────
+test("snapshot partiel cache-only ⇒ skip incomplete_snapshot, aucune écriture", async () => {
+  const conn = makeDb([
+    { id: "OKLO_safe", symbol: "OKLO", strikeMode: "safe" },
+    { id: "OKLO_aggr", symbol: "OKLO", strikeMode: "aggressive" },
+  ]);
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: false,
+    conn,
+    buildSnapshot: () => PARTIAL_SNAPSHOT_OKLO,
+  });
+  assert.equal(summary.skippedByReason.incomplete_snapshot, 1);
+  assert.equal(summary.tickersUpdated, 0);
+  assert.equal(summary.recordsUpdated, 0);
+  // Aucun des 7 champs n'a été écrit.
+  for (const id of ["OKLO_safe", "OKLO_aggr"]) {
+    const row = readRow(conn, id);
+    assert.equal(row.seasonality_score_at_scan, null);
+    assert.equal(row.seasonality_win_rate_at_scan, null);
+    assert.equal(row.seasonality_best_window_start, null);
+    assert.equal(row.seasonality_direction, null);
+    assert.equal(row.seasonality_confidence, null);
+    assert.equal(row.seasonality_snapshot_version, null);
+  }
+});
+
+// ── 17. Snapshot partiel en dry-run → recordsWouldUpdate non compté ───────────
+test("snapshot partiel dry-run ⇒ recordsWouldUpdate = 0 et skip incomplete_snapshot", async () => {
+  const conn = makeDb([{ id: "OKLO_safe", symbol: "OKLO" }]);
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: true,
+    conn,
+    buildSnapshot: () => PARTIAL_SNAPSHOT_OKLO,
+  });
+  assert.equal(summary.recordsWouldUpdate, 0);
+  assert.equal(summary.tickersUpdated, 0);
+  assert.equal(summary.skippedByReason.incomplete_snapshot, 1);
+  assert.equal(readRow(conn, "OKLO_safe").seasonality_score_at_scan, null);
+});
+
+// ── 18. fetch-missing write : fetch produit un snapshot incomplet ─────────────
+test("fetch-missing write : snapshot incomplet après fetch ⇒ skip fetch_incomplete_snapshot", async () => {
+  const conn = makeDb([{ id: "OKLO_safe", symbol: "OKLO" }]);
+  let snapshotReads = 0;
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: false,
+    fetchMissing: true,
+    delayMs: 0,
+    conn,
+    buildSnapshot: () => {
+      snapshotReads += 1;
+      // 1er read : pas de cache ⇒ déclenche le fetch ; 2e read : snapshot partiel.
+      return snapshotReads === 1 ? null : PARTIAL_SNAPSHOT_OKLO;
+    },
+    fetchBundle: async (sym) => ({ ok: true, symbol: sym, persisted: true }),
+  });
+  assert.equal(summary.recordsUpdated, 0);
+  assert.equal(summary.tickersUpdated, 0);
+  assert.equal(summary.skippedByReason.fetch_incomplete_snapshot, 1);
+  assert.equal(readRow(conn, "OKLO_safe").seasonality_score_at_scan, null);
+});
+
+// ── 19. Champs vides (string "") traités comme incomplets ─────────────────────
+test("direction/confidence vides ('') comptent comme incomplet", async () => {
+  const conn = makeDb([{ id: "X_safe", symbol: "X" }]);
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: false,
+    conn,
+    buildSnapshot: () => ({
+      ...VALID_SNAPSHOT,
+      seasonality_direction: "",
+      seasonality_confidence: "   ",
+    }),
+  });
+  assert.equal(summary.recordsUpdated, 0);
+  assert.equal(summary.skippedByReason.incomplete_snapshot, 1);
+});

@@ -4,7 +4,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { runJournalSeasonalityBackfill } from "./journalSeasonalityBackfillService.js";
+import {
+  runJournalSeasonalityBackfill,
+  MAX_FETCH_LIMIT,
+  DEFAULT_FETCH_DELAY_MS,
+} from "./journalSeasonalityBackfillService.js";
 
 const VALID_SNAPSHOT = {
   seasonality_score_at_scan: 78,
@@ -16,7 +20,6 @@ const VALID_SNAPSHOT = {
   seasonality_snapshot_version: "decision-header-v1@2026-06-05",
 };
 
-// Crée une base in-memory minimale avec les colonnes utilisées par le backfill.
 function makeDb(rows = []) {
   const conn = new DatabaseSync(":memory:");
   conn.exec(`
@@ -58,12 +61,12 @@ function readRow(conn, id) {
 }
 
 // ── 1. Cache valide → update safe + aggressive du même ticker ─────────────────
-test("write : un cache valide remplit safe ET aggressive du même ticker", () => {
+test("write : un cache valide remplit safe ET aggressive du même ticker", async () => {
   const conn = makeDb([
     { id: "TQQQ_safe", symbol: "TQQQ", strikeMode: "safe" },
     { id: "TQQQ_aggr", symbol: "TQQQ", strikeMode: "aggressive" },
   ]);
-  const summary = runJournalSeasonalityBackfill({
+  const summary = await runJournalSeasonalityBackfill({
     dryRun: false,
     conn,
     buildSnapshot: () => VALID_SNAPSHOT,
@@ -79,10 +82,10 @@ test("write : un cache valide remplit safe ET aggressive du même ticker", () =>
   }
 });
 
-// ── 2. Cache absent → 0 update, skip no_cache_or_invalid ──────────────────────
-test("cache absent ⇒ 0 update + skip no_cache_or_invalid", () => {
+// ── 2. Cache absent → 0 update, skip no_cache_or_invalid (sans fetch-missing) ─
+test("cache absent ⇒ 0 update + skip no_cache_or_invalid", async () => {
   const conn = makeDb([{ id: "XLF_safe", symbol: "XLF" }]);
-  const summary = runJournalSeasonalityBackfill({
+  const summary = await runJournalSeasonalityBackfill({
     dryRun: false,
     conn,
     buildSnapshot: () => null,
@@ -94,12 +97,12 @@ test("cache absent ⇒ 0 update + skip no_cache_or_invalid", () => {
 });
 
 // ── 3. dryRun=true → aucun changement DB ──────────────────────────────────────
-test("dryRun=true n'écrit rien mais compte recordsWouldUpdate", () => {
+test("dryRun=true n'écrit rien mais compte recordsWouldUpdate", async () => {
   const conn = makeDb([
     { id: "TQQQ_safe", symbol: "TQQQ" },
     { id: "TQQQ_aggr", symbol: "TQQQ" },
   ]);
-  const summary = runJournalSeasonalityBackfill({
+  const summary = await runJournalSeasonalityBackfill({
     dryRun: true,
     conn,
     buildSnapshot: () => VALID_SNAPSHOT,
@@ -107,38 +110,35 @@ test("dryRun=true n'écrit rien mais compte recordsWouldUpdate", () => {
   assert.equal(summary.dryRun, true);
   assert.equal(summary.recordsWouldUpdate, 2);
   assert.equal(summary.recordsUpdated, 0);
-  // DB intacte.
   assert.equal(readRow(conn, "TQQQ_safe").seasonality_score_at_scan, null);
   assert.equal(readRow(conn, "TQQQ_aggr").seasonality_score_at_scan, null);
 });
 
 // ── 4. Record déjà rempli → ne pas écraser ────────────────────────────────────
-test("write : ne touche jamais un record déjà rempli (score non-null)", () => {
+test("write : ne touche jamais un record déjà rempli (score non-null)", async () => {
   const conn = makeDb([
     { id: "TQQQ_done", symbol: "TQQQ", seasonality_score_at_scan: 42 },
     { id: "TQQQ_null", symbol: "TQQQ", seasonality_score_at_scan: null },
   ]);
-  const summary = runJournalSeasonalityBackfill({
+  const summary = await runJournalSeasonalityBackfill({
     dryRun: false,
     conn,
     buildSnapshot: () => VALID_SNAPSHOT,
   });
   assert.equal(summary.recordsUpdated, 1);
-  // Le record déjà rempli garde sa valeur d'origine.
   assert.equal(readRow(conn, "TQQQ_done").seasonality_score_at_scan, 42);
   assert.equal(readRow(conn, "TQQQ_done").seasonality_direction, null);
-  // Le record NULL est rempli.
   assert.equal(readRow(conn, "TQQQ_null").seasonality_score_at_scan, 78);
 });
 
 // ── 5. symbols=TQQQ limite bien le traitement ─────────────────────────────────
-test("symbols restreint le traitement aux symboles demandés", () => {
+test("symbols restreint le traitement aux symboles demandés", async () => {
   const conn = makeDb([
     { id: "TQQQ_safe", symbol: "TQQQ" },
     { id: "SOFI_safe", symbol: "SOFI" },
   ]);
   const seen = [];
-  const summary = runJournalSeasonalityBackfill({
+  const summary = await runJournalSeasonalityBackfill({
     dryRun: false,
     conn,
     symbols: ["TQQQ"],
@@ -154,14 +154,14 @@ test("symbols restreint le traitement aux symboles demandés", () => {
 });
 
 // ── 6. limit fonctionne ───────────────────────────────────────────────────────
-test("limit borne le nombre de tickers traités", () => {
+test("limit borne le nombre de tickers traités", async () => {
   const conn = makeDb([
     { id: "AAA_safe", symbol: "AAA", scanDate: "2026-06-03", ibkrValidated: 9 },
     { id: "BBB_safe", symbol: "BBB", scanDate: "2026-06-02", ibkrValidated: 5 },
     { id: "CCC_safe", symbol: "CCC", scanDate: "2026-06-01", ibkrValidated: 1 },
   ]);
   const seen = [];
-  const summary = runJournalSeasonalityBackfill({
+  const summary = await runJournalSeasonalityBackfill({
     dryRun: true,
     conn,
     limit: 2,
@@ -172,12 +172,11 @@ test("limit borne le nombre de tickers traités", () => {
   });
   assert.equal(summary.tickersCandidates, 3);
   assert.equal(summary.tickersProcessed, 2);
-  // Priorité scanDate DESC ⇒ AAA puis BBB.
   assert.deepEqual(seen, ["AAA", "BBB"]);
 });
 
-// ── 7. Aucune référence Yahoo / fetch / computeSeasonalityBundle dans le service ─
-test("le service ne référence aucun Yahoo / fetch / computeSeasonalityBundle", () => {
+// ── 7. Pas de client HTTP direct ni warmup dans le service ─────────────────────
+test("le service n'embarque pas de client HTTP direct ni warmup/scan-summary", () => {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const src = readFileSync(path.join(here, "journalSeasonalityBackfillService.js"), "utf8");
   const importLines = src
@@ -187,19 +186,19 @@ test("le service ne référence aucun Yahoo / fetch / computeSeasonalityBundle",
     assert.doesNotMatch(line, /yahoo/i, `import Yahoo interdit: ${line}`);
     assert.doesNotMatch(line, /axios|undici|node-fetch|node:https?/, `client HTTP interdit: ${line}`);
   }
-  // Code hors commentaires : aucun appel réseau / bundle live.
   const codeOnly = src
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/(^|\s)\/\/.*$/gm, "");
   assert.doesNotMatch(codeOnly, /\bfetch\s*\(/, "aucun appel fetch(");
-  assert.doesNotMatch(codeOnly, /computeSeasonalityBundle\s*\(/, "aucun computeSeasonalityBundle()");
   assert.doesNotMatch(codeOnly, /warmup/i, "aucune référence warmup");
+  assert.doesNotMatch(codeOnly, /scan-summary|scanSummary/i, "aucune référence scan-summary");
+  assert.match(codeOnly, /seasonalityBundleCompute/, "délègue au helper seasonalityBundleCompute");
 });
 
 // ── 8. Résumé : recordsWouldUpdate en dry-run, recordsUpdated en write ─────────
-test("le résumé expose les bons compteurs selon le mode", () => {
+test("le résumé expose les bons compteurs selon le mode", async () => {
   const rows = [{ id: "TQQQ_safe", symbol: "TQQQ" }];
-  const dry = runJournalSeasonalityBackfill({
+  const dry = await runJournalSeasonalityBackfill({
     dryRun: true,
     conn: makeDb(rows),
     buildSnapshot: () => VALID_SNAPSHOT,
@@ -210,11 +209,145 @@ test("le résumé expose les bons compteurs selon le mode", () => {
   assert.ok("skippedByReason" in dry && Array.isArray(dry.sample) && Array.isArray(dry.errors));
   assert.equal(typeof dry.durationMs, "number");
 
-  const wet = runJournalSeasonalityBackfill({
+  const wet = await runJournalSeasonalityBackfill({
     dryRun: false,
     conn: makeDb(rows),
     buildSnapshot: () => VALID_SNAPSHOT,
   });
   assert.equal(wet.recordsUpdated, 1);
   assert.equal(wet.recordsWouldUpdate, 0);
+});
+
+// ── 9. fetch-missing dry-run : pas de fetch, would_fetch_and_update ────────────
+test("fetch-missing dry-run : aucun fetch, would_fetch_and_update", async () => {
+  const conn = makeDb([{ id: "NEW_safe", symbol: "NEW" }]);
+  let fetchCalls = 0;
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: true,
+    fetchMissing: true,
+    conn,
+    buildSnapshot: () => null,
+    fetchBundle: async () => {
+      fetchCalls += 1;
+      return { ok: true, symbol: "NEW", persisted: true };
+    },
+  });
+  assert.equal(fetchCalls, 0);
+  assert.equal(summary.yahooEnabled, false);
+  assert.equal(summary.tickersWouldFetch, 1);
+  assert.equal(summary.recordsWouldUpdate, 1);
+  assert.equal(summary.recordsUpdated, 0);
+  assert.equal(summary.sample[0].status, "would_fetch_and_update");
+  assert.equal(readRow(conn, "NEW_safe").seasonality_score_at_scan, null);
+});
+
+// ── 10. fetch-missing write : fetch une fois puis update ───────────────────────
+test("fetch-missing write : appelle fetchBundle une fois puis met à jour", async () => {
+  const conn = makeDb([{ id: "FETCH_safe", symbol: "FETCH" }]);
+  let fetchCalls = 0;
+  let snapshotReads = 0;
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: false,
+    fetchMissing: true,
+    delayMs: 0,
+    conn,
+    buildSnapshot: () => {
+      snapshotReads += 1;
+      return snapshotReads === 1 ? null : VALID_SNAPSHOT;
+    },
+    fetchBundle: async (sym) => {
+      fetchCalls += 1;
+      assert.equal(sym, "FETCH");
+      return { ok: true, symbol: sym, persisted: true };
+    },
+  });
+  assert.equal(fetchCalls, 1);
+  assert.equal(summary.recordsUpdated, 1);
+  assert.equal(readRow(conn, "FETCH_safe").seasonality_score_at_scan, 78);
+});
+
+// ── 11. fetch-missing write : échec fetch → skip fetch_failed_or_invalid ───────
+test("fetch-missing write : échec fetch skip fetch_failed_or_invalid et continue", async () => {
+  const conn = makeDb([
+    { id: "BAD_safe", symbol: "BAD" },
+    { id: "GOOD_safe", symbol: "GOOD" },
+  ]);
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: false,
+    fetchMissing: true,
+    delayMs: 0,
+    conn,
+    buildSnapshot: (sym) => (sym === "GOOD" ? VALID_SNAPSHOT : null),
+    fetchBundle: async (sym) => {
+      if (sym === "BAD") return { ok: false, symbol: sym, error: "yahoo_down" };
+      return { ok: true, symbol: sym, persisted: true };
+    },
+  });
+  assert.equal(summary.skippedByReason.fetch_failed_or_invalid, 1);
+  assert.equal(readRow(conn, "BAD_safe").seasonality_score_at_scan, null);
+  assert.equal(readRow(conn, "GOOD_safe").seasonality_score_at_scan, 78);
+});
+
+// ── 12. délai configurable entre fetchs ───────────────────────────────────────
+test("delayMs est respecté entre deux fetchs consécutifs", async () => {
+  const conn = makeDb([
+    { id: "A_safe", symbol: "AAA", scanDate: "2026-06-02" },
+    { id: "B_safe", symbol: "BBB", scanDate: "2026-06-01" },
+  ]);
+  const fetchTimes = [];
+  const readyAfterFetch = new Set();
+
+  await runJournalSeasonalityBackfill({
+    dryRun: false,
+    fetchMissing: true,
+    delayMs: 80,
+    conn,
+    buildSnapshot: (sym) => (readyAfterFetch.has(sym) ? VALID_SNAPSHOT : null),
+    fetchBundle: async (sym) => {
+      fetchTimes.push(Date.now());
+      readyAfterFetch.add(sym);
+      return { ok: true, symbol: sym, persisted: true };
+    },
+  });
+
+  assert.equal(fetchTimes.length, 2);
+  const gap = fetchTimes[1] - fetchTimes[0];
+  assert.ok(gap >= 70, `écart ${gap}ms — attendu >= 70ms`);
+  assert.equal(DEFAULT_FETCH_DELAY_MS, 3000);
+  assert.equal(MAX_FETCH_LIMIT, 10);
+});
+
+// ── 13. CLI script : limit > 10 refusé quand fetch-missing ─────────────────────
+test("script CLI refuse limit > 10 avec fetch-missing", async () => {
+  const scriptPath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../scripts/backfillJournalSeasonality.mjs"
+  );
+  const src = readFileSync(scriptPath, "utf8");
+  assert.match(src, /MAX_FETCH_LIMIT/);
+  assert.match(src, /DEFAULT_FETCH_MISSING_LIMIT\s*=\s*5/);
+  assert.match(src, /--fetch-missing/);
+});
+
+// ── 14. Sans fetch-missing : cacheOnly inchangé ───────────────────────────────
+test("sans fetch-missing : cacheOnly=true et yahooEnabled=false", async () => {
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: true,
+    conn: makeDb([{ id: "T_safe", symbol: "T" }]),
+    buildSnapshot: () => null,
+  });
+  assert.equal(summary.cacheOnly, true);
+  assert.equal(summary.fetchMissing, false);
+  assert.equal(summary.yahooEnabled, false);
+});
+
+// ── 15. Aucun appel warmup dans seasonalityBundleCompute ─────────────────────
+test("seasonalityBundleCompute ne référence pas warmup ni scan-summary", () => {
+  const computePath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../seasonality/seasonalityBundleCompute.js"
+  );
+  const src = readFileSync(computePath, "utf8");
+  assert.doesNotMatch(src, /warmup/i);
+  assert.doesNotMatch(src, /scan-summary|scanSummary|computeSeasonalityScanSummary/i);
 });

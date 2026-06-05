@@ -37,46 +37,15 @@ import {
   analyzeBundlePayload,
 } from "./seasonalityBundleValidation.js";
 import {
-  buildSeasonalityDecisionHeader,
-} from "./seasonalityDecisionScores.js";
+  computeSeasonalityBundleForTicker,
+  computeDecisionHeaderFromPayload,
+} from "./seasonalityBundleCompute.js";
 
 const router   = Router();
 const TICKER_RE = /^[A-Z0-9.\-^]{1,10}$/;
 
 // Cache SQLite persistant (expiration quotidienne UTC) — partagé par toutes les requêtes /bundle
 const persistentCache = createSeasonalityPersistentCache();
-
-// Calcule decisionHeader depuis un payload (fonction pure, sans I/O)
-function _computeDecisionHeader(payload) {
-  try {
-    return buildSeasonalityDecisionHeader({
-      shortTermData: payload.shortTermData,
-      windowsData:   payload.windowsData,
-    });
-  } catch (_) { return null; }
-}
-
-// Calcule les 4 sources en parallèle et retourne le payload bundle
-async function computeSeasonalityBundle(ticker) {
-  const [calendar, shortTerm, windows, chart3yRaw] = await Promise.all([
-    computeSeasonalityCalendar(ticker),
-    computeSeasonalityShortTerm(ticker),
-    computeSeasonalityWindows(ticker),
-    computeSeasonalityChart3y(ticker),
-  ]);
-  const partialPayload = {
-    calendarData:  calendar  ?? null,
-    shortTermData: shortTerm ?? null,
-    windowsData:   windows   ?? null,
-    chart3yData:   buildChart3yApiResponse(chart3yRaw),
-  };
-  return {
-    ok: true,
-    ticker,
-    ...partialPayload,
-    decisionHeader: _computeDecisionHeader(partialPayload),
-  };
-}
 
 // NOTE: specific routes must be registered BEFORE the /:ticker param route
 // so Express matches them before the wildcard.
@@ -545,7 +514,7 @@ router.get("/:ticker/bundle", async (req, res) => {
       // Cache frais — réponse immédiate depuis SQLite
       if (entry?.fresh) {
         const analysis = analyzeBundlePayload(entry.payload);
-        const dh = entry.payload.decisionHeader ?? _computeDecisionHeader(entry.payload);
+        const dh = entry.payload.decisionHeader ?? computeDecisionHeaderFromPayload(entry.payload);
         return res.json({
           ok: true,
           ...entry.payload,
@@ -564,7 +533,7 @@ router.get("/:ticker/bundle", async (req, res) => {
       // Cache périmé — réponse immédiate avec données stale + refresh silencieux
       if (entry) {
         const analysis = analyzeBundlePayload(entry.payload);
-        const dh = entry.payload.decisionHeader ?? _computeDecisionHeader(entry.payload);
+        const dh = entry.payload.decisionHeader ?? computeDecisionHeaderFromPayload(entry.payload);
         res.json({
           ok: true,
           ...entry.payload,
@@ -579,7 +548,7 @@ router.get("/:ticker/bundle", async (req, res) => {
             cacheVersion:   entry.cacheVersion,
           },
         });
-        computeSeasonalityBundle(symbol).then((bundle) => {
+        computeSeasonalityBundleForTicker(symbol).then((bundle) => {
           if (bundle?.ok) {
             const payload = {
               calendarData:  bundle.calendarData,
@@ -597,7 +566,7 @@ router.get("/:ticker/bundle", async (req, res) => {
     }
 
     // Aucun cache (ou force=1) — calcul complet, stockage si valide, réponse
-    const bundle = await computeSeasonalityBundle(symbol);
+    const bundle = await computeSeasonalityBundleForTicker(symbol);
     const payload = {
       calendarData:  bundle.calendarData,
       shortTermData: bundle.shortTermData,

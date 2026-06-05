@@ -1,30 +1,34 @@
 /**
- * Journal POP — Backfill saisonnalité CACHE-ONLY (Phase 2A.1).
+ * Journal POP — Backfill saisonnalité (Phase 2A.1 cache-only, Phase 2A.2 fetch-missing).
  *
  * Remplit les 7 colonnes seasonality_* des records historiques de
- * `wheel_validation_records` dont `seasonality_score_at_scan IS NULL`, en
- * lisant UNIQUEMENT le snapshot figé reconstruit depuis le cache persistant
- * `seasonality_cache` (via buildSeasonalitySnapshotFromCache).
+ * `wheel_validation_records` dont `seasonality_score_at_scan IS NULL`.
  *
- * Garanties dures :
+ * Mode cache-only (défaut) :
+ *   - Lit UNIQUEMENT seasonality_cache via buildSeasonalitySnapshotFromCache.
  *   - AUCUN appel Yahoo / réseau / fetch.
- *   - N'appelle JAMAIS computeSeasonalityBundle() ni /seasonality/warmup.
- *   - Ne calcule AUCUNE saisonnalité manquante (si pas dans le cache ⇒ skip).
- *   - N'écrase JAMAIS un record déjà rempli (WHERE seasonality_score_at_scan IS NULL).
- *   - Dry-run par défaut : aucune écriture tant que dryRun !== false.
- *   - Ne touche qu'aux 7 colonnes seasonality_* (aucune autre colonne modifiée).
  *
- * Le seul import « métier » est buildSeasonalitySnapshotFromCache, lui-même
- * cache-only (voir seasonalitySnapshot.js). node:sqlite/node:fs servent
- * exclusivement à lire/écrire la base Journal locale.
+ * Mode fetch-missing (fetchMissing=true + dryRun=false) :
+ *   - Pour tickers sans cache : computeAndPersistSeasonalityBundle puis relit le cache.
+ *   - Yahoo contrôlé, séquentiel (maxConcurrency=1), délai entre tickers.
+ *
+ * Mode fetch-missing dry-run (fetchMissing=true + dryRun=true) :
+ *   - AUCUN Yahoo — indique seulement would_fetch_and_update.
+ *
+ * Garanties communes :
+ *   - N'écrase JAMAIS un record déjà rempli (WHERE seasonality_score_at_scan IS NULL).
+ *   - Ne touche qu'aux 7 colonnes seasonality_*.
  */
 
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { buildSeasonalitySnapshotFromCache } from "./seasonalitySnapshot.js";
+import { computeAndPersistSeasonalityBundle } from "../seasonality/seasonalityBundleCompute.js";
 
 const DEFAULT_SQLITE_PATH = path.resolve(process.cwd(), "data", "wheelValidationJournal.sqlite");
+const DEFAULT_FETCH_DELAY_MS = 3000;
+const MAX_FETCH_LIMIT = 10;
 
 const SEASONALITY_COLUMNS = Object.freeze([
   "seasonality_score_at_scan",
@@ -40,6 +44,10 @@ const SAMPLE_LIMIT = 25;
 
 function normalizeSymbol(value) {
   return String(value ?? "").trim().toUpperCase();
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function tableColumns(conn) {
@@ -90,24 +98,30 @@ function findCandidateTickers(conn, { symbols = null, hasIbkrValidated = false }
 }
 
 /**
- * Exécute le backfill saisonnalité cache-only sur le Journal POP.
+ * Exécute le backfill saisonnalité sur le Journal POP.
  *
  * @param {object} [options]
- * @param {boolean} [options.dryRun=true]  false ⇒ écrit réellement les UPDATE.
- * @param {number|null} [options.limit]     nombre max de tickers traités.
- * @param {string[]|null} [options.symbols] restreint à certains symboles.
- * @param {string} [options.sqlitePath]     chemin de la base Journal.
- * @param {object} [options.conn]           connexion node:sqlite injectée (tests).
+ * @param {boolean} [options.dryRun=true]       false ⇒ écrit réellement les UPDATE (+ fetch si fetchMissing).
+ * @param {boolean} [options.fetchMissing=false] true ⇒ tente fetch Yahoo pour tickers sans cache (write seulement).
+ * @param {number|null} [options.limit]          nombre max de tickers traités.
+ * @param {string[]|null} [options.symbols]      restreint à certains symboles.
+ * @param {number} [options.delayMs=3000]        délai min entre fetchs Yahoo (write + fetchMissing).
+ * @param {string} [options.sqlitePath]            chemin de la base Journal.
+ * @param {object} [options.conn]                connexion node:sqlite injectée (tests).
  * @param {(symbol: string) => object|null} [options.buildSnapshot]
- *        résolveur snapshot cache-only (défaut: buildSeasonalitySnapshotFromCache).
- *        Surchargé uniquement par les tests ; reste cache-only.
- * @param {object} [options.cache]          cache injecté transmis au résolveur par défaut.
- * @param {object} [options.cacheOptions]   options du cache persistant.
+ * @param {(symbol: string) => Promise<object>} [options.fetchBundle]
+ *        fetcher injectable (défaut: computeAndPersistSeasonalityBundle) — tests uniquement.
+ * @param {object} [options.cache]
+ * @param {object} [options.cacheOptions]
  * @returns {object} résumé structuré du backfill.
  */
-export function runJournalSeasonalityBackfill(options = {}) {
+export async function runJournalSeasonalityBackfill(options = {}) {
   const startedAt = Date.now();
-  const dryRun = options.dryRun !== false; // dry-run par défaut
+  const dryRun = options.dryRun !== false;
+  const fetchMissing = options.fetchMissing === true;
+  const delayMs = Number.isFinite(Number(options.delayMs))
+    ? Math.max(0, Math.trunc(Number(options.delayMs)))
+    : DEFAULT_FETCH_DELAY_MS;
   const limitRaw = Number(options.limit);
   const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.trunc(limitRaw) : null;
   const symbols = Array.isArray(options.symbols)
@@ -123,13 +137,28 @@ export function runJournalSeasonalityBackfill(options = {}) {
             cacheOptions: options.cacheOptions,
           });
 
+  const fetchBundle =
+    typeof options.fetchBundle === "function"
+      ? options.fetchBundle
+      : (symbol) =>
+          computeAndPersistSeasonalityBundle(symbol, {
+            cache: options.cache,
+            cacheOptions: options.cacheOptions,
+          });
+
+  const yahooEnabled = fetchMissing && !dryRun;
+
   const summary = {
     dryRun,
-    cacheOnly: true,
+    cacheOnly: !fetchMissing,
+    fetchMissing,
+    yahooEnabled,
     limit,
+    delayMs: fetchMissing ? delayMs : 0,
     tickersCandidates: 0,
     tickersProcessed: 0,
     tickersUpdated: 0,
+    tickersWouldFetch: 0,
     tickersSkipped: 0,
     recordsWouldUpdate: 0,
     recordsUpdated: 0,
@@ -149,8 +178,7 @@ export function runJournalSeasonalityBackfill(options = {}) {
   const sqlitePath = options.sqlitePath ?? DEFAULT_SQLITE_PATH;
   const injectedConn = options.conn ?? null;
   let conn = injectedConn;
-
-  try {
+    try {
     if (!conn) {
       if (!existsSync(sqlitePath)) {
         summary.errors.push({ scope: "open", message: `sqlite_not_found: ${sqlitePath}` });
@@ -187,9 +215,11 @@ export function runJournalSeasonalityBackfill(options = {}) {
       WHERE symbol = @symbol AND seasonality_score_at_scan IS NULL
     `);
 
-    for (const candidate of selected) {
+    for (let i = 0; i < selected.length; i++) {
+      const candidate = selected[i];
       const symbol = normalizeSymbol(candidate?.symbol);
       summary.tickersProcessed += 1;
+      let didFetchThisTicker = false;
 
       let snapshot = null;
       try {
@@ -203,15 +233,80 @@ export function runJournalSeasonalityBackfill(options = {}) {
       }
 
       if (!snapshot) {
-        summary.tickersSkipped += 1;
-        bumpReason("no_cache_or_invalid");
-        pushSample({ symbol, status: "skipped", reason: "no_cache_or_invalid" });
-        continue;
+        if (!fetchMissing) {
+          summary.tickersSkipped += 1;
+          bumpReason("no_cache_or_invalid");
+          pushSample({ symbol, status: "skipped", reason: "no_cache_or_invalid" });
+          continue;
+        }
+
+        const nullCountBefore = Number(countNullStmt.get({ symbol })?.cnt ?? 0);
+        if (nullCountBefore === 0) {
+          summary.tickersSkipped += 1;
+          bumpReason("no_null_records");
+          pushSample({ symbol, status: "skipped", reason: "no_null_records" });
+          continue;
+        }
+
+        if (dryRun) {
+          summary.tickersWouldFetch += 1;
+          summary.recordsWouldUpdate += nullCountBefore;
+          summary.tickersUpdated += 1;
+          pushSample({
+            symbol,
+            status: "would_fetch_and_update",
+            recordsWouldUpdate: nullCountBefore,
+          });
+          continue;
+        }
+
+        let fetchResult;
+        try {
+          fetchResult = await fetchBundle(symbol);
+        } catch (error) {
+          summary.tickersSkipped += 1;
+          bumpReason("fetch_failed_or_invalid");
+          summary.errors.push({ scope: "fetch", symbol, message: String(error?.message ?? error) });
+          pushSample({ symbol, status: "skipped", reason: "fetch_failed_or_invalid" });
+          continue;
+        }
+
+        if (!fetchResult?.ok) {
+          summary.tickersSkipped += 1;
+          bumpReason("fetch_failed_or_invalid");
+          summary.errors.push({
+            scope: "fetch",
+            symbol,
+            message: String(fetchResult?.error ?? "fetch_failed_or_invalid"),
+          });
+          pushSample({ symbol, status: "skipped", reason: "fetch_failed_or_invalid" });
+          continue;
+        }
+
+        didFetchThisTicker = true;
+
+        try {
+          snapshot = buildSnapshot(symbol);
+        } catch (error) {
+          summary.tickersSkipped += 1;
+          bumpReason("fetch_failed_or_invalid");
+          summary.errors.push({ scope: "snapshot_after_fetch", symbol, message: String(error?.message ?? error) });
+          pushSample({ symbol, status: "skipped", reason: "fetch_failed_or_invalid" });
+          if (i < selected.length - 1 && delayMs > 0) await sleep(delayMs);
+          continue;
+        }
+
+        if (!snapshot) {
+          summary.tickersSkipped += 1;
+          bumpReason("fetch_failed_or_invalid");
+          pushSample({ symbol, status: "skipped", reason: "fetch_failed_or_invalid" });
+          if (i < selected.length - 1 && delayMs > 0) await sleep(delayMs);
+          continue;
+        }
       }
 
       const nullCount = Number(countNullStmt.get({ symbol })?.cnt ?? 0);
       if (nullCount === 0) {
-        // Aucun record NULL restant (rien à remplir, ne jamais écraser le reste).
         summary.tickersSkipped += 1;
         bumpReason("no_null_records");
         pushSample({ symbol, status: "skipped", reason: "no_null_records" });
@@ -260,6 +355,10 @@ export function runJournalSeasonalityBackfill(options = {}) {
         summary.errors.push({ scope: "update", symbol, message: String(error?.message ?? error) });
         pushSample({ symbol, status: "skipped", reason: "error" });
       }
+
+      if (didFetchThisTicker && i < selected.length - 1 && delayMs > 0) {
+        await sleep(delayMs);
+      }
     }
   } catch (error) {
     summary.errors.push({ scope: "run", message: String(error?.message ?? error) });
@@ -276,3 +375,5 @@ export function runJournalSeasonalityBackfill(options = {}) {
 
   return summary;
 }
+
+export { MAX_FETCH_LIMIT, DEFAULT_FETCH_DELAY_MS };

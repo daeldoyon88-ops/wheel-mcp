@@ -40,6 +40,23 @@ const SEASONALITY_COLUMNS = Object.freeze([
   "seasonality_snapshot_version",
 ]);
 
+// Patch Journal POP Snapshot V2 — colonnes décisionnelles séparées.
+// OPTIONNELLES : remplies UNIQUEMENT si présentes dans la table (DB migrée) et
+// dans le même UPDATE conservateur (WHERE seasonality_score_at_scan IS NULL).
+// Garanties : ne touche jamais un record déjà rempli, n'écrase pas les anciens
+// champs, n'altère pas seasonality_score_at_scan.
+const SEASONALITY_V2_COLUMNS = Object.freeze([
+  "seasonality_weekly_score_at_scan",
+  "seasonality_weekly_win_rate_at_scan",
+  "seasonality_annual_score_at_scan",
+  "seasonality_annual_win_rate_at_scan",
+  "seasonality_annual_window_label_at_scan",
+  "seasonality_csp_score_at_scan",
+  "seasonality_cc_score_at_scan",
+  "seasonality_wheel_verdict_at_scan",
+  "seasonality_context_at_scan",
+]);
+
 const SAMPLE_LIMIT = 25;
 
 function normalizeSymbol(value) {
@@ -233,18 +250,25 @@ export async function runJournalSeasonalityBackfill(options = {}) {
 
     const selected = limit != null ? candidates.slice(0, limit) : candidates;
 
+    // Colonnes V2 présentes (DB migrée) — remplies dans le même UPDATE conservateur.
+    const presentV2Columns = SEASONALITY_V2_COLUMNS.filter((c) => columns.has(c));
+
     const countNullStmt = conn.prepare(
       "SELECT COUNT(*) AS cnt FROM wheel_validation_records WHERE symbol = @symbol AND seasonality_score_at_scan IS NULL"
     );
+    const setClauses = [
+      "seasonality_score_at_scan = @seasonality_score_at_scan",
+      "seasonality_win_rate_at_scan = @seasonality_win_rate_at_scan",
+      "seasonality_best_window_start = @seasonality_best_window_start",
+      "seasonality_best_window_end = @seasonality_best_window_end",
+      "seasonality_direction = @seasonality_direction",
+      "seasonality_confidence = @seasonality_confidence",
+      "seasonality_snapshot_version = @seasonality_snapshot_version",
+      ...presentV2Columns.map((c) => `${c} = @${c}`),
+    ];
     const updateStmt = conn.prepare(`
       UPDATE wheel_validation_records SET
-        seasonality_score_at_scan = @seasonality_score_at_scan,
-        seasonality_win_rate_at_scan = @seasonality_win_rate_at_scan,
-        seasonality_best_window_start = @seasonality_best_window_start,
-        seasonality_best_window_end = @seasonality_best_window_end,
-        seasonality_direction = @seasonality_direction,
-        seasonality_confidence = @seasonality_confidence,
-        seasonality_snapshot_version = @seasonality_snapshot_version
+        ${setClauses.join(",\n        ")}
       WHERE symbol = @symbol AND seasonality_score_at_scan IS NULL
     `);
 
@@ -378,7 +402,7 @@ export async function runJournalSeasonalityBackfill(options = {}) {
       }
 
       try {
-        const result = updateStmt.run({
+        const updateParams = {
           symbol,
           seasonality_score_at_scan: snapshot.seasonality_score_at_scan ?? null,
           seasonality_win_rate_at_scan: snapshot.seasonality_win_rate_at_scan ?? null,
@@ -387,7 +411,12 @@ export async function runJournalSeasonalityBackfill(options = {}) {
           seasonality_direction: snapshot.seasonality_direction ?? null,
           seasonality_confidence: snapshot.seasonality_confidence ?? null,
           seasonality_snapshot_version: snapshot.seasonality_snapshot_version ?? null,
-        });
+        };
+        // V2 : seulement les colonnes présentes (sinon param inconnu côté SQL).
+        for (const c of presentV2Columns) {
+          updateParams[c] = snapshot[c] ?? null;
+        }
+        const result = updateStmt.run(updateParams);
         const changes = Number(result?.changes ?? 0);
         summary.recordsUpdated += changes;
         if (changes > 0) summary.tickersUpdated += 1;

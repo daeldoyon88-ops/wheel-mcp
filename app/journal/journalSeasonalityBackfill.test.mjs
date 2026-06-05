@@ -426,6 +426,92 @@ test("fetch-missing write : snapshot incomplet après fetch ⇒ skip fetch_incom
   assert.equal(readRow(conn, "OKLO_safe").seasonality_score_at_scan, null);
 });
 
+// ── 18b. Patch V2 : remplit les colonnes V2 présentes sans écraser le legacy ──
+const V2_SNAPSHOT = {
+  ...VALID_SNAPSHOT,
+  seasonality_weekly_score_at_scan: 44,
+  seasonality_weekly_win_rate_at_scan: 0.5,
+  seasonality_annual_score_at_scan: 87,
+  seasonality_annual_win_rate_at_scan: 0.8,
+  seasonality_annual_window_label_at_scan: "15 avr. → 15 juil.",
+  seasonality_csp_score_at_scan: 56,
+  seasonality_cc_score_at_scan: 39,
+  seasonality_wheel_verdict_at_scan: "CSP acceptable avec prudence",
+  seasonality_context_at_scan: "Fenêtre annuelle favorable, score court terme neutre.",
+};
+
+function makeDbV2(rows = []) {
+  const conn = new DatabaseSync(":memory:");
+  conn.exec(`
+    CREATE TABLE wheel_validation_records (
+      id TEXT PRIMARY KEY,
+      symbol TEXT,
+      strikeMode TEXT,
+      scanDate TEXT,
+      ibkrValidated INTEGER,
+      seasonality_score_at_scan REAL,
+      seasonality_win_rate_at_scan REAL,
+      seasonality_best_window_start TEXT,
+      seasonality_best_window_end TEXT,
+      seasonality_direction TEXT,
+      seasonality_confidence TEXT,
+      seasonality_snapshot_version TEXT,
+      seasonality_weekly_score_at_scan REAL,
+      seasonality_weekly_win_rate_at_scan REAL,
+      seasonality_annual_score_at_scan REAL,
+      seasonality_annual_win_rate_at_scan REAL,
+      seasonality_annual_window_label_at_scan TEXT,
+      seasonality_csp_score_at_scan REAL,
+      seasonality_cc_score_at_scan REAL,
+      seasonality_wheel_verdict_at_scan TEXT,
+      seasonality_context_at_scan TEXT
+    );
+  `);
+  const stmt = conn.prepare(`
+    INSERT INTO wheel_validation_records
+      (id, symbol, strikeMode, scanDate, ibkrValidated, seasonality_score_at_scan)
+    VALUES (@id, @symbol, @strikeMode, @scanDate, @ibkrValidated, @seasonality_score_at_scan)
+  `);
+  for (const r of rows) {
+    stmt.run({
+      id: r.id,
+      symbol: r.symbol,
+      strikeMode: r.strikeMode ?? "safe",
+      scanDate: r.scanDate ?? "2026-06-01",
+      ibkrValidated: r.ibkrValidated ?? 1,
+      seasonality_score_at_scan: r.seasonality_score_at_scan ?? null,
+    });
+  }
+  return conn;
+}
+
+test("write : colonnes V2 présentes ⇒ remplies dans le même UPDATE conservateur", async () => {
+  const conn = makeDbV2([
+    { id: "TQQQ_null", symbol: "TQQQ", seasonality_score_at_scan: null },
+    { id: "TQQQ_done", symbol: "TQQQ", seasonality_score_at_scan: 42 },
+  ]);
+  const summary = await runJournalSeasonalityBackfill({
+    dryRun: false,
+    conn,
+    buildSnapshot: () => V2_SNAPSHOT,
+  });
+  assert.equal(summary.recordsUpdated, 1);
+
+  const filled = readRow(conn, "TQQQ_null");
+  assert.equal(filled.seasonality_score_at_scan, 78);
+  assert.equal(filled.seasonality_weekly_score_at_scan, 44);
+  assert.equal(filled.seasonality_annual_score_at_scan, 87);
+  assert.equal(filled.seasonality_annual_window_label_at_scan, "15 avr. → 15 juil.");
+  assert.equal(filled.seasonality_csp_score_at_scan, 56);
+  assert.equal(filled.seasonality_wheel_verdict_at_scan, "CSP acceptable avec prudence");
+
+  // Record déjà rempli (score 42) → ni le legacy ni le V2 ne sont touchés.
+  const done = readRow(conn, "TQQQ_done");
+  assert.equal(done.seasonality_score_at_scan, 42);
+  assert.equal(done.seasonality_weekly_score_at_scan, null);
+  assert.equal(done.seasonality_annual_score_at_scan, null);
+});
+
 // ── 19. Champs vides (string "") traités comme incomplets ─────────────────────
 test("direction/confidence vides ('') comptent comme incomplet", async () => {
   const conn = makeDb([{ id: "X_safe", symbol: "X" }]);

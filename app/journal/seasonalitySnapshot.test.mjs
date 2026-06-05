@@ -113,6 +113,76 @@ test("nullSeasonalitySnapshot retourne les 7 champs à null", () => {
   });
 });
 
+// ── 8b. Patch V2 : champs décisionnels séparés (fixture TQQQ-like) ────────────
+// Bundle calibré pour reproduire l'écran décisionnel TQQQ : weekly 44, fenêtre
+// annuelle haussière forte robuste (score 87) « 15 avr. → 15 juil. ».
+const TQQQ_V2_BUNDLE = {
+  shortTermData: {
+    calendarWeek: {
+      sampleSize: 12, // confidence "mesurable"
+      winRate: 0.5, // 12 pts
+      medianReturn: 0.02, // 20 pts
+      downsideRisk5: 0.25, // 12 pts
+      worstReturn: -0.3, // 0 pt → total 44
+      positiveYears: 6,
+    },
+    windows: [{ days: 7, winRate: 0.5, pctBelow5: 0.25, pctAbove5: 0.25 }],
+  },
+  windowsData: {
+    annualDisplayWindows: {
+      bullish: [
+        {
+          displayLabel: "15 avr. → 15 juil.",
+          startMonth: 4, startDay: 15, endMonth: 7, endDay: 15,
+          strength: "Forte",
+          annualHorizons: {
+            "15y": { insufficient: false, yearsCount: 15, winRateAnnual: 0.8, avgReturnAnnual: 0.05 },
+          },
+        },
+      ],
+    },
+  },
+};
+
+test("buildSnapshotFromBundle expose les champs V2 sans changer seasonality_score_at_scan", () => {
+  const today = new Date("2026-06-05T12:00:00.000Z");
+  const snap = buildSnapshotFromBundle(TQQQ_V2_BUNDLE, { computedAt: "2026-06-05", today });
+  assert.ok(snap, "snapshot should be non-null");
+
+  // weekly = 44 ET seasonality_score_at_scan reste 44 (compat ascendante).
+  assert.equal(snap.seasonality_weekly_score_at_scan, 44);
+  assert.equal(snap.seasonality_score_at_scan, 44);
+  assert.equal(snap.seasonality_weekly_win_rate_at_scan, snap.seasonality_win_rate_at_scan);
+
+  // fenêtre annuelle active : score 87, label, win rate.
+  assert.equal(snap.seasonality_annual_score_at_scan, 87);
+  assert.equal(snap.seasonality_annual_window_label_at_scan, "15 avr. → 15 juil.");
+  assert.equal(snap.seasonality_annual_win_rate_at_scan, 0.8);
+
+  // CSP / CC : nombres dérivés du header (calculés neutres sans contexte).
+  assert.equal(typeof snap.seasonality_csp_score_at_scan, "number");
+  assert.equal(typeof snap.seasonality_cc_score_at_scan, "number");
+
+  // Verdict + contexte lisibles.
+  assert.equal(typeof snap.seasonality_wheel_verdict_at_scan, "string");
+  assert.equal(
+    snap.seasonality_context_at_scan,
+    "Fenêtre annuelle favorable, score court terme neutre."
+  );
+});
+
+test("buildSnapshotFromBundle : champs V2 annuels NULL si aucune fenêtre active", () => {
+  // VALID_BUNDLE sans `today` actif sur la fenêtre → pas de fenêtre annuelle active.
+  const today = new Date("2026-01-15T12:00:00.000Z"); // hors 05-15 → 08-15
+  const snap = buildSnapshotFromBundle(VALID_BUNDLE, { computedAt: "2026-06-05", today });
+  assert.ok(snap);
+  assert.equal(snap.seasonality_annual_score_at_scan, null);
+  assert.equal(snap.seasonality_annual_win_rate_at_scan, null);
+  assert.equal(snap.seasonality_annual_window_label_at_scan, null);
+  // weekly inchangé / présent
+  assert.equal(typeof snap.seasonality_weekly_score_at_scan, "number");
+});
+
 // ── 9. PREUVE : aucun appel Yahoo / réseau possible depuis le helper ──────────
 test("le helper ne référence aucun import réseau / Yahoo ni appel live", () => {
   const here = path.dirname(fileURLToPath(import.meta.url));

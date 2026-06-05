@@ -154,6 +154,16 @@ function normalizeRecordToRow(record, nowIso = new Date().toISOString()) {
     seasonality_direction: record?.seasonality?.seasonality_direction ?? null,
     seasonality_confidence: record?.seasonality?.seasonality_confidence ?? null,
     seasonality_snapshot_version: record?.seasonality?.seasonality_snapshot_version ?? null,
+    // Patch Journal POP Snapshot V2 — colonnes décisionnelles séparées (NULL si absentes)
+    seasonality_weekly_score_at_scan: toReal(record?.seasonality?.seasonality_weekly_score_at_scan),
+    seasonality_weekly_win_rate_at_scan: toReal(record?.seasonality?.seasonality_weekly_win_rate_at_scan),
+    seasonality_annual_score_at_scan: toReal(record?.seasonality?.seasonality_annual_score_at_scan),
+    seasonality_annual_win_rate_at_scan: toReal(record?.seasonality?.seasonality_annual_win_rate_at_scan),
+    seasonality_annual_window_label_at_scan: record?.seasonality?.seasonality_annual_window_label_at_scan ?? null,
+    seasonality_csp_score_at_scan: toReal(record?.seasonality?.seasonality_csp_score_at_scan),
+    seasonality_cc_score_at_scan: toReal(record?.seasonality?.seasonality_cc_score_at_scan),
+    seasonality_wheel_verdict_at_scan: record?.seasonality?.seasonality_wheel_verdict_at_scan ?? null,
+    seasonality_context_at_scan: record?.seasonality?.seasonality_context_at_scan ?? null,
     // Phase 4A.3 — Earnings / Event Risk
     days_to_earnings: toInt(record?.eventRisk?.days_to_earnings),
     earnings_risk_flag: toIntBool(record?.eventRisk?.earnings_risk_flag),
@@ -383,6 +393,18 @@ export function createWheelValidationStoreSqlite(options = {}) {
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_confidence TEXT`);
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_snapshot_version TEXT`);
 
+    // Patch Journal POP Snapshot V2 — colonnes décisionnelles séparées (additive,
+    // nullable, dormante). N'altère PAS seasonality_score_at_scan ci-dessus.
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_weekly_score_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_weekly_win_rate_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_annual_score_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_annual_win_rate_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_annual_window_label_at_scan TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_csp_score_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_cc_score_at_scan REAL`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_wheel_verdict_at_scan TEXT`);
+    safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN seasonality_context_at_scan TEXT`);
+
     // Phase 4A.3 — Earnings / Event Risk snapshot
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN days_to_earnings INTEGER`);
     safeExec(conn, `ALTER TABLE wheel_validation_records ADD COLUMN earnings_risk_flag INTEGER`);
@@ -534,6 +556,10 @@ export function createWheelValidationStoreSqlite(options = {}) {
         seasonality_score_at_scan, seasonality_win_rate_at_scan,
         seasonality_best_window_start, seasonality_best_window_end,
         seasonality_direction, seasonality_confidence, seasonality_snapshot_version,
+        seasonality_weekly_score_at_scan, seasonality_weekly_win_rate_at_scan,
+        seasonality_annual_score_at_scan, seasonality_annual_win_rate_at_scan,
+        seasonality_annual_window_label_at_scan, seasonality_csp_score_at_scan,
+        seasonality_cc_score_at_scan, seasonality_wheel_verdict_at_scan, seasonality_context_at_scan,
         days_to_earnings, earnings_risk_flag, macro_event_risk_flag, fed_event_risk_flag, event_risk_score,
         iv_rank_at_scan, iv_percentile_at_scan, option_spread_pct_at_scan,
         open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
@@ -565,6 +591,10 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @seasonality_score_at_scan, @seasonality_win_rate_at_scan,
         @seasonality_best_window_start, @seasonality_best_window_end,
         @seasonality_direction, @seasonality_confidence, @seasonality_snapshot_version,
+        @seasonality_weekly_score_at_scan, @seasonality_weekly_win_rate_at_scan,
+        @seasonality_annual_score_at_scan, @seasonality_annual_win_rate_at_scan,
+        @seasonality_annual_window_label_at_scan, @seasonality_csp_score_at_scan,
+        @seasonality_cc_score_at_scan, @seasonality_wheel_verdict_at_scan, @seasonality_context_at_scan,
         @days_to_earnings, @earnings_risk_flag, @macro_event_risk_flag, @fed_event_risk_flag, @event_risk_score,
         @iv_rank_at_scan, @iv_percentile_at_scan, @option_spread_pct_at_scan,
         @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
@@ -659,6 +689,10 @@ export function createWheelValidationStoreSqlite(options = {}) {
         seasonality_score_at_scan, seasonality_win_rate_at_scan,
         seasonality_best_window_start, seasonality_best_window_end,
         seasonality_direction, seasonality_confidence, seasonality_snapshot_version,
+        seasonality_weekly_score_at_scan, seasonality_weekly_win_rate_at_scan,
+        seasonality_annual_score_at_scan, seasonality_annual_win_rate_at_scan,
+        seasonality_annual_window_label_at_scan, seasonality_csp_score_at_scan,
+        seasonality_cc_score_at_scan, seasonality_wheel_verdict_at_scan, seasonality_context_at_scan,
         days_to_earnings, earnings_risk_flag, macro_event_risk_flag, fed_event_risk_flag, event_risk_score,
         iv_rank_at_scan, iv_percentile_at_scan, option_spread_pct_at_scan,
         open_interest_at_scan, volume_at_scan, liquidity_score, options_quality_score,
@@ -690,6 +724,10 @@ export function createWheelValidationStoreSqlite(options = {}) {
         @seasonality_score_at_scan, @seasonality_win_rate_at_scan,
         @seasonality_best_window_start, @seasonality_best_window_end,
         @seasonality_direction, @seasonality_confidence, @seasonality_snapshot_version,
+        @seasonality_weekly_score_at_scan, @seasonality_weekly_win_rate_at_scan,
+        @seasonality_annual_score_at_scan, @seasonality_annual_win_rate_at_scan,
+        @seasonality_annual_window_label_at_scan, @seasonality_csp_score_at_scan,
+        @seasonality_cc_score_at_scan, @seasonality_wheel_verdict_at_scan, @seasonality_context_at_scan,
         @days_to_earnings, @earnings_risk_flag, @macro_event_risk_flag, @fed_event_risk_flag, @event_risk_score,
         @iv_rank_at_scan, @iv_percentile_at_scan, @option_spread_pct_at_scan,
         @open_interest_at_scan, @volume_at_scan, @liquidity_score, @options_quality_score,
@@ -796,6 +834,15 @@ export function createWheelValidationStoreSqlite(options = {}) {
         seasonality_direction=excluded.seasonality_direction,
         seasonality_confidence=excluded.seasonality_confidence,
         seasonality_snapshot_version=excluded.seasonality_snapshot_version,
+        seasonality_weekly_score_at_scan=excluded.seasonality_weekly_score_at_scan,
+        seasonality_weekly_win_rate_at_scan=excluded.seasonality_weekly_win_rate_at_scan,
+        seasonality_annual_score_at_scan=excluded.seasonality_annual_score_at_scan,
+        seasonality_annual_win_rate_at_scan=excluded.seasonality_annual_win_rate_at_scan,
+        seasonality_annual_window_label_at_scan=excluded.seasonality_annual_window_label_at_scan,
+        seasonality_csp_score_at_scan=excluded.seasonality_csp_score_at_scan,
+        seasonality_cc_score_at_scan=excluded.seasonality_cc_score_at_scan,
+        seasonality_wheel_verdict_at_scan=excluded.seasonality_wheel_verdict_at_scan,
+        seasonality_context_at_scan=excluded.seasonality_context_at_scan,
         days_to_earnings=excluded.days_to_earnings,
         earnings_risk_flag=excluded.earnings_risk_flag,
         macro_event_risk_flag=excluded.macro_event_risk_flag,

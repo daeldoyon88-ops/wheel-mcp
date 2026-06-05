@@ -117,6 +117,33 @@ function deriveDirection(score) {
 }
 
 /**
+ * Contexte court lisible (V2) — combine la fenêtre annuelle active et le label
+ * du score court terme. null si rien d'exploitable. Aucune invention :
+ * uniquement des libellés dérivés des scores déjà calculés.
+ */
+function buildContextText(weekly, annual, hasActiveAnnual) {
+  let annualPart = null;
+  if (hasActiveAnnual) {
+    const type = annual?.activeWindow?.type ?? null;
+    if (type === "bullish") annualPart = "Fenêtre annuelle favorable";
+    else if (type === "vigilance" || type === "bearish") annualPart = "Fenêtre annuelle défavorable";
+    else annualPart = "Fenêtre annuelle active";
+  }
+  const rawLabel = typeof weekly?.label === "string" ? weekly.label.trim().toLowerCase() : null;
+  const weeklyPart =
+    rawLabel && rawLabel !== "données insuffisantes" ? `score court terme ${rawLabel}` : null;
+
+  const parts = [];
+  if (annualPart) parts.push(annualPart);
+  else if (weeklyPart) parts.push("Aucune fenêtre annuelle active");
+  if (weeklyPart) parts.push(weeklyPart);
+
+  if (!parts.length) return null;
+  const joined = parts.join(", ");
+  return `${joined.charAt(0).toUpperCase()}${joined.slice(1)}.`;
+}
+
+/**
  * Construit un snapshot à partir d'un payload bundle déjà mis en cache.
  * Fonction pure (aucun I/O) — exportée pour les tests unitaires.
  *
@@ -176,7 +203,18 @@ export function buildSnapshotFromBundle(payload, meta = {}) {
     ? `${SEASONALITY_SNAPSHOT_VERSION}@${computedAt}`
     : SEASONALITY_SNAPSHOT_VERSION;
 
+  // ── Champs V2 (audit Journal POP) ─────────────────────────────────────────
+  // Décomposent les scores affichés dans l'analyse décisionnelle. Les anciens
+  // champs (ci-dessus) restent INCHANGÉS pour ne pas casser les audits existants.
+  // Tout champ absent du header ⇒ null (jamais inventé).
+  const csp = header?.cspScore ?? null;
+  const cc = header?.ccScore ?? null;
+  const verdict = header?.wheelVerdict ?? null;
+  const annualLabel = annual?.activeWindow?.displayLabel ?? null;
+  const annualWinRate = hasActiveAnnual ? toNum(annual?.activeWindow?.winRateAnnual) : null;
+
   return {
+    // ── Champs legacy (inchangés) ───────────────────────────────────────────
     seasonality_score_at_scan: score,
     seasonality_win_rate_at_scan: winRate,
     seasonality_best_window_start: bestStart,
@@ -184,6 +222,16 @@ export function buildSnapshotFromBundle(payload, meta = {}) {
     seasonality_direction: direction,
     seasonality_confidence: confidence,
     seasonality_snapshot_version: version,
+    // ── Champs V2 (nouveaux, nullable) ──────────────────────────────────────
+    seasonality_weekly_score_at_scan: weeklyScore,
+    seasonality_weekly_win_rate_at_scan: winRate,
+    seasonality_annual_score_at_scan: annualScore,
+    seasonality_annual_win_rate_at_scan: annualWinRate,
+    seasonality_annual_window_label_at_scan: annualLabel,
+    seasonality_csp_score_at_scan: toNum(csp?.score),
+    seasonality_cc_score_at_scan: toNum(cc?.score),
+    seasonality_wheel_verdict_at_scan: verdict?.label ?? null,
+    seasonality_context_at_scan: buildContextText(weekly, annual, hasActiveAnnual),
   };
 }
 

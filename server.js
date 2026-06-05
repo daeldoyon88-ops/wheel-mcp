@@ -38,6 +38,7 @@ import {
   summarizeAssignmentDepthCounts,
 } from "./app/journal/wheelValidationService.js";
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
+import { createTickerScanMemoryStore } from "./app/journal/tickerScanMemoryStore.js";
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
 import createCapitalCombinationRoutes from "./app/capital/capitalCombinationRoutes.js";
@@ -86,6 +87,13 @@ const wheelValidationService = createWheelValidationService({
   getHistoricalClose: (symbol, dateYmd) => marketService.getHistoricalClose(symbol, dateYmd),
   getHistoricalWindowMetrics: (symbol, scanDateYmd, expirationDateYmd) =>
     marketService.getHistoricalWindowMetrics(symbol, scanDateYmd, expirationDateYmd),
+});
+
+// Phase 1 — ticker_scan_memory : mémoire historique read-only par ticker.
+// N'altère NI la sélection du scan, NI le ranking, NI le scoring. Écrit après
+// chaque /ibkr/shadow/scan une fois les résultats IBKR connus.
+const tickerScanMemoryStore = createTickerScanMemoryStore({
+  sqlitePath: wheelValidationStore?.sqlitePath,
 });
 
 /** Snapshot dernier /universe/build pour fusion export forensic (YAHOO_FUNNEL_DIAGNOSTICS=1). */
@@ -973,6 +981,34 @@ app.get("/health", (_req, res) => {
 
 app.get("/metrics/scan", (_req, res) => {
   res.json(getScanMetricsSnapshot());
+});
+
+// Phase 1 — ticker_scan_memory : endpoints read-only. N'altèrent rien au scan.
+app.get("/ticker-scan-memory", async (req, res) => {
+  try {
+    const limit = toPositiveInt(req.query?.limit, 15);
+    const minTests = toPositiveInt(req.query?.minTests, 3);
+    const summary = await tickerScanMemoryStore.getSummary({ limit, minTests });
+    res.json({ ok: true, readOnly: true, ...summary });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error?.message || String(error) });
+  }
+});
+
+app.get("/ticker-scan-memory/:symbol", async (req, res) => {
+  try {
+    const symbol = String(req.params?.symbol || "").trim().toUpperCase();
+    if (!symbol) {
+      return res.status(400).json({ ok: false, error: "missing_symbol" });
+    }
+    const record = await tickerScanMemoryStore.getSymbol(symbol);
+    if (!record) {
+      return res.status(404).json({ ok: false, readOnly: true, symbol, found: false });
+    }
+    res.json({ ok: true, readOnly: true, found: true, record });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error?.message || String(error) });
+  }
 });
 
 app.post("/metrics/scan/reset", (_req, res) => {
@@ -2421,6 +2457,58 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       ibkrRequestedDepth: clampedAuditDepth,
       ibkrActualSent,
     };
+
+    // Phase 1 — ticker_scan_memory : enregistre les résultats APRÈS coup.
+    // Read-only vis-à-vis du scan : n'altère ni la sélection, ni le ranking, ni le scoring.
+    // Garde-fous (suspiciousEmpty, batch entièrement en erreur) gérés dans le store.
+    try {
+      const yahooRankBySymbol = new Map();
+      tickers.forEach((sym, idx) => {
+        yahooRankBySymbol.set(String(sym).trim().toUpperCase(), idx + 1);
+      });
+      const memoryEntries = [];
+      for (const cand of shortlist) {
+        const sym = String(cand?.symbol || "").trim().toUpperCase();
+        if (!sym) continue;
+        memoryEntries.push({
+          symbol: sym,
+          status: "kept",
+          reason: "OK",
+          spreadPct: numberOrNull(cand?.spreadPct),
+          premiumYield: numberOrNull(cand?.weeklyYield),
+          yahooRank: yahooRankBySymbol.get(sym) ?? null,
+        });
+      }
+      for (const rej of rejected) {
+        const sym = String(rej?.symbol || "").trim().toUpperCase();
+        if (!sym) continue;
+        // Forensics du rejet (best-effort) : spread/yield du meilleur put safe near-miss
+        // ou du strike agressif. Souvent null pour les no_data / timeout, ce qui est attendu.
+        const spreadPct = numberOrNull(rej?.bestSafeSpreadPct ?? rej?.aggressiveSpreadPct);
+        const yieldPct = numberOrNull(rej?.bestSafeYieldPct ?? rej?.aggressiveYieldPct);
+        memoryEntries.push({
+          symbol: sym,
+          status: rej?.status ?? "rejected",
+          reason: rej?.reason ?? null,
+          spreadPct,
+          premiumYield: yieldPct != null ? yieldPct / 100 : null,
+          yahooRank: yahooRankBySymbol.get(sym) ?? null,
+        });
+      }
+      const memoryResult = await tickerScanMemoryStore.recordScan({
+        entries: memoryEntries,
+        suspiciousEmpty: suspiciousIbkrEmpty,
+        scanTimestamp: scanCompletedAt,
+      });
+      if (memoryResult?.skipped) {
+        console.log("[TICKER_SCAN_MEMORY]", "skipped", memoryResult.reason, "entries", memoryEntries.length);
+      } else {
+        console.log("[TICKER_SCAN_MEMORY]", "updated", memoryResult?.updated ?? 0, "tickers");
+      }
+    } catch (memoryError) {
+      // Mémoire best-effort : ne jamais faire échouer le scan.
+      console.warn("[TICKER_SCAN_MEMORY]", "record error", memoryError?.message || String(memoryError));
+    }
 
     res.json({
       ok: true,

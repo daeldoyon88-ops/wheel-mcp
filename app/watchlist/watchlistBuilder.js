@@ -985,6 +985,25 @@ export function createWatchlistBuilder(deps) {
 
     const truncatedSymbols = keptRows.slice(limit).map((r) => r.symbol);
 
+    /**
+     * Snapshot read-only « Funnel Yahoo → IBKR » (diagnostic UI uniquement).
+     * Top 250 candidats classés tels quels, avec rang/score avant troncature limite.
+     * N'altère ni watchlist, ni limit, ni keptRows, ni scoring, ni filtres, ni sélection.
+     * Indépendant de YAHOO_FUNNEL_DIAGNOSTICS — toujours produit pour l'UI funnel.
+     */
+    const funnelTopCandidates = keptRows.slice(0, 250).map((r, i) => {
+      const excludedByLimit = i >= limit;
+      return {
+        symbol: r.symbol,
+        rankBeforeLimit: i + 1,
+        watchlistScore: r.watchlistScore,
+        sortScore: r.sortScore,
+        keptBeforeLimit: i < limit,
+        excludedByLimit,
+        reason: excludedByLimit ? "excluded_by_watchlist_limit" : null,
+      };
+    });
+
     const stats = {
       sourceCount: source.length,
       keptCount: watchlist.length,
@@ -993,6 +1012,8 @@ export function createWatchlistBuilder(deps) {
       truncated: overflow > 0 ? overflow : 0,
       /** Diagnostic seulement — symboles viables exclus par la limite watchlist (n’altère pas la sélection). */
       truncatedSymbols,
+      /** Diagnostic seulement — snapshot Top 250 classé pour le funnel Yahoo → IBKR (lecture seule). */
+      funnelTopCandidates,
       limitApplied: limit,
       priorityCount,
       tier1Count,

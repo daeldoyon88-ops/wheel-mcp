@@ -17,13 +17,13 @@ import { wheelShortlist } from "./data/wheelShortlist";
 import {
   buildOtmPoolSourceBannerMessage,
   buildOtmRebuildRequiredMessage,
-  buildPreIbkrCutTickerList,
   buildTickerPipelineDiagnostic,
   buildWatchlistRejectedBySymbol,
+  buildYahooIbkrFunnel,
   buildYahooRejectedBySymbol,
   isOtmRebuildRequired,
   normalizeTickerQueryForDiagnostic,
-  summarizePreIbkrCutByCategory,
+  summarizeYahooIbkrFunnel,
 } from "./tickerPipelineDiagnostic.js";
 import {
   normalizeExpirationKey,
@@ -9414,16 +9414,38 @@ function TickerPipelineDiagnosticPanel({ diagnostic }) {
   );
 }
 
-/** Panneau global — tickers coupés avant IBKR. */
-function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
+/** Libellé court du statut IBKR. */
+function formatIbkrFunnelStatus(status) {
+  switch (status) {
+    case "retained":
+      return "retenu";
+    case "rejected":
+      return "rejeté";
+    case "error":
+      return "erreur";
+    case "nonTested":
+      return "non testé";
+    default:
+      return status ?? "—";
+  }
+}
+
+/** Panneau global — funnel complet Yahoo → IBKR (Top 250 → shortlist → envoyés → retenus/rejetés). */
+function YahooIbkrFunnelPanel({ rows, summary, topN, ibkrSentCount, onExportCsv }) {
   if (!Array.isArray(rows) || rows.length === 0) return null;
+  const shortlistRequested = Number.isFinite(Number(topN)) ? Number(topN) : null;
+  const sentReal = Number.isFinite(Number(ibkrSentCount))
+    ? Number(ibkrSentCount)
+    : summary?.sentIbkr ?? 0;
+  const notSentFromShortlist =
+    shortlistRequested != null ? Math.max(0, shortlistRequested - sentReal) : summary?.notSentIbkr ?? 0;
   return (
     <div
       className="mt-4 rounded-xl border border-amber-900/40 bg-amber-950/15 p-3"
-      data-testid="pre-ibkr-cut-diagnostics"
+      data-testid="yahoo-ibkr-funnel-diagnostics"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium text-amber-100">Tickers coupés avant IBKR ({rows.length})</p>
+        <p className="font-medium text-amber-100">Funnel Yahoo → IBKR ({rows.length})</p>
         {typeof onExportCsv === "function" && (
           <button
             type="button"
@@ -9434,12 +9456,12 @@ function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
           </button>
         )}
       </div>
-      {summary?.counts && (
+      {summary && (
         <p className="mt-1 text-[11px] text-amber-200/80">
-          {Object.entries(summary.counts)
-            .filter(([, n]) => Number(n) > 0)
-            .map(([key, n]) => `${summary.labels?.[key] ?? key}: ${n}`)
-            .join(" · ")}
+          {`Top 250: ${summary.inTop250} · Shortlist utilisée: ${summary.inShortlist}`}
+          {shortlistRequested != null ? ` · Shortlist demandée (topN): ${shortlistRequested}` : ""}
+          {` · Envoyés IBKR: ${sentReal} · Non envoyés: ${notSentFromShortlist}`}
+          {` · Retenus: ${summary.retained} · Rejetés: ${summary.rejected} · Erreurs: ${summary.error} · Non testés: ${summary.nonTested}`}
         </p>
       )}
       <div className="mt-2 max-h-64 overflow-auto">
@@ -9447,30 +9469,28 @@ function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
           <thead>
             <tr className="border-b border-amber-900/40 text-left text-amber-200/70">
               <th className="px-2 py-1">Ticker</th>
-              <th className="px-2 py-1">Stage perdu</th>
-              <th className="px-2 py-1">Raison</th>
-              <th className="px-2 py-1">Universe</th>
-              <th className="px-2 py-1">Watchlist</th>
-              <th className="px-2 py-1">Yahoo</th>
-              <th className="px-2 py-1">Rejet Y.</th>
-              <th className="px-2 py-1">Crypto</th>
-              <th className="px-2 py-1">OTM</th>
-              <th className="px-2 py-1">Commentaire</th>
+              <th className="px-2 py-1">Rang Yahoo</th>
+              <th className="px-2 py-1">Score Yahoo</th>
+              <th className="px-2 py-1">Top 250</th>
+              <th className="px-2 py-1">Shortlist</th>
+              <th className="px-2 py-1">Envoyé IBKR</th>
+              <th className="px-2 py-1">Statut IBKR</th>
+              <th className="px-2 py-1">Étape perdue</th>
+              <th className="px-2 py-1">Raison exacte</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.ticker} className="border-b border-amber-950/50">
                 <td className="px-2 py-1 font-medium">{row.ticker}</td>
+                <td className="px-2 py-1">{row.yahooRank ?? "—"}</td>
+                <td className="px-2 py-1">{row.yahooScore ?? "—"}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.inTop250)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.inShortlist)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.sentIbkr)}</td>
+                <td className="px-2 py-1">{formatIbkrFunnelStatus(row.ibkrStatus)}</td>
                 <td className="px-2 py-1">{row.stageLost ?? "—"}</td>
-                <td className="px-2 py-1">{row.reason ?? "—"}</td>
-                <td className="px-2 py-1">{formatPipelineYesNo(row.wasInUniverse)}</td>
-                <td className="px-2 py-1">{formatPipelineYesNo(row.wasInWatchlist)}</td>
-                <td className="px-2 py-1">{formatPipelineYesNo(row.sentYahoo)}</td>
-                <td className="px-2 py-1">{formatPipelineYesNo(row.rejectedYahoo)}</td>
-                <td className="px-2 py-1">{formatPipelineYesNo(!row.cryptoBlocked)}</td>
-                <td className="px-2 py-1">{row.otmProbeStatus ?? "—"}</td>
-                <td className="px-2 py-1 text-amber-100/70">{row.comment ?? "—"}</td>
+                <td className="px-2 py-1 text-amber-100/70">{row.reason || "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -10568,9 +10588,10 @@ export default function Dashboard() {
     [lastScanPoolMeta.poolSource, preIbkrPoolMode]
   );
 
-  const preIbkrCutTickerList = useMemo(
+  const yahooIbkrFunnelList = useMemo(
     () =>
-      buildPreIbkrCutTickerList({
+      buildYahooIbkrFunnel({
+        funnelTopCandidates: watchlistStats?.funnelTopCandidates ?? [],
         watchlistTickers: watchlistTickers ?? [],
         watchlistRejectedBySymbol,
         watchlistTruncatedSymbols,
@@ -10579,10 +10600,12 @@ export default function Dashboard() {
         yahooRejectedBySymbol,
         yahooReturnedCandidates,
         ibkrDirectSentTickers,
+        ibkrDirectResult,
         preIbkrPoolMode,
         researchExpandedPool,
       }),
     [
+      watchlistStats,
       watchlistTickers,
       watchlistRejectedBySymbol,
       watchlistTruncatedSymbols,
@@ -10591,29 +10614,29 @@ export default function Dashboard() {
       yahooRejectedBySymbol,
       yahooReturnedCandidates,
       ibkrDirectSentTickers,
+      ibkrDirectResult,
       preIbkrPoolMode,
       researchExpandedPool,
     ]
   );
 
-  const preIbkrCutSummary = useMemo(
-    () => summarizePreIbkrCutByCategory(preIbkrCutTickerList),
-    [preIbkrCutTickerList]
+  const yahooIbkrFunnelSummary = useMemo(
+    () => summarizeYahooIbkrFunnel(yahooIbkrFunnelList),
+    [yahooIbkrFunnelList]
   );
 
-  const exportPreIbkrCutCsv = useCallback(() => {
+  const exportYahooIbkrFunnelCsv = useCallback(() => {
     const header = [
       "ticker",
+      "yahooRank",
+      "yahooScore",
+      "inTop250",
+      "inShortlist",
+      "sentIbkr",
+      "testedIbkr",
+      "ibkrStatus",
       "stageLost",
       "reason",
-      "wasInUniverse",
-      "wasInWatchlist",
-      "sentYahoo",
-      "rejectedYahoo",
-      "cryptoBlocked",
-      "otmProbeStatus",
-      "comment",
-      "category",
     ];
     const escape = (value) => {
       const s = String(value ?? "");
@@ -10623,7 +10646,7 @@ export default function Dashboard() {
     };
     const lines = [
       header.join(","),
-      ...preIbkrCutTickerList.map((row) =>
+      ...yahooIbkrFunnelList.map((row) =>
         header.map((key) => escape(row[key])).join(",")
       ),
     ];
@@ -10631,10 +10654,10 @@ export default function Dashboard() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `pre-ibkr-cut-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.download = `funnel-yahoo-ibkr-${new Date().toISOString().slice(0, 10)}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
-  }, [preIbkrCutTickerList]);
+  }, [yahooIbkrFunnelList]);
 
   const rememberTechnicalCandidates = useCallback((items) => {
     if (!Array.isArray(items) || items.length === 0) return;
@@ -12736,10 +12759,12 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-              <PreIbkrCutDiagnosticsPanel
-                rows={preIbkrCutTickerList}
-                summary={preIbkrCutSummary}
-                onExportCsv={exportPreIbkrCutCsv}
+              <YahooIbkrFunnelPanel
+                rows={yahooIbkrFunnelList}
+                summary={yahooIbkrFunnelSummary}
+                topN={topN}
+                ibkrSentCount={ibkrSentCount}
+                onExportCsv={exportYahooIbkrFunnelCsv}
               />
             </details>
           </div>

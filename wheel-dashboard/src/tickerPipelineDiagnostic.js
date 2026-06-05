@@ -592,6 +592,212 @@ export function buildPreIbkrCutTickerList(sources = {}, opts = {}) {
   return rows.slice(0, limit);
 }
 
+/**
+ * Funnel complet « Yahoo → IBKR » par symbole (lecture seule, aucun filtre de la sélection).
+ *
+ * Fusionne, sans rien exclure (y compris les tickers envoyés à IBKR) :
+ *  - stats.funnelTopCandidates  → rang Yahoo, score Yahoo, dans Top 250, dans shortlist
+ *  - yahooReturnedCandidates    → rang / score de repli si absent du snapshot Top 250
+ *  - ibkrDirectSentTickers      → envoyé IBKR
+ *  - ibkrDirectResult.testedSymbols / shortlist / rejected / errors → statut IBKR
+ *
+ * @param {object} sources snapshots dashboard
+ * @param {{ limit?: number }} [opts]
+ * @returns {Array<{
+ *   ticker: string,
+ *   yahooRank: number|null,
+ *   yahooScore: number|null,
+ *   inTop250: boolean,
+ *   inShortlist: boolean,
+ *   sentIbkr: boolean,
+ *   testedIbkr: boolean,
+ *   ibkrStatus: "retained"|"rejected"|"error"|"nonTested",
+ *   stageLost: string|null,
+ *   reason: string,
+ * }>}
+ */
+export function buildYahooIbkrFunnel(sources = {}, opts = {}) {
+  const limit = Math.max(1, Number(opts.limit) || 600);
+
+  const funnelTop = Array.isArray(sources.funnelTopCandidates)
+    ? sources.funnelTopCandidates
+    : [];
+  const yahooReturned = Array.isArray(sources.yahooReturnedCandidates)
+    ? sources.yahooReturnedCandidates
+    : [];
+  const ibkrResult = sources.ibkrDirectResult || null;
+
+  /** @type {Map<string, { rankBeforeLimit: number|null, watchlistScore: number|null, keptBeforeLimit: boolean, reason: string|null }>} */
+  const topBySym = new Map();
+  for (const r of funnelTop) {
+    const sym = normalizeSym(r?.symbol || r?.ticker);
+    if (!sym) continue;
+    topBySym.set(sym, {
+      rankBeforeLimit: Number.isFinite(Number(r?.rankBeforeLimit)) ? Number(r.rankBeforeLimit) : null,
+      watchlistScore: Number.isFinite(Number(r?.watchlistScore)) ? Number(r.watchlistScore) : null,
+      keptBeforeLimit: r?.keptBeforeLimit === true,
+      reason: r?.reason != null ? String(r.reason) : null,
+    });
+  }
+
+  /** @type {Map<string, { rank: number|null, score: number|null }>} */
+  const yahooBySym = new Map();
+  yahooReturned.forEach((row, idx) => {
+    const sym = normalizeSym(row?.ticker || row?.symbol);
+    if (!sym || yahooBySym.has(sym)) return;
+    const rank = Number.isFinite(Number(row?.rank)) ? Number(row.rank) : idx + 1;
+    const score = Number.isFinite(Number(row?.watchlistScore))
+      ? Number(row.watchlistScore)
+      : Number.isFinite(Number(row?.score))
+        ? Number(row.score)
+        : null;
+    yahooBySym.set(sym, { rank, score });
+  });
+
+  const shortlistSet = new Set(
+    (sources.tickersForScan || []).map(normalizeSym).filter(Boolean)
+  );
+  const sentSet = new Set(
+    (sources.ibkrDirectSentTickers || []).map(normalizeSym).filter(Boolean)
+  );
+  const testedSet = new Set(
+    (Array.isArray(ibkrResult?.testedSymbols) ? ibkrResult.testedSymbols : [])
+      .map(normalizeSym)
+      .filter(Boolean)
+  );
+  const retainedSet = new Set(
+    (Array.isArray(ibkrResult?.shortlist) ? ibkrResult.shortlist : [])
+      .map((r) => normalizeSym(r?.symbol || r?.ticker))
+      .filter(Boolean)
+  );
+  /** @type {Map<string, string>} */
+  const rejectedBySym = new Map();
+  for (const r of Array.isArray(ibkrResult?.rejected) ? ibkrResult.rejected : []) {
+    const sym = normalizeSym(r?.symbol || r?.ticker);
+    if (!sym) continue;
+    rejectedBySym.set(sym, ibkrRejectReason(r) || "Rejeté par IBKR");
+  }
+  /** @type {Map<string, string>} */
+  const errorBySym = new Map();
+  for (const r of Array.isArray(ibkrResult?.errors) ? ibkrResult.errors : []) {
+    const sym = normalizeSym(r?.symbol || r?.ticker);
+    if (!sym) continue;
+    errorBySym.set(sym, String(r?.message || r?.error || r?.reason || "erreur IBKR").trim() || "erreur IBKR");
+  }
+
+  const allSymbols = new Set();
+  for (const sym of topBySym.keys()) allSymbols.add(sym);
+  for (const sym of yahooBySym.keys()) allSymbols.add(sym);
+  for (const sym of shortlistSet) allSymbols.add(sym);
+  for (const sym of sentSet) allSymbols.add(sym);
+  for (const sym of testedSet) allSymbols.add(sym);
+  for (const sym of retainedSet) allSymbols.add(sym);
+  for (const sym of rejectedBySym.keys()) allSymbols.add(sym);
+  for (const sym of errorBySym.keys()) allSymbols.add(sym);
+
+  const rows = [];
+  for (const sym of allSymbols) {
+    const top = topBySym.get(sym) || null;
+    const yh = yahooBySym.get(sym) || null;
+
+    const inTop250 = top != null;
+    const inShortlist = top ? top.keptBeforeLimit : shortlistSet.has(sym);
+    const sentIbkr = sentSet.has(sym);
+    const testedIbkr = sentIbkr || testedSet.has(sym);
+
+    const yahooRank = top?.rankBeforeLimit ?? yh?.rank ?? null;
+    const yahooScore = top?.watchlistScore ?? yh?.score ?? null;
+
+    let ibkrStatus = "nonTested";
+    if (retainedSet.has(sym)) ibkrStatus = "retained";
+    else if (rejectedBySym.has(sym)) ibkrStatus = "rejected";
+    else if (errorBySym.has(sym)) ibkrStatus = "error";
+
+    let stageLost = null;
+    let reason = "";
+    if (!inTop250 && !inShortlist) {
+      stageLost = "top250";
+      reason =
+        resolveYahooAbsentReason(sym, sources) ||
+        resolvePreScanAbsentReason(sym, sources)?.display ||
+        "Hors Top 250 watchlist (rang > 250 ou non classé)";
+    } else if (!inShortlist) {
+      stageLost = "shortlist";
+      reason = top?.reason || "Hors shortlist demandée (exclu par la limite watchlist)";
+    } else if (!sentIbkr && !testedIbkr) {
+      stageLost = "ibkr_send";
+      reason = "Dans la shortlist mais non envoyé à IBKR (cap Audit Depth / topN ou scan non lancé)";
+    } else if (ibkrStatus === "rejected") {
+      stageLost = "ibkr_rejected";
+      reason = rejectedBySym.get(sym) || "Rejeté par IBKR";
+    } else if (ibkrStatus === "error") {
+      stageLost = "ibkr_error";
+      reason = errorBySym.get(sym) || "Erreur IBKR";
+    } else if (ibkrStatus === "nonTested" && testedIbkr) {
+      stageLost = "ibkr_no_result";
+      reason = "Envoyé à IBKR mais ni shortlist ni rejected enregistré";
+    } else if (ibkrStatus === "retained") {
+      stageLost = null;
+      reason = "Retenu IBKR";
+    } else {
+      stageLost = "ibkr_send";
+      reason = "Non envoyé à IBKR";
+    }
+
+    rows.push({
+      ticker: sym,
+      yahooRank,
+      yahooScore,
+      inTop250,
+      inShortlist,
+      sentIbkr,
+      testedIbkr,
+      ibkrStatus,
+      stageLost,
+      reason,
+    });
+  }
+
+  rows.sort((a, b) => {
+    const ra = a.yahooRank == null ? Number.POSITIVE_INFINITY : a.yahooRank;
+    const rb = b.yahooRank == null ? Number.POSITIVE_INFINITY : b.yahooRank;
+    if (ra !== rb) return ra - rb;
+    return String(a.ticker).localeCompare(String(b.ticker));
+  });
+
+  return rows.slice(0, limit);
+}
+
+/**
+ * Compteurs funnel Yahoo → IBKR (valeurs réelles, sans hardcoder 150).
+ * @param {ReturnType<typeof buildYahooIbkrFunnel>} rows
+ */
+export function summarizeYahooIbkrFunnel(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const counts = {
+    total: list.length,
+    inTop250: 0,
+    inShortlist: 0,
+    sentIbkr: 0,
+    notSentIbkr: 0,
+    retained: 0,
+    rejected: 0,
+    error: 0,
+    nonTested: 0,
+  };
+  for (const r of list) {
+    if (r.inTop250) counts.inTop250 += 1;
+    if (r.inShortlist) counts.inShortlist += 1;
+    if (r.sentIbkr) counts.sentIbkr += 1;
+    else counts.notSentIbkr += 1;
+    if (r.ibkrStatus === "retained") counts.retained += 1;
+    else if (r.ibkrStatus === "rejected") counts.rejected += 1;
+    else if (r.ibkrStatus === "error") counts.error += 1;
+    else counts.nonTested += 1;
+  }
+  return counts;
+}
+
 /** Comptes par catégorie pour la liste des coupés avant IBKR. */
 export function summarizePreIbkrCutByCategory(rows) {
   /** @type {Record<string, number>} */

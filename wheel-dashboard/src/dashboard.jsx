@@ -9544,7 +9544,7 @@ function memoryCount(value) {
   return value === null || value === undefined || !Number.isFinite(Number(value)) ? "—" : String(value);
 }
 
-function IbkrMemoryPanel({ apiBase }) {
+function IbkrMemoryPanel({ apiBase, refreshKey = 0 }) {
   const [open, setOpen] = useState(false);
   // idle | loading | ok | empty | error
   const [status, setStatus] = useState("idle");
@@ -9566,10 +9566,10 @@ function IbkrMemoryPanel({ apiBase }) {
     }
   }, [apiBase]);
 
-  // Chargement unique au montage du dashboard. Aucun polling, aucune boucle.
+  // Montage initial + refresh après chaque scan IBKR terminé (refreshKey). Pas de polling.
   useEffect(() => {
     loadMemory();
-  }, [loadMemory]);
+  }, [loadMemory, refreshKey]);
 
   const total = Number(data?.totalTickers) || 0;
   const shortHistory = status === "ok" && total < 40;
@@ -9931,6 +9931,7 @@ export default function Dashboard() {
   const [ibkrDirectMaxTickers, setIbkrDirectMaxTickers] = useState(10);
   const [ibkrDirectTopN, setIbkrDirectTopN] = useState(10);
   const [ibkrDirectLoading, setIbkrDirectLoading] = useState(false);
+  const [ibkrMemoryRefreshKey, setIbkrMemoryRefreshKey] = useState(0);
   const [ibkrDirectError, setIbkrDirectError] = useState("");
   const [ibkrDirectResult, setIbkrDirectResult] = useState(null);
   const [ibkrDirectSentTickers, setIbkrDirectSentTickers] = useState([]);
@@ -11408,6 +11409,7 @@ export default function Dashboard() {
         setRefreshStage("IBKR Direct Scan indisponible. Yahoo/fallback conservé.");
       } finally {
         setIbkrDirectLoading(false);
+        setIbkrMemoryRefreshKey((v) => v + 1);
         setTimeout(() => {
           setTimeout(() => logScanDisplayResult(scanId, displaySnapshotRef), 0);
         }, 0);
@@ -12055,6 +12057,7 @@ export default function Dashboard() {
       setIbkrDirectError(String(err?.message || err || "IBKR Direct Scan indisponible"));
     } finally {
       setIbkrDirectLoading(false);
+      setIbkrMemoryRefreshKey((v) => v + 1);
     }
   }, [
     ibkrDirectTickersForSend,
@@ -12128,6 +12131,7 @@ export default function Dashboard() {
       setIbkrDirectError(String(err?.message || err || "IBKR Direct Scan indisponible"));
     } finally {
       setIbkrDirectLoading(false);
+      setIbkrMemoryRefreshKey((v) => v + 1);
     }
   }, [selectedExpiration, ibkrDirectClientIdStart, applyIbkrDirectShortlistToPrimary]);
 
@@ -12439,7 +12443,7 @@ export default function Dashboard() {
           </React.Suspense>
         ) : activeView === "dashboard" ? (
           <>
-            <IbkrMemoryPanel apiBase={API_BASE} />
+            <IbkrMemoryPanel apiBase={API_BASE} refreshKey={ibkrMemoryRefreshKey} />
             <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>

@@ -18,6 +18,7 @@ import {
   enrichRecordWithTechnicalSnapshotFields,
 } from "./technicalSnapshot.js";
 import { buildSeasonalitySnapshotFromCache } from "./seasonalitySnapshot.js";
+import { isCryptoDigitalAssetBlocked } from "../watchlist/cryptoWheelFilter.js";
 
 function toNumberOrNull(value) {
   if (value == null) return null;
@@ -2796,7 +2797,11 @@ const DYNAMIC_TOP20_STATUS_LABELS = {
   stressed: "Stressé",
   exclude_high_yield: "À exclure malgré rendement",
   insufficient_sample: "Échantillon insuffisant",
+  exclude_crypto_blocked: "Exclu — crypto/digital asset bloqué",
 };
+
+/** Raison d'exclusion crypto/digital asset (sauf BITX) du laboratoire Top 20. */
+const TOP20_CRYPTO_BLOCK_REASON = "Exclu Top 20 : crypto/digital asset bloqué";
 
 const DYNAMIC_TOP20_CONTEXT_AVAILABILITY = {
   ivIntegrated: false,
@@ -3055,6 +3060,557 @@ function computeDynamicTop20LaboratoryScore(profile) {
   };
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+ * Formule compétitive Top 20 — E2b (candidate finale).
+ *
+ * Score compétitif = points de mérite + bonus résilience + bonus historique
+ * robuste − pénalités graduées.
+ *
+ * Portage fidèle de la simulation read-only validée
+ * (debug/top20FormulaE2bRobustHistorySim.mjs, variante E2b +8/+3) dans le moteur.
+ * Activée uniquement quand les enregistrements bruts (records) sont disponibles
+ * — sinon le scoring legacy `computeDynamicTop20LaboratoryScore` est conservé
+ * (compatibilité tests + appels sans records).
+ *
+ * Ne touche ni au Pine, ni à crypto-block, ni à selectedExpiration/dteAtScan.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const E2B_RANKING_FORMULA_VERSION = "E2b";
+const E2B_STRESS_KRACH_EXP = "2026-06-05";
+const E2B_EXPLOITABLE_MIN_SCORE = 35;
+const E2B_EXPLOITABLE_MIN_N = 10;
+const E2B_DTE_TARGETS = [2, 3, 4, 7];
+
+const E2B_CONFIG = {
+  meritWeights: { win: 1.12, yield: 1.2, lowAssign: 1.05, lbHeld: 1.12, stability: 1.05, sample: 1.0, shortDte: 1.0 },
+  resilWeights: { stressSurvival: 1.25, winMaintained: 1.2, lbHeldUnderStress: 1.25 },
+  resilCap: 30,
+  deepExpsPenalties: { 1: -6, 2: -22, 3: -36 },
+  winPenalties: { 50: -30, 70: -22, 75: -14, 80: -7 },
+  lbPenalties: { avec_stress: -10, critique: -20 },
+  assignPenalties: { 20: -10, 30: -17, 40: -26 },
+  deepRatePenalty: -6,
+  lbCritiqueReduced: true,
+  lbCritiqueReducedValue: -12,
+  stressKrachMultiplier: 1.25,
+  stressKrachLbBonus: 5,
+  hardExcludeStrict: true,
+  robustHistoryBaseBonus: 8,
+  robustHistoryExtraBonus: 3,
+};
+
+// ── helpers locaux (portés de la simulation pour fidélité 1:1) ────────────────
+const e2bSym = (v) => String(v ?? "").trim().toUpperCase();
+const e2bYmd = (v) => {
+  const c = String(v ?? "").trim().replace(/-/g, "");
+  return /^\d{8}$/.test(c) ? `${c.slice(0, 4)}-${c.slice(4, 6)}-${c.slice(6, 8)}` : null;
+};
+const e2bRound1 = (n) => (n == null ? null : Math.round(n * 10) / 10);
+const e2bClamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+const e2bNumberOrNull = (v) => {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+const e2bRecordResolved = (r) => (r?.resolution?.resolved ?? r?.resolved) === true;
+const e2bRecordAssigned = (r) =>
+  r?.resolution?.assigned === true || r?.assigned === true || r?.assigned === 1;
+const e2bAssignedFlag = (r) => {
+  if (r?.resolution?.assigned_flag === true || r?.resolution?.assigned === true) return true;
+  if (r?.resolution?.assigned_flag === false || r?.resolution?.assigned === false) return false;
+  if (r?.assigned_flag === true || r?.assigned === true) return true;
+  if (r?.assigned_flag === false || r?.assigned === false) return false;
+  return null;
+};
+const e2bStrikeOf = (r) =>
+  e2bNumberOrNull(r?.strike?.strike) ?? e2bNumberOrNull(r?.strike) ?? e2bNumberOrNull(r?.assignment_strike) ?? null;
+const e2bCloseOf = (r) =>
+  e2bNumberOrNull(r?.resolution?.underlying_close_at_expiration) ??
+  e2bNumberOrNull(r?.resolution?.expirationClosePrice) ??
+  e2bNumberOrNull(r?.underlying_close_at_expiration) ??
+  e2bNumberOrNull(r?.expirationClosePrice) ??
+  e2bNumberOrNull(r?.assignment_price) ??
+  null;
+const e2bDepthClass = (r) => {
+  if (e2bAssignedFlag(r) !== true) return "na";
+  const s = e2bStrikeOf(r);
+  const c = e2bCloseOf(r);
+  if (s == null || c == null || s <= 0) return "na";
+  const d = ((c - s) / s) * 100;
+  if (d <= 0 && d >= -1.5) return "proche";
+  if (d < -4) return "profonde";
+  if (d < -1.5) return "moderee";
+  return "na";
+};
+const e2bExpKey = (r) =>
+  String(r?.selectedExpiration ?? r?.expiration ?? "").trim().replace(/-/g, "") || null;
+
+/** Unicité événement par ticker — réplique la logique du panneau JournalPop. */
+function computeE2bTickerEventUniqueness(ticker, records) {
+  const t = e2bSym(ticker);
+  const eligible = records.filter((r) => {
+    const sym = e2bSym(r?.symbol ?? r?.ticker);
+    const dte = e2bNumberOrNull(r?.dteAtScan);
+    return (
+      sym === t &&
+      E2B_DTE_TARGETS.includes(dte) &&
+      e2bRecordResolved(r) &&
+      (r?.captureClass ?? "primaryDaily") !== "intradayRetest"
+    );
+  });
+  const totalN = eligible.length;
+  const assigned = eligible.filter((r) => e2bAssignedFlag(r) === true);
+  const deep = assigned.filter((r) => e2bDepthClass(r) === "profonde");
+  const distinctAsg = new Set(assigned.map(e2bExpKey).filter(Boolean));
+  const distinctDeep = new Set(deep.map(e2bExpKey).filter(Boolean));
+  let conc = null;
+  if (assigned.length) {
+    const c = {};
+    for (const r of assigned) {
+      const k = e2bExpKey(r) ?? "?";
+      c[k] = (c[k] ?? 0) + 1;
+    }
+    conc = (Math.max(...Object.values(c)) / assigned.length) * 100;
+  }
+  const assignmentRate = totalN ? (assigned.length / totalN) * 100 : null;
+  const distinctExpirationCount = new Set(eligible.map(e2bExpKey).filter(Boolean)).size;
+  return {
+    totalN,
+    assignmentRate,
+    distinctExpirationCount,
+    distinctAssignedExpirationCount: distinctAsg.size,
+    distinctDeepAssignmentExpirationCount: distinctDeep.size,
+    assignmentConcentrationPct: conc,
+    confirmedRepeatedRisk: (() => {
+      const multiDeep = distinctDeep.size >= 2;
+      const multiAssignHigh = (assignmentRate ?? 0) > 20 && distinctAsg.size >= 2;
+      return multiDeep || multiAssignHigh;
+    })(),
+  };
+}
+
+/**
+ * Contexte E2b partagé : agrégation par ticker×expiration, stress de marché par
+ * expiration, et unicité événement par ticker. Calculé une fois par appel.
+ */
+function buildE2bContext(records, todayYmd) {
+  const byTickerExp = new Map();
+  for (const r of records) {
+    if (!e2bRecordResolved(r)) continue;
+    if ((r?.captureClass ?? "primaryDaily") === "intradayRetest") continue;
+    const exp = e2bYmd(r?.expiration ?? r?.expirationCohort);
+    if (!exp || exp >= todayYmd) continue;
+    const t = e2bSym(r?.symbol ?? r?.ticker);
+    if (!t) continue;
+    if (!byTickerExp.has(t)) byTickerExp.set(t, new Map());
+    const m = byTickerExp.get(t);
+    if (!m.has(exp)) m.set(exp, { n: 0, assigned: 0, deep: 0 });
+    const cell = m.get(exp);
+    cell.n += 1;
+    if (e2bRecordAssigned(r)) {
+      cell.assigned += 1;
+      if (classifyAssignmentDepth(r).assignmentDepthClass === "profonde") cell.deep += 1;
+    }
+  }
+
+  const expAgg = new Map();
+  for (const m of byTickerExp.values()) {
+    for (const [exp, c] of m) {
+      if (!expAgg.has(exp)) expAgg.set(exp, { n: 0, assigned: 0, deep: 0 });
+      const a = expAgg.get(exp);
+      a.n += c.n;
+      a.assigned += c.assigned;
+      a.deep += c.deep;
+    }
+  }
+  const expStress = new Map();
+  for (const [exp, a] of expAgg) {
+    const assignedPct = a.n ? (a.assigned / a.n) * 100 : 0;
+    const deepOfAssignedPct = a.assigned ? (a.deep / a.assigned) * 100 : 0;
+    let weight = 0;
+    let tier = "none";
+    if (assignedPct >= 45) {
+      weight = 1.0;
+      tier = "severe";
+    } else if (assignedPct >= 25) {
+      weight = 0.5;
+      tier = "moderate";
+    } else if (assignedPct >= 15) {
+      weight = 0.25;
+      tier = "mild";
+    }
+    expStress.set(exp, {
+      assignedPct: e2bRound1(assignedPct),
+      deepOfAssignedPct: e2bRound1(deepOfAssignedPct),
+      weight,
+      tier,
+    });
+  }
+
+  return { byTickerExp, expStress };
+}
+
+function computeE2bResilienceProfile(ticker, profile, ctx) {
+  const m = ctx.byTickerExp.get(ticker) ?? new Map();
+  const win = profile?.csp?.realWinRate;
+  const exps = [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const totalExps = exps.length;
+  const deepExps = exps.filter(([, c]) => c.deep > 0).length;
+  const cleanExps = exps.filter(([, c]) => c.deep === 0 && (c.n ? c.assigned / c.n : 0) <= 0.34).length;
+
+  const perStress = [];
+  let krachSurvived = false;
+  let krachLbHeld = false;
+  for (const [exp, c] of exps) {
+    const s = ctx.expStress.get(exp);
+    if (!s || s.weight === 0) continue;
+    const assignedPct = c.n ? (c.assigned / c.n) * 100 : 0;
+    let bonus = 0;
+    let kind = null;
+    if (c.assigned === 0) {
+      bonus = s.tier === "severe" ? 10 : s.tier === "moderate" ? 6 : 4;
+      kind = "non_assigné_pendant_stress";
+      if (exp === E2B_STRESS_KRACH_EXP) krachSurvived = true;
+    } else if (c.deep === 0 && assignedPct <= 50 && win != null && win >= 70) {
+      bonus = s.tier === "severe" ? 5 : 3;
+      kind = "assigné_mais_contenu";
+    }
+    if (exp === E2B_STRESS_KRACH_EXP && c.assigned === 0) krachLbHeld = true;
+    perStress.push({ expiration: exp, tier: s.tier, bonus, kind });
+  }
+  const lbClass = profile?.lowerBoundStress?.lbStressClass ?? "none";
+  if (krachSurvived && (lbClass === "sans_dommage" || lbClass === "none" || lbClass === "non_problématique")) {
+    krachLbHeld = true;
+  }
+  return { totalExps, deepExps, cleanExps, perStress, krachSurvived, krachLbHeld };
+}
+
+function e2bMeritWin(win) {
+  if (win == null) return 0;
+  if (win >= 95) return 25;
+  if (win >= 90) return 22;
+  if (win >= 85) return 18;
+  if (win >= 80) return 14;
+  if (win >= 75) return 8;
+  if (win >= 70) return 3;
+  return 0;
+}
+function e2bMeritYield(yld) {
+  if (yld == null) return 0;
+  if (yld >= 1.1) return 20;
+  if (yld >= 1.0) return 18;
+  if (yld >= 0.9) return 15;
+  if (yld >= 0.8) return 11;
+  if (yld >= 0.7) return 6;
+  if (yld >= 0.6) return 3;
+  return 0;
+}
+function e2bMeritLowAssign(assign) {
+  if (assign == null) return 0;
+  if (assign === 0) return 15;
+  if (assign <= 5) return 12;
+  if (assign <= 10) return 9;
+  if (assign <= 15) return 6;
+  if (assign <= 20) return 3;
+  return 0;
+}
+function e2bMeritLbHeld(lbClass) {
+  if (lbClass === "sans_dommage") return 15;
+  if (lbClass === "none" || lbClass === "non_problématique") return 12;
+  if (lbClass === "non_determinant") return 6;
+  return 0;
+}
+
+/** Bonus historique robuste E2b (+8 base, +3 si n≥45 & win≥85 %). */
+function computeE2bRobustHistoryBonus(profile, uniqueness, cryptoBlocked, hardExclude) {
+  const n = profile?.csp?.recordsResolved ?? 0;
+  const win = profile?.csp?.realWinRate;
+  const assign = profile?.csp?.assignmentRate;
+  const lbClass = profile?.lowerBoundStress?.lbStressClass ?? "none";
+  const baseAmount = E2B_CONFIG.robustHistoryBaseBonus;
+  const extraAmount = E2B_CONFIG.robustHistoryExtraBonus;
+
+  const blocked = [];
+  if (cryptoBlocked) blocked.push("crypto bloqué");
+  if (hardExclude.length > 0) blocked.push("exclusion dure");
+  if (n < 30) blocked.push(`n=${n} < 30`);
+  if (win == null || win < 85) blocked.push(`win ${win ?? "—"} % < 85 %`);
+  if (assign != null && assign > 25) blocked.push(`assignation ${assign} % > 25 %`);
+  if (lbClass === "critique" && (win == null || win < 85)) blocked.push("LB critique + win < 85 %");
+  if (uniqueness.distinctDeepAssignmentExpirationCount !== 1) {
+    blocked.push(`${uniqueness.distinctDeepAssignmentExpirationCount} exp. profondes distinctes (≠ 1)`);
+  }
+  const assignConcentrated =
+    uniqueness.distinctAssignedExpirationCount <= 1 ||
+    (uniqueness.assignmentConcentrationPct != null && uniqueness.assignmentConcentrationPct >= 99.9);
+  if (!assignConcentrated) {
+    blocked.push(`assignation sur ${uniqueness.distinctAssignedExpirationCount} expirations distinctes`);
+  }
+  if (uniqueness.confirmedRepeatedRisk) blocked.push("risque confirmé répété");
+
+  if (blocked.length) {
+    return { bonus: 0, baseBonus: 0, extraBonus: 0, eligible: false, blocked, reasons: blocked.join(" · ") };
+  }
+
+  const reasons = [];
+  let extraBonus = 0;
+  if (n >= 45 && win >= 85) {
+    extraBonus = extraAmount;
+    reasons.push(`+${baseAmount} base historique robuste`);
+    reasons.push(`+${extraAmount} échantillon large (n≥45, win≥85 %)`);
+  } else {
+    reasons.push(`+${baseAmount} base historique robuste (n≥30, win≥85 %, 1 exp. profonde, risque événement unique)`);
+  }
+  return { bonus: baseAmount + extraBonus, baseBonus: baseAmount, extraBonus, eligible: true, blocked: [], reasons: reasons.join(" · ") };
+}
+
+/**
+ * Score compétitif E2b complet pour un profil, avec ventilation et exclusions
+ * dures (souples) — voir spécification E2b.
+ */
+function computeE2bCompetitiveScore(profile, ctx, eventUniqueness, cryptoBlocked) {
+  const ticker = e2bSym(profile?.ticker);
+  const cfg = E2B_CONFIG;
+  const n = profile?.csp?.recordsResolved ?? 0;
+  const win = profile?.csp?.realWinRate;
+  const yld = profile?.csp?.avgYieldPct;
+  const assign = profile?.csp?.assignmentRate;
+  const touch = profile?.csp?.strikeTouchRate;
+  const lbClass = profile?.lowerBoundStress?.lbStressClass ?? "none";
+  const profonde = profile?.assignment?.profondeRatePct;
+  const res = computeE2bResilienceProfile(ticker, profile, ctx);
+  const mw = cfg.meritWeights;
+
+  // A) Points de mérite
+  const merit = {};
+  merit.win = Math.round(e2bMeritWin(win) * mw.win);
+  merit.yield = Math.round(e2bMeritYield(yld) * mw.yield);
+  merit.lowAssign = Math.round(e2bMeritLowAssign(assign) * mw.lowAssign);
+  merit.lbHeld = Math.round(e2bMeritLbHeld(lbClass) * mw.lbHeld);
+  if (res.totalExps >= 3) merit.stability = Math.round(10 * (res.cleanExps / res.totalExps) * mw.stability);
+  else if (res.totalExps === 2) merit.stability = Math.round(6 * (res.cleanExps / res.totalExps) * mw.stability);
+  else merit.stability = 0;
+  merit.sample = Math.round(
+    (n >= 50 ? 10 : n >= 30 ? 8 : n >= 20 ? 6 : n >= 15 ? 4 : n >= 10 ? 2 : n >= 5 ? 1 : 0) * mw.sample,
+  );
+  if (touch != null) merit.shortDte = Math.round((touch <= 20 ? 5 : touch <= 30 ? 2 : 0) * mw.shortDte);
+  else merit.shortDte = 0;
+
+  // B) Bonus résilience (plafonné)
+  const resil = {};
+  let resBonus = 0;
+  for (const s of res.perStress) {
+    let b = s.bonus;
+    if (s.expiration === E2B_STRESS_KRACH_EXP && cfg.stressKrachMultiplier) {
+      b = Math.round(b * cfg.stressKrachMultiplier);
+    }
+    resBonus += b;
+  }
+  resil.stressSurvival = Math.round(resBonus * (cfg.resilWeights.stressSurvival ?? 1));
+  if (win != null && win >= 85 && res.perStress.length > 0) {
+    resil.winMaintained = Math.round(5 * (cfg.resilWeights.winMaintained ?? 1));
+  }
+  if (
+    (lbClass === "sans_dommage" || lbClass === "none" || lbClass === "non_problématique") &&
+    res.perStress.some((s) => s.tier === "severe")
+  ) {
+    resil.lbHeldUnderStress = Math.round(5 * (cfg.resilWeights.lbHeldUnderStress ?? 1));
+  }
+  if (cfg.stressKrachLbBonus && res.krachLbHeld) {
+    resil.krachLbHeld = cfg.stressKrachLbBonus;
+  }
+  let resilTotal = Object.values(resil).reduce((a, b) => a + b, 0);
+  if (resilTotal > cfg.resilCap) {
+    resil._cap = cfg.resilCap - resilTotal;
+    resilTotal = cfg.resilCap;
+  }
+
+  // D) Pénalités graduées
+  const pen = {};
+  const dp = cfg.deepExpsPenalties;
+  if (res.deepExps === 1) pen.deepExps = dp[1];
+  else if (res.deepExps === 2) pen.deepExps = dp[2];
+  else if (res.deepExps >= 3) pen.deepExps = dp[3];
+
+  const wp = cfg.winPenalties;
+  if (win != null) {
+    if (win < 50) pen.win = wp[50];
+    else if (win < 70) pen.win = wp[70];
+    else if (win < 75) pen.win = wp[75];
+    else if (win < 80) pen.win = wp[80];
+  }
+
+  const lp = cfg.lbPenalties;
+  if (lbClass === "avec_stress") pen.lb = lp.avec_stress;
+  else if (lbClass === "critique") {
+    if (cfg.lbCritiqueReduced && win != null && win >= 85 && res.deepExps === 1) {
+      pen.lb = cfg.lbCritiqueReducedValue;
+      pen.lbNote = "LB critique réduit (win≥85 %, 1 exp profonde)";
+    } else {
+      pen.lb = lp.critique;
+    }
+  }
+
+  const ap = cfg.assignPenalties;
+  if (assign != null) {
+    if (assign > 40) pen.assign = ap[40];
+    else if (assign > 30) pen.assign = ap[30];
+    else if (assign > 20) pen.assign = ap[20];
+  }
+  if (profonde != null && profonde >= 50 && res.deepExps >= 1) pen.deepRate = cfg.deepRatePenalty;
+
+  const meritTotal = Object.values(merit).reduce((a, b) => a + b, 0);
+  const penTotal = Object.values(pen).filter((v) => typeof v === "number").reduce((a, b) => a + b, 0);
+
+  // Exclusions dures (souples) — ne restent que pour le risque confirmé répété
+  // et les données critiques absentes.
+  const hardExclude = [];
+  if (lbClass === "critique" && (res.deepExps >= 2 || (win != null && win < 70) || (assign != null && assign > 35))) {
+    hardExclude.push("Risque confirmé répété : LB critique + (≥2 expirations profondes ou win<70 % ou assignation>35 %)");
+  }
+  if (cfg.hardExcludeStrict && lbClass === "critique" && res.deepExps >= 1 && win != null && win < 80 && assign != null && assign > 25) {
+    hardExclude.push("Garde-fou défensif : LB critique + assignation>25 % + win<80 %");
+  }
+  if (n === 0 || profile?.csp == null) hardExclude.push("Données critiques absentes");
+
+  // C) Bonus historique robuste E2b
+  const bonus = {};
+  const robustBonus = computeE2bRobustHistoryBonus(profile, eventUniqueness, cryptoBlocked, hardExclude);
+  if (robustBonus.bonus > 0) bonus.robustHistory = robustBonus.bonus;
+
+  let scoreBeforeCap = meritTotal + resilTotal + penTotal + robustBonus.bonus;
+
+  let cap = null;
+  if (n < 5) cap = 25;
+  else if (n < 10) cap = 50;
+  else if (n < 15) cap = 65;
+  else if (n < 30) cap = 85;
+  const cappedBy = cap != null && scoreBeforeCap > cap ? cap : null;
+  let score = scoreBeforeCap;
+  if (cap != null && score > cap) score = cap;
+  score = e2bClamp(score, -50, 100);
+
+  const mainReason = buildE2bMainReason({ merit, pen, resilTotal, robustBonus, res, hardExclude });
+
+  return {
+    score: e2bRound1(score),
+    meritTotal,
+    resilTotal,
+    penTotal,
+    bonusTotal: robustBonus.bonus,
+    cappedBy,
+    merit,
+    resil,
+    pen,
+    bonus,
+    resilience: res,
+    hardExclude,
+    mainReason,
+    robustHistoryBonus: robustBonus,
+    stressSurvivalBonus: resil.stressSurvival ?? 0,
+    distinctExpirationCount: eventUniqueness.distinctExpirationCount ?? 0,
+    distinctAssignedExpirationCount: eventUniqueness.distinctAssignedExpirationCount ?? 0,
+    distinctDeepAssignmentExpirationCount: eventUniqueness.distinctDeepAssignmentExpirationCount ?? 0,
+  };
+}
+
+function buildE2bMainReason(ctx) {
+  if (ctx.hardExclude.length) return ctx.hardExclude[0];
+  const parts = [];
+  const topMerit = Object.entries(ctx.merit).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 2);
+  for (const [k, v] of topMerit) parts.push(`+${v} ${k}`);
+  if (ctx.resilTotal > 0) parts.push(`résilience +${ctx.resilTotal}`);
+  if (ctx.robustBonus?.bonus > 0) parts.push(`historique robuste +${ctx.robustBonus.bonus}`);
+  const topPen = Object.entries(ctx.pen).filter(([, v]) => typeof v === "number" && v < 0).sort((a, b) => a[1] - b[1]).slice(0, 2);
+  for (const [k, v] of topPen) parts.push(`${v} ${k}`);
+  if (ctx.res.krachSurvived) parts.push("survivant krach 06-05");
+  return parts.slice(0, 5).join(" · ") || "profil neutre";
+}
+
+/**
+ * Pipeline E2b : score compétitif + classement relatif + buckets.
+ * Remplace les exclusions binaires brutales par des pénalités graduées : un
+ * ticker faible descend dans le classement au lieu de disparaître. Les
+ * exclusions dures ne restent que pour crypto-block, données critiques absentes,
+ * risque confirmé répété, et échantillon inutilisable.
+ */
+function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlockedSet) {
+  const ctx = buildE2bContext(records, todayYmd);
+
+  const scored = tickerProfiles.map((profile) => {
+    const ticker = e2bSym(profile?.ticker);
+    const cryptoBlocked = cryptoBlockedSet.has(ticker);
+    const uniqueness = computeE2bTickerEventUniqueness(ticker, records);
+    const e2b = computeE2bCompetitiveScore(profile, ctx, uniqueness, cryptoBlocked);
+    return {
+      profile,
+      ticker,
+      n: profile?.csp?.recordsResolved ?? 0,
+      yieldPct: profile?.csp?.avgYieldPct ?? null,
+      verdict: profile?.primaryVerdict ?? "",
+      lbClass: profile?.lowerBoundStress?.lbStressClass ?? "none",
+      cryptoBlocked,
+      uniqueness,
+      e2b,
+    };
+  });
+
+  const rankable = scored.filter((s) => !s.cryptoBlocked && s.e2b.hardExclude.length === 0);
+  rankable.sort(
+    (a, b) =>
+      b.e2b.score - a.e2b.score ||
+      b.n - a.n ||
+      (b.yieldPct ?? -1) - (a.yieldPct ?? -1) ||
+      a.ticker.localeCompare(b.ticker),
+  );
+
+  const exploitable = rankable.filter(
+    (s) => s.e2b.score >= E2B_EXPLOITABLE_MIN_SCORE && s.n >= E2B_EXPLOITABLE_MIN_N,
+  );
+  const bucketByTicker = new Map();
+  let rank = 0;
+
+  const top20List = exploitable.slice(0, 20);
+  const top20Set = new Set(top20List.map((s) => s.ticker));
+  for (const s of top20List) {
+    rank += 1;
+    bucketByTicker.set(s.ticker, { bucket: "top20", rank });
+  }
+
+  const rest = rankable.filter((s) => !top20Set.has(s.ticker));
+  const nearEntryList = rest.filter((s) => s.e2b.score >= 20 && s.n >= 5).slice(0, 12);
+  const nearSet = new Set(nearEntryList.map((s) => s.ticker));
+  for (const s of nearEntryList) {
+    rank += 1;
+    bucketByTicker.set(s.ticker, { bucket: "nearEntry", rank });
+  }
+
+  const watchList = rest.filter((s) => !nearSet.has(s.ticker) && s.n >= 5 && s.e2b.score >= 0);
+  const watchSet = new Set(watchList.map((s) => s.ticker));
+  for (const s of watchList) {
+    rank += 1;
+    bucketByTicker.set(s.ticker, { bucket: "watchValidate", rank });
+  }
+
+  // Reste (score < 0, ou n < 5) : ne disparaît pas — descend en bas / surveillé /
+  // exclu. On le ventile entre stressé, échantillon insuffisant, et exclus.
+  const lowList = rest.filter((s) => !nearSet.has(s.ticker) && !watchSet.has(s.ticker));
+  for (const s of lowList) {
+    let bucket;
+    if (s.n < 5) bucket = "insufficientSample";
+    else if (s.verdict === "1 % stressé" || s.lbClass === "avec_stress") bucket = "stressed";
+    else bucket = "excludedHighYield";
+    bucketByTicker.set(s.ticker, { bucket, rank: null });
+  }
+
+  // Exclusions dures (risque confirmé répété / données critiques absentes).
+  for (const s of scored.filter((r) => !r.cryptoBlocked && r.e2b.hardExclude.length > 0)) {
+    bucketByTicker.set(s.ticker, { bucket: "excludedHighYield", rank: null });
+  }
+
+  return { ctx, scored, bucketByTicker, top20Count: top20List.length, exploitableCount: exploitable.length };
+}
+
 function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
   const n = profile?.csp?.recordsResolved ?? 0;
   const scoring = computeDynamicTop20LaboratoryScore(profile);
@@ -3072,6 +3628,40 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
       : getExperimentalTop20IneligibilityReasons(profile, false).filter(
           (reason) => !reason.includes("échantillon"),
         );
+
+  // Diagnostic E2b — quand le pipeline compétitif est actif, le score E2b devient
+  // le score affiché (dynamicTop20Score) et toute la ventilation est exposée.
+  const e2b = extra.e2b ?? null;
+  const e2bMetaFields = extra.e2bMetaFields ?? {};
+  const e2bFields = e2b
+    ? {
+        dynamicTop20Score: e2b.score,
+        dynamicTop20ScoreLegacy: scoring.dynamicTop20Score,
+        competitiveScoreV2: e2b.score,
+        competitiveScoreBreakdown: {
+          meritTotal: e2b.meritTotal,
+          resilTotal: e2b.resilTotal,
+          penTotal: e2b.penTotal,
+          robustHistoryBonus: e2b.bonusTotal,
+          cappedBy: e2b.cappedBy,
+          merit: e2b.merit,
+          resil: e2b.resil,
+          penalties: e2b.pen,
+          mainReason: e2b.mainReason,
+        },
+        meritPoints: e2b.meritTotal,
+        resiliencePoints: e2b.resilTotal,
+        robustHistoryBonus: e2b.bonusTotal,
+        robustHistoryBonusDetail: e2b.robustHistoryBonus,
+        penaltyPoints: e2b.penTotal,
+        distinctExpirationCount: e2b.distinctExpirationCount,
+        distinctAssignedExpirationCount: e2b.distinctAssignedExpirationCount,
+        distinctDeepAssignmentExpirationCount: e2b.distinctDeepAssignmentExpirationCount,
+        stressSurvivalBonus: e2b.stressSurvivalBonus,
+        hardExclusionReasonsV2: e2b.hardExclude,
+        rankingFormulaVersion: E2B_RANKING_FORMULA_VERSION,
+      }
+    : {};
 
   return {
     rank,
@@ -3099,6 +3689,8 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
     primaryReason: profile?.verdictReasons?.[0] ?? profile?.primaryVerdict ?? null,
     verdictReasons: profile?.verdictReasons ?? [],
     ...summarizeOptionQuoteDiagnosticsFromProfile(profile),
+    ...e2bMetaFields,
+    ...e2bFields,
   };
 }
 
@@ -3115,11 +3707,152 @@ function summarizeOptionQuoteDiagnosticsFromProfile(profile) {
 }
 
 /**
+ * Construit le résultat Top 20 via le pipeline compétitif E2b et le projette sur
+ * la même structure de retour que le moteur legacy (mêmes buckets et champs),
+ * en ajoutant les champs de diagnostic E2b à chaque ligne. L'UI reste compatible.
+ */
+function buildDynamicTop20E2bResult({
+  tickerProfiles,
+  records,
+  todayYmd,
+  cryptoBlockedProfiles,
+  asOfDate,
+}) {
+  const cryptoBlockedSet = new Set(
+    (cryptoBlockedProfiles ?? []).map((p) => e2bSym(p?.ticker)),
+  );
+  const e2bResult = computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlockedSet);
+  const { scored, bucketByTicker } = e2bResult;
+
+  const sortByRank = (a, b) => (a._rank ?? 1e9) - (b._rank ?? 1e9);
+
+  // Regrouper par bucket en conservant le rang relatif E2b.
+  const grouped = {
+    top20: [],
+    nearEntry: [],
+    watchValidate: [],
+    stressed: [],
+    excludedHighYield: [],
+    insufficientSample: [],
+  };
+  for (const s of scored) {
+    const placement = bucketByTicker.get(s.ticker) ?? { bucket: "excludedHighYield", rank: null };
+    const target = grouped[placement.bucket] ?? grouped.excludedHighYield;
+    target.push({ ...s, _rank: placement.rank });
+  }
+  for (const key of Object.keys(grouped)) grouped[key].sort(sortByRank);
+
+  const buildRow = (s, displayRank, status) => {
+    const hardReasons = s.e2b.hardExclude ?? [];
+    let exclusionReasons = [];
+    if (status === "exclude_high_yield") {
+      exclusionReasons = hardReasons.length > 0 ? hardReasons : [s.e2b.mainReason];
+    } else if (status === "stressed") {
+      exclusionReasons = [s.e2b.mainReason];
+    }
+    return mapDynamicTop20ProfileRow(s.profile, displayRank, status, {
+      e2b: s.e2b,
+      ...(exclusionReasons.length > 0 ? { top20ExclusionReasons: exclusionReasons } : {}),
+    });
+  };
+
+  const top20 = grouped.top20.map((s, i) => buildRow(s, i + 1, "top20_experimental"));
+  const nearEntry = grouped.nearEntry.map((s, i) => buildRow(s, top20.length + i + 1, "near_entry"));
+  const watchValidate = grouped.watchValidate.map((s, i) => buildRow(s, i + 1, "watch_validate"));
+  const stressed = grouped.stressed.map((s, i) => buildRow(s, i + 1, "stressed"));
+  const excludedHighYield = grouped.excludedHighYield.map((s, i) => buildRow(s, i + 1, "exclude_high_yield"));
+  const insufficientSample = grouped.insufficientSample.map((s, i) =>
+    buildRow(s, i + 1, "insufficient_sample"),
+  );
+  const excludedCrypto = (cryptoBlockedProfiles ?? [])
+    .slice()
+    .sort((a, b) => String(a?.ticker ?? "").localeCompare(String(b?.ticker ?? "")))
+    .map((profile, index) =>
+      mapDynamicTop20ProfileRow(profile, index + 1, "exclude_crypto_blocked", {
+        top20ExclusionReasons: [TOP20_CRYPTO_BLOCK_REASON],
+        e2bMetaFields: {
+          hardExclusionReasonsV2: [TOP20_CRYPTO_BLOCK_REASON],
+          rankingFormulaVersion: E2B_RANKING_FORMULA_VERSION,
+        },
+      }),
+    );
+
+  return {
+    ok: true,
+    asOfDate,
+    top20,
+    nearEntry,
+    watchValidate,
+    excludedHighYield,
+    stressed,
+    insufficientSample,
+    excludedCrypto,
+    summary: {
+      totalProfiles: tickerProfiles.length,
+      top20Count: top20.length,
+      nearEntryCount: nearEntry.length,
+      watchValidateCount: watchValidate.length,
+      stressedCount: stressed.length,
+      excludedHighYieldCount: excludedHighYield.length,
+      insufficientSampleCount: insufficientSample.length,
+      excludedCryptoCount: excludedCrypto.length,
+      contextAvailability: { ...DYNAMIC_TOP20_CONTEXT_AVAILABILITY },
+    },
+    meta: {
+      readOnly: true,
+      experimental: true,
+      scoreType: "competitiveScoreV2",
+      rankingFormulaVersion: E2B_RANKING_FORMULA_VERSION,
+      scoreNote:
+        "Score compétitif E2b (mérite + résilience + bonus historique robuste − pénalités graduées) — laboratoire, pas une recommandation de trade.",
+      guardrails: {
+        exploitableForTop20Count: e2bResult.exploitableCount,
+        exploitableMinScore: E2B_EXPLOITABLE_MIN_SCORE,
+        exploitableMinN: E2B_EXPLOITABLE_MIN_N,
+      },
+    },
+  };
+}
+
+/**
  * Classement expérimental Top 20 — laboratoire read-only à partir des profils 1 %+ Wheel.
  */
 export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
   const allProfiles = Array.isArray(profiles) ? profiles : [];
-  const tickerProfiles = allProfiles.filter((profile) => profile?.groupType === "ticker");
+  const tickerProfilesAll = allProfiles.filter((profile) => profile?.groupType === "ticker");
+
+  // Bug fix — règle crypto-block : crypto/digital asset exclus du laboratoire Top 20
+  // (sauf BITX) AVANT la constitution des buckets. Source unique app/watchlist/cryptoWheelFilter.js.
+  const cryptoBlockedProfiles = tickerProfilesAll.filter((profile) =>
+    isCryptoDigitalAssetBlocked(profile?.ticker),
+  );
+  const tickerProfiles = tickerProfilesAll.filter(
+    (profile) => !isCryptoDigitalAssetBlocked(profile?.ticker),
+  );
+  const excludedCrypto = cryptoBlockedProfiles
+    .slice()
+    .sort((a, b) => String(a?.ticker ?? "").localeCompare(String(b?.ticker ?? "")))
+    .map((profile, index) =>
+      mapDynamicTop20ProfileRow(profile, index + 1, "exclude_crypto_blocked", {
+        top20ExclusionReasons: [TOP20_CRYPTO_BLOCK_REASON],
+      }),
+    );
+
+  // ── Pipeline compétitif E2b (candidate finale) ────────────────────────────
+  // Activé seulement quand les enregistrements bruts sont disponibles
+  // (chemin de production via le journal). Sans records → scoring legacy ci-dessous
+  // (compatibilité des tests unitaires existants appelant sans records).
+  const e2bRecords = Array.isArray(options.records) ? options.records : null;
+  if (e2bRecords && e2bRecords.length > 0) {
+    const asOfDate = normalizeIsoTimestamp(options.today ?? options.asOfDate ?? new Date()).slice(0, 10);
+    return buildDynamicTop20E2bResult({
+      tickerProfiles,
+      records: e2bRecords,
+      todayYmd: asOfDate,
+      cryptoBlockedProfiles,
+      asOfDate,
+    });
+  }
 
   const scored = tickerProfiles.map((profile) => {
     const scoring = computeDynamicTop20LaboratoryScore(profile);
@@ -3215,6 +3948,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
     excludedHighYield,
     stressed,
     insufficientSample,
+    excludedCrypto,
     summary: {
       totalProfiles: tickerProfiles.length,
       top20Count: top20.length,
@@ -3223,6 +3957,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
       stressedCount: stressed.length,
       excludedHighYieldCount: excludedHighYield.length,
       insufficientSampleCount: insufficientSample.length,
+      excludedCryptoCount: excludedCrypto.length,
       contextAvailability: { ...DYNAMIC_TOP20_CONTEXT_AVAILABILITY },
     },
     meta: {
@@ -3958,7 +4693,13 @@ export function createWheelValidationService(options = {}) {
           continue;
         }
         const symbol = normalizeSymbol(record?.symbol);
-        const expirationYmd = toExpirationYmd(record?.expiration);
+        const recordExpirationYmd = toExpirationYmd(record?.expiration);
+        const selectedExpirationYmd = toExpirationYmd(record?.selectedExpiration);
+        // Bug fix — la date de résolution doit suivre l'expiration réelle du contrat
+        // vendu (selectedExpiration), jamais la clé de cohorte (expiration) si elles
+        // divergent. Empêche de résoudre prématurément (ex. option 20260612 résolue
+        // sur le close du 20260605). expiration n'écrase pas selectedExpiration.
+        const expirationYmd = selectedExpirationYmd ?? recordExpirationYmd;
         if (!symbol || !expirationYmd) {
           skippedInvalidRecord += 1;
           continue;
@@ -4061,6 +4802,57 @@ export function createWheelValidationService(options = {}) {
         v2ResolvedCount,
         groupsChecked,
       };
+    });
+  }
+
+  /**
+   * Remédiation — rouvre (dé-résout) les records résolus prématurément à cause du
+   * mismatch expiration/selectedExpiration : une ligne dont selectedExpiration est
+   * postérieure à expiration a été résolue sur le close de la mauvaise (plus proche)
+   * expiration. On efface la résolution erronée pour qu'une prochaine passe
+   * resolveExpiredRecords (logique corrigée) les traite sur selectedExpiration.
+   * @param {{dryRun?: boolean}} [options]
+   */
+  async function reopenPrematurelyResolvedRecords(options = {}) {
+    const dryRun = options?.dryRun === true;
+    return withWriteLock(async () => {
+      const journal = await store.load();
+      const records = Array.isArray(journal?.records) ? journal.records : [];
+      const reopened = [];
+      for (let i = 0; i < records.length; i += 1) {
+        const record = records[i];
+        if (record?.resolution?.resolved !== true) continue;
+        const expirationYmd = toExpirationYmd(record?.expiration);
+        const selectedExpirationYmd = toExpirationYmd(record?.selectedExpiration);
+        if (!expirationYmd || !selectedExpirationYmd) continue;
+        // Mismatch avec selectedExpiration future = résolution prématurée à corriger.
+        if (selectedExpirationYmd <= expirationYmd) continue;
+        reopened.push({
+          id: record?.id ?? null,
+          symbol: record?.symbol ?? null,
+          expiration: record?.expiration ?? null,
+          selectedExpiration: record?.selectedExpiration ?? null,
+          wasAssigned: record?.resolution?.assigned === true,
+          resolutionDate: record?.resolution?.resolutionDate ?? record?.resolution?.resolvedAt ?? null,
+        });
+        if (!dryRun) {
+          records[i] = {
+            ...record,
+            resolution: {
+              resolved: false,
+              reopened: true,
+              reopened_reason: "expiration_mismatch_selected_future",
+              reopened_at: new Date().toISOString(),
+              previous_resolution: record.resolution,
+            },
+          };
+        }
+      }
+      if (!dryRun && reopened.length > 0) {
+        journal.updatedAt = new Date().toISOString();
+        await store.save(journal);
+      }
+      return { reopenedCount: reopened.length, dryRun, reopened };
     });
   }
 
@@ -5934,11 +6726,16 @@ export function createWheelValidationService(options = {}) {
 
   async function computeDynamicTop20WheelProfilesFromJournal(options = {}) {
     const theoreticalCycles = Array.isArray(options?.theoreticalCycles) ? options.theoreticalCycles : [];
+    const journal = await store.load();
+    const records = Array.isArray(journal?.records) ? journal.records : [];
     const onePercentResult = await computeOnePercentWheelProfilesFromJournal({
       ...options,
       theoreticalCycles,
     });
-    return computeDynamicTop20WheelProfiles(onePercentResult.profiles ?? [], options);
+    return computeDynamicTop20WheelProfiles(onePercentResult.profiles ?? [], {
+      ...options,
+      records,
+    });
   }
 
   async function computeV3CandidateProfiles(options = {}) {
@@ -6401,6 +7198,7 @@ export function createWheelValidationService(options = {}) {
     captureFromCandidates,
     patchResolution,
     resolveExpiredRecords,
+    reopenPrematurelyResolvedRecords,
     store,
   };
 }

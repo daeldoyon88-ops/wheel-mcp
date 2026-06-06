@@ -1,0 +1,785 @@
+{
+  "generatedAt": "2026-06-06T23:06:28.206Z",
+  "readOnly": true,
+  "source": {
+    "journal": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite",
+    "records": 3184,
+    "profiles": 209,
+    "today": "2026-06-06"
+  },
+  "implementationScope": {
+    "backendFile": "app/journal/wheelValidationService.js",
+    "pineTouched": false,
+    "selectedExpirationTouchedByE2bPatch": false,
+    "dteAtScanTouchedByE2bPatch": false,
+    "cryptoBlockIntact": true,
+    "uiCompatible": true,
+    "gitAdd": false,
+    "commit": false
+  },
+  "legacy": {
+    "meta": {
+      "readOnly": true,
+      "experimental": true,
+      "scoreType": "dynamicTop20Score",
+      "scoreNote": "Score provisoire de laboratoire — ne constitue pas un score final ni une recommandation de trade.",
+      "guardrails": {
+        "enforceN15Guard": true,
+        "eligibleForTop20Count": 10
+      }
+    },
+    "summary": {
+      "totalProfiles": 179,
+      "top20Count": 10,
+      "nearEntryCount": 10,
+      "watchValidateCount": 30,
+      "stressedCount": 4,
+      "excludedHighYieldCount": 34,
+      "insufficientSampleCount": 108,
+      "excludedCryptoCount": 10,
+      "contextAvailability": {
+        "ivIntegrated": false,
+        "seasonalityIntegrated": false,
+        "marketContextIntegrated": false,
+        "note": "IV/saisonnalité/contexte marché non encore intégrés au score."
+      }
+    },
+    "top20": [
+      {
+        "rank": 1,
+        "ticker": "HIMS",
+        "score": 119,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 2,
+        "ticker": "HOOD",
+        "score": 114,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 3,
+        "ticker": "CCL",
+        "score": 99,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 4,
+        "ticker": "NOK",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 5,
+        "ticker": "U",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 6,
+        "ticker": "BNO",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 7,
+        "ticker": "DAL",
+        "score": 75,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 8,
+        "ticker": "HPE",
+        "score": 75,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 9,
+        "ticker": "DOW",
+        "score": 75,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 10,
+        "ticker": "FCX",
+        "score": 34,
+        "robustHistoryBonus": 0
+      }
+    ]
+  },
+  "e2b": {
+    "meta": {
+      "readOnly": true,
+      "experimental": true,
+      "scoreType": "competitiveScoreV2",
+      "rankingFormulaVersion": "E2b",
+      "scoreNote": "Score compétitif E2b (mérite + résilience + bonus historique robuste − pénalités graduées) — laboratoire, pas une recommandation de trade.",
+      "guardrails": {
+        "exploitableForTop20Count": 24,
+        "exploitableMinScore": 35,
+        "exploitableMinN": 10
+      }
+    },
+    "summary": {
+      "totalProfiles": 179,
+      "top20Count": 20,
+      "nearEntryCount": 12,
+      "watchValidateCount": 9,
+      "stressedCount": 6,
+      "excludedHighYieldCount": 24,
+      "insufficientSampleCount": 108,
+      "excludedCryptoCount": 10,
+      "contextAvailability": {
+        "ivIntegrated": false,
+        "seasonalityIntegrated": false,
+        "marketContextIntegrated": false,
+        "note": "IV/saisonnalité/contexte marché non encore intégrés au score."
+      }
+    },
+    "top20": [
+      {
+        "rank": 1,
+        "ticker": "HOOD",
+        "score": 100,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 2,
+        "ticker": "HIMS",
+        "score": 100,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 3,
+        "ticker": "CCL",
+        "score": 98,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 4,
+        "ticker": "DAL",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 5,
+        "ticker": "NOK",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 6,
+        "ticker": "U",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 7,
+        "ticker": "BNO",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 8,
+        "ticker": "HPE",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 9,
+        "ticker": "DOW",
+        "score": 85,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 10,
+        "ticker": "INTC",
+        "score": 82,
+        "robustHistoryBonus": 8
+      },
+      {
+        "rank": 11,
+        "ticker": "AFRM",
+        "score": 69,
+        "robustHistoryBonus": 8
+      },
+      {
+        "rank": 12,
+        "ticker": "APLD",
+        "score": 67,
+        "robustHistoryBonus": 8
+      },
+      {
+        "rank": 13,
+        "ticker": "RIVN",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 14,
+        "ticker": "APA",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 15,
+        "ticker": "CZR",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 16,
+        "ticker": "DOCU",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 17,
+        "ticker": "CNC",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 18,
+        "ticker": "HAL",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 19,
+        "ticker": "SLB",
+        "score": 65,
+        "robustHistoryBonus": 0
+      },
+      {
+        "rank": 20,
+        "ticker": "TQQQ",
+        "score": 62,
+        "robustHistoryBonus": 11
+      }
+    ],
+    "excludedCrypto": [
+      "BLSH",
+      "BMNR",
+      "BTDR",
+      "CIFR",
+      "CORZ",
+      "CRCL",
+      "IBIT",
+      "IREN",
+      "RIOT",
+      "WULF"
+    ]
+  },
+  "comparisons": {
+    "TQQQ": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": 37,
+      "beforeRank": 1,
+      "afterBucket": "top20",
+      "afterScore": 62,
+      "afterRank": 20,
+      "robustHistoryBonus": 11,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 50,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 5,
+        "distinctAssignedExpirationCount": 1,
+        "distinctDeepAssignmentExpirationCount": 1
+      }
+    },
+    "APLD": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": 15,
+      "beforeRank": 5,
+      "afterBucket": "top20",
+      "afterScore": 67,
+      "afterRank": 12,
+      "robustHistoryBonus": 8,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 36,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 5,
+        "distinctAssignedExpirationCount": 1,
+        "distinctDeepAssignmentExpirationCount": 1
+      }
+    },
+    "INTC": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": 37,
+      "beforeRank": 2,
+      "afterBucket": "top20",
+      "afterScore": 82,
+      "afterRank": 10,
+      "robustHistoryBonus": 8,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 34,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 4,
+        "distinctAssignedExpirationCount": 1,
+        "distinctDeepAssignmentExpirationCount": 1
+      }
+    },
+    "AFRM": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": 15,
+      "beforeRank": 6,
+      "afterBucket": "top20",
+      "afterScore": 69,
+      "afterRank": 11,
+      "robustHistoryBonus": 8,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 30,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 4,
+        "distinctAssignedExpirationCount": 1,
+        "distinctDeepAssignmentExpirationCount": 1
+      }
+    },
+    "IONQ": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": -43,
+      "beforeRank": 28,
+      "afterBucket": "watchValidate",
+      "afterScore": 0,
+      "afterRank": 9,
+      "robustHistoryBonus": 0,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 28,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 4,
+        "distinctAssignedExpirationCount": 2,
+        "distinctDeepAssignmentExpirationCount": 1
+      }
+    },
+    "TEM": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": 17,
+      "beforeRank": 4,
+      "afterBucket": "excludedHighYield",
+      "afterScore": -31,
+      "afterRank": 4,
+      "robustHistoryBonus": 0,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 12,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 1,
+        "distinctAssignedExpirationCount": 1,
+        "distinctDeepAssignmentExpirationCount": 0
+      }
+    },
+    "MP": {
+      "beforeBucket": "insufficientSample",
+      "beforeScore": 20,
+      "beforeRank": 2,
+      "afterBucket": "insufficientSample",
+      "afterScore": 25,
+      "afterRank": 27,
+      "robustHistoryBonus": 0,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 4,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 2,
+        "distinctAssignedExpirationCount": 1,
+        "distinctDeepAssignmentExpirationCount": 0
+      }
+    },
+    "CDE": {
+      "beforeBucket": "excludedHighYield",
+      "beforeScore": -63,
+      "beforeRank": 34,
+      "afterBucket": "excludedHighYield",
+      "afterScore": -50,
+      "afterRank": 10,
+      "robustHistoryBonus": 0,
+      "hardExclusionReasonsV2": [
+        "Risque confirmé répété : LB critique + (≥2 expirations profondes ou win<70 % ou assignation>35 %)",
+        "Garde-fou défensif : LB critique + assignation>25 % + win<80 %"
+      ],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 18,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 3,
+        "distinctAssignedExpirationCount": 2,
+        "distinctDeepAssignmentExpirationCount": 2
+      }
+    },
+    "GDX": {
+      "beforeBucket": "missing",
+      "beforeScore": null,
+      "beforeRank": null,
+      "afterBucket": "excludedHighYield",
+      "afterScore": -50,
+      "afterRank": 16,
+      "robustHistoryBonus": 0,
+      "hardExclusionReasonsV2": [],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 12,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 2,
+        "distinctAssignedExpirationCount": 2,
+        "distinctDeepAssignmentExpirationCount": 2
+      }
+    },
+    "SLV": {
+      "beforeBucket": "missing",
+      "beforeScore": null,
+      "beforeRank": null,
+      "afterBucket": "excludedHighYield",
+      "afterScore": -50,
+      "afterRank": 12,
+      "robustHistoryBonus": 0,
+      "hardExclusionReasonsV2": [
+        "Risque confirmé répété : LB critique + (≥2 expirations profondes ou win<70 % ou assignation>35 %)",
+        "Garde-fou défensif : LB critique + assignation>25 % + win<80 %"
+      ],
+      "cryptoBlocked": false,
+      "rankingFormulaVersion": "E2b",
+      "diagnostics": {
+        "n": 28,
+        "winRatePct": null,
+        "assignmentRatePct": null,
+        "distinctExpirationCount": 3,
+        "distinctAssignedExpirationCount": 2,
+        "distinctDeepAssignmentExpirationCount": 2
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "TQQQ Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": 37,
+        "beforeRank": 1,
+        "afterBucket": "top20",
+        "afterScore": 62,
+        "afterRank": 20,
+        "robustHistoryBonus": 11,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 50,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 5,
+          "distinctAssignedExpirationCount": 1,
+          "distinctDeepAssignmentExpirationCount": 1
+        }
+      }
+    },
+    {
+      "name": "APLD Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": 15,
+        "beforeRank": 5,
+        "afterBucket": "top20",
+        "afterScore": 67,
+        "afterRank": 12,
+        "robustHistoryBonus": 8,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 36,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 5,
+          "distinctAssignedExpirationCount": 1,
+          "distinctDeepAssignmentExpirationCount": 1
+        }
+      }
+    },
+    {
+      "name": "INTC Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": 37,
+        "beforeRank": 2,
+        "afterBucket": "top20",
+        "afterScore": 82,
+        "afterRank": 10,
+        "robustHistoryBonus": 8,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 34,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 4,
+          "distinctAssignedExpirationCount": 1,
+          "distinctDeepAssignmentExpirationCount": 1
+        }
+      }
+    },
+    {
+      "name": "AFRM Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": 15,
+        "beforeRank": 6,
+        "afterBucket": "top20",
+        "afterScore": 69,
+        "afterRank": 11,
+        "robustHistoryBonus": 8,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 30,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 4,
+          "distinctAssignedExpirationCount": 1,
+          "distinctDeepAssignmentExpirationCount": 1
+        }
+      }
+    },
+    {
+      "name": "IONQ pas Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": -43,
+        "beforeRank": 28,
+        "afterBucket": "watchValidate",
+        "afterScore": 0,
+        "afterRank": 9,
+        "robustHistoryBonus": 0,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 28,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 4,
+          "distinctAssignedExpirationCount": 2,
+          "distinctDeepAssignmentExpirationCount": 1
+        }
+      }
+    },
+    {
+      "name": "TEM pas Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": 17,
+        "beforeRank": 4,
+        "afterBucket": "excludedHighYield",
+        "afterScore": -31,
+        "afterRank": 4,
+        "robustHistoryBonus": 0,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 12,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 1,
+          "distinctAssignedExpirationCount": 1,
+          "distinctDeepAssignmentExpirationCount": 0
+        }
+      }
+    },
+    {
+      "name": "MP pas Top 20 E2b",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "insufficientSample",
+        "beforeScore": 20,
+        "beforeRank": 2,
+        "afterBucket": "insufficientSample",
+        "afterScore": 25,
+        "afterRank": 27,
+        "robustHistoryBonus": 0,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 4,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 2,
+          "distinctAssignedExpirationCount": 1,
+          "distinctDeepAssignmentExpirationCount": 0
+        }
+      }
+    },
+    {
+      "name": "CDE bas ou exclu",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "excludedHighYield",
+        "beforeScore": -63,
+        "beforeRank": 34,
+        "afterBucket": "excludedHighYield",
+        "afterScore": -50,
+        "afterRank": 10,
+        "robustHistoryBonus": 0,
+        "hardExclusionReasonsV2": [
+          "Risque confirmé répété : LB critique + (≥2 expirations profondes ou win<70 % ou assignation>35 %)",
+          "Garde-fou défensif : LB critique + assignation>25 % + win<80 %"
+        ],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 18,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 3,
+          "distinctAssignedExpirationCount": 2,
+          "distinctDeepAssignmentExpirationCount": 2
+        }
+      }
+    },
+    {
+      "name": "GDX bas ou exclu",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "missing",
+        "beforeScore": null,
+        "beforeRank": null,
+        "afterBucket": "excludedHighYield",
+        "afterScore": -50,
+        "afterRank": 16,
+        "robustHistoryBonus": 0,
+        "hardExclusionReasonsV2": [],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 12,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 2,
+          "distinctAssignedExpirationCount": 2,
+          "distinctDeepAssignmentExpirationCount": 2
+        }
+      }
+    },
+    {
+      "name": "SLV bas ou exclu",
+      "pass": true,
+      "detail": {
+        "beforeBucket": "missing",
+        "beforeScore": null,
+        "beforeRank": null,
+        "afterBucket": "excludedHighYield",
+        "afterScore": -50,
+        "afterRank": 12,
+        "robustHistoryBonus": 0,
+        "hardExclusionReasonsV2": [
+          "Risque confirmé répété : LB critique + (≥2 expirations profondes ou win<70 % ou assignation>35 %)",
+          "Garde-fou défensif : LB critique + assignation>25 % + win<80 %"
+        ],
+        "cryptoBlocked": false,
+        "rankingFormulaVersion": "E2b",
+        "diagnostics": {
+          "n": 28,
+          "winRatePct": null,
+          "assignmentRatePct": null,
+          "distinctExpirationCount": 3,
+          "distinctAssignedExpirationCount": 2,
+          "distinctDeepAssignmentExpirationCount": 2
+        }
+      }
+    },
+    {
+      "name": "Top 20 count = 20",
+      "pass": true,
+      "detail": "top20=20"
+    },
+    {
+      "name": "Aucun crypto bloqué dans Top 20",
+      "pass": true,
+      "detail": {
+        "top20": [
+          "HOOD",
+          "HIMS",
+          "CCL",
+          "DAL",
+          "NOK",
+          "U",
+          "BNO",
+          "HPE",
+          "DOW",
+          "INTC",
+          "AFRM",
+          "APLD",
+          "RIVN",
+          "APA",
+          "CZR",
+          "DOCU",
+          "CNC",
+          "HAL",
+          "SLB",
+          "TQQQ"
+        ],
+        "excludedCrypto": [
+          "BLSH",
+          "BMNR",
+          "BTDR",
+          "CIFR",
+          "CORZ",
+          "CRCL",
+          "IBIT",
+          "IREN",
+          "RIOT",
+          "WULF"
+        ]
+      }
+    },
+    {
+      "name": "rankingFormulaVersion = \"E2b\"",
+      "pass": true,
+      "detail": {
+        "rows": 189,
+        "missing": []
+      }
+    }
+  ],
+  "allChecksPass": true,
+  "buildStatus": "vite build OK (confirmé par `npx vite build`)"
+}

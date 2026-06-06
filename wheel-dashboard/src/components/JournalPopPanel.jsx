@@ -2037,7 +2037,7 @@ function DarkJournalTable({ title, rows, showOutcomeV2 = false }) {
                     <td className="px-3 py-2.5"><CaptureClassBadgeDark value={record?.captureClass} /></td>
                     <td className="px-3 py-2.5 font-bold text-slate-100">{record?.symbol || "—"}</td>
                     <td className="px-3 py-2.5 text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
-                    <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
+                    <td className="px-3 py-2.5">{numberOrNull(record?.originalDteAtScan) ?? numberOrNull(record?.dteAtScan) ?? "—"}</td>
                     <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
                     <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
                     <td className="px-3 py-2.5">
@@ -2354,10 +2354,19 @@ function computeDteForDteBreakdown(scanDateRaw, expirationRaw) {
 }
 
 function getCycleOriginalDte(cycle) {
+  // Le DTE historique ne doit JAMAIS être recalculé si dteAtScan (ou originalDteAtScan)
+  // existe : on lit la valeur figée au scan en priorité. Le fallback de recompute
+  // s'appuie sur selectedExpiration/originalExpirationKey (l'expiration réelle du
+  // contrat vendu) et non sur expiration (clé de cohorte), afin de ne pas écraser un
+  // DTE long (ex. 14) par un DTE de cohorte plus court (ex. 7).
   return (
+    numberOrNull(cycle?.originalDteAtScan) ??
     numberOrNull(cycle?.dteAtScan) ??
     numberOrNull(cycle?.dte_at_scan) ??
-    computeDteForDteBreakdown(cycle?.scan_date ?? cycle?.scanDate ?? cycle?.scan_timestamp, cycle?.expiration)
+    computeDteForDteBreakdown(
+      cycle?.originalScanDate ?? cycle?.scan_date ?? cycle?.scanDate ?? cycle?.scan_timestamp,
+      cycle?.originalExpirationKey ?? cycle?.selectedExpiration ?? cycle?.expiration,
+    )
   );
 }
 
@@ -2414,6 +2423,172 @@ function getDteBreakdownVerdict(row) {
   if (row.dte <= 3 && (row.assignmentRate ?? 0) >= 10) return "court DTE à surveiller";
   if ((row.winRate ?? 0) >= 80 && (row.assignmentRate ?? 0) <= 10) return "solide";
   return "préliminaire";
+}
+
+// ── Couche d'affichage « risque par événement d'expiration » ─────────────────
+// NE MODIFIE PAS le scoring backend (primaryVerdict). Calcule, côté client, des
+// champs explicatifs et un verdict d'AFFICHAGE qui distingue un risque structurel
+// (>= 2 expirations profondes, win faible, LB critique) d'un simple « événement
+// d'expiration unique » (1 seule expiration profonde, souvent 2026-06-05, gonflé
+// par la duplication SAFE/AGGRESSIVE et le comptage par observation).
+const DEEP_EVENT_OF_INTEREST_KEY = "20260605"; // 2026-06-05
+
+function normalizeExpirationKey(value) {
+  return String(value ?? "").trim().replace(/-/g, "");
+}
+
+function getRecordExpirationKey(record) {
+  return normalizeExpirationKey(record?.selectedExpiration ?? record?.expiration ?? "") || null;
+}
+
+function getEventUniquenessEligibleRecords({ ticker, records }) {
+  const normalizedTicker = normalizeTicker(ticker);
+  return (Array.isArray(records) ? records : []).filter((record) => {
+    const symbol = normalizeTicker(record?.symbol ?? record?.ticker);
+    const dte = numberOrNull(record?.dteAtScan);
+    return (
+      symbol === normalizedTicker &&
+      DYNAMIC_TOP20_DTE_TARGETS.includes(dte) &&
+      getRecordResolvedFlag(record) &&
+      (record?.captureClass ?? "primaryDaily") !== "intradayRetest"
+    );
+  });
+}
+
+function computeTickerEventUniqueness({ ticker, records }) {
+  const eligible = getEventUniquenessEligibleRecords({ ticker, records });
+  const totalN = eligible.length;
+  const assigned = eligible.filter((r) => getRecordAssignedFlag(r) === true);
+  const deep = assigned.filter((r) => classifyDteBreakdownAssignmentDepth(r) === "profonde");
+
+  const distinctExpirations = new Set(eligible.map(getRecordExpirationKey).filter(Boolean));
+  const distinctAssignedExpirations = new Set(assigned.map(getRecordExpirationKey).filter(Boolean));
+  const distinctDeepExpirations = new Set(deep.map(getRecordExpirationKey).filter(Boolean));
+
+  const deepExpSorted = [...distinctDeepExpirations].sort();
+  const lastDeepAssignmentExpiration = deepExpSorted.length > 0 ? deepExpSorted[deepExpSorted.length - 1] : null;
+
+  let deepAssignmentEventConcentration = null;
+  if (deep.length > 0) {
+    const counts = {};
+    for (const r of deep) {
+      const k = getRecordExpirationKey(r) ?? "?";
+      counts[k] = (counts[k] ?? 0) + 1;
+    }
+    const maxCount = Math.max(...Object.values(counts));
+    deepAssignmentEventConcentration = (maxCount / deep.length) * 100;
+  }
+
+  const byExp = {};
+  for (const r of assigned) {
+    const k = getRecordExpirationKey(r) ?? "?";
+    if (!byExp[k]) byExp[k] = { safe: 0, aggressive: 0 };
+    if (r?.strikeMode === "safe") byExp[k].safe += 1;
+    else if (r?.strikeMode === "aggressive") byExp[k].aggressive += 1;
+  }
+  let safeAggressiveDuplicateAssignmentCount = 0;
+  for (const c of Object.values(byExp)) safeAggressiveDuplicateAssignmentCount += Math.min(c.safe, c.aggressive);
+
+  const winKnown = eligible.filter((r) => getRecordWinFlag(r) != null);
+  const winCount = winKnown.filter((r) => getRecordWinFlag(r) === true).length;
+  const winRate = winKnown.length > 0 ? (winCount / winKnown.length) * 100 : null;
+
+  const lbKnown = eligible.filter((r) => getRecordBrokeLowerBoundFlag(r) != null);
+  const lbBreak = lbKnown.filter((r) => getRecordBrokeLowerBoundFlag(r) === true).length;
+  const lbBreakRate = lbKnown.length > 0 ? (lbBreak / lbKnown.length) * 100 : null;
+
+  const assignmentRate = totalN > 0 ? (assigned.length / totalN) * 100 : null;
+  const deepAssignmentRate = totalN > 0 ? (deep.length / totalN) * 100 : null;
+
+  const deepAssignmentConcentratedOn20260605 =
+    distinctDeepExpirations.size > 0 && [...distinctDeepExpirations].every((e) => e === DEEP_EVENT_OF_INTEREST_KEY);
+
+  return {
+    totalN,
+    assignedCount: assigned.length,
+    deepAssignedCount: deep.length,
+    assignmentRate,
+    deepAssignmentRate,
+    distinctExpirationCount: distinctExpirations.size,
+    distinctAssignedExpirationCount: distinctAssignedExpirations.size,
+    distinctDeepAssignmentExpirationCount: distinctDeepExpirations.size,
+    lastDeepAssignmentExpiration,
+    deepAssignmentEventConcentration,
+    safeAggressiveDuplicateAssignmentCount,
+    deepAssignmentConcentratedOn20260605,
+    winRate,
+    lbBreakRate,
+    lbBreakCount: lbBreak,
+    lbKnownCount: lbKnown.length,
+  };
+}
+
+// Verdict d'AFFICHAGE (pas de modification du scoring). Catégories :
+// "Échantillon insuffisant" | "Risque confirmé" | "Surveillé" |
+// "Risque événement unique" | "Non risqué".
+function classifyEventRiskVerdict(u) {
+  if (!u || u.totalN === 0) {
+    return { category: "Échantillon insuffisant", label: "Échantillon insuffisant", hard: false, reasons: [] };
+  }
+  if (u.totalN < DYNAMIC_TOP20_WEAK_DTE_SAMPLE) {
+    return {
+      category: "Échantillon insuffisant",
+      label: "Échantillon insuffisant",
+      hard: false,
+      reasons: [`n=${u.totalN} < ${DYNAMIC_TOP20_WEAK_DTE_SAMPLE}`],
+    };
+  }
+  const isRisky = (u.deepAssignmentRate ?? 0) > 0 || (u.assignmentRate ?? 0) >= 25;
+  if (!isRisky) {
+    return { category: "Non risqué", label: null, hard: false, reasons: [] };
+  }
+
+  // Risque structurel CONFIRMÉ : profond sur >=2 expirations OU assignation >20%
+  // répartie sur plusieurs expirations distinctes.
+  const multiDeep = u.distinctDeepAssignmentExpirationCount >= 2;
+  const multiAssignHigh = (u.assignmentRate ?? 0) > 20 && u.distinctAssignedExpirationCount >= 2;
+  if (multiDeep || multiAssignHigh) {
+    const reasons = [];
+    if (multiDeep) reasons.push(`assignations profondes sur ${u.distinctDeepAssignmentExpirationCount} expirations distinctes`);
+    if (multiAssignHigh) reasons.push(`assignation ${formatPercent(u.assignmentRate)} sur ${u.distinctAssignedExpirationCount} expirations`);
+    return { category: "Risque confirmé", label: "Assignation élevée confirmée", hard: true, reasons };
+  }
+
+  // À partir d'ici : risque concentré sur ~1 expiration. On NE dit PAS « confirmé ».
+  const deepLabel =
+    (u.deepAssignmentRate ?? 0) > 0
+      ? "Alerte — 1 expiration profonde / à confirmer"
+      : "Événement unique à confirmer";
+
+  const watchReasons = [];
+  if (u.winRate != null && u.winRate < 80) watchReasons.push(`win ${formatPercent(u.winRate)} < 80%`);
+  if (u.lbBreakRate != null && u.lbBreakRate >= 50) watchReasons.push(`LB cassé ${formatPercent(u.lbBreakRate)}`);
+
+  if (watchReasons.length > 0) {
+    return { category: "Surveillé", label: deepLabel, hard: false, reasons: watchReasons };
+  }
+  const reasons = [
+    `risque concentré sur 1 expiration${u.deepAssignmentConcentratedOn20260605 ? " (2026-06-05)" : ""}`,
+  ];
+  if (u.safeAggressiveDuplicateAssignmentCount > 0) {
+    reasons.push(`${u.safeAggressiveDuplicateAssignmentCount} doublon(s) SAFE/AGGRESSIVE`);
+  }
+  return { category: "Risque événement unique", label: deepLabel, hard: false, reasons };
+}
+
+function getEventRiskCategoryTone(category) {
+  switch (category) {
+    case "Risque confirmé":
+      return "border-rose-500/40 bg-rose-500/10 text-rose-200";
+    case "Surveillé":
+      return "border-amber-500/40 bg-amber-500/10 text-amber-200";
+    case "Risque événement unique":
+      return "border-sky-500/40 bg-sky-500/10 text-sky-200";
+    case "Échantillon insuffisant":
+      return "border-slate-600/50 bg-slate-700/20 text-slate-300";
+    default:
+      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-200";
+  }
 }
 
 function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, globalProfile }) {
@@ -2531,8 +2706,14 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
   const weakRows = rows.filter((row) => row.n > 0 && row.n < DYNAMIC_TOP20_WEAK_DTE_SAMPLE);
   const totalN = rows.reduce((sum, row) => sum + row.n, 0);
 
+  // Couche « risque par événement » (affichage seulement, scoring inchangé).
+  const eventUniqueness = computeTickerEventUniqueness({ ticker, records });
+  const eventRisk = classifyEventRiskVerdict(eventUniqueness);
+
   return {
     rows,
+    eventUniqueness,
+    eventRisk,
     summary: {
       bestDteLabel: bestRow
         ? `Meilleur DTE identifiable : ${bestRow.dte} DTE`
@@ -2552,17 +2733,62 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
       globalWheelReturnPct,
       globalAssignmentRate,
       globalNearAssignmentRate,
+      // Champs explicatifs (couche événement) repris dans le modal et la table « À exclure ».
+      distinctExpirationCount: eventUniqueness.distinctExpirationCount,
+      distinctAssignedExpirationCount: eventUniqueness.distinctAssignedExpirationCount,
+      distinctDeepAssignmentExpirationCount: eventUniqueness.distinctDeepAssignmentExpirationCount,
+      lastDeepAssignmentExpiration: eventUniqueness.lastDeepAssignmentExpiration,
+      deepAssignmentEventConcentration: eventUniqueness.deepAssignmentEventConcentration,
+      safeAggressiveDuplicateAssignmentCount: eventUniqueness.safeAggressiveDuplicateAssignmentCount,
+      deepAssignmentConcentratedOn20260605: eventUniqueness.deepAssignmentConcentratedOn20260605,
+      eventRiskCategory: eventRisk.category,
+      eventRiskLabel: eventRisk.label,
+      eventRiskReasons: eventRisk.reasons,
     },
   };
+}
+
+// Bouton ticker cliquable réutilisé dans Top 20 / Proches d'entrer / À exclure.
+// Ouvre toujours le même panneau « Détail Journal POP par DTE ».
+// Le bouton remplit toute la cellule (block w-full) pour que le clic ne dépende
+// pas du seul texte.
+function DynamicTop20DteTickerButton({ ticker, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        console.log("[Journal POP DTE click]", ticker);
+        onSelect(ticker);
+      }}
+      style={{ cursor: "pointer" }}
+      className="block w-full text-left font-semibold text-sky-300 underline decoration-sky-500/40 underline-offset-4 hover:text-sky-200"
+      title="Voir le détail Journal POP par DTE"
+    >
+      {ticker ?? "—"}
+    </button>
+  );
 }
 
 function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
   const rows = Array.isArray(breakdown?.rows) ? breakdown.rows : [];
   const summary = breakdown?.summary ?? {};
+  const hasDteData = rows.some((row) => (row?.n ?? 0) > 0);
   const globalCards = [
     { label: "Rend. Wheel global", value: formatDteBreakdownSummaryPercent(summary.globalWheelReturnPct, 2) },
     { label: "Assignation globale", value: formatDteBreakdownSummaryPercent(summary.globalAssignmentRate, 1) },
     { label: "Assignation proche", value: formatDteBreakdownSummaryPercent(summary.globalNearAssignmentRate, 1) },
+  ];
+  const eventRisk = breakdown?.eventRisk ?? null;
+  const eventCards = [
+    { label: "Exp. distinctes", value: summary.distinctExpirationCount ?? "—" },
+    { label: "Exp. assignées distinctes", value: summary.distinctAssignedExpirationCount ?? "—" },
+    { label: "Exp. profondes distinctes", value: summary.distinctDeepAssignmentExpirationCount ?? "—" },
+    { label: "Dernière exp. profonde", value: formatCompactExpiration(summary.lastDeepAssignmentExpiration) },
+    {
+      label: "Concentration événement",
+      value: formatDteBreakdownSummaryPercent(summary.deepAssignmentEventConcentration, 0),
+    },
+    { label: "Doublon SAFE/AGG", value: summary.safeAggressiveDuplicateAssignmentCount ?? 0 },
   ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
@@ -2608,6 +2834,35 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
             ))}
           </div>
 
+          {eventRisk && eventRisk.category !== "Non risqué" ? (
+            <div className={`rounded-xl border px-4 py-3 ${getEventRiskCategoryTone(eventRisk.category)}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-current/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                  {eventRisk.category}
+                </span>
+                <span className="text-[12px] font-semibold">{eventRisk.label}</span>
+              </div>
+              {Array.isArray(eventRisk.reasons) && eventRisk.reasons.length > 0 ? (
+                <p className="mt-1 text-[11px] opacity-80">{eventRisk.reasons.join(" · ")}</p>
+              ) : null}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {eventCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className="rounded-lg border border-slate-700/60 bg-slate-950/40 px-2.5 py-1 text-[10px] text-slate-300"
+                  >
+                    {card.label} : <span className="font-semibold text-slate-100">{card.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!hasDteData ? (
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-6 text-center text-[12px] font-semibold text-slate-400">
+              Aucune ventilation DTE disponible pour ce ticker
+            </div>
+          ) : (
           <div className="overflow-x-auto rounded-xl border border-slate-800">
             <table className="min-w-full divide-y divide-slate-800 text-left text-[11px]">
               <thead className="bg-slate-900/80 text-slate-500">
@@ -2659,6 +2914,7 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
     </div>
@@ -4572,6 +4828,33 @@ export default function JournalPopPanel({ apiBase, active }) {
     [dynamicTop20DteTicker, records, theoreticalCycles, selectedDynamicTop20Profile],
   );
 
+  // Map ticker -> { eventUniqueness, eventRisk } pour annoter la table « À exclure »
+  // sans toucher au scoring backend. Construit une seule fois à partir des records.
+  const dynamicTop20EventRiskByTicker = useMemo(() => {
+    const map = new Map();
+    const groups = [
+      dynamicTop20Payload?.top20,
+      dynamicTop20Payload?.nearEntry,
+      dynamicTop20Payload?.watchValidate,
+      dynamicTop20Payload?.stressed,
+      dynamicTop20Payload?.excludedHighYield,
+      dynamicTop20Payload?.insufficientSample,
+    ];
+    const tickers = new Set();
+    for (const group of groups) {
+      if (!Array.isArray(group)) continue;
+      for (const row of group) {
+        const t = normalizeTicker(row?.ticker);
+        if (t) tickers.add(t);
+      }
+    }
+    for (const t of tickers) {
+      const eventUniqueness = computeTickerEventUniqueness({ ticker: t, records });
+      map.set(t, { eventUniqueness, eventRisk: classifyEventRiskVerdict(eventUniqueness) });
+    }
+    return map;
+  }, [dynamicTop20Payload, records]);
+
   const latestOptionSnapshotRecords = useMemo(
     () =>
       Array.isArray(latestOptionSnapshotsPayload?.records)
@@ -5272,14 +5555,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
                       <td className="px-3 py-2.5 font-semibold">
-                        <button
-                          type="button"
-                          onClick={() => setDynamicTop20DteTicker(row.ticker)}
-                          className="text-left text-sky-300 underline decoration-sky-500/40 underline-offset-4 hover:text-sky-200"
-                          title="Voir le détail Journal POP par DTE"
-                        >
-                          {row.ticker}
-                        </button>
+                        <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
                       </td>
                       <td className="px-3 py-2.5">
                         <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
@@ -5318,7 +5594,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                   rows={filteredDynamicTop20Near.map((row) => (
                     <tr key={`dyn-near-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
-                      <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                      <td className="px-3 py-2.5 font-semibold text-slate-200">
+                        <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
+                      </td>
                       <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
                       <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
                       <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
@@ -5342,16 +5620,44 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <>
                   <DarkTable
                     title={`À exclure malgré rendement — ${filteredDynamicTop20Excluded.length}/${dynamicTop20Payload.excludedHighYield?.length ?? 0}`}
-                    headers={["Ticker", "Rend. CSP", "Win", "Assign.", "LB", "Verdict", "Raison"]}
-                    rows={filteredDynamicTop20Excluded.map((row) => (
+                    headers={["Ticker", "Rend. CSP", "Win", "Assign.", "LB", "Verdict", "Risque événement", "Raison"]}
+                    rows={filteredDynamicTop20Excluded.map((row) => {
+                      const evt = dynamicTop20EventRiskByTicker.get(normalizeTicker(row.ticker));
+                      const eventRisk = evt?.eventRisk ?? null;
+                      const u = evt?.eventUniqueness ?? null;
+                      const eventTooltip = u
+                        ? [
+                            `Exp. profondes distinctes : ${u.distinctDeepAssignmentExpirationCount}`,
+                            `Dernière exp. profonde : ${formatCompactExpiration(u.lastDeepAssignmentExpiration)}`,
+                            `Concentration 5 juin : ${u.deepAssignmentConcentratedOn20260605 ? "oui" : "non"}`,
+                            `Doublon SAFE/AGG : ${u.safeAggressiveDuplicateAssignmentCount}`,
+                            ...(Array.isArray(eventRisk?.reasons) && eventRisk.reasons.length
+                              ? [`Raison : ${eventRisk.reasons.join(" · ")}`]
+                              : []),
+                          ].join("\n")
+                        : "Aucune observation Journal POP exploitable.";
+                      return (
                       <tr key={`dyn-excl-${row.ticker}`} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-3 py-2.5 font-semibold text-slate-200">{row.ticker}</td>
+                        <td className="px-3 py-2.5 font-semibold text-slate-200">
+                          <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
+                        </td>
                         <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
                         <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
                         <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
                         <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
                         <td className={`px-3 py-2.5 text-[11px] ${getOnePercentVerdictTone(row.currentVerdict)}`}>
                           {row.currentVerdict ?? "—"}
+                        </td>
+                        <td className="px-3 py-2.5" title={eventTooltip}>
+                          {eventRisk && eventRisk.label ? (
+                            <span
+                              className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getEventRiskCategoryTone(eventRisk.category)}`}
+                            >
+                              {eventRisk.label}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-slate-500">—</span>
+                          )}
                         </td>
                         <td
                           className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
@@ -5360,7 +5666,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                           {formatDynamicTop20Reason(row)}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                     empty="Aucun profil à exclure."
                   />
                   {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 10 && (
@@ -6781,7 +7088,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                           <td className="px-3 py-2.5"><CaptureClassBadgeDark value={record?.captureClass} /></td>
                           <td className="px-3 py-2.5 font-bold text-slate-100">{record?.symbol || "—"}</td>
                           <td className="px-3 py-2.5 text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
-                          <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.originalDteAtScan) ?? numberOrNull(record?.dteAtScan) ?? "—"}</td>
                           <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
                           <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
                           <td className="px-3 py-2.5 min-w-[210px]">
@@ -6943,7 +7250,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                           <td className="px-3 py-2.5"><CaptureClassBadgeDark value={record?.captureClass} /></td>
                           <td className="px-3 py-2.5 font-bold text-slate-100">{record?.symbol || "—"}</td>
                           <td className="px-3 py-2.5 text-slate-400">{formatCompactExpiration(record?.expiration)}</td>
-                          <td className="px-3 py-2.5">{numberOrNull(record?.dteAtScan) ?? "—"}</td>
+                          <td className="px-3 py-2.5">{numberOrNull(record?.originalDteAtScan) ?? numberOrNull(record?.dteAtScan) ?? "—"}</td>
                           <td className="px-3 py-2.5">{numberOrNull(record?.candidateRank) ?? "—"}</td>
                           <td className="px-3 py-2.5 text-slate-500">{record?.captureSource || "—"}</td>
                           <td className="px-3 py-2.5">

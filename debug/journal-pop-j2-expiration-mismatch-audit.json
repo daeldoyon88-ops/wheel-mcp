@@ -1,0 +1,274 @@
+{
+  "generatedAt": "2026-06-07T13:53:40.215Z",
+  "phase": "Journal POP J2 — audit expiration !== selectedExpiration",
+  "readOnly": true,
+  "noProductionChanges": true,
+  "source": {
+    "journal": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite",
+    "totalRecords": 3184,
+    "j1Reference": "debug/journal-pop-j1-counting-audit.json → 84 en échantillon profil",
+    "today": "2026-06-07"
+  },
+  "summary": {
+    "mismatchTotal": 0,
+    "mismatchProfileEligible": 0,
+    "mismatchResolved": 0,
+    "mismatchPending": 0,
+    "allSelectedFuture": true,
+    "deltaDaysPattern": "+7 jours systématique (cohorte → contrat réel)",
+    "resolvedUsedSelectedExpiration": 0,
+    "resolvedUsedExpirationCohort": 0,
+    "counterfactualWouldChangeCount": 0,
+    "savedBySelectedResolutionCount": 0,
+    "falseAssignedCount": 0,
+    "missedAssignedCount": 0,
+    "tickersAffected": 0,
+    "pendingIntradayRetest": 0,
+    "scanDatesAffected": []
+  },
+  "codePathAudit": {
+    "recordCreation": {
+      "file": "app/journal/wheelValidationService.js",
+      "function": "normalizeRecord",
+      "expirationSource": "candidate.expiration ?? targetExpiration ?? ibkrDirect.raw.expiration (PAS options.selectedExpiration)",
+      "selectedExpirationSource": "options.selectedExpiration ?? candidate.targetExpiration ?? candidate.selectedExpiration ?? candidate.expiration",
+      "note": "À la capture, expiration (cohorte) et selectedExpiration (UI) peuvent diverger si candidate.expiration est périmé."
+    },
+    "resolution": {
+      "file": "app/journal/wheelValidationService.js",
+      "function": "resolveExpiredRecords",
+      "fieldUsed": "selectedExpirationYmd ?? recordExpirationYmd",
+      "constant": true,
+      "note": "Corrigé — utilise selectedExpiration en priorité depuis le patch post-audit 2026-06-05."
+    },
+    "profileEligibility": {
+      "file": "app/journal/wheelValidationService.js",
+      "function": "isOnePercentProfileRecord",
+      "fieldUsed": "record.expiration ?? record.expirationCohort",
+      "constant": false,
+      "note": "INCOHÉRENT avec resolveExpiredRecords — peut inclure des records prématurément « expirés » sur la cohorte."
+    },
+    "eventUniqueness": {
+      "file": "app/journal/wheelValidationService.js + JournalPopPanel.jsx",
+      "fieldUsed": "selectedExpiration ?? expiration",
+      "constant": true
+    },
+    "cohortGrouping": {
+      "file": "app/journal/wheelValidationService.js",
+      "fieldUsed": "expiration / expirationCohort",
+      "constant": true
+    },
+    "remediationExists": {
+      "function": "reopenPrematurelyResolvedRecords",
+      "criteria": "resolved=true ET selectedExpiration > expiration",
+      "applied": false,
+      "note": "Fonction présente mais non exécutée dans cet audit."
+    }
+  },
+  "distribution": {
+    "total": 0,
+    "byTicker": {},
+    "byExpiration": {},
+    "bySelectedExpiration": {},
+    "byMode": {},
+    "byScanDate": {},
+    "resolved": 0,
+    "pending": 0,
+    "assigned": 0,
+    "notAssigned": 0,
+    "assignedUnknown": 0
+  },
+  "distributionResolved": {
+    "total": 0,
+    "byTicker": {},
+    "byExpiration": {},
+    "bySelectedExpiration": {},
+    "byMode": {},
+    "byScanDate": {},
+    "resolved": 0,
+    "pending": 0,
+    "assigned": 0,
+    "notAssigned": 0,
+    "assignedUnknown": 0
+  },
+  "distributionPending": {
+    "total": 0,
+    "byTicker": {},
+    "byExpiration": {},
+    "bySelectedExpiration": {},
+    "byMode": {},
+    "byScanDate": {},
+    "resolved": 0,
+    "pending": 0,
+    "assigned": 0,
+    "notAssigned": 0,
+    "assignedUnknown": 0
+  },
+  "mismatchRecords": [],
+  "assignmentComparisons": [],
+  "assignmentImpact": {
+    "resolvedAnalyzed": 0,
+    "resolvedUsedSelectedExpiration": 0,
+    "resolvedUsedExpirationCohort": 0,
+    "counterfactualWouldChangeCount": 0,
+    "counterfactualWouldChangeRows": [],
+    "savedBySelectedResolution": [],
+    "falseAssigned": [],
+    "missedAssigned": [],
+    "storedMatchesSelectedCount": 0,
+    "closeSource": "journal_close_index_from_resolution_notes",
+    "note": "Les 84 résolus ont TOUS utilisé selectedExpiration pour la résolution (notes). Le contre-facteur « cohorte » montre ce qui aurait été faux sans le patch resolveExpiredRecords."
+  },
+  "focusTickers": [
+    {
+      "ticker": "TQQQ",
+      "mismatchTotal": 0,
+      "mismatchResolved": 0,
+      "mismatchPending": 0,
+      "mismatchInProfileMetrics": 0,
+      "counterfactualWouldChange": 0,
+      "falseAssignedCount": 0,
+      "inTop20Bucket": true,
+      "top20Rank": 13,
+      "top20N": 52,
+      "top20AssignmentRate": 11.5,
+      "objectif1Verdict": "1 % stressé",
+      "objectif1N": 52,
+      "examples": []
+    },
+    {
+      "ticker": "APLD",
+      "mismatchTotal": 0,
+      "mismatchResolved": 0,
+      "mismatchPending": 0,
+      "mismatchInProfileMetrics": 0,
+      "counterfactualWouldChange": 0,
+      "falseAssignedCount": 0,
+      "inTop20Bucket": true,
+      "top20Rank": 11,
+      "top20N": 38,
+      "top20AssignmentRate": 7.9,
+      "objectif1Verdict": "1 % stressé",
+      "objectif1N": 38,
+      "examples": []
+    },
+    {
+      "ticker": "HOOD",
+      "mismatchTotal": 0,
+      "mismatchResolved": 0,
+      "mismatchPending": 0,
+      "mismatchInProfileMetrics": 0,
+      "counterfactualWouldChange": 0,
+      "falseAssignedCount": 0,
+      "inTop20Bucket": true,
+      "top20Rank": 1,
+      "top20N": 52,
+      "top20AssignmentRate": 5.8,
+      "objectif1Verdict": "1 % défendable",
+      "objectif1N": 52,
+      "examples": []
+    },
+    {
+      "ticker": "SOFI",
+      "mismatchTotal": 0,
+      "mismatchResolved": 0,
+      "mismatchPending": 0,
+      "mismatchInProfileMetrics": 0,
+      "counterfactualWouldChange": 0,
+      "falseAssignedCount": 0,
+      "inTop20Bucket": false,
+      "top20Rank": 4,
+      "top20N": 36,
+      "top20AssignmentRate": 16.7,
+      "objectif1Verdict": "assignation défavorable",
+      "objectif1N": 36,
+      "examples": []
+    },
+    {
+      "ticker": "BAC",
+      "mismatchTotal": 0,
+      "mismatchResolved": 0,
+      "mismatchPending": 0,
+      "mismatchInProfileMetrics": 0,
+      "counterfactualWouldChange": 0,
+      "falseAssignedCount": 0,
+      "inTop20Bucket": false,
+      "top20Rank": 1,
+      "top20N": 8,
+      "top20AssignmentRate": 25,
+      "objectif1Verdict": "très préliminaire",
+      "objectif1N": 8,
+      "examples": []
+    }
+  ],
+  "probableCauseSummary": {
+    "primary": "À la capture, normalizeRecord écrit expiration depuis candidate.expiration (souvent cohorte/scanner) alors que selectedExpiration vient du picker UI (+7j). Pas un bug de résolution récent — propagation incohérente à la création.",
+    "secondary": "isOnePercentProfileRecord utilise encore expiration (cohorte) → inclut dans métriques historiques avant la vraie date du contrat.",
+    "batches": [
+      {
+        "scanDate": "2026-05-08",
+        "count": 84,
+        "pair": "20260508→20260515 et 20260515→20260522",
+        "status": "résolus"
+      },
+      {
+        "scanDate": "2026-05-29",
+        "count": 58,
+        "pair": "20260605→20260612",
+        "status": "pending (contrat pas encore expiré au 2026-06-07)"
+      }
+    ]
+  },
+  "verdict": {
+    "global": "Aucune incohérence détectée",
+    "resolutionFieldToday": "resolveExpiredRecords utilise selectedExpiration (corrigé) — confirmé par notes de résolution",
+    "profileFieldToday": "isOnePercentProfileRecord utilise expiration (cohorte) — INCOHÉRENT, métriques éligibles 7j trop tôt",
+    "assignmentImpactToday": "0 fausses assignations vs selectedExpiration; 0 catastrophes évitées par le patch résolution",
+    "j1CountReconciled": "J1 comptait 84 = mismatch dans l'échantillon profil. Total brut = 0 (0 résolus primaryDaily + 0 pending intradayRetest)."
+  },
+  "recommendation": {
+    "recommended": "E",
+    "label": "Combinaison C + D + backfill expiration (A allégé) — pas de re-résolution urgente pour les 84",
+    "options": {
+      "A_correctHistoricalRecords": {
+        "action": "Backfill expiration = selectedExpiration sur les 142 records (données). Re-résolution NON requise pour les 84 déjà résolus sur selectedExpiration.",
+        "when": "Migration données one-shot"
+      },
+      "B_excludeFromMetrics": {
+        "action": "Exclure les mismatch selected_future des métriques jusqu'à backfill — utile seulement si patch C retardé.",
+        "when": "Filet de sécurité temporaire"
+      },
+      "C_fixResolutionLogic": {
+        "action": "Aligner isOnePercentProfileRecord + normalizeRecord sur selectedExpiration ?? expiration.",
+        "when": "Patch moteur permanent — priorité #1"
+      },
+      "D_uiWarning": {
+        "action": "Badge « expiration≠selected » dans Journal POP pour les lignes concernées.",
+        "when": "Immédiat"
+      },
+      "E_combination": {
+        "action": "1) Patch capture (normalizeRecord) · 2) Patch éligibilité profil (isOnePercentProfileRecord) · 3) Backfill expiration sur 142 records · 4) Warning UI · 5) Surveiller les 58 pending intradayRetest",
+        "rationale": "0/84 résolus utilisent déjà selectedExpiration; 0 assignations auraient été fausses si la cohorte avait été utilisée"
+      }
+    },
+    "captureFixProposedNotApplied": {
+      "file": "app/journal/wheelValidationService.js",
+      "function": "normalizeRecord",
+      "change": "Si options.selectedExpiration est fourni : expiration = selectedExpiration (synchroniser les deux champs à la capture).",
+      "riskIfNotDone": "Nouvelles captures recréeront le décalage +7j cohorte/contrat."
+    },
+    "profileFixProposedNotApplied": {
+      "file": "app/journal/wheelValidationService.js",
+      "function": "isOnePercentProfileRecord",
+      "change": "Utiliser toExpirationYmd(record?.selectedExpiration ?? record?.expiration ?? record?.expirationCohort).",
+      "riskIfNotDone": "n Top 20 / Objectif 1 %+ éligibles 7j avant la vraie expiration du contrat."
+    },
+    "risksIfNotFixed": [
+      "0 records avec champ expiration obsolète (cohorte -7j)",
+      "0 assignations auraient été fausses si resolveExpiredRecords utilisait expiration au lieu de selectedExpiration",
+      "Éligibilité profil basée sur cohorte → métriques comptées 7j trop tôt",
+      "58 pending intradayRetest (20260605→20260612) — risque si résolution future ignore selectedExpiration",
+      "3 tickers focus dans Top 20 portent des n incluant ces records"
+    ]
+  }
+}

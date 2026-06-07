@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T13:42:41.412Z",
+  "generatedAt": "2026-06-07T13:53:40.567Z",
   "phase": "Journal POP J2-B — validation patch capture + éligibilité (lecture seule)",
   "readOnly": true,
   "noProductionChanges": true,
@@ -69,10 +69,10 @@
     },
     "historicalStillDetected": {
       "pass": true,
-      "historicalMismatchTotal": 142,
-      "resolved": 84,
-      "pending": 58,
-      "stillNeedBackfill": 142
+      "historicalMismatchTotal": 0,
+      "resolved": 0,
+      "pending": 0,
+      "stillNeedBackfill": 0
     },
     "profileUsesSelectedExpiration": {
       "pass": true,
@@ -111,7 +111,7 @@
     "rows": []
   },
   "limits": {
-    "backfill": "142 records historiques conservent expiration !== selectedExpiration (84 résolus, 58 pending). Le patch ne corrige QUE les nouvelles captures — un backfill SQLite reste nécessaire pour aligner le passé.",
+    "backfill": "0 records historiques conservent expiration !== selectedExpiration (0 résolus, 0 pending). Le patch ne corrige QUE les nouvelles captures — un backfill SQLite reste nécessaire pour aligner le passé.",
     "pendingIntradayRetest": "Les pending intradayRetest (20260605→20260612) seront résolus correctement par resolveExpiredRecords (selectedExpiration ?? expiration) une fois la vraie expiration atteinte."
   }
 }

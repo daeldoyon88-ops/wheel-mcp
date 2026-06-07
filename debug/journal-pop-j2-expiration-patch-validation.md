@@ -1,6 +1,6 @@
 # Validation patch J2-B — expiration ↔ selectedExpiration (Journal POP)
 
-> **Lecture seule** — généré le 2026-06-07T13:42:41
+> **Lecture seule** — généré le 2026-06-07T13:53:40
 > Source : `C:\Users\melan\Desktop\wheel-mcp-remote\data\wheelValidationJournal.sqlite` · 3184 records · today=2026-06-07
 
 ## Verdict : ✅ PATCH VALIDÉ
@@ -22,10 +22,10 @@
 
 ## 2. Records historiques (mismatch persistés)
 
-- Total mismatch : **142**
-- Résolus : **84**
-- Pending : **58**
-- À backfill (inchangés par le patch) : **142**
+- Total mismatch : **0**
+- Résolus : **0**
+- Pending : **0**
+- À backfill (inchangés par le patch) : **0**
 
 ## 3. Éligibilité profil
 
@@ -44,5 +44,5 @@ Records réels dont l'éligibilité change cohorte → selectedExpiration : **0*
 
 ## Limites restantes
 
-- **Backfill** : 142 records historiques conservent expiration !== selectedExpiration (84 résolus, 58 pending). Le patch ne corrige QUE les nouvelles captures — un backfill SQLite reste nécessaire pour aligner le passé.
+- **Backfill** : 0 records historiques conservent expiration !== selectedExpiration (0 résolus, 0 pending). Le patch ne corrige QUE les nouvelles captures — un backfill SQLite reste nécessaire pour aligner le passé.
 - **Pending** : Les pending intradayRetest (20260605→20260612) seront résolus correctement par resolveExpiredRecords (selectedExpiration ?? expiration) une fois la vraie expiration atteinte.

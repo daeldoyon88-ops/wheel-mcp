@@ -2571,6 +2571,42 @@ function formatDynamicTop20Reason(row) {
   return technical ?? "—";
 }
 
+function capitalizeReason(value) {
+  const s = String(value ?? "").trim();
+  if (!s) return "—";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// J5-C — raison COURTE pour la table principale (une seule phrase). Le détail
+// complet (ancien score, win, lbHeld, résilience, duplication, pénalités/bonus,
+// LB détaillé) reste dans `formatDynamicTop20Reason` (tooltip + modal).
+function formatDynamicTop20ReasonShort(row) {
+  const ra = row?.realisticActive ?? null;
+  const rdm = row?.realisticDecisionMetrics ?? null;
+
+  // Candidat « à confirmer » : message dédié et explicite.
+  if (ra?.dynamicTop20RealisticBucket === "confirm") {
+    const n = rdm?.selectedTradeCount;
+    return n != null
+      ? `À confirmer : seulement ${n} décision${n > 1 ? "s" : ""}`
+      : "À confirmer : échantillon faible";
+  }
+
+  // Conservé en Top 20 malgré le stress grâce à l'historique robuste.
+  if ((row?.robustHistoryBonus ?? 0) > 0 && row?.currentVerdict === "1 % stressé") {
+    return "Stress LB mais historique robuste";
+  }
+
+  // Deux principaux moteurs réalistes (bonus d'abord, puis pénalités).
+  const drivers = [
+    ...((ra?.bonuses ?? []).map((b) => b?.reason).filter(Boolean)),
+    ...((ra?.penalties ?? []).map((p) => p?.reason).filter(Boolean)),
+  ].slice(0, 2);
+  if (drivers.length > 0) return capitalizeReason(drivers.join(" · "));
+
+  return capitalizeReason(row?.primaryReason ?? row?.currentVerdict ?? "—");
+}
+
 const DYNAMIC_TOP20_DTE_TARGETS = [2, 3, 4, 7];
 const DYNAMIC_TOP20_WEAK_DTE_SAMPLE = 5;
 
@@ -3677,10 +3713,9 @@ function RealisticPreviewLegend({ className = "" }) {
   );
 }
 
-// J5-B6 — badge de bucket de remplissage Top 20 réaliste : strict (admissible),
-// confirm (« À confirmer · échantillon faible »), rejected. On n'affiche un badge
-// que pour « confirm » : un strict n'a pas besoin de mention, un rejected n'est
-// pas dans le Top 20 principal.
+// J5-B6/J5-C — badge court de remplissage Top 20 réaliste. On n'affiche un badge
+// que pour « confirm » (candidat à confirmer) : un strict n'a pas besoin de
+// mention, un rejected n'est pas dans le Top 20 principal. Détail dans le modal.
 function RealisticTop20BucketBadge({ realisticActive }) {
   const bucket = realisticActive?.dynamicTop20RealisticBucket ?? null;
   if (bucket !== "confirm") return null;
@@ -3690,11 +3725,56 @@ function RealisticTop20BucketBadge({ realisticActive }) {
   return (
     <span
       className="mt-0.5 inline-block rounded-full border border-amber-500/50 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200"
-      title={`${reason} · confiance faible — moins solide qu'un admissible strict.`}
+      title={`${reason} · confiance faible — moins solide qu'un admissible strict (détail dans le modal).`}
     >
-      À confirmer · échantillon faible
+      À confirmer
     </span>
   );
+}
+
+// J5-C — ligne compacte sous le ticker (table principale) : une seule ligne
+// « Déc. X · Rend. réel Y% · Assign. réelle Z% ». Le détail (observations,
+// duplication, profondeur, badges) reste disponible dans le modal.
+function RealisticDecisionCompactLine({ rdm }) {
+  if (!hasRealisticDecisionMetrics(rdm)) return null;
+  const tooltip =
+    `${REALISTIC_DECISION_TOOLTIP} Profondeur réelle ${formatPercent(rdm.selectedDeepAssignmentRatePct, 0)} · ` +
+    `duplication ${formatDuplicationRatio(rdm.duplicationRatio)} (détail complet dans le modal).`;
+  return (
+    <div className="mt-0.5 text-[10px] leading-tight text-slate-500" title={tooltip}>
+      <span className="text-slate-400">Déc.</span> {rdm.selectedTradeCount} ·{" "}
+      <span className="text-slate-400">Rend. réel</span> {formatPercent(rdm.selectedAvgCspYieldPct, 2)} ·{" "}
+      <span className="text-slate-400">Assign. réelle</span> {formatPercent(rdm.selectedAssignmentRatePct, 0)}
+    </div>
+  );
+}
+
+// J5-C — mention dynamique sous le titre du Top réaliste.
+function RealisticTop20FillNote({ top20Count, className = "" }) {
+  const full = top20Count >= 20;
+  return (
+    <p className={`text-[10px] italic text-slate-500 ${className}`}>
+      {full
+        ? "Top réaliste complet."
+        : "Remplissage prudent — aucun ticker faible ajouté."}
+    </p>
+  );
+}
+
+// J5-C — tooltip compact du score réaliste (détails secondaires hors table).
+function buildRealisticScoreTooltip(row) {
+  const parts = ["Score réaliste actif — pilote le classement Top 20."];
+  if (
+    row?.dynamicTop20ScoreLegacy != null &&
+    row.dynamicTop20ScoreLegacy !== row.dynamicTop20Score
+  ) {
+    parts.push(`Ancien score obs. : ${row.dynamicTop20ScoreLegacy}.`);
+  }
+  const n = row?.realisticDecisionMetrics?.selectedTradeCount;
+  if (n != null) parts.push(`Base décision : ${n} décision${n > 1 ? "s" : ""} réelle${n > 1 ? "s" : ""}.`);
+  const rb = row?.robustHistoryBonus ?? 0;
+  if (rb > 0) parts.push(`Bonus historique robuste +${rb}.`);
+  return parts.join(" ");
 }
 
 function RealisticPreviewModalSection({ realisticPreview }) {
@@ -3724,6 +3804,12 @@ function RealisticPreviewModalSection({ realisticPreview }) {
           <span className="text-[10px] text-slate-500">Confiance : {preview.confidence}</span>
         ) : null}
       </div>
+      {preview.confidence === "low" || preview.confidenceBadge === "confiance faible" ? (
+        <p className="mt-1 text-[10px] text-amber-300/90">
+          Confiance faible : échantillon de décisions réelles encore réduit — voir « Décision réelle »
+          ci-dessous pour le nombre exact de décisions.
+        </p>
+      ) : null}
       <p className="mt-1 text-[11px] italic text-slate-500">{REALISTIC_PREVIEW_TOOLTIP}</p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -6659,7 +6745,12 @@ export default function JournalPopPanel({ apiBase, active }) {
                 Snapshot absent peut être normal sur les anciens records historiques. Les snapshots enrichis sont surtout présents sur les nouveaux scans.
               </p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <ProKpi label="Top 20 expérimental" value={dynamicTop20Payload.summary?.top20Count ?? 0} tone="good" />
+                <ProKpi
+                  label="Top réaliste"
+                  value={`${dynamicTop20Payload.summary?.top20Count ?? 0} / 20`}
+                  tone="good"
+                  sub="profils admissibles"
+                />
                 <ProKpi label="Proches d'entrer" value={dynamicTop20Payload.summary?.nearEntryCount ?? 0} tone="info" />
                 <ProKpi label="À valider" value={dynamicTop20Payload.summary?.watchValidateCount ?? 0} tone="info" />
                 <ProKpi label="Stressés" value={dynamicTop20Payload.summary?.stressedCount ?? 0} tone="warn" />
@@ -6782,15 +6873,19 @@ export default function JournalPopPanel({ apiBase, active }) {
                   <ObsVsDecisionLegend className="mt-2" />
                   <RealisticDecisionLegend className="mt-2" />
                   <RealisticPreviewLegend className="mt-2" />
+                <RealisticTop20FillNote
+                  top20Count={dynamicTop20Payload.summary?.top20Count ?? filteredDynamicTop20Main.length}
+                  className="mt-2"
+                />
                 <DarkTable
-                  title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
+                  title={`Top réaliste — ${filteredDynamicTop20Main.length} / 20 profils`}
                   headers={[
                     "Rang",
                     "Ticker",
                     "Options",
                     "Statut",
                     "Score réaliste",
-                    "n global",
+                    "Obs.",
                     "Rend. CSP",
                     "Win",
                     "Assign.",
@@ -6802,15 +6897,13 @@ export default function JournalPopPanel({ apiBase, active }) {
                   ]}
                   headerTitles={{
                     "Score réaliste": REALISTIC_ACTIVE_SCORE_TOOLTIP,
-                    "n global": N_GLOBAL_TOOLTIP,
+                    "Obs.": N_GLOBAL_TOOLTIP,
                     "Proche (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
                     "Profonde (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
                   }}
                   rows={filteredDynamicTop20Main.map((row) => {
                     const sampleTier = getTop20SampleTier(row.n);
                     const onePercentProfile = onePercentProfileByTicker.get(normalizeTicker(row.ticker));
-                    const robustBonus = row?.robustHistoryBonus ?? 0;
-                    const obsVsDecisionEvt = dynamicTop20EventRiskByTicker.get(normalizeTicker(row.ticker));
                     return (
                     <tr
                       key={`dyn-top20-${row.ticker}-${row.rank}`}
@@ -6819,15 +6912,8 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
                       <td className="px-3 py-2.5 font-semibold">
                         <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
-                        <ObsVsDecisionInline eventUniqueness={obsVsDecisionEvt?.eventUniqueness} />
-                        <RealisticDecisionInline
-                          rdm={row.realisticDecisionMetrics}
-                          observationalAssignmentRate={row.assignmentRate}
-                        />
-                        <RealisticPreviewInline
-                          preview={row.realisticPreview}
-                          previewRank={row.realisticPreviewRank}
-                        />
+                        <RealisticDecisionCompactLine rdm={row.realisticDecisionMetrics} />
+                        <RealisticTop20BucketBadge realisticActive={row.realisticActive} />
                       </td>
                       <td className="px-3 py-2.5">
                         <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
@@ -6839,37 +6925,9 @@ export default function JournalPopPanel({ apiBase, active }) {
                         ) : null}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums text-sky-400">
-                        <div title="Score réaliste actif — pilote le classement Top 20.">
+                        <div title={buildRealisticScoreTooltip(row)}>
                           {row.dynamicTop20Score ?? "—"}
                         </div>
-                        {row.dynamicTop20ScoreLegacy != null &&
-                        row.dynamicTop20ScoreLegacy !== row.dynamicTop20Score ? (
-                          <span
-                            className="mt-0.5 block text-[9px] text-slate-500"
-                            title="Ancien score observationnel E2b — référence, ne pilote plus le classement."
-                          >
-                            Ancien score obs. : {row.dynamicTop20ScoreLegacy}
-                          </span>
-                        ) : null}
-                        <RealisticTop20BucketBadge realisticActive={row.realisticActive} />
-                        {row.realisticActive?.confidenceBadge &&
-                        row.realisticActive.confidenceBadge !== "normale" &&
-                        row.realisticActive.confidenceBadge !== "à confirmer" ? (
-                          <span
-                            className="mt-0.5 inline-block rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200"
-                            title={row.realisticActive?.eligibilityReason ?? undefined}
-                          >
-                            {row.realisticActive.confidenceBadge}
-                          </span>
-                        ) : null}
-                        {robustBonus > 0 ? (
-                          <span
-                            className="mt-0.5 inline-block rounded-full border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-violet-200"
-                            title={getRobustHistoryBonusExplanation(row) ?? undefined}
-                          >
-                            Bonus robuste +{robustBonus}
-                          </span>
-                        ) : null}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums">
                         <div>{row.n ?? "—"}</div>
@@ -6893,10 +6951,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <td className="px-3 py-2.5">{formatPercent(row.avgWheelReturnPct, 2)}</td>
                       <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
                       <td
-                        className="px-3 py-2.5 text-[10px] max-w-[240px] text-slate-500"
+                        className="px-3 py-2.5 text-[10px] max-w-[200px] truncate text-slate-500"
                         title={formatDynamicTop20Reason(row)}
                       >
-                        {formatDynamicTop20Reason(row)}
+                        {formatDynamicTop20ReasonShort(row)}
                       </td>
                     </tr>
                     );

@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-06-07T10:36:59.661Z",
+  "scope": "Section F Journal POP UI metrics patch",
+  "filesModifiedByPatch": [
+    "wheel-dashboard/src/components/JournalPopPanel.jsx",
+    "debug/section-f-journal-pop-ui-metrics-patch-validation.mjs",
+    "debug/section-f-journal-pop-ui-metrics-patch-validation.md",
+    "debug/section-f-journal-pop-ui-metrics-patch-validation.json"
+  ],
+  "checks": {
+    "uiOnly": true,
+    "sectionFConsumesRecords": true,
+    "premiumEfficiencyWired": true,
+    "marketRegimeWired": true,
+    "vixBucketWired": true,
+    "daysToFirstTouchIntentionallyPending": true,
+    "clusterRiskIntentionallyPending": true,
+    "ivRankIntentionallyPending": true,
+    "noBackendScannerScoringDbPineTrackedDiff": true,
+    "noGitAdd": true
+  },
+  "commands": [
+    {
+      "command": "node --check wheel-dashboard/src/components/JournalPopPanel.jsx",
+      "status": "failed_expected",
+      "detail": "Node rejected .jsx before syntax parsing: ERR_UNKNOWN_FILE_EXTENSION."
+    },
+    {
+      "command": "npx vite build",
+      "cwd": "wheel-dashboard",
+      "status": "ok",
+      "detail": "Production build completed; only existing framer-motion use client and chunk-size warnings were emitted."
+    }
+  ],
+  "git": {
+    "trackedDiffFiles": [
+      "wheel-dashboard/src/components/JournalPopPanel.jsx"
+    ],
+    "stagedFiles": [],
+    "statusShort": "M wheel-dashboard/src/components/JournalPopPanel.jsx\n?? debug/TQQQ_Top_Risk_Live_Final.pine\n?? debug/_top20_md.mjs\n?? debug/journal-pop-expiration-2026-06-05-audit.json\n?? debug/journal-pop-expiration-2026-06-05-audit.md\n?? debug/journal-pop-expiration-2026-06-05-patch-validation.json\n?? debug/journal-pop-expiration-2026-06-05-patch-validation.md\n?? debug/journal-pop-top20-e2b-total-consistency-audit.json\n?? debug/journal-pop-top20-e2b-total-consistency-audit.md\n?? debug/journal-pop-top20-e2b-total-consistency-audit.mjs\n?? debug/manual-arrow-technical-confluence-audit.json\n?? debug/manual-arrow-technical-confluence-audit.md\n?? debug/manual-yellow-arrow-correlation-audit.json\n?? debug/manual-yellow-arrow-correlation-audit.md\n?? debug/manual-yellow-arrow-dates-TQQQ.csv\n?? debug/ohlc-cache-CL_F.json\n?? debug/ohlc-cache-DIA.json\n?? debug/ohlc-cache-DX-Y.NYB.json\n?? debug/ohlc-cache-IWM.json\n?? debug/ohlc-cache-QQQ.json\n?? debug/ohlc-cache-SPY.json\n?? debug/ohlc-cache-TECL.json\n?? debug/ohlc-cache-TQQQ.json\n?? debug/ohlc-cache-_IRX.json\n?? debug/ohlc-cache-_NDX.json\n?? debug/ohlc-cache-_TNX.json\n?? debug/ohlc-cache-_VIX.json\n?? debug/ohlc-cache-_VVIX.json\n?? debug/safe-aggressive-split-counting-audit.json\n?? debug/safe-aggressive-split-counting-audit.md\n?? debug/safe-aggressive-split-counting-audit.mjs\n?? debug/section-f-journal-pop-ui-metrics-patch-validation.mjs\n?? debug/ticker-meta-coverage-latest.json\n?? debug/top-correlation-mtf-TQQQ-2026-05-31T23-38-55-cross-validation.csv\n?? debug/top-correlation-mtf-TQQQ-2026-05-31T23-38-55-events.csv\n?? debug/top-correlation-mtf-TQQQ-2026-05-31T23-38-55-summary.csv\n?? debug/top-correlation-mtf-TQQQ-2026-05-31T23-38-55.json\n?? debug/top-correlation-weekly-QQQ-2026-05-31T23-26-26-events.csv\n?? debug/top-correlation-weekly-QQQ-2026-05-31T23-26-26-summary.csv\n?? debug/top-correlation-weekly-QQQ-2026-05-31T23-26-26.json\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-26-19-events.csv\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-26-19-summary.csv\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-26-19.json\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-32-36-cross-validation.csv\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-32-36-events.csv\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-32-36-summary.csv\n?? debug/top-correlation-weekly-TQQQ-2026-05-31T23-32-36.json\n?? debug/top-risk-clusters-TQQQ-2026-05-31T23-45-13.csv\n?? debug/top-risk-clusters-TQQQ-2026-05-31T23-45-13.json\n?? debug/top-risk-clusters-TQQQ-2026-05-31T23-45-36.csv\n?? debug/top-risk-clusters-TQQQ-2026-05-31T23-45-36.json\n?? debug/top-risk-clusters-strict-TQQQ-2026-05-31T23-47-24.csv\n?? debug/top-risk-clusters-strict-TQQQ-2026-05-31T23-47-24.json\n?? debug/top-risk-live-rules-backtest-2026-06-01T00-17-33.json\n?? debug/top-risk-live-rules-backtest-events-2026-06-01T00-17-33.csv\n?? debug/top-risk-live-rules-backtest-summary-2026-06-01T00-17-33.csv\n?? debug/top-risk-signal-dates-TQQQ-2026-05-31T23-43-01.csv\n?? debug/top-risk-tv-dates-TQQQ-2026-05-31T23-48-51.csv\n?? debug/top-risk-tv-dates-TQQQ-2026-05-31T23-48-51.json\n?? debug/top20-dte-assignment-counting-audit.json\n?? debug/top20-dte-assignment-counting-audit.md\n?? debug/top20-dte-modal-click-fix-validation.json\n?? debug/top20-dte-modal-click-fix-validation.md\n?? debug/top20-dte-modal-reuse-validation.json\n?? debug/top20-dte-modal-reuse-validation.md\n?? debug/top20-event-unique-verdict-patch-validation.json\n?? debug/top20-event-unique-verdict-patch-validation.md\n?? debug/top20-event-vs-observation-impact-audit.json\n?? debug/top20-event-vs-observation-impact-audit.md\n?? debug/top20-formula-e2-robust-history-simulation.json\n?? debug/top20-formula-e2-robust-history-simulation.md\n?? debug/top20-formula-e2b-robust-history-simulation.json\n?? debug/top20-formula-e2b-robust-history-simulation.md\n?? debug/top20-formula-variants-simulation.json\n?? debug/top20-formula-variants-simulation.md\n?? debug/top20-positive-score-formula-audit.json\n?? debug/top20-positive-score-formula-audit.md\n?? debug/top20FormulaE2RobustHistorySim.mjs\n?? debug/top20FormulaE2bRobustHistorySim.mjs\n?? debug/top20FormulaVariantsSim.mjs\n?? debug/top20PositiveScoreFormulaSim.mjs\n?? debug/tqqq-yellow-arrow-correlation-audit-2026-06-05T18-59-22.json\n?? debug/tqqq-yellow-arrow-correlation-audit-2026-06-05T18-59-33.json\n?? debug/tqqq-yellow-arrow-correlation-audit.md\n?? debug/tradingview/\n?? hot-table-persistence-patch-validation.md\n?? result-scan-30.json\n?? scripts/auditBearishAnnualWindows.mjs\n?? scripts/auditBearishSynthetic.mjs\n?? scripts/auditBullishAnnualWindows.mjs\n?? scripts/auditJournalPopTop20N.mjs\n?? scripts/auditManualYellowArrowCorrelation.mjs\n?? scripts/auditSeasonalityHeaderScore.mjs\n?? scripts/auditSeasonalityUiSources.mjs\n?? scripts/auditTechnicalConfluenceAroundManualArrows.mjs\n?? scripts/auditTop20DteAssignmentCounting.mjs\n?? scripts/auditTop20EventVsObservationImpact.mjs\n?? scripts/auditTopCorrelationMultiTimeframe.mjs\n?? scripts/auditTopCorrelationWeekly.mjs\n?? scripts/auditTqqqSeasonalitySnapshot.mjs\n?? scripts/auditYellowArrowCorrelation.mjs\n?? scripts/backtestTopRiskLiveRules.mjs\n?? scripts/clusterTopRiskEvents.mjs\n?? scripts/clusterTopRiskEventsStrict.mjs\n?? scripts/exportTopRiskTradingViewDates.mjs\n?? scripts/extractTopRiskSignalDates.mjs\n?? scripts/tradingview/backtestTqqqStrategy.mjs\n?? scripts/tradingview/diagnoseDrawdown2026.mjs\n?? scripts/tradingview/finalReport.mjs\n?? scripts/tradingview/lib/analysis.mjs\n?? scripts/tradingview/phase2Optimize.mjs\n?? scripts/tradingview/r4DivergenceAudit.mjs\n?? scripts/tradingview/recalibrateRealBaseline.mjs\n?? scripts/tradingview/testExitCandidates.mjs\n?? scripts/tradingview/tradeQualityAudit.mjs\n?? scripts/tradingview/walkForward.mjs\n?? scripts/validateEventUniqueVerdictPatch.mjs\n?? sqlite3\n?? start-wheel-lab.bat\n?? test-scan-10.json\n?? test-scan-30.json\n?? test-scan.json\n?? wheel-dashboard/data/wheelValidationJournal.sqlite\n?? wheel-dashboard/scripts/"
+  },
+  "riskNotes": [
+    "Market Regime and VIX Bucket display the latest usable record snapshot, not a new score.",
+    "Premium Efficiency averages only records with stress.premium_efficiency present; missing values stay N/D.",
+    "Days to First Touch, Cluster Risk, and IV Rank remain intentionally pending."
+  ]
+}

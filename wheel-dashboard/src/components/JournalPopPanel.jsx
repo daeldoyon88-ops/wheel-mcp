@@ -302,6 +302,110 @@ function formatCompactVixLine(vixLevel, vixRegimeLabel, vixTrendLabel) {
   return parts.join(" · ");
 }
 
+function isSectionFUsableLabel(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return false;
+  const lowered = text.toLowerCase();
+  return lowered !== "n/d" && lowered !== "n/a" && lowered !== "inconnu" && lowered !== "unknown" && lowered !== "—";
+}
+
+function getSectionFMarketRegime(record) {
+  const value = record?.marketContextSnapshot?.marketRegimeLabel ?? record?.marketRegimeLabel;
+  return isSectionFUsableLabel(value) ? String(value).trim() : null;
+}
+
+function getSectionFVixBucket(record) {
+  const label = record?.marketContextSnapshot?.vixRegimeLabel ?? record?.vixRegimeLabel;
+  const usableLabel = isSectionFUsableLabel(label) ? String(label).trim() : null;
+  const level = numberOrNull(record?.marketContextSnapshot?.vixLevel ?? record?.vixLevel);
+  if (!usableLabel && level == null) return null;
+  return {
+    label: usableLabel,
+    level,
+  };
+}
+
+function computeSectionFMetrics(records) {
+  const rows = Array.isArray(records) ? records : [];
+  const premiumEfficiencyValues = rows
+    .map((record) => numberOrNull(record?.stress?.premium_efficiency))
+    .filter((value) => value != null);
+  const avgPremiumEfficiency =
+    premiumEfficiencyValues.length > 0
+      ? premiumEfficiencyValues.reduce((sum, value) => sum + value, 0) / premiumEfficiencyValues.length
+      : null;
+
+  const latestMarketRecord = rows.find((record) => getSectionFMarketRegime(record) != null);
+  const latestVixRecord = rows.find((record) => getSectionFVixBucket(record) != null);
+  const marketRegime = getSectionFMarketRegime(latestMarketRecord);
+  const vixBucket = getSectionFVixBucket(latestVixRecord);
+  const vixValue =
+    vixBucket != null
+      ? [vixBucket.label, vixBucket.level != null ? `VIX ${vixBucket.level.toFixed(1)}` : null].filter(Boolean).join(" · ")
+      : null;
+
+  const cards = [
+    {
+      label: "Days to First Touch",
+      value: null,
+      note: "champ exact absent",
+      status: "waiting",
+    },
+    {
+      label: "Premium Efficiency",
+      value: avgPremiumEfficiency != null ? formatPercent(avgPremiumEfficiency, 2) : null,
+      note:
+        premiumEfficiencyValues.length > 0
+          ? `moyenne records valides · n=${premiumEfficiencyValues.length}`
+          : "aucune donnée valide",
+      status: avgPremiumEfficiency != null ? "real" : "waiting",
+    },
+    {
+      label: "Market Regime",
+      value: marketRegime,
+      note: marketRegime != null ? "snapshot disponible" : "snapshot absent",
+      status: marketRegime != null ? "real" : "waiting",
+    },
+    {
+      label: "VIX Bucket",
+      value: vixValue,
+      note: vixValue != null ? "snapshot disponible" : "snapshot absent",
+      status: vixValue != null ? "real" : "waiting",
+    },
+    {
+      label: "Cluster Risk",
+      value: null,
+      note: "donnée secteur/corrélation absente",
+      status: "waiting",
+    },
+    {
+      label: "IV Rank at Scan",
+      value: null,
+      note: "IV rank non capturé",
+      status: "waiting",
+    },
+  ];
+
+  const realMetricCount = cards.filter((card) => card.status === "real").length;
+  const wiredMetricCount = 3;
+  const pendingMetricCount = cards.length - wiredMetricCount;
+
+  return {
+    cards,
+    realMetricCount,
+    wiredMetricCount,
+    pendingMetricCount,
+    summaryRight:
+      realMetricCount > 0
+        ? `${wiredMetricCount} métriques branchées · ${pendingMetricCount} métriques en attente`
+        : "N/D",
+    subtitle:
+      realMetricCount > 0
+        ? "Lecture UI depuis les records Journal POP déjà chargés. Aucune donnée inventée."
+        : "Aucune métrique réelle disponible dans les records chargés — N/D conservé.",
+  };
+}
+
 function formatMarketFetchDiagnostics(fetchDiagnostics) {
   if (!Array.isArray(fetchDiagnostics) || fetchDiagnostics.length === 0) return "";
   return fetchDiagnostics
@@ -4705,6 +4809,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   }, [calibrationSummary, records]);
 
   const primeQualityStats = useMemo(() => computePrimeQualityStats(records), [records]);
+  const sectionFMetrics = useMemo(() => computeSectionFMetrics(records), [records]);
   const bucketTickerBreakdown = useMemo(() => computeBucketTickerBreakdown(records), [records]);
   const capitalCombinationOverlay = useMemo(
     () => computeCapitalCombinationOverlay(records, capitalData),
@@ -8461,27 +8566,22 @@ export default function JournalPopPanel({ apiBase, active }) {
       {/* ── SECTION F — MÉTRIQUES V2 PRÉPARÉES ─────────────────────────────── */}
       
         <CollapsibleSection
-          title="Métriques avancées — Préparées pour V2"
-          badge="Prochaine phase"
-          subtitle="Placeholders visuels. Aucune donnée inventée — tracking requis pour activation."
+          title="Métriques avancées — Section F"
+          badge="Partiel"
+          subtitle={sectionFMetrics.subtitle}
           defaultOpen={false}
-          summaryRight="6 métriques préparées · tracking requis · N/D"
+          summaryRight={sectionFMetrics.summaryRight}
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[
-              { label: "Days to First Touch", note: "Tracking requis" },
-              { label: "Premium Efficiency", note: "Prime / Strike %" },
-              { label: "Market Regime", note: "Bull / Bear / Sideways" },
-              { label: "VIX Bucket", note: "Volatilité marché" },
-              { label: "Cluster Risk", note: "Secteur / corrélation" },
-              { label: "IV Rank at Scan", note: "IVR au moment scan" },
-            ].map(({ label, note }) => (
+            {sectionFMetrics.cards.map(({ label, value, note, status }) => (
               <div key={label} className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                <p className="mt-2 text-lg font-bold text-slate-700">N/D</p>
-                <p className="mt-1 text-[10px] text-slate-700">{note}</p>
+                <p className={`mt-2 text-lg font-bold ${status === "real" ? "text-slate-100" : "text-slate-700"}`}>
+                  {value ?? "N/D"}
+                </p>
+                <p className={`mt-1 text-[10px] ${status === "real" ? "text-slate-500" : "text-slate-700"}`}>{note}</p>
                 <div className="mt-2">
-                  <PlaceholderBadge label="À venir V2" />
+                  <PlaceholderBadge label={status === "real" ? "Donnée record" : "En attente"} />
                 </div>
               </div>
             ))}

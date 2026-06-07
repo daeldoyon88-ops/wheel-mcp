@@ -10960,11 +10960,14 @@ export default function Dashboard() {
   // scan, puis poste l'archive sans bloquer ni throw. Déféré au prochain tick
   // pour laisser la dérivation du funnel se stabiliser (même pattern que
   // logScanDisplayResult).
-  const archiveScanFunnel = useCallback(({ scanSessionId, scanTimestamp, captureSource } = {}) => {
+  const archiveScanFunnel = useCallback(({ scanSessionId, scanTimestamp, captureSource, sourceOverrides } = {}) => {
     if (!scanSessionId) return;
     setTimeout(() => {
       try {
-        const sources = scanFunnelArchiveSourcesRef.current || {};
+        const sources = {
+          ...(scanFunnelArchiveSourcesRef.current || {}),
+          ...(sourceOverrides && typeof sourceOverrides === "object" ? sourceOverrides : {}),
+        };
         const selectedExpiration = normalizeExpirationYmd(selectedExpirationRef.current);
         const ts = scanTimestamp ?? new Date().toISOString();
         const hasFunnel = Array.isArray(sources.funnelRows) && sources.funnelRows.length > 0;
@@ -11505,7 +11508,18 @@ export default function Dashboard() {
               scanTimestamp,
               source: "ibkr_auto_final",
             });
-            archiveScanFunnel({ scanSessionId: scanId, scanTimestamp, captureSource: "ibkr_auto_final" });
+            archiveScanFunnel({
+              scanSessionId: scanId,
+              scanTimestamp,
+              captureSource: "ibkr_auto_final",
+              sourceOverrides: {
+                ibkrDirectResult: payload,
+                ibkrDirectSentTickers: testedSymbols,
+                displayedSymbols: applied.map((c) =>
+                  String(c?.ticker || c?.symbol || "").trim().toUpperCase()
+                ).filter(Boolean),
+              },
+            });
             setIbkrDirectError("");
             setRefreshStage(
               payload.kept >= finalTarget
@@ -12161,7 +12175,18 @@ export default function Dashboard() {
             scanTimestamp,
             source: "ibkr_manual_final",
           });
-          archiveScanFunnel({ scanSessionId, scanTimestamp, captureSource: "ibkr_manual_final" });
+          archiveScanFunnel({
+            scanSessionId,
+            scanTimestamp,
+            captureSource: "ibkr_manual_final",
+            sourceOverrides: {
+              ibkrDirectResult: payload,
+              ibkrDirectSentTickers: tickersToSend,
+              displayedSymbols: applied.map((c) =>
+                String(c?.ticker || c?.symbol || "").trim().toUpperCase()
+              ).filter(Boolean),
+            },
+          });
           setIbkrDirectError("");
         }
       }

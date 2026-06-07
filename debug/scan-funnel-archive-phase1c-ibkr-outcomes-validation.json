@@ -1,0 +1,166 @@
+{
+  "title": "Scan Funnel Archive — Phase 1C IBKR Outcomes Validation",
+  "generatedAt": "2026-06-07T12:26:12.950Z",
+  "allOk": true,
+  "ibkrOutcomeSource": {
+    "primary": "ibkrDirectResult.shortlist (retained) + ibkrDirectResult.rejected (rejected)",
+    "secondary": "funnelRows[].ibkrStatus via buildYahooIbkrFunnel (yahooIbkrFunnelList)",
+    "captureFix": "dashboard archiveScanFunnel sourceOverrides au moment de la réponse IBKR (contourne ref stale useEffect/setTimeout)",
+    "uiLost": "ibkr_retained absent de displayedSymbols → ui_lost reason filtered_after_ibkr"
+  },
+  "scope": "scanFunnelArchivePayload.js + test + dashboard.jsx (sourceOverrides minimal)",
+  "maxFunnelEvents": 800,
+  "maxWatchlistRejectedEvents": 250,
+  "stagePriority": [
+    "ui_displayed",
+    "ui_lost",
+    "ibkr_retained",
+    "ibkr_rejected",
+    "ibkr_sent",
+    "yahoo_returned",
+    "yahoo_rejected",
+    "crypto_blocked",
+    "watchlist_rejected"
+  ],
+  "scenario": {
+    "stageCounts": {
+      "ui_displayed": 1,
+      "ui_lost": 1,
+      "ibkr_retained": 2,
+      "ibkr_rejected": 1,
+      "ibkr_sent": 3,
+      "yahoo_returned": 0,
+      "yahoo_rejected": 0,
+      "crypto_blocked": 0,
+      "watchlist_rejected": 1
+    },
+    "totalEvents": 9
+  },
+  "changedCodeFiles": [
+    "wheel-dashboard/src/dashboard.jsx",
+    "wheel-dashboard/src/scanFunnelArchivePayload.js",
+    "wheel-dashboard/src/scanFunnelArchivePayload.test.mjs"
+  ],
+  "changedTrackedFiles": [
+    "wheel-dashboard/src/dashboard.jsx",
+    "wheel-dashboard/src/scanFunnelArchivePayload.js",
+    "wheel-dashboard/src/scanFunnelArchivePayload.test.mjs"
+  ],
+  "checks": [
+    {
+      "name": "source IBKR identifiée : ibkrDirectResult.shortlist + rejected",
+      "ok": true,
+      "detail": "dashboard passe sourceOverrides.ibkrDirectResult au moment de archiveScanFunnel (évite ref stale)"
+    },
+    {
+      "name": "ibkr_retained généré (AAA, CCC)",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "name": "ibkr_rejected généré avec reason (BBB)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ui_lost généré (CCC retenu non affiché)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ui_displayed inchangé (AAA)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ibkr_sent count = 3",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "ibkr_retained count = 2",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ibkr_rejected count = 1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ui_displayed count = 1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ui_lost count = 1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "metadata retained compact (strike/grade, pas optionChain)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sanitization : pas rawJson/optionChain/greeks",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "backward compat : sans ibkrDirectResult → ibkr_sent + ui_displayed seulement",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "cap 800 respecté",
+      "ok": true,
+      "detail": "count=9"
+    },
+    {
+      "name": "priorité Phase 1B conservée (FUNNEL_STAGE_PRIORITY inchangé)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sous saturation watchlist, ibkr_retained/rejected/ui_lost conservés",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tests unitaires scanFunnelArchivePayload",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tests store scanFunnelArchiveStore",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "priorité Phase 1B inchangée (validation inline)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "vite build OK",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "git diff --check OK",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "aucun DB/routes/server/scanner/scoring/providers/Pine modifié",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "fichiers code Phase 1C modifiés (helper + test + dashboard sourceOverrides)",
+      "ok": true,
+      "detail": "wheel-dashboard/src/dashboard.jsx, wheel-dashboard/src/scanFunnelArchivePayload.js, wheel-dashboard/src/scanFunnelArchivePayload.test.mjs"
+    }
+  ]
+}

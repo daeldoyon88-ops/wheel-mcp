@@ -85,6 +85,48 @@ function entriesOfMap(map) {
     .filter(([k]) => Boolean(k));
 }
 
+/** Métadonnées compactes pour ibkr_retained (pas de chaîne d'options). */
+function extractIbkrRetainedMetadata(row, fallbackRank = null) {
+  if (!row || typeof row !== "object") {
+    return fallbackRank != null ? { rank: fallbackRank } : null;
+  }
+  const meta = {};
+  const rank = toFiniteOrNull(row?.ibkrRank ?? row?.rank ?? row?.yahooRank ?? fallbackRank);
+  if (rank != null) meta.rank = rank;
+  const strike = row?.safeStrike?.strike ?? row?.selectedStrike ?? row?.safeStrike ?? null;
+  if (strike != null && typeof strike !== "object") meta.selectedStrike = strike;
+  const yieldPct =
+    row?.safeStrike?.weeklyYield ??
+    row?.safeStrike?.yieldPct ??
+    row?.selectedYield ??
+    row?.weeklyReturn ??
+    null;
+  const yieldN = toFiniteOrNull(yieldPct);
+  if (yieldN != null) meta.selectedYield = yieldN;
+  const grade = row?.finalDisplayGrade ?? row?.grade ?? null;
+  if (grade != null && String(grade).trim() !== "") meta.grade = String(grade).trim();
+  const mode = row?.finalDisplayMode ?? row?.mode ?? null;
+  if (mode != null && String(mode).trim() !== "") meta.mode = String(mode).trim();
+  return Object.keys(meta).length ? meta : null;
+}
+
+/** Raison IBKR rejetée : utiliser la vraie raison si disponible, sinon fallback canonique. */
+function resolveIbkrRejectReason(row) {
+  const raw = reasonOf(row);
+  if (raw) return raw;
+  return "unknown_ibkr_rejection";
+}
+
+/** Raison ui_lost : override explicite si fourni, sinon filtered_after_ibkr. */
+function resolveUiLostReason(sym, sources) {
+  const map = sources.uiLostReasonsBySymbol;
+  if (map && typeof map === "object") {
+    const explicit = reasonOf(map[sym] ?? map[normalizeSymbol(sym)]);
+    if (explicit) return explicit;
+  }
+  return "filtered_after_ibkr";
+}
+
 /**
  * Construit la liste d'events terminaux.
  * @returns {Array<{symbol,stage,reason,rank,sentToIbkr,ibkrOutcome,metadata}>}
@@ -149,9 +191,19 @@ function buildEvents(sources) {
       push(sym, "ibkr_sent", { rank, sentToIbkr: true });
     }
     if (status === "rejected") {
-      push(sym, "ibkr_rejected", { rank, sentToIbkr: true, ibkrOutcome: "rejected", reason: reasonOf(row?.reason) });
+      push(sym, "ibkr_rejected", {
+        rank,
+        sentToIbkr: true,
+        ibkrOutcome: "rejected",
+        reason: resolveIbkrRejectReason(row),
+      });
     } else if (status === "retained") {
-      push(sym, "ibkr_retained", { rank, sentToIbkr: true, ibkrOutcome: "retained" });
+      push(sym, "ibkr_retained", {
+        rank,
+        sentToIbkr: true,
+        ibkrOutcome: "retained",
+        metadata: extractIbkrRetainedMetadata(row, rank),
+      });
     }
   }
 
@@ -164,13 +216,17 @@ function buildEvents(sources) {
     : null;
   if (ibkrResult) {
     for (const r of Array.isArray(ibkrResult.shortlist) ? ibkrResult.shortlist : []) {
-      push(r?.symbol ?? r?.ticker, "ibkr_retained", { sentToIbkr: true, ibkrOutcome: "retained" });
+      push(r?.symbol ?? r?.ticker, "ibkr_retained", {
+        sentToIbkr: true,
+        ibkrOutcome: "retained",
+        metadata: extractIbkrRetainedMetadata(r),
+      });
     }
     for (const r of Array.isArray(ibkrResult.rejected) ? ibkrResult.rejected : []) {
       push(r?.symbol ?? r?.ticker, "ibkr_rejected", {
         sentToIbkr: true,
         ibkrOutcome: "rejected",
-        reason: reasonOf(r),
+        reason: resolveIbkrRejectReason(r),
       });
     }
   }
@@ -186,7 +242,7 @@ function buildEvents(sources) {
   );
   for (const sym of retainedSet) {
     if (!displayedSet.has(sym)) {
-      push(sym, "ui_lost", { reason: "retained_not_displayed" });
+      push(sym, "ui_lost", { reason: resolveUiLostReason(sym, sources) });
     }
   }
 
@@ -296,6 +352,17 @@ export function buildScanFunnelArchivePayload(sources = {}) {
   const providedCounts =
     sources.counts && typeof sources.counts === "object" ? sources.counts : {};
   const counts = { ...derived, ...providedCounts };
+
+  // Phase 1C-c : les counts terminaux du funnel IBKR/UI doivent TOUJOURS refléter
+  // les events finaux après priorisation. Sinon un count fourni périmé (ex.
+  // ibkrRetainedCount venant de lastScanPoolMeta, encore à 0/null au moment de la
+  // capture) écrase la réalité et le résumé session affiche ibkr_retained_count=0
+  // alors que les events ibkr_retained existent. Les autres counts fournis
+  // (preIbkrCount, yahooSentCount, journalPopCaptured, …) restent intacts.
+  counts.ibkrSentCount = derived.ibkrSentCount;
+  counts.ibkrRetainedCount = derived.ibkrRetainedCount;
+  counts.ibkrRejectedCount = derived.ibkrRejectedCount;
+  counts.uiDisplayedCount = derived.uiDisplayedCount;
 
   const metadata = sanitizeMetadata(sources.metadata);
   if (metadata.archiveComplete === undefined) {

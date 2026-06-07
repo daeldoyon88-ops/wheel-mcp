@@ -1,0 +1,86 @@
+{
+  "phase": "J3",
+  "scope": "UI labels / lisibilité Journal POP",
+  "generatedAt": "2026-06-07",
+  "readOnly": true,
+  "formulasChanged": false,
+  "scoresChanged": false,
+  "verdictsChanged": false,
+  "backendChanged": false,
+  "dbChanged": false,
+  "backfillPerformed": false,
+  "gitAddOrCommit": false,
+  "filesModified": [
+    "wheel-dashboard/src/components/JournalPopPanel.jsx"
+  ],
+  "filesCreated": [
+    "debug/journal-pop-j3-ui-labels-validation.md",
+    "debug/journal-pop-j3-ui-labels-validation.json"
+  ],
+  "labelChanges": [
+    {
+      "id": 1,
+      "issue": "n du Top 20 ambigu",
+      "section": "Top 20 expérimental",
+      "from": "n",
+      "to": "n global",
+      "tooltip": "N_GLOBAL_TOOLTIP"
+    },
+    {
+      "id": 2,
+      "issue": "DTE melanges",
+      "section": "Modal DTE breakdown + bandeau Top 20",
+      "from": "n",
+      "to": "n DTE cible",
+      "tooltip": "DTE_BREAKDOWN_HEADER_TOOLTIPS.n"
+    },
+    {
+      "id": 3,
+      "issue": "SAFE + AGRESSIF additionnes",
+      "section": "Top 20 + Objectif 1%+",
+      "added": "Rappel 'n global = SAFE + AGRESSIF' (bandeau Top 20 + note base Objectif 1%+)"
+    },
+    {
+      "id": 4,
+      "issue": "deepAssignmentRate ambigu",
+      "section": "Top 20 + Objectif 1%+ + modal DTE",
+      "headers": ["Proche (% assign.)", "Profonde (% assign.)", "Assign. proche", "Assign. profonde"],
+      "tooltip": "ASSIGN_DEPTH_PERCENT_TOOLTIP"
+    },
+    {
+      "id": 5,
+      "issue": "observations normalisees",
+      "section": "Observations normalisées",
+      "added": "Sous-titre: 'Base différente du Top 20 : observations normalisées ≠ records bruts.'"
+    },
+    {
+      "id": 6,
+      "issue": "SAFE vs AGRESSIF base differente",
+      "section": "SAFE vs AGRESSIF",
+      "added": "SAFE_AGG_NORMALIZED_NOTE: 'Peut différer du n global Top 20. min(nSAFE, nAGRESSIF) sert à comparer prudemment.'"
+    },
+    {
+      "id": 7,
+      "issue": "manque de legende",
+      "section": "Top 20 + Objectif 1%+",
+      "added": "Composant repliable JournalPopCountersLegend (<details>)"
+    }
+  ],
+  "newConstants": [
+    "N_GLOBAL_TOOLTIP",
+    "N_PROFILE_TOOLTIP",
+    "DTE_BREAKDOWN_HEADER_TOOLTIPS",
+    "JournalPopCountersLegend"
+  ],
+  "validation": {
+    "viteBuild": "pass",
+    "nodeTests": { "pass": 129, "fail": 0 },
+    "gitDiffCheck": "clean"
+  },
+  "diffStat": { "file": "wheel-dashboard/src/components/JournalPopPanel.jsx", "insertions": 76, "deletions": 5 },
+  "remainingLimits": [
+    "Doublons SAFE+AGRESSIF et rescans dans n: expliqués, non corriges (choix moteur, hors J3)",
+    "Fraction X/Y assignations profondes non affichee (payload expose un taux %): tooltip a defaut",
+    "Risques de double-count audit J1 restent des sujets moteur"
+  ]
+}

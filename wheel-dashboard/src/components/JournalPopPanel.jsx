@@ -1330,7 +1330,7 @@ function getSafeAggConfirmedCounts(summary) {
 const SAFE_AGG_SAMPLE_LEGEND =
   "min(nSAFE, nAGRESSIF) < 5 = échantillon faible · 5–9 = préliminaire · ≥10 = données correctes.";
 const SAFE_AGG_NORMALIZED_NOTE =
-  "n = observations normalisées; les groupes intraday équivalents sont compressés. Ce n’est pas le nombre d’expirations distinctes.";
+  "n = observations normalisées; les groupes intraday équivalents sont compressés. Ce n’est pas le nombre d’expirations distinctes. Peut différer du n global Top 20. min(nSAFE, nAGRESSIF) sert à comparer prudemment les deux modes.";
 
 function getSafeAggSampleQualityBadge(tier) {
   if (tier === "faible") {
@@ -2359,6 +2359,54 @@ function getDynamicTop20StatusTone(status) {
 const ASSIGN_DEPTH_PERCENT_TOOLTIP =
   "Pourcentage calculé sur les assignations seulement, pas sur toutes les observations.";
 
+// Libellés J3 — clarification compteurs Journal POP (affichage seulement, aucun calcul modifié).
+const N_GLOBAL_TOOLTIP =
+  "n global = records résolus utilisés pour ce profil : SAFE + AGRESSIF additionnés, tous DTE. Ce n'est pas un nombre d'expirations distinctes, ni de scans, ni d'observations normalisées.";
+const N_PROFILE_TOOLTIP =
+  "Records résolus pour le mode indiqué. Le mode GLOBAL additionne SAFE + AGRESSIF, tous DTE. Ce n'est pas un nombre d'expirations distinctes ni d'observations normalisées.";
+const DTE_BREAKDOWN_HEADER_TOOLTIPS = {
+  n: "n DTE cible : observations résolues sur le DTE indiqué (2/3/4/7). Plus petit que le n global Top 20 (tous DTE).",
+  "Assign. proche": ASSIGN_DEPTH_PERCENT_TOOLTIP,
+  "Assign. profonde": ASSIGN_DEPTH_PERCENT_TOOLTIP,
+};
+
+/**
+ * Légende compacte et repliable des compteurs Journal POP.
+ * Affichage seulement : explique n global / n DTE cible / % assignation / % profondes /
+ * observations normalisées sans modifier aucune valeur.
+ */
+function JournalPopCountersLegend({ className = "" }) {
+  return (
+    <details
+      className={`rounded-xl border border-slate-700/50 bg-slate-900/40 px-4 py-2 text-[10px] leading-relaxed text-slate-400 ${className}`}
+    >
+      <summary className="cursor-pointer select-none font-semibold uppercase tracking-[0.12em] text-slate-300">
+        Légende des compteurs
+      </summary>
+      <ul className="mt-2 space-y-1">
+        <li>
+          <span className="font-semibold text-slate-300">n global</span> : records résolus, tous DTE,
+          SAFE + AGRESSIF additionnés.
+        </li>
+        <li>
+          <span className="font-semibold text-slate-300">n DTE cible</span> : records résolus sur DTE 2/3/4/7.
+        </li>
+        <li>
+          <span className="font-semibold text-slate-300">assignation %</span> : assignations / observations.
+        </li>
+        <li>
+          <span className="font-semibold text-slate-300">profondes / assignations</span> : assignations
+          profondes / assignations (pas / observations).
+        </li>
+        <li>
+          <span className="font-semibold text-slate-300">observations normalisées</span> : base comparative
+          séparée (≠ records bruts du Top 20).
+        </li>
+      </ul>
+    </details>
+  );
+}
+
 /** Badge échantillon Top 20 E2b — affichage seulement, ne modifie ni rang ni score. */
 function getTop20SampleTier(n) {
   const count = Number(n);
@@ -3185,8 +3233,12 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
               <thead className="bg-slate-900/80 text-slate-500">
                 <tr>
                   {["DTE", "n", "Rend. CSP", "Win", "Assign.", "Assign. proche", "Assign. profonde", "Rend. Wheel", "LB", "Verdict"].map((header) => (
-                    <th key={header} className="px-3 py-2 font-semibold">
-                      {header}
+                    <th
+                      key={header}
+                      className="px-3 py-2 font-semibold"
+                      title={DTE_BREAKDOWN_HEADER_TOOLTIPS[header] ?? undefined}
+                    >
+                      {header === "n" ? "n DTE cible" : header}
                     </th>
                   ))}
                 </tr>
@@ -5877,7 +5929,13 @@ export default function JournalPopPanel({ apiBase, active }) {
                       Incubateur · 10–14
                     </span>
                     <span className="text-slate-500">Le rang et le score E2b ne changent pas.</span>
+                    <span className="w-full text-slate-500">
+                      n global = SAFE + AGRESSIF additionnés · tous DTE. Pour le détail par DTE cible (2/3/4/7),
+                      cliquer un ticker.
+                    </span>
                   </div>
+
+                  <JournalPopCountersLegend className="mt-2" />
                 <DarkTable
                   title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
                   headers={[
@@ -5886,7 +5944,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     "Options",
                     "Statut",
                     "Score exp.",
-                    "n",
+                    "n global",
                     "Rend. CSP",
                     "Win",
                     "Assign.",
@@ -5897,6 +5955,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     "Raison",
                   ]}
                   headerTitles={{
+                    "n global": N_GLOBAL_TOOLTIP,
                     "Proche (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
                     "Profonde (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
                   }}
@@ -6186,6 +6245,13 @@ export default function JournalPopPanel({ apiBase, active }) {
                 <OptionQuoteDiagnosticPanel profile={displayedOnePercentProfiles[0]} />
               ) : null}
 
+              <p className="text-[10px] leading-relaxed text-slate-500">
+                Base : n global = SAFE + AGRESSIF additionnés, tous DTE (même base que le Top 20). La colonne
+                Mode précise SAFE / AGRESSIF / GLOBAL.
+              </p>
+
+              <JournalPopCountersLegend />
+
               <DarkTable
                 title={`Shortlist profils ticker (max 20 par défaut) — ${displayedOnePercentProfiles.length}/${filteredOnePercentProfiles.length}`}
                 headers={[
@@ -6204,6 +6270,11 @@ export default function JournalPopPanel({ apiBase, active }) {
                   "Rend. Wheel",
                   "Verdict",
                 ]}
+                headerTitles={{
+                  n: N_PROFILE_TOOLTIP,
+                  "Assign. proche": ASSIGN_DEPTH_PERCENT_TOOLTIP,
+                  "Assign. profonde": ASSIGN_DEPTH_PERCENT_TOOLTIP,
+                }}
                 rows={displayedOnePercentProfiles.map((profile) => (
                   <tr key={`one-pct-${profile.ticker}-${profile.mode}`} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-3 py-2.5 font-semibold text-slate-200">
@@ -7720,7 +7791,7 @@ export default function JournalPopPanel({ apiBase, active }) {
           <CollapsibleSection
             title="Observations normalisées"
             badge={`${summary.normalized_observations ?? 0} observations`}
-            subtitle="Regroupe les scans similaires d'une même journée pour éviter de surpondérer un ticker scanné plusieurs fois."
+            subtitle="Regroupe les scans similaires d'une même journée pour éviter de surpondérer un ticker scanné plusieurs fois. Base différente du Top 20 : observations normalisées ≠ records bruts."
             defaultOpen={false}
             summaryRight={summary.compression_ratio != null ? `Compression : ${compressionPct}` : undefined}
           >

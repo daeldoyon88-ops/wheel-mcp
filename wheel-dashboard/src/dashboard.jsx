@@ -27,6 +27,17 @@ import {
 } from "./tickerPipelineDiagnostic.js";
 import { buildScanFunnelArchivePayload } from "./scanFunnelArchivePayload.js";
 import {
+  FUNNEL_ARCHIVE_STAGE_ORDER,
+  buildFunnelSessionSummary,
+  formatFunnelArchiveTimestamp,
+  funnelArchiveCount,
+  funnelStageLabel,
+  getTickerFunnelChain,
+  groupSymbolsByStage,
+  isFunnelArchiveComplete,
+  normalizeFunnelTickerQuery,
+} from "./scanFunnelArchiveUi.js";
+import {
   normalizeExpirationKey,
   candidateRowMatchesSelectedExpiration,
 } from "./expirationKey.js";
@@ -9795,6 +9806,336 @@ function IbkrMemoryPanel({ apiBase, refreshKey = 0 }) {
   );
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Panneau « Archive Funnel » — LECTURE SEULE.
+ * Consulte les sessions archivées via GET /scan-funnel/sessions.
+ * Ne déclenche AUCUN scan Yahoo/IBKR.
+ * ────────────────────────────────────────────────────────────────────────── */
+function ScanFunnelArchivePanel({ apiBase }) {
+  const [open, setOpen] = useState(false);
+  const [listStatus, setListStatus] = useState("idle");
+  const [listError, setListError] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [detailStatus, setDetailStatus] = useState("idle");
+  const [detailError, setDetailError] = useState("");
+  const [detailSession, setDetailSession] = useState(null);
+  const [detailEvents, setDetailEvents] = useState([]);
+  const [tickerSearch, setTickerSearch] = useState("");
+
+  const loadSessions = useCallback(async () => {
+    setListStatus("loading");
+    setListError("");
+    try {
+      const res = await fetch(`${apiBase}/scan-funnel/sessions?limit=20`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json || json.ok === false) {
+        throw new Error(json?.error || "Réponse invalide");
+      }
+      const rows = Array.isArray(json.sessions) ? json.sessions : [];
+      setSessions(rows);
+      setListStatus(rows.length > 0 ? "ok" : "empty");
+    } catch (err) {
+      setSessions([]);
+      setListStatus("error");
+      setListError(String(err?.message || "Erreur réseau"));
+    }
+  }, [apiBase]);
+
+  const loadSessionDetail = useCallback(
+    async (scanSessionId) => {
+      const id = String(scanSessionId ?? "").trim();
+      if (!id) return;
+      setSelectedId(id);
+      setDetailStatus("loading");
+      setDetailError("");
+      setDetailSession(null);
+      setDetailEvents([]);
+      setTickerSearch("");
+      try {
+        const res = await fetch(`${apiBase}/scan-funnel/sessions/${encodeURIComponent(id)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (!json || json.ok === false) {
+          throw new Error(json?.error || "Session introuvable");
+        }
+        setDetailSession(json.session ?? null);
+        setDetailEvents(Array.isArray(json.events) ? json.events : []);
+        setDetailStatus("ok");
+      } catch (err) {
+        setDetailStatus("error");
+        setDetailError(String(err?.message || "Erreur réseau"));
+      }
+    },
+    [apiBase]
+  );
+
+  useEffect(() => {
+    if (open) loadSessions();
+  }, [open, loadSessions]);
+
+  const detailSummary = useMemo(
+    () =>
+      detailSession ? buildFunnelSessionSummary(detailSession, detailEvents) : null,
+    [detailSession, detailEvents]
+  );
+
+  const symbolsByStage = useMemo(
+    () => groupSymbolsByStage(detailEvents),
+    [detailEvents]
+  );
+
+  const tickerChain = useMemo(() => {
+    const q = normalizeFunnelTickerQuery(tickerSearch);
+    if (!q || detailEvents.length === 0) return [];
+    return getTickerFunnelChain(detailEvents, q);
+  }, [tickerSearch, detailEvents]);
+
+  const renderSummaryGrid = (summary) => (
+    <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
+      {[
+        ["Pré-IBKR", summary.preIbkr],
+        ["Yahoo retournés", summary.yahooReturned],
+        ["Yahoo rejetés", summary.yahooRejected],
+        ["Crypto bloqués", summary.cryptoBlocked],
+        ["Watchlist rejetés", summary.watchlistRejected],
+        ["IBKR envoyés", summary.ibkrSent],
+        ["IBKR retenus", summary.ibkrRetained],
+        ["IBKR rejetés", summary.ibkrRejected],
+        ["UI affichés", summary.uiDisplayed],
+        ["Retenus non affichés", summary.retainedNotDisplayed],
+      ].map(([label, value]) => (
+        <div key={label} className="rounded-lg border border-slate-800 bg-slate-950/40 px-2 py-1.5">
+          <span className="text-slate-500">{label}</span>
+          <div className="font-semibold text-slate-100">{funnelArchiveCount(value)}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderStageGroups = () => (
+    <div className="mt-4 space-y-3">
+      {FUNNEL_ARCHIVE_STAGE_ORDER.map((stage) => {
+        const symbols = symbolsByStage[stage];
+        if (!symbols?.length) return null;
+        const preview = symbols.slice(0, 24).join(", ");
+        const extra = symbols.length > 24 ? ` (+${symbols.length - 24})` : "";
+        return (
+          <div key={stage} className="rounded-lg border border-slate-800 bg-slate-950/30 px-3 py-2">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="text-xs font-semibold text-violet-200">{funnelStageLabel(stage)}</span>
+              <span className="text-[11px] text-slate-500">({symbols.length})</span>
+            </div>
+            <p className="mt-1 break-words text-[11px] leading-relaxed text-slate-300">
+              {preview}
+              {extra}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderTickerChain = () => {
+    const q = normalizeFunnelTickerQuery(tickerSearch);
+    if (!q) return null;
+    if (tickerChain.length === 0) {
+      return (
+        <p className="mt-2 text-xs text-slate-500">
+          Aucune trace de <span className="font-medium text-slate-300">{q}</span> dans cette session.
+        </p>
+      );
+    }
+    return (
+      <div className="mt-3 rounded-lg border border-violet-900/50 bg-violet-950/20 px-3 py-2">
+        <p className="text-xs font-semibold text-violet-100">{q}</p>
+        <ul className="mt-2 space-y-1.5 text-[11px] text-slate-300">
+          {tickerChain.map((ev) => {
+            const strike = ev?.metadata?.selectedStrike;
+            const rank = ev?.rank ?? ev?.metadata?.rank;
+            return (
+              <li key={`${ev.stage}-${ev.id ?? ev.symbol}`} className="border-l-2 border-violet-800/60 pl-2">
+                <span className="font-medium text-violet-200">{ev.stage}</span>
+                {rank != null ? (
+                  <span className="text-slate-500"> · rank {rank}</span>
+                ) : null}
+                {strike != null ? (
+                  <span className="text-slate-500"> · strike {strike}</span>
+                ) : null}
+                {ev.reason ? (
+                  <span className="block text-slate-400">reason: {ev.reason}</span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 shadow-sm"
+      data-testid="scan-funnel-archive-panel"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+      >
+        <span className="flex flex-wrap items-center gap-3">
+          <span className="text-base font-semibold text-slate-100">Archive Funnel</span>
+          <Badge className="rounded-full border-violet-700/60 bg-violet-950/40 text-violet-300">
+            Lecture seule
+          </Badge>
+          {listStatus === "ok" ? (
+            <span className="text-xs text-slate-400">{sessions.length} session(s)</span>
+          ) : listStatus === "error" ? (
+            <span className="text-xs text-slate-500">Archive indisponible</span>
+          ) : null}
+        </span>
+        <span className="text-xs text-slate-500">{open ? "▲ masquer" : "▼ afficher"}</span>
+      </button>
+
+      {open ? (
+        <div className="border-t border-slate-800 px-5 pb-5 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-slate-400">
+              Historique des scans archivés (Yahoo → IBKR → UI). Aucun scan n&apos;est déclenché ici.
+            </p>
+            <button
+              type="button"
+              className="rounded-lg border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
+              onClick={loadSessions}
+              disabled={listStatus === "loading"}
+            >
+              Actualiser
+            </button>
+          </div>
+
+          {listStatus === "loading" || listStatus === "idle" ? (
+            <p className="mt-3 text-sm text-slate-500">Chargement des sessions archivées…</p>
+          ) : listStatus === "error" ? (
+            <p className="mt-3 text-sm text-amber-300">
+              Impossible de charger l&apos;archive Funnel ({listError || "erreur"}).
+            </p>
+          ) : listStatus === "empty" ? (
+            <p className="mt-3 text-sm text-slate-400">Aucune archive Funnel disponible.</p>
+          ) : (
+            <>
+              <div className="mt-3 max-h-56 overflow-auto rounded-xl border border-slate-800">
+                <table className="min-w-full text-left text-[11px] text-slate-300">
+                  <thead className="sticky top-0 bg-slate-900">
+                    <tr className="border-b border-slate-800 text-slate-400">
+                      <th className="px-2 py-1.5 font-medium">Session</th>
+                      <th className="px-2 py-1.5 font-medium">Date</th>
+                      <th className="px-2 py-1.5 font-medium">Exp.</th>
+                      <th className="px-2 py-1.5 font-medium">DTE</th>
+                      <th className="px-2 py-1.5 font-medium">Pool</th>
+                      <th className="px-2 py-1.5 font-medium">Capture</th>
+                      <th className="px-2 py-1.5 font-medium">Pré-IBKR</th>
+                      <th className="px-2 py-1.5 font-medium">Yahoo ret.</th>
+                      <th className="px-2 py-1.5 font-medium">IBKR env.</th>
+                      <th className="px-2 py-1.5 font-medium">IBKR ret.</th>
+                      <th className="px-2 py-1.5 font-medium">IBKR rej.</th>
+                      <th className="px-2 py-1.5 font-medium">UI</th>
+                      <th className="px-2 py-1.5 font-medium">Events</th>
+                      <th className="px-2 py-1.5 font-medium">Complet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map((row) => {
+                      const id = row.scan_session_id;
+                      const selected = selectedId === id;
+                      const complete = isFunnelArchiveComplete(row);
+                      return (
+                        <tr
+                          key={id}
+                          className={`cursor-pointer border-b border-slate-800/80 hover:bg-slate-800/50 ${
+                            selected ? "bg-violet-950/30" : ""
+                          }`}
+                          onClick={() => loadSessionDetail(id)}
+                        >
+                          <td className="px-2 py-1.5 font-medium text-violet-200">{id}</td>
+                          <td className="px-2 py-1.5 whitespace-nowrap">
+                            {formatFunnelArchiveTimestamp(row.scan_timestamp || row.created_at)}
+                          </td>
+                          <td className="px-2 py-1.5">{row.selected_expiration ?? "—"}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.dte_at_scan)}</td>
+                          <td className="px-2 py-1.5">{row.pool_source ?? "—"}</td>
+                          <td className="px-2 py-1.5">{row.capture_source ?? "—"}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.pre_ibkr_count)}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.yahoo_returned_count)}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.ibkr_sent_count)}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.ibkr_retained_count)}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.ibkr_rejected_count)}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.ui_displayed_count)}</td>
+                          <td className="px-2 py-1.5">{funnelArchiveCount(row.event_count)}</td>
+                          <td className="px-2 py-1.5">
+                            {complete === true ? "oui" : complete === false ? "non" : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {selectedId ? (
+                <div className="mt-4 rounded-xl border border-violet-900/40 bg-violet-950/10 p-3">
+                  <p className="text-sm font-semibold text-slate-100">
+                    Session {selectedId}
+                  </p>
+                  {detailStatus === "loading" ? (
+                    <p className="mt-2 text-xs text-slate-500">Chargement du détail…</p>
+                  ) : detailStatus === "error" ? (
+                    <p className="mt-2 text-xs text-amber-300">
+                      Impossible de charger la session ({detailError || "erreur"}).
+                    </p>
+                  ) : detailSummary ? (
+                    <>
+                      {renderSummaryGrid(detailSummary)}
+                      <div className="mt-4">
+                        <label className="mb-1 block text-xs font-medium text-slate-400">
+                          Recherche ticker
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder="Ex. TQQQ, BAC, AMD…"
+                          value={tickerSearch}
+                          onChange={(e) => setTickerSearch(e.target.value)}
+                          className="max-w-xs rounded-lg border-slate-700 text-sm"
+                        />
+                        {renderTickerChain()}
+                      </div>
+                      <details className="mt-4" open>
+                        <summary className="cursor-pointer text-xs font-semibold text-slate-200">
+                          Tickers par étape
+                        </summary>
+                        {renderStageGroups()}
+                      </details>
+                    </>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-slate-500">
+                  Cliquez une session pour voir le détail et rechercher un ticker.
+                </p>
+              )}
+            </>
+          )}
+
+          <p className="mt-4 text-[11px] text-slate-600">
+            Panneau read-only : consulte uniquement l&apos;archive persistée. Aucun appel scan_shortlist
+            ni IBKR.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const readStoredNumber = (key, fallback) => {
     const raw = window.localStorage.getItem(key);
@@ -12581,6 +12922,7 @@ export default function Dashboard() {
         ) : activeView === "dashboard" ? (
           <>
             <IbkrMemoryPanel apiBase={API_BASE} refreshKey={ibkrMemoryRefreshKey} />
+            <ScanFunnelArchivePanel apiBase={API_BASE} />
             <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>

@@ -1,0 +1,4003 @@
+{
+  "generatedAt": "2026-06-07T14:47:45.843Z",
+  "phase": "Journal POP J5-A — audit Top 20 réaliste 1 décision/ticker×expiration (lecture seule)",
+  "readOnly": true,
+  "noProductionChanges": true,
+  "source": {
+    "journal": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite",
+    "totalRecords": 3184,
+    "profileEligibleRecords": 1628,
+    "today": "2026-06-07"
+  },
+  "definitions": {
+    "theoreticalDecision": "1 sélection par ticker + selectedExpiration",
+    "observationBaseline": "Toutes les observations éligibles Top 20 / 1%+ (résolues, expirées, hors intradayRetest)",
+    "inflationRatio": "observationsOriginalCount / selectedTradeCount",
+    "duplicationReductionRatio": "1 - selectedTradeCount / observationsOriginalCount",
+    "bestObservedDisclaimer": "BEST_OBSERVED = oracle post-mortem — plafond théorique, pas une stratégie tradable en live."
+  },
+  "policies": {
+    "SAFE_FIRST": {
+      "description": "Meilleure observation SAFE admissible ; sinon AGRESSIF. Préférence DTE 7>4>3>2, strike bas, spread propre."
+    },
+    "BALANCED": {
+      "description": "Équilibre rendement/risque, rendement ≥0,5 %, évite profondeur, préfère SAFE si rendement comparable."
+    },
+    "YIELD_FIRST": {
+      "description": "Meilleur rendement CSP admissible — mesure si courir la prime amplifie les profondeurs."
+    },
+    "BEST_OBSERVED": {
+      "description": "Oracle post-mortem — meilleure observation selon résultat réel. Non tradable.",
+      "tradable": false
+    }
+  },
+  "verdict": {
+    "global": "Le Top 20 actuel s'appuie sur 1628 observations (334 assignées) alors qu'une base « 1 décision par expiration » n'en retient 385 (59 assignées). Ratio duplication global ≈ 4.23×. Assignation 20.5% → BALANCED 15.3%.",
+    "top20StrictEmpty": "Top 20 strict simulé BALANCED = 0 ticker : après déduplication, aucun ticker n'atteint n≥10 (max ≈ 5 expirations/ticker). Comparaison de rang via projection score E2b (nearEntry + classement score).",
+    "top20Overlap": "9/20 tickers communs (projection top 20 par score E2b — Top 20 strict vide car n max ≈ 5 après déduplication (seuil E2b n≥10)).",
+    "top20OverlapStrict": "0/20 au seuil strict n≥10.",
+    "bestPolicyForRealism": "BALANCED — équilibre rendement/risque sans oracle post-mortem.",
+    "oracleWarning": "BEST_OBSERVED est un plafond théorique post-mortem (oracle) : il choisit après coup la meilleure observation selon le résultat réel. Non tradable en live.",
+    "duplicationLeaders": "TEM (9×), CZR (8×), DAL (7.5×), PAAS (7×), CIFR (7×), BNO (6.67×), PINS (6.5×), BMNR (6.5×)"
+  },
+  "globalPolicyMetrics": {
+    "SAFE_FIRST": {
+      "selectedTradeCount": 385,
+      "selectedAssignedCount": 64,
+      "selectedAssignmentRate": 16.6,
+      "selectedNearAssignmentCount": 21,
+      "selectedModerateAssignmentCount": 24,
+      "selectedDeepAssignmentCount": 19,
+      "selectedDeepAssignmentRate": 29.7,
+      "selectedWinRate": 83.4,
+      "selectedAvgCspYieldPct": 0.68,
+      "selectedMedianCspYieldPct": 0.64,
+      "selectedAvgDepthPct": -3.42,
+      "selectedModeSplit": {
+        "SAFE": 385,
+        "AGGRESSIVE": 0,
+        "OTHER": 0
+      },
+      "selectedDteSplit": {
+        "1": 14,
+        "2": 27,
+        "3": 16,
+        "4": 35,
+        "7": 210,
+        "8": 31,
+        "9": 8,
+        "10": 7,
+        "11": 4,
+        "14": 15
+      },
+      "selectedTickerCount": 190,
+      "observationsOriginalCount": 1628,
+      "duplicationReductionRatio": 0.76,
+      "inflationRatio": 4.23
+    },
+    "BALANCED": {
+      "selectedTradeCount": 385,
+      "selectedAssignedCount": 59,
+      "selectedAssignmentRate": 15.3,
+      "selectedNearAssignmentCount": 20,
+      "selectedModerateAssignmentCount": 21,
+      "selectedDeepAssignmentCount": 18,
+      "selectedDeepAssignmentRate": 30.5,
+      "selectedWinRate": 84.7,
+      "selectedAvgCspYieldPct": 0.95,
+      "selectedMedianCspYieldPct": 0.81,
+      "selectedAvgDepthPct": -3.79,
+      "selectedModeSplit": {
+        "SAFE": 218,
+        "AGGRESSIVE": 167,
+        "OTHER": 0
+      },
+      "selectedDteSplit": {
+        "1": 14,
+        "2": 22,
+        "3": 23,
+        "4": 42,
+        "5": 1,
+        "7": 137,
+        "8": 63,
+        "9": 18,
+        "10": 11,
+        "11": 8,
+        "14": 26
+      },
+      "selectedTickerCount": 190,
+      "observationsOriginalCount": 1628,
+      "duplicationReductionRatio": 0.76,
+      "inflationRatio": 4.23
+    },
+    "YIELD_FIRST": {
+      "selectedTradeCount": 385,
+      "selectedAssignedCount": 93,
+      "selectedAssignmentRate": 24.2,
+      "selectedNearAssignmentCount": 30,
+      "selectedModerateAssignmentCount": 31,
+      "selectedDeepAssignmentCount": 32,
+      "selectedDeepAssignmentRate": 34.4,
+      "selectedWinRate": 75.8,
+      "selectedAvgCspYieldPct": 1,
+      "selectedMedianCspYieldPct": 0.87,
+      "selectedAvgDepthPct": -3.69,
+      "selectedModeSplit": {
+        "SAFE": 5,
+        "AGGRESSIVE": 380,
+        "OTHER": 0
+      },
+      "selectedDteSplit": {
+        "1": 14,
+        "2": 22,
+        "3": 23,
+        "4": 46,
+        "5": 1,
+        "6": 1,
+        "7": 128,
+        "8": 67,
+        "9": 19,
+        "10": 9,
+        "11": 7,
+        "14": 28
+      },
+      "selectedTickerCount": 190,
+      "observationsOriginalCount": 1628,
+      "duplicationReductionRatio": 0.76,
+      "inflationRatio": 4.23
+    },
+    "BEST_OBSERVED": {
+      "selectedTradeCount": 385,
+      "selectedAssignedCount": 59,
+      "selectedAssignmentRate": 15.3,
+      "selectedNearAssignmentCount": 20,
+      "selectedModerateAssignmentCount": 21,
+      "selectedDeepAssignmentCount": 18,
+      "selectedDeepAssignmentRate": 30.5,
+      "selectedWinRate": 84.7,
+      "selectedAvgCspYieldPct": 0.95,
+      "selectedMedianCspYieldPct": 0.82,
+      "selectedAvgDepthPct": -3.89,
+      "selectedModeSplit": {
+        "SAFE": 29,
+        "AGGRESSIVE": 356,
+        "OTHER": 0
+      },
+      "selectedDteSplit": {
+        "1": 14,
+        "2": 22,
+        "3": 23,
+        "4": 41,
+        "5": 1,
+        "6": 1,
+        "7": 134,
+        "8": 66,
+        "9": 20,
+        "10": 10,
+        "11": 7,
+        "14": 26
+      },
+      "selectedTickerCount": 190,
+      "observationsOriginalCount": 1628,
+      "duplicationReductionRatio": 0.76,
+      "inflationRatio": 4.23
+    }
+  },
+  "q1_inflatedTickers": [
+    {
+      "ticker": "TEM",
+      "observationAssignedCount": 9,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 12,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 9,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 75,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "CZR",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 16,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 8,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "DAL",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 30,
+      "distinctExpirationCount": 4,
+      "inflationRatio": 7.5,
+      "currentTop20Rank": 4,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "PAAS",
+      "observationAssignedCount": 7,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 10,
+      "distinctExpirationCount": 1,
+      "inflationRatio": 7,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 70,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "CIFR",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 14,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 7,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "BNO",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 20,
+      "distinctExpirationCount": 3,
+      "inflationRatio": 6.67,
+      "currentTop20Rank": 8,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "PINS",
+      "observationAssignedCount": 13,
+      "distinctExpirationAssignedCount": 2,
+      "observationResolvedCount": 22,
+      "distinctExpirationCount": 4,
+      "inflationRatio": 6.5,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 59.1,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "BMNR",
+      "observationAssignedCount": 13,
+      "distinctExpirationAssignedCount": 2,
+      "observationResolvedCount": 24,
+      "distinctExpirationCount": 3,
+      "inflationRatio": 6.5,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 54.2,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "HIMS",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 32,
+      "distinctExpirationCount": 5,
+      "inflationRatio": 6.4,
+      "currentTop20Rank": 3,
+      "balancedSimulatedRank": 5,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "TTD",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 16,
+      "distinctExpirationCount": 4,
+      "inflationRatio": 6,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 37.5,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "TQQQ",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 52,
+      "distinctExpirationCount": 5,
+      "inflationRatio": 6,
+      "currentTop20Rank": 13,
+      "balancedSimulatedRank": 12,
+      "observationAssignmentRate": 11.5,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "SOFI",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 36,
+      "distinctExpirationCount": 5,
+      "inflationRatio": 6,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": 11,
+      "observationAssignmentRate": 16.7,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "PLTR",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 10,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 6,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 60,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "OKLO",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 22,
+      "distinctExpirationCount": 4,
+      "inflationRatio": 6,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 27.3,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "ETSY",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 14,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 6,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 42.9,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "MGM",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 14,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 6,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 42.9,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "AAL",
+      "observationAssignedCount": 11,
+      "distinctExpirationAssignedCount": 2,
+      "observationResolvedCount": 38,
+      "distinctExpirationCount": 5,
+      "inflationRatio": 5.5,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": 1,
+      "observationAssignmentRate": 28.9,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "HPE",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 22,
+      "distinctExpirationCount": 4,
+      "inflationRatio": 5.5,
+      "currentTop20Rank": 7,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "IGV",
+      "observationAssignedCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "observationResolvedCount": 20,
+      "distinctExpirationCount": 3,
+      "inflationRatio": 5,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 25,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "FISV",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 10,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 5,
+      "currentTop20Rank": 18,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "HAL",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 10,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 5,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "FLY",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 10,
+      "distinctExpirationCount": 2,
+      "inflationRatio": 5,
+      "currentTop20Rank": 16,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "SLV",
+      "observationAssignedCount": 14,
+      "distinctExpirationAssignedCount": 3,
+      "observationResolvedCount": 30,
+      "distinctExpirationCount": 5,
+      "inflationRatio": 4.67,
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": 15,
+      "observationAssignmentRate": 46.7,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "APA",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 14,
+      "distinctExpirationCount": 3,
+      "inflationRatio": 4.67,
+      "currentTop20Rank": 15,
+      "balancedSimulatedRank": null,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    },
+    {
+      "ticker": "U",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "observationResolvedCount": 22,
+      "distinctExpirationCount": 5,
+      "inflationRatio": 4.4,
+      "currentTop20Rank": 6,
+      "balancedSimulatedRank": 13,
+      "observationAssignmentRate": 0,
+      "balancedAssignmentRate": 15.3
+    }
+  ],
+  "q2_tickersImproving": [
+    {
+      "ticker": "TNA",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 8,
+      "observationAssignedCount": 4,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 50,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.61,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.71,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.84,
+          "bestDte": 2,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.71,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "SMCI",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 36,
+      "observationAssignedCount": 8,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 22.2,
+      "observationDeepAssignmentRate": 12.5,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.71,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.35,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.35,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.35,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "PATH",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 20,
+      "observationAssignedCount": 4,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 20,
+      "observationDeepAssignmentRate": 50,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.93,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.23,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.34,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.23,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "IONQ",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": 9,
+      "observationResolvedCount": 32,
+      "observationAssignedCount": 7,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 3.5,
+      "observationAssignmentRate": 21.9,
+      "observationDeepAssignmentRate": 71.4,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.65,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.43,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.63,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.43,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "monte"
+    },
+    {
+      "ticker": "INTC",
+      "currentTop20Rank": 10,
+      "balancedSimulatedRank": 8,
+      "observationResolvedCount": 34,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 3,
+      "observationAssignmentRate": 8.8,
+      "observationDeepAssignmentRate": 33.3,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.75,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.78,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.88,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.78,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "IGV",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 20,
+      "observationAssignedCount": 5,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 5,
+      "observationAssignmentRate": 25,
+      "observationDeepAssignmentRate": 80,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.54,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.58,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.65,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.58,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "HOOD",
+      "currentTop20Rank": 1,
+      "balancedSimulatedRank": 6,
+      "observationResolvedCount": 52,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 1.5,
+      "observationAssignmentRate": 5.8,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.62,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.04,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "CCL",
+      "currentTop20Rank": 2,
+      "balancedSimulatedRank": 3,
+      "observationResolvedCount": 40,
+      "observationAssignedCount": 4,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 10,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.61,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.98,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.05,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.98,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "MRNA",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 22,
+      "observationAssignedCount": 6,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 3,
+      "observationAssignmentRate": 27.3,
+      "observationDeepAssignmentRate": 16.7,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.95,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.04,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.95,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "FCX",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 18,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 3,
+      "observationAssignmentRate": 16.7,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.71,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.86,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.88,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.86,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "DOW",
+      "currentTop20Rank": 9,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 16,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 12.5,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "APLD",
+      "currentTop20Rank": 11,
+      "balancedSimulatedRank": 2,
+      "observationResolvedCount": 38,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 3,
+      "observationAssignmentRate": 7.9,
+      "observationDeepAssignmentRate": 66.7,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.68,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.59,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.77,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.59,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "monte"
+    },
+    {
+      "ticker": "MP",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 6,
+      "observationAssignedCount": 1,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 1,
+      "observationAssignmentRate": 16.7,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.68,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.84,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.04,
+          "bestDte": 2,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.84,
+          "bestDte": 2,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "PAAS",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 10,
+      "observationAssignedCount": 7,
+      "distinctExpirationCount": 1,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 7,
+      "observationAssignmentRate": 70,
+      "observationDeepAssignmentRate": 71.4,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.85,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.85,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 100,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.2,
+          "bestDte": 14,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.85,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "ETSY",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 14,
+      "observationAssignedCount": 6,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6,
+      "observationAssignmentRate": 42.9,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.73,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.69,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.74,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.71,
+          "bestDte": 2,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "MGM",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 14,
+      "observationAssignedCount": 6,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6,
+      "observationAssignmentRate": 42.9,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.56,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.56,
+          "bestDte": 8,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.63,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.63,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "IBIT",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 16,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 12.5,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.55,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.64,
+          "bestDte": 8,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.78,
+          "bestDte": 9,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.66,
+          "bestDte": 9,
+          "bestMode": "SAFE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "CVS",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 6,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 1,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 33.3,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.64,
+          "bestDte": 14,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.64,
+          "bestDte": 14,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.64,
+          "bestDte": 14,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 1,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.64,
+          "bestDte": 14,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "IREN",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 20,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 10,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.98,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 2.46,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 2.46,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 2.46,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "BMNR",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 24,
+      "observationAssignedCount": 13,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 6.5,
+      "observationAssignmentRate": 54.2,
+      "observationDeepAssignmentRate": 7.7,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.74,
+          "bestDte": 3,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.74,
+          "bestDte": 3,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 2,
+          "selectedAssignmentRate": 66.7,
+          "selectedDeepAssignmentRate": 50,
+          "avgYield": 1.1,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.74,
+          "bestDte": 3,
+          "bestMode": "SAFE"
+        }
+      },
+      "rankVerdict": "stable"
+    }
+  ],
+  "q3_tickersWorsening": [
+    {
+      "ticker": "PYPL",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 10,
+      "observationAssignedCount": 4,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 40,
+      "observationDeepAssignmentRate": 100,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.56,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.62,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.62,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.62,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "UUUU",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 6,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 33.3,
+      "observationDeepAssignmentRate": 100,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.57,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.41,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.41,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.41,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "AG",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 6,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 33.3,
+      "observationDeepAssignmentRate": 100,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.6,
+          "bestDte": 4,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.01,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.01,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.01,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "MSTR",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 12,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 16.7,
+      "observationDeepAssignmentRate": 100,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.18,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.18,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.18,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "BP",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 6,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 33.3,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 2,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 50,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "MCHP",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 18,
+      "observationAssignedCount": 4,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 22.2,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.71,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.95,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.95,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.95,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "RBLX",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 10,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 20,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.67,
+          "bestDte": 4,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.87,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.87,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.87,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "BAC",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 8,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 25,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "SHOP",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 8,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 25,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.65,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.71,
+          "bestDte": 1,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.74,
+          "bestDte": 1,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.74,
+          "bestDte": 1,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "SLB",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 10,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 20,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.59,
+          "bestDte": 8,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.64,
+          "bestDte": 8,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.64,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.64,
+          "bestDte": 8,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "AFRM",
+      "currentTop20Rank": 12,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 30,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 6.7,
+      "observationDeepAssignmentRate": 100,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.42,
+          "bestDte": 9,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.42,
+          "bestDte": 9,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.42,
+          "bestDte": 9,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "TQQQ",
+      "currentTop20Rank": 13,
+      "balancedSimulatedRank": 12,
+      "observationResolvedCount": 52,
+      "observationAssignedCount": 6,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6,
+      "observationAssignmentRate": 11.5,
+      "observationDeepAssignmentRate": 83.3,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.6,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.34,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.44,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.34,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "RIVN",
+      "currentTop20Rank": 14,
+      "balancedSimulatedRank": 10,
+      "observationResolvedCount": 14,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 14.3,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.69,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.82,
+          "bestDte": 2,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.82,
+          "bestDte": 2,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.82,
+          "bestDte": 2,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "HOOD",
+      "currentTop20Rank": 1,
+      "balancedSimulatedRank": 6,
+      "observationResolvedCount": 52,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 1.5,
+      "observationAssignmentRate": 5.8,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.62,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.04,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "U",
+      "currentTop20Rank": 6,
+      "balancedSimulatedRank": 13,
+      "observationResolvedCount": 22,
+      "observationAssignedCount": 0,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 0,
+      "inflationRatio": null,
+      "observationAssignmentRate": 0,
+      "observationDeepAssignmentRate": null,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.77,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.19,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.19,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.19,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "NOK",
+      "currentTop20Rank": 5,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 28,
+      "observationAssignedCount": 1,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 1,
+      "observationAssignmentRate": 3.6,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.82,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.18,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 25,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.23,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.18,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "DOW",
+      "currentTop20Rank": 9,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 16,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 12.5,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.7,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "DAL",
+      "currentTop20Rank": 4,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 30,
+      "observationAssignedCount": 0,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 0,
+      "inflationRatio": null,
+      "observationAssignmentRate": 0,
+      "observationDeepAssignmentRate": null,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.61,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.95,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.95,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.95,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "BNO",
+      "currentTop20Rank": 8,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 20,
+      "observationAssignedCount": 0,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 0,
+      "inflationRatio": null,
+      "observationAssignmentRate": 0,
+      "observationDeepAssignmentRate": null,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.82,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.19,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.19,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.19,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "HPE",
+      "currentTop20Rank": 7,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 22,
+      "observationAssignedCount": 0,
+      "distinctExpirationCount": 4,
+      "distinctExpirationAssignedCount": 0,
+      "inflationRatio": null,
+      "observationAssignmentRate": 0,
+      "observationDeepAssignmentRate": null,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.61,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.82,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.82,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 4,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.82,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    }
+  ],
+  "q4_safeVsAggressive": {
+    "global": {
+      "pairsWithBothModes": 729,
+      "safeWouldAvoidAssignment": 43,
+      "safeReducedDepth": 49,
+      "aggressivePaidMoreYield": 394,
+      "aggressiveWorthRisk": 309,
+      "aggressiveIncreasedDepth": 49
+    },
+    "focusTickers": {
+      "TQQQ": {
+        "pairs": 22,
+        "safeAvoids": 0,
+        "safeReducedDepth": 3,
+        "aggPaidMore": 20,
+        "aggWorthRisk": 17,
+        "aggIncreasedDepth": 3
+      },
+      "APLD": {
+        "pairs": 16,
+        "safeAvoids": 1,
+        "safeReducedDepth": 1,
+        "aggPaidMore": 16,
+        "aggWorthRisk": 14,
+        "aggIncreasedDepth": 1
+      },
+      "HOOD": {
+        "pairs": 22,
+        "safeAvoids": 3,
+        "safeReducedDepth": 0,
+        "aggPaidMore": 14,
+        "aggWorthRisk": 11,
+        "aggIncreasedDepth": 0
+      },
+      "SOFI": {
+        "pairs": 16,
+        "safeAvoids": 0,
+        "safeReducedDepth": 2,
+        "aggPaidMore": 5,
+        "aggWorthRisk": 3,
+        "aggIncreasedDepth": 2
+      },
+      "BAC": {
+        "pairs": 4,
+        "safeAvoids": 0,
+        "safeReducedDepth": 0,
+        "aggPaidMore": 0,
+        "aggWorthRisk": 0,
+        "aggIncreasedDepth": 0
+      },
+      "CCL": {
+        "pairs": 16,
+        "safeAvoids": 2,
+        "safeReducedDepth": 0,
+        "aggPaidMore": 11,
+        "aggWorthRisk": 9,
+        "aggIncreasedDepth": 0
+      },
+      "HIMS": {
+        "pairs": 14,
+        "safeAvoids": 0,
+        "safeReducedDepth": 0,
+        "aggPaidMore": 12,
+        "aggWorthRisk": 12,
+        "aggIncreasedDepth": 0
+      }
+    }
+  },
+  "q5_dteComparison": {
+    "observationnel": {
+      "2": {
+        "label": "observationnel",
+        "nSelectedTrades": 132,
+        "assignmentRate": 8.3,
+        "deepAssignmentRate": 36.4,
+        "avgYield": 0.75,
+        "winRate": 91.7,
+        "verdict": "prudent"
+      },
+      "3": {
+        "label": "observationnel",
+        "nSelectedTrades": 166,
+        "assignmentRate": 25.9,
+        "deepAssignmentRate": 53.5,
+        "avgYield": 0.84,
+        "winRate": 74.1,
+        "verdict": "risque élevé"
+      },
+      "4": {
+        "label": "observationnel",
+        "nSelectedTrades": 190,
+        "assignmentRate": 46.3,
+        "deepAssignmentRate": 52.3,
+        "avgYield": 0.8,
+        "winRate": 53.7,
+        "verdict": "risque élevé"
+      },
+      "7": {
+        "label": "observationnel",
+        "nSelectedTrades": 552,
+        "assignmentRate": 20.8,
+        "deepAssignmentRate": 21.7,
+        "avgYield": 0.8,
+        "winRate": 79.2,
+        "verdict": "prudent"
+      },
+      "autres": {
+        "label": "observationnel",
+        "nSelectedTrades": 588,
+        "assignmentRate": 13.1,
+        "deepAssignmentRate": 18.2,
+        "avgYield": 0.85,
+        "winRate": 86.9,
+        "verdict": "prudent"
+      }
+    },
+    "decisionBalanced": {
+      "2": {
+        "label": "BALANCED",
+        "nSelectedTrades": 22,
+        "assignmentRate": 9.1,
+        "deepAssignmentRate": 50,
+        "avgYield": 0.7,
+        "winRate": 90.9,
+        "verdict": "profondeur élevée"
+      },
+      "3": {
+        "label": "BALANCED",
+        "nSelectedTrades": 23,
+        "assignmentRate": 13,
+        "deepAssignmentRate": 33.3,
+        "avgYield": 1.05,
+        "winRate": 87,
+        "verdict": "prudent"
+      },
+      "4": {
+        "label": "BALANCED",
+        "nSelectedTrades": 42,
+        "assignmentRate": 47.6,
+        "deepAssignmentRate": 45,
+        "avgYield": 0.89,
+        "winRate": 52.4,
+        "verdict": "risque élevé"
+      },
+      "7": {
+        "label": "BALANCED",
+        "nSelectedTrades": 137,
+        "assignmentRate": 17.5,
+        "deepAssignmentRate": 25,
+        "avgYield": 0.86,
+        "winRate": 82.5,
+        "verdict": "prudent"
+      },
+      "autres": {
+        "label": "BALANCED",
+        "nSelectedTrades": 161,
+        "assignmentRate": 6.2,
+        "deepAssignmentRate": 10,
+        "avgYield": 1.06,
+        "winRate": 93.8,
+        "verdict": "prudent"
+      }
+    },
+    "decisionSafeFirst": {
+      "2": {
+        "label": "SAFE_FIRST",
+        "nSelectedTrades": 27,
+        "assignmentRate": 7.4,
+        "deepAssignmentRate": 50,
+        "avgYield": 0.68,
+        "winRate": 92.6,
+        "verdict": "profondeur élevée"
+      },
+      "3": {
+        "label": "SAFE_FIRST",
+        "nSelectedTrades": 16,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "avgYield": 0.67,
+        "winRate": 100,
+        "verdict": "prudent"
+      },
+      "4": {
+        "label": "SAFE_FIRST",
+        "nSelectedTrades": 35,
+        "assignmentRate": 54.3,
+        "deepAssignmentRate": 42.1,
+        "avgYield": 0.7,
+        "winRate": 45.7,
+        "verdict": "risque élevé"
+      },
+      "7": {
+        "label": "SAFE_FIRST",
+        "nSelectedTrades": 210,
+        "assignmentRate": 16.2,
+        "deepAssignmentRate": 26.5,
+        "avgYield": 0.67,
+        "winRate": 83.8,
+        "verdict": "prudent"
+      },
+      "autres": {
+        "label": "SAFE_FIRST",
+        "nSelectedTrades": 97,
+        "assignmentRate": 9.3,
+        "deepAssignmentRate": 11.1,
+        "avgYield": 0.7,
+        "winRate": 90.7,
+        "verdict": "prudent"
+      }
+    },
+    "decisionYieldFirst": {
+      "2": {
+        "label": "YIELD_FIRST",
+        "nSelectedTrades": 22,
+        "assignmentRate": 13.6,
+        "deepAssignmentRate": 33.3,
+        "avgYield": 0.75,
+        "winRate": 86.4,
+        "verdict": "prudent"
+      },
+      "3": {
+        "label": "YIELD_FIRST",
+        "nSelectedTrades": 23,
+        "assignmentRate": 21.7,
+        "deepAssignmentRate": 60,
+        "avgYield": 1.14,
+        "winRate": 78.3,
+        "verdict": "profondeur élevée"
+      },
+      "4": {
+        "label": "YIELD_FIRST",
+        "nSelectedTrades": 46,
+        "assignmentRate": 58.7,
+        "deepAssignmentRate": 51.9,
+        "avgYield": 0.96,
+        "winRate": 41.3,
+        "verdict": "risque élevé"
+      },
+      "7": {
+        "label": "YIELD_FIRST",
+        "nSelectedTrades": 128,
+        "assignmentRate": 26.6,
+        "deepAssignmentRate": 32.4,
+        "avgYield": 0.93,
+        "winRate": 73.4,
+        "verdict": "risque élevé"
+      },
+      "autres": {
+        "label": "YIELD_FIRST",
+        "nSelectedTrades": 166,
+        "assignmentRate": 14.5,
+        "deepAssignmentRate": 12.5,
+        "avgYield": 1.08,
+        "winRate": 85.5,
+        "verdict": "prudent"
+      }
+    }
+  },
+  "q6_top20Comparison": {
+    "method": "computeDynamicTop20WheelProfiles via createWheelValidationService (E2b si records disponibles)",
+    "currentTop20": [
+      {
+        "rank": 1,
+        "ticker": "HOOD",
+        "score": 100,
+        "assignmentRate": 5.8,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 2,
+        "ticker": "CCL",
+        "score": 100,
+        "assignmentRate": 10,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 3,
+        "ticker": "HIMS",
+        "score": 100,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 4,
+        "ticker": "DAL",
+        "score": 100,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 5,
+        "ticker": "NOK",
+        "score": 85,
+        "assignmentRate": 3.6,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 6,
+        "ticker": "U",
+        "score": 85,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 7,
+        "ticker": "HPE",
+        "score": 85,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 8,
+        "ticker": "BNO",
+        "score": 85,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 9,
+        "ticker": "DOW",
+        "score": 85,
+        "assignmentRate": 12.5,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 10,
+        "ticker": "INTC",
+        "score": 82,
+        "assignmentRate": 8.8,
+        "deepAssignmentRate": 33.3,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 11,
+        "ticker": "APLD",
+        "score": 69,
+        "assignmentRate": 7.9,
+        "deepAssignmentRate": 66.7,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 12,
+        "ticker": "AFRM",
+        "score": 69,
+        "assignmentRate": 6.7,
+        "deepAssignmentRate": 100,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 13,
+        "ticker": "TQQQ",
+        "score": 67,
+        "assignmentRate": 11.5,
+        "deepAssignmentRate": 83.3,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 14,
+        "ticker": "RIVN",
+        "score": 65,
+        "assignmentRate": 14.3,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 15,
+        "ticker": "APA",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 16,
+        "ticker": "FLY",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 17,
+        "ticker": "CSCO",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 18,
+        "ticker": "FISV",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 19,
+        "ticker": "DOCU",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 20,
+        "ticker": "CNC",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      }
+    ],
+    "balancedSimulatedTop20": [],
+    "balancedNearEntry": [
+      {
+        "rank": 1,
+        "ticker": "INTC",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 2,
+        "ticker": "APLD",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 3,
+        "ticker": "IONQ",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 4,
+        "ticker": "TQQQ",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 5,
+        "ticker": "U",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 6,
+        "ticker": "HIMS",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 7,
+        "ticker": "HOOD",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 8,
+        "ticker": "SOFI",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 9,
+        "ticker": "CCL",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 10,
+        "ticker": "AAL",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 11,
+        "ticker": "HPQ",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry"
+      },
+      {
+        "rank": 12,
+        "ticker": "DOCU",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry"
+      }
+    ],
+    "balancedProjectedTop20ByScore": [
+      {
+        "rank": 1,
+        "ticker": "AAL",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 2,
+        "ticker": "APLD",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 3,
+        "ticker": "CCL",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 4,
+        "ticker": "DOCU",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 5,
+        "ticker": "HIMS",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 6,
+        "ticker": "HOOD",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 7,
+        "ticker": "HPQ",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 8,
+        "ticker": "INTC",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 9,
+        "ticker": "IONQ",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 10,
+        "ticker": "RIVN",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "watch_validate",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 11,
+        "ticker": "SOFI",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 12,
+        "ticker": "TQQQ",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 13,
+        "ticker": "U",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 14,
+        "ticker": "NOW",
+        "score": 46,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 100,
+        "n": null,
+        "status": "watch_validate",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 15,
+        "ticker": "SLV",
+        "score": 35,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 100,
+        "n": null,
+        "status": "watch_validate",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 16,
+        "ticker": "AA",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 17,
+        "ticker": "AAOI",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 18,
+        "ticker": "ABNB",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 19,
+        "ticker": "ACMR",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 20,
+        "ticker": "ADBE",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      }
+    ],
+    "comparisonUsed": "projection top 20 par score E2b — Top 20 strict vide car n max ≈ 5 après déduplication (seuil E2b n≥10)",
+    "balancedMeta": {
+      "top20Count": 0,
+      "nearEntryCount": 12,
+      "insufficientSampleCount": 163,
+      "exploitableForTop20Count": null
+    },
+    "enteredTop20": [
+      {
+        "rank": 1,
+        "ticker": "AAL",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 7,
+        "ticker": "HPQ",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 9,
+        "ticker": "IONQ",
+        "score": 50,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 11,
+        "ticker": "SOFI",
+        "score": 50,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "near_entry",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 14,
+        "ticker": "NOW",
+        "score": 46,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 100,
+        "n": null,
+        "status": "watch_validate",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 15,
+        "ticker": "SLV",
+        "score": 35,
+        "assignmentRate": 20,
+        "deepAssignmentRate": 100,
+        "n": null,
+        "status": "watch_validate",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 16,
+        "ticker": "AA",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 17,
+        "ticker": "AAOI",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 18,
+        "ticker": "ABNB",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 19,
+        "ticker": "ACMR",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      },
+      {
+        "rank": 20,
+        "ticker": "ADBE",
+        "score": 25,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "insufficient_sample",
+        "note": "Projection par score E2b post-déduplication — n<10 pour tous les tickers (seuil Top 20 actuel non atteint)"
+      }
+    ],
+    "droppedFromTop20": [
+      {
+        "rank": 4,
+        "ticker": "DAL",
+        "score": 100,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 5,
+        "ticker": "NOK",
+        "score": 85,
+        "assignmentRate": 3.6,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 7,
+        "ticker": "HPE",
+        "score": 85,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 8,
+        "ticker": "BNO",
+        "score": 85,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 9,
+        "ticker": "DOW",
+        "score": 85,
+        "assignmentRate": 12.5,
+        "deepAssignmentRate": 0,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 12,
+        "ticker": "AFRM",
+        "score": 69,
+        "assignmentRate": 6.7,
+        "deepAssignmentRate": 100,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 15,
+        "ticker": "APA",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 16,
+        "ticker": "FLY",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 17,
+        "ticker": "CSCO",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 18,
+        "ticker": "FISV",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      },
+      {
+        "rank": 20,
+        "ticker": "CNC",
+        "score": 65,
+        "assignmentRate": 0,
+        "deepAssignmentRate": null,
+        "n": null,
+        "status": "top20_experimental"
+      }
+    ],
+    "largestRankChanges": [
+      {
+        "ticker": "DOCU",
+        "currentRank": 19,
+        "balancedRank": 4,
+        "delta": 15,
+        "currentScore": 65,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "APLD",
+        "currentRank": 11,
+        "balancedRank": 2,
+        "delta": 9,
+        "currentScore": 69,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "U",
+        "currentRank": 6,
+        "balancedRank": 13,
+        "delta": -7,
+        "currentScore": 85,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "HOOD",
+        "currentRank": 1,
+        "balancedRank": 6,
+        "delta": -5,
+        "currentScore": 100,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "RIVN",
+        "currentRank": 14,
+        "balancedRank": 10,
+        "delta": 4,
+        "currentScore": 65,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "HIMS",
+        "currentRank": 3,
+        "balancedRank": 5,
+        "delta": -2,
+        "currentScore": 100,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "INTC",
+        "currentRank": 10,
+        "balancedRank": 8,
+        "delta": 2,
+        "currentScore": 82,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "CCL",
+        "currentRank": 2,
+        "balancedRank": 3,
+        "delta": -1,
+        "currentScore": 100,
+        "balancedScore": 50,
+        "balancedN": null
+      },
+      {
+        "ticker": "TQQQ",
+        "currentRank": 13,
+        "balancedRank": 12,
+        "delta": 1,
+        "currentScore": 67,
+        "balancedScore": 50,
+        "balancedN": null
+      }
+    ],
+    "overlapCount": 9,
+    "overlapCountStrictTop20": 0
+  },
+  "focusTickers": [
+    {
+      "ticker": "TQQQ",
+      "currentTop20Rank": 13,
+      "balancedSimulatedRank": 12,
+      "observationResolvedCount": 52,
+      "observationAssignedCount": 6,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6,
+      "observationAssignmentRate": 11.5,
+      "observationDeepAssignmentRate": 83.3,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.6,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.34,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.44,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.34,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "APLD",
+      "currentTop20Rank": 11,
+      "balancedSimulatedRank": 2,
+      "observationResolvedCount": 38,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 3,
+      "observationAssignmentRate": 7.9,
+      "observationDeepAssignmentRate": 66.7,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.68,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.59,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.77,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.59,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "monte"
+    },
+    {
+      "ticker": "HOOD",
+      "currentTop20Rank": 1,
+      "balancedSimulatedRank": 6,
+      "observationResolvedCount": 52,
+      "observationAssignedCount": 3,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 1.5,
+      "observationAssignmentRate": 5.8,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.62,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.04,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "descend"
+    },
+    {
+      "ticker": "SOFI",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": 11,
+      "observationResolvedCount": 36,
+      "observationAssignedCount": 6,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6,
+      "observationAssignmentRate": 16.7,
+      "observationDeepAssignmentRate": 83.3,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.67,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 100,
+          "avgYield": 1.09,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.02,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "monte"
+    },
+    {
+      "ticker": "BAC",
+      "currentTop20Rank": null,
+      "balancedSimulatedRank": null,
+      "observationResolvedCount": 8,
+      "observationAssignedCount": 2,
+      "distinctExpirationCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2,
+      "observationAssignmentRate": 25,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 3,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 33.3,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 0.57,
+          "bestDte": 7,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "à confirmer"
+    },
+    {
+      "ticker": "CCL",
+      "currentTop20Rank": 2,
+      "balancedSimulatedRank": 3,
+      "observationResolvedCount": 40,
+      "observationAssignedCount": 4,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4,
+      "observationAssignmentRate": 10,
+      "observationDeepAssignmentRate": 0,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.61,
+          "bestDte": 7,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.98,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 1,
+          "selectedAssignmentRate": 20,
+          "selectedDeepAssignmentRate": 0,
+          "avgYield": 1.05,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.98,
+          "bestDte": 4,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    },
+    {
+      "ticker": "HIMS",
+      "currentTop20Rank": 3,
+      "balancedSimulatedRank": 5,
+      "observationResolvedCount": 32,
+      "observationAssignedCount": 0,
+      "distinctExpirationCount": 5,
+      "distinctExpirationAssignedCount": 0,
+      "inflationRatio": null,
+      "observationAssignmentRate": 0,
+      "observationDeepAssignmentRate": null,
+      "perPolicy": {
+        "SAFE_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 0.62,
+          "bestDte": 3,
+          "bestMode": "SAFE"
+        },
+        "BALANCED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.13,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "YIELD_FIRST": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.13,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        },
+        "BEST_OBSERVED": {
+          "selectedTradeCount": 5,
+          "selectedAssignedCount": 0,
+          "selectedAssignmentRate": 0,
+          "selectedDeepAssignmentRate": null,
+          "avgYield": 1.13,
+          "bestDte": 3,
+          "bestMode": "AGGRESSIVE"
+        }
+      },
+      "rankVerdict": "stable"
+    }
+  ],
+  "j5bRecommendations": [
+    {
+      "id": "J5-B1",
+      "title": "Facteur duplication / risk-event dans le score actuel",
+      "priority": "haute",
+      "rationale": "1628 observations éligibles vs 385 décisions BALANCED (ratio 4.23×). Pénaliser assignmentConcentrationPct et confirmedRepeatedRisk existants avec le dénominateur expiration, pas observation.",
+      "action": "Dans computeE2bTickerEventUniqueness / score E2b : utiliser distinctAssignedExpirationCount comme base d'assignation, garder observation_count en métrique de confiance séparée."
+    },
+    {
+      "id": "J5-B2",
+      "title": "Remplacer assignmentRate observationnel par selectedAssignmentRate",
+      "priority": "haute",
+      "rationale": "Global : assignation obs. 20.5% → BALANCED 15.3% (5.2 pts).",
+      "action": "Avant computeOnePercentWheelProfiles pour Top 20 : réduire à 1 record par ticker×selectedExpiration (politique BALANCED par défaut) puis recalculer csp.assignmentRate."
+    },
+    {
+      "id": "J5-B3",
+      "title": "deepAssignmentRate sur base décision réelle",
+      "priority": "haute",
+      "rationale": "Profonde obs. 33.5% → BALANCED 30.5%.",
+      "action": "Utiliser assignment.profondeRatePct des profils post-déduplication pour les pénalités E2b deepExpsPenalties."
+    },
+    {
+      "id": "J5-B4",
+      "title": "SAFE vs AGRESSIF risk-adjusted",
+      "priority": "moyenne",
+      "rationale": "729 paires SAFE/AGG : SAFE aurait évité 43 assignations ; AGG payait plus 394 fois.",
+      "action": "Intégrer un tie-break SAFE quand rendement comparable (±0,15 %) dans la sélection pré-scoring ; exposer safeVsAggressive dans le diagnostic Top 20."
+    },
+    {
+      "id": "J5-B5",
+      "title": "observation_count = confiance, pas score direct",
+      "priority": "moyenne",
+      "rationale": "Le n observationnel gonfle le mérite sample et les pénalités d'assignation sans refléter le risque réel.",
+      "action": "Conserver recordsResolved observationnel en badge « variantes testées » ; utiliser selectedTradeCount (expirations) pour n minimum E2b et crédibilité."
+    },
+    {
+      "id": "J5-B6",
+      "title": "Recalibrer le seuil n minimum après déduplication",
+      "priority": "haute",
+      "rationale": "Après déduplication BALANCED, n max ≈ 5 expirations/ticker — le Top 20 strict E2b (n≥10) devient vide (0 ticker).",
+      "action": "Ajuster E2B_EXPLOITABLE_MIN_N vers distinctExpirationCount (≈5–8) ou exiger n_observation≥30 ET n_decision≥5 ; ne pas bloquer la migration décisionnelle par un seuil observationnel."
+    }
+  ],
+  "limits": [
+    "Simulation read-only — aucune modification du moteur E2b, formule ou tri production.",
+    "Top 20 simulé BALANCED recalcule profils + score E2b sur records dédupliqués ; le classement peut diverger pour d'autres facteurs (stress, bonus robuste).",
+    "BEST_OBSERVED utilise le résultat post-expiration — biais look-ahead.",
+    "Politiques appliquées sur le même pool éligible isOnePercentProfileRecord ; DTE hors 2/3/4/7 inclus dans les groupes.",
+    "Cycles Wheel théoriques non re-simulés par décision — wheel metrics restent sur cycles existants."
+  ]
+}

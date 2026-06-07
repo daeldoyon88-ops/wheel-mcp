@@ -1326,6 +1326,11 @@ function getSafeAggConfirmedCounts(summary) {
   };
 }
 
+const SAFE_AGG_SAMPLE_LEGEND =
+  "min(nSAFE, nAGRESSIF) < 5 = échantillon faible · 5–9 = préliminaire · ≥10 = données correctes.";
+const SAFE_AGG_NORMALIZED_NOTE =
+  "n = observations normalisées; les groupes intraday équivalents sont compressés. Ce n’est pas le nombre d’expirations distinctes.";
+
 function getSafeAggSampleQualityBadge(tier) {
   if (tier === "faible") {
     return { label: "échantillon faible", className: "border-amber-800/50 bg-amber-900/20 text-amber-400" };
@@ -5421,23 +5426,23 @@ export default function JournalPopPanel({ apiBase, active }) {
               sub={stats.resolvedCount > 0 ? `Readiness ${readiness.score}/100` : undefined}
             />
             <ProKpi
-              label="AGRESSIF confirmés"
+              label="AGRESSIF admissibles n≥5"
               value={getSafeAggConfirmedCounts(safeAggComparison?.summary).aggressive}
               tone="warn"
               sub={
                 safeAggComparison?.summary?.comparable_groups != null
-                  ? `Modes confirmés (n≥5) · ${safeAggComparison.summary.comparable_groups} comparables`
-                  : "Modes confirmés (n≥5)"
+                  ? `Modes admissibles n≥5 · ${safeAggComparison.summary.comparable_groups} comparables`
+                  : "Modes admissibles n≥5"
               }
             />
             <ProKpi
-              label="SAFE confirmés"
+              label="SAFE admissibles n≥5"
               value={getSafeAggConfirmedCounts(safeAggComparison?.summary).safe}
               tone="good"
               sub={
                 primeQualityStats.avgSpreadPct != null
-                  ? `Modes confirmés (n≥5) · spread moy. ${primeQualityStats.avgSpreadPct.toFixed(1)} %`
-                  : "Modes confirmés (n≥5)"
+                  ? `Modes admissibles n≥5 · spread moy. ${primeQualityStats.avgSpreadPct.toFixed(1)} %`
+                  : "Modes admissibles n≥5"
               }
             />
           </div>
@@ -8359,7 +8364,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             defaultOpen={false}
             summaryRight={
               summary.top_score != null
-                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR confirmés · ${saConfirmed.safe} SAFE confirmés`
+                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR admissibles n≥5 · ${saConfirmed.safe} SAFE admissibles n≥5`
                 : undefined
             }
           >
@@ -8658,7 +8663,7 @@ export default function JournalPopPanel({ apiBase, active }) {
             defaultOpen={false}
             summaryRight={
               summary.top_score != null
-                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR confirmés · ${saConfirmed.safe} SAFE confirmés`
+                ? `Meilleur candidat CSP ${summary.top_score} · ${saConfirmed.aggressive} AGR admissibles n≥5 · ${saConfirmed.safe} SAFE admissibles n≥5`
                 : undefined
             }
           >
@@ -9433,19 +9438,27 @@ export default function JournalPopPanel({ apiBase, active }) {
           <CollapsibleSection
             title="SAFE vs AGRESSIF"
             badge="V2-N"
-            subtitle="Compare la prime moyenne et le risque par ticker/DTE. min(nSAFE, nAGRESSIF) &lt; 5 = échantillon faible · 5–9 = préliminaire · ≥ 10 = données correctes."
+            subtitle={`Compare la prime moyenne et le risque par ticker/DTE. ${SAFE_AGG_SAMPLE_LEGEND}`}
             defaultOpen={false}
             summaryRight={
               summary.comparable_groups != null
-                ? `${summary.comparable_groups} comparables · ${confirmedCounts.aggressive} AGRESSIF confirmés · ${confirmedCounts.safe} SAFE confirmés`
+                ? `${summary.comparable_groups} comparables · ${confirmedCounts.aggressive} AGRESSIF admissibles n≥5 · ${confirmedCounts.safe} SAFE admissibles n≥5`
                 : undefined
             }
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
               <ProKpi label="Comparaisons" value={summary.comparisons_total ?? "—"} tone="default" />
               <ProKpi label="Comparables SAFE+AGRESSIF" value={summary.comparable_groups ?? "—"} tone="info" />
-              <ProKpi label="AGRESSIF confirmés" value={confirmedCounts.aggressive} tone="warn" sub="Modes confirmés (n≥5)" />
-              <ProKpi label="SAFE confirmés" value={confirmedCounts.safe} tone="good" sub="Modes confirmés (n≥5)" />
+              <ProKpi label="AGRESSIF admissibles n≥5" value={confirmedCounts.aggressive} tone="warn" sub="Modes admissibles n≥5" />
+              <ProKpi label="SAFE admissibles n≥5" value={confirmedCounts.safe} tone="good" sub="Modes admissibles n≥5" />
+            </div>
+
+            <div
+              className="mb-4 rounded-xl border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-[11px] leading-snug text-slate-400"
+              title={`${SAFE_AGG_NORMALIZED_NOTE} Voir audit pairé pour expirations communes.`}
+            >
+              {SAFE_AGG_NORMALIZED_NOTE} <span className="text-slate-500">Voir audit pairé pour expirations communes.</span>
+              <span className="mt-1 block text-slate-500">{SAFE_AGG_SAMPLE_LEGEND}</span>
             </div>
 
             <div className="mb-4 flex flex-wrap gap-3">

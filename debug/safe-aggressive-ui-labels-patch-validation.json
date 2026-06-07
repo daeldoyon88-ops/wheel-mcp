@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-06-07T10:47:53.691Z",
+  "scope": {
+    "uiOnly": true,
+    "modifiedUiFile": "wheel-dashboard/src/components/JournalPopPanel.jsx",
+    "backendModified": false,
+    "scannerModified": false,
+    "scoringE2bModified": false,
+    "dbModified": false,
+    "pineModified": false
+  },
+  "checks": {
+    "calculationsUnmodified": true,
+    "legacyAggressiveLabelRemoved": true,
+    "legacySafeLabelRemoved": true,
+    "legacyConfirmedN5CopyRemoved": true,
+    "aggressiveAdmissibleLabelPresent": true,
+    "safeAdmissibleLabelPresent": true,
+    "normalizedObservationNotePresent": true,
+    "intradayCompressionNotePresent": true,
+    "sampleLegendPresent": true,
+    "commonExpirationsFallbackPresent": true,
+    "gitDiffCheckOk": true,
+    "viteBuildOk": true,
+    "noGitAdd": true,
+    "noCommit": true
+  },
+  "validationCommands": [
+    {
+      "command": "npx.cmd vite build",
+      "cwd": "wheel-dashboard",
+      "ok": true,
+      "note": "Relancé hors sandbox après erreur Windows spawn setup refresh; 1945 modules transformed; built in 3.60s."
+    },
+    {
+      "command": "git diff --check",
+      "cwd": ".",
+      "ok": true,
+      "note": "OK"
+    }
+  ],
+  "git": {
+    "changedFiles": [
+      "wheel-dashboard/src/components/JournalPopPanel.jsx"
+    ],
+    "targetedStatus": "M wheel-dashboard/src/components/JournalPopPanel.jsx\n?? debug/safe-aggressive-ui-labels-patch-validation.mjs"
+  },
+  "residualRisks": [
+    "Les libellés KPI plus longs peuvent se répartir sur deux lignes selon la largeur disponible.",
+    "Aucun champ payload explicite d'expirations communes n'a été utilisé; l'UI affiche donc la note générique d'audit pairé."
+  ],
+  "ok": true
+}

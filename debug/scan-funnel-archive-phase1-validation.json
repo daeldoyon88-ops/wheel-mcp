@@ -1,0 +1,119 @@
+{
+  "title": "Scan Funnel Archive — Phase 1 Validation",
+  "generatedAt": "2026-06-07T11:38:46.807Z",
+  "allOk": true,
+  "maxEvents": 800,
+  "changedTrackedFiles": [
+    "server.js",
+    "wheel-dashboard/src/dashboard.jsx"
+  ],
+  "newFiles": [
+    "app/journal/scanFunnelArchiveStore.js",
+    "app/journal/scanFunnelArchiveRoutes.js",
+    "app/journal/scanFunnelArchiveStore.test.mjs",
+    "wheel-dashboard/src/scanFunnelArchivePayload.js",
+    "wheel-dashboard/src/scanFunnelArchivePayload.test.mjs"
+  ],
+  "checks": [
+    {
+      "name": "store dédié créé (scanFunnelArchiveStore.js)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "routes dédiées créées (scanFunnelArchiveRoutes.js)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tables idempotentes (double ensureInitialized sans erreur)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "archiveSession ok",
+      "ok": true,
+      "detail": "{\"ok\":true,\"scanSessionId\":\"valid-001\",\"eventsArchived\":3}"
+    },
+    {
+      "name": "getSession retourne session + events",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "re-archive même scanSessionId ne duplique pas",
+      "ok": true,
+      "detail": "events=3"
+    },
+    {
+      "name": "refuse > 800 events",
+      "ok": true,
+      "detail": "too many events: 801 > 800"
+    },
+    {
+      "name": "payload: RIOT crypto_blocked exclusif",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload: BITX non bloqué (ui_displayed)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload: SOFI ui_displayed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload: XYZ yahoo_rejected",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload compact: pas de rawJson",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload compact: pas d'optionChain/greeks",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload: cap 800 respecté",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "même SQLite que Journal POP (défaut)",
+      "ok": true,
+      "detail": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite"
+    },
+    {
+      "name": "store: aucun refetch / provider",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "routes: aucune logique Yahoo/IBKR (pas de fetch/provider)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "payload helper: pur, aucun fetch/provider",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "aucun fichier interdit modifié (scanner/scoring/Pine/ticker_memory/JournalPop capture)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "seuls server.js + dashboard.jsx modifiés (suivis)",
+      "ok": true,
+      "detail": "server.js, wheel-dashboard/src/dashboard.jsx"
+    }
+  ]
+}

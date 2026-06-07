@@ -25,6 +25,7 @@ import {
   normalizeTickerQueryForDiagnostic,
   summarizeYahooIbkrFunnel,
 } from "./tickerPipelineDiagnostic.js";
+import { buildScanFunnelArchivePayload } from "./scanFunnelArchivePayload.js";
 import {
   normalizeExpirationKey,
   candidateRowMatchesSelectedExpiration,
@@ -5277,6 +5278,45 @@ async function callWheelJournalCapture({
   }
 
   return payload;
+}
+
+/**
+ * Archive forensic best-effort du funnel Yahoo/IBKR (Phase 1).
+ * - N'altère JAMAIS le scan : aucune exception remontée, console.warn seulement.
+ * - Timeout court (5 s) pour ne pas retenir de ressources.
+ * - Ne refetch rien : `payload` est déjà construit depuis l'état du dashboard.
+ */
+function callScanFunnelArchive(payload) {
+  try {
+    if (!payload?.scanSessionId) return;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+    void fetch(`${API_BASE}/scan-funnel/archive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller?.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          console.warn("[SCAN_FUNNEL_ARCHIVE_WARN]", {
+            scanSessionId: payload.scanSessionId,
+            status: response.status,
+          });
+        }
+      })
+      .catch((error) => {
+        console.warn("[SCAN_FUNNEL_ARCHIVE_WARN]", {
+          scanSessionId: payload.scanSessionId,
+          error: error?.message || String(error),
+        });
+      })
+      .finally(() => {
+        if (timeoutId) clearTimeout(timeoutId);
+      });
+  } catch (error) {
+    console.warn("[SCAN_FUNNEL_ARCHIVE_WARN]", { error: error?.message || String(error) });
+  }
 }
 
 async function callIbkrShadowWheel({ symbol, expiration, clientId }) {
@@ -10881,6 +10921,75 @@ export default function Dashboard() {
     [yahooIbkrFunnelList]
   );
 
+  // Phase 1 — archive funnel best-effort. On miroite les sources funnel dans un
+  // ref pour ne PAS dépendre d'un state React fraîchement set au moment de la
+  // capture (le ref est rafraîchi à chaque render via useEffect ci-dessous).
+  const scanFunnelArchiveSourcesRef = useRef({});
+  useEffect(() => {
+    scanFunnelArchiveSourcesRef.current = {
+      funnelRows: yahooIbkrFunnelList,
+      displayedSymbols: Array.from(ibkrDisplayedSymbols || []),
+      yahooRejectedBySymbol,
+      watchlistRejectedBySymbol,
+      cryptoBlockedRemovedSymbols,
+      ibkrDirectSentTickers,
+      ibkrDirectResult,
+      poolSource: lastScanPoolMeta.poolSource || preIbkrPoolMode,
+      counts: {
+        preIbkrCount: lastScanPoolMeta.preIbkrCount ?? null,
+        yahooSentCount: lastScanPoolMeta.yahooSent ?? null,
+        yahooReturnedCount: lastScanPoolMeta.yahooReturned ?? null,
+        ibkrTestedCount: lastScanPoolMeta.ibkrTested ?? null,
+        ibkrRetainedCount: lastScanPoolMeta.ibkrRetained ?? null,
+        journalPopCaptured: lastScanPoolMeta.journalPopCaptured ?? null,
+      },
+    };
+  }, [
+    yahooIbkrFunnelList,
+    ibkrDisplayedSymbols,
+    yahooRejectedBySymbol,
+    watchlistRejectedBySymbol,
+    cryptoBlockedRemovedSymbols,
+    ibkrDirectSentTickers,
+    ibkrDirectResult,
+    lastScanPoolMeta,
+    preIbkrPoolMode,
+  ]);
+
+  // Best-effort : construit le payload compact depuis le ref + champs locaux du
+  // scan, puis poste l'archive sans bloquer ni throw. Déféré au prochain tick
+  // pour laisser la dérivation du funnel se stabiliser (même pattern que
+  // logScanDisplayResult).
+  const archiveScanFunnel = useCallback(({ scanSessionId, scanTimestamp, captureSource } = {}) => {
+    if (!scanSessionId) return;
+    setTimeout(() => {
+      try {
+        const sources = scanFunnelArchiveSourcesRef.current || {};
+        const selectedExpiration = normalizeExpirationYmd(selectedExpirationRef.current);
+        const ts = scanTimestamp ?? new Date().toISOString();
+        const hasFunnel = Array.isArray(sources.funnelRows) && sources.funnelRows.length > 0;
+        const payload = buildScanFunnelArchivePayload({
+          ...sources,
+          scanSessionId,
+          scanTimestamp: ts,
+          selectedExpiration,
+          dteAtScan: computeDteAtScan(ts, selectedExpiration),
+          captureSource,
+          metadata: {
+            archiveComplete: hasFunnel,
+            ...(hasFunnel ? {} : { reason: "funnel_sources_unavailable_at_capture" }),
+          },
+        });
+        callScanFunnelArchive(payload);
+      } catch (error) {
+        console.warn("[SCAN_FUNNEL_ARCHIVE_WARN]", {
+          scanSessionId,
+          error: error?.message || String(error),
+        });
+      }
+    }, 0);
+  }, []);
+
   const exportYahooIbkrFunnelCsv = useCallback(() => {
     const header = [
       "ticker",
@@ -11396,6 +11505,7 @@ export default function Dashboard() {
               scanTimestamp,
               source: "ibkr_auto_final",
             });
+            archiveScanFunnel({ scanSessionId: scanId, scanTimestamp, captureSource: "ibkr_auto_final" });
             setIbkrDirectError("");
             setRefreshStage(
               payload.kept >= finalTarget
@@ -11697,6 +11807,7 @@ export default function Dashboard() {
           scanTimestamp,
           source: "yahoo_final",
         });
+        archiveScanFunnel({ scanSessionId: scanId, scanTimestamp, captureSource: "yahoo_final" });
         setTimeout(() => {
           setTimeout(() => logScanDisplayResult(scanId, displaySnapshotRef), 0);
         }, 0);
@@ -12050,6 +12161,7 @@ export default function Dashboard() {
             scanTimestamp,
             source: "ibkr_manual_final",
           });
+          archiveScanFunnel({ scanSessionId, scanTimestamp, captureSource: "ibkr_manual_final" });
           setIbkrDirectError("");
         }
       }

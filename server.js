@@ -39,6 +39,8 @@ import {
 } from "./app/journal/wheelValidationService.js";
 import { createWheelValidationStore } from "./app/journal/wheelValidationStore.js";
 import { createTickerScanMemoryStore } from "./app/journal/tickerScanMemoryStore.js";
+import { createScanFunnelArchiveStore } from "./app/journal/scanFunnelArchiveStore.js";
+import createScanFunnelArchiveRoutes from "./app/journal/scanFunnelArchiveRoutes.js";
 import seasonalityRoutes from "./app/seasonality/seasonalityRoutes.js";
 import createAdaptiveCalibrationRoutes from "./app/calibration/adaptiveCalibrationRoutes.js";
 import createCapitalCombinationRoutes from "./app/capital/capitalCombinationRoutes.js";
@@ -93,6 +95,14 @@ const wheelValidationService = createWheelValidationService({
 // N'altère NI la sélection du scan, NI le ranking, NI le scoring. Écrit après
 // chaque /ibkr/shadow/scan une fois les résultats IBKR connus.
 const tickerScanMemoryStore = createTickerScanMemoryStore({
+  sqlitePath: wheelValidationStore?.sqlitePath,
+});
+
+// Phase 1 — scan_funnel_archive : trace compacte read-only du pipeline
+// univers → watchlist → Yahoo → IBKR → UI, archivée par scanSessionId.
+// Même base SQLite que Journal POP. N'altère NI la sélection, NI le scoring,
+// NI Journal POP. Best-effort : alimenté par le dashboard via /scan-funnel/archive.
+const scanFunnelArchiveStore = createScanFunnelArchiveStore({
   sqlitePath: wheelValidationStore?.sqlitePath,
 });
 
@@ -3362,6 +3372,10 @@ app.use("/seasonality", seasonalityRoutes);
 // Adaptive Calibration Engine — Phase 4B-PREP — read-only, dormant
 // appliedToScanner=false / appliedToRanking=false / appliedToEliteScore=false
 app.use("/calibration", createAdaptiveCalibrationRoutes({ store: wheelValidationStore }));
+
+// Scan Funnel Archive — Phase 1 — read-only forensic, même SQLite que Journal POP.
+// N'altère NI la sélection, NI le scoring, NI Journal POP capture.
+app.use("/scan-funnel", createScanFunnelArchiveRoutes({ store: scanFunnelArchiveStore }));
 
 // Capital Combination Audit — Phase 4D — passive, no scanner hook
 // appliedToScanner=false / appliedToRanking=false / appliedToEliteScore=false

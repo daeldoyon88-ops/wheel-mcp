@@ -901,7 +901,7 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
   if (strike == null) return null;
 
   const symbol = normalizeSymbol(candidate?.symbol ?? candidate?.ticker);
-  const expiration = normalizeExpiration(
+  const candidateExpiration = normalizeExpiration(
     candidate?.expiration ??
       candidate?.targetExpiration ??
       candidate?.ibkrDirect?.raw?.expiration ??
@@ -911,6 +911,14 @@ function normalizeRecord(candidate, strikeMode, scanTimestamp, scanSessionId = n
   const selectedExpiration = normalizeExpiration(
     options.selectedExpiration ?? candidate?.targetExpiration ?? candidate?.selectedExpiration ?? candidate?.expiration
   );
+  // Patch J2-B — quand l'UI fournit une selectedExpiration (expiration réelle du
+  // contrat vendu), elle fait autorité : expiration ne doit jamais diverger de
+  // selectedExpiration à la capture. Sinon on retombe sur l'ancien comportement
+  // (expiration ← candidate.*). Empêche le décalage cohorte/contrat (+7j) à la
+  // création. Ne re-résout rien, ne touche pas au schéma DB.
+  const expiration = normalizeExpiration(options.selectedExpiration)
+    ? selectedExpiration
+    : candidateExpiration;
   const expirationCohort = formatExpirationCohort(expiration);
   const dteAtScan =
     toNumberOrNull(options.dteAtScan) ??
@@ -2144,7 +2152,13 @@ function isLowerBoundStressDamagingForOnePercent(lbStressClass) {
 function isOnePercentProfileRecord(record, todayYmd) {
   if (!getResolvedFlag(record)) return false;
   if ((record?.captureClass ?? "primaryDaily") === "intradayRetest") return false;
-  const expirationYmd = toExpirationYmd(record?.expiration ?? record?.expirationCohort);
+  // Patch J2-B — éligibilité Top 20 / Objectif 1%+ basée sur l'expiration réelle
+  // du contrat (selectedExpiration) et non la cohorte. Aligne ce filtre sur
+  // resolveExpiredRecords (selectedExpiration ?? expiration) pour ne plus inclure
+  // un record « expiré » jusqu'à 7j avant la vraie expiration. Seuils/verdicts inchangés.
+  const expirationYmd = toExpirationYmd(
+    record?.selectedExpiration ?? record?.expiration ?? record?.expirationCohort
+  );
   if (!expirationYmd || expirationYmd >= todayYmd) return false;
   return true;
 }
@@ -7249,3 +7263,10 @@ export function createWheelValidationService(options = {}) {
     store,
   };
 }
+
+// Exports réservés aux tests (patch J2-B) — exposent les fonctions internes de
+// capture/éligibilité sans modifier l'API publique du service.
+export const __testables__ = {
+  normalizeRecord,
+  isOnePercentProfileRecord,
+};

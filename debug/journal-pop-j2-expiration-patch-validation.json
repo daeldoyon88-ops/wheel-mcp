@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-06-07T13:42:41.412Z",
+  "phase": "Journal POP J2-B — validation patch capture + éligibilité (lecture seule)",
+  "readOnly": true,
+  "noProductionChanges": true,
+  "noDbWrite": true,
+  "noBackfill": true,
+  "noReResolve": true,
+  "source": {
+    "journal": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite",
+    "totalRecords": 3184,
+    "today": "2026-06-07"
+  },
+  "globalPass": true,
+  "checks": {
+    "captureNoNewMismatch": {
+      "pass": true,
+      "detail": [
+        {
+          "name": "selectedExpiration future (+7j) — cas reproduisant le bug J2",
+          "options": {
+            "selectedExpiration": "2026-06-12"
+          },
+          "expect": {
+            "expiration": "20260612",
+            "selectedExpiration": "20260612",
+            "mismatch": false
+          },
+          "got": {
+            "expiration": "20260612",
+            "selectedExpiration": "20260612",
+            "mismatch": false
+          },
+          "pass": true
+        },
+        {
+          "name": "selectedExpiration absente — fallback ancien comportement",
+          "options": {},
+          "expect": {
+            "expiration": "20260605",
+            "selectedExpiration": "20260605",
+            "mismatch": false
+          },
+          "got": {
+            "expiration": "20260605",
+            "selectedExpiration": "20260605",
+            "mismatch": false
+          },
+          "pass": true
+        },
+        {
+          "name": "selectedExpiration identique à la cohorte",
+          "options": {
+            "selectedExpiration": "2026-06-12"
+          },
+          "expect": {
+            "expiration": "20260612",
+            "selectedExpiration": "20260612",
+            "mismatch": false
+          },
+          "got": {
+            "expiration": "20260612",
+            "selectedExpiration": "20260612",
+            "mismatch": false
+          },
+          "pass": true
+        }
+      ]
+    },
+    "historicalStillDetected": {
+      "pass": true,
+      "historicalMismatchTotal": 142,
+      "resolved": 84,
+      "pending": 58,
+      "stillNeedBackfill": 142
+    },
+    "profileUsesSelectedExpiration": {
+      "pass": true,
+      "detail": [
+        {
+          "name": "cohorte expirée mais contrat futur — non éligible au 2026-06-07",
+          "today": "2026-06-07",
+          "expect": false,
+          "got": false,
+          "pass": true
+        },
+        {
+          "name": "contrat réel dépassé — éligible au 2026-06-15",
+          "today": "2026-06-15",
+          "expect": true,
+          "got": true,
+          "pass": true
+        },
+        {
+          "name": "selectedExpiration absente — fallback expiration",
+          "today": "2026-06-15",
+          "expect": true,
+          "got": true,
+          "pass": true
+        }
+      ]
+    },
+    "noReopenNoResolve": {
+      "pass": true,
+      "resolvedCount": 2412
+    }
+  },
+  "eligibilityDelta": {
+    "note": "Records mismatch dont l'éligibilité change entre cohorte (ancien) et selectedExpiration (patch).",
+    "count": 0,
+    "rows": []
+  },
+  "limits": {
+    "backfill": "142 records historiques conservent expiration !== selectedExpiration (84 résolus, 58 pending). Le patch ne corrige QUE les nouvelles captures — un backfill SQLite reste nécessaire pour aligner le passé.",
+    "pendingIntradayRetest": "Les pending intradayRetest (20260605→20260612) seront résolus correctement par resolveExpiredRecords (selectedExpiration ?? expiration) une fois la vraie expiration atteinte."
+  }
+}

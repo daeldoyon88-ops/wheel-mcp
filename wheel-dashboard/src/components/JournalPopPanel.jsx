@@ -1947,7 +1947,7 @@ function CollapsibleSection({ title, badge, subtitle, defaultOpen = false, summa
   );
 }
 
-function DarkTable({ title, headers, rows, empty = "Aucune donnée." }) {
+function DarkTable({ title, headers, headerTitles = {}, rows, empty = "Aucune donnée." }) {
   return (
     <section className="rounded-[28px] border border-slate-700/50 bg-slate-900 p-5">
       <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">{title}</h3>
@@ -1961,7 +1961,9 @@ function DarkTable({ title, headers, rows, empty = "Aucune donnée." }) {
             <thead className="border-b border-slate-700/60 text-[10px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
                 {headers.map((h) => (
-                  <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-3 py-3 font-semibold whitespace-nowrap" title={headerTitles[h] ?? undefined}>
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -2244,9 +2246,133 @@ function getDynamicTop20StatusTone(status) {
   return "text-slate-400";
 }
 
-function formatDynamicTop20Reason(row) {
+const ASSIGN_DEPTH_PERCENT_TOOLTIP =
+  "Pourcentage calculé sur les assignations seulement, pas sur toutes les observations.";
+
+/** Badge échantillon Top 20 E2b — affichage seulement, ne modifie ni rang ni score. */
+function getTop20SampleTier(n) {
+  const count = Number(n);
+  if (!Number.isFinite(count)) return null;
+  if (count >= 30) {
+    return {
+      key: "mesurable",
+      label: "Mesurable",
+      title: "n ≥ 30 — échantillon mesurable",
+      badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+      rowClass: "border-l-2 border-l-emerald-500/50",
+    };
+  }
+  if (count >= 15) {
+    return {
+      key: "preliminaire",
+      label: "Préliminaire",
+      title: "15 ≤ n < 30 — échantillon préliminaire",
+      badgeClass: "border-sky-500/40 bg-sky-500/10 text-sky-300",
+      rowClass: "border-l-2 border-l-sky-500/40",
+    };
+  }
+  if (count >= 10) {
+    return {
+      key: "incubateur",
+      label: "Incubateur",
+      title: "10 ≤ n < 15 — échantillon incubateur (score plafonné E2b)",
+      badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+      rowClass: "border-l-2 border-l-amber-500/40",
+    };
+  }
+  return {
+    key: "faible",
+    label: "Faible",
+    title: "n < 10 — échantillon très faible",
+    badgeClass: "border-slate-600/50 bg-slate-700/30 text-slate-400",
+    rowClass: "border-l-2 border-l-slate-600/40",
+  };
+}
+
+function Top20SampleTierBadge({ n }) {
+  const tier = getTop20SampleTier(n);
+  if (!tier) return null;
+  return (
+    <span
+      className={`mt-0.5 inline-block rounded-full border px-1.5 py-0.5 text-[9px] font-semibold leading-none ${tier.badgeClass}`}
+      title={tier.title}
+    >
+      {tier.label}
+    </span>
+  );
+}
+
+function formatAssignmentDepthCell(row, onePercentProfile, kind) {
+  const assignment = onePercentProfile?.assignment;
+  const totalAssignments = assignment?.totalAssignments;
+  const count = kind === "proche" ? assignment?.procheCount : assignment?.profondeCount;
+  const rateFromProfile = kind === "proche" ? assignment?.procheRatePct : assignment?.profondeRatePct;
+  const rateFromRow = kind === "proche" ? row?.nearAssignmentRate : row?.deepAssignmentRate;
+  const rate = rateFromProfile ?? rateFromRow;
+
+  if (totalAssignments != null && totalAssignments > 0 && count != null && rate != null) {
+    return `${count}/${totalAssignments} (${formatPercent(rate, 0)})`;
+  }
+  if (rate != null) return formatPercent(rate, 0);
+  if (count != null && totalAssignments != null) return `${count}/${totalAssignments}`;
+  return "—";
+}
+
+function getRobustHistoryBonusExplanation(row) {
+  const bonus = row?.robustHistoryBonus ?? 0;
+  if (bonus <= 0) return null;
+  const detail = row?.robustHistoryBonusDetail;
+  const detailReason =
+    typeof detail?.reasons === "string" && detail.reasons.trim()
+      ? detail.reasons
+      : Array.isArray(detail?.reasons)
+      ? detail.reasons.join(" · ")
+      : null;
+  return (
+    detailReason ??
+    "n solide + win élevé + 1 seule expiration profonde — conservé en Top 20 malgré stress grâce à E2b"
+  );
+}
+
+function buildHumanTop20ExclusionReason(row) {
+  const hard = Array.isArray(row?.hardExclusionReasonsV2) ? row.hardExclusionReasonsV2 : [];
+  const win = row?.winRate;
+  const assign = row?.assignmentRate;
+
+  const confirmedRepeated = hard.find((reason) =>
+    /confirmé répété|risque confirmé/i.test(String(reason ?? "")),
+  );
+  if (confirmedRepeated) {
+    return `Exclu : risque confirmé répété / assignation profonde élevée`;
+  }
+
+  const defensive = hard.find((reason) => /garde-fou|LB critique/i.test(String(reason ?? "")));
+  if (defensive && assign != null && assign > 25 && win != null && win < 80) {
+    return `Exclu : LB critique + assignation >25 % + win <80 %`;
+  }
+  if (defensive) {
+    return `Exclu : ${defensive}`;
+  }
+
+  if (win != null && win < 50 && assign != null && assign > 50) {
+    return `Exclu : win très faible ${formatPercent(win, 0)} + assignation élevée ${formatPercent(assign, 0)}`;
+  }
+  if (win != null && win < 70 && assign != null && assign > 35) {
+    return `Exclu : win faible ${formatPercent(win, 0)} + assignation élevée ${formatPercent(assign, 0)}`;
+  }
+  if (assign != null && assign > 40) {
+    return `Exclu : assignation élevée ${formatPercent(assign, 0)}`;
+  }
+
+  return null;
+}
+
+function getTechnicalDynamicTop20Reason(row) {
+  const breakdown = row?.competitiveScoreBreakdown?.mainReason;
+  if (breakdown) return breakdown;
   const exclusions = Array.isArray(row?.top20ExclusionReasons) ? row.top20ExclusionReasons : [];
-  if (exclusions.length > 0) return exclusions.slice(0, 2).join(" · ");
+  const technicalExclusions = exclusions.filter((reason) => !String(reason ?? "").startsWith("Exclu Top 20"));
+  if (technicalExclusions.length > 0) return technicalExclusions.slice(0, 2).join(" · ");
   const warnings = Array.isArray(row?.scoreWarnings) ? row.scoreWarnings : [];
   if (warnings.length > 0) return warnings.slice(0, 2).join(" · ");
   const reasons = Array.isArray(row?.scoreReasons) ? row.scoreReasons : [];
@@ -2254,7 +2380,28 @@ function formatDynamicTop20Reason(row) {
   if (Array.isArray(row?.verdictReasons) && row.verdictReasons.length > 0) {
     return row.verdictReasons.slice(0, 3).join(" · ");
   }
-  return row?.primaryReason ?? "—";
+  return row?.primaryReason ?? null;
+}
+
+function formatDynamicTop20Reason(row) {
+  const status = String(row?.dynamicTop20Status ?? "").toLowerCase();
+  const robustExplanation = getRobustHistoryBonusExplanation(row);
+  const humanExclusion = status === "exclude_high_yield" ? buildHumanTop20ExclusionReason(row) : null;
+  const technical = getTechnicalDynamicTop20Reason(row);
+
+  if (humanExclusion) {
+    return technical && technical !== humanExclusion ? `${humanExclusion} · ${technical}` : humanExclusion;
+  }
+
+  if (robustExplanation && (row?.robustHistoryBonus ?? 0) > 0) {
+    const prefix =
+      row?.currentVerdict === "1 % stressé"
+        ? "Ticker conservé en Top 20 malgré stress grâce à E2b"
+        : "Bonus historique robuste E2b";
+    return technical ? `${prefix} — ${robustExplanation} · ${technical}` : `${prefix} — ${robustExplanation}`;
+  }
+
+  return technical ?? "—";
 }
 
 const DYNAMIC_TOP20_DTE_TARGETS = [2, 3, 4, 7];
@@ -2574,6 +2721,66 @@ function classifyEventRiskVerdict(u) {
     reasons.push(`${u.safeAggressiveDuplicateAssignmentCount} doublon(s) SAFE/AGGRESSIVE`);
   }
   return { category: "Risque événement unique", label: deepLabel, hard: false, reasons };
+}
+
+/**
+ * Priorité risque événement (affichage seulement) — hardExclude > confirmé > alerte > unique > insuffisant.
+ */
+function resolveEventRiskDisplay(row, eventUniqueness) {
+  const hard = Array.isArray(row?.hardExclusionReasonsV2) ? row.hardExclusionReasonsV2 : [];
+  const win = row?.winRate;
+  const assign = row?.assignmentRate;
+
+  const confirmedRepeated = hard.find((reason) =>
+    /confirmé répété|risque confirmé/i.test(String(reason ?? "")),
+  );
+  if (confirmedRepeated) {
+    return {
+      category: "Risque confirmé",
+      label: "Risque confirmé répété",
+      hard: true,
+      reasons: [confirmedRepeated],
+    };
+  }
+
+  const defensive = hard.find((reason) => /garde-fou défensif/i.test(String(reason ?? "")));
+  if (defensive) {
+    return {
+      category: "Risque confirmé",
+      label: "LB critique + assignation élevée",
+      hard: true,
+      reasons: [defensive],
+    };
+  }
+
+  if (win != null && win < 50 && assign != null && assign >= 50) {
+    return {
+      category: "Surveillé",
+      label: "Win très faible — risque élevé",
+      hard: false,
+      reasons: [`win ${formatPercent(win, 0)}`, `assignation ${formatPercent(assign, 0)}`],
+    };
+  }
+
+  const base = classifyEventRiskVerdict(eventUniqueness);
+  if (
+    base.category === "Risque événement unique" &&
+    win != null &&
+    win < 80 &&
+    (assign ?? 0) >= 25
+  ) {
+    return {
+      category: "Surveillé",
+      label: base.label ?? "Alerte — événement à confirmer",
+      hard: false,
+      reasons: [
+        ...(Array.isArray(base.reasons) ? base.reasons : []),
+        `win ${formatPercent(win, 0)} < 80 %`,
+      ],
+    };
+  }
+
+  return base;
 }
 
 function getEventRiskCategoryTone(category) {
@@ -4738,6 +4945,14 @@ export default function JournalPopPanel({ apiBase, active }) {
     [onePercentProfilesPayload],
   );
 
+  const onePercentProfileByTicker = useMemo(() => {
+    const map = new Map();
+    for (const profile of onePercentProfilesAll) {
+      map.set(normalizeTicker(profile.ticker), profile);
+    }
+    return map;
+  }, [onePercentProfilesAll]);
+
   const filteredOnePercentProfiles = useMemo(() => {
     const search = onePercentTickerSearch.trim().toUpperCase();
     return onePercentProfilesAll.filter((profile) => {
@@ -4832,6 +5047,7 @@ export default function JournalPopPanel({ apiBase, active }) {
   // sans toucher au scoring backend. Construit une seule fois à partir des records.
   const dynamicTop20EventRiskByTicker = useMemo(() => {
     const map = new Map();
+    const rowByTicker = new Map();
     const groups = [
       dynamicTop20Payload?.top20,
       dynamicTop20Payload?.nearEntry,
@@ -4845,12 +5061,16 @@ export default function JournalPopPanel({ apiBase, active }) {
       if (!Array.isArray(group)) continue;
       for (const row of group) {
         const t = normalizeTicker(row?.ticker);
-        if (t) tickers.add(t);
+        if (t) {
+          tickers.add(t);
+          rowByTicker.set(t, row);
+        }
       }
     }
     for (const t of tickers) {
+      const row = rowByTicker.get(t) ?? {};
       const eventUniqueness = computeTickerEventUniqueness({ ticker: t, records });
-      map.set(t, { eventUniqueness, eventRisk: classifyEventRiskVerdict(eventUniqueness) });
+      map.set(t, { eventUniqueness, eventRisk: resolveEventRiskDisplay(row, eventUniqueness) });
     }
     return map;
   }, [dynamicTop20Payload, records]);
@@ -5533,6 +5753,20 @@ export default function JournalPopPanel({ apiBase, active }) {
               </div>
 
               {!dynamicTop20NearOnly && (
+                <>
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-900/40 px-3 py-2 text-[10px] text-slate-400">
+                    <span className="font-semibold text-slate-300">Niveau d&apos;échantillon (affichage seulement) :</span>
+                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-300">
+                      Mesurable · n ≥ 30
+                    </span>
+                    <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 font-semibold text-sky-300">
+                      Préliminaire · 15–29
+                    </span>
+                    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-300">
+                      Incubateur · 10–14
+                    </span>
+                    <span className="text-slate-500">Le rang et le score E2b ne changent pas.</span>
+                  </div>
                 <DarkTable
                   title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
                   headers={[
@@ -5545,14 +5779,25 @@ export default function JournalPopPanel({ apiBase, active }) {
                     "Rend. CSP",
                     "Win",
                     "Assign.",
-                    "Assign. proche",
-                    "Assign. profonde",
+                    "Proche (% assign.)",
+                    "Profonde (% assign.)",
                     "Rend. Wheel",
                     "LB",
                     "Raison",
                   ]}
-                  rows={filteredDynamicTop20Main.map((row) => (
-                    <tr key={`dyn-top20-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
+                  headerTitles={{
+                    "Proche (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
+                    "Profonde (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
+                  }}
+                  rows={filteredDynamicTop20Main.map((row) => {
+                    const sampleTier = getTop20SampleTier(row.n);
+                    const onePercentProfile = onePercentProfileByTicker.get(normalizeTicker(row.ticker));
+                    const robustBonus = row?.robustHistoryBonus ?? 0;
+                    return (
+                    <tr
+                      key={`dyn-top20-${row.ticker}-${row.rank}`}
+                      className={`hover:bg-slate-800/30 transition-colors ${sampleTier?.rowClass ?? ""}`}
+                    >
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
                       <td className="px-3 py-2.5 font-semibold">
                         <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
@@ -5566,25 +5811,50 @@ export default function JournalPopPanel({ apiBase, active }) {
                           <span className="block text-[10px] text-slate-500">{row.sampleDisplayLabel}</span>
                         ) : null}
                       </td>
-                      <td className="px-3 py-2.5 tabular-nums text-sky-400">{row.dynamicTop20Score ?? "—"}</td>
-                      <td className="px-3 py-2.5 tabular-nums">{row.n ?? "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-sky-400">
+                        <div>{row.dynamicTop20Score ?? "—"}</div>
+                        {robustBonus > 0 ? (
+                          <span
+                            className="mt-0.5 inline-block rounded-full border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-violet-200"
+                            title={getRobustHistoryBonusExplanation(row) ?? undefined}
+                          >
+                            Bonus robuste +{robustBonus}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums">
+                        <div>{row.n ?? "—"}</div>
+                        <Top20SampleTierBadge n={row.n} />
+                      </td>
                       <td className="px-3 py-2.5 text-sky-400">{formatPercent(row.avgCspYieldPct, 2)}</td>
                       <td className="px-3 py-2.5">{formatPercent(row.winRate)}</td>
                       <td className="px-3 py-2.5">{formatPercent(row.assignmentRate)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.nearAssignmentRate, 0)}</td>
-                      <td className="px-3 py-2.5">{formatPercent(row.deepAssignmentRate, 0)}</td>
+                      <td
+                        className="px-3 py-2.5"
+                        title={ASSIGN_DEPTH_PERCENT_TOOLTIP}
+                      >
+                        {formatAssignmentDepthCell(row, onePercentProfile, "proche")}
+                      </td>
+                      <td
+                        className="px-3 py-2.5"
+                        title={ASSIGN_DEPTH_PERCENT_TOOLTIP}
+                      >
+                        {formatAssignmentDepthCell(row, onePercentProfile, "profonde")}
+                      </td>
                       <td className="px-3 py-2.5">{formatPercent(row.avgWheelReturnPct, 2)}</td>
                       <td className="px-3 py-2.5 text-[11px] text-slate-400">{row.lbStressLabel ?? "—"}</td>
                       <td
-                        className="px-3 py-2.5 text-[10px] max-w-[220px] text-slate-500"
+                        className="px-3 py-2.5 text-[10px] max-w-[240px] text-slate-500"
                         title={formatDynamicTop20Reason(row)}
                       >
                         {formatDynamicTop20Reason(row)}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   empty="Aucun profil ne correspond aux filtres Top 20."
                 />
+                </>
               )}
 
               {!dynamicTop20TopOnly && filteredDynamicTop20Near.length > 0 && (
@@ -5649,11 +5919,11 @@ export default function JournalPopPanel({ apiBase, active }) {
                           {row.currentVerdict ?? "—"}
                         </td>
                         <td className="px-3 py-2.5" title={eventTooltip}>
-                          {eventRisk && eventRisk.label ? (
+                          {eventRisk && (eventRisk.label || eventRisk.category !== "Non risqué") ? (
                             <span
                               className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getEventRiskCategoryTone(eventRisk.category)}`}
                             >
-                              {eventRisk.label}
+                              {eventRisk.label ?? eventRisk.category}
                             </span>
                           ) : (
                             <span className="text-[11px] text-slate-500">—</span>
@@ -5685,8 +5955,10 @@ export default function JournalPopPanel({ apiBase, active }) {
               )}
 
               <p className="text-[10px] text-slate-600 leading-relaxed">
-                Score expérimental de laboratoire — ne constitue pas un score final. Les profils n &lt; 30 restent
-                préliminaires. {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
+                Score expérimental E2b — ne constitue pas une recommandation de trade. Badges Mesurable / Préliminaire /
+                Incubateur = affichage seulement (rang et score inchangés). Assign. proche/profonde = % des assignations.
+                {" "}
+                {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
               </p>
 
               {dynamicTop20DteTicker ? (

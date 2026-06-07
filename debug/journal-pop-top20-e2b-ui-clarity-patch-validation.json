@@ -1,0 +1,416 @@
+{
+  "generatedAt": "2026-06-07T00:02:23.120Z",
+  "readOnly": true,
+  "noGitAdd": true,
+  "noCommit": true,
+  "scoringE2bModified": false,
+  "backendModified": false,
+  "uiFile": "wheel-dashboard/src/components/JournalPopPanel.jsx",
+  "checks": [
+    {
+      "name": "Backend wheelValidationService.js non modifié (git diff vide)",
+      "pass": true,
+      "detail": {
+        "diffBytes": 0
+      }
+    },
+    {
+      "name": "Patch limité à JournalPopPanel.jsx",
+      "pass": true,
+      "detail": {
+        "diffBytes": 19595
+      }
+    },
+    {
+      "name": "UI marker présent : Top20SampleTierBadge",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : getTop20SampleTier",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : formatAssignmentDepthCell",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : Bonus robuste",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : Proche (% assign.)",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : Profonde (% assign.)",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : ASSIGN_DEPTH_PERCENT_TOOLTIP",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : resolveEventRiskDisplay",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : buildHumanTop20ExclusionReason",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : Mesurable · n ≥ 30",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "UI marker présent : Incubateur · 10–14",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Top 20 E2b = 20 titres (scoring inchangé)",
+      "pass": true,
+      "detail": {
+        "count": 20
+      }
+    },
+    {
+      "name": "Formule E2b active",
+      "pass": true,
+      "detail": {
+        "readOnly": true,
+        "experimental": true,
+        "scoreType": "competitiveScoreV2",
+        "rankingFormulaVersion": "E2b",
+        "scoreNote": "Score compétitif E2b (mérite + résilience + bonus historique robuste − pénalités graduées) — laboratoire, pas une recommandation de trade.",
+        "guardrails": {
+          "exploitableForTop20Count": 25,
+          "exploitableMinScore": 35,
+          "exploitableMinN": 10
+        }
+      }
+    },
+    {
+      "name": "TQQQ Top 20 avec bonus robuste > 0",
+      "pass": true,
+      "detail": {
+        "rank": 13,
+        "ticker": "TQQQ",
+        "score": 67,
+        "n": 52,
+        "robustHistoryBonus": 11
+      }
+    },
+    {
+      "name": "APLD Top 20 avec bonus robuste > 0",
+      "pass": true,
+      "detail": {
+        "rank": 11,
+        "ticker": "APLD",
+        "score": 69,
+        "n": 38,
+        "robustHistoryBonus": 8
+      }
+    },
+    {
+      "name": "INTC Top 20 avec bonus robuste > 0",
+      "pass": true,
+      "detail": {
+        "rank": 10,
+        "ticker": "INTC",
+        "score": 82,
+        "n": 34,
+        "robustHistoryBonus": 8
+      }
+    },
+    {
+      "name": "AFRM Top 20 avec bonus robuste > 0",
+      "pass": true,
+      "detail": {
+        "rank": 12,
+        "ticker": "AFRM",
+        "score": 69,
+        "n": 30,
+        "robustHistoryBonus": 8
+      }
+    },
+    {
+      "name": "Badge tier HOOD → mesurable",
+      "pass": true,
+      "detail": {
+        "rank": 1,
+        "ticker": "HOOD",
+        "score": 100,
+        "n": 52,
+        "robustHistoryBonus": 0
+      }
+    },
+    {
+      "name": "Badge tier NOK → preliminaire",
+      "pass": true,
+      "detail": {
+        "rank": 5,
+        "ticker": "NOK",
+        "score": 85,
+        "n": 28,
+        "robustHistoryBonus": 0
+      }
+    },
+    {
+      "name": "Badge tier RIVN → incubateur",
+      "pass": true,
+      "detail": {
+        "rank": 14,
+        "ticker": "RIVN",
+        "score": 65,
+        "n": 14,
+        "robustHistoryBonus": 0
+      }
+    },
+    {
+      "name": "TQQQ profonde = 5/6 (83.3%)",
+      "pass": true,
+      "detail": "5/6 (83.3%)"
+    },
+    {
+      "name": "APLD profonde = 2/3",
+      "pass": true,
+      "detail": "2/3 (66.7%)"
+    },
+    {
+      "name": "AFRM profonde = 2/2",
+      "pass": true,
+      "detail": "2/2 (100%)"
+    },
+    {
+      "name": "CCL proche = 4/4",
+      "pass": true,
+      "detail": "4/4 (100%)"
+    },
+    {
+      "name": "TTD risque événement priorisé = Risque confirmé",
+      "pass": true,
+      "detail": {
+        "category": "Risque confirmé",
+        "label": "Risque confirmé répété"
+      }
+    },
+    {
+      "name": "PINS risque événement priorisé = Risque confirmé",
+      "pass": true,
+      "detail": {
+        "category": "Risque confirmé",
+        "label": "Risque confirmé répété"
+      }
+    },
+    {
+      "name": "SLV risque événement priorisé = Risque confirmé",
+      "pass": true,
+      "detail": {
+        "category": "Risque confirmé",
+        "label": "Risque confirmé répété"
+      }
+    },
+    {
+      "name": "TEM risque événement = Surveillé (win 25 % / assign 75 %)",
+      "pass": true,
+      "detail": {
+        "category": "Surveillé",
+        "label": "Win très faible — risque élevé"
+      }
+    },
+    {
+      "name": "Vite build OK",
+      "pass": true,
+      "detail": null
+    }
+  ],
+  "allPass": true,
+  "top20Snapshot": [
+    {
+      "rank": 1,
+      "ticker": "HOOD",
+      "score": 100,
+      "n": 52,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 2,
+      "ticker": "CCL",
+      "score": 100,
+      "n": 40,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 3,
+      "ticker": "HIMS",
+      "score": 100,
+      "n": 32,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 4,
+      "ticker": "DAL",
+      "score": 100,
+      "n": 30,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 5,
+      "ticker": "NOK",
+      "score": 85,
+      "n": 28,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 6,
+      "ticker": "U",
+      "score": 85,
+      "n": 22,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 7,
+      "ticker": "HPE",
+      "score": 85,
+      "n": 22,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 8,
+      "ticker": "BNO",
+      "score": 85,
+      "n": 20,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 9,
+      "ticker": "DOW",
+      "score": 85,
+      "n": 16,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 10,
+      "ticker": "INTC",
+      "score": 82,
+      "n": 34,
+      "robustHistoryBonus": 8
+    },
+    {
+      "rank": 11,
+      "ticker": "APLD",
+      "score": 69,
+      "n": 38,
+      "robustHistoryBonus": 8
+    },
+    {
+      "rank": 12,
+      "ticker": "AFRM",
+      "score": 69,
+      "n": 30,
+      "robustHistoryBonus": 8
+    },
+    {
+      "rank": 13,
+      "ticker": "TQQQ",
+      "score": 67,
+      "n": 52,
+      "robustHistoryBonus": 11
+    },
+    {
+      "rank": 14,
+      "ticker": "RIVN",
+      "score": 65,
+      "n": 14,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 15,
+      "ticker": "APA",
+      "score": 65,
+      "n": 14,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 16,
+      "ticker": "FLY",
+      "score": 65,
+      "n": 10,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 17,
+      "ticker": "CSCO",
+      "score": 65,
+      "n": 10,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 18,
+      "ticker": "FISV",
+      "score": 65,
+      "n": 10,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 19,
+      "ticker": "DOCU",
+      "score": 65,
+      "n": 10,
+      "robustHistoryBonus": 0
+    },
+    {
+      "rank": 20,
+      "ticker": "CNC",
+      "score": 65,
+      "n": 10,
+      "robustHistoryBonus": 0
+    }
+  ],
+  "robustBonusTickers": [
+    {
+      "rank": 10,
+      "ticker": "INTC",
+      "score": 82,
+      "n": 34,
+      "robustHistoryBonus": 8
+    },
+    {
+      "rank": 11,
+      "ticker": "APLD",
+      "score": 69,
+      "n": 38,
+      "robustHistoryBonus": 8
+    },
+    {
+      "rank": 12,
+      "ticker": "AFRM",
+      "score": 69,
+      "n": 30,
+      "robustHistoryBonus": 8
+    },
+    {
+      "rank": 13,
+      "ticker": "TQQQ",
+      "score": 67,
+      "n": 52,
+      "robustHistoryBonus": 11
+    }
+  ],
+  "assignmentFractionSamples": {
+    "TQQQ": "5/6 (83.3%)",
+    "APLD": "2/3 (66.7%)",
+    "AFRM": "2/2 (100%)",
+    "CCL": "4/4 (100%)"
+  }
+}

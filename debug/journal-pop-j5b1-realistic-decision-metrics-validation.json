@@ -1,0 +1,138 @@
+{
+  "phase": "Journal POP J5-B1 — métriques décision réelle additives (BALANCED)",
+  "generatedAt": "2026-06-07",
+  "additiveOnly": true,
+  "noScoreOrSortChange": true,
+  "noSecondRanking": true,
+  "filesModified": [
+    {
+      "path": "app/journal/wheelValidationService.js",
+      "change": "additif",
+      "insertions": 199,
+      "deletions": 0
+    }
+  ],
+  "filesCreated": [
+    "app/journal/wheelValidationService.realisticDecisionMetrics.test.mjs",
+    "debug/journal-pop-j5b1-realistic-decision-metrics-validation.md",
+    "debug/journal-pop-j5b1-realistic-decision-metrics-validation.json"
+  ],
+  "functionsAdded": [
+    "computeRealisticDecisionMetrics (exportée)",
+    "selectBalancedRealisticDecision (via __testables__)",
+    "realisticDecisionRiskTier",
+    "realisticDecisionNormMode",
+    "realisticDecisionExpirationKey",
+    "realisticDecisionStableCompare",
+    "computeRealisticDecisionWinRatePct"
+  ],
+  "wiredInto": [
+    "buildOnePercentProfile → profile.realisticDecisionMetrics (Objectif 1%+)",
+    "mapDynamicTop20ProfileRow → row.realisticDecisionMetrics (Top 20)",
+    "__testables__.selectBalancedRealisticDecision"
+  ],
+  "fieldsAdded": {
+    "realisticDecisionMetrics": {
+      "policy": "BALANCED",
+      "scalars": [
+        "selectedTradeCount",
+        "selectedAssignedCount",
+        "selectedAssignmentRatePct",
+        "selectedNearAssignmentCount",
+        "selectedModerateAssignmentCount",
+        "selectedDeepAssignmentCount",
+        "selectedDeepAssignmentRatePct",
+        "selectedWinRatePct",
+        "selectedAvgCspYieldPct",
+        "selectedMedianCspYieldPct",
+        "selectedAvgDepthPct",
+        "duplicationRatio",
+        "observationResolvedCount",
+        "observationAssignedCount",
+        "distinctExpirationCount"
+      ],
+      "objects": ["selectedModeSplit", "selectedDteSplit"]
+    }
+  },
+  "preservedFields": [
+    "csp.recordsResolved",
+    "csp.assignmentRate",
+    "csp.avgYieldPct",
+    "onePercentObjective",
+    "dynamicTop20Score",
+    "dynamicTop20Status",
+    "scoreReasons",
+    "verdicts"
+  ],
+  "balancedPolicy": {
+    "priority": [
+      "non assigné",
+      "assigné proche",
+      "assigné modéré",
+      "assigné profond",
+      "rendement CSP >= 0.5%",
+      "rendement plus élevé",
+      "DTE 7 ou 4 avant 3/2",
+      "SAFE préféré si écart rendement <= 0.15%",
+      "première observation déterministe (id)"
+    ],
+    "minCspYieldPct": 0.5,
+    "safeTieBreakPct": 0.15,
+    "preferredDte": [7, 4]
+  },
+  "proofTop20Unchanged": {
+    "noUpstreamUsage": "realisticDecisionMetrics n'est lu par aucune fonction de scoring/tri (scoreOnePercentProfileForSort, computeDynamicTop20LaboratoryScore, pipeline E2b, comparateurs sort).",
+    "additivityTest": "computeDynamicTop20WheelProfiles avec vs sans le bloc → ordre et dynamicTop20Score identiques (assert.deepEqual).",
+    "j5aScriptStable": "node debug/journal-pop-j5a-top20-realistic-decision-audit.mjs inchangé : 1628 obs → 385 décisions BALANCED.",
+    "globalParity": {
+      "observationResolvedCount": 1628,
+      "selectedTradeCount": 385,
+      "selectedAssignmentRatePct": 15.3,
+      "selectedDeepAssignmentRatePct": 30.5,
+      "selectedWinRatePct": 84.7,
+      "selectedAvgCspYieldPct": 0.95,
+      "duplicationRatio": 4.23
+    }
+  },
+  "tests": {
+    "file": "app/journal/wheelValidationService.realisticDecisionMetrics.test.mjs",
+    "count": 9,
+    "cases": [
+      "déduplication SAFE/AGRESSIF/DTE → selectedTradeCount=1",
+      "duplicationRatio>1 si plusieurs observations",
+      "BALANCED non assigné > assigné",
+      "BALANCED proche > profonde",
+      "BALANCED SAFE si rendement ≈ (≤0.15%)",
+      "BALANCED AGRESSIF si rendement >0.15%",
+      "selectedAssignmentRatePct sur selectedTradeCount",
+      "exclusion intradayRetest / non résolu",
+      "additivité — score/tri inchangés"
+    ]
+  },
+  "validation": {
+    "nodeTestJournal": "138 pass / 0 fail",
+    "nodeTestNew": "9 pass / 0 fail",
+    "viteBuild": "ok",
+    "gitDiffCheck": "ok",
+    "j5aAuditRun": "ok"
+  },
+  "constraintsRespected": [
+    "dynamicTop20Score inchangé",
+    "dynamicTop20Status inchangé",
+    "tri Top 20 inchangé",
+    "verdicts inchangés",
+    "formules POP inchangées",
+    "Objectif 1%+ inchangé",
+    "scanner non touché",
+    "IBKR/Yahoo non touchés",
+    "Archive Funnel non touché",
+    "DB non modifiée",
+    "aucun backfill",
+    "aucun git add / commit"
+  ],
+  "limits": [
+    "Sélection BALANCED post-mortem : peut utiliser le résultat observé pour départager — légitime en analyse seulement, jamais dans le score live.",
+    "duplicationRatio par ticker = observationResolvedCount / selectedTradeCount (≠ dup. assignée de l'audit J5-A).",
+    "Bloc encore non consommé par un changement de classement (objet de J5-B2+)."
+  ]
+}

@@ -2667,7 +2667,203 @@ function buildOnePercentProfile({
     wheel,
     optionData,
     ...optionDiagnostics,
+    // J5-B1 — bloc additif « décision réelle » (BALANCED). N'entre dans aucun score/tri.
+    realisticDecisionMetrics: computeRealisticDecisionMetrics(records, { policy: "BALANCED" }),
     sortScore: 0,
+  };
+}
+
+// ── J5-B1 — Métriques « décision réelle » additives (politique BALANCED) ──────
+// Strictement additif. Ne modifie AUCUN score, tri ni verdict (Top 20 / 1%+).
+const REALISTIC_DECISION_PREFERRED_DTE = new Set([7, 4]);
+const REALISTIC_DECISION_MIN_CSP_YIELD_PCT = 0.5;
+const REALISTIC_DECISION_SAFE_TIE_BREAK_PCT = 0.15;
+
+function realisticDecisionNormMode(record) {
+  const m = String(record?.strikeMode ?? "").trim().toLowerCase();
+  if (m === "safe") return "SAFE";
+  if (m === "aggressive" || m === "agressif") return "AGGRESSIVE";
+  return "OTHER";
+}
+
+function realisticDecisionExpirationKey(record) {
+  return (
+    toExpirationYmd(record?.selectedExpiration ?? record?.expiration ?? record?.expirationCohort) ??
+    null
+  );
+}
+
+// Hiérarchie résultat/risque : 0 non assigné < 1 proche < 2 modérée < 3 profonde.
+function realisticDecisionRiskTier(record) {
+  if (getAssignedFlag(record) !== true) return 0;
+  const depthClass = classifyAssignmentDepth(record).assignmentDepthClass;
+  if (depthClass === "proche") return 1;
+  if (depthClass === "moderee") return 2;
+  if (depthClass === "profonde") return 3;
+  return 2;
+}
+
+function realisticDecisionStableCompare(a, b) {
+  return String(a?.id ?? "").localeCompare(String(b?.id ?? ""));
+}
+
+// Sélection BALANCED déterministe d'une observation par groupe (ticker × expiration).
+function selectBalancedRealisticDecision(candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+  const admissible = candidates.filter((r) => {
+    const y = getRecordYieldPct(r);
+    return y != null && y >= REALISTIC_DECISION_MIN_CSP_YIELD_PCT;
+  });
+  const pool = admissible.length > 0 ? admissible : candidates;
+  if (pool.length === 0) return [...candidates].sort(realisticDecisionStableCompare)[0] ?? null;
+
+  const maxYield = Math.max(
+    0,
+    ...admissible.map((r) => getRecordYieldPct(r)).filter((y) => y != null),
+  );
+
+  const sorted = [...pool].sort((a, b) => {
+    // 1-4 : non assigné > proche > modéré > profond.
+    const tierA = realisticDecisionRiskTier(a);
+    const tierB = realisticDecisionRiskTier(b);
+    if (tierA !== tierB) return tierA - tierB;
+
+    // 8 : SAFE préféré si rendement presque équivalent (≤0,15 % d'écart).
+    const yieldA = getRecordYieldPct(a) ?? 0;
+    const yieldB = getRecordYieldPct(b) ?? 0;
+    const safeBonusA =
+      realisticDecisionNormMode(a) === "SAFE" && yieldA >= maxYield - REALISTIC_DECISION_SAFE_TIE_BREAK_PCT
+        ? 1
+        : 0;
+    const safeBonusB =
+      realisticDecisionNormMode(b) === "SAFE" && yieldB >= maxYield - REALISTIC_DECISION_SAFE_TIE_BREAK_PCT
+        ? 1
+        : 0;
+    if (safeBonusA !== safeBonusB) return safeBonusB - safeBonusA;
+
+    // 5-6 : rendement plus élevé préféré.
+    if (yieldA !== yieldB) return yieldB - yieldA;
+
+    // 7 : DTE 7 ou 4 préféré avant 3/2 à résultat comparable.
+    const dteA = toNumberOrNull(a?.dteAtScan);
+    const dteB = toNumberOrNull(b?.dteAtScan);
+    const prefA = REALISTIC_DECISION_PREFERRED_DTE.has(dteA) ? 0 : 1;
+    const prefB = REALISTIC_DECISION_PREFERRED_DTE.has(dteB) ? 0 : 1;
+    if (prefA !== prefB) return prefA - prefB;
+
+    // 9 : observation la plus stable / première déterministe.
+    return realisticDecisionStableCompare(a, b);
+  });
+  return sorted[0];
+}
+
+function computeRealisticDecisionWinRatePct(records) {
+  const outcomes = records
+    .map((r) => getCalibrationIsCorrect(r))
+    .filter((v) => typeof v === "boolean");
+  if (outcomes.length > 0) {
+    return roundMetric((outcomes.filter((v) => v).length / outcomes.length) * 100, 1);
+  }
+  const known = records.filter((r) => getAssignedFlag(r) != null);
+  if (known.length === 0) return null;
+  return roundMetric((known.filter((r) => getAssignedFlag(r) !== true).length / known.length) * 100, 1);
+}
+
+/**
+ * J5-B1 — Métriques « décision réelle » additives, politique BALANCED.
+ *
+ * Réduit un ensemble d'observations résolues à une décision théorique unique par
+ * ticker × selectedExpiration (déduplication), puis calcule des métriques de risque
+ * réel sur ces décisions. STRICTEMENT ADDITIF : n'altère aucun score (`dynamicTop20Score`),
+ * tri ni verdict existant (Top 20 / Objectif 1%+). Diagnostic post-analyse uniquement.
+ *
+ * Définition : une décision théorique = 1 sélection par ticker + selectedExpiration.
+ *
+ * LIMITE : la sélection BALANCED peut s'appuyer sur le résultat observé
+ * (assignation / profondeur) pour départager les variantes — légitime UNIQUEMENT en
+ * analyse post-mortem. Ces champs ne doivent jamais alimenter le score live actuel.
+ */
+export function computeRealisticDecisionMetrics(records, options = {}) {
+  const policy = options.policy ?? "BALANCED";
+  const all = Array.isArray(records) ? records : [];
+  // Même base d'éligibilité que Top 20 / 1%+ : résolu, hors intradayRetest.
+  const resolved = all.filter(
+    (r) => getResolvedFlag(r) && (r?.captureClass ?? "primaryDaily") !== "intradayRetest",
+  );
+
+  const groups = new Map();
+  for (const r of resolved) {
+    const ticker = normalizeSymbol(r?.symbol ?? r?.ticker);
+    const expKey = realisticDecisionExpirationKey(r);
+    const key = `${ticker}|${expKey ?? "na"}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  }
+
+  const selected = [];
+  for (const candidates of groups.values()) {
+    const pick = selectBalancedRealisticDecision(candidates);
+    if (pick) selected.push(pick);
+  }
+
+  const selectedTradeCount = selected.length;
+  const assignedSelected = selected.filter((r) => getAssignedFlag(r) === true);
+  const selectedAssignedCount = assignedSelected.length;
+
+  const depth = { proche: 0, moderee: 0, profonde: 0, nd: 0 };
+  const depthPcts = [];
+  for (const r of assignedSelected) {
+    const d = classifyAssignmentDepth(r);
+    if (d.assignmentDepthClass === "proche") depth.proche += 1;
+    else if (d.assignmentDepthClass === "moderee") depth.moderee += 1;
+    else if (d.assignmentDepthClass === "profonde") depth.profonde += 1;
+    else depth.nd += 1;
+    if (d.assignmentDepthPct != null) depthPcts.push(d.assignmentDepthPct);
+  }
+
+  const yields = selected.map((r) => getRecordYieldPct(r)).filter((y) => y != null);
+  const modeSplit = { SAFE: 0, AGGRESSIVE: 0, OTHER: 0 };
+  const dteSplit = {};
+  for (const r of selected) {
+    modeSplit[realisticDecisionNormMode(r)] += 1;
+    const dte = toNumberOrNull(r?.dteAtScan);
+    if (dte != null) dteSplit[dte] = (dteSplit[dte] ?? 0) + 1;
+  }
+
+  const observationResolvedCount = resolved.length;
+  const observationAssignedCount = resolved.filter((r) => getAssignedFlag(r) === true).length;
+  const distinctExpirationCount = new Set(
+    resolved.map((r) => realisticDecisionExpirationKey(r)).filter(Boolean),
+  ).size;
+
+  return {
+    policy,
+    selectedTradeCount,
+    selectedAssignedCount,
+    selectedAssignmentRatePct:
+      selectedTradeCount > 0
+        ? roundMetric((selectedAssignedCount / selectedTradeCount) * 100, 1)
+        : null,
+    selectedNearAssignmentCount: depth.proche,
+    selectedModerateAssignmentCount: depth.moderee,
+    selectedDeepAssignmentCount: depth.profonde,
+    selectedDeepAssignmentRatePct:
+      selectedAssignedCount > 0
+        ? roundMetric((depth.profonde / selectedAssignedCount) * 100, 1)
+        : null,
+    selectedWinRatePct: computeRealisticDecisionWinRatePct(selected),
+    selectedAvgCspYieldPct: yields.length > 0 ? roundMetric(average(yields), 2) : null,
+    selectedMedianCspYieldPct: yields.length > 0 ? roundMetric(median(yields), 2) : null,
+    selectedAvgDepthPct: depthPcts.length > 0 ? roundMetric(average(depthPcts), 2) : null,
+    selectedModeSplit: modeSplit,
+    selectedDteSplit: dteSplit,
+    duplicationRatio:
+      selectedTradeCount > 0
+        ? roundMetric(observationResolvedCount / selectedTradeCount, 2)
+        : null,
+    observationResolvedCount,
+    observationAssignedCount,
+    distinctExpirationCount,
   };
 }
 
@@ -3702,6 +3898,8 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
     lbStressLabel: profile?.lowerBoundStress?.lbStressLabel ?? null,
     primaryReason: profile?.verdictReasons?.[0] ?? profile?.primaryVerdict ?? null,
     verdictReasons: profile?.verdictReasons ?? [],
+    // J5-B1 — porte le bloc additif « décision réelle » du profil vers la ligne Top 20.
+    realisticDecisionMetrics: profile?.realisticDecisionMetrics ?? null,
     ...summarizeOptionQuoteDiagnosticsFromProfile(profile),
     ...e2bMetaFields,
     ...e2bFields,
@@ -7269,4 +7467,5 @@ export function createWheelValidationService(options = {}) {
 export const __testables__ = {
   normalizeRecord,
   isOnePercentProfileRecord,
+  selectBalancedRealisticDecision,
 };

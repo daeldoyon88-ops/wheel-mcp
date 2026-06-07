@@ -4106,6 +4106,52 @@ export function createWheelValidationService(options = {}) {
     return records;
   }
 
+  function buildMarketContextSnapshotRowForCapture(record, marketContextSnapshot) {
+    if (!record || !marketContextSnapshot || typeof marketContextSnapshot !== "object") return null;
+    return {
+      record_id: record?.id ?? null,
+      scan_date: record?.scanDate ?? null,
+      ticker: record?.symbol ?? null,
+      expiration: record?.expiration ?? record?.selectedExpiration ?? null,
+      spy_price: marketContextSnapshot.spyPrice ?? null,
+      spy_ma50: marketContextSnapshot.spyMa50 ?? null,
+      spy_ma200: marketContextSnapshot.spyMa200 ?? null,
+      qqq_price: marketContextSnapshot.qqqPrice ?? null,
+      qqq_ma50: marketContextSnapshot.qqqMa50 ?? null,
+      qqq_ma200: marketContextSnapshot.qqqMa200 ?? null,
+      vix_level: marketContextSnapshot.vixLevel ?? null,
+      market_regime: marketContextSnapshot.marketRegimeLabel ?? null,
+      spy_trend_regime: marketContextSnapshot.spyTrendLabel ?? null,
+      qqq_trend_regime: marketContextSnapshot.qqqTrendLabel ?? null,
+      vix_regime: marketContextSnapshot.vixRegimeLabel ?? null,
+      sector_regime: marketContextSnapshot.breadthLabel ?? null,
+      market_drawdown_regime: null,
+      spy_30d_return: null,
+      qqq_30d_return: null,
+      vix_percentile: null,
+      market_volatility_regime: marketContextSnapshot.marketRiskLabel ?? null,
+      broad_market_score: null,
+    };
+  }
+
+  async function persistMarketContextSnapshotForCapture(uniqueRecords, marketContextSnapshot) {
+    if (typeof store?.insertMarketContextSnapshot !== "function") return;
+    if (!marketContextSnapshot || typeof marketContextSnapshot !== "object") return;
+    if (!Array.isArray(uniqueRecords) || uniqueRecords.length === 0) return;
+
+    const representativeRecord = uniqueRecords[0];
+    const row = buildMarketContextSnapshotRowForCapture(representativeRecord, marketContextSnapshot);
+    if (!row) return;
+
+    try {
+      await store.insertMarketContextSnapshot(row);
+    } catch (error) {
+      console.warn(
+        `[wheelValidationService] insertMarketContextSnapshot failed: ${error?.message || String(error)}`
+      );
+    }
+  }
+
   async function listJournal() {
     const journal = await store.load();
     const records = Array.isArray(journal?.records) ? journal.records : [];
@@ -4601,6 +4647,7 @@ export function createWheelValidationService(options = {}) {
         journal.records.push(...uniqueRecords);
         journal.updatedAt = new Date().toISOString();
         await store.save(journal);
+        await persistMarketContextSnapshotForCapture(uniqueRecords, marketContextSnapshot);
       }
 
       const skippedReasons = { ...buildDiagnostics.skippedReasons };

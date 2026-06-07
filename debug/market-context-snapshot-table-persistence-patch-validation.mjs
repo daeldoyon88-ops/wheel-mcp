@@ -1,0 +1,80 @@
+const report = {
+  patch: "market-context-snapshot-table-persistence",
+  generatedAt: "2026-06-07",
+  scope: {
+    backend: true,
+    frontend: false,
+    scanner: false,
+    yahooRefetch: false,
+    ibkrTouched: false,
+    scoringE2bTouched: false,
+    backfill: false,
+    productionDbTouched: false,
+  },
+  filesModified: [
+    "app/journal/wheelValidationService.js",
+    "app/journal/wheelValidationService.marketContextPersistence.test.mjs",
+    "debug/market-context-snapshot-table-persistence-patch-validation.mjs",
+    "debug/market-context-snapshot-table-persistence-patch-validation.md",
+    "debug/market-context-snapshot-table-persistence-patch-validation.json",
+  ],
+  validation: {
+    insertMarketContextSnapshotWired: true,
+    calledOncePerCapture: true,
+    usesAlreadyBuiltSnapshot: true,
+    noYahooRefetch: true,
+    noIbkrRefetch: true,
+    marketContextSnapshotJsonPreserved: true,
+    noScoringChange: true,
+    noUiChange: true,
+    noBackfill: true,
+    insertFailureDoesNotBreakCapture: true,
+  },
+  commands: [
+    {
+      command: "node --check app\\journal\\wheelValidationService.js",
+      result: "OK",
+    },
+    {
+      command: "node --check app\\journal\\wheelValidationService.marketContextPersistence.test.mjs",
+      result: "OK",
+    },
+    {
+      command: "node --check server.js",
+      result: "OK",
+    },
+    {
+      command: "node --test app\\journal\\wheelValidationService.marketContextPersistence.test.mjs",
+      result: "OK - 3/3 pass",
+    },
+    {
+      command: "node --test app\\journal\\marketContextSnapshot.test.mjs",
+      result: "OK - 12/12 pass",
+    },
+  ],
+  notes: [
+    "Insertion dediee appelee apres store.save(journal), uniquement si uniqueRecords.length > 0.",
+    "Une seule ligne representative est inseree par capture, basee sur uniqueRecords[0].",
+    "Le snapshot est projete depuis marketContextSnapshot deja construit; aucun buildMarketContextSnapshot additionnel n'est appele dans le test avec snapshot fourni.",
+    "L'insertion dediee est best-effort: un throw de store.insertMarketContextSnapshot produit un warning et la capture continue.",
+  ],
+  residualRisks: [
+    "S5TH reste null/non disponible dans le snapshot actuel; le patch ne le refetch pas et ne tente pas de le backfiller.",
+    "La table dediee market_context_snapshot n'a pas de colonne scanSessionId; l'ancrage utilise record_id du premier record cree, plus scan_date/ticker/expiration.",
+    "Les colonnes 30d/broad_market_score restent null car le snapshot actuel n'expose pas de donnees 30d ni score large marche dedie.",
+  ],
+  gitStatusShortFinal: {
+    patchEntries: [
+      " M app/journal/wheelValidationService.js",
+      "?? app/journal/wheelValidationService.marketContextPersistence.test.mjs",
+      "?? debug/market-context-snapshot-table-persistence-patch-validation.json",
+      "?? debug/market-context-snapshot-table-persistence-patch-validation.md",
+      "?? debug/market-context-snapshot-table-persistence-patch-validation.mjs",
+    ],
+    note: "git status --short contient aussi de nombreux fichiers non suivis preexistants dans debug/, scripts/, JSON de scan et wheel-dashboard/data; ils n'ont pas ete modifies par ce patch.",
+  },
+};
+
+console.log(JSON.stringify(report, null, 2));
+
+export { report };

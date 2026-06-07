@@ -1,0 +1,1327 @@
+{
+  "generatedAt": "2026-06-07T14:27:04.445Z",
+  "phase": "Journal POP J4-B — audit observations vs décisions (lecture seule)",
+  "readOnly": true,
+  "noProductionChanges": true,
+  "source": {
+    "journal": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite",
+    "totalRecords": 3184,
+    "assignedAllRaw": 463,
+    "assignedCleanNoIntradayRetest": 334,
+    "excludedIntradayRetest": 129,
+    "today": "2026-06-07"
+  },
+  "definitions": {
+    "observation_signature": "ticker + selectedExpiration + scanSessionId + DTE + mode + strike",
+    "expiration_signature": "ticker + selectedExpiration",
+    "strategy_choice_signature": "ticker + selectedExpiration + DTE + mode",
+    "trade_candidate_signature": "ticker + selectedExpiration + DTE + strike",
+    "selected_trade_count": "alias expiration_signature — 1 contrat choisi par expiration",
+    "inflationRatio": "observationAssignedCount / distinctExpirationAssignedCount",
+    "filter": "assignations avec assigned_flag=true, hors captureClass=intradayRetest"
+  },
+  "q1_focusTickers": [
+    {
+      "ticker": "TQQQ",
+      "available": true,
+      "resolvedObservations": 52,
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "distinctScanSessions": 3,
+      "dtesInvolved": [
+        3,
+        4,
+        7
+      ],
+      "modesInvolved": [
+        "AGGRESSIVE",
+        "SAFE"
+      ],
+      "strikesInvolved": [
+        76,
+        78,
+        79,
+        80,
+        81
+      ],
+      "inflationRatio": 6,
+      "signatures": {
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6
+      }
+    },
+    {
+      "ticker": "APLD",
+      "available": true,
+      "resolvedObservations": 38,
+      "observationAssignedCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "distinctScanSessions": 2,
+      "dtesInvolved": [
+        4,
+        7
+      ],
+      "modesInvolved": [
+        "AGGRESSIVE",
+        "SAFE"
+      ],
+      "strikesInvolved": [
+        40.5,
+        41.5,
+        43
+      ],
+      "inflationRatio": 3,
+      "signatures": {
+        "observation_signature": 3,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 3,
+        "trade_candidate_signature": 3,
+        "selected_trade_count": 1,
+        "raw_observation_count": 3
+      }
+    },
+    {
+      "ticker": "HOOD",
+      "available": true,
+      "resolvedObservations": 52,
+      "observationAssignedCount": 3,
+      "distinctExpirationAssignedCount": 2,
+      "distinctScanSessions": 3,
+      "dtesInvolved": [
+        4,
+        7,
+        8
+      ],
+      "modesInvolved": [
+        "AGGRESSIVE"
+      ],
+      "strikesInvolved": [
+        75,
+        84
+      ],
+      "inflationRatio": 1.5,
+      "signatures": {
+        "observation_signature": 3,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 3,
+        "trade_candidate_signature": 3,
+        "selected_trade_count": 2,
+        "raw_observation_count": 3
+      }
+    },
+    {
+      "ticker": "SOFI",
+      "available": true,
+      "resolvedObservations": 36,
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "distinctScanSessions": 3,
+      "dtesInvolved": [
+        3,
+        4,
+        7
+      ],
+      "modesInvolved": [
+        "AGGRESSIVE",
+        "SAFE"
+      ],
+      "strikesInvolved": [
+        16.5,
+        17,
+        17.5
+      ],
+      "inflationRatio": 6,
+      "signatures": {
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 5,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6
+      }
+    },
+    {
+      "ticker": "BAC",
+      "available": true,
+      "resolvedObservations": 8,
+      "observationAssignedCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "distinctScanSessions": 1,
+      "dtesInvolved": [
+        7
+      ],
+      "modesInvolved": [
+        "AGGRESSIVE",
+        "SAFE"
+      ],
+      "strikesInvolved": [
+        50
+      ],
+      "inflationRatio": 2,
+      "signatures": {
+        "observation_signature": 2,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 2,
+        "trade_candidate_signature": 1,
+        "selected_trade_count": 1,
+        "raw_observation_count": 2
+      }
+    },
+    {
+      "ticker": "CCL",
+      "available": true,
+      "resolvedObservations": 40,
+      "observationAssignedCount": 4,
+      "distinctExpirationAssignedCount": 1,
+      "distinctScanSessions": 4,
+      "dtesInvolved": [
+        7,
+        8
+      ],
+      "modesInvolved": [
+        "AGGRESSIVE"
+      ],
+      "strikesInvolved": [
+        25
+      ],
+      "inflationRatio": 4,
+      "signatures": {
+        "observation_signature": 4,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 2,
+        "trade_candidate_signature": 2,
+        "selected_trade_count": 1,
+        "raw_observation_count": 4
+      }
+    },
+    {
+      "ticker": "HIMS",
+      "available": true,
+      "resolvedObservations": 32,
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "distinctScanSessions": 0,
+      "dtesInvolved": [],
+      "modesInvolved": [],
+      "strikesInvolved": [],
+      "inflationRatio": null,
+      "signatures": {
+        "observation_signature": 0,
+        "expiration_signature": 0,
+        "strategy_choice_signature": 0,
+        "trade_candidate_signature": 0,
+        "selected_trade_count": 0,
+        "raw_observation_count": 0
+      }
+    }
+  ],
+  "q2_tqqqDetail": {
+    "rows": [
+      {
+        "id": "20260602_094336_TQQQ_20260605_aggressive_81",
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expiration": "20260605",
+        "expKey": "20260605",
+        "scanDate": "2026-06-02",
+        "scanSessionId": "20260602_094336",
+        "dte": 3,
+        "mode": "AGGRESSIVE",
+        "strike": 81,
+        "closeAtExpiration": 73.05,
+        "assignmentDepthPct": -9.81,
+        "assignmentDepthClass": "profonde",
+        "assigned": true,
+        "cspYieldPct": 0.91,
+        "wouldAvoidAssignment": false,
+        "observationSignature": "TQQQ|20260605|20260602_094336|3|AGGRESSIVE|81",
+        "expirationSignature": "TQQQ|20260605",
+        "strategyChoiceSignature": "TQQQ|20260605|3|AGGRESSIVE",
+        "tradeCandidateSignature": "TQQQ|20260605|3|81",
+        "selectedTradeSignature": "TQQQ|20260605"
+      },
+      {
+        "id": "20260602_094336_TQQQ_20260605_safe_79",
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expiration": "20260605",
+        "expKey": "20260605",
+        "scanDate": "2026-06-02",
+        "scanSessionId": "20260602_094336",
+        "dte": 3,
+        "mode": "SAFE",
+        "strike": 79,
+        "closeAtExpiration": 73.05,
+        "assignmentDepthPct": -7.53,
+        "assignmentDepthClass": "profonde",
+        "assigned": true,
+        "cspYieldPct": 0.58,
+        "wouldAvoidAssignment": false,
+        "observationSignature": "TQQQ|20260605|20260602_094336|3|SAFE|79",
+        "expirationSignature": "TQQQ|20260605",
+        "strategyChoiceSignature": "TQQQ|20260605|3|SAFE",
+        "tradeCandidateSignature": "TQQQ|20260605|3|79",
+        "selectedTradeSignature": "TQQQ|20260605"
+      },
+      {
+        "id": "20260601_112024_TQQQ_20260605_aggressive_80",
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expiration": "20260605",
+        "expKey": "20260605",
+        "scanDate": "2026-06-01",
+        "scanSessionId": "20260601_112024",
+        "dte": 4,
+        "mode": "AGGRESSIVE",
+        "strike": 80,
+        "closeAtExpiration": 73.05,
+        "assignmentDepthPct": -8.69,
+        "assignmentDepthClass": "profonde",
+        "assigned": true,
+        "cspYieldPct": 0.87,
+        "wouldAvoidAssignment": false,
+        "observationSignature": "TQQQ|20260605|20260601_112024|4|AGGRESSIVE|80",
+        "expirationSignature": "TQQQ|20260605",
+        "strategyChoiceSignature": "TQQQ|20260605|4|AGGRESSIVE",
+        "tradeCandidateSignature": "TQQQ|20260605|4|80",
+        "selectedTradeSignature": "TQQQ|20260605"
+      },
+      {
+        "id": "20260601_112024_TQQQ_20260605_safe_78",
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expiration": "20260605",
+        "expKey": "20260605",
+        "scanDate": "2026-06-01",
+        "scanSessionId": "20260601_112024",
+        "dte": 4,
+        "mode": "SAFE",
+        "strike": 78,
+        "closeAtExpiration": 73.05,
+        "assignmentDepthPct": -6.35,
+        "assignmentDepthClass": "profonde",
+        "assigned": true,
+        "cspYieldPct": 0.58,
+        "wouldAvoidAssignment": false,
+        "observationSignature": "TQQQ|20260605|20260601_112024|4|SAFE|78",
+        "expirationSignature": "TQQQ|20260605",
+        "strategyChoiceSignature": "TQQQ|20260605|4|SAFE",
+        "tradeCandidateSignature": "TQQQ|20260605|4|78",
+        "selectedTradeSignature": "TQQQ|20260605"
+      },
+      {
+        "id": "20260529_112724_TQQQ_20260605_aggressive_79",
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expiration": "20260605",
+        "expKey": "20260605",
+        "scanDate": "2026-05-29",
+        "scanSessionId": "20260529_112724",
+        "dte": 7,
+        "mode": "AGGRESSIVE",
+        "strike": 79,
+        "closeAtExpiration": 73.05,
+        "assignmentDepthPct": -7.53,
+        "assignmentDepthClass": "profonde",
+        "assigned": true,
+        "cspYieldPct": 1.1,
+        "wouldAvoidAssignment": false,
+        "observationSignature": "TQQQ|20260605|20260529_112724|7|AGGRESSIVE|79",
+        "expirationSignature": "TQQQ|20260605",
+        "strategyChoiceSignature": "TQQQ|20260605|7|AGGRESSIVE",
+        "tradeCandidateSignature": "TQQQ|20260605|7|79",
+        "selectedTradeSignature": "TQQQ|20260605"
+      },
+      {
+        "id": "20260529_112724_TQQQ_20260605_safe_76",
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expiration": "20260605",
+        "expKey": "20260605",
+        "scanDate": "2026-05-29",
+        "scanSessionId": "20260529_112724",
+        "dte": 7,
+        "mode": "SAFE",
+        "strike": 76,
+        "closeAtExpiration": 73.05,
+        "assignmentDepthPct": -3.88,
+        "assignmentDepthClass": "moderee",
+        "assigned": true,
+        "cspYieldPct": 0.62,
+        "wouldAvoidAssignment": false,
+        "observationSignature": "TQQQ|20260605|20260529_112724|7|SAFE|76",
+        "expirationSignature": "TQQQ|20260605",
+        "strategyChoiceSignature": "TQQQ|20260605|7|SAFE",
+        "tradeCandidateSignature": "TQQQ|20260605|7|76",
+        "selectedTradeSignature": "TQQQ|20260605"
+      }
+    ],
+    "verdict": {
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "distinctStrategyChoices": 6,
+      "distinctTradeCandidates": 6,
+      "inflationRatio": 6,
+      "interpretation": "Les 6 assignations observationnelles ne représentent qu'1 expiration réelle distincte — duplication par SAFE/AGRESSIF/DTE/scan."
+    }
+  },
+  "q3_signatureComparison": {
+    "global": {
+      "observation_signature": 334,
+      "expiration_signature": 108,
+      "strategy_choice_signature": 305,
+      "trade_candidate_signature": 225,
+      "selected_trade_count": 108,
+      "raw_observation_count": 334
+    },
+    "byTickerTop20": [
+      {
+        "ticker": "SLV",
+        "observation_signature": 14,
+        "expiration_signature": 3,
+        "strategy_choice_signature": 14,
+        "trade_candidate_signature": 11,
+        "selected_trade_count": 3,
+        "raw_observation_count": 14,
+        "inflationRatio": 4.67
+      },
+      {
+        "ticker": "GDX",
+        "observation_signature": 13,
+        "expiration_signature": 3,
+        "strategy_choice_signature": 11,
+        "trade_candidate_signature": 10,
+        "selected_trade_count": 3,
+        "raw_observation_count": 13,
+        "inflationRatio": 4.33
+      },
+      {
+        "ticker": "BMNR",
+        "observation_signature": 13,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 11,
+        "trade_candidate_signature": 10,
+        "selected_trade_count": 2,
+        "raw_observation_count": 13,
+        "inflationRatio": 6.5
+      },
+      {
+        "ticker": "PINS",
+        "observation_signature": 13,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 9,
+        "trade_candidate_signature": 5,
+        "selected_trade_count": 2,
+        "raw_observation_count": 13,
+        "inflationRatio": 6.5
+      },
+      {
+        "ticker": "AAL",
+        "observation_signature": 11,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 7,
+        "trade_candidate_signature": 4,
+        "selected_trade_count": 2,
+        "raw_observation_count": 11,
+        "inflationRatio": 5.5
+      },
+      {
+        "ticker": "UBER",
+        "observation_signature": 10,
+        "expiration_signature": 3,
+        "strategy_choice_signature": 10,
+        "trade_candidate_signature": 5,
+        "selected_trade_count": 3,
+        "raw_observation_count": 10,
+        "inflationRatio": 3.33
+      },
+      {
+        "ticker": "XYZ",
+        "observation_signature": 9,
+        "expiration_signature": 3,
+        "strategy_choice_signature": 7,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 3,
+        "raw_observation_count": 9,
+        "inflationRatio": 3
+      },
+      {
+        "ticker": "TEM",
+        "observation_signature": 9,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 4,
+        "selected_trade_count": 1,
+        "raw_observation_count": 9,
+        "inflationRatio": 9
+      },
+      {
+        "ticker": "SMCI",
+        "observation_signature": 8,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 2,
+        "raw_observation_count": 8,
+        "inflationRatio": 4
+      },
+      {
+        "ticker": "IONQ",
+        "observation_signature": 7,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 7,
+        "trade_candidate_signature": 7,
+        "selected_trade_count": 2,
+        "raw_observation_count": 7,
+        "inflationRatio": 3.5
+      },
+      {
+        "ticker": "CDE",
+        "observation_signature": 7,
+        "expiration_signature": 3,
+        "strategy_choice_signature": 7,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 3,
+        "raw_observation_count": 7,
+        "inflationRatio": 2.33
+      },
+      {
+        "ticker": "PAAS",
+        "observation_signature": 7,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 7,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 1,
+        "raw_observation_count": 7,
+        "inflationRatio": 7
+      },
+      {
+        "ticker": "TTD",
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 4,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6,
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "TQQQ",
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6,
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "SOFI",
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 5,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6,
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "PLTR",
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6,
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "OKLO",
+        "observation_signature": 6,
+        "expiration_signature": 1,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 1,
+        "raw_observation_count": 6,
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "LYFT",
+        "observation_signature": 6,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 3,
+        "selected_trade_count": 2,
+        "raw_observation_count": 6,
+        "inflationRatio": 3
+      },
+      {
+        "ticker": "HPQ",
+        "observation_signature": 6,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 4,
+        "selected_trade_count": 2,
+        "raw_observation_count": 6,
+        "inflationRatio": 3
+      },
+      {
+        "ticker": "MRNA",
+        "observation_signature": 6,
+        "expiration_signature": 2,
+        "strategy_choice_signature": 6,
+        "trade_candidate_signature": 6,
+        "selected_trade_count": 2,
+        "raw_observation_count": 6,
+        "inflationRatio": 3
+      }
+    ],
+    "focusTickers": [
+      {
+        "ticker": "TQQQ",
+        "signatures": {
+          "observation_signature": 6,
+          "expiration_signature": 1,
+          "strategy_choice_signature": 6,
+          "trade_candidate_signature": 6,
+          "selected_trade_count": 1,
+          "raw_observation_count": 6
+        },
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "APLD",
+        "signatures": {
+          "observation_signature": 3,
+          "expiration_signature": 1,
+          "strategy_choice_signature": 3,
+          "trade_candidate_signature": 3,
+          "selected_trade_count": 1,
+          "raw_observation_count": 3
+        },
+        "inflationRatio": 3
+      },
+      {
+        "ticker": "HOOD",
+        "signatures": {
+          "observation_signature": 3,
+          "expiration_signature": 2,
+          "strategy_choice_signature": 3,
+          "trade_candidate_signature": 3,
+          "selected_trade_count": 2,
+          "raw_observation_count": 3
+        },
+        "inflationRatio": 1.5
+      },
+      {
+        "ticker": "SOFI",
+        "signatures": {
+          "observation_signature": 6,
+          "expiration_signature": 1,
+          "strategy_choice_signature": 6,
+          "trade_candidate_signature": 5,
+          "selected_trade_count": 1,
+          "raw_observation_count": 6
+        },
+        "inflationRatio": 6
+      },
+      {
+        "ticker": "BAC",
+        "signatures": {
+          "observation_signature": 2,
+          "expiration_signature": 1,
+          "strategy_choice_signature": 2,
+          "trade_candidate_signature": 1,
+          "selected_trade_count": 1,
+          "raw_observation_count": 2
+        },
+        "inflationRatio": 2
+      },
+      {
+        "ticker": "CCL",
+        "signatures": {
+          "observation_signature": 4,
+          "expiration_signature": 1,
+          "strategy_choice_signature": 2,
+          "trade_candidate_signature": 2,
+          "selected_trade_count": 1,
+          "raw_observation_count": 4
+        },
+        "inflationRatio": 4
+      },
+      {
+        "ticker": "HIMS",
+        "signatures": {
+          "observation_signature": 0,
+          "expiration_signature": 0,
+          "strategy_choice_signature": 0,
+          "trade_candidate_signature": 0,
+          "selected_trade_count": 0,
+          "raw_observation_count": 0
+        },
+        "inflationRatio": null
+      }
+    ]
+  },
+  "q4_inflationByFocusTicker": [
+    {
+      "ticker": "TQQQ",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6
+    },
+    {
+      "ticker": "APLD",
+      "observationAssignedCount": 3,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 3
+    },
+    {
+      "ticker": "HOOD",
+      "observationAssignedCount": 3,
+      "distinctExpirationAssignedCount": 2,
+      "inflationRatio": 1.5
+    },
+    {
+      "ticker": "SOFI",
+      "observationAssignedCount": 6,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 6
+    },
+    {
+      "ticker": "BAC",
+      "observationAssignedCount": 2,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 2
+    },
+    {
+      "ticker": "CCL",
+      "observationAssignedCount": 4,
+      "distinctExpirationAssignedCount": 1,
+      "inflationRatio": 4
+    },
+    {
+      "ticker": "HIMS",
+      "observationAssignedCount": 0,
+      "distinctExpirationAssignedCount": 0,
+      "inflationRatio": null
+    }
+  ],
+  "q5_safeVsAggressive": {
+    "focus": [
+      {
+        "ticker": "APLD",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 4,
+        "closeAtExpiration": 39.62,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 40.5,
+        "aggressiveStrike": 43,
+        "safeYieldPct": 0.59,
+        "aggressiveYieldPct": 1.3,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "SAFE",
+        "higherYieldChoice": "AGGRESSIVE",
+        "safeDepthClass": "moderee",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 40.5 vs AGRESSIF 43 — rend. 0.59% vs 1.3%"
+      },
+      {
+        "ticker": "APLD",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 7,
+        "closeAtExpiration": 39.62,
+        "safeAssigned": null,
+        "aggressiveAssigned": true,
+        "safeStrike": null,
+        "aggressiveStrike": 41.5,
+        "safeYieldPct": null,
+        "aggressiveYieldPct": 1.54,
+        "safeWouldAvoid": null,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "AGGRESSIVE_ONLY_ASSIGNED",
+        "higherYieldChoice": "AGGRESSIVE_ONLY",
+        "safeDepthClass": null,
+        "aggressiveDepthClass": "profonde",
+        "note": "Seulement AGRESSIF assigné pour ce bucket DTE"
+      },
+      {
+        "ticker": "BAC",
+        "selectedExpiration": "20260515",
+        "expKey": "20260515",
+        "dte": 7,
+        "closeAtExpiration": 49.77,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 50,
+        "aggressiveStrike": 50,
+        "safeYieldPct": 0.54,
+        "aggressiveYieldPct": 0.54,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "TIE",
+        "higherYieldChoice": "TIE",
+        "safeDepthClass": "proche",
+        "aggressiveDepthClass": "proche",
+        "note": "Même expiration : SAFE strike 50 vs AGRESSIF 50 — rend. 0.54% vs 0.54%"
+      },
+      {
+        "ticker": "CCL",
+        "selectedExpiration": "20260515",
+        "expKey": "20260515",
+        "dte": 7,
+        "closeAtExpiration": 24.64,
+        "safeAssigned": null,
+        "aggressiveAssigned": true,
+        "safeStrike": null,
+        "aggressiveStrike": 25,
+        "safeYieldPct": null,
+        "aggressiveYieldPct": 0.96,
+        "safeWouldAvoid": null,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "AGGRESSIVE_ONLY_ASSIGNED",
+        "higherYieldChoice": "AGGRESSIVE_ONLY",
+        "safeDepthClass": null,
+        "aggressiveDepthClass": "proche",
+        "note": "Seulement AGRESSIF assigné pour ce bucket DTE"
+      },
+      {
+        "ticker": "CCL",
+        "selectedExpiration": "20260515",
+        "expKey": "20260515",
+        "dte": 8,
+        "closeAtExpiration": 24.64,
+        "safeAssigned": null,
+        "aggressiveAssigned": true,
+        "safeStrike": null,
+        "aggressiveStrike": 25,
+        "safeYieldPct": null,
+        "aggressiveYieldPct": 1,
+        "safeWouldAvoid": null,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "AGGRESSIVE_ONLY_ASSIGNED",
+        "higherYieldChoice": "AGGRESSIVE_ONLY",
+        "safeDepthClass": null,
+        "aggressiveDepthClass": "proche",
+        "note": "Seulement AGRESSIF assigné pour ce bucket DTE"
+      },
+      {
+        "ticker": "HOOD",
+        "selectedExpiration": "20260522",
+        "expKey": "20260522",
+        "dte": 8,
+        "closeAtExpiration": 73.64,
+        "safeAssigned": null,
+        "aggressiveAssigned": true,
+        "safeStrike": null,
+        "aggressiveStrike": 75,
+        "safeYieldPct": null,
+        "aggressiveYieldPct": 1.13,
+        "safeWouldAvoid": null,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "AGGRESSIVE_ONLY_ASSIGNED",
+        "higherYieldChoice": "AGGRESSIVE_ONLY",
+        "safeDepthClass": null,
+        "aggressiveDepthClass": "moderee",
+        "note": "Seulement AGRESSIF assigné pour ce bucket DTE"
+      },
+      {
+        "ticker": "HOOD",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 4,
+        "closeAtExpiration": 82.47,
+        "safeAssigned": null,
+        "aggressiveAssigned": true,
+        "safeStrike": null,
+        "aggressiveStrike": 84,
+        "safeYieldPct": null,
+        "aggressiveYieldPct": 1.02,
+        "safeWouldAvoid": null,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "AGGRESSIVE_ONLY_ASSIGNED",
+        "higherYieldChoice": "AGGRESSIVE_ONLY",
+        "safeDepthClass": null,
+        "aggressiveDepthClass": "moderee",
+        "note": "Seulement AGRESSIF assigné pour ce bucket DTE"
+      },
+      {
+        "ticker": "HOOD",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 7,
+        "closeAtExpiration": 82.47,
+        "safeAssigned": null,
+        "aggressiveAssigned": true,
+        "safeStrike": null,
+        "aggressiveStrike": 84,
+        "safeYieldPct": null,
+        "aggressiveYieldPct": 1.07,
+        "safeWouldAvoid": null,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "AGGRESSIVE_ONLY_ASSIGNED",
+        "higherYieldChoice": "AGGRESSIVE_ONLY",
+        "safeDepthClass": null,
+        "aggressiveDepthClass": "moderee",
+        "note": "Seulement AGRESSIF assigné pour ce bucket DTE"
+      },
+      {
+        "ticker": "SOFI",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 3,
+        "closeAtExpiration": 16.03,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 17,
+        "aggressiveStrike": 17,
+        "safeYieldPct": 0.82,
+        "aggressiveYieldPct": 0.82,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "TIE",
+        "higherYieldChoice": "TIE",
+        "safeDepthClass": "profonde",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 17 vs AGRESSIF 17 — rend. 0.82% vs 0.82%"
+      },
+      {
+        "ticker": "SOFI",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 4,
+        "closeAtExpiration": 16.03,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 17,
+        "aggressiveStrike": 17.5,
+        "safeYieldPct": 0.53,
+        "aggressiveYieldPct": 0.91,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "SAFE",
+        "higherYieldChoice": "AGGRESSIVE",
+        "safeDepthClass": "profonde",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 17 vs AGRESSIF 17.5 — rend. 0.53% vs 0.91%"
+      },
+      {
+        "ticker": "SOFI",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 7,
+        "closeAtExpiration": 16.03,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 16.5,
+        "aggressiveStrike": 17,
+        "safeYieldPct": 0.55,
+        "aggressiveYieldPct": 0.88,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "SAFE",
+        "higherYieldChoice": "AGGRESSIVE",
+        "safeDepthClass": "moderee",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 16.5 vs AGRESSIF 17 — rend. 0.55% vs 0.88%"
+      },
+      {
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 3,
+        "closeAtExpiration": 73.05,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 79,
+        "aggressiveStrike": 81,
+        "safeYieldPct": 0.58,
+        "aggressiveYieldPct": 0.91,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "SAFE",
+        "higherYieldChoice": "AGGRESSIVE",
+        "safeDepthClass": "profonde",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 79 vs AGRESSIF 81 — rend. 0.58% vs 0.91%"
+      },
+      {
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 4,
+        "closeAtExpiration": 73.05,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 78,
+        "aggressiveStrike": 80,
+        "safeYieldPct": 0.58,
+        "aggressiveYieldPct": 0.87,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "SAFE",
+        "higherYieldChoice": "AGGRESSIVE",
+        "safeDepthClass": "profonde",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 78 vs AGRESSIF 80 — rend. 0.58% vs 0.87%"
+      },
+      {
+        "ticker": "TQQQ",
+        "selectedExpiration": "20260605",
+        "expKey": "20260605",
+        "dte": 7,
+        "closeAtExpiration": 73.05,
+        "safeAssigned": true,
+        "aggressiveAssigned": true,
+        "safeStrike": 76,
+        "aggressiveStrike": 79,
+        "safeYieldPct": 0.62,
+        "aggressiveYieldPct": 1.1,
+        "safeWouldAvoid": false,
+        "aggressiveWouldAvoid": false,
+        "saferChoice": "SAFE",
+        "higherYieldChoice": "AGGRESSIVE",
+        "safeDepthClass": "moderee",
+        "aggressiveDepthClass": "profonde",
+        "note": "Même expiration : SAFE strike 76 vs AGRESSIF 79 — rend. 0.62% vs 1.1%"
+      }
+    ],
+    "allCount": 174
+  },
+  "q6_dteBreakdown": {
+    "global": {
+      "2": {
+        "byObservations": 11,
+        "byDistinctExpirations": 7
+      },
+      "3": {
+        "byObservations": 43,
+        "byDistinctExpirations": 22
+      },
+      "4": {
+        "byObservations": 88,
+        "byDistinctExpirations": 47
+      },
+      "7": {
+        "byObservations": 115,
+        "byDistinctExpirations": 50
+      },
+      "autres": {
+        "byObservations": 77,
+        "byDistinctExpirations": 35
+      }
+    },
+    "byFocusTicker": {
+      "TQQQ": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "4": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "7": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "autres": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        }
+      },
+      "APLD": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "4": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "7": {
+          "byObservations": 1,
+          "byDistinctExpirations": 1
+        },
+        "autres": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        }
+      },
+      "HOOD": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "4": {
+          "byObservations": 1,
+          "byDistinctExpirations": 1
+        },
+        "7": {
+          "byObservations": 1,
+          "byDistinctExpirations": 1
+        },
+        "autres": {
+          "byObservations": 1,
+          "byDistinctExpirations": 1
+        }
+      },
+      "SOFI": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "4": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "7": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "autres": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        }
+      },
+      "BAC": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "4": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "7": {
+          "byObservations": 2,
+          "byDistinctExpirations": 1
+        },
+        "autres": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        }
+      },
+      "CCL": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "4": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "7": {
+          "byObservations": 3,
+          "byDistinctExpirations": 1
+        },
+        "autres": {
+          "byObservations": 1,
+          "byDistinctExpirations": 1
+        }
+      },
+      "HIMS": {
+        "2": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "3": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "4": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "7": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        },
+        "autres": {
+          "byObservations": 0,
+          "byDistinctExpirations": 0
+        }
+      }
+    }
+  },
+  "q7_recommendedMetrics": [
+    {
+      "id": "observation_count",
+      "label": "observation_count",
+      "use": "Comparer les variantes SAFE/AGRESSIF/DTE sur le même scan — utile pour la recherche de formule.",
+      "denominator": "Chaque record résolu (mode × DTE × strike × scanSession)."
+    },
+    {
+      "id": "expiration_count",
+      "label": "expiration_count",
+      "use": "Mesurer le risque réel par événement d'expiration — 1 ticker × 1 selectedExpiration.",
+      "denominator": "Événements d'expiration distincts assignés."
+    },
+    {
+      "id": "strategy_choice_count",
+      "label": "strategy_choice_count",
+      "use": "Comparer quel DTE/mode performe — ticker × expiration × DTE × mode.",
+      "denominator": "Choix stratégiques distincts (sans distinguer le strike si mode fixe le strike)."
+    },
+    {
+      "id": "trade_candidate_count",
+      "label": "trade_candidate_count",
+      "use": "Comparer les strikes candidats pour un DTE donné — ticker × expiration × DTE × strike.",
+      "denominator": "Candidats de trade distincts."
+    },
+    {
+      "id": "selected_trade_count",
+      "label": "selected_trade_count",
+      "use": "Simulation réaliste : 1 contrat choisi par expiration — le dénominateur le plus proche d'une décision humaine.",
+      "denominator": "1 par ticker × selectedExpiration (choix unique implicite)."
+    }
+  ],
+  "q8_j4cRecommendations": [
+    {
+      "id": "obs-assignations",
+      "label": "Assignations observationnelles",
+      "priority": "haute",
+      "text": "Afficher explicitement le nombre de records assignés (SAFE + AGRESSIF + DTE) avec libellé « observationnel » pour éviter la confusion avec des trades réels."
+    },
+    {
+      "id": "exp-assignees",
+      "label": "Expirations assignées",
+      "priority": "haute",
+      "text": "Ajouter le compteur distinct ticker×selectedExpiration — c'est le vrai nombre d'événements de risque."
+    },
+    {
+      "id": "ratio-duplication",
+      "label": "Ratio de duplication",
+      "priority": "haute",
+      "text": "Montrer inflationRatio = observations / expirations (ex. TQQQ 6/1 = 6.0×) pour signaler le double-comptage stratégique."
+    },
+    {
+      "id": "safe-aurait-evite",
+      "label": "SAFE aurait évité ?",
+      "priority": "moyenne",
+      "text": "Pour chaque expiration assignée en AGRESSIF, indiquer si le strike SAFE du même DTE/scan aurait évité l'assignation (close ≥ strike SAFE)."
+    },
+    {
+      "id": "agressif-valait-risque",
+      "label": "AGRESSIF valait le risque ?",
+      "priority": "moyenne",
+      "text": "Comparer rendement CSP AGRESSIF vs profondeur d'assignation — badge si prime plus élevée mais assignation plus profonde que SAFE."
+    },
+    {
+      "id": "dte-dual-view",
+      "label": "DTE : observations vs expirations",
+      "priority": "moyenne",
+      "text": "Dans le breakdown DTE, afficher deux colonnes : par observations ET par expirations distinctes (corrige l'ambiguïté J4-A/Q7)."
+    }
+  ],
+  "recommendations": {
+    "futureMetrics": [
+      {
+        "id": "observation_count",
+        "label": "observation_count",
+        "use": "Comparer les variantes SAFE/AGRESSIF/DTE sur le même scan — utile pour la recherche de formule.",
+        "denominator": "Chaque record résolu (mode × DTE × strike × scanSession)."
+      },
+      {
+        "id": "expiration_count",
+        "label": "expiration_count",
+        "use": "Mesurer le risque réel par événement d'expiration — 1 ticker × 1 selectedExpiration.",
+        "denominator": "Événements d'expiration distincts assignés."
+      },
+      {
+        "id": "strategy_choice_count",
+        "label": "strategy_choice_count",
+        "use": "Comparer quel DTE/mode performe — ticker × expiration × DTE × mode.",
+        "denominator": "Choix stratégiques distincts (sans distinguer le strike si mode fixe le strike)."
+      },
+      {
+        "id": "trade_candidate_count",
+        "label": "trade_candidate_count",
+        "use": "Comparer les strikes candidats pour un DTE donné — ticker × expiration × DTE × strike.",
+        "denominator": "Candidats de trade distincts."
+      },
+      {
+        "id": "selected_trade_count",
+        "label": "selected_trade_count",
+        "use": "Simulation réaliste : 1 contrat choisi par expiration — le dénominateur le plus proche d'une décision humaine.",
+        "denominator": "1 par ticker × selectedExpiration (choix unique implicite)."
+      }
+    ],
+    "recommendedPrimaryMetric": "Pour le Journal POP orienté décision : afficher selected_trade_count (expirations assignées) comme métrique principale, et observation_count comme métrique secondaire « variantes testées ».",
+    "j4cUi": [
+      {
+        "id": "obs-assignations",
+        "label": "Assignations observationnelles",
+        "priority": "haute",
+        "text": "Afficher explicitement le nombre de records assignés (SAFE + AGRESSIF + DTE) avec libellé « observationnel » pour éviter la confusion avec des trades réels."
+      },
+      {
+        "id": "exp-assignees",
+        "label": "Expirations assignées",
+        "priority": "haute",
+        "text": "Ajouter le compteur distinct ticker×selectedExpiration — c'est le vrai nombre d'événements de risque."
+      },
+      {
+        "id": "ratio-duplication",
+        "label": "Ratio de duplication",
+        "priority": "haute",
+        "text": "Montrer inflationRatio = observations / expirations (ex. TQQQ 6/1 = 6.0×) pour signaler le double-comptage stratégique."
+      },
+      {
+        "id": "safe-aurait-evite",
+        "label": "SAFE aurait évité ?",
+        "priority": "moyenne",
+        "text": "Pour chaque expiration assignée en AGRESSIF, indiquer si le strike SAFE du même DTE/scan aurait évité l'assignation (close ≥ strike SAFE)."
+      },
+      {
+        "id": "agressif-valait-risque",
+        "label": "AGRESSIF valait le risque ?",
+        "priority": "moyenne",
+        "text": "Comparer rendement CSP AGRESSIF vs profondeur d'assignation — badge si prime plus élevée mais assignation plus profonde que SAFE."
+      },
+      {
+        "id": "dte-dual-view",
+        "label": "DTE : observations vs expirations",
+        "priority": "moyenne",
+        "text": "Dans le breakdown DTE, afficher deux colonnes : par observations ET par expirations distinctes (corrige l'ambiguïté J4-A/Q7)."
+      }
+    ]
+  },
+  "verdict": {
+    "global": "334 assignations observationnelles (hors retests intraday) ne représentent que 108 expirations distinctes assignées (ratio 3.09×). Le Journal POP additionne actuellement des variantes SAFE/AGRESSIF/DTE/scan comme si chacune était un trade distinct — ce qui gonfle artificiellement les taux d'assignation par ticker.",
+    "tqqq": "Les 6 assignations observationnelles ne représentent qu'1 expiration réelle distincte — duplication par SAFE/AGRESSIF/DTE/scan. Ratio duplication TQQQ : 6× (6 obs / 1 exp).",
+    "implication": "Pour juger si SAFE > AGRESSIF ou quel DTE est meilleur, utiliser strategy_choice_count. Pour simuler un trader qui ne vend qu'un put par expiration, utiliser selected_trade_count (= expiration_count)."
+  }
+}

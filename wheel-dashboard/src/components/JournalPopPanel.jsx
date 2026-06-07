@@ -3281,11 +3281,25 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
       })),
   };
 
+  // J5-B2 — bloc additif « décision réelle BALANCED » (AFFICHAGE seulement). Le
+  // bloc realisticDecisionMetrics est calculé par le service (J5-B1) et porté sur
+  // le profil/ligne ; on l'expose ici avec les contreparties observationnelles
+  // déjà présentes sur la ligne pour la comparaison du modal. Aucun recalcul.
+  const realisticDecision = {
+    metrics: globalProfile?.realisticDecisionMetrics ?? null,
+    observational: {
+      assignmentRate: numberOrNull(globalProfile?.assignmentRate),
+      deepAssignmentRate: numberOrNull(globalProfile?.deepAssignmentRate),
+      avgCspYieldPct: numberOrNull(globalProfile?.avgCspYieldPct),
+    },
+  };
+
   return {
     rows,
     eventUniqueness,
     eventRisk,
     obsVsDecision,
+    realisticDecision,
     summary: {
       bestDteLabel: bestRow
         ? `Meilleur DTE identifiable : ${bestRow.dte} DTE`
@@ -3466,6 +3480,235 @@ function ObsVsDecisionModalSection({ obsVsDecision }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// J5-B2 — Décision réelle BALANCED (AFFICHAGE seulement).
+// Consomme le bloc additif `realisticDecisionMetrics` calculé en J5-B1 par le
+// service (1 décision théorique par ticker × selectedExpiration, politique
+// BALANCED). Ne modifie NI le score (dynamicTop20Score), NI le statut
+// (dynamicTop20Status), NI le tri, NI les verdicts, NI les formules POP. Ces
+// métriques sont post-analyse : elles n'alimentent aucun calcul de classement.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REALISTIC_DECISION_TOOLTIP =
+  "Décision réelle BALANCED : 1 sélection par ticker + expiration (compromis rendement/risque). " +
+  "Métriques post-analyse — n'influencent pas le score ni l'ordre du Top 20.";
+
+function hasRealisticDecisionMetrics(rdm) {
+  return rdm != null && Number(rdm.selectedTradeCount ?? 0) > 0;
+}
+
+const REALISTIC_DECISION_BADGE_TONE = {
+  amber: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+  emerald: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+  rose: "border-rose-500/40 bg-rose-500/10 text-rose-300",
+  slate: "border-slate-600/50 bg-slate-700/30 text-slate-300",
+};
+
+// Badges descriptifs uniquement (PAS un verdict moteur, jamais utilisés dans le
+// score ni le tri). Le 2e badge compare l'assignation réelle dédupliquée à
+// l'assignation observationnelle déjà affichée sur la ligne.
+function getRealisticDecisionBadges(rdm, observationalAssignmentRate) {
+  if (!hasRealisticDecisionMetrics(rdm)) return [];
+  const badges = [];
+  if (Number(rdm.duplicationRatio ?? 0) >= 4) {
+    badges.push({ label: "duplication élevée", tone: "amber" });
+  }
+  const obsAssign = numberOrNull(observationalAssignmentRate);
+  const selAssign = numberOrNull(rdm.selectedAssignmentRatePct);
+  if (obsAssign != null && selAssign != null && selAssign <= obsAssign) {
+    badges.push({ label: "risque réduit après dédup.", tone: "emerald" });
+  }
+  if (Number(rdm.selectedDeepAssignmentRatePct ?? 0) > 30) {
+    badges.push({ label: "profondeur à surveiller", tone: "rose" });
+  }
+  if (Number(rdm.selectedTradeCount ?? 0) < 5) {
+    badges.push({ label: "échantillon faible", tone: "slate" });
+  }
+  return badges;
+}
+
+function RealisticDecisionBadgeRow({ badges, className = "" }) {
+  if (!Array.isArray(badges) || badges.length === 0) return null;
+  return (
+    <div className={`flex flex-wrap gap-1 ${className}`}>
+      {badges.map((b) => (
+        <span
+          key={b.label}
+          className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+            REALISTIC_DECISION_BADGE_TONE[b.tone] ?? REALISTIC_DECISION_BADGE_TONE.slate
+          }`}
+        >
+          {b.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Répartition mode SAFE / AGRESSIF des décisions sélectionnées (affichage).
+function formatRealisticModeSplit(split) {
+  if (!split) return "—";
+  const safe = Number(split.SAFE ?? 0);
+  const agg = Number(split.AGGRESSIVE ?? 0);
+  const other = Number(split.OTHER ?? 0);
+  const parts = [`SAFE ${safe}`, `AGRESSIF ${agg}`];
+  if (other > 0) parts.push(`AUTRE ${other}`);
+  return parts.join(" · ");
+}
+
+// Répartition DTE choisis des décisions sélectionnées (affichage).
+function formatRealisticDteSplit(split) {
+  if (!split) return "—";
+  const entries = Object.entries(split)
+    .map(([dte, count]) => [Number(dte), Number(count)])
+    .filter(([dte]) => Number.isFinite(dte) && dte > 0)
+    .sort((a, b) => a[0] - b[0]);
+  if (entries.length === 0) return "—";
+  return entries.map(([dte, count]) => `${dte}DTE:${count}`).join(" · ");
+}
+
+// J5-B2 — ligne compacte sous le ticker dans le Top 20 : métriques décision réelle
+// BALANCED. AFFICHAGE seulement ; ne change ni le rang, ni le score, ni l'ordre.
+// Masquée si `realisticDecisionMetrics` est absent ou vide.
+function RealisticDecisionInline({ rdm, observationalAssignmentRate }) {
+  if (!hasRealisticDecisionMetrics(rdm)) return null;
+  const badges = getRealisticDecisionBadges(rdm, observationalAssignmentRate);
+  return (
+    <div className="mt-1 text-[10px] leading-tight text-slate-500" title={REALISTIC_DECISION_TOOLTIP}>
+      <span className="text-slate-400">Décisions</span> {rdm.selectedTradeCount} ·{" "}
+      <span className="text-slate-400">Assign. réelle</span> {formatPercent(rdm.selectedAssignmentRatePct, 0)} ·{" "}
+      <span className="text-slate-400">Prof. réelle</span> {formatPercent(rdm.selectedDeepAssignmentRatePct, 0)} ·{" "}
+      <span className="text-slate-400">Rend. réel</span> {formatPercent(rdm.selectedAvgCspYieldPct, 2)} ·{" "}
+      <span className="text-slate-400">Dup.</span> {formatDuplicationRatio(rdm.duplicationRatio)}
+      <RealisticDecisionBadgeRow badges={badges} className="mt-0.5" />
+    </div>
+  );
+}
+
+// J5-B2 — légende compacte « Décision réelle BALANCED ».
+function RealisticDecisionLegend({ className = "" }) {
+  return (
+    <div
+      className={`rounded-xl border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-[10px] leading-snug text-slate-400 ${className}`}
+    >
+      <span className="font-semibold text-slate-300">Décision réelle BALANCED</span> ·{" "}
+      Une décision = 1 sélection par ticker + expiration ·{" "}
+      Politique BALANCED = compromis rendement/risque ·{" "}
+      Ces métriques sont post-analyse et n'influencent pas encore le score ·{" "}
+      <span className="text-slate-300">Le Top 20 garde son ordre actuel.</span>
+    </div>
+  );
+}
+
+// J5-B2 — section du modal : « Observationnel vs décision réelle BALANCED ».
+// Compare la base observationnelle (déjà affichée) à la base décision réelle
+// dédupliquée, plus le détail mode / DTE / assignations. AFFICHAGE seulement.
+function RealisticDecisionModalSection({ realisticDecision }) {
+  const rdm = realisticDecision?.metrics ?? null;
+  const obs = realisticDecision?.observational ?? null;
+  if (!hasRealisticDecisionMetrics(rdm)) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-[11px] text-slate-400">
+        <div className="text-[12px] font-semibold text-slate-200">
+          Observationnel vs décision réelle BALANCED
+        </div>
+        <p className="mt-1">Décision réelle : non disponible pour ce ticker.</p>
+      </div>
+    );
+  }
+
+  const badges = getRealisticDecisionBadges(rdm, obs?.assignmentRate);
+  const comparisonRows = [
+    {
+      label: "n obs. résolues / n décisions",
+      obs: rdm.observationResolvedCount ?? "—",
+      real: rdm.selectedTradeCount ?? "—",
+    },
+    {
+      label: "Assignation",
+      obs: formatPercent(obs?.assignmentRate, 1),
+      real: formatPercent(rdm.selectedAssignmentRatePct, 1),
+    },
+    {
+      label: "Profondeur",
+      obs: formatPercent(obs?.deepAssignmentRate, 1),
+      real: formatPercent(rdm.selectedDeepAssignmentRatePct, 1),
+    },
+    {
+      label: "Rendement CSP",
+      obs: formatPercent(obs?.avgCspYieldPct, 2),
+      real: formatPercent(rdm.selectedAvgCspYieldPct, 2),
+    },
+    {
+      label: "Duplication",
+      obs: "—",
+      real: formatDuplicationRatio(rdm.duplicationRatio),
+    },
+  ];
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12px] font-semibold text-slate-200">
+          Observationnel vs décision réelle BALANCED
+        </span>
+        <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
+          {rdm.policy ?? "BALANCED"}
+        </span>
+      </div>
+      <p className="mt-1 text-[11px] text-slate-500" title={REALISTIC_DECISION_TOOLTIP}>
+        Le Top 20 reste classé observationnellement ; voici ce que donne la base décision réelle
+        (1 décision par ticker + expiration).
+      </p>
+
+      <RealisticDecisionBadgeRow badges={badges} className="mt-2" />
+
+      <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800">
+        <table className="min-w-full divide-y divide-slate-800 text-left text-[10px]">
+          <thead className="bg-slate-900/80 text-slate-500">
+            <tr>
+              {["Métrique", "Observationnel", "Décision réelle"].map((h) => (
+                <th key={h} className="px-2.5 py-1.5 font-semibold">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800 bg-slate-950">
+            {comparisonRows.map((r) => (
+              <tr key={r.label} className="hover:bg-slate-900/70">
+                <td className="px-2.5 py-1.5 text-slate-400">{r.label}</td>
+                <td className="px-2.5 py-1.5 tabular-nums text-slate-300">{r.obs}</td>
+                <td className="px-2.5 py-1.5 tabular-nums font-semibold text-slate-100">{r.real}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-1 text-[10px] text-slate-400">
+        <div>
+          <span className="font-semibold text-slate-300">Mode choisi :</span>{" "}
+          {formatRealisticModeSplit(rdm.selectedModeSplit)}
+        </div>
+        <div>
+          <span className="font-semibold text-slate-300">DTE choisis :</span>{" "}
+          {formatRealisticDteSplit(rdm.selectedDteSplit)}
+        </div>
+        <div>
+          <span className="font-semibold text-slate-300">Décisions :</span>{" "}
+          {rdm.selectedTradeCount} · assignées {rdm.selectedAssignedCount ?? 0}
+        </div>
+        <div>
+          <span className="font-semibold text-slate-300">Assignations :</span> proches{" "}
+          {rdm.selectedNearAssignmentCount ?? 0} · modérées {rdm.selectedModerateAssignmentCount ?? 0} ·
+          profondes {rdm.selectedDeepAssignmentCount ?? 0}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Bouton ticker cliquable réutilisé dans Top 20 / Proches d'entrer / À exclure.
 // Ouvre toujours le même panneau « Détail Journal POP par DTE ».
 // Le bouton remplit toute la cellule (block w-full) pour que le clic ne dépende
@@ -3579,7 +3822,11 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
 
           <ObsVsDecisionModalSection obsVsDecision={obsVsDecision} />
 
+          <RealisticDecisionModalSection realisticDecision={breakdown?.realisticDecision} />
+
           <ObsVsDecisionLegend />
+
+          <RealisticDecisionLegend />
 
           {!hasDteData ? (
             <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-6 text-center text-[12px] font-semibold text-slate-400">
@@ -6295,6 +6542,7 @@ export default function JournalPopPanel({ apiBase, active }) {
 
                   <JournalPopCountersLegend className="mt-2" />
                   <ObsVsDecisionLegend className="mt-2" />
+                  <RealisticDecisionLegend className="mt-2" />
                 <DarkTable
                   title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
                   headers={[
@@ -6332,6 +6580,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <td className="px-3 py-2.5 font-semibold">
                         <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
                         <ObsVsDecisionInline eventUniqueness={obsVsDecisionEvt?.eventUniqueness} />
+                        <RealisticDecisionInline
+                          rdm={row.realisticDecisionMetrics}
+                          observationalAssignmentRate={row.assignmentRate}
+                        />
                       </td>
                       <td className="px-3 py-2.5">
                         <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />

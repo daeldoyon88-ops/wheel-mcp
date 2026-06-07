@@ -1,0 +1,97 @@
+{
+  "phase": "J5-B2",
+  "title": "Affichage UI decision reelle BALANCED (Journal POP)",
+  "date": "2026-06-07",
+  "mode": "additif / affichage uniquement",
+  "filesModified": [
+    {
+      "path": "wheel-dashboard/src/components/JournalPopPanel.jsx",
+      "insertions": 252,
+      "deletions": 0,
+      "nature": "additif (affichage)"
+    }
+  ],
+  "serviceModified": false,
+  "filesCreated": [
+    "debug/journal-pop-j5b2-realistic-decision-ui-validation.md",
+    "debug/journal-pop-j5b2-realistic-decision-ui-validation.json"
+  ],
+  "componentsAdded": [
+    "REALISTIC_DECISION_TOOLTIP",
+    "hasRealisticDecisionMetrics",
+    "REALISTIC_DECISION_BADGE_TONE",
+    "getRealisticDecisionBadges",
+    "RealisticDecisionBadgeRow",
+    "formatRealisticModeSplit",
+    "formatRealisticDteSplit",
+    "RealisticDecisionInline",
+    "RealisticDecisionLegend",
+    "RealisticDecisionModalSection"
+  ],
+  "helpersReused": ["formatPercent", "formatDuplicationRatio", "numberOrNull"],
+  "uiSectionsTouched": [
+    "Top 20 principal - colonne Ticker (RealisticDecisionInline)",
+    "Top 20 - legende (RealisticDecisionLegend)",
+    "buildDynamicTop20DteBreakdown - bloc additif realisticDecision",
+    "Modal detail ticker - RealisticDecisionModalSection + RealisticDecisionLegend"
+  ],
+  "realisticDecisionFieldsConsumed": [
+    "policy",
+    "selectedTradeCount",
+    "selectedAssignedCount",
+    "selectedAssignmentRatePct",
+    "selectedNearAssignmentCount",
+    "selectedModerateAssignmentCount",
+    "selectedDeepAssignmentCount",
+    "selectedDeepAssignmentRatePct",
+    "selectedAvgCspYieldPct",
+    "selectedModeSplit",
+    "selectedDteSplit",
+    "duplicationRatio",
+    "observationResolvedCount"
+  ],
+  "observationalCounterpartsRead": ["assignmentRate", "deepAssignmentRate", "avgCspYieldPct"],
+  "badges": [
+    { "condition": "duplicationRatio >= 4", "label": "duplication elevee", "tone": "amber" },
+    { "condition": "selectedAssignmentRatePct <= assignmentRate observationnel", "label": "risque reduit apres dedup.", "tone": "emerald" },
+    { "condition": "selectedDeepAssignmentRatePct > 30", "label": "profondeur a surveiller", "tone": "rose" },
+    { "condition": "selectedTradeCount < 5", "label": "echantillon faible", "tone": "slate" }
+  ],
+  "missingDataHandling": {
+    "inline": "null si realisticDecisionMetrics absent ou selectedTradeCount === 0",
+    "modal": "affiche 'Decision reelle : non disponible pour ce ticker.'"
+  },
+  "scoreSortUnchangedProof": {
+    "diffStat": "1 fichier, +252 / -0 (purement additif)",
+    "serviceDiffStatEmpty": true,
+    "noScoringWrite": true,
+    "onlySortIsDisplayDteSplit": true,
+    "top20RowOrderUnchanged": true
+  },
+  "validation": {
+    "viteBuild": "OK (built in 3.77s)",
+    "nodeTest": "138 pass / 0 fail",
+    "gitDiffCheck": "OK (exit 0)"
+  },
+  "constraintsRespected": {
+    "dynamicTop20Score": "non touche",
+    "dynamicTop20Status": "non touche",
+    "top20Sort": "non touche",
+    "verdicts": "non touche",
+    "popFormulas": "non touche",
+    "onePercentObjective": "non touche",
+    "scanner": "non touche",
+    "ibkrYahoo": "non touche",
+    "archiveFunnel": "non touche",
+    "db": "non modifiee",
+    "backfill": "aucun",
+    "gitAdd": "aucun",
+    "commit": "aucun"
+  },
+  "limits": [
+    "Format numerique selon convention UI existante (formatPercent/formatDuplicationRatio), pas la virgule francaise des exemples.",
+    "Badges purement descriptifs, jamais utilises dans le score.",
+    "Contreparties observationnelles lues sur le profil/ligne, aucune recomputation UI.",
+    "Classement observationnel non migre (objet J5-B3+)."
+  ]
+}

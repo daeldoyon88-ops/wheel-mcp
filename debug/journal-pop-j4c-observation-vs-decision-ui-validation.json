@@ -1,0 +1,88 @@
+{
+  "phase": "J4-C",
+  "title": "Couche UI Observationnel vs decision reelle (Journal POP)",
+  "generatedAt": "2026-06-07",
+  "readOnlyScopeRespected": true,
+  "additiveOnly": true,
+  "filesModified": [
+    {
+      "path": "wheel-dashboard/src/components/JournalPopPanel.jsx",
+      "kind": "frontend",
+      "insertions": 361,
+      "deletions": 0
+    }
+  ],
+  "filesCreated": [
+    "debug/journal-pop-j4c-observation-vs-decision-ui-validation.md",
+    "debug/journal-pop-j4c-observation-vs-decision-ui-validation.json"
+  ],
+  "backendModified": false,
+  "wheelValidationServiceTouched": false,
+  "helpersAdded": [
+    "OBS_VS_DECISION_TOOLTIP",
+    "getObservationVsDecisionMetrics",
+    "formatDuplicationRatio",
+    "getRecordAssignmentDepthPct",
+    "buildAssignedExpirationBreakdown",
+    "buildSafeVsAggressiveReading"
+  ],
+  "componentsAdded": [
+    "ObsVsDecisionInline",
+    "ObsVsDecisionLegend",
+    "ObsVsDecisionModalSection"
+  ],
+  "existingFunctionsExtendedAdditively": [
+    {
+      "name": "buildDynamicTop20DteBreakdown",
+      "additions": [
+        "row.distinctExpirationCount (par DTE)",
+        "obsVsDecision { metrics, assignedExpirations, safeVsAggressive, dteObsVsExp }"
+      ]
+    }
+  ],
+  "uiSectionsTouched": [
+    "Top 20 principal - cellule Ticker (ObsVsDecisionInline)",
+    "Top 20 - en-tete (ObsVsDecisionLegend)",
+    "Modal Detail Journal POP par DTE (ObsVsDecisionModalSection + ObsVsDecisionLegend)"
+  ],
+  "definitions": {
+    "assignedObservationCount": "eventUniqueness.assignedCount (DTE 2/3/4/7, resolu, hors retest intraday)",
+    "distinctAssignedExpirationCount": "eventUniqueness.distinctAssignedExpirationCount (ticker + selectedExpiration distinct)",
+    "duplicationRatio": "assignedObservationCount / distinctAssignedExpirationCount",
+    "selectedTradeCount": "distinctAssignedExpirationCount",
+    "warningRule": "affiche si duplicationRatio >= 2 ET assignedObservationCount > 0"
+  },
+  "constraints": {
+    "scoringModified": false,
+    "top20SortModified": false,
+    "verdictsModified": false,
+    "popFormulasModified": false,
+    "onePercentFormulasModified": false,
+    "scannerModified": false,
+    "ibkrYahooTouched": false,
+    "archiveFunnelTouched": false,
+    "dbModified": false,
+    "backfillPerformed": false,
+    "gitAddOrCommit": false
+  },
+  "validation": {
+    "viteBuild": "pass (~4.2s, JournalPopPanel chunk emitted)",
+    "nodeTests": { "command": "node --test app/journal/*.test.mjs", "tests": 129, "pass": 129, "fail": 0 },
+    "gitDiffCheck": "pass (no whitespace/conflict issues)",
+    "gitDiffStat": "1 file changed, 361 insertions(+), 0 deletions(-)"
+  },
+  "expectedManualChecks": {
+    "top20OrderPreserved": true,
+    "top20TickersPreserved": true,
+    "tqqqExpectation": { "assignedObservations": 6, "distinctAssignedExpirations": 1, "duplicationRatio": 6.0, "consistentWith": "journal-pop-j4-observation-vs-decision-audit" },
+    "noScoreChange": true,
+    "noVerdictChange": true
+  },
+  "limits": [
+    "Metriques obs/exp limitees au filtre DTE 2/3/4/7 + resolu + hors retest intraday (aligne sur la couche evenement existante); agregat global J4-B (334/108) non affiche ici.",
+    "Lecture SAFE/AGRESSIF descriptive (oui/non/partiel/a confirmer/donnees insuffisantes), pas de score moteur.",
+    "close par expiration = premier record assigne disponible (close d'expiration partagee).",
+    "Ligne compacte ajoutee au Top 20 experimental (cible principale); extension symetrique au bloc Objectif 1%+ possible mais non requise.",
+    "Exposition backend additive observation_count/expiration_count possible plus tard, non necessaire (records bruts deja disponibles cote frontend)."
+  ]
+}

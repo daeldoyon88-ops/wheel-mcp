@@ -2828,6 +2828,196 @@ function computeTickerEventUniqueness({ ticker, records }) {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// J4-C — Observationnel vs décision réelle (AFFICHAGE seulement).
+// Aucune modification du scoring / tri / verdict / formule. Toutes les métriques
+// dérivent uniquement de champs déjà disponibles dans les records (selectedExpiration,
+// strikeMode, dteAtScan, strike, close), via computeTickerEventUniqueness et les
+// accesseurs existants. Une « observation assignée » = une variante SAFE/AGRESSIF ×
+// DTE × scan assignée. Une « expiration assignée » = un événement réel ticker +
+// selectedExpiration. La décision réelle ≈ 1 trade par ticker + expiration.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OBS_VS_DECISION_TOOLTIP =
+  "Les observations comptent SAFE/AGRESSIF/DTE/scans séparément. Les expirations assignées regroupent par ticker + expiration.";
+
+function getObservationVsDecisionMetrics(eventUniqueness) {
+  const assignedObservationCount = Number(eventUniqueness?.assignedCount ?? 0);
+  const distinctAssignedExpirationCount = Number(eventUniqueness?.distinctAssignedExpirationCount ?? 0);
+  const selectedTradeCount = distinctAssignedExpirationCount;
+  const duplicationRatio =
+    distinctAssignedExpirationCount > 0
+      ? assignedObservationCount / distinctAssignedExpirationCount
+      : null;
+  const inflated = duplicationRatio != null && duplicationRatio >= 2 && assignedObservationCount > 0;
+  const reading =
+    assignedObservationCount === 0
+      ? null
+      : duplicationRatio != null && duplicationRatio >= 2
+      ? "plusieurs variantes pour le même événement"
+      : "faible duplication";
+  return {
+    assignedObservationCount,
+    distinctAssignedExpirationCount,
+    selectedTradeCount,
+    duplicationRatio,
+    inflated,
+    reading,
+  };
+}
+
+function formatDuplicationRatio(ratio) {
+  if (ratio == null) return "—";
+  return `${ratio.toFixed(1)}×`;
+}
+
+// Profondeur d'assignation numérique (négatif = assignation). Réutilise strictement
+// les accesseurs strike/close existants ; ne modifie pas classifyDteBreakdownAssignmentDepth.
+function getRecordAssignmentDepthPct(record) {
+  const strike = getAssignmentStrikeForDteBreakdown(record);
+  const close = getExpirationCloseForDteBreakdown(record);
+  if (strike == null || close == null || strike <= 0) return null;
+  return ((close - strike) / strike) * 100;
+}
+
+// Liste des expirations assignées d'un ticker (événements réels), avec le nombre
+// d'observations, les modes, DTE, strikes et close associés. AFFICHAGE seulement.
+function buildAssignedExpirationBreakdown({ ticker, records }) {
+  const eligible = getEventUniquenessEligibleRecords({ ticker, records });
+  const assigned = eligible.filter((r) => getRecordAssignedFlag(r) === true);
+  const byExp = new Map();
+  for (const r of assigned) {
+    const key = getRecordExpirationKey(r) ?? "?";
+    if (!byExp.has(key)) {
+      byExp.set(key, {
+        expiration: key,
+        observationCount: 0,
+        modes: new Set(),
+        dtes: new Set(),
+        strikes: new Set(),
+        close: null,
+        depths: { proche: 0, moderee: 0, profonde: 0, na: 0 },
+      });
+    }
+    const e = byExp.get(key);
+    e.observationCount += 1;
+    const mode = String(r?.strikeMode ?? "").trim().toLowerCase();
+    if (mode === "safe") e.modes.add("SAFE");
+    else if (mode === "aggressive") e.modes.add("AGRESSIF");
+    const dte = numberOrNull(r?.dteAtScan);
+    if (dte != null) e.dtes.add(dte);
+    const strike = getAssignmentStrikeForDteBreakdown(r);
+    if (strike != null) e.strikes.add(strike);
+    const close = getExpirationCloseForDteBreakdown(r);
+    if (close != null && e.close == null) e.close = close;
+    const depth = classifyDteBreakdownAssignmentDepth(r);
+    if (depth in e.depths) e.depths[depth] += 1;
+  }
+  return [...byExp.values()]
+    .map((e) => ({
+      expiration: e.expiration,
+      observationCount: e.observationCount,
+      modes: [...e.modes].sort(),
+      dtes: [...e.dtes].sort((a, b) => a - b),
+      strikes: [...e.strikes].sort((a, b) => a - b),
+      close: e.close,
+      depths: e.depths,
+    }))
+    .sort((a, b) => String(a.expiration).localeCompare(String(b.expiration)));
+}
+
+// Lecture qualitative SAFE vs AGRESSIF (descriptive, PAS un verdict moteur).
+// Pour chaque expiration × DTE comparable (SAFE et AGRESSIF présents) : SAFE a-t-il
+// évité l'assignation ? réduit la profondeur ? AGRESSIF payait-il plus ?
+function buildSafeVsAggressiveReading({ ticker, records }) {
+  const eligible = getEventUniquenessEligibleRecords({ ticker, records });
+  const assignedCount = eligible.filter((r) => getRecordAssignedFlag(r) === true).length;
+  if (assignedCount === 0) return null;
+
+  const groups = new Map(); // exp|dte -> { safe: [], aggressive: [] }
+  for (const r of eligible) {
+    const mode = String(r?.strikeMode ?? "").trim().toLowerCase();
+    if (mode !== "safe" && mode !== "aggressive") continue;
+    const key = `${getRecordExpirationKey(r) ?? "?"}|${numberOrNull(r?.dteAtScan)}`;
+    if (!groups.has(key)) groups.set(key, { safe: [], aggressive: [] });
+    groups.get(key)[mode].push(r);
+  }
+
+  const avg = (values) => {
+    const v = values.filter((x) => x != null);
+    return v.length > 0 ? v.reduce((s, x) => s + x, 0) / v.length : null;
+  };
+
+  let comparable = 0;
+  let safeAvoided = 0; // SAFE non assigné alors qu'AGRESSIF assigné
+  let bothAssigned = 0;
+  let safeShallower = 0; // SAFE moins profond (depth moins négatif)
+  let aggHigherYield = 0;
+  let aggDeeper = 0;
+  for (const g of groups.values()) {
+    if (g.safe.length === 0 || g.aggressive.length === 0) continue;
+    comparable += 1;
+    const safeAssigned = g.safe.some((r) => getRecordAssignedFlag(r) === true);
+    const aggAssigned = g.aggressive.some((r) => getRecordAssignedFlag(r) === true);
+    if (!safeAssigned && aggAssigned) safeAvoided += 1;
+    if (safeAssigned && aggAssigned) {
+      bothAssigned += 1;
+      const safeDepth = avg(g.safe.filter((r) => getRecordAssignedFlag(r) === true).map(getRecordAssignmentDepthPct));
+      const aggDepth = avg(g.aggressive.filter((r) => getRecordAssignedFlag(r) === true).map(getRecordAssignmentDepthPct));
+      if (safeDepth != null && aggDepth != null) {
+        if (safeDepth > aggDepth) safeShallower += 1; // moins négatif = moins profond
+        if (aggDepth < safeDepth) aggDeeper += 1;
+      }
+    }
+    const safeYield = avg(g.safe.map(getRecordCspYieldPct));
+    const aggYield = avg(g.aggressive.map(getRecordCspYieldPct));
+    if (safeYield != null && aggYield != null && aggYield > safeYield) aggHigherYield += 1;
+  }
+
+  if (comparable === 0) {
+    return {
+      comparable: 0,
+      safeAvoidedLabel: "données insuffisantes",
+      safeReducedDepth: null,
+      aggressiveWorthRiskLabel: "données insuffisantes",
+      narrative: ["Pas de paire SAFE/AGRESSIF comparable sur la même expiration et le même DTE."],
+    };
+  }
+
+  const safeAvoidedLabel = safeAvoided > 0 ? (safeAvoided === comparable ? "oui" : "partiel") : "non";
+  const safeReducedDepth = bothAssigned > 0 ? safeShallower >= 1 : null;
+  const aggressiveWorthRiskLabel =
+    aggHigherYield > 0 ? (aggDeeper > 0 ? "à confirmer" : "oui") : "non";
+
+  const narrative = [];
+  narrative.push(
+    safeAvoidedLabel === "oui"
+      ? "SAFE aurait évité l'assignation."
+      : safeAvoidedLabel === "partiel"
+      ? "SAFE aurait évité l'assignation dans certains cas seulement."
+      : "SAFE n'aurait pas évité l'assignation.",
+  );
+  if (safeReducedDepth === true) narrative.push("SAFE réduisait la profondeur d'assignation.");
+  else if (safeReducedDepth === false) narrative.push("SAFE ne réduisait pas la profondeur.");
+  if (aggHigherYield > 0) {
+    narrative.push(
+      aggDeeper > 0
+        ? "AGRESSIF payait plus, mais augmentait la profondeur."
+        : "AGRESSIF payait plus sans aggraver la profondeur.",
+    );
+  }
+
+  return {
+    comparable,
+    safeAvoided,
+    bothAssigned,
+    safeAvoidedLabel,
+    safeReducedDepth,
+    aggressiveWorthRiskLabel,
+    narrative,
+  };
+}
+
 // Verdict d'AFFICHAGE (pas de modification du scoring). Catégories :
 // "Échantillon insuffisant" | "Risque confirmé" | "Surveillé" |
 // "Risque événement unique" | "Non risqué".
@@ -3053,6 +3243,8 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
       sampleLabel: n === 0 ? "aucune donnée" : n < DYNAMIC_TOP20_WEAK_DTE_SAMPLE ? "échantillon faible" : "échantillon utilisable",
       expirations: [...new Set(dteRecords.map((record) => record?.expiration).filter(Boolean))].slice(0, 4),
       scanDates: [...new Set(dteRecords.map((record) => record?.scanDate).filter(Boolean))].slice(0, 4),
+      // J4-C : observations (n) vs expirations distinctes pour ce DTE (AFFICHAGE seulement).
+      distinctExpirationCount: new Set(dteRecords.map(getRecordExpirationKey).filter(Boolean)).size,
     };
     return { ...row, verdict: getDteBreakdownVerdict(row) };
   });
@@ -3075,10 +3267,25 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
   const eventUniqueness = computeTickerEventUniqueness({ ticker, records });
   const eventRisk = classifyEventRiskVerdict(eventUniqueness);
 
+  // J4-C — couche « observationnel vs décision réelle » (AFFICHAGE seulement).
+  const obsVsDecision = {
+    metrics: getObservationVsDecisionMetrics(eventUniqueness),
+    assignedExpirations: buildAssignedExpirationBreakdown({ ticker, records }),
+    safeVsAggressive: buildSafeVsAggressiveReading({ ticker, records }),
+    dteObsVsExp: rows
+      .filter((row) => (row.n ?? 0) > 0)
+      .map((row) => ({
+        dte: row.dte,
+        observations: row.n,
+        distinctExpirations: row.distinctExpirationCount ?? 0,
+      })),
+  };
+
   return {
     rows,
     eventUniqueness,
     eventRisk,
+    obsVsDecision,
     summary: {
       bestDteLabel: bestRow
         ? `Meilleur DTE identifiable : ${bestRow.dte} DTE`
@@ -3113,6 +3320,152 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
   };
 }
 
+// J4-C — ligne compacte sous le ticker dans le Top 20 : observations assignées,
+// expirations assignées, ratio de duplication. AFFICHAGE seulement ; ne change ni
+// le rang, ni le score, ni l'ordre. Masquée si aucune assignation observée.
+function ObsVsDecisionInline({ eventUniqueness }) {
+  const m = getObservationVsDecisionMetrics(eventUniqueness);
+  if (!m || m.assignedObservationCount === 0) return null;
+  return (
+    <div className="mt-1 text-[10px] leading-tight text-slate-500" title={OBS_VS_DECISION_TOOLTIP}>
+      <span className="text-slate-400">Assign. obs.</span> {m.assignedObservationCount} ·{" "}
+      <span className="text-slate-400">Exp. assignées</span> {m.distinctAssignedExpirationCount} ·{" "}
+      <span className={m.inflated ? "font-semibold text-amber-400" : "text-slate-400"}>
+        Duplication {formatDuplicationRatio(m.duplicationRatio)}
+      </span>
+      {m.inflated ? (
+        <span className="mt-0.5 block text-amber-500/80">
+          Risque gonflé par variantes : {m.assignedObservationCount} obs. pour{" "}
+          {m.distinctAssignedExpirationCount} expiration
+          {m.distinctAssignedExpirationCount > 1 ? "s" : ""}.
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+// J4-C — légende compacte « Observationnel vs réel ».
+function ObsVsDecisionLegend({ className = "" }) {
+  return (
+    <div
+      className={`rounded-xl border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-[10px] leading-snug text-slate-400 ${className}`}
+    >
+      <span className="font-semibold text-slate-300">Observationnel vs réel</span> ·{" "}
+      <span className="text-slate-300">Observation</span> = variante SAFE/AGRESSIF/DTE/scan ·{" "}
+      <span className="text-slate-300">Expiration assignée</span> = événement réel ticker + expiration ·{" "}
+      <span className="text-slate-300">Duplication</span> = observations assignées / expirations assignées ·{" "}
+      <span className="text-slate-300">Décision réelle</span> ≈ 1 trade par ticker + expiration.
+    </div>
+  );
+}
+
+// J4-C — micro-section du modal : « Observationnel vs décision réelle ».
+function ObsVsDecisionModalSection({ obsVsDecision }) {
+  if (!obsVsDecision) return null;
+  const { metrics, assignedExpirations, safeVsAggressive, dteObsVsExp } = obsVsDecision;
+  if (!metrics || metrics.assignedObservationCount === 0) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-[11px] text-slate-400">
+        <div className="text-[12px] font-semibold text-slate-200">Observationnel vs décision réelle</div>
+        <p className="mt-1">Aucune assignation observée sur les DTE ciblés — faible duplication.</p>
+      </div>
+    );
+  }
+  const cards = [
+    { label: "Observations assignées", value: metrics.assignedObservationCount },
+    { label: "Expirations assignées", value: metrics.distinctAssignedExpirationCount },
+    { label: "Ratio duplication", value: formatDuplicationRatio(metrics.duplicationRatio) },
+  ];
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12px] font-semibold text-slate-200">Observationnel vs décision réelle</span>
+        {metrics.inflated ? (
+          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+            plusieurs variantes pour le même événement
+          </span>
+        ) : (
+          <span className="rounded-full border border-slate-700/60 bg-slate-800/40 px-2 py-0.5 text-[10px] text-slate-400">
+            faible duplication
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-[11px] text-slate-500" title={OBS_VS_DECISION_TOOLTIP}>
+        {metrics.assignedObservationCount} observation
+        {metrics.assignedObservationCount > 1 ? "s" : ""} = {metrics.distinctAssignedExpirationCount} événement
+        {metrics.distinctAssignedExpirationCount > 1 ? "s" : ""} réel
+        {metrics.distinctAssignedExpirationCount > 1 ? "s" : ""}.
+      </p>
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-lg border border-slate-700/60 bg-slate-950/40 px-2.5 py-1 text-[10px] text-slate-300"
+          >
+            {card.label} : <span className="font-semibold text-slate-100">{card.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {safeVsAggressive ? (
+        <div className="mt-3 rounded-lg border border-slate-700/50 bg-slate-950/40 px-3 py-2 text-[11px] text-slate-300">
+          <div className="font-semibold text-slate-200">SAFE aurait évité ?</div>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-400">
+            <span>
+              SAFE aurait évité : <span className="font-semibold text-slate-200">{safeVsAggressive.safeAvoidedLabel}</span>
+            </span>
+            <span>
+              AGRESSIF valait le risque :{" "}
+              <span className="font-semibold text-slate-200">{safeVsAggressive.aggressiveWorthRiskLabel}</span>
+            </span>
+          </div>
+          {Array.isArray(safeVsAggressive.narrative) && safeVsAggressive.narrative.length > 0 ? (
+            <p className="mt-1 text-[10px] text-slate-500">{safeVsAggressive.narrative.join(" ")}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {Array.isArray(dteObsVsExp) && dteObsVsExp.length > 0 ? (
+        <div className="mt-3 text-[10px] text-slate-500">
+          <span className="font-semibold text-slate-400">Obs. DTE vs Exp. DTE :</span>{" "}
+          {dteObsVsExp
+            .map((d) => `${d.dte} DTE → ${d.observations} obs. / ${d.distinctExpirations} exp.`)
+            .join(" · ")}
+        </div>
+      ) : null}
+
+      {Array.isArray(assignedExpirations) && assignedExpirations.length > 0 ? (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800">
+          <table className="min-w-full divide-y divide-slate-800 text-left text-[10px]">
+            <thead className="bg-slate-900/80 text-slate-500">
+              <tr>
+                {["Expiration", "Obs.", "Modes", "DTE", "Strikes", "Close"].map((h) => (
+                  <th key={h} className="px-2.5 py-1.5 font-semibold">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 bg-slate-950">
+              {assignedExpirations.map((e) => (
+                <tr key={e.expiration} className="hover:bg-slate-900/70">
+                  <td className="px-2.5 py-1.5 font-semibold text-slate-200">{formatCompactExpiration(e.expiration)}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums text-slate-300">{e.observationCount}</td>
+                  <td className="px-2.5 py-1.5 text-slate-400">{e.modes.length ? e.modes.join(", ") : "—"}</td>
+                  <td className="px-2.5 py-1.5 text-slate-400">{e.dtes.length ? e.dtes.join("/") : "—"}</td>
+                  <td className="px-2.5 py-1.5 text-slate-400">{e.strikes.length ? e.strikes.join(", ") : "—"}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums text-slate-400">{e.close != null ? e.close : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // Bouton ticker cliquable réutilisé dans Top 20 / Proches d'entrer / À exclure.
 // Ouvre toujours le même panneau « Détail Journal POP par DTE ».
 // Le bouton remplit toute la cellule (block w-full) pour que le clic ne dépende
@@ -3144,6 +3497,7 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
     { label: "Assignation proche", value: formatDteBreakdownSummaryPercent(summary.globalNearAssignmentRate, 1) },
   ];
   const eventRisk = breakdown?.eventRisk ?? null;
+  const obsVsDecision = breakdown?.obsVsDecision ?? null;
   const eventCards = [
     { label: "Exp. distinctes", value: summary.distinctExpirationCount ?? "—" },
     { label: "Exp. assignées distinctes", value: summary.distinctAssignedExpirationCount ?? "—" },
@@ -3222,6 +3576,10 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
               </div>
             </div>
           ) : null}
+
+          <ObsVsDecisionModalSection obsVsDecision={obsVsDecision} />
+
+          <ObsVsDecisionLegend />
 
           {!hasDteData ? (
             <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-6 text-center text-[12px] font-semibold text-slate-400">
@@ -5936,6 +6294,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                   </div>
 
                   <JournalPopCountersLegend className="mt-2" />
+                  <ObsVsDecisionLegend className="mt-2" />
                 <DarkTable
                   title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
                   headers={[
@@ -5963,6 +6322,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     const sampleTier = getTop20SampleTier(row.n);
                     const onePercentProfile = onePercentProfileByTicker.get(normalizeTicker(row.ticker));
                     const robustBonus = row?.robustHistoryBonus ?? 0;
+                    const obsVsDecisionEvt = dynamicTop20EventRiskByTicker.get(normalizeTicker(row.ticker));
                     return (
                     <tr
                       key={`dyn-top20-${row.ticker}-${row.rank}`}
@@ -5971,6 +6331,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>
                       <td className="px-3 py-2.5 font-semibold">
                         <DynamicTop20DteTickerButton ticker={row.ticker} onSelect={setDynamicTop20DteTicker} />
+                        <ObsVsDecisionInline eventUniqueness={obsVsDecisionEvt?.eventUniqueness} />
                       </td>
                       <td className="px-3 py-2.5">
                         <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />

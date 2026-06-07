@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildScanFunnelArchivePayload,
   MAX_FUNNEL_EVENTS,
+  MAX_WATCHLIST_REJECTED_EVENTS,
 } from "./scanFunnelArchivePayload.js";
 
 /** Fixture 3 tickers : SOFI ui_displayed, RIOT crypto_blocked, XYZ yahoo_rejected. */
@@ -129,6 +130,76 @@ test("cap MAX_FUNNEL_EVENTS respecté", () => {
   });
   assert.ok(payload.events.length <= MAX_FUNNEL_EVENTS);
   assert.equal(payload.events.length, MAX_FUNNEL_EVENTS);
+});
+
+test("Phase 1B — priorisation : UI/IBKR/Yahoo conservés, watchlist_rejected limité", () => {
+  // Beaucoup de watchlist_rejected (assez pour saturer le cap à eux seuls) +
+  // quelques events proches de la décision finale.
+  const watchlistRejectedBySymbol = {};
+  for (let i = 0; i < MAX_FUNNEL_EVENTS + 400; i += 1) {
+    watchlistRejectedBySymbol[`WL${i}`] = "excluded_by_watchlist_limit";
+  }
+  const payload = buildScanFunnelArchivePayload({
+    scanSessionId: "scan-prio",
+    watchlistRejectedBySymbol,
+    cryptoBlockedRemovedSymbols: ["RIOT"],
+    funnelRows: [
+      { ticker: "AAA", yahooRank: 1, inShortlist: true, sentIbkr: true, ibkrStatus: "retained" },
+      { ticker: "BBB", yahooRank: 2, inShortlist: true, sentIbkr: true, ibkrStatus: "rejected", reason: "spread_too_wide" },
+      { ticker: "CCC", yahooRank: 3, inShortlist: true, sentIbkr: true, ibkrStatus: "retained" }, // retenu non affiché → ui_lost
+    ],
+    displayedSymbols: ["AAA"],
+  });
+
+  // A. les stages proches de la décision finale sont conservés
+  assert.ok(eventFor(payload, "AAA", "ui_displayed"), "ui_displayed conservé");
+  assert.ok(eventFor(payload, "CCC", "ui_lost"), "ui_lost conservé");
+  assert.ok(eventFor(payload, "AAA", "ibkr_retained"), "ibkr_retained conservé");
+  assert.ok(eventFor(payload, "BBB", "ibkr_rejected"), "ibkr_rejected conservé");
+  assert.ok(eventFor(payload, "AAA", "ibkr_sent"), "ibkr_sent conservé");
+  assert.ok(eventFor(payload, "AAA", "yahoo_returned"), "yahoo_returned conservé");
+
+  // B. watchlist_rejected plafonné à MAX_WATCHLIST_REJECTED_EVENTS
+  const wlCount = payload.events.filter((e) => e.stage === "watchlist_rejected").length;
+  assert.ok(wlCount <= MAX_WATCHLIST_REJECTED_EVENTS, `watchlist_rejected=${wlCount} <= ${MAX_WATCHLIST_REJECTED_EVENTS}`);
+  assert.equal(wlCount, MAX_WATCHLIST_REJECTED_EVENTS);
+
+  // C. cap 800 respecté
+  assert.ok(payload.events.length <= MAX_FUNNEL_EVENTS, `events=${payload.events.length} <= ${MAX_FUNNEL_EVENTS}`);
+
+  // D. crypto_blocked reste présent
+  assert.ok(eventFor(payload, "RIOT", "crypto_blocked"), "crypto_blocked conservé");
+});
+
+test("Phase 1B — watchlist_rejected limité même sous le cap 800", () => {
+  const watchlistRejectedBySymbol = {};
+  for (let i = 0; i < MAX_WATCHLIST_REJECTED_EVENTS + 100; i += 1) {
+    watchlistRejectedBySymbol[`WL${i}`] = "excluded_by_watchlist_limit";
+  }
+  const payload = buildScanFunnelArchivePayload({
+    scanSessionId: "scan-wl-cap",
+    watchlistRejectedBySymbol,
+  });
+  const wlCount = payload.events.filter((e) => e.stage === "watchlist_rejected").length;
+  assert.equal(wlCount, MAX_WATCHLIST_REJECTED_EVENTS);
+  assert.ok(payload.events.length <= MAX_FUNNEL_EVENTS);
+});
+
+test("Phase 1B — crypto_blocked priorisé avant watchlist_rejected sous saturation", () => {
+  const watchlistRejectedBySymbol = {};
+  for (let i = 0; i < MAX_FUNNEL_EVENTS + 200; i += 1) {
+    watchlistRejectedBySymbol[`WL${i}`] = "excluded_by_watchlist_limit";
+  }
+  const cryptoBlockedRemovedSymbols = [];
+  for (let i = 0; i < 60; i += 1) cryptoBlockedRemovedSymbols.push(`CRX${i}`);
+  const payload = buildScanFunnelArchivePayload({
+    scanSessionId: "scan-crypto-prio",
+    watchlistRejectedBySymbol,
+    cryptoBlockedRemovedSymbols,
+  });
+  const cryptoCount = payload.events.filter((e) => e.stage === "crypto_blocked").length;
+  assert.equal(cryptoCount, 60, "tous les crypto_blocked conservés avant watchlist_rejected");
+  assert.ok(payload.events.length <= MAX_FUNNEL_EVENTS);
 });
 
 test("payload ne contient aucune chaîne d'options / objet candidat complet", () => {

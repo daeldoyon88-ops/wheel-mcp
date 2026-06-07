@@ -15,6 +15,30 @@
 
 export const MAX_FUNNEL_EVENTS = 800;
 
+/**
+ * Plafond spécifique aux watchlist_rejected. Sans lui, excluded_by_watchlist_limit
+ * remplit presque toute l'archive et écrase les events proches de la décision finale.
+ */
+export const MAX_WATCHLIST_REJECTED_EVENTS = 250;
+
+/**
+ * Ordre de priorité des stages dans l'archive (Phase 1B). On garde d'abord les
+ * étapes proches de la décision finale (UI/IBKR), puis Yahoo, puis crypto, puis
+ * watchlist_rejected en dernier. Le slice du cap 800 coupe donc les stages les
+ * moins utiles au diagnostic « pourquoi tel ticker n'est pas apparu ? ».
+ */
+export const FUNNEL_STAGE_PRIORITY = [
+  "ui_displayed",
+  "ui_lost",
+  "ibkr_retained",
+  "ibkr_rejected",
+  "ibkr_sent",
+  "yahoo_returned",
+  "yahoo_rejected",
+  "crypto_blocked",
+  "watchlist_rejected",
+];
+
 function normalizeSymbol(symbol) {
   return String(symbol ?? "").trim().toUpperCase();
 }
@@ -166,7 +190,54 @@ function buildEvents(sources) {
     }
   }
 
-  return events.slice(0, MAX_FUNNEL_EVENTS);
+  return prioritizeEvents(events);
+}
+
+/**
+ * Priorise et plafonne les events avant archivage (Phase 1B).
+ *
+ *   1. Regroupe par stage en conservant l'ordre d'insertion.
+ *   2. Limite watchlist_rejected à MAX_WATCHLIST_REJECTED_EVENTS.
+ *   3. Réémet selon FUNNEL_STAGE_PRIORITY puis tronque à MAX_FUNNEL_EVENTS.
+ *
+ * Tout stage inconnu (défensif) est ajouté en queue, avant le cap, pour ne pas
+ * perdre silencieusement un futur stage.
+ */
+function prioritizeEvents(events) {
+  const byStage = new Map();
+  for (const e of events) {
+    let bucket = byStage.get(e.stage);
+    if (!bucket) {
+      bucket = [];
+      byStage.set(e.stage, bucket);
+    }
+    bucket.push(e);
+  }
+
+  const ordered = [];
+  const emit = (bucket) => {
+    if (!bucket) return;
+    for (const e of bucket) {
+      if (ordered.length >= MAX_FUNNEL_EVENTS) return;
+      ordered.push(e);
+    }
+  };
+
+  for (const stage of FUNNEL_STAGE_PRIORITY) {
+    let bucket = byStage.get(stage);
+    if (stage === "watchlist_rejected" && bucket && bucket.length > MAX_WATCHLIST_REJECTED_EVENTS) {
+      bucket = bucket.slice(0, MAX_WATCHLIST_REJECTED_EVENTS);
+    }
+    emit(bucket);
+  }
+
+  // Stages non répertoriés (sécurité forward-compat) : ajoutés après les connus.
+  for (const [stage, bucket] of byStage) {
+    if (FUNNEL_STAGE_PRIORITY.includes(stage)) continue;
+    emit(bucket);
+  }
+
+  return ordered;
 }
 
 /** Compteurs dérivés des events (complétés/écrasés par les counts fournis). */

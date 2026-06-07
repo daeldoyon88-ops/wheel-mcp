@@ -1,0 +1,129 @@
+{
+  "title": "Scan Funnel Archive — Phase 1B Priority Validation",
+  "generatedAt": "2026-06-07T12:04:53.405Z",
+  "allOk": true,
+  "scope": "frontend helper only (scanFunnelArchivePayload.js + test)",
+  "maxFunnelEvents": 800,
+  "maxWatchlistRejectedEvents": 250,
+  "stagePriority": [
+    "ui_displayed",
+    "ui_lost",
+    "ibkr_retained",
+    "ibkr_rejected",
+    "ibkr_sent",
+    "yahoo_returned",
+    "yahoo_rejected",
+    "crypto_blocked",
+    "watchlist_rejected"
+  ],
+  "saturationScenario": {
+    "totalEventsAfterPriority": 303,
+    "stageCounts": {
+      "ui_displayed": 1,
+      "ui_lost": 1,
+      "ibkr_retained": 2,
+      "ibkr_rejected": 1,
+      "ibkr_sent": 3,
+      "yahoo_returned": 3,
+      "yahoo_rejected": 2,
+      "crypto_blocked": 40,
+      "watchlist_rejected": 250
+    }
+  },
+  "changedTrackedFiles": [
+    "wheel-dashboard/src/scanFunnelArchivePayload.js",
+    "wheel-dashboard/src/scanFunnelArchivePayload.test.mjs"
+  ],
+  "checks": [
+    {
+      "name": "patch frontend helper seulement (constantes Phase 1B exportées)",
+      "ok": true,
+      "detail": "MAX=800 WL=250 order=ui_displayed>ui_lost>ibkr_retained>ibkr_rejected>ibkr_sent>yahoo_returned>yahoo_rejected>crypto_blocked>watchlist_rejected"
+    },
+    {
+      "name": "ui_displayed conservé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ui_lost conservé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ibkr_retained conservé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ibkr_rejected conservé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ibkr_sent conservé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "yahoo_returned conservé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "yahoo_rejected conservé",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "name": "watchlist_rejected limité (<= 250)",
+      "ok": true,
+      "detail": "count=250"
+    },
+    {
+      "name": "watchlist_rejected exactement plafonné à 250 sous saturation",
+      "ok": true,
+      "detail": "count=250"
+    },
+    {
+      "name": "cap 800 respecté",
+      "ok": true,
+      "detail": "count=303"
+    },
+    {
+      "name": "crypto_blocked présent (tous conservés)",
+      "ok": true,
+      "detail": "count=40"
+    },
+    {
+      "name": "crypto exclusif conservé (RIOT n'émet que crypto_blocked)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "BITX non bloqué (ui_displayed)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "structure du payload inchangée",
+      "ok": true,
+      "detail": "scanSessionId,scanTimestamp,selectedExpiration,dteAtScan,poolSource,captureSource,counts,metadata,events"
+    },
+    {
+      "name": "payload compact (pas de rawJson/optionChain/greeks)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "aucun fichier backend/server/routes/DB/dashboard/scanner/scoring/Pine modifié",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "seuls le helper et son test (suivis) modifiés",
+      "ok": true,
+      "detail": "wheel-dashboard/src/scanFunnelArchivePayload.js, wheel-dashboard/src/scanFunnelArchivePayload.test.mjs"
+    }
+  ]
+}

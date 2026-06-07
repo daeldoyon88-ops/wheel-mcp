@@ -2546,9 +2546,14 @@ function formatDynamicTop20Reason(row) {
   const robustExplanation = getRobustHistoryBonusExplanation(row);
   const humanExclusion = status === "exclude_high_yield" ? buildHumanTop20ExclusionReason(row) : null;
   const technical = getTechnicalDynamicTop20Reason(row);
+  // J5-B3-B — résumé du score réaliste actif (échantillon décision, assignation,
+  // profondeur, rendement, duplication) construit par le service.
+  const realistic = row?.realisticReasonSummary ?? null;
 
   if (humanExclusion) {
-    return technical && technical !== humanExclusion ? `${humanExclusion} · ${technical}` : humanExclusion;
+    const base =
+      technical && technical !== humanExclusion ? `${humanExclusion} · ${technical}` : humanExclusion;
+    return realistic ? `${base} · ${realistic}` : base;
   }
 
   if (robustExplanation && (row?.robustHistoryBonus ?? 0) > 0) {
@@ -2556,9 +2561,13 @@ function formatDynamicTop20Reason(row) {
       row?.currentVerdict === "1 % stressé"
         ? "Ticker conservé en Top 20 malgré stress grâce à E2b"
         : "Bonus historique robuste E2b";
-    return technical ? `${prefix} — ${robustExplanation} · ${technical}` : `${prefix} — ${robustExplanation}`;
+    const base = technical
+      ? `${prefix} — ${robustExplanation} · ${technical}`
+      : `${prefix} — ${robustExplanation}`;
+    return realistic ? `${base} · ${realistic}` : base;
   }
 
+  if (realistic) return technical ? `${realistic} · ${technical}` : realistic;
   return technical ?? "—";
 }
 
@@ -3608,24 +3617,22 @@ function RealisticDecisionLegend({ className = "" }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// J5-B3-A — Preview score réaliste (SIMULATION seulement).
-// Consomme `realisticPreview` + `realisticPreviewRank` calculés par le service.
-// Ne modifie NI le score officiel, NI le tri, NI les verdicts.
+// J5-B3-B — Score réaliste ACTIF (pilote le classement Top 20).
+// Consomme `realisticActive` / `dynamicTop20ScoreLegacy` + le détail `realisticPreview`.
+// Le score réaliste remplace désormais le score observationnel comme score principal.
 // ─────────────────────────────────────────────────────────────────────────────
 
+const REALISTIC_ACTIVE_SCORE_TOOLTIP =
+  "Score réaliste actif : 1 vraie décision par ticker × expiration (BALANCED) + garde-fous " +
+  "(échantillon décision, rendement réel ≥0,5 %, assignation profonde, duplication). " +
+  "Pilote le classement Top 20. L'ancien score observationnel reste affiché en référence.";
+
 const REALISTIC_PREVIEW_TOOLTIP =
-  "Preview score réaliste : ajustement léger du score officiel selon les métriques " +
-  "décision réelle BALANCED. Simulation seulement — n'influence pas le classement.";
+  "Détail du score réaliste actif : ajustement du score E2b de référence selon les métriques " +
+  "décision réelle BALANCED. Ce score pilote le classement Top 20.";
 
 function hasRealisticPreview(preview) {
   return preview != null && preview.score != null;
-}
-
-function formatRealisticPreviewRankImpact(preview) {
-  const delta = Number(preview?.rankDelta ?? 0);
-  if (!Number.isFinite(delta) || delta === 0) return "stable";
-  if (delta > 0) return `+${delta} rang${delta > 1 ? "s" : ""}`;
-  return `${delta} rang${delta < -1 ? "s" : ""}`;
 }
 
 function getRealisticPreviewImpactTone(preview) {
@@ -3635,25 +3642,17 @@ function getRealisticPreviewImpactTone(preview) {
   return "text-slate-400";
 }
 
-// J5-B3-A — ligne 3 compacte Top 20 : Preview score · Rang sim. · impact.
-// AFFICHAGE/simulation seulement. Raison longue + mention « Preview seulement »
-// déplacées en tooltip (détail complet dans le modal).
+// J5-B3-B — ligne 3 compacte Top 20 : raison réaliste active (le score lui-même est
+// désormais affiché dans la colonne Score réaliste). Plus de « rang simulé ».
 function RealisticPreviewInline({ preview, previewRank }) {
+  void previewRank;
   if (!hasRealisticPreview(preview)) return null;
-  const tooltip = preview.rankImpactReason
-    ? `${REALISTIC_PREVIEW_TOOLTIP} Raison : ${preview.rankImpactReason}.`
-    : REALISTIC_PREVIEW_TOOLTIP;
+  if (!preview.rankImpactReason || preview.rankImpactReason === "stable") return null;
+  const tooltip = `${REALISTIC_PREVIEW_TOOLTIP} Raison : ${preview.rankImpactReason}.`;
   return (
     <div className="mt-0.5 text-[9px] leading-tight text-violet-300/90" title={tooltip}>
-      <span className="text-violet-200/80">Preview</span> {preview.score}
-      {previewRank != null ? (
-        <>
-          {" "}
-          · <span className="text-violet-200/70">Rang sim.</span> {previewRank}
-        </>
-      ) : null}
-      {" "}
-      · <span className={getRealisticPreviewImpactTone(preview)}>{formatRealisticPreviewRankImpact(preview)}</span>
+      <span className="text-violet-200/80">Réaliste</span>{" "}
+      <span className={getRealisticPreviewImpactTone(preview)}>{preview.rankImpactReason}</span>
     </div>
   );
 }
@@ -3663,9 +3662,11 @@ function RealisticPreviewLegend({ className = "" }) {
     <div
       className={`rounded-xl border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-[10px] leading-snug text-slate-400 ${className}`}
     >
-      <span className="font-semibold text-violet-200">Preview score réaliste (J5-B3-A)</span> ·{" "}
-      Ajustement léger du score officiel selon décision réelle BALANCED ·{" "}
-      <span className="text-violet-200/90">Preview seulement — n'influence pas le classement.</span>
+      <span className="font-semibold text-violet-200">Score réaliste actif (J5-B3-B)</span> ·{" "}
+      1 vraie décision par ticker × expiration (BALANCED) + garde-fous (échantillon, rendement réel
+      ≥0,5 %, assignation profonde, duplication) ·{" "}
+      <span className="text-violet-200/90">Score réaliste actif — pilote le classement Top 20.</span>{" "}
+      Ancien score observationnel conservé en référence.
     </div>
   );
 }
@@ -3675,8 +3676,8 @@ function RealisticPreviewModalSection({ realisticPreview }) {
   if (!hasRealisticPreview(preview)) {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-[11px] text-slate-400">
-        <div className="text-[12px] font-semibold text-slate-200">Preview score réaliste</div>
-        <p className="mt-1">Preview non disponible pour ce ticker.</p>
+        <div className="text-[12px] font-semibold text-slate-200">Score réaliste — actif</div>
+        <p className="mt-1">Score réaliste non disponible pour ce ticker.</p>
       </div>
     );
   }
@@ -3687,33 +3688,36 @@ function RealisticPreviewModalSection({ realisticPreview }) {
   return (
     <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-semibold text-violet-100">Preview score réaliste</span>
-        <span className="rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
-          simulation
+        <span className="text-[12px] font-semibold text-violet-100">Score réaliste — actif</span>
+        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
+          pilote le classement
         </span>
-        {preview.confidence ? (
+        {preview.confidenceBadge ? (
+          <span className="text-[10px] text-slate-500">Confiance : {preview.confidenceBadge}</span>
+        ) : preview.confidence ? (
           <span className="text-[10px] text-slate-500">Confiance : {preview.confidence}</span>
         ) : null}
       </div>
       <p className="mt-1 text-[11px] italic text-slate-500">{REALISTIC_PREVIEW_TOOLTIP}</p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
-          Score officiel : <span className="font-semibold text-sky-300">{preview.baseScore ?? "—"}</span>
-        </div>
         <div className="rounded-lg border border-violet-500/30 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
-          Preview score : <span className="font-semibold text-violet-200">{preview.score ?? "—"}</span>
+          Score réaliste actif : <span className="font-semibold text-violet-200">{preview.score ?? "—"}</span>
         </div>
         <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
-          Rang officiel : <span className="font-semibold text-slate-200">{realisticPreview?.officialRank ?? "—"}</span>
+          Ancien score obs. : <span className="font-semibold text-sky-300">{preview.baseScore ?? "—"}</span>
+        </div>
+        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
+          Rang Top 20 : <span className="font-semibold text-slate-200">{realisticPreview?.officialRank ?? "—"}</span>
         </div>
         <div className="rounded-lg border border-violet-500/30 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
-          Rang simulé : <span className="font-semibold text-violet-200">{realisticPreview?.previewRank ?? "—"}</span>
-          {" "}
-          ·{" "}
-          <span className={getRealisticPreviewImpactTone(preview)}>
-            {formatRealisticPreviewRankImpact(preview)}
+          Admissible Top 20 :{" "}
+          <span className={preview.eligibleForTop20 === false ? "font-semibold text-rose-300" : "font-semibold text-emerald-300"}>
+            {preview.eligibleForTop20 === false ? "non" : "oui"}
           </span>
+          {preview.eligibilityReason ? (
+            <span className="block text-[9px] text-slate-500">{preview.eligibilityReason}</span>
+          ) : null}
         </div>
       </div>
 
@@ -6747,7 +6751,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     "Ticker",
                     "Options",
                     "Statut",
-                    "Score exp.",
+                    "Score réaliste",
                     "n global",
                     "Rend. CSP",
                     "Win",
@@ -6759,6 +6763,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     "Raison",
                   ]}
                   headerTitles={{
+                    "Score réaliste": REALISTIC_ACTIVE_SCORE_TOOLTIP,
                     "n global": N_GLOBAL_TOOLTIP,
                     "Proche (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
                     "Profonde (% assign.)": ASSIGN_DEPTH_PERCENT_TOOLTIP,
@@ -6796,7 +6801,27 @@ export default function JournalPopPanel({ apiBase, active }) {
                         ) : null}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums text-sky-400">
-                        <div>{row.dynamicTop20Score ?? "—"}</div>
+                        <div title="Score réaliste actif — pilote le classement Top 20.">
+                          {row.dynamicTop20Score ?? "—"}
+                        </div>
+                        {row.dynamicTop20ScoreLegacy != null &&
+                        row.dynamicTop20ScoreLegacy !== row.dynamicTop20Score ? (
+                          <span
+                            className="mt-0.5 block text-[9px] text-slate-500"
+                            title="Ancien score observationnel E2b — référence, ne pilote plus le classement."
+                          >
+                            Ancien score obs. : {row.dynamicTop20ScoreLegacy}
+                          </span>
+                        ) : null}
+                        {row.realisticActive?.confidenceBadge &&
+                        row.realisticActive.confidenceBadge !== "normale" ? (
+                          <span
+                            className="mt-0.5 inline-block rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200"
+                            title={row.realisticActive?.eligibilityReason ?? undefined}
+                          >
+                            {row.realisticActive.confidenceBadge}
+                          </span>
+                        ) : null}
                         {robustBonus > 0 ? (
                           <span
                             className="mt-0.5 inline-block rounded-full border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-violet-200"
@@ -6844,7 +6869,8 @@ export default function JournalPopPanel({ apiBase, active }) {
               {!dynamicTop20TopOnly && filteredDynamicTop20Near.length > 0 && (
                 <DarkTable
                   title={`Proches d'entrer (rangs 21–30) — ${filteredDynamicTop20Near.length} profil(s)`}
-                  headers={["Rang", "Ticker", "Score exp.", "Rend. CSP", "Win", "Assign.", "Statut", "Raison"]}
+                  headers={["Rang", "Ticker", "Score réaliste", "Rend. CSP", "Win", "Assign.", "Statut", "Raison"]}
+                  headerTitles={{ "Score réaliste": REALISTIC_ACTIVE_SCORE_TOOLTIP }}
                   rows={filteredDynamicTop20Near.map((row) => (
                     <tr key={`dyn-near-${row.ticker}-${row.rank}`} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.rank}</td>

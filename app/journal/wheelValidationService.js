@@ -2890,6 +2890,10 @@ export function computeRealisticPreviewScore(profileOrRow) {
       penalties: [],
       bonuses: [],
       confidence: "low",
+      confidenceBadge: "données décision indisponibles",
+      // Absence de base décision : on ne bloque pas le Top 20 (les gardes E2b restent).
+      eligibleForTop20: true,
+      eligibilityReason: null,
       wouldImprove: false,
       wouldDecline: false,
       rankDelta: 0,
@@ -2945,6 +2949,14 @@ export function computeRealisticPreviewScore(profileOrRow) {
     score += points;
   }
 
+  // Garde-fou J5-B3-B — un ticker qui ne paie pas ≥0,5 % CSP réel ne doit pas être favorisé.
+  const lowYield = yieldPct != null && yieldPct < REALISTIC_DECISION_MIN_CSP_YIELD_PCT;
+  if (lowYield) {
+    const points = yieldPct < 0.3 ? -20 : -12;
+    penalties.push({ reason: "rendement réel insuffisant", points, detail: `${yieldPct}% < 0.5%` });
+    score += points;
+  }
+
   const winRate = toNumberOrNull(rdm.selectedWinRatePct);
   if (winRate != null && winRate >= 85) {
     const points = winRate >= 90 ? 8 : 5;
@@ -2953,6 +2965,25 @@ export function computeRealisticPreviewScore(profileOrRow) {
   }
 
   score = roundMetric(Math.max(0, Math.min(100, score)), 1);
+
+  // Garde-fous d'admissibilité Top 20 principal (J5-B3-B) — la confiance dépend du
+  // nombre de décisions réelles (selectedTradeCount), pas du nombre d'observations.
+  let eligibleForTop20 = true;
+  let eligibilityReason = null;
+  if (tradeCount < 5) {
+    eligibleForTop20 = false;
+    eligibilityReason = "échantillon décision réelle insuffisant (<5)";
+  } else if (lowYield) {
+    eligibleForTop20 = false;
+    eligibilityReason = "rendement réel décision <0,5 %";
+  } else if (deepPct > 50) {
+    eligibleForTop20 = false;
+    eligibilityReason = "assignation profonde réelle >50 %";
+  }
+
+  let confidenceBadge = "normale";
+  if (tradeCount < 5) confidenceBadge = "échantillon insuffisant";
+  else if (tradeCount < 8) confidenceBadge = "confiance faible";
 
   const dominantPenalty = penalties.sort((a, b) => a.points - b.points)[0]?.reason ?? null;
   const dominantBonus = bonuses.sort((a, b) => b.points - a.points)[0]?.reason ?? null;
@@ -2972,11 +3003,61 @@ export function computeRealisticPreviewScore(profileOrRow) {
     penalties,
     bonuses,
     confidence,
+    confidenceBadge,
+    eligibleForTop20,
+    eligibilityReason,
     wouldImprove: false,
     wouldDecline: false,
     rankDelta: 0,
     previewOnly: true,
   };
+}
+
+/**
+ * J5-B3-B — Score réaliste ACTIF d'un profil Top 20.
+ *
+ * Construit la ligne minimale attendue par computeRealisticPreviewScore à partir du
+ * profil 1 %+ et du score officiel précédent (E2b/compétitif), puis renvoie l'objet
+ * réaliste (score + garde-fous d'admissibilité). Ce score pilote désormais le
+ * classement Top 20 — ce n'est plus une simple simulation.
+ */
+function computeRealisticActiveScoreForProfile(profile, baseScore) {
+  return computeRealisticPreviewScore({
+    dynamicTop20Score: baseScore,
+    assignmentRate: profile?.csp?.assignmentRate ?? null,
+    realisticDecisionMetrics: profile?.realisticDecisionMetrics ?? null,
+  });
+}
+
+/**
+ * J5-B3-B — Résumé lisible de la raison du score réaliste actif d'une ligne Top 20.
+ * Mentionne le score réaliste, l'ancien score E2b en référence et les métriques
+ * décision réelle clés (échantillon, assignation, profondeur, rendement, duplication).
+ */
+function buildRealisticActiveReasonSummary(realistic, rdm, legacyScore) {
+  if (!realistic || realistic.score == null) return null;
+  const parts = [`score réaliste actif ${realistic.score}`];
+  if (legacyScore != null) parts.push(`ancien score obs. ${legacyScore}`);
+  const bonusReasons = (realistic.bonuses ?? []).map((b) => b.reason);
+  const penaltyReasons = (realistic.penalties ?? []).map((p) => p.reason);
+  const drivers = [...bonusReasons, ...penaltyReasons];
+  if (drivers.length > 0) parts.push(drivers.slice(0, 3).join(", "));
+  if (realistic.eligibilityReason) parts.push(realistic.eligibilityReason);
+  if (rdm) {
+    const tc = toNumberOrNull(rdm.selectedTradeCount);
+    const sa = toNumberOrNull(rdm.selectedAssignmentRatePct);
+    const sd = toNumberOrNull(rdm.selectedDeepAssignmentRatePct);
+    const sy = toNumberOrNull(rdm.selectedAvgCspYieldPct);
+    const dup = toNumberOrNull(rdm.duplicationRatio);
+    const metricParts = [];
+    if (tc != null) metricParts.push(`n déc. ${tc}`);
+    if (sa != null) metricParts.push(`assign. ${sa}%`);
+    if (sd != null) metricParts.push(`prof. ${sd}%`);
+    if (sy != null) metricParts.push(`rend. ${sy}%`);
+    if (dup != null) metricParts.push(`dup. ${dup}×`);
+    if (metricParts.length > 0) parts.push(metricParts.join(" · "));
+  }
+  return parts.join(" — ");
 }
 
 /** Buckets comparables pour le rang preview (simulation seulement). */
@@ -2988,8 +3069,12 @@ const REALISTIC_PREVIEW_RANK_BUCKETS = [
 ];
 
 /**
- * J5-B3-A — Attache `realisticPreview` + `realisticPreviewRank` aux lignes Top 20.
- * Ne modifie ni `dynamicTop20Score`, ni l'ordre des tableaux retournés.
+ * Attache `realisticPreview` + `realisticPreviewRank` aux lignes Top 20.
+ *
+ * J5-B3-A : preview additif sur le score legacy.
+ * J5-B3-B : dans le pipeline E2b, `dynamicTop20Score` EST déjà le score réaliste actif ;
+ * le preview est donc recalculé sur la base legacy (`dynamicTop20ScoreLegacy`) pour
+ * exposer le même détail (et éviter une double application sur le score déjà réaliste).
  */
 function attachRealisticPreviewToDynamicTop20Result(result) {
   if (!result || typeof result !== "object") return result;
@@ -3000,7 +3085,12 @@ function attachRealisticPreviewToDynamicTop20Result(result) {
     if (!Array.isArray(group)) continue;
     for (const row of group) {
       if (!row || typeof row !== "object") continue;
-      row.realisticPreview = computeRealisticPreviewScore(row);
+      // Base du preview = ancien score officiel quand le score actif est déjà réaliste.
+      const previewBaseRow =
+        row.dynamicTop20ScoreLegacy != null
+          ? { ...row, dynamicTop20Score: row.dynamicTop20ScoreLegacy }
+          : row;
+      row.realisticPreview = computeRealisticPreviewScore(previewBaseRow);
       allRows.push(row);
     }
   }
@@ -3916,30 +4006,44 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
     const cryptoBlocked = cryptoBlockedSet.has(ticker);
     const uniqueness = computeE2bTickerEventUniqueness(ticker, records);
     const e2b = computeE2bCompetitiveScore(profile, ctx, uniqueness, cryptoBlocked);
+    // J5-B3-B — le score RÉALISTE (décision réelle BALANCED + garde-fous) devient le
+    // score actif qui pilote le classement Top 20. Le score E2b reste comme référence.
+    const realistic = computeRealisticActiveScoreForProfile(profile, e2b.score);
+    const activeScore = realistic?.score != null ? realistic.score : e2b.score;
     return {
       profile,
       ticker,
       n: profile?.csp?.recordsResolved ?? 0,
+      selectedTradeCount: profile?.realisticDecisionMetrics?.selectedTradeCount ?? 0,
       yieldPct: profile?.csp?.avgYieldPct ?? null,
       verdict: profile?.primaryVerdict ?? "",
       lbClass: profile?.lowerBoundStress?.lbStressClass ?? "none",
       cryptoBlocked,
       uniqueness,
       e2b,
+      realistic,
+      activeScore,
     };
   });
 
   const rankable = scored.filter((s) => !s.cryptoBlocked && s.e2b.hardExclude.length === 0);
+  // Tri par score réaliste actif (et non plus par score E2b brut).
   rankable.sort(
     (a, b) =>
-      b.e2b.score - a.e2b.score ||
+      b.activeScore - a.activeScore ||
       b.n - a.n ||
       (b.yieldPct ?? -1) - (a.yieldPct ?? -1) ||
       a.ticker.localeCompare(b.ticker),
   );
 
+  // Admissibilité Top 20 principal : score réaliste suffisant + échantillon
+  // observationnel minimal + garde-fous décision réelle (selectedTradeCount≥5,
+  // rendement réel ≥0,5 %, assignation profonde réelle ≤50 %).
   const exploitable = rankable.filter(
-    (s) => s.e2b.score >= E2B_EXPLOITABLE_MIN_SCORE && s.n >= E2B_EXPLOITABLE_MIN_N,
+    (s) =>
+      s.activeScore >= E2B_EXPLOITABLE_MIN_SCORE &&
+      s.n >= E2B_EXPLOITABLE_MIN_N &&
+      (s.realistic?.eligibleForTop20 ?? true),
   );
   const bucketByTicker = new Map();
   let rank = 0;
@@ -3952,14 +4056,14 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
   }
 
   const rest = rankable.filter((s) => !top20Set.has(s.ticker));
-  const nearEntryList = rest.filter((s) => s.e2b.score >= 20 && s.n >= 5).slice(0, 12);
+  const nearEntryList = rest.filter((s) => s.activeScore >= 20 && s.n >= 5).slice(0, 12);
   const nearSet = new Set(nearEntryList.map((s) => s.ticker));
   for (const s of nearEntryList) {
     rank += 1;
     bucketByTicker.set(s.ticker, { bucket: "nearEntry", rank });
   }
 
-  const watchList = rest.filter((s) => !nearSet.has(s.ticker) && s.n >= 5 && s.e2b.score >= 0);
+  const watchList = rest.filter((s) => !nearSet.has(s.ticker) && s.n >= 5 && s.activeScore >= 0);
   const watchSet = new Set(watchList.map((s) => s.ticker));
   for (const s of watchList) {
     rank += 1;
@@ -4003,14 +4107,46 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
           (reason) => !reason.includes("échantillon"),
         );
 
-  // Diagnostic E2b — quand le pipeline compétitif est actif, le score E2b devient
-  // le score affiché (dynamicTop20Score) et toute la ventilation est exposée.
+  // Diagnostic E2b — quand le pipeline compétitif est actif, le score RÉALISTE devient
+  // le score affiché (dynamicTop20Score) et le score E2b est conservé en référence.
   const e2b = extra.e2b ?? null;
+  // J5-B3-B — score réaliste actif (pilote le classement). Le fallback sur e2b.score
+  // garantit qu'une ligne sans bloc décision réelle reste classée par l'ancien score.
+  const realistic = extra.realistic ?? null;
+  const realisticActiveScore =
+    realistic && realistic.score != null ? realistic.score : e2b ? e2b.score : null;
   const e2bMetaFields = extra.e2bMetaFields ?? {};
   const e2bFields = e2b
     ? {
-        dynamicTop20Score: e2b.score,
-        dynamicTop20ScoreLegacy: scoring.dynamicTop20Score,
+        // Score réaliste ACTIF — pilote désormais le classement Top 20.
+        dynamicTop20Score: realisticActiveScore,
+        dynamicTop20ScoreRealistic: realisticActiveScore,
+        dynamicTop20ScoreSource: realistic && realistic.score != null ? "realistic" : "competitive",
+        // Ancien score officiel Top 20 (compétitif E2b) — conservé en référence.
+        dynamicTop20ScoreLegacy: e2b.score,
+        dynamicTop20ScoreE2b: e2b.score,
+        // Ancien score laboratoire (observationnel) — conservé en référence secondaire.
+        dynamicTop20ScoreLaboratory: scoring.dynamicTop20Score,
+        // Détail réaliste (garde-fous, pénalités/bonus, confiance) porté sur la ligne.
+        realisticActive: realistic
+          ? {
+              score: realistic.score,
+              baseScore: realistic.baseScore,
+              eligibleForTop20: realistic.eligibleForTop20,
+              eligibilityReason: realistic.eligibilityReason,
+              confidence: realistic.confidence,
+              confidenceBadge: realistic.confidenceBadge,
+              rankImpactReason: realistic.rankImpactReason,
+              penalties: realistic.penalties,
+              bonuses: realistic.bonuses,
+            }
+          : null,
+        realisticReasonSummary: buildRealisticActiveReasonSummary(
+          realistic,
+          profile?.realisticDecisionMetrics ?? null,
+          // Référence = ancien score officiel Top 20 (compétitif E2b), cohérent avec la colonne.
+          e2b.score,
+        ),
         competitiveScoreV2: e2b.score,
         competitiveScoreBreakdown: {
           meritTotal: e2b.meritTotal,
@@ -4128,6 +4264,7 @@ function buildDynamicTop20E2bResult({
     }
     return mapDynamicTop20ProfileRow(s.profile, displayRank, status, {
       e2b: s.e2b,
+      realistic: s.realistic,
       ...(exclusionReasons.length > 0 ? { top20ExclusionReasons: exclusionReasons } : {}),
     });
   };
@@ -4177,17 +4314,22 @@ function buildDynamicTop20E2bResult({
     meta: {
       readOnly: true,
       experimental: true,
-      scoreType: "competitiveScoreV2",
+      // J5-B3-B — le score réaliste (décision réelle BALANCED + garde-fous) pilote le tri.
+      scoreType: "dynamicTop20ScoreRealistic",
+      scoreSource: "realistic",
       rankingFormulaVersion: E2B_RANKING_FORMULA_VERSION,
       scoreNote:
-        "Score compétitif E2b (mérite + résilience + bonus historique robuste − pénalités graduées) — laboratoire, pas une recommandation de trade.",
+        "Score réaliste actif (décision réelle BALANCED 1 trade/ticker×expiration + garde-fous) — pilote le classement Top 20. Score compétitif E2b conservé en référence (dynamicTop20ScoreLegacy).",
       guardrails: {
         exploitableForTop20Count: e2bResult.exploitableCount,
         exploitableMinScore: E2B_EXPLOITABLE_MIN_SCORE,
         exploitableMinN: E2B_EXPLOITABLE_MIN_N,
+        realisticMinSelectedTradeCount: 5,
+        realisticMinSelectedYieldPct: REALISTIC_DECISION_MIN_CSP_YIELD_PCT,
+        realisticMaxDeepAssignmentRatePct: 50,
       },
-      realisticPreviewNote:
-        "realisticPreview / realisticPreviewRank = simulation J5-B3-A — n'influencent pas le classement officiel.",
+      realisticScoreActiveNote:
+        "dynamicTop20Score = score réaliste actif (pilote le classement). dynamicTop20ScoreLegacy = ancien score compétitif E2b (référence). Pas de second classement.",
     },
   });
 }

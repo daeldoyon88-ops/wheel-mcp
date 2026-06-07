@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import V3CandidateProfilesPanel from "./V3CandidateProfilesPanel.jsx";
+import { getTickerDisplayMeta } from "../tickerMeta.js";
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 
@@ -6205,7 +6206,37 @@ export default function JournalPopPanel({ apiBase, active }) {
                 ]}
                 rows={displayedOnePercentProfiles.map((profile) => (
                   <tr key={`one-pct-${profile.ticker}-${profile.mode}`} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2.5 font-semibold text-slate-200">{profile.ticker}</td>
+                    <td className="px-3 py-2.5 font-semibold text-slate-200">
+                      <div className="flex flex-col gap-1">
+                        <span>{profile.ticker}</span>
+                        {(() => {
+                          // UI-only crypto-block badge — source unique : app/watchlist/cryptoWheelFilter.js
+                          // via getTickerDisplayMeta(). Ne masque jamais le ticker, marque seulement l'exclusion Wheel.
+                          const cryptoMeta = getTickerDisplayMeta(profile.ticker);
+                          if (cryptoMeta.isCryptoBlocked) {
+                            return (
+                              <span
+                                className="inline-flex w-fit items-center rounded border border-rose-700 bg-rose-950 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-rose-300"
+                                title={`${cryptoMeta.cryptoBlockReason || "crypto_blocked_except_bitx"} · BITX seul autorisé`}
+                              >
+                                Crypto bloqué — exclu Wheel
+                              </span>
+                            );
+                          }
+                          if (cryptoMeta.isCryptoRelatedEquity) {
+                            return (
+                              <span
+                                className="inline-flex w-fit items-center rounded border border-amber-800 bg-amber-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-200"
+                                title="Crypto relié (équité) — non bloqué, scannable"
+                              >
+                                Crypto relié
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </td>
                     <td className="px-3 py-2.5 text-slate-400">{profile.mode}</td>
                     <td className="px-3 py-2.5 tabular-nums">{profile?.csp?.recordsResolved ?? 0}</td>
                     <td className="px-3 py-2.5">

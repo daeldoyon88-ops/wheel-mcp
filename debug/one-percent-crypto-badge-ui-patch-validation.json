@@ -1,0 +1,59 @@
+{
+  "patch": "one-percent-crypto-badge-ui",
+  "scope": "UI only — wheel-dashboard/src/components/JournalPopPanel.jsx",
+  "helper": "getTickerDisplayMeta() (wheel-dashboard/src/tickerMeta.js) → app/watchlist/cryptoWheelFilter.js",
+  "generatedAt": "2026-06-07T10:57:45.277Z",
+  "allPass": true,
+  "checks": [
+    {
+      "name": "import getTickerDisplayMeta depuis ../tickerMeta.js",
+      "pass": true,
+      "detail": "JournalPopPanel.jsx importe le helper UI officiel"
+    },
+    {
+      "name": "tickerMeta.js dérive de cryptoWheelFilter.js",
+      "pass": true,
+      "detail": "getTickerDisplayMeta() s'appuie sur isCryptoDigitalAssetBlocked / getCryptoBlockReason"
+    },
+    {
+      "name": "badge 'Crypto bloqué — exclu Wheel' présent",
+      "pass": true,
+      "detail": "Badge visible rendu dans la cellule ticker du shortlist 1 %+"
+    },
+    {
+      "name": "badge informatif 'Crypto relié' présent",
+      "pass": true,
+      "detail": "Badge informatif pour crypto-related equity (COIN/MSTR)"
+    },
+    {
+      "name": "tooltip raison + 'BITX seul autorisé'",
+      "pass": true,
+      "detail": "Title utilise cryptoBlockReason officiel avec mention BITX"
+    },
+    {
+      "name": "ticker toujours rendu (aucun masquage)",
+      "pass": true,
+      "detail": "Le ticker est affiché inconditionnellement ; le badge s'ajoute à côté"
+    },
+    {
+      "name": "aucun filtre crypto ajouté au pipeline 1 %+",
+      "pass": true,
+      "detail": "filteredOnePercentProfiles / displayedOnePercentProfiles non altérés par un filtre crypto"
+    },
+    {
+      "name": "cryptoWheelFilter.js intact (BITX exception, COIN/MSTR non bloqués)",
+      "pass": true,
+      "detail": "Règles métier inchangées : BITX autorisé, COIN/MSTR crypto-related (non bloqués)"
+    },
+    {
+      "name": "filteredOnePercentProfiles préservé",
+      "pass": true,
+      "detail": "filteredOnePercentProfiles toujours défini via useMemo, non remplacé"
+    },
+    {
+      "name": "displayedOnePercentProfiles préservé",
+      "pass": true,
+      "detail": "displayedOnePercentProfiles toujours défini via useMemo, non remplacé"
+    }
+  ]
+}

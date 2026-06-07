@@ -1,0 +1,409 @@
+{
+  "phase": "Journal POP J5-B3-A — preview score réaliste (simulation)",
+  "generatedAt": "2026-06-07T17:07:37.098Z",
+  "additiveOnly": true,
+  "noScoreOrSortChange": true,
+  "noSecondRanking": true,
+  "filesModified": [
+    {
+      "path": "app/journal/wheelValidationService.js",
+      "change": "additif"
+    },
+    {
+      "path": "wheel-dashboard/src/components/JournalPopPanel.jsx",
+      "change": "additif UI"
+    }
+  ],
+  "filesCreated": [
+    "app/journal/wheelValidationService.realisticPreviewScore.test.mjs",
+    "debug/journal-pop-j5b3a-realistic-score-preview-validation.mjs",
+    "debug/journal-pop-j5b3a-realistic-score-preview-validation.md",
+    "debug/journal-pop-j5b3a-realistic-score-preview-validation.json"
+  ],
+  "functionsAdded": [
+    "computeRealisticPreviewScore (exportée)",
+    "attachRealisticPreviewToDynamicTop20Result (interne)"
+  ],
+  "fieldsAdded": {
+    "realisticPreview": [
+      "score",
+      "baseScore",
+      "rankImpactReason",
+      "penalties",
+      "bonuses",
+      "confidence",
+      "wouldImprove",
+      "wouldDecline",
+      "rankDelta",
+      "previewOnly"
+    ],
+    "realisticPreviewRank": "rang simulé global (buckets top20 + nearEntry + watchValidate + insufficientSample)"
+  },
+  "preservedFields": [
+    "dynamicTop20Score",
+    "dynamicTop20Status",
+    "rank (officiel)",
+    "verdicts",
+    "formules POP"
+  ],
+  "proofTop20Unchanged": {
+    "officialOrderMatchesControl": true,
+    "top20OfficialOrder": [
+      {
+        "ticker": "HOOD",
+        "rank": 1,
+        "score": 100
+      },
+      {
+        "ticker": "CCL",
+        "rank": 2,
+        "score": 100
+      },
+      {
+        "ticker": "HIMS",
+        "rank": 3,
+        "score": 100
+      },
+      {
+        "ticker": "DAL",
+        "rank": 4,
+        "score": 100
+      },
+      {
+        "ticker": "NOK",
+        "rank": 5,
+        "score": 85
+      },
+      {
+        "ticker": "U",
+        "rank": 6,
+        "score": 85
+      },
+      {
+        "ticker": "HPE",
+        "rank": 7,
+        "score": 85
+      },
+      {
+        "ticker": "BNO",
+        "rank": 8,
+        "score": 85
+      },
+      {
+        "ticker": "DOW",
+        "rank": 9,
+        "score": 85
+      },
+      {
+        "ticker": "INTC",
+        "rank": 10,
+        "score": 82
+      },
+      {
+        "ticker": "APLD",
+        "rank": 11,
+        "score": 69
+      },
+      {
+        "ticker": "AFRM",
+        "rank": 12,
+        "score": 69
+      },
+      {
+        "ticker": "TQQQ",
+        "rank": 13,
+        "score": 67
+      },
+      {
+        "ticker": "RIVN",
+        "rank": 14,
+        "score": 65
+      },
+      {
+        "ticker": "APA",
+        "rank": 15,
+        "score": 65
+      },
+      {
+        "ticker": "FLY",
+        "rank": 16,
+        "score": 65
+      },
+      {
+        "ticker": "CSCO",
+        "rank": 17,
+        "score": 65
+      },
+      {
+        "ticker": "FISV",
+        "rank": 18,
+        "score": 65
+      },
+      {
+        "ticker": "DOCU",
+        "rank": 19,
+        "score": 65
+      },
+      {
+        "ticker": "CNC",
+        "rank": 20,
+        "score": 65
+      }
+    ],
+    "sampleScoresUnchanged": true
+  },
+  "topRisers": [
+    {
+      "ticker": "DOCU",
+      "currentRank": 19,
+      "previewRank": 12,
+      "officialScore": 65,
+      "previewScore": 76,
+      "rankDelta": 7,
+      "rankImpactReason": "win rate réel élevé",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "INTC",
+      "currentRank": 10,
+      "previewRank": 5,
+      "officialScore": 82,
+      "previewScore": 93,
+      "rankDelta": 5,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "CNC",
+      "currentRank": 20,
+      "previewRank": 16,
+      "officialScore": 65,
+      "previewScore": 63,
+      "rankDelta": 4,
+      "rankImpactReason": "échantillon faible / win rate réel élevé",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "U",
+      "currentRank": 6,
+      "previewRank": 4,
+      "officialScore": 85,
+      "previewScore": 96,
+      "rankDelta": 2,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "DOW",
+      "currentRank": 9,
+      "previewRank": 7,
+      "officialScore": 85,
+      "previewScore": 86,
+      "rankDelta": 2,
+      "rankImpactReason": "échantillon faible / assignation réelle inférieure",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "FLY",
+      "currentRank": 16,
+      "previewRank": 14,
+      "officialScore": 65,
+      "previewScore": 66,
+      "rankDelta": 2,
+      "rankImpactReason": "échantillon faible / rendement réel solide",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "RIVN",
+      "currentRank": 14,
+      "previewRank": 13,
+      "officialScore": 65,
+      "previewScore": 68,
+      "rankDelta": 1,
+      "rankImpactReason": "rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    }
+  ],
+  "topFallers": [
+    {
+      "ticker": "AFRM",
+      "currentRank": 12,
+      "previewRank": 31,
+      "officialScore": 69,
+      "previewScore": 42,
+      "rankDelta": -19,
+      "rankImpactReason": "profondeur réelle / rendement réel solide",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "APA",
+      "currentRank": 15,
+      "previewRank": 19,
+      "officialScore": 65,
+      "previewScore": 58,
+      "rankDelta": -4,
+      "rankImpactReason": "échantillon faible / win rate réel élevé",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "NOK",
+      "currentRank": 5,
+      "previewRank": 8,
+      "officialScore": 85,
+      "previewScore": 84,
+      "rankDelta": -3,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "DAL",
+      "currentRank": 4,
+      "previewRank": 6,
+      "officialScore": 100,
+      "previewScore": 93,
+      "rankDelta": -2,
+      "rankImpactReason": "duplication élevée / win rate réel élevé",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "HPE",
+      "currentRank": 7,
+      "previewRank": 9,
+      "officialScore": 85,
+      "previewScore": 81,
+      "rankDelta": -2,
+      "rankImpactReason": "échantillon faible / win rate réel élevé",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "BNO",
+      "currentRank": 8,
+      "previewRank": 10,
+      "officialScore": 85,
+      "previewScore": 81,
+      "rankDelta": -2,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "low",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "TQQQ",
+      "currentRank": 13,
+      "previewRank": 15,
+      "officialScore": 67,
+      "previewScore": 65,
+      "rankDelta": -2,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "FISV",
+      "currentRank": 18,
+      "previewRank": 20,
+      "officialScore": 65,
+      "previewScore": 58,
+      "rankDelta": -2,
+      "rankImpactReason": "échantillon faible / win rate réel élevé",
+      "confidence": "low",
+      "status": "top20_experimental"
+    }
+  ],
+  "focusTickers": [
+    {
+      "ticker": "TQQQ",
+      "currentRank": 13,
+      "previewRank": 15,
+      "officialScore": 67,
+      "previewScore": 65,
+      "rankDelta": -2,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "APLD",
+      "currentRank": 11,
+      "previewRank": 11,
+      "officialScore": 69,
+      "previewScore": 80,
+      "rankDelta": 0,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "HOOD",
+      "currentRank": 1,
+      "previewRank": 1,
+      "officialScore": 100,
+      "previewScore": 100,
+      "rankDelta": 0,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "SOFI",
+      "currentRank": 4,
+      "previewRank": 117,
+      "officialScore": 21,
+      "previewScore": 19,
+      "rankDelta": -113,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "watch_validate"
+    },
+    {
+      "ticker": "CCL",
+      "currentRank": 2,
+      "previewRank": 2,
+      "officialScore": 100,
+      "previewScore": 100,
+      "rankDelta": 0,
+      "rankImpactReason": "duplication élevée / assignation réelle inférieure",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    },
+    {
+      "ticker": "HIMS",
+      "currentRank": 3,
+      "previewRank": 3,
+      "officialScore": 100,
+      "previewScore": 100,
+      "rankDelta": 0,
+      "rankImpactReason": "duplication élevée / rendement réel solide",
+      "confidence": "medium",
+      "status": "top20_experimental"
+    }
+  ],
+  "limits": [
+    "Pondération légère — pas la formule finale J5-B3.",
+    "Preview rank compare tous les profils des buckets top20/nearEntry/watchValidate/insufficientSample.",
+    "Ne remplace pas dynamicTop20Score ni le tri officiel.",
+    "BALANCED reste post-mortem pour la sélection décision."
+  ],
+  "recordCount": 3184,
+  "top20Count": 20,
+  "tests": {
+    "journalAll": "144 pass / 0 fail",
+    "realisticPreviewScore": "6 pass / 0 fail"
+  },
+  "build": {
+    "vite": "built in 4.37s",
+    "journalPopPanelChunkKb": 347.52
+  },
+  "gitDiffCheck": "OK"
+}

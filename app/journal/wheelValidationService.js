@@ -2868,6 +2868,170 @@ export function computeRealisticDecisionMetrics(records, options = {}) {
 }
 
 /**
+ * J5-B3-A — Score réaliste simulé (preview seulement).
+ *
+ * Ajuste légèrement le `dynamicTop20Score` officiel à partir des métriques
+ * `realisticDecisionMetrics` (BALANCED). STRICTEMENT ADDITIF : ne remplace ni
+ * `dynamicTop20Score`, ni `dynamicTop20Status`, ni le tri Top 20.
+ */
+export function computeRealisticPreviewScore(profileOrRow) {
+  const row = profileOrRow ?? {};
+  const baseScore = toNumberOrNull(row.dynamicTop20Score);
+  const rdm = row.realisticDecisionMetrics ?? null;
+  const assignmentRate =
+    toNumberOrNull(row.assignmentRate) ?? toNumberOrNull(row?.csp?.assignmentRate);
+
+  if (baseScore == null) return null;
+  if (!rdm || Number(rdm.selectedTradeCount ?? 0) <= 0) {
+    return {
+      score: baseScore,
+      baseScore,
+      rankImpactReason: "données décision réelle indisponibles",
+      penalties: [],
+      bonuses: [],
+      confidence: "low",
+      wouldImprove: false,
+      wouldDecline: false,
+      rankDelta: 0,
+      previewOnly: true,
+    };
+  }
+
+  let score = baseScore;
+  const penalties = [];
+  const bonuses = [];
+  let confidence = "high";
+
+  const dup = toNumberOrNull(rdm.duplicationRatio) ?? 0;
+  if (dup >= 4) {
+    const points = dup >= 6 ? -10 : -5;
+    penalties.push({ reason: "duplication élevée", points, detail: `${dup}×` });
+    score += points;
+  }
+
+  const deepPct = toNumberOrNull(rdm.selectedDeepAssignmentRatePct) ?? 0;
+  if (deepPct > 30) {
+    const points = deepPct > 50 ? -15 : deepPct > 40 ? -10 : -5;
+    penalties.push({ reason: "profondeur réelle", points, detail: `${deepPct}%` });
+    score += points;
+  }
+
+  const tradeCount = Number(rdm.selectedTradeCount ?? 0);
+  if (tradeCount < 5) {
+    penalties.push({ reason: "échantillon faible", points: -10, detail: `${tradeCount} décisions` });
+    score -= 10;
+    confidence = "low";
+  } else if (tradeCount < 8) {
+    confidence = "medium";
+  }
+
+  const selAssign = toNumberOrNull(rdm.selectedAssignmentRatePct);
+  if (assignmentRate != null && selAssign != null && selAssign < assignmentRate) {
+    const delta = assignmentRate - selAssign;
+    const points = delta >= 10 ? 8 : delta >= 5 ? 5 : 3;
+    bonuses.push({
+      reason: "assignation réelle inférieure",
+      points,
+      detail: `${selAssign}% vs ${assignmentRate}%`,
+    });
+    score += points;
+  }
+
+  const yieldPct = toNumberOrNull(rdm.selectedAvgCspYieldPct);
+  const assignAcceptable = selAssign == null || selAssign <= 25;
+  if (yieldPct != null && yieldPct >= 0.8 && assignAcceptable) {
+    const points = yieldPct >= 1.0 ? 8 : yieldPct >= 0.9 ? 5 : 3;
+    bonuses.push({ reason: "rendement réel solide", points, detail: `${yieldPct}%` });
+    score += points;
+  }
+
+  const winRate = toNumberOrNull(rdm.selectedWinRatePct);
+  if (winRate != null && winRate >= 85) {
+    const points = winRate >= 90 ? 8 : 5;
+    bonuses.push({ reason: "win rate réel élevé", points, detail: `${winRate}%` });
+    score += points;
+  }
+
+  score = roundMetric(Math.max(0, Math.min(100, score)), 1);
+
+  const dominantPenalty = penalties.sort((a, b) => a.points - b.points)[0]?.reason ?? null;
+  const dominantBonus = bonuses.sort((a, b) => b.points - a.points)[0]?.reason ?? null;
+  let rankImpactReason = "stable";
+  if (dominantPenalty && dominantBonus) {
+    rankImpactReason = `${dominantPenalty} / ${dominantBonus}`;
+  } else if (dominantPenalty) {
+    rankImpactReason = dominantPenalty;
+  } else if (dominantBonus) {
+    rankImpactReason = dominantBonus;
+  }
+
+  return {
+    score,
+    baseScore,
+    rankImpactReason,
+    penalties,
+    bonuses,
+    confidence,
+    wouldImprove: false,
+    wouldDecline: false,
+    rankDelta: 0,
+    previewOnly: true,
+  };
+}
+
+/** Buckets comparables pour le rang preview (simulation seulement). */
+const REALISTIC_PREVIEW_RANK_BUCKETS = [
+  "top20",
+  "nearEntry",
+  "watchValidate",
+  "insufficientSample",
+];
+
+/**
+ * J5-B3-A — Attache `realisticPreview` + `realisticPreviewRank` aux lignes Top 20.
+ * Ne modifie ni `dynamicTop20Score`, ni l'ordre des tableaux retournés.
+ */
+function attachRealisticPreviewToDynamicTop20Result(result) {
+  if (!result || typeof result !== "object") return result;
+
+  const allRows = [];
+  for (const bucket of REALISTIC_PREVIEW_RANK_BUCKETS) {
+    const group = result[bucket];
+    if (!Array.isArray(group)) continue;
+    for (const row of group) {
+      if (!row || typeof row !== "object") continue;
+      row.realisticPreview = computeRealisticPreviewScore(row);
+      allRows.push(row);
+    }
+  }
+
+  const rankable = allRows
+    .filter((row) => row.realisticPreview?.score != null)
+    .slice()
+    .sort((a, b) => {
+      const scoreDelta = (b.realisticPreview.score ?? 0) - (a.realisticPreview.score ?? 0);
+      if (scoreDelta !== 0) return scoreDelta;
+      const nDelta = (b.n ?? 0) - (a.n ?? 0);
+      if (nDelta !== 0) return nDelta;
+      return String(a.ticker ?? "").localeCompare(String(b.ticker ?? ""));
+    });
+
+  rankable.forEach((row, index) => {
+    const previewRank = index + 1;
+    row.realisticPreviewRank = previewRank;
+    const currentRank = toNumberOrNull(row.rank);
+    if (currentRank != null && row.realisticPreview) {
+      const rankDelta = currentRank - previewRank;
+      row.realisticPreview.rankDelta = rankDelta;
+      row.realisticPreview.wouldImprove = rankDelta > 0;
+      row.realisticPreview.wouldDecline = rankDelta < 0;
+    }
+  });
+
+  return result;
+}
+
+/**
  * Profils read-only — objectif 1 %+ avec cycle Wheel complet (CSP → assignation → CC → sortie).
  */
 export function computeOnePercentWheelProfiles(records, cycles, options = {}) {
@@ -3989,7 +4153,7 @@ function buildDynamicTop20E2bResult({
       }),
     );
 
-  return {
+  return attachRealisticPreviewToDynamicTop20Result({
     ok: true,
     asOfDate,
     top20,
@@ -4022,8 +4186,10 @@ function buildDynamicTop20E2bResult({
         exploitableMinScore: E2B_EXPLOITABLE_MIN_SCORE,
         exploitableMinN: E2B_EXPLOITABLE_MIN_N,
       },
+      realisticPreviewNote:
+        "realisticPreview / realisticPreviewRank = simulation J5-B3-A — n'influencent pas le classement officiel.",
     },
-  };
+  });
 }
 
 /**
@@ -4151,7 +4317,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
 
   const asOfDate = normalizeIsoTimestamp(options.today ?? options.asOfDate ?? new Date()).slice(0, 10);
 
-  return {
+  return attachRealisticPreviewToDynamicTop20Result({
     ok: true,
     asOfDate,
     top20,
@@ -4182,8 +4348,10 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
         enforceN15Guard,
         eligibleForTop20Count: eligibleItems.length,
       },
+      realisticPreviewNote:
+        "realisticPreview / realisticPreviewRank = simulation J5-B3-A — n'influencent pas le classement officiel.",
     },
-  };
+  });
 }
 
 export function createWheelValidationService(options = {}) {

@@ -3294,12 +3294,21 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
     },
   };
 
+  // J5-B3-A — preview score réaliste (simulation seulement, porté depuis la ligne Top 20).
+  const realisticPreview = {
+    preview: globalProfile?.realisticPreview ?? null,
+    previewRank: globalProfile?.realisticPreviewRank ?? null,
+    officialScore: numberOrNull(globalProfile?.dynamicTop20Score),
+    officialRank: numberOrNull(globalProfile?.rank),
+  };
+
   return {
     rows,
     eventUniqueness,
     eventRisk,
     obsVsDecision,
     realisticDecision,
+    realisticPreview,
     summary: {
       bestDteLabel: bestRow
         ? `Meilleur DTE identifiable : ${bestRow.dte} DTE`
@@ -3334,26 +3343,22 @@ function buildDynamicTop20DteBreakdown({ ticker, records, theoreticalCycles, glo
   };
 }
 
-// J4-C — ligne compacte sous le ticker dans le Top 20 : observations assignées,
-// expirations assignées, ratio de duplication. AFFICHAGE seulement ; ne change ni
-// le rang, ni le score, ni l'ordre. Masquée si aucune assignation observée.
+// J4-C — ligne 1 compacte sous le ticker dans le Top 20 : Obs / Exp · Dup.
+// AFFICHAGE seulement ; ne change ni le rang, ni le score, ni l'ordre. Masquée si
+// aucune assignation observée. Détail « risque gonflé » déplacé en tooltip + modal.
 function ObsVsDecisionInline({ eventUniqueness }) {
   const m = getObservationVsDecisionMetrics(eventUniqueness);
   if (!m || m.assignedObservationCount === 0) return null;
+  const tooltip = m.inflated
+    ? `${OBS_VS_DECISION_TOOLTIP} Risque gonflé par variantes : ${m.assignedObservationCount} obs. pour ${m.distinctAssignedExpirationCount} expiration${m.distinctAssignedExpirationCount > 1 ? "s" : ""}.`
+    : OBS_VS_DECISION_TOOLTIP;
   return (
-    <div className="mt-1 text-[10px] leading-tight text-slate-500" title={OBS_VS_DECISION_TOOLTIP}>
-      <span className="text-slate-400">Assign. obs.</span> {m.assignedObservationCount} ·{" "}
-      <span className="text-slate-400">Exp. assignées</span> {m.distinctAssignedExpirationCount} ·{" "}
+    <div className="mt-1 text-[10px] leading-tight text-slate-500" title={tooltip}>
+      <span className="text-slate-400">Obs</span> {m.assignedObservationCount} /{" "}
+      <span className="text-slate-400">Exp</span> {m.distinctAssignedExpirationCount} ·{" "}
       <span className={m.inflated ? "font-semibold text-amber-400" : "text-slate-400"}>
-        Duplication {formatDuplicationRatio(m.duplicationRatio)}
+        Dup {formatDuplicationRatio(m.duplicationRatio)}
       </span>
-      {m.inflated ? (
-        <span className="mt-0.5 block text-amber-500/80">
-          Risque gonflé par variantes : {m.assignedObservationCount} obs. pour{" "}
-          {m.distinctAssignedExpirationCount} expiration
-          {m.distinctAssignedExpirationCount > 1 ? "s" : ""}.
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -3567,19 +3572,21 @@ function formatRealisticDteSplit(split) {
   return entries.map(([dte, count]) => `${dte}DTE:${count}`).join(" · ");
 }
 
-// J5-B2 — ligne compacte sous le ticker dans le Top 20 : métriques décision réelle
-// BALANCED. AFFICHAGE seulement ; ne change ni le rang, ni le score, ni l'ordre.
-// Masquée si `realisticDecisionMetrics` est absent ou vide.
+// J5-B2 — ligne 2 compacte sous le ticker dans le Top 20 : Réel n déc. · Assign · Rend.
+// AFFICHAGE seulement ; ne change ni le rang, ni le score, ni l'ordre. Masquée si
+// `realisticDecisionMetrics` est absent ou vide. Profondeur réelle + duplication en
+// tooltip ; badges plafonnés à 2 dans le tableau (jeu complet dans le modal).
 function RealisticDecisionInline({ rdm, observationalAssignmentRate }) {
   if (!hasRealisticDecisionMetrics(rdm)) return null;
-  const badges = getRealisticDecisionBadges(rdm, observationalAssignmentRate);
+  const badges = getRealisticDecisionBadges(rdm, observationalAssignmentRate).slice(0, 2);
+  const tooltip =
+    `${REALISTIC_DECISION_TOOLTIP} Prof. réelle ${formatPercent(rdm.selectedDeepAssignmentRatePct, 0)} · ` +
+    `Dup. ${formatDuplicationRatio(rdm.duplicationRatio)}.`;
   return (
-    <div className="mt-1 text-[10px] leading-tight text-slate-500" title={REALISTIC_DECISION_TOOLTIP}>
-      <span className="text-slate-400">Décisions</span> {rdm.selectedTradeCount} ·{" "}
-      <span className="text-slate-400">Assign. réelle</span> {formatPercent(rdm.selectedAssignmentRatePct, 0)} ·{" "}
-      <span className="text-slate-400">Prof. réelle</span> {formatPercent(rdm.selectedDeepAssignmentRatePct, 0)} ·{" "}
-      <span className="text-slate-400">Rend. réel</span> {formatPercent(rdm.selectedAvgCspYieldPct, 2)} ·{" "}
-      <span className="text-slate-400">Dup.</span> {formatDuplicationRatio(rdm.duplicationRatio)}
+    <div className="mt-0.5 text-[10px] leading-tight text-slate-500" title={tooltip}>
+      <span className="text-slate-400">Réel</span> {rdm.selectedTradeCount} déc. ·{" "}
+      <span className="text-slate-400">Assign</span> {formatPercent(rdm.selectedAssignmentRatePct, 0)} ·{" "}
+      <span className="text-slate-400">Rend</span> {formatPercent(rdm.selectedAvgCspYieldPct, 2)}
       <RealisticDecisionBadgeRow badges={badges} className="mt-0.5" />
     </div>
   );
@@ -3596,6 +3603,159 @@ function RealisticDecisionLegend({ className = "" }) {
       Politique BALANCED = compromis rendement/risque ·{" "}
       Ces métriques sont post-analyse et n'influencent pas encore le score ·{" "}
       <span className="text-slate-300">Le Top 20 garde son ordre actuel.</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// J5-B3-A — Preview score réaliste (SIMULATION seulement).
+// Consomme `realisticPreview` + `realisticPreviewRank` calculés par le service.
+// Ne modifie NI le score officiel, NI le tri, NI les verdicts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REALISTIC_PREVIEW_TOOLTIP =
+  "Preview score réaliste : ajustement léger du score officiel selon les métriques " +
+  "décision réelle BALANCED. Simulation seulement — n'influence pas le classement.";
+
+function hasRealisticPreview(preview) {
+  return preview != null && preview.score != null;
+}
+
+function formatRealisticPreviewRankImpact(preview) {
+  const delta = Number(preview?.rankDelta ?? 0);
+  if (!Number.isFinite(delta) || delta === 0) return "stable";
+  if (delta > 0) return `+${delta} rang${delta > 1 ? "s" : ""}`;
+  return `${delta} rang${delta < -1 ? "s" : ""}`;
+}
+
+function getRealisticPreviewImpactTone(preview) {
+  const delta = Number(preview?.rankDelta ?? 0);
+  if (delta > 0) return "text-emerald-300";
+  if (delta < 0) return "text-rose-300";
+  return "text-slate-400";
+}
+
+// J5-B3-A — ligne 3 compacte Top 20 : Preview score · Rang sim. · impact.
+// AFFICHAGE/simulation seulement. Raison longue + mention « Preview seulement »
+// déplacées en tooltip (détail complet dans le modal).
+function RealisticPreviewInline({ preview, previewRank }) {
+  if (!hasRealisticPreview(preview)) return null;
+  const tooltip = preview.rankImpactReason
+    ? `${REALISTIC_PREVIEW_TOOLTIP} Raison : ${preview.rankImpactReason}.`
+    : REALISTIC_PREVIEW_TOOLTIP;
+  return (
+    <div className="mt-0.5 text-[9px] leading-tight text-violet-300/90" title={tooltip}>
+      <span className="text-violet-200/80">Preview</span> {preview.score}
+      {previewRank != null ? (
+        <>
+          {" "}
+          · <span className="text-violet-200/70">Rang sim.</span> {previewRank}
+        </>
+      ) : null}
+      {" "}
+      · <span className={getRealisticPreviewImpactTone(preview)}>{formatRealisticPreviewRankImpact(preview)}</span>
+    </div>
+  );
+}
+
+function RealisticPreviewLegend({ className = "" }) {
+  return (
+    <div
+      className={`rounded-xl border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-[10px] leading-snug text-slate-400 ${className}`}
+    >
+      <span className="font-semibold text-violet-200">Preview score réaliste (J5-B3-A)</span> ·{" "}
+      Ajustement léger du score officiel selon décision réelle BALANCED ·{" "}
+      <span className="text-violet-200/90">Preview seulement — n'influence pas le classement.</span>
+    </div>
+  );
+}
+
+function RealisticPreviewModalSection({ realisticPreview }) {
+  const preview = realisticPreview?.preview ?? null;
+  if (!hasRealisticPreview(preview)) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-[11px] text-slate-400">
+        <div className="text-[12px] font-semibold text-slate-200">Preview score réaliste</div>
+        <p className="mt-1">Preview non disponible pour ce ticker.</p>
+      </div>
+    );
+  }
+
+  const penaltyRows = Array.isArray(preview.penalties) ? preview.penalties : [];
+  const bonusRows = Array.isArray(preview.bonuses) ? preview.bonuses : [];
+
+  return (
+    <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12px] font-semibold text-violet-100">Preview score réaliste</span>
+        <span className="rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+          simulation
+        </span>
+        {preview.confidence ? (
+          <span className="text-[10px] text-slate-500">Confiance : {preview.confidence}</span>
+        ) : null}
+      </div>
+      <p className="mt-1 text-[11px] italic text-slate-500">{REALISTIC_PREVIEW_TOOLTIP}</p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
+          Score officiel : <span className="font-semibold text-sky-300">{preview.baseScore ?? "—"}</span>
+        </div>
+        <div className="rounded-lg border border-violet-500/30 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
+          Preview score : <span className="font-semibold text-violet-200">{preview.score ?? "—"}</span>
+        </div>
+        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
+          Rang officiel : <span className="font-semibold text-slate-200">{realisticPreview?.officialRank ?? "—"}</span>
+        </div>
+        <div className="rounded-lg border border-violet-500/30 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
+          Rang simulé : <span className="font-semibold text-violet-200">{realisticPreview?.previewRank ?? "—"}</span>
+          {" "}
+          ·{" "}
+          <span className={getRealisticPreviewImpactTone(preview)}>
+            {formatRealisticPreviewRankImpact(preview)}
+          </span>
+        </div>
+      </div>
+
+      {preview.rankImpactReason ? (
+        <p className="mt-2 text-[11px] text-slate-400">
+          Raison principale : <span className="text-slate-200">{preview.rankImpactReason}</span>
+        </p>
+      ) : null}
+
+      {(penaltyRows.length > 0 || bonusRows.length > 0) && (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800">
+          <table className="min-w-full divide-y divide-slate-800 text-left text-[10px]">
+            <thead className="bg-slate-900/80 text-slate-500">
+              <tr>
+                {["Type", "Raison", "Points", "Détail"].map((h) => (
+                  <th key={h} className="px-2.5 py-1.5 font-semibold">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/80 text-slate-300">
+              {penaltyRows.map((row) => (
+                <tr key={`pen-${row.reason}`}>
+                  <td className="px-2.5 py-1.5 text-rose-300">Pénalité</td>
+                  <td className="px-2.5 py-1.5">{row.reason}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums text-rose-300">{row.points}</td>
+                  <td className="px-2.5 py-1.5 text-slate-500">{row.detail ?? "—"}</td>
+                </tr>
+              ))}
+              {bonusRows.map((row) => (
+                <tr key={`bon-${row.reason}`}>
+                  <td className="px-2.5 py-1.5 text-emerald-300">Bonus</td>
+                  <td className="px-2.5 py-1.5">{row.reason}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums text-emerald-300">+{row.points}</td>
+                  <td className="px-2.5 py-1.5 text-slate-500">{row.detail ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -3824,9 +3984,13 @@ function DynamicTop20DteBreakdownModal({ ticker, breakdown, onClose }) {
 
           <RealisticDecisionModalSection realisticDecision={breakdown?.realisticDecision} />
 
+          <RealisticPreviewModalSection realisticPreview={breakdown?.realisticPreview} />
+
           <ObsVsDecisionLegend />
 
           <RealisticDecisionLegend />
+
+          <RealisticPreviewLegend />
 
           {!hasDteData ? (
             <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-6 text-center text-[12px] font-semibold text-slate-400">
@@ -6543,6 +6707,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                   <JournalPopCountersLegend className="mt-2" />
                   <ObsVsDecisionLegend className="mt-2" />
                   <RealisticDecisionLegend className="mt-2" />
+                  <RealisticPreviewLegend className="mt-2" />
                 <DarkTable
                   title={`Top 20 expérimental — ${filteredDynamicTop20Main.length} profil(s)`}
                   headers={[
@@ -6583,6 +6748,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                         <RealisticDecisionInline
                           rdm={row.realisticDecisionMetrics}
                           observationalAssignmentRate={row.assignmentRate}
+                        />
+                        <RealisticPreviewInline
+                          preview={row.realisticPreview}
+                          previewRank={row.realisticPreviewRank}
                         />
                       </td>
                       <td className="px-3 py-2.5">

@@ -1,0 +1,486 @@
+{
+  "phase": "J5-B6",
+  "generatedAt": "2026-06-07T18:09:49.106Z",
+  "dataSource": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.json",
+  "recordCount": 154,
+  "resolvedRecordCount": 0,
+  "realDataSparse": true,
+  "real": {
+    "scoreType": "dynamicTop20ScoreRealistic",
+    "scoreSource": "realistic",
+    "guardrails": {
+      "exploitableForTop20Count": 0,
+      "exploitableMinScore": 35,
+      "exploitableMinN": 10,
+      "realisticMinSelectedTradeCount": 5,
+      "realisticMinSelectedYieldPct": 0.5,
+      "realisticMaxDeepAssignmentRatePct": 50,
+      "realisticConfirmMinSelectedTradeCount": 3,
+      "realisticConfirmMinObservationResolved": 15,
+      "strictEligibleForTop20Count": 0,
+      "confirmEligibleForTop20Count": 0,
+      "strictInTop20Count": 0,
+      "confirmInTop20Count": 0
+    },
+    "counts": {
+      "top20Total": 0,
+      "strictInTop20": 0,
+      "confirmInTop20": 0,
+      "strictEligibleTotal": 0,
+      "confirmEligibleTotal": 0
+    },
+    "strict": [],
+    "confirm": [],
+    "rejectedSample": [],
+    "focusImpact": [
+      {
+        "ticker": "HOOD",
+        "status": "absent"
+      },
+      {
+        "ticker": "CCL",
+        "status": "absent"
+      },
+      {
+        "ticker": "HIMS",
+        "status": "absent"
+      },
+      {
+        "ticker": "APLD",
+        "status": "absent"
+      },
+      {
+        "ticker": "TQQQ",
+        "status": "absent"
+      },
+      {
+        "ticker": "INTC",
+        "status": "absent"
+      },
+      {
+        "ticker": "AFRM",
+        "status": "absent"
+      },
+      {
+        "ticker": "SOFI",
+        "status": "absent"
+      }
+    ],
+    "secondRankingCheck": {
+      "top20Realistic": null,
+      "realisticTop20": null,
+      "confirmTop20": null
+    }
+  },
+  "syntheticProof": {
+    "scoreType": "dynamicTop20ScoreRealistic",
+    "scoreSource": "realistic",
+    "guardrails": {
+      "exploitableForTop20Count": 9,
+      "exploitableMinScore": 35,
+      "exploitableMinN": 10,
+      "realisticMinSelectedTradeCount": 5,
+      "realisticMinSelectedYieldPct": 0.5,
+      "realisticMaxDeepAssignmentRatePct": 50,
+      "realisticConfirmMinSelectedTradeCount": 3,
+      "realisticConfirmMinObservationResolved": 15,
+      "strictEligibleForTop20Count": 9,
+      "confirmEligibleForTop20Count": 11,
+      "strictInTop20Count": 9,
+      "confirmInTop20Count": 11
+    },
+    "counts": {
+      "top20Total": 20,
+      "strictInTop20": 9,
+      "confirmInTop20": 11,
+      "strictEligibleTotal": 9,
+      "confirmEligibleTotal": 11
+    },
+    "strict": [
+      {
+        "rank": 1,
+        "ticker": "STRICT0",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.2,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 2,
+        "ticker": "STRICT1",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.18,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 3,
+        "ticker": "STRICT2",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.16,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 4,
+        "ticker": "STRICT3",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.14,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 5,
+        "ticker": "STRICT4",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.12,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 6,
+        "ticker": "STRICT5",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.1,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 7,
+        "ticker": "STRICT6",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.08,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 8,
+        "ticker": "STRICT7",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.06,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 9,
+        "ticker": "STRICT8",
+        "status": "top20_experimental",
+        "scoreRealistic": 81,
+        "scoreLegacy": 65,
+        "bucket": "strict",
+        "confidence": "normal",
+        "tradeCountGuard": "ok",
+        "eligibleStrict": true,
+        "eligibleConfirm": false,
+        "reason": "admissible réaliste",
+        "selectedTradeCount": 6,
+        "observationResolvedCount": 12,
+        "selectedAvgCspYieldPct": 1.04,
+        "selectedDeepAssignmentRatePct": null
+      }
+    ],
+    "confirm": [
+      {
+        "rank": 10,
+        "ticker": "CONF0",
+        "status": "top20_experimental",
+        "scoreRealistic": 80,
+        "scoreLegacy": 79,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1.12,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 11,
+        "ticker": "CONF1",
+        "status": "top20_experimental",
+        "scoreRealistic": 78,
+        "scoreLegacy": 77,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1.1,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 12,
+        "ticker": "CONF2",
+        "status": "top20_experimental",
+        "scoreRealistic": 78,
+        "scoreLegacy": 77,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1.08,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 13,
+        "ticker": "CONF3",
+        "status": "top20_experimental",
+        "scoreRealistic": 78,
+        "scoreLegacy": 77,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1.06,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 14,
+        "ticker": "CONF4",
+        "status": "top20_experimental",
+        "scoreRealistic": 78,
+        "scoreLegacy": 77,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1.04,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 15,
+        "ticker": "CONF5",
+        "status": "top20_experimental",
+        "scoreRealistic": 78,
+        "scoreLegacy": 77,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1.02,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 16,
+        "ticker": "CONF6",
+        "status": "top20_experimental",
+        "scoreRealistic": 78,
+        "scoreLegacy": 77,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 1,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 17,
+        "ticker": "CONF7",
+        "status": "top20_experimental",
+        "scoreRealistic": 71,
+        "scoreLegacy": 73,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 0.98,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 18,
+        "ticker": "CONF8",
+        "status": "top20_experimental",
+        "scoreRealistic": 71,
+        "scoreLegacy": 73,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 0.96,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 19,
+        "ticker": "CONF9",
+        "status": "top20_experimental",
+        "scoreRealistic": 71,
+        "scoreLegacy": 73,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 0.94,
+        "selectedDeepAssignmentRatePct": null
+      },
+      {
+        "rank": 20,
+        "ticker": "CONF10",
+        "status": "top20_experimental",
+        "scoreRealistic": 71,
+        "scoreLegacy": 73,
+        "bucket": "confirm",
+        "confidence": "low",
+        "tradeCountGuard": "confirm",
+        "eligibleStrict": false,
+        "eligibleConfirm": true,
+        "reason": "échantillon décision réelle faible — à confirmer",
+        "selectedTradeCount": 4,
+        "observationResolvedCount": 16,
+        "selectedAvgCspYieldPct": 0.92,
+        "selectedDeepAssignmentRatePct": null
+      }
+    ],
+    "rejectedSample": [],
+    "focusImpact": [
+      {
+        "ticker": "HOOD",
+        "status": "absent"
+      },
+      {
+        "ticker": "CCL",
+        "status": "absent"
+      },
+      {
+        "ticker": "HIMS",
+        "status": "absent"
+      },
+      {
+        "ticker": "APLD",
+        "status": "absent"
+      },
+      {
+        "ticker": "TQQQ",
+        "status": "absent"
+      },
+      {
+        "ticker": "INTC",
+        "status": "absent"
+      },
+      {
+        "ticker": "AFRM",
+        "status": "absent"
+      },
+      {
+        "ticker": "SOFI",
+        "status": "absent"
+      }
+    ],
+    "secondRankingCheck": {
+      "top20Realistic": null,
+      "realisticTop20": null,
+      "confirmTop20": null
+    }
+  },
+  "scoreType": "dynamicTop20ScoreRealistic",
+  "scoreSource": "realistic"
+}

@@ -2679,6 +2679,16 @@ const REALISTIC_DECISION_PREFERRED_DTE = new Set([7, 4]);
 const REALISTIC_DECISION_MIN_CSP_YIELD_PCT = 0.5;
 const REALISTIC_DECISION_SAFE_TIE_BREAK_PCT = 0.15;
 
+// ── J5-B6 — Remplissage Top 20 réaliste « à confirmer » ───────────────────────
+// Quand les stricts (selectedTradeCount≥5 + garde-fous) sont insuffisants pour
+// remplir 20 lignes, on autorise des candidats « à confirmer » à compléter le
+// Top 20 DERRIÈRE les stricts. Ces candidats ont un échantillon décision réelle
+// encore faible (3–4 décisions) mais un échantillon observationnel suffisant et
+// les mêmes garde-fous qualité (rendement réel ≥0,5 %, profondeur réelle ≤50 %).
+const REALISTIC_CONFIRM_MIN_TRADE_COUNT = 3;
+const REALISTIC_STRICT_MIN_TRADE_COUNT = 5;
+const REALISTIC_CONFIRM_MIN_OBS_RESOLVED = 15;
+
 function realisticDecisionNormMode(record) {
   const m = String(record?.strikeMode ?? "").trim().toLowerCase();
   if (m === "safe") return "SAFE";
@@ -2894,6 +2904,13 @@ export function computeRealisticPreviewScore(profileOrRow) {
       // Absence de base décision : on ne bloque pas le Top 20 (les gardes E2b restent).
       eligibleForTop20: true,
       eligibilityReason: null,
+      // J5-B6 — sans base décision réelle, on reste sur le chemin « strict » historique
+      // (les garde-fous E2b restent seuls juges). Pas de remplissage « confirm ».
+      eligibleForTop20Confirm: false,
+      dynamicTop20RealisticBucket: "strict",
+      dynamicTop20Confidence: "normal",
+      selectedTradeCountGuard: "ok",
+      realisticEligibilityReason: "données décision réelle indisponibles",
       wouldImprove: false,
       wouldDecline: false,
       rankDelta: 0,
@@ -2968,9 +2985,11 @@ export function computeRealisticPreviewScore(profileOrRow) {
 
   // Garde-fous d'admissibilité Top 20 principal (J5-B3-B) — la confiance dépend du
   // nombre de décisions réelles (selectedTradeCount), pas du nombre d'observations.
+  // `eligibleForTop20` = admissibilité STRICTE (inchangé) : selectedTradeCount≥5 +
+  // rendement réel ≥0,5 % + profondeur réelle ≤50 %.
   let eligibleForTop20 = true;
   let eligibilityReason = null;
-  if (tradeCount < 5) {
+  if (tradeCount < REALISTIC_STRICT_MIN_TRADE_COUNT) {
     eligibleForTop20 = false;
     eligibilityReason = "échantillon décision réelle insuffisant (<5)";
   } else if (lowYield) {
@@ -2981,9 +3000,53 @@ export function computeRealisticPreviewScore(profileOrRow) {
     eligibilityReason = "assignation profonde réelle >50 %";
   }
 
+  // J5-B6 — classification en buckets de remplissage Top 20 réaliste.
+  //   strict   : eligibleForTop20 (selectedTradeCount≥5 + garde-fous qualité OK).
+  //   confirm  : 3–4 décisions réelles + garde-fous qualité OK + échantillon
+  //              observationnel suffisant (observationResolvedCount≥15). Peut
+  //              REMPLIR le Top 20 derrière les stricts, jamais devant.
+  //   rejected : rendement réel <0,5 %, profondeur réelle >50 %, ou échantillon
+  //              décision réelle trop faible (<3) / observations insuffisantes.
+  const obsResolved = toNumberOrNull(rdm.observationResolvedCount) ?? 0;
+  const qualityGuardsOk = !lowYield && deepPct <= 50;
+  let selectedTradeCountGuard;
+  if (tradeCount >= REALISTIC_STRICT_MIN_TRADE_COUNT) selectedTradeCountGuard = "ok";
+  else if (tradeCount >= REALISTIC_CONFIRM_MIN_TRADE_COUNT) selectedTradeCountGuard = "confirm";
+  else selectedTradeCountGuard = "insufficient";
+
+  let dynamicTop20RealisticBucket;
+  let dynamicTop20Confidence;
+  let realisticEligibilityReason;
+  let eligibleForTop20Confirm = false;
+  if (!qualityGuardsOk) {
+    dynamicTop20RealisticBucket = "rejected";
+    dynamicTop20Confidence = "insufficient";
+    realisticEligibilityReason = lowYield
+      ? "rendement réel décision <0,5 % — exclu"
+      : "assignation profonde réelle >50 % — exclu";
+  } else if (tradeCount >= REALISTIC_STRICT_MIN_TRADE_COUNT) {
+    dynamicTop20RealisticBucket = "strict";
+    dynamicTop20Confidence = "normal";
+    realisticEligibilityReason = "admissible réaliste";
+  } else if (
+    tradeCount >= REALISTIC_CONFIRM_MIN_TRADE_COUNT &&
+    obsResolved >= REALISTIC_CONFIRM_MIN_OBS_RESOLVED
+  ) {
+    dynamicTop20RealisticBucket = "confirm";
+    dynamicTop20Confidence = "low";
+    realisticEligibilityReason = "échantillon décision réelle faible — à confirmer";
+    eligibleForTop20Confirm = true;
+  } else {
+    dynamicTop20RealisticBucket = "rejected";
+    dynamicTop20Confidence = "insufficient";
+    realisticEligibilityReason =
+      "échantillon décision réelle insuffisant (<3 décisions ou <15 observations)";
+  }
+
   let confidenceBadge = "normale";
-  if (tradeCount < 5) confidenceBadge = "échantillon insuffisant";
-  else if (tradeCount < 8) confidenceBadge = "confiance faible";
+  if (tradeCount < REALISTIC_STRICT_MIN_TRADE_COUNT) {
+    confidenceBadge = eligibleForTop20Confirm ? "à confirmer" : "échantillon insuffisant";
+  } else if (tradeCount < 8) confidenceBadge = "confiance faible";
 
   const dominantPenalty = penalties.sort((a, b) => a.points - b.points)[0]?.reason ?? null;
   const dominantBonus = bonuses.sort((a, b) => b.points - a.points)[0]?.reason ?? null;
@@ -3006,6 +3069,12 @@ export function computeRealisticPreviewScore(profileOrRow) {
     confidenceBadge,
     eligibleForTop20,
     eligibilityReason,
+    // J5-B6 — buckets de remplissage Top 20 réaliste (additifs).
+    eligibleForTop20Confirm,
+    dynamicTop20RealisticBucket,
+    dynamicTop20Confidence,
+    selectedTradeCountGuard,
+    realisticEligibilityReason,
     wouldImprove: false,
     wouldDecline: false,
     rankDelta: 0,
@@ -4036,20 +4105,35 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
       a.ticker.localeCompare(b.ticker),
   );
 
-  // Admissibilité Top 20 principal : score réaliste suffisant + échantillon
+  // Admissibilité Top 20 principal STRICTE : score réaliste suffisant + échantillon
   // observationnel minimal + garde-fous décision réelle (selectedTradeCount≥5,
   // rendement réel ≥0,5 %, assignation profonde réelle ≤50 %).
-  const exploitable = rankable.filter(
-    (s) =>
-      s.activeScore >= E2B_EXPLOITABLE_MIN_SCORE &&
-      s.n >= E2B_EXPLOITABLE_MIN_N &&
-      (s.realistic?.eligibleForTop20 ?? true),
+  const scoreAndSampleOk = (s) =>
+    s.activeScore >= E2B_EXPLOITABLE_MIN_SCORE && s.n >= E2B_EXPLOITABLE_MIN_N;
+  const strictEligible = rankable.filter(
+    (s) => scoreAndSampleOk(s) && (s.realistic?.eligibleForTop20 ?? true),
   );
+  const strictSet = new Set(strictEligible.map((s) => s.ticker));
+
+  // J5-B6 — Candidats « à confirmer » : remplissent le Top 20 DERRIÈRE les stricts
+  // quand ceux-ci sont insuffisants (3–4 décisions réelles + garde-fous qualité OK +
+  // échantillon observationnel suffisant). Jamais devant un strict (concaténés après).
+  const confirmEligible = rankable.filter(
+    (s) =>
+      !strictSet.has(s.ticker) &&
+      scoreAndSampleOk(s) &&
+      (s.realistic?.eligibleForTop20Confirm ?? false),
+  );
+
   const bucketByTicker = new Map();
   let rank = 0;
 
-  const top20List = exploitable.slice(0, 20);
+  // Stricts d'abord (triés par score réaliste), puis confirm (triés par score réaliste),
+  // le tout plafonné à 20. Un confirm n'entre que si les places strictes sont insuffisantes.
+  const top20List = [...strictEligible, ...confirmEligible].slice(0, 20);
   const top20Set = new Set(top20List.map((s) => s.ticker));
+  const strictInTop20 = top20List.filter((s) => strictSet.has(s.ticker)).length;
+  const confirmInTop20 = top20List.length - strictInTop20;
   for (const s of top20List) {
     rank += 1;
     bucketByTicker.set(s.ticker, { bucket: "top20", rank });
@@ -4086,7 +4170,18 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
     bucketByTicker.set(s.ticker, { bucket: "excludedHighYield", rank: null });
   }
 
-  return { ctx, scored, bucketByTicker, top20Count: top20List.length, exploitableCount: exploitable.length };
+  return {
+    ctx,
+    scored,
+    bucketByTicker,
+    top20Count: top20List.length,
+    // `exploitableCount` reste = nombre d'admissibles STRICTS (rétrocompat meta).
+    exploitableCount: strictEligible.length,
+    strictEligibleCount: strictEligible.length,
+    confirmEligibleCount: confirmEligible.length,
+    strictInTop20,
+    confirmInTop20,
+  };
 }
 
 function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
@@ -4139,8 +4234,19 @@ function mapDynamicTop20ProfileRow(profile, rank, status, extra = {}) {
               rankImpactReason: realistic.rankImpactReason,
               penalties: realistic.penalties,
               bonuses: realistic.bonuses,
+              // J5-B6 — buckets de remplissage Top 20 réaliste.
+              eligibleForTop20Confirm: realistic.eligibleForTop20Confirm ?? false,
+              dynamicTop20RealisticBucket: realistic.dynamicTop20RealisticBucket ?? null,
+              dynamicTop20Confidence: realistic.dynamicTop20Confidence ?? null,
+              selectedTradeCountGuard: realistic.selectedTradeCountGuard ?? null,
+              realisticEligibilityReason: realistic.realisticEligibilityReason ?? null,
             }
           : null,
+        // J5-B6 — champs de remplissage portés au niveau de la ligne (UI / rapports).
+        dynamicTop20RealisticBucket: realistic?.dynamicTop20RealisticBucket ?? null,
+        dynamicTop20Confidence: realistic?.dynamicTop20Confidence ?? null,
+        selectedTradeCountGuard: realistic?.selectedTradeCountGuard ?? null,
+        realisticEligibilityReason: realistic?.realisticEligibilityReason ?? null,
         realisticReasonSummary: buildRealisticActiveReasonSummary(
           realistic,
           profile?.realisticDecisionMetrics ?? null,
@@ -4324,12 +4430,21 @@ function buildDynamicTop20E2bResult({
         exploitableForTop20Count: e2bResult.exploitableCount,
         exploitableMinScore: E2B_EXPLOITABLE_MIN_SCORE,
         exploitableMinN: E2B_EXPLOITABLE_MIN_N,
-        realisticMinSelectedTradeCount: 5,
+        realisticMinSelectedTradeCount: REALISTIC_STRICT_MIN_TRADE_COUNT,
         realisticMinSelectedYieldPct: REALISTIC_DECISION_MIN_CSP_YIELD_PCT,
         realisticMaxDeepAssignmentRatePct: 50,
+        // J5-B6 — remplissage « à confirmer » derrière les stricts.
+        realisticConfirmMinSelectedTradeCount: REALISTIC_CONFIRM_MIN_TRADE_COUNT,
+        realisticConfirmMinObservationResolved: REALISTIC_CONFIRM_MIN_OBS_RESOLVED,
+        strictEligibleForTop20Count: e2bResult.strictEligibleCount,
+        confirmEligibleForTop20Count: e2bResult.confirmEligibleCount,
+        strictInTop20Count: e2bResult.strictInTop20,
+        confirmInTop20Count: e2bResult.confirmInTop20,
       },
       realisticScoreActiveNote:
         "dynamicTop20Score = score réaliste actif (pilote le classement). dynamicTop20ScoreLegacy = ancien score compétitif E2b (référence). Pas de second classement.",
+      realisticTop20FillNote:
+        "J5-B6 — le Top 20 est rempli d'abord par les admissibles STRICTS (selectedTradeCount≥5 + garde-fous), puis complété par des candidats « à confirmer » (3–4 décisions, garde-fous OK, observations≥15) DERRIÈRE les stricts. Un seul classement, score réaliste inchangé.",
     },
   });
 }

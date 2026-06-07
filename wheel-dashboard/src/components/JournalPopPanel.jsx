@@ -3667,7 +3667,33 @@ function RealisticPreviewLegend({ className = "" }) {
       ≥0,5 %, assignation profonde, duplication) ·{" "}
       <span className="text-violet-200/90">Score réaliste actif — pilote le classement Top 20.</span>{" "}
       Ancien score observationnel conservé en référence.
+      <div className="mt-1 text-slate-500">
+        <span className="font-semibold text-amber-200">Top réaliste (J5-B6)</span> : les candidats{" "}
+        <span className="text-amber-200">« à confirmer »</span> peuvent remplir le Top 20 quand
+        l'échantillon décision réelle est encore faible (3–4 décisions). Ils restent classés{" "}
+        <em>derrière</em> les admissibles stricts et ne sont jamais aussi solides qu'un strict.
+      </div>
     </div>
+  );
+}
+
+// J5-B6 — badge de bucket de remplissage Top 20 réaliste : strict (admissible),
+// confirm (« À confirmer · échantillon faible »), rejected. On n'affiche un badge
+// que pour « confirm » : un strict n'a pas besoin de mention, un rejected n'est
+// pas dans le Top 20 principal.
+function RealisticTop20BucketBadge({ realisticActive }) {
+  const bucket = realisticActive?.dynamicTop20RealisticBucket ?? null;
+  if (bucket !== "confirm") return null;
+  const reason =
+    realisticActive?.realisticEligibilityReason ??
+    "échantillon décision réelle faible — à confirmer";
+  return (
+    <span
+      className="mt-0.5 inline-block rounded-full border border-amber-500/50 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200"
+      title={`${reason} · confiance faible — moins solide qu'un admissible strict.`}
+    >
+      À confirmer · échantillon faible
+    </span>
   );
 }
 
@@ -3712,11 +3738,23 @@ function RealisticPreviewModalSection({ realisticPreview }) {
         </div>
         <div className="rounded-lg border border-violet-500/30 bg-slate-900/70 px-3 py-2 text-[10px] text-slate-400">
           Admissible Top 20 :{" "}
-          <span className={preview.eligibleForTop20 === false ? "font-semibold text-rose-300" : "font-semibold text-emerald-300"}>
-            {preview.eligibleForTop20 === false ? "non" : "oui"}
-          </span>
-          {preview.eligibilityReason ? (
-            <span className="block text-[9px] text-slate-500">{preview.eligibilityReason}</span>
+          {preview.dynamicTop20RealisticBucket === "confirm" ? (
+            <span className="font-semibold text-amber-300">à confirmer</span>
+          ) : (
+            <span
+              className={
+                preview.eligibleForTop20 === false
+                  ? "font-semibold text-rose-300"
+                  : "font-semibold text-emerald-300"
+              }
+            >
+              {preview.eligibleForTop20 === false ? "non" : "oui (strict)"}
+            </span>
+          )}
+          {preview.realisticEligibilityReason || preview.eligibilityReason ? (
+            <span className="block text-[9px] text-slate-500">
+              {preview.realisticEligibilityReason ?? preview.eligibilityReason}
+            </span>
           ) : null}
         </div>
       </div>
@@ -6813,8 +6851,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                             Ancien score obs. : {row.dynamicTop20ScoreLegacy}
                           </span>
                         ) : null}
+                        <RealisticTop20BucketBadge realisticActive={row.realisticActive} />
                         {row.realisticActive?.confidenceBadge &&
-                        row.realisticActive.confidenceBadge !== "normale" ? (
+                        row.realisticActive.confidenceBadge !== "normale" &&
+                        row.realisticActive.confidenceBadge !== "à confirmer" ? (
                           <span
                             className="mt-0.5 inline-block rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200"
                             title={row.realisticActive?.eligibilityReason ?? undefined}

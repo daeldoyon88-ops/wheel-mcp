@@ -4335,6 +4335,7 @@ function buildDynamicTop20E2bResult({
   todayYmd,
   cryptoBlockedProfiles,
   asOfDate,
+  dteFilter = null,
 }) {
   const cryptoBlockedSet = new Set(
     (cryptoBlockedProfiles ?? []).map((p) => e2bSym(p?.ticker)),
@@ -4423,6 +4424,8 @@ function buildDynamicTop20E2bResult({
       // J5-B3-B — le score réaliste (décision réelle BALANCED + garde-fous) pilote le tri.
       scoreType: "dynamicTop20ScoreRealistic",
       scoreSource: "realistic",
+      // J6-A — horizon DTE sur lequel ce classement a été recalculé (null = tous DTE).
+      dteFilter: dteFilter ?? null,
       rankingFormulaVersion: E2B_RANKING_FORMULA_VERSION,
       scoreNote:
         "Score réaliste actif (décision réelle BALANCED 1 trade/ticker×expiration + garde-fous) — pilote le classement Top 20. Score compétitif E2b conservé en référence (dynamicTop20ScoreLegacy).",
@@ -4449,11 +4452,50 @@ function buildDynamicTop20E2bResult({
   });
 }
 
+// ── J6-A — Filtre DTE réel du Top réaliste ────────────────────────────────────
+// Permet de recalculer/filtrer le Top réaliste sur un horizon DTE unique (7/4/3/2).
+// `null` / "all" / "tous" = comportement actuel (tous DTE mélangés). Le filtre est
+// appliqué AVANT toute métrique réaliste : les observations hors DTE sont retirées
+// puis les profils sont RECONSTRUITS sur le sous-ensemble (donc selectedTradeCount,
+// rendement réel, assignation réelle, score réaliste sont recalculés par DTE).
+const DYNAMIC_TOP20_DTE_VIEW_TARGETS = [7, 4, 3];
+
+function normalizeDynamicTop20DteFilter(value) {
+  if (value == null) return null;
+  const raw = String(value).trim().toLowerCase();
+  if (raw === "" || raw === "all" || raw === "tous") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 /**
  * Classement expérimental Top 20 — laboratoire read-only à partir des profils 1 %+ Wheel.
+ *
+ * J6-A — `options.dteFilter` (7/4/3/2 ou null/"all") recalcule le Top réaliste sur les
+ * seules observations du DTE choisi. Quand un filtre est actif et que les records bruts
+ * sont fournis, les profils passés en argument sont reconstruits depuis le sous-ensemble
+ * DTE (`options.cycles` réutilisés pour le bloc Wheel). Sans filtre, le comportement
+ * global d'origine est strictement conservé.
  */
 export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
-  const allProfiles = Array.isArray(profiles) ? profiles : [];
+  const dteFilter = normalizeDynamicTop20DteFilter(options.dteFilter);
+  let inputProfiles = Array.isArray(profiles) ? profiles : [];
+  let optionRecords = Array.isArray(options.records) ? options.records : null;
+  if (dteFilter != null && optionRecords) {
+    // Filtre DTE AVANT reconstruction des profils → toutes les métriques réalistes
+    // (decisionMetrics, csp, assignment, score, garde-fous) sont recalculées par DTE.
+    optionRecords = optionRecords.filter(
+      (record) => toNumberOrNull(record?.dteAtScan) === dteFilter,
+    );
+    const rebuilt = computeOnePercentWheelProfiles(
+      optionRecords,
+      Array.isArray(options.cycles) ? options.cycles : [],
+      options,
+    );
+    inputProfiles = Array.isArray(rebuilt.profiles) ? rebuilt.profiles : [];
+  }
+
+  const allProfiles = inputProfiles;
   const tickerProfilesAll = allProfiles.filter((profile) => profile?.groupType === "ticker");
 
   // Bug fix — règle crypto-block : crypto/digital asset exclus du laboratoire Top 20
@@ -4477,7 +4519,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
   // Activé seulement quand les enregistrements bruts sont disponibles
   // (chemin de production via le journal). Sans records → scoring legacy ci-dessous
   // (compatibilité des tests unitaires existants appelant sans records).
-  const e2bRecords = Array.isArray(options.records) ? options.records : null;
+  const e2bRecords = optionRecords;
   if (e2bRecords && e2bRecords.length > 0) {
     const asOfDate = normalizeIsoTimestamp(options.today ?? options.asOfDate ?? new Date()).slice(0, 10);
     return buildDynamicTop20E2bResult({
@@ -4486,6 +4528,7 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
       todayYmd: asOfDate,
       cryptoBlockedProfiles,
       asOfDate,
+      dteFilter,
     });
   }
 
@@ -4599,6 +4642,8 @@ export function computeDynamicTop20WheelProfiles(profiles, options = {}) {
       readOnly: true,
       experimental: true,
       scoreType: "dynamicTop20Score",
+      // J6-A — horizon DTE sur lequel ce classement a été recalculé (null = tous DTE).
+      dteFilter: dteFilter ?? null,
       scoreNote:
         "Score provisoire de laboratoire — ne constitue pas un score final ni une recommandation de trade.",
       guardrails: {
@@ -7416,10 +7461,24 @@ export function createWheelValidationService(options = {}) {
       ...options,
       theoreticalCycles,
     });
-    return computeDynamicTop20WheelProfiles(onePercentResult.profiles ?? [], {
-      ...options,
-      records,
-    });
+    const profiles = onePercentResult.profiles ?? [];
+    const buildView = (dteFilter) =>
+      computeDynamicTop20WheelProfiles(profiles, {
+        ...options,
+        records,
+        cycles: theoreticalCycles,
+        dteFilter,
+      });
+
+    // J6-A — vues par DTE recalculées sur le sous-ensemble d'observations (7/4/3),
+    // en plus du Top réaliste global (tous DTE). Le résultat de premier niveau RESTE
+    // la vue « tous DTE » (rétrocompat) ; `dynamicTop20DteViews` porte les vues par DTE.
+    const dteViews = { all: buildView(null) };
+    for (const dte of DYNAMIC_TOP20_DTE_VIEW_TARGETS) {
+      dteViews[`dte${dte}`] = buildView(dte);
+    }
+
+    return { ...dteViews.all, dynamicTop20DteViews: dteViews };
   }
 
   async function computeV3CandidateProfiles(options = {}) {

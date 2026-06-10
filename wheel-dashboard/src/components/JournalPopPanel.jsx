@@ -3749,6 +3749,26 @@ function RealisticDecisionCompactLine({ rdm }) {
   );
 }
 
+// J5-C — libellé Statut pour la colonne Top réaliste (remplace « Top 20 expérimental »).
+function formatRealisticTop20StatusLabel(row) {
+  const status = row?.dynamicTop20Status ?? "";
+  if (status !== "top20_experimental") {
+    return row?.dynamicTop20StatusLabel ?? status ?? "—";
+  }
+  const bucket = row?.realisticActive?.dynamicTop20RealisticBucket ?? null;
+  if (bucket === "strict") return "Top réaliste · strict";
+  if (bucket === "confirm") return "Top réaliste · à confirmer";
+  return "Top réaliste";
+}
+
+// J5-C — titre dynamique « Proches d'entrer » basé sur la taille réelle du Top réaliste.
+function buildNearEntryRankTitle(top20Count, nearRowsCount) {
+  if (nearRowsCount <= 0) return "Proches d'entrer";
+  const start = top20Count + 1;
+  const end = start + nearRowsCount - 1;
+  return `Proches d'entrer — rangs ${start}–${end}`;
+}
+
 // J5-C — mention dynamique sous le titre du Top réaliste.
 function RealisticTop20FillNote({ top20Count, className = "" }) {
   const full = top20Count >= 20;
@@ -5483,6 +5503,8 @@ export default function JournalPopPanel({ apiBase, active }) {
   const [dynamicTop20TickerSearch, setDynamicTop20TickerSearch] = useState("");
   const [dynamicTop20ShowAllExcluded, setDynamicTop20ShowAllExcluded] = useState(false);
   const [dynamicTop20DteTicker, setDynamicTop20DteTicker] = useState(null);
+  // J6-A — horizon DTE affiché pour le bloc Top réaliste ("all" | "7" | "4" | "3").
+  const [dynamicTop20Dte, setDynamicTop20Dte] = useState("all");
   const [theoreticalTickerSearch, setTheoreticalTickerSearch] = useState("");
   const [theoreticalSoldFilter, setTheoreticalSoldFilter] = useState("all");
   const [theoreticalThresholdFilter, setTheoreticalThresholdFilter] = useState("all");
@@ -6088,41 +6110,57 @@ export default function JournalPopPanel({ apiBase, active }) {
     ],
   );
 
+  // J6-A — payload du bloc Top dynamique pour l'horizon DTE sélectionné. "all" =
+  // Top réaliste global (payload de premier niveau, inchangé) ; sinon vue recalculée
+  // côté backend dans `dynamicTop20DteViews`. Tout le bloc (compteurs, Top réaliste,
+  // Proches d'entrer, À exclure) suit cette vue.
+  const activeDynamicTop20Payload = useMemo(() => {
+    if (dynamicTop20Dte === "all") return dynamicTop20Payload;
+    const view = dynamicTop20Payload?.dynamicTop20DteViews?.[`dte${dynamicTop20Dte}`];
+    return view ?? dynamicTop20Payload;
+  }, [dynamicTop20Payload, dynamicTop20Dte]);
+
+  // J6-A — libellés dynamiques de l'horizon DTE pour titres / compteurs.
+  const dynamicTop20DteLabel =
+    dynamicTop20Dte === "all" ? "Tous DTE" : `${dynamicTop20Dte} DTE`;
+  const dynamicTop20TitlePrefix =
+    dynamicTop20Dte === "all" ? "Top réaliste" : `Top réaliste ${dynamicTop20Dte} DTE`;
+
   const filteredDynamicTop20Main = useMemo(() => {
     const source = dynamicTop20TopOnly
-      ? dynamicTop20Payload?.top20 ?? []
+      ? activeDynamicTop20Payload?.top20 ?? []
       : dynamicTop20NearOnly
-      ? dynamicTop20Payload?.nearEntry ?? []
-      : dynamicTop20Payload?.top20 ?? [];
+      ? activeDynamicTop20Payload?.nearEntry ?? []
+      : activeDynamicTop20Payload?.top20 ?? [];
     return applyDynamicTop20Filters(source).slice(0, 20);
-  }, [dynamicTop20Payload, dynamicTop20TopOnly, dynamicTop20NearOnly, applyDynamicTop20Filters]);
+  }, [activeDynamicTop20Payload, dynamicTop20TopOnly, dynamicTop20NearOnly, applyDynamicTop20Filters]);
 
   const filteredDynamicTop20Near = useMemo(() => {
     if (dynamicTop20TopOnly) return [];
-    return applyDynamicTop20Filters(dynamicTop20Payload?.nearEntry ?? []).slice(0, 10);
-  }, [dynamicTop20Payload, dynamicTop20TopOnly, applyDynamicTop20Filters]);
+    return applyDynamicTop20Filters(activeDynamicTop20Payload?.nearEntry ?? []).slice(0, 10);
+  }, [activeDynamicTop20Payload, dynamicTop20TopOnly, applyDynamicTop20Filters]);
 
   const filteredDynamicTop20Excluded = useMemo(() => {
-    const rows = applyDynamicTop20Filters(dynamicTop20Payload?.excludedHighYield ?? []);
+    const rows = applyDynamicTop20Filters(activeDynamicTop20Payload?.excludedHighYield ?? []);
     const limit = dynamicTop20ShowAllExcluded ? rows.length : 10;
     return rows.slice(0, limit);
-  }, [dynamicTop20Payload, dynamicTop20ShowAllExcluded, applyDynamicTop20Filters]);
+  }, [activeDynamicTop20Payload, dynamicTop20ShowAllExcluded, applyDynamicTop20Filters]);
 
   const selectedDynamicTop20Profile = useMemo(() => {
     const selectedTicker = normalizeTicker(dynamicTop20DteTicker);
     if (!selectedTicker) return null;
     const groups = [
-      dynamicTop20Payload?.top20,
-      dynamicTop20Payload?.nearEntry,
-      dynamicTop20Payload?.watchValidate,
-      dynamicTop20Payload?.stressed,
-      dynamicTop20Payload?.excludedHighYield,
-      dynamicTop20Payload?.insufficientSample,
+      activeDynamicTop20Payload?.top20,
+      activeDynamicTop20Payload?.nearEntry,
+      activeDynamicTop20Payload?.watchValidate,
+      activeDynamicTop20Payload?.stressed,
+      activeDynamicTop20Payload?.excludedHighYield,
+      activeDynamicTop20Payload?.insufficientSample,
     ];
     return groups
       .flatMap((group) => (Array.isArray(group) ? group : []))
       .find((row) => normalizeTicker(row?.ticker) === selectedTicker) ?? null;
-  }, [dynamicTop20Payload, dynamicTop20DteTicker]);
+  }, [activeDynamicTop20Payload, dynamicTop20DteTicker]);
 
   const dynamicTop20DteBreakdown = useMemo(
     () =>
@@ -6141,12 +6179,12 @@ export default function JournalPopPanel({ apiBase, active }) {
     const map = new Map();
     const rowByTicker = new Map();
     const groups = [
-      dynamicTop20Payload?.top20,
-      dynamicTop20Payload?.nearEntry,
-      dynamicTop20Payload?.watchValidate,
-      dynamicTop20Payload?.stressed,
-      dynamicTop20Payload?.excludedHighYield,
-      dynamicTop20Payload?.insufficientSample,
+      activeDynamicTop20Payload?.top20,
+      activeDynamicTop20Payload?.nearEntry,
+      activeDynamicTop20Payload?.watchValidate,
+      activeDynamicTop20Payload?.stressed,
+      activeDynamicTop20Payload?.excludedHighYield,
+      activeDynamicTop20Payload?.insufficientSample,
     ];
     const tickers = new Set();
     for (const group of groups) {
@@ -6165,7 +6203,7 @@ export default function JournalPopPanel({ apiBase, active }) {
       map.set(t, { eventUniqueness, eventRisk: resolveEventRiskDisplay(row, eventUniqueness) });
     }
     return map;
-  }, [dynamicTop20Payload, records]);
+  }, [activeDynamicTop20Payload, records]);
 
   const latestOptionSnapshotRecords = useMemo(
     () =>
@@ -6730,8 +6768,8 @@ export default function JournalPopPanel({ apiBase, active }) {
           subtitle="Classement de laboratoire pour construire un univers CSP/CC concentré. Ne constitue pas une recommandation de trade."
           defaultOpen
           summaryRight={
-            dynamicTop20Payload?.summary
-              ? `${dynamicTop20Payload.summary.top20Count ?? 0} Top 20 · ${dynamicTop20Payload.summary.nearEntryCount ?? 0} proches`
+            activeDynamicTop20Payload?.summary
+              ? `${activeDynamicTop20Payload.summary.top20Count ?? 0} Top 20 · ${activeDynamicTop20Payload.summary.nearEntryCount ?? 0} proches · ${dynamicTop20DteLabel}`
               : "Classement expérimental"
           }
         >
@@ -6744,24 +6782,61 @@ export default function JournalPopPanel({ apiBase, active }) {
               <p className="text-[10px] italic text-slate-600 leading-relaxed">
                 Snapshot absent peut être normal sur les anciens records historiques. Les snapshots enrichis sont surtout présents sur les nouveaux scans.
               </p>
+
+              {/* J6-A — sélecteur d'horizon DTE : recalcule tout le bloc Top dynamique. */}
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-2.5">
+                <span className="text-[11px] font-semibold text-slate-300">DTE :</span>
+                {[
+                  { key: "all", label: "Tous" },
+                  { key: "7", label: "7 DTE" },
+                  { key: "4", label: "4 DTE" },
+                  { key: "3", label: "3 DTE" },
+                ].map((opt) => {
+                  const active = dynamicTop20Dte === opt.key;
+                  const available =
+                    opt.key === "all" ||
+                    Boolean(dynamicTop20Payload?.dynamicTop20DteViews?.[`dte${opt.key}`]);
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => setDynamicTop20Dte(opt.key)}
+                      className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                        active
+                          ? "border-sky-500/60 bg-sky-500/15 text-sky-200"
+                          : available
+                          ? "border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
+                          : "cursor-not-allowed border-slate-800 bg-slate-900/30 text-slate-600"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+                <span className="ml-auto text-[10px] text-slate-500">
+                  Score, rendement réel et assignation réelle recalculés sur l&apos;horizon choisi.
+                </span>
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <ProKpi
                   label="Top réaliste"
-                  value={`${dynamicTop20Payload.summary?.top20Count ?? 0} / 20`}
+                  value={`${activeDynamicTop20Payload?.summary?.top20Count ?? 0} / 20`}
                   tone="good"
-                  sub="profils admissibles"
+                  sub={`profils admissibles · ${dynamicTop20DteLabel}`}
                 />
-                <ProKpi label="Proches d'entrer" value={dynamicTop20Payload.summary?.nearEntryCount ?? 0} tone="info" />
-                <ProKpi label="À valider" value={dynamicTop20Payload.summary?.watchValidateCount ?? 0} tone="info" />
-                <ProKpi label="Stressés" value={dynamicTop20Payload.summary?.stressedCount ?? 0} tone="warn" />
+                <ProKpi label="Proches d'entrer" value={activeDynamicTop20Payload?.summary?.nearEntryCount ?? 0} tone="info" />
+                <ProKpi label="À valider" value={activeDynamicTop20Payload?.summary?.watchValidateCount ?? 0} tone="info" />
+                <ProKpi label="Stressés" value={activeDynamicTop20Payload?.summary?.stressedCount ?? 0} tone="warn" />
                 <ProKpi
                   label="À exclure malgré rendement"
-                  value={dynamicTop20Payload.summary?.excludedHighYieldCount ?? 0}
+                  value={activeDynamicTop20Payload?.summary?.excludedHighYieldCount ?? 0}
                   tone="risk"
                 />
                 <ProKpi
                   label="Échantillons insuffisants"
-                  value={dynamicTop20Payload.summary?.insufficientSampleCount ?? 0}
+                  value={activeDynamicTop20Payload?.summary?.insufficientSampleCount ?? 0}
                   tone="neutral"
                 />
               </div>
@@ -6874,11 +6949,11 @@ export default function JournalPopPanel({ apiBase, active }) {
                   <RealisticDecisionLegend className="mt-2" />
                   <RealisticPreviewLegend className="mt-2" />
                 <RealisticTop20FillNote
-                  top20Count={dynamicTop20Payload.summary?.top20Count ?? filteredDynamicTop20Main.length}
+                  top20Count={activeDynamicTop20Payload?.summary?.top20Count ?? filteredDynamicTop20Main.length}
                   className="mt-2"
                 />
                 <DarkTable
-                  title={`Top réaliste — ${filteredDynamicTop20Main.length} / 20 profils`}
+                  title={`${dynamicTop20TitlePrefix} — ${filteredDynamicTop20Main.length} / 20 profils`}
                   headers={[
                     "Rang",
                     "Ticker",
@@ -6919,7 +6994,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                         <OptionDataBadge label={row?.optionDataBadge ?? "Snapshot absent"} />
                       </td>
                       <td className={`px-3 py-2.5 text-[11px] ${getDynamicTop20StatusTone(row.dynamicTop20Status)}`}>
-                        {row.dynamicTop20StatusLabel ?? row.dynamicTop20Status}
+                        {formatRealisticTop20StatusLabel(row)}
                         {row.sampleDisplayLabel ? (
                           <span className="block text-[10px] text-slate-500">{row.sampleDisplayLabel}</span>
                         ) : null}
@@ -6966,7 +7041,10 @@ export default function JournalPopPanel({ apiBase, active }) {
 
               {!dynamicTop20TopOnly && filteredDynamicTop20Near.length > 0 && (
                 <DarkTable
-                  title={`Proches d'entrer (rangs 21–30) — ${filteredDynamicTop20Near.length} profil(s)`}
+                  title={`${buildNearEntryRankTitle(
+                    activeDynamicTop20Payload?.top20?.length ?? 0,
+                    filteredDynamicTop20Near.length,
+                  )}${dynamicTop20Dte === "all" ? "" : ` ${dynamicTop20Dte} DTE`} — ${filteredDynamicTop20Near.length} profil(s)`}
                   headers={["Rang", "Ticker", "Score réaliste", "Rend. CSP", "Win", "Assign.", "Statut", "Raison"]}
                   headerTitles={{ "Score réaliste": REALISTIC_ACTIVE_SCORE_TOOLTIP }}
                   rows={filteredDynamicTop20Near.map((row) => (
@@ -6994,10 +7072,10 @@ export default function JournalPopPanel({ apiBase, active }) {
                 />
               )}
 
-              {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 0 && (
+              {(activeDynamicTop20Payload?.excludedHighYield?.length ?? 0) > 0 && (
                 <>
                   <DarkTable
-                    title={`À exclure malgré rendement — ${filteredDynamicTop20Excluded.length}/${dynamicTop20Payload.excludedHighYield?.length ?? 0}`}
+                    title={`À exclure malgré rendement — ${filteredDynamicTop20Excluded.length}/${activeDynamicTop20Payload?.excludedHighYield?.length ?? 0}`}
                     headers={["Ticker", "Rend. CSP", "Win", "Assign.", "LB", "Verdict", "Risque événement", "Raison"]}
                     rows={filteredDynamicTop20Excluded.map((row) => {
                       const evt = dynamicTop20EventRiskByTicker.get(normalizeTicker(row.ticker));
@@ -7048,7 +7126,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     })}
                     empty="Aucun profil à exclure."
                   />
-                  {(dynamicTop20Payload.excludedHighYield?.length ?? 0) > 10 && (
+                  {(activeDynamicTop20Payload?.excludedHighYield?.length ?? 0) > 10 && (
                     <button
                       type="button"
                       onClick={() => setDynamicTop20ShowAllExcluded((value) => !value)}
@@ -7056,7 +7134,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                     >
                       {dynamicTop20ShowAllExcluded
                         ? "Réduire à 10 profils"
-                        : `Afficher plus (${(dynamicTop20Payload.excludedHighYield?.length ?? 0) - 10} de plus)`}
+                        : `Afficher plus (${(activeDynamicTop20Payload?.excludedHighYield?.length ?? 0) - 10} de plus)`}
                     </button>
                   )}
                 </>
@@ -7066,7 +7144,7 @@ export default function JournalPopPanel({ apiBase, active }) {
                 Score expérimental E2b — ne constitue pas une recommandation de trade. Badges Mesurable / Préliminaire /
                 Incubateur = affichage seulement (rang et score inchangés). Assign. proche/profonde = % des assignations.
                 {" "}
-                {dynamicTop20Payload.summary?.contextAvailability?.note ?? ""}
+                {activeDynamicTop20Payload?.summary?.contextAvailability?.note ?? ""}
               </p>
 
               {dynamicTop20DteTicker ? (

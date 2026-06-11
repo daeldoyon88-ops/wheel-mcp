@@ -2688,6 +2688,11 @@ const REALISTIC_DECISION_SAFE_TIE_BREAK_PCT = 0.15;
 const REALISTIC_CONFIRM_MIN_TRADE_COUNT = 3;
 const REALISTIC_STRICT_MIN_TRADE_COUNT = 5;
 const REALISTIC_CONFIRM_MIN_OBS_RESOLVED = 15;
+// J6-A2 — Seuil « à confirmer » adapté aux vues DTE spécifiques (7/4/3). Sur un
+// horizon DTE unique l'échantillon est naturellement plus petit : 3 décisions
+// réelles + garde-fous qualité OK suffisent à remplir le Top DTE DERRIÈRE les
+// stricts, SANS exiger observationResolved≥15 (contrairement au confirm global).
+const REALISTIC_DTE_CONFIRM_MIN_TRADE_COUNT = 3;
 
 function realisticDecisionNormMode(record) {
   const m = String(record?.strikeMode ?? "").trim().toLowerCase();
@@ -2884,8 +2889,13 @@ export function computeRealisticDecisionMetrics(records, options = {}) {
  * `realisticDecisionMetrics` (BALANCED). STRICTEMENT ADDITIF : ne remplace ni
  * `dynamicTop20Score`, ni `dynamicTop20Status`, ni le tri Top 20.
  */
-export function computeRealisticPreviewScore(profileOrRow) {
+export function computeRealisticPreviewScore(profileOrRow, options = {}) {
   const row = profileOrRow ?? {};
+  // J6-A2 — `dteConfirm` : vue DTE spécifique active (7/4/3). Quand vrai, le seuil
+  // de remplissage « à confirmer » est adapté à l'horizon (selectedTradeCount≥3 SANS
+  // exiger observationResolved≥15), sans jamais relâcher les garde-fous qualité
+  // (rendement réel ≥0,5 %, profondeur réelle ≤50 %). Faux/absent = seuil global.
+  const dteConfirm = options?.dteConfirm === true;
   const baseScore = toNumberOrNull(row.dynamicTop20Score);
   const rdm = row.realisticDecisionMetrics ?? null;
   const assignmentRate =
@@ -3011,7 +3021,10 @@ export function computeRealisticPreviewScore(profileOrRow) {
   const qualityGuardsOk = !lowYield && deepPct <= 50;
   let selectedTradeCountGuard;
   if (tradeCount >= REALISTIC_STRICT_MIN_TRADE_COUNT) selectedTradeCountGuard = "ok";
-  else if (tradeCount >= REALISTIC_CONFIRM_MIN_TRADE_COUNT) selectedTradeCountGuard = "confirm";
+  else if (tradeCount >= REALISTIC_CONFIRM_MIN_TRADE_COUNT)
+    // J6-A2 — en vue DTE spécifique, un échantillon 3–4 décisions est marqué
+    // « dte_confirm » (seuil adapté à l'horizon) plutôt que « confirm » global.
+    selectedTradeCountGuard = dteConfirm ? "dte_confirm" : "confirm";
   else selectedTradeCountGuard = "insufficient";
 
   let dynamicTop20RealisticBucket;
@@ -3028,6 +3041,17 @@ export function computeRealisticPreviewScore(profileOrRow) {
     dynamicTop20RealisticBucket = "strict";
     dynamicTop20Confidence = "normal";
     realisticEligibilityReason = "admissible réaliste";
+  } else if (dteConfirm && tradeCount >= REALISTIC_DTE_CONFIRM_MIN_TRADE_COUNT) {
+    // J6-A2 — Vue DTE spécifique : seuil adapté. 3–4 décisions réelles sur
+    // l'horizon + garde-fous qualité OK (qualityGuardsOk a déjà écarté rendement
+    // <0,5 % et profondeur >50 %) suffisent à remplir le Top DTE DERRIÈRE les
+    // stricts, sans exiger observationResolved≥15. Un profil dangereux reste exclu.
+    dynamicTop20RealisticBucket = "dte_confirm";
+    dynamicTop20Confidence = "low";
+    realisticEligibilityReason = `Top DTE à confirmer — seulement ${tradeCount} décision${
+      tradeCount > 1 ? "s" : ""
+    }`;
+    eligibleForTop20Confirm = true;
   } else if (
     tradeCount >= REALISTIC_CONFIRM_MIN_TRADE_COUNT &&
     obsResolved >= REALISTIC_CONFIRM_MIN_OBS_RESOLVED
@@ -3090,12 +3114,16 @@ export function computeRealisticPreviewScore(profileOrRow) {
  * réaliste (score + garde-fous d'admissibilité). Ce score pilote désormais le
  * classement Top 20 — ce n'est plus une simple simulation.
  */
-function computeRealisticActiveScoreForProfile(profile, baseScore) {
-  return computeRealisticPreviewScore({
-    dynamicTop20Score: baseScore,
-    assignmentRate: profile?.csp?.assignmentRate ?? null,
-    realisticDecisionMetrics: profile?.realisticDecisionMetrics ?? null,
-  });
+function computeRealisticActiveScoreForProfile(profile, baseScore, options = {}) {
+  return computeRealisticPreviewScore(
+    {
+      dynamicTop20Score: baseScore,
+      assignmentRate: profile?.csp?.assignmentRate ?? null,
+      realisticDecisionMetrics: profile?.realisticDecisionMetrics ?? null,
+    },
+    // J6-A2 — propage le seuil DTE adapté quand une vue DTE spécifique est active.
+    { dteConfirm: options?.dteConfirm === true },
+  );
 }
 
 /**
@@ -3612,6 +3640,12 @@ const E2B_RANKING_FORMULA_VERSION = "E2b";
 const E2B_STRESS_KRACH_EXP = "2026-06-05";
 const E2B_EXPLOITABLE_MIN_SCORE = 35;
 const E2B_EXPLOITABLE_MIN_N = 10;
+// J6-A2 — plancher observationnel abaissé pour le remplissage « dte_confirm » des
+// vues DTE spécifiques. Sur un horizon DTE unique, l'échantillon observationnel est
+// naturellement plus petit (ex. 3 décisions × 2 modes = 6 obs). Les garde-fous
+// qualité (rendement ≥0,5 %, profondeur ≤50 %, score ≥35) restent inchangés ; seul
+// le strict/confirm GLOBAL conserve E2B_EXPLOITABLE_MIN_N.
+const E2B_DTE_CONFIRM_MIN_N = 5;
 const E2B_DTE_TARGETS = [2, 3, 4, 7];
 
 const E2B_CONFIG = {
@@ -4067,8 +4101,10 @@ function buildE2bMainReason(ctx) {
  * exclusions dures ne restent que pour crypto-block, données critiques absentes,
  * risque confirmé répété, et échantillon inutilisable.
  */
-function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlockedSet) {
+function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlockedSet, options = {}) {
   const ctx = buildE2bContext(records, todayYmd);
+  // J6-A2 — vue DTE spécifique active → seuil « à confirmer » adapté à l'horizon.
+  const dteConfirm = options?.dteConfirm === true;
 
   const scored = tickerProfiles.map((profile) => {
     const ticker = e2bSym(profile?.ticker);
@@ -4077,7 +4113,7 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
     const e2b = computeE2bCompetitiveScore(profile, ctx, uniqueness, cryptoBlocked);
     // J5-B3-B — le score RÉALISTE (décision réelle BALANCED + garde-fous) devient le
     // score actif qui pilote le classement Top 20. Le score E2b reste comme référence.
-    const realistic = computeRealisticActiveScoreForProfile(profile, e2b.score);
+    const realistic = computeRealisticActiveScoreForProfile(profile, e2b.score, { dteConfirm });
     const activeScore = realistic?.score != null ? realistic.score : e2b.score;
     return {
       profile,
@@ -4118,12 +4154,17 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
   // J5-B6 — Candidats « à confirmer » : remplissent le Top 20 DERRIÈRE les stricts
   // quand ceux-ci sont insuffisants (3–4 décisions réelles + garde-fous qualité OK +
   // échantillon observationnel suffisant). Jamais devant un strict (concaténés après).
-  const confirmEligible = rankable.filter(
-    (s) =>
-      !strictSet.has(s.ticker) &&
-      scoreAndSampleOk(s) &&
-      (s.realistic?.eligibleForTop20Confirm ?? false),
-  );
+  // J6-A2 — un candidat « dte_confirm » (vue DTE spécifique) tolère un plancher
+  // observationnel plus bas (E2B_DTE_CONFIRM_MIN_N) que le confirm global, l'horizon
+  // DTE unique réduisant mécaniquement le nombre d'observations.
+  const confirmEligible = rankable.filter((s) => {
+    if (strictSet.has(s.ticker)) return false;
+    if (!(s.realistic?.eligibleForTop20Confirm ?? false)) return false;
+    if (s.activeScore < E2B_EXPLOITABLE_MIN_SCORE) return false;
+    const isDteConfirm = s.realistic?.dynamicTop20RealisticBucket === "dte_confirm";
+    const minN = isDteConfirm ? E2B_DTE_CONFIRM_MIN_N : E2B_EXPLOITABLE_MIN_N;
+    return s.n >= minN;
+  });
 
   const bucketByTicker = new Map();
   let rank = 0;
@@ -4134,6 +4175,10 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
   const top20Set = new Set(top20List.map((s) => s.ticker));
   const strictInTop20 = top20List.filter((s) => strictSet.has(s.ticker)).length;
   const confirmInTop20 = top20List.length - strictInTop20;
+  // J6-A2 — part des places « à confirmer » occupées via le seuil DTE adapté.
+  const dteConfirmInTop20 = top20List.filter(
+    (s) => s.realistic?.dynamicTop20RealisticBucket === "dte_confirm",
+  ).length;
   for (const s of top20List) {
     rank += 1;
     bucketByTicker.set(s.ticker, { bucket: "top20", rank });
@@ -4181,6 +4226,7 @@ function computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlocked
     confirmEligibleCount: confirmEligible.length,
     strictInTop20,
     confirmInTop20,
+    dteConfirmInTop20,
   };
 }
 
@@ -4340,7 +4386,11 @@ function buildDynamicTop20E2bResult({
   const cryptoBlockedSet = new Set(
     (cryptoBlockedProfiles ?? []).map((p) => e2bSym(p?.ticker)),
   );
-  const e2bResult = computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlockedSet);
+  // J6-A2 — vue DTE spécifique (dteFilter non null) → seuil « à confirmer » adapté.
+  const dteConfirm = dteFilter != null;
+  const e2bResult = computeE2bDynamicTop20(tickerProfiles, records, todayYmd, cryptoBlockedSet, {
+    dteConfirm,
+  });
   const { scored, bucketByTicker } = e2bResult;
 
   const sortByRank = (a, b) => (a._rank ?? 1e9) - (b._rank ?? 1e9);
@@ -4439,6 +4489,11 @@ function buildDynamicTop20E2bResult({
         // J5-B6 — remplissage « à confirmer » derrière les stricts.
         realisticConfirmMinSelectedTradeCount: REALISTIC_CONFIRM_MIN_TRADE_COUNT,
         realisticConfirmMinObservationResolved: REALISTIC_CONFIRM_MIN_OBS_RESOLVED,
+        // J6-A2 — seuil DTE adapté (vue 7/4/3 : selectedTradeCount≥3 sans obs≥15).
+        dteConfirmEnabled: dteConfirm,
+        realisticDteConfirmMinSelectedTradeCount: REALISTIC_DTE_CONFIRM_MIN_TRADE_COUNT,
+        realisticDteConfirmMinObservations: E2B_DTE_CONFIRM_MIN_N,
+        dteConfirmInTop20Count: e2bResult.dteConfirmInTop20 ?? 0,
         strictEligibleForTop20Count: e2bResult.strictEligibleCount,
         confirmEligibleForTop20Count: e2bResult.confirmEligibleCount,
         strictInTop20Count: e2bResult.strictInTop20,

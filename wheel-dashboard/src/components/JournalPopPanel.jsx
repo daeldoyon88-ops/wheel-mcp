@@ -2584,12 +2584,15 @@ function formatDynamicTop20ReasonShort(row) {
   const ra = row?.realisticActive ?? null;
   const rdm = row?.realisticDecisionMetrics ?? null;
 
-  // Candidat « à confirmer » : message dédié et explicite.
-  if (ra?.dynamicTop20RealisticBucket === "confirm") {
+  // Candidat « à confirmer » : message dédié et explicite (confirm global ou
+  // dte_confirm — vue DTE à seuil adapté). J6-A2.
+  const confirmBucket = ra?.dynamicTop20RealisticBucket;
+  if (confirmBucket === "confirm" || confirmBucket === "dte_confirm") {
     const n = rdm?.selectedTradeCount;
+    const prefix = confirmBucket === "dte_confirm" ? "Top DTE à confirmer" : "À confirmer";
     return n != null
-      ? `À confirmer : seulement ${n} décision${n > 1 ? "s" : ""}`
-      : "À confirmer : échantillon faible";
+      ? `${prefix} : seulement ${n} décision${n > 1 ? "s" : ""}`
+      : `${prefix} : échantillon faible`;
   }
 
   // Conservé en Top 20 malgré le stress grâce à l'historique robuste.
@@ -3718,7 +3721,9 @@ function RealisticPreviewLegend({ className = "" }) {
 // mention, un rejected n'est pas dans le Top 20 principal. Détail dans le modal.
 function RealisticTop20BucketBadge({ realisticActive }) {
   const bucket = realisticActive?.dynamicTop20RealisticBucket ?? null;
-  if (bucket !== "confirm") return null;
+  // J6-A2 — « confirm » (global, obs≥15) et « dte_confirm » (vue DTE, seuil adapté)
+  // partagent le badge « À confirmer » : échantillon décision réelle encore faible.
+  if (bucket !== "confirm" && bucket !== "dte_confirm") return null;
   const reason =
     realisticActive?.realisticEligibilityReason ??
     "échantillon décision réelle faible — à confirmer";
@@ -3758,6 +3763,8 @@ function formatRealisticTop20StatusLabel(row) {
   const bucket = row?.realisticActive?.dynamicTop20RealisticBucket ?? null;
   if (bucket === "strict") return "Top réaliste · strict";
   if (bucket === "confirm") return "Top réaliste · à confirmer";
+  // J6-A2 — vue DTE spécifique : seuil adapté, jamais « strict » si <5 décisions.
+  if (bucket === "dte_confirm") return "Top DTE · à confirmer";
   return "Top réaliste";
 }
 
@@ -6952,6 +6959,13 @@ export default function JournalPopPanel({ apiBase, active }) {
                   top20Count={activeDynamicTop20Payload?.summary?.top20Count ?? filteredDynamicTop20Main.length}
                   className="mt-2"
                 />
+                {dynamicTop20Dte !== "all" &&
+                (activeDynamicTop20Payload?.meta?.guardrails?.dteConfirmInTop20Count ?? 0) > 0 ? (
+                  <p className="mt-1 text-[10px] italic text-amber-300/80">
+                    Vue DTE : seuil adapté, profils à confirmer (≥3 décisions sur l'horizon, garde-fous
+                    qualité maintenus).
+                  </p>
+                ) : null}
                 <DarkTable
                   title={`${dynamicTop20TitlePrefix} — ${filteredDynamicTop20Main.length} / 20 profils`}
                   headers={[

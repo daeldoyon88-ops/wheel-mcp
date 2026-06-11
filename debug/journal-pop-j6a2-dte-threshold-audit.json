@@ -1,0 +1,303 @@
+{
+  "generatedAt": "2026-06-11T15:10:12.674Z",
+  "readOnly": true,
+  "phase": "J6-A2 — seuils du Top réaliste adaptés aux vues DTE",
+  "focusTickers": [
+    "IONQ",
+    "APLD",
+    "TQQQ",
+    "HOOD"
+  ],
+  "source": {
+    "journal": "C:\\Users\\melan\\Desktop\\wheel-mcp-remote\\data\\wheelValidationJournal.sqlite",
+    "recordsTotal": 3290,
+    "today": "2026-06-11"
+  },
+  "consistency": {
+    "allViewMetaDteFilter": null,
+    "allViewSameAsGlobal": true,
+    "allViewHasDteConfirm": false,
+    "allViewTop20Count": 16
+  },
+  "byDte": {
+    "3": {
+      "comparison": {
+        "metaDteFilter": 3,
+        "dteConfirmEnabled": true,
+        "dteConfirmInTop20Count": 3,
+        "before": {
+          "top": 0,
+          "near": 8
+        },
+        "after": {
+          "top": 3,
+          "near": 5
+        },
+        "promoted": [
+          "HIMS",
+          "HOOD",
+          "INTC"
+        ]
+      },
+      "tickers": {
+        "IONQ": {
+          "found": true,
+          "bucket": "insufficientSample",
+          "bucketLabel": "Échantillons insuffisants",
+          "inTop20": false,
+          "realisticBucket": "rejected",
+          "rank": 7,
+          "score": 0,
+          "selectedTradeCount": 2,
+          "observationResolvedCount": 4,
+          "realYieldPct": 0.65,
+          "realAssignmentRatePct": 50,
+          "realDeepAssignmentRatePct": 100,
+          "n": 4,
+          "promotedByDteConfirm": false,
+          "realisticEligibilityReason": "assignation profonde réelle >50 % — exclu"
+        },
+        "APLD": {
+          "found": true,
+          "bucket": "nearEntry",
+          "bucketLabel": "Proches d'entrer",
+          "inTop20": false,
+          "realisticBucket": "rejected",
+          "rank": 4,
+          "score": 56,
+          "selectedTradeCount": 2,
+          "observationResolvedCount": 6,
+          "realYieldPct": 1.39,
+          "realAssignmentRatePct": 0,
+          "realDeepAssignmentRatePct": null,
+          "n": 6,
+          "promotedByDteConfirm": false,
+          "realisticEligibilityReason": "échantillon décision réelle insuffisant (<3 décisions ou <15 observations)"
+        },
+        "TQQQ": {
+          "found": true,
+          "bucket": "nearEntry",
+          "bucketLabel": "Proches d'entrer",
+          "inTop20": false,
+          "realisticBucket": "rejected",
+          "rank": 8,
+          "score": 26,
+          "selectedTradeCount": 3,
+          "observationResolvedCount": 10,
+          "realYieldPct": 1.09,
+          "realAssignmentRatePct": 33.3,
+          "realDeepAssignmentRatePct": 100,
+          "n": 10,
+          "promotedByDteConfirm": false,
+          "realisticEligibilityReason": "assignation profonde réelle >50 % — exclu"
+        },
+        "HOOD": {
+          "found": true,
+          "bucket": "top20",
+          "bucketLabel": "Top réaliste",
+          "inTop20": true,
+          "realisticBucket": "dte_confirm",
+          "rank": 3,
+          "score": 66,
+          "selectedTradeCount": 4,
+          "observationResolvedCount": 12,
+          "realYieldPct": 0.88,
+          "realAssignmentRatePct": 0,
+          "realDeepAssignmentRatePct": null,
+          "n": 12,
+          "promotedByDteConfirm": true,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 4 décisions"
+        }
+      }
+    },
+    "4": {
+      "comparison": {
+        "metaDteFilter": 4,
+        "dteConfirmEnabled": true,
+        "dteConfirmInTop20Count": 2,
+        "before": {
+          "top": 0,
+          "near": 2
+        },
+        "after": {
+          "top": 2,
+          "near": 0
+        },
+        "promoted": [
+          "DAL",
+          "HOOD"
+        ]
+      },
+      "tickers": {
+        "IONQ": {
+          "found": true,
+          "bucket": "insufficientSample",
+          "bucketLabel": "Échantillons insuffisants",
+          "inTop20": false,
+          "realisticBucket": "rejected",
+          "rank": 7,
+          "score": 0,
+          "selectedTradeCount": 1,
+          "observationResolvedCount": 2,
+          "realYieldPct": 1.4,
+          "realAssignmentRatePct": 100,
+          "realDeepAssignmentRatePct": 100,
+          "n": 2,
+          "promotedByDteConfirm": false,
+          "realisticEligibilityReason": "assignation profonde réelle >50 % — exclu"
+        },
+        "APLD": {
+          "found": true,
+          "bucket": "watchValidate",
+          "bucketLabel": "À valider",
+          "inTop20": false,
+          "realisticBucket": "dte_confirm",
+          "rank": 1,
+          "score": 0,
+          "selectedTradeCount": 3,
+          "observationResolvedCount": 6,
+          "realYieldPct": 1.52,
+          "realAssignmentRatePct": 33.3,
+          "realDeepAssignmentRatePct": 0,
+          "n": 6,
+          "promotedByDteConfirm": false,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 3 décisions"
+        },
+        "TQQQ": {
+          "found": true,
+          "bucket": "watchValidate",
+          "bucketLabel": "À valider",
+          "inTop20": false,
+          "realisticBucket": "rejected",
+          "rank": 3,
+          "score": 0,
+          "selectedTradeCount": 3,
+          "observationResolvedCount": 6,
+          "realYieldPct": 0.94,
+          "realAssignmentRatePct": 33.3,
+          "realDeepAssignmentRatePct": 100,
+          "n": 6,
+          "promotedByDteConfirm": false,
+          "realisticEligibilityReason": "assignation profonde réelle >50 % — exclu"
+        },
+        "HOOD": {
+          "found": true,
+          "bucket": "top20",
+          "bucketLabel": "Top réaliste",
+          "inTop20": true,
+          "realisticBucket": "dte_confirm",
+          "rank": 1,
+          "score": 56,
+          "selectedTradeCount": 3,
+          "observationResolvedCount": 6,
+          "realYieldPct": 0.78,
+          "realAssignmentRatePct": 0,
+          "realDeepAssignmentRatePct": null,
+          "n": 6,
+          "promotedByDteConfirm": true,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 3 décisions"
+        }
+      }
+    },
+    "7": {
+      "comparison": {
+        "metaDteFilter": 7,
+        "dteConfirmEnabled": true,
+        "dteConfirmInTop20Count": 13,
+        "before": {
+          "top": 0,
+          "near": 23
+        },
+        "after": {
+          "top": 13,
+          "near": 10
+        },
+        "promoted": [
+          "APA",
+          "APLD",
+          "BNO",
+          "CCL",
+          "DAL",
+          "DOCU",
+          "FCX",
+          "HOOD",
+          "IGV",
+          "IONQ",
+          "NOK",
+          "SMCI",
+          "TQQQ"
+        ]
+      },
+      "tickers": {
+        "IONQ": {
+          "found": true,
+          "bucket": "top20",
+          "bucketLabel": "Top réaliste",
+          "inTop20": true,
+          "realisticBucket": "dte_confirm",
+          "rank": 2,
+          "score": 76,
+          "selectedTradeCount": 4,
+          "observationResolvedCount": 12,
+          "realYieldPct": 1.35,
+          "realAssignmentRatePct": 0,
+          "realDeepAssignmentRatePct": null,
+          "n": 12,
+          "promotedByDteConfirm": true,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 4 décisions"
+        },
+        "APLD": {
+          "found": true,
+          "bucket": "top20",
+          "bucketLabel": "Top réaliste",
+          "inTop20": true,
+          "realisticBucket": "dte_confirm",
+          "rank": 1,
+          "score": 76,
+          "selectedTradeCount": 4,
+          "observationResolvedCount": 12,
+          "realYieldPct": 1.36,
+          "realAssignmentRatePct": 0,
+          "realDeepAssignmentRatePct": null,
+          "n": 12,
+          "promotedByDteConfirm": true,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 4 décisions"
+        },
+        "TQQQ": {
+          "found": true,
+          "bucket": "top20",
+          "bucketLabel": "Top réaliste",
+          "inTop20": true,
+          "realisticBucket": "dte_confirm",
+          "rank": 10,
+          "score": 53,
+          "selectedTradeCount": 4,
+          "observationResolvedCount": 12,
+          "realYieldPct": 1.06,
+          "realAssignmentRatePct": 25,
+          "realDeepAssignmentRatePct": 0,
+          "n": 12,
+          "promotedByDteConfirm": true,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 4 décisions"
+        },
+        "HOOD": {
+          "found": true,
+          "bucket": "top20",
+          "bucketLabel": "Top réaliste",
+          "inTop20": true,
+          "realisticBucket": "dte_confirm",
+          "rank": 3,
+          "score": 71,
+          "selectedTradeCount": 4,
+          "observationResolvedCount": 12,
+          "realYieldPct": 0.84,
+          "realAssignmentRatePct": 0,
+          "realDeepAssignmentRatePct": null,
+          "n": 12,
+          "promotedByDteConfirm": true,
+          "realisticEligibilityReason": "Top DTE à confirmer — seulement 4 décisions"
+        }
+      }
+    }
+  }
+}

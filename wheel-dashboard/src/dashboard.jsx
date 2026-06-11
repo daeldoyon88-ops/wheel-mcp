@@ -7,22 +7,26 @@ import {
   Target,
   Search,
   Activity,
-  BarChart3,
   Layers3,
   X,
   RefreshCw,
   Database,
+  PieChart,
+  Settings,
+  Server,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 import {
   buildOtmPoolSourceBannerMessage,
   buildOtmRebuildRequiredMessage,
+  buildPreIbkrCutTickerList,
   buildTickerPipelineDiagnostic,
   buildWatchlistRejectedBySymbol,
   buildYahooIbkrFunnel,
   buildYahooRejectedBySymbol,
   isOtmRebuildRequired,
   normalizeTickerQueryForDiagnostic,
+  summarizePreIbkrCutByCategory,
   summarizeYahooIbkrFunnel,
 } from "./tickerPipelineDiagnostic.js";
 import { buildScanFunnelArchivePayload } from "./scanFunnelArchivePayload.js";
@@ -114,6 +118,56 @@ const FALLBACK_TICKERS = [
   "NI", "FSLR", "INCY", "NBIX", "ROOT", "VST", "TECK", "ZM", "PYPL", "DECK",
   "NVO", "PHM", "DXCM", "USB", "PDD"
 ];
+
+/** Libellé UI pour strict_watchlist | research_expanded | fallback_65 */
+function getPoolModeLabel(modeOrSource) {
+  return formatPoolSourceLabel(modeOrSource);
+}
+
+/** Nombre de tickers du pool actuellement sélectionné (pas le dernier scan). */
+function getCurrentPoolCount({ resolvedPreIbkrPool, tickersForScan, preIbkrPoolMode }) {
+  if (Array.isArray(tickersForScan)) {
+    return tickersForScan.length;
+  }
+  if (Array.isArray(resolvedPreIbkrPool?.tickers)) {
+    return resolvedPreIbkrPool.tickers.length;
+  }
+  if (preIbkrPoolMode === "fallback_65") {
+    return FALLBACK_TICKERS.length;
+  }
+  return 0;
+}
+
+/** True si le mode sélectionné diffère du pool du dernier scan. */
+function isLastScanPoolStale({ preIbkrPoolMode, lastScanPoolMeta }) {
+  const lastSource = String(lastScanPoolMeta?.poolSource || "").trim();
+  if (!lastSource) return false;
+  return preIbkrPoolMode !== lastSource;
+}
+
+function hasRecentScanPoolMeta(lastScanPoolMeta) {
+  return Boolean(String(lastScanPoolMeta?.poolSource || "").trim());
+}
+
+/** Message fallback diagnostics — volontaire vs secours involontaire. */
+function buildFallbackPoolDiagnosticMessage({ preIbkrPoolMode, lastScanPoolMeta, isStale }) {
+  const lastSource = lastScanPoolMeta?.poolSource;
+  if (lastSource !== "fallback_65") return null;
+  if (isStale) return null;
+  if (preIbkrPoolMode === "fallback_65") {
+    return {
+      tone: "neutral",
+      text: "Fallback sélectionné manuellement — pool statique utilisé.",
+    };
+  }
+  if (lastScanPoolMeta.usedFallbackUltimate) {
+    return {
+      tone: "warn",
+      text: "Research Expanded indisponible — secours fallback utilisé.",
+    };
+  }
+  return null;
+}
 
 /** Aligné sur ton backend (schema zod dans server.js) — à ajuster si tes critères changent. */
 const DEFAULT_BUILD_WATCHLIST_BODY = {
@@ -1722,7 +1776,21 @@ function AlertPanel() {
   );
 }
 
-function Metric({ label, value, strong = false, tone = "default" }) {
+/** Format diagnostic d'un ratio en pourcentage ; "—" si le dénominateur est nul/invalide. */
+function formatDiagPct(numerator, denominator) {
+  const n = Number(numerator) || 0;
+  const d = Number(denominator) || 0;
+  if (d <= 0) return "—";
+  return `${((n / d) * 100).toFixed(1)} %`;
+}
+
+/** Variante avec libellé court de dénominateur ("X % scannés"), neutre quand le ratio vaut "—". */
+function formatDiagPctOf(numerator, denominator, base) {
+  const pct = formatDiagPct(numerator, denominator);
+  return base && pct !== "—" ? `${pct} ${base}` : pct;
+}
+
+function Metric({ label, value, strong = false, tone = "default", sub = null }) {
   const toneClass =
     tone === "good"
       ? "bg-emerald-950/40 border-emerald-800 text-emerald-300"
@@ -1736,7 +1804,29 @@ function Metric({ label, value, strong = false, tone = "default" }) {
     <div className={cn("rounded-xl border p-3", toneClass)}>
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
       <p className={cn("mt-1 text-sm", strong && "font-semibold")}>{value}</p>
+      {sub ? <p className="mt-0.5 text-xs text-slate-500">{sub}</p> : null}
     </div>
+  );
+}
+
+// Layout-only wrapper for the Diagnostics page. No business logic, no mutation,
+// no API call — it only groups already-rendered blocks under a titled section.
+function DiagnosticsSection({ eyebrow, title, description, children }) {
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 shadow-sm">
+      <div className="mb-3">
+        {eyebrow && (
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
+            {eyebrow}
+          </p>
+        )}
+        <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
+        {description && (
+          <p className="mt-1 text-sm text-slate-400">{description}</p>
+        )}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
   );
 }
 
@@ -3029,6 +3119,75 @@ function SupportStatusLine({ item }) {
 
 function formatMoneyOrDash(value) {
   return value == null || !Number.isFinite(Number(value)) ? "—" : `$${Number(value).toFixed(2)}`;
+}
+
+
+function ScanCompactBadge({ label, value, tone = "default" }) {
+  const toneClasses =
+    tone === "on"
+      ? "border-emerald-700/60 bg-emerald-900/40 text-emerald-100"
+      : tone === "off"
+      ? "border-slate-700 bg-slate-800/70 text-slate-400"
+      : "border-slate-700 bg-slate-800/70 text-slate-300";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs ${toneClasses}`}>
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium text-slate-100">{value ?? "—"}</span>
+    </span>
+  );
+}
+
+// Patch 3A — chips éditables de la barre de scan (UI uniquement, states/handlers existants).
+function EditableScanInput({ label, value, onChange, type = "number", min, max, step, title, suffix, list, wrapperClassName = "", inputClassName = "w-full min-w-0 flex-1" }) {
+  return (
+    <label
+      title={title}
+      className={`inline-flex min-w-0 items-center gap-0.5 overflow-hidden rounded-lg border border-slate-700 bg-slate-800/70 px-1.5 py-1 text-xs text-slate-300 focus-within:border-sky-600 ${wrapperClassName}`}
+    >
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <input
+        type={type}
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        list={list}
+        onChange={onChange}
+        className={`${inputClassName} bg-transparent font-medium text-slate-100 outline-none`}
+      />
+      {suffix ? <span className="shrink-0 text-slate-500">{suffix}</span> : null}
+    </label>
+  );
+}
+
+function EditableScanSelect({ label, value, onChange, children, title, wrapperClassName = "" }) {
+  return (
+    <label
+      title={title}
+      className={`inline-flex min-w-0 items-center gap-0.5 overflow-hidden rounded-lg border border-slate-700 bg-slate-800/70 px-1.5 py-1 text-xs text-slate-300 focus-within:border-sky-600 ${wrapperClassName}`}
+    >
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full min-w-0 flex-1 bg-transparent font-medium text-slate-100 outline-none [&>option]:bg-slate-900"
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function LockedScanBadge({ label, value, title, wrapperClassName = "" }) {
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center gap-0.5 rounded-lg border border-emerald-800 bg-emerald-950/40 px-1.5 py-1 text-xs text-emerald-200 ${wrapperClassName}`}
+    >
+      <span className="text-emerald-400">{label}</span>
+      <span className="font-medium">{value}</span>
+    </span>
+  );
 }
 
 function formatSignedMoneyOrDash(value) {
@@ -10136,6 +10295,832 @@ function ScanFunnelArchivePanel({ apiBase }) {
   );
 }
 
+function PreIbkrCutDiagnosticsPanel({ rows, summary, onExportCsv }) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return (
+    <details
+      className="mt-4 rounded-xl border border-amber-900/40 bg-amber-950/15 p-3"
+      data-testid="pre-ibkr-cut-diagnostics"
+    >
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
+        <span className="font-medium text-amber-100">Tickers coupés avant IBKR ({rows.length})</span>
+        <span className="text-[10px] text-amber-300/50">table lourde repliée par défaut — ouvrir pour inspecter les {rows.length} tickers coupés</span>
+      </summary>
+      <p className="mt-2 text-[10px] text-amber-300/60">
+        Table détaillée conservée pour audit. Ouvre seulement si tu veux inspecter les tickers rejetés.
+      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+        {typeof onExportCsv === "function" && (
+          <button
+            type="button"
+            className="rounded-lg border border-amber-800/60 px-2 py-1 text-[11px] text-amber-200 hover:bg-amber-900/30"
+            onClick={onExportCsv}
+          >
+            Exporter CSV
+          </button>
+        )}
+      </div>
+      {summary?.counts && (
+        <p className="mt-1 text-[11px] text-amber-200/80">
+          {Object.entries(summary.counts)
+            .filter(([, n]) => Number(n) > 0)
+            .map(([key, n]) => `${summary.labels?.[key] ?? key}: ${n}`)
+            .join(" · ")}
+        </p>
+      )}
+      <div className="mt-2 max-h-64 overflow-auto">
+        <table className="min-w-full text-[11px] text-amber-50/90">
+          <thead>
+            <tr className="border-b border-amber-900/40 text-left text-amber-200/70">
+              <th className="px-2 py-1">Ticker</th>
+              <th className="px-2 py-1">Stage perdu</th>
+              <th className="px-2 py-1">Raison</th>
+              <th className="px-2 py-1">Universe</th>
+              <th className="px-2 py-1">Watchlist</th>
+              <th className="px-2 py-1">Yahoo</th>
+              <th className="px-2 py-1">Rejet Y.</th>
+              <th className="px-2 py-1">Crypto</th>
+              <th className="px-2 py-1">OTM</th>
+              <th className="px-2 py-1">Commentaire</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.ticker} className="border-b border-amber-950/50">
+                <td className="px-2 py-1 font-medium">{row.ticker}</td>
+                <td className="px-2 py-1">{row.stageLost ?? "—"}</td>
+                <td className="px-2 py-1">{row.reason ?? "—"}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.wasInUniverse)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.wasInWatchlist)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.sentYahoo)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(row.rejectedYahoo)}</td>
+                <td className="px-2 py-1">{formatPipelineYesNo(!row.cryptoBlocked)}</td>
+                <td className="px-2 py-1">{row.otmProbeStatus ?? "—"}</td>
+                <td className="px-2 py-1 text-amber-100/70">{row.comment ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
+// ─── Page Ticker / Analyse titre (lecture seule) ───
+// Construit des lignes d'affichage à partir d'un objet déjà présent en mémoire
+// (carte finale, ligne IBKR, candidat Yahoo ou ligne de rejet). N'invente aucun
+// champ : chaque ligne n'est ajoutée que si la valeur existe réellement.
+function buildTickerSummaryRows(obj) {
+  if (!obj || typeof obj !== "object") return { symbol: null, rows: [] };
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const up = (v) => String(v ?? "").trim().toUpperCase();
+  const symbol = up(obj.ticker ?? obj.symbol) || null;
+  const rows = [];
+  const push = (label, value) => {
+    if (value === null || value === undefined || value === "") return;
+    rows.push({ label, value });
+  };
+
+  const name = obj.name && up(obj.name) !== symbol ? obj.name : null;
+  push("Nom / sous-jacent", name);
+
+  const price = num(
+    obj.price ?? obj.currentPrice ?? obj.underlyingPrice ?? obj.lastPrice ?? obj.last
+  );
+  push("Prix actuel", price != null ? `${price.toFixed(2)}` : null);
+
+  const actionable =
+    typeof obj.ok === "boolean"
+      ? obj.ok
+      : typeof obj.passesFilter === "boolean"
+      ? obj.passesFilter
+      : typeof obj.dataTradable === "boolean"
+      ? obj.dataTradable
+      : null;
+  push("Statut", actionable === null ? null : actionable ? "Actionnable" : "Non actionnable");
+
+  const grade =
+    obj.finalDisplayGrade ?? obj.displayGrade ?? obj.recommendedGrade ?? obj.grade ?? null;
+  push("Grade final", grade);
+
+  const safeStrike = num(obj.safeStrike?.strike);
+  push("SAFE strike", safeStrike != null ? `${safeStrike.toFixed(2)}` : null);
+  const aggStrike = num(obj.aggressiveStrike?.strike);
+  push("AGGRESSIVE strike", aggStrike != null ? `${aggStrike.toFixed(2)}` : null);
+
+  const safeYield = num(obj.safeStrike?.weeklyYield);
+  push("Rendement SAFE", safeYield != null ? `${safeYield.toFixed(2)}%` : null);
+  const aggYield = num(obj.aggressiveStrike?.weeklyYield);
+  push("Rendement AGGRESSIVE", aggYield != null ? `${aggYield.toFixed(2)}%` : null);
+
+  const pop = num(
+    obj.safeStrike?.popProfitEstimated ??
+      obj.safeStrike?.popEstimate ??
+      obj.popProfitEstimated ??
+      obj.popEstimate
+  );
+  push("POP (SAFE)", pop != null ? `${(pop * 100).toFixed(0)}%` : null);
+
+  const expiration = obj.targetExpiration ?? obj.expiration ?? null;
+  push("Expiration utilisée", expiration);
+
+  const reason =
+    obj.recommendedReason ?? obj.rejectionReason ?? obj.reason ?? obj.note ?? null;
+  push("Raison / diagnostic", reason);
+
+  return { symbol, rows };
+}
+
+// ─── Fiche décisionnelle Ticker (habillage UI uniquement) ────────────────────
+// Réutilise STRICTEMENT les mêmes champs/priorités que buildTickerSummaryRows :
+// aucune nouvelle logique de données, aucune valeur inventée. Les champs absents
+// restent à null et sont rendus "—". Sert à présenter le résumé brut sous forme
+// de fiche SAFE / AGRESSIF / Diagnostic au lieu d'une table plate.
+function buildTickerDecision(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const up = (v) => String(v ?? "").trim().toUpperCase();
+  const symbol = up(obj.ticker ?? obj.symbol) || null;
+  const name = obj.name && up(obj.name) !== symbol ? obj.name : null;
+  const price = num(
+    obj.price ?? obj.currentPrice ?? obj.underlyingPrice ?? obj.lastPrice ?? obj.last
+  );
+  const actionable =
+    typeof obj.ok === "boolean"
+      ? obj.ok
+      : typeof obj.passesFilter === "boolean"
+      ? obj.passesFilter
+      : typeof obj.dataTradable === "boolean"
+      ? obj.dataTradable
+      : null;
+  const grade =
+    obj.finalDisplayGrade ?? obj.displayGrade ?? obj.recommendedGrade ?? obj.grade ?? null;
+  const expiration = obj.targetExpiration ?? obj.expiration ?? null;
+  const reason =
+    obj.recommendedReason ?? obj.rejectionReason ?? obj.reason ?? obj.note ?? null;
+  const safe = {
+    strike: num(obj.safeStrike?.strike),
+    weeklyYield: num(obj.safeStrike?.weeklyYield),
+    pop: num(
+      obj.safeStrike?.popProfitEstimated ??
+        obj.safeStrike?.popEstimate ??
+        obj.popProfitEstimated ??
+        obj.popEstimate
+    ),
+  };
+  const aggressive = {
+    strike: num(obj.aggressiveStrike?.strike),
+    weeklyYield: num(obj.aggressiveStrike?.weeklyYield),
+    // POP agressive : seulement si réellement fournie (jamais déduite de SAFE).
+    pop: num(obj.aggressiveStrike?.popProfitEstimated ?? obj.aggressiveStrike?.popEstimate),
+  };
+  return { symbol, name, price, actionable, grade, expiration, reason, safe, aggressive };
+}
+
+// Formatage cohérent avec buildTickerSummaryRows : rendement déjà en %, POP en décimale.
+const fmtTickerMoney = (n) => (n != null ? `${n.toFixed(2)}` : "—");
+const fmtTickerPct = (n) => (n != null ? `${n.toFixed(2)} %` : "—");
+const fmtTickerPop = (n) => (n != null ? `${(n * 100).toFixed(0)} %` : "—");
+
+const TICKER_BADGE_TONES = {
+  green: "border-emerald-700/60 bg-emerald-900/40 text-emerald-200",
+  cyan: "border-sky-700/60 bg-sky-900/50 text-sky-100",
+  amber: "border-amber-700/60 bg-amber-900/30 text-amber-200",
+  red: "border-rose-800/60 bg-rose-950/50 text-rose-200",
+  gray: "border-slate-700 bg-slate-800/60 text-slate-300",
+};
+
+function TickerBadge({ tone = "gray", children }) {
+  return (
+    <span
+      className={
+        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
+        (TICKER_BADGE_TONES[tone] || TICKER_BADGE_TONES.gray)
+      }
+    >
+      {children}
+    </span>
+  );
+}
+
+// Bloc SAFE ou AGRESSIF. Garde toujours le bloc visible : si le strike manque,
+// affiche un message explicite plutôt que de masquer la donnée.
+function TickerStrikeBlock({ kind, data }) {
+  const isSafe = kind === "safe";
+  const Icon = isSafe ? ShieldCheck : AlertTriangle;
+  const accent = isSafe
+    ? { border: "border-emerald-800/50", text: "text-emerald-300" }
+    : { border: "border-amber-800/50", text: "text-amber-300" };
+  const hasStrike = data.strike != null;
+  return (
+    <div className={"rounded-xl border bg-slate-950/50 p-3 " + accent.border}>
+      <div className="flex items-center gap-1.5">
+        <Icon className={"h-4 w-4 " + accent.text} />
+        <p className={"text-[11px] font-semibold uppercase tracking-wide " + accent.text}>
+          {isSafe ? "SAFE" : "Agressif"}
+        </p>
+      </div>
+      {hasStrike ? (
+        <dl className="mt-2 space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-slate-500">Strike</dt>
+            <dd className="text-sm font-semibold text-slate-100">{fmtTickerMoney(data.strike)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-slate-500">Rendement</dt>
+            <dd className="text-sm font-medium text-slate-100">{fmtTickerPct(data.weeklyYield)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-slate-500">POP</dt>
+            <dd className="text-sm font-medium text-slate-100">{fmtTickerPop(data.pop)}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="mt-2 text-xs text-slate-500">Non disponible dans le dernier scan.</p>
+      )}
+    </div>
+  );
+}
+
+// Fiche décisionnelle réutilisable (résumé du scan + résultat de scan individuel).
+function TickerDecisionCard({ decision, source, heading, statusLabel, statusTone, rawObj }) {
+  const status =
+    statusLabel != null
+      ? { label: statusLabel, tone: statusTone || "gray" }
+      : decision.actionable === true
+      ? { label: "Actionnable", tone: "green" }
+      : decision.actionable === false
+      ? { label: "Non actionnable", tone: "red" }
+      : { label: "Statut inconnu", tone: "gray" };
+  // Fallback brut repliable (étape 8) : garantit qu'aucune donnée ne disparaît.
+  const fallback = rawObj ? buildTickerSummaryRows(rawObj) : { rows: [] };
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          {heading && <p className="text-xs uppercase tracking-wide text-slate-500">{heading}</p>}
+          <h2 className="mt-1 text-xl font-semibold text-slate-50">{decision.symbol ?? "—"}</h2>
+          {decision.name && <p className="text-xs text-slate-400">{decision.name}</p>}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <TickerBadge tone={status.tone}>{status.label}</TickerBadge>
+          {decision.grade && <TickerBadge tone="cyan">Grade {decision.grade}</TickerBadge>}
+          {source && <TickerBadge tone="gray">Source : {source}</TickerBadge>}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500">Prix actuel</span>
+          <span className="font-semibold text-slate-100">{fmtTickerMoney(decision.price)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
+          <span className="text-slate-500">Expiration</span>
+          <span className="font-medium text-slate-100">{decision.expiration ?? "—"}</span>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <TickerStrikeBlock kind="safe" data={decision.safe} />
+        <TickerStrikeBlock kind="aggressive" data={decision.aggressive} />
+      </div>
+
+      <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-sky-300" />
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-300">Diagnostic</p>
+        </div>
+        <p
+          className="mt-1.5 text-sm text-slate-200"
+          title={decision.reason && translateTickerReason(decision.reason) !== decision.reason ? decision.reason : undefined}
+        >
+          {decision.reason
+            ? translateTickerReason(decision.reason)
+            : "Aucun diagnostic détaillé disponible dans le dernier scan."}
+        </p>
+      </div>
+
+      {fallback.rows.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-300">
+            Données brutes du dernier scan
+          </summary>
+          <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+            {fallback.rows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between gap-3 border-b border-slate-800/70 py-1"
+              >
+                <dt className="text-xs text-slate-500">{row.label}</dt>
+                <dd className="text-right text-xs font-medium text-slate-300">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ─── Traduction UI des raisons techniques (page Ticker uniquement) ─────────────
+// Pur affichage : ne modifie jamais les codes dans le state ni les données brutes.
+function translateTickerReasonCode(code) {
+  const TICKER_REASON_TRANSLATIONS = {
+    absent_from_strict_watchlist_after_rebuild: "Absent de la watchlist stricte après rebuild",
+    above_max_price: "Prix au-dessus du maximum autorisé",
+    market_cap_below_min: "Capitalisation trop faible",
+    below_min_price: "Prix sous le minimum autorisé",
+    price_unavailable: "Prix indisponible",
+    below_score_floor: "Score sous le seuil minimal",
+    below_min_volume: "Volume sous le minimum requis",
+    crypto_blocked_except_bitx: "Crypto bloqué — seul BITX est autorisé",
+    expiration_not_available: "Expiration non disponible",
+    failed_final_filter: "Échec du filtre final",
+    no_put_below_lower_bound: "Aucun put disponible sous la borne basse",
+    no_liquid_strike_below_lower_bound: "Aucun strike liquide sous la borne basse",
+    premium_below_target: "Prime sous la cible minimale",
+    yield_below_target: "Rendement sous la cible minimale",
+    safe_strike_not_liquid: "Strike SAFE insuffisamment liquide",
+    ibkr_rejected: "Rejeté par IBKR",
+    not_sent_to_ibkr: "Non envoyé à IBKR",
+    not_tested: "Non testé",
+    not_found: "Non trouvé",
+    unknown: "Inconnu",
+    excluded_by_watchlist_limit: "Exclu par la limite de la watchlist",
+    watchlist_rebuild: "Coupé au rebuild de la watchlist",
+    pool_pre_scan: "Coupé avant le scan",
+    yahoo_returned: "Retourné par Yahoo",
+    ibkr_retained: "Retenu par IBKR",
+    ibkr_rejected_spread: "Rejeté par IBKR — spread trop large",
+    spread_too_wide: "Spread trop large",
+    no_valid_safe_strike: "Aucun strike SAFE valide",
+    no_valid_aggressive_strike: "Aucun strike AGRESSIF valide",
+    insufficient_premium: "Prime insuffisante",
+    insufficient_yield: "Rendement insuffisant",
+  };
+  const t = String(code ?? "").trim();
+  if (!t) return "—";
+  if (TICKER_REASON_TRANSLATIONS[t]) return TICKER_REASON_TRANSLATIONS[t];
+  const ibkrLabel = formatIbkrReason(t);
+  if (ibkrLabel !== t.replaceAll("_", " ")) return ibkrLabel;
+  return t.replaceAll("_", " ");
+}
+
+function translateTickerReason(reason) {
+  if (reason == null || reason === "") return "—";
+  const s = String(reason).trim();
+  if (!s) return "—";
+
+  if (/^(SAFE|AGGRESSIVE|AGRESSIF|REJECT|WATCH)\s*—/i.test(s)) return s;
+  if (/[àâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ]/.test(s)) return s;
+  if (!s.includes("_") && /\s/.test(s) && !/^[a-z0-9_]+$/i.test(s)) return s;
+
+  const prefixed = s.match(/^(IBKR|Yahoo)\s*—\s*(.+)$/i);
+  if (prefixed) return `${prefixed[1]} — ${translateTickerReasonPart(prefixed[2])}`;
+
+  return translateTickerReasonPart(s);
+}
+
+function translateTickerReasonPart(part) {
+  const p = String(part ?? "").trim();
+  if (!p) return "—";
+  if (p.includes(": ")) {
+    return p
+      .split(": ")
+      .map((seg) => translateTickerReasonCode(seg.trim()))
+      .join(" : ");
+  }
+  if (/^[a-z][a-z0-9_]*$/i.test(p) && (p.includes("_") || p === "unknown")) {
+    return translateTickerReasonCode(p);
+  }
+  if (p.includes("_")) return translateTickerReasonCode(p);
+  return p;
+}
+
+// ─── Diagnostic pipeline Ticker (présentation compacte) ──────────────────────
+// Mappe le diagnostic pipeline riche (buildTickerPipelineDiagnostic, flat booleans)
+// en étapes compactes pour la fiche Ticker. Pur, sans effet de bord, jamais throw.
+// N'invente aucune donnée : tout champ absent => "Inconnu" / status "unknown".
+const TICKER_PIPELINE_STAGE_TONE = {
+  ok: "border-emerald-700/60 bg-emerald-900/30 text-emerald-200",
+  warning: "border-amber-700/60 bg-amber-900/30 text-amber-200",
+  fail: "border-rose-800/60 bg-rose-950/50 text-rose-200",
+  unknown: "border-slate-700 bg-slate-800/60 text-slate-400",
+};
+const TICKER_PIPELINE_CONFIDENCE_LABEL = {
+  high: "élevée",
+  medium: "moyenne",
+  low: "faible",
+  unknown: "indéterminée",
+};
+
+function buildTickerPipelineStages(diagnostic, extras = {}) {
+  const d = diagnostic || {};
+  const scanLoaded = extras.scanLoaded !== false;
+  const inPreScanPool = extras.inPreScanPool === true;
+  const inScan = extras.inScan === true;
+  const unknownStage = (key, label) => ({
+    key,
+    label,
+    status: "unknown",
+    value: "Inconnu",
+    detail: "Donnée non disponible — aucun scan chargé.",
+  });
+
+  // 1. Dernier scan
+  let scan;
+  if (!scanLoaded) {
+    scan = unknownStage("scan", "Dernier scan");
+  } else if (inScan) {
+    scan = {
+      key: "scan",
+      label: "Dernier scan",
+      status: "ok",
+      value: "Présent",
+      detail: inPreScanPool
+        ? "Présent dans le pool pré-scan."
+        : "Présent dans les données du dernier scan.",
+    };
+  } else {
+    scan = {
+      key: "scan",
+      label: "Dernier scan",
+      status: "fail",
+      value: "Absent",
+      detail: d.preScanAbsentReason || d.cryptoBlockReason || "Absent du pool scanné au dernier refresh.",
+    };
+  }
+
+  // 2. Yahoo
+  let yahoo;
+  if (!scanLoaded) {
+    yahoo = unknownStage("yahoo", "Yahoo");
+  } else if (d.presentInYahoo) {
+    const detail =
+      [d.yahooRank != null ? `rang ${d.yahooRank}` : null, d.yahooStatus]
+        .filter(Boolean)
+        .join(" · ") || "Retenu par le scan Yahoo.";
+    yahoo = { key: "yahoo", label: "Yahoo", status: "ok", value: "Retenu", detail };
+  } else if (d.yahooRejectReason) {
+    yahoo = { key: "yahoo", label: "Yahoo", status: "fail", value: "Rejeté", detail: d.yahooRejectReason };
+  } else {
+    yahoo = {
+      key: "yahoo",
+      label: "Yahoo",
+      status: inScan ? "warning" : "unknown",
+      value: inScan ? "Non retenu" : "Non trouvé",
+      detail: inScan
+        ? "Présent au scan mais pas dans la shortlist Yahoo."
+        : "Aucune trace dans le retour Yahoo.",
+    };
+  }
+
+  // 3. Pré-IBKR (envoyé / coupé)
+  let preIbkr;
+  if (!scanLoaded) {
+    preIbkr = unknownStage("preIbkr", "Pré-IBKR");
+  } else if (d.sentToIbkr) {
+    preIbkr = {
+      key: "preIbkr",
+      label: "Pré-IBKR",
+      status: "ok",
+      value: "Envoyé à IBKR",
+      detail: "Transmis au scan IBKR auto.",
+    };
+  } else if (d.presentInYahoo) {
+    preIbkr = {
+      key: "preIbkr",
+      label: "Pré-IBKR",
+      status: "warning",
+      value: "Non envoyé",
+      detail: "Retenu Yahoo mais non envoyé (cap Audit Depth, priorité ou scan IBKR non lancé).",
+    };
+  } else {
+    preIbkr = {
+      key: "preIbkr",
+      label: "Pré-IBKR",
+      status: "fail",
+      value: "Coupé",
+      detail:
+        d.yahooRejectReason || d.preScanAbsentReason || d.cryptoBlockReason || "Coupé avant l'étape IBKR.",
+    };
+  }
+
+  // 4. IBKR (testé / retenu / rejeté)
+  let ibkr;
+  if (!scanLoaded) {
+    ibkr = unknownStage("ibkr", "IBKR");
+  } else if (d.presentInIbkrShortlist) {
+    ibkr = { key: "ibkr", label: "IBKR", status: "ok", value: "Testé / retenu", detail: "Validé par le scan IBKR." };
+  } else if (d.presentInIbkrRejected) {
+    ibkr = {
+      key: "ibkr",
+      label: "IBKR",
+      status: "fail",
+      value: "Testé / rejeté",
+      detail: d.ibkrRejectReason || "Rejeté par IBKR (pas de jambe safe/aggressive valide).",
+    };
+  } else if (d.sentToIbkr || d.ibkrTested) {
+    ibkr = {
+      key: "ibkr",
+      label: "IBKR",
+      status: "warning",
+      value: "Testé / sans résultat",
+      detail: "Envoyé à IBKR mais ni retenu ni rejeté enregistré.",
+    };
+  } else {
+    ibkr = {
+      key: "ibkr",
+      label: "IBKR",
+      status: "warning",
+      value: "Non testé",
+      detail: "Pas envoyé au scan IBKR.",
+    };
+  }
+
+  // 5. Cartes finales
+  let finalCards;
+  if (!scanLoaded) {
+    finalCards = unknownStage("finalCards", "Cartes finales");
+  } else if (d.presentInFilteredCards) {
+    finalCards = {
+      key: "finalCards",
+      label: "Cartes finales",
+      status: "ok",
+      value: "Oui",
+      detail: d.finalStatus ? `Affiché — ${d.finalStatus}.` : "Présent dans les cartes affichées.",
+    };
+  } else if (d.presentInEnriched || d.presentInBackendCandidates) {
+    finalCards = {
+      key: "finalCards",
+      label: "Cartes finales",
+      status: "warning",
+      value: "Non (filtré)",
+      detail: d.likelyReason || "Présent en amont mais masqué par un filtre / tri UI.",
+    };
+  } else {
+    finalCards = {
+      key: "finalCards",
+      label: "Cartes finales",
+      status: "fail",
+      value: "Non",
+      detail: "Absent des cartes finales du scan courant.",
+    };
+  }
+
+  // 6. Combo pool
+  let comboPool;
+  if (!scanLoaded) {
+    comboPool = unknownStage("comboPool", "Combo pool");
+  } else if (d.presentInComboPool) {
+    comboPool = {
+      key: "comboPool",
+      label: "Combo pool",
+      status: "ok",
+      value: "Oui",
+      detail: "Éligible au pool de combinaisons capital.",
+    };
+  } else if (d.presentInFilteredCards) {
+    comboPool = {
+      key: "comboPool",
+      label: "Combo pool",
+      status: "warning",
+      value: "Non",
+      detail: d.likelyReason || "Carte visible mais non éligible au combo pool.",
+    };
+  } else {
+    comboPool = {
+      key: "comboPool",
+      label: "Combo pool",
+      status: "unknown",
+      value: "Non",
+      detail: "Hors cartes finales — combo pool non applicable.",
+    };
+  }
+
+  const stages = [scan, yahoo, preIbkr, ibkr, finalCards, comboPool];
+
+  // Raison principale — priorité : IBKR rejet → crypto → coupure pré-IBKR → Yahoo → fiche → probable.
+  let mainReason;
+  if (d.presentInIbkrRejected && d.ibkrRejectReason) mainReason = `IBKR — ${d.ibkrRejectReason}`;
+  else if (d.cryptoBlockReason) mainReason = d.cryptoBlockReason;
+  else if (!inPreScanPool && d.preScanAbsentReason) mainReason = d.preScanAbsentReason;
+  else if (!d.presentInYahoo && d.yahooRejectReason) mainReason = `Yahoo — ${d.yahooRejectReason}`;
+  else if (extras.decisionReason) mainReason = extras.decisionReason;
+  else if (d.likelyReason) mainReason = d.likelyReason;
+  else mainReason = "Aucune raison détaillée disponible.";
+
+  let confidence;
+  if (!scanLoaded) confidence = "unknown";
+  else if (d.presentInIbkrShortlist || d.presentInFilteredCards) confidence = "high";
+  else if (inScan) confidence = "medium";
+  else confidence = "low";
+
+  const sourcesDetected = {
+    finalCards: Boolean(d.presentInFilteredCards),
+    yahoo: Boolean(d.presentInYahoo),
+    ibkr: Boolean(d.presentInIbkrShortlist),
+    rejected: Boolean(d.presentInIbkrRejected),
+    comboPool: Boolean(d.presentInComboPool),
+  };
+
+  return { stages, mainReason, confidence, sourcesDetected };
+}
+
+// Carte UI compacte "Diagnostic pipeline" pour la page Ticker (lecture seule).
+function TickerPipelineStagesCard({ view, symbol }) {
+  if (!view) return null;
+  if (!view.available) {
+    return (
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm" data-testid="ticker-pipeline-stages">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-cyan-300" />
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">Diagnostic pipeline</p>
+        </div>
+        <p className="mt-2 text-sm text-slate-400">
+          Diagnostic pipeline indisponible — {symbol} absent des données chargées.
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Lance un scan pour reconstruire le chemin pipeline de ce ticker.
+        </p>
+      </div>
+    );
+  }
+  const { stages = [], mainReason, confidence, sourcesDetected } = view;
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm" data-testid="ticker-pipeline-stages">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-cyan-300" />
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">Diagnostic pipeline</p>
+        </div>
+        {confidence && (
+          <span className="text-[10px] text-slate-500">
+            Confiance : {TICKER_PIPELINE_CONFIDENCE_LABEL[confidence] || confidence}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-slate-400">
+        Chemin du ticker dans le dernier scan : Yahoo → pré-IBKR → IBKR → affichage final.
+      </p>
+
+      <dl className="mt-3 space-y-0.5">
+        {stages.map((stage) => (
+          <div
+            key={stage.key}
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-800/70 py-1.5"
+          >
+            <div className="min-w-0">
+              <dt className="text-sm text-slate-200">{stage.label}</dt>
+              {stage.detail && (
+                <p
+                  className="text-[11px] text-slate-500"
+                  title={
+                    translateTickerReason(stage.detail) !== stage.detail ? stage.detail : undefined
+                  }
+                >
+                  {translateTickerReason(stage.detail)}
+                </p>
+              )}
+            </div>
+            <dd className="shrink-0">
+              <span
+                className={
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
+                  (TICKER_PIPELINE_STAGE_TONE[stage.status] || TICKER_PIPELINE_STAGE_TONE.unknown)
+                }
+              >
+                {stage.value}
+              </span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Raison principale</p>
+        <p
+          className="mt-1 text-sm text-slate-200"
+          title={
+            mainReason && translateTickerReason(mainReason) !== mainReason ? mainReason : undefined
+          }
+        >
+          {mainReason ? translateTickerReason(mainReason) : "Aucune raison détaillée disponible."}
+        </p>
+      </div>
+
+      {sourcesDetected && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-300">Sources détectées</summary>
+          <ul className="mt-2 grid grid-cols-1 gap-y-0.5 text-[11px] text-slate-400 sm:grid-cols-2">
+            <li>Cartes finales : {sourcesDetected.finalCards ? "oui" : "non"}</li>
+            <li>Yahoo : {sourcesDetected.yahoo ? "oui" : "non"}</li>
+            <li>IBKR retenu : {sourcesDetected.ibkr ? "oui" : "non"}</li>
+            <li>IBKR rejeté : {sourcesDetected.rejected ? "oui" : "non"}</li>
+            <li>Combo pool : {sourcesDetected.comboPool ? "oui" : "non"}</li>
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ─── Sidebar de navigation (habillage UI uniquement — aucune logique métier) ───
+// Phase 1 : navigation par changement de vue (Opportunités / Saisonnalité / Journal POP)
+// + ancrages scrollIntoView vers les sections existantes du dashboard.
+const SIDEBAR_ITEMS = [
+  { key: "opportunites", label: "Opportunités", icon: Target, view: "dashboard", anchor: "section-opportunites" },
+  { key: "scan", label: "Scan", icon: RefreshCw, view: "dashboard", anchor: "section-scan" },
+  { key: "portefeuille", label: "Portefeuille", icon: PieChart, view: "dashboard", anchor: "section-portefeuille" },
+  { key: "ticker", label: "Ticker", icon: Search, view: "ticker" },
+  { key: "diagnostics", label: "Diagnostics", icon: Activity, view: "diagnostics" },
+  { key: "saisonnalite", label: "Saisonnalité", icon: CalendarDays, view: "seasonality" },
+  { key: "journal", label: "Journal POP", icon: Database, view: "journal" },
+];
+const SIDEBAR_FOOTER_ITEMS = [
+  { key: "parametres", label: "Paramètres", icon: Settings, view: "dashboard", anchor: "section-scan" },
+  { key: "systeme", label: "Système", icon: Server, view: "dashboard", anchor: "section-diagnostics" },
+];
+
+function SidebarButton({ item, active, onClick }) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={item.label}
+      className={
+        "flex w-[64px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] leading-tight transition-colors " +
+        (active
+          ? "border border-sky-700/60 bg-sky-900/60 text-sky-100"
+          : "border border-transparent text-slate-400 hover:bg-slate-800/70 hover:text-slate-100")
+      }
+    >
+      <Icon className="h-4 w-4" />
+      <span className="text-center">{item.label}</span>
+    </button>
+  );
+}
+
+function WheelSidebar({ activeView, onNavigate }) {
+  const isActive = (item) => {
+    if (item.view === "seasonality") return activeView === "seasonality";
+    if (item.view === "journal") return activeView === "journal";
+    if (item.view === "diagnostics") return activeView === "diagnostics";
+    if (item.view === "ticker") return activeView === "ticker";
+    if (item.key === "opportunites") return activeView === "dashboard";
+    return false;
+  };
+  const isLab =
+    typeof window !== "undefined" && window.location.port === "5174";
+  return (
+    <aside className="sticky top-0 z-30 flex h-screen w-[76px] shrink-0 flex-col items-center border-r border-slate-800 bg-[#050b12] py-3">
+      <div className="mb-3 flex flex-col items-center gap-1">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-700/60 bg-sky-900/40 text-[12px] font-bold tracking-tight text-sky-100">
+          W
+        </div>
+        <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+          Wheel
+        </span>
+      </div>
+
+      <nav className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto">
+        {SIDEBAR_ITEMS.map((item) => (
+          <SidebarButton
+            key={item.key}
+            item={item}
+            active={isActive(item)}
+            onClick={() => onNavigate(item)}
+          />
+        ))}
+      </nav>
+
+      <div className="mt-auto flex w-full flex-col items-center gap-1 pt-2">
+        <div className="my-2 h-px w-8 bg-slate-800" />
+        {SIDEBAR_FOOTER_ITEMS.map((item) => (
+          <SidebarButton
+            key={item.key}
+            item={item}
+            active={false}
+            onClick={() => onNavigate(item)}
+          />
+        ))}
+        <div className="mt-2 flex flex-col items-center gap-1">
+          <span className="flex items-center gap-1 text-[9px] font-medium text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> OK
+          </span>
+          {isLab && (
+            <span className="rounded-md bg-rose-700/80 px-1.5 py-0.5 text-[8px] font-bold text-white">
+              LAB
+            </span>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export default function Dashboard() {
   const readStoredNumber = (key, fallback) => {
     const raw = window.localStorage.getItem(key);
@@ -10163,6 +11148,13 @@ export default function Dashboard() {
   const [highlightedTicker, setHighlightedTicker] = useState(null);
   const [activeView, setActiveView] = useState("dashboard");
   const tickerHighlightTimeoutRef = useRef(null);
+
+  // Page "Analyse titre" (activeView === "ticker") — lecture seule, isolée d'Opportunités.
+  const [tickerInput, setTickerInput] = useState("");
+  const [tickerActive, setTickerActive] = useState("");
+  const [tickerScanResult, setTickerScanResult] = useState(null);
+  const [tickerScanLoading, setTickerScanLoading] = useState(false);
+  const [tickerScanError, setTickerScanError] = useState("");
 
   const [selectedExpiration, setSelectedExpiration] = useState(() =>
     pickDefaultExpiration(DEFAULT_EXPIRATIONS)
@@ -10619,6 +11611,23 @@ export default function Dashboard() {
   const _rawWatchlist = resolvedPreIbkrPool.tickers;
   const cryptoRemovedFromPreIbkrPool = resolvedPreIbkrPool.cryptoRemovedFromPool ?? [];
   const tickersForScan = _rawWatchlist.filter((t) => !isCryptoDigitalAssetBlocked(t));
+  const currentPoolCount = useMemo(
+    () => getCurrentPoolCount({ resolvedPreIbkrPool, tickersForScan, preIbkrPoolMode }),
+    [resolvedPreIbkrPool, tickersForScan, preIbkrPoolMode]
+  );
+  const lastScanPoolStale = useMemo(
+    () => isLastScanPoolStale({ preIbkrPoolMode, lastScanPoolMeta }),
+    [preIbkrPoolMode, lastScanPoolMeta]
+  );
+  const fallbackPoolDiagnosticMessage = useMemo(
+    () =>
+      buildFallbackPoolDiagnosticMessage({
+        preIbkrPoolMode,
+        lastScanPoolMeta,
+        isStale: lastScanPoolStale,
+      }),
+    [preIbkrPoolMode, lastScanPoolMeta, lastScanPoolStale]
+  );
   const cryptoRemovedFromWatchlistCount = cryptoRemovedFromPreIbkrPool.length;
   const cryptoBlockedRemovedSymbols = useMemo(() => {
     const fromBuild = Array.isArray(watchlistStats?.cryptoBlockedRemovedSymbols)
@@ -10693,6 +11702,13 @@ export default function Dashboard() {
   const ibkrNonTestedCount = Number.isFinite(Number(ibkrDirectResult?.nonTestedCandidates))
     ? Number(ibkrDirectResult.nonTestedCandidates)
     : Math.max(0, yahooReturnedCount - ibkrTestedCount);
+  const watchlistScannable = yahooScanMeta.scanned || tickersForScan.length || 0;
+  const admissibleCremeCount =
+    filtered.length -
+    filtered.filter((it) => {
+      const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
+      return m.isCryptoBlocked && !m.isCryptoAllowed;
+    }).length;
 
   /** Bassin Yahoo côté dernier résultat IBKR auto (fallback : compteur courant Yahoo retournés). */
   const ibkrTraceYahooReturnedForFunnel = useMemo(() => {
@@ -11224,6 +12240,74 @@ export default function Dashboard() {
     () => buildOtmPoolSourceBannerMessage(lastScanPoolMeta.poolSource || preIbkrPoolMode),
     [lastScanPoolMeta.poolSource, preIbkrPoolMode]
   );
+
+  const preIbkrCutTickerList = useMemo(
+    () =>
+      buildPreIbkrCutTickerList({
+        watchlistTickers: watchlistTickers ?? [],
+        watchlistRejectedBySymbol,
+        watchlistTruncatedSymbols,
+        cryptoBlockedRemovedSymbols,
+        tickersForScan,
+        yahooRejectedBySymbol,
+        yahooReturnedCandidates,
+        ibkrDirectSentTickers,
+        preIbkrPoolMode,
+        researchExpandedPool,
+      }),
+    [
+      watchlistTickers,
+      watchlistRejectedBySymbol,
+      watchlistTruncatedSymbols,
+      cryptoBlockedRemovedSymbols,
+      tickersForScan,
+      yahooRejectedBySymbol,
+      yahooReturnedCandidates,
+      ibkrDirectSentTickers,
+      preIbkrPoolMode,
+      researchExpandedPool,
+    ]
+  );
+
+  const preIbkrCutSummary = useMemo(
+    () => summarizePreIbkrCutByCategory(preIbkrCutTickerList),
+    [preIbkrCutTickerList]
+  );
+
+  const exportPreIbkrCutCsv = useCallback(() => {
+    const header = [
+      "ticker",
+      "stageLost",
+      "reason",
+      "wasInUniverse",
+      "wasInWatchlist",
+      "sentYahoo",
+      "rejectedYahoo",
+      "cryptoBlocked",
+      "otmProbeStatus",
+      "comment",
+      "category",
+    ];
+    const escape = (value) => {
+      const s = String(value ?? "");
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+    const lines = [
+      header.join(","),
+      ...preIbkrCutTickerList.map((row) =>
+        header.map((key) => escape(row[key])).join(",")
+      ),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `pre-ibkr-cut-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [preIbkrCutTickerList]);
 
   const yahooIbkrFunnelList = useMemo(
     () =>
@@ -12613,6 +13697,183 @@ export default function Dashboard() {
     }
   }, [selectedExpiration, ibkrDirectClientIdStart, applyIbkrDirectShortlistToPrimary]);
 
+  // Page "Analyse titre" : recherche le symbole dans les données déjà chargées.
+  // Aucun appel API — uniquement les collections déjà en mémoire. Priorité :
+  // 1) carte finale affichée, 2) résultat IBKR direct, 3) Yahoo/backend, 4) rejet/diagnostic.
+  const findTickerInCurrentScan = useCallback(
+    (rawSymbol) => {
+      const symbol = String(rawSymbol || "").trim().toUpperCase();
+      if (!symbol) return null;
+      const up = (v) => String(v ?? "").trim().toUpperCase();
+
+      const finalHit = enrichedCandidates.find(
+        (it) => up(it?.ticker ?? it?.symbol) === symbol
+      );
+      if (finalHit) return { data: finalHit, source: "cartes finales" };
+
+      const ibkrHit = ibkrDirectByTicker.get(symbol);
+      if (ibkrHit) return { data: ibkrHit, source: "IBKR" };
+
+      const yahooHit = yahooCandidateByTicker.get(symbol);
+      if (yahooHit) return { data: yahooHit, source: "Yahoo" };
+
+      const rejected = Array.isArray(ibkrDirectResult?.rejected)
+        ? ibkrDirectResult.rejected
+        : [];
+      const rejectHit = rejected.find((r) => up(r?.symbol) === symbol);
+      if (rejectHit) return { data: rejectHit, source: "diagnostic" };
+
+      return null;
+    },
+    [enrichedCandidates, ibkrDirectByTicker, yahooCandidateByTicker, ibkrDirectResult]
+  );
+
+  // Scan individuel MANUEL (au clic seulement). Réutilise l'endpoint shadow existant
+  // /ibkr/shadow/scan (lecture seule, aucun ordre) via callIbkrDirectScan, mais stocke
+  // le résultat dans un état LOCAL à la page Ticker : ne touche ni ibkrDirectResult ni la
+  // shortlist principale (Opportunités reste intacte).
+  const handleScanSingleTicker = useCallback(async () => {
+    const symbol = String(tickerInput || "").trim().toUpperCase();
+    if (!symbol) return;
+    setTickerActive(symbol);
+    setTickerScanLoading(true);
+    setTickerScanError("");
+    setTickerScanResult(null);
+    try {
+      const expLocked = selectedExpirationRef.current;
+      const payload = await callIbkrDirectScan({
+        tickers: [symbol],
+        expiration: ymdToIbkr(expLocked),
+        clientIdStart: ibkrDirectClientIdStart,
+        maxTickers: 1,
+        topN: 1,
+        auditDepth: 1,
+      });
+      setTickerScanResult({ symbol, expiration: expLocked, payload });
+    } catch (err) {
+      setTickerScanError(String(err?.message || err || "Scan individuel indisponible"));
+    } finally {
+      setTickerScanLoading(false);
+    }
+  }, [tickerInput, ibkrDirectClientIdStart]);
+
+  // "Rechercher" : ne fait QUE chercher en mémoire (aucun appel API). Réinitialise le
+  // résultat de scan individuel précédent pour éviter d'afficher une fiche périmée.
+  const handleSearchTicker = useCallback(() => {
+    setTickerActive(String(tickerInput || "").trim().toUpperCase());
+    setTickerScanResult(null);
+    setTickerScanError("");
+  }, [tickerInput]);
+
+  // Diagnostic pipeline de la page Ticker — reconstruit le chemin pipeline du
+  // symbole recherché (tickerActive) à partir de l'état déjà chargé. Lecture
+  // seule, aucun fetch, isolé d'Opportunités et du scan individuel manuel.
+  const tickerPipelineView = useMemo(() => {
+    const sym = String(tickerActive || "").trim().toUpperCase();
+    if (!sym) return null;
+    const up = (v) => String(v ?? "").trim().toUpperCase();
+
+    const scanLoaded =
+      (Array.isArray(tickersForScan) && tickersForScan.length > 0) ||
+      (Array.isArray(yahooReturnedCandidates) && yahooReturnedCandidates.length > 0) ||
+      (Array.isArray(enrichedCandidates) && enrichedCandidates.length > 0) ||
+      ibkrDirectResult != null;
+
+    if (!scanLoaded) return { available: false, symbol: sym, scanLoaded: false };
+
+    let diagnostic = null;
+    try {
+      diagnostic = buildTickerPipelineDiagnostic(sym, {
+        tickersForScan,
+        yahooReturnedCandidates,
+        yahooDiagnostics,
+        yahooRejectedBySymbol,
+        watchlistRejectedBySymbol,
+        watchlistTickers: watchlistTickers ?? [],
+        watchlistTruncatedSymbols,
+        researchExpandedPool,
+        preIbkrPoolMode,
+        cryptoBlockedRemovedSymbols,
+        ibkrDirectSentTickers,
+        ibkrDirectResult,
+        backendCandidates: backendCandidates ?? [],
+        enrichedCandidates,
+        filtered,
+        combos,
+        capital: Number(capital),
+        maxCapitalPct: Number(maxCapitalPct),
+        ibkrRejectedSymbols,
+        yahooRankForIbkrBySymbol,
+        selectedExpiration,
+        filter,
+        dataSource,
+        topN,
+        ibkrAutoMaxTickers,
+        liquidityOtmProbePctSelected: watchlistOtmProbePct,
+        liquidityOtmProbePctApplied: watchlistStats?.liquidityOtmProbePctApplied ?? null,
+        scanPoolSource: lastScanPoolMeta.poolSource || preIbkrPoolMode,
+        watchlistMode: watchlistStats?.watchlistMode ?? DEFAULT_BUILD_WATCHLIST_BODY.watchlistMode,
+      });
+    } catch {
+      diagnostic = null;
+    }
+    if (!diagnostic) return { available: false, symbol: sym, scanLoaded };
+
+    const inPreScanPool = (tickersForScan || []).some((t) => up(t) === sym);
+    const inScan =
+      inPreScanPool ||
+      diagnostic.presentInYahoo ||
+      diagnostic.presentInIbkrShortlist ||
+      diagnostic.presentInIbkrRejected ||
+      diagnostic.presentInEnriched ||
+      diagnostic.presentInBackendCandidates ||
+      diagnostic.presentInFilteredCards;
+
+    // Raison de la fiche décisionnelle (priorité 4 de la raison principale).
+    const match = findTickerInCurrentScan(sym);
+    const decisionReason = match ? buildTickerDecision(match.data)?.reason ?? null : null;
+
+    const built = buildTickerPipelineStages(diagnostic, {
+      symbol: sym,
+      scanLoaded,
+      inPreScanPool,
+      inScan,
+      decisionReason,
+    });
+    return { available: true, symbol: sym, scanLoaded, diagnostic, ...built };
+  }, [
+    tickerActive,
+    tickersForScan,
+    yahooReturnedCandidates,
+    yahooDiagnostics,
+    yahooRejectedBySymbol,
+    watchlistRejectedBySymbol,
+    watchlistTickers,
+    watchlistTruncatedSymbols,
+    researchExpandedPool,
+    preIbkrPoolMode,
+    cryptoBlockedRemovedSymbols,
+    ibkrDirectSentTickers,
+    ibkrDirectResult,
+    backendCandidates,
+    enrichedCandidates,
+    filtered,
+    combos,
+    capital,
+    maxCapitalPct,
+    ibkrRejectedSymbols,
+    yahooRankForIbkrBySymbol,
+    selectedExpiration,
+    filter,
+    dataSource,
+    topN,
+    ibkrAutoMaxTickers,
+    watchlistOtmProbePct,
+    watchlistStats,
+    lastScanPoolMeta.poolSource,
+    findTickerInCurrentScan,
+  ]);
+
   const handleRefreshScanMetrics = useCallback(async () => {
     setScanMetricsLoading(true);
     setScanMetricsError("");
@@ -12851,10 +14112,35 @@ export default function Dashboard() {
     (dataSource === "backend" || dataSource === "ibkr_direct") &&
     !showClosedValidBanner;
 
+  // Navigation sidebar : change de vue si besoin puis scroll vers l'ancre.
+  // Aucune logique métier — uniquement setActiveView (handlers existants) + scrollIntoView.
+  const handleSidebarNavigate = useCallback(
+    (item) => {
+      const targetView = item.view || "dashboard";
+      const needsSwitch = activeView !== targetView;
+      if (needsSwitch) setActiveView(targetView);
+      if (item.anchor) {
+        const doScroll = () => {
+          const el = document.getElementById(item.anchor);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+        // Laisse React rendre la vue dashboard avant de scroller.
+        if (needsSwitch) window.setTimeout(doScroll, 90);
+        else doScroll();
+      } else if (needsSwitch) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    [activeView]
+  );
+
   return (
     <div className="min-h-screen bg-[#0b1117] text-slate-100">
+      <div className="flex min-h-screen">
+        <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
+        <main className="min-w-0 flex-1">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
-        {activeView !== "seasonality" && <motion.div
+        {activeView !== "seasonality" && activeView !== "diagnostics" && activeView !== "ticker" && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
@@ -12881,33 +14167,6 @@ export default function Dashboard() {
           </div>
         </motion.div>}
 
-        {activeView !== "seasonality" && (
-          <div className="mb-6 flex items-center justify-end gap-2">
-            <Button
-              variant={activeView === "dashboard" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setActiveView("dashboard")}
-            >
-              Dashboard
-            </Button>
-            <Button
-              variant={activeView === "seasonality" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setActiveView("seasonality")}
-              style={activeView === "seasonality" ? { background: "#7c3aed", borderColor: "#7c3aed" } : {}}
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Saisonnalité
-            </Button>
-            <Button
-              variant={activeView === "journal" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setActiveView("journal")}
-            >
-              Journal POP <Database className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
 
         {activeView === "seasonality" ? (
           <React.Suspense
@@ -12919,260 +14178,30 @@ export default function Dashboard() {
           >
             <SeasonalityPanel apiBase={API_BASE} onNavigate={setActiveView} />
           </React.Suspense>
-        ) : activeView === "dashboard" ? (
-          <>
-            <IbkrMemoryPanel apiBase={API_BASE} refreshKey={ibkrMemoryRefreshKey} />
-            <ScanFunnelArchivePanel apiBase={API_BASE} />
-            <div className="mb-6 grid gap-4 rounded-[28px] border border-slate-700 bg-slate-900 p-5 shadow-sm md:grid-cols-2 xl:grid-cols-6">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Expiration</label>
-            <Select
-              value={selectedExpiration}
-              onChange={(e) => setSelectedExpiration(e.target.value)}
-              className="w-full rounded-xl border-slate-700"
-            >
-              {expirationOptions.map((exp) => (
-                <option key={exp} value={exp}>
-                  {exp}
-                </option>
-              ))}
-            </Select>
-          </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Top Yahoo retournés</label>
-            <Input
-              type="number"
-              min="1"
-              max="200"
-              value={topN}
-              onChange={(e) => setTopN(Number(e.target.value || 1))}
-              className="w-full rounded-xl border-slate-700"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Plafond renvoyé par Yahoo (/scan_shortlist, + challengers si tri qualité). Avec IBKR auto, l’affichage final suit surtout « IBKR Audit Depth ».
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Capital compte</label>
-            <Input
-              type="number"
-              min="1000"
-              step="100"
-              value={capital}
-              onChange={(e) => setCapital(Number(e.target.value || 0))}
-              className="w-full rounded-xl border-slate-700"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">% max utilisé</label>
-            <Input
-              type="number"
-              min="10"
-              max="100"
-              value={maxCapitalPct}
-              onChange={(e) => setMaxCapitalPct(Number(e.target.value || 0))}
-              className="w-full rounded-xl border-slate-700"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Nb max positions</label>
-            <Input
-              type="number"
-              min="1"
-              max="10"
-              value={maxPositions}
-              onChange={(e) => setMaxPositions(Number(e.target.value || 1))}
-              className="w-full rounded-xl border-slate-700"
-            />
-          </div>
-
-          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-              <input
-                type="checkbox"
-                checked={autoIbkrDirectScan}
-                onChange={(e) => setAutoIbkrDirectScan(e.target.checked)}
-              />
-              IBKR auto
-            </label>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              Refresh lance Yahoo puis IBKR Direct Scan en lecture seule.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
-            <label className="mb-2 block text-sm font-medium text-slate-300">Auto Journal POP</label>
-            <Select
-              value={autoJournalPop}
-              onChange={(e) => setAutoJournalPop(String(e.target.value || "off"))}
-              className="w-full rounded-xl border-slate-700"
-            >
-              <option value="off">OFF</option>
-              <option value="10">Top 10</option>
-              <option value="30">Top 30</option>
-              <option value="50">Top 50</option>
-              <option value="100">Top 100</option>
-              <option value="150">Top 150</option>
-              <option value="200">Top 200</option>
-            </Select>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              Etat actuel : {autoJournalPop === "off" ? "OFF" : `Top ${autoJournalPop}`}.
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">IBKR Audit Depth</label>
-            <Select
-              value={String(ibkrAutoMaxTickers)}
-              onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-700"
-              disabled={!autoIbkrDirectScan}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-              <option value="120">120</option>
-            </Select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">Sonde liquidité OTM Yahoo</label>
-            <Select
-              value={String(watchlistOtmProbePct)}
-              onChange={(e) => setWatchlistOtmProbePct(Number(e.target.value))}
-              className="w-full rounded-xl border-slate-700"
-            >
-              {LIQUIDITY_OTM_PROBE_PCT_CHOICES.map((p) => (
-                <option key={p} value={String(p)}>
-                  {p}% OTM{p === 0 ? " — ATM seulement" : ""}
-                </option>
-              ))}
-            </Select>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              Appliqué au prochain « Rebuild watchlist ». 0 % désactive la sonde OTM (garde le test ATM).
-            </p>
-            {otmRebuildRequired && otmRebuildRequiredMessage ? (
-              <p
-                className="mt-2 rounded-lg border border-amber-700/60 bg-amber-950/40 px-2 py-1.5 text-xs font-medium text-amber-200"
-                data-testid="otm-rebuild-required-banner"
-              >
-                {otmRebuildRequiredMessage}
+        ) : activeView === "diagnostics" ? (
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">
+                Diagnostics
               </p>
-            ) : null}
-            {!otmRebuildRequired && liquidityOtmProbePctApplied != null ? (
-              <p className="mt-2 text-xs text-slate-500">
-                Dernier rebuild appliqué : {liquidityOtmProbePctApplied}%
-                {watchlistStats?.liquidityOtmProbeActive === false ? " (sonde off)" : ""}
+              <h1 className="mt-2 text-2xl font-semibold text-white">
+                Diagnostics du scan
+              </h1>
+              <p className="mt-2 text-sm text-slate-300">
+                Vue de contrôle complète du pipeline Yahoo → IBKR → affichage final.
               </p>
-            ) : null}
-          </div>
-
-          <div className="rounded-xl border border-indigo-800 bg-indigo-950/40 p-3 xl:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-slate-200">Pool pré-IBKR</label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: "strict_watchlist", label: "Strict Watchlist" },
-                { id: "research_expanded", label: "Research Expanded" },
-                { id: "fallback_65", label: "Fallback 65" },
-              ].map((mode) => (
-                <Button
-                  key={mode.id}
-                  type="button"
-                  variant={preIbkrPoolMode === mode.id ? "default" : "outline"}
-                  className="rounded-xl text-xs"
-                  onClick={() => setPreIbkrPoolMode(mode.id)}
-                >
-                  {mode.label}
-                </Button>
-              ))}
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">Research limit</label>
-                <Select
-                  value={String(researchExpandedLimit)}
-                  onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
-                  className="w-full rounded-xl border-slate-700"
-                  disabled={preIbkrPoolMode !== "research_expanded"}
-                >
-                  <option value="150">150</option>
-                  <option value="200">200</option>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full rounded-xl"
-                  onClick={handleReloadResearchExpandedPool}
-                  disabled={preIbkrPoolMode !== "research_expanded" || researchExpandedPoolSource === "loading"}
-                >
-                  Recharger pool research
-                </Button>
+              <p className="mt-1 text-xs text-sky-300/70">
+                Diagnostics en lecture seule — aucun ordre envoyé.
+              </p>
+              <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
+                Utilise cette page pour identifier où les candidats sont coupés : Yahoo, pré-IBKR, IBKR ou affichage final.
               </div>
             </div>
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              Mode choisi : {formatPoolSourceLabel(preIbkrPoolMode)}
-              {lastScanPoolMeta.poolSource ? (
-                <>
-                  {" "}
-                  · Pool effectif (dernier scan) :{" "}
-                  {formatPoolSourceLabel(lastScanPoolMeta.poolSource)} ({lastScanPoolMeta.preIbkrCount}{" "}
-                  tickers)
-                </>
-              ) : null}{" "}
-              · Pool research chargé :{" "}
-              {researchExpandedPoolSource === "loading"
-                ? "…"
-                : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
-              {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
-                <span className="mt-1 block font-medium text-amber-300">
-                  ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
-                </span>
-              ) : null}
-              {researchExpandedPoolError ? (
-                <span className="mt-1 block text-amber-300">{researchExpandedPoolError}</span>
-              ) : null}
-            </p>
-            {otmPoolSourceBannerMessage ? (
-              <p
-                className={`mt-2 rounded-lg border px-2 py-1.5 text-xs leading-5 ${
-                  preIbkrPoolMode === "research_expanded" ||
-                  lastScanPoolMeta.poolSource === "research_expanded"
-                    ? "border-amber-700/60 bg-amber-950/40 text-amber-200"
-                    : "border-sky-800/50 bg-sky-950/30 text-sky-200"
-                }`}
-                data-testid="otm-pool-source-banner"
-              >
-                {otmPoolSourceBannerMessage}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-2 justify-end">
-            <Button
-              className="w-full rounded-xl"
-              onClick={handleRefreshShortlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
-            >
-              Refresh shortlist <RefreshCw className="ml-2 h-4 w-4" />
-            </Button>
-            <Button
-              className="w-full rounded-xl"
-              variant="outline"
-              onClick={handleRebuildWatchlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
-            >
-              Rebuild watchlist <Database className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
+        <DiagnosticsSection
+          title="Vue rapide"
+          description="Synthèse des volumes, conversions et goulots du dernier scan."
+        >
         {refreshStage && (
           <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm font-medium text-slate-300 shadow-sm">
             {refreshStage}
@@ -14082,6 +15111,405 @@ export default function Dashboard() {
         </details>
           </div>
         </details>
+        </DiagnosticsSection>
+          </section>
+        ) : activeView === "ticker" ? (
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">
+                Ticker
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-white">Analyse titre</h1>
+              <p className="mt-2 text-sm text-slate-300">
+                Fiche individuelle d'un symbole. Recherche d'abord dans le dernier scan, puis scan manuel possible si absent.
+              </p>
+              <p className="mt-1 text-xs text-sky-300/70">
+                Lecture seule — aucun ordre envoyé.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={tickerInput}
+                    onChange={(e) => setTickerInput(String(e.target.value || "").toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSearchTicker();
+                    }}
+                    placeholder="Ex. TQQQ"
+                    className="rounded-xl border-slate-700 pl-9 uppercase"
+                  />
+                </div>
+                <Button
+                  className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-4 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
+                  onClick={handleSearchTicker}
+                >
+                  Rechercher <Search className="ml-1.5 h-4 w-4" />
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                La recherche interroge uniquement les données déjà chargées (dernier scan). Aucun appel réseau, aucun scan automatique.
+              </p>
+            </div>
+
+            {(() => {
+              if (!tickerActive) {
+                return (
+                  <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center text-sm text-slate-400">
+                    Entre un symbole pour analyser son état dans le dernier scan.
+                  </div>
+                );
+              }
+
+              const match = findTickerInCurrentScan(tickerActive);
+              if (match) {
+                const decision = buildTickerDecision(match.data);
+                if (!decision) {
+                  return (
+                    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+                      <p className="text-sm text-slate-500">
+                        Aucun champ exploitable disponible pour {tickerActive} dans le dernier scan.
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <TickerDecisionCard
+                    decision={decision}
+                    source={match.source}
+                    heading="Résumé du dernier scan"
+                    rawObj={match.data}
+                  />
+                );
+              }
+
+              return (
+                <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-sm">
+                  <p className="text-sm text-slate-200">
+                    <span className="font-semibold text-slate-50">{tickerActive}</span>{" "}
+                    n'est pas présent dans le dernier scan.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Scan lecture seule via IBKR Shadow. N'affecte pas la shortlist Opportunités.
+                  </p>
+                  <Button
+                    className="mt-3 rounded-xl border-emerald-700 bg-emerald-900/60 px-4 py-1.5 text-xs text-emerald-100 hover:bg-emerald-800/60 disabled:opacity-50"
+                    onClick={handleScanSingleTicker}
+                    disabled={tickerScanLoading}
+                  >
+                    {tickerScanLoading ? "Scan en cours…" : "Scanner ce ticker"}
+                    {!tickerScanLoading && <RefreshCw className="ml-1.5 h-4 w-4" />}
+                  </Button>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Endpoint réutilisé : /ibkr/shadow/scan (shadow, lecture seule) · expiration {selectedExpiration}.
+                  </p>
+
+                  {tickerScanError && (
+                    <p className="mt-3 rounded-lg border border-rose-800 bg-rose-950/50 px-3 py-2 text-xs text-rose-200">
+                      {tickerScanError}
+                    </p>
+                  )}
+
+                  {tickerScanResult && tickerScanResult.symbol === tickerActive && (() => {
+                    const payload = tickerScanResult.payload || {};
+                    const up = (v) => String(v ?? "").trim().toUpperCase();
+                    const shortlist = Array.isArray(payload.shortlist) ? payload.shortlist : [];
+                    const rejected = Array.isArray(payload.rejected) ? payload.rejected : [];
+                    const keptRow = shortlist.find((r) => up(r?.symbol) === tickerActive);
+                    const rejRow = rejected.find((r) => up(r?.symbol) === tickerActive);
+                    const row = keptRow ?? rejRow ?? null;
+                    const statusLabel = keptRow ? "Retenu" : rejRow ? "Rejeté" : "Aucun résultat";
+                    const statusTone = keptRow ? "green" : rejRow ? "red" : "gray";
+                    const decision = row ? buildTickerDecision(row) : null;
+                    if (decision && decision.expiration == null) {
+                      decision.expiration = tickerScanResult.expiration; // expiration réellement scannée
+                    }
+                    return (
+                      <div className="mt-4">
+                        {decision ? (
+                          <TickerDecisionCard
+                            decision={decision}
+                            source="IBKR Shadow"
+                            heading="Résultat du scan individuel"
+                            statusLabel={statusLabel}
+                            statusTone={statusTone}
+                            rawObj={row}
+                          />
+                        ) : (
+                          <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs uppercase tracking-wide text-slate-500">
+                                Résultat du scan individuel
+                              </p>
+                              <TickerBadge tone={statusTone}>{statusLabel}</TickerBadge>
+                            </div>
+                            <p className="mt-3 text-sm text-slate-400">
+                              Le scan n'a retourné aucune ligne exploitable pour {tickerActive}
+                              {Array.isArray(payload.errors) && payload.errors.length > 0
+                                ? " (voir erreurs backend)."
+                                : "."}
+                            </p>
+                            <p className="mt-2 text-[11px] text-slate-500">
+                              Source : IBKR Shadow · lecture seule.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
+
+            {tickerActive && (
+              <TickerPipelineStagesCard view={tickerPipelineView} symbol={tickerActive} />
+            )}
+          </section>
+        ) : activeView === "dashboard" ? (
+          <>
+            <IbkrMemoryPanel apiBase={API_BASE} refreshKey={ibkrMemoryRefreshKey} />
+            <ScanFunnelArchivePanel apiBase={API_BASE} />
+                        <div id="section-scan" className="mb-6 scroll-mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <Button
+              title="Scanner maintenant"
+              className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-3 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
+              onClick={handleRefreshShortlist}
+              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+            >
+              Scanner <RefreshCw className="ml-1.5 h-4 w-4" />
+            </Button>
+            <Button
+              title="Rebuild watchlist"
+              className="shrink-0 rounded-xl px-3 py-1.5 text-xs"
+              variant="outline"
+              onClick={handleRebuildWatchlist}
+              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+            >
+              Rebuild <Database className="ml-1.5 h-4 w-4" />
+            </Button>
+
+            <EditableScanSelect
+              label="Exp."
+              value={selectedExpiration}
+              onChange={(e) => setSelectedExpiration(e.target.value)}
+              title="Expiration utilisée pour le scan backend."
+              wrapperClassName="w-[150px] shrink-0"
+            >
+              {expirationOptions.map((exp) => (
+                <option key={exp} value={exp}>
+                  {exp}
+                </option>
+              ))}
+            </EditableScanSelect>
+
+            <EditableScanInput
+              label="Capital"
+              value={capital}
+              onChange={(e) => setCapital(Number(e.target.value || 0))}
+              min={1000}
+              step={100}
+              suffix="$"
+              inputClassName="w-[70px] min-w-0"
+              wrapperClassName="w-[150px] shrink-0"
+              title="Capital compte utilisé par les moteurs de combinaisons."
+            />
+
+            <EditableScanInput
+              label="Max"
+              value={maxCapitalPct}
+              onChange={(e) => setMaxCapitalPct(Number(e.target.value || 0))}
+              min={10}
+              max={100}
+              suffix="%"
+              inputClassName="w-[42px] min-w-0"
+              wrapperClassName="w-[95px] shrink-0"
+              title="% maximal du capital utilisé."
+            />
+
+            <EditableScanInput
+              label="Positions"
+              value={maxPositions}
+              onChange={(e) => setMaxPositions(Number(e.target.value || 1))}
+              min={1}
+              max={10}
+              wrapperClassName="w-[125px] shrink-0"
+              title="Nombre maximal de positions visées."
+            />
+
+            <label
+              title="Lance IBKR Direct Scan automatiquement après Yahoo."
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/70 px-1.5 py-1 text-xs text-slate-300"
+            >
+              <input
+                type="checkbox"
+                checked={autoIbkrDirectScan}
+                onChange={(e) => setAutoIbkrDirectScan(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-slate-500">IBKR auto</span>
+            </label>
+
+            <EditableScanSelect
+              label="POP"
+              value={autoJournalPop}
+              onChange={(e) => setAutoJournalPop(String(e.target.value || "off"))}
+              title={
+                autoJournalPop === "off"
+                  ? "Journal POP OFF : aucune capture automatique."
+                  : `Journal POP Top ${autoJournalPop} après scan${
+                      lastScanPoolMeta?.ibkrRetained
+                        ? ` (${lastScanPoolMeta.ibkrRetained} retenus IBKR au dernier scan)`
+                        : ""
+                    }.`
+              }
+              wrapperClassName="w-[105px] shrink-0"
+            >
+              <option value="off">OFF</option>
+              <option value="10">Top 10</option>
+              <option value="30">Top 30</option>
+              <option value="50">Top 50</option>
+              <option value="100">Top 100</option>
+              <option value="150">Top 150</option>
+              <option value="200">Top 200</option>
+            </EditableScanSelect>
+
+            <EditableScanInput
+              label="Depth"
+              value={ibkrAutoMaxTickers}
+              onChange={(e) => setIbkrAutoMaxTickers(Number(e.target.value || 0))}
+              min={1}
+              list="scan-depth-suggestions"
+              wrapperClassName="w-[105px] shrink-0"
+              title="IBKR Audit Depth — nombre de tickers audités via IBKR."
+            />
+            <datalist id="scan-depth-suggestions">
+              <option value="10" />
+              <option value="20" />
+              <option value="30" />
+              <option value="50" />
+              <option value="120" />
+            </datalist>
+
+            <EditableScanSelect
+              label="Pool"
+              value={preIbkrPoolMode}
+              onChange={(e) => setPreIbkrPoolMode(e.target.value)}
+              title="Pool pré-IBKR utilisé avant l'audit IBKR."
+              wrapperClassName="w-[125px] shrink-0"
+            >
+              <option value="strict_watchlist">Strict</option>
+              <option value="research_expanded">Research</option>
+              <option value="fallback_65">Fallback</option>
+            </EditableScanSelect>
+
+            <EditableScanSelect
+              label="OTM"
+              value={String(watchlistOtmProbePct)}
+              onChange={(e) => setWatchlistOtmProbePct(Number(e.target.value))}
+              title="Sonde liquidité OTM Yahoo appliquée au prochain « Rebuild watchlist » (0 % = ATM seulement)."
+              wrapperClassName="w-[90px] shrink-0"
+            >
+              {LIQUIDITY_OTM_PROBE_PCT_CHOICES.map((p) => (
+                <option key={p} value={String(p)}>
+                  {p}%
+                </option>
+              ))}
+            </EditableScanSelect>
+
+            <EditableScanInput
+              label="Yahoo"
+              value={topN}
+              onChange={(e) => setTopN(Number(e.target.value || 1))}
+              min={1}
+              max={200}
+              wrapperClassName="w-[105px] shrink-0"
+              title="Limite Yahoo — nombre maximal de candidats Yahoo gardés avant test IBKR."
+            />
+          </div>
+
+          {refreshStage ? (
+            <div className="mt-2 w-full min-w-0">
+              <ScanCompactBadge label="État" value={refreshStage} />
+            </div>
+          ) : null}
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="text-cyan-600/80">
+              Pool actif : {getPoolModeLabel(preIbkrPoolMode)} — {currentPoolCount} tickers
+            </span>
+            {lastScanPoolStale ? (
+              <span className="rounded-full border border-amber-700/60 bg-amber-950/40 px-2 py-0.5 text-[11px] font-medium text-amber-200">
+                Mode changé — clique Scanner pour appliquer.
+              </span>
+            ) : null}
+          </div>
+
+          {/* Patch 3A — contrôles research conservés, visibles seulement en mode Research Expanded. */}
+          {preIbkrPoolMode === "research_expanded" && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <EditableScanSelect
+                label="Research limit"
+                value={String(researchExpandedLimit)}
+                onChange={(e) => setResearchExpandedLimit(readStoredResearchExpandedLimit(e.target.value))}
+                title="Plafond du pool Research Expanded."
+              >
+                <option value="150">150</option>
+                <option value="200">200</option>
+              </EditableScanSelect>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-lg border-slate-600 bg-slate-800 text-xs text-slate-200"
+                onClick={handleReloadResearchExpandedPool}
+                disabled={researchExpandedPoolSource === "loading"}
+              >
+                Recharger pool research
+              </Button>
+              <span className="text-xs text-slate-500">
+                Pool research chargé :{" "}
+                {researchExpandedPoolSource === "loading"
+                  ? "…"
+                  : `${researchExpandedPool.length} tickers (${researchExpandedPoolSource})`}
+              </span>
+              {researchExpandedPoolError ? (
+                <span className="text-xs text-amber-300">{researchExpandedPoolError}</span>
+              ) : null}
+            </div>
+          )}
+
+          {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
+            <p className="mt-2 text-xs font-medium text-amber-300">
+              ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
+            </p>
+          ) : null}
+
+          {otmRebuildRequired && otmRebuildRequiredMessage ? (
+            <p
+              className="mt-2 rounded-lg border border-amber-700/60 bg-amber-950/40 px-2 py-1.5 text-xs font-medium text-amber-200"
+              data-testid="otm-rebuild-required-banner"
+            >
+              {otmRebuildRequiredMessage}
+            </p>
+          ) : null}
+
+          {otmPoolSourceBannerMessage ? (
+            <p
+              className={`mt-2 rounded-lg border px-2 py-1.5 text-xs leading-5 ${
+                preIbkrPoolMode === "research_expanded" ||
+                lastScanPoolMeta.poolSource === "research_expanded"
+                  ? "border-amber-700/60 bg-amber-950/40 text-amber-200"
+                  : "border-sky-800/50 bg-sky-950/30 text-sky-200"
+              }`}
+              data-testid="otm-pool-source-banner"
+            >
+              {otmPoolSourceBannerMessage}
+            </p>
+          ) : null}
+        </div>
+        <div id="section-diagnostics" className="scroll-mt-4" />
 
         {watchlistBuildError && watchlistSource === "fallback" && (
           <div className="mb-6 rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-300 shadow-sm">
@@ -14154,7 +15582,7 @@ export default function Dashboard() {
         )}
 
 
-        <div className="space-y-6">
+        <div id="section-opportunites" className="space-y-6 scroll-mt-4">
           <div className="space-y-6">
             <Card className="rounded-[28px] border-slate-700 shadow-sm">
               <CardHeader className="pb-2">
@@ -14255,6 +15683,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            <div id="section-portefeuille" className="scroll-mt-4" />
             <PortfolioCombos
               combos={combos}
               candidates={filtered}
@@ -14353,6 +15782,8 @@ export default function Dashboard() {
         )}
       </div>
 
+        </main>
+      </div>
       <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
     </div>
   );

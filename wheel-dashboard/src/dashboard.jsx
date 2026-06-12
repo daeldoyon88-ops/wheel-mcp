@@ -31,6 +31,10 @@ import {
   normalizeExpirationKey,
   candidateRowMatchesSelectedExpiration,
 } from "./expirationKey.js";
+import {
+  buildExpirationOptions,
+  getAdjustedExpirationForClosedMarket,
+} from "./marketCalendar.js";
 import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
 import { getTickerDisplayMeta, QUALITY_TIER_STYLE, USER_PREFS, CRYPTO_BLOCK_REASON } from "./tickerMeta.js";
 import { isCryptoDigitalAssetBlocked } from "../../app/watchlist/cryptoWheelFilter.js";
@@ -91,6 +95,10 @@ function nextNFridays(n = 6) {
 }
 
 const DEFAULT_EXPIRATIONS = nextNFridays(6);
+/** Valeurs par défaut déjà ajustées : un vendredi férié (ex. Juneteenth) est remplacé par le jeudi ouvert. */
+const DEFAULT_EXPIRATION_VALUES = DEFAULT_EXPIRATIONS.map(
+  (e) => getAdjustedExpirationForClosedMarket(e).adjusted || e
+);
 const DEBUG_COMPARE = false;
 const DEBUG_DTE_RESOLVE = false;
 
@@ -10442,7 +10450,7 @@ export default function Dashboard() {
   const [tickerScanError, setTickerScanError] = useState("");
 
   const [selectedExpiration, setSelectedExpiration] = useState(() =>
-    pickDefaultExpiration(DEFAULT_EXPIRATIONS)
+    pickDefaultExpiration(DEFAULT_EXPIRATION_VALUES)
   );
   const selectedExpirationRef = useRef(selectedExpiration);
 
@@ -10480,7 +10488,30 @@ export default function Dashboard() {
     }, 2600);
   }, []);
 
-  const expirationOptions = useMemo(() => futureExpirations(DEFAULT_EXPIRATIONS), []);
+  const expirationOptions = useMemo(
+    () => buildExpirationOptions(futureExpirations(DEFAULT_EXPIRATIONS)),
+    []
+  );
+  /**
+   * Si l'expiration sélectionnée correspond à une option marché fermé (ex. vendredi
+   * Juneteenth substitué par le jeudi précédent), on expose la note + l'éventuel blocage.
+   */
+  const selectedExpirationClosedInfo = useMemo(() => {
+    const opt = expirationOptions.find((o) => o.value === selectedExpiration);
+    if (!opt || !opt.closed) return null;
+    const holidaySuffix = opt.holidayLabel ? ` (${opt.holidayLabel})` : "";
+    if (opt.blocked || !opt.adjusted) {
+      return {
+        blocked: true,
+        message: `Expiration fermée${holidaySuffix} : utiliser le jeudi précédent si disponible.`,
+      };
+    }
+    return {
+      blocked: false,
+      message: `${opt.original} est fermé${holidaySuffix}. Expiration utilisée : ${opt.value}.`,
+    };
+  }, [expirationOptions, selectedExpiration]);
+  const scanBlockedByClosedExpiration = Boolean(selectedExpirationClosedInfo?.blocked);
   const [topN, setTopN] = useState(() => readStoredNumber("wheel.topYahooReturned", 55));
   const [capital, setCapital] = useState(25500);
   const [maxCapitalPct, setMaxCapitalPct] = useState(() =>
@@ -12128,6 +12159,22 @@ export default function Dashboard() {
     const scanId = formatScanSessionId(new Date());
     const scanTimestamp = new Date().toISOString();
     try {
+    // Garde-fou marché fermé : ne pas lancer le scan avec une expiration sur un jour fermé
+    // (week-end / férié US) si aucune date d'expiration ouverte ne peut être déterminée.
+    const expirationAdjustment = getAdjustedExpirationForClosedMarket(selectedExpirationRef.current);
+    if (
+      expirationAdjustment.closed &&
+      (expirationAdjustment.blocked || !expirationAdjustment.adjusted)
+    ) {
+      const blockMsg = `Scan bloqué : ${expirationAdjustment.original ?? selectedExpirationRef.current} est un jour de marché US fermé sans expiration ajustée disponible (utiliser le jeudi précédent).`;
+      console.warn("[SCAN_BLOCKED_CLOSED_MARKET]", {
+        selected: selectedExpirationRef.current,
+        reason: expirationAdjustment.reason,
+      });
+      setScanError(blockMsg);
+      setRefreshStage(blockMsg);
+      return;
+    }
     const shouldRunAutoIbkr = options?.runIbkr !== false && autoIbkrDirectScan;
     console.log("[SCAN_START]", {
       scanId,
@@ -13124,7 +13171,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (isPastYmd(selectedExpiration)) {
-      const nextExpiration = pickDefaultExpiration(DEFAULT_EXPIRATIONS);
+      const nextExpiration = pickDefaultExpiration(DEFAULT_EXPIRATION_VALUES);
       if (nextExpiration !== selectedExpiration) {
         setSelectedExpiration(nextExpiration);
       }
@@ -14433,10 +14480,14 @@ export default function Dashboard() {
             <div id="section-scan" className="mb-6 scroll-mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <Button
-              title="Scanner maintenant"
+              title={
+                scanBlockedByClosedExpiration
+                  ? "Expiration fermée sans date ajustée valide — scan bloqué."
+                  : "Scanner maintenant"
+              }
               className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-3 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
               onClick={handleRefreshShortlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+              disabled={loadingScan || watchlistLoading || ibkrDirectLoading || scanBlockedByClosedExpiration}
             >
               Scanner <RefreshCw className="ml-1.5 h-4 w-4" />
             </Button>
@@ -14457,12 +14508,22 @@ export default function Dashboard() {
               title="Expiration utilisée pour le scan backend."
               wrapperClassName="w-[150px] shrink-0"
             >
-              {expirationOptions.map((exp) => (
-                <option key={exp} value={exp}>
-                  {exp}
+              {expirationOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </EditableScanSelect>
+
+            {selectedExpirationClosedInfo && (
+              <p
+                className={`basis-full text-[11px] ${
+                  selectedExpirationClosedInfo.blocked ? "text-rose-300" : "text-amber-300"
+                }`}
+              >
+                {selectedExpirationClosedInfo.message}
+              </p>
+            )}
 
             <EditableScanInput
               label="Capital"

@@ -16,6 +16,7 @@ import {
   Server,
   Info,
   MoreHorizontal,
+  ChevronRight,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 import {
@@ -9364,6 +9365,261 @@ function weightedMetricByCapital(picks, pickMetricAccessor) {
 
 // ────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Modale décisionnelle ouverte au clic sur une carte résumée SAFE / BALANCED /
+ * AGGRESSIVE / RISQUE. Vue compacte et premium — réutilise les picks déjà
+ * calculés (aucun recalcul de montants, scores ni sélection).
+ */
+function ComboDetailModal({
+  mode,
+  combos,
+  comboStyles,
+  summaryFor,
+  usableCapital,
+  riskCombo,
+  dominant,
+  riskScore,
+  riskLabel,
+  riskColor,
+  onClose,
+  onTickerClick,
+}) {
+  const isRisk = mode === "RISK";
+  const combo = isRisk ? riskCombo : combos.find((c) => c.label === mode);
+  const accent = isRisk ? riskColor : (comboStyles[mode]?.accent ?? "#19a7ff");
+
+  // Coloration des cellules selon la qualité (réutilise la même logique de couleurs que l'accordéon).
+  const spreadColor = (v) => (v == null ? "#9fb3cc" : v <= 10 ? "#22e36f" : v <= 20 ? "#ff9f1a" : "#ff4d57");
+  const scoreColor = (v) => (v == null ? "#9fb3cc" : v >= 65 ? "#22e36f" : v >= 45 ? "#ff9f1a" : "#ff4d57");
+  const fmtUnit = (p) =>
+    p.premiumUnit != null && Number.isFinite(Number(p.premiumUnit)) ? `${Number(p.premiumUnit).toFixed(2)}$` : "—";
+
+  const s = combo ? summaryFor(combo) : null;
+  const freeCapital = combo ? Math.max(0, usableCapital - combo.totalCapital) : 0;
+
+  const Metric = ({ label, value, color }) => (
+    <div className="rounded-xl border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-3 py-2">
+      <p className="text-[11px] text-[#7f97b6]">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold tabular-nums" style={{ color: color ?? "#f4f7fb" }}>{value}</p>
+    </div>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="flex max-h-[80vh] w-[88vw] max-w-[1200px] flex-col overflow-hidden rounded-3xl border bg-[#0b1a2b] shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+        style={{ borderColor: `${accent}40` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-[rgba(110,150,190,0.20)] px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
+              <h2 className="text-lg font-bold tracking-wide" style={{ color: accent }}>
+                {isRisk ? "RISQUE" : mode}
+              </h2>
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: accent, backgroundColor: `${accent}1f` }}>
+                {isRisk ? `Concentration ${riskLabel}` : `${combo?.positions ?? 0} positions`}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#7f97b6]">
+              {isRisk
+                ? "Diagnostic de concentration — simulation la plus exposée"
+                : "Simulation indépendante sur le capital complet — positions décisionnelles"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="shrink-0 rounded-xl border border-[rgba(110,150,190,0.25)] bg-[#0a1726] p-1.5 text-[#cfe0f2] transition hover:bg-[#12243a] hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {isRisk ? (
+          <RiskModalBody
+            riskCombo={riskCombo}
+            dominant={dominant}
+            riskScore={riskScore}
+            riskLabel={riskLabel}
+            riskColor={riskColor}
+            usableCapital={usableCapital}
+            Metric={Metric}
+          />
+        ) : (
+          <>
+            {/* Métriques header en petits blocs */}
+            <div className="grid grid-cols-2 gap-2 px-5 py-4 sm:grid-cols-3 lg:grid-cols-6">
+              <Metric label="Positions" value={combo?.positions ?? 0} />
+              <Metric label="Prime totale" value={`${(s?.totalPremium ?? 0).toFixed(0)} $`} />
+              <Metric label="Rendement port." value={`${(s?.portfolioReturnPct ?? 0).toFixed(2)} %`} color="#22e36f" />
+              <Metric label="POP moyenne" value={s?.popWeighted != null ? `${Math.round(s.popWeighted)} %` : "n/d"} />
+              <Metric label="Capital utilisé" value={`${(combo?.totalCapital ?? 0).toFixed(0)} $`} color="#cfe0f2" />
+              <Metric label="Capital libre" value={`${freeCapital.toFixed(0)} $`} color="#cfe0f2" />
+            </div>
+
+            {/* Tableau compact des positions */}
+            <div className="min-h-0 flex-1 overflow-auto px-5 pb-5">
+              {(combo?.picks?.length ?? 0) === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[rgba(110,150,190,0.25)] bg-[#0a1726] p-5 text-center text-sm text-[#7f97b6]">
+                  {combo?.emptyMessage ?? "Aucune position dans cette combinaison."}
+                </div>
+              ) : (
+                <table className="w-full border-separate border-spacing-0 text-xs">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-[#7f97b6]">
+                      {["Ticker", "Mode / Grade", "Strike", "Prime", "Spread", "Rend.", "Dist.", "Contrats", "Capital", "Prime tot.", "POP", "Score", "Phase"].map((h, i) => (
+                        <th
+                          key={h}
+                          className={cn("border-b border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] px-2.5 py-2 font-medium", i === 0 && "rounded-tl-lg", i >= 2 && "text-right")}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {combo.picks.map((pick) => (
+                      <tr key={`${combo.label}-${pick.ticker}-${pick.strike}`} className="group transition-colors hover:bg-[#12243a]/60">
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2">
+                          <button
+                            type="button"
+                            onClick={() => onTickerClick?.(pick.ticker)}
+                            title={`Aller à la carte principale ${pick.ticker}`}
+                            className="font-bold text-[#f4f7fb] transition hover:text-sky-400 hover:underline"
+                          >
+                            {pick.ticker}
+                          </button>
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2">
+                          <span className="rounded bg-[#12243a] px-1.5 py-0.5 text-[11px] font-semibold text-[#cfe0f2]">
+                            {pick.mode ?? "—"}{pick.grade ? ` ${pick.grade}` : ""}
+                          </span>
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">PUT {pick.strike}</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{fmtUnit(pick)}</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums" style={{ color: spreadColor(pick.spreadPct != null ? Number(pick.spreadPct) : null) }}>
+                          {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#22e36f]">{pick.weeklyReturn.toFixed(2)}%</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#ff6b73]">
+                          {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#cfe0f2]">×{pick.contracts}</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{pick.capitalRequired.toFixed(0)}$</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{pick.premiumCollected.toFixed(0)}$</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#cfe0f2]">
+                          {pick.popEstimate != null && Number.isFinite(Number(pick.popEstimate)) ? `${Math.round(Number(pick.popEstimate))}%` : "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums font-semibold" style={{ color: scoreColor(pick.selectionScore != null ? Number(pick.selectionScore) : null) }}>
+                          {pick.selectionScore ?? "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right">
+                          <span className="rounded border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-1.5 py-0.5 text-[10px] text-[#7f97b6]" title="Phase d'allocation">
+                            {pick.comboAllocationPhase ?? "primary_strict"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {combo && !combo.capitalTargetReached && combo.capitalShortfallReason && (
+                <div className="mt-3 rounded-xl border border-amber-800/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-400">
+                  Capital non entièrement déployé — {formatCapitalShortfallReason(combo.capitalShortfallReason)}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Corps de la modale RISQUE — présentation visuelle de la concentration. */
+function RiskModalBody({ riskCombo, dominant, riskScore, riskLabel, riskColor, usableCapital, Metric }) {
+  const diversification = riskCombo?.diversificationHealthScore != null ? Math.round(riskCombo.diversificationHealthScore * 100) : null;
+  const highBeta = riskCombo?.highBetaCapitalPct ?? null;
+  const cryptoMiner = riskCombo?.cryptoMinerCapitalPct ?? null;
+  const dominantPct = dominant ? dominant.pct : null;
+  // Alertes : warnings de cluster déjà calculés + thèmes de concentration des picks.
+  const alerts = [];
+  (riskCombo?.clusterWarnings ?? []).forEach((w) => alerts.push(w));
+  (riskCombo?.crossModeOverlap?.crossModeWarnings ?? []).forEach((w) => alerts.push(w));
+  const themes = Array.from(
+    new Set((riskCombo?.picks ?? []).map((p) => p.concentrationTheme).filter(Boolean))
+  );
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        {/* Cercle de concentration */}
+        <div className="flex shrink-0 flex-col items-center">
+          <div
+            className="flex h-28 w-28 items-center justify-center rounded-full text-2xl font-bold tabular-nums"
+            style={{ color: riskColor, border: `6px solid ${riskColor}`, backgroundColor: `${riskColor}12` }}
+          >
+            {dominantPct != null ? `${dominantPct.toFixed(0)}%` : "—"}
+          </div>
+          <p className="mt-2 text-xs font-medium" style={{ color: riskColor }}>Concentration {riskLabel}</p>
+        </div>
+        {/* Métriques en petites cartes */}
+        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
+          <Metric label="Simulation" value={riskCombo?.label ?? "—"} />
+          <Metric label="Ticker dominant" value={dominant?.ticker ?? "—"} />
+          <Metric label="% du capital" value={dominantPct != null ? `${dominantPct.toFixed(0)} %` : "—"} color={riskColor} />
+          <Metric label="Capital dominant" value={dominant?.capital != null ? `${dominant.capital.toFixed(0)} $` : "—"} color="#cfe0f2" />
+          <Metric label="Diversification" value={diversification != null ? `${diversification}/100` : "n/d"} color={diversification != null && diversification < 50 ? "#ff9f1a" : "#cfe0f2"} />
+          <Metric label="Score concentration" value={riskScore != null ? riskScore.toFixed(2) : "n/d"} color={riskColor} />
+          {highBeta != null && highBeta > 0 && (
+            <Metric label="High beta" value={`${highBeta.toFixed(0)} %`} color={highBeta > 40 ? "#ff4d57" : "#cfe0f2"} />
+          )}
+          {cryptoMiner != null && cryptoMiner > 0 && (
+            <Metric label="Crypto / miner" value={`${cryptoMiner.toFixed(0)} %`} color={cryptoMiner > 35 ? "#ff4d57" : "#cfe0f2"} />
+          )}
+        </div>
+      </div>
+
+      {themes.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide text-[#7f97b6]">Thèmes&nbsp;:</span>
+          {themes.map((t) => (
+            <span key={t} className="rounded-full border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-2 py-0.5 text-[11px] text-[#cfe0f2]">{t}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Liste courte des alertes */}
+      <div className="mt-4">
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-[#7f97b6]">Alertes de risque</p>
+        {alerts.length === 0 ? (
+          <p className="rounded-xl border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-3 py-2 text-xs text-[#7f97b6]">
+            Aucune alerte de concentration — profil bien diversifié.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {alerts.slice(0, 6).map((w, i) => (
+              <li key={i} className="flex items-start gap-2 rounded-xl border px-3 py-2 text-xs" style={{ borderColor: `${riskColor}30`, backgroundColor: `${riskColor}0d` }}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: riskColor }} />
+                <span className="text-[#e6eefb]">{w}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PortfolioCombos({
   combos,
   candidates = [],
@@ -9375,6 +9631,8 @@ function PortfolioCombos({
 }) {
   const [snapshotStatus, setSnapshotStatus] = useState(null);
   const [snapshotMsg, setSnapshotMsg] = useState("");
+  // Modale décisionnelle ouverte au clic sur une carte résumée : "SAFE" | "BALANCED" | "AGGRESSIVE" | "RISK" | null.
+  const [selectedComboDetail, setSelectedComboDetail] = useState(null);
   const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
   const usableCapital = capital * (maxCapitalPct / 100);
   const comboDefinitions = [
@@ -9399,6 +9657,45 @@ function PortfolioCombos({
       }
     );
   });
+
+  // ── Données partagées entre les cartes résumées et les modales décisionnelles ──
+  const COMBO_STYLES = {
+    SAFE: { accent: "#19a7ff", label: "SAFE" },
+    BALANCED: { accent: "#a855f7", label: "BALANCED" },
+    AGGRESSIVE: { accent: "#22e36f", label: "AGGRESSIVE" },
+  };
+  const summaryFor = (combo) => {
+    const totalPremium = combo.totalPremium ?? combo.picks.reduce((s, p) => s + p.premiumCollected, 0);
+    const portfolioReturnPct = usableCapital > 0 ? (totalPremium / usableCapital) * 100 : 0;
+    const popWeighted = weightedMetricByCapital(combo.picks, (p) => p.popEstimate);
+    const capitalPct = usableCapital > 0 ? (combo.totalCapital / usableCapital) * 100 : 0;
+    return { totalPremium, portfolioReturnPct, popWeighted, capitalPct };
+  };
+  // Carte RISQUE : concentration de la simulation la plus concentrée.
+  const riskCombo = [...visibleCombos].sort(
+    (a, b) => (b.concentrationRiskScore ?? 0) - (a.concentrationRiskScore ?? 0)
+  )[0];
+  const dominant = (() => {
+    if (!riskCombo?.picks?.length) return null;
+    const total = riskCombo.picks.reduce((s, p) => s + p.capitalRequired, 0);
+    if (!total) return null;
+    const byTicker = {};
+    riskCombo.picks.forEach((p) => { byTicker[p.ticker] = (byTicker[p.ticker] || 0) + p.capitalRequired; });
+    let topT = null, topV = 0;
+    Object.entries(byTicker).forEach(([t, v]) => { if (v > topV) { topV = v; topT = t; } });
+    return { ticker: topT, pct: (topV / total) * 100, capital: topV };
+  })();
+  const riskScore = riskCombo?.concentrationRiskScore ?? null;
+  const riskLabel = riskScore == null ? "n/d" : riskScore > 0.65 ? "élevée" : riskScore > 0.45 ? "moyenne" : "faible";
+  const riskColor = riskScore == null ? "#91a8c4" : riskScore > 0.65 ? "#ff4d57" : riskScore > 0.45 ? "#ff9f1a" : "#22e36f";
+
+  // Fermeture de la modale au clavier (Échap).
+  useEffect(() => {
+    if (!selectedComboDetail) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setSelectedComboDetail(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedComboDetail]);
 
   async function handleSaveSnapshot() {
     if (!hasAnyPicks) return;
@@ -9462,102 +9759,139 @@ function PortfolioCombos({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Cartes résumées compactes (style maquette) */}
-        {(() => {
-          const COMBO_STYLES = {
-            SAFE: { accent: "#19a7ff", label: "SAFE" },
-            BALANCED: { accent: "#a855f7", label: "BALANCED" },
-            AGGRESSIVE: { accent: "#22e36f", label: "AGGRESSIVE" },
-          };
-          const summaryFor = (combo) => {
-            const totalPremium = combo.totalPremium ?? combo.picks.reduce((s, p) => s + p.premiumCollected, 0);
-            const portfolioReturnPct = usableCapital > 0 ? (totalPremium / usableCapital) * 100 : 0;
-            const popWeighted = weightedMetricByCapital(combo.picks, (p) => p.popEstimate);
-            const capitalPct = usableCapital > 0 ? (combo.totalCapital / usableCapital) * 100 : 0;
-            return { totalPremium, portfolioReturnPct, popWeighted, capitalPct };
-          };
-          // Carte RISQUE : concentration de la simulation AGGRESSIVE (ou la plus concentrée).
-          const riskCombo = [...visibleCombos].sort(
-            (a, b) => (b.concentrationRiskScore ?? 0) - (a.concentrationRiskScore ?? 0)
-          )[0];
-          const dominant = (() => {
-            if (!riskCombo?.picks?.length) return null;
-            const total = riskCombo.picks.reduce((s, p) => s + p.capitalRequired, 0);
-            if (!total) return null;
-            const byTicker = {};
-            riskCombo.picks.forEach((p) => { byTicker[p.ticker] = (byTicker[p.ticker] || 0) + p.capitalRequired; });
-            let topT = null, topV = 0;
-            Object.entries(byTicker).forEach(([t, v]) => { if (v > topV) { topV = v; topT = t; } });
-            return { ticker: topT, pct: (topV / total) * 100 };
-          })();
-          const riskScore = riskCombo?.concentrationRiskScore ?? null;
-          const riskLabel = riskScore == null ? "n/d" : riskScore > 0.65 ? "élevée" : riskScore > 0.45 ? "moyenne" : "faible";
-          const riskColor = riskScore == null ? "#91a8c4" : riskScore > 0.65 ? "#ff4d57" : riskScore > 0.45 ? "#ff9f1a" : "#22e36f";
-          return (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {visibleCombos.map((combo) => {
-                const st = COMBO_STYLES[combo.label] ?? COMBO_STYLES.SAFE;
-                const s = summaryFor(combo);
-                return (
-                  <div
-                    key={`summary-${combo.label}`}
-                    className="rounded-2xl border bg-[#0a1726] p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.30)]"
-                    style={{ borderColor: `${st.accent}33` }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold tracking-wide" style={{ color: st.accent }}>{st.label}</span>
-                      <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: st.accent, backgroundColor: `${st.accent}1f` }}>
-                        {combo.positions} pos.
-                      </span>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-                      <div>
-                        <p className="text-[#7f97b6]">Prime totale</p>
-                        <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.totalPremium.toFixed(0)} $</p>
-                      </div>
-                      <div>
-                        <p className="text-[#7f97b6]">Rend. moy.</p>
-                        <p className="font-semibold text-[#22e36f] tabular-nums">{s.portfolioReturnPct.toFixed(2)}% / sem.</p>
-                      </div>
-                      <div>
-                        <p className="text-[#7f97b6]">POP moy.</p>
-                        <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.popWeighted != null ? `${Math.round(s.popWeighted)}%` : "n/d"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[#7f97b6]">Capital utilisé</p>
-                        <p className="font-semibold text-[#cfe0f2] tabular-nums">{combo.totalCapital.toFixed(0)} $ ({Math.round(s.capitalPct)}%)</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Carte RISQUE */}
-              <div className="rounded-2xl border bg-[#0a1726] p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.30)]" style={{ borderColor: `${riskColor}33` }}>
+        {/* Cartes résumées compactes — cliquables, ouvrent une modale décisionnelle */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {visibleCombos.map((combo) => {
+            const st = COMBO_STYLES[combo.label] ?? COMBO_STYLES.SAFE;
+            const s = summaryFor(combo);
+            const clickable = combo.picks.length > 0;
+            return (
+              <button
+                type="button"
+                key={`summary-${combo.label}`}
+                onClick={clickable ? () => setSelectedComboDetail(combo.label) : undefined}
+                disabled={!clickable}
+                aria-label={clickable ? `Voir les positions ${st.label}` : undefined}
+                className={cn(
+                  "group block w-full rounded-2xl border bg-[#0a1726] p-3.5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.30)] transition-all duration-200",
+                  clickable
+                    ? "cursor-pointer hover:-translate-y-0.5 hover:bg-[#0c1c30]"
+                    : "cursor-default opacity-80",
+                )}
+                style={{ borderColor: `${st.accent}33` }}
+                onMouseEnter={clickable ? (e) => {
+                  e.currentTarget.style.borderColor = `${st.accent}80`;
+                  e.currentTarget.style.boxShadow = `0 14px 40px rgba(0,0,0,0.40), 0 0 0 1px ${st.accent}40`;
+                } : undefined}
+                onMouseLeave={clickable ? (e) => {
+                  e.currentTarget.style.borderColor = `${st.accent}33`;
+                  e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.30)";
+                } : undefined}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold tracking-wide" style={{ color: riskColor }}>RISQUE</span>
-                  <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: riskColor, backgroundColor: `${riskColor}1f` }}>
-                    Concentration {riskLabel}
+                  <span className="text-sm font-bold tracking-wide" style={{ color: st.accent }}>{st.label}</span>
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: st.accent, backgroundColor: `${st.accent}1f` }}>
+                    {combo.positions} pos.
                   </span>
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-3 text-xs">
-                  <div className="min-w-0">
-                    <p className="text-[#7f97b6]">Ticker dominant</p>
-                    <p className="font-bold text-[#f4f7fb] truncate">{dominant?.ticker ?? "—"}</p>
-                    <p className="mt-1 text-[#7f97b6]">{dominant ? `${dominant.pct.toFixed(0)} % du capital` : "Aucune concentration"}</p>
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <p className="text-[#7f97b6]">Prime totale</p>
+                    <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.totalPremium.toFixed(0)} $</p>
                   </div>
-                  {dominant && (
-                    <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums"
-                      style={{ color: riskColor, border: `3px solid ${riskColor}`, backgroundColor: `${riskColor}12` }}
-                    >
-                      {dominant.pct.toFixed(0)}%
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-[#7f97b6]">Rend. moy.</p>
+                    <p className="font-semibold text-[#22e36f] tabular-nums">{s.portfolioReturnPct.toFixed(2)}% / sem.</p>
+                  </div>
+                  <div>
+                    <p className="text-[#7f97b6]">POP moy.</p>
+                    <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.popWeighted != null ? `${Math.round(s.popWeighted)}%` : "n/d"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[#7f97b6]">Capital utilisé</p>
+                    <p className="font-semibold text-[#cfe0f2] tabular-nums">{combo.totalCapital.toFixed(0)} $ ({Math.round(s.capitalPct)}%)</p>
+                  </div>
                 </div>
-              </div>
+                <div className="mt-3 flex items-center gap-1 text-[11px] font-medium opacity-0 transition-opacity duration-200 group-hover:opacity-100" style={{ color: st.accent }}>
+                  {clickable ? (
+                    <>
+                      <span>Voir positions</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </>
+                  ) : null}
+                </div>
+              </button>
+            );
+          })}
+          {/* Carte RISQUE — cliquable */}
+          <button
+            type="button"
+            onClick={dominant ? () => setSelectedComboDetail("RISK") : undefined}
+            disabled={!dominant}
+            aria-label={dominant ? "Voir le détail du risque" : undefined}
+            className={cn(
+              "group block w-full rounded-2xl border bg-[#0a1726] p-3.5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.30)] transition-all duration-200",
+              dominant ? "cursor-pointer hover:-translate-y-0.5 hover:bg-[#0c1c30]" : "cursor-default opacity-80",
+            )}
+            style={{ borderColor: `${riskColor}33` }}
+            onMouseEnter={dominant ? (e) => {
+              e.currentTarget.style.borderColor = `${riskColor}80`;
+              e.currentTarget.style.boxShadow = `0 14px 40px rgba(0,0,0,0.40), 0 0 0 1px ${riskColor}40`;
+            } : undefined}
+            onMouseLeave={dominant ? (e) => {
+              e.currentTarget.style.borderColor = `${riskColor}33`;
+              e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.30)";
+            } : undefined}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold tracking-wide" style={{ color: riskColor }}>RISQUE</span>
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: riskColor, backgroundColor: `${riskColor}1f` }}>
+                Concentration {riskLabel}
+              </span>
             </div>
-          );
-        })()}
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+              <div className="min-w-0">
+                <p className="text-[#7f97b6]">Ticker dominant</p>
+                <p className="font-bold text-[#f4f7fb] truncate">{dominant?.ticker ?? "—"}</p>
+                <p className="mt-1 text-[#7f97b6]">{dominant ? `${dominant.pct.toFixed(0)} % du capital` : "Aucune concentration"}</p>
+              </div>
+              {dominant && (
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums"
+                  style={{ color: riskColor, border: `3px solid ${riskColor}`, backgroundColor: `${riskColor}12` }}
+                >
+                  {dominant.pct.toFixed(0)}%
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-1 text-[11px] font-medium opacity-0 transition-opacity duration-200 group-hover:opacity-100" style={{ color: riskColor }}>
+              {dominant ? (
+                <>
+                  <span>Voir le risque</span>
+                  <ChevronRight className="h-3 w-3" />
+                </>
+              ) : null}
+            </div>
+          </button>
+        </div>
+
+        {/* Modale décisionnelle au clic sur une carte résumée */}
+        {selectedComboDetail && (
+          <ComboDetailModal
+            mode={selectedComboDetail}
+            combos={visibleCombos}
+            comboStyles={COMBO_STYLES}
+            summaryFor={summaryFor}
+            usableCapital={usableCapital}
+            riskCombo={riskCombo}
+            dominant={dominant}
+            riskScore={riskScore}
+            riskLabel={riskLabel}
+            riskColor={riskColor}
+            onClose={() => setSelectedComboDetail(null)}
+            onTickerClick={onTickerClick}
+          />
+        )}
 
         {/* Détails complets accessibles à la demande — non ouverts par défaut. */}
         <details className="group rounded-2xl border border-[rgba(110,150,190,0.20)] bg-[#0b1a2b]">

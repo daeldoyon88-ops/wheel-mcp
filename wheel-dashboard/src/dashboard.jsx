@@ -14,6 +14,9 @@ import {
   PieChart,
   Settings,
   Server,
+  Info,
+  MoreHorizontal,
+  ChevronRight,
 } from "lucide-react";
 import { wheelShortlist } from "./data/wheelShortlist";
 import {
@@ -7451,7 +7454,7 @@ const CREAM_BUCKET_ICON = {
 const CREAM_COMPACT_BUCKETS = new Set(["unknownReview", "spreadRejected"]);
 
 function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null, sortBy = "quality" }) {
-  const [openBuckets, setOpenBuckets] = useState(() => new Set(["topExecutable", "favoriteWatch", "watchOnly"]));
+  const [activeBucket, setActiveBucket] = useState(null);
   const [expandedTickerCards, setExpandedTickerCards] = useState({});
 
   useEffect(() => {
@@ -7474,135 +7477,313 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
     return groups;
   }, [items, sortBy]);
 
-  if (!items.length) return null;
+  // Buckets effectivement présents, dans l'ordre d'affichage.
+  const availableBuckets = CREAM_BUCKET_ORDER.filter((b) => classified[b].length > 0);
+
+  // Onglet courant : sélection utilisateur si elle reste valide, sinon premier bucket non vide.
+  const currentBucket =
+    activeBucket && availableBuckets.includes(activeBucket)
+      ? activeBucket
+      : availableBuckets[0] ?? null;
+
+  if (!items.length || !currentBucket) return null;
 
   const visibleCount = items.length - (classified.cryptoBlocked?.length ?? 0);
-
-  const toggle = (b) => setOpenBuckets(prev => {
-    const next = new Set(prev);
-    next.has(b) ? next.delete(b) : next.add(b);
-    return next;
-  });
-
   const toggleTickerCard = (ticker) => setExpandedTickerCards(prev => ({ ...prev, [ticker]: !prev[ticker] }));
 
+  const group = classified[currentBucket];
+  const cfg = CREAM_BUCKET_CONFIG[currentBucket];
+  const isCompact = CREAM_COMPACT_BUCKETS.has(currentBucket);
+
   return (
-    <div className="rounded-[12px] border border-[#1e3a52] bg-[#020811] overflow-hidden shadow-[0_0_0_1px_rgba(80,140,180,0.08)]">
-      <div className="flex items-center gap-2 border-b border-[#172637] px-4 py-3">
+    <div className="rounded-[12px] border border-[rgba(110,150,190,0.20)] bg-[#0a1726] overflow-hidden shadow-[0_0_0_1px_rgba(80,140,180,0.08),0_18px_60px_rgba(0,0,0,0.40)]">
+      {/* En-tête panneau */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[rgba(110,150,190,0.18)] px-4 py-3">
         <Layers3 className="h-4 w-4 text-amber-400 shrink-0" />
-        <span className="text-sm font-bold text-slate-100">Classement Crème de la crème</span>
-        <span className="ml-1 rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+        <span className="text-sm font-bold text-[#f4f7fb]">Classement crème de la crème</span>
+        <span className="ml-1 rounded-full bg-emerald-900/50 px-2 py-0.5 text-xs font-medium text-emerald-200">
           {visibleCount} admissibles
         </span>
       </div>
 
-      <div className="divide-y divide-[#172637]">
-        {CREAM_BUCKET_ORDER.map((bucket) => {
-          const group = classified[bucket];
-          if (!group.length) return null;
-          const cfg = CREAM_BUCKET_CONFIG[bucket];
-          const isOpen = openBuckets.has(bucket);
-          const isCompact = CREAM_COMPACT_BUCKETS.has(bucket);
+      {/* Onglets / buckets compacts */}
+      <div className="flex flex-wrap items-stretch gap-1 border-b border-[rgba(110,150,190,0.18)] bg-[#081320] px-2 pt-1.5">
+        {availableBuckets.map((bucket) => {
+          const bGroup = classified[bucket];
+          const bCfg = CREAM_BUCKET_CONFIG[bucket];
+          const active = bucket === currentBucket;
           return (
-            <div key={bucket}>
-              <button
-                onClick={() => toggle(bucket)}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-slate-700/40"
+            <button
+              key={bucket}
+              type="button"
+              onClick={() => setActiveBucket(bucket)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-t-[8px] border-b-2 px-3 py-2 text-xs font-semibold transition-colors",
+                active
+                  ? "border-emerald-400 bg-[#0a1726] text-[#f4f7fb]"
+                  : "border-transparent text-[#91a8c4] hover:text-[#f4f7fb] hover:bg-white/5"
+              )}
+            >
+              <span>{CREAM_BUCKET_ICON[bucket]}</span>
+              <span>{bCfg.label}</span>
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                  active ? "bg-emerald-500/20 text-emerald-200" : "bg-white/5 text-[#91a8c4]"
+                )}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{CREAM_BUCKET_ICON[bucket]}</span>
-                  <span className={`text-sm font-semibold ${cfg.text}`}>{cfg.label}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cfg.countBadge}`}>
-                    {group.length}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-500">{isOpen ? "▲" : "▼"}</span>
-              </button>
-
-              {isOpen && isCompact && (
-                <div className={`divide-y divide-[#172637] ${cfg.bg}`}>
-                  {bucket === "unknownReview" && (
-                    <p className="px-4 py-2 text-xs italic text-slate-500">
-                      Ajouter ces tickers à tickerMeta.js pour les classer, ou les exclure.
-                    </p>
-                  )}
-                  {group.map(({ item }) => {
-                    const sym = String(item?.ticker ?? "").toUpperCase();
-                    const safeSpread = getSafeSpreadPct(item);
-                    const aggSpread = getAggressiveSpreadPct(item);
-                    return (
-                      <div key={sym} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-xs">
-                        <span className="shrink-0 font-mono font-bold text-slate-200">{sym}</span>
-                        {bucket === "unknownReview" && (
-                          <>
-                            <span className="italic text-slate-500">Nom indisponible</span>
-                            <span className="text-slate-400">·</span>
-                            <span className="italic text-slate-400">secteur non renseigné</span>
-                            <span className="ml-auto rounded bg-slate-800 px-1.5 py-0.5 text-slate-500">
-                              à ajouter dans tickerMeta.js
-                            </span>
-                          </>
-                        )}
-                        {bucket === "spreadRejected" && (
-                          <>
-                            {safeSpread != null && (
-                              <span className="text-orange-400">safe {safeSpread.toFixed(0)}%</span>
-                            )}
-                            {aggSpread != null && (
-                              <span className="text-orange-400">agg {aggSpread.toFixed(0)}%</span>
-                            )}
-                            <span className="italic text-slate-500">spread trop large</span>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {isOpen && !isCompact && (
-                <div className={`space-y-3 px-3 pb-3 pt-1 ${cfg.bg}`}>
-                  {group.map(({ item, info, score }, idx) => {
-                    const sym = String(item?.ticker ?? "").toUpperCase();
-                    return (
-                      <div key={sym} className="rounded-[8px] overflow-hidden">
-                        <div
-                          className={`flex flex-wrap items-center gap-1.5 border ${cfg.border} border-b-0 rounded-t-[8px] bg-[#020811] px-3 py-1.5`}
-                        >
-                          <span className="shrink-0 text-xs text-slate-400">Score crème</span>
-                          <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${cfg.tag}`}>
-                            {score}/100
-                          </span>
-                          <span className={`rounded px-1.5 py-0.5 text-xs ${cfg.tag}`}>
-                            {cfg.label.split(" ")[0]}
-                          </span>
-                          {info.reasons.slice(0, 3).map((r, i) => (
-                            <span key={i} className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400">
-                              {r}
-                            </span>
-                          ))}
-                        </div>
-                        <CandidateCard
-                          item={item}
-                          displayRank={idx + 1}
-                          yahooRankForIbkr={yahooRankForIbkrBySymbol.get(sym)}
-                          onOpenDetail={onOpenDetail}
-                          ibkrBatchRow={ibkrBatchByTicker.get(sym) ?? null}
-                          seasonality={seasonalityMap[sym] ?? null}
-                          highlightedTicker={highlightedTicker}
-                          isExpanded={expandedTickerCards[sym] === true}
-                          onToggleExpand={() => toggleTickerCard(sym)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                {bGroup.length}
+              </span>
+            </button>
           );
         })}
       </div>
+
+      {/* Contenu du bucket actif */}
+      {isCompact ? (
+        <div className="max-h-[420px] overflow-y-auto divide-y divide-[rgba(110,150,190,0.12)]">
+          {currentBucket === "unknownReview" && (
+            <p className="px-4 py-2 text-xs italic text-[#6f86a6]">
+              Ajouter ces tickers à tickerMeta.js pour les classer, ou les exclure.
+            </p>
+          )}
+          {group.map(({ item }) => {
+            const sym = String(item?.ticker ?? "").toUpperCase();
+            const safeSpread = getSafeSpreadPct(item);
+            const aggSpread = getAggressiveSpreadPct(item);
+            return (
+              <div key={sym} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-xs">
+                <span className="shrink-0 font-mono font-bold text-[#f4f7fb]">{sym}</span>
+                {currentBucket === "unknownReview" && (
+                  <>
+                    <span className="italic text-[#6f86a6]">Nom indisponible</span>
+                    <span className="text-[#91a8c4]">·</span>
+                    <span className="italic text-[#91a8c4]">secteur non renseigné</span>
+                    <span className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[#6f86a6]">
+                      à ajouter dans tickerMeta.js
+                    </span>
+                  </>
+                )}
+                {currentBucket === "spreadRejected" && (
+                  <>
+                    {safeSpread != null && (
+                      <span className="text-[#ff9f1a]">safe {safeSpread.toFixed(0)}%</span>
+                    )}
+                    {aggSpread != null && (
+                      <span className="text-[#ff9f1a]">agg {aggSpread.toFixed(0)}%</span>
+                    )}
+                    <span className="italic text-[#6f86a6]">spread trop large</span>
+                    <button
+                      type="button"
+                      onClick={() => onOpenDetail(item)}
+                      className="ml-auto rounded-[6px] border border-[rgba(110,150,190,0.30)] bg-[#0d2034] px-2.5 py-0.5 text-[11px] font-medium text-[#cfe0f2] hover:border-emerald-400 hover:text-white transition-colors"
+                    >
+                      Voir
+                    </button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="max-h-[560px] overflow-y-auto overflow-x-auto">
+          <table className="w-full min-w-[1180px] border-collapse text-sm">
+            <thead className="sticky top-0 z-10 bg-[#0b1a2b] text-[10px] uppercase tracking-wide text-[#7f97b6] shadow-[0_1px_0_rgba(110,150,190,0.18)]">
+              <tr>
+                <th className="px-2 py-2.5 text-left font-semibold">Rang</th>
+                <th className="px-2 py-2.5 text-left font-semibold">Ticker</th>
+                <th className="px-2 py-2.5 text-left font-semibold">Mode</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Strike</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Prime bid</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Rend. (sem.)</th>
+                <th className="px-2 py-2.5 text-right font-semibold">POP</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Spread</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Dist. (spot)</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Mouv. attendu</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Plage attendue</th>
+                <th className="px-2 py-2.5 text-center font-semibold">Score</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Capital / contrat</th>
+                <th className="px-2 py-2.5 text-center font-semibold">Détails</th>
+              </tr>
+            </thead>
+            <tbody>
+              {group.map(({ item, score }, idx) => {
+                const sym = String(item?.ticker ?? "").toUpperCase();
+                const isExpanded = expandedTickerCards[sym] === true;
+                return (
+                  <CremeTableRow
+                    key={sym}
+                    item={item}
+                    sym={sym}
+                    rank={idx + 1}
+                    creamScore={score}
+                    cfg={cfg}
+                    isExpanded={isExpanded}
+                    onToggleExpand={() => toggleTickerCard(sym)}
+                    onOpenDetail={onOpenDetail}
+                    yahooRankForIbkr={yahooRankForIbkrBySymbol.get(sym)}
+                    ibkrBatchRow={ibkrBatchByTicker.get(sym) ?? null}
+                    seasonality={seasonalityMap[sym] ?? null}
+                    highlightedTicker={highlightedTicker}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Avatar circulaire compact pour le ticker (style maquette).
+function CremeTickerAvatar({ sym, name }) {
+  const palette = ["#18d1d1", "#19a7ff", "#a855f7", "#22e36f", "#ff9f1a", "#ff4d57"];
+  let hash = 0;
+  for (let i = 0; i < sym.length; i += 1) hash = (hash * 31 + sym.charCodeAt(i)) >>> 0;
+  const color = palette[hash % palette.length];
+  return (
+    <span
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tracking-tight"
+      style={{ color, backgroundColor: `${color}1f`, border: `1px solid ${color}55` }}
+      title={name ?? sym}
+    >
+      {sym.slice(0, 4)}
+    </span>
+  );
+}
+
+// Une ligne compacte du tableau « crème de la crème » + expansion fiche complète au besoin.
+function CremeTableRow({
+  item,
+  sym,
+  rank,
+  creamScore,
+  cfg,
+  isExpanded,
+  onToggleExpand,
+  onOpenDetail,
+  yahooRankForIbkr,
+  ibkrBatchRow,
+  seasonality,
+  highlightedTicker,
+}) {
+  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
+  const tickerMeta = getTickerDisplayMeta(item.ticker);
+  const resolvedName =
+    tickerMeta.name ?? item.companyName ?? item.longName ?? item.shortName ?? null;
+  const isAggressive = finalDisplayMode === "AGGRESSIVE";
+  const displayLeg = isAggressive ? item.aggressiveStrike : item.safeStrike;
+
+  const strikeNum = Number(displayLeg?.strike);
+  const bidNum = Number(displayLeg?.bid);
+  const yieldNum =
+    Number.isFinite(Number(displayLeg?.weeklyYield)) && Number(displayLeg.weeklyYield) > 0
+      ? Number(displayLeg.weeklyYield)
+      : Number.isFinite(Number(item.weeklyReturn)) ? Number(item.weeklyReturn) : NaN;
+  const popRaw = Number(displayLeg?.popProfitEstimated ?? displayLeg?.popEstimate);
+  const spreadNum = Number(displayLeg?.liquidity?.spreadPct);
+  const distNum = Number(displayLeg?.distancePct ?? item.strikeDistance);
+  const moveNum = Number(item.expectedMovePct);
+  const lowNum = Number(item.expectedMoveLow);
+  const highNum = Number(item.expectedMoveHigh);
+  const capitalPerContract =
+    Number.isFinite(strikeNum) && strikeNum > 0 ? strikeNum * 100 : Number(item.capitalPerContract);
+
+  const modeLabel = finalDisplayMode === "AGGRESSIVE" ? "AGRESSIF" : finalDisplayMode === "REJECT" ? "REJECT" : "SAFE";
+  const modeTone =
+    finalDisplayMode === "REJECT"
+      ? "border-[#ff4d57]/40 bg-[#ff4d57]/10 text-[#ff8089]"
+      : isAggressive
+      ? "border-[#a855f7]/40 bg-[#a855f7]/12 text-[#cba6f7]"
+      : "border-[#19a7ff]/40 bg-[#19a7ff]/12 text-[#7cc7ff]";
+
+  const spreadTone =
+    !Number.isFinite(spreadNum) ? "text-[#91a8c4]" : spreadNum > 18 ? "text-[#ff4d57]" : spreadNum > 10 ? "text-[#ff9f1a]" : "text-[#22e36f]";
+  const scoreTone = creamScore >= 75 ? "text-[#22e36f]" : creamScore >= 60 ? "text-[#ffd166]" : "text-[#91a8c4]";
+  const isDev = item.ibkrDirect?.devScanEnabled || item.indicativeShortlistSession || item.ibkrDevIncompleteSurface;
+  const isHighlighted = highlightedTicker === sym;
+
+  const numCell = (value, formatter, tone = "text-[#f4f7fb]", strong = false) =>
+    Number.isFinite(value) ? (
+      <span className={cn("tabular-nums", tone, strong && "font-semibold")}>{formatter(value)}</span>
+    ) : (
+      <span className="text-[#6f86a6]">—</span>
+    );
+
+  return (
+    <>
+      <tr
+        data-ticker-card={sym}
+        className={cn(
+          "scroll-mt-24 border-b border-[rgba(110,150,190,0.10)] text-[#f4f7fb] transition-colors hover:bg-white/[0.03]",
+          isExpanded && "bg-white/[0.025]",
+          isHighlighted && "bg-sky-500/10"
+        )}
+      >
+        <td className="px-2 py-2 text-left">
+          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[rgba(110,150,190,0.30)] px-1 text-[11px] font-semibold text-[#cfe0f2] tabular-nums">
+            {rank}
+          </span>
+        </td>
+        <td className="px-2 py-2">
+          <div className="flex items-center gap-2">
+            <CremeTickerAvatar sym={sym} name={resolvedName} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 font-mono text-[13px] font-bold leading-tight text-[#f4f7fb]">
+                {sym}
+                {tickerMeta.isFavorite && <span className="text-amber-400" title="Favori">★</span>}
+                {isDev && (
+                  <span className="rounded bg-amber-500/15 px-1 text-[9px] font-semibold uppercase text-amber-300" title="Données indicatives (DEV)">DEV</span>
+                )}
+              </div>
+              <div className="max-w-[150px] truncate text-[11px] leading-tight text-[#91a8c4]">
+                {resolvedName ?? <span className="italic text-[#6f86a6]">Nom indisponible</span>}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td className="px-2 py-2">
+          <span className={cn("inline-flex items-center rounded-[5px] border px-1.5 py-0.5 text-[11px] font-semibold", modeTone)}>
+            {modeLabel}{finalDisplayGrade ? ` ${finalDisplayGrade}` : ""}
+          </span>
+        </td>
+        <td className="px-2 py-2 text-right">
+          {Number.isFinite(strikeNum) ? (
+            <span className="tabular-nums font-semibold text-[#f4f7fb]">{strikeNum.toFixed(0)} <span className="text-[10px] font-normal text-[#91a8c4]">PUT</span></span>
+          ) : (
+            <span className="text-[#6f86a6]">—</span>
+          )}
+        </td>
+        <td className="px-2 py-2 text-right">{numCell(bidNum, (v) => `${v.toFixed(2)} $`, "text-[#f4f7fb]", true)}</td>
+        <td className="px-2 py-2 text-right">{numCell(yieldNum, (v) => `${v.toFixed(2)}%`, "text-[#22e36f]", true)}</td>
+        <td className="px-2 py-2 text-right">{numCell(popRaw, (v) => `${(v * 100).toFixed(0)}%`, "text-[#f4f7fb]", true)}</td>
+        <td className="px-2 py-2 text-right">{numCell(spreadNum, (v) => `${v.toFixed(1)}%`, spreadTone)}</td>
+        <td className="px-2 py-2 text-right">{numCell(distNum, (v) => `${v.toFixed(1)}%`, "text-[#ff4d57]")}</td>
+        <td className="px-2 py-2 text-right">{numCell(moveNum, (v) => `${v.toFixed(2)}%`, "text-[#ff9f1a]")}</td>
+        <td className="px-2 py-2 text-right">
+          {Number.isFinite(lowNum) && Number.isFinite(highNum) ? (
+            <span className="tabular-nums text-[#c2d3e6]">{lowNum.toFixed(2)} – {highNum.toFixed(2)}</span>
+          ) : (
+            <span className="text-[#6f86a6]">—</span>
+          )}
+        </td>
+        <td className="px-2 py-2 text-center">{numCell(creamScore, (v) => `${v}/100`, scoreTone, true)}</td>
+        <td className="px-2 py-2 text-right">{numCell(capitalPerContract, (v) => `${v.toFixed(0)} $`, "text-[#c2d3e6]")}</td>
+        <td className="px-2 py-2">
+          <div className="flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => onOpenDetail(item)}
+              className="rounded-[6px] border border-[rgba(110,150,190,0.30)] bg-[#0d2034] px-2.5 py-1 text-[11px] font-semibold text-[#cfe0f2] hover:border-emerald-400 hover:text-white transition-colors"
+            >
+              Voir
+            </button>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 }
 
@@ -7803,9 +7984,39 @@ function DetailModal({ item, onClose }) {
     symbol: item?.ticker,
   });
 
+  // ── Synthèse décision (reprise des infos utiles de la fiche inline) ──
+  // Aucune donnée inventée : tout est dérivé de `item` via les mêmes helpers que la carte inline.
+  const detailCreamScore = getCreamQualityScore(item);
+  const detailCreamBucket = getCreamQualityBucket(item);
+  const detailCreamCfg = CREAM_BUCKET_CONFIG[detailCreamBucket?.bucket] ?? CREAM_BUCKET_CONFIG.watchOnly;
+  const detailTickerMeta = getTickerDisplayMeta(item.ticker);
+  const detailTierStyle = QUALITY_TIER_STYLE[detailTickerMeta.qualityTier] ?? QUALITY_TIER_STYLE["Inconnu à valider"];
+  const detailYahooRank = Number.isFinite(Number(item.rank)) ? Number(item.rank) : null;
+  const detailDisplayLeg = finalDisplayMode === "AGGRESSIVE" ? item.aggressiveStrike : item.safeStrike;
+  const detailDisplayYield =
+    detailDisplayLeg?.weeklyYield != null && Number(detailDisplayLeg.weeklyYield) > 0
+      ? Number(detailDisplayLeg.weeklyYield)
+      : item.weeklyReturn != null && Number(item.weeklyReturn) > 0
+      ? Number(item.weeklyReturn)
+      : null;
+  const detailDisplayDistance = detailDisplayLeg?.distancePct ?? item.strikeDistance;
+  const detailCapitalPerContract =
+    Number.isFinite(Number(detailDisplayLeg?.strike)) && Number(detailDisplayLeg.strike) > 0
+      ? Number(detailDisplayLeg.strike) * 100
+      : Number(item.capitalPerContract);
+  const detailIbkrActionability = getIbkrActionabilityStatus(item);
+  const detailModeLine =
+    finalDisplayMode === "REJECT"
+      ? { tone: "text-rose-400", text: "REJECT" }
+      : finalDisplayGrade === "WATCH"
+      ? { tone: "text-amber-300", text: `${finalDisplayMode} [WATCH]` }
+      : finalDisplayMode === "AGGRESSIVE"
+      ? { tone: "text-emerald-300", text: `AGRESSIF${finalDisplayGrade ? ` [${finalDisplayGrade}]` : ""}` }
+      : { tone: "text-emerald-400", text: `SAFE${finalDisplayGrade ? ` [${finalDisplayGrade}]` : ""}` };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
-      <div className="mx-auto flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-slate-900 shadow-2xl">
+      <div className="mx-auto flex h-[90vh] w-[95vw] max-w-[1600px] flex-col overflow-hidden rounded-3xl bg-slate-900 shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-900 px-6 py-4">
           <div>
             <h2 className="text-xl font-semibold text-slate-100">
@@ -7850,6 +8061,105 @@ function DetailModal({ item, onClose }) {
               Données live chargées pour le modal.
             </div>
           )}
+
+          {/* ── Synthèse décision crème (infos reprises de la fiche inline) ── */}
+          <div className="rounded-2xl border border-[#172637] bg-[#06101a]/80 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-wide text-slate-500">Score crème</span>
+              <span className={cn("rounded px-2 py-0.5 text-sm font-bold", detailCreamCfg.tag)}>
+                {detailCreamScore}/100
+              </span>
+              <span className={cn("rounded px-2 py-0.5 text-xs", detailCreamCfg.tag)}>
+                {detailCreamCfg.label}
+              </span>
+              <span className={cn("rounded px-2 py-0.5 text-xs font-semibold", detailModeLine.tone)}>
+                Mode : {detailModeLine.text}
+              </span>
+              <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-[11px] font-medium", detailTierStyle.badge)}>
+                {detailTickerMeta.qualityTier}
+              </Badge>
+              {detailYahooRank != null && (
+                <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-2 py-0.5 text-xs text-slate-100">
+                  Choix #{detailYahooRank}
+                </Badge>
+              )}
+              {detailYahooRank != null && (
+                <Badge className="rounded-[6px] border border-[#26384b] bg-[#07111b] px-2 py-0.5 text-xs text-slate-100">
+                  Rang Yahoo #{detailYahooRank}
+                </Badge>
+              )}
+              {item.verdict && (
+                <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-xs", verdictStyle[item.verdict])}>
+                  {item.verdict}
+                </Badge>
+              )}
+              {item.ok && !item.ibkrDevObjectiveBlocked ? (
+                <Badge className="rounded-[4px] border border-emerald-800 bg-emerald-950/40 px-2 py-0.5 text-xs text-emerald-400">
+                  objectif validé
+                </Badge>
+              ) : (
+                <Badge className="rounded-[4px] border border-slate-700 bg-slate-800/50 px-2 py-0.5 text-xs text-slate-400">
+                  à surveiller
+                </Badge>
+              )}
+              {item.optionsSource === "IBKR live" && (
+                <Badge className="rounded-[4px] border border-emerald-800 bg-emerald-950/40 px-2 py-0.5 text-xs text-emerald-400">
+                  {formatIbkrOptionsProvenanceLabel(item.dataProvenance)}
+                </Badge>
+              )}
+              {item.optionsSource === "IBKR live" && (
+                <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-xs", detailIbkrActionability.className)}>
+                  {detailIbkrActionability.label}
+                </Badge>
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+              <Metric label="Prix actuel" value={`$${Number(livePrice || 0).toFixed(2)}`} strong />
+              <Metric
+                label="Mouvement attendu"
+                value={
+                  item.earningsMode
+                    ? `${Number(liveExpectedMovePct || 0).toFixed(2)}% → ${Number(adjustedMovePct || 0).toFixed(2)}%`
+                    : `${Number(liveExpectedMovePct || 0).toFixed(2)}%`
+                }
+                strong
+                tone={item.earningsMode ? "bad" : "warn"}
+              />
+              <Metric
+                label="Plage attendue"
+                value={`$${Number(liveLow || 0).toFixed(2)} – $${Number(liveHigh || 0).toFixed(2)}`}
+                strong
+                tone="bad"
+              />
+              <Metric
+                label={`Rendement${finalDisplayMode === "AGGRESSIVE" ? " (agressif)" : ""}`}
+                value={detailDisplayYield != null ? `${detailDisplayYield.toFixed(2)}%` : "—"}
+                sub={detailDisplayYield != null ? "jusqu'à expiration" : null}
+                strong={detailDisplayYield != null && detailDisplayYield >= 0.5}
+                tone={detailDisplayYield == null ? "default" : detailDisplayYield >= 0.5 ? "good" : "bad"}
+              />
+              <Metric
+                label="Distance strike"
+                value={Number.isFinite(Number(detailDisplayDistance)) ? `${Number(detailDisplayDistance).toFixed(1)}%` : "—"}
+              />
+              <Metric
+                label="DTE"
+                value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
+                strong
+              />
+              <Metric
+                label="Capital / contrat"
+                value={Number.isFinite(detailCapitalPerContract) ? `$${detailCapitalPerContract.toFixed(0)}` : "—"}
+              />
+            </div>
+
+            {/* Mini carte technique 60 séances + comparaison strikes SAFE / AGRESSIF (IBKR live) */}
+            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(580px,1fr)]">
+              <MiniTradeLevelsChart item={item} />
+              <FaceplateStrikeOpportunities item={item} />
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Metric label="Prix actuel" value={`$${Number(livePrice || 0).toFixed(2)}`} />
@@ -9100,6 +9410,261 @@ function weightedMetricByCapital(picks, pickMetricAccessor) {
 
 // ────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Modale décisionnelle ouverte au clic sur une carte résumée SAFE / BALANCED /
+ * AGGRESSIVE / RISQUE. Vue compacte et premium — réutilise les picks déjà
+ * calculés (aucun recalcul de montants, scores ni sélection).
+ */
+function ComboDetailModal({
+  mode,
+  combos,
+  comboStyles,
+  summaryFor,
+  usableCapital,
+  riskCombo,
+  dominant,
+  riskScore,
+  riskLabel,
+  riskColor,
+  onClose,
+  onTickerClick,
+}) {
+  const isRisk = mode === "RISK";
+  const combo = isRisk ? riskCombo : combos.find((c) => c.label === mode);
+  const accent = isRisk ? riskColor : (comboStyles[mode]?.accent ?? "#19a7ff");
+
+  // Coloration des cellules selon la qualité (réutilise la même logique de couleurs que l'accordéon).
+  const spreadColor = (v) => (v == null ? "#9fb3cc" : v <= 10 ? "#22e36f" : v <= 20 ? "#ff9f1a" : "#ff4d57");
+  const scoreColor = (v) => (v == null ? "#9fb3cc" : v >= 65 ? "#22e36f" : v >= 45 ? "#ff9f1a" : "#ff4d57");
+  const fmtUnit = (p) =>
+    p.premiumUnit != null && Number.isFinite(Number(p.premiumUnit)) ? `${Number(p.premiumUnit).toFixed(2)}$` : "—";
+
+  const s = combo ? summaryFor(combo) : null;
+  const freeCapital = combo ? Math.max(0, usableCapital - combo.totalCapital) : 0;
+
+  const Metric = ({ label, value, color }) => (
+    <div className="rounded-xl border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-3 py-2">
+      <p className="text-[11px] text-[#7f97b6]">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold tabular-nums" style={{ color: color ?? "#f4f7fb" }}>{value}</p>
+    </div>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="flex max-h-[80vh] w-[88vw] max-w-[1200px] flex-col overflow-hidden rounded-3xl border bg-[#0b1a2b] shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+        style={{ borderColor: `${accent}40` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-[rgba(110,150,190,0.20)] px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
+              <h2 className="text-lg font-bold tracking-wide" style={{ color: accent }}>
+                {isRisk ? "RISQUE" : mode}
+              </h2>
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: accent, backgroundColor: `${accent}1f` }}>
+                {isRisk ? `Concentration ${riskLabel}` : `${combo?.positions ?? 0} positions`}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#7f97b6]">
+              {isRisk
+                ? "Diagnostic de concentration — simulation la plus exposée"
+                : "Simulation indépendante sur le capital complet — positions décisionnelles"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="shrink-0 rounded-xl border border-[rgba(110,150,190,0.25)] bg-[#0a1726] p-1.5 text-[#cfe0f2] transition hover:bg-[#12243a] hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {isRisk ? (
+          <RiskModalBody
+            riskCombo={riskCombo}
+            dominant={dominant}
+            riskScore={riskScore}
+            riskLabel={riskLabel}
+            riskColor={riskColor}
+            usableCapital={usableCapital}
+            Metric={Metric}
+          />
+        ) : (
+          <>
+            {/* Métriques header en petits blocs */}
+            <div className="grid grid-cols-2 gap-2 px-5 py-4 sm:grid-cols-3 lg:grid-cols-6">
+              <Metric label="Positions" value={combo?.positions ?? 0} />
+              <Metric label="Prime totale" value={`${(s?.totalPremium ?? 0).toFixed(0)} $`} />
+              <Metric label="Rendement port." value={`${(s?.portfolioReturnPct ?? 0).toFixed(2)} %`} color="#22e36f" />
+              <Metric label="POP moyenne" value={s?.popWeighted != null ? `${Math.round(s.popWeighted)} %` : "n/d"} />
+              <Metric label="Capital utilisé" value={`${(combo?.totalCapital ?? 0).toFixed(0)} $`} color="#cfe0f2" />
+              <Metric label="Capital libre" value={`${freeCapital.toFixed(0)} $`} color="#cfe0f2" />
+            </div>
+
+            {/* Tableau compact des positions */}
+            <div className="min-h-0 flex-1 overflow-auto px-5 pb-5">
+              {(combo?.picks?.length ?? 0) === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[rgba(110,150,190,0.25)] bg-[#0a1726] p-5 text-center text-sm text-[#7f97b6]">
+                  {combo?.emptyMessage ?? "Aucune position dans cette combinaison."}
+                </div>
+              ) : (
+                <table className="w-full border-separate border-spacing-0 text-xs">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-[#7f97b6]">
+                      {["Ticker", "Mode / Grade", "Strike", "Prime", "Spread", "Rend.", "Dist.", "Contrats", "Capital", "Prime tot.", "POP", "Score", "Phase"].map((h, i) => (
+                        <th
+                          key={h}
+                          className={cn("border-b border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] px-2.5 py-2 font-medium", i === 0 && "rounded-tl-lg", i >= 2 && "text-right")}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {combo.picks.map((pick) => (
+                      <tr key={`${combo.label}-${pick.ticker}-${pick.strike}`} className="group transition-colors hover:bg-[#12243a]/60">
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2">
+                          <button
+                            type="button"
+                            onClick={() => onTickerClick?.(pick.ticker)}
+                            title={`Aller à la carte principale ${pick.ticker}`}
+                            className="font-bold text-[#f4f7fb] transition hover:text-sky-400 hover:underline"
+                          >
+                            {pick.ticker}
+                          </button>
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2">
+                          <span className="rounded bg-[#12243a] px-1.5 py-0.5 text-[11px] font-semibold text-[#cfe0f2]">
+                            {pick.mode ?? "—"}{pick.grade ? ` ${pick.grade}` : ""}
+                          </span>
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">PUT {pick.strike}</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{fmtUnit(pick)}</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums" style={{ color: spreadColor(pick.spreadPct != null ? Number(pick.spreadPct) : null) }}>
+                          {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#22e36f]">{pick.weeklyReturn.toFixed(2)}%</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#ff6b73]">
+                          {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#cfe0f2]">×{pick.contracts}</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{pick.capitalRequired.toFixed(0)}$</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{pick.premiumCollected.toFixed(0)}$</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#cfe0f2]">
+                          {pick.popEstimate != null && Number.isFinite(Number(pick.popEstimate)) ? `${Math.round(Number(pick.popEstimate))}%` : "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums font-semibold" style={{ color: scoreColor(pick.selectionScore != null ? Number(pick.selectionScore) : null) }}>
+                          {pick.selectionScore ?? "—"}
+                        </td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right">
+                          <span className="rounded border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-1.5 py-0.5 text-[10px] text-[#7f97b6]" title="Phase d'allocation">
+                            {pick.comboAllocationPhase ?? "primary_strict"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {combo && !combo.capitalTargetReached && combo.capitalShortfallReason && (
+                <div className="mt-3 rounded-xl border border-amber-800/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-400">
+                  Capital non entièrement déployé — {formatCapitalShortfallReason(combo.capitalShortfallReason)}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Corps de la modale RISQUE — présentation visuelle de la concentration. */
+function RiskModalBody({ riskCombo, dominant, riskScore, riskLabel, riskColor, usableCapital, Metric }) {
+  const diversification = riskCombo?.diversificationHealthScore != null ? Math.round(riskCombo.diversificationHealthScore * 100) : null;
+  const highBeta = riskCombo?.highBetaCapitalPct ?? null;
+  const cryptoMiner = riskCombo?.cryptoMinerCapitalPct ?? null;
+  const dominantPct = dominant ? dominant.pct : null;
+  // Alertes : warnings de cluster déjà calculés + thèmes de concentration des picks.
+  const alerts = [];
+  (riskCombo?.clusterWarnings ?? []).forEach((w) => alerts.push(w));
+  (riskCombo?.crossModeOverlap?.crossModeWarnings ?? []).forEach((w) => alerts.push(w));
+  const themes = Array.from(
+    new Set((riskCombo?.picks ?? []).map((p) => p.concentrationTheme).filter(Boolean))
+  );
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        {/* Cercle de concentration */}
+        <div className="flex shrink-0 flex-col items-center">
+          <div
+            className="flex h-28 w-28 items-center justify-center rounded-full text-2xl font-bold tabular-nums"
+            style={{ color: riskColor, border: `6px solid ${riskColor}`, backgroundColor: `${riskColor}12` }}
+          >
+            {dominantPct != null ? `${dominantPct.toFixed(0)}%` : "—"}
+          </div>
+          <p className="mt-2 text-xs font-medium" style={{ color: riskColor }}>Concentration {riskLabel}</p>
+        </div>
+        {/* Métriques en petites cartes */}
+        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
+          <Metric label="Simulation" value={riskCombo?.label ?? "—"} />
+          <Metric label="Ticker dominant" value={dominant?.ticker ?? "—"} />
+          <Metric label="% du capital" value={dominantPct != null ? `${dominantPct.toFixed(0)} %` : "—"} color={riskColor} />
+          <Metric label="Capital dominant" value={dominant?.capital != null ? `${dominant.capital.toFixed(0)} $` : "—"} color="#cfe0f2" />
+          <Metric label="Diversification" value={diversification != null ? `${diversification}/100` : "n/d"} color={diversification != null && diversification < 50 ? "#ff9f1a" : "#cfe0f2"} />
+          <Metric label="Score concentration" value={riskScore != null ? riskScore.toFixed(2) : "n/d"} color={riskColor} />
+          {highBeta != null && highBeta > 0 && (
+            <Metric label="High beta" value={`${highBeta.toFixed(0)} %`} color={highBeta > 40 ? "#ff4d57" : "#cfe0f2"} />
+          )}
+          {cryptoMiner != null && cryptoMiner > 0 && (
+            <Metric label="Crypto / miner" value={`${cryptoMiner.toFixed(0)} %`} color={cryptoMiner > 35 ? "#ff4d57" : "#cfe0f2"} />
+          )}
+        </div>
+      </div>
+
+      {themes.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide text-[#7f97b6]">Thèmes&nbsp;:</span>
+          {themes.map((t) => (
+            <span key={t} className="rounded-full border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-2 py-0.5 text-[11px] text-[#cfe0f2]">{t}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Liste courte des alertes */}
+      <div className="mt-4">
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-[#7f97b6]">Alertes de risque</p>
+        {alerts.length === 0 ? (
+          <p className="rounded-xl border border-[rgba(110,150,190,0.20)] bg-[#0a1726] px-3 py-2 text-xs text-[#7f97b6]">
+            Aucune alerte de concentration — profil bien diversifié.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {alerts.slice(0, 6).map((w, i) => (
+              <li key={i} className="flex items-start gap-2 rounded-xl border px-3 py-2 text-xs" style={{ borderColor: `${riskColor}30`, backgroundColor: `${riskColor}0d` }}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: riskColor }} />
+                <span className="text-[#e6eefb]">{w}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PortfolioCombos({
   combos,
   candidates = [],
@@ -9111,6 +9676,8 @@ function PortfolioCombos({
 }) {
   const [snapshotStatus, setSnapshotStatus] = useState(null);
   const [snapshotMsg, setSnapshotMsg] = useState("");
+  // Modale décisionnelle ouverte au clic sur une carte résumée : "SAFE" | "BALANCED" | "AGGRESSIVE" | "RISK" | null.
+  const [selectedComboDetail, setSelectedComboDetail] = useState(null);
   const hasAnyPicks = combos.some((combo) => (combo?.picks?.length ?? 0) > 0);
   const usableCapital = capital * (maxCapitalPct / 100);
   const comboDefinitions = [
@@ -9135,6 +9702,45 @@ function PortfolioCombos({
       }
     );
   });
+
+  // ── Données partagées entre les cartes résumées et les modales décisionnelles ──
+  const COMBO_STYLES = {
+    SAFE: { accent: "#19a7ff", label: "SAFE" },
+    BALANCED: { accent: "#a855f7", label: "BALANCED" },
+    AGGRESSIVE: { accent: "#22e36f", label: "AGGRESSIVE" },
+  };
+  const summaryFor = (combo) => {
+    const totalPremium = combo.totalPremium ?? combo.picks.reduce((s, p) => s + p.premiumCollected, 0);
+    const portfolioReturnPct = usableCapital > 0 ? (totalPremium / usableCapital) * 100 : 0;
+    const popWeighted = weightedMetricByCapital(combo.picks, (p) => p.popEstimate);
+    const capitalPct = usableCapital > 0 ? (combo.totalCapital / usableCapital) * 100 : 0;
+    return { totalPremium, portfolioReturnPct, popWeighted, capitalPct };
+  };
+  // Carte RISQUE : concentration de la simulation la plus concentrée.
+  const riskCombo = [...visibleCombos].sort(
+    (a, b) => (b.concentrationRiskScore ?? 0) - (a.concentrationRiskScore ?? 0)
+  )[0];
+  const dominant = (() => {
+    if (!riskCombo?.picks?.length) return null;
+    const total = riskCombo.picks.reduce((s, p) => s + p.capitalRequired, 0);
+    if (!total) return null;
+    const byTicker = {};
+    riskCombo.picks.forEach((p) => { byTicker[p.ticker] = (byTicker[p.ticker] || 0) + p.capitalRequired; });
+    let topT = null, topV = 0;
+    Object.entries(byTicker).forEach(([t, v]) => { if (v > topV) { topV = v; topT = t; } });
+    return { ticker: topT, pct: (topV / total) * 100, capital: topV };
+  })();
+  const riskScore = riskCombo?.concentrationRiskScore ?? null;
+  const riskLabel = riskScore == null ? "n/d" : riskScore > 0.65 ? "élevée" : riskScore > 0.45 ? "moyenne" : "faible";
+  const riskColor = riskScore == null ? "#91a8c4" : riskScore > 0.65 ? "#ff4d57" : riskScore > 0.45 ? "#ff9f1a" : "#22e36f";
+
+  // Fermeture de la modale au clavier (Échap).
+  useEffect(() => {
+    if (!selectedComboDetail) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setSelectedComboDetail(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedComboDetail]);
 
   async function handleSaveSnapshot() {
     if (!hasAnyPicks) return;
@@ -9174,7 +9780,7 @@ function PortfolioCombos({
 
   const snapshotHeader = (
     <div className="flex items-center justify-between">
-      <CardTitle className="text-xl text-slate-100">Combinaisons capital</CardTitle>
+      <CardTitle className="text-xl text-[#f4f7fb]">Combinaisons de capital <span className="text-sm font-normal text-[#7f97b6]">(résumé)</span></CardTitle>
       <button
         onClick={handleSaveSnapshot}
         disabled={snapshotStatus === "loading" || !hasAnyPicks}
@@ -9187,7 +9793,7 @@ function PortfolioCombos({
   );
 
   return (
-    <Card className="rounded-[28px] border-slate-700 shadow-sm">
+    <Card className="rounded-[28px] border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] shadow-[0_18px_60px_rgba(0,0,0,0.40)]">
       <CardHeader>
         {snapshotHeader}
         {snapshotStatus === "ok" && (
@@ -9198,6 +9804,147 @@ function PortfolioCombos({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Cartes résumées compactes — cliquables, ouvrent une modale décisionnelle */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {visibleCombos.map((combo) => {
+            const st = COMBO_STYLES[combo.label] ?? COMBO_STYLES.SAFE;
+            const s = summaryFor(combo);
+            const clickable = combo.picks.length > 0;
+            return (
+              <button
+                type="button"
+                key={`summary-${combo.label}`}
+                onClick={clickable ? () => setSelectedComboDetail(combo.label) : undefined}
+                disabled={!clickable}
+                aria-label={clickable ? `Voir les positions ${st.label}` : undefined}
+                className={cn(
+                  "group block w-full rounded-2xl border bg-[#0a1726] p-3.5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.30)] transition-all duration-200",
+                  clickable
+                    ? "cursor-pointer hover:-translate-y-0.5 hover:bg-[#0c1c30]"
+                    : "cursor-default opacity-80",
+                )}
+                style={{ borderColor: `${st.accent}33` }}
+                onMouseEnter={clickable ? (e) => {
+                  e.currentTarget.style.borderColor = `${st.accent}80`;
+                  e.currentTarget.style.boxShadow = `0 14px 40px rgba(0,0,0,0.40), 0 0 0 1px ${st.accent}40`;
+                } : undefined}
+                onMouseLeave={clickable ? (e) => {
+                  e.currentTarget.style.borderColor = `${st.accent}33`;
+                  e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.30)";
+                } : undefined}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold tracking-wide" style={{ color: st.accent }}>{st.label}</span>
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: st.accent, backgroundColor: `${st.accent}1f` }}>
+                    {combo.positions} pos.
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <p className="text-[#7f97b6]">Prime totale</p>
+                    <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.totalPremium.toFixed(0)} $</p>
+                  </div>
+                  <div>
+                    <p className="text-[#7f97b6]">Rend. moy.</p>
+                    <p className="font-semibold text-[#22e36f] tabular-nums">{s.portfolioReturnPct.toFixed(2)}% / sem.</p>
+                  </div>
+                  <div>
+                    <p className="text-[#7f97b6]">POP moy.</p>
+                    <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.popWeighted != null ? `${Math.round(s.popWeighted)}%` : "n/d"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[#7f97b6]">Capital utilisé</p>
+                    <p className="font-semibold text-[#cfe0f2] tabular-nums">{combo.totalCapital.toFixed(0)} $ ({Math.round(s.capitalPct)}%)</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1 text-[11px] font-medium opacity-0 transition-opacity duration-200 group-hover:opacity-100" style={{ color: st.accent }}>
+                  {clickable ? (
+                    <>
+                      <span>Voir positions</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </>
+                  ) : null}
+                </div>
+              </button>
+            );
+          })}
+          {/* Carte RISQUE — cliquable */}
+          <button
+            type="button"
+            onClick={dominant ? () => setSelectedComboDetail("RISK") : undefined}
+            disabled={!dominant}
+            aria-label={dominant ? "Voir le détail du risque" : undefined}
+            className={cn(
+              "group block w-full rounded-2xl border bg-[#0a1726] p-3.5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.30)] transition-all duration-200",
+              dominant ? "cursor-pointer hover:-translate-y-0.5 hover:bg-[#0c1c30]" : "cursor-default opacity-80",
+            )}
+            style={{ borderColor: `${riskColor}33` }}
+            onMouseEnter={dominant ? (e) => {
+              e.currentTarget.style.borderColor = `${riskColor}80`;
+              e.currentTarget.style.boxShadow = `0 14px 40px rgba(0,0,0,0.40), 0 0 0 1px ${riskColor}40`;
+            } : undefined}
+            onMouseLeave={dominant ? (e) => {
+              e.currentTarget.style.borderColor = `${riskColor}33`;
+              e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.30)";
+            } : undefined}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold tracking-wide" style={{ color: riskColor }}>RISQUE</span>
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: riskColor, backgroundColor: `${riskColor}1f` }}>
+                Concentration {riskLabel}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+              <div className="min-w-0">
+                <p className="text-[#7f97b6]">Ticker dominant</p>
+                <p className="font-bold text-[#f4f7fb] truncate">{dominant?.ticker ?? "—"}</p>
+                <p className="mt-1 text-[#7f97b6]">{dominant ? `${dominant.pct.toFixed(0)} % du capital` : "Aucune concentration"}</p>
+              </div>
+              {dominant && (
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums"
+                  style={{ color: riskColor, border: `3px solid ${riskColor}`, backgroundColor: `${riskColor}12` }}
+                >
+                  {dominant.pct.toFixed(0)}%
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-1 text-[11px] font-medium opacity-0 transition-opacity duration-200 group-hover:opacity-100" style={{ color: riskColor }}>
+              {dominant ? (
+                <>
+                  <span>Voir le risque</span>
+                  <ChevronRight className="h-3 w-3" />
+                </>
+              ) : null}
+            </div>
+          </button>
+        </div>
+
+        {/* Modale décisionnelle au clic sur une carte résumée */}
+        {selectedComboDetail && (
+          <ComboDetailModal
+            mode={selectedComboDetail}
+            combos={visibleCombos}
+            comboStyles={COMBO_STYLES}
+            summaryFor={summaryFor}
+            usableCapital={usableCapital}
+            riskCombo={riskCombo}
+            dominant={dominant}
+            riskScore={riskScore}
+            riskLabel={riskLabel}
+            riskColor={riskColor}
+            onClose={() => setSelectedComboDetail(null)}
+            onTickerClick={onTickerClick}
+          />
+        )}
+
+        {/* Détails complets accessibles à la demande — non ouverts par défaut. */}
+        <details className="group rounded-2xl border border-[rgba(110,150,190,0.20)] bg-[#0b1a2b]">
+          <summary className="cursor-pointer list-none px-4 py-2.5 text-sm font-semibold text-[#cfe0f2] [&::-webkit-details-marker]:hidden">
+            <span className="underline-offset-2 group-open:underline">Voir détails des combinaisons</span>
+            <span className="ml-2 text-xs font-normal text-[#7f97b6]">picks, diagnostics allocateur, inspecteur</span>
+          </summary>
+          <div className="space-y-4 px-3 pb-4">
         <div className="rounded-2xl border border-slate-700/70 bg-[#101a27]/95 px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <p className="font-medium text-slate-100">
             Chaque bloc représente une simulation indépendante utilisant le capital complet. Les montants ne s&apos;additionnent pas.
@@ -9520,6 +10267,8 @@ function PortfolioCombos({
           maxPositions={maxPositions}
           ibkrRejectedSymbols={ibkrRejectedSymbols}
         />
+          </div>
+        </details>
       </CardContent>
     </Card>
   );
@@ -11083,12 +11832,12 @@ function WheelSidebar({ activeView, onNavigate }) {
   const isLab =
     typeof window !== "undefined" && window.location.port === "5174";
   return (
-    <aside className="sticky top-0 z-30 flex h-screen w-[76px] shrink-0 flex-col items-center border-r border-slate-800 bg-[#050b12] py-3">
+    <aside className="sticky top-0 z-30 flex h-screen w-[68px] shrink-0 flex-col items-center border-r border-[rgba(110,150,190,0.16)] bg-[#0a1726] py-3">
       <div className="mb-3 flex flex-col items-center gap-1">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-700/60 bg-sky-900/40 text-[12px] font-bold tracking-tight text-sky-100">
+        <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[rgba(110,150,190,0.30)] bg-[#0d2034] text-[12px] font-bold tracking-tight text-[#cfe0f2]">
           W
         </div>
-        <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="text-[9px] font-semibold uppercase tracking-wide text-[#6f86a6]">
           Wheel
         </span>
       </div>
@@ -11119,13 +11868,84 @@ function WheelSidebar({ activeView, onNavigate }) {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> OK
           </span>
           {isLab && (
-            <span className="rounded-md bg-rose-700/80 px-1.5 py-0.5 text-[8px] font-bold text-white">
-              LAB
+            <span
+              title="Instance LAB — diagnostics en lecture seule"
+              className="rounded border border-[rgba(110,150,190,0.25)] bg-[#0d2034] px-1 py-px text-[7px] font-medium uppercase tracking-wide text-[#6f86a6]"
+            >
+              lab
             </span>
           )}
         </div>
       </div>
     </aside>
+  );
+}
+
+// Ordre maquette : barre horizontale premium pour la vue Opportunités.
+const TOPNAV_ITEMS = [
+  { key: "opportunites", label: "Opportunités", view: "dashboard", anchor: "section-opportunites" },
+  { key: "scan", label: "Scan", view: "dashboard", anchor: "section-scan" },
+  { key: "portefeuille", label: "Portefeuille", view: "dashboard", anchor: "section-portefeuille" },
+  { key: "journal", label: "Journal POP", view: "journal" },
+  { key: "diagnostics", label: "Diagnostics", view: "diagnostics" },
+  { key: "saisonnalite", label: "Saisonnalité", view: "seasonality" },
+  { key: "parametres", label: "Paramètres", view: "dashboard", anchor: "section-scan" },
+  { key: "systeme", label: "Système", view: "dashboard", anchor: "section-diagnostics" },
+];
+
+// Navigation horizontale (maquette) : remplace la sidebar verticale sur la vue Opportunités.
+function WheelTopNav({ activeView, onNavigate }) {
+  const isLab =
+    typeof window !== "undefined" && window.location.port === "5174";
+  const isActive = (item) => {
+    if (item.view === "seasonality") return activeView === "seasonality";
+    if (item.view === "journal") return activeView === "journal";
+    if (item.view === "diagnostics") return activeView === "diagnostics";
+    if (item.key === "opportunites") return activeView === "dashboard";
+    return false;
+  };
+  return (
+    <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-[rgba(110,150,190,0.16)] bg-[#0a1726] px-4 py-2.5 shadow-[0_6px_24px_rgba(0,0,0,0.35)]">
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+          <Target className="h-4 w-4" />
+        </span>
+        <span className="text-sm font-bold tracking-tight text-[#f4f7fb]">WHEEL</span>
+      </div>
+      <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+        {TOPNAV_ITEMS.map((item) => {
+          const active = isActive(item);
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => onNavigate(item)}
+              className={
+                "shrink-0 px-3 py-1.5 text-[13px] font-medium transition-colors " +
+                (active
+                  ? "rounded-t-lg border-b-2 border-emerald-400 text-[#f4f7fb]"
+                  : "rounded-lg text-[#7f97b6] hover:text-[#cfe0f2]")
+              }
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" /> OK
+        </span>
+        {isLab && (
+          <span
+            title="Instance LAB 5174 — diagnostics en lecture seule, aucun ordre envoyé."
+            className="rounded border border-[rgba(110,150,190,0.25)] bg-[#0d2034] px-1.5 py-0.5 text-[10px] font-medium text-[#6f86a6]"
+          >
+            LAB 5174
+          </span>
+        )}
+      </div>
+    </header>
   );
 }
 
@@ -11466,12 +12286,13 @@ export default function Dashboard() {
         item.ticker.toLowerCase().includes(query.toLowerCase()) ||
         item.name.toLowerCase().includes(query.toLowerCase());
 
+      // Filtre Mode (UI seulement) : compare le mode réellement retenu/affiché par la ligne
+      // (SAFE / AGGRESSIVE). BALANCED strike leg future phase — do not expose as line filter
+      // until backend provides a real balanced leg.
       const matchesFilter =
         filter === "all"
           ? true
-          : filter === "validated"
-          ? item.ok
-          : item.verdict === filter;
+          : getFinalDisplayRecommendation(item)?.finalDisplayMode === filter;
 
       return matchesQuery && matchesFilter;
     });
@@ -11946,7 +12767,7 @@ export default function Dashboard() {
       String(item?.ticker || "").toLowerCase().includes(q) ||
       String(item?.name || "").toLowerCase().includes(q);
     const matchesVerdict = (item) =>
-      filter === "all" ? true : filter === "validated" ? item?.ok : item?.verdict === filter;
+      filter === "all" ? true : getFinalDisplayRecommendation(item)?.finalDisplayMode === filter;
     const afterQueryCount = (enrichedCandidates || []).filter((item) => matchesQuery(item)).length;
     const afterVerdictCount = (enrichedCandidates || [])
       .filter((item) => matchesQuery(item) && matchesVerdict(item))
@@ -14181,13 +15002,36 @@ export default function Dashboard() {
     [activeView]
   );
 
+  // LAB 5174 : neutralise la bannière rouge plein écran injectée par main.jsx
+  // (hors périmètre dashboard.jsx). L'info LAB est conservée via le badge discret
+  // « LAB 5174 » du top nav, à côté du statut OK.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const root = document.getElementById("root");
+    if (!root) return undefined;
+    for (const child of Array.from(root.children)) {
+      const text = (child.textContent || "").trim();
+      if (text.startsWith("🧪 LAB UI") || text.includes("LAB UI — port 5174")) {
+        child.style.display = "none";
+        break;
+      }
+    }
+    return undefined;
+  }, []);
+
+  const isOpportunitiesView = activeView === "dashboard";
   return (
     <div className="min-h-screen bg-[#0b1117] text-slate-100">
+      {isOpportunitiesView && (
+        <WheelTopNav activeView={activeView} onNavigate={handleSidebarNavigate} />
+      )}
       <div className="flex min-h-screen">
-        <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
+        {!isOpportunitiesView && (
+          <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
+        )}
         <main className="min-w-0 flex-1">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
-        {activeView !== "seasonality" && activeView !== "diagnostics" && activeView !== "ticker" && <motion.div
+        {activeView !== "seasonality" && activeView !== "diagnostics" && activeView !== "ticker" && activeView !== "dashboard" && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
@@ -15159,6 +16003,13 @@ export default function Dashboard() {
           </div>
         </details>
         </DiagnosticsSection>
+        <DiagnosticsSection
+          title="Mémoire IBKR & Archive Funnel"
+          description="Historique read-only des scans IBKR et des sessions de funnel archivées."
+        >
+          <IbkrMemoryPanel apiBase={API_BASE} refreshKey={ibkrMemoryRefreshKey} />
+          <ScanFunnelArchivePanel apiBase={API_BASE} />
+        </DiagnosticsSection>
           </section>
         ) : activeView === "ticker" ? (
           <section className="space-y-4">
@@ -15316,32 +16167,13 @@ export default function Dashboard() {
           </section>
         ) : activeView === "dashboard" ? (
           <>
-            <IbkrMemoryPanel apiBase={API_BASE} refreshKey={ibkrMemoryRefreshKey} />
-            <ScanFunnelArchivePanel apiBase={API_BASE} />
-                        <div id="section-scan" className="mb-6 scroll-mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-sm">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <Button
-              title={
-                scanBlockedByClosedExpiration
-                  ? "Expiration fermée sans date ajustée valide — scan bloqué."
-                  : "Scanner maintenant"
-              }
-              className="shrink-0 rounded-xl border-sky-700 bg-sky-900 px-3 py-1.5 text-xs text-sky-100 hover:bg-sky-800"
-              onClick={handleRefreshShortlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading || scanBlockedByClosedExpiration}
-            >
-              Scanner <RefreshCw className="ml-1.5 h-4 w-4" />
-            </Button>
-            <Button
-              title="Rebuild watchlist"
-              className="shrink-0 rounded-xl px-3 py-1.5 text-xs"
-              variant="outline"
-              onClick={handleRebuildWatchlist}
-              disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
-            >
-              Rebuild <Database className="ml-1.5 h-4 w-4" />
-            </Button>
-
+            <div id="section-scan" className="mb-4 scroll-mt-4 rounded-2xl border border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] p-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+          {/* En-tête compact « trading terminal » : une seule ligne de contrôles + une micro-ligne d'état. */}
+          {/* Ligne principale de contrôles : groupe gauche wrappable + Refresh/⋯ épinglés à droite,
+              alignés sur la première ligne (items-start) pour ne pas « flotter » hors barre. */}
+          <div className="flex min-w-0 flex-nowrap items-start gap-1.5">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <span className="mr-1 shrink-0 text-sm font-semibold tracking-tight text-[#f4f7fb]">Opportunités</span>
             <EditableScanSelect
               label="Exp."
               value={selectedExpiration}
@@ -15355,16 +16187,6 @@ export default function Dashboard() {
                 </option>
               ))}
             </EditableScanSelect>
-
-            {selectedExpirationClosedInfo && (
-              <p
-                className={`basis-full text-[11px] ${
-                  selectedExpirationClosedInfo.blocked ? "text-rose-300" : "text-amber-300"
-                }`}
-              >
-                {selectedExpirationClosedInfo.message}
-              </p>
-            )}
 
             <EditableScanInput
               label="Capital"
@@ -15400,41 +16222,32 @@ export default function Dashboard() {
               title="Nombre maximal de positions visées."
             />
 
-            <label
-              title="Lance IBKR Direct Scan automatiquement après Yahoo."
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/70 px-1.5 py-1 text-xs text-slate-300"
-            >
-              <input
-                type="checkbox"
-                checked={autoIbkrDirectScan}
-                onChange={(e) => setAutoIbkrDirectScan(e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-slate-500">IBKR auto</span>
-            </label>
+            <LockedScanBadge
+              label="IBKR"
+              value="ON 🔒"
+              title="IBKR auto verrouillé ON dans le workflow principal."
+              wrapperClassName="shrink-0"
+            />
 
             <EditableScanSelect
               label="POP"
-              value={autoJournalPop}
-              onChange={(e) => setAutoJournalPop(String(e.target.value || "off"))}
+              value={autoJournalPop === "off" ? "off" : "on"}
+              onChange={(e) =>
+                setAutoJournalPop(e.target.value === "on" ? "200" : "off")
+              }
               title={
                 autoJournalPop === "off"
                   ? "Journal POP OFF : aucune capture automatique."
-                  : `Journal POP Top ${autoJournalPop} après scan${
+                  : `Journal POP ON : capture tous les retenus IBKR disponibles (max 200)${
                       lastScanPoolMeta?.ibkrRetained
                         ? ` (${lastScanPoolMeta.ibkrRetained} retenus IBKR au dernier scan)`
                         : ""
                     }.`
               }
-              wrapperClassName="w-[105px] shrink-0"
+              wrapperClassName="w-[95px] shrink-0"
             >
               <option value="off">OFF</option>
-              <option value="10">Top 10</option>
-              <option value="30">Top 30</option>
-              <option value="50">Top 50</option>
-              <option value="100">Top 100</option>
-              <option value="150">Top 150</option>
-              <option value="200">Top 200</option>
+              <option value="on">ON</option>
             </EditableScanSelect>
 
             <EditableScanInput
@@ -15489,21 +16302,140 @@ export default function Dashboard() {
               wrapperClassName="w-[105px] shrink-0"
               title="Limite Yahoo — nombre maximal de candidats Yahoo gardés avant test IBKR."
             />
+
+            {refreshStage ? (
+              <ScanCompactBadge label="État" value={refreshStage} />
+            ) : null}
+
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                title={
+                  scanBlockedByClosedExpiration
+                    ? "Expiration fermée sans date ajustée valide — scan bloqué."
+                    : "Rafraîchir la shortlist (scan)"
+                }
+                className="shrink-0 rounded-xl border-emerald-600 bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+                onClick={handleRefreshShortlist}
+                disabled={loadingScan || watchlistLoading || ibkrDirectLoading || scanBlockedByClosedExpiration}
+              >
+                <RefreshCw className="mr-1.5 h-4 w-4" /> Refresh shortlist
+              </Button>
+              <details className="relative shrink-0">
+                <summary
+                  title="Actions secondaires · Détails scan"
+                  className="inline-flex cursor-pointer list-none items-center rounded-lg border border-[rgba(110,150,190,0.25)] bg-transparent px-2 py-1.5 text-[11px] font-medium text-[#7f97b6] hover:text-[#cfe0f2] [&::-webkit-details-marker]:hidden"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </summary>
+                <div className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-[rgba(110,150,190,0.25)] bg-[#0d2034] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
+                  <Button
+                    title="Rebuild watchlist (action secondaire)"
+                    className="w-full justify-start rounded-md border-0 bg-transparent px-2 py-1.5 text-[11px] font-medium text-[#cfe0f2] hover:bg-[#0b1a2b]"
+                    variant="outline"
+                    onClick={handleRebuildWatchlist}
+                    disabled={loadingScan || watchlistLoading || ibkrDirectLoading}
+                  >
+                    <Database className="mr-1.5 h-3.5 w-3.5" /> Rebuild watchlist
+                  </Button>
+                  <div className="mt-2 space-y-1.5 border-t border-[rgba(110,150,190,0.18)] pt-2 text-[11px] leading-snug text-[#91a8c4]">
+                    <p className="font-semibold uppercase tracking-wide text-[#7f97b6]">Détails scan</p>
+                    <p>
+                      <span className="text-[#7f97b6]">Source : </span>
+                      {dataSource === "ibkr_direct"
+                        ? `IBKR Direct Scan${primaryIbkrSourceInfo?.twoPhaseEnabled ? " · 2 phases officiel" : ""}`
+                        : dataSource === "backend"
+                        ? "backend local /scan_shortlist"
+                        : "snapshot local (fallback)"}
+                    </p>
+                    <p>
+                      <span className="text-[#7f97b6]">Pool actif : </span>
+                      {getPoolModeLabel(preIbkrPoolMode)} — {currentPoolCount} tickers
+                    </p>
+                    {showClosedNoCacheBanner ? (
+                      <p className="text-amber-300">
+                        Snapshot fallback — marché fermé et aucun scan valide en cache local.
+                      </p>
+                    ) : null}
+                    {selectedExpirationClosedInfo ? (
+                      <p className={selectedExpirationClosedInfo.blocked ? "text-rose-300" : "text-amber-300"}>
+                        {selectedExpirationClosedInfo.message}
+                      </p>
+                    ) : null}
+                    {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
+                      <p className="text-amber-300">
+                        ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
+                      </p>
+                    ) : null}
+                    {otmRebuildRequired && otmRebuildRequiredMessage ? (
+                      <p className="text-amber-200" data-testid="otm-rebuild-required-banner">
+                        {otmRebuildRequiredMessage}
+                      </p>
+                    ) : null}
+                    {otmPoolSourceBannerMessage ? (
+                      <p
+                        className={
+                          preIbkrPoolMode === "research_expanded" ||
+                          lastScanPoolMeta.poolSource === "research_expanded"
+                            ? "text-amber-200"
+                            : "text-sky-200"
+                        }
+                        data-testid="otm-pool-source-banner"
+                      >
+                        {otmPoolSourceBannerMessage}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </details>
+            </div>
           </div>
 
-          {refreshStage ? (
-            <div className="mt-2 w-full min-w-0">
-              <ScanCompactBadge label="État" value={refreshStage} />
-            </div>
-          ) : null}
-
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span className="text-cyan-600/80">
-              Pool actif : {getPoolModeLabel(preIbkrPoolMode)} — {currentPoolCount} tickers
-            </span>
+          {/* Micro-ligne d'état secondaire — dense, style terminal. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] leading-tight text-[#7f97b6]">
+            {(() => {
+              const segs = [];
+              segs.push(
+                dataSource === "ibkr_direct"
+                  ? `IBKR Direct Scan${primaryIbkrSourceInfo?.twoPhaseEnabled ? " · 2 phases" : ""}`
+                  : dataSource === "backend"
+                  ? "backend local"
+                  : "snapshot local"
+              );
+              segs.push(marketClosedNow ? "Marché fermé" : "Marché ouvert");
+              if (selectedExpiration) segs.push(`Exp réelle ${selectedExpiration}`);
+              segs.push(`Pool ${getPoolModeLabel(preIbkrPoolMode)} · ${currentPoolCount} tickers`);
+              return segs.map((seg, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 ? <span className="text-[#46607e]">·</span> : null}
+                  <span className="text-[#91a8c4]">{seg}</span>
+                </React.Fragment>
+              ));
+            })()}
+            {dataSource === "ibkr_direct" || dataSource === "backend" ? (
+              <span
+                title={`${scanMeta.kept} retenus IBKR sur ${scanMeta.scanned} scannés`}
+                className="inline-flex items-center rounded-full border border-[rgba(110,150,190,0.20)] bg-[#0d2034] px-1.5 py-0.5 font-medium text-[#22e36f]"
+              >
+                {scanMeta.kept}/{scanMeta.scanned} IBKR
+              </span>
+            ) : null}
+            {selectedExpirationClosedInfo ? (
+              <span
+                title={selectedExpirationClosedInfo.message}
+                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-medium ${
+                  selectedExpirationClosedInfo.blocked
+                    ? "border-rose-800/60 bg-rose-950/30 text-[#ff9f1a]"
+                    : "border-[rgba(110,150,190,0.20)] bg-[#0d2034] text-amber-300"
+                }`}
+              >
+                <Info className="h-3 w-3" />
+                {selectedExpirationClosedInfo.blocked ? "Scan bloqué" : "Marché fermé"}
+              </span>
+            ) : null}
             {lastScanPoolStale ? (
-              <span className="rounded-full border border-amber-700/60 bg-amber-950/40 px-2 py-0.5 text-[11px] font-medium text-amber-200">
-                Mode changé — clique Scanner pour appliquer.
+              <span className="inline-flex items-center rounded-full border border-amber-700/60 bg-amber-950/40 px-1.5 py-0.5 font-medium text-amber-200">
+                Mode changé — Refresh
               </span>
             ) : null}
           </div>
@@ -15540,35 +16472,6 @@ export default function Dashboard() {
               ) : null}
             </div>
           )}
-
-          {watchlistTickers?.length === 0 && preIbkrPoolMode === "fallback_65" ? (
-            <p className="mt-2 text-xs font-medium text-amber-300">
-              ⚠ Watchlist vide — utilisation fallback 65. IBKR Audit Depth ne pourra pas dépasser ~65.
-            </p>
-          ) : null}
-
-          {otmRebuildRequired && otmRebuildRequiredMessage ? (
-            <p
-              className="mt-2 rounded-lg border border-amber-700/60 bg-amber-950/40 px-2 py-1.5 text-xs font-medium text-amber-200"
-              data-testid="otm-rebuild-required-banner"
-            >
-              {otmRebuildRequiredMessage}
-            </p>
-          ) : null}
-
-          {otmPoolSourceBannerMessage ? (
-            <p
-              className={`mt-2 rounded-lg border px-2 py-1.5 text-xs leading-5 ${
-                preIbkrPoolMode === "research_expanded" ||
-                lastScanPoolMeta.poolSource === "research_expanded"
-                  ? "border-amber-700/60 bg-amber-950/40 text-amber-200"
-                  : "border-sky-800/50 bg-sky-950/30 text-sky-200"
-              }`}
-              data-testid="otm-pool-source-banner"
-            >
-              {otmPoolSourceBannerMessage}
-            </p>
-          ) : null}
         </div>
         <div id="section-diagnostics" className="scroll-mt-4" />
 
@@ -15596,43 +16499,35 @@ export default function Dashboard() {
 
         {!loadingScan && !watchlistLoading && (
           <>
-            {showClosedValidBanner && (
-              <div className="mb-6 rounded-2xl border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-400 shadow-sm">
-                Marche ferme — dernier scan valide affiche (cache local). Donnees indicatives / non
-                tradables.
-              </div>
-            )}
+            {/* Bannière info unique compacte — remplace les multiples bandeaux DEV / marché / source. */}
+            {(showClosedValidBanner || showIndicativeClosedBanner || showSourceStatusBanner) && (() => {
+              const isIndicative = showIndicativeClosedBanner || showClosedValidBanner || backendShortlistDevScan;
+              const segments = [];
+              if (isIndicative) segments.push("Données indicatives uniquement (DEV)");
+              segments.push(marketClosedNow ? "Marché fermé" : "Marché ouvert");
+              if (selectedExpiration) segments.push(`Réelle : ${selectedExpiration}`);
+              if (dataSource === "ibkr_direct" || dataSource === "backend") {
+                segments.push(`${scanMeta.kept} retenus IBKR sur ${scanMeta.scanned} scannés`);
+              } else {
+                segments.push("snapshot local (fallback)");
+              }
+              return (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] px-3 py-2 text-xs text-[#91a8c4] shadow-sm">
+                  <Info className="h-3.5 w-3.5 shrink-0 text-[#19a7ff]" />
+                  <span className="leading-tight">
+                    {segments.map((seg, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <span className="mx-1.5 text-[#46607e]">·</span>}
+                        <span className={i === 0 && isIndicative ? "font-semibold text-[#ffd166]" : "text-[#cfe0f2]"}>{seg}</span>
+                      </React.Fragment>
+                    ))}
+                  </span>
+                </div>
+              );
+            })()}
 
-            {showIndicativeClosedBanner && (
-              <div className="mb-6 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900 shadow-sm">
-                <span className="font-semibold">DEV TEST</span> — marche ferme / donnees indicatives / non
-                tradables.
-                {backendShortlistDevScan ? " WHEEL_DEV_SCAN actif cote backend." : ""}
-              </div>
-            )}
-
-            {showSourceStatusBanner && (
-              <div
-                className={cn(
-                  "mb-6 rounded-2xl border p-4 text-sm shadow-sm",
-                  dataSource === "backend" || dataSource === "ibkr_direct"
-                    ? "border-emerald-800 bg-emerald-950/40 text-emerald-400"
-                    : "border-amber-800 bg-amber-950/40 text-amber-400"
-                )}
-              >
-                {dataSource === "ibkr_direct"
-                  ? `Source active : IBKR Direct Scan — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés.${primaryIbkrSourceInfo?.twoPhaseEnabled ? " 2 phases officiel actif." : ""}`
-                  : dataSource === "backend"
-                  ? `Source active : backend local /scan_shortlist — ${scanMeta.kept} retenus sur ${scanMeta.scanned} scannés (watchlist ${watchlistSource === "backend" ? "backend" : "secours"}).`
-                  : "Source active : snapshot local (fallback)."}
-              </div>
-            )}
-
-            {showClosedNoCacheBanner && (
-              <div className="mb-6 rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400 shadow-sm">
-                Marche ferme et aucun scan valide en cache local.
-              </div>
-            )}
+            {/* Détail « Snapshot fallback » retiré de la vue principale — info essentielle
+                déjà portée par la micro-ligne d'en-tête ; détail technique déplacé dans ⋯ / Détails scan. */}
 
             {scanError && !showClosedNoCacheBanner && (
               <div className="mb-6 rounded-2xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-400 shadow-sm">
@@ -15645,78 +16540,54 @@ export default function Dashboard() {
 
         <div id="section-opportunites" className="space-y-6 scroll-mt-4">
           <div className="space-y-6">
-            <Card className="rounded-[28px] border-slate-700 shadow-sm">
+            <Card className="rounded-[28px] border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] shadow-[0_18px_60px_rgba(0,0,0,0.40)]">
+              {/* Toolbar compacte : recherche + filtres + tri. Le titre « Classement crème de la crème »
+                  est porté par le panneau ci-dessous (évite le double titre). */}
               <CardHeader className="pb-2">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <CardTitle className="text-xl text-slate-100">Shortlist hebdomadaire</CardTitle>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {dataSource === "ibkr_direct"
-                        ? "Shortlist chargée depuis IBKR Direct Scan."
-                        : dataSource === "backend"
-                        ? "Shortlist chargée automatiquement depuis le backend local /scan_shortlist."
-                        : "Snapshot local affiché en fallback tant que le backend n’a pas répondu."}
-                    </p>
-                    {dataSource === "ibkr_direct" && (
-                      <p className="mt-1 text-xs text-slate-500">
-                        Source : IBKR Direct Scan — 2 phases officiel · twoPhaseEnabled:{" "}
-                        {String(primaryIbkrSourceInfo?.twoPhaseEnabled === true)}
-                      </p>
-                    )}
+                <div className="flex w-full flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+                  <div className="relative min-w-[200px] flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Ticker ou nom..."
+                      className="rounded-xl border-slate-700 pl-9"
+                    />
+                    <TickerPipelineDiagnosticPanel diagnostic={pipelineTickerDiagnostic} />
                   </div>
 
-                  <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-                    <div className="relative min-w-[240px] flex-1">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <Input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Ticker ou nom..."
-                        className="rounded-xl border-slate-700 pl-9"
-                      />
-                      <TickerPipelineDiagnosticPanel diagnostic={pipelineTickerDiagnostic} />
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        ["all", "Tous"],
-                        ["validated", "Validés"],
-                        ["conservative", "Safe"],
-                        ["balanced", "Balanced"],
-                        ["aggressive", "Aggressive"],
-                      ].map(([value, label]) => (
-                        <Button
-                          key={value}
-                          variant={filter === value ? "default" : "outline"}
-                          className="rounded-xl"
-                          onClick={() => setFilter(value)}
-                        >
-                          {label}
-                        </Button>
-                      ))}
-                    </div>
-                    <Select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="rounded-xl border-slate-700"
-                    >
-                      <option value="quality">Trier par: qualité Wheel</option>
-                      <option value="strikeDistance">Trier par: distance strike</option>
-                      <option value="weeklyReturn">Trier par: rendement hebdo</option>
-                      <option value="spread">Trier par: spread</option>
-                    </Select>
-                    <Select
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      className="rounded-xl border-slate-700"
-                    >
-                      <option value="asc">Ordre: asc</option>
-                      <option value="desc">Ordre: desc</option>
-                    </Select>
-                    <span className="text-xs font-medium text-slate-500">
-                      Tri actif : {sortBy} {sortOrder}
-                    </span>
-                  </div>
+                  {/* Filtre Mode — basé sur le mode réellement affiché par ligne (finalDisplayMode).
+                      BALANCED strike leg future phase — do not expose as line filter until backend
+                      provides a real balanced leg. Les buckets Top/Favoris/Autres/Rejetés restent
+                      les filtres principaux du classement. */}
+                  <Select
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="rounded-xl border-slate-700"
+                    title="Filtre Mode — affiche uniquement les lignes dont le mode retenu correspond (SAFE / AGRESSIF)."
+                  >
+                    <option value="all">Mode: Tous</option>
+                    <option value="SAFE">Mode: SAFE</option>
+                    <option value="AGGRESSIVE">Mode: AGRESSIF</option>
+                  </Select>
+                  <Select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="rounded-xl border-slate-700"
+                  >
+                    <option value="quality">Trier par: qualité Wheel</option>
+                    <option value="strikeDistance">Trier par: distance strike</option>
+                    <option value="weeklyReturn">Trier par: rendement hebdo</option>
+                    <option value="spread">Trier par: spread</option>
+                  </Select>
+                  <Select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="rounded-xl border-slate-700"
+                  >
+                    <option value="asc">Ordre: asc</option>
+                    <option value="desc">Ordre: desc</option>
+                  </Select>
                 </div>
               </CardHeader>
 
@@ -15756,10 +16627,17 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="space-y-6">
+          {/* Sections secondaires repliées par défaut : restent accessibles sans alourdir la vue compacte. */}
+          <details className="space-y-4">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] px-3 py-2 text-xs font-medium text-[#cfe0f2] hover:text-white [&::-webkit-details-marker]:hidden">
+              <Activity className="h-4 w-4 text-[#19a7ff]" />
+              Alertes, règles & résumé semaine
+              <span className="text-[#46607e]">— afficher</span>
+            </summary>
+            <div className="mt-4 space-y-6">
             <AlertPanel />
 
-            <Card className="rounded-[28px] border-slate-700 shadow-sm">
+            <Card className="rounded-[28px] border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] shadow-[0_18px_60px_rgba(0,0,0,0.40)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl text-slate-100">
                   <Activity className="h-5 w-5" />
@@ -15827,7 +16705,8 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </div>
+          </details>
             </div>
           </>
         ) : (

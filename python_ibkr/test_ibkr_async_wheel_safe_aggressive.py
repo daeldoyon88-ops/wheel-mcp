@@ -32,6 +32,10 @@ W_S2 = 0.10
 MAX_STRIKE_ATTEMPTS = 10
 MIN_PREMIUM_YIELD = 0.005
 TWO_PHASE_DEFAULT_PUT_WINDOW = 10
+# Descente progressive SAFE : nombre max de VRAIS contrats PUT qualifiés sondés
+# (les strikes bruts invalides ne comptent pas). Surchargé par
+# IBKR_TWO_PHASE_MAX_VALID_PUTS.
+PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT = 20
 
 _PUT_ENRICHMENT_KEYS = (
     "conId",
@@ -89,6 +93,30 @@ def _ibkr_two_phase_enabled() -> bool:
 def _ibkr_quick_premium_gate_enabled() -> bool:
     # Quick premium gate : ON par défaut ; TWO_PHASE seulement (voir main).
     return _parse_bool(os.environ.get("IBKR_QUICK_PREMIUM_GATE"), True)
+
+
+def _ibkr_progressive_safe_scan_enabled() -> bool:
+    # Descente progressive SAFE : ON par défaut ; OFF si IBKR_PROGRESSIVE_SAFE_SCAN=0.
+    # Actif seulement en TWO_PHASE (voir main).
+    return _parse_bool(os.environ.get("IBKR_PROGRESSIVE_SAFE_SCAN"), True)
+
+
+def _log_ibkr_progressive_safe_scan_config(enabled: bool, max_valid_puts: int) -> None:
+    raw = os.environ.get("IBKR_PROGRESSIVE_SAFE_SCAN")
+    if raw is None or str(raw).strip() == "":
+        source = "default on, disable with IBKR_PROGRESSIVE_SAFE_SCAN=0"
+    elif str(raw).strip() == "0":
+        source = "explicit off, IBKR_PROGRESSIVE_SAFE_SCAN=0"
+    elif str(raw).strip() == "1":
+        source = "explicit on, IBKR_PROGRESSIVE_SAFE_SCAN=1"
+    else:
+        source = f"IBKR_PROGRESSIVE_SAFE_SCAN={str(raw).strip()}"
+    state = "ON" if enabled else "OFF"
+    print(
+        f"IBKR progressive safe scan: {state} ({source}); maxValidPuts={max_valid_puts}",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def _log_ibkr_quick_gate_config(enabled: bool) -> None:
@@ -666,11 +694,22 @@ def main() -> int:
     max_strikes = max(20, max_strikes_env)
     two_phase_enabled = _ibkr_two_phase_enabled()
     quick_premium_gate_enabled = _ibkr_quick_premium_gate_enabled()
+    progressive_safe_scan_enabled = _ibkr_progressive_safe_scan_enabled()
     two_phase_put_window = max(
         1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", TWO_PHASE_DEFAULT_PUT_WINDOW)
     )
+    max_valid_puts_to_probe = max(
+        1,
+        _int_env(
+            "IBKR_TWO_PHASE_MAX_VALID_PUTS",
+            PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT,
+        ),
+    )
     _log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
     _log_ibkr_quick_gate_config(quick_premium_gate_enabled)
+    _log_ibkr_progressive_safe_scan_config(
+        progressive_safe_scan_enabled, max_valid_puts_to_probe
+    )
     option_generic_ticks = _str_env("IBKR_OPTION_GENERIC_TICKS", "100,101,106,221")
     requested_expiration = os.environ.get("IBKR_OPTION_EXPIRATION")
     requested_expiration = (
@@ -727,6 +766,16 @@ def main() -> int:
         "quickGateSavedApproxCalls": 0,
         "putCandidateContractsActuallyRequested": 0,
         "putQuotesAvoidedByQuickGate": 0,
+        # --- Descente progressive SAFE (voir IBKR_PROGRESSIVE_SAFE_SCAN) ---
+        "progressiveSafeScanEnabled": False,
+        "validPutContractsChecked": 0,
+        "invalidPutStrikesSkipped": 0,
+        "rawPutStrikesExamined": 0,
+        "safeScanStoppedReason": None,
+        "safeScanStoppedAtStrike": None,
+        "safeScanTargetPremium": None,
+        "safeScanLastAboveTargetStrike": None,
+        "maxValidPutContractsToProbe": 0,
     }
 
     def _safe_int(value):
@@ -942,6 +991,7 @@ def main() -> int:
         chosen_put_strikes: list[float] = []
         aggressive_reference_strike: float | None = None
         quick_gate_fast_reject = False
+        safe_scan_stopped_reason: str | None = None
 
         s_atm_c = s_atm_p = None
         c_atm_c = c_atm_p = None
@@ -1346,101 +1396,200 @@ def main() -> int:
                 return True
 
             puts_below_lower = sorted([s for s in strikes if s < lower_bound], reverse=True)
-            if puts_below_lower:
-                aggressive_reference_strike = puts_below_lower[0]
-                aggr_index = strikes.index(aggressive_reference_strike)
-                start_index = max(0, aggr_index - (two_phase_put_window - 1))
-                window_slice = strikes[start_index:aggr_index + 1]
-                chosen_put_strikes = sorted(
-                    [s for s in window_slice if s <= aggressive_reference_strike],
-                    reverse=True,
-                )
-            else:
-                chosen_put_strikes = []
 
-            ibkr_call_metrics["putCandidateContractsRequested"] = len(chosen_put_strikes)
+            if progressive_safe_scan_enabled:
+                # =====================================================
+                # DESCENTE PROGRESSIVE SUR CONTRATS PUT QUALIFIÉS
+                # Remplace la fenêtre brute de N strikes bruts par une
+                # descente contrat par contrat : les strikes bruts sans
+                # contrat coté pour l'expiration sont ignorés (aucun
+                # reqMktData), seuls les vrais contrats PUT qualifiés sont
+                # cotés, et on arrête dès qu'un vrai contrat passe sous
+                # targetPremium. Un garde-fou borne le nombre de VRAIS
+                # contrats sondés (max_valid_puts_to_probe).
+                # =====================================================
+                raw_put_strikes_examined = 0
+                valid_put_contracts_checked = 0
+                invalid_put_strikes_skipped = 0
+                safe_scan_stopped_at_strike: float | None = None
+                safe_scan_last_above_target_strike: float | None = None
 
-            if not quick_premium_gate_enabled:
-                _metric_add("quickGateSkipped")
-                for strike in chosen_put_strikes:
-                    _add_put_candidate_ticker(strike)
-            elif chosen_put_strikes:
-                _metric_add("quickGateEvaluated")
-                aggressive_strike = float(chosen_put_strikes[0])
-                aggr_qc = valid_put_contracts.get(aggressive_strike)
-                if aggr_qc is None:
-                    aggr_qc = _one_option(aggressive_strike, "P")
+                for raw_strike in puts_below_lower:
+                    if valid_put_contracts_checked >= max_valid_puts_to_probe:
+                        safe_scan_stopped_reason = "max_valid_puts_guard"
+                        break
+                    raw_put_strikes_examined += 1
 
-                if aggr_qc is None:
-                    _metric_add("quickGateFallback")
-                    _log_ibkr_quick_gate(
-                        symbol,
-                        lower_bound,
-                        aggressive_strike,
-                        None,
-                        target_premium,
-                        "fallback",
-                    )
-                    for strike in chosen_put_strikes:
-                        _add_put_candidate_ticker(strike)
-                else:
-                    valid_put_contracts[aggressive_strike] = aggr_qc
-                    aggr_tk = _req_mkt_data(aggr_qc, option_kind="put_candidate")
-                    requested_contracts.append(aggr_qc)
-                    put_tickers.append((aggressive_strike, aggr_tk))
+                    qc = valid_put_contracts.get(raw_strike)
+                    if qc is None:
+                        qc = _one_option(raw_strike, "P")
+                    if qc is None:
+                        # Strike brut sans contrat coté pour cette expiration :
+                        # on saute, sans reqMktData.
+                        invalid_put_strikes_skipped += 1
+                        rejected.append(
+                            {
+                                "role": "wheel_put",
+                                "right": right,
+                                "strike": raw_strike,
+                                "reason": "option_contract_not_qualified",
+                            }
+                        )
+                        continue
+
+                    # Vrai contrat PUT qualifié : on le cote.
+                    valid_put_contracts[raw_strike] = qc
+                    tk = _req_mkt_data(qc, option_kind="put_candidate")
+                    requested_contracts.append(qc)
+                    put_tickers.append((raw_strike, tk))
+                    chosen_put_strikes.append(raw_strike)
+                    valid_put_contracts_checked += 1
+
                     wait_for_quotes(
                         ib,
-                        [aggr_tk],
+                        [tk],
                         has_valid_option_quote,
                         timeout_s=2.0,
                         poll_ms=100,
                     )
-                    gate_bid = _finite_number(_safe_attr(aggr_tk, "bid"))
-                    gate_ask = _finite_number(_safe_attr(aggr_tk, "ask"))
-                    gate_quote_ok = bool(
-                        has_valid_option_quote(aggr_tk)
-                        and gate_bid is not None
-                        and gate_ask is not None
-                    )
+                    probe_bid = _finite_number(_safe_attr(tk, "bid"))
 
-                    if not gate_quote_ok:
+                    if aggressive_reference_strike is None:
+                        # Premier vrai contrat sous lowerBound = AGRESSIF.
+                        aggressive_reference_strike = raw_strike
+                        if probe_bid is not None and probe_bid < target_premium:
+                            # Même l'agressif ne respecte pas la prime minimale :
+                            # rien en dessous ne peut être SAFE -> arrêt rapide.
+                            safe_scan_stopped_reason = "aggressive_below_target_premium"
+                            safe_scan_stopped_at_strike = raw_strike
+                            break
+                        continue
+
+                    # Contrats strictement sous l'agressif.
+                    if probe_bid is None:
+                        # Pas de quote exploitable : ce n'est pas « sous la cible »,
+                        # on continue la descente (le garde-fou borne le coût).
+                        continue
+                    if probe_bid >= target_premium:
+                        safe_scan_last_above_target_strike = raw_strike
+                        continue
+                    # probe_bid < target_premium : cible franchie -> arrêt.
+                    # On ne cote PAS les contrats plus bas.
+                    safe_scan_stopped_reason = "below_target_premium"
+                    safe_scan_stopped_at_strike = raw_strike
+                    break
+
+                if safe_scan_stopped_reason is None:
+                    safe_scan_stopped_reason = "raw_strikes_exhausted"
+
+                ibkr_call_metrics["putCandidateContractsRequested"] = len(chosen_put_strikes)
+                ibkr_call_metrics["progressiveSafeScanEnabled"] = True
+                ibkr_call_metrics["validPutContractsChecked"] = valid_put_contracts_checked
+                ibkr_call_metrics["invalidPutStrikesSkipped"] = invalid_put_strikes_skipped
+                ibkr_call_metrics["rawPutStrikesExamined"] = raw_put_strikes_examined
+                ibkr_call_metrics["safeScanStoppedReason"] = safe_scan_stopped_reason
+                ibkr_call_metrics["safeScanStoppedAtStrike"] = safe_scan_stopped_at_strike
+                ibkr_call_metrics["safeScanTargetPremium"] = target_premium
+                ibkr_call_metrics["safeScanLastAboveTargetStrike"] = (
+                    safe_scan_last_above_target_strike
+                )
+                ibkr_call_metrics["maxValidPutContractsToProbe"] = max_valid_puts_to_probe
+            else:
+                if puts_below_lower:
+                    aggressive_reference_strike = puts_below_lower[0]
+                    aggr_index = strikes.index(aggressive_reference_strike)
+                    start_index = max(0, aggr_index - (two_phase_put_window - 1))
+                    window_slice = strikes[start_index:aggr_index + 1]
+                    chosen_put_strikes = sorted(
+                        [s for s in window_slice if s <= aggressive_reference_strike],
+                        reverse=True,
+                    )
+                else:
+                    chosen_put_strikes = []
+
+                ibkr_call_metrics["putCandidateContractsRequested"] = len(chosen_put_strikes)
+
+                if not quick_premium_gate_enabled:
+                    _metric_add("quickGateSkipped")
+                    for strike in chosen_put_strikes:
+                        _add_put_candidate_ticker(strike)
+                elif chosen_put_strikes:
+                    _metric_add("quickGateEvaluated")
+                    aggressive_strike = float(chosen_put_strikes[0])
+                    aggr_qc = valid_put_contracts.get(aggressive_strike)
+                    if aggr_qc is None:
+                        aggr_qc = _one_option(aggressive_strike, "P")
+
+                    if aggr_qc is None:
                         _metric_add("quickGateFallback")
                         _log_ibkr_quick_gate(
                             symbol,
                             lower_bound,
                             aggressive_strike,
-                            gate_bid,
+                            None,
                             target_premium,
                             "fallback",
                         )
                         for strike in chosen_put_strikes:
                             _add_put_candidate_ticker(strike)
-                    elif gate_bid >= target_premium:
-                        _metric_add("quickGatePassed")
-                        _log_ibkr_quick_gate(
-                            symbol,
-                            lower_bound,
-                            aggressive_strike,
-                            gate_bid,
-                            target_premium,
-                            "full_scan",
-                        )
-                        for strike in chosen_put_strikes[1:]:
-                            _add_put_candidate_ticker(strike)
                     else:
-                        saved = max(0, len(chosen_put_strikes) - 1)
-                        _metric_add("quickGateRejected")
-                        _metric_add("quickGateSavedApproxCalls", saved)
-                        _metric_add("putQuotesAvoidedByQuickGate", saved)
-                        quick_gate_fast_reject = True
-                        _log_ibkr_quick_gate(
-                            symbol,
-                            lower_bound,
-                            aggressive_strike,
-                            gate_bid,
-                            target_premium,
-                            "skip_full_scan",
+                        valid_put_contracts[aggressive_strike] = aggr_qc
+                        aggr_tk = _req_mkt_data(aggr_qc, option_kind="put_candidate")
+                        requested_contracts.append(aggr_qc)
+                        put_tickers.append((aggressive_strike, aggr_tk))
+                        wait_for_quotes(
+                            ib,
+                            [aggr_tk],
+                            has_valid_option_quote,
+                            timeout_s=2.0,
+                            poll_ms=100,
                         )
+                        gate_bid = _finite_number(_safe_attr(aggr_tk, "bid"))
+                        gate_ask = _finite_number(_safe_attr(aggr_tk, "ask"))
+                        gate_quote_ok = bool(
+                            has_valid_option_quote(aggr_tk)
+                            and gate_bid is not None
+                            and gate_ask is not None
+                        )
+
+                        if not gate_quote_ok:
+                            _metric_add("quickGateFallback")
+                            _log_ibkr_quick_gate(
+                                symbol,
+                                lower_bound,
+                                aggressive_strike,
+                                gate_bid,
+                                target_premium,
+                                "fallback",
+                            )
+                            for strike in chosen_put_strikes:
+                                _add_put_candidate_ticker(strike)
+                        elif gate_bid >= target_premium:
+                            _metric_add("quickGatePassed")
+                            _log_ibkr_quick_gate(
+                                symbol,
+                                lower_bound,
+                                aggressive_strike,
+                                gate_bid,
+                                target_premium,
+                                "full_scan",
+                            )
+                            for strike in chosen_put_strikes[1:]:
+                                _add_put_candidate_ticker(strike)
+                        else:
+                            saved = max(0, len(chosen_put_strikes) - 1)
+                            _metric_add("quickGateRejected")
+                            _metric_add("quickGateSavedApproxCalls", saved)
+                            _metric_add("putQuotesAvoidedByQuickGate", saved)
+                            quick_gate_fast_reject = True
+                            _log_ibkr_quick_gate(
+                                symbol,
+                                lower_bound,
+                                aggressive_strike,
+                                gate_bid,
+                                target_premium,
+                                "skip_full_scan",
+                            )
 
             if put_tickers:
                 wait_for_quotes(
@@ -1589,7 +1738,16 @@ def main() -> int:
         safe_pc: dict | None = None
         safe_selection_reason: str | None = None
         if safe_pool:
-            if two_phase_enabled:
+            if two_phase_enabled and progressive_safe_scan_enabled:
+                # SAFE = contrat valide le plus défensif (strike le plus bas)
+                # encore >= targetPremium au moment de l'arrêt de la descente.
+                safe_pc = min(safe_pool, key=lambda p: p["strike"])
+                safe_selection_reason = (
+                    "below_aggressive_last_valid_above_target_max_guard"
+                    if safe_scan_stopped_reason == "max_valid_puts_guard"
+                    else "below_aggressive_most_defensive_above_target"
+                )
+            elif two_phase_enabled:
                 safe_pc = min(
                     safe_pool,
                     key=lambda p: (
@@ -1633,7 +1791,7 @@ def main() -> int:
                     )
             if safe_pc is not None and safe_pc is not aggressive_pc:
                 safe_pc["status"] = "safe_selected"
-                safe_pc["reason"] = (
+                safe_pc["reason"] = safe_selection_reason or (
                     "below_aggressive_closest_premium_to_target"
                     if two_phase_enabled
                     else "below_aggressive_meets_min_premium"
@@ -1875,6 +2033,15 @@ def main() -> int:
                 "aggressiveRule": "strike put directement sous la borne basse",
                 "safeRule": (
                     (
+                        "safe = contrat PUT valide le plus défensif (strike le plus bas) "
+                        "encore >= targetPremium pendant la descente progressive; on cote "
+                        "les vrais contrats un par un sous l'agressif et on arrête dès qu'un "
+                        "passe sous targetPremium (ou au garde-fou maxValidPutContractsToProbe); "
+                        "si aucun contrat valide sous l'agressif, l'agressif respectant "
+                        "targetPremium devient safe"
+                    )
+                    if (two_phase_enabled and progressive_safe_scan_enabled)
+                    else (
                         "safe = candidat sous l'agressif avec primeUsed la plus proche de targetPremium "
                         "(égalité -> strike le plus haut); si aucun et agressif respecte targetPremium, "
                         "l'agressif devient safe"

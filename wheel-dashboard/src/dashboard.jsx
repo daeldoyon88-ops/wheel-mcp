@@ -7787,6 +7787,43 @@ function CremeTableRow({
   );
 }
 
+// Source de vérité visuelle prix / mouvement attendu / plage attendue.
+// Si la candidate vient d'un scan IBKR live (optionsSource === "IBKR live")
+// et porte un prix valide, on affiche le snapshot IBKR du scan : Yahoo
+// (get_quote / get_expected_move) ne doit plus écraser le header de la modale.
+// Sinon, on conserve le fallback Yahoo existant (Yahoo prioritaire, puis item).
+function getOpportunityDisplayMarketSnapshot(item, liveData) {
+  const itemPrice = Number(item?.price);
+  const isIbkrLive = item?.optionsSource === "IBKR live" && Number.isFinite(itemPrice) && itemPrice > 0;
+
+  if (isIbkrLive) {
+    return {
+      displayPrice: item.price,
+      displayExpectedMovePct: item.expectedMovePct,
+      displayExpectedMoveLow: item.expectedMoveLow,
+      displayExpectedMoveHigh: item.expectedMoveHigh,
+      displaySource: "IBKR",
+    };
+  }
+
+  return {
+    displayPrice:
+      liveData?.quote?.regularMarketPrice ??
+      liveData?.quote?.currentPrice ??
+      item?.price,
+    displayExpectedMovePct:
+      liveData?.expectedMove?.expectedMovePercent ??
+      item?.expectedMovePct,
+    displayExpectedMoveLow:
+      liveData?.expectedMove?.oneSigmaRange?.lower ??
+      item?.expectedMoveLow,
+    displayExpectedMoveHigh:
+      liveData?.expectedMove?.oneSigmaRange?.upper ??
+      item?.expectedMoveHigh,
+    displaySource: "Yahoo",
+  };
+}
+
 function DetailModal({ item, onClose }) {
   const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const [loading, setLoading] = useState(false);
@@ -7880,22 +7917,12 @@ function DetailModal({ item, onClose }) {
     expiration: item.targetExpiration ?? item.expiration ?? item.raw?.expiration ?? null,
   });
 
-  const livePrice =
-    liveData?.quote?.regularMarketPrice ??
-    liveData?.quote?.currentPrice ??
-    item.price;
-
-  const liveExpectedMovePct =
-    liveData?.expectedMove?.expectedMovePercent ??
-    item.expectedMovePct;
-
-  const liveLow =
-    liveData?.expectedMove?.oneSigmaRange?.lower ??
-    item.expectedMoveLow;
-
-  const liveHigh =
-    liveData?.expectedMove?.oneSigmaRange?.upper ??
-    item.expectedMoveHigh;
+  const {
+    displayPrice: livePrice,
+    displayExpectedMovePct: liveExpectedMovePct,
+    displayExpectedMoveLow: liveLow,
+    displayExpectedMoveHigh: liveHigh,
+  } = getOpportunityDisplayMarketSnapshot(item, liveData);
 
   const supportWide =
     liveData?.supportResistance?.supportWide ??

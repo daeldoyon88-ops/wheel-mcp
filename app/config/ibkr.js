@@ -140,6 +140,55 @@ export function logIbkrQuickPremiumGateConfig(env = process.env) {
   return cfg;
 }
 
+/** Descente progressive SAFE : ON par défaut ; actif seulement en TWO_PHASE côté Python. */
+export function resolveIbkrProgressiveSafeScanEnabled(rawValue = process.env.IBKR_PROGRESSIVE_SAFE_SCAN) {
+  return parseBoolean(rawValue, true);
+}
+
+/**
+ * Plafond de VRAIS puts qualifiés sondés (observabilité seulement).
+ * Miroir JS de PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT côté Python (défaut 20, min 1) ;
+ * résolu depuis IBKR_TWO_PHASE_MAX_VALID_PUTS. N'influence aucune logique moteur.
+ */
+export const IBKR_PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT = 20;
+
+export function resolveIbkrProgressiveSafeScanMaxValidPuts(
+  rawValue = process.env.IBKR_TWO_PHASE_MAX_VALID_PUTS,
+) {
+  const n = parseInteger(rawValue, IBKR_PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT);
+  return Math.max(1, n);
+}
+
+export function formatIbkrProgressiveSafeScanLog(env = process.env) {
+  const raw = env.IBKR_PROGRESSIVE_SAFE_SCAN;
+  const enabled = resolveIbkrProgressiveSafeScanEnabled(raw);
+  const maxValidPuts = resolveIbkrProgressiveSafeScanMaxValidPuts(env.IBKR_TWO_PHASE_MAX_VALID_PUTS);
+  const trimmed = raw == null ? "" : String(raw).trim();
+  let source;
+  if (trimmed === "") {
+    source = "default on, disable with IBKR_PROGRESSIVE_SAFE_SCAN=0";
+  } else if (trimmed === "0") {
+    source = "explicit off, IBKR_PROGRESSIVE_SAFE_SCAN=0";
+  } else if (trimmed === "1") {
+    source = "explicit on, IBKR_PROGRESSIVE_SAFE_SCAN=1";
+  } else {
+    source = `IBKR_PROGRESSIVE_SAFE_SCAN=${trimmed}`;
+  }
+  return {
+    enabled,
+    state: enabled ? "ON" : "OFF",
+    source,
+    maxValidPuts,
+    logLine: `IBKR progressive safe scan: ${enabled ? "ON" : "OFF"} (${source}); maxValidPuts=${maxValidPuts}`,
+  };
+}
+
+export function logIbkrProgressiveSafeScanConfig(env = process.env) {
+  const cfg = formatIbkrProgressiveSafeScanLog(env);
+  console.log(cfg.logLine);
+  return cfg;
+}
+
 export function logIbkrScanConcurrencyConfig(env = process.env) {
   const value = resolveIbkrScanConcurrency(env.IBKR_SCAN_CONCURRENCY);
   console.log(`IBKR scan concurrency: ${value}`);

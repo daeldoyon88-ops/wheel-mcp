@@ -15,6 +15,10 @@ import {
   logIbkrTwoPhaseScanConfig,
   formatIbkrQuickPremiumGateLog,
   logIbkrQuickPremiumGateConfig,
+  formatIbkrProgressiveSafeScanLog,
+  logIbkrProgressiveSafeScanConfig,
+  resolveIbkrProgressiveSafeScanEnabled,
+  resolveIbkrProgressiveSafeScanMaxValidPuts,
   logIbkrScanBatchSizeConfig,
   logIbkrScanConcurrencyConfig,
   resolveIbkrQuickPremiumGateEnabled,
@@ -1352,6 +1356,12 @@ function runIbkrShadowWheelBatch(body = {}) {
       if (typeof payload.twoPhaseEnabled !== "boolean") {
         payload.twoPhaseEnabled = twoPhaseScanEnabled;
       }
+      if (typeof payload.progressiveSafeScanEnabled !== "boolean") {
+        payload.progressiveSafeScanEnabled = resolveIbkrProgressiveSafeScanEnabled();
+      }
+      if (!Number.isFinite(Number(payload.maxValidPutsEffective))) {
+        payload.maxValidPutsEffective = resolveIbkrProgressiveSafeScanMaxValidPuts();
+      }
       if (debug) payload._debug = { stdout, stderr, exitCode };
       return resolve({ status: 200, payload });
     });
@@ -2283,6 +2293,7 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
     for (const line of twoPhaseScanLog.logLines) {
       console.log(line);
     }
+    console.log(formatIbkrProgressiveSafeScanLog().logLine);
     console.log(formatIbkrQuickPremiumGateLog().logLine);
 
     const { payload } = await runIbkrShadowWheelBatch({
@@ -2379,6 +2390,9 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
           aggressiveStrike: row?.aggressiveStrike ?? null,
           targetPremium: row?.targetPremium ?? null,
           error: row?.error ?? null,
+          // Diagnostic timeout (observabilité) : étape exacte si le sous-processus
+          // a été tué par le hard timeout. null pour les rejets non-timeout.
+          timeoutStage: row?.timeoutStage ?? null,
           ...buildIbkrShadowRejectedForensics(row, reason),
         });
         if (row?.ok !== true) errors.push({ symbol: row?.symbol ?? null, error: reason });
@@ -2529,6 +2543,15 @@ app.post("/ibkr/shadow/scan", async (req, res) => {
       marketDataTypeRequestedLabel,
       scanCompletedAt,
       twoPhaseEnabled: responseTwoPhaseEnabled,
+      // Echo config progressive SAFE (observabilité seulement) — relayé tel quel du batch
+      // Python vers le forensic JSON exporté. Aucune incidence sur sélection/scoring.
+      progressiveSafeScanEnabled:
+        typeof payload?.progressiveSafeScanEnabled === "boolean"
+          ? payload.progressiveSafeScanEnabled
+          : resolveIbkrProgressiveSafeScanEnabled(),
+      maxValidPutsEffective:
+        numberOrNull(payload?.maxValidPutsEffective) ??
+        resolveIbkrProgressiveSafeScanMaxValidPuts(),
       configuredDevScanMode: devMode.configuredMode,
       devScanEnabled: devMode.devScanEnabled,
       marketRegime: devMode.marketRegime,
@@ -3461,6 +3484,7 @@ app.listen(PORT, () => {
   logIbkrScanConcurrencyConfig();
   logIbkrScanBatchSizeConfig();
   logIbkrTwoPhaseScanConfig();
+  logIbkrProgressiveSafeScanConfig();
   logIbkrQuickPremiumGateConfig();
 });
 

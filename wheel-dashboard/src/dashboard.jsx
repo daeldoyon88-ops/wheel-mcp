@@ -6246,6 +6246,7 @@ function pickIbkrRejectedObservabilityForForensicExport(rej) {
   if (!rej || typeof rej !== "object") return {};
   return {
     rejectionReason: rej.rejectionReason ?? null,
+    timeoutStage: rej.timeoutStage ?? null,
     underlyingPrice: rej.underlyingPrice ?? null,
     lowerBound: rej.lowerBound ?? null,
     targetPremium: rej.targetPremium ?? null,
@@ -6502,6 +6503,15 @@ function mergeIbkrProgressPayloads({
   const twoPhaseEnabledRoot = Array.isArray(payloads)
     ? payloads.some((p) => p?.twoPhaseEnabled === true)
     : false;
+  const progressiveSafeScanEnabledRoot = Array.isArray(payloads)
+    ? payloads.find((p) => typeof p?.progressiveSafeScanEnabled === "boolean")
+        ?.progressiveSafeScanEnabled ?? null
+    : null;
+  const maxValidPutsEffectiveRoot = Array.isArray(payloads)
+    ? payloads
+        .map((p) => Number(p?.maxValidPutsEffective))
+        .find((n) => Number.isFinite(n)) ?? null
+    : null;
 
   /** Observabilité seulement — miroir fusion progressive des batches. */
   const ibkrCallMetrics =
@@ -6543,6 +6553,8 @@ function mergeIbkrProgressPayloads({
     warnings: [...new Set(warnings.filter(Boolean))],
     progressiveAutoIbkr: true,
     twoPhaseEnabled: twoPhaseEnabledRoot,
+    progressiveSafeScanEnabled: progressiveSafeScanEnabledRoot,
+    maxValidPutsEffective: maxValidPutsEffectiveRoot,
     rejectionReasons,
     ibkrCallMetrics,
     yahooReturnedPoolSize: poolSize,
@@ -7023,6 +7035,8 @@ function IbkrDirectScanPanel({
       exportedAtIso: new Date().toISOString(),
       rejectionReasonCounts: result?.rejectionReasons ?? null,
       progressiveIbkrBatchCount: result?.progressiveIbkrBatchCount ?? null,
+      progressiveSafeScanEnabled: result?.progressiveSafeScanEnabled ?? null,
+      maxValidPutsEffective: result?.maxValidPutsEffective ?? null,
       ibkrCallMetricsPresent: Boolean(result?.ibkrCallMetrics),
       rows: forensicExportRows,
     };

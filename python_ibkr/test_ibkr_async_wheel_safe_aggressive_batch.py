@@ -502,7 +502,21 @@ def _build_config() -> dict:
     two_phase_put_window = max(
         1, _int_env("IBKR_TWO_PHASE_PUT_WINDOW", single.TWO_PHASE_DEFAULT_PUT_WINDOW)
     )
+    # Descente progressive SAFE : config résolue ici (réutilise la résolution du single
+    # via IBKR_TWO_PHASE_MAX_VALID_PUTS) pour la rendre visible dans les logs batch et
+    # la propager aux diagnostics de timeout. Aucune incidence sur la logique moteur.
+    progressive_safe_scan_enabled = single._ibkr_progressive_safe_scan_enabled()
+    max_valid_puts_effective = max(
+        1,
+        _int_env(
+            "IBKR_TWO_PHASE_MAX_VALID_PUTS",
+            single.PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT,
+        ),
+    )
     single._log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
+    single._log_ibkr_progressive_safe_scan_config(
+        progressive_safe_scan_enabled, max_valid_puts_effective
+    )
     quick_premium_gate_enabled = single._ibkr_quick_premium_gate_enabled()
     single._log_ibkr_quick_gate_config(quick_premium_gate_enabled)
     concurrency = _resolve_scan_concurrency()
@@ -533,6 +547,8 @@ def _build_config() -> dict:
         "debug": debug,
         "two_phase_enabled": two_phase_enabled,
         "two_phase_put_window": two_phase_put_window,
+        "progressive_safe_scan_enabled": progressive_safe_scan_enabled,
+        "max_valid_puts_effective": max_valid_puts_effective,
         "quick_premium_gate_enabled": quick_premium_gate_enabled,
         "concurrency": concurrency,
         "symbols": symbols,
@@ -684,11 +700,16 @@ async def _run_one_subprocess(
     per_ticker_timeout_ms: int,
     hard_timeout_s: float,
     debug: bool,
+    progressive_safe_scan_enabled: bool = False,
+    max_valid_puts_effective: int = 0,
 ) -> dict:
     """Lance le single scanner inchangé dans un sous-processus isolé pour un symbole.
 
     Timeout dur : si le sous-processus dépasse hard_timeout_s, il est tué et le
     ticker est marqué en timeout sans bloquer les autres.
+
+    progressive_safe_scan_enabled / max_valid_puts_effective : copiés tels quels dans
+    les diagnostics de timeout (observabilité uniquement, aucune incidence moteur).
     """
     ticker_started = time.monotonic()
     env = dict(base_env)
@@ -743,6 +764,15 @@ async def _run_one_subprocess(
                 "mode": "ibkr_readonly_shadow",
                 "symbol": symbol,
                 "error": "ibkr_shadow_ticker_timeout",
+                # --- Diagnostics observabilité timeout (patch minimal) ---
+                # Le sous-processus a été tué par le hard timeout : aucun JSON reçu,
+                # donc l'étape exacte est inconnue. On l'indique explicitement plutôt
+                # que de laisser deviner.
+                "timeoutStage": "batch_hard_timeout_subprocess_no_result",
+                "lastStage": "unknown",
+                "lastSymbol": symbol,
+                "progressiveSafeScanEnabled": progressive_safe_scan_enabled,
+                "maxValidPutsEffective": max_valid_puts_effective,
             },
             None,
             duration_ms,
@@ -814,6 +844,8 @@ async def _run_concurrent(symbols: list[str], concurrency: int, cfg: dict) -> in
     per_ticker_timeout_ms = cfg["per_ticker_timeout_ms"]
     two_phase_enabled = cfg["two_phase_enabled"]
     quick_premium_gate_enabled = cfg["quick_premium_gate_enabled"]
+    progressive_safe_scan_enabled = cfg["progressive_safe_scan_enabled"]
+    max_valid_puts_effective = cfg["max_valid_puts_effective"]
     base_client_id = cfg["client_id"]
     debug = cfg["debug"]
     wheel_dev_scan_batch = cfg["wheel_dev_scan"]
@@ -867,6 +899,8 @@ async def _run_concurrent(symbols: list[str], concurrency: int, cfg: dict) -> in
                 per_ticker_timeout_ms,
                 hard_timeout_s,
                 debug,
+                progressive_safe_scan_enabled,
+                max_valid_puts_effective,
             )
         finally:
             async with state_lock:
@@ -928,7 +962,13 @@ async def _run_concurrent(symbols: list[str], concurrency: int, cfg: dict) -> in
         max_active=state["max_active"],
         wheel_dev_scan_batch=wheel_dev_scan_batch,
         quick_premium_gate_enabled=quick_premium_gate_enabled,
-        extra={"clientIdRange": [base_client_id, base_client_id + concurrency - 1]},
+        extra={
+            "clientIdRange": [base_client_id, base_client_id + concurrency - 1],
+            # Echo config progressive SAFE au top-level du payload batch -> visible
+            # dans le forensic JSON exporté (observabilité uniquement).
+            "progressiveSafeScanEnabled": progressive_safe_scan_enabled,
+            "maxValidPutsEffective": max_valid_puts_effective,
+        },
     )
     print(
         f"[IBKR PERF] concurrent_batch_json_emitted symbols={len(symbols)}",

@@ -36,6 +36,15 @@ TWO_PHASE_DEFAULT_PUT_WINDOW = 10
 # (les strikes bruts invalides ne comptent pas). Surchargé par
 # IBKR_TWO_PHASE_MAX_VALID_PUTS.
 PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT = 20
+# Garde-fous anti-illiquidité de la descente progressive SAFE : on stoppe la
+# descente après N quotes consécutives inexploitables (bid absent / <= 0, ou
+# bid/ask incohérent) et on borne le temps passé par ticker via un soft timeout
+# interne, pour éviter le hard timeout batch (~30 s) sur les chaînes pauvres
+# (ex. VG, WYNN : bids absents, asks larges). Surchargés par
+# IBKR_PROGRESSIVE_SAFE_SCAN_UNUSABLE_STREAK /
+# IBKR_PROGRESSIVE_SAFE_SCAN_SOFT_TIMEOUT_MS.
+PROGRESSIVE_SAFE_SCAN_UNUSABLE_STREAK_LIMIT_DEFAULT = 3
+PROGRESSIVE_SAFE_SCAN_SOFT_TIMEOUT_MS_DEFAULT = 24000
 
 _PUT_ENRICHMENT_KEYS = (
     "conId",
@@ -101,7 +110,12 @@ def _ibkr_progressive_safe_scan_enabled() -> bool:
     return _parse_bool(os.environ.get("IBKR_PROGRESSIVE_SAFE_SCAN"), True)
 
 
-def _log_ibkr_progressive_safe_scan_config(enabled: bool, max_valid_puts: int) -> None:
+def _log_ibkr_progressive_safe_scan_config(
+    enabled: bool,
+    max_valid_puts: int,
+    unusable_streak_limit: int | None = None,
+    soft_timeout_ms: int | None = None,
+) -> None:
     raw = os.environ.get("IBKR_PROGRESSIVE_SAFE_SCAN")
     if raw is None or str(raw).strip() == "":
         source = "default on, disable with IBKR_PROGRESSIVE_SAFE_SCAN=0"
@@ -113,7 +127,8 @@ def _log_ibkr_progressive_safe_scan_config(enabled: bool, max_valid_puts: int) -
         source = f"IBKR_PROGRESSIVE_SAFE_SCAN={str(raw).strip()}"
     state = "ON" if enabled else "OFF"
     print(
-        f"IBKR progressive safe scan: {state} ({source}); maxValidPuts={max_valid_puts}",
+        f"IBKR progressive safe scan: {state} ({source}); maxValidPuts={max_valid_puts}"
+        f"; unusableStreakLimit={unusable_streak_limit}; softTimeoutMs={soft_timeout_ms}",
         file=sys.stderr,
         flush=True,
     )
@@ -705,10 +720,28 @@ def main() -> int:
             PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT,
         ),
     )
+    # Garde-fous anti-illiquidité (consécutifs + soft timeout) ; voir constantes.
+    safe_scan_unusable_streak_limit = max(
+        1,
+        _int_env(
+            "IBKR_PROGRESSIVE_SAFE_SCAN_UNUSABLE_STREAK",
+            PROGRESSIVE_SAFE_SCAN_UNUSABLE_STREAK_LIMIT_DEFAULT,
+        ),
+    )
+    safe_scan_soft_timeout_ms = max(
+        0,
+        _int_env(
+            "IBKR_PROGRESSIVE_SAFE_SCAN_SOFT_TIMEOUT_MS",
+            PROGRESSIVE_SAFE_SCAN_SOFT_TIMEOUT_MS_DEFAULT,
+        ),
+    )
     _log_ibkr_two_phase_config(two_phase_enabled, two_phase_put_window)
     _log_ibkr_quick_gate_config(quick_premium_gate_enabled)
     _log_ibkr_progressive_safe_scan_config(
-        progressive_safe_scan_enabled, max_valid_puts_to_probe
+        progressive_safe_scan_enabled,
+        max_valid_puts_to_probe,
+        safe_scan_unusable_streak_limit,
+        safe_scan_soft_timeout_ms,
     )
     option_generic_ticks = _str_env("IBKR_OPTION_GENERIC_TICKS", "100,101,106,221")
     requested_expiration = os.environ.get("IBKR_OPTION_EXPIRATION")
@@ -776,6 +809,12 @@ def main() -> int:
         "safeScanTargetPremium": None,
         "safeScanLastAboveTargetStrike": None,
         "maxValidPutContractsToProbe": 0,
+        # --- Garde-fous anti-illiquidité (soft timeout + streak inexploitable) ---
+        "unusableQuoteStreak": 0,
+        "unusableQuoteCount": 0,
+        "softTimeoutTriggered": False,
+        "lastSafeScanStage": None,
+        "timeoutStage": None,
     }
 
     def _safe_int(value):
@@ -1413,8 +1452,35 @@ def main() -> int:
                 invalid_put_strikes_skipped = 0
                 safe_scan_stopped_at_strike: float | None = None
                 safe_scan_last_above_target_strike: float | None = None
+                # Garde-fous anti-illiquidité (voir constantes en tête de module).
+                unusable_quote_streak = 0
+                unusable_quote_count = 0
+                soft_timeout_triggered = False
+                last_safe_scan_stage: str | None = None
+                safe_scan_soft_timeout_s = safe_scan_soft_timeout_ms / 1000.0
 
                 for raw_strike in puts_below_lower:
+                    # Soft timeout interne par ticker : on s'arrête AVANT le hard
+                    # timeout batch (~30 s, mesuré depuis le spawn du sous-process).
+                    # started_at ~= début du sous-process, donc 24 s laissent une
+                    # marge pour émettre un résultat propre. Si un candidat SAFE
+                    # >= targetPremium a déjà été trouvé, la sélection aval le
+                    # conserve ; sinon on rejette proprement (soft timeout).
+                    if (
+                        safe_scan_soft_timeout_ms > 0
+                        and (time.monotonic() - started_at) >= safe_scan_soft_timeout_s
+                    ):
+                        soft_timeout_triggered = True
+                        last_safe_scan_stage = "soft_timeout_guard"
+                        if safe_scan_last_above_target_strike is not None:
+                            safe_scan_stopped_reason = "soft_timeout_guard_with_candidate"
+                        else:
+                            safe_scan_stopped_reason = "ibkr_soft_timeout"
+                            ibkr_call_metrics["timeoutStage"] = (
+                                "safe_scan_soft_timeout_internal"
+                            )
+                        break
+
                     if valid_put_contracts_checked >= max_valid_puts_to_probe:
                         safe_scan_stopped_reason = "max_valid_puts_guard"
                         break
@@ -1453,6 +1519,33 @@ def main() -> int:
                         poll_ms=100,
                     )
                     probe_bid = _finite_number(_safe_attr(tk, "bid"))
+                    probe_ask = _finite_number(_safe_attr(tk, "ask"))
+
+                    # Quote inexploitable : bid absent / None / non numérique / <= 0,
+                    # ou bid/ask incohérent (ask < bid). L'absence d'ask seule, quand
+                    # le bid est valide, n'est PAS comptée inexploitable : on ne change
+                    # rien quand le bid est propre (sélection SAFE normale intacte).
+                    # N quotes inexploitables CONSÉCUTIVES stoppent la descente sur
+                    # chaîne illiquide (cas VG/WYNN : bids absents, asks larges).
+                    quote_unusable = (
+                        probe_bid is None
+                        or probe_bid <= 0
+                        or (probe_ask is not None and probe_ask < probe_bid)
+                    )
+                    if quote_unusable:
+                        unusable_quote_count += 1
+                        unusable_quote_streak += 1
+                        if unusable_quote_streak >= safe_scan_unusable_streak_limit:
+                            last_safe_scan_stage = "unusable_quote_streak_abort"
+                            safe_scan_stopped_at_strike = raw_strike
+                            if safe_scan_last_above_target_strike is not None:
+                                # Un SAFE candidat valide existe déjà : on le conserve.
+                                safe_scan_stopped_reason = "illiquid_options_chain"
+                            else:
+                                safe_scan_stopped_reason = "no_bid_ask_fast_abort"
+                            break
+                    else:
+                        unusable_quote_streak = 0
 
                     if aggressive_reference_strike is None:
                         # Premier vrai contrat sous lowerBound = AGRESSIF.
@@ -1481,6 +1574,8 @@ def main() -> int:
 
                 if safe_scan_stopped_reason is None:
                     safe_scan_stopped_reason = "raw_strikes_exhausted"
+                if last_safe_scan_stage is None:
+                    last_safe_scan_stage = safe_scan_stopped_reason
 
                 ibkr_call_metrics["putCandidateContractsRequested"] = len(chosen_put_strikes)
                 ibkr_call_metrics["progressiveSafeScanEnabled"] = True
@@ -1494,6 +1589,10 @@ def main() -> int:
                     safe_scan_last_above_target_strike
                 )
                 ibkr_call_metrics["maxValidPutContractsToProbe"] = max_valid_puts_to_probe
+                ibkr_call_metrics["unusableQuoteStreak"] = unusable_quote_streak
+                ibkr_call_metrics["unusableQuoteCount"] = unusable_quote_count
+                ibkr_call_metrics["softTimeoutTriggered"] = soft_timeout_triggered
+                ibkr_call_metrics["lastSafeScanStage"] = last_safe_scan_stage
             else:
                 if puts_below_lower:
                     aggressive_reference_strike = puts_below_lower[0]

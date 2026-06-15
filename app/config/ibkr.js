@@ -146,11 +146,14 @@ export function resolveIbkrProgressiveSafeScanEnabled(rawValue = process.env.IBK
 }
 
 /**
- * Plafond de VRAIS puts qualifiés sondés (observabilité seulement).
- * Miroir JS de PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT côté Python (défaut 20, min 1) ;
- * résolu depuis IBKR_TWO_PHASE_MAX_VALID_PUTS. N'influence aucune logique moteur.
+ * Plafond de VRAIS puts qualifiés sondés par la descente progressive SAFE.
+ * Défaut opérationnel du système = 12 : server.js injecte cette valeur résolue
+ * dans IBKR_TWO_PHASE_MAX_VALID_PUTS de l'env du sous-process Python, donc 12
+ * s'applique sans dépendre de start-wheel.bat. Override prioritaire si
+ * IBKR_TWO_PHASE_MAX_VALID_PUTS est défini dans l'environnement (min 1). Le
+ * moteur Python garde son propre défaut interne (20) en filet de sécurité.
  */
-export const IBKR_PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT = 20;
+export const IBKR_PROGRESSIVE_SAFE_SCAN_MAX_VALID_PUTS_DEFAULT = 12;
 
 export function resolveIbkrProgressiveSafeScanMaxValidPuts(
   rawValue = process.env.IBKR_TWO_PHASE_MAX_VALID_PUTS,

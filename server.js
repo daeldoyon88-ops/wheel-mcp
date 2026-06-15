@@ -1110,6 +1110,9 @@ function runIbkrShadowWheel(body = {}) {
     IBKR_MARKET_DATA_TYPE: String(marketDataType),
     IBKR_MAX_STRIKES: String(maxStrikes),
     IBKR_OPTION_EXPIRATION: expiration,
+    // Défaut système 12 (override env prioritaire) injecté pour ne pas dépendre
+    // de start-wheel.bat ; même résolution que le batch. Moteur Python intact.
+    IBKR_TWO_PHASE_MAX_VALID_PUTS: String(resolveIbkrProgressiveSafeScanMaxValidPuts()),
     WHEEL_DEV_SCAN: getWheelDevScanMode().devScanEnabled ? "1" : "0",
   };
 
@@ -1218,6 +1221,9 @@ function runIbkrShadowWheelBatch(body = {}) {
     IBKR_OPTION_EXPIRATION: expiration,
     IBKR_PER_TICKER_TIMEOUT_MS: String(perTickerTimeoutMs),
     IBKR_TWO_PHASE_SCAN: twoPhaseScanEnabled ? "1" : "0",
+    // Défaut système 12 (override env prioritaire via resolve...) injecté dans le
+    // sous-process pour ne pas dépendre de start-wheel.bat. Moteur Python intact.
+    IBKR_TWO_PHASE_MAX_VALID_PUTS: String(resolveIbkrProgressiveSafeScanMaxValidPuts()),
     IBKR_SCAN_CONCURRENCY: String(scanConcurrency),
     WHEEL_DEV_SCAN: getWheelDevScanMode().devScanEnabled ? "1" : "0",
   };

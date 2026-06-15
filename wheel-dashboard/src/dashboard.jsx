@@ -7549,6 +7549,7 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
                 <th className="px-2 py-2.5 text-left font-semibold">Rang</th>
                 <th className="px-2 py-2.5 text-left font-semibold">Ticker</th>
                 <th className="px-2 py-2.5 text-left font-semibold">Mode</th>
+                <th className="px-2 py-2.5 text-right font-semibold">Prix actuel</th>
                 <th className="px-2 py-2.5 text-right font-semibold">Strike</th>
                 <th className="px-2 py-2.5 text-right font-semibold">Prime bid</th>
                 <th className="px-2 py-2.5 text-right font-semibold">Rend. (sem.)</th>
@@ -7631,6 +7632,7 @@ function CremeTableRow({
   const isAggressive = finalDisplayMode === "AGGRESSIVE";
   const displayLeg = isAggressive ? item.aggressiveStrike : item.safeStrike;
 
+  const priceNum = Number(item?.price);
   const strikeNum = Number(displayLeg?.strike);
   const bidNum = Number(displayLeg?.bid);
   const yieldNum =
@@ -7704,6 +7706,7 @@ function CremeTableRow({
             {modeLabel}{finalDisplayGrade ? ` ${finalDisplayGrade}` : ""}
           </span>
         </td>
+        <td className="px-2 py-2 text-right">{numCell(priceNum, (v) => `${v.toFixed(2)} $`, "text-[#c2d3e6]")}</td>
         <td className="px-2 py-2 text-right">
           {Number.isFinite(strikeNum) ? (
             <span className="tabular-nums font-semibold text-[#f4f7fb]">{strikeNum.toFixed(0)} <span className="text-[10px] font-normal text-[#91a8c4]">PUT</span></span>

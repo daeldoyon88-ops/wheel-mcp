@@ -16464,19 +16464,6 @@ export default function Dashboard() {
                 {scanMeta.kept}/{scanMeta.scanned} IBKR
               </span>
             ) : null}
-            {selectedExpirationClosedInfo ? (
-              <span
-                title={selectedExpirationClosedInfo.message}
-                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-medium ${
-                  selectedExpirationClosedInfo.blocked
-                    ? "border-rose-800/60 bg-rose-950/30 text-[#ff9f1a]"
-                    : "border-[rgba(110,150,190,0.20)] bg-[#0d2034] text-amber-300"
-                }`}
-              >
-                <Info className="h-3 w-3" />
-                {selectedExpirationClosedInfo.blocked ? "Scan bloqué" : "Marché fermé"}
-              </span>
-            ) : null}
             {lastScanPoolStale ? (
               <span className="inline-flex items-center rounded-full border border-amber-700/60 bg-amber-950/40 px-1.5 py-0.5 font-medium text-amber-200">
                 Mode changé — Refresh

@@ -93,6 +93,7 @@ import {
   getActiveSpreadPctForSelectedMode,
   shouldGlobalSpreadReject,
 } from "../../app/calculations/safeSpreadRescue.js";
+import { computeScoreV2 } from "./scoreV2.js";
 
 const API_BASE = "http://127.0.0.1:3001";
 const JournalPopPanel = React.lazy(() => import("./components/JournalPopPanel.jsx"));
@@ -7755,6 +7756,13 @@ function CremeTableRow({
   const spreadTone =
     !Number.isFinite(spreadNum) ? "text-[#91a8c4]" : spreadNum > 18 ? "text-[#ff4d57]" : spreadNum > 10 ? "text-[#ff9f1a]" : "text-[#22e36f]";
   const scoreTone = creamScore >= 75 ? "text-[#22e36f]" : creamScore >= 60 ? "text-[#ffd166]" : "text-[#91a8c4]";
+  const scoreV2Result = computeScoreV2(item, { seasonalityEntry: seasonality ?? null });
+  const scoreV2Tone =
+    scoreV2Result.total >= 75
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+      : scoreV2Result.total >= 60
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+      : "border-violet-500/30 bg-violet-500/10 text-violet-300";
   const isDev = item.ibkrDirect?.devScanEnabled || item.indicativeShortlistSession || item.ibkrDevIncompleteSurface;
   const isHighlighted = highlightedTicker === sym;
 
@@ -7823,7 +7831,20 @@ function CremeTableRow({
             <span className="text-[#6f86a6]">—</span>
           )}
         </td>
-        <td className="px-2 py-2 text-center">{numCell(creamScore, (v) => `${v}/100`, scoreTone, true)}</td>
+        <td className="px-2 py-2 text-center">
+          <div className="inline-flex flex-wrap items-center justify-center gap-1">
+            {numCell(creamScore, (v) => `${v}/100`, scoreTone, true)}
+            <span
+              className={cn(
+                "rounded border px-1 py-0.5 text-[9px] font-semibold whitespace-nowrap",
+                scoreV2Tone
+              )}
+              title="Score V2 expérimental — n'influence pas le classement"
+            >
+              V2 test {scoreV2Result.total}/100
+            </span>
+          </div>
+        </td>
         <td className="px-2 py-2 text-right">{numCell(capitalPerContract, (v) => `${v.toFixed(0)} $`, "text-[#c2d3e6]")}</td>
         <td className="px-2 py-2">
           <div className="flex items-center justify-center gap-1">
@@ -7999,7 +8020,7 @@ function buildCreamRankExplanation(item) {
   return { tier, positives, penalties, limits };
 }
 
-function DetailModal({ item, onClose }) {
+function DetailModal({ item, seasonalityEntry = null, onClose }) {
   const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const [loading, setLoading] = useState(false);
   const [liveData, setLiveData] = useState(null);
@@ -8228,6 +8249,7 @@ function DetailModal({ item, onClose }) {
     distancePct: detailDisplayDistance,
   });
   const detailRankExplanation = buildCreamRankExplanation(item);
+  const detailScoreV2 = computeScoreV2(item, { seasonalityEntry });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
@@ -8444,6 +8466,45 @@ function DetailModal({ item, onClose }) {
               <p className="mt-3 text-xs text-slate-500">
                 Bucket : {detailCreamBucket.reasons.join(" · ")}
               </p>
+            ) : null}
+          </div>
+
+          {/* ── SCORE V2 EXPÉRIMENTAL (lecture seule, n'influence pas le classement) ── */}
+          <div className="rounded-2xl border border-violet-800/40 bg-violet-950/20 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-violet-200">Score V2 Wheel expérimental</p>
+              <span className="rounded border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-sm font-bold text-violet-200">
+                {detailScoreV2.total}/100
+              </span>
+              <span className="rounded border border-slate-600 bg-slate-800/60 px-2 py-0.5 text-xs text-slate-300">
+                Score actuel {detailCreamScore}/100
+              </span>
+            </div>
+            <p className="mt-2 text-xs italic text-violet-300/80">
+              N&apos;influence pas encore le classement
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {detailScoreV2.breakdown.map((block) => (
+                <div
+                  key={block.key}
+                  className="rounded-lg border border-violet-900/40 bg-slate-950/40 px-3 py-2 text-xs"
+                >
+                  <p className="font-medium text-slate-300">{block.label}</p>
+                  <p className="mt-1 tabular-nums font-semibold text-violet-200">
+                    {block.pts}/{block.max}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {detailScoreV2.alerts.length > 0 ? (
+              <div className="mt-3 rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-400">Alertes V2</p>
+                <ul className="mt-1 space-y-1 text-sm text-amber-200">
+                  {detailScoreV2.alerts.map((alert, i) => (
+                    <li key={`v2-alert-${i}`}>⚠ {alert}</li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </div>
 
@@ -17012,7 +17073,15 @@ export default function Dashboard() {
 
         </main>
       </div>
-      <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+      <DetailModal
+        item={selectedItem}
+        seasonalityEntry={
+          selectedItem
+            ? seasonalityMap[String(selectedItem.ticker ?? "").trim().toUpperCase()] ?? null
+            : null
+        }
+        onClose={() => setSelectedItem(null)}
+      />
     </div>
   );
 }

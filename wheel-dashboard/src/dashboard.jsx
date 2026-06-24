@@ -7655,7 +7655,7 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
                 <th className="px-2 py-2.5 text-right font-semibold">Dist. (spot)</th>
                 <th className="px-2 py-2.5 text-right font-semibold">Mouv. attendu</th>
                 <th className="px-2 py-2.5 text-right font-semibold">Plage attendue</th>
-                <th className="px-2 py-2.5 text-center font-semibold">Score</th>
+                <th className="min-w-[72px] px-2 py-2.5 text-center font-semibold">Score</th>
                 <th className="px-2 py-2.5 text-right font-semibold">Capital / contrat</th>
                 <th className="px-2 py-2.5 text-center font-semibold">Détails</th>
               </tr>
@@ -7759,10 +7759,10 @@ function CremeTableRow({
   const scoreV2Result = computeScoreV2(item, { seasonalityEntry: seasonality ?? null });
   const scoreV2Tone =
     scoreV2Result.total >= 75
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+      ? "text-emerald-300"
       : scoreV2Result.total >= 60
-      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-      : "border-violet-500/30 bg-violet-500/10 text-violet-300";
+      ? "text-amber-300"
+      : "text-violet-300";
   const isDev = item.ibkrDirect?.devScanEnabled || item.indicativeShortlistSession || item.ibkrDevIncompleteSurface;
   const isHighlighted = highlightedTicker === sym;
 
@@ -7831,18 +7831,18 @@ function CremeTableRow({
             <span className="text-[#6f86a6]">—</span>
           )}
         </td>
-        <td className="px-2 py-2 text-center">
-          <div className="inline-flex flex-wrap items-center justify-center gap-1">
+        <td className="min-w-[72px] px-2 py-2 text-center">
+          <div className="flex flex-col items-center justify-center">
             {numCell(creamScore, (v) => `${v}/100`, scoreTone, true)}
-            <span
+            <div
               className={cn(
-                "rounded border px-1 py-0.5 text-[9px] font-semibold whitespace-nowrap",
+                "mt-1 text-[11px] font-semibold tabular-nums whitespace-nowrap",
                 scoreV2Tone
               )}
               title="Score V2 expérimental — n'influence pas le classement"
             >
-              V2 test {scoreV2Result.total}/100
-            </span>
+              V2 {scoreV2Result.total}/100
+            </div>
           </div>
         </td>
         <td className="px-2 py-2 text-right">{numCell(capitalPerContract, (v) => `${v.toFixed(0)} $`, "text-[#c2d3e6]")}</td>

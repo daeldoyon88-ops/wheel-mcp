@@ -7841,6 +7841,128 @@ function getOpportunityDisplayMarketSnapshot(item, liveData) {
   };
 }
 
+// ── Helpers UI locaux pour le résumé décision du DetailModal ──────────────
+// IMPORTANT : lecture seule. Ces fonctions n'altèrent NI les données NI le
+// classement. Elles reformulent uniquement des champs déjà présents dans `item`
+// (mêmes seuils que getCreamQualityScore, sans le recalculer).
+function getDetailActiveSpreadPct(item, mode) {
+  const primary = mode === "AGGRESSIVE" ? getAggressiveSpreadPct(item) : getSafeSpreadPct(item);
+  if (Number.isFinite(primary)) return primary;
+  const fallback = mode === "AGGRESSIVE" ? getSafeSpreadPct(item) : getAggressiveSpreadPct(item);
+  return Number.isFinite(fallback) ? fallback : null;
+}
+
+function isSafeEqualsAggressive(item) {
+  const s = Number(item?.safeStrike?.strike);
+  const a = Number(item?.aggressiveStrike?.strike);
+  return Number.isFinite(s) && Number.isFinite(a) && s === a;
+}
+
+function getDetailShortVerdict(item, mode, grade, bucketInfo) {
+  if (mode === "REJECT") return "À éviter pour l'instant.";
+  const bucket = bucketInfo?.bucket;
+  if (bucket === "topExecutable") {
+    return mode === "AGGRESSIVE" ? "Exécutable en mode agressif." : "Exécutable en mode safe.";
+  }
+  if (grade === "WATCH") return "À surveiller — pas prêt à exécuter.";
+  if (bucket === "favoriteWatch") return "Favori à surveiller.";
+  if (bucket === "spreadRejected") return "Spread trop large pour exécuter.";
+  if (bucket === "unknownReview") return "Ticker à classer avant d'agir.";
+  return "À surveiller.";
+}
+
+function getDetailMainRisk(item, { spreadPct, rsi, distancePct } = {}) {
+  const earningsDays = Number(item?.earningsDaysUntil);
+  const hasEarnings =
+    item?.hasUpcomingEarningsBeforeExpiration === true ||
+    item?.hasEarningsBeforeExpiration === true;
+  if (hasEarnings || (Number.isFinite(earningsDays) && earningsDays >= 0 && earningsDays <= 7)) {
+    return Number.isFinite(earningsDays)
+      ? `Earnings dans ${earningsDays} j`
+      : "Earnings avant expiration";
+  }
+  if (Number.isFinite(Number(spreadPct)) && Number(spreadPct) > 25) {
+    return `Spread large (${Number(spreadPct).toFixed(0)}%)`;
+  }
+  if (Number.isFinite(Number(rsi)) && Number(rsi) > 75) {
+    return `RSI élevé (${Number(rsi).toFixed(0)})`;
+  }
+  if (Number.isFinite(Number(distancePct)) && Number(distancePct) > -5) {
+    return "Strike proche du prix";
+  }
+  if (String(item?.trend || "") === "bearish") return "Tendance baissière";
+  return null;
+}
+
+// Reformule les facteurs déjà utilisés par getCreamQualityScore (mêmes seuils),
+// sans recalculer ni modifier le score réel.
+function buildCreamRankExplanation(item) {
+  const meta = getTickerDisplayMeta(String(item?.ticker ?? "").toUpperCase());
+  const tier = meta.qualityTier;
+  const safeSp = getSafeSpreadPct(item);
+  const aggSp = getAggressiveSpreadPct(item);
+  const spreadValues = [safeSp, aggSp].filter((v) => Number.isFinite(v));
+  const sp = spreadValues.length ? Math.min(...spreadValues) : null;
+  const dist = Number(item?.safeStrike?.distancePct);
+  const wr = Number(item?.weeklyReturn ?? 0);
+  const rsi = Number(item?.rsi);
+  const earningsDays = Number(item?.earningsDaysUntil);
+  const earningsDaysWindow =
+    Number.isFinite(earningsDays) && earningsDays >= 0 && earningsDays <= 7;
+  const hasEarnings =
+    item?.hasUpcomingEarningsBeforeExpiration === true ||
+    item?.hasEarningsBeforeExpiration === true ||
+    earningsDaysWindow;
+
+  const positives = [];
+  const penalties = [];
+  const limits = [];
+
+  if (tier === "Core Quality") positives.push("Ticker Core Quality (qualité élevée)");
+  else if (tier === "Cyclique") positives.push("Ticker cyclique (qualité correcte)");
+  else if (tier === "Spéculatif favori") positives.push("Spéculatif favori");
+  else if (tier === "Thématique risqué") penalties.push("Tier thématique risqué");
+  else if (tier === "Inconnu à valider") penalties.push("Ticker non classé (tier inconnu)");
+
+  if (sp != null) {
+    if (sp <= 15) positives.push(`Spread serré (${sp.toFixed(0)}%)`);
+    else if (sp <= 25) positives.push(`Spread acceptable (${sp.toFixed(0)}%)`);
+    else if (sp <= 50) penalties.push(`Spread large (${sp.toFixed(0)}%)`);
+    else penalties.push(`Spread très large (${sp.toFixed(0)}%)`);
+  } else {
+    limits.push("Spread indisponible");
+  }
+
+  if (Number.isFinite(dist)) {
+    if (dist <= -10) positives.push(`Strike loin sous le prix (${dist.toFixed(1)}%)`);
+    else if (dist <= -5) positives.push(`Strike sous le prix (${dist.toFixed(1)}%)`);
+    else penalties.push(`Strike proche du prix (${dist.toFixed(1)}%)`);
+  } else {
+    limits.push("Distance strike indisponible");
+  }
+
+  if (wr >= 1.0) positives.push(`Rendement élevé (${wr.toFixed(2)}%)`);
+  else if (wr >= 0.75) positives.push(`Bon rendement (${wr.toFixed(2)}%)`);
+  else if (wr >= 0.5) positives.push(`Rendement OK (${wr.toFixed(2)}%)`);
+  else penalties.push(`Rendement faible (${wr.toFixed(2)}%)`);
+
+  if (Number.isFinite(rsi)) {
+    if (rsi > 75) penalties.push(`RSI élevé (${rsi.toFixed(0)})`);
+  } else {
+    limits.push("RSI indisponible");
+  }
+
+  if (hasEarnings) {
+    penalties.push(
+      earningsDaysWindow ? `Earnings dans ${earningsDays} j` : "Earnings avant expiration"
+    );
+  }
+  if (isSafeEqualsAggressive(item)) limits.push("SAFE = AGRESSIF (un seul strike retenu)");
+  limits.push("Le score n'intègre pas le contexte macro ni le timing intraday.");
+
+  return { tier, positives, penalties, limits };
+}
+
 function DetailModal({ item, onClose }) {
   const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const [loading, setLoading] = useState(false);
@@ -8058,6 +8180,19 @@ function DetailModal({ item, onClose }) {
       ? { tone: "text-emerald-300", text: `AGRESSIF${finalDisplayGrade ? ` [${finalDisplayGrade}]` : ""}` }
       : { tone: "text-emerald-400", text: `SAFE${finalDisplayGrade ? ` [${finalDisplayGrade}]` : ""}` };
 
+  // ── Résumé décision (lecture seule, aucune donnée inventée) ──
+  const detailRealExpiration = liveData?.firstExpiration || item.targetExpiration || item.expiration || "—";
+  const detailStrikeRetenu = Number(detailDisplayLeg?.strike);
+  const detailPremiumRetenu = Number(detailDisplayLeg?.premiumUsed ?? detailDisplayLeg?.mid);
+  const detailActiveSpread = getDetailActiveSpreadPct(item, finalDisplayMode);
+  const detailShortVerdict = getDetailShortVerdict(item, finalDisplayMode, finalDisplayGrade, detailCreamBucket);
+  const detailMainRisk = getDetailMainRisk(item, {
+    spreadPct: detailActiveSpread,
+    rsi: item.rsi,
+    distancePct: detailDisplayDistance,
+  });
+  const detailRankExplanation = buildCreamRankExplanation(item);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
       <div className="mx-auto flex h-[90vh] w-[95vw] max-w-[1600px] flex-col overflow-hidden rounded-3xl bg-slate-900 shadow-2xl">
@@ -8100,13 +8235,7 @@ function DetailModal({ item, onClose }) {
             </div>
           )}
 
-          {!loading && !error && (
-            <div className="rounded-2xl border border-emerald-800 bg-emerald-950/40 p-4 text-sm text-emerald-400">
-              Données live chargées pour le modal.
-            </div>
-          )}
-
-          {/* ── Synthèse décision crème (infos reprises de la fiche inline) ── */}
+          {/* ── HEADER CRITIQUE : synthèse décision (10 secondes) ── */}
           <div className="rounded-2xl border border-[#172637] bg-[#06101a]/80 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs uppercase tracking-wide text-slate-500">Score crème</span>
@@ -8158,23 +8287,35 @@ function DetailModal({ item, onClose }) {
               )}
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="text-slate-300">
+                <span className="font-semibold text-slate-100">Verdict :</span> {detailShortVerdict}
+              </span>
+              {detailMainRisk && (
+                <span className="text-amber-300">
+                  <span className="font-semibold">Risque principal :</span> {detailMainRisk}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
               <Metric label="Prix actuel" value={`$${Number(livePrice || 0).toFixed(2)}`} strong />
+              <Metric label="Expiration" value={detailRealExpiration} strong />
               <Metric
-                label="Mouvement attendu"
-                value={
-                  item.earningsMode
-                    ? `${Number(liveExpectedMovePct || 0).toFixed(2)}% → ${Number(adjustedMovePct || 0).toFixed(2)}%`
-                    : `${Number(liveExpectedMovePct || 0).toFixed(2)}%`
-                }
+                label="DTE"
+                value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
                 strong
-                tone={item.earningsMode ? "bad" : "warn"}
               />
               <Metric
-                label="Plage attendue"
-                value={`$${Number(liveLow || 0).toFixed(2)} – $${Number(liveHigh || 0).toFixed(2)}`}
+                label="Strike retenu"
+                value={Number.isFinite(detailStrikeRetenu) ? `$${detailStrikeRetenu.toFixed(2)}` : "—"}
                 strong
-                tone="bad"
+                tone="good"
+              />
+              <Metric
+                label="Prime"
+                value={Number.isFinite(detailPremiumRetenu) ? `$${detailPremiumRetenu.toFixed(2)}` : "—"}
+                strong
               />
               <Metric
                 label={`Rendement${finalDisplayMode === "AGGRESSIVE" ? " (agressif)" : ""}`}
@@ -8184,60 +8325,214 @@ function DetailModal({ item, onClose }) {
                 tone={detailDisplayYield == null ? "default" : detailDisplayYield >= 0.5 ? "good" : "bad"}
               />
               <Metric
+                label="Spread"
+                value={Number.isFinite(detailActiveSpread) ? `${detailActiveSpread.toFixed(0)}%` : "—"}
+                tone={
+                  !Number.isFinite(detailActiveSpread)
+                    ? "default"
+                    : detailActiveSpread <= 15
+                    ? "good"
+                    : detailActiveSpread <= 25
+                    ? "warn"
+                    : "bad"
+                }
+              />
+              <Metric
                 label="Distance strike"
                 value={Number.isFinite(Number(detailDisplayDistance)) ? `${Number(detailDisplayDistance).toFixed(1)}%` : "—"}
               />
               <Metric
-                label="DTE"
-                value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
-                strong
+                label="Mouvement attendu"
+                value={
+                  item.earningsMode
+                    ? `${Number(liveExpectedMovePct || 0).toFixed(2)}% → ${Number(adjustedMovePct || 0).toFixed(2)}%`
+                    : `${Number(liveExpectedMovePct || 0).toFixed(2)}%`
+                }
+                tone={item.earningsMode ? "bad" : "warn"}
+              />
+              <Metric
+                label="Plage attendue"
+                value={`$${Number(liveLow || 0).toFixed(2)} – $${Number(liveHigh || 0).toFixed(2)}`}
+                tone="bad"
               />
               <Metric
                 label="Capital / contrat"
                 value={Number.isFinite(detailCapitalPerContract) ? `$${detailCapitalPerContract.toFixed(0)}` : "—"}
               />
             </div>
-
-            {/* Mini carte technique 60 séances + comparaison strikes SAFE / AGRESSIF (IBKR live) */}
-            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(580px,1fr)]">
-              <MiniTradeLevelsChart item={item} />
-              <FaceplateStrikeOpportunities item={item} />
-            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            <Metric label="Prix actuel" value={`$${Number(livePrice || 0).toFixed(2)}`} />
-            <Metric
-              label="Mouvement attendu"
-              value={
-                item.earningsMode
-                  ? `${Number(liveExpectedMovePct || 0).toFixed(2)}% → ${Number(adjustedMovePct || 0).toFixed(2)}%`
-                  : `${Number(liveExpectedMovePct || 0).toFixed(2)}%`
+          {/* ── POURQUOI CE RANG ? (lecture seule, basé sur item) ── */}
+          <div className="rounded-2xl border border-[#172637] bg-[#06101a]/60 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-slate-100">Pourquoi ce rang ?</p>
+              <span className={cn("rounded px-2 py-0.5 text-sm font-bold", detailCreamCfg.tag)}>
+                {detailCreamScore}/100
+              </span>
+              <span className={cn("rounded px-2 py-0.5 text-xs", detailCreamCfg.tag)}>
+                {detailCreamBucket?.label ?? detailCreamCfg.label}
+              </span>
+              <Badge className={cn("rounded-[4px] border px-2 py-0.5 text-[11px] font-medium", detailTierStyle.badge)}>
+                {detailTickerMeta.qualityTier}
+              </Badge>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">Facteurs positifs</p>
+                <ul className="mt-1 space-y-1 text-sm text-slate-300">
+                  {detailRankExplanation.positives.length ? (
+                    detailRankExplanation.positives.map((t, i) => <li key={`pos-${i}`}>+ {t}</li>)
+                  ) : (
+                    <li className="text-slate-500">—</li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-400">Pénalités</p>
+                <ul className="mt-1 space-y-1 text-sm text-slate-300">
+                  {detailRankExplanation.penalties.length ? (
+                    detailRankExplanation.penalties.map((t, i) => <li key={`pen-${i}`}>− {t}</li>)
+                  ) : (
+                    <li className="text-slate-500">Aucune pénalité notable</li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Limites du score</p>
+                <ul className="mt-1 space-y-1 text-sm text-slate-400">
+                  {detailRankExplanation.limits.map((t, i) => <li key={`lim-${i}`}>· {t}</li>)}
+                </ul>
+              </div>
+            </div>
+            {detailCreamBucket?.reasons?.length ? (
+              <p className="mt-3 text-xs text-slate-500">
+                Bucket : {detailCreamBucket.reasons.join(" · ")}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Mini carte technique 60 séances + comparaison strikes SAFE / AGRESSIF (IBKR live) */}
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(580px,1fr)]">
+            <MiniTradeLevelsChart item={item} />
+            <FaceplateStrikeOpportunities item={item} />
+          </div>
+
+          {/* ── Strikes SAFE / AGRESSIF (gardés, après le résumé critique) ── */}
+          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+            {item.safeStrike ? (
+              <StrikeCard
+                className="h-full"
+                title="Strike safe snapshot"
+                subtitle="issu du backend /scan_shortlist"
+                strike={item.safeStrike.strike}
+                mid={item.safeStrike.mid}
+                premiumUsed={item.safeStrike.premiumUsed}
+                premiumLabel={item.safeStrike.premiumLabel}
+                popEstimate={item.safeStrike.popEstimate}
+                popProfitEstimated={item.safeStrike.popProfitEstimated}
+                popOtmEstimated={item.safeStrike.popOtmEstimated}
+                popSource={item.safeStrike.popSource}
+              tradeYield={item.safeStrike.weeklyYield}
+              weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
+              annualizedYield={item.safeStrike.annualizedYield}
+              dteDays={item.safeStrike.dteDays ?? item.dteDays}
+              distancePct={item.safeStrike.distancePct}
+                label="safe strike"
+                meetsTarget={
+                Number.isFinite(Number(item.safeStrike.mid)) &&
+                Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
               }
-              strong
-              tone={item.earningsMode ? "bad" : "warn"}
-            />
-            <Metric label="Prix plus bas" value={`$${Number(liveLow || 0).toFixed(2)}`} strong tone="bad" />
-            <Metric label="Prix supérieur" value={`$${Number(liveHigh || 0).toFixed(2)}`} strong tone="good" />
-            <Metric label="Expiration" value={liveData?.firstExpiration || "—"} />
-            <Metric
-              label="DTE"
-              value={Number.isFinite(Number(item?.dteDays)) ? `${Number(item.dteDays)} jours` : "—"}
-            />
-            <Metric label="Prime cible safe" value={`$${Number(item.minPremium || 0).toFixed(2)}`} />
+                liquidity={item.safeStrike.liquidity}
+                isSelected={finalDisplayMode === "SAFE"}
+                selectedGrade={finalDisplayMode === "SAFE" ? finalDisplayGrade : null}
+                recommendedMode={finalDisplayMode}
+                recommendedGrade={finalDisplayGrade}
+                recommendationDiagnostics={item.recommendationDiagnostics}
+                legKey="safe"
+              />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
+                Aucun strike safe snapshot.
+              </div>
+            )}
+
+            {item.aggressiveStrike ? (
+              <StrikeCard
+                className="h-full"
+                title="Strike agressif snapshot"
+                subtitle="issu du backend /scan_shortlist"
+                strike={item.aggressiveStrike.strike}
+                mid={item.aggressiveStrike.mid}
+                premiumUsed={item.aggressiveStrike.premiumUsed}
+                premiumLabel={item.aggressiveStrike.premiumLabel}
+                popEstimate={item.aggressiveStrike.popEstimate}
+                popProfitEstimated={item.aggressiveStrike.popProfitEstimated}
+                popOtmEstimated={item.aggressiveStrike.popOtmEstimated}
+                popSource={item.aggressiveStrike.popSource}
+              tradeYield={item.aggressiveStrike.weeklyYield}
+              weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
+              annualizedYield={item.aggressiveStrike.annualizedYield}
+              dteDays={item.aggressiveStrike.dteDays ?? item.dteDays}
+              distancePct={item.aggressiveStrike.distancePct}
+                label="aggressive strike"
+                meetsTarget={
+                Number.isFinite(Number(item.aggressiveStrike.mid)) &&
+                Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
+              }
+                liquidity={item.aggressiveStrike.liquidity}
+                isSelected={finalDisplayMode === "AGGRESSIVE"}
+                selectedGrade={finalDisplayMode === "AGGRESSIVE" ? finalDisplayGrade : null}
+                recommendedMode={finalDisplayMode}
+                recommendedGrade={finalDisplayGrade}
+                recommendationDiagnostics={item.recommendationDiagnostics}
+                legKey="aggressive"
+              />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
+                Aucun strike agressif snapshot.
+              </div>
+            )}
           </div>
 
+          {/* ── Résumé ── */}
           <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
-            <p className="text-sm font-semibold text-slate-100">Fiche entreprise</p>
-            <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-slate-300 md:grid-cols-2">
-              <p><span className="font-semibold">Nom complet :</span> {companyName}</p>
-              <p><span className="font-semibold">Type :</span> {instrumentType}</p>
-              <p><span className="font-semibold">Secteur :</span> {sector}</p>
-              <p><span className="font-semibold">Industrie :</span> {industry}</p>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-400">{businessSummary}</p>
+            <p className="text-sm font-semibold text-slate-100">Résumé</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{item.note}</p>
+            <p className="mt-2 text-sm text-slate-400">
+              Borne basse snapshot :{" "}
+              <span className="font-semibold text-rose-400">
+                ${Number(item.expectedMoveLow || 0).toFixed(2)}
+              </span>
+              {" "}· cible safe snapshot :{" "}
+              <span className="font-semibold">${Number(item.minPremium || 0).toFixed(2)}</span>
+              {" "}· semaines cible :{" "}
+              <span className="font-semibold">{item.targetWeeks ?? 1}</span>
+            </p>
           </div>
 
+          {/* ── Détails repliables (bruit déplacé) ── */}
+          <details className="rounded-2xl border border-slate-700 bg-slate-800/30">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 [&::-webkit-details-marker]:hidden">
+              <span>Fiche entreprise</span>
+              <span className="text-slate-500">›</span>
+            </summary>
+            <div className="px-4 pb-4">
+              <div className="grid grid-cols-1 gap-2 text-sm text-slate-300 md:grid-cols-2">
+                <p><span className="font-semibold">Nom complet :</span> {companyName}</p>
+                <p><span className="font-semibold">Type :</span> {instrumentType}</p>
+                <p><span className="font-semibold">Secteur :</span> {sector}</p>
+                <p><span className="font-semibold">Industrie :</span> {industry}</p>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{businessSummary}</p>
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-slate-700 bg-slate-800/30">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 [&::-webkit-details-marker]:hidden">
+              <span>Support / Résistance &amp; niveaux techniques</span>
+              <span className="text-slate-500">›</span>
+            </summary>
+            <div className="px-4 pb-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Metric
               label="Support large"
@@ -8317,97 +8612,23 @@ function DetailModal({ item, onClose }) {
               <SupportResistanceV4Panel data={item.supportResistanceV4} />
             </div>
           </details>
+            </div>
+          </details>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
-            <p className="text-sm font-semibold text-slate-100">Résumé</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">{item.note}</p>
-            <p className="mt-2 text-sm text-slate-400">
-              Borne basse snapshot :{" "}
-              <span className="font-semibold text-rose-400">
-                ${Number(item.expectedMoveLow || 0).toFixed(2)}
-              </span>
-              {" "}· cible safe snapshot :{" "}
-              <span className="font-semibold">${Number(item.minPremium || 0).toFixed(2)}</span>
-              {" "}· semaines cible :{" "}
-              <span className="font-semibold">{item.targetWeeks ?? 1}</span>
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-            {item.safeStrike ? (
-              <StrikeCard
-                className="h-full"
-                title="Strike safe snapshot"
-                subtitle="issu du backend /scan_shortlist"
-                strike={item.safeStrike.strike}
-                mid={item.safeStrike.mid}
-                premiumUsed={item.safeStrike.premiumUsed}
-                premiumLabel={item.safeStrike.premiumLabel}
-                popEstimate={item.safeStrike.popEstimate}
-                popProfitEstimated={item.safeStrike.popProfitEstimated}
-                popOtmEstimated={item.safeStrike.popOtmEstimated}
-                popSource={item.safeStrike.popSource}
-              tradeYield={item.safeStrike.weeklyYield}
-              weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
-              annualizedYield={item.safeStrike.annualizedYield}
-              dteDays={item.safeStrike.dteDays ?? item.dteDays}
-              distancePct={item.safeStrike.distancePct}
-                label="safe strike"
-                meetsTarget={
-                Number.isFinite(Number(item.safeStrike.mid)) &&
-                Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
-              }
-                liquidity={item.safeStrike.liquidity}
-                isSelected={finalDisplayMode === "SAFE"}
-                selectedGrade={finalDisplayMode === "SAFE" ? finalDisplayGrade : null}
-                recommendedMode={finalDisplayMode}
-                recommendedGrade={finalDisplayGrade}
-                recommendationDiagnostics={item.recommendationDiagnostics}
-                legKey="safe"
-              />
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
-                Aucun strike safe snapshot.
-              </div>
-            )}
-
-            {item.aggressiveStrike ? (
-              <StrikeCard
-                className="h-full"
-                title="Strike agressif snapshot"
-                subtitle="issu du backend /scan_shortlist"
-                strike={item.aggressiveStrike.strike}
-                mid={item.aggressiveStrike.mid}
-                premiumUsed={item.aggressiveStrike.premiumUsed}
-                premiumLabel={item.aggressiveStrike.premiumLabel}
-                popEstimate={item.aggressiveStrike.popEstimate}
-                popProfitEstimated={item.aggressiveStrike.popProfitEstimated}
-                popOtmEstimated={item.aggressiveStrike.popOtmEstimated}
-                popSource={item.aggressiveStrike.popSource}
-              tradeYield={item.aggressiveStrike.weeklyYield}
-              weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
-              annualizedYield={item.aggressiveStrike.annualizedYield}
-              dteDays={item.aggressiveStrike.dteDays ?? item.dteDays}
-              distancePct={item.aggressiveStrike.distancePct}
-                label="aggressive strike"
-                meetsTarget={
-                Number.isFinite(Number(item.aggressiveStrike.mid)) &&
-                Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
-              }
-                liquidity={item.aggressiveStrike.liquidity}
-                isSelected={finalDisplayMode === "AGGRESSIVE"}
-                selectedGrade={finalDisplayMode === "AGGRESSIVE" ? finalDisplayGrade : null}
-                recommendedMode={finalDisplayMode}
-                recommendedGrade={finalDisplayGrade}
-                recommendationDiagnostics={item.recommendationDiagnostics}
-                legKey="aggressive"
-              />
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
-                Aucun strike agressif snapshot.
-              </div>
-            )}
-          </div>
+          {/* ── Données live / debug (déplacé en repliable) ── */}
+          <details className="rounded-2xl border border-slate-700 bg-slate-800/30">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 [&::-webkit-details-marker]:hidden">
+              <span>Données live / debug</span>
+              <span className="text-slate-500">›</span>
+            </summary>
+            <div className="px-4 pb-4 text-sm text-slate-400">
+              {loading
+                ? "Chargement des données live..."
+                : error
+                ? error
+                : "Données live chargées pour le modal."}
+            </div>
+          </details>
         </div>
       </div>
     </div>

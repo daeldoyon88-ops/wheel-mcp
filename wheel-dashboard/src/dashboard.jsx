@@ -1252,11 +1252,48 @@ function pickRelevantEarningsDate({ earningsDate, nextEarningsDate, expiration, 
     .filter((d) => String(d) >= String(today))
     .filter((d) => !isYmd(expiration) || String(d) <= String(expiration))
     .filter((d) => {
+      if (maxDays == null) return true;
       const days = daysBetweenYmd(today, d);
       return days != null && days >= 0 && days <= maxDays;
     })
     .sort();
   return candidates[0] || null;
+}
+
+function isYmdDate(value) {
+  return isYmd(value);
+}
+
+function resolveRelevantEarningsDateForItem(item) {
+  return pickRelevantEarningsDate({
+    earningsDate: item?.earningsDate ?? item?.raw?.earningsDate ?? null,
+    nextEarningsDate: item?.nextEarningsDate ?? item?.raw?.nextEarningsDate ?? null,
+    expiration: item?.targetExpiration ?? item?.expiration ?? item?.raw?.expiration ?? null,
+    maxDays: null,
+  });
+}
+
+function isEarningsBeforeExpirationForItem(item) {
+  if (resolveRelevantEarningsDateForItem(item)) return true;
+  if (item?.hasUpcomingEarningsBeforeExpiration !== true) return false;
+  const expiration = item?.targetExpiration ?? item?.expiration ?? item?.raw?.expiration ?? null;
+  const today = ymdTodayLocal();
+  for (const d of [
+    item?.nextEarningsDate ?? item?.raw?.nextEarningsDate,
+    item?.earningsDate ?? item?.raw?.earningsDate,
+  ]) {
+    if (isYmd(d) && isYmd(expiration) && String(d) >= String(today) && String(d) <= String(expiration)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getSafeEarningsDaysUntil(item) {
+  const relevant = resolveRelevantEarningsDateForItem(item);
+  if (!relevant) return null;
+  const days = daysBetweenYmd(ymdTodayLocal(), relevant);
+  return days != null && days >= 0 ? days : null;
 }
 
 function daysBetweenYmd(fromYmd, toYmd) {
@@ -7872,14 +7909,15 @@ function getDetailShortVerdict(item, mode, grade, bucketInfo) {
 }
 
 function getDetailMainRisk(item, { spreadPct, rsi, distancePct } = {}) {
-  const earningsDays = Number(item?.earningsDaysUntil);
-  const hasEarnings =
-    item?.hasUpcomingEarningsBeforeExpiration === true ||
-    item?.hasEarningsBeforeExpiration === true;
-  if (hasEarnings || (Number.isFinite(earningsDays) && earningsDays >= 0 && earningsDays <= 7)) {
-    return Number.isFinite(earningsDays)
-      ? `Earnings dans ${earningsDays} j`
-      : "Earnings avant expiration";
+  const safeDays = getSafeEarningsDaysUntil(item);
+  const hasEarnings = isEarningsBeforeExpirationForItem(item);
+  if (hasEarnings) {
+    if (safeDays != null && safeDays >= 0 && safeDays <= 7) {
+      return `Earnings dans ${safeDays} j`;
+    }
+    if (safeDays == null) {
+      return "Earnings avant expiration";
+    }
   }
   if (Number.isFinite(Number(spreadPct)) && Number(spreadPct) > 25) {
     return `Spread large (${Number(spreadPct).toFixed(0)}%)`;
@@ -7906,13 +7944,9 @@ function buildCreamRankExplanation(item) {
   const dist = Number(item?.safeStrike?.distancePct);
   const wr = Number(item?.weeklyReturn ?? 0);
   const rsi = Number(item?.rsi);
-  const earningsDays = Number(item?.earningsDaysUntil);
-  const earningsDaysWindow =
-    Number.isFinite(earningsDays) && earningsDays >= 0 && earningsDays <= 7;
-  const hasEarnings =
-    item?.hasUpcomingEarningsBeforeExpiration === true ||
-    item?.hasEarningsBeforeExpiration === true ||
-    earningsDaysWindow;
+  const safeDays = getSafeEarningsDaysUntil(item);
+  const earningsDaysWindow = safeDays != null && safeDays >= 0 && safeDays <= 7;
+  const hasEarnings = isEarningsBeforeExpirationForItem(item);
 
   const positives = [];
   const penalties = [];
@@ -7953,9 +7987,11 @@ function buildCreamRankExplanation(item) {
   }
 
   if (hasEarnings) {
-    penalties.push(
-      earningsDaysWindow ? `Earnings dans ${earningsDays} j` : "Earnings avant expiration"
-    );
+    if (earningsDaysWindow) {
+      penalties.push(`Earnings dans ${safeDays} j`);
+    } else {
+      penalties.push("Earnings avant expiration");
+    }
   }
   if (isSafeEqualsAggressive(item)) limits.push("SAFE = AGRESSIF (un seul strike retenu)");
   limits.push("Le score n'intègre pas le contexte macro ni le timing intraday.");

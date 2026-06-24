@@ -96,6 +96,19 @@ function daysBetweenYmd(fromYmd, toYmd) {
   return Math.round((toUtc - fromUtc) / (1000 * 60 * 60 * 24));
 }
 
+/** Date earnings pertinente : future/aujourd'hui et <= expiration (nextEarningsDate prioritaire). */
+function resolveRelevantEarningsDate({ nextEarningsDate, earningsDate, todayYmd, expirationYmd }) {
+  const isCandidate = (d) =>
+    isYmd(d) &&
+    String(d) >= String(todayYmd) &&
+    isYmd(expirationYmd) &&
+    String(d) <= String(expirationYmd);
+
+  if (isCandidate(nextEarningsDate)) return nextEarningsDate;
+  if (isCandidate(earningsDate)) return earningsDate;
+  return null;
+}
+
 function normalizeExpirationInput(value) {
   if (value == null) return "";
   const raw = String(value).trim();
@@ -504,22 +517,19 @@ export function createWheelScanner(marketService) {
         ? "iv_fallback"
         : "minimum_fallback";
     const earningsDate = quote?.earningsDate ?? null;
+    const nextEarningsDate = quote?.nextEarningsDate ?? null;
     const exchangeTz = quote?.exchangeTimezoneName || "America/New_York";
     const todayInExchange = ymdInTimeZone(new Date(), exchangeTz);
-    const hasEarningsBeforeExpiration =
-      !!(
-        earningsDate &&
-        normalizedExpiration &&
-        String(earningsDate) >= String(todayInExchange) &&
-        String(earningsDate) <= String(normalizedExpiration)
-      );
-    const hasUpcomingEarningsBeforeExpiration =
-      !!(
-        earningsDate &&
-        normalizedExpiration &&
-        String(earningsDate) >= String(todayInExchange) &&
-        String(earningsDate) <= String(normalizedExpiration)
-      );
+    const relevantEarningsDate = normalizedExpiration
+      ? resolveRelevantEarningsDate({
+          nextEarningsDate,
+          earningsDate,
+          todayYmd: todayInExchange,
+          expirationYmd: normalizedExpiration,
+        })
+      : null;
+    const hasEarningsBeforeExpiration = relevantEarningsDate != null;
+    const hasUpcomingEarningsBeforeExpiration = relevantEarningsDate != null;
     const hasPastEarningsBeforeExpiration =
       !!(
         earningsDate &&
@@ -527,17 +537,13 @@ export function createWheelScanner(marketService) {
         String(earningsDate) < String(normalizedExpiration) &&
         String(earningsDate) < String(todayInExchange)
       );
-    const earningsMode = hasUpcomingEarningsBeforeExpiration && isEarningsImminent(quote);
+    const earningsMode = relevantEarningsDate != null && isEarningsImminent(quote);
     const earningsMoment = quote?.earningsMoment ?? null;
     const hasEarnings = hasUpcomingEarningsBeforeExpiration;
-    const effectiveEarningsDate =
-      (isYmd(quote?.nextEarningsDate) && String(quote.nextEarningsDate) >= String(todayInExchange)
-        && (!normalizedExpiration || String(quote.nextEarningsDate) <= String(normalizedExpiration))
-        ? quote.nextEarningsDate
-        : null) ??
-      (hasUpcomingEarningsBeforeExpiration ? earningsDate : null);
     const earningsDaysUntil =
-      effectiveEarningsDate != null ? daysBetweenYmd(todayInExchange, effectiveEarningsDate) : null;
+      relevantEarningsDate != null
+        ? daysBetweenYmd(todayInExchange, relevantEarningsDate)
+        : null;
     const earningsWithinWarningWindow =
       earningsDaysUntil != null && earningsDaysUntil >= 0 && earningsDaysUntil <= 20;
     const earningsWarning = earningsWithinWarningWindow

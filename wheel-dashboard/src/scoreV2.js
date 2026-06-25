@@ -63,12 +63,14 @@ function getRecommendedLeg(item) {
   return item?.safeStrike ?? item?.aggressiveStrike ?? null;
 }
 
+// Pour le score défendable, on utilise le rendement période.
+// Le rendement normalisé 7j gonfle trop les DTE courts et déclenche de faux premium traps.
 function resolveYieldPct(item) {
   const leg = getRecommendedLeg(item);
   return (
-    normalizeYieldPct(leg?.weeklyNormalizedYield) ??
-    normalizeYieldPct(item?.weeklyReturn) ??
     normalizeYieldPct(leg?.weeklyYield) ??
+    normalizeYieldPct(item?.weeklyReturn) ??
+    normalizeYieldPct(leg?.weeklyNormalizedYield) ??
     null
   );
 }

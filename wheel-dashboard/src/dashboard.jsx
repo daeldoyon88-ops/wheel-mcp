@@ -8250,6 +8250,20 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
   });
   const detailRankExplanation = buildCreamRankExplanation(item);
   const detailScoreV2 = computeScoreV2(item, { seasonalityEntry });
+  const detailV2Mode = String(item?.finalDisplayMode ?? item?.recommendedMode ?? finalDisplayMode ?? "SAFE").toUpperCase();
+  const detailV2Leg =
+    detailV2Mode === "AGGRESSIVE"
+      ? item?.aggressiveStrike ?? item?.safeStrike ?? null
+      : item?.safeStrike ?? item?.aggressiveStrike ?? null;
+  const detailV2Strike = Number(detailV2Leg?.strike);
+  const detailV2Yield =
+    detailV2Leg?.weeklyYield != null && Number(detailV2Leg.weeklyYield) > 0
+      ? Number(detailV2Leg.weeklyYield)
+      : item?.weeklyReturn != null && Number(item.weeklyReturn) > 0
+      ? Number(item.weeklyReturn)
+      : null;
+  const detailV2ModeLabel =
+    detailV2Mode === "AGGRESSIVE" ? "AGRESSIF" : detailV2Mode === "REJECT" ? "REJECT" : "SAFE";
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
@@ -8467,6 +8481,9 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
                 Bucket : {detailCreamBucket.reasons.join(" · ")}
               </p>
             ) : null}
+            <p className="mt-2 text-xs italic text-slate-500">
+              Score actuel : base SAFE — distance et rendement peuvent différer de la jambe affichée.
+            </p>
           </div>
 
           {/* ── SCORE V2 EXPÉRIMENTAL (lecture seule, n'influence pas le classement) ── */}
@@ -8483,6 +8500,14 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
             <p className="mt-2 text-xs italic text-violet-300/80">
               N&apos;influence pas encore le classement
             </p>
+            <p className="mt-1 text-xs text-violet-300/90">
+              Score V2 : basé sur la jambe affichée/sélectionnée.
+            </p>
+            {Number.isFinite(detailV2Strike) && detailV2Yield != null ? (
+              <p className="mt-1 text-xs text-violet-200/80">
+                Jambe V2 évaluée : {detailV2ModeLabel} {detailV2Strike.toFixed(2)} — rendement {detailV2Yield.toFixed(2)} %
+              </p>
+            ) : null}
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {detailScoreV2.breakdown.map((block) => (
                 <div

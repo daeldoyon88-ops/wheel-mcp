@@ -2414,7 +2414,7 @@ function MiniTradeLevelsChart({ item }) {
           </button>
         </div>
         <Badge className="rounded-full border border-fuchsia-700 bg-fuchsia-950/70 text-fuchsia-100">
-          PUT {Number.isFinite(safeStrike) ? `${safeStrike.toFixed(0)}` : "—"}
+          PUT {formatStrikeOrDash(safeStrike)}
           {Number.isFinite(safeMid) ? ` @ ${safeMid.toFixed(2)}` : ""}
         </Badge>
       </div>
@@ -7813,7 +7813,7 @@ function CremeTableRow({
         <td className="px-2 py-2 text-right">{numCell(priceNum, (v) => `${v.toFixed(2)} $`, "text-[#c2d3e6]")}</td>
         <td className="px-2 py-2 text-right">
           {Number.isFinite(strikeNum) ? (
-            <span className="tabular-nums font-semibold text-[#f4f7fb]">{strikeNum.toFixed(0)} <span className="text-[10px] font-normal text-[#91a8c4]">PUT</span></span>
+            <span className="tabular-nums font-semibold text-[#f4f7fb]">{formatStrikeOrDash(displayLeg?.strike)} <span className="text-[10px] font-normal text-[#91a8c4]">PUT</span></span>
           ) : (
             <span className="text-[#6f86a6]">—</span>
           )}

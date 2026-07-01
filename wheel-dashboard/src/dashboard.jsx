@@ -15302,58 +15302,6 @@ export default function Dashboard() {
     window.localStorage.setItem("wheel.maxPositions", String(maxPositions));
   }, [maxPositions]);
 
-  const stats = useMemo(
-    () => [
-      {
-        title: "Watchlist",
-        value:
-          watchlistTickers === null
-            ? "…"
-            : String(watchlistTickers.length),
-        sub:
-          watchlistSource === "backend"
-            ? watchlistStats
-              ? `${watchlistStats.keptCount ?? watchlistTickers?.length ?? 0} tickers (backend)`
-              : "tickers backend"
-            : watchlistSource === "fallback"
-            ? `secours (${FALLBACK_TICKERS.length} statiques)`
-            : "chargement…",
-        icon: Search,
-      },
-      {
-        title: "Retenus IBKR",
-        value: String(filtered.length),
-        sub: (() => {
-          const blocked = filtered.filter(it => {
-            const m = getTickerDisplayMeta(String(it?.ticker ?? "").toUpperCase());
-            return m.isCryptoBlocked && !m.isCryptoAllowed;
-          }).length;
-          const admis = filtered.length - blocked;
-          if (blocked > 0) return `${admis} admissibles · ${blocked} crypto masqués`;
-          return dataSource === "ibkr_direct"
-            ? `${scanMeta.returned} retenus IBKR`
-            : dataSource === "backend"
-            ? `${scanMeta.kept} retenus backend`
-            : "snapshot local";
-        })(),
-        icon: ShieldCheck,
-      },
-      {
-        title: "Expiration",
-        value: selectedExpiration,
-        sub: "scan backend",
-        icon: CalendarDays,
-      },
-      {
-        title: "Objectif",
-        value: "0.5%",
-        sub: "prime mini par semaine",
-        icon: Target,
-      },
-    ],
-    [filtered.length, selectedExpiration, dataSource, scanMeta, primaryIbkrSourceInfo, watchlistTickers, watchlistSource, watchlistStats]
-  );
-
   const marketClosedNow = isUsMarketClosedNow();
   const showClosedValidBanner =
     marketClosedNow && hasValidClosedMarketCache && closedMarketCacheFallback;
@@ -15412,34 +15360,6 @@ export default function Dashboard() {
       <div className="min-h-screen">
         <main className="min-w-0 w-full">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
-        {activeView !== "seasonality" && activeView !== "diagnostics" && activeView !== "ticker" && activeView !== "dashboard" && <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 p-6 shadow-sm"
-        >
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-400">
-                <Layers3 className="h-3.5 w-3.5" />
-                Wheel Strategy Dashboard — backend shortlist + modal live
-              </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-50 md:text-4xl">
-                Dashboard options lisible, premium et actionnable
-              </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">
-                La watchlist est construite via /universe/build ; le bouton Refresh shortlist interroge /scan_shortlist avec cette liste. Le modal reste live pour lecture détaillée.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:w-[640px]">
-              {stats.map((item) => (
-                <StatCard key={item.title} item={item} />
-              ))}
-            </div>
-          </div>
-        </motion.div>}
-
-
         {activeView === "seasonality" ? (
           <React.Suspense
             fallback={

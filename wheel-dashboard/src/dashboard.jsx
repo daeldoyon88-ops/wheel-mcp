@@ -7903,6 +7903,166 @@ function getOpportunityDisplayMarketSnapshot(item, liveData) {
 // IMPORTANT : lecture seule. Ces fonctions n'altèrent NI les données NI le
 // classement. Elles reformulent uniquement des champs déjà présents dans `item`
 // (mêmes seuils que getCreamQualityScore, sans le recalculer).
+
+function pickFirstNumericField(...values) {
+  for (const value of values) {
+    if (value == null) continue;
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function getDetailIbkrMarketDataLabels(item) {
+  const prov = item?.dataProvenance ?? null;
+  const ibkrDirect = item?.ibkrDirect ?? null;
+  return {
+    requested:
+      prov?.ibkrMarketDataTypeRequestedLabel ??
+      ibkrDirect?.marketDataTypeRequestedLabel ??
+      ibkrDirect?.raw?.marketDataTypeRequestedLabel ??
+      null,
+    received:
+      prov?.ibkrMarketDataTypeReceivedLabel ??
+      ibkrDirect?.marketDataTypeReceivedLabel ??
+      ibkrDirect?.raw?.marketDataTypeReceivedLabel ??
+      null,
+  };
+}
+
+function getDetailIbkrMissingSubtext(item) {
+  const { requested, received } = getDetailIbkrMarketDataLabels(item);
+  if (requested === "frozen" || received === "frozen") {
+    return "non fourni IBKR frozen";
+  }
+  if (item?.optionsSource === "IBKR live" || item?.dataProvenance?.sourceOptions === "ibkr") {
+    return "IBKR non fourni";
+  }
+  return "IBKR non fourni";
+}
+
+function pickIbkrLegOpenInterest(leg) {
+  if (!leg) return null;
+  const raw = leg.raw ?? null;
+  return pickFirstNumericField(
+    leg.liquidity?.openInterest,
+    leg.openInterest,
+    raw?.openInterest,
+    raw?.oi,
+    raw?.putOpenInterest
+  );
+}
+
+function pickIbkrLegVolume(leg) {
+  if (!leg) return null;
+  const raw = leg.raw ?? null;
+  return pickFirstNumericField(leg.liquidity?.volume, leg.volume, raw?.volume, raw?.optionVolume);
+}
+
+function pickIbkrLegLast(leg) {
+  if (!leg) return null;
+  const raw = leg.raw ?? null;
+  return pickFirstNumericField(
+    leg.last,
+    leg.liquidity?.last,
+    raw?.last,
+    raw?.lastPrice,
+    raw?.mark,
+    raw?.modelPrice,
+    raw?.close
+  );
+}
+
+function isIbkrVolumeZeroClearlyReal(leg, item, volumeZero) {
+  if (!volumeZero) return false;
+  const { received } = getDetailIbkrMarketDataLabels(item);
+  if (received === "live") return true;
+  const oi = pickIbkrLegOpenInterest(leg);
+  const last = pickIbkrLegLast(leg);
+  if (oi != null && oi > 0) return true;
+  if (last != null && last > 0) return true;
+  return false;
+}
+
+function resolveDetailIbkrOiMetric(leg, item, legLabel) {
+  const oi = pickIbkrLegOpenInterest(leg);
+  if (oi == null) {
+    return { value: "—", sub: getDetailIbkrMissingSubtext(item) };
+  }
+  return { value: String(Math.round(oi)), sub: legLabel };
+}
+
+function resolveDetailIbkrVolumeMetric(leg, item, legLabel) {
+  const volume = pickIbkrLegVolume(leg);
+  if (volume == null) {
+    return { value: "—", sub: getDetailIbkrMissingSubtext(item) };
+  }
+  if (volume > 0) {
+    return { value: String(Math.round(volume)), sub: legLabel };
+  }
+  if (isIbkrVolumeZeroClearlyReal(leg, item, true)) {
+    return { value: "0", sub: legLabel };
+  }
+  return { value: "—", sub: getDetailIbkrMissingSubtext(item) };
+}
+
+function resolveDetailIbkrLastMetric(leg, item, legLabel) {
+  const last = pickIbkrLegLast(leg);
+  if (last == null || last <= 0) {
+    return { value: "—", sub: getDetailIbkrMissingSubtext(item) };
+  }
+  return { value: formatMoneyOrDash(last), sub: legLabel };
+}
+
+function getDetailQuoteSourceLabel(item) {
+  if (item?.dataProvenance) {
+    const line = formatIbkrSpotProvenanceLine(item.dataProvenance);
+    if (line) return line;
+  }
+  if (item?.optionsSource === "IBKR live") {
+    const { requested, received } = getDetailIbkrMarketDataLabels(item);
+    const optionsLabel =
+      received === "live"
+        ? "IBKR live"
+        : requested === "live"
+        ? "IBKR live demandé"
+        : received && received !== "unknown"
+        ? `IBKR ${received}`
+        : requested && requested !== "unknown"
+        ? `IBKR ${requested}`
+        : "IBKR";
+    return `Spot : ${optionsLabel} · Options : ${optionsLabel}`;
+  }
+  if (item?.optionsSource) return String(item.optionsSource);
+  return "—";
+}
+
+function findYahooOptionChainPut(liveData, strike) {
+  const strikeNum = Number(strike);
+  if (!Number.isFinite(strikeNum)) return null;
+  const chain = liveData?.optionChain ?? null;
+  const puts = Array.isArray(chain?.puts)
+    ? chain.puts
+    : Array.isArray(chain?.result?.puts)
+    ? chain.result.puts
+    : [];
+  return puts.find((row) => Number(row?.strike) === strikeNum) ?? null;
+}
+
+function buildDetailYahooChainReferenceNote(liveData, leg) {
+  const put = findYahooOptionChainPut(liveData, leg?.strike);
+  if (!put) return null;
+  const oi = pickFirstNumericField(put.openInterest);
+  const volume = pickFirstNumericField(put.volume);
+  const last = pickFirstNumericField(put.lastPrice, put.last);
+  if (oi == null && volume == null && last == null) return null;
+  return {
+    oi: oi != null ? String(Math.round(oi)) : "—",
+    volume: volume != null ? String(Math.round(volume)) : "—",
+    last: last != null && last > 0 ? formatMoneyOrDash(last) : "—",
+  };
+}
+
 function getDetailActiveSpreadPct(item, mode) {
   const primary = mode === "AGGRESSIVE" ? getAggressiveSpreadPct(item) : getSafeSpreadPct(item);
   if (Number.isFinite(primary)) return primary;
@@ -8265,6 +8425,40 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
   const detailV2ModeLabel =
     detailV2Mode === "AGGRESSIVE" ? "AGRESSIF" : detailV2Mode === "REJECT" ? "REJECT" : "SAFE";
 
+  // ── Données critiques (affichage seulement, aucun recalcul) ──
+  const detailCriticalLeg =
+    finalDisplayMode === "AGGRESSIVE"
+      ? item?.aggressiveStrike ?? detailDisplayLeg ?? null
+      : item?.safeStrike ?? detailDisplayLeg ?? item?.aggressiveStrike ?? null;
+  const detailCriticalIvRaw =
+    typeof item.iv === "number" && Number.isFinite(item.iv)
+      ? item.iv
+      : Number.isFinite(Number(item?.diagnosticsV12?.safeStrikeIv))
+      ? Number(item.diagnosticsV12.safeStrikeIv) < 5
+        ? Number(item.diagnosticsV12.safeStrikeIv) * 100
+        : Number(item.diagnosticsV12.safeStrikeIv)
+      : Number.isFinite(Number(item?.diagnosticsV12?.atmIv))
+      ? Number(item.diagnosticsV12.atmIv) < 5
+        ? Number(item.diagnosticsV12.atmIv) * 100
+        : Number(item.diagnosticsV12.atmIv)
+      : null;
+  const detailCriticalIv =
+    detailCriticalIvRaw != null && Number.isFinite(detailCriticalIvRaw) && detailCriticalIvRaw > 0
+      ? `${detailCriticalIvRaw.toFixed(1)}%`
+      : "—";
+  const detailCriticalRsiNum =
+    typeof item.rsi === "number" ? item.rsi : Number(item?.rsi);
+  const detailCriticalRsi = Number.isFinite(detailCriticalRsiNum)
+    ? `${detailCriticalRsiNum.toFixed(0)}`
+    : "—";
+  const detailCriticalTrend =
+    item.trend && item.trend !== "unknown" && item.trend !== "—" ? item.trend : "—";
+  const detailCriticalMomentum =
+    item.momentum && item.momentum !== "unknown" && item.momentum !== "—"
+      ? item.momentum
+      : "—";
+  const detailYahooChainNote = buildDetailYahooChainReferenceNote(liveData, detailCriticalLeg);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
       <div className="mx-auto flex h-[90vh] w-[95vw] max-w-[1600px] flex-col overflow-hidden rounded-3xl bg-slate-900 shadow-2xl">
@@ -8434,6 +8628,56 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
             </div>
           </div>
 
+          {/* ── DONNÉES CRITIQUES (visibles sans accordéon) ── */}
+          <div className="rounded-2xl border border-[#172637] bg-[#06101a]/80 p-4">
+            <p className="text-sm font-semibold text-slate-100">Données critiques</p>
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Metric
+                label="IV"
+                value={detailCriticalIv}
+                strong={detailCriticalIv !== "—"}
+              />
+              <Metric
+                label="RSI"
+                value={detailCriticalRsi}
+                strong={detailCriticalRsi !== "—"}
+                tone={
+                  detailCriticalRsi === "—"
+                    ? "default"
+                    : detailCriticalRsiNum >= 70
+                    ? "bad"
+                    : detailCriticalRsiNum <= 40
+                    ? "warn"
+                    : "good"
+                }
+              />
+              <Metric
+                label="Trend"
+                value={detailCriticalTrend}
+                strong={detailCriticalTrend !== "—"}
+                tone={
+                  detailCriticalTrend === "bullish"
+                    ? "good"
+                    : detailCriticalTrend === "bearish"
+                    ? "bad"
+                    : "default"
+                }
+              />
+              <Metric
+                label="Momentum"
+                value={detailCriticalMomentum}
+                strong={detailCriticalMomentum !== "—"}
+                tone={
+                  detailCriticalMomentum === "positive"
+                    ? "good"
+                    : detailCriticalMomentum === "negative"
+                    ? "bad"
+                    : "default"
+                }
+              />
+            </div>
+          </div>
+
           {/* ── POURQUOI CE RANG ? (lecture seule, basé sur item) ── */}
           <div className="rounded-2xl border border-[#172637] bg-[#06101a]/60 p-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -8533,87 +8777,10 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
             ) : null}
           </div>
 
-          {/* Mini carte technique 60 séances + comparaison strikes SAFE / AGRESSIF (IBKR live) */}
+          {/* Mini carte technique 60 séances + cartes SAFE / AGRESSIF (IBKR live) */}
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(580px,1fr)]">
             <MiniTradeLevelsChart item={item} />
             <FaceplateStrikeOpportunities item={item} />
-          </div>
-
-          {/* ── Strikes SAFE / AGRESSIF (gardés, après le résumé critique) ── */}
-          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-            {item.safeStrike ? (
-              <StrikeCard
-                className="h-full"
-                title="Strike safe snapshot"
-                subtitle="issu du backend /scan_shortlist"
-                strike={item.safeStrike.strike}
-                mid={item.safeStrike.mid}
-                premiumUsed={item.safeStrike.premiumUsed}
-                premiumLabel={item.safeStrike.premiumLabel}
-                popEstimate={item.safeStrike.popEstimate}
-                popProfitEstimated={item.safeStrike.popProfitEstimated}
-                popOtmEstimated={item.safeStrike.popOtmEstimated}
-                popSource={item.safeStrike.popSource}
-              tradeYield={item.safeStrike.weeklyYield}
-              weeklyNormalizedYield={item.safeStrike.weeklyNormalizedYield}
-              annualizedYield={item.safeStrike.annualizedYield}
-              dteDays={item.safeStrike.dteDays ?? item.dteDays}
-              distancePct={item.safeStrike.distancePct}
-                label="safe strike"
-                meetsTarget={
-                Number.isFinite(Number(item.safeStrike.mid)) &&
-                Number(item.safeStrike.mid) >= Number(item.minPremium || 0)
-              }
-                liquidity={item.safeStrike.liquidity}
-                isSelected={finalDisplayMode === "SAFE"}
-                selectedGrade={finalDisplayMode === "SAFE" ? finalDisplayGrade : null}
-                recommendedMode={finalDisplayMode}
-                recommendedGrade={finalDisplayGrade}
-                recommendationDiagnostics={item.recommendationDiagnostics}
-                legKey="safe"
-              />
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
-                Aucun strike safe snapshot.
-              </div>
-            )}
-
-            {item.aggressiveStrike ? (
-              <StrikeCard
-                className="h-full"
-                title="Strike agressif snapshot"
-                subtitle="issu du backend /scan_shortlist"
-                strike={item.aggressiveStrike.strike}
-                mid={item.aggressiveStrike.mid}
-                premiumUsed={item.aggressiveStrike.premiumUsed}
-                premiumLabel={item.aggressiveStrike.premiumLabel}
-                popEstimate={item.aggressiveStrike.popEstimate}
-                popProfitEstimated={item.aggressiveStrike.popProfitEstimated}
-                popOtmEstimated={item.aggressiveStrike.popOtmEstimated}
-                popSource={item.aggressiveStrike.popSource}
-              tradeYield={item.aggressiveStrike.weeklyYield}
-              weeklyNormalizedYield={item.aggressiveStrike.weeklyNormalizedYield}
-              annualizedYield={item.aggressiveStrike.annualizedYield}
-              dteDays={item.aggressiveStrike.dteDays ?? item.dteDays}
-              distancePct={item.aggressiveStrike.distancePct}
-                label="aggressive strike"
-                meetsTarget={
-                Number.isFinite(Number(item.aggressiveStrike.mid)) &&
-                Number(item.aggressiveStrike.mid) >= Number(item.minPremium || 0)
-              }
-                liquidity={item.aggressiveStrike.liquidity}
-                isSelected={finalDisplayMode === "AGGRESSIVE"}
-                selectedGrade={finalDisplayMode === "AGGRESSIVE" ? finalDisplayGrade : null}
-                recommendedMode={finalDisplayMode}
-                recommendedGrade={finalDisplayGrade}
-                recommendationDiagnostics={item.recommendationDiagnostics}
-                legKey="aggressive"
-              />
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900 p-4 text-sm text-slate-500">
-                Aucun strike agressif snapshot.
-              </div>
-            )}
           </div>
 
           {/* ── Résumé ── */}
@@ -8744,11 +8911,37 @@ function DetailModal({ item, seasonalityEntry = null, onClose }) {
               <span className="text-slate-500">›</span>
             </summary>
             <div className="px-4 pb-4 text-sm text-slate-400">
-              {loading
-                ? "Chargement des données live..."
-                : error
-                ? error
-                : "Données live chargées pour le modal."}
+              {loading ? (
+                "Chargement des données live..."
+              ) : error ? (
+                error
+              ) : (
+                <div className="space-y-3">
+                  <p>Données live chargées pour le modal.</p>
+                  <p className="text-xs text-slate-500">
+                    Source décision options :{" "}
+                    {item.optionsSource === "IBKR live" ? "IBKR (cartes SAFE/AGRESSIF)" : item.optionsSource || "—"}
+                    {item.optionsSource === "IBKR live" ? " — Yahoo optionChain exclu de la bande principale." : ""}
+                  </p>
+                  {detailYahooChainNote ? (
+                    <div className="rounded-lg border border-slate-700/70 bg-slate-950/40 px-3 py-2 text-xs text-slate-500">
+                      <p className="font-medium text-slate-400">
+                        Yahoo optionChain disponible — non utilisé pour décision
+                      </p>
+                      <p className="mt-1">
+                        Référence seulement : prime, rendement, POP, score et mode SAFE/AGRESSIF restent
+                        IBKR.
+                      </p>
+                      <p className="mt-2 tabular-nums">
+                        OI Yahoo {detailYahooChainNote.oi} · Volume Yahoo {detailYahooChainNote.volume}{" "}
+                        · Last Yahoo {detailYahooChainNote.last}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">Yahoo optionChain : non chargé ou sans ligne pour le strike affiché.</p>
+                  )}
+                </div>
+              )}
             </div>
           </details>
         </div>

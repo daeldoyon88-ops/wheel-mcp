@@ -10898,16 +10898,128 @@ function memoryCount(value) {
   return value === null || value === undefined || !Number.isFinite(Number(value)) ? "—" : String(value);
 }
 
+/** Taux retenu IBKR (timesIbkrRetained / timesSentIbkr) → « 98 % ». */
+function formatRetainedRate(record) {
+  const sent = Number(record?.timesSentIbkr);
+  const retained = Number(record?.timesIbkrRetained);
+  if (!Number.isFinite(sent) || sent <= 0) return "—";
+  if (!Number.isFinite(retained)) return "—";
+  return `${Math.round((retained / sent) * 100)} %`;
+}
+
+/** Rejet principal avec compteur depuis rejectReasonCounts — pas un statut global. */
+function formatMainRejectLabel(record) {
+  const rejected = Number(record?.timesIbkrRejected) || 0;
+  if (rejected <= 0) return "—";
+  const reason = record?.mainRejectReason;
+  if (!reason) return "—";
+  const label = translateIbkrRejectReason(reason);
+  const counts = record?.rejectReasonCounts;
+  const count =
+    counts && typeof counts === "object" ? Number(counts[reason]) || 0 : 0;
+  return count > 0 ? `${label} (${count})` : label;
+}
+
+const IBKR_MEMORY_SECTION_LIMIT = 15;
+
+/** Reconstruit les tops complets depuis /all — même tri que tickerScanMemoryStore.getSummary. */
+function buildIbkrMemoryCategoryLists(records) {
+  const list = Array.isArray(records) ? records : [];
+  const topRetained = list
+    .filter((r) => (Number(r.timesIbkrRetained) || 0) > 0)
+    .sort((a, b) => {
+      const d = (Number(b.timesIbkrRetained) || 0) - (Number(a.timesIbkrRetained) || 0);
+      return d !== 0 ? d : (Number(b.timesSentIbkr) || 0) - (Number(a.timesSentIbkr) || 0);
+    })
+    .map((r) => ({
+      symbol: r.symbol,
+      timesIbkrRetained: r.timesIbkrRetained,
+      timesSentIbkr: r.timesSentIbkr,
+      lastRetainedAt: r.lastRetainedAt,
+    }));
+  const topRejected = list
+    .filter((r) => (Number(r.timesIbkrRejected) || 0) > 0)
+    .sort((a, b) => {
+      const d = (Number(b.timesIbkrRejected) || 0) - (Number(a.timesIbkrRejected) || 0);
+      return d !== 0 ? d : (Number(b.timesSentIbkr) || 0) - (Number(a.timesSentIbkr) || 0);
+    })
+    .map((r) => ({
+      symbol: r.symbol,
+      timesIbkrRejected: r.timesIbkrRejected,
+      timesSentIbkr: r.timesSentIbkr,
+      mainRejectReason: r.mainRejectReason,
+      rejectReasonCounts: r.rejectReasonCounts,
+    }));
+  const topNoPremium = list
+    .filter((r) => (Number(r.consecutiveNoPremium) || 0) > 0)
+    .sort(
+      (a, b) => (Number(b.consecutiveNoPremium) || 0) - (Number(a.consecutiveNoPremium) || 0)
+    )
+    .map((r) => ({
+      symbol: r.symbol,
+      consecutiveNoPremium: r.consecutiveNoPremium,
+      avgPremiumYield: r.avgPremiumYield,
+      timesIbkrRejected: r.timesIbkrRejected,
+    }));
+  const topNoData = list
+    .filter((r) => (Number(r.consecutiveNoData) || 0) > 0)
+    .sort((a, b) => (Number(b.consecutiveNoData) || 0) - (Number(a.consecutiveNoData) || 0))
+    .map((r) => ({
+      symbol: r.symbol,
+      consecutiveNoData: r.consecutiveNoData,
+      timesNoData: r.timesNoData,
+      timesSentIbkr: r.timesSentIbkr,
+    }));
+  const topWideSpread = list
+    .filter((r) => (Number(r.consecutiveWideSpread) || 0) > 0)
+    .sort(
+      (a, b) => (Number(b.consecutiveWideSpread) || 0) - (Number(a.consecutiveWideSpread) || 0)
+    )
+    .map((r) => ({
+      symbol: r.symbol,
+      consecutiveWideSpread: r.consecutiveWideSpread,
+      avgSpreadPct: r.avgSpreadPct,
+      timesIbkrRejected: r.timesIbkrRejected,
+    }));
+  const reasonTotals = {};
+  for (const r of list) {
+    const counts = r.rejectReasonCounts && typeof r.rejectReasonCounts === "object" ? r.rejectReasonCounts : {};
+    for (const [reason, count] of Object.entries(counts)) {
+      reasonTotals[reason] = (reasonTotals[reason] || 0) + (Number(count) || 0);
+    }
+  }
+  const topRejectReasons = Object.entries(reasonTotals)
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
+  return {
+    topRetained,
+    topRejected,
+    topNoPremium,
+    topNoData,
+    topWideSpread,
+    topRejectReasons,
+  };
+}
+
 function IbkrMemoryPanel({ apiBase, refreshKey = 0 }) {
   const [open, setOpen] = useState(false);
   // idle | loading | ok | empty | error
   const [status, setStatus] = useState("idle");
   const [data, setData] = useState(null);
+  const [showAllTickers, setShowAllTickers] = useState(false);
+  const [allTickersStatus, setAllTickersStatus] = useState("idle");
+  const [allTickersRecords, setAllTickersRecords] = useState([]);
+  const [expandedRetained, setExpandedRetained] = useState(false);
+  const [expandedRejected, setExpandedRejected] = useState(false);
+  const [expandedNoPremium, setExpandedNoPremium] = useState(false);
+  const [expandedNoData, setExpandedNoData] = useState(false);
+  const [expandedWideSpread, setExpandedWideSpread] = useState(false);
+  const [expandedRejectReasons, setExpandedRejectReasons] = useState(false);
 
   const loadMemory = useCallback(async () => {
     setStatus((prev) => (prev === "idle" ? "loading" : prev));
     try {
-      const res = await fetch(`${apiBase}/ticker-scan-memory`);
+      const res = await fetch(`${apiBase}/ticker-scan-memory?limit=${IBKR_MEMORY_SECTION_LIMIT}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (!json || json.ok === false) throw new Error("payload");
@@ -10920,44 +11032,122 @@ function IbkrMemoryPanel({ apiBase, refreshKey = 0 }) {
     }
   }, [apiBase]);
 
+  const loadAllTickers = useCallback(async () => {
+    setAllTickersStatus("loading");
+    try {
+      const res = await fetch(`${apiBase}/ticker-scan-memory/all?sort=symbol`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json || json.ok === false) throw new Error("payload");
+      setAllTickersRecords(Array.isArray(json.records) ? json.records : []);
+      setAllTickersStatus("ok");
+    } catch {
+      setAllTickersRecords([]);
+      setAllTickersStatus("error");
+    }
+  }, [apiBase]);
+
+  const toggleAllTickers = useCallback(() => {
+    setShowAllTickers((prev) => {
+      const next = !prev;
+      if (next && allTickersStatus === "idle") {
+        loadAllTickers();
+      }
+      return next;
+    });
+  }, [allTickersStatus, loadAllTickers]);
+
+  const ensureAllRecords = useCallback(() => {
+    if (allTickersStatus === "idle" || allTickersStatus === "error") {
+      loadAllTickers();
+    }
+  }, [allTickersStatus, loadAllTickers]);
+
+  const toggleSectionExpand = useCallback(
+    (setter) => {
+      setter((prev) => {
+        const next = !prev;
+        if (next) ensureAllRecords();
+        return next;
+      });
+    },
+    [ensureAllRecords]
+  );
+
+  const categoryLists = useMemo(
+    () =>
+      allTickersStatus === "ok" && allTickersRecords.length > 0
+        ? buildIbkrMemoryCategoryLists(allTickersRecords)
+        : null,
+    [allTickersRecords, allTickersStatus]
+  );
+
   // Montage initial + refresh après chaque scan IBKR terminé (refreshKey). Pas de polling.
   useEffect(() => {
     loadMemory();
   }, [loadMemory, refreshKey]);
 
+  useEffect(() => {
+    const needsAll =
+      showAllTickers ||
+      expandedRetained ||
+      expandedRejected ||
+      expandedNoPremium ||
+      expandedNoData ||
+      expandedWideSpread ||
+      expandedRejectReasons;
+    if (refreshKey > 0 && needsAll) {
+      loadAllTickers();
+    }
+  }, [
+    refreshKey,
+    showAllTickers,
+    expandedRetained,
+    expandedRejected,
+    expandedNoPremium,
+    expandedNoData,
+    expandedWideSpread,
+    expandedRejectReasons,
+    loadAllTickers,
+  ]);
+
   const total = Number(data?.totalTickers) || 0;
   const shortHistory = status === "ok" && total < 40;
 
-  const renderTable = (columns, rows, mapRow, keyFn) => {
+  const renderTable = (columns, rows, mapRow, keyFn, options = {}) => {
+    const { stickyHeader = false } = options;
     if (!Array.isArray(rows) || rows.length === 0) {
       return <p className="text-xs text-slate-500">Aucune donnée pour le moment.</p>;
     }
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="text-slate-400">
-              {columns.map((c) => (
-                <th key={c} className="border-b border-slate-700 px-2 py-1 font-medium">
-                  {c}
-                </th>
+    const headerCellClass = stickyHeader
+      ? "sticky top-0 z-10 border-b border-slate-700 bg-slate-950 px-2 py-1 font-medium"
+      : "border-b border-slate-700 px-2 py-1 font-medium";
+    const table = (
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="text-slate-400">
+            {columns.map((c) => (
+              <th key={c} className={headerCellClass}>
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={keyFn(row, i)} className="text-slate-200">
+              {mapRow(row).map((cell, j) => (
+                <td key={j} className="border-b border-slate-800 px-2 py-1">
+                  {cell}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={keyFn(row, i)} className="text-slate-200">
-                {mapRow(row).map((cell, j) => (
-                  <td key={j} className="border-b border-slate-800 px-2 py-1">
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     );
+    if (stickyHeader) return table;
+    return <div className="overflow-x-auto">{table}</div>;
   };
 
   const section = (title, node) => (
@@ -10966,6 +11156,68 @@ function IbkrMemoryPanel({ apiBase, refreshKey = 0 }) {
       {node}
     </div>
   );
+
+  const renderSectionHint = (compactRows, fullRows, expanded) => {
+    const compactCount = Array.isArray(compactRows) ? compactRows.length : 0;
+    const fullCount = Array.isArray(fullRows) ? fullRows.length : 0;
+    if (expanded && fullCount > 0) {
+      return `${fullCount} affiché${fullCount > 1 ? "s" : ""}`;
+    }
+    if (fullCount > IBKR_MEMORY_SECTION_LIMIT) {
+      return `Top ${IBKR_MEMORY_SECTION_LIMIT} affichés · ${fullCount} disponibles`;
+    }
+    if (compactCount >= IBKR_MEMORY_SECTION_LIMIT) {
+      return `Top ${IBKR_MEMORY_SECTION_LIMIT} affichés`;
+    }
+    if (compactCount > 0) {
+      return `${compactCount} affiché${compactCount > 1 ? "s" : ""}`;
+    }
+    return null;
+  };
+
+  const canExpandSection = (compactRows, fullRows) => {
+    const fullCount = Array.isArray(fullRows) ? fullRows.length : 0;
+    const compactCount = Array.isArray(compactRows) ? compactRows.length : 0;
+    if (fullCount > IBKR_MEMORY_SECTION_LIMIT) return true;
+    return compactCount >= IBKR_MEMORY_SECTION_LIMIT;
+  };
+
+  const renderExpandableSection = ({
+    title,
+    compactRows,
+    fullRows,
+    expanded,
+    onToggle,
+    expandLabel,
+    collapseLabel,
+    table,
+  }) => {
+    const displayRows =
+      expanded && Array.isArray(fullRows) && fullRows.length > 0 ? fullRows : compactRows;
+    const hint = renderSectionHint(compactRows, fullRows, expanded);
+    const showToggle = canExpandSection(compactRows, fullRows);
+    const loadingExpanded = expanded && allTickersStatus === "loading";
+    return section(
+      title,
+      <>
+        {hint ? <p className="mb-2 text-[11px] text-slate-500">{hint}</p> : null}
+        {loadingExpanded ? (
+          <p className="text-xs text-slate-500">Chargement de la liste complète…</p>
+        ) : (
+          table(displayRows)
+        )}
+        {showToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="mt-2 rounded border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+          >
+            {expanded ? collapseLabel : expandLabel}
+          </button>
+        ) : null}
+      </>
+    );
+  };
 
   return (
     <div className="mb-6 rounded-[28px] border border-slate-700 bg-slate-900 shadow-sm">
@@ -11011,91 +11263,187 @@ function IbkrMemoryPanel({ apiBase, refreshKey = 0 }) {
                 </p>
               ) : null}
 
+              <p className="mt-2 text-xs text-slate-500">
+                {total} mémorisés · top {IBKR_MEMORY_SECTION_LIMIT} par catégorie — dépliable par section
+              </p>
+
               {/* 2. Top retenus IBKR */}
-              {section(
-                "Top retenus IBKR",
-                renderTable(
-                  ["Symbole", "Retenus / envoyés", "Dernière rétention"],
-                  data?.topRetained,
-                  (r) => [
-                    <span className="font-semibold">{r.symbol}</span>,
-                    `${memoryCount(r.timesIbkrRetained)} / ${memoryCount(r.timesSentIbkr)}`,
-                    formatMemoryDateFr(r.lastRetainedAt),
-                  ],
-                  (r, i) => `ret-${r.symbol ?? i}`
-                )
-              )}
+              {renderExpandableSection({
+                title: "Top retenus IBKR",
+                compactRows: data?.topRetained,
+                fullRows: categoryLists?.topRetained,
+                expanded: expandedRetained,
+                onToggle: () => toggleSectionExpand(setExpandedRetained),
+                expandLabel: "Voir tous les retenus",
+                collapseLabel: "Réduire",
+                table: (rows) =>
+                  renderTable(
+                    ["Symbole", "Retenus / envoyés", "Dernière rétention"],
+                    rows,
+                    (r) => [
+                      <span className="font-semibold">{r.symbol}</span>,
+                      `${memoryCount(r.timesIbkrRetained)} / ${memoryCount(r.timesSentIbkr)}`,
+                      formatMemoryDateFr(r.lastRetainedAt),
+                    ],
+                    (r, i) => `ret-${r.symbol ?? i}`
+                  ),
+              })}
 
               {/* 3. Rejets récurrents */}
-              {section(
-                "Rejets récurrents",
-                renderTable(
-                  ["Symbole", "Rejetés / envoyés", "Raison principale"],
-                  data?.topRejected,
-                  (r) => [
-                    <span className="font-semibold">{r.symbol}</span>,
-                    `${memoryCount(r.timesIbkrRejected)} / ${memoryCount(r.timesSentIbkr)}`,
-                    translateIbkrRejectReason(r.mainRejectReason),
-                  ],
-                  (r, i) => `rej-${r.symbol ?? i}`
-                )
-              )}
+              {renderExpandableSection({
+                title: "Rejets récurrents",
+                compactRows: data?.topRejected,
+                fullRows: categoryLists?.topRejected,
+                expanded: expandedRejected,
+                onToggle: () => toggleSectionExpand(setExpandedRejected),
+                expandLabel: "Voir tous les rejets",
+                collapseLabel: "Réduire",
+                table: (rows) =>
+                  renderTable(
+                    ["Symbole", "Rejetés / envoyés", "Rejet principal"],
+                    rows,
+                    (r) => [
+                      <span className="font-semibold">{r.symbol}</span>,
+                      `${memoryCount(r.timesIbkrRejected)} / ${memoryCount(r.timesSentIbkr)}`,
+                      r.rejectReasonCounts
+                        ? formatMainRejectLabel(r)
+                        : translateIbkrRejectReason(r.mainRejectReason),
+                    ],
+                    (r, i) => `rej-${r.symbol ?? i}`
+                  ),
+              })}
 
               {/* 4. Prime insuffisante récurrente */}
-              {section(
-                "Prime insuffisante récurrente",
-                renderTable(
-                  ["Symbole", "Série", "Prime moyenne"],
-                  data?.topNoPremium,
-                  (r) => [
-                    <span className="font-semibold">{r.symbol}</span>,
-                    memoryCount(r.consecutiveNoPremium),
-                    formatMemoryRatioPct(r.avgPremiumYield),
-                  ],
-                  (r, i) => `noprem-${r.symbol ?? i}`
-                )
-              )}
+              {renderExpandableSection({
+                title: "Prime insuffisante récurrente",
+                compactRows: data?.topNoPremium,
+                fullRows: categoryLists?.topNoPremium,
+                expanded: expandedNoPremium,
+                onToggle: () => toggleSectionExpand(setExpandedNoPremium),
+                expandLabel: "Voir toutes les primes insuffisantes",
+                collapseLabel: "Réduire",
+                table: (rows) =>
+                  renderTable(
+                    ["Symbole", "Série", "Prime moyenne"],
+                    rows,
+                    (r) => [
+                      <span className="font-semibold">{r.symbol}</span>,
+                      memoryCount(r.consecutiveNoPremium),
+                      formatMemoryRatioPct(r.avgPremiumYield),
+                    ],
+                    (r, i) => `noprem-${r.symbol ?? i}`
+                  ),
+              })}
 
               {/* 5. Données absentes / aucun bid-ask */}
-              {section(
-                "Données absentes / aucun bid-ask",
-                renderTable(
-                  ["Symbole", "Série no data", "Nombre no data"],
-                  data?.topNoData,
-                  (r) => [
-                    <span className="font-semibold">{r.symbol}</span>,
-                    memoryCount(r.consecutiveNoData),
-                    memoryCount(r.timesNoData),
-                  ],
-                  (r, i) => `nodata-${r.symbol ?? i}`
-                )
-              )}
+              {renderExpandableSection({
+                title: "Données absentes / aucun bid-ask",
+                compactRows: data?.topNoData,
+                fullRows: categoryLists?.topNoData,
+                expanded: expandedNoData,
+                onToggle: () => toggleSectionExpand(setExpandedNoData),
+                expandLabel: "Voir tous les no data",
+                collapseLabel: "Réduire",
+                table: (rows) =>
+                  renderTable(
+                    ["Symbole", "Série no data", "Nombre no data"],
+                    rows,
+                    (r) => [
+                      <span className="font-semibold">{r.symbol}</span>,
+                      memoryCount(r.consecutiveNoData),
+                      memoryCount(r.timesNoData),
+                    ],
+                    (r, i) => `nodata-${r.symbol ?? i}`
+                  ),
+              })}
 
               {/* 6. Spread problématique */}
-              {section(
-                "Spread problématique",
-                renderTable(
-                  ["Symbole", "Série spread", "Spread moyen"],
-                  data?.topWideSpread,
-                  (r) => [
-                    <span className="font-semibold">{r.symbol}</span>,
-                    memoryCount(r.consecutiveWideSpread),
-                    formatMemoryRatioPct(r.avgSpreadPct),
-                  ],
-                  (r, i) => `spread-${r.symbol ?? i}`
-                )
-              )}
+              {renderExpandableSection({
+                title: "Spread problématique",
+                compactRows: data?.topWideSpread,
+                fullRows: categoryLists?.topWideSpread,
+                expanded: expandedWideSpread,
+                onToggle: () => toggleSectionExpand(setExpandedWideSpread),
+                expandLabel: "Voir tous les spreads",
+                collapseLabel: "Réduire",
+                table: (rows) =>
+                  renderTable(
+                    ["Symbole", "Série spread", "Spread moyen"],
+                    rows,
+                    (r) => [
+                      <span className="font-semibold">{r.symbol}</span>,
+                      memoryCount(r.consecutiveWideSpread),
+                      formatMemoryRatioPct(r.avgSpreadPct),
+                    ],
+                    (r, i) => `spread-${r.symbol ?? i}`
+                  ),
+              })}
 
               {/* 7. Raisons de rejet principales */}
-              {section(
-                "Raisons de rejet principales",
-                renderTable(
-                  ["Raison", "Nombre"],
-                  data?.topRejectReasons,
-                  (r) => [translateIbkrRejectReason(r.reason), memoryCount(r.count)],
-                  (r, i) => `reason-${r.reason ?? i}`
-                )
-              )}
+              {renderExpandableSection({
+                title: "Raisons de rejet principales",
+                compactRows: data?.topRejectReasons,
+                fullRows: categoryLists?.topRejectReasons,
+                expanded: expandedRejectReasons,
+                onToggle: () => toggleSectionExpand(setExpandedRejectReasons),
+                expandLabel: "Voir toutes les raisons",
+                collapseLabel: "Réduire",
+                table: (rows) =>
+                  renderTable(
+                    ["Raison", "Nombre"],
+                    rows,
+                    (r) => [translateIbkrRejectReason(r.reason), memoryCount(r.count)],
+                    (r, i) => `reason-${r.reason ?? i}`
+                  ),
+              })}
+
+              {/* Vue complète brute — secondaire */}
+              <div className="mt-6 border-t border-slate-800 pt-4">
+                <p className="text-[11px] text-slate-600">Vue avancée — liste brute triée par symbole</p>
+                <button
+                  type="button"
+                  onClick={toggleAllTickers}
+                  className="mt-2 rounded border border-slate-800 bg-slate-900/50 px-2.5 py-1 text-[11px] text-slate-500 hover:border-slate-700 hover:text-slate-300"
+                >
+                  {showAllTickers ? "Masquer la vue complète brute" : "Vue complète brute"}
+                </button>
+              </div>
+
+              {showAllTickers ? (
+                <div className="mt-3 max-h-96 overflow-x-auto overflow-y-auto rounded-lg border border-slate-700 bg-slate-950/50 p-2">
+                  {allTickersStatus === "loading" ? (
+                    <p className="text-xs text-slate-500">Chargement de la liste complète…</p>
+                  ) : allTickersStatus === "error" ? (
+                    <p className="text-xs text-slate-500">Liste complète indisponible</p>
+                  ) : (
+                    renderTable(
+                      [
+                        "Symbole",
+                        "Retenus / envoyés",
+                        "Taux retenu",
+                        "Rejetés",
+                        "No data",
+                        "Dernière rétention",
+                        "Dernier scan",
+                        "Rejet principal",
+                      ],
+                      allTickersRecords,
+                      (r) => [
+                        <span className="font-semibold">{r.symbol}</span>,
+                        `${memoryCount(r.timesIbkrRetained)} / ${memoryCount(r.timesSentIbkr)}`,
+                        formatRetainedRate(r),
+                        memoryCount(r.timesIbkrRejected),
+                        memoryCount(r.timesNoData),
+                        formatMemoryDateFr(r.lastRetainedAt),
+                        formatMemoryDateFr(r.lastScannedAt),
+                        formatMainRejectLabel(r),
+                      ],
+                      (r, i) => `all-${r.symbol ?? i}`,
+                      { stickyHeader: true }
+                    )
+                  )}
+                </div>
+              ) : null}
 
               <p className="mt-4 text-[11px] text-slate-600">
                 Panneau read-only : aucune influence sur SAFE/AGG, Expected Move, POP, quick gate

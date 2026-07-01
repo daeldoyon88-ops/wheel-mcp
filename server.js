@@ -1009,6 +1009,19 @@ app.get("/ticker-scan-memory", async (req, res) => {
   }
 });
 
+app.get("/ticker-scan-memory/all", async (req, res) => {
+  try {
+    let records = await tickerScanMemoryStore.getAll();
+    const sort = String(req.query?.sort || "symbol").trim().toLowerCase();
+    if (sort === "symbol") {
+      records = records.slice().sort((a, b) => String(a.symbol).localeCompare(String(b.symbol)));
+    }
+    res.json({ ok: true, readOnly: true, total: records.length, records });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error?.message || String(error) });
+  }
+});
+
 app.get("/ticker-scan-memory/:symbol", async (req, res) => {
   try {
     const symbol = String(req.params?.symbol || "").trim().toUpperCase();

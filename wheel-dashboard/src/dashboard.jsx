@@ -15406,17 +15406,11 @@ export default function Dashboard() {
     return undefined;
   }, []);
 
-  const isOpportunitiesView = activeView === "dashboard";
   return (
     <div className="min-h-screen bg-[#0b1117] text-slate-100">
-      {isOpportunitiesView && (
-        <WheelTopNav activeView={activeView} onNavigate={handleSidebarNavigate} />
-      )}
-      <div className="flex min-h-screen">
-        {!isOpportunitiesView && (
-          <WheelSidebar activeView={activeView} onNavigate={handleSidebarNavigate} />
-        )}
-        <main className="min-w-0 flex-1">
+      <WheelTopNav activeView={activeView} onNavigate={handleSidebarNavigate} />
+      <div className="min-h-screen">
+        <main className="min-w-0 w-full">
       <div className={activeView === "seasonality" ? "w-full" : "w-full px-2 py-3 md:px-3 lg:px-4"}>
         {activeView !== "seasonality" && activeView !== "diagnostics" && activeView !== "ticker" && activeView !== "dashboard" && <motion.div
           initial={{ opacity: 0, y: 8 }}

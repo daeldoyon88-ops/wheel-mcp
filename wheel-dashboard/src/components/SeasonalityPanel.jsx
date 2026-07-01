@@ -3690,7 +3690,7 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
   );
 
   return (
-    <div style={{ display:"flex", background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"inherit" }}>
+    <div style={{ display:"flex", flexDirection:"column", background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"inherit" }}>
       <style>{`
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .sea-nav-btn:hover { background: rgba(139,92,246,0.1) !important; color: ${C.textMuted} !important; }
@@ -3710,16 +3710,8 @@ export default function SeasonalityPanel({ apiBase = "http://127.0.0.1:3001", on
         }
       `}</style>
 
-      {/* ── SIDEBAR ── */}
-      <Sidebar
-        onNavigate={onNavigate}
-        ticker={ticker}
-        onSelectTicker={selectTicker}
-        lastUpdated={lastUpdated}
-      />
-
       {/* ── CONTENU PRINCIPAL ── */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden" }}>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, width:"100%", overflow:"hidden" }}>
 
         {/* ── HEADER DE PAGE ── */}
         <div style={{ padding:"16px 24px 12px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>

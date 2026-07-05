@@ -17,12 +17,40 @@ import {
 } from "./capitalComboEngineV2.js";
 import { buildAlternativeCompositionSimV1 } from "./alternativeCompositionSimV1.js";
 
-/** Spread IBKR : fraction 0–1 ou pourcentage déjà > 1. */
-function normalizedIbkrSpreadPctPercent(raw) {
+/**
+ * Convention canonique spreadPctPercent : toujours en pourcentage (0.8 = 0,8 %, 5 = 5 %, 80 = 80 %).
+ * @param {number|null|undefined} raw
+ * @param {{ source?: string, alreadyPercent?: boolean }} [options]
+ */
+export function toSpreadPctPercent(raw, options = {}) {
+  if (raw == null) return null;
+  const { source, alreadyPercent } = options;
   const x = Number(raw);
   if (!Number.isFinite(x)) return null;
-  if (x >= 0 && x <= 1.0001) return x * 100;
+  if (alreadyPercent === true) return x;
+  if (source === "ibkr_raw_fraction") return x * 100;
+  if (source === "dashboard_percent" || source === "yahoo_percent") return x;
+  // Source inconnue : pas de heuristique ≤1 → évite double conversion.
   return x;
+}
+
+/** Jambe shortlist/dashboard — spread déjà en % (Yahoo ou IBKR post-mapIbkrStrikeToWheelLeg). */
+export function resolveLegSpreadPctPercent(leg) {
+  if (!leg || typeof leg !== "object") return null;
+  if (leg.liquidity?.spreadPct != null) {
+    return toSpreadPctPercent(leg.liquidity.spreadPct, { source: "dashboard_percent" });
+  }
+  if (leg.spreadPct == null) return null;
+  const rawSpread = leg.spreadPct;
+  const rawIbkr = leg.raw?.spreadPct;
+  if (
+    leg.source === "IBKR live" &&
+    rawIbkr != null &&
+    Number(rawSpread) === Number(rawIbkr)
+  ) {
+    return toSpreadPctPercent(rawSpread, { source: "ibkr_raw_fraction" });
+  }
+  return toSpreadPctPercent(rawSpread, { source: "dashboard_percent" });
 }
 
 function resolveOptimizerV2ForCombo(overrideFlags) {
@@ -756,7 +784,7 @@ export function getLegPremiumValue(leg) {
 }
 
 export function getLegSpreadPct(leg) {
-  return normalizedIbkrSpreadPctPercent(leg?.liquidity?.spreadPct ?? leg?.spreadPct);
+  return resolveLegSpreadPctPercent(leg);
 }
 
 export function getLegYieldPct(leg, candidate) {

@@ -73,6 +73,7 @@ import {
   gradeLeg,
   isUnknownUnvalidatedTicker,
   MODE_GRADE_RANK,
+  toSpreadPctPercent,
 } from "./capitalComboPortfolio.js";
 import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
@@ -4728,8 +4729,8 @@ function CandidateCard({ item, displayRank, yahooRankForIbkr, onOpenDetail, ibkr
       : resistanceDistancePct >= 0
       ? `${resistanceDistancePct.toFixed(1)} %`
       : `+${Math.abs(resistanceDistancePct).toFixed(1)} % au-dessus`;
-  const ibkrSpreadClass = classifySpreadPctPercent(item.ibkrSpreadPct);
-  const hasIbkrSpread = normalizedIbkrSpreadPctPercent(item.ibkrSpreadPct) != null;
+  const ibkrSpreadClass = classifySpreadPctPercent(item.ibkrSpreadPct, { source: "ibkr_raw_fraction" });
+  const hasIbkrSpread = toSpreadPctPercent(item.ibkrSpreadPct, { source: "ibkr_raw_fraction" }) != null;
   const ibkrActionability = getIbkrActionabilityStatus(item);
   const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const tickerMeta = getTickerDisplayMeta(item.ticker);
@@ -5720,28 +5721,25 @@ function formatIbkrReason(reason) {
   return translations[reason] || String(reason).replaceAll("_", " ");
 }
 
-/** Spread safe IBKR : fraction 0–1 ou pourcentage déjà > 1. */
-function normalizedIbkrSpreadPctPercent(raw) {
-  const x = Number(raw);
-  if (!Number.isFinite(x)) return null;
-  if (x >= 0 && x <= 1.0001) return x * 100;
-  return x;
-}
-
 function getSafeSpreadPct(item) {
-  return normalizedIbkrSpreadPctPercent(
-    item?.safeStrike?.liquidity?.spreadPct ??
-      item?.safeStrike?.spreadPct ??
-      item?.ibkrSpreadPct ??
-      item?.spreadPct
-  );
+  const fromSafeLeg =
+    item?.safeStrike?.liquidity?.spreadPct ?? item?.safeStrike?.spreadPct;
+  if (fromSafeLeg != null) {
+    return toSpreadPctPercent(fromSafeLeg, { source: "dashboard_percent" });
+  }
+  if (item?.ibkrSpreadPct != null) {
+    return toSpreadPctPercent(item.ibkrSpreadPct, { source: "ibkr_raw_fraction" });
+  }
+  if (item?.spreadPct != null) {
+    return toSpreadPctPercent(item.spreadPct, { source: "dashboard_percent" });
+  }
+  return null;
 }
 
 function getAggressiveSpreadPct(card) {
-  return normalizedIbkrSpreadPctPercent(
-    card?.aggressiveStrike?.liquidity?.spreadPct ??
-    card?.aggressiveStrike?.spreadPct
-  );
+  const raw =
+    card?.aggressiveStrike?.liquidity?.spreadPct ?? card?.aggressiveStrike?.spreadPct;
+  return toSpreadPctPercent(raw, { source: "dashboard_percent" });
 }
 
 
@@ -5871,8 +5869,8 @@ function getCreamQualityBucket(card) {
   return { bucket: "watchOnly", label: "Autres à surveiller", reasons: reasons.length ? reasons : ["conditions non réunies"] };
 }
 
-function classifySpreadPctPercent(raw) {
-  const pct = normalizedIbkrSpreadPctPercent(raw);
+function classifySpreadPctPercent(raw, { source = "dashboard_percent" } = {}) {
+  const pct = toSpreadPctPercent(raw, { source });
   if (pct == null) {
     return {
       label: "spread inconnu",

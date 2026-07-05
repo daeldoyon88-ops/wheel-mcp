@@ -2,6 +2,7 @@
  * Score V2 Wheel — fonction pure, sans effet secondaire.
  * N'influence pas le tri ni le ranking existant.
  */
+import { resolveLegSpreadPctPercent, toSpreadPctPercent } from "./capitalComboPortfolio.js";
 
 export function safeNumber(value, fallback = null) {
   const n = Number(value);
@@ -29,9 +30,9 @@ export function normalizePopPct(value) {
   return n;
 }
 
-/** Normalise un spread en %. */
-export function normalizeSpreadPct(value) {
-  return safeNumber(value);
+/** Normalise un spread en % canonique (source explicite requise pour IBKR brut). */
+export function normalizeSpreadPct(value, options = {}) {
+  return toSpreadPctPercent(value, options);
 }
 
 const BLOCK_META = {
@@ -95,7 +96,7 @@ function scoreYieldBlock(item, alerts) {
 
 function scoreSpreadBlock(item, alerts) {
   const leg = getRecommendedLeg(item);
-  const spread = normalizeSpreadPct(leg?.liquidity?.spreadPct ?? leg?.spreadPct);
+  const spread = resolveLegSpreadPctPercent(leg);
   if (spread == null) return blockResult("spread", 9);
 
   let pts;

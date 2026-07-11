@@ -18,6 +18,71 @@ import {
 import { buildAlternativeCompositionSimV1 } from "./alternativeCompositionSimV1.js";
 
 /**
+ * AF-05 — Départage final stable et déterministe entre deux candidats parfaitement
+ * égaux selon TOUS les critères métier existants.
+ *
+ * N'est jamais utilisé pour départager avant l'égalité complète des critères métier :
+ * il sert uniquement de dernier recours pour rendre le résultat indépendant de
+ * l'ordre du tableau d'entrée, du tri d'affichage, de l'ordre de récupération des
+ * données et de l'environnement d'exécution.
+ *
+ * Ne modifie aucun objet, ne dépend pas de l'index d'entrée, ni du rang UI/scanner,
+ * ni de Date.now(), ni d'aucune source aléatoire. Mode-agnostique (compatible SAFE,
+ * BALANCED — future vraie jambe incluse — et AGGRESSIVE).
+ *
+ * Retourne < 0 si `a` doit passer avant `b`, > 0 sinon, 0 si strictement indiscernable.
+ * @param {object} a
+ * @param {object} b
+ * @returns {number}
+ */
+export function compareCapitalComboCandidatesStable(a, b) {
+  // 1. Ticker normalisé, ordre alphabétique croissant.
+  const tickerA = String(a?.ticker ?? a?.symbol ?? "").trim().toUpperCase();
+  const tickerB = String(b?.ticker ?? b?.symbol ?? "").trim().toUpperCase();
+  if (tickerA !== tickerB) return tickerA < tickerB ? -1 : 1;
+
+  // 2. Strike sélectionné croissant.
+  const rawStrikeA = Number(a?.selectedStrike?.strike ?? a?.selectedStrikeValue ?? NaN);
+  const rawStrikeB = Number(b?.selectedStrike?.strike ?? b?.selectedStrikeValue ?? NaN);
+  const strikeA = Number.isFinite(rawStrikeA) ? rawStrikeA : Number.POSITIVE_INFINITY;
+  const strikeB = Number.isFinite(rawStrikeB) ? rawStrikeB : Number.POSITIVE_INFINITY;
+  if (strikeA !== strikeB) return strikeA < strikeB ? -1 : 1;
+
+  // 3. Mode sélectionné dans un ordre canonique.
+  const modeRank = (mode) => {
+    const m = String(mode ?? "").trim().toUpperCase();
+    if (m === "SAFE") return 0;
+    if (m === "BALANCED") return 1;
+    if (m === "AGGRESSIVE") return 2;
+    return 3;
+  };
+  const rankA = modeRank(a?.finalDisplayMode);
+  const rankB = modeRank(b?.finalDisplayMode);
+  if (rankA !== rankB) return rankA - rankB;
+
+  // 4. Clé stable construite uniquement depuis les données du candidat.
+  const stableKey = (c) =>
+    [
+      String(
+        c?.selectedExpiration ??
+          c?.targetExpiration ??
+          c?.expiration ??
+          c?.optionsExpiration ??
+          "",
+      ),
+      Number.isFinite(Number(c?.capitalPerContract)) ? Number(c.capitalPerContract) : "",
+      Number.isFinite(Number(c?.premiumPerContract)) ? Number(c.premiumPerContract) : "",
+      String(c?.finalDisplayGrade ?? ""),
+      String(c?.source ?? ""),
+    ].join("|");
+  const keyA = stableKey(a);
+  const keyB = stableKey(b);
+  if (keyA !== keyB) return keyA < keyB ? -1 : 1;
+
+  return 0;
+}
+
+/**
  * Convention canonique spreadPctPercent : toujours en pourcentage (0.8 = 0,8 %, 5 = 5 %, 80 = 80 %).
  * @param {number|null|undefined} raw
  * @param {{ source?: string, alreadyPercent?: boolean }} [options]
@@ -1797,7 +1862,9 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       b._comboGradeScore - a._comboGradeScore ||
       (b.selectedYieldPct ?? 0) - (a.selectedYieldPct ?? 0) ||
       (a.selectedSpreadPct ?? Number.POSITIVE_INFINITY) - (b.selectedSpreadPct ?? Number.POSITIVE_INFINITY) ||
-      (a.selectedDistancePct ?? 0) - (b.selectedDistancePct ?? 0)
+      (a.selectedDistancePct ?? 0) - (b.selectedDistancePct ?? 0) ||
+      // AF-05 : départage final canonique une fois tous les critères métier égaux.
+      compareCapitalComboCandidatesStable(a, b)
     );
 
     const scoredPool = scoredStaging;
@@ -2245,6 +2312,12 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           (
             evaluated.marginalScore === best.marginalScore &&
             (evaluated.candidate.allocScore ?? 0) > (best.candidate.allocScore ?? 0)
+          ) ||
+          (
+            // AF-05 : égalité complète des critères métier → départage canonique stable.
+            evaluated.marginalScore === best.marginalScore &&
+            (evaluated.candidate.allocScore ?? 0) === (best.candidate.allocScore ?? 0) &&
+            compareCapitalComboCandidatesStable(evaluated.candidate, best.candidate) < 0
           )
         ) {
           best = evaluated;
@@ -2437,6 +2510,14 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             enriched.marginalScore === best.marginalScore &&
             enriched._fillerFreeAfter === best._fillerFreeAfter &&
             ((enriched.candidate.weeklyReturn ?? 0) > (best.candidate.weeklyReturn ?? 0))
+          ) ||
+          (
+            // AF-05 : égalité complète des critères métier → départage canonique stable.
+            enriched.marginalScore === best.marginalScore &&
+            enriched._fillerFreeAfter === best._fillerFreeAfter &&
+            (!enriched.isExisting === !best.isExisting) &&
+            (enriched.candidate.weeklyReturn ?? 0) === (best.candidate.weeklyReturn ?? 0) &&
+            compareCapitalComboCandidatesStable(enriched.candidate, best.candidate) < 0
           )
         ) {
           best = enriched;
@@ -2575,6 +2656,13 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             enriched._fillerFreeAfter === best._fillerFreeAfter &&
             !enriched.isExisting &&
             !!best.isExisting
+          ) ||
+          (
+            // AF-05 : égalité complète des critères métier → départage canonique stable.
+            enriched.marginalScore === best.marginalScore &&
+            enriched._fillerFreeAfter === best._fillerFreeAfter &&
+            (!enriched.isExisting === !best.isExisting) &&
+            compareCapitalComboCandidatesStable(enriched.candidate, best.candidate) < 0
           )
         ) {
           best = enriched;

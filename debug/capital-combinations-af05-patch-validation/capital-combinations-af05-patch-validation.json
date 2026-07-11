@@ -1,0 +1,224 @@
+{
+  "patchId": "AF-05",
+  "title": "Tie-break déterministe capital combo",
+  "generatedAt": "2026-07-11T09:30:00.000Z",
+  "gitInitial": {
+    "root": "C:/Users/melan/Desktop/wheel-mcp-remote",
+    "head": "92444e4 fix capital combo POP and selected-leg grade resolution",
+    "branch": "main...origin/main",
+    "trackedModifiedBeforePatch": [],
+    "note": "Aucun fichier suivi modifié avant le patch AF-05"
+  },
+  "gitFinal": {
+    "head": "92444e4",
+    "modifiedTracked": [
+      "wheel-dashboard/src/capitalComboPortfolio.js",
+      "wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs"
+    ],
+    "createdInScope": [
+      "wheel-dashboard/src/capitalComboPortfolio.deterministic-tiebreak.test.mjs",
+      "debug/capital-combinations-af05-patch-validation/capital-combinations-af05-patch-validation.json",
+      "debug/capital-combinations-af05-patch-validation/capital-combinations-af05-patch-validation.md"
+    ],
+    "gitAdd": false,
+    "gitCommit": false,
+    "gitPush": false
+  },
+  "filesModified": [
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/capitalComboPortfolio.deterministic-tiebreak.test.mjs",
+    "wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+    "debug/capital-combinations-af05-patch-validation/capital-combinations-af05-patch-validation.md",
+    "debug/capital-combinations-af05-patch-validation/capital-combinations-af05-patch-validation.json"
+  ],
+  "functionsModified": [
+    "compareCapitalComboCandidatesStable (nouveau helper exporté)",
+    "scoredStaging.sort (comparateur pool scoré)",
+    "pickBestCandidate",
+    "pickBestFillerCandidate",
+    "pickBestDensityLeftoverCandidate"
+  ],
+  "comparatorsBefore": {
+    "scoredStaging.sort": "allocScore DESC, _comboGradeScore DESC, selectedYieldPct DESC, selectedSpreadPct ASC, selectedDistancePct ASC — égalité totale ⇒ ordre d'entrée (tri stable)",
+    "pickBestCandidate": "marginalScore >, puis allocScore > — égalité totale ⇒ premier candidat balayé",
+    "pickBestFillerCandidate": "marginalScore >, _fillerFreeAfter <, isExisting préférence, weeklyReturn > — égalité totale ⇒ premier candidat",
+    "pickBestDensityLeftoverCandidate": "marginalScore >, _fillerFreeAfter <, isExisting préférence — égalité totale ⇒ premier candidat"
+  },
+  "comparatorsAfter": {
+    "scoredStaging.sort": "mêmes critères métier + compareCapitalComboCandidatesStable en dernier",
+    "pickBestCandidate": "mêmes critères métier + branche stable si marginalScore et allocScore égaux",
+    "pickBestFillerCandidate": "mêmes critères métier + branche stable si tous les critères filler égaux",
+    "pickBestDensityLeftoverCandidate": "mêmes critères métier + branche stable si tous les critères leftover égaux"
+  },
+  "stableKey": {
+    "order": [
+      "ticker normalisé UPPER croissant",
+      "strike sélectionné croissant (selectedStrike.strike ou selectedStrikeValue)",
+      "mode canonique SAFE < BALANCED < AGGRESSIVE < autres",
+      "clé dérivée: expiration|capitalPerContract|premiumPerContract|finalDisplayGrade|source"
+    ],
+    "excludedFromKey": [
+      "index tableau",
+      "rang UI",
+      "finalRank",
+      "ibkrRank",
+      "rang scanner",
+      "Date.now",
+      "Math.random",
+      "timestamp exécution",
+      "ordre d'arrivée"
+    ]
+  },
+  "modeCanonicalOrder": ["SAFE", "BALANCED", "AGGRESSIVE", "autres"],
+  "strikeCanonicalOrder": "croissant (strike inférieur d'abord)",
+  "permutationsTested": 24,
+  "beforeAfter": {
+    "aaplMsft": [
+      {
+        "inputOrder": ["AAPL", "MSFT"],
+        "beforeWinner": "AAPL",
+        "afterWinner": "AAPL",
+        "tieBreakApplied": false,
+        "beforeEvidence": "extrapolation analytique fondée sur le code pré-patch (tri stable + comparaisons > strictes)"
+      },
+      {
+        "inputOrder": ["MSFT", "AAPL"],
+        "beforeWinner": "MSFT",
+        "afterWinner": "AAPL",
+        "tieBreakApplied": true,
+        "verdict": "CORRIGÉ",
+        "beforeEvidence": "extrapolation analytique — non exécutée directement sur 92444e4 (aucun checkout)"
+      }
+    ],
+    "crmOrcl": [
+      {
+        "inputOrder": ["CRM", "ORCL"],
+        "beforeWinner": "CRM",
+        "afterWinner": "CRM",
+        "beforeEvidence": "preuve exécutée directe — TEST 15 PASS au commit 92444e4"
+      },
+      {
+        "inputOrder": ["ORCL", "CRM"],
+        "beforeWinner": "ORCL",
+        "afterWinner": "CRM",
+        "tieBreakApplied": true,
+        "verdict": "CORRIGÉ",
+        "beforeEvidence": "preuve exécutée directe — TEST 15 attendait ORCL au commit 92444e4"
+      }
+    ],
+    "fourTickers": [
+      {
+        "inputOrder": ["AAPL", "GOOGL", "MSFT", "ORCL"],
+        "beforeFirstPickOrder": "ordre d'entrée",
+        "afterFirstPick": "AAPL",
+        "afterPickOrder": ["AAPL", "GOOGL"]
+      },
+      {
+        "inputOrder": ["ORCL", "MSFT", "GOOGL", "AAPL"],
+        "afterFirstPick": "AAPL",
+        "afterPickOrder": ["AAPL", "GOOGL"]
+      },
+      {
+        "inputOrder": ["MSFT", "AAPL", "ORCL", "GOOGL"],
+        "afterFirstPick": "AAPL",
+        "afterPickOrder": ["AAPL", "GOOGL"]
+      }
+    ]
+  },
+  "greedyDuel": {
+    "marginalScoreEqual": true,
+    "allocScoreEqual": true,
+    "forwardWinner": "AAPL",
+    "reverseWinner": "AAPL",
+    "verdict": "PASS"
+  },
+  "passResults": {
+    "primary": { "status": "PASS", "note": "portefeuille identique sur pool inversé 4 tickers" },
+    "softCap": { "status": "NON_REPRODUCTIBLE", "note": "fixture isolée à candidats parfaitement égaux incompatible avec les caps sans altérer une autre règle" },
+    "filler": { "status": "PASS_CONDITIONAL", "note": "ordre indépendant quand filler_primary est atteint; sinon gagnant stable via tie-break principal" },
+    "leftover": { "status": "PASS_CONDITIONAL", "note": "ordre indépendant quand leftover_density_v2 est atteint" }
+  },
+  "tests": {
+    "af05": { "file": "capitalComboPortfolio.deterministic-tiebreak.test.mjs", "total": 26, "pass": 26, "fail": 0, "status": "PASS" },
+    "af02": { "file": "capitalComboPortfolio.pop-null.test.mjs", "total": 6, "pass": 6, "fail": 0, "status": "PASS" },
+    "af03": {
+      "file": "capitalComboPortfolio.selected-leg-grade.test.mjs",
+      "total": 15,
+      "pass": 15,
+      "fail": 0,
+      "status": "PASS",
+      "test15": {
+        "name": "TEST 15 - equal-score tie behavior is deterministic and independent of input order",
+        "forwardInput": ["CRM", "ORCL"],
+        "forwardWinner": "CRM",
+        "reverseInput": ["ORCL", "CRM"],
+        "reverseWinner": "CRM",
+        "status": "PASS",
+        "reason": "AF-05 canonical ticker tie-break"
+      }
+    },
+    "spread": { "file": "spreadPctPercent.test.mjs", "total": 15, "pass": 15, "fail": 0, "status": "PASS" },
+    "build": { "status": "PASS", "warnings": ["framer-motion use client ignoré", "chunk > 500 kB"] }
+  },
+  "fableHarness": {
+    "command": "node debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs",
+    "totals": { "checks": 43, "pass": 31, "fail": 7, "info": 5 },
+    "realRegressions": 0,
+    "obsoleteChecks": [
+      {
+        "id": "T4a",
+        "anomaly": "AF-05",
+        "reason": "L'anomalie ordre-dépendant n'est plus reproductible: ordreAB=AAPL, ordreBA=AAPL"
+      },
+      {
+        "id": "T15a",
+        "anomaly": "AF-02",
+        "reason": "gradeLeg null/undefined comportement unifié"
+      },
+      {
+        "id": "T15b",
+        "anomaly": "AF-02",
+        "reason": "POP null non bloquant"
+      },
+      {
+        "id": "T15c",
+        "anomaly": "AF-02",
+        "reason": "POP null AGGRESSIVE non bloquant"
+      },
+      {
+        "id": "T2b",
+        "anomaly": "AF-03",
+        "reason": "safeGrade absent utilise grade jambe (correctif déjà en place)"
+      },
+      {
+        "id": "T2c",
+        "anomaly": "AF-03",
+        "reason": "portefeuille indépendant de safeGrade présence/absence quand grade jambe identique"
+      },
+      {
+        "id": "T3a",
+        "anomaly": "AF-03/AF-04",
+        "reason": "_comboGradeScore jambe + tie-break stable: plus de victoire par grade source à score égal"
+      }
+    ],
+    "regressions": []
+  },
+  "preservation": {
+    "totalScoreUnchanged": true,
+    "allocScoreUnchanged": true,
+    "balancedLogicUnchanged": true,
+    "af02Preserved": true,
+    "af03Preserved": true,
+    "financialFieldsUnchangedWhenNotTied": true
+  },
+  "futureBalancedLeg": {
+    "compatible": true,
+    "validatedOnRealBalancedLeg": false,
+    "note": "compareCapitalComboCandidatesStable lit finalDisplayMode et strike sélectionné sans branche SAFE/AGGRESSIVE rigide; structurellement compatible, pas encore validée sur une vraie balancedLeg"
+  },
+  "limits": [
+    "Passe soft-cap: NON REPRODUCTIBLE SANS ALTÉRER UNE AUTRE RÈGLE avec fixture isolée à égalité parfaite",
+    "Preuve avant AAPL/MSFT: extrapolation analytique, non exécutée directement sur 92444e4",
+    "Compatibilité BALANCED: structurelle uniquement, pas encore validée sur une vraie balancedLeg"
+  ]
+}

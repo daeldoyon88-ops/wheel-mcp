@@ -298,7 +298,7 @@ test("TEST 14 - insufficient leg metrics do not fabricate A or B", () => {
   assert.equal(comboByLabel([candidate], "SAFE"), null);
 });
 
-test("TEST 15 - equal-score tie behavior still follows existing input order", () => {
+test("TEST 15 - equal-score tie behavior is deterministic and independent of input order", () => {
   const crm = makeCandidate({
     ticker: "CRM",
     finalDisplayMode: "SAFE",
@@ -314,6 +314,7 @@ test("TEST 15 - equal-score tie behavior still follows existing input order", ()
     safeStrike: makeLeg({ weeklyYield: 0.54, spreadPct: 12, distancePct: -8 }),
   });
 
+  // AF-05: perfect ties use the canonical ticker tie-break, not input order.
   assert.equal(comboByLabel([crm, orcl], "SAFE")?.picks?.[0]?.ticker, "CRM");
-  assert.equal(comboByLabel([orcl, crm], "SAFE")?.picks?.[0]?.ticker, "ORCL");
+  assert.equal(comboByLabel([orcl, crm], "SAFE")?.picks?.[0]?.ticker, "CRM");
 });

@@ -76,6 +76,10 @@ import {
   toSpreadPctPercent,
 } from "./capitalComboPortfolio.js";
 import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
+import {
+  buildComboCandidatePool,
+  buildVisibleTableRows,
+} from "./capitalComboInputPool.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
   applyResearchExpandedFlagsToCandidates,
@@ -13206,68 +13210,33 @@ export default function Dashboard() {
     }));
   }, [activeCandidates, ibkrDirectByTicker, selectedExpiration]);
 
+  // AF-06 : pool canonique du moteur de combinaisons. Seul filtre appliqué ici :
+  // l'expiration sélectionnée (règle métier). Indépendant de la recherche, du
+  // filtre Mode (UI) et du tri — les contrôles visuels n'affectent que `filtered`.
+  const comboCandidateRows = useMemo(
+    () => buildComboCandidatePool(enrichedCandidates, { selectedExpiration }),
+    [enrichedCandidates, selectedExpiration]
+  );
+
+  // Lignes visibles du tableau : recherche + filtre Mode (UI seulement, voir
+  // capitalComboInputPool.js — BALANCED strike leg future phase) + tri, appliqués
+  // au-dessus du pool canonique. Ne jamais transmettre ce tableau au moteur.
   const filtered = useMemo(() => {
-    const filteredItems = enrichedCandidates.filter((item) => {
-      const matchesQuery =
-        item.ticker.toLowerCase().includes(query.toLowerCase()) ||
-        item.name.toLowerCase().includes(query.toLowerCase());
-
-      // Filtre Mode (UI seulement) : compare le mode réellement retenu/affiché par la ligne
-      // (SAFE / AGGRESSIVE). BALANCED strike leg future phase — do not expose as line filter
-      // until backend provides a real balanced leg.
-      const matchesFilter =
-        filter === "all"
-          ? true
-          : getFinalDisplayRecommendation(item)?.finalDisplayMode === filter;
-
-      return matchesQuery && matchesFilter;
-    });
-    // For ibkr_direct: establish ibkrRank base order (used as stable tie-breaker for equal sort values)
-    let baseItems;
-    if (dataSource === "ibkr_direct") {
-      const hasBackendIbkrOrder = filteredItems.every((item) => Number.isFinite(Number(item?.ibkrRank)));
-      const ibkrFallbackScore = (item) =>
-        Number(item?.ibkrEliteScore ?? item?.eliteScore ?? item?.actionabilityScore ?? item?.score ?? Number.NEGATIVE_INFINITY);
-      baseItems = hasBackendIbkrOrder
-        ? filteredItems.slice()
-        : filteredItems.slice().sort((a, b) => ibkrFallbackScore(b) - ibkrFallbackScore(a));
-    } else {
-      baseItems = filteredItems.slice();
-    }
-
-    const getSortValue = (item) => {
-      if (sortBy === "quality")
-        return Number(item.qualityScore ?? item.eliteScore ?? Number.NEGATIVE_INFINITY);
-      if (sortBy === "weeklyReturn") return Number(item.weeklyReturn ?? 0);
-      if (sortBy === "spread") {
-        const spread = getSafeSpreadPct(item);
-        return spread ?? Number.POSITIVE_INFINITY;
-      }
-      return Number(item.strikeDistance ?? 0);
-    };
-
-    const sorted = baseItems.sort((a, b) => {
-      if (sortBy === "spread") {
-        const aSpread = getSafeSpreadPct(a);
-        const bSpread = getSafeSpreadPct(b);
-        const aMissing = aSpread == null;
-        const bMissing = bSpread == null;
-        if (aMissing && bMissing) return Number(a.ibkrRank ?? a.rank ?? 0) - Number(b.ibkrRank ?? b.rank ?? 0);
-        if (aMissing) return 1;
-        if (bMissing) return -1;
-      }
-      const aValue = getSortValue(a);
-      const bValue = getSortValue(b);
-      if (aValue === bValue) return Number(a.ibkrRank ?? a.rank ?? 0) - Number(b.ibkrRank ?? b.rank ?? 0);
-      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    const sorted = buildVisibleTableRows(comboCandidateRows, {
+      query,
+      modeFilter: filter,
+      sortBy,
+      sortOrder,
+      dataSource,
+      getSpreadPct: getSafeSpreadPct,
     });
 
     if (import.meta.env.DEV) {
       console.debug("[SORT_UI]", { sortBy, sortOrder, dataSource, firstSymbols: sorted.slice(0, 5).map((i) => i.ticker) });
     }
 
-    return sorted.filter((item) => candidateRowMatchesSelectedExpiration(item, selectedExpiration));
-  }, [enrichedCandidates, query, filter, sortBy, sortOrder, selectedExpiration, dataSource]);
+    return sorted;
+  }, [comboCandidateRows, query, filter, sortBy, sortOrder, dataSource]);
 
   // Seasonality V1: auto-fetch for all visible shortlist tickers (non-blocking)
   useEffect(() => {
@@ -13364,15 +13333,16 @@ export default function Dashboard() {
     );
   }, [ibkrDirectResult]);
 
+  // AF-06 : le moteur reçoit le pool canonique, jamais les lignes visibles.
   const combos = useMemo(() => {
     return buildPortfolioCombos(
-      filtered,
+      comboCandidateRows,
       Number(capital),
       Number(maxCapitalPct),
       Number(maxPositions),
       ibkrRejectedSymbols
     );
-  }, [filtered, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
+  }, [comboCandidateRows, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
 
   const resolvedPreIbkrPool = useMemo(
     () =>
@@ -13706,10 +13676,12 @@ export default function Dashboard() {
     const removedByExpiration = Math.max(0, afterVerdictCount - afterExpirationCount);
     const filteredFinalCount = Number(filtered?.length || 0);
     const usableCapital = Number(capital) * (Number(maxCapitalPct) / 100);
-    const ibkrRejectedRemoved = (filtered || []).filter((row) =>
+    // AF-06 : les compteurs « combo pool » décrivent le pool canonique réellement
+    // transmis au moteur, pas les lignes visibles (recherche/tri exclus).
+    const ibkrRejectedRemoved = (comboCandidateRows || []).filter((row) =>
       ibkrRejectedSymbols.has(String(row?.ticker || "").trim().toUpperCase())
     ).length;
-    const comboBasePoolCount = (filtered || [])
+    const comboBasePoolCount = (comboCandidateRows || [])
       .filter((row) => !ibkrRejectedSymbols.has(String(row?.ticker || "").trim().toUpperCase()))
       .map((row) => buildCapitalComboCandidate(row, usableCapital))
       .filter((row) => row?._isCapitalComboEligible)
@@ -13717,7 +13689,7 @@ export default function Dashboard() {
     const comboSummaries = Object.fromEntries(
       _INSP_BUCKET_KEYS.map((bucketKey) => [
         bucketKey,
-        _inspBucketSummary(bucketKey, combos, filtered, usableCapital, ibkrRejectedSymbols),
+        _inspBucketSummary(bucketKey, combos, comboCandidateRows, usableCapital, ibkrRejectedSymbols),
       ])
     );
     const usableForSAFE =
@@ -13838,6 +13810,7 @@ export default function Dashboard() {
     enrichedCandidates,
     selectedExpiration,
     filtered,
+    comboCandidateRows,
     capital,
     maxCapitalPct,
     ibkrRejectedSymbols,
@@ -17445,7 +17418,7 @@ export default function Dashboard() {
             <div id="section-portefeuille" className="scroll-mt-4" />
             <PortfolioCombos
               combos={combos}
-              candidates={filtered}
+              candidates={comboCandidateRows}
               capital={Number(capital)}
               maxCapitalPct={Number(maxCapitalPct)}
               maxPositions={Number(maxPositions)}

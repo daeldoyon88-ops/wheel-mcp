@@ -1,0 +1,873 @@
+{
+  "anomaly": "AF-06",
+  "title": "Indépendance du pool combo vis-à-vis des filtres UI (recherche/tri/filtre Mode)",
+  "date": "2026-07-11",
+  "baseCommit": "6799766 fix deterministic capital combo tie-breaking",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "6799766",
+    "branch": "main...origin/main (synchronisés)",
+    "trackedModified": [],
+    "note": "untracked debug/* préexistants intacts"
+  },
+  "sourceFlowBefore": [
+    "backendCandidates|snapshotCandidates",
+    "activeCandidates (slice topN, dataSource) — dashboard.jsx:13177",
+    "enrichedCandidates (merge IBKR) — dashboard.jsx:13194",
+    "filtered (query + filtre Mode UI + tri + expiration) — dashboard.jsx:13209-13270",
+    "combos = buildPortfolioCombos(filtered, …) — dashboard.jsx:13367-13375 [CONTAMINATION]",
+    "tableau = CremeDeLaCremePanel items={filtered}"
+  ],
+  "sourceFlowAfter": [
+    "backendCandidates|snapshotCandidates",
+    "activeCandidates (slice topN, dataSource)",
+    "enrichedCandidates (merge IBKR)",
+    "comboCandidateRows = buildComboCandidatePool(enrichedCandidates, { selectedExpiration }) [POOL CANONIQUE]",
+    "filtered = buildVisibleTableRows(comboCandidateRows, { query, modeFilter, sortBy, sortOrder, dataSource, getSpreadPct }) [VISUEL]",
+    "combos = buildPortfolioCombos(comboCandidateRows, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols)",
+    "tableau = CremeDeLaCremePanel items={filtered}"
+  ],
+  "comboInputBefore": {
+    "variable": "filtered",
+    "deps": [
+      "enrichedCandidates",
+      "query",
+      "filter",
+      "sortBy",
+      "sortOrder",
+      "selectedExpiration",
+      "dataSource"
+    ],
+    "contaminatedBy": [
+      "query (recherche)",
+      "filter (chip Mode UI)",
+      "sortBy/sortOrder (tri)"
+    ]
+  },
+  "comboInputAfter": {
+    "variable": "comboCandidateRows",
+    "deps": [
+      "enrichedCandidates",
+      "selectedExpiration"
+    ],
+    "contaminatedBy": []
+  },
+  "visibleRowsInput": {
+    "variable": "filtered",
+    "deps": [
+      "comboCandidateRows",
+      "query",
+      "filter",
+      "sortBy",
+      "sortOrder",
+      "dataSource"
+    ]
+  },
+  "filterClassification": [
+    {
+      "control": "Barre de recherche « Ticker ou nom... »",
+      "state": "query",
+      "fn": "rowMatchesSearchQuery",
+      "kind": "visuel",
+      "affectsTable": true,
+      "affectsComboPool": false,
+      "justification": "Filtre d'affichage uniquement"
+    },
+    {
+      "control": "Select Mode Tous/SAFE/AGRESSIF",
+      "state": "filter",
+      "fn": "rowMatchesModeFilter",
+      "kind": "visuel",
+      "affectsTable": true,
+      "affectsComboPool": false,
+      "justification": "Commentaire code « Filtre Mode (UI seulement) » ; les buckets moteur sont internes à buildPortfolioCombos"
+    },
+    {
+      "control": "Trier par",
+      "state": "sortBy",
+      "fn": "buildVisibleTableRows(sort)",
+      "kind": "visuel",
+      "affectsTable": true,
+      "affectsComboPool": false,
+      "justification": "Ordre d'affichage ; AF-05 départage côté moteur"
+    },
+    {
+      "control": "Ordre asc/desc",
+      "state": "sortOrder",
+      "fn": "buildVisibleTableRows(sort)",
+      "kind": "visuel",
+      "affectsTable": true,
+      "affectsComboPool": false,
+      "justification": "idem"
+    },
+    {
+      "control": "Expiration sélectionnée",
+      "state": "selectedExpiration",
+      "fn": "candidateRowMatchesSelectedExpiration",
+      "kind": "métier",
+      "affectsTable": true,
+      "affectsComboPool": true,
+      "justification": "Expiration cible — conservée dans le pool canonique"
+    },
+    {
+      "control": "Capital / % / maxPositions",
+      "state": "capital,maxCapitalPct,maxPositions",
+      "fn": "buildPortfolioCombos(args)",
+      "kind": "métier",
+      "affectsTable": false,
+      "affectsComboPool": true,
+      "justification": "Configuration financière"
+    },
+    {
+      "control": "Rejets IBKR",
+      "state": "ibkrRejectedSymbols",
+      "fn": "buildPortfolioCombos(arg)",
+      "kind": "métier",
+      "affectsTable": false,
+      "affectsComboPool": true,
+      "justification": "Blocage explicite de tickers"
+    },
+    {
+      "control": "Top N Yahoo",
+      "state": "topN",
+      "fn": "activeCandidates(slice)",
+      "kind": "métier/config",
+      "affectsTable": true,
+      "affectsComboPool": true,
+      "justification": "Taille de shortlist persistée, appliquée en amont du pool et des envois IBKR — inchangé"
+    },
+    {
+      "control": "Filtre crypto",
+      "state": "isCryptoDigitalAssetBlocked",
+      "fn": "amont scan",
+      "kind": "métier",
+      "affectsTable": true,
+      "affectsComboPool": true,
+      "justification": "Règle crypto — inchangé"
+    },
+    {
+      "control": "Éligibilité combo (grade/POP/spread/yield/caps)",
+      "state": "interne moteur",
+      "fn": "buildCapitalComboCandidate + modeConfigs",
+      "kind": "métier",
+      "affectsTable": false,
+      "affectsComboPool": true,
+      "justification": "Interne au moteur — intact"
+    },
+    {
+      "control": "Pagination / limite de lignes",
+      "state": null,
+      "fn": null,
+      "kind": "non applicable",
+      "affectsTable": null,
+      "affectsComboPool": null,
+      "justification": "Aucune pagination dans le tableau principal"
+    },
+    {
+      "control": "Expansion/sélection de ligne",
+      "state": "selectedItem,highlightedTicker",
+      "fn": "props affichage",
+      "kind": "visuel",
+      "affectsTable": true,
+      "affectsComboPool": false,
+      "justification": "Jamais dans le calcul combo"
+    },
+    {
+      "control": "dataSource snapshot/ibkr_direct",
+      "state": "dataSource",
+      "fn": "ordre de base du tri visible",
+      "kind": "état pipeline",
+      "affectsTable": true,
+      "affectsComboPool": false,
+      "justification": "N'affecte que l'ordre d'affichage ; pool canonique non trié"
+    }
+  ],
+  "visualFilterStates": [
+    "query",
+    "filter",
+    "sortBy",
+    "sortOrder"
+  ],
+  "businessFilterStates": [
+    "selectedExpiration",
+    "capital",
+    "maxCapitalPct",
+    "maxPositions",
+    "ibkrRejectedSymbols",
+    "topN",
+    "crypto rules",
+    "éligibilité interne moteur"
+  ],
+  "searchScenarios": [
+    "recherche vide",
+    "recherche ticker gagnant (SOFI)",
+    "recherche ticker non gagnant (AAPL)",
+    "recherche sans résultat"
+  ],
+  "sortScenarios": [
+    "tri quality ASC",
+    "tri quality DESC",
+    "tri weeklyReturn ASC/DESC (tests)",
+    "tri spread ASC/DESC (tests)"
+  ],
+  "paginationScenario": "NON APPLICABLE — aucune pagination ni limite d'affichage dans le tableau principal",
+  "baselinePortfolioFingerprint": {
+    "comboLabel": "SAFE",
+    "picks": [
+      {
+        "ticker": "SOFI",
+        "selectedMode": "SAFE",
+        "strike": 50,
+        "contracts": 1,
+        "capitalRequired": 5000,
+        "premium": 27,
+        "score": 68
+      },
+      {
+        "ticker": "ORCL",
+        "selectedMode": "SAFE",
+        "strike": 50,
+        "contracts": 1,
+        "capitalRequired": 5000,
+        "premium": 27,
+        "score": 66
+      }
+    ],
+    "capitalUsed": 10000,
+    "freeCapital": 90000,
+    "totalPremium": null,
+    "portfolioYield": 0.54
+  },
+  "fingerprintsBySearch": {
+    "recherche vide": {
+      "before": "SOFI+ORCL",
+      "after": "SOFI+ORCL"
+    },
+    "recherche ticker gagnant (SOFI)": {
+      "before": "SOFI",
+      "after": "SOFI+ORCL"
+    },
+    "recherche ticker non gagnant (AAPL)": {
+      "before": "AAPL",
+      "after": "SOFI+ORCL"
+    },
+    "recherche sans résultat": {
+      "before": "(aucun)",
+      "after": "SOFI+ORCL"
+    },
+    "tri quality ASC": {
+      "before": "SOFI+ORCL",
+      "after": "SOFI+ORCL"
+    },
+    "tri quality DESC": {
+      "before": "SOFI+ORCL",
+      "after": "SOFI+ORCL"
+    },
+    "filtre visuel Mode=AGGRESSIVE": {
+      "before": "(aucun)",
+      "after": "SOFI+ORCL"
+    }
+  },
+  "beforeResults": [
+    {
+      "scenario": "recherche vide",
+      "ui": {
+        "query": ""
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 4,
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "recherche ticker gagnant (SOFI)",
+      "ui": {
+        "query": "SOFI"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 1,
+      "rowsSentToEngine": 1,
+      "portfolio": "SOFI",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 71
+          }
+        ],
+        "capitalUsed": 5000,
+        "freeCapital": 95000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "recherche ticker non gagnant (AAPL)",
+      "ui": {
+        "query": "AAPL"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 1,
+      "rowsSentToEngine": 1,
+      "portfolio": "AAPL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "AAPL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 70
+          }
+        ],
+        "capitalUsed": 5000,
+        "freeCapital": 95000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "recherche sans résultat",
+      "ui": {
+        "query": "ZZZZ_NOT_FOUND"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 0,
+      "rowsSentToEngine": 0,
+      "portfolio": "(aucun)",
+      "fingerprint": null
+    },
+    {
+      "scenario": "tri quality ASC",
+      "ui": {
+        "sortBy": "quality",
+        "sortOrder": "asc"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 4,
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "tri quality DESC",
+      "ui": {
+        "sortBy": "quality",
+        "sortOrder": "desc"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 4,
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "filtre visuel Mode=AGGRESSIVE",
+      "ui": {
+        "filter": "AGGRESSIVE"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 0,
+      "rowsSentToEngine": 0,
+      "portfolio": "(aucun)",
+      "fingerprint": null
+    }
+  ],
+  "afterResults": [
+    {
+      "scenario": "recherche vide",
+      "ui": {
+        "query": ""
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 4,
+      "visibleTickers": [
+        "AAPL",
+        "MSFT",
+        "ORCL",
+        "SOFI"
+      ],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "recherche ticker gagnant (SOFI)",
+      "ui": {
+        "query": "SOFI"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 1,
+      "visibleTickers": [
+        "SOFI"
+      ],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "recherche ticker non gagnant (AAPL)",
+      "ui": {
+        "query": "AAPL"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 1,
+      "visibleTickers": [
+        "AAPL"
+      ],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "recherche sans résultat",
+      "ui": {
+        "query": "ZZZZ_NOT_FOUND"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 0,
+      "visibleTickers": [],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "tri quality ASC",
+      "ui": {
+        "sortBy": "quality",
+        "sortOrder": "asc"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 4,
+      "visibleTickers": [
+        "SOFI",
+        "ORCL",
+        "MSFT",
+        "AAPL"
+      ],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "tri quality DESC",
+      "ui": {
+        "sortBy": "quality",
+        "sortOrder": "desc"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 4,
+      "visibleTickers": [
+        "AAPL",
+        "MSFT",
+        "ORCL",
+        "SOFI"
+      ],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    },
+    {
+      "scenario": "filtre visuel Mode=AGGRESSIVE",
+      "ui": {
+        "filter": "AGGRESSIVE"
+      },
+      "rawRows": 4,
+      "admissibleRows": 4,
+      "visibleRows": 0,
+      "visibleTickers": [],
+      "rowsSentToEngine": 4,
+      "portfolio": "SOFI+ORCL",
+      "fingerprint": {
+        "comboLabel": "SAFE",
+        "picks": [
+          {
+            "ticker": "SOFI",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 68
+          },
+          {
+            "ticker": "ORCL",
+            "selectedMode": "SAFE",
+            "strike": 50,
+            "contracts": 1,
+            "capitalRequired": 5000,
+            "premium": 27,
+            "score": 66
+          }
+        ],
+        "capitalUsed": 10000,
+        "freeCapital": 90000,
+        "totalPremium": null,
+        "portfolioYield": 0.54
+      }
+    }
+  ],
+  "proofMethod": "Harnais Node déterministe (pas d'UI navigateur) : AVANT = réplique exacte de l'ancien useMemo filtered branchée sur le vrai buildPortfolioCombos ; APRÈS = code de production patché (buildComboCandidatePool/buildVisibleTableRows). Fixtures contrôlées AAPL/MSFT/ORCL/SOFI, capital 100000, maxCapitalPct 20, maxPositions 2.",
+  "beforePortfolioVariedWithSearch": true,
+  "afterFingerprintInvariant": true,
+  "testsAF06": {
+    "file": "wheel-dashboard/src/capitalComboInputPool.test.mjs",
+    "tests": 22,
+    "pass": 22,
+    "fail": 0,
+    "note": "TESTS 1-20 mission + précondition + unitaire recherche ; TEST 10 pagination NON APPLICABLE ; TEST 8 adapté (pas de tri ticker dans l'UI → tri quality)"
+  },
+  "testsAF02": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs",
+    "tests": 6,
+    "pass": 6,
+    "fail": 0,
+    "modified": false
+  },
+  "testsAF03": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+    "tests": 15,
+    "pass": 15,
+    "fail": 0,
+    "modified": false
+  },
+  "testsAF05": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.deterministic-tiebreak.test.mjs",
+    "tests": 26,
+    "pass": 26,
+    "fail": 0,
+    "modified": false
+  },
+  "spreadTests": {
+    "file": "wheel-dashboard/src/spreadPctPercent.test.mjs",
+    "tests": 15,
+    "pass": 15,
+    "fail": 0,
+    "modified": false
+  },
+  "fableResults": {
+    "pass": 31,
+    "fail": 7,
+    "info": 5,
+    "failIds": [
+      "T2b",
+      "T2c",
+      "T3a",
+      "T4a",
+      "T15a",
+      "T15b",
+      "T15c"
+    ],
+    "infoIds": [
+      "T1f",
+      "T11g",
+      "T12b",
+      "T12e",
+      "T12d"
+    ],
+    "identicalToBaseline": true,
+    "newRealFails": 0,
+    "harnessModified": false,
+    "note": "Le harnais teste capitalComboPortfolio.js directement (pas via filtres UI) : aucun check rendu obsolète par AF-06"
+  },
+  "buildResult": {
+    "command": "npm.cmd run build (wheel-dashboard)",
+    "status": "PASS",
+    "durationNote": "built in 3.27s",
+    "preexistingWarnings": [
+      "framer-motion 'use client' directives ignorées",
+      "chunk index-*.js > 500 kB"
+    ]
+  },
+  "modifiedFiles": [
+    "wheel-dashboard/src/dashboard.jsx"
+  ],
+  "createdFiles": [
+    "wheel-dashboard/src/capitalComboInputPool.js",
+    "wheel-dashboard/src/capitalComboInputPool.test.mjs",
+    "debug/capital-combinations-af06-patch-validation/capital-combinations-af06-patch-validation.md",
+    "debug/capital-combinations-af06-patch-validation/capital-combinations-af06-patch-validation.json"
+  ],
+  "limitations": [
+    "Preuve par harnais Node répliquant le câblage des useMemo (pas d'exécution navigateur E2E)",
+    "rowMatchesSearchQuery trim les espaces de bord (exigence TEST 5, aligné sur le compteur removedBySearch) — l'ancien filtre d'affichage ne trimait pas ; micro-changement purement visuel",
+    "Expiration filtrée avant les filtres visuels (avant : après le tri) — filtres commutatifs, tri stable ; seul micro-effet : hasBackendIbkrOrder (ibkr_direct) évalué sur lignes post-expiration, affichage seulement",
+    "Funnel diag : stage « Combo Pool » décrit désormais le pool canonique et peut dépasser « Filtered Final » pendant une recherche (comportement corrigé, plus fidèle)",
+    "IBKR batch et seasonality restent basés sur la shortlist affichée (comportement inchangé)"
+  ],
+  "finalGitState": {
+    "statusSb": [
+      "## main...origin/main",
+      " M wheel-dashboard/src/dashboard.jsx",
+      "?? wheel-dashboard/src/capitalComboInputPool.js",
+      "?? wheel-dashboard/src/capitalComboInputPool.test.mjs",
+      "?? debug/capital-combinations-af06-patch-validation/",
+      "(+ untracked préexistants inchangés)"
+    ],
+    "diffNameOnly": [
+      "wheel-dashboard/src/dashboard.jsx"
+    ],
+    "diffStat": "1 file changed, 34 insertions(+), 61 deletions(-)",
+    "gitAdd": false,
+    "commit": false,
+    "push": false
+  },
+  "verdict": "SAFE TO COMMIT"
+}

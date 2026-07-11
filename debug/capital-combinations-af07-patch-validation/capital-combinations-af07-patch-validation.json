@@ -1,0 +1,160 @@
+{
+  "anomaly": "AF-07 — le bucket BALANCED figeait une jambe de fallback hors bande de rendement (AGGRESSIVE d'abord, sans test de bande) puis rejetait le candidat entier aux gates min/maxWeeklyYield sans jamais essayer la jambe SAFE conforme",
+  "baseCommit": "7700aed",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "7700aed fix capital combo independence from UI filters",
+    "branch": "main synchronisée avec origin/main",
+    "trackedModifiedBeforeMission": [],
+    "untrackedPreexisting": "intacts (debug/*, rapports d'audit, harnais fable, etc.)"
+  },
+  "resumedFromInterruptedSession": {
+    "resumed": true,
+    "alreadyDoneBeforeResume": [
+      "reproduction AF-07 exécutée sur le moteur réel avant patch (script temporaire hors dépôt)",
+      "patch appliqué (helper resolveCompatibleLegForMode + branche BALANCED)",
+      "30 tests AF-07 écrits",
+      "cas principal vérifié après patch"
+    ],
+    "doneAfterResume": [
+      "vérification git + relecture intégrale du diff et du fichier de test",
+      "suite AF-07 : 28/30 puis correction de 2 fixtures (TEST 15 règle de grade AGGRESSIVE dérivé-d'abord ; TEST 30 tolérance flottante premiumCollected) — aucun code moteur retouché",
+      "30/30 PASS, non-régressions, harnais Fable, build, rapports"
+    ]
+  },
+  "sourceDiff": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.js",
+    "stat": "1 file changed, 152 insertions(+), 26 deletions(-)",
+    "added": [
+      "export const BALANCED_PREFERRED_LEG_YIELD_BAND = { minInclusivePct: 0.75, maxExclusivePct: 1.05, midTargetPct: 0.875 } (extraction des littéraux historiques, gelée)",
+      "export function resolveCompatibleLegForMode({ legCandidates, minYieldPctInclusive, maxYieldPctExclusive, preferredBand })",
+      "function pickFirstValidLegDescriptor(legCandidates) (interne, dernier recours diagnostics)"
+    ],
+    "replaced": "branche else (bucket BALANCED) du map bucketResolvedPool dans makeCombo : construction d'une liste ordonnée de descripteurs [AGGRESSIVE, SAFE] (priority 1) + résolution via le helper avec la bande effective modeAlloc, dernier recours = ancien fallback",
+    "untouched": ["branche SAFE (conservative)", "branche AGGRESSIVE", "computeBalancedInstitutionalV3", "gates min/maxWeeklyYield", "scoring", "caps", "tri AF-05", "createPick"]
+  },
+  "helperSignature": "resolveCompatibleLegForMode({ legCandidates, minYieldPctInclusive, maxYieldPctExclusive, preferredBand = null }) -> descripteur | null",
+  "helperInputs": {
+    "descriptorFields": ["mode", "leg", "yieldPct", "strikeValue", "capital", "grade", "valid", "priority"],
+    "fieldsReadByHelper": ["valid", "leg", "yieldPct", "priority"],
+    "preferredBandFields": ["minInclusivePct", "maxExclusivePct", "midTargetPct"],
+    "guarantees": [
+      "descripteurs invalides ignorés (valid !== true ou leg absent)",
+      "rendement null/undefined/NaN = non conforme",
+      "min inclusif, max exclusif, max null = pas de plafond",
+      "continue après une jambe hors bande",
+      "retourne null si aucune jambe conforme (aucune jambe forcée)",
+      "aucune mutation, aucun recalcul de jambe, aucun score calculé",
+      "groupes de priorité croissante pour la future vraie jambe BALANCED"
+    ]
+  },
+  "balancedArchitectureBefore": "bande de choix de jambe codée en dur [0.75;1.05) MID 0.875 -> plus proche du MID (égalité SAFE) -> SAFE si en bande -> AGG si en bande -> AGG aveuglément si valide -> SAFE ; jambe figée puis gates min 0.675 / max 1.05 rejettent le candidat entier sans réessai",
+  "balancedArchitectureAfter": "liste ordonnée de descripteurs [AGGRESSIVE, SAFE] (future BALANCED priority 0 en tête) -> resolveCompatibleLegForMode(bande effective modeAlloc + bande préférée historique) -> toutes les jambes évaluées, seule une jambe conforme est retenue -> si aucune conforme : dernier recours identique à l'ancien fallback pour conserver les diagnostics de rejet",
+  "currentFallbackOrder": ["(futur) BALANCED priority 0", "AGGRESSIVE priority 1", "SAFE priority 1"],
+  "preferredBandRule": "parmi les jambes conformes : si au moins une est dans [0.75;1.05), la plus proche de 0.875 gagne ; égalité exacte de distance -> SAFE (règle <= historique, jambe listée en dernier) ; sinon première conforme dans l'ordre de la liste (AGGRESSIVE avant SAFE)",
+  "effectiveYieldBand": {
+    "min": 0.675,
+    "minSource": "computeBalancedInstitutionalV3.modePatch.minWeeklyYield (patch runtime V3, base config balanced = 0.70)",
+    "max": 1.05,
+    "maxSource": "modeConfigs.balanced.maxWeeklyYield",
+    "extractionInTests": "bornes extraites des diagnostics du moteur réel (MIN_WEEKLY_YIELD_NOT_MET.minWeeklyYieldPct, MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT.maxWeeklyYieldConfig) — aucune valeur codée en dur dans les tests"
+  },
+  "yieldUnits": "points de pourcentage hebdomadaires (0.70 = 0,70 %/semaine)",
+  "boundaryConvention": {
+    "min": "inclusif (>=), rendement == min accepté (TEST 10)",
+    "max": "exclusif (<), rendement == max rejeté (TEST 11)",
+    "nullMax": "pas de plafond",
+    "unknownYield": "null/undefined/NaN = non conforme",
+    "epsilon": "aucun (comparaisons flottantes directes du moteur)"
+  },
+  "reproductionBefore": {
+    "method": "EXÉCUTÉE réellement sur le moteur réel non modifié (état 7700aed) avant application du patch — import direct de capitalComboPortfolio.js depuis un script temporaire hors dépôt, trace de rejet activée",
+    "mainScenario": {
+      "input": "SAFE strike 40 yield 0.70 spread 8 POP 91 (conforme) + AGGRESSIVE strike 43 yield 2.0 (hors bande)",
+      "result": "picks BALANCED vides ; rejet MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT avec weeklyReturnPct=2 (preuve que la jambe AGGRESSIVE a été figée)",
+      "control": "même jambe SAFE seule (sans AGG) => pick présent strike 40 grade A (preuve que SAFE était conforme)"
+    }
+  },
+  "reproductionAfter": {
+    "method": "même script, moteur patché",
+    "mainScenario": {
+      "result": "pick CRM strike 40, prime 0.28, rendement 0.70, spread 8, distance -9, POP 91, grade A, capitalUsed 20000, score 82 ; aucun rejet de bande",
+      "af01Note": "pick.mode = 'AGGRESSIVE' (hérité du candidat source, AF-01 hors périmètre)"
+    }
+  },
+  "scenarios": [
+    { "id": "S1", "safeYield": 0.70, "aggYield": 2.0, "legBefore": "AGGRESSIVE (aveugle)", "resultBefore": "rejeté MAX_WEEKLY_YIELD", "legAfter": "SAFE", "resultAfter": "accepté strike 40" },
+    { "id": "S2", "safeYield": 0.50, "aggYield": 0.90, "legBefore": "AGGRESSIVE", "resultBefore": "accepté strike 43", "legAfter": "AGGRESSIVE", "resultAfter": "identique" },
+    { "id": "S3a-tie", "safeYield": 0.85, "aggYield": 0.90, "legBefore": "SAFE", "resultBefore": "accepté strike 40", "legAfter": "SAFE", "resultAfter": "identique" },
+    { "id": "S3b-sous-bande-preferee", "safeYield": 0.70, "aggYield": 0.72, "legBefore": "AGGRESSIVE", "resultBefore": "accepté strike 43", "legAfter": "AGGRESSIVE", "resultAfter": "identique" },
+    { "id": "S4-aucune-conforme", "safeYield": 0.50, "aggYield": 2.0, "legBefore": "AGGRESSIVE", "resultBefore": "rejeté MAX_WEEKLY_YIELD", "legAfter": "AGGRESSIVE (dernier recours)", "resultAfter": "rejeté identique" },
+    { "id": "S5-agg-seule", "safeYield": null, "aggYield": 0.90, "legBefore": "AGGRESSIVE", "resultBefore": "accepté strike 43", "legAfter": "AGGRESSIVE", "resultAfter": "identique" },
+    { "id": "S6-safe-seule", "safeYield": 0.70, "aggYield": null, "legBefore": "SAFE", "resultBefore": "accepté strike 40", "legAfter": "SAFE", "resultAfter": "identique" }
+  ],
+  "selectedLegFields": {
+    "singleSourceLeg": true,
+    "fields": ["selectedLeg", "selectedStrikeValue", "selectedPremiumUnit", "selectedSpreadPct", "selectedYieldPct", "selectedDistancePct", "_popForCombo", "capitalPerContract", "premiumPerContract", "selectedLegGrade/finalDisplayGrade", "score breakdown"],
+    "proof": "TESTS 14/15 (valeurs discriminantes champ par champ, aucune fuite SAFE<->AGGRESSIVE) + TEST 30 (empreinte complète)"
+  },
+  "portfolioBeforeAfter": {
+    "pool": "CRM (SAFE 0.70 conforme spread 8 + AGG 2.0 hors bande) et ORCL (SAFE 0.70 conforme spread 19)",
+    "capital": 100000,
+    "requestedMaxPositions": 1,
+    "before": { "scoredPool": "CRM absent (bloqué MAX_WEEKLY_YIELD)", "picks": ["ORCL"], "note": "ORCL en tête par forfait" },
+    "after": { "scoredPool": [{ "rank": 1, "symbol": "CRM", "score": 81 }, { "rank": 2, "symbol": "ORCL", "score": 72 }], "picks": ["CRM", "ORCL"], "note": "CRM réintégré et premier" },
+    "maxPositionsClarification": "les 2 picks malgré maxPositions=1 sont un comportement PRÉEXISTANT de BALANCED V3 : lineCap = max(5, min(globalCap, targetLines)) impose un plancher de 5 lignes (balancedEffectiveMaxPositions=5) ; identique dans 7700aed, non touché par AF-07, non falsifié"
+  },
+  "testsAF07": { "file": "wheel-dashboard/src/capitalComboPortfolio.balanced-fallback.test.mjs", "tests": 30, "pass": 30, "fail": 0, "fixtureFixesDuringResume": ["TEST 15 : grade AGGRESSIVE = dérivé-d'abord (règle moteur existante), spread AGG 12->10 pour rester discriminant", "TEST 30 : premiumCollected non arrondi par le moteur, tolérance 1e-9"] },
+  "testsAF02": { "file": "capitalComboPortfolio.pop-null.test.mjs", "tests": 6, "pass": 6, "fail": 0 },
+  "testsAF03": { "file": "capitalComboPortfolio.selected-leg-grade.test.mjs", "tests": 15, "pass": 15, "fail": 0 },
+  "testsAF05": { "file": "capitalComboPortfolio.deterministic-tiebreak.test.mjs", "tests": 26, "pass": 26, "fail": 0 },
+  "testsAF06": { "file": "capitalComboInputPool.test.mjs", "tests": 22, "pass": 22, "fail": 0 },
+  "spreadTests": { "file": "spreadPctPercent.test.mjs", "tests": 15, "pass": 15, "fail": 0 },
+  "fableResults": {
+    "baselineBeforePatch": { "pass": 31, "fail": 7, "info": 5, "historicalFails": ["T2b", "T2c", "T3a", "T4a", "T15a", "T15b", "T15c"] },
+    "afterPatch": { "pass": 30, "fail": 8, "info": 5, "exitCode": 0 },
+    "changes": [
+      { "id": "T6a", "before": "PASS (avecJambeAgg='(combo null)')", "after": "FAIL (avecJambeAgg='CRM')", "analysis": "check qui DÉMONTRAIT AF-07 (candidat avec jambe AGG hors bande => exclu) ; désormais CRM inclus avec sa jambe SAFE conforme => check historique obsolète, PAS une régression réelle (severité non CRITICAL)" },
+      { "id": "T1f", "before": "INFO 'absent (attendu)'", "after": "INFO 'présent (inattendu)'", "analysis": "NFLX safe 0.697 >= min V3 0.675 => conforme => présent dans BALANCED ; statut INFO inchangé, conséquence attendue du fix" }
+    ],
+    "newRealRegressions": 0,
+    "harnessModified": false
+  },
+  "buildResult": { "command": "npm.cmd run build (depuis wheel-dashboard)", "status": "PASS", "duration": "3.54s, 1950 modules", "warnings": "préexistants uniquement (framer-motion 'use client' + taille de chunk 772 kB)", "newErrors": 0 },
+  "futureBalancedLegCompatibility": {
+    "type": "structurelle (pas une validation de bout en bout)",
+    "mechanism": "insérer { mode: 'BALANCED', priority: 0, leg: candidate.balancedLeg, ... } en tête de legCandidates ; le groupe priority 0 gagne s'il contient une jambe conforme, sinon la logique continue vers les fallbacks",
+    "tests": ["TEST 26 : fictive conforme gagne devant les fallbacks", "TEST 27 : fictive hors bande => la logique continue et sélectionne SAFE conforme"],
+    "balancedLegAddedToEngine": false
+  },
+  "af01DisplayCaveat": "pick.mode reflète toujours le mode du candidat source : un pick BALANCED utilisant la jambe SAFE peut afficher mode='AGGRESSIVE'. Données financières 100 % issues de la jambe sélectionnée. AF-01 hors périmètre, non corrigé. Miroir UI dashboard.jsx (~9110-9138, panneau diagnostic) conserve l'ancienne sélection inline — documenté seulement (fichier interdit).",
+  "modifiedFiles": ["wheel-dashboard/src/capitalComboPortfolio.js"],
+  "createdFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.balanced-fallback.test.mjs",
+    "debug/capital-combinations-af07-patch-validation/capital-combinations-af07-patch-validation.md",
+    "debug/capital-combinations-af07-patch-validation/capital-combinations-af07-patch-validation.json"
+  ],
+  "limitations": [
+    "AF-01 : étiquette pick.mode héritée du candidat source (hors périmètre, documentée)",
+    "miroir UI dashboard.jsx (~9110-9138) conserve l'ancienne sélection inline pour l'affichage diagnostic — peut diverger du moteur dans la zone [0.675;0.75) récupérée par AF-07",
+    "conformité vérifiée = bande de rendement uniquement (périmètre AF-07) ; les gates aval (spread, exécution, distance, qualité, capital) ne déclenchent pas de réessai de l'autre jambe — identique à l'existant",
+    "compatibilité future balancedLeg structurelle seulement, la vraie jambe n'existe pas",
+    "rendement inconnu sur jambe par ailleurs valide impossible au niveau moteur (_has*LegValid exige un rendement fini > 0) — couvert au niveau helper (TESTS 8/9)",
+    "checks Fable T6a/T1f décrivent l'ancien comportement, mise à jour du harnais hors périmètre",
+    "maxPositions demandé n'est pas le plafond effectif BALANCED V3 (plancher préexistant de 5 lignes, non modifié)"
+  ],
+  "finalGitState": {
+    "head": "7700aed (inchangé)",
+    "branch": "main...origin/main synchronisée",
+    "gitDiffNameOnly": ["wheel-dashboard/src/capitalComboPortfolio.js"],
+    "gitDiffStat": "1 file changed, 152 insertions(+), 26 deletions(-)",
+    "untrackedAF07": [
+      "wheel-dashboard/src/capitalComboPortfolio.balanced-fallback.test.mjs",
+      "debug/capital-combinations-af07-patch-validation/"
+    ],
+    "gitAdd": false,
+    "commit": false,
+    "push": false
+  },
+  "verdict": "SAFE TO COMMIT WITH CAVEAT"
+}

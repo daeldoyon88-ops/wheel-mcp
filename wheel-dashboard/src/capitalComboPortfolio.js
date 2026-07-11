@@ -1430,6 +1430,111 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   };
 }
 
+/**
+ * Bande de sélection préférentielle historique de la jambe du bucket BALANCED.
+ * Valeurs extraites telles quelles de l'ancienne logique inline (AF-07 n'a
+ * modifié aucune borne financière). Rendements en points de pourcentage
+ * hebdomadaires (0.75 = 0,75 %) ; min inclusif, max exclusif.
+ */
+export const BALANCED_PREFERRED_LEG_YIELD_BAND = Object.freeze({
+  minInclusivePct: 0.75,
+  maxExclusivePct: 1.05,
+  midTargetPct: 0.875,
+});
+
+/**
+ * AF-07 — résolution générique de la jambe d'un bucket parmi une liste ordonnée
+ * de jambes candidates. Chaque jambe est évaluée selon ses propres données :
+ * une jambe invalide ou hors bande n'empêche jamais d'essayer la suivante.
+ * Ne modifie aucun objet, ne recalcule aucune jambe.
+ *
+ * Descripteur attendu : { mode, leg, yieldPct, strikeValue, capital, grade,
+ * valid, priority }. `priority` (défaut 0, croissant) sépare les groupes :
+ * une jambe conforme du groupe le plus prioritaire gagne avant toute jambe
+ * d'un groupe suivant — prévu pour la future vraie jambe BALANCED (priority 0)
+ * devant les fallbacks SAFE/AGGRESSIVE (priority 1), sans réécrire cette logique.
+ *
+ * Règles au sein d'un groupe (héritées de l'ancienne logique inline, inchangées) :
+ * 1. seule une jambe conforme à la bande effective [minYieldPctInclusive,
+ *    maxYieldPctExclusive) est retenue — min inclusif, max exclusif, max null =
+ *    pas de plafond ; rendement inconnu (null/undefined/NaN) = non conforme ;
+ * 2. si `preferredBand` est fournie et qu'au moins une jambe conforme est dans
+ *    la bande préférée : la plus proche de midTargetPct gagne ; à égalité
+ *    exacte de distance, la jambe listée en DERNIER gagne (reproduit la règle
+ *    « <= » historique qui favorisait SAFE face à AGGRESSIVE) ;
+ * 3. sinon : première jambe conforme dans l'ordre de la liste (ordre de
+ *    fallback métier existant : AGGRESSIVE avant SAFE).
+ *
+ * Retourne le descripteur choisi, ou null si AUCUNE jambe n'est conforme —
+ * l'appelant décide alors du comportement de rejet (aucune jambe hors bande
+ * n'est forcée ici).
+ */
+export function resolveCompatibleLegForMode({
+  legCandidates,
+  minYieldPctInclusive,
+  maxYieldPctExclusive,
+  preferredBand = null,
+}) {
+  const list = Array.isArray(legCandidates) ? legCandidates : [];
+  const usable = list.filter(
+    (d) => d && typeof d === "object" && d.valid === true && d.leg != null,
+  );
+  if (!usable.length) return null;
+
+  const min = Number(minYieldPctInclusive);
+  const max = maxYieldPctExclusive == null ? null : Number(maxYieldPctExclusive);
+  const conformsToBand = (d) => {
+    const y = Number(d.yieldPct);
+    if (!Number.isFinite(y)) return false;
+    if (Number.isFinite(min) && !(y >= min)) return false;
+    if (max != null && Number.isFinite(max) && !(y < max)) return false;
+    return true;
+  };
+  const priorityOf = (d) => {
+    const p = Number(d.priority);
+    return Number.isFinite(p) ? p : 0;
+  };
+
+  const priorities = [...new Set(usable.map(priorityOf))].sort((a, b) => a - b);
+  for (const priority of priorities) {
+    const conforming = usable.filter((d) => priorityOf(d) === priority && conformsToBand(d));
+    if (!conforming.length) continue;
+
+    if (preferredBand) {
+      const pMin = Number(preferredBand.minInclusivePct);
+      const pMax = Number(preferredBand.maxExclusivePct);
+      const mid = Number(preferredBand.midTargetPct);
+      const inPreferred = conforming.filter((d) => {
+        const y = Number(d.yieldPct);
+        return y >= pMin && y < pMax;
+      });
+      if (inPreferred.length) {
+        let best = inPreferred[0];
+        for (const d of inPreferred.slice(1)) {
+          if (Math.abs(Number(d.yieldPct) - mid) <= Math.abs(Number(best.yieldPct) - mid)) best = d;
+        }
+        return best;
+      }
+    }
+    return conforming[0];
+  }
+  return null;
+}
+
+/**
+ * Dernier recours AF-07 : première jambe structurellement valide dans l'ordre
+ * de fallback, sans test de bande. Utilisé uniquement quand aucune jambe n'est
+ * conforme, pour conserver le chemin de rejet aval existant (le candidat sera
+ * rejeté par les gates min/maxWeeklyYield avec les mêmes diagnostics qu'avant).
+ */
+function pickFirstValidLegDescriptor(legCandidates) {
+  const list = Array.isArray(legCandidates) ? legCandidates : [];
+  for (const d of list) {
+    if (d && typeof d === "object" && d.valid === true && d.leg != null) return d;
+  }
+  return null;
+}
+
 export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, rejectedIbkrSymbols = new Set(), options = {}) {
   const usableCapital = capital * (maxCapitalPct / 100);
   const targetMinPct = 90;
@@ -1680,32 +1785,53 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             bucketMode = "AGGRESSIVE";
           }
         } else {
-          // BALANCED : choisir la meilleure jambe dans la bande de rendement [0.75, 1.05)
-          const safeY = candidate._safeYieldPct;
-          const aggY = candidate._aggYieldPct;
-          const safeInRange = candidate._hasSafeLegValid && safeY >= 0.75 && safeY < 1.05;
-          const aggInRange = candidate._hasAggLegValid && aggY >= 0.75 && aggY < 1.05;
-          const MID = 0.875;
-          if (safeInRange && aggInRange) {
-            if (Math.abs(safeY - MID) <= Math.abs(aggY - MID)) {
-              bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
-              bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade; bucketMode = "SAFE";
-            } else {
-              bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
-              bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade; bucketMode = "AGGRESSIVE";
-            }
-          } else if (safeInRange) {
-            bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
-            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade; bucketMode = "SAFE";
-          } else if (aggInRange) {
-            bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
-            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade; bucketMode = "AGGRESSIVE";
-          } else if (candidate._hasAggLegValid) {
-            bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
-            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade; bucketMode = "AGGRESSIVE";
-          } else if (candidate._hasSafeLegValid) {
-            bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
-            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade; bucketMode = "SAFE";
+          // BALANCED (AF-07) : évaluer TOUTES les jambes disponibles au lieu de
+          // s'arrêter à la première. Bande préférée historique [0.75, 1.05) (jambe
+          // la plus proche du MID, égalité exacte → SAFE), sinon toute jambe
+          // conforme à la bande effective du mode ; une jambe hors bande
+          // n'empêche plus d'essayer la suivante. Ordre de fallback historique
+          // conservé : AGGRESSIVE avant SAFE.
+          const legCandidates = [
+            // Futur : insérer ici la vraie jambe BALANCED avec priority 0 quand elle existera.
+            {
+              mode: "AGGRESSIVE",
+              priority: 1,
+              valid: candidate._hasAggLegValid === true,
+              leg: candidate._aggLeg,
+              yieldPct: candidate._aggYieldPct,
+              strikeValue: candidate._aggStrikeValue,
+              capital: candidate._aggCapital,
+              grade: candidate._aggGrade,
+            },
+            {
+              mode: "SAFE",
+              priority: 1,
+              valid: candidate._hasSafeLegValid === true,
+              leg: candidate._safeLeg,
+              yieldPct: candidate._safeYieldPct,
+              strikeValue: candidate._safeStrikeValue,
+              capital: candidate._safeCapital,
+              grade: candidate._safeGrade,
+            },
+          ];
+          const resolved =
+            resolveCompatibleLegForMode({
+              legCandidates,
+              minYieldPctInclusive: modeAlloc.minWeeklyYield,
+              maxYieldPctExclusive: modeAlloc.maxWeeklyYield,
+              preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
+            }) ??
+            // Aucune jambe conforme : dernier recours identique à l'ancien
+            // fallback (AGG puis SAFE) pour conserver le chemin et les
+            // diagnostics de rejet existants en aval — aucune jambe forcée
+            // dans le portefeuille, les gates min/maxWeeklyYield rejettent.
+            pickFirstValidLegDescriptor(legCandidates);
+          if (resolved) {
+            bucketLeg = resolved.leg;
+            bucketStrikeValue = resolved.strikeValue;
+            bucketCapital = resolved.capital;
+            bucketGrade = resolved.grade;
+            bucketMode = resolved.mode;
           }
         }
 

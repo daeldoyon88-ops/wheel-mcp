@@ -1,0 +1,148 @@
+{
+  "title": "Validation patch AF-02 - POP inconnu",
+  "generatedAtLocal": "2026-07-11",
+  "workspace": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "gitInitial": {
+    "revParseShowToplevel": "C:/Users/melan/Desktop/wheel-mcp-remote",
+    "statusBranchLine": "## main...origin/main",
+    "scopedAuthorizedFilesInitialStatus": "clean: no initial modification on wheel-dashboard/src/capitalComboPortfolio.js, no existing capitalComboPortfolio.pop-null.test.mjs, no existing debug/capital-combinations-af02-patch-validation directory",
+    "note": "The worktree already contained many untracked files outside the authorized AF-02 scope; they were left untouched."
+  },
+  "filesModifiedOrCreated": [
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs",
+    "debug/capital-combinations-af02-patch-validation/capital-combinations-af02-patch-validation.json",
+    "debug/capital-combinations-af02-patch-validation/capital-combinations-af02-patch-validation.md"
+  ],
+  "functionsModified": [
+    "normalizeOptionalPopDecimal",
+    "firstKnownOptionalPopDecimal",
+    "normalizeOptionalPopPct",
+    "gradeLeg",
+    "getAggressivePriorityGrade",
+    "getFinalDisplayRecommendation",
+    "getLegPopPct",
+    "buildCapitalComboCandidate"
+  ],
+  "bugCause": {
+    "summary": "gradeLeg and getAggressivePriorityGrade used Number(popDecimal) before checking optional POP values. Number(null) and Number(\"\") are 0, so an unknown POP could be treated as a real 0% POP.",
+    "mainImpact": "In the AGGRESSIVE bucket, the derived WATCH grade could be chosen before the stored A grade, causing the bucket gate to reject a valid candidate when POP was unknown.",
+    "unitConventionConfirmed": "gradeLeg receives POP in decimal convention; getLegPopPct already exposed decimal values as percent. The patch keeps 0.86 as 86%, converts 86 to 0.86 internally, and keeps null as unknown."
+  },
+  "behaviorBefore": {
+    "matrix": [
+      { "case": "null", "popInput": "null", "oldNormalizedPct": 0, "gradeBefore": "WATCH", "pickBefore": false },
+      { "case": "undefined", "popInput": "undefined", "oldNormalizedPct": null, "gradeBefore": "A", "pickBefore": true },
+      { "case": "missing", "popInput": "missing", "oldNormalizedPct": null, "gradeBefore": "A", "pickBefore": true },
+      { "case": "NaN", "popInput": "NaN", "oldNormalizedPct": null, "gradeBefore": "A", "pickBefore": true },
+      { "case": "zero", "popInput": 0, "oldNormalizedPct": 0, "gradeBefore": "WATCH", "pickBefore": false },
+      { "case": "decimal_086", "popInput": 0.86, "oldNormalizedPct": 86, "gradeBefore": "A", "pickBefore": true },
+      { "case": "one", "popInput": 1, "oldNormalizedPct": 100, "gradeBefore": "A", "pickBefore": true },
+      { "case": "empty", "popInput": "", "oldNormalizedPct": 0, "gradeBefore": "WATCH", "pickBefore": false },
+      { "case": "abc", "popInput": "abc", "oldNormalizedPct": null, "gradeBefore": "A", "pickBefore": true },
+      { "case": "pct_86", "popInput": 86, "oldNormalizedPct": 8600, "gradeBefore": "A", "pickBefore": true }
+    ],
+    "aggressiveControlledCase": {
+      "pop086": { "picked": true, "grade": "A", "popPct": 86 },
+      "popNull": { "builtAggGrade": "WATCH", "builtAggPopPct": null, "finalDisplayGrade": "A", "picked": false }
+    }
+  },
+  "behaviorAfter": {
+    "matrix": [
+      { "case": "null", "popInput": "null", "normalizedDecimal": null, "normalizedPct": null, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "undefined", "popInput": "undefined", "normalizedDecimal": null, "normalizedPct": null, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "missing", "popInput": "missing", "normalizedDecimal": null, "normalizedPct": null, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "NaN", "popInput": "NaN", "normalizedDecimal": null, "normalizedPct": null, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "zero", "popInput": 0, "normalizedDecimal": 0, "normalizedPct": 0, "gradeAfter": "WATCH", "pickAfter": false, "verdict": "PASS" },
+      { "case": "decimal_086", "popInput": 0.86, "normalizedDecimal": 0.86, "normalizedPct": 86, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "one", "popInput": 1, "normalizedDecimal": 1, "normalizedPct": 100, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "empty", "popInput": "", "normalizedDecimal": null, "normalizedPct": null, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "abc", "popInput": "abc", "normalizedDecimal": null, "normalizedPct": null, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" },
+      { "case": "pct_86", "popInput": 86, "normalizedDecimal": 0.86, "normalizedPct": 86, "gradeAfter": "A", "pickAfter": true, "verdict": "PASS" }
+    ],
+    "aggressiveControlledCase": {
+      "pop086": { "positions": 1, "picked": true, "grade": "A", "popPct": 86 },
+      "popNull": { "positions": 1, "picked": true, "grade": "A", "popPct": null },
+      "popZero": { "positions": 0, "picked": false }
+    },
+    "safeControlledCase": {
+      "pop086": { "positions": 1, "picked": true, "mode": "SAFE", "grade": "A", "popPct": 86 },
+      "popNull": { "positions": 1, "picked": true, "mode": "SAFE", "grade": "A", "popPct": null }
+    },
+    "balancedGenericCase": {
+      "unknownPopPct": null,
+      "knownPopPct": 86,
+      "fallbackFromEmptyPrimaryToPopEstimatePct": 86
+    }
+  },
+  "testsExecuted": [
+    { "command": "node --check wheel-dashboard/src/capitalComboPortfolio.js", "status": "PASS" },
+    { "command": "node --check wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs", "status": "PASS" },
+    { "command": "node --test wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs", "status": "PASS", "tests": 6, "pass": 6, "fail": 0 },
+    { "command": "node --test wheel-dashboard/src/spreadPctPercent.test.mjs", "status": "PASS", "tests": 15, "pass": 15, "fail": 0 },
+    {
+      "command": "node debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs",
+      "status": "PASS_WITH_EXPECTED_AF02_HARNESS_CHANGES",
+      "exitCode": 0,
+      "checks": 43,
+      "pass": 35,
+      "fail": 3,
+      "info": 5,
+      "criticalConfirmed": 0,
+      "changedChecks": ["T15a", "T15b", "T15c"],
+      "note": "The three FAIL rows are the old AF-02 defect-confirmation checks; they now fail because the defect is fixed."
+    },
+    {
+      "command": "npm.cmd run build (cwd wheel-dashboard)",
+      "status": "PASS",
+      "warnings": [
+        "framer-motion module-level 'use client' warnings",
+        "Vite chunk size warning above 500 kB"
+      ]
+    }
+  ],
+  "nonRegressions": {
+    "popPresentValues": [0.8, 0.86, 0.92, 0.99],
+    "popPresentVerdict": "All controlled AGGRESSIVE cases kept grade A, same selected ticker, capitalRequired 5000, premiumCollected 300, totalCapital 25000, freeCapital 25000.",
+    "trueZeroVerdict": "POP 0 normalized to 0%, grade WATCH, and the controlled AGGRESSIVE candidate was not selected.",
+    "untouchedAreas": [
+      "backend",
+      "IBKR",
+      "scanner",
+      "Journal POP",
+      "dashboard.jsx",
+      "capitalComboEngineV2.js",
+      "alternativeCompositionSimV1.js",
+      "caps",
+      "tie-break",
+      "soft-cap",
+      "freeCapital",
+      "yield bands",
+      "DTE rules",
+      "BALANCED fallback"
+    ],
+    "safeObservedRuntimeSnapshot": {
+      "capitalUsed": 25400,
+      "freeCapital": 100,
+      "approxReturnPct": 0.6118,
+      "fillPct": 99.6078,
+      "source": "Fable harness T11a/T11b"
+    }
+  },
+  "futureBalancedCompatibility": {
+    "note": "Le correctif POP est mode-agnostique et pourra etre utilise par une future jambe BALANCED explicite.",
+    "noBalancedLegCreated": true,
+    "noBalancedSelectionLogicChanged": true
+  },
+  "gitFinalExpected": {
+    "gitDiffNameOnly": ["wheel-dashboard/src/capitalComboPortfolio.js"],
+    "scopedGitStatus": [
+      " M wheel-dashboard/src/capitalComboPortfolio.js",
+      "?? wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs",
+      "?? debug/capital-combinations-af02-patch-validation/capital-combinations-af02-patch-validation.json",
+      "?? debug/capital-combinations-af02-patch-validation/capital-combinations-af02-patch-validation.md"
+    ],
+    "note": "git diff --name-only lists only tracked modifications; the test and reports are new untracked authorized files."
+  },
+  "gitCommandsForbiddenAndNotRun": ["git add", "git commit", "git push", "git reset", "git restore", "git checkout", "git clean", "git stash"]
+}

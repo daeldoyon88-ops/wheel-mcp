@@ -53,6 +53,27 @@ export function resolveLegSpreadPctPercent(leg) {
   return toSpreadPctPercent(rawSpread, { source: "dashboard_percent" });
 }
 
+export function normalizeOptionalPopDecimal(value) {
+  if (value == null) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return n > 1 ? n / 100 : n;
+}
+
+function firstKnownOptionalPopDecimal(...values) {
+  for (const value of values) {
+    const normalized = normalizeOptionalPopDecimal(value);
+    if (normalized != null) return normalized;
+  }
+  return null;
+}
+
+function normalizeOptionalPopPct(value) {
+  const decimal = normalizeOptionalPopDecimal(value);
+  return decimal == null ? null : decimal * 100;
+}
+
 function resolveOptimizerV2ForCombo(overrideFlags) {
   if (overrideFlags != null && typeof overrideFlags === "object") {
     return { ...CAPITAL_COMBO_OPTIMIZER_DEFAULTS, ...overrideFlags };
@@ -527,7 +548,7 @@ export function gradeLeg({ spreadPct, weeklyYieldPct, popDecimal }) {
   const spread = Number.isFinite(Number(spreadPct)) ? Number(spreadPct) : null;
   const yldRaw = Number(weeklyYieldPct);
   const yld = Number.isFinite(yldRaw) && yldRaw > 0 ? yldRaw : null;
-  const pop = Number.isFinite(Number(popDecimal)) ? Number(popDecimal) * 100 : null;
+  const pop = normalizeOptionalPopPct(popDecimal);
   if (spread == null) return "WATCH";
   if (spread > 35) return "REJECT";
   if (yld == null) return "WATCH";
@@ -540,7 +561,7 @@ export function gradeLeg({ spreadPct, weeklyYieldPct, popDecimal }) {
 export function getAggressivePriorityGrade({ spreadPct, weeklyYieldPct, popDecimal, distancePct }) {
   const spread = Number.isFinite(Number(spreadPct)) ? Number(spreadPct) : null;
   const yld = Number.isFinite(Number(weeklyYieldPct)) ? Number(weeklyYieldPct) : null;
-  const popPct = Number.isFinite(Number(popDecimal)) ? Number(popDecimal) * 100 : null;
+  const popPct = normalizeOptionalPopPct(popDecimal);
   const dist = Number.isFinite(Number(distancePct)) ? Number(distancePct) : null;
   if (spread == null || yld == null || popPct == null || dist == null) return null;
   if (yld < 0.90) return null;
@@ -548,6 +569,45 @@ export function getAggressivePriorityGrade({ spreadPct, weeklyYieldPct, popDecim
   if (popPct < 75) return null;
   if (dist > -5) return null;
   return spread <= 15 ? "A" : "B";
+}
+
+export function resolveSelectedLegGrade({ explicitGrade, selectedLeg, selectedMode, candidate = null }) {
+  const explicit = String(explicitGrade ?? "").trim().toUpperCase();
+  if (explicit) return explicit;
+  if (!selectedLeg) return null;
+
+  const mode = String(selectedMode ?? selectedLeg?.mode ?? "").trim().toUpperCase();
+  const spreadPct = getLegSpreadPct(selectedLeg);
+  const weeklyYieldPct = getLegYieldPct(selectedLeg, candidate);
+  const popDecimal = firstKnownOptionalPopDecimal(
+    selectedLeg?.popProfitEstimated,
+    selectedLeg?.popEstimate,
+  );
+  if (
+    spreadPct == null ||
+    weeklyYieldPct == null ||
+    !Number.isFinite(Number(spreadPct)) ||
+    !Number.isFinite(Number(weeklyYieldPct))
+  ) {
+    return "WATCH";
+  }
+
+  if (mode === "AGGRESSIVE") {
+    const priorityGrade = getAggressivePriorityGrade({
+      spreadPct,
+      weeklyYieldPct,
+      popDecimal,
+      distancePct: getLegDistancePct(selectedLeg),
+    });
+    if (priorityGrade) return priorityGrade;
+  }
+
+  return gradeLeg({ spreadPct, weeklyYieldPct, popDecimal });
+}
+
+function getComboGradeScore(grade) {
+  const normalized = String(grade ?? "").trim().toUpperCase();
+  return normalized === "A" ? 2 : normalized === "B" ? 1 : 0;
 }
 
 export const MODE_GRADE_RANK = {
@@ -683,13 +743,15 @@ export function getFinalDisplayRecommendation(item) {
     diag?.aggressiveSpreadPctDisplay ??
     diag?.aggressiveSpreadPct ??
     null;
-  const safePopDecimal =
-    item?.safeStrike?.popProfitEstimated ?? item?.safeStrike?.popEstimate ?? null;
-  const aggressivePopDecimal =
-    item?.aggressiveStrike?.popProfitEstimated ??
-    item?.aggressiveStrike?.popEstimate ??
-    diag?.aggressivePop ??
-    null;
+  const safePopDecimal = firstKnownOptionalPopDecimal(
+    item?.safeStrike?.popProfitEstimated,
+    item?.safeStrike?.popEstimate,
+  );
+  const aggressivePopDecimal = firstKnownOptionalPopDecimal(
+    item?.aggressiveStrike?.popProfitEstimated,
+    item?.aggressiveStrike?.popEstimate,
+    diag?.aggressivePop,
+  );
   const safeDistancePct = item?.safeStrike?.distancePct ?? diag?.safeDistancePct ?? null;
   const aggressiveDistancePct =
     item?.aggressiveStrike?.distancePct ?? diag?.aggressiveDistancePctDisplay ?? diag?.aggressiveDistancePct ?? null;
@@ -805,9 +867,8 @@ export function getLegDistancePct(leg) {
 }
 
 export function getLegPopPct(leg) {
-  const rawPop = Number(leg?.popProfitEstimated ?? leg?.popEstimate ?? NaN);
-  if (!Number.isFinite(rawPop)) return null;
-  return rawPop <= 1 ? rawPop * 100 : rawPop;
+  const popDecimal = firstKnownOptionalPopDecimal(leg?.popProfitEstimated, leg?.popEstimate);
+  return popDecimal == null ? null : popDecimal * 100;
 }
 
 /**
@@ -1171,7 +1232,11 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const safeSpreadPct = getLegSpreadPct(safeLeg);
   const safeYieldPct = getLegYieldPct(safeLeg, candidate);
   const safeDistancePct = getLegDistancePct(safeLeg);
-  const safePopPct = getLegPopPct(safeLeg);
+  const safePopDecimal = firstKnownOptionalPopDecimal(
+    safeLeg?.popProfitEstimated,
+    safeLeg?.popEstimate,
+  );
+  const safePopPct = safePopDecimal == null ? null : safePopDecimal * 100;
   const safeCapital = Number.isFinite(safeStrikeValue) && safeStrikeValue > 0 ? safeStrikeValue * 100 : 0;
   const safeGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
 
@@ -1180,20 +1245,24 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const aggSpreadPct = getLegSpreadPct(aggLeg);
   const aggYieldPct = getLegYieldPct(aggLeg, candidate);
   const aggDistancePct = getLegDistancePct(aggLeg);
-  const aggPopPct = getLegPopPct(aggLeg);
+  const aggPopDecimal = firstKnownOptionalPopDecimal(
+    aggLeg?.popProfitEstimated,
+    aggLeg?.popEstimate,
+  );
+  const aggPopPct = aggPopDecimal == null ? null : aggPopDecimal * 100;
   const aggCapital = Number.isFinite(aggStrikeValue) && aggStrikeValue > 0 ? aggStrikeValue * 100 : 0;
   // Derive grade from actual leg yield (bid/strike fallback) — avoids weeklyYield=0 giving "WATCH"
   const _aggDerivedGrade = gradeLeg({
     spreadPct: aggSpreadPct,
     weeklyYieldPct: aggYieldPct,
-    popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
+    popDecimal: aggPopDecimal,
   });
   const _aggStoredGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
   const aggGrade =
     getAggressivePriorityGrade({
       spreadPct: aggSpreadPct,
       weeklyYieldPct: aggYieldPct,
-      popDecimal: aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate,
+      popDecimal: aggPopDecimal,
       distancePct: aggDistancePct,
     }) ??
     (_aggDerivedGrade !== "REJECT" ? _aggDerivedGrade : null) ??
@@ -1226,7 +1295,7 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const capitalPerContract = Number.isFinite(strike) && strike > 0 ? strike * 100 : 0;
   const premiumPerContract =
     Number.isFinite(premiumUnit) && premiumUnit > 0 ? premiumUnit * 100 : 0;
-  const gradeScore = finalDisplayGrade === "A" ? 2 : finalDisplayGrade === "B" ? 1 : 0;
+  const gradeScore = getComboGradeScore(finalDisplayGrade);
   const distanceScore =
     Number.isFinite(distancePct) && distancePct <= 0 ? Math.min(Math.abs(distancePct) / 10, 2) : 0;
   const contractsPenaltyScore = capitalPerContract > 0 ? capitalPerContract / 1000 : 0;
@@ -1525,6 +1594,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         let bucketStrikeValue = null;
         let bucketCapital = 0;
         let bucketGrade = null;
+        let bucketMode = null;
 
         if (mode.id === "conservative") {
           // SAFE : utiliser exclusivement la jambe SAFE
@@ -1533,6 +1603,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             bucketStrikeValue = candidate._safeStrikeValue;
             bucketCapital = candidate._safeCapital;
             bucketGrade = candidate._safeGrade;
+            bucketMode = "SAFE";
           }
         } else if (mode.id === "aggressive") {
           // AGGRESSIVE : utiliser exclusivement la jambe AGGRESSIVE
@@ -1541,6 +1612,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             bucketStrikeValue = candidate._aggStrikeValue;
             bucketCapital = candidate._aggCapital;
             bucketGrade = candidate._aggGrade;
+            bucketMode = "AGGRESSIVE";
           }
         } else {
           // BALANCED : choisir la meilleure jambe dans la bande de rendement [0.75, 1.05)
@@ -1552,23 +1624,23 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           if (safeInRange && aggInRange) {
             if (Math.abs(safeY - MID) <= Math.abs(aggY - MID)) {
               bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
-              bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade;
+              bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade; bucketMode = "SAFE";
             } else {
               bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
-              bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade;
+              bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade; bucketMode = "AGGRESSIVE";
             }
           } else if (safeInRange) {
             bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
-            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade;
+            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade; bucketMode = "SAFE";
           } else if (aggInRange) {
             bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
-            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade;
+            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade; bucketMode = "AGGRESSIVE";
           } else if (candidate._hasAggLegValid) {
             bucketLeg = candidate._aggLeg; bucketStrikeValue = candidate._aggStrikeValue;
-            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade;
+            bucketCapital = candidate._aggCapital; bucketGrade = candidate._aggGrade; bucketMode = "AGGRESSIVE";
           } else if (candidate._hasSafeLegValid) {
             bucketLeg = candidate._safeLeg; bucketStrikeValue = candidate._safeStrikeValue;
-            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade;
+            bucketCapital = candidate._safeCapital; bucketGrade = candidate._safeGrade; bucketMode = "SAFE";
           }
         }
 
@@ -1583,12 +1655,20 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         const resolvedCapital = Number.isFinite(bucketStrikeValue) && bucketStrikeValue > 0
           ? bucketStrikeValue * 100
           : bucketCapital;
-        const resolvedGrade = String(bucketGrade ?? candidate.finalDisplayGrade ?? "").toUpperCase();
+        const resolvedGrade = String(
+          resolveSelectedLegGrade({
+            explicitGrade: bucketGrade,
+            selectedLeg: bucketLeg,
+            selectedMode: bucketMode,
+            candidate,
+          }) ?? ""
+        ).toUpperCase();
 
         return {
           ...candidate,
           _hasBucketLeg: true,
           selectedLeg: bucketLeg,
+          selectedLegGrade: resolvedGrade || null,
           selectedStrikeValue: bucketStrikeValue,
           selectedPremiumUnit: bucketPremium,
           selectedSpreadPct: bucketSpread,
@@ -1600,7 +1680,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           proExecutionScore: bucketExecutionScore ?? candidate.proExecutionScore,
           capitalPerContract: resolvedCapital,
           premiumPerContract: Number.isFinite(bucketPremium) && bucketPremium > 0 ? bucketPremium * 100 : 0,
-          finalDisplayGrade: resolvedGrade || candidate.finalDisplayGrade,
+          finalDisplayGrade: resolvedGrade,
+          _comboGradeScore: getComboGradeScore(resolvedGrade),
           weeklyReturn: bucketYield ?? candidate.weeklyReturn,
           spreadPct: bucketSpread ?? candidate.spreadPct,
           _qualityOverlay: computeTickerQualityOverlay({

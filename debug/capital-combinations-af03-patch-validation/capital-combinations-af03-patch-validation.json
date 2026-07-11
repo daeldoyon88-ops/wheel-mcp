@@ -1,0 +1,401 @@
+{
+  "title": "Validation patch AF-03 - grade de la jambe selectionnee",
+  "generatedAtLocal": "2026-07-11",
+  "workspace": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "gitInitial": {
+    "revParseShowToplevel": "C:/Users/melan/Desktop/wheel-mcp-remote",
+    "statusBranchLine": "## main...origin/main",
+    "trackedDiffNameOnlyBeforePatch": [
+      "wheel-dashboard/src/capitalComboPortfolio.js"
+    ],
+    "capitalComboPortfolioInitialState": "already modified before AF-03; existing diff was identified as AF-02 POP normalization",
+    "worktreeNoise": "many pre-existing untracked debug/scripts/data files were present and left untouched"
+  },
+  "preExistingAf02Diff": {
+    "summary": "AF-02 already added normalizeOptionalPopDecimal, firstKnownOptionalPopDecimal, normalizeOptionalPopPct and routed POP normalization through gradeLeg, getAggressivePriorityGrade, getFinalDisplayRecommendation, getLegPopPct, and buildCapitalComboCandidate.",
+    "preserved": true,
+    "expectedBehavior": {
+      "nullUndefinedEmptyNaN": "remain unknown",
+      "zero": "remains a real 0 percent POP",
+      "decimalOrPercent": "0.86 and 86 both represent 86 percent"
+    }
+  },
+  "sourceFileModified": "wheel-dashboard/src/capitalComboPortfolio.js",
+  "testFileCreated": "wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+  "reportFilesCreated": [
+    "debug/capital-combinations-af03-patch-validation/capital-combinations-af03-patch-validation.json",
+    "debug/capital-combinations-af03-patch-validation/capital-combinations-af03-patch-validation.md"
+  ],
+  "functionsModified": [
+    "resolveSelectedLegGrade",
+    "getComboGradeScore",
+    "buildCapitalComboCandidate",
+    "buildPortfolioCombos.makeCombo"
+  ],
+  "bugCause": {
+    "exactPath": "buildPortfolioCombos -> makeCombo -> bucketResolvedPool -> resolvedGrade",
+    "oldExpression": "String(bucketGrade ?? candidate.finalDisplayGrade ?? '').toUpperCase()",
+    "badFallback": "candidate.finalDisplayGrade is the source candidate grade and can come from the AGGRESSIVE leg while the bucket selected the SAFE leg",
+    "scoreImpact": "buildCapitalComboScoreBreakdown uses candidate.finalDisplayGrade for gradeNorm, and _comboGradeScore was also source-grade based before the bucket rewrite"
+  },
+  "patchApplied": {
+    "strategy": "resolve selected-leg grade generically: explicit selected leg grade first, else derive from selectedLeg metrics, never candidate.finalDisplayGrade",
+    "selectedLegGradeOrder": [
+      "explicitGrade",
+      "AGGRESSIVE getAggressivePriorityGrade when selectedMode is AGGRESSIVE",
+      "gradeLeg from selectedLeg metrics",
+      "WATCH when selectedLeg metrics are insufficient",
+      "null only when selectedLeg is absent"
+    ],
+    "sourceGradeUsageAfterPatch": "metadata/display source can still exist, but it is not used as selected-leg grade fallback",
+    "balancedCompatibility": "helper accepts selectedMode BALANCED and derives via gradeLeg; no balancedLeg or live BALANCED leg was created",
+    "untouchedAreas": [
+      "dashboard.jsx",
+      "capitalComboEngineV2.js",
+      "alternativeCompositionSimV1.js",
+      "backend",
+      "IBKR",
+      "Journal POP",
+      "caps",
+      "yield bands",
+      "BALANCED selection rule",
+      "filler",
+      "leftover",
+      "tie-break structure",
+      "scanner"
+    ]
+  },
+  "controlledCrmOrcl": {
+    "selectedLeg": {
+      "CRM": {
+        "selectedMode": "SAFE",
+        "sourceMode": "AGGRESSIVE",
+        "sourceGrade": "A",
+        "explicitSafeGrade": null,
+        "derivedGrade": "B",
+        "strike": 50,
+        "premiumUnit": 0.27,
+        "weeklyReturnPct": 0.54,
+        "spreadPct": 12,
+        "distancePct": -6,
+        "popPct": 82
+      },
+      "ORCL": {
+        "selectedMode": "SAFE",
+        "sourceMode": "SAFE",
+        "sourceGrade": "B",
+        "explicitSafeGrade": "B",
+        "derivedGrade": "B",
+        "strike": 50,
+        "premiumUnit": 0.27,
+        "weeklyReturnPct": 0.54,
+        "spreadPct": 12,
+        "distancePct": -8,
+        "popPct": 82
+      }
+    },
+    "beforePatchCapturedBeforeEdit": {
+      "CRM_safeGrade_null": {
+        "gradeBefore": "A",
+        "scoreBefore": 69,
+        "pickBefore": "CRM"
+      },
+      "CRM_safeGrade_B": {
+        "gradeBefore": "B",
+        "scoreBefore": 68,
+        "pickBefore": "ORCL"
+      }
+    },
+    "afterPatch": {
+      "CRM_safeGrade_null": {
+        "gradeAfter": "B",
+        "crmScoreAfter": 63,
+        "pickAfter": "ORCL",
+        "winningPickScoreAfter": 68
+      },
+      "CRM_safeGrade_B": {
+        "gradeAfter": "B",
+        "crmScoreAfter": 63,
+        "pickAfter": "ORCL",
+        "winningPickScoreAfter": 68
+      }
+    },
+    "verdict": "PASS - missing safeGrade is invariant with explicit safeGrade B and ORCL wins"
+  },
+  "testMatrix": [
+    {
+      "case": "CRM safeGrade null",
+      "explicitLegGrade": null,
+      "sourceGrade": "A",
+      "derivedExpected": "B",
+      "gradeBefore": "A",
+      "gradeAfter": "B",
+      "scoreBefore": 69,
+      "scoreAfter": 63,
+      "pickBefore": "CRM",
+      "pickAfter": "ORCL",
+      "verdict": "PASS"
+    },
+    {
+      "case": "CRM safeGrade B",
+      "explicitLegGrade": "B",
+      "sourceGrade": "A",
+      "derivedExpected": "B",
+      "gradeBefore": "B",
+      "gradeAfter": "B",
+      "scoreBefore": 68,
+      "scoreAfter": 63,
+      "pickBefore": "ORCL",
+      "pickAfter": "ORCL",
+      "verdict": "PASS"
+    },
+    {
+      "case": "sourceGrade A/B/WATCH",
+      "explicitLegGrade": null,
+      "sourceGrade": "A, B, WATCH",
+      "derivedExpected": "B",
+      "gradeBefore": "source-dependent in historical bug",
+      "gradeAfter": "B",
+      "scoreBefore": "source-dependent in historical bug",
+      "scoreAfter": "identical",
+      "pickBefore": "source-dependent",
+      "pickAfter": "identical",
+      "verdict": "PASS"
+    },
+    {
+      "case": "POP null",
+      "explicitLegGrade": null,
+      "sourceGrade": "A",
+      "derivedExpected": "B",
+      "gradeBefore": "source fallback risk",
+      "gradeAfter": "B",
+      "scoreBefore": null,
+      "scoreAfter": 69,
+      "pickBefore": null,
+      "pickAfter": "CRM",
+      "verdict": "PASS - POP remains unknown"
+    },
+    {
+      "case": "POP 0",
+      "explicitLegGrade": null,
+      "sourceGrade": "A",
+      "derivedExpected": "WATCH",
+      "gradeBefore": "source fallback risk",
+      "gradeAfter": "WATCH",
+      "scoreBefore": null,
+      "scoreAfter": null,
+      "pickBefore": null,
+      "pickAfter": null,
+      "verdict": "PASS - 0 remains a known zero and SAFE gate rejects WATCH"
+    },
+    {
+      "case": "AGGRESSIVE explicit",
+      "explicitLegGrade": "A",
+      "sourceGrade": "B",
+      "derivedExpected": "A",
+      "gradeBefore": "A",
+      "gradeAfter": "A",
+      "scoreBefore": null,
+      "scoreAfter": null,
+      "pickBefore": "NFLX",
+      "pickAfter": "NFLX",
+      "verdict": "PASS"
+    },
+    {
+      "case": "AGGRESSIVE missing",
+      "explicitLegGrade": null,
+      "sourceGrade": "A",
+      "derivedExpected": "B",
+      "gradeBefore": "source fallback risk",
+      "gradeAfter": "B",
+      "scoreBefore": null,
+      "scoreAfter": 65,
+      "pickBefore": null,
+      "pickAfter": "NFLX",
+      "verdict": "PASS"
+    },
+    {
+      "case": "BALANCED current SAFE leg",
+      "explicitLegGrade": null,
+      "sourceGrade": "A",
+      "derivedExpected": "B",
+      "gradeBefore": "source fallback risk",
+      "gradeAfter": "B",
+      "scoreBefore": null,
+      "scoreAfter": 73,
+      "pickBefore": null,
+      "pickAfter": "CRM",
+      "verdict": "PASS - selected strike/premium unchanged"
+    },
+    {
+      "case": "BALANCED current AGGRESSIVE leg",
+      "explicitLegGrade": null,
+      "sourceGrade": "A",
+      "derivedExpected": "B",
+      "gradeBefore": "source fallback risk",
+      "gradeAfter": "B",
+      "scoreBefore": null,
+      "scoreAfter": 73,
+      "pickBefore": null,
+      "pickAfter": "ORCL",
+      "verdict": "PASS - selected strike/premium unchanged"
+    }
+  ],
+  "financialNonRegression": {
+    "controlledCrmOrclAfterPatch": {
+      "winningPick": "ORCL",
+      "strike": 50,
+      "premiumUnit": 0.27,
+      "weeklyReturnPct": 0.54,
+      "spreadPct": 12,
+      "distancePct": -8,
+      "popPct": 82,
+      "capitalRequired": 5000,
+      "premiumCollected": 27
+    },
+    "observedSafeRuntimeSnapshot": "Non verifiable avec le snapshot runtime disponible.",
+    "historicalFableT11": {
+      "capitalTotalUsd": 25400,
+      "freeCapitalUsd": 100,
+      "returnPct": 0.6118,
+      "fillPct": 99.6078,
+      "note": "validated by historical Fable harness, not by a live runtime snapshot"
+    }
+  },
+  "testsExecuted": [
+    {
+      "command": "node --check wheel-dashboard/src/capitalComboPortfolio.js",
+      "status": "PASS"
+    },
+    {
+      "command": "node --check wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+      "status": "PASS"
+    },
+    {
+      "command": "node --test wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+      "status": "PASS",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0
+    },
+    {
+      "command": "node --test wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs",
+      "status": "PASS",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0
+    },
+    {
+      "command": "node --test wheel-dashboard/src/spreadPctPercent.test.mjs",
+      "status": "PASS",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0
+    },
+    {
+      "command": "node debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs",
+      "status": "PASS_WITH_HISTORICAL_FAILS",
+      "checks": 43,
+      "pass": 32,
+      "fail": 6,
+      "info": 5,
+      "criticalConfirmed": 0
+    },
+    {
+      "command": "npm.cmd run build (cwd wheel-dashboard)",
+      "status": "PASS",
+      "warnings": [
+        "framer-motion module-level use client warnings",
+        "Vite chunk size warning above 500 kB"
+      ]
+    }
+  ],
+  "historicalFableHarness": {
+    "totals": {
+      "checks": 43,
+      "pass": 32,
+      "fail": 6,
+      "info": 5,
+      "criticalConfirmed": 0
+    },
+    "fails": [
+      {
+        "id": "T2b",
+        "title": "safeGrade absent => old SAFE bucket scored source grade A instead of leg grade B",
+        "belongsTo": "AF-03",
+        "obsoleteHistoricalCheck": true,
+        "realRegression": false
+      },
+      {
+        "id": "T2c",
+        "title": "portfolio changed when only safeGrade presence changed",
+        "belongsTo": "AF-03",
+        "obsoleteHistoricalCheck": true,
+        "realRegression": false
+      },
+      {
+        "id": "T3a",
+        "title": "source grade decided equal-score portfolio",
+        "belongsTo": "AF-03/source-grade contamination",
+        "obsoleteHistoricalCheck": true,
+        "realRegression": false
+      },
+      {
+        "id": "T15a",
+        "title": "gradeLeg POP null old defect confirmation",
+        "belongsTo": "AF-02",
+        "obsoleteHistoricalCheck": true,
+        "realRegression": false
+      },
+      {
+        "id": "T15b",
+        "title": "SAFE POP null old defect confirmation",
+        "belongsTo": "AF-02",
+        "obsoleteHistoricalCheck": true,
+        "realRegression": false
+      },
+      {
+        "id": "T15c",
+        "title": "AGGRESSIVE POP null old defect confirmation",
+        "belongsTo": "AF-02",
+        "obsoleteHistoricalCheck": true,
+        "realRegression": false
+      }
+    ]
+  },
+  "futureBalancedCompatibility": {
+    "helperCase": {
+      "selectedMode": "BALANCED",
+      "explicitGrade": "A",
+      "resultExplicit": "A",
+      "resultDerivedWhenMissing": "B",
+      "sourceGradeIgnored": true
+    },
+    "liveEngineChanges": [
+      "no balancedLeg created",
+      "no balancedStrike created",
+      "no balancedGrade created",
+      "current BALANCED selection fallback unchanged"
+    ]
+  },
+  "nonRegressions": {
+    "AF02": "PASS - pop-null test remains 6/6",
+    "spreadPct": "PASS - spread test remains 15/15",
+    "build": "PASS",
+    "sourceGradeNoLongerFallback": "PASS",
+    "tieBreakStructure": "unchanged; equal selected-leg scores still follow existing input order in TEST 15",
+    "noGitAddCommitPush": true
+  },
+  "gitFinal": {
+    "diffNameOnlyTracked": [
+      "wheel-dashboard/src/capitalComboPortfolio.js"
+    ],
+    "newAuthorizedUntrackedFiles": [
+      "wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+      "debug/capital-combinations-af03-patch-validation/capital-combinations-af03-patch-validation.json",
+      "debug/capital-combinations-af03-patch-validation/capital-combinations-af03-patch-validation.md"
+    ],
+    "statusBranchLine": "## main...origin/main",
+    "note": "pre-existing unrelated untracked files remain present and untouched"
+  }
+}

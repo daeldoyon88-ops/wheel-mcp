@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "patch": "AF-17",
+    "generatedAt": "2026-07-12T04:29:57.670Z",
+    "head": "932cc9d fix selected-leg pro scores and pick metadata",
+    "verdict": "PATCH APPLIED — SAFE TO COMMIT",
+    "af17Verdict": "APPLIED"
+  },
+  "initialGitState": {
+    "head": "932cc9d fix selected-leg pro scores and pick metadata",
+    "branch": "## main...origin/main",
+    "trackedModified": []
+  },
+  "cause": "Bandes minWeeklyYield/maxWeeklyYield comparaient le rendement brut de période mal nommé weekly",
+  "policy": {
+    "option": "A — getLegPeriodYieldPct legacy + getLegWeeklyNormalizedYieldPct pour combos",
+    "formula": "weeklyNormalizedYieldPct = periodYieldPct × 7 / DTE",
+    "legacyFallback": "Si aucun champ DTE défini (undefined), periodYield traité comme hebdo (≈7 DTE historique)",
+    "doubleNormalizationPrevention": "Priorité leg.weeklyNormalizedYield ; jamais ×7/DTE sur ce champ"
+  },
+  "filesModified": [
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/capitalComboPortfolio.pick-metadata.test.mjs"
+  ],
+  "filesCreated": [
+    "wheel-dashboard/src/capitalComboPortfolio.weekly-normalized-yield.test.mjs",
+    "wheel-dashboard/src/capitalComboPortfolio.af17-allocation.test.mjs",
+    "debug/capital-combinations-af17-patch-validation/capital-combinations-af17-patch-validation.md",
+    "debug/capital-combinations-af17-patch-validation/capital-combinations-af17-patch-validation.json"
+  ],
+  "helpers": {
+    "period": "getLegPeriodYieldPct",
+    "weekly": "getLegWeeklyNormalizedYieldPct",
+    "dte": "resolveLegDte / isValidComboDte",
+    "legacy": "getLegYieldPct → getLegPeriodYieldPct"
+  },
+  "bandsUnchanged": {
+    "SAFE": {
+      "min": 0.45,
+      "max": 0.8
+    },
+    "BALANCED": {
+      "min": 0.7,
+      "max": 1.05,
+      "v3Min": 0.675
+    },
+    "AGGRESSIVE": {
+      "min": 0.95
+    },
+    "balancedPreferred": {
+      "min": 0.75,
+      "max": 1.05,
+      "mid": 0.875
+    }
+  },
+  "dteResults": {
+    "1": {
+      "periodYieldPct": 0.5,
+      "weeklyNormalizedPct": 3.5,
+      "expectedWeekly": 3.5
+    },
+    "3": {
+      "periodYieldPct": 0.5,
+      "weeklyNormalizedPct": 1.1666666666666667,
+      "expectedWeekly": 1.1667
+    },
+    "4": {
+      "periodYieldPct": 0.7,
+      "weeklyNormalizedPct": 1.2249999999999999,
+      "expectedWeekly": 1.225
+    },
+    "7": {
+      "periodYieldPct": 0.7,
+      "weeklyNormalizedPct": 0.7,
+      "expectedWeekly": 0.7
+    },
+    "10": {
+      "periodYieldPct": 0.8,
+      "weeklyNormalizedPct": 0.56,
+      "expectedWeekly": 0.56
+    },
+    "14": {
+      "periodYieldPct": 0.8,
+      "weeklyNormalizedPct": 0.4,
+      "expectedWeekly": 0.4
+    },
+    "21": {
+      "periodYieldPct": 1,
+      "weeklyNormalizedPct": 0.3333333333333333,
+      "expectedWeekly": 0.3333
+    },
+    "30": {
+      "periodYieldPct": 1.5,
+      "weeklyNormalizedPct": 0.35,
+      "expectedWeekly": 0.35
+    },
+    "45": {
+      "periodYieldPct": 2,
+      "weeklyNormalizedPct": 0.3111111111111111,
+      "expectedWeekly": 0.3111
+    }
+  },
+  "casReference": {
+    "A": {
+      "dte": 3,
+      "period": 0.5,
+      "weekly": 1.1667,
+      "safeGate": false,
+      "aggressiveGate": true
+    },
+    "B": {
+      "dte": 7,
+      "period": 0.7,
+      "weekly": 0.7,
+      "unchanged": true
+    },
+    "C": {
+      "dte": 14,
+      "period": 0.8,
+      "weekly": 0.4,
+      "balancedWasPeriod": true
+    },
+    "D": {
+      "dte": 30,
+      "period": 1.5,
+      "weekly": 0.35,
+      "aggressiveRejected": true
+    }
+  },
+  "testsAF17": {
+    "weeklyNormalized": {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.weekly-normalized-yield.test.mjs",
+      "pass": 55,
+      "fail": 0,
+      "ok": true
+    },
+    "allocation": {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.af17-allocation.test.mjs",
+      "pass": 13,
+      "fail": 0,
+      "ok": true
+    },
+    "totalPass": 68,
+    "totalFail": 0
+  },
+  "nonRegressions": [
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.negative-spread.test.mjs",
+      "pass": 32,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.free-capital.test.mjs",
+      "pass": 15,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.soft-cap.test.mjs",
+      "pass": 27,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.pop-null.test.mjs",
+      "pass": 6,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.selected-leg-grade.test.mjs",
+      "pass": 15,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.deterministic-tiebreak.test.mjs",
+      "pass": 26,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboInputPool.test.mjs",
+      "pass": 22,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.balanced-fallback.test.mjs",
+      "pass": 30,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.selected-leg-pro-score.test.mjs",
+      "pass": 20,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/capitalComboPortfolio.pick-metadata.test.mjs",
+      "pass": 37,
+      "fail": 0,
+      "ok": true
+    },
+    {
+      "file": "wheel-dashboard/src/spreadPctPercent.test.mjs",
+      "pass": 15,
+      "fail": 0,
+      "ok": true
+    }
+  ],
+  "build": {
+    "ok": true,
+    "command": "npm run build in wheel-dashboard"
+  },
+  "fable": {
+    "note": "Fable re-exécuté post-patch ; T15b/T15c FAIL préexistants (grade/POP), non liés AF-17",
+    "yieldRelated": "T12e borne 0,80 % désormais cohérente en hebdomadaire à 7 DTE"
+  },
+  "knownFailures": [],
+  "pickMetadataTest6Fix": {
+    "rejectionBeforeFix": "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT — hebdo 0,84 % > SAFE max 0,80 %",
+    "fixtureAfter": "dte=5, periodYield=0,50, weeklyNormalizedYield=0,70"
+  },
+  "gitConfirmations": {
+    "noAdd": true,
+    "noCommit": true,
+    "noPush": true
+  }
+}

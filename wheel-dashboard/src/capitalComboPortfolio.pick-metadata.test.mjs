@@ -151,7 +151,17 @@ test("TEST 5 — expiration totalement absente : null contrôlé", () => {
 });
 
 test("TEST 6 — DTE selectedLeg", () => {
-  const safe = makeLeg({ strike: 50, dte: 5, expiration: EXP_SAFE });
+  // AF-17 : dte=5 + period 0,60 % ⇒ hebdo 0,84 % > SAFE max 0,80 % — fixture explicite période/hebdo.
+  const safe = makeLeg({
+    strike: 50,
+    dte: 5,
+    expiration: EXP_SAFE,
+    yieldPct: 0.5,
+    bid: 0.25,
+  });
+  safe.periodYield = 0.5;
+  safe.weeklyYield = 0.5;
+  safe.weeklyNormalizedYield = 0.7; // 0,50 × 7 / 5 — admissible SAFE [0,45 ; 0,80)
   const p = pick([makeCandidate({ safe, safeGrade: "A", finalDisplayMode: "SAFE" })], "SAFE", "AAPL");
   assert.equal(p?.dte, 5);
 });

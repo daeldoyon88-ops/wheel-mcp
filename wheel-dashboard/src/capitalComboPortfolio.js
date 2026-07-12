@@ -982,16 +982,114 @@ export function getLegSpreadPct(leg) {
   return resolveLegSpreadPctPercent(leg);
 }
 
-export function getLegYieldPct(leg, candidate) {
-  const directYield = Number(leg?.weeklyYield ?? leg?.periodYield ?? NaN);
+/** DTE strictement positif et fini — utilisé pour la normalisation hebdomadaire AF-17. */
+export function isValidComboDte(dte) {
+  const n = Number(dte);
+  return Number.isFinite(n) && n > 0;
+}
+
+/** DTE résolu : jambe d'abord, puis candidat parent (dteDays, dteAtScan, dte). */
+export function resolveLegDte(leg, candidate) {
+  const raw = pickMetadataNumber(
+    leg?.dteDays,
+    leg?.dte,
+    candidate?.dteDays,
+    candidate?.dteAtScan,
+    candidate?.dte,
+  );
+  return isValidComboDte(raw) ? raw : null;
+}
+
+function hasExplicitInvalidDte(leg, candidate) {
+  for (const value of [
+    leg?.dteDays,
+    leg?.dte,
+    candidate?.dteDays,
+    candidate?.dteAtScan,
+    candidate?.dte,
+  ]) {
+    if (value == null || value === "") continue;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return true;
+  }
+  return false;
+}
+
+function isDteFieldUnset(leg, candidate) {
+  const legUnset =
+    (leg == null || (leg.dteDays === undefined && leg.dte === undefined));
+  const candUnset =
+    candidate == null ||
+    (candidate.dteDays === undefined &&
+      candidate.dteAtScan === undefined &&
+      candidate.dte === undefined);
+  return legUnset && candUnset;
+}
+
+function normalizeWeeklyYieldPctReading(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n > 0 && n <= 0.05) return n * 100;
+  return n;
+}
+
+function periodYieldPctToWeeklyNormalized(periodYieldPct, dte) {
+  if (!isValidComboDte(dte)) return null;
+  const period = Number(periodYieldPct);
+  if (!Number.isFinite(period) || period <= 0) return null;
+  const weekly = (period * 7) / dte;
+  return Number.isFinite(weekly) && weekly > 0 ? weekly : null;
+}
+
+/**
+ * Rendement brut jusqu'à expiration (%), ex. 0,50 pour 0,50 %.
+ * `weeklyYield` / `periodYield` historiques du scanner/dashboard sont traités comme période.
+ */
+export function getLegPeriodYieldPct(leg, candidate) {
+  const directYield = Number(leg?.periodYield ?? leg?.weeklyYield ?? NaN);
   if (Number.isFinite(directYield) && directYield > 0) return directYield;
   const strike = Number(leg?.strike ?? NaN);
   const premium = getLegPremiumValue(leg);
   if (Number.isFinite(strike) && strike > 0 && Number.isFinite(premium) && premium > 0) {
     return (premium / strike) * 100;
   }
-  const fallbackYield = Number(candidate?.weeklyReturn ?? NaN);
-  return Number.isFinite(fallbackYield) && fallbackYield > 0 ? fallbackYield : null;
+  const explicitPeriod = Number(candidate?.selectedPeriodYieldPct ?? candidate?.periodYieldPct ?? NaN);
+  if (Number.isFinite(explicitPeriod) && explicitPeriod > 0) return explicitPeriod;
+  return null;
+}
+
+/** Compatibilité legacy — rendement de période (%). */
+export function getLegYieldPct(leg, candidate) {
+  return getLegPeriodYieldPct(leg, candidate);
+}
+
+/**
+ * Rendement hebdomadaire linéarisé (%) pour bandes / scoring Capital Combinations (AF-17).
+ * Priorité : leg.weeklyNormalizedYield → recalcul période×7/DTE → legacy DTE=7 seulement.
+ */
+export function getLegWeeklyNormalizedYieldPct(leg, candidate, options = {}) {
+  const { allowParentCandidateFallback = false } = options;
+
+  const directNorm = normalizeWeeklyYieldPctReading(leg?.weeklyNormalizedYield);
+  if (directNorm != null) return directNorm;
+
+  if (allowParentCandidateFallback) {
+    const parentNorm = normalizeWeeklyYieldPctReading(candidate?.weeklyNormalizedYield);
+    if (parentNorm != null) return parentNorm;
+  }
+
+  const dte = resolveLegDte(leg, candidate);
+  const periodPct = getLegPeriodYieldPct(leg, candidate);
+
+  const fromPeriod = periodYieldPctToWeeklyNormalized(periodPct, dte);
+  if (fromPeriod != null) return fromPeriod;
+
+  if (hasExplicitInvalidDte(leg, candidate)) return null;
+
+  // Legacy contrôlé : aucun champ DTE présent (fixtures historiques ≈ 7 DTE).
+  if (isDteFieldUnset(leg, candidate) && periodPct != null) return periodPct;
+
+  return null;
 }
 
 export function getLegDistancePct(leg) {
@@ -1069,9 +1167,11 @@ function normalizeDistancePctToScannerDecimal(distancePctRaw) {
   return abs > 1 ? abs / 100 : abs;
 }
 
-/** Rendement scanner : decimal hebdo (ex. 0.00607). Jambe combo : % via getLegYieldPct. */
+/** Rendement hebdomadaire normalisé en decimal pour proScore (ex. 0.00607 = 0,607 %/sem). */
 function getLegWeeklyYieldDecimalForProScore(leg, candidate) {
-  const yieldPct = getLegYieldPct(leg, candidate);
+  const yieldPct = getLegWeeklyNormalizedYieldPct(leg, candidate, {
+    allowParentCandidateFallback: true,
+  });
   if (!Number.isFinite(yieldPct) || yieldPct <= 0) return null;
   return yieldPct / 100;
 }
@@ -1587,7 +1687,8 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const safeStrikeValue = Number(safeLeg?.strike ?? NaN);
   const safePremium = getLegPremiumValue(safeLeg);
   const safeSpreadPct = getLegSpreadPct(safeLeg);
-  const safeYieldPct = getLegYieldPct(safeLeg, candidate);
+  const safePeriodYieldPct = getLegPeriodYieldPct(safeLeg, candidate);
+  const safeYieldPct = getLegWeeklyNormalizedYieldPct(safeLeg, candidate);
   const safeDistancePct = getLegDistancePct(safeLeg);
   const safePopDecimal = firstKnownOptionalPopDecimal(
     safeLeg?.popProfitEstimated,
@@ -1600,7 +1701,8 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const aggStrikeValue = Number(aggLeg?.strike ?? NaN);
   const aggPremium = getLegPremiumValue(aggLeg);
   const aggSpreadPct = getLegSpreadPct(aggLeg);
-  const aggYieldPct = getLegYieldPct(aggLeg, candidate);
+  const aggPeriodYieldPct = getLegPeriodYieldPct(aggLeg, candidate);
+  const aggYieldPct = getLegWeeklyNormalizedYieldPct(aggLeg, candidate);
   const aggDistancePct = getLegDistancePct(aggLeg);
   const aggPopDecimal = firstKnownOptionalPopDecimal(
     aggLeg?.popProfitEstimated,
@@ -1611,14 +1713,14 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   // Derive grade from actual leg yield (bid/strike fallback) — avoids weeklyYield=0 giving "WATCH"
   const _aggDerivedGrade = gradeLeg({
     spreadPct: aggSpreadPct,
-    weeklyYieldPct: aggYieldPct,
+    weeklyYieldPct: aggPeriodYieldPct,
     popDecimal: aggPopDecimal,
   });
   const _aggStoredGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
   const aggGrade =
     getAggressivePriorityGrade({
       spreadPct: aggSpreadPct,
-      weeklyYieldPct: aggYieldPct,
+      weeklyYieldPct: aggPeriodYieldPct,
       popDecimal: aggPopDecimal,
       distancePct: aggDistancePct,
     }) ??
@@ -1629,12 +1731,14 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
     Number.isFinite(safeStrikeValue) && safeStrikeValue > 0 &&
     Number.isFinite(safePremium) && safePremium > 0 &&
     Number.isFinite(safeSpreadPct) && safeSpreadPct >= 0 && safeSpreadPct <= 35 &&
+    Number.isFinite(safePeriodYieldPct) && safePeriodYieldPct > 0 &&
     Number.isFinite(safeYieldPct) && safeYieldPct > 0;
 
   const hasAggLegValid = !!aggLeg &&
     Number.isFinite(aggStrikeValue) && aggStrikeValue > 0 &&
     Number.isFinite(aggPremium) && aggPremium > 0 &&
     Number.isFinite(aggSpreadPct) && aggSpreadPct >= 0 && aggSpreadPct <= 35 &&
+    Number.isFinite(aggPeriodYieldPct) && aggPeriodYieldPct > 0 &&
     Number.isFinite(aggYieldPct) && aggYieldPct > 0;
 
   const commonBlocked =
@@ -1646,7 +1750,10 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const strike = Number(selectedLeg?.strike ?? NaN);
   const premiumUnit = getLegPremiumValue(selectedLeg);
   const spreadPct = getLegSpreadPct(selectedLeg);
-  const weeklyReturn = getLegYieldPct(selectedLeg, candidate);
+  const selectedPeriodYieldPct = getLegPeriodYieldPct(selectedLeg, candidate);
+  const weeklyReturn = getLegWeeklyNormalizedYieldPct(selectedLeg, candidate, {
+    allowParentCandidateFallback: true,
+  });
   const distancePct = getLegDistancePct(selectedLeg);
   const popEstimate = getLegPopPct(selectedLeg);
   const capitalPerContract = Number.isFinite(strike) && strike > 0 ? strike * 100 : 0;
@@ -1671,6 +1778,9 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
     selectedPremiumUnit: premiumUnit,
     selectedSpreadPct: spreadPct,
     selectedYieldPct: weeklyReturn,
+    selectedPeriodYieldPct,
+    periodYieldPct: selectedPeriodYieldPct,
+    weeklyNormalizedYieldPct: weeklyReturn,
     selectedDistancePct: distancePct,
     _popForCombo: popEstimate,
     capitalPerContract,
@@ -1692,6 +1802,8 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
     _aggLeg: aggLeg,
     _safeYieldPct: safeYieldPct,
     _aggYieldPct: aggYieldPct,
+    _safePeriodYieldPct: safePeriodYieldPct,
+    _aggPeriodYieldPct: aggPeriodYieldPct,
     _safeSpreadPct: safeSpreadPct,
     _aggSpreadPct: aggSpreadPct,
     _safeStrikeValue: safeStrikeValue,
@@ -1710,7 +1822,7 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
       ...candidate,
       ticker,
       spreadPct,
-      weeklyReturn,
+      weeklyReturn: selectedPeriodYieldPct ?? 0,
       _popForCombo: popEstimate,
     }),
     _capitalComboExclusionReasons: capitalComboExclusionReasons,
@@ -1723,10 +1835,9 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
 }
 
 /**
- * Bande de sélection préférentielle historique de la jambe du bucket BALANCED.
- * Valeurs extraites telles quelles de l'ancienne logique inline (AF-07 n'a
- * modifié aucune borne financière). Rendements en points de pourcentage
- * hebdomadaires (0.75 = 0,75 %) ; min inclusif, max exclusif.
+ * Bande de sélection préférentielle de la jambe du bucket BALANCED (AF-07 / AF-17).
+ * Rendements en points de pourcentage **hebdomadaires normalisés**
+ * (0,75 = 0,75 %/sem) ; min inclusif, max exclusif.
  */
 export const BALANCED_PREFERRED_LEG_YIELD_BAND = Object.freeze({
   minInclusivePct: 0.75,
@@ -2131,7 +2242,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
 
         const bucketPremium = getLegPremiumValue(bucketLeg);
         const bucketSpread = getLegSpreadPct(bucketLeg);
-        const bucketYield = getLegYieldPct(bucketLeg, candidate);
+        const bucketYield = getLegWeeklyNormalizedYieldPct(bucketLeg, candidate);
         const bucketDistance = getLegDistancePct(bucketLeg);
         const bucketPop = getLegPopPct(bucketLeg);
         const bucketExecutionScore = getLegExecutionScore(bucketLeg);

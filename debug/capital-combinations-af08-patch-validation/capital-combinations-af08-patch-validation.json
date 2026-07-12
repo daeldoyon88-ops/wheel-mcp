@@ -1,0 +1,115 @@
+{
+  "anomaly": "AF-08",
+  "selectedPolicy": "B — soft-cap = maxContractsPerTicker + 1 uniquement, caps en dollars toujours stricts",
+  "baseCommit": "3509ef3",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "3509ef3 fix balanced capital combo fallback leg selection",
+    "branch": "main synchronisée avec origin/main",
+    "trackedModified": [],
+    "preexistingUntrackedIntact": true
+  },
+  "softCapBefore": {
+    "maxContracts": "maxContractsPerTicker + 1",
+    "tickerCapLimit": "tickerCapDollars * 1.1",
+    "positionCapLimit": "positionCapDollars * 1.1"
+  },
+  "softCapAfter": {
+    "maxContracts": "maxContractsPerTicker + 1 (inchangé)",
+    "tickerCapLimit": "tickerCapDollars (strict)",
+    "positionCapLimit": "positionCapDollars (strict)"
+  },
+  "removedFactor": 1.1,
+  "strictCaps": {
+    "changed": false,
+    "tickerCapPct": { "AGGRESSIVE": 0.5, "BALANCED": 0.3, "SAFE": 0.3 },
+    "positionCapPct": { "AGGRESSIVE": 0.5, "BALANCED": 0.3, "SAFE": 0.3 },
+    "sectorThemeHighBetaCaps": "inchangés",
+    "balancedInstitutionalV3": "inchangé"
+  },
+  "contractCountSoftRule": {
+    "rule": "maxContractsPerTicker + 1 en phase soft, seulement si la ligne reste sous les caps stricts en dollars",
+    "preserved": true,
+    "evidence": ["TEST 7 (SAFE 3 contrats)", "TEST 8 (BALANCED 4 contrats)", "TEST 9 (AGGRESSIVE 5 contrats)", "TEST 11 (jamais +2)"]
+  },
+  "enforceClusterCapsBreachBefore": {
+    "window": "enforceClusterCaps=false (portefeuille < minTargetPositions avec alternative diversifiante) : re-check ticker strict sauté, seul le premier contrôle ×1.1 s'appliquait",
+    "effect": "nouvelle ligne acceptée en primary_soft_cap jusqu'à 110 % du cap ticker strict (ex. 3 200 $ ≤ 3 300 $)",
+    "reproduction": "SAFE 10000$: MSFT 2500$ pris, ORCL 2400$ bloqué cap secteur (4900 > 4000), KO 3200$ accepté pré-fix"
+  },
+  "enforceClusterCapsBreachAfter": {
+    "closed": true,
+    "mechanism": "rejet dès le premier contrôle strict (nextPositionCapital > tickerCapDollars), indépendant d'enforceClusterCaps qui n'a pas été réécrit",
+    "evidence": "TEST 12 post-fix PASS ; rejeu pré-fix (copie scratchpad ×1.1 restauré) : le même scénario échouait (KO sélectionné)"
+  },
+  "scenarios": {
+    "newLine3200Safe": "rejeté, 0 pick, ticker_cap_reached (TESTS 1, 12)",
+    "newLine3200Balanced": "rejeté, 0 pick, ticker_cap_reached (TEST 2)",
+    "newLine5200Aggressive": "rejeté, 0 pick, entre cap strict 5000 et ancien ×1.1 5500 (TEST 3)",
+    "exactCap3000": "accepté en primary_strict (TEST 4)",
+    "justAbove3050": "rejeté (TEST 5)",
+    "oldSoftCap3300": "rejeté (TEST 6)",
+    "reinforcement900x3": "3e contrat autorisé en soft : 3 contrats, 2700$, primary_soft_cap (TEST 7)",
+    "reinforcement1600x2": "2e contrat rejeté : 1 contrat, 1600$ (TEST 10)",
+    "sectorCap": "4900 > 4000 bloqué, sector_cap_reached (TEST 18)",
+    "themeCap": "5200 > 5000 bloqué, theme_cap_reached (TEST 19)",
+    "highBetaCap": "4000 > 3500 bloqué, high_beta_cap_reached (TEST 20)",
+    "usableCapitalEnvelope": "caps sur usableCapital avec maxCapitalPct 50 % ; totalCapital ≤ usableCapital partout (TESTS 16, 17, 22)",
+    "determinism": "ordre inversé identique (TEST 13) ; répétition ×20 identique (TEST 24) ; deep-freeze sans mutation (TEST 23)",
+    "af07Interaction": "jambe SAFE en bande sélectionnée sous cap (TEST 14) ; rejetée si au-dessus du cap — AF-07 ne contourne pas AF-08 (TEST 15)"
+  },
+  "testsAF08": { "file": "wheel-dashboard/src/capitalComboPortfolio.soft-cap.test.mjs", "total": 27, "pass": 27, "fail": 0, "detail": "24 scénarios exigés + 3 tests miroir VirtualAllocator" },
+  "testsAF02": { "file": "capitalComboPortfolio.pop-null.test.mjs", "total": 6, "pass": 6, "fail": 0 },
+  "testsAF03": { "file": "capitalComboPortfolio.selected-leg-grade.test.mjs", "total": 15, "pass": 15, "fail": 0 },
+  "testsAF05": { "file": "capitalComboPortfolio.deterministic-tiebreak.test.mjs", "total": 26, "pass": 26, "fail": 0 },
+  "testsAF06": { "file": "capitalComboInputPool.test.mjs", "total": 22, "pass": 22, "fail": 0 },
+  "testsAF07": { "file": "capitalComboPortfolio.balanced-fallback.test.mjs", "total": 30, "pass": 30, "fail": 0 },
+  "spreadTests": { "file": "spreadPctPercent.test.mjs", "total": 15, "pass": 15, "fail": 0 },
+  "fableResults": {
+    "command": "node debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs (lecture seule)",
+    "totals": { "checks": 43, "pass": 30, "fail": 8, "info": 5, "criticalConfirmed": 0 },
+    "baselineMatch": true,
+    "historicalFails": ["T2b", "T2c", "T3a", "T4a", "T6a", "T15a", "T15b", "T15c"],
+    "statusChanges": [],
+    "t8a": {
+      "id": "T8a",
+      "statusBefore": "PASS",
+      "statusAfter": "PASS",
+      "actualBefore": "contrat 3200$ rejeté par le re-check strict (portefeuille vide => enforceClusterCaps vrai) : positions 0, ticker_cap_reached",
+      "actualAfter": { "positions": 0, "rejets": { "ticker_cap_reached": 2 } },
+      "analysis": "check historique toujours satisfait — le rejet a désormais lieu dès le premier contrôle de cap ; aucune régression réelle ; la note interne du harnais cite des lignes antérieures au patch"
+    },
+    "newRealRegressions": 0
+  },
+  "buildResult": {
+    "command": "npm.cmd run build (depuis wheel-dashboard)",
+    "status": "PASS",
+    "durationSeconds": 3.55,
+    "warnings": "préexistants uniquement (framer-motion 'use client' ignoré, chunk > 500 kB)",
+    "newErrors": 0
+  },
+  "modifiedFiles": [
+    { "path": "wheel-dashboard/src/capitalComboPortfolio.js", "lines": "2316-2318", "change": "suppression ternaire ×1.1 sur tickerCapLimit/positionCapLimit + commentaire AF-08" },
+    { "path": "wheel-dashboard/src/alternativeCompositionSimV1.js", "lines": "352-354", "change": "même suppression dans VirtualAllocator.evaluateCandidate (miroir)" }
+  ],
+  "createdFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.soft-cap.test.mjs",
+    "debug/capital-combinations-af08-patch-validation/capital-combinations-af08-patch-validation.md",
+    "debug/capital-combinations-af08-patch-validation/capital-combinations-af08-patch-validation.json"
+  ],
+  "limitations": [
+    "rejeu pré-fix effectué sur copie scratchpad hors dépôt lors de la première passe (7 tests, 2 échecs discriminants attendus) ; les 20 tests ajoutés ensuite n'ont pas été rejoués pré-fix mais TESTS 2/3/6/12 reproduisent la même fenêtre ×1.1 par construction",
+    "pour un renforcement, le ×1.1 était déjà neutralisé par le re-check strict (porte diversification) : suppression = clarification de politique sans changement observable",
+    "cap thème testé via high_beta_growth uniquement (crypto_miner inaccessible : tickers Crypto bloqué exclus du pool)",
+    "les 8 FAIL Fable sont historiques et hors périmètre AF-08"
+  ],
+  "finalGitState": {
+    "trackedModified": ["wheel-dashboard/src/alternativeCompositionSimV1.js", "wheel-dashboard/src/capitalComboPortfolio.js"],
+    "diffStat": "2 files changed, 6 insertions(+), 4 deletions(-)",
+    "newUntracked": ["wheel-dashboard/src/capitalComboPortfolio.soft-cap.test.mjs", "debug/capital-combinations-af08-patch-validation/"],
+    "gitAdd": false,
+    "gitCommit": false,
+    "gitPush": false
+  },
+  "verdict": "SAFE TO COMMIT"
+}

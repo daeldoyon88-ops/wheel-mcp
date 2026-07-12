@@ -2313,8 +2313,9 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       const nextUsed = used + candidate.capitalPerContract;
       const maxContractsAllowed = useSoftCaps ? modeAlloc.maxContractsPerTicker + 1 : modeAlloc.maxContractsPerTicker;
       const nextPositionCapital = (currentContracts + 1) * candidate.capitalPerContract;
-      const tickerCapLimit = useSoftCaps ? tickerCapDollars * 1.1 : tickerCapDollars;
-      const positionCapLimit = useSoftCaps ? positionCapDollars * 1.1 : positionCapDollars;
+      // AF-08 : la phase soft n'assouplit que le nombre de contrats (+1), jamais les caps en dollars.
+      const tickerCapLimit = tickerCapDollars;
+      const positionCapLimit = positionCapDollars;
       const nextDistinctPositions = isExisting ? state.distinctPositions : state.distinctPositions + 1;
 
       if (candidate.capitalPerContract <= 0) return { ok: false, reason: "contract_size_too_large" };

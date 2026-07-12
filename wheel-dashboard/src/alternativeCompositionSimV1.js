@@ -349,8 +349,9 @@ export class VirtualAllocator {
       ? this.modeAlloc.maxContractsPerTicker + 1
       : this.modeAlloc.maxContractsPerTicker;
     const nextPositionCapital = (currentContracts + 1) * candidate.capitalPerContract;
-    const tickerCapLimit = useSoftCaps ? this.tickerCapDollars * 1.1 : this.tickerCapDollars;
-    const positionCapLimit = useSoftCaps ? this.positionCapDollars * 1.1 : this.positionCapDollars;
+    // AF-08 : la phase soft n'assouplit que le nombre de contrats (+1), jamais les caps en dollars.
+    const tickerCapLimit = this.tickerCapDollars;
+    const positionCapLimit = this.positionCapDollars;
     const nextDistinctPositions = isExisting ? state.distinctPositions : state.distinctPositions + 1;
 
     if (candidate.capitalPerContract <= 0) return { ok: false, reason: "contract_size_too_large" };

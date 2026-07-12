@@ -1,0 +1,129 @@
+{
+  "anomaly": "AF-11",
+  "classification": "spread_negatif_marche_croise",
+  "selectedPolicy": "POLITIQUE_A_REJET_STRICT + POLITIQUE_C_bid_ask_prioritaire",
+  "baseCommit": "832faf2d071607cff313e8564754884756ef4da8",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "832faf2",
+    "branch": "main",
+    "syncedWithOrigin": true,
+    "trackedModified": 0,
+    "untrackedIntact": true
+  },
+  "spreadSourceOfTruth": {
+    "primary": "resolveLegSpreadDiagnostics / resolveLegSpreadPctPercent",
+    "bidAskRule": "bid>ask => CROSSED_MARKET; bid=ask => 0; bid<ask => ((ask-bid)/mid)*100",
+    "legacyFallback": "liquidity.spreadPct ou spreadPct fourni si fini et >= 0",
+    "priority": "bid/ask cohérents priment sur spreadPct fourni"
+  },
+  "units": {
+    "output": "points de pourcentage (5 = 5 %)",
+    "ibkrFraction": "0.05 => 5 % via toSpreadPctPercent ibkr_raw_fraction",
+    "noDoubleConversion": true
+  },
+  "crossedMarketBehaviorBefore": "spread négatif accepté; grade A possible; normalizeComboSpreadScore maximal",
+  "crossedMarketBehaviorAfter": "spread null + CROSSED_MARKET; jambe invalide; score 0; aucun pick",
+  "negativeSpreadBehaviorBefore": "spread <= 35 accepté même si négatif",
+  "negativeSpreadBehaviorAfter": "rejet NEGATIVE_SPREAD_PCT ou gate >= 0",
+  "safeValidation": "hasSafeLegValid exige spread fini >= 0 et <= 35",
+  "aggressiveValidation": "hasAggLegValid exige spread fini >= 0 et <= 35",
+  "gradeChange": "gradeLeg: spread < 0 => REJECT (garde défensive)",
+  "normalizeScoreChange": "normalizeComboSpreadScore: value < 0 => 0",
+  "scoreV2Change": "scoreSpreadBlock: spread null crossed/negative => 0 pt + warning",
+  "rescueChange": "isSpreadAcceptable exige >= 0; putSpreadPct bid/ask prioritaire",
+  "poolResearchCompatibility": "quotes frozen/delayed cohérentes conservées; pas de isMarketOpen",
+  "frozenDelayedCompatibility": "statut frozen/delayed ignoré pour validation spread",
+  "diagnostics": {
+    "CROSSED_MARKET": "bid > ask",
+    "NEGATIVE_SPREAD_PCT": "spreadPct fourni < 0 sans bid/ask suffisant",
+    "INVALID_MID": "mid <= 0 après bid/ask",
+    "wheelMetricsRejectReason": "checks.rejectReason dans evaluateTradability/evaluateLiquidity"
+  },
+  "duelResults": {
+    "clean5_vs_crossedNeg22": "CLEAN gagne",
+    "clean0_vs_crossedNeg001": "CLEAN gagne"
+  },
+  "balancedFallbackResults": {
+    "safePropre_aggCrossed": "crossed exclue, SAFE conservée",
+    "seuleJambeCrossed": "aucun pick"
+  },
+  "liveOccurrences": 0,
+  "testsAF11": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.negative-spread.test.mjs",
+    "count": 32,
+    "pass": 32,
+    "fail": 0
+  },
+  "nonRegressionTests": {
+    "total": 213,
+    "pass": 213,
+    "fail": 0,
+    "suites": [
+      "capitalComboPortfolio.negative-spread.test.mjs",
+      "pickLineCapital.test.mjs",
+      "capitalComboPortfolio.free-capital.test.mjs",
+      "capitalCombinationAuditService.free-capital.test.mjs",
+      "capitalComboPortfolio.soft-cap.test.mjs",
+      "capitalComboPortfolio.pop-null.test.mjs",
+      "capitalComboPortfolio.selected-leg-grade.test.mjs",
+      "capitalComboPortfolio.deterministic-tiebreak.test.mjs",
+      "capitalComboInputPool.test.mjs",
+      "capitalComboPortfolio.balanced-fallback.test.mjs",
+      "spreadPctPercent.test.mjs"
+    ]
+  },
+  "fableResults": {
+    "pass": 29,
+    "fail": 9,
+    "info": 5,
+    "criticalConfirmed": 0,
+    "T7a": {
+      "before": "PASS (défaut confirmé)",
+      "after": "FAIL (spread négatif rejeté — correction attendue)",
+      "regression": false,
+      "note": "check historique obsolète, pas régression réelle"
+    },
+    "T1a": {
+      "before": "PASS",
+      "after": "FAIL",
+      "regression": false,
+      "note": "spread recalculé depuis bid/ask (4.26 vs 4.3 attendu fixture) — cohérent AF-11"
+    },
+    "otherFails": "T3a,T4a,T6a,T9a,T15a,T15b,T15c — historiques préexistants"
+  },
+  "buildResult": {
+    "status": "PASS",
+    "warnings": "framer-motion use client; chunk > 500 kB"
+  },
+  "modifiedFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/scoreV2.js",
+    "app/calculations/wheelMetrics.js",
+    "app/calculations/safeSpreadRescue.js",
+    "wheel-dashboard/src/capitalComboPortfolio.balanced-fallback.test.mjs"
+  ],
+  "createdFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.negative-spread.test.mjs",
+    "debug/capital-combinations-af11-patch-validation/capital-combinations-af11-patch-validation.md",
+    "debug/capital-combinations-af11-patch-validation/capital-combinations-af11-patch-validation.json"
+  ],
+  "limitations": [
+    "Aucune occurrence live négative trouvée dans données locales",
+    "balanced-fallback fixtures alignées bid/ask↔spreadPct (attente obsolète AF-11)",
+    "Fable T1a spread légèrement recalculé depuis bid/ask",
+    "Pas de nouveau blocage marché fermé"
+  ],
+  "finalGitState": {
+    "head": "832faf2",
+    "trackedModified": 5,
+    "untrackedCreated": [
+      "wheel-dashboard/src/capitalComboPortfolio.negative-spread.test.mjs",
+      "debug/capital-combinations-af11-patch-validation/"
+    ],
+    "gitAdd": false,
+    "gitCommit": false,
+    "gitPush": false
+  },
+  "verdict": "SAFE TO COMMIT"
+}

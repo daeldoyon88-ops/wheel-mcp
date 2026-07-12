@@ -2,7 +2,7 @@
  * Score V2 Wheel — fonction pure, sans effet secondaire.
  * N'influence pas le tri ni le ranking existant.
  */
-import { resolveLegSpreadPctPercent, toSpreadPctPercent } from "./capitalComboPortfolio.js";
+import { resolveLegSpreadPctPercent, toSpreadPctPercent, resolveLegSpreadDiagnostics, SPREAD_PCT_REJECTION } from "./capitalComboPortfolio.js";
 
 export function safeNumber(value, fallback = null) {
   const n = Number(value);
@@ -96,8 +96,23 @@ function scoreYieldBlock(item, alerts) {
 
 function scoreSpreadBlock(item, alerts) {
   const leg = getRecommendedLeg(item);
-  const spread = resolveLegSpreadPctPercent(leg);
-  if (spread == null) return blockResult("spread", 9);
+  const diagnostics = resolveLegSpreadDiagnostics(leg);
+  const spread = diagnostics.spreadPct;
+  if (spread == null) {
+    if (
+      diagnostics.rejectionReason === SPREAD_PCT_REJECTION.CROSSED_MARKET ||
+      diagnostics.rejectionReason === SPREAD_PCT_REJECTION.NEGATIVE_SPREAD_PCT
+    ) {
+      alerts.push("Spread négatif ou marché croisé — quote invalide");
+      return blockResult("spread", 0);
+    }
+    return blockResult("spread", 9);
+  }
+
+  if (spread < 0) {
+    alerts.push("Spread négatif ou marché croisé — quote invalide");
+    return blockResult("spread", 0);
+  }
 
   let pts;
   if (spread <= 7) pts = 18;

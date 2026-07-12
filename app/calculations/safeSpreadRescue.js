@@ -52,7 +52,7 @@ export function isSafeRejectedForSpread(spreadPctRaw) {
 export function isSpreadAcceptable(spreadPctRaw) {
   const spreadPct = normalizeSpreadPctPercent(spreadPctRaw);
   if (spreadPct == null) return false;
-  return spreadPct <= SAFE_SPREAD_ACCEPTABLE_PCT;
+  return spreadPct >= 0 && spreadPct <= SAFE_SPREAD_ACCEPTABLE_PCT;
 }
 
 /**
@@ -85,8 +85,37 @@ export function buildSafeRescueStrikeWindow(
   return [...below, ...above].filter((s) => s !== strike);
 }
 
+function putSpreadPctFromBidAsk(put) {
+  const rawBid = put?.bid;
+  const rawAsk = put?.ask;
+  const bidOk =
+    rawBid != null &&
+    rawBid !== "" &&
+    Number.isFinite(Number(rawBid)) &&
+    Number(rawBid) >= 0;
+  const askOk =
+    rawAsk != null &&
+    rawAsk !== "" &&
+    Number.isFinite(Number(rawAsk)) &&
+    Number(rawAsk) >= 0;
+  if (bidOk && askOk) {
+    const bid = Number(rawBid);
+    const ask = Number(rawAsk);
+    if (bid > ask) return null;
+    if (bid === ask) return 0;
+    const mid = (bid + ask) / 2;
+    if (!(mid > 0)) return null;
+    return ((ask - bid) / mid) * 100;
+  }
+  return null;
+}
+
 function putSpreadPct(put) {
-  return normalizeSpreadPctPercent(put?.spreadPct ?? put?.liquidity?.spreadPct);
+  const fromBook = putSpreadPctFromBidAsk(put);
+  if (fromBook != null) return fromBook;
+  const provided = normalizeSpreadPctPercent(put?.spreadPct ?? put?.liquidity?.spreadPct);
+  if (provided != null && provided < 0) return null;
+  return provided;
 }
 
 function isUsableBid(put) {

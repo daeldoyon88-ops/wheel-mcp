@@ -99,23 +99,90 @@ export function toSpreadPctPercent(raw, options = {}) {
   return x;
 }
 
-/** Jambe shortlist/dashboard — spread déjà en % (Yahoo ou IBKR post-mapIbkrStrikeToWheelLeg). */
-export function resolveLegSpreadPctPercent(leg) {
-  if (!leg || typeof leg !== "object") return null;
-  if (leg.liquidity?.spreadPct != null) {
-    return toSpreadPctPercent(leg.liquidity.spreadPct, { source: "dashboard_percent" });
+/** Codes de rejet spread (AF-11) — diagnostics lecture seule. */
+export const SPREAD_PCT_REJECTION = Object.freeze({
+  CROSSED_MARKET: "CROSSED_MARKET",
+  NEGATIVE_SPREAD_PCT: "NEGATIVE_SPREAD_PCT",
+  INVALID_MID: "INVALID_MID",
+});
+
+function legBidAskFinite(leg) {
+  const rawBid = leg?.bid;
+  const rawAsk = leg?.ask;
+  const bidOk =
+    rawBid != null &&
+    rawBid !== "" &&
+    Number.isFinite(Number(rawBid)) &&
+    Number(rawBid) >= 0;
+  const askOk =
+    rawAsk != null &&
+    rawAsk !== "" &&
+    Number.isFinite(Number(rawAsk)) &&
+    Number(rawAsk) >= 0;
+  return {
+    bid: bidOk ? Number(rawBid) : null,
+    ask: askOk ? Number(rawAsk) : null,
+    both: bidOk && askOk,
+  };
+}
+
+function computeSpreadPctFromBidAsk(bid, ask) {
+  if (bid > ask) {
+    return { spreadPct: null, rejectionReason: SPREAD_PCT_REJECTION.CROSSED_MARKET };
   }
-  if (leg.spreadPct == null) return null;
+  if (bid === ask) return { spreadPct: 0, rejectionReason: null };
+  const mid = (bid + ask) / 2;
+  if (!(mid > 0)) {
+    return { spreadPct: null, rejectionReason: SPREAD_PCT_REJECTION.INVALID_MID };
+  }
+  return { spreadPct: ((ask - bid) / mid) * 100, rejectionReason: null };
+}
+
+function resolveProvidedSpreadPctPercent(leg) {
+  if (!leg || typeof leg !== "object") return { spreadPct: null, rejectionReason: null };
+  if (leg.liquidity?.spreadPct != null) {
+    const pct = toSpreadPctPercent(leg.liquidity.spreadPct, { source: "dashboard_percent" });
+    if (pct != null && pct < 0) {
+      return { spreadPct: null, rejectionReason: SPREAD_PCT_REJECTION.NEGATIVE_SPREAD_PCT };
+    }
+    return { spreadPct: pct, rejectionReason: null };
+  }
+  if (leg.spreadPct == null) return { spreadPct: null, rejectionReason: null };
   const rawSpread = leg.spreadPct;
   const rawIbkr = leg.raw?.spreadPct;
+  let pct;
   if (
     leg.source === "IBKR live" &&
     rawIbkr != null &&
     Number(rawSpread) === Number(rawIbkr)
   ) {
-    return toSpreadPctPercent(rawSpread, { source: "ibkr_raw_fraction" });
+    pct = toSpreadPctPercent(rawSpread, { source: "ibkr_raw_fraction" });
+  } else {
+    pct = toSpreadPctPercent(rawSpread, { source: "dashboard_percent" });
   }
-  return toSpreadPctPercent(rawSpread, { source: "dashboard_percent" });
+  if (pct != null && pct < 0) {
+    return { spreadPct: null, rejectionReason: SPREAD_PCT_REJECTION.NEGATIVE_SPREAD_PCT };
+  }
+  return { spreadPct: pct, rejectionReason: null };
+}
+
+/**
+ * AF-11 — Source de vérité spread jambe.
+ * Si bid et ask sont tous deux finis et ≥ 0, ils ont priorité sur spreadPct fourni.
+ * Ne jamais clamper un spread négatif à 0.
+ */
+export function resolveLegSpreadDiagnostics(leg) {
+  if (!leg || typeof leg !== "object") return { spreadPct: null, rejectionReason: null };
+  const book = legBidAskFinite(leg);
+  if (book.both) {
+    return computeSpreadPctFromBidAsk(book.bid, book.ask);
+  }
+  return resolveProvidedSpreadPctPercent(leg);
+}
+
+/** Jambe shortlist/dashboard — spread en points de pourcentage (5 = 5 %). */
+export function resolveLegSpreadPctPercent(leg) {
+  return resolveLegSpreadDiagnostics(leg).spreadPct;
 }
 
 export function normalizeOptionalPopDecimal(value) {
@@ -615,6 +682,7 @@ export function gradeLeg({ spreadPct, weeklyYieldPct, popDecimal }) {
   const yld = Number.isFinite(yldRaw) && yldRaw > 0 ? yldRaw : null;
   const pop = normalizeOptionalPopPct(popDecimal);
   if (spread == null) return "WATCH";
+  if (spread < 0) return "REJECT";
   if (spread > 35) return "REJECT";
   if (yld == null) return "WATCH";
   if (spread <= 10 && yld >= 0.50 && (pop == null || pop >= 80)) return "A";
@@ -944,7 +1012,7 @@ export function getLegPopPct(leg) {
 export function getLegExecutionBreakdown(leg) {
   if (!leg) return null;
   const spreadPct = getLegSpreadPct(leg);
-  if (!Number.isFinite(spreadPct)) return null;
+  if (!Number.isFinite(spreadPct) || spreadPct < 0) return null;
 
   const volume = Number(leg?.volume ?? leg?.liquidity?.volume ?? NaN);
   const openInterest = Number(leg?.openInterest ?? leg?.liquidity?.openInterest ?? NaN);
@@ -1040,7 +1108,7 @@ function normalizeComboDistanceScore(distancePct, mode) {
 function normalizeComboSpreadScore(spreadPct, mode) {
   const value = Number(spreadPct);
   const max = Number(mode?.maxSpreadPct ?? NaN);
-  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return 0;
+  if (!Number.isFinite(value) || value < 0 || !Number.isFinite(max) || max <= 0) return 0;
   return clamp01((max - value) / max);
 }
 
@@ -1336,13 +1404,13 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
   const hasSafeLegValid = !!safeLeg &&
     Number.isFinite(safeStrikeValue) && safeStrikeValue > 0 &&
     Number.isFinite(safePremium) && safePremium > 0 &&
-    Number.isFinite(safeSpreadPct) && safeSpreadPct <= 35 &&
+    Number.isFinite(safeSpreadPct) && safeSpreadPct >= 0 && safeSpreadPct <= 35 &&
     Number.isFinite(safeYieldPct) && safeYieldPct > 0;
 
   const hasAggLegValid = !!aggLeg &&
     Number.isFinite(aggStrikeValue) && aggStrikeValue > 0 &&
     Number.isFinite(aggPremium) && aggPremium > 0 &&
-    Number.isFinite(aggSpreadPct) && aggSpreadPct <= 35 &&
+    Number.isFinite(aggSpreadPct) && aggSpreadPct >= 0 && aggSpreadPct <= 35 &&
     Number.isFinite(aggYieldPct) && aggYieldPct > 0;
 
   const commonBlocked =
@@ -1950,7 +2018,11 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         });
         continue;
       }
-      if (!(candWp.spreadPct == null || candWp.spreadPct <= modeAlloc.maxSpreadPct)) {
+      if (!(
+        Number.isFinite(candWp.spreadPct) &&
+        candWp.spreadPct >= 0 &&
+        candWp.spreadPct <= modeAlloc.maxSpreadPct
+      )) {
         pushScoredPoolReject(candWp.ticker, "MAX_SPREAD_PCT_EXCEEDED", {
           maxSpreadPctMode: modeAlloc.maxSpreadPct,
           spreadPct: candWp.spreadPct,

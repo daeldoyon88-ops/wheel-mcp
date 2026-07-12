@@ -72,10 +72,20 @@ export function getConservativePremium(row) {
 export function computeSpreadPct(row) {
   const bid = toNumber(row?.bid);
   const ask = toNumber(row?.ask);
-  if (!(bid > 0 && ask > 0)) return null;
+  if (!(Number.isFinite(bid) && Number.isFinite(ask) && bid >= 0 && ask >= 0)) return null;
+  if (bid > ask) return null;
   const mid = (bid + ask) / 2;
   if (mid <= 0) return null;
+  if (bid === ask) return 0;
   return ((ask - bid) / mid) * 100;
+}
+
+export function spreadPctOk(spreadPct, maxSpreadPct) {
+  return (
+    Number.isFinite(spreadPct) &&
+    spreadPct >= 0 &&
+    spreadPct <= maxSpreadPct
+  );
 }
 
 export function computeAbsoluteSpread(row) {
@@ -101,10 +111,11 @@ export function evaluateTradability(row) {
   const hasLastFallback = last > 0 && volume >= 10 && openInterest >= 100;
   const absoluteSpreadOk = absoluteSpread == null ? true : absoluteSpread <= MAX_ABSOLUTE_SPREAD;
   const maxSpreadPct = dynamicMaxSpreadPctFromBid(bid);
-  const spreadPctOk = spreadPct == null ? true : spreadPct <= maxSpreadPct;
+  const spreadPctOkCheck = spreadPct == null ? true : spreadPctOk(spreadPct, maxSpreadPct);
+  const crossedMarket = Number.isFinite(bid) && Number.isFinite(ask) && bid > ask;
 
   return {
-    isTradable: hasRealMarket && absoluteSpreadOk && spreadPctOk,
+    isTradable: hasRealMarket && absoluteSpreadOk && spreadPctOkCheck,
     spreadPct: spreadPct != null ? round(spreadPct, 2) : null,
     absoluteSpread: absoluteSpread != null ? round(absoluteSpread, 3) : null,
     volume,
@@ -113,8 +124,14 @@ export function evaluateTradability(row) {
       hasRealMarket,
       hasLastFallback,
       absoluteSpreadOk,
-      spreadPctOk,
-      rejectReason: hasRealMarket ? null : "no_real_bid_ask",
+      spreadPctOk: spreadPctOkCheck,
+      rejectReason: crossedMarket
+        ? "CROSSED_MARKET"
+        : spreadPct != null && spreadPct < 0
+          ? "NEGATIVE_SPREAD_PCT"
+          : hasRealMarket
+            ? null
+            : "no_real_bid_ask",
     },
   };
 }
@@ -131,12 +148,13 @@ export function evaluateLiquidity(row) {
   const hasLastFallback = last > 0 && volume >= 10 && openInterest >= 100;
   const absoluteSpreadOk = absoluteSpread == null ? true : absoluteSpread <= MAX_ABSOLUTE_SPREAD;
   const maxSpreadPct = dynamicMaxSpreadPctFromBid(bid);
-  const spreadPctOk = spreadPct == null ? true : spreadPct <= maxSpreadPct;
+  const spreadPctOkCheck = spreadPct == null ? true : spreadPctOk(spreadPct, maxSpreadPct);
+  const crossedMarket = Number.isFinite(bid) && Number.isFinite(ask) && bid > ask;
   const volumeOk = volume >= 1;
   // Baseline souple : le seuil final est renforcé ensuite dans selectPutStrikes
   // selon la profondeur du strike par rapport à l'agressif.
   const openInterestOk = openInterest >= 5;
-  const hasBookQuality = absoluteSpreadOk && spreadPctOk && volumeOk && openInterestOk;
+  const hasBookQuality = absoluteSpreadOk && spreadPctOkCheck && volumeOk && openInterestOk;
 
   return {
     isLiquid: hasRealMarket && hasBookQuality,
@@ -148,10 +166,16 @@ export function evaluateLiquidity(row) {
       hasRealMarket,
       hasLastFallback,
       absoluteSpreadOk,
-      spreadPctOk,
+      spreadPctOk: spreadPctOkCheck,
       volumeOk,
       openInterestOk,
-      rejectReason: hasRealMarket ? null : "no_real_bid_ask",
+      rejectReason: crossedMarket
+        ? "CROSSED_MARKET"
+        : spreadPct != null && spreadPct < 0
+          ? "NEGATIVE_SPREAD_PCT"
+          : hasRealMarket
+            ? null
+            : "no_real_bid_ask",
     },
   };
 }

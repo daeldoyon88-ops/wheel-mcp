@@ -21,6 +21,7 @@ import assert from "node:assert/strict";
 import {
   buildPortfolioCombos,
   resolveCompatibleLegForMode,
+  resolveLegSpreadPctPercent,
   BALANCED_PREFERRED_LEG_YIELD_BAND,
 } from "./capitalComboPortfolio.js";
 import {
@@ -29,6 +30,16 @@ import {
 } from "./capitalComboInputPool.js";
 
 // ── Fixtures (style harnais fable : jambes au format dashboard) ──────────────
+
+function askFromBidAndSpreadPct(bid, spreadPct) {
+  const b = Number(bid);
+  const s = Number(spreadPct);
+  if (!Number.isFinite(b) || b <= 0 || !Number.isFinite(s) || s < 0) {
+    return b > 0 ? Number((b * 1.05).toFixed(4)) : null;
+  }
+  if (s === 0) return b;
+  return Number((b * (s + 200) / (200 - s)).toFixed(4));
+}
 
 function makeLeg({
   strike,
@@ -49,7 +60,7 @@ function makeLeg({
   return {
     strike,
     bid: premium,
-    ask: premium != null ? Number((premium * 1.05).toFixed(4)) : null,
+    ask: premium != null ? askFromBidAndSpreadPct(premium, spreadPct) : null,
     premiumUsed: premium,
     mid: premium,
     weeklyYield: yieldPct,
@@ -436,7 +447,7 @@ test("TEST 14 — données du pick entièrement issues de la jambe SAFE (aucune 
   assert.equal(pick.strike, safeLeg.strike);
   assert.equal(pick.premiumUnit, safeLeg.bid);
   assert.equal(pick.weeklyReturn, safeLeg.weeklyYield);
-  assert.equal(pick.spreadPct, safeLeg.liquidity.spreadPct);
+  assert.equal(pick.spreadPct, resolveLegSpreadPctPercent(safeLeg));
   assert.equal(pick.distancePct, safeLeg.distancePct);
   assert.equal(pick.popEstimate, safeLeg.popProfitEstimated * 100);
   assert.equal(pick.grade, "A", "grade explicite de la jambe SAFE");
@@ -446,7 +457,7 @@ test("TEST 14 — données du pick entièrement issues de la jambe SAFE (aucune 
     ["strike", aggLeg.strike],
     ["premiumUnit", aggLeg.bid],
     ["weeklyReturn", aggLeg.weeklyYield],
-    ["spreadPct", aggLeg.liquidity.spreadPct],
+    ["spreadPct", resolveLegSpreadPctPercent(aggLeg)],
     ["distancePct", aggLeg.distancePct],
   ]) {
     assert.notEqual(pick[field], aggValue, `${field} ne doit pas venir de la jambe AGGRESSIVE`);
@@ -458,23 +469,23 @@ test("TEST 15 — données du pick entièrement issues de la jambe AGGRESSIVE (a
   // (priorityGrade ?? gradeLeg ?? stocké). Spread 10 + POP 88 + yield conforme ⇒ dérivé "A",
   // distinct du grade SAFE "B" : une fuite SAFE afficherait "B".
   const safeLeg = makeLeg({ strike: 40, spreadPct: 9, yieldPct: Y_TOO_LOW, distancePct: -12.5, popDecimal: 0.94 });
-  const aggLeg = makeLeg({ strike: 43, spreadPct: 10, yieldPct: Y_MID, distancePct: -6.2, popDecimal: 0.88 });
+  const aggLeg = makeLeg({ strike: 43, spreadPct: 9, yieldPct: Y_MID, distancePct: -6.2, popDecimal: 0.88 });
   const cand = makeCandidate({ ticker: "CRM", safe: safeLeg, agg: aggLeg, safeGrade: "B", aggressiveGrade: "A" });
   const pick = runBalanced([cand]).bal?.picks?.[0] ?? null;
   assert.ok(pick);
   assert.equal(pick.strike, aggLeg.strike);
   assert.equal(pick.premiumUnit, aggLeg.bid);
   assert.equal(pick.weeklyReturn, aggLeg.weeklyYield);
-  assert.equal(pick.spreadPct, aggLeg.liquidity.spreadPct);
+  assert.equal(pick.spreadPct, resolveLegSpreadPctPercent(aggLeg));
   assert.equal(pick.distancePct, aggLeg.distancePct);
   assert.equal(pick.popEstimate, aggLeg.popProfitEstimated * 100);
-  assert.equal(pick.grade, "A", "grade dérivé des données de la jambe AGGRESSIVE (spread 10, POP 88)");
+  assert.equal(pick.grade, "A", "grade dérivé des données de la jambe AGGRESSIVE (spread 9, POP 88)");
   assert.equal(pick.capitalUsed, pick.contracts * aggLeg.strike * 100);
   for (const [field, safeValue] of [
     ["strike", safeLeg.strike],
     ["premiumUnit", safeLeg.bid],
     ["weeklyReturn", safeLeg.weeklyYield],
-    ["spreadPct", safeLeg.liquidity.spreadPct],
+    ["spreadPct", resolveLegSpreadPctPercent(safeLeg)],
     ["distancePct", safeLeg.distancePct],
   ]) {
     assert.notEqual(pick[field], safeValue, `${field} ne doit pas venir de la jambe SAFE`);
@@ -738,7 +749,7 @@ test("TEST 30 — empreinte financière BALANCED : tous les champs cohérents av
   // Le moteur n'arrondit pas premiumCollected (produit flottant brut) : tolérance 1e-9.
   assert.ok(Math.abs(pick.premiumCollected - pick.contracts * safeLeg.bid * 100) < 1e-9);
   assert.equal(pick.weeklyReturn, safeLeg.weeklyYield);
-  assert.equal(pick.spreadPct, safeLeg.liquidity.spreadPct);
+  assert.equal(pick.spreadPct, resolveLegSpreadPctPercent(safeLeg));
   assert.equal(pick.distancePct, safeLeg.distancePct);
   assert.equal(pick.popEstimate, safeLeg.popProfitEstimated * 100);
   assert.equal(pick.grade, "A");

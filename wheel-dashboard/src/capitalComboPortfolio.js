@@ -5,7 +5,7 @@
 import { getTickerDisplayMeta } from "./tickerMeta.js";
 import {
   CAPITAL_COMBO_OPTIMIZER_DEFAULTS,
-  getCapitalOptimizerV2Flags,
+  resolveCapitalOptimizerV2Flags,
   mergeRejectionDiagnostics,
   compareLeftoverDensityOrder,
   computeLeftoverActionThresholdUsd,
@@ -206,11 +206,9 @@ function normalizeOptionalPopPct(value) {
   return decimal == null ? null : decimal * 100;
 }
 
+/** AF-18 — résolution pure : options explicites ou defaults ; jamais localStorage. */
 function resolveOptimizerV2ForCombo(overrideFlags) {
-  if (overrideFlags != null && typeof overrideFlags === "object") {
-    return { ...CAPITAL_COMBO_OPTIMIZER_DEFAULTS, ...overrideFlags };
-  }
-  return getCapitalOptimizerV2Flags();
+  return resolveCapitalOptimizerV2Flags(overrideFlags);
 }
 
 /** Symboles focal — même liste que dans l’export `nearMissFocus` (diagnostic lecture seule). */

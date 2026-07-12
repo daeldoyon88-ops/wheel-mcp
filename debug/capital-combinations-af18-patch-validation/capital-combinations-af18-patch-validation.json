@@ -1,0 +1,142 @@
+{
+  "patch": {
+    "id": "AF-18",
+    "date": "2026-07-12",
+    "head": "61bfde3 fix AF-17 weekly normalized yield bands",
+    "policy": "OPTION A — dashboard résout localStorage une fois ; moteur pur via resolveCapitalOptimizerV2Flags",
+    "verdict": "PATCH APPLIED — SAFE TO COMMIT"
+  },
+  "gitInitial": {
+    "head": "61bfde3 fix AF-17 weekly normalized yield bands",
+    "branch": "main...origin/main",
+    "trackedDiffBeforePatch": false
+  },
+  "rootCause": "getCapitalOptimizerV2Flags() fusionnait silencieusement localStorage quand buildPortfolioCombos était appelé sans options.optimizerV2",
+  "architecture": {
+    "before": "dashboard → buildPortfolioCombos(sans options) → resolveOptimizerV2ForCombo → getCapitalOptimizerV2Flags() → localStorage",
+    "after": "dashboard → readCapitalOptimizerV2FlagsFromLocalStorage() → buildPortfolioCombos({ optimizerV2 }) → resolveCapitalOptimizerV2Flags() pur (defaults ou merge normalisé)"
+  },
+  "localStorageKey": "wheelCapitalComboOptimizerV2Flags",
+  "flags": {
+    "count": 6,
+    "inventory": [
+      { "key": "leftoverDensityPassEnabled", "type": "boolean", "default": true },
+      { "key": "safeLeftoverDensityPassEnabled", "type": "boolean", "default": false },
+      { "key": "capDiagnosticsEnabled", "type": "boolean", "default": true },
+      { "key": "maxLeftoverIterations", "type": "number", "default": 22, "bounds": "1-100 int" },
+      { "key": "leftoverMinPctOfUsable", "type": "number", "default": 0.012, "bounds": "0-1" },
+      { "key": "leftoverMinAbsoluteUsd", "type": "number", "default": 320, "bounds": "0-1000000" }
+    ],
+    "defaults": {
+      "leftoverDensityPassEnabled": true,
+      "safeLeftoverDensityPassEnabled": false,
+      "capDiagnosticsEnabled": true,
+      "maxLeftoverIterations": 22,
+      "leftoverMinPctOfUsable": 0.012,
+      "leftoverMinAbsoluteUsd": 320
+    }
+  },
+  "parsing": {
+    "boolean": {
+      "true": true,
+      "false": false,
+      "stringTrue": true,
+      "stringFalse": false,
+      "stringTRUE": true,
+      "stringFALSE": false,
+      "one": true,
+      "zero": false,
+      "stringOne": true,
+      "stringZero": false,
+      "emptyString": "fallback default",
+      "arbitraryString": "fallback default",
+      "null": "fallback default"
+    },
+    "number": {
+      "valid": "accepted in bounds",
+      "negative": "fallback default",
+      "NaN": "fallback default",
+      "Infinity": "fallback default",
+      "outOfRange": "fallback default"
+    },
+    "json": {
+      "absent": "defaults",
+      "invalid": "defaults no crash",
+      "nonObject": "defaults",
+      "unknownKeys": "ignored"
+    }
+  },
+  "priority": [
+    "1. options.optimizerV2 explicite (normalisé)",
+    "2. dashboard runtime localStorage → readCapitalOptimizerV2FlagsFromLocalStorage",
+    "3. CAPITAL_COMBO_OPTIMIZER_DEFAULTS"
+  ],
+  "emptyObjectBehavior": "optimizerV2:{} → defaults normalisés ; localStorage ignoré",
+  "nodeBehavior": "moteur sans options → defaults ; pas de lecture LS",
+  "browserBehavior": "dashboard lit LS → passe optimizerV2 explicite",
+  "determinism": {
+    "nodeSameArgs": true,
+    "browserWithStableLS": true,
+    "testsAlignWithDefaults": true
+  },
+  "dashboardChanges": "import readCapitalOptimizerV2FlagsFromLocalStorage ; useMemo combos passe { optimizerV2 }",
+  "engineChanges": "normalizeCapitalOptimizerV2Flags + resolveCapitalOptimizerV2Flags ; resolveOptimizerV2ForCombo pur",
+  "flagsSnapshot": "reflète configuration normalisée (pas JSON brut LS)",
+  "impacts": {
+    "score": false,
+    "order": false,
+    "mode": false,
+    "leg": false,
+    "picks": false,
+    "contracts": false,
+    "capitalUsed": false,
+    "allocation": false,
+    "caps": false,
+    "flagsSnapshot": true,
+    "trace": true
+  },
+  "deltaScenario": "leftoverDensityPassEnabled false change flagsSnapshot ; picks identiques sur pool harness",
+  "tests": {
+    "af18": {
+      "capitalComboEngineV2.flags.test.mjs": { "pass": 54, "fail": 0 },
+      "capitalComboPortfolio.optimizer-flags.test.mjs": { "pass": 12, "fail": 0 },
+      "total": { "pass": 66, "fail": 0 }
+    },
+    "nonRegression": {
+      "batch": { "pass": 333, "fail": 0 },
+      "backendFreeCapital": { "pass": 5, "fail": 0 },
+      "total": { "pass": 338, "fail": 0 },
+      "preExistingFails": [],
+      "newFails": []
+    },
+    "build": { "ok": true, "tool": "vite build wheel-dashboard" },
+    "fable": {
+      "exitCode": 0,
+      "ok": true,
+      "preExistingKnownFails": ["T15c AF-02 POP null"],
+      "regressionFromAF18": false
+    }
+  },
+  "limits": [
+    "Impact allocation non démontré — patch corrige configuration cachée et parsing",
+    "6 flags dans defaults (audit mentionnait 7 par erreur de décompte)",
+    "Aucune UI d'édition des flags ajoutée"
+  ],
+  "filesModified": [
+    "wheel-dashboard/src/capitalComboEngineV2.js",
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/dashboard.jsx"
+  ],
+  "filesCreated": [
+    "wheel-dashboard/src/capitalComboEngineV2.flags.test.mjs",
+    "wheel-dashboard/src/capitalComboPortfolio.optimizer-flags.test.mjs",
+    "debug/capital-combinations-af18-patch-validation/capital-combinations-af18-patch-validation.md",
+    "debug/capital-combinations-af18-patch-validation/capital-combinations-af18-patch-validation.json",
+    "debug/capital-combinations-af18-patch-validation/capital-combinations-af18-patch-validation.mjs"
+  ],
+  "confirmations": {
+    "noGitAdd": true,
+    "noCommit": true,
+    "noPush": true
+  }
+}

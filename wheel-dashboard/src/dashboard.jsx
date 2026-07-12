@@ -75,7 +75,10 @@ import {
   MODE_GRADE_RANK,
   toSpreadPctPercent,
 } from "./capitalComboPortfolio.js";
-import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
+import {
+  formatCapBlockerReason,
+  readCapitalOptimizerV2FlagsFromLocalStorage,
+} from "./capitalComboEngineV2.js";
 import { resolveDominantTickerCapital, resolvePickLineCapital } from "./pickLineCapital.js";
 import {
   buildComboCandidatePool,
@@ -13339,13 +13342,16 @@ export default function Dashboard() {
   }, [ibkrDirectResult]);
 
   // AF-06 : le moteur reçoit le pool canonique, jamais les lignes visibles.
+  // AF-18 : flags optimizer résolus une fois ici (localStorage → parsing strict) puis passés explicitement.
   const combos = useMemo(() => {
+    const optimizerV2 = readCapitalOptimizerV2FlagsFromLocalStorage();
     return buildPortfolioCombos(
       comboCandidateRows,
       Number(capital),
       Number(maxCapitalPct),
       Number(maxPositions),
-      ibkrRejectedSymbols
+      ibkrRejectedSymbols,
+      { optimizerV2 },
     );
   }, [comboCandidateRows, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
 

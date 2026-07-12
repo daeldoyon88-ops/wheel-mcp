@@ -1,12 +1,12 @@
 /**
  * Capital Combo Optimizer V2 — helpers purement fonctionnels (hors lifecycle React).
- * Ne touche pas au scanner, backend ni IPC. Réversible via flags + stockage optionnel localStorage.
+ * AF-18 : parsing strict des flags ; lecture localStorage réservée à la couche runtime (dashboard).
  */
 
 export const CAPITAL_COMBO_OPTIMIZER_DEFAULTS = Object.freeze({
   /** Passe leftover « densité / petits contrats » après filler (BALANCED + AGGRESSIVE seulement). */
   leftoverDensityPassEnabled: true,
-  /** Jamais SAFE par défaut (stabilité). localStorage peut activer explicitement. */
+  /** Jamais SAFE par défaut (stabilité). Peut être activé explicitement via config persistée. */
   safeLeftoverDensityPassEnabled: false,
   /** Diagnostics enrichis attachés aux objets combo (capDiagnosticsV2). */
   capDiagnosticsEnabled: true,
@@ -17,20 +17,172 @@ export const CAPITAL_COMBO_OPTIMIZER_DEFAULTS = Object.freeze({
   leftoverMinAbsoluteUsd: 320,
 });
 
-const LS_KEY_V2_FLAGS = "wheelCapitalComboOptimizerV2Flags";
+/** Clé localStorage — lecture runtime uniquement (dashboard). */
+export const CAPITAL_COMBO_OPTIMIZER_V2_LS_KEY = "wheelCapitalComboOptimizerV2Flags";
 
-/** Flags runtime : défaut sécuritaire + surcharge JSON léger depuis localStorage. */
-export function getCapitalOptimizerV2Flags() {
-  let extra = {};
-  if (typeof globalThis !== "undefined" && typeof globalThis.localStorage?.getItem === "function") {
-    try {
-      const raw = globalThis.localStorage.getItem(LS_KEY_V2_FLAGS);
-      extra = raw ? JSON.parse(raw) : {};
-    } catch (_) {
-      extra = {};
+/** @deprecated Alias historique — préférer CAPITAL_COMBO_OPTIMIZER_V2_LS_KEY */
+const LS_KEY_V2_FLAGS = CAPITAL_COMBO_OPTIMIZER_V2_LS_KEY;
+
+/** Schéma des 6 flags connus (types + bornes conservatrices). */
+export const CAPITAL_COMBO_OPTIMIZER_FLAG_SCHEMA = Object.freeze({
+  leftoverDensityPassEnabled: { type: "boolean" },
+  safeLeftoverDensityPassEnabled: { type: "boolean" },
+  capDiagnosticsEnabled: { type: "boolean" },
+  maxLeftoverIterations: { type: "number", min: 1, max: 100, integer: true },
+  leftoverMinPctOfUsable: { type: "number", min: 0, max: 1 },
+  leftoverMinAbsoluteUsd: { type: "number", min: 0, max: 1_000_000 },
+});
+
+const KNOWN_FLAG_KEYS = Object.keys(CAPITAL_COMBO_OPTIMIZER_FLAG_SCHEMA);
+
+/**
+ * Normalise une valeur booléenne stricte (trim + casse pour chaînes).
+ * true | "true" | 1 | "1" → true ; false | "false" | 0 | "0" → false ; sinon défaut.
+ * @param {unknown} value
+ * @param {boolean} defaultValue
+ * @returns {boolean}
+ */
+export function normalizeCapitalOptimizerV2Boolean(value, defaultValue) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase();
+    if (s === "true" || s === "1") return true;
+    if (s === "false" || s === "0") return false;
+  }
+  return defaultValue;
+}
+
+/**
+ * Normalise un nombre fini dans [min, max] ; sinon défaut.
+ * @param {unknown} value
+ * @param {number} defaultValue
+ * @param {{ min?: number, max?: number, integer?: boolean }} bounds
+ * @returns {number}
+ */
+export function normalizeCapitalOptimizerV2Number(value, defaultValue, bounds = {}) {
+  const { min = -Infinity, max = Infinity, integer = false } = bounds;
+  let n;
+  if (typeof value === "number") {
+    n = value;
+  } else if (typeof value === "string") {
+    const t = value.trim();
+    if (t === "") return defaultValue;
+    n = Number(t);
+  } else {
+    return defaultValue;
+  }
+  if (!Number.isFinite(n) || n < min || n > max) return defaultValue;
+  return integer ? Math.floor(n) : n;
+}
+
+/**
+ * Resolver pur — normalise un objet partiel vers la config effective.
+ * N'accepte que les clés connues ; ignore le reste ; ne mute jamais l'input.
+ * @param {Record<string, unknown>|null|undefined} rawFlags
+ * @returns {Readonly<typeof CAPITAL_COMBO_OPTIMIZER_DEFAULTS>}
+ */
+export function normalizeCapitalOptimizerV2Flags(rawFlags) {
+  const out = {
+    leftoverDensityPassEnabled: CAPITAL_COMBO_OPTIMIZER_DEFAULTS.leftoverDensityPassEnabled,
+    safeLeftoverDensityPassEnabled: CAPITAL_COMBO_OPTIMIZER_DEFAULTS.safeLeftoverDensityPassEnabled,
+    capDiagnosticsEnabled: CAPITAL_COMBO_OPTIMIZER_DEFAULTS.capDiagnosticsEnabled,
+    maxLeftoverIterations: CAPITAL_COMBO_OPTIMIZER_DEFAULTS.maxLeftoverIterations,
+    leftoverMinPctOfUsable: CAPITAL_COMBO_OPTIMIZER_DEFAULTS.leftoverMinPctOfUsable,
+    leftoverMinAbsoluteUsd: CAPITAL_COMBO_OPTIMIZER_DEFAULTS.leftoverMinAbsoluteUsd,
+  };
+
+  if (rawFlags == null || typeof rawFlags !== "object" || Array.isArray(rawFlags)) {
+    return Object.freeze(out);
+  }
+
+  for (const key of KNOWN_FLAG_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(rawFlags, key)) continue;
+    const schema = CAPITAL_COMBO_OPTIMIZER_FLAG_SCHEMA[key];
+    const def = CAPITAL_COMBO_OPTIMIZER_DEFAULTS[key];
+    const raw = rawFlags[key];
+    if (schema.type === "boolean") {
+      out[key] = normalizeCapitalOptimizerV2Boolean(raw, def);
+    } else if (schema.type === "number") {
+      out[key] = normalizeCapitalOptimizerV2Number(raw, def, {
+        min: schema.min,
+        max: schema.max,
+        integer: schema.integer === true,
+      });
     }
   }
-  return { ...CAPITAL_COMBO_OPTIMIZER_DEFAULTS, ...extra };
+
+  return Object.freeze(out);
+}
+
+/**
+ * Résolution moteur pure — priorité options explicites, sinon defaults.
+ * Objet vide `{}` → defaults ; ne lit jamais localStorage.
+ * @param {Record<string, unknown>|null|undefined} overrideFlags
+ * @returns {Readonly<typeof CAPITAL_COMBO_OPTIMIZER_DEFAULTS>}
+ */
+export function resolveCapitalOptimizerV2Flags(overrideFlags) {
+  if (overrideFlags != null && typeof overrideFlags === "object" && !Array.isArray(overrideFlags)) {
+    return normalizeCapitalOptimizerV2Flags(overrideFlags);
+  }
+  return normalizeCapitalOptimizerV2Flags(undefined);
+}
+
+/**
+ * Parse une chaîne JSON localStorage → config normalisée.
+ * JSON invalide ou non-objet → defaults.
+ * @param {string|null|undefined} rawString
+ * @returns {Readonly<typeof CAPITAL_COMBO_OPTIMIZER_DEFAULTS>}
+ */
+export function parseCapitalOptimizerV2FlagsFromJson(rawString) {
+  if (rawString == null || rawString === "") {
+    return normalizeCapitalOptimizerV2Flags(undefined);
+  }
+  try {
+    const parsed = JSON.parse(rawString);
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return normalizeCapitalOptimizerV2Flags(undefined);
+    }
+    return normalizeCapitalOptimizerV2Flags(parsed);
+  } catch (_) {
+    return normalizeCapitalOptimizerV2Flags(undefined);
+  }
+}
+
+/**
+ * Lecture runtime localStorage (dashboard / navigateur).
+ * Fonction explicitement couplée au stockage navigateur — pas pour le moteur pur.
+ * @param {Storage|null|undefined} [storage]
+ * @returns {Readonly<typeof CAPITAL_COMBO_OPTIMIZER_DEFAULTS>}
+ */
+export function readCapitalOptimizerV2FlagsFromLocalStorage(storage) {
+  let ls = storage ?? null;
+  if (ls == null) {
+    try {
+      if (typeof globalThis !== "undefined" && globalThis.localStorage?.getItem) {
+        ls = globalThis.localStorage;
+      }
+    } catch (_) {
+      ls = null;
+    }
+  }
+  if (!ls || typeof ls.getItem !== "function") {
+    return normalizeCapitalOptimizerV2Flags(undefined);
+  }
+  try {
+    const raw = ls.getItem(LS_KEY_V2_FLAGS);
+    return parseCapitalOptimizerV2FlagsFromJson(raw);
+  } catch (_) {
+    return normalizeCapitalOptimizerV2Flags(undefined);
+  }
+}
+
+/**
+ * @deprecated Préférer readCapitalOptimizerV2FlagsFromLocalStorage — alias runtime conservé.
+ * @returns {Readonly<typeof CAPITAL_COMBO_OPTIMIZER_DEFAULTS>}
+ */
+export function getCapitalOptimizerV2Flags() {
+  return readCapitalOptimizerV2FlagsFromLocalStorage();
 }
 
 export function mergeRejectionDiagnostics(target, rejectionMap) {
@@ -98,9 +250,6 @@ export function compareLeftoverDensityOrder(a, b) {
   return (Number(b?.allocScore) || 0) - (Number(a?.allocScore) || 0);
 }
 
-/**
- * Après coup : meilleurs ticker hors picks avec première raison d’échec evaluate(strict).
- */
 /**
  * Diagnostic greedy pour chaque ticker du scoredPool non retenu dans les picks finaux.
  * Lecture seule — ne modifie pas l’allocateur.

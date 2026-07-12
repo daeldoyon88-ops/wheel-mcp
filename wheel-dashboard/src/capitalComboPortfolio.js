@@ -1936,6 +1936,213 @@ function pickFirstValidLegDescriptor(legCandidates) {
   return null;
 }
 
+/** Bandes yield effectives par bucket — alignées sur modeConfigs (présentation / Inspector). */
+export const BUCKET_PRESENTATION_YIELD_BANDS = Object.freeze({
+  SAFE: Object.freeze({ minWeeklyYield: 0.45, maxWeeklyYield: 0.80 }),
+  BALANCED: Object.freeze({ minWeeklyYield: 0.70, maxWeeklyYield: 1.05 }),
+  AGGRESSIVE: Object.freeze({ minWeeklyYield: 0.95, maxWeeklyYield: null }),
+});
+
+/**
+ * Résolution jambe bucket — même chemin que makeCombo bucket map (lecture seule, AF-14).
+ * Ne modifie pas le candidat ; utilise buildCapitalComboCandidate + AF-17 + AF-07.
+ */
+export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usableCapital) {
+  const bucketKey = String(bucketLabel || "").trim().toUpperCase();
+  const cfg = BUCKET_PRESENTATION_YIELD_BANDS[bucketKey];
+  if (!cfg || !rawCandidate) {
+    return { source: "legacy", bucketLegAvailable: false, bucketMode: bucketKey || null };
+  }
+
+  const built = buildCapitalComboCandidate(rawCandidate, usableCapital);
+  let bucketLeg = null;
+  let bucketStrikeValue = null;
+  let bucketGrade = null;
+  let selectedLegMode = null;
+  let fallbackUsed = false;
+
+  if (bucketKey === "SAFE") {
+    if (built._hasSafeLegValid) {
+      bucketLeg = built._safeLeg;
+      bucketStrikeValue = built._safeStrikeValue;
+      bucketGrade = built._safeGrade;
+      selectedLegMode = "SAFE";
+    }
+  } else if (bucketKey === "AGGRESSIVE") {
+    if (built._hasAggLegValid) {
+      bucketLeg = built._aggLeg;
+      bucketStrikeValue = built._aggStrikeValue;
+      bucketGrade = built._aggGrade;
+      selectedLegMode = "AGGRESSIVE";
+    }
+  } else if (bucketKey === "BALANCED") {
+    const legCandidates = [
+      {
+        mode: "AGGRESSIVE",
+        priority: 1,
+        valid: built._hasAggLegValid === true,
+        leg: built._aggLeg,
+        yieldPct: built._aggYieldPct,
+        strikeValue: built._aggStrikeValue,
+        capital: built._aggCapital,
+        grade: built._aggGrade,
+      },
+      {
+        mode: "SAFE",
+        priority: 1,
+        valid: built._hasSafeLegValid === true,
+        leg: built._safeLeg,
+        yieldPct: built._safeYieldPct,
+        strikeValue: built._safeStrikeValue,
+        capital: built._safeCapital,
+        grade: built._safeGrade,
+      },
+    ];
+    const conforming = resolveCompatibleLegForMode({
+      legCandidates,
+      minYieldPctInclusive: cfg.minWeeklyYield,
+      maxYieldPctExclusive: cfg.maxWeeklyYield,
+      preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
+    });
+    const resolved = conforming ?? pickFirstValidLegDescriptor(legCandidates);
+    fallbackUsed = conforming == null && resolved != null;
+    if (resolved) {
+      bucketLeg = resolved.leg;
+      bucketStrikeValue = resolved.strikeValue;
+      bucketGrade = resolved.grade;
+      selectedLegMode = resolved.mode;
+    }
+  }
+
+  if (!bucketLeg) {
+    return {
+      source: "legacy",
+      bucketLegAvailable: false,
+      bucketMode: bucketKey,
+      selectedLegMode: null,
+      fallbackUsed: false,
+    };
+  }
+
+  const selectedWeeklyYieldPct = getLegWeeklyNormalizedYieldPct(bucketLeg, built);
+  const selectedPeriodYieldPct = getLegPeriodYieldPct(bucketLeg, built);
+  const selectedSpreadPct = getLegSpreadPct(bucketLeg);
+  const selectedGrade = String(
+    resolveSelectedLegGrade({
+      explicitGrade: bucketGrade,
+      selectedLeg: bucketLeg,
+      selectedMode: selectedLegMode,
+      candidate: built,
+    }) ?? ""
+  ).toUpperCase() || null;
+
+  return {
+    source: "runtime",
+    bucketLegAvailable: true,
+    bucketMode: bucketKey,
+    selectedLegMode,
+    selectedLeg: bucketLeg,
+    selectedStrike: bucketStrikeValue,
+    selectedWeeklyYieldPct,
+    selectedPeriodYieldPct,
+    selectedSpreadPct,
+    selectedGrade,
+    fallbackUsed,
+    selectionReason: null,
+  };
+}
+
+/** Métadonnées mode explicites pour pick / snapshot (AF-01). */
+export function projectCapitalComboPickModeFields(candidate) {
+  const bucketMode = pickMetadataString(candidate?._capitalComboMode) ?? null;
+  const selectedLegMode = resolveSelectedLegMode(candidate) || null;
+  const scannerMode = pickMetadataString(candidate?.finalDisplayMode) ?? null;
+  return {
+    bucketMode,
+    selectedLegMode,
+    scannerMode,
+  };
+}
+
+/**
+ * Vue Inspector — priorité pick runtime, sinon résolution bucket moteur, sinon legacy.
+ */
+export function resolveCapitalComboInspectorLegView({
+  bucketKey,
+  candidate,
+  pick = null,
+  usableCapital = 100000,
+}) {
+  const bucket = String(bucketKey || "").trim().toUpperCase();
+  if (pick && (pick.selectedLegMode != null || pick.strike != null)) {
+    return {
+      source: "runtime",
+      bucketLegAvailable: true,
+      inPicks: true,
+      bucketMode: pick.bucketMode ?? bucket,
+      selectedLegMode: pick.selectedLegMode ?? null,
+      selectedLeg: null,
+      selectedStrike: pick.strike ?? null,
+      selectedWeeklyYieldPct: pick.weeklyReturn ?? null,
+      selectedPeriodYieldPct: pick.periodYield ?? pick.selectedPeriodYieldPct ?? null,
+      selectedSpreadPct: pick.spreadPct ?? null,
+      selectedGrade: pick.grade ?? null,
+      selectionReason: pick.selectionReason ?? null,
+      fallbackUsed: pick.fallbackUsed === true,
+      legSourceLabel: "Décision runtime (pick)",
+    };
+  }
+
+  const runtime = resolveBucketLegForPresentation(bucket, candidate, usableCapital);
+  if (runtime.bucketLegAvailable) {
+    return {
+      ...runtime,
+      inPicks: false,
+      legSourceLabel: runtime.fallbackUsed
+        ? "Décision runtime (fallback AF-07)"
+        : "Décision runtime (bucket)",
+    };
+  }
+
+  return {
+    source: "legacy",
+    bucketLegAvailable: false,
+    inPicks: false,
+    bucketMode: bucket,
+    selectedLegMode: null,
+    selectedLeg: null,
+    selectedStrike: null,
+    selectedWeeklyYieldPct: null,
+    selectedPeriodYieldPct: null,
+    selectedSpreadPct: null,
+    selectedGrade: null,
+    selectionReason: null,
+    fallbackUsed: false,
+    legSourceLabel: "Estimation legacy — sans pick runtime",
+  };
+}
+
+export function formatCapitalComboLegModeShort(selectedLegMode) {
+  const m = String(selectedLegMode || "").trim().toUpperCase();
+  if (m === "SAFE") return "SAFE";
+  if (m === "AGGRESSIVE") return "AGG";
+  return null;
+}
+
+/** Badge jambe pour UI pick (AF-01 / AF-16). */
+export function formatCapitalComboPickLegBadge(pick) {
+  const legShort = formatCapitalComboLegModeShort(pick?.selectedLegMode);
+  const grade = pick?.grade ? String(pick.grade).trim() : "";
+  const legLabel = legShort ? `Jambe ${legShort}` : "Jambe —";
+  return grade ? `${legLabel} · Grade ${grade}` : legLabel;
+}
+
+export function formatCapitalComboPickBucketContext(pick) {
+  const bucket = String(pick?.bucketMode || "").trim().toUpperCase();
+  if (bucket === "BALANCED") return "Bucket BALANCED";
+  return null;
+}
+
 export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPositions, rejectedIbkrSymbols = new Set(), options = {}) {
   const usableCapital = capital * (maxCapitalPct / 100);
   const targetMinPct = 90;
@@ -2166,6 +2373,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         let bucketCapital = 0;
         let bucketGrade = null;
         let bucketMode = null;
+        let bucketFallbackUsed = false;
 
         if (mode.id === "conservative") {
           // SAFE : utiliser exclusivement la jambe SAFE
@@ -2215,18 +2423,20 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
               grade: candidate._safeGrade,
             },
           ];
-          const resolved =
-            resolveCompatibleLegForMode({
+          const conformingBalanced = resolveCompatibleLegForMode({
               legCandidates,
               minYieldPctInclusive: modeAlloc.minWeeklyYield,
               maxYieldPctExclusive: modeAlloc.maxWeeklyYield,
               preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
-            }) ??
+            });
+          const resolved =
+            conformingBalanced ??
             // Aucune jambe conforme : dernier recours identique à l'ancien
             // fallback (AGG puis SAFE) pour conserver le chemin et les
             // diagnostics de rejet existants en aval — aucune jambe forcée
             // dans le portefeuille, les gates min/maxWeeklyYield rejettent.
             pickFirstValidLegDescriptor(legCandidates);
+          bucketFallbackUsed = conformingBalanced == null && resolved != null;
           if (resolved) {
             bucketLeg = resolved.leg;
             bucketStrikeValue = resolved.strikeValue;
@@ -2269,6 +2479,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         return {
           ...candidate,
           _hasBucketLeg: true,
+          _capitalComboMode: mode.label,
+          _bucketFallbackUsed: bucketFallbackUsed,
           selectedLeg: bucketLeg,
           selectedLegMode: bucketMode,
           _bucketSelectedMode: bucketMode,
@@ -2894,9 +3106,14 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
 
     function createPick(candidate, selectionReason, comboAllocationPhase = "primary_strict") {
       const legMetadata = projectSelectedLegMetadata(candidate);
+      const modeFields = projectCapitalComboPickModeFields(candidate);
       return {
         ticker: candidate.ticker,
         mode: candidate.finalDisplayMode,
+        bucketMode: modeFields.bucketMode ?? mode.label,
+        selectedLegMode: modeFields.selectedLegMode,
+        scannerMode: modeFields.scannerMode,
+        fallbackUsed: candidate._bucketFallbackUsed === true,
         grade: candidate.finalDisplayGrade,
         strike: candidate.selectedStrike.strike,
         source: candidate.source,

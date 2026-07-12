@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "head": "2559972 fix AF-18 centralize optimizer V2 flags resolution",
+    "branch": "## main...origin/main",
+    "date": "2026-07-12",
+    "patchId": "capital-combinations-ui-af01-af13-af14-af16",
+    "noGitAdd": true,
+    "noCommit": true,
+    "noPush": true
+  },
+  "verdict": "PATCH APPLIED — SAFE TO COMMIT",
+  "af01": {
+    "cause": "createPick.mode = finalDisplayMode (scanner) au lieu de selectedLegMode",
+    "fix": "bucketMode, selectedLegMode, scannerMode, fallbackUsed sur pick ; badge UI Jambe SAFE/AGG + Bucket BALANCED",
+    "modeLegacy": "pick.mode conserve finalDisplayMode",
+    "allowedModesFilterAdded": false
+  },
+  "af13": {
+    "cause": "allowedModes affiché comme contrainte active",
+    "fix": "suppression ligne modes SAFE/AGGRESSIVE dans Inspector",
+    "engineImpact": "aucun"
+  },
+  "af14": {
+    "cause": "Inspector BALANCED recalculait avec getLegYieldPct (période)",
+    "fix": "resolveCapitalComboInspectorLegView + resolveBucketLegForPresentation",
+    "truthSource": "pick runtime > résolution bucket moteur > legacy"
+  },
+  "af16": {
+    "labels": {
+      "modeGrade": { "before": "Mode / Grade", "after": "Jambe / Grade" },
+      "rendementPick": { "before": "rendement / Rend.", "after": "Rend. hebdo." },
+      "rendementCarte": { "before": "Rend. moy. % / sem.", "after": "Prime / capital" },
+      "allowedModes": { "before": "modes SAFE/AGGRESSIVE", "after": "supprimé" },
+      "risque": { "before": "RISQUE", "after": "CONCENTRATION" },
+      "capitalLigne": { "before": "capital total", "after": "Collatéral ligne" }
+    },
+    "numericValuesChanged": false
+  },
+  "impacts": {
+    "score": "aucun",
+    "order": "aucun",
+    "picksFinancial": "aucun",
+    "contracts": "aucun",
+    "capitalUsed": "aucun",
+    "allocation": "aucun",
+    "caps": "aucun",
+    "persistence": "champs JSON facultatifs sur pick (rétrocompatible)"
+  },
+  "tests": {
+    "uiMetadata": 11,
+    "uiPresentation": 3,
+    "nonRegressionTotal": 417,
+    "nonRegressionPass": 417,
+    "nonRegressionFail": 0,
+    "build": "OK",
+    "fable": "N/A"
+  },
+  "gitDiffFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/dashboard.jsx"
+  ],
+  "filesCreated": [
+    "wheel-dashboard/src/capitalComboPortfolio.ui-mode-metadata.test.mjs",
+    "wheel-dashboard/src/capitalComboUiPresentation.test.mjs",
+    "debug/capital-combinations-ui-af01-af13-af14-af16-patch-validation/capital-combinations-ui-patch-validation.md",
+    "debug/capital-combinations-ui-af01-af13-af14-af16-patch-validation/capital-combinations-ui-patch-validation.json"
+  ]
+}

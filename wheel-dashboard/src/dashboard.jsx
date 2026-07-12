@@ -66,6 +66,7 @@ import {
   getLegPremiumValue,
   getLegSpreadPct,
   getLegYieldPct,
+  getLegWeeklyNormalizedYieldPct,
   getCandidateExecutionScore,
   getLegExecutionBreakdown,
   CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE,
@@ -74,6 +75,9 @@ import {
   isUnknownUnvalidatedTicker,
   MODE_GRADE_RANK,
   toSpreadPctPercent,
+  resolveCapitalComboInspectorLegView,
+  formatCapitalComboPickLegBadge,
+  formatCapitalComboPickBucketContext,
 } from "./capitalComboPortfolio.js";
 import {
   formatCapBlockerReason,
@@ -9088,71 +9092,27 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const inPicks = pick != null;
   const ibkrRejected = ibkrRejectedSymbols.has(ticker);
 
-  // Jambe et grade spécifiques au bucket (indépendants du mode global)
-  let bucketLeg;
-  let bucketGrade;
-  if (bucketKey === "SAFE") {
-    bucketLeg = safeLeg;
-    bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
-  } else if (bucketKey === "AGGRESSIVE") {
-    bucketLeg = aggLeg;
-    const _diagAggYld = getLegYieldPct(aggLeg, candidate);
-    const _diagAggSp = getLegSpreadPct(aggLeg);
-    const _diagAggPop = aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate;
-    const _diagAggDerived = gradeLeg({ spreadPct: _diagAggSp, weeklyYieldPct: _diagAggYld, popDecimal: _diagAggPop });
-    bucketGrade = String(
-      getAggressivePriorityGrade({
-        spreadPct: _diagAggSp,
-        weeklyYieldPct: _diagAggYld,
-        popDecimal: _diagAggPop,
-        distancePct: getLegDistancePct(aggLeg),
-      }) ??
-      (_diagAggDerived !== "REJECT" ? _diagAggDerived : null) ??
-      candidate?.aggressiveGrade ?? ""
-    ).toUpperCase() || null;
-  } else {
-    // BALANCED : miroir jambe du moteur — bande choix jambe [0.75, 1.05), MID=0.875 ; filtres yield pool 0.70–1.05% ; V3 = caps dynamiques runtime
-    const safeY = getLegYieldPct(safeLeg, candidate);
-    const aggY = getLegYieldPct(aggLeg, candidate);
-    const safeInRange = safeLeg != null && safeY != null && safeY >= 0.75 && safeY < 1.05;
-    const aggInRange = aggLeg != null && aggY != null && aggY >= 0.75 && aggY < 1.05;
-    const MID = 0.875;
-    if (safeInRange && aggInRange) {
-      if (Math.abs(safeY - MID) <= Math.abs(aggY - MID)) {
-        bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
-      } else {
-        bucketLeg = aggLeg; bucketGrade = String(candidate?.aggressiveGrade ?? "").toUpperCase() || null;
-      }
-    } else if (safeInRange) {
-      bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
-    } else if (aggInRange) {
-      bucketLeg = aggLeg; {
-        const _bdY = getLegYieldPct(aggLeg, candidate), _bdS = getLegSpreadPct(aggLeg), _bdP = aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate;
-        const _bdD = gradeLeg({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP });
-        bucketGrade = String(getAggressivePriorityGrade({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP, distancePct: getLegDistancePct(aggLeg) }) ?? (_bdD !== "REJECT" ? _bdD : null) ?? candidate?.aggressiveGrade ?? "").toUpperCase() || null;
-      }
-    } else if (aggLeg != null) {
-      bucketLeg = aggLeg; {
-        const _bdY = getLegYieldPct(aggLeg, candidate), _bdS = getLegSpreadPct(aggLeg), _bdP = aggLeg?.popProfitEstimated ?? aggLeg?.popEstimate;
-        const _bdD = gradeLeg({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP });
-        bucketGrade = String(getAggressivePriorityGrade({ spreadPct: _bdS, weeklyYieldPct: _bdY, popDecimal: _bdP, distancePct: getLegDistancePct(aggLeg) }) ?? (_bdD !== "REJECT" ? _bdD : null) ?? candidate?.aggressiveGrade ?? "").toUpperCase() || null;
-      }
-    } else if (safeLeg != null) {
-      bucketLeg = safeLeg; bucketGrade = String(candidate?.safeGrade ?? "").toUpperCase() || null;
-    }
-  }
+  const legView = resolveCapitalComboInspectorLegView({
+    bucketKey,
+    candidate,
+    pick,
+    usableCapital: capital,
+  });
+  const bucketLeg = legView.bucketLeg ?? null;
+  const bucketGrade = legView.selectedGrade ?? null;
+  const inspectorLegSource = legView.legSourceLabel ?? null;
 
-  const premium = getLegPremiumValue(bucketLeg);
-  const spread = getLegSpreadPct(bucketLeg);
-  const yieldPct = getLegYieldPct(bucketLeg, candidate);
-  const distance = getLegDistancePct(bucketLeg);
-  const pop = getLegPopPct(bucketLeg);
-  const strike = Number(bucketLeg?.strike ?? NaN);
+  const premium = bucketLeg != null ? getLegPremiumValue(bucketLeg) : null;
+  const spread = legView.selectedSpreadPct ?? (bucketLeg != null ? getLegSpreadPct(bucketLeg) : null);
+  const yieldPct = legView.selectedWeeklyYieldPct ?? null;
+  const distance = bucketLeg != null ? getLegDistancePct(bucketLeg) : null;
+  const pop = bucketLeg != null ? getLegPopPct(bucketLeg) : null;
+  const strike = legView.selectedStrike ?? Number(bucketLeg?.strike ?? NaN);
   const capitalRequired = Number.isFinite(strike) && strike > 0 ? strike * 100 : null;
-  const bid = Number(bucketLeg?.bid ?? NaN);
-  const ask = Number(bucketLeg?.ask ?? NaN);
-  const mid = Number(bucketLeg?.mid ?? NaN);
-  const bucketLegAvailable = bucketLeg != null;
+  const bid = bucketLeg != null ? Number(bucketLeg?.bid ?? NaN) : NaN;
+  const ask = bucketLeg != null ? Number(bucketLeg?.ask ?? NaN) : NaN;
+  const mid = bucketLeg != null ? Number(bucketLeg?.mid ?? NaN) : NaN;
+  const bucketLegAvailable = legView.bucketLegAvailable === true;
   const effectiveGrade = bucketGrade ?? String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase();
   const comboUsedCapital = Number(combo?.totalCapital ?? 0);
   const comboFreeCapital = Math.max(
@@ -9265,6 +9225,23 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     passedAllFilters &&
     !blockedByCapitalEnvelope;
 
+  const legRetainedNotAllocated =
+    !inPicks &&
+    bucketLegAvailable &&
+    legView.source === "runtime" &&
+    legView.selectedLegMode != null &&
+    !ibkrRejected &&
+    !blockedByStaticGrade &&
+    !blockedByStaticSpread &&
+    !blockedByStaticYield &&
+    !blockedByStaticCapital &&
+    !blockedByUnknown &&
+    !blockedByAvoid &&
+    !blockedByPremiumTrap &&
+    !blockedBySpeculative &&
+    !blockedByExecutionScore &&
+    !blockedByDistancePct;
+
   let diagCategory = "non_selected";
   let statusProbable;
   let raisonProbable;
@@ -9338,6 +9315,14 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     diagCategory = "capital_envelope";
     statusProbable = "admissible, trop cher en fin de combo";
     raisonProbable = `capital restant ${comboFreeCapital.toFixed(0)}$ insuffisant pour ${capitalRequired?.toFixed(0) ?? "?"}$`;
+  } else if (legRetainedNotAllocated) {
+    diagCategory = "non_selected";
+    statusProbable = "jambe retenue, non allouée";
+    raisonProbable = residualGreedyRow?.primaryBlocker
+      ? `jambe ${legView.selectedLegMode} retenue au bucket — non allouée : ${formatCapBlockerReason(residualGreedyRow.primaryBlocker)}`
+      : greedyPoolDiag?.rejectionReason
+        ? `jambe ${legView.selectedLegMode} retenue au bucket — non allouée : ${greedyPoolDiag.rejectionReason}`
+        : `jambe ${legView.selectedLegMode} retenue au bucket — non sélectionnée par l'allocateur (caps / ordre / capital)`;
   } else if (inEngineScoredPool && greedyPoolDiag?.rejectionReason) {
     diagCategory = "non_selected";
     const blocker = greedyPoolDiag.rejectionReason;
@@ -9381,6 +9366,11 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   return {
     ticker, bucket: bucketKey, inScanData: true, inPicks, diagCategory,
     mode: globalMode, grade: effectiveGrade,
+    selectedLegMode: legView.selectedLegMode ?? null,
+    inspectorLegSource,
+    legViewSource: legView.source ?? null,
+    fallbackUsed: legView.fallbackUsed === true,
+    legRetainedNotAllocated,
     safeLegAvailable: safeLeg != null,
     aggLegAvailable: aggLeg != null,
     bucketLegAvailable,
@@ -9449,7 +9439,7 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital, ibkrRejected
 function _inspStatusBadge(status) {
   if (status === "sélectionné") return "rounded-full border border-emerald-800 bg-emerald-950/50 px-2 py-0.5 text-xs font-medium text-emerald-300";
   if (status === "dans scoredPool — non retenu greedy") return "rounded-full border border-sky-800 bg-sky-950/50 px-2 py-0.5 text-xs font-medium text-sky-300";
-  if (status === "admissible statique non sélectionné") return "rounded-full border border-sky-800 bg-sky-950/50 px-2 py-0.5 text-xs font-medium text-sky-300";
+  if (status === "jambe retenue, non allouée") return "rounded-full border border-violet-800 bg-violet-950/40 px-2 py-0.5 text-xs font-medium text-violet-300";
   if (status === "admissible, trop cher en fin de combo") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
   if (status === "admissible statique, trop cher") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
   if (status === "rejeté avant scoredPool") return "rounded-full border border-amber-800 bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-300";
@@ -9471,6 +9461,7 @@ function _inspLineStatus(diag) {
     return "dans scoredPool — non retenu greedy";
   }
   if (diag.diagCategory === "capital_envelope") return "admissible, trop cher en fin de combo";
+  if (diag.legRetainedNotAllocated) return "jambe retenue, non allouée";
   if (diag.diagCategory === "no_bucket_leg") return "sans jambe bucket valide";
   if (diag.diagCategory === "ibkr_rejected") return "hors basePool — IBKR rejeté";
   if (diag.diagCategory === "filtered_quality") return `rejeté filterCandidate — ${diag.raisonProbable}`;
@@ -9503,8 +9494,8 @@ function BucketTickerLine({ diag }) {
   return (
     <div className="text-xs text-slate-300 py-px leading-snug">
       <span className="font-semibold text-slate-100">{diag.ticker}</span>
-      {" — "}{diag.bucket} {diag.grade || "n/d"}
-      {" — "}yield {_inspFmt(diag.yieldPct, "%")}
+      {" — "}{diag.selectedLegMode || diag.bucket} {diag.grade || "n/d"}
+      {" — "}rend. hebdo. {_inspFmt(diag.yieldPct, "%")}
       {" — "}spread {_inspFmt(diag.spread, "%", 1)}
       {" — "}dist {_inspFmt(diag.distance, "%", 1)}
       {" — "}POP {_inspFmt(diag.pop, "%", 0)}
@@ -9785,12 +9776,17 @@ function CapitalCombosInspector({
                             <Row label="Jambe SAFE dispo" val={diag.safeLegAvailable != null ? (diag.safeLegAvailable ? "oui" : "non") : "n/d"} />
                             <Row label="Jambe AGG dispo" val={diag.aggLegAvailable != null ? (diag.aggLegAvailable ? "oui" : "non") : "n/d"} />
                             <Row label="Jambe bucket dispo" val={diag.bucketLegAvailable != null ? (diag.bucketLegAvailable ? "oui" : "non") : "n/d"} />
+                            <Row label="Jambe retenue" val={diag.selectedLegMode ?? "n/d"} />
+                            <Row label="Source jambe" val={diag.inspectorLegSource ?? "n/d"} />
+                            {diag.legRetainedNotAllocated ? (
+                              <Row label="Allocation" val="Jambe retenue, mais non allouée" />
+                            ) : null}
                             <Row label="Strike" val={diag.strike != null ? `${diag.strike}$` : "n/d"} />
                             <Row label="Bid" val={diag.bid != null ? `${fmt(diag.bid)}$` : "n/d"} />
                             <Row label="Ask" val={diag.ask != null ? `${fmt(diag.ask)}$` : "n/d"} />
                             <Row label="Mid" val={diag.mid != null ? `${fmt(diag.mid)}$` : "n/d"} />
                             <Row label="Spread %" val={fmt(diag.spread, "%", 1)} />
-                            <Row label="Yield %" val={fmt(diag.yieldPct, "%")} />
+                            <Row label="Rend. hebdo. %" val={fmt(diag.yieldPct, "%")} />
                             <Row label="Distance %" val={fmt(diag.distance, "%", 1)} />
                             <Row label="POP estimée" val={fmt(diag.pop, "%", 0)} />
                             <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
@@ -9870,10 +9866,12 @@ function CapitalCombosInspector({
                               </>
                             )}
                             <div className="mt-1 border-t border-slate-700 pt-1">
-                              <p className="text-slate-500">
-                                Critères {diag.bucket} — yield [{cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}]
+                              <p
+                                className="text-slate-500"
+                                title="Information descriptive. Ce champ n'est pas un filtre utilisateur ni une option d'allocation."
+                              >
+                                Critères {diag.bucket} — yield hebdo [{cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}]
                                 · spread max {cfg.maxSpread}%
-                                · modes {[...cfg.allowedModes].join("/")}
                                 {(cfg.minExecutionScore ?? 0) > 0
                                   ? ` · min executionScore ${Number(cfg.minExecutionScore).toFixed(2)}`
                                   : ""}
@@ -10059,7 +10057,7 @@ function ComboDetailModal({
             <div className="flex items-center gap-2.5">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
               <h2 className="text-lg font-bold tracking-wide" style={{ color: accent }}>
-                {isRisk ? "RISQUE" : mode}
+                {isRisk ? "CONCENTRATION" : mode}
               </h2>
               <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: accent, backgroundColor: `${accent}1f` }}>
                 {isRisk ? `Concentration ${riskLabel}` : `${combo?.positions ?? 0} positions`}
@@ -10097,7 +10095,7 @@ function ComboDetailModal({
             <div className="grid grid-cols-2 gap-2 px-5 py-4 sm:grid-cols-3 lg:grid-cols-6">
               <Metric label="Positions" value={combo?.positions ?? 0} />
               <Metric label="Prime totale" value={`${(s?.totalPremium ?? 0).toFixed(0)} $`} />
-              <Metric label="Rendement port." value={`${(s?.portfolioReturnPct ?? 0).toFixed(2)} %`} color="#22e36f" />
+              <Metric label="Prime / capital" value={`${(s?.portfolioReturnPct ?? 0).toFixed(2)} %`} color="#22e36f" />
               <Metric label="POP moyenne" value={s?.popWeighted != null ? `${Math.round(s.popWeighted)} %` : "n/d"} />
               <Metric label="Capital utilisé" value={`${(combo?.totalCapital ?? 0).toFixed(0)} $`} color="#cfe0f2" />
               <Metric label="Capital libre" value={`${freeCapital.toFixed(0)} $`} color="#cfe0f2" />
@@ -10113,7 +10111,7 @@ function ComboDetailModal({
                 <table className="w-full border-separate border-spacing-0 text-xs">
                   <thead className="sticky top-0 z-10">
                     <tr className="text-left text-[11px] uppercase tracking-wide text-[#7f97b6]">
-                      {["Ticker", "Mode / Grade", "Strike", "Prime", "Spread", "Rend.", "Dist.", "Contrats", "Capital total", "Prime tot.", "POP", "Score", "Phase"].map((h, i) => (
+                      {["Ticker", "Jambe / Grade", "Strike", "Prime", "Spread", "Rend. hebdo.", "Dist.", "Contrats", "Collatéral ligne", "Prime tot.", "POP", "Score", "Phase"].map((h, i) => (
                         <th
                           key={h}
                           className={cn("border-b border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] px-2.5 py-2 font-medium", i === 0 && "rounded-tl-lg", i >= 2 && "text-right")}
@@ -10137,16 +10135,32 @@ function ComboDetailModal({
                           </button>
                         </td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2">
-                          <span className="rounded bg-[#12243a] px-1.5 py-0.5 text-[11px] font-semibold text-[#cfe0f2]">
-                            {pick.mode ?? "—"}{pick.grade ? ` ${pick.grade}` : ""}
+                          <span
+                            className="rounded bg-[#12243a] px-1.5 py-0.5 text-[11px] font-semibold text-[#cfe0f2]"
+                            title="Type de jambe réellement sélectionnée pour ce pick."
+                          >
+                            {formatCapitalComboPickLegBadge(pick)}
                           </span>
+                          {formatCapitalComboPickBucketContext(pick) ? (
+                            <span
+                              className="ml-1 text-[10px] text-sky-300"
+                              title="Stratégie de portefeuille dans laquelle le pick a été retenu."
+                            >
+                              {formatCapitalComboPickBucketContext(pick)}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">PUT {pick.strike}</td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{fmtUnit(pick)}</td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums" style={{ color: spreadColor(pick.spreadPct != null ? Number(pick.spreadPct) : null) }}>
                           {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}
                         </td>
-                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#22e36f]">{pick.weeklyReturn.toFixed(2)}%</td>
+                        <td
+                          className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#22e36f]"
+                          title="Prime rapportée au strike, normalisée sur 7 jours."
+                        >
+                          {pick.weeklyReturn.toFixed(2)}%
+                        </td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#ff6b73]">
                           {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}
                         </td>
@@ -10435,8 +10449,13 @@ function PortfolioCombos({
                     <p className="font-semibold text-[#f4f7fb] tabular-nums">{s.totalPremium.toFixed(0)} $</p>
                   </div>
                   <div>
-                    <p className="text-[#7f97b6]">Rend. moy.</p>
-                    <p className="font-semibold text-[#22e36f] tabular-nums">{s.portfolioReturnPct.toFixed(2)}% / sem.</p>
+                    <p className="text-[#7f97b6]">Prime / capital</p>
+                    <p
+                      className="font-semibold text-[#22e36f] tabular-nums"
+                      title="Prime totale estimée divisée par le capital utilisable du portefeuille."
+                    >
+                      {s.portfolioReturnPct.toFixed(2)}%
+                    </p>
                   </div>
                   <div>
                     <p className="text-[#7f97b6]">POP moy.</p>
@@ -10479,7 +10498,7 @@ function PortfolioCombos({
             } : undefined}
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold tracking-wide" style={{ color: riskColor }}>RISQUE</span>
+              <span className="text-sm font-bold tracking-wide" style={{ color: riskColor }}>CONCENTRATION</span>
               <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: riskColor, backgroundColor: `${riskColor}1f` }}>
                 Concentration {riskLabel}
               </span>
@@ -10556,7 +10575,7 @@ function PortfolioCombos({
               <div>
                 <p className="text-base font-semibold text-slate-100">{combo.label}</p>
                 <p className="text-sm font-medium text-slate-300">
-                  Simulation {combo.label} · {combo.positions} pos. · Rend. port. ~{portfolioReturnPct.toFixed(2)}%
+                  Simulation {combo.label} · {combo.positions} pos. · Prime / capital ~{portfolioReturnPct.toFixed(2)}%
                   {(combo.picks?.length ?? 0) > 0 ? (
                     <>
                       {popWeighted != null ? ` · POP moy. ${Math.round(popWeighted)}%` : " · POP moy. n/d"}
@@ -10759,9 +10778,20 @@ function PortfolioCombos({
                       </span>
                     )}
                     <span className="text-slate-300">|</span>
-                    <span className="rounded bg-slate-700 px-1.5 py-0.5 text-xs font-semibold text-slate-300">
-                      {pick.mode ?? "—"}{pick.grade ? ` ${pick.grade}` : ""}
+                    <span
+                      className="rounded bg-slate-700 px-1.5 py-0.5 text-xs font-semibold text-slate-300"
+                      title="Type de jambe réellement sélectionnée pour ce pick."
+                    >
+                      {formatCapitalComboPickLegBadge(pick)}
                     </span>
+                    {formatCapitalComboPickBucketContext(pick) ? (
+                      <span
+                        className="text-[10px] text-sky-300"
+                        title="Stratégie de portefeuille dans laquelle le pick a été retenu."
+                      >
+                        {formatCapitalComboPickBucketContext(pick)}
+                      </span>
+                    ) : null}
                     <span className="text-slate-300">|</span>
                     <span>PUT {pick.strike}$</span>
                     <span className="text-slate-300">|</span>
@@ -10769,7 +10799,7 @@ function PortfolioCombos({
                     <span className="text-slate-300">|</span>
                     <span>spread {pick.spreadPct != null ? `${Number(pick.spreadPct).toFixed(1)}%` : "—"}</span>
                     <span className="text-slate-300">|</span>
-                    <span>rendement {pick.weeklyReturn.toFixed(2)}%</span>
+                    <span title="Prime rapportée au strike, normalisée sur 7 jours.">Rend. hebdo. {pick.weeklyReturn.toFixed(2)}%</span>
                     <span className="text-slate-300">|</span>
                     <span>dist {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}</span>
                     <span className="text-slate-300">|</span>
@@ -10788,7 +10818,7 @@ function PortfolioCombos({
                       {pick.comboAllocationPhase ?? "primary_strict"}
                     </span>
                     <span className="text-slate-300">|</span>
-                    <span>capital total {resolvePickLineCapital(pick).toFixed(0)}$</span>
+                    <span>Collatéral ligne {resolvePickLineCapital(pick).toFixed(0)}$</span>
                     <span className="text-slate-300">|</span>
                     <span>prime {pick.premiumCollected.toFixed(0)}$</span>
                     <span className="text-slate-300">|</span>

@@ -9150,7 +9150,13 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const mid = Number(bucketLeg?.mid ?? NaN);
   const bucketLegAvailable = bucketLeg != null;
   const effectiveGrade = bucketGrade ?? String(candidate.finalDisplayGrade || rec.finalDisplayGrade || "").toUpperCase();
-  const comboFreeCapital = Math.max(0, Number(combo?.freeCapital ?? capital ?? 0));
+  const comboUsedCapital = Number(combo?.totalCapital ?? 0);
+  const comboFreeCapital = Math.max(
+    0,
+    Number.isFinite(Number(combo?.freeCapital))
+      ? Number(combo.freeCapital)
+      : capital - comboUsedCapital,
+  );
   const comboCapDiag = combo?.capDiagnosticsV2 ?? null;
   const inEngineScoredPool = (comboCapDiag?.scoredPoolTickers ?? []).some(
     (tk) => String(tk || "").trim().toUpperCase() === ticker,
@@ -10329,7 +10335,13 @@ function PortfolioCombos({
     setSnapshotStatus("loading");
     setSnapshotMsg("");
     try {
-      const payload = { accountCapital: capital, source: "manual_button" };
+      const payload = {
+        accountCapital: capital,
+        maxCapitalPct: Number(maxCapitalPct),
+        deployableCapital: usableCapital,
+        usableCapital,
+        source: "manual_button",
+      };
       for (const combo of visibleCombos) {
         if ((combo?.picks?.length ?? 0) === 0) continue;
         const modeKey = LABEL_TO_MODE_ID[combo.label];
@@ -10337,6 +10349,7 @@ function PortfolioCombos({
         payload[modeKey] = {
           picks: combo.picks,
           totalCapital: combo.totalCapital,
+          capitalUsed: combo.totalCapital,
           freeCapital: combo.freeCapital,
           totalPremium: combo.picks.reduce((s, p) => s + p.premiumCollected, 0),
         };

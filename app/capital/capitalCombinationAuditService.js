@@ -28,6 +28,29 @@ function pct(part, whole) {
   return (part / whole) * 100;
 }
 
+/**
+ * Resolves deployable capital for audit metrics.
+ * Priority: explicit deployable/usable → maxCapitalPct × account → account (100 % legacy).
+ */
+function resolveDeployableCapital(accountCapital, auditContext = {}) {
+  const account = toNum(accountCapital ?? 0);
+  const explicit = toNum(
+    auditContext.deployableCapital ??
+      auditContext.usableCapital ??
+      auditContext.deployable_capital ??
+      auditContext.usable_capital ??
+      0
+  );
+  if (explicit > 0) return explicit;
+
+  const maxPct = toNum(
+    auditContext.maxCapitalPct ?? auditContext.max_capital_pct ?? 0
+  );
+  if (account > 0 && maxPct > 0) return account * (maxPct / 100);
+
+  return account;
+}
+
 // ─── computePositionMetrics ───────────────────────────────────────────────────
 /**
  * Validates a single position object.
@@ -203,9 +226,10 @@ export function computePositionMetrics(position) {
  *
  * modeData: the combo object returned by makeCombo() in dashboard.jsx,
  *           or a simplified object with a `picks` or `positions` array.
- * accountCapital: full account size in dollars (used to compute free capital).
+ * accountCapital: full account size in dollars.
+ * auditContext: optional { deployableCapital, usableCapital, maxCapitalPct } for AF-09.
  */
-export function computeModeMetrics(modeData, accountCapital) {
+export function computeModeMetrics(modeData, accountCapital, auditContext = {}) {
   const positions = Array.isArray(modeData?.picks)
     ? modeData.picks
     : Array.isArray(modeData?.positions)
@@ -239,8 +263,23 @@ export function computeModeMetrics(modeData, accountCapital) {
     tickerSet.add(pm.ticker);
   }
 
-  const capitalFree = account > 0 ? account - capitalUsed : freeCapitalPayload;
-  const utilizationPct = account > 0 ? pct(capitalUsed, account) : null;
+  const deployableCapital = resolveDeployableCapital(account, {
+    ...auditContext,
+    deployableCapital:
+      auditContext.deployableCapital ??
+      auditContext.usableCapital ??
+      modeData?.deployableCapital ??
+      modeData?.usableCapital,
+    maxCapitalPct:
+      auditContext.maxCapitalPct ?? modeData?.maxCapitalPct,
+  });
+
+  const capitalFree =
+    deployableCapital > 0
+      ? Math.max(0, deployableCapital - capitalUsed)
+      : freeCapitalPayload;
+  const utilizationPct =
+    deployableCapital > 0 ? pct(capitalUsed, deployableCapital) : null;
   const avgYieldPct = capitalUsed > 0 ? (totalPremium / capitalUsed) * 100 : 0;
   const premiumPer1000Capital = capitalUsed > 0 ? (totalPremium / capitalUsed) * 1000 : 0;
 
@@ -318,8 +357,8 @@ export function computeModeMetrics(modeData, accountCapital) {
     });
   }
 
-  // Free capital mismatch (tolerance: $5)
-  if (account > 0 && freeCapitalPayload > 0 && Math.abs(capitalFree - freeCapitalPayload) > 5) {
+  // Free capital mismatch (tolerance: $5) — backend never trusts client freeCapital for storage.
+  if (deployableCapital > 0 && freeCapitalPayload > 0 && Math.abs(capitalFree - freeCapitalPayload) > 5) {
     warnings.push({
       code: "FREE_CAPITAL_MISMATCH",
       detail: `Recomputed freeCapital=${capitalFree} vs payload=${freeCapitalPayload} (Δ=${Math.round(capitalFree - freeCapitalPayload)})`,
@@ -819,9 +858,27 @@ export function auditCapitalCombination(payload) {
   const balancedRaw = findMode("balanced", ["equilibre", "équilibré", "equilbre"]);
   const aggressiveRaw = findMode("aggressive", ["agressif"]);
 
-  const conservative = conservativeRaw ? computeModeMetrics(conservativeRaw, accountCapital) : null;
-  const balanced = balancedRaw ? computeModeMetrics(balancedRaw, accountCapital) : null;
-  const aggressive = aggressiveRaw ? computeModeMetrics(aggressiveRaw, accountCapital) : null;
+  const auditContext = {
+    deployableCapital: toNum(
+      payload?.deployableCapital ??
+        payload?.usableCapital ??
+        payload?.deployable_capital ??
+        payload?.usable_capital ??
+        0
+    ) || null,
+    usableCapital: toNum(payload?.usableCapital ?? payload?.usable_capital ?? 0) || null,
+    maxCapitalPct: toNum(payload?.maxCapitalPct ?? payload?.max_capital_pct ?? 0) || null,
+  };
+
+  const conservative = conservativeRaw
+    ? computeModeMetrics(conservativeRaw, accountCapital, auditContext)
+    : null;
+  const balanced = balancedRaw
+    ? computeModeMetrics(balancedRaw, accountCapital, auditContext)
+    : null;
+  const aggressive = aggressiveRaw
+    ? computeModeMetrics(aggressiveRaw, accountCapital, auditContext)
+    : null;
 
   const comparison =
     conservative && balanced && aggressive

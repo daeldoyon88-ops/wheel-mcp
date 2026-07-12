@@ -1,0 +1,163 @@
+{
+  "anomaly": "AF-09",
+  "selectedPolicy": "freeCapital = max(0, usableCapital - capitalUsed); reserve outside maxCapitalPct excluded",
+  "baseCommit": "30105a851182f4e3b4f37c2d45cb41d5097a2b01",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "30105a8 fix capital combo soft cap dollar limits",
+    "branch": "main...origin/main",
+    "trackedModified": 0,
+    "headMatchesExpected": true
+  },
+  "formulaBefore": {
+    "engine": "capitalTotal - capitalUsed",
+    "simulator": "grossCapital - used",
+    "uiMain": "usableCapital - totalCapital",
+    "inspector": "combo.freeCapital (engine brute value)",
+    "backendAudit": "accountCapital - capitalUsed"
+  },
+  "formulaAfter": {
+    "engine": "max(0, usableCapital - capitalUsed)",
+    "simulator": "max(0, usableCapital - used)",
+    "uiMain": "usableCapital - totalCapital (unchanged)",
+    "inspector": "combo.freeCapital corrected + fallback usable - used",
+    "backendAudit": "max(0, deployableCapital - capitalUsed)"
+  },
+  "engineChange": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.js",
+    "function": "makeCombo return",
+    "lineApprox": 3365,
+    "before": "freeCapital: capital - used",
+    "after": "freeCapital: Math.max(0, usableCapital - used)"
+  },
+  "simulatorChange": {
+    "file": "wheel-dashboard/src/alternativeCompositionSimV1.js",
+    "function": "buildCompositionSnapshot",
+    "lineApprox": 648,
+    "before": "freeCapital: grossCapital - used",
+    "after": "freeCapital: Math.max(0, usableCapital - used)"
+  },
+  "uiChange": {
+    "mainModal": "unchanged recalc",
+    "inspector": "dashboard.jsx _inspCandidateDiag comboFreeCapital defense-in-depth",
+    "snapshotPayload": "maxCapitalPct, deployableCapital, usableCapital, capitalUsed added"
+  },
+  "snapshotPayloadChange": {
+    "rootFieldsAdded": ["maxCapitalPct", "deployableCapital", "usableCapital"],
+    "modeFieldsAdded": ["capitalUsed"],
+    "existingFieldsPreserved": ["accountCapital", "picks", "totalCapital", "freeCapital", "totalPremium"]
+  },
+  "backendAuditChange": {
+    "file": "app/capital/capitalCombinationAuditService.js",
+    "functions": ["resolveDeployableCapital", "computeModeMetrics", "auditCapitalCombination"],
+    "trustClientFreeCapital": false
+  },
+  "sqliteSchemaChanged": false,
+  "backwardCompatibility": {
+    "legacyPayloadWithoutPct": "deployableCapital defaults to accountCapital (100%)",
+    "existingSnapshotsReadable": true,
+    "apiBreakingChanges": false
+  },
+  "scenarios": {
+    "case100pct": {
+      "capital": 25500,
+      "maxCapitalPct": 100,
+      "usable": 25500,
+      "safeUsed": 24800,
+      "safeFree": 700,
+      "note": "unchanged vs capture user"
+    },
+    "case50pct": {
+      "capital": 50000,
+      "maxCapitalPct": 50,
+      "usable": 25000,
+      "safeUsed": 24800,
+      "safeFree": 200,
+      "oldWrongFree": 25200
+    },
+    "case25pct": {
+      "capital": 40000,
+      "maxCapitalPct": 25,
+      "usable": 10000,
+      "safeUsed": 3900,
+      "safeFree": 6100,
+      "oldWrongFree": 36100
+    }
+  },
+  "invariants": {
+    "freeCapitalNonNegative": true,
+    "freeCapitalLeUsable": true,
+    "totalPlusFreeApproxUsable": true,
+    "moneyToleranceUsd": 0.02
+  },
+  "testsAF09": {
+    "file": "wheel-dashboard/src/capitalComboPortfolio.free-capital.test.mjs",
+    "count": 15,
+    "pass": 15,
+    "fail": 0
+  },
+  "backendTests": {
+    "file": "app/capital/capitalCombinationAuditService.free-capital.test.mjs",
+    "count": 5,
+    "pass": 5,
+    "fail": 0
+  },
+  "adjustedLegacyTests": [],
+  "testsAF08": { "file": "capitalComboPortfolio.soft-cap.test.mjs", "pass": 27, "fail": 0 },
+  "testsAF02": { "file": "capitalComboPortfolio.pop-null.test.mjs", "pass": 6, "fail": 0 },
+  "testsAF03": { "file": "capitalComboPortfolio.selected-leg-grade.test.mjs", "pass": 15, "fail": 0 },
+  "testsAF05": { "file": "capitalComboPortfolio.deterministic-tiebreak.test.mjs", "pass": 26, "fail": 0 },
+  "testsAF06": { "file": "capitalComboInputPool.test.mjs", "pass": 22, "fail": 0 },
+  "testsAF07": { "file": "capitalComboPortfolio.balanced-fallback.test.mjs", "pass": 30, "fail": 0 },
+  "spreadTests": { "file": "spreadPctPercent.test.mjs", "pass": 15, "fail": 0 },
+  "fableResults": {
+    "before": { "pass": 30, "fail": 8, "info": 5, "criticalConfirmed": 0 },
+    "after": { "pass": 29, "fail": 9, "info": 5, "criticalConfirmed": 0 },
+    "t9a": {
+      "id": "T9a",
+      "statusBefore": "PASS",
+      "statusAfter": "FAIL",
+      "actualAfter": { "used": 5000, "freeCapital": 15000, "libreDeployableAttendu": 15000 },
+      "interpretation": "historical defect check obsolete; corrected formula demonstrated"
+    },
+    "realRegression": false
+  },
+  "buildResult": {
+    "command": "npm.cmd run build",
+    "cwd": "wheel-dashboard",
+    "status": "PASS",
+    "newErrors": 0,
+    "preexistingWarnings": ["framer-motion use client", "chunk size > 500kB"]
+  },
+  "modifiedFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.js",
+    "wheel-dashboard/src/alternativeCompositionSimV1.js",
+    "wheel-dashboard/src/dashboard.jsx",
+    "app/capital/capitalCombinationAuditService.js"
+  ],
+  "createdFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.free-capital.test.mjs",
+    "app/capital/capitalCombinationAuditService.free-capital.test.mjs",
+    "debug/capital-combinations-af09-patch-validation/capital-combinations-af09-patch-validation.md",
+    "debug/capital-combinations-af09-patch-validation/capital-combinations-af09-patch-validation.json"
+  ],
+  "limitations": [
+    "capitalPct combo field still uses gross capital denominator",
+    "no max_capital_pct SQLite column added",
+    "node --check not run on dashboard.jsx (jsx extension)"
+  ],
+  "allocationImpact": {
+    "picks": "none",
+    "contracts": "none",
+    "caps": "none",
+    "score": "none"
+  },
+  "finalGitState": {
+    "modifiedTracked": 4,
+    "createdInScope": 4,
+    "gitAdd": false,
+    "gitCommit": false,
+    "gitPush": false
+  },
+  "verdict": "SAFE TO COMMIT"
+}

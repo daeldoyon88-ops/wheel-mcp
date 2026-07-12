@@ -645,7 +645,7 @@ export function buildCompositionSnapshot(picks, usableCapital, grossCapital, sco
     distinctLines: distinct,
     totalContracts: contracts,
     usedCapital: used,
-    freeCapital: grossCapital - used,
+    freeCapital: Math.max(0, usableCapital - used),
     fillEfficiencyPct: fillPct,
     premiumTotalUsd: prem,
     avgYieldPct: avgYield,

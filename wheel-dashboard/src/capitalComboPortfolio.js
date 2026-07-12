@@ -3362,7 +3362,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       capitalTargetReached: usedPct >= targetMinPct,
       capitalShortfallReason,
       avgWeeklyReturn: avgWeekly,
-      freeCapital: capital - used,
+      // Reliquat du capital déployable uniquement — la réserve hors maxCapitalPct est exclue.
+      freeCapital: Math.max(0, usableCapital - used),
       picks: picksOut,
       balancedInstitutionalV3Audit: mode.id === "balanced" ? balancedInstitutionalV3Audit : null,
       avgQualityScore: picks.length > 0 ? qualityStats.totalQualityScore / picks.length : null,

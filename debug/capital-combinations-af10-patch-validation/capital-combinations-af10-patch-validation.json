@@ -1,0 +1,113 @@
+{
+  "anomaly": "AF-10",
+  "classification": "UI uniquement — affichage capital agrégé et concentration multi-contrats",
+  "baseCommit": "bafc9f7fd8eb72fa77a6bb3f0cdba45cbce38a05",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "bafc9f7",
+    "branch": "main...origin/main",
+    "trackedModified": [],
+    "note": "Worktree propre au départ"
+  },
+  "formulaBefore": {
+    "riskDominant": "max(Σ capitalRequired par ticker) / Σ capitalRequired × 100",
+    "capitalColumn": "pick.capitalRequired (1 lot)",
+    "accordion": "capital {pick.capitalRequired}$"
+  },
+  "formulaAfter": {
+    "riskDominant": "resolveDominantTickerCapital(picks) sur resolvePickLineCapital(p)",
+    "capitalColumn": "resolvePickLineCapital(pick)",
+    "accordion": "capital total {resolvePickLineCapital(pick)}$"
+  },
+  "helper": {
+    "file": "wheel-dashboard/src/pickLineCapital.js",
+    "functions": ["resolvePickLineCapital", "resolveDominantTickerCapital"]
+  },
+  "riskCardBefore": "dominant.pct basé sur capitalRequired — ex. SOFI 78,43 %",
+  "riskCardAfter": "dominant.pct basé sur capitalUsed agrégé — ex. SOFI 54,79 %",
+  "capitalColumnBefore": "1100$ pour NOK×3 (1 lot seulement)",
+  "capitalColumnAfter": "3300$ pour NOK×3 (capital total ligne)",
+  "accordionBefore": "capital 1100$ | ×3",
+  "accordionAfter": "capital total 3300$ | ×3",
+  "exampleNokSofi": {
+    "NOK": { "contracts": 3, "capitalRequired": 1100, "capitalUsed": 3300 },
+    "SOFI": { "contracts": 1, "capitalRequired": 4000, "capitalUsed": 4000 },
+    "dominantBeforePct": 78.43137254901961,
+    "dominantAfterPct": 54.79452054794521,
+    "engineLargestTickerCapitalPct": 54.79
+  },
+  "legacyFallbacks": [
+    "capitalUsed fini et >= 0 prioritaire",
+    "sinon capitalPerContract × contracts",
+    "sinon capitalRequired × contracts",
+    "contracts absent → 1"
+  ],
+  "safetyGuards": [
+    "NaN/Infinity sur capitalUsed → fallback",
+    "valeurs négatives → fallback ou 0",
+    "jamais capitalUsed × contracts",
+    "total <= 0 → dominant null"
+  ],
+  "testsAF10": {
+    "file": "wheel-dashboard/src/pickLineCapital.test.mjs",
+    "total": 20,
+    "pass": 20,
+    "fail": 0
+  },
+  "nonRegressionTests": {
+    "pickLineCapital": "20/20 PASS",
+    "freeCapitalEngine": "15/15 PASS",
+    "freeCapitalBackend": "5/5 PASS",
+    "softCap": "27/27 PASS",
+    "popNull": "6/6 PASS",
+    "selectedLegGrade": "15/15 PASS",
+    "deterministicTiebreak": "25/25 PASS",
+    "inputPool": "20/20 PASS",
+    "balancedFallback": "30/30 PASS",
+    "spreadPct": "15/15 PASS"
+  },
+  "fableResults": {
+    "totals": { "checks": 43, "pass": 29, "fail": 9, "info": 5, "criticalConfirmed": 0 },
+    "T10a": {
+      "status": "PASS",
+      "note": "Check historique — rejoue encore l'ancienne formule inline capitalRequired dans le harnais Fable (non modifié). L'UI dashboard est corrigée ; T10a PASS = preuve que l'ancien défaut est documenté dans le harness, pas régression."
+    },
+    "newRealRegressions": 0
+  },
+  "buildResult": {
+    "status": "PASS",
+    "tool": "vite build",
+    "warnings": ["framer-motion use client", "chunk size > 500 kB — préexistants"]
+  },
+  "syntaxCheck": {
+    "pickLineCapital.js": "PASS",
+    "pickLineCapital.test.mjs": "PASS",
+    "dashboard.jsx": "SKIP — node --check ne supporte pas .jsx (build Vite PASS confirme syntaxe)"
+  },
+  "modifiedFiles": ["wheel-dashboard/src/dashboard.jsx"],
+  "createdFiles": [
+    "wheel-dashboard/src/pickLineCapital.js",
+    "wheel-dashboard/src/pickLineCapital.test.mjs",
+    "debug/capital-combinations-af10-patch-validation/capital-combinations-af10-patch-validation.md",
+    "debug/capital-combinations-af10-patch-validation/capital-combinations-af10-patch-validation.json"
+  ],
+  "limitations": [
+    "Inspector CapitalCombos conserve capitalRequired (diagnostic 1 contrat — intentionnel)",
+    "weightedMetricByCapital inchangé (déjà correct sur capitalUsed)",
+    "Fable T10a non mis à jour — encode encore l'ancienne formule UI en replay inline",
+    "node --check wheel-dashboard/src/dashboard.jsx non applicable (.jsx)"
+  ],
+  "finalGitState": {
+    "head": "bafc9f7",
+    "trackedModified": ["wheel-dashboard/src/dashboard.jsx"],
+    "untrackedNew": [
+      "wheel-dashboard/src/pickLineCapital.js",
+      "wheel-dashboard/src/pickLineCapital.test.mjs",
+      "debug/capital-combinations-af10-patch-validation/"
+    ],
+    "gitAdd": false,
+    "commit": false,
+    "push": false
+  },
+  "verdict": "SAFE TO COMMIT"
+}

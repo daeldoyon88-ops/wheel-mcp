@@ -76,6 +76,7 @@ import {
   toSpreadPctPercent,
 } from "./capitalComboPortfolio.js";
 import { formatCapBlockerReason } from "./capitalComboEngineV2.js";
+import { resolveDominantTickerCapital, resolvePickLineCapital } from "./pickLineCapital.js";
 import {
   buildComboCandidatePool,
   buildVisibleTableRows,
@@ -10109,7 +10110,7 @@ function ComboDetailModal({
                 <table className="w-full border-separate border-spacing-0 text-xs">
                   <thead className="sticky top-0 z-10">
                     <tr className="text-left text-[11px] uppercase tracking-wide text-[#7f97b6]">
-                      {["Ticker", "Mode / Grade", "Strike", "Prime", "Spread", "Rend.", "Dist.", "Contrats", "Capital", "Prime tot.", "POP", "Score", "Phase"].map((h, i) => (
+                      {["Ticker", "Mode / Grade", "Strike", "Prime", "Spread", "Rend.", "Dist.", "Contrats", "Capital total", "Prime tot.", "POP", "Score", "Phase"].map((h, i) => (
                         <th
                           key={h}
                           className={cn("border-b border-[rgba(110,150,190,0.20)] bg-[#0b1a2b] px-2.5 py-2 font-medium", i === 0 && "rounded-tl-lg", i >= 2 && "text-right")}
@@ -10147,7 +10148,7 @@ function ComboDetailModal({
                           {pick.distancePct != null ? `${Number(pick.distancePct).toFixed(1)}%` : "—"}
                         </td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#cfe0f2]">×{pick.contracts}</td>
-                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{pick.capitalRequired.toFixed(0)}$</td>
+                        <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{resolvePickLineCapital(pick).toFixed(0)}$</td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#e6eefb]">{pick.premiumCollected.toFixed(0)}$</td>
                         <td className="border-b border-[rgba(110,150,190,0.10)] px-2.5 py-2 text-right tabular-nums text-[#cfe0f2]">
                           {pick.popEstimate != null && Number.isFinite(Number(pick.popEstimate)) ? `${Math.round(Number(pick.popEstimate))}%` : "—"}
@@ -10308,16 +10309,7 @@ function PortfolioCombos({
   const riskCombo = [...visibleCombos].sort(
     (a, b) => (b.concentrationRiskScore ?? 0) - (a.concentrationRiskScore ?? 0)
   )[0];
-  const dominant = (() => {
-    if (!riskCombo?.picks?.length) return null;
-    const total = riskCombo.picks.reduce((s, p) => s + p.capitalRequired, 0);
-    if (!total) return null;
-    const byTicker = {};
-    riskCombo.picks.forEach((p) => { byTicker[p.ticker] = (byTicker[p.ticker] || 0) + p.capitalRequired; });
-    let topT = null, topV = 0;
-    Object.entries(byTicker).forEach(([t, v]) => { if (v > topV) { topV = v; topT = t; } });
-    return { ticker: topT, pct: (topV / total) * 100, capital: topV };
-  })();
+  const dominant = resolveDominantTickerCapital(riskCombo?.picks);
   const riskScore = riskCombo?.concentrationRiskScore ?? null;
   const riskLabel = riskScore == null ? "n/d" : riskScore > 0.65 ? "élevée" : riskScore > 0.45 ? "moyenne" : "faible";
   const riskColor = riskScore == null ? "#91a8c4" : riskScore > 0.65 ? "#ff4d57" : riskScore > 0.45 ? "#ff9f1a" : "#22e36f";
@@ -10793,7 +10785,7 @@ function PortfolioCombos({
                       {pick.comboAllocationPhase ?? "primary_strict"}
                     </span>
                     <span className="text-slate-300">|</span>
-                    <span>capital {pick.capitalRequired.toFixed(0)}$</span>
+                    <span>capital total {resolvePickLineCapital(pick).toFixed(0)}$</span>
                     <span className="text-slate-300">|</span>
                     <span>prime {pick.premiumCollected.toFixed(0)}$</span>
                     <span className="text-slate-300">|</span>

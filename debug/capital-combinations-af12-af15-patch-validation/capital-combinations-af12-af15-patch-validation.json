@@ -1,0 +1,157 @@
+{
+  "anomalies": ["AF-12", "AF-15"],
+  "classificationAF12": "C — scoring/ordre (qualityNorm héritait SAFE)",
+  "classificationAF15": "D+B — persistance/metadata informative absente du pick",
+  "selectedPolicy": "POLITIQUE A — projection complète depuis selectedLeg",
+  "baseCommit": "b6bf608",
+  "rootPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+  "initialGitState": {
+    "head": "b6bf608",
+    "branch": "main...origin/main",
+    "trackedModified": 0,
+    "note": "worktree propre avant patch"
+  },
+  "commonRootCause": "projection incomplète selectedLeg → candidat bucket → pick",
+  "proScoreFormula": {
+    "executionScore": "spreadScore*0.5 + volumeScore*0.3 + openInterestScore*0.2",
+    "distanceScore": "min(abs(distanceDecimal)/0.1, 1)",
+    "finalScore": "weeklyYieldDecimal * executionScore * distanceScore",
+    "distanceDecimal": "abs(distancePct)>1 ? abs(distancePct)/100 : abs(distancePct)",
+    "weeklyYieldDecimal": "getLegYieldPct(leg)/100"
+  },
+  "units": {
+    "weeklyYieldComboLeg": "percent (ex. 0.60 = 0.60%)",
+    "weeklyYieldScanner": "decimal (ex. 0.006)",
+    "distanceComboLeg": "percent signed (ex. -10.1)",
+    "distanceScanner": "decimal abs (ex. 0.101)",
+    "spreadPct": "percent via resolveLegSpreadPctPercent"
+  },
+  "selectedLegPriority": "selectedLeg explicit → recalcul jambe → parent SAFE/legacy → neutre 0",
+  "legacyFallbacks": {
+    "proScores": "parent uniquement si mode SAFE ou objet sans jambes identifiables",
+    "metadata": "parent targetExpiration/expiration/dteDays si absent sur jambe"
+  },
+  "safeResults": {
+    "proFinalScore": "recalculé depuis safeStrike/selectedLeg SAFE",
+    "metadata": "expiration/bid/ask projetés depuis jambe SAFE",
+    "allocation": "inchangée"
+  },
+  "aggressiveResults": {
+    "proFinalScore": "recalculé depuis aggressiveStrike — plus de score SAFE hérité",
+    "metadata": "bid/ask/expiration de la jambe AGGRESSIVE dans le pick",
+    "allocation": "inchangée"
+  },
+  "balancedResults": {
+    "proFinalScore": "score de la jambe réellement retenue (SAFE ou AGGRESSIVE)",
+    "metadata": "metadata de la jambe fallback/retenue",
+    "allocation": "inchangée"
+  },
+  "af07Results": {
+    "proFinalScore": "suit la jambe fallback (SAFE ou AGGRESSIVE conforme)",
+    "metadata": "suit la jambe retenue",
+    "allocation": "inchangée"
+  },
+  "scoreDelta": {
+    "historicalBiasPts": "≤6 (quality weight 12 × ΔqualityNorm jusqu'à 0.30)",
+    "afterPatch": "écart supprimé quand proFinal/proDistance explicites diffèrent sur jambe AGG"
+  },
+  "orderImpact": "peut modifier l'ordre dans courses serrées (TEST 8) — pas de flip portefeuille démontré",
+  "expirationProjection": {
+    "priority": "selectedLeg.expiration > parent",
+    "mismatchDiagnostic": "expirationMismatch:true si jambe ≠ parent",
+    "validation": "aucune nouvelle gate temporelle — lecture seule"
+  },
+  "dteProjection": {
+    "priority": "selectedLeg.dte/dteDays > parent dteDays/dteAtScan"
+  },
+  "bidAskMidProjection": {
+    "source": "selectedLeg.bid/ask/mid prioritaire",
+    "parentFallback": "candidate.bid/ask/mid uniquement si absent sur jambe",
+    "excludedFromMid": ["premium", "premiumUsed", "primeUsed", "selectedPremiumUnit"],
+    "pickFields": ["bid", "ask", "mid"]
+  },
+  "rankProjection": {
+    "source": "selectedLeg.rank/finalRank puis parent"
+  },
+  "contractIdentifiersProjection": {
+    "fields": ["optionSymbol", "conId", "contractId"]
+  },
+  "quoteMetadataProjection": {
+    "fields": ["quoteTimestamp", "marketDataType", "quoteSource"],
+    "quoteSourcePolicy": "selectedLeg.quoteSource puis candidate.quoteSource — jamais source générique"
+  },
+  "allocationUnchanged": {
+    "strike": true,
+    "premiumUnit": true,
+    "spreadPct": true,
+    "capitalUsed": true,
+    "contracts": true,
+    "mode": true,
+    "evidence": "233/233 tests non-régression PASS incluant balanced-fallback TEST 14-15, soft-cap, free-capital"
+  },
+  "testsAF12": { "file": "wheel-dashboard/src/capitalComboPortfolio.selected-leg-pro-score.test.mjs", "total": 20, "pass": 20, "fail": 0 },
+  "testsAF15": { "file": "wheel-dashboard/src/capitalComboPortfolio.pick-metadata.test.mjs", "total": 37, "pass": 37, "fail": 0 },
+  "nonRegressionTests": {
+    "total": 270,
+    "pass": 270,
+    "fail": 0,
+    "suites": {
+      "selected-leg-pro-score": 20,
+      "pick-metadata": 37,
+      "negative-spread": 32,
+      "pickLineCapital": 20,
+      "free-capital-portfolio": 15,
+      "free-capital-audit": 5,
+      "soft-cap": 27,
+      "pop-null": 6,
+      "selected-leg-grade": 15,
+      "deterministic-tiebreak": 26,
+      "input-pool": 22,
+      "balanced-fallback": 30,
+      "spreadPctPercent": 15
+    }
+  },
+  "fableResults": {
+    "baseline": { "checks": 43, "pass": 29, "fail": 9, "info": 5, "critical": 0, "T1g": "PASS (ancien défaut confirmé)" },
+    "afterPatch": { "checks": 43, "pass": 28, "fail": 10, "info": 5, "critical": 0 },
+    "changes": [
+      { "id": "T1g", "before": "PASS", "after": "FAIL", "verdict": "check obsolète — metadata maintenant présente", "regression": false },
+      { "id": "T1a", "before": "FAIL", "after": "FAIL", "verdict": "pré-existant (spread croisé rejeté b6bf608)", "regression": false },
+      { "id": "T7a", "before": "FAIL", "after": "FAIL", "verdict": "check obsolète (AF-11 spread croisé rejeté)", "regression": false },
+      { "id": "T15a/b/c", "before": "FAIL", "after": "FAIL", "verdict": "AF-02 POP — hors périmètre", "regression": false }
+    ]
+  },
+  "buildResult": { "status": "PASS", "tool": "vite build", "warnings": "framer-motion use client + chunk size (préexistants)" },
+  "modifiedFiles": ["wheel-dashboard/src/capitalComboPortfolio.js"],
+  "createdFiles": [
+    "wheel-dashboard/src/capitalComboPortfolio.selected-leg-pro-score.test.mjs",
+    "wheel-dashboard/src/capitalComboPortfolio.pick-metadata.test.mjs",
+    "debug/capital-combinations-af12-af15-patch-validation/capital-combinations-af12-af15-patch-validation.md",
+    "debug/capital-combinations-af12-af15-patch-validation/capital-combinations-af12-af15-patch-validation.json"
+  ],
+  "limitations": [
+    "mode pick reste finalDisplayMode (AF-01 non corrigé)",
+    "mid/bid/ask ne dérivent jamais de premium/premiumUsed/primeUsed/selectedPremiumUnit",
+    "quoteSource n'utilise pas source générique candidat/jambe",
+    "aucune validation moteur expiration passée / divergente bloquante",
+    "rank scanner finalRank toujours non consommé pour allocation",
+    "Fable T1g encode l'ancien défaut — attendu FAIL après patch"
+  ],
+  "finalGitState": {
+    "head": "b6bf608",
+    "trackedModified": ["wheel-dashboard/src/capitalComboPortfolio.js"],
+    "untrackedNew": [
+      "wheel-dashboard/src/capitalComboPortfolio.selected-leg-pro-score.test.mjs",
+      "wheel-dashboard/src/capitalComboPortfolio.pick-metadata.test.mjs",
+      "debug/capital-combinations-af12-af15-patch-validation/"
+    ],
+    "gitAdd": false,
+    "commit": false,
+    "push": false
+  },
+  "verdict": {
+    "AF12": "PATCH APPLIED — SAFE TO COMMIT",
+    "AF15": "PATCH APPLIED — SAFE TO COMMIT",
+    "global": "SAFE TO COMMIT"
+  }
+}

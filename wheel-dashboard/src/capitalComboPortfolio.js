@@ -1050,6 +1050,230 @@ export function getCandidateExecutionScore(candidate, leg = null) {
   return Number.isFinite(pro) ? pro : null;
 }
 
+function roundProScore(value, decimals = 6) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const factor = 10 ** decimals;
+  return Math.round(n * factor) / factor;
+}
+
+function pickFiniteProScore(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/** Distance scanner : decimal abs (ex. 0.101 pour 10,1 %). Jambe dashboard : souvent en %. */
+function normalizeDistancePctToScannerDecimal(distancePctRaw) {
+  const abs = Math.abs(Number(distancePctRaw));
+  if (!Number.isFinite(abs)) return null;
+  return abs > 1 ? abs / 100 : abs;
+}
+
+/** Rendement scanner : decimal hebdo (ex. 0.00607). Jambe combo : % via getLegYieldPct. */
+function getLegWeeklyYieldDecimalForProScore(leg, candidate) {
+  const yieldPct = getLegYieldPct(leg, candidate);
+  if (!Number.isFinite(yieldPct) || yieldPct <= 0) return null;
+  return yieldPct / 100;
+}
+
+export function computeLegProDistanceScore(leg, candidate = null) {
+  if (!leg) return null;
+  const explicit = pickFiniteProScore(leg?.proDistanceScore);
+  if (explicit != null) return explicit;
+  const distancePctRaw = getLegDistancePct(leg);
+  if (distancePctRaw == null || !Number.isFinite(Number(distancePctRaw))) return null;
+  const distanceDecimal = normalizeDistancePctToScannerDecimal(distancePctRaw);
+  if (distanceDecimal == null) return null;
+  return roundProScore(Math.min(distanceDecimal / 0.1, 1));
+}
+
+/**
+ * Formule identique à wheelScanner.computeProScore (l.372-394).
+ * Unités : weeklyYield decimal, distance decimal abs, spread/volume/OI comme getLegExecutionBreakdown.
+ */
+export function computeLegProFinalScore(leg, candidate, executionScore, distanceScore) {
+  const explicit = pickFiniteProScore(leg?.proFinalScore);
+  if (explicit != null) return explicit;
+  const weeklyYield = getLegWeeklyYieldDecimalForProScore(leg, candidate);
+  const exec = pickFiniteProScore(executionScore);
+  const dist = pickFiniteProScore(distanceScore);
+  if (weeklyYield == null || exec == null || dist == null) return null;
+  return roundProScore(weeklyYield * exec * dist);
+}
+
+export function resolveSelectedLegMode(candidate, selectedLeg = null) {
+  const leg = selectedLeg ?? candidate?.selectedLeg ?? null;
+  const explicit = String(
+    candidate?.selectedLegMode ?? candidate?._bucketSelectedMode ?? ""
+  ).trim().toUpperCase();
+  if (explicit) return explicit;
+  const safe = candidate?._safeLeg ?? candidate?.safeStrike ?? null;
+  const agg = candidate?._aggLeg ?? candidate?.aggressiveStrike ?? null;
+  if (leg && safe && Number(leg.strike) === Number(safe.strike)) return "SAFE";
+  if (leg && agg && Number(leg.strike) === Number(agg.strike)) return "AGGRESSIVE";
+  return "";
+}
+
+function canUseParentProScoreFallback(candidate, selectedMode) {
+  if (String(selectedMode || "").toUpperCase() === "SAFE") return true;
+  if (!candidate?.selectedLeg && !candidate?.safeStrike && !candidate?.aggressiveStrike) return true;
+  return false;
+}
+
+/**
+ * AF-12 — Scores professionnels de la jambe réellement sélectionnée.
+ * Priorité : explicit leg → recalcul jambe → parent (SAFE/legacy seulement) → neutre 0.
+ */
+export function resolveSelectedLegProScore(candidate, options = {}) {
+  const selectedLeg = options.selectedLeg ?? candidate?.selectedLeg ?? null;
+  const selectedMode = resolveSelectedLegMode(candidate, selectedLeg);
+  const parentFallbackOk = canUseParentProScoreFallback(candidate, selectedMode);
+
+  const executionExplicit = pickFiniteProScore(selectedLeg?.proExecutionScore);
+  const executionRecomputed = getLegExecutionScore(selectedLeg);
+  let proExecutionScore = executionExplicit ?? executionRecomputed;
+  let proExecutionSource = executionExplicit != null
+    ? "selected_leg_explicit"
+    : executionRecomputed != null
+      ? "selected_leg_recomputed"
+      : null;
+  if (proExecutionScore == null) {
+    const parentExec = pickFiniteProScore(candidate?.proExecutionScore);
+    if (parentFallbackOk && parentExec != null) {
+      proExecutionScore = parentExec;
+      proExecutionSource = "safe_parent_legacy";
+    } else {
+      proExecutionScore = 0;
+      proExecutionSource = "neutral_fallback";
+    }
+  }
+
+  const distanceExplicit = pickFiniteProScore(selectedLeg?.proDistanceScore);
+  const distanceRecomputed = computeLegProDistanceScore(selectedLeg, candidate);
+  let proDistanceScore = distanceExplicit ?? distanceRecomputed;
+  let proDistanceSource = distanceExplicit != null
+    ? "selected_leg_explicit"
+    : distanceRecomputed != null
+      ? "selected_leg_recomputed"
+      : null;
+  if (proDistanceScore == null) {
+    const parentDist = pickFiniteProScore(candidate?.proDistanceScore);
+    if (parentFallbackOk && parentDist != null) {
+      proDistanceScore = parentDist;
+      proDistanceSource = "safe_parent_legacy";
+    } else {
+      proDistanceScore = 0;
+      proDistanceSource = "neutral_fallback";
+    }
+  }
+
+  const finalExplicit = pickFiniteProScore(selectedLeg?.proFinalScore);
+  const finalRecomputed = computeLegProFinalScore(
+    selectedLeg,
+    candidate,
+    proExecutionScore,
+    proDistanceScore
+  );
+  let proFinalScore = finalExplicit ?? finalRecomputed;
+  let proFinalSource = finalExplicit != null
+    ? "selected_leg_explicit"
+    : finalRecomputed != null
+      ? "selected_leg_recomputed"
+      : null;
+  if (proFinalScore == null) {
+    const parentFinal = pickFiniteProScore(candidate?.proFinalScore);
+    if (parentFallbackOk && parentFinal != null) {
+      proFinalScore = parentFinal;
+      proFinalSource = "safe_parent_legacy";
+    } else {
+      proFinalScore = 0;
+      proFinalSource = "neutral_fallback";
+    }
+  }
+
+  const proScoreSource =
+    proFinalSource === "selected_leg_explicit" ||
+    proDistanceSource === "selected_leg_explicit" ||
+    proExecutionSource === "selected_leg_explicit"
+      ? "selected_leg_explicit"
+      : proFinalSource === "selected_leg_recomputed" ||
+          proDistanceSource === "selected_leg_recomputed" ||
+          proExecutionSource === "selected_leg_recomputed"
+        ? "selected_leg_recomputed"
+        : proFinalSource === "safe_parent_legacy"
+          ? "safe_parent_legacy"
+          : "neutral_fallback";
+
+  return {
+    proFinalScore: roundProScore(proFinalScore),
+    proExecutionScore: roundProScore(proExecutionScore),
+    proDistanceScore: roundProScore(proDistanceScore),
+    proScoreSource,
+    proFinalSource,
+    proExecutionSource,
+    proDistanceSource,
+    selectedLegMode: selectedMode || null,
+  };
+}
+
+function pickMetadataString(...values) {
+  for (const value of values) {
+    if (value == null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return null;
+}
+
+function pickMetadataNumber(...values) {
+  for (const value of values) {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/** AF-15 — Projection des métadonnées d'audit depuis selectedLeg (lecture seule). */
+export function projectSelectedLegMetadata(candidate) {
+  const leg = candidate?.selectedLeg ?? null;
+  const parentExpiration = pickMetadataString(
+    candidate?.targetExpiration,
+    candidate?.selectedExpiration,
+    candidate?.expiration,
+    candidate?.optionsExpiration
+  );
+  const legExpiration = pickMetadataString(
+    leg?.expiration,
+    leg?.targetExpiration,
+    leg?.selectedExpiration
+  );
+  const expiration = legExpiration ?? parentExpiration ?? null;
+  const parentDte = pickMetadataNumber(candidate?.dteDays, candidate?.dteAtScan, candidate?.dte);
+  const dte = pickMetadataNumber(leg?.dte, leg?.dteDays, parentDte);
+
+  return {
+    expiration,
+    expirationSource: legExpiration ? "selectedLeg" : parentExpiration ? "parent" : null,
+    expirationMismatch: !!(
+      legExpiration &&
+      parentExpiration &&
+      String(legExpiration) !== String(parentExpiration)
+    ),
+    dte,
+    bid: pickMetadataNumber(leg?.bid, candidate?.bid),
+    ask: pickMetadataNumber(leg?.ask, candidate?.ask),
+    mid: pickMetadataNumber(leg?.mid, candidate?.mid),
+    rank: pickMetadataNumber(leg?.rank, candidate?.rank, candidate?.finalRank),
+    finalRank: pickMetadataNumber(leg?.finalRank, candidate?.finalRank),
+    optionSymbol: pickMetadataString(leg?.optionSymbol, leg?.contractSymbol),
+    conId: pickMetadataNumber(leg?.conId),
+    contractId: pickMetadataNumber(leg?.contractId, leg?.conId),
+    quoteTimestamp: pickMetadataString(leg?.quoteTimestamp, leg?.quoteTime),
+    marketDataType: pickMetadataString(leg?.marketDataType, leg?.marketDataTypeRaw),
+    quoteSource: pickMetadataString(leg?.quoteSource, candidate?.quoteSource),
+  };
+}
+
 function clamp01(value) {
   if (!Number.isFinite(Number(value))) return 0;
   return Math.max(0, Math.min(1, Number(value)));
@@ -1922,11 +2146,23 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             candidate,
           }) ?? ""
         ).toUpperCase();
+        const bucketCandidate = {
+          ...candidate,
+          selectedLeg: bucketLeg,
+          selectedLegMode: bucketMode,
+          _bucketSelectedMode: bucketMode,
+        };
+        const selectedLegPro = resolveSelectedLegProScore(bucketCandidate, {
+          selectedLeg: bucketLeg,
+          selectedMode: bucketMode,
+        });
 
         return {
           ...candidate,
           _hasBucketLeg: true,
           selectedLeg: bucketLeg,
+          selectedLegMode: bucketMode,
+          _bucketSelectedMode: bucketMode,
           selectedLegGrade: resolvedGrade || null,
           selectedStrikeValue: bucketStrikeValue,
           selectedPremiumUnit: bucketPremium,
@@ -1936,7 +2172,11 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           _popForCombo: bucketPop,
           _bucketExecutionScore: bucketExecutionScore,
           _backendProExecutionScore: candidate.proExecutionScore,
-          proExecutionScore: bucketExecutionScore ?? candidate.proExecutionScore,
+          proExecutionScore: selectedLegPro.proExecutionScore,
+          proDistanceScore: selectedLegPro.proDistanceScore,
+          proFinalScore: selectedLegPro.proFinalScore,
+          proScoreSource: selectedLegPro.proScoreSource,
+          _selectedLegProMeta: selectedLegPro,
           capitalPerContract: resolvedCapital,
           premiumPerContract: Number.isFinite(bucketPremium) && bucketPremium > 0 ? bucketPremium * 100 : 0,
           finalDisplayGrade: resolvedGrade,
@@ -2544,6 +2784,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     }
 
     function createPick(candidate, selectionReason, comboAllocationPhase = "primary_strict") {
+      const legMetadata = projectSelectedLegMetadata(candidate);
       return {
         ticker: candidate.ticker,
         mode: candidate.finalDisplayMode,
@@ -2572,6 +2813,22 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         selectionReason,
         selectionTooltip: candidate._comboScoreBreakdown?.tooltip ?? null,
         comboAllocationPhase,
+        expiration: legMetadata.expiration,
+        expirationSource: legMetadata.expirationSource,
+        expirationMismatch: legMetadata.expirationMismatch || undefined,
+        dte: legMetadata.dte,
+        bid: legMetadata.bid,
+        ask: legMetadata.ask,
+        mid: legMetadata.mid,
+        rank: legMetadata.rank,
+        finalRank: legMetadata.finalRank,
+        optionSymbol: legMetadata.optionSymbol,
+        conId: legMetadata.conId,
+        contractId: legMetadata.contractId,
+        quoteTimestamp: legMetadata.quoteTimestamp,
+        marketDataType: legMetadata.marketDataType,
+        quoteSource: legMetadata.quoteSource,
+        proScoreSource: candidate.proScoreSource ?? candidate?._selectedLegProMeta?.proScoreSource ?? null,
       };
     }
 

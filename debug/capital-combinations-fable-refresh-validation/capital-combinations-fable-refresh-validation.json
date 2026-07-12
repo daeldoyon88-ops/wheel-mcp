@@ -1,0 +1,223 @@
+{
+  "audit": "capital-combinations-fable-refresh-validation",
+  "generatedAt": "2026-07-12T05:35:00.000Z",
+  "headInitial": "c18b744 fix UI capital combos mode metadata inspector parity and labels",
+  "branch": "main...origin/main",
+  "gitInitial": {
+    "trackedModified": [],
+    "trackedStaged": [],
+    "safeToUpdate": true,
+    "harnessStatus": "untracked",
+    "harnessPath": "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs"
+  },
+  "baselineFable": {
+    "pass": 28,
+    "fail": 10,
+    "info": 5,
+    "checks": 43,
+    "failIds": ["T1a", "T1g", "T3a", "T4a", "T6a", "T7a", "T9a", "T15a", "T15b", "T15c"]
+  },
+  "failMatrix": [
+    {
+      "id": "T1a",
+      "title": "SAFE/NFLX : valeurs financières = jambe SAFE",
+      "fixture": "NFLX bid 0.46 ask 0.48 liquidity.spreadPct 4.3",
+      "oldAssertion": "spreadPct === 4.3 (valeur liquidity fournie)",
+      "oldExpected": 4.3,
+      "oldActual": 4.255319148936162,
+      "af": "AF-11",
+      "commit": "b6bf608",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "bid/ask prioritaires → spread recalculé (ask-bid)/mid×100 ; fixture 4.3 obsolète"
+    },
+    {
+      "id": "T1g",
+      "title": "createPick ne transporte ni expiration ni bid/ask",
+      "fixture": "NFLX SAFE pick",
+      "oldAssertion": "expiration/bid/ask/rank absents du pick",
+      "oldExpected": "champs absents",
+      "oldActual": "champs présents (expiration,dte,bid,ask,mid,selectedLegMode,…)",
+      "af": "AF-15/AF-01",
+      "commit": "932cc9d / c18b744",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "createPick enrichi : metadata jambe + modes explicites"
+    },
+    {
+      "id": "T3a",
+      "title": "grade SOURCE décide du portefeuille à score égal",
+      "fixture": "AAPL AGGRESSIVE A vs MSFT SAFE B, jambes SAFE identiques",
+      "oldAssertion": "run1=AAPL, run2=MSFT (flip selon grade source)",
+      "oldExpected": "AAPL puis MSFT",
+      "oldActual": "AAPL puis AAPL",
+      "af": "AF-04/AF-05",
+      "commit": "6799766",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "tie-break stable alphabétique ; grade source n'ordonne plus"
+    },
+    {
+      "id": "T4a",
+      "title": "ordre d'entrée décide si ex æquo",
+      "fixture": "AAPL/MSFT jambes identiques, ordre inversé",
+      "oldAssertion": "ab=AAPL, ba=MSFT",
+      "oldExpected": "dépend de l'ordre",
+      "oldActual": "AAPL / AAPL",
+      "af": "AF-05",
+      "commit": "6799766",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "compareCapitalComboCandidatesStable (ticker)"
+    },
+    {
+      "id": "T6a",
+      "title": "BALANCED : AGG hors bande exclut ticker malgré SAFE conforme",
+      "fixture": "CRM SAFE 0.70 + AGG 2.0 ; ORCL SAFE 0.70 seul",
+      "oldAssertion": "avec AGG → exclu ; sans AGG → inclus",
+      "oldExpected": "paradoxe AF-07",
+      "oldActual": "CRM présent strike 40 selectedLegMode SAFE",
+      "af": "AF-07",
+      "commit": "3509ef3",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "resolveCompatibleLegForMode essaie SAFE si AGG hors bande"
+    },
+    {
+      "id": "T7a",
+      "title": "spread négatif accepté",
+      "fixture": "AAPL bid 1.2 ask 0.9 spreadPct -22",
+      "oldAssertion": "pick présent spreadPct ≈ -22",
+      "oldExpected": "accepté",
+      "oldActual": "absent",
+      "af": "AF-11",
+      "commit": "b6bf608",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "CROSSED_MARKET rejeté ; jambe invalide"
+    },
+    {
+      "id": "T9a",
+      "title": "freeCapital = capital brut − used",
+      "fixture": "40000$ @ 50% → usable 20000 ; used 5000",
+      "oldAssertion": "freeCapital === 40000-used !== 20000-used",
+      "oldExpected": 35000,
+      "oldActual": 15000,
+      "af": "AF-09",
+      "commit": "bafc9f7",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "formule corrigée freeCapital = usableCapital − capitalUsed"
+    },
+    {
+      "id": "T15a",
+      "title": "POP null ⇒ WATCH ; undefined ⇒ A",
+      "fixture": "gradeLeg spread 6 yield 0.556",
+      "oldAssertion": "null→WATCH, undefined→A",
+      "oldExpected": "WATCH / A",
+      "oldActual": "A / A",
+      "af": "AF-02",
+      "commit": "92444e4",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "normalizeOptionalPopPct : null reste absent, non coercé en 0"
+    },
+    {
+      "id": "T15b",
+      "title": "POP null ⇒ WATCH ⇒ exclu SAFE",
+      "fixture": "AAPL sans grades stockés, pop null",
+      "oldAssertion": "avec POP inclus ; sans POP exclu",
+      "oldExpected": "exclusion",
+      "oldActual": "1 pick grade A, popEstimate null",
+      "af": "AF-02/AF-03",
+      "commit": "92444e4",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "POP null non bloquant ; grade dérivé A conservé"
+    },
+    {
+      "id": "T15c",
+      "title": "POP null écrase grade stocké A en AGGRESSIVE",
+      "fixture": "MSFT aggressiveGrade A, pop null",
+      "oldAssertion": "avec POP inclus ; sans POP exclu",
+      "oldExpected": "exclusion",
+      "oldActual": "1 pick grade A, popEstimate null",
+      "af": "AF-02/AF-03",
+      "commit": "92444e4",
+      "classification": "CHECK OBSOLÈTE",
+      "detail": "explicitGrade stocké prioritaire ; POP null non coercé"
+    }
+  ],
+  "bugsReels": [],
+  "changes": {
+    "checksModified": ["T1a", "T1f", "T1g", "T3a", "T4a", "T6a", "T7a", "T9a", "T15a", "T15b", "T15c"],
+    "checksAdded": ["T16a", "T16b", "T16c", "T16d", "T16e"],
+    "checksRemoved": [],
+    "checksConvertedToInfo": [],
+    "fixturesChanged": {
+      "T7a": "ajout fixture MSFT spread valide (contrôle positif AF-11)"
+    },
+    "engineFilesModified": [],
+    "uiFilesModified": []
+  },
+  "newRules": {
+    "T1a": "spread = (ask−bid)/mid×100 depuis bid/ask (AF-11) ; valeurs financières jambe SAFE",
+    "T1g": "metadata expiration/dte/bid/ask/mid + selectedLegMode/bucketMode/scannerMode présentes (AF-15/AF-01)",
+    "T3a": "à score égal, grade SOURCE ne bascule plus ; gagnant stable AAPL (AF-04/AF-05)",
+    "T4a": "ordre d'entrée inversé ⇒ même gagnant AAPL (AF-05)",
+    "T6a": "AGG hors bande n'exclut pas SAFE conforme ; selectedLegMode SAFE (AF-07)",
+    "T7a": "marché croisé rejeté ; spread valide accepté (AF-11)",
+    "T9a": "freeCapital = usableCapital − capitalUsed (AF-09)",
+    "T15a": "POP null/undefined ⇒ grade A (non WATCH) (AF-02)",
+    "T15b": "POP null ⇒ pick SAFE grade A, popEstimate null (AF-02/AF-03)",
+    "T15c": "POP null conserve aggressiveGrade A (AF-02/AF-03)"
+  },
+  "coverage": {
+    "spreadNegatif": "T7a",
+    "marcheCroise": "T7a",
+    "spreadValide": "T1a, T7a",
+    "selectedLegGrade": "T1b, T15b, T15c",
+    "selectedLegProScores": "documenté unit selected-leg-pro-score (hors Fable ; T1c poids grade)",
+    "selectedLegMetadata": "T1g",
+    "tieBreak": "T3a, T4a, T16a",
+    "canonicalPool": "documenté unit capitalComboInputPool (AF-06)",
+    "fallbackBalanced": "T6a, T16d",
+    "softCaps": "T8a",
+    "freeCapital": "T9a, T12c-*",
+    "multiContrats": "T10a",
+    "af17Weekly": "T16c (+ unit weekly-normalized-yield)",
+    "af18Flags": "T16b (+ unit optimizer-flags)",
+    "badgeJambeUi": "T1g selectedLegMode ; T1d mode legacy encore documenté",
+    "allocationLabelsUi": "T14a (+ unit capitalComboUiPresentation)"
+  },
+  "finalFable": {
+    "pass": 43,
+    "fail": 0,
+    "info": 5,
+    "checks": 48,
+    "newFails": [],
+    "infoIds": ["T1f", "T11g", "T12b", "T12e", "T12d"]
+  },
+  "nonRegression": {
+    "capitalCombinations": { "suites": 18, "total": 417, "pass": 417, "fail": 0 },
+    "backendFreeCapital": { "total": 5, "pass": 5, "fail": 0 },
+    "viteBuild": "PASS"
+  },
+  "filesModified": [
+    "debug/capital-combinations-audit-fable/capital-combinations-audit-fable.mjs"
+  ],
+  "filesCreated": [
+    "debug/capital-combinations-fable-refresh-validation/capital-combinations-fable-refresh-validation.md",
+    "debug/capital-combinations-fable-refresh-validation/capital-combinations-fable-refresh-validation.json"
+  ],
+  "optionalGuardTest": null,
+  "gitFinal": {
+    "diffNameOnly": [],
+    "cachedDiffNameOnly": [],
+    "noGitAdd": true,
+    "noCommit": true,
+    "noPush": true,
+    "note": "harness et rapports untracked ; aucun fichier suivi modifié"
+  },
+  "limitations": [
+    "T1d / T2b / T8a / T10a restent des checks « DÉFAUT CONFIRMÉ » PASS hérités (hors lot FAIL) — non retargetés dans ce refresh",
+    "T12e INFO mentionne encore bande période 7 DTE ; AF-17 couvert explicitement via T16c",
+    "pool canonique AF-06 non rejoué dans Fable (couverture unitaires dédiées)",
+    "harness reste untracked (debug/) — commit à décider par Daël"
+  ],
+  "verdictFable": "FABLE REFRESH APPLIED",
+  "verdictGlobal": "FABLE REFRESH APPLIED — SAFE TO COMMIT",
+  "safeToCommit": true,
+  "recommendedCommitMessage": "refresh Fable harness assertions for AF-01 to AF-18 current rules"
+}

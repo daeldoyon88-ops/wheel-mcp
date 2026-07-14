@@ -817,8 +817,13 @@ function computeBalancedInstitutionalV3(mode, usableCapital, globalMaxPositions)
   }
 
   const modePatch = {
-    /** Légèrement sous 0.70 pour débloquer le pool sans rapprocher du profil AGGRESSIVE. */
-    minWeeklyYield: 0.675,
+    /**
+     * Borne min de bande alignée sur la décision fonctionnelle : periodYieldPct >= 0,70 %.
+     * L'ancien 0.675 assouplissait la borne HEBDOMADAIRE normalisée (AF-17) ; depuis le
+     * passage des bandes au rendement période (jusqu'à expiration), la bande officielle
+     * BALANCED [0,70 ; 1,05) s'applique sans assouplissement.
+     */
+    minWeeklyYield: 0.70,
     tickerCapPct,
     positionCapPct,
     maxContractsPerTicker,
@@ -1062,7 +1067,10 @@ export function getLegYieldPct(leg, candidate) {
 }
 
 /**
- * Rendement hebdomadaire linéarisé (%) pour bandes / scoring Capital Combinations (AF-17).
+ * Rendement hebdomadaire linéarisé (%) — scoring / affichage / comparaison DTE (AF-17).
+ * N'est PLUS utilisé pour l'admissibilité des bandes de bucket : les bandes
+ * SAFE/BALANCED/AGGRESSIVE se décident sur le rendement PÉRIODE (jusqu'à
+ * expiration, getLegPeriodYieldPct). Le 7J reste calculé/affiché/persisté.
  * Priorité : leg.weeklyNormalizedYield → recalcul période×7/DTE → legacy DTE=7 seulement.
  */
 export function getLegWeeklyNormalizedYieldPct(leg, candidate, options = {}) {
@@ -1833,9 +1841,12 @@ export function buildCapitalComboCandidate(candidate, usableCapital) {
 }
 
 /**
- * Bande de sélection préférentielle de la jambe du bucket BALANCED (AF-07 / AF-17).
- * Rendements en points de pourcentage **hebdomadaires normalisés**
- * (0,75 = 0,75 %/sem) ; min inclusif, max exclusif.
+ * Bande de sélection préférentielle de la jambe du bucket BALANCED (AF-07).
+ * Rendements en points de pourcentage **PÉRIODE (jusqu'à expiration)**
+ * (0,75 = 0,75 % jusqu'à expiration) ; min inclusif, max exclusif.
+ * (Historique AF-17 : ces bornes s'appliquaient au rendement hebdomadaire
+ * normalisé ; depuis le passage des bandes au rendement période, elles
+ * s'appliquent au rendement période — valeurs numériques inchangées.)
  */
 export const BALANCED_PREFERRED_LEG_YIELD_BAND = Object.freeze({
   minInclusivePct: 0.75,
@@ -1926,7 +1937,8 @@ export function resolveCompatibleLegForMode({
  * Dernier recours AF-07 : première jambe structurellement valide dans l'ordre
  * de fallback, sans test de bande. Utilisé uniquement quand aucune jambe n'est
  * conforme, pour conserver le chemin de rejet aval existant (le candidat sera
- * rejeté par les gates min/maxWeeklyYield avec les mêmes diagnostics qu'avant).
+ * rejeté par les gates de bande période avec les diagnostics
+ * PERIOD_YIELD_BELOW_BUCKET_MIN / PERIOD_YIELD_ABOVE_BUCKET_MAX).
  */
 function pickFirstValidLegDescriptor(legCandidates) {
   const list = Array.isArray(legCandidates) ? legCandidates : [];
@@ -1936,7 +1948,11 @@ function pickFirstValidLegDescriptor(legCandidates) {
   return null;
 }
 
-/** Bandes yield effectives par bucket — alignées sur modeConfigs (présentation / Inspector). */
+/**
+ * Bandes yield effectives par bucket — alignées sur modeConfigs (présentation / Inspector).
+ * Les bornes s'appliquent au rendement PÉRIODE (jusqu'à expiration, %) ; les clés
+ * gardent leur nom historique min/maxWeeklyYield pour compatibilité de lecture.
+ */
 export const BUCKET_PRESENTATION_YIELD_BANDS = Object.freeze({
   SAFE: Object.freeze({ minWeeklyYield: 0.45, maxWeeklyYield: 0.80 }),
   BALANCED: Object.freeze({ minWeeklyYield: 0.70, maxWeeklyYield: 1.05 }),
@@ -1976,13 +1992,14 @@ export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usabl
       selectedLegMode = "AGGRESSIVE";
     }
   } else if (bucketKey === "BALANCED") {
+    // Bande décidée sur le rendement PÉRIODE (jusqu'à expiration), pas le 7J.
     const legCandidates = [
       {
         mode: "AGGRESSIVE",
         priority: 1,
         valid: built._hasAggLegValid === true,
         leg: built._aggLeg,
-        yieldPct: built._aggYieldPct,
+        yieldPct: built._aggPeriodYieldPct,
         strikeValue: built._aggStrikeValue,
         capital: built._aggCapital,
         grade: built._aggGrade,
@@ -1992,7 +2009,7 @@ export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usabl
         priority: 1,
         valid: built._hasSafeLegValid === true,
         leg: built._safeLeg,
-        yieldPct: built._safeYieldPct,
+        yieldPct: built._safePeriodYieldPct,
         strikeValue: built._safeStrikeValue,
         capital: built._safeCapital,
         grade: built._safeGrade,
@@ -2171,6 +2188,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       maxThemeCapitalPct: 0.50,
       maxSectorCapitalPct: 0.50,
       maxHighBetaCapitalPct: 0.60,
+      // Bande d'admissibilité — rendement PÉRIODE (jusqu'à expiration), en %.
       minWeeklyYield: 0.95,
       maxWeeklyYield: null,
       minExecutionScore: CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE,
@@ -2236,6 +2254,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       maxHighBetaCapitalPct: 0.35,
       // BITX est le seul crypto autorisé dans BALANCED — limité à 1 contrat max
       maxBitxContracts: 1,
+      // Bande d'admissibilité — rendement PÉRIODE (jusqu'à expiration), en %.
       minWeeklyYield: 0.70,
       maxWeeklyYield: 1.05,
       minExecutionScore: 0,
@@ -2293,6 +2312,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       maxThemeCapitalPct: 0.40,
       maxSectorCapitalPct: 0.40,
       maxHighBetaCapitalPct: 0.35,
+      // Bande d'admissibilité — rendement PÉRIODE (jusqu'à expiration), en %.
       minWeeklyYield: 0.45,
       maxWeeklyYield: 0.80,
       minExecutionScore: 0,
@@ -2400,6 +2420,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           // conforme à la bande effective du mode ; une jambe hors bande
           // n'empêche plus d'essayer la suivante. Ordre de fallback historique
           // conservé : AGGRESSIVE avant SAFE.
+          // Bande décidée sur le rendement PÉRIODE (jusqu'à expiration) — le 7J
+          // normalisé reste calculé pour scoring/affichage/comparaison DTE.
           const legCandidates = [
             // Futur : insérer ici la vraie jambe BALANCED avec priority 0 quand elle existera.
             {
@@ -2407,7 +2429,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
               priority: 1,
               valid: candidate._hasAggLegValid === true,
               leg: candidate._aggLeg,
-              yieldPct: candidate._aggYieldPct,
+              yieldPct: candidate._aggPeriodYieldPct,
               strikeValue: candidate._aggStrikeValue,
               capital: candidate._aggCapital,
               grade: candidate._aggGrade,
@@ -2417,7 +2439,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
               priority: 1,
               valid: candidate._hasSafeLegValid === true,
               leg: candidate._safeLeg,
-              yieldPct: candidate._safeYieldPct,
+              yieldPct: candidate._safePeriodYieldPct,
               strikeValue: candidate._safeStrikeValue,
               capital: candidate._safeCapital,
               grade: candidate._safeGrade,
@@ -2451,6 +2473,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         const bucketPremium = getLegPremiumValue(bucketLeg);
         const bucketSpread = getLegSpreadPct(bucketLeg);
         const bucketYield = getLegWeeklyNormalizedYieldPct(bucketLeg, candidate);
+        // Rendement période de la jambe bucket — seule métrique d'admissibilité des bandes.
+        const bucketPeriodYield = getLegPeriodYieldPct(bucketLeg, candidate);
         const bucketDistance = getLegDistancePct(bucketLeg);
         const bucketPop = getLegPopPct(bucketLeg);
         const bucketExecutionScore = getLegExecutionScore(bucketLeg);
@@ -2489,6 +2513,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           selectedPremiumUnit: bucketPremium,
           selectedSpreadPct: bucketSpread,
           selectedYieldPct: bucketYield,
+          selectedPeriodYieldPct: bucketPeriodYield,
+          periodYieldPct: bucketPeriodYield,
           selectedDistancePct: bucketDistance,
           _popForCombo: bucketPop,
           _bucketExecutionScore: bucketExecutionScore,
@@ -2550,17 +2576,25 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         _isWatchPremium: cand.finalDisplayGrade === "WATCH" && !!modeAlloc.watchPremiumFilter?.(cand),
       };
 
-      if (!(candWp.weeklyReturn >= modeAlloc.minWeeklyYield)) {
-        pushScoredPoolReject(candWp.ticker, "MIN_WEEKLY_YIELD_NOT_MET", {
-          minWeeklyYieldPct: modeAlloc.minWeeklyYield,
-          weeklyReturnPct: candWp.weeklyReturn,
+      // Bande d'admissibilité du bucket : décidée par le rendement PÉRIODE
+      // (jusqu'à expiration) de la jambe bucket. Le rendement 7J normalisé
+      // reste exposé dans les diagnostics à titre informatif seulement.
+      const bucketPeriodYieldPct = Number(candWp.selectedPeriodYieldPct);
+      if (!(Number.isFinite(bucketPeriodYieldPct) && bucketPeriodYieldPct >= modeAlloc.minWeeklyYield)) {
+        pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_BELOW_BUCKET_MIN", {
+          minPeriodYieldPct: modeAlloc.minWeeklyYield,
+          periodYieldPct: Number.isFinite(bucketPeriodYieldPct) ? bucketPeriodYieldPct : null,
+          weeklyNormalizedYieldPct: candWp.weeklyReturn ?? null,
+          noteFr: "Bande décidée par le rendement jusqu'à expiration ; le 7J est informatif.",
         });
         continue;
       }
-      if (!(modeAlloc.maxWeeklyYield == null || candWp.weeklyReturn < modeAlloc.maxWeeklyYield)) {
-        pushScoredPoolReject(candWp.ticker, "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT", {
-          maxWeeklyYieldConfig: modeAlloc.maxWeeklyYield,
-          weeklyReturnPct: candWp.weeklyReturn,
+      if (!(modeAlloc.maxWeeklyYield == null || bucketPeriodYieldPct < modeAlloc.maxWeeklyYield)) {
+        pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_ABOVE_BUCKET_MAX", {
+          maxPeriodYieldConfig: modeAlloc.maxWeeklyYield,
+          periodYieldPct: bucketPeriodYieldPct,
+          weeklyNormalizedYieldPct: candWp.weeklyReturn ?? null,
+          noteFr: "Bande décidée par le rendement jusqu'à expiration ; le 7J est informatif.",
         });
         continue;
       }
@@ -3124,6 +3158,11 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         capitalUsed: candidate.capitalPerContract,
         premiumCollected: candidate.premiumPerContract,
         weeklyReturn: candidate.weeklyReturn,
+        // Rendement période (jusqu'à expiration) de la jambe bucket — décide la bande ;
+        // weeklyReturn (7J normalisé) reste persisté pour comparaison DTE.
+        periodYield: Number.isFinite(Number(candidate.selectedPeriodYieldPct))
+          ? Number(candidate.selectedPeriodYieldPct)
+          : null,
         spreadPct: candidate.selectedSpreadPct,
         distancePct: candidate.selectedDistancePct,
         qualityTier: candidate._qualityOverlay?.qualityTier ?? null,

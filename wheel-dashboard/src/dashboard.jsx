@@ -62,6 +62,7 @@ import {
   getAggressivePriorityGrade,
   getFinalDisplayRecommendation,
   getLegDistancePct,
+  getLegPeriodYieldPct,
   getLegPopPct,
   getLegPremiumValue,
   getLegSpreadPct,
@@ -9002,6 +9003,10 @@ const LABEL_TO_MODE_ID = {
 };
 
 // ─── Inspector Combinaisons capital (read-only, no engine impact) ───────────
+// minYield/maxYield : bornes de bande appliquées au rendement PÉRIODE (jusqu'à
+// expiration), miroir des gates moteur PERIOD_YIELD_BELOW_BUCKET_MIN /
+// PERIOD_YIELD_ABOVE_BUCKET_MAX. Le rendement 7J normalisé reste affiché à
+// titre informatif et sert aux miroirs qualité/speculative (parité moteur).
 
 const _INSP_BUCKETS = {
   SAFE: {
@@ -9104,7 +9109,12 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
 
   const premium = bucketLeg != null ? getLegPremiumValue(bucketLeg) : null;
   const spread = legView.selectedSpreadPct ?? (bucketLeg != null ? getLegSpreadPct(bucketLeg) : null);
+  // 7J normalisé — informatif + miroirs qualité/speculative (parité moteur).
   const yieldPct = legView.selectedWeeklyYieldPct ?? null;
+  // Période (jusqu'à expiration) — seule métrique qui décide la bande du bucket.
+  const periodYieldPct =
+    legView.selectedPeriodYieldPct ??
+    (bucketLeg != null ? getLegPeriodYieldPct(bucketLeg, candidate) : null);
   const distance = bucketLeg != null ? getLegDistancePct(bucketLeg) : null;
   const pop = bucketLeg != null ? getLegPopPct(bucketLeg) : null;
   const strike = legView.selectedStrike ?? Number(bucketLeg?.strike ?? NaN);
@@ -9135,10 +9145,16 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     ) ?? null;
   const blockedByStaticGrade = bucketLegAvailable && !["A", "B"].includes(effectiveGrade);
   const blockedByStaticSpread = bucketLegAvailable && spread != null && spread > cfg.maxSpread;
-  const blockedByStaticYield =
+  // Bande décidée par le rendement PÉRIODE (miroir PERIOD_YIELD_BELOW_BUCKET_MIN /
+  // PERIOD_YIELD_ABOVE_BUCKET_MAX) — jamais par le rendement 7J normalisé.
+  const blockedByPeriodYieldBelowMin =
+    bucketLegAvailable && periodYieldPct != null && periodYieldPct < cfg.minYield;
+  const blockedByPeriodYieldAboveMax =
     bucketLegAvailable &&
-    yieldPct != null &&
-    (yieldPct < cfg.minYield || (cfg.maxYield != null && yieldPct >= cfg.maxYield));
+    periodYieldPct != null &&
+    cfg.maxYield != null &&
+    periodYieldPct >= cfg.maxYield;
+  const blockedByStaticYield = blockedByPeriodYieldBelowMin || blockedByPeriodYieldAboveMax;
   const blockedByStaticCapital =
     capitalRequired != null && capital > 0 && capitalRequired > capital;
   const blockedByUnknown = meta.qualityTier === "Inconnu à valider";
@@ -9272,7 +9288,9 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   } else if (blockedByStaticYield) {
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
-    raisonProbable = "bloqué avant scoredPool — yield hors bande";
+    raisonProbable = blockedByPeriodYieldBelowMin
+      ? `bloqué avant scoredPool — PERIOD_YIELD_BELOW_BUCKET_MIN : rendement expiration ${periodYieldPct?.toFixed(2)}% < min ${cfg.minYield}% (7J ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} informatif)`
+      : `bloqué avant scoredPool — PERIOD_YIELD_ABOVE_BUCKET_MAX : rendement expiration ${periodYieldPct?.toFixed(2)}% >= max ${cfg.maxYield}% (7J ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} informatif)`;
   } else if (blockedByStaticCapital) {
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
@@ -9378,7 +9396,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     bid: Number.isFinite(bid) ? bid : null,
     ask: Number.isFinite(ask) ? ask : null,
     mid: Number.isFinite(mid) ? mid : null,
-    spread, yieldPct, distance, pop,
+    spread, yieldPct, periodYieldPct, distance, pop,
     capitalRequired, premiumUnit: premium,
     premiumTotal: inPicks ? pick.premiumCollected : null,
     scoreCombo: inPicks ? pick.selectionScore : null,
@@ -9391,6 +9409,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     blockedByStaticGrade,
     blockedByStaticSpread,
     blockedByStaticYield,
+    blockedByPeriodYieldBelowMin,
+    blockedByPeriodYieldAboveMax,
     blockedByStaticCapital,
     blockedByAvoid,
     blockedByPremiumTrap,
@@ -9557,6 +9577,8 @@ function CapitalCombosInspector({
         blockedByStaticGrade: false,
         blockedByStaticSpread: false,
         blockedByStaticYield: false,
+        blockedByPeriodYieldBelowMin: false,
+        blockedByPeriodYieldAboveMax: false,
         blockedByStaticCapital: false,
         ibkrRejected: ibkrRejectedSymbols.has(searchedTicker),
         blockedByAvoid: false,
@@ -9612,6 +9634,7 @@ function CapitalCombosInspector({
             bucket: d.bucket,
             mode: d.mode,
             grade: d.grade,
+            periodYieldPct: d.periodYieldPct ?? null,
             yieldPct: d.yieldPct,
             spread: d.spread,
             distance: d.distance,
@@ -9627,6 +9650,8 @@ function CapitalCombosInspector({
             blockedByStaticGrade: d.blockedByStaticGrade,
             blockedByStaticSpread: d.blockedByStaticSpread,
             blockedByStaticYield: d.blockedByStaticYield,
+            blockedByPeriodYieldBelowMin: d.blockedByPeriodYieldBelowMin ?? false,
+            blockedByPeriodYieldAboveMax: d.blockedByPeriodYieldAboveMax ?? false,
             blockedByAvoid: d.blockedByAvoid ?? false,
             blockedByPremiumTrap: d.blockedByPremiumTrap ?? false,
             blockedBySpeculative: d.blockedBySpeculative ?? false,
@@ -9786,7 +9811,8 @@ function CapitalCombosInspector({
                             <Row label="Ask" val={diag.ask != null ? `${fmt(diag.ask)}$` : "n/d"} />
                             <Row label="Mid" val={diag.mid != null ? `${fmt(diag.mid)}$` : "n/d"} />
                             <Row label="Spread %" val={fmt(diag.spread, "%", 1)} />
-                            <Row label="Rend. hebdo. %" val={fmt(diag.yieldPct, "%")} />
+                            <Row label="Rend. expiration % (décide bucket)" val={fmt(diag.periodYieldPct, "%")} />
+                            <Row label="Rend. 7J % (informatif)" val={fmt(diag.yieldPct, "%")} />
                             <Row label="Distance %" val={fmt(diag.distance, "%", 1)} />
                             <Row label="POP estimée" val={fmt(diag.pop, "%", 0)} />
                             <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
@@ -9796,7 +9822,7 @@ function CapitalCombosInspector({
                             <Row label="Filtres statiques OK" val={_inspYesNo(diag.passedStaticFilters)} />
                             <Row label="Bloqué grade" val={_inspYesNo(diag.blockedByStaticGrade)} />
                             <Row label="Bloqué spread" val={_inspYesNo(diag.blockedByStaticSpread)} />
-                            <Row label="Bloqué yield" val={_inspYesNo(diag.blockedByStaticYield)} />
+                            <Row label="Bloqué yield (période)" val={_inspYesNo(diag.blockedByStaticYield)} />
                             <Row label="Qualité tier bucket" val={diag.qualityTierBucket ?? "n/d"} />
                             <Row label="Bloqué avoid" val={_inspYesNo(diag.blockedByAvoid)} />
                             <Row label="Bloqué premium trap" val={_inspYesNo(diag.blockedByPremiumTrap)} />

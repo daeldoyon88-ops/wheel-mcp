@@ -281,10 +281,12 @@ export function gateAggressiveScoredCandidate(modeAlloc, usableCapital, poolStat
     _isWatchPremium: cand.finalDisplayGrade === "WATCH" && !!modeAlloc.watchPremiumFilter?.(cand),
   };
 
+  // Ici weeklyReturn = getLegYieldPct = rendement PÉRIODE (jusqu'à expiration) :
+  // ce miroir gate déjà sur la période — codes alignés sur le moteur réel.
   if (!(candWp.weeklyReturn >= modeAlloc.minWeeklyYield))
-    return { ok: false, reason: "MIN_WEEKLY_YIELD_NOT_MET", cand: candWp };
+    return { ok: false, reason: "PERIOD_YIELD_BELOW_BUCKET_MIN", cand: candWp };
   if (!(modeAlloc.maxWeeklyYield == null || candWp.weeklyReturn < modeAlloc.maxWeeklyYield))
-    return { ok: false, reason: "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT", cand: candWp };
+    return { ok: false, reason: "PERIOD_YIELD_ABOVE_BUCKET_MAX", cand: candWp };
   if (!(!Number.isFinite(candWp.proExecutionScore) || candWp.proExecutionScore >= modeAlloc.minExecutionScore))
     return { ok: false, reason: "MIN_EXECUTION_SCORE_NOT_MET", cand: candWp };
   if (!(candWp.spreadPct == null || candWp.spreadPct <= modeAlloc.maxSpreadPct))

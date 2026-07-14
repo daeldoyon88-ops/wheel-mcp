@@ -1,4 +1,9 @@
 // AF-17 — Allocation / picks / invariants 7 DTE vs multi-DTE.
+//
+// CHANGEMENT DE CONTRAT (2026-07-14) : l'admissibilité des bandes de bucket se
+// décide désormais sur le rendement PÉRIODE (jusqu'à expiration), plus sur le
+// 7J normalisé (tests 56-57 réécrits explicitement). Le 7J reste calculé,
+// persisté (weeklyReturn des picks) et exposé pour la comparaison DTE.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -92,20 +97,26 @@ test("55 allocation 7 DTE homogène — NVDA admissible BALANCED", () => {
   approx(p.weeklyReturn, 0.88, 0.01);
 });
 
-test("56 candidate 3 DTE 0,50 % période — hebdo ~1,17 % reclassé AGGRESSIVE", () => {
+test("56 candidate 3 DTE 0,50 % période — bande décidée par la PÉRIODE : admissible SAFE, pas AGGRESSIVE", () => {
+  // Ancienne règle AF-17 : le 7J ~1,17 % sortait cette jambe de SAFE (plafond
+  // hebdo 0,80) et le 7J de la jambe agressive (~1,28 %) la rendait admissible
+  // AGGRESSIVE. Nouvelle règle : la bande utilise le rendement jusqu'à
+  // expiration — 0,50 % ∈ [0,45 ; 0,80) SAFE ; 0,55 % < 0,95 hors AGGRESSIVE.
   const pool = [
     makeCandidate({
       ticker: "AAPL",
       dteDays: 3,
       safe: makeLeg({ strike: 40, yieldPct: 0.5, dteDays: 3 }),
-      agg: makeLeg({ strike: 43, yieldPct: 0.55, dteDays: 3, distancePct: -4, spreadPct: 10 }),
+      agg: makeLeg({ strike: 43, yieldPct: 0.55, dteDays: 3, distancePct: -6, spreadPct: 10 }),
       finalDisplayMode: "SAFE",
     }),
   ];
   const built = buildCapitalComboCandidate(pool[0], 100000);
-  approx(built._safeYieldPct, 1.1667, 0.02);
-  const agg = combosSafeAgg(pool);
-  assert.ok(agg.admissibleAgg || built._aggYieldPct >= 0.95);
+  approx(built._safeYieldPct, 1.1667, 0.02); // 7J toujours calculé (comparaison DTE)
+  approx(built._safePeriodYieldPct, 0.5, 0.01);
+  const { admissibleSafe, admissibleAgg } = combosSafeAgg(pool);
+  assert.equal(admissibleSafe, true, "0,50 % période dans la bande SAFE [0,45 ; 0,80)");
+  assert.equal(admissibleAgg, false, "0,55 % période < min AGGRESSIVE 0,95 malgré 7J ~1,28 %");
 });
 
 function combosSafeAgg(pool) {
@@ -116,20 +127,23 @@ function combosSafeAgg(pool) {
   };
 }
 
-test("57 candidate 30 DTE 1,50 % période — hebdo 0,35 % rejeté AGGRESSIVE", () => {
+test("57 candidate 30 DTE 1,50 % période — admissible AGGRESSIVE par la PÉRIODE malgré 7J 0,35 %", () => {
+  // Ancienne règle AF-17 : 7J 0,35 % < 0,95 rejetait ce candidat AGGRESSIVE.
+  // Nouvelle règle : 1,50 % période >= 0,95 → admissible (indépendance DTE).
   const pool = [
     makeCandidate({
       ticker: "MSFT",
       dteDays: 30,
       safe: makeLeg({ strike: 40, yieldPct: 1.2, dteDays: 30 }),
-      agg: makeLeg({ strike: 43, yieldPct: 1.5, dteDays: 30, distancePct: -4, spreadPct: 10 }),
+      agg: makeLeg({ strike: 43, yieldPct: 1.5, dteDays: 30, distancePct: -6, spreadPct: 10 }),
     }),
   ];
   const built = buildCapitalComboCandidate(pool[0], 100000);
-  approx(built._aggYieldPct, 0.35, 0.02);
+  approx(built._aggYieldPct, 0.35, 0.02); // 7J toujours calculé (comparaison DTE)
+  approx(built._aggPeriodYieldPct, 1.5, 0.01);
   const combos = runCombos(pool);
   const agg = combos.find((c) => c.label === "AGGRESSIVE");
-  assert.equal(pickByTicker(agg, "MSFT"), null);
+  assert.ok(pickByTicker(agg, "MSFT"), "bande AGGRESSIVE décidée par le rendement expiration");
 });
 
 test("58 capital par contrat inchangé", () => {

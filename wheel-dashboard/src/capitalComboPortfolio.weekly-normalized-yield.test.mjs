@@ -1,4 +1,18 @@
-// AF-17 — Rendement hebdomadaire normalisé pour bandes Capital Combinations.
+// AF-17 — Rendement hebdomadaire normalisé pour Capital Combinations.
+//
+// CHANGEMENT DE CONTRAT (2026-07-14) — bandes de bucket sur rendement PÉRIODE :
+// - Ancienne règle (AF-17 initial) : l'admissibilité des bandes SAFE/BALANCED/
+//   AGGRESSIVE se décidait sur le rendement hebdomadaire normalisé
+//   (période × 7 / DTE).
+// - Nouvelle règle : l'admissibilité se décide sur le rendement PÉRIODE
+//   (jusqu'à expiration) — codes PERIOD_YIELD_BELOW_BUCKET_MIN /
+//   PERIOD_YIELD_ABOVE_BUCKET_MAX (voir capitalComboPortfolio.period-yield-bands.test.mjs).
+// - Le rendement 7J normalisé reste calculé/affiché/persisté (scoring,
+//   comparaison DTE 3/4/7) : les sections A-C ci-dessous restent le contrat de
+//   CALCUL du 7J, inchangé.
+// - Tests modifiés : section D (34-37, 40) re-documentée sur la bande période ;
+//   section E : resolveCompatibleLegForMode reçoit désormais des rendements
+//   PÉRIODE depuis le moteur (comportement générique du helper inchangé).
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -195,33 +209,48 @@ test("33 CAS 45 DTE 2,00 % → ~0,3111 %", () => {
   approx(getLegWeeklyNormalizedYieldPct(leg({ periodYield: 2.0, dteDays: 45 }), candidate(45)), 0.3111, 0.001);
 });
 
-// ── D. Classification (gates via buildCapitalComboCandidate + bandes) ─────
+// ── D. Bandes de bucket — décidées par le rendement PÉRIODE ────────────────
+// Ancienne règle (documentée ici jusqu'au 2026-07-14) : gates sur le rendement
+// hebdomadaire normalisé. Nouvelle règle : gates sur le rendement période ;
+// le 7J reste calculé mais ne décide plus (assertions croisées ci-dessous).
 
-function gateWeekly(yieldPct, min, max = null) {
-  if (yieldPct == null || !Number.isFinite(yieldPct) || yieldPct <= 0) return false;
-  if (yieldPct < min) return false;
-  if (max != null && yieldPct >= max) return false;
+function gatePeriod(periodYieldPct, min, max = null) {
+  if (periodYieldPct == null || !Number.isFinite(periodYieldPct) || periodYieldPct <= 0) return false;
+  if (periodYieldPct < min) return false;
+  if (max != null && periodYieldPct >= max) return false;
   return true;
 }
 
-test("34 SAFE 3 DTE 0,50 % période hors SAFE hebdo (≥ plafond)", () => {
-  const w = getLegWeeklyNormalizedYieldPct(leg({ periodYield: 0.5, dteDays: 3 }), candidate(3));
-  assert.ok(!gateWeekly(w, 0.45, 0.8));
+test("34 SAFE 3 DTE 0,50 % période admis par la bande PÉRIODE malgré 7J ≥ plafond", () => {
+  const l = leg({ periodYield: 0.5, dteDays: 3 });
+  const p = getLegPeriodYieldPct(l, candidate(3));
+  const w = getLegWeeklyNormalizedYieldPct(l, candidate(3));
+  assert.ok(w >= 0.8, "7J au-dessus du plafond SAFE — il ne décide plus");
+  assert.ok(gatePeriod(p, 0.45, 0.8), "0,50 % période ∈ [0,45 ; 0,80)");
 });
 
-test("35 AGGRESSIVE 3 DTE 0,50 % période admis hebdo ≥ 0,95", () => {
-  const w = getLegWeeklyNormalizedYieldPct(leg({ periodYield: 0.5, dteDays: 3 }), candidate(3));
-  assert.ok(gateWeekly(w, 0.95, null));
+test("35 AGGRESSIVE 3 DTE 0,50 % période rejeté (période < 0,95) malgré 7J ≥ 0,95", () => {
+  const l = leg({ periodYield: 0.5, dteDays: 3 });
+  const p = getLegPeriodYieldPct(l, candidate(3));
+  const w = getLegWeeklyNormalizedYieldPct(l, candidate(3));
+  assert.ok(w >= 0.95, "7J franchit le min AGGRESSIVE — il ne décide plus");
+  assert.ok(!gatePeriod(p, 0.95, null));
 });
 
-test("36 SAFE 14 DTE 0,80 % période rejeté hebdo < 0,45", () => {
-  const w = getLegWeeklyNormalizedYieldPct(leg({ periodYield: 0.8, dteDays: 14 }), candidate(14));
-  assert.ok(!gateWeekly(w, 0.45, 0.8));
+test("36 SAFE 14 DTE 0,80 % période rejeté au plafond période (0,80 >= max 0,80)", () => {
+  const l = leg({ periodYield: 0.8, dteDays: 14 });
+  const p = getLegPeriodYieldPct(l, candidate(14));
+  const w = getLegWeeklyNormalizedYieldPct(l, candidate(14));
+  assert.ok(w < 0.45, "7J sous le min SAFE — il ne décide plus");
+  assert.ok(!gatePeriod(p, 0.45, 0.8), "max exclusif sur la période");
 });
 
-test("37 AGGRESSIVE 30 DTE 1,50 % rejeté hebdo < 0,95", () => {
-  const w = getLegWeeklyNormalizedYieldPct(leg({ periodYield: 1.5, dteDays: 30 }), candidate(30));
-  assert.ok(!gateWeekly(w, 0.95, null));
+test("37 AGGRESSIVE 30 DTE 1,50 % période admis par la bande PÉRIODE malgré 7J 0,35 %", () => {
+  const l = leg({ periodYield: 1.5, dteDays: 30 });
+  const p = getLegPeriodYieldPct(l, candidate(30));
+  const w = getLegWeeklyNormalizedYieldPct(l, candidate(30));
+  assert.ok(w < 0.95, "7J sous le min AGGRESSIVE — il ne décide plus");
+  assert.ok(gatePeriod(p, 0.95, null));
 });
 
 test("38 7 DTE classification équivalente période/hebdo", () => {
@@ -276,18 +305,23 @@ test("39 WATCH path : selectedYieldPct = hebdomadaire", () => {
   approx(built.selectedYieldPct, (0.55 * 7) / 3, 0.02);
 });
 
-test("40 maxWeeklyYield utilise hebdomadaire", () => {
-  const w = getLegWeeklyNormalizedYieldPct(leg({ periodYield: 0.8, dteDays: 14 }), candidate(14));
-  assert.ok(w < 0.8, "hebdo 0,4 < max SAFE 0,8");
+test("40 la bande max utilise le rendement PÉRIODE (indépendance DTE)", () => {
+  const p3 = getLegPeriodYieldPct(leg({ periodYield: 0.53, dteDays: 3 }), candidate(3));
+  const p7 = getLegPeriodYieldPct(leg({ periodYield: 0.53, dteDays: 7 }), candidate(7));
+  assert.equal(gatePeriod(p3, 0.45, 0.8), gatePeriod(p7, 0.45, 0.8), "même décision quel que soit le DTE");
+  assert.ok(gatePeriod(p3, 0.45, 0.8));
 });
 
 // ── E. BALANCED / AF-07 ────────────────────────────────────────────────────
+// Depuis le passage des bandes au rendement période, le moteur alimente
+// resolveCompatibleLegForMode avec des rendements PÉRIODE ; le helper reste
+// générique (mêmes règles min/max/préférence), seuls les intitulés changent.
 
 function desc(mode, yieldPct, valid = true) {
   return { mode, priority: 1, valid, leg: {}, yieldPct, strikeValue: 40, capital: 4000, grade: "A" };
 }
 
-test("41 BALANCED choisit SAFE selon hebdo", () => {
+test("41 BALANCED choisit SAFE selon le rendement période", () => {
   const r = resolveCompatibleLegForMode({
     legCandidates: [desc("AGGRESSIVE", 0.4), desc("SAFE", 0.78)],
     minYieldPctInclusive: 0.7,
@@ -297,7 +331,7 @@ test("41 BALANCED choisit SAFE selon hebdo", () => {
   assert.equal(r.mode, "SAFE");
 });
 
-test("42 BALANCED choisit AGGRESSIVE selon hebdo", () => {
+test("42 BALANCED choisit AGGRESSIVE selon le rendement période", () => {
   const r = resolveCompatibleLegForMode({
     legCandidates: [desc("AGGRESSIVE", 0.88), desc("SAFE", 0.5)],
     minYieldPctInclusive: 0.7,
@@ -307,7 +341,7 @@ test("42 BALANCED choisit AGGRESSIVE selon hebdo", () => {
   assert.equal(r.mode, "AGGRESSIVE");
 });
 
-test("43 bande preferred [0,75 ; 1,05) hebdomadaire", () => {
+test("43 bande preferred [0,75 ; 1,05) en rendement période", () => {
   const r = resolveCompatibleLegForMode({
     legCandidates: [desc("AGGRESSIVE", 0.76), desc("SAFE", 0.74)],
     minYieldPctInclusive: 0.7,
@@ -317,7 +351,7 @@ test("43 bande preferred [0,75 ; 1,05) hebdomadaire", () => {
   assert.equal(r.mode, "AGGRESSIVE");
 });
 
-test("44 cible médiane 0,875 hebdomadaire", () => {
+test("44 cible médiane 0,875 en rendement période", () => {
   const r = resolveCompatibleLegForMode({
     legCandidates: [desc("AGGRESSIVE", 0.9), desc("SAFE", 0.85)],
     minYieldPctInclusive: 0.7,

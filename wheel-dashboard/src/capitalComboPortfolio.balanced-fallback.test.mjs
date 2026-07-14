@@ -11,9 +11,14 @@
 //
 // Aucune bande financière n'est codée en dur ici : les bornes effectives
 // min/max du bucket BALANCED sont EXTRAITES des diagnostics de rejet du moteur
-// réel (MIN_WEEKLY_YIELD_NOT_MET.minWeeklyYieldPct et
-// MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT.maxWeeklyYieldConfig), et la bande
+// réel (PERIOD_YIELD_BELOW_BUCKET_MIN.minPeriodYieldPct et
+// PERIOD_YIELD_ABOVE_BUCKET_MAX.maxPeriodYieldConfig), et la bande
 // préférée vient de la constante exportée BALANCED_PREFERRED_LEG_YIELD_BAND.
+//
+// Depuis le 2026-07-14, les bandes s'appliquent au rendement PÉRIODE (jusqu'à
+// expiration) — anciens codes MIN_WEEKLY_YIELD_NOT_MET /
+// MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT remplacés. Les fixtures de ce fichier
+// n'ont pas de DTE (legacy période = 7J) : les décisions restent identiques.
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -186,12 +191,12 @@ function extractBalancedYieldBand() {
   });
   const { holder } = runCombos([lowProbe, highProbe]);
   const rows = balancedRejections(holder);
-  const minRow = rows.find((r) => r.primaryBlocker === "MIN_WEEKLY_YIELD_NOT_MET");
-  const maxRow = rows.find((r) => r.primaryBlocker === "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT");
-  assert.ok(minRow, "sonde basse : le moteur doit exposer minWeeklyYieldPct");
-  assert.ok(maxRow, "sonde haute : le moteur doit exposer maxWeeklyYieldConfig");
-  const min = Number(minRow.minWeeklyYieldPct);
-  const max = Number(maxRow.maxWeeklyYieldConfig);
+  const minRow = rows.find((r) => r.primaryBlocker === "PERIOD_YIELD_BELOW_BUCKET_MIN");
+  const maxRow = rows.find((r) => r.primaryBlocker === "PERIOD_YIELD_ABOVE_BUCKET_MAX");
+  assert.ok(minRow, "sonde basse : le moteur doit exposer minPeriodYieldPct");
+  assert.ok(maxRow, "sonde haute : le moteur doit exposer maxPeriodYieldConfig");
+  const min = Number(minRow.minPeriodYieldPct);
+  const max = Number(maxRow.maxPeriodYieldConfig);
   assert.ok(Number.isFinite(min) && Number.isFinite(max) && min < max);
   return { min, max };
 }
@@ -300,7 +305,7 @@ test("TEST 4 — aucune jambe conforme ⇒ candidat BALANCED rejeté, aucune jam
   // Chemin de rejet existant conservé : le dernier recours (AGG) est rejeté par la bande.
   const rows = balancedRejections(holder);
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].primaryBlocker, "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT");
+  assert.equal(rows[0].primaryBlocker, "PERIOD_YIELD_ABOVE_BUCKET_MAX");
   // Et le helper lui-même retourne null (aucune jambe hors bande n'est « conforme »).
   assert.equal(
     resolveCompatibleLegForMode({
@@ -411,7 +416,7 @@ test("TEST 11 — borne maximum exacte : max exclusif (jambe rejetée)", () => {
   const { bal, holder } = runBalanced([cand]);
   assert.equal(bal?.picks?.length ?? 0, 0, "rendement == max ⇒ non conforme (convention < max du moteur)");
   const rows = balancedRejections(holder);
-  assert.equal(rows[0]?.primaryBlocker, "MAX_WEEKLY_YIELD_BAND_OR_CAP_REJECT");
+  assert.equal(rows[0]?.primaryBlocker, "PERIOD_YIELD_ABOVE_BUCKET_MAX");
 });
 
 test("TEST 12 — min − epsilon : jambe rejetée puis jambe suivante essayée", () => {

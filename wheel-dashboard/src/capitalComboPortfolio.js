@@ -14,6 +14,7 @@ import {
   buildScoredPoolNotSelectedDiagnostics,
   summarizeBlockerHits,
   formatCapBlockerReason,
+  buildTerminalUnusedCapitalDiagnostic,
 } from "./capitalComboEngineV2.js";
 import { buildAlternativeCompositionSimV1 } from "./alternativeCompositionSimV1.js";
 
@@ -2377,7 +2378,9 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     const rejectionTotals = new Map();
 
     /** Audit lecture seule : aligné sur les mêmes prédicats que la ancienne chaîne filtres/map (aucun seuil modifié). */
-    const rejectionAudit = comboTraceRecording ? [] : null;
+    const rejectionAuditEnabled =
+      comboTraceRecording || optimizerV2.capDiagnosticsEnabled !== false;
+    const rejectionAudit = rejectionAuditEnabled ? [] : null;
     function pushScoredPoolReject(ticker, blocker, detail) {
       if (!rejectionAudit) return;
       const tk = String(ticker ?? "").trim().toUpperCase();
@@ -3747,6 +3750,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     ]);
 
     let capDiagnosticsV2 = null;
+    let unusedCapitalDiagnostic = null;
     if (optimizerV2.capDiagnosticsEnabled !== false) {
       const evaluateStrict = (c) => evaluateCandidate(c, false);
       const residualDiagnosticRows = buildNextBestResidualRows(
@@ -3764,8 +3768,26 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           usedCapital: used,
           usableCapital,
           maxPositionLines,
+          candidateSweepIndexByTicker: candidateSweepIndexByTicker,
+          lastEvaluatedPhase: "post_allocation_residual",
         },
       );
+
+      unusedCapitalDiagnostic = buildTerminalUnusedCapitalDiagnostic({
+        freeCapitalUsd: usableCapital - used,
+        usableCapitalUsd: usableCapital,
+        usedCapitalUsd: used,
+        scoredPool,
+        pickMap,
+        evaluateCandidateStrict: evaluateStrict,
+        picksCount: picks.length,
+        maxPositionLines,
+        rejectedBeforeAllocation: rejectionAudit ?? [],
+        modeLabel: mode.label ?? null,
+        minPeriodYieldPct: modeAlloc.minWeeklyYield ?? null,
+        usedPct,
+        targetMinPct,
+      });
 
       let approxCollateralStrandedUsd = {};
       for (const row of residualDiagnosticRows) {
@@ -3993,6 +4015,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         nextBestResiduals: residualDiagnosticRows.slice(0, 22),
         scoredPoolTickers: scoredPool.map((c) => c.ticker),
         scoredPoolNotSelected,
+        rejectedBeforeAllocation: rejectionAudit ?? [],
+        unusedCapitalDiagnostic,
         approxCollateralBlockedUsdByReason: approxCollateralStrandedUsd,
         potentialPremiumStrandedUsd,
         leftoverDensityPass: {
@@ -4029,6 +4053,10 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         allocationTraceV1,
         alternativeCompositionSimV1,
       };
+
+      if (unusedCapitalDiagnostic?.legacyShortfallReason && usedPct < targetMinPct) {
+        capitalShortfallReason = unusedCapitalDiagnostic.legacyShortfallReason;
+      }
     }
 
     const picksOut =

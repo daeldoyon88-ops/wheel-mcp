@@ -83,6 +83,7 @@ import {
 import {
   formatCapBlockerReason,
   readCapitalOptimizerV2FlagsFromLocalStorage,
+  resolveInspectorNotSelectedStatus,
 } from "./capitalComboEngineV2.js";
 import { resolveDominantTickerCapital, resolvePickLineCapital } from "./pickLineCapital.js";
 import {
@@ -8977,6 +8978,14 @@ function formatCapitalShortfallReason(reason) {
   return map[reason] ?? `Raison non déterminée (${reason ?? "?"}).`;
 }
 
+/** Message capital non utilisé — priorité au diagnostic moteur (capDiagnosticsV2). */
+function formatComboUnusedCapitalMessage(combo) {
+  const engineMsg = combo?.capDiagnosticsV2?.unusedCapitalDiagnostic?.messageFr;
+  if (typeof engineMsg === "string" && engineMsg.trim()) return engineMsg.trim();
+  if (combo?.capitalShortfallReason) return formatCapitalShortfallReason(combo.capitalShortfallReason);
+  return null;
+}
+
 function formatCapitalShortfallReasonLegacy(reason) {
   const map = {
     caps_too_strict: "Caps de risque trop stricts pour ajouter un contrat sans dépasser la limite.",
@@ -9261,6 +9270,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   let diagCategory = "non_selected";
   let statusProbable;
   let raisonProbable;
+  let allocationDecision = null;
+  let allocationBlocker = null;
   if (inPicks) {
     diagCategory = "selected";
     statusProbable = "sélectionné";
@@ -9341,26 +9352,21 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
       : greedyPoolDiag?.rejectionReason
         ? `jambe ${legView.selectedLegMode} retenue au bucket — non allouée : ${greedyPoolDiag.rejectionReason}`
         : `jambe ${legView.selectedLegMode} retenue au bucket — non sélectionnée par l'allocateur (caps / ordre / capital)`;
-  } else if (inEngineScoredPool && greedyPoolDiag?.rejectionReason) {
-    diagCategory = "non_selected";
-    const blocker = greedyPoolDiag.rejectionReason;
-    if (blocker === "not_selected_greedy_lower_marginalScore") {
-      statusProbable = "dans scoredPool — non retenu greedy";
-      raisonProbable = "présent dans scoredPool — non retenu : marginalScore inférieur au meilleur candidat de la passe";
-    } else {
-      statusProbable = `dans scoredPool — non retenu : ${blocker}`;
-      raisonProbable = `présent dans scoredPool — non retenu : ${blocker} (${formatCapBlockerReason(blocker)})`;
-    }
-  } else if (inEngineScoredPool || possibleDynamicBlock) {
-    diagCategory = "non_selected";
-    statusProbable = "dans scoredPool — non retenu greedy";
-    raisonProbable = residualGreedyRow?.primaryBlocker
-      ? `présent dans scoredPool — non retenu : ${residualGreedyRow.primaryBlocker} (${formatCapBlockerReason(residualGreedyRow.primaryBlocker)})`
-      : "présent dans scoredPool — non sélectionné : caps diversification, ordre de tri, ou capital restant";
   } else {
+    // Statut vérité-moteur : ne jamais affirmer « dans scoredPool » sans preuve
+    // capDiagnosticsV2 (sinon incohérent avec le message « capital restant
+    // insuffisant pour le prochain contrat admissible » calculé sur le pool réel).
     diagCategory = "non_selected";
-    statusProbable = "dans scoredPool — non retenu greedy";
-    raisonProbable = "présent dans scoredPool — non sélectionné : caps diversification, ordre de tri, ou capital restant";
+    const notSelectedStatus = resolveInspectorNotSelectedStatus({
+      diagnosticsAvailable: comboCapDiag != null && Array.isArray(comboCapDiag.scoredPoolTickers),
+      inEngineScoredPool,
+      greedyRejectionReason: greedyPoolDiag?.rejectionReason ?? null,
+      residualBlocker: residualGreedyRow?.primaryBlocker ?? null,
+    });
+    statusProbable = notSelectedStatus.statusProbable;
+    raisonProbable = notSelectedStatus.raisonProbable;
+    allocationDecision = notSelectedStatus.allocationDecision;
+    allocationBlocker = notSelectedStatus.allocationBlocker;
   }
 
   const executionBreakdown =
@@ -9422,6 +9428,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     possibleDynamicBlock,
     inEngineScoredPool,
     greedyPoolDiag,
+    allocationDecision,
+    allocationBlocker,
     statusProbable, raisonProbable, pick,
   };
 }
@@ -9459,6 +9467,8 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital, ibkrRejected
 function _inspStatusBadge(status) {
   if (status === "sélectionné") return "rounded-full border border-emerald-800 bg-emerald-950/50 px-2 py-0.5 text-xs font-medium text-emerald-300";
   if (status === "dans scoredPool — non retenu greedy") return "rounded-full border border-sky-800 bg-sky-950/50 px-2 py-0.5 text-xs font-medium text-sky-300";
+  if (status === "hors scoredPool moteur — écarté avant allocation") return "rounded-full border border-amber-800 bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-300";
+  if (status === "statut moteur inconnu — non sélectionné") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
   if (status === "jambe retenue, non allouée") return "rounded-full border border-violet-800 bg-violet-950/40 px-2 py-0.5 text-xs font-medium text-violet-300";
   if (status === "admissible, trop cher en fin de combo") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
   if (status === "admissible statique, trop cher") return "rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-300";
@@ -9475,10 +9485,9 @@ const _inspFmt = (v, suffix = "", digits = 2) =>
 function _inspLineStatus(diag) {
   if (diag.inPicks) return "sélectionné";
   if (diag.diagCategory === "non_selected") {
-    if (diag.greedyPoolDiag?.rejectionReason && diag.greedyPoolDiag.rejectionReason !== "not_selected_greedy_lower_marginalScore") {
-      return `dans scoredPool — non retenu : ${diag.greedyPoolDiag.rejectionReason}`;
-    }
-    return "dans scoredPool — non retenu greedy";
+    // Vérité-moteur : statusProbable est désormais résolu par
+    // resolveInspectorNotSelectedStatus (jamais « dans scoredPool » sans preuve).
+    return diag.statusProbable ?? "non sélectionné";
   }
   if (diag.diagCategory === "capital_envelope") return "admissible, trop cher en fin de combo";
   if (diag.legRetainedNotAllocated) return "jambe retenue, non allouée";
@@ -10209,9 +10218,9 @@ function ComboDetailModal({
                   </tbody>
                 </table>
               )}
-              {combo && !combo.capitalTargetReached && combo.capitalShortfallReason && (
+              {combo && !combo.capitalTargetReached && formatComboUnusedCapitalMessage(combo) && (
                 <div className="mt-3 rounded-xl border border-amber-800/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-400">
-                  Capital non entièrement déployé — {formatCapitalShortfallReason(combo.capitalShortfallReason)}
+                  Capital non entièrement déployé — {formatComboUnusedCapitalMessage(combo)}
                 </div>
               )}
             </div>
@@ -10623,8 +10632,8 @@ function PortfolioCombos({
                         · lignes max effectives {combo.balancedInstitutionalV3Audit.effectiveMaxPositions}
                       </span>
                     ) : null}
-                    {!combo.capitalTargetReached && combo.capitalShortfallReason
-                      ? <span className="ml-1 text-amber-400 font-medium">· Capital incomplet : {formatCapitalShortfallReason(combo.capitalShortfallReason)}</span>
+                    {!combo.capitalTargetReached && formatComboUnusedCapitalMessage(combo)
+                      ? <span className="ml-1 text-amber-400 font-medium">· Capital incomplet : {formatComboUnusedCapitalMessage(combo)}</span>
                       : null}
                   </p>
                 )}
@@ -10897,9 +10906,9 @@ function PortfolioCombos({
               <span className="font-semibold text-slate-100">{capital.toFixed(0)}$</span>
             </div>
 
-            {!combo.capitalTargetReached && combo.capitalShortfallReason && (
+            {!combo.capitalTargetReached && formatComboUnusedCapitalMessage(combo) && (
               <div className="mt-2 rounded-xl border border-amber-800 bg-amber-950/40 px-3 py-2 text-xs text-amber-400">
-                Capital non utilisé — {formatCapitalShortfallReason(combo.capitalShortfallReason)}
+                Capital non utilisé — {formatComboUnusedCapitalMessage(combo)}
               </div>
             )}
           </div>

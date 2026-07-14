@@ -234,8 +234,321 @@ export function formatCapBlockerReason(reason) {
     caps_too_strict: "composition / garde-fous (crypto-miner ou spéculatif) bloque l’ajout",
     not_enough_candidates: "pool admissible épuisé ou vide",
     min_yield_or_execution_filter: "filtre rendement bucket ou execution score hors plage",
+    not_selected_greedy_lower_marginalScore:
+      "score marginal inférieur au meilleur candidat de la passe greedy",
   };
   return m[reason] ?? `cause opérationnelle (${reason ?? "?"})`;
+}
+
+/** Codes canoniques exposés pour le diagnostic terminal du capital non utilisé. */
+export const UNUSED_CAPITAL_TERMINAL_CODES = Object.freeze({
+  NO_REMAINING_SCORED_CANDIDATE: "NO_REMAINING_SCORED_CANDIDATE",
+  ALL_REMAINING_CONTRACTS_TOO_LARGE: "ALL_REMAINING_CONTRACTS_TOO_LARGE",
+  TICKER_CAP_REACHED: "TICKER_CAP_REACHED",
+  SECTOR_CAP_REACHED: "SECTOR_CAP_REACHED",
+  THEME_CAP_REACHED: "THEME_CAP_REACHED",
+  HIGH_BETA_CAP_REACHED: "HIGH_BETA_CAP_REACHED",
+  MAX_POSITIONS_REACHED: "MAX_POSITIONS_REACHED",
+  CONCENTRATION_LIMIT: "CONCENTRATION_LIMIT",
+  NO_BUCKET_ELIGIBLE_CANDIDATE: "NO_BUCKET_ELIGIBLE_CANDIDATE",
+  MIXED_ALLOCATION_CONSTRAINTS: "MIXED_ALLOCATION_CONSTRAINTS",
+});
+
+const GREEDY_BLOCKER_TO_FINAL_REASON = Object.freeze({
+  contract_size_too_large: "CONTRACT_SIZE_TOO_LARGE",
+  ticker_cap_reached: "TICKER_CAP_REACHED",
+  theme_cap_reached: "THEME_CAP_REACHED",
+  sector_cap_reached: "SECTOR_CAP_REACHED",
+  high_beta_cap_reached: "HIGH_BETA_CAP_REACHED",
+  max_positions_limit: "MAX_POSITIONS_REACHED",
+  caps_too_strict: "CONCENTRATION_LIMIT",
+  no_clean_incremental_candidate: "CONCENTRATION_LIMIT",
+  not_selected_greedy_lower_marginalScore: "NON_SELECTED_LOWER_MARGINAL_SCORE",
+});
+
+const TERMINAL_CODE_TO_LEGACY_SHORTFALL = Object.freeze({
+  NO_REMAINING_SCORED_CANDIDATE: "not_enough_candidates",
+  ALL_REMAINING_CONTRACTS_TOO_LARGE: "contract_size_too_large",
+  TICKER_CAP_REACHED: "ticker_cap_reached",
+  SECTOR_CAP_REACHED: "sector_cap_reached",
+  THEME_CAP_REACHED: "theme_cap_reached",
+  HIGH_BETA_CAP_REACHED: "high_beta_cap_reached",
+  MAX_POSITIONS_REACHED: "max_positions_limit",
+  CONCENTRATION_LIMIT: "caps_too_strict",
+  NO_BUCKET_ELIGIBLE_CANDIDATE: "not_enough_candidates",
+  MIXED_ALLOCATION_CONSTRAINTS: "caps_too_strict",
+});
+
+function moneyUsd(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+function resolveFinalAllocationReason(rejectionReason, canAfford, capitalRequired, freeCapital) {
+  if (!canAfford || rejectionReason === "contract_size_too_large") {
+    const gap =
+      Number.isFinite(capitalRequired) && Number.isFinite(freeCapital)
+        ? Math.max(0, capitalRequired - freeCapital)
+        : null;
+    return {
+      allocationDecision: "rejected_greedy_contract_too_large",
+      allocationBlocker: "contract_size_too_large",
+      finalAllocationReason: "CONTRACT_SIZE_TOO_LARGE",
+      capitalGapUsd: gap,
+    };
+  }
+  if (rejectionReason === "not_selected_greedy_lower_marginalScore") {
+    return {
+      allocationDecision: "in_pool_lower_marginal_score",
+      allocationBlocker: null,
+      finalAllocationReason: "NON_SELECTED_LOWER_MARGINAL_SCORE",
+      capitalGapUsd: null,
+    };
+  }
+  return {
+    allocationDecision: "in_pool_rejected_terminal_constraint",
+    allocationBlocker: rejectionReason ?? "caps_too_strict",
+    finalAllocationReason:
+      GREEDY_BLOCKER_TO_FINAL_REASON[rejectionReason] ??
+      String(rejectionReason ?? "UNKNOWN").toUpperCase(),
+    capitalGapUsd: null,
+  };
+}
+
+function summarizePrePoolRejections(rejectedBeforeAllocation, { minPeriodYieldPct = null, modeLabel = null } = {}) {
+  const rows = Array.isArray(rejectedBeforeAllocation) ? rejectedBeforeAllocation : [];
+  const byBlocker = new Map();
+  for (const row of rows) {
+    const blocker = row?.primaryBlocker ?? "UNKNOWN";
+    if (!byBlocker.has(blocker)) byBlocker.set(blocker, []);
+    byBlocker.get(blocker).push(row);
+  }
+  const yieldBelow = byBlocker.get("PERIOD_YIELD_BELOW_BUCKET_MIN") ?? [];
+  const noteFr =
+    yieldBelow.length > 0
+      ? `Les petits contrats visibles ${yieldBelow.map((r) => r.ticker).join(", ")} ont été rejetés avant l'allocation parce que leur rendement jusqu'à expiration était inférieur au minimum${modeLabel ? ` ${modeLabel}` : ""} de ${Number.isFinite(Number(minPeriodYieldPct)) ? `${Number(minPeriodYieldPct).toFixed(2)} %` : "bucket"}.`
+      : null;
+  return {
+    totalCount: rows.length,
+    byBlocker: Object.fromEntries(
+      [...byBlocker.entries()].map(([blocker, list]) => [blocker, list.map((r) => r.ticker)]),
+    ),
+    periodYieldBelowBucketMin: yieldBelow.map((r) => ({
+      ticker: r.ticker,
+      periodYieldPct: r.periodYieldPct ?? null,
+      minPeriodYieldPct: r.minPeriodYieldPct ?? minPeriodYieldPct ?? null,
+    })),
+    noteFr,
+  };
+}
+
+/**
+ * Diagnostic terminal du capital non utilisé — lecture seule, déterministe.
+ * Ne modifie jamais l'allocation.
+ */
+export function buildTerminalUnusedCapitalDiagnostic({
+  freeCapitalUsd,
+  usableCapitalUsd,
+  usedCapitalUsd,
+  scoredPool,
+  pickMap,
+  evaluateCandidateStrict,
+  picksCount = 0,
+  maxPositionLines = 0,
+  rejectedBeforeAllocation = [],
+  modeLabel = null,
+  minPeriodYieldPct = null,
+  usedPct = 0,
+  targetMinPct = 90,
+} = {}) {
+  const freeCapital = moneyUsd(freeCapitalUsd);
+  const prePoolSummary = summarizePrePoolRejections(rejectedBeforeAllocation, {
+    minPeriodYieldPct,
+    modeLabel,
+  });
+  const remaining = (scoredPool || []).filter((c) => c?.ticker && !pickMap?.has(c.ticker));
+  const remainingTickers = remaining.map((c) => c.ticker);
+  const remainingCollateral = remaining
+    .map((c) => Number(c.capitalPerContract))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  const blockerTally = {
+    contract_size_too_large: 0,
+    ticker_cap_reached: 0,
+    theme_cap_reached: 0,
+    sector_cap_reached: 0,
+    high_beta_cap_reached: 0,
+    max_positions_limit: 0,
+    not_selected_greedy_lower_marginalScore: 0,
+    other: 0,
+  };
+  let affordableCount = 0;
+
+  for (const candidate of remaining) {
+    const capReq = Number(candidate.capitalPerContract);
+    const canAfford = Number.isFinite(capReq) && capReq > 0 && capReq <= freeCapital + 1e-6;
+    const ev = typeof evaluateCandidateStrict === "function"
+      ? evaluateCandidateStrict(candidate)
+      : { ok: false, reason: "caps_too_strict" };
+    const reason = ev.ok ? "not_selected_greedy_lower_marginalScore" : (ev.reason ?? "caps_too_strict");
+
+    if (canAfford && reason !== "contract_size_too_large") {
+      affordableCount += 1;
+    }
+
+    if (reason === "contract_size_too_large" || !canAfford) {
+      blockerTally.contract_size_too_large += 1;
+    } else if (reason in blockerTally) {
+      blockerTally[reason] += 1;
+    } else {
+      blockerTally.other += 1;
+    }
+  }
+
+  const capOnlyBlockers = [
+    ["sector_cap_reached", UNUSED_CAPITAL_TERMINAL_CODES.SECTOR_CAP_REACHED],
+    ["theme_cap_reached", UNUSED_CAPITAL_TERMINAL_CODES.THEME_CAP_REACHED],
+    ["high_beta_cap_reached", UNUSED_CAPITAL_TERMINAL_CODES.HIGH_BETA_CAP_REACHED],
+    ["ticker_cap_reached", UNUSED_CAPITAL_TERMINAL_CODES.TICKER_CAP_REACHED],
+    ["max_positions_limit", UNUSED_CAPITAL_TERMINAL_CODES.MAX_POSITIONS_REACHED],
+  ];
+  const activeCapBlockers = capOnlyBlockers.filter(([legacy]) => (blockerTally[legacy] ?? 0) > 0);
+  const tooLargeOnly =
+    remaining.length > 0 &&
+    affordableCount === 0 &&
+    blockerTally.contract_size_too_large === remaining.length;
+
+  let terminalReasonCode = null;
+  if (usedPct >= targetMinPct || freeCapital <= 0.01) {
+    terminalReasonCode = null;
+  } else if (!scoredPool?.length) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.NO_BUCKET_ELIGIBLE_CANDIDATE;
+  } else if (picksCount >= maxPositionLines && freeCapital > 0.01) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.MAX_POSITIONS_REACHED;
+  } else if (
+    !remaining.length &&
+    freeCapital > 0.01 &&
+    picksCount > 0 &&
+    (scoredPool?.length ?? 0) > 0
+  ) {
+    // Tous les candidats du scoredPool ont été sélectionnés ; reliquat sans autre admissible.
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.ALL_REMAINING_CONTRACTS_TOO_LARGE;
+  } else if (!remaining.length) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.NO_REMAINING_SCORED_CANDIDATE;
+  } else if (tooLargeOnly) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.ALL_REMAINING_CONTRACTS_TOO_LARGE;
+  } else if (activeCapBlockers.length === 1 && blockerTally.contract_size_too_large === 0) {
+    terminalReasonCode = activeCapBlockers[0][1];
+  } else if (activeCapBlockers.length > 0 && blockerTally.contract_size_too_large > 0) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.MIXED_ALLOCATION_CONSTRAINTS;
+  } else if (activeCapBlockers.length > 1) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.MIXED_ALLOCATION_CONSTRAINTS;
+  } else if (blockerTally.contract_size_too_large > 0 && affordableCount === 0) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.ALL_REMAINING_CONTRACTS_TOO_LARGE;
+  } else if (blockerTally.not_selected_greedy_lower_marginalScore > 0) {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.NO_REMAINING_SCORED_CANDIDATE;
+  } else {
+    terminalReasonCode = UNUSED_CAPITAL_TERMINAL_CODES.MIXED_ALLOCATION_CONSTRAINTS;
+  }
+
+  const legacyShortfallReason = terminalReasonCode
+    ? (TERMINAL_CODE_TO_LEGACY_SHORTFALL[terminalReasonCode] ?? "caps_too_strict")
+    : null;
+
+  const minRemainingCollateral =
+    remainingCollateral.length > 0 ? Math.min(...remainingCollateral) : null;
+
+  let messageFr = null;
+  if (terminalReasonCode && freeCapital > 0.01) {
+    const freeTxt = `${freeCapital.toFixed(0)} $`;
+    if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.ALL_REMAINING_CONTRACTS_TOO_LARGE) {
+      messageFr = `Capital restant : ${freeTxt}. Aucun contrat encore admissible dans le scoredPool ne coûte ${freeCapital.toFixed(0)} $ ou moins.`;
+      if (prePoolSummary.noteFr) messageFr += ` ${prePoolSummary.noteFr}`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.SECTOR_CAP_REACHED) {
+      messageFr = `Capital restant : ${freeTxt}. Des contrats sont finançables, mais la limite de secteur empêche leur ajout.`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.THEME_CAP_REACHED) {
+      messageFr = `Capital restant : ${freeTxt}. Des contrats sont finançables, mais la limite de thème empêche leur ajout.`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.HIGH_BETA_CAP_REACHED) {
+      messageFr = `Capital restant : ${freeTxt}. Des contrats sont finançables, mais la limite du thème high-beta est atteinte.`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.TICKER_CAP_REACHED) {
+      messageFr = `Capital restant : ${freeTxt}. Des contrats sont finançables, mais le cap ticker empêche leur ajout.`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.MAX_POSITIONS_REACHED) {
+      messageFr = `Capital restant : ${freeTxt}. Le nombre maximal de positions est atteint.`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.NO_BUCKET_ELIGIBLE_CANDIDATE) {
+      messageFr = `Capital restant : ${freeTxt}. Aucun autre candidat ne respecte les règles du bucket${modeLabel ? ` ${modeLabel}` : ""}.`;
+      if (prePoolSummary.noteFr) messageFr += ` ${prePoolSummary.noteFr}`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.MIXED_ALLOCATION_CONSTRAINTS) {
+      messageFr = `Capital restant : ${freeTxt}. Aucun ajout possible : contrats trop grands et/ou contraintes de concentration.`;
+    } else if (terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.NO_REMAINING_SCORED_CANDIDATE) {
+      messageFr = `Capital restant : ${freeTxt}. Aucun autre candidat admissible ne reste dans le scoredPool.`;
+    }
+    if (messageFr && remainingTickers.length > 0 && terminalReasonCode === UNUSED_CAPITAL_TERMINAL_CODES.ALL_REMAINING_CONTRACTS_TOO_LARGE) {
+      messageFr += ` Contrats encore présents : ${remainingTickers.join(", ")}${minRemainingCollateral != null ? ` (min. ${minRemainingCollateral.toFixed(0)} $)` : ""}.`;
+    }
+  }
+
+  return {
+    terminalReasonCode,
+    legacyShortfallReason,
+    messageFr,
+    freeCapitalUsd: freeCapital,
+    usableCapitalUsd: moneyUsd(usableCapitalUsd),
+    usedCapitalUsd: moneyUsd(usedCapitalUsd),
+    remainingScoredPoolCount: remaining.length,
+    remainingScoredPoolTickers: remainingTickers,
+    minRemainingContractCollateralUsd: minRemainingCollateral,
+    affordableRemainingCount: affordableCount,
+    blockerTally,
+    prePoolRejections: prePoolSummary,
+  };
+}
+
+/**
+ * Statut inspecteur pour un candidat non sélectionné — n'affirme jamais
+ * l'appartenance au scoredPool moteur sans preuve (capDiagnosticsV2).
+ * Corrige l'étiquette « dans scoredPool — non retenu greedy » attribuée à tort
+ * aux candidats absents du scoredPool moteur (incohérence avec le message
+ * « capital restant insuffisant pour le prochain contrat admissible »).
+ */
+export function resolveInspectorNotSelectedStatus({
+  diagnosticsAvailable,
+  inEngineScoredPool,
+  greedyRejectionReason,
+  residualBlocker,
+} = {}) {
+  if (!diagnosticsAvailable) {
+    return {
+      statusProbable: "statut moteur inconnu — non sélectionné",
+      raisonProbable:
+        "diagnostics moteur indisponibles (capDiagnosticsV2 désactivé) — appartenance au scoredPool non confirmée : caps diversification, ordre de tri, ou capital restant",
+      allocationDecision: "unknown_engine_diagnostics_unavailable",
+      allocationBlocker: null,
+    };
+  }
+  if (!inEngineScoredPool) {
+    return {
+      statusProbable: "hors scoredPool moteur — écarté avant allocation",
+      raisonProbable:
+        "absent du scoredPool moteur : jambe bucket écartée avant l'allocation (bande rendement expiration, grade, spread, executionScore ou filtre qualité) — le miroir inspecteur peut diverger de la jambe moteur ; le message « capital restant insuffisant » ne porte que sur les candidats réellement admis au scoredPool",
+      allocationDecision: "not_in_engine_scored_pool",
+      allocationBlocker: residualBlocker ?? null,
+    };
+  }
+  if (greedyRejectionReason && greedyRejectionReason !== "not_selected_greedy_lower_marginalScore") {
+    return {
+      statusProbable: `dans scoredPool — non retenu : ${greedyRejectionReason}`,
+      raisonProbable: `présent dans scoredPool — non retenu : ${greedyRejectionReason} (${formatCapBlockerReason(greedyRejectionReason)})`,
+      allocationDecision: "in_pool_rejected_terminal_constraint",
+      allocationBlocker: greedyRejectionReason,
+    };
+  }
+  return {
+    statusProbable: "dans scoredPool — non retenu greedy",
+    raisonProbable:
+      "présent dans scoredPool — non retenu : marginalScore inférieur au meilleur candidat de la passe",
+    allocationDecision: "in_pool_lower_marginal_score",
+    allocationBlocker: null,
+  };
 }
 
 /** Tri pour la passe leftover : forte densité puis petits garanties pour combler trous. */
@@ -266,20 +579,30 @@ export function buildScoredPoolNotSelectedDiagnostics(
   const freeCapital = Math.max(0, usableCapital - usedCapital);
   const maxPositionLines = Number(ctx.maxPositionLines ?? 0);
   const distinctPositions = pickMap instanceof Map ? pickMap.size : 0;
+  const sweepIndexByTicker = ctx.candidateSweepIndexByTicker ?? {};
+  const lastEvaluatedPhase = ctx.lastEvaluatedPhase ?? "post_allocation_residual";
 
   const rows = [];
+  let evaluatedOrder = 0;
   for (const c of scoredPool || []) {
     const tk = String(c?.ticker ?? "").trim();
     if (!tk || pickMap?.has(c.ticker)) continue;
+    evaluatedOrder += 1;
 
     const capReq = Number(c.capitalPerContract);
     const canAfford =
-      Number.isFinite(capReq) && capReq > 0 && usedCapital + capReq <= usableCapital + 1e-6;
+      Number.isFinite(capReq) && capReq > 0 && capReq <= freeCapital + 1e-6;
 
     const evStrict = evaluateCandidateStrict(c);
     const rejectionReason = evStrict.ok
       ? "not_selected_greedy_lower_marginalScore"
       : (evStrict.reason ?? "caps_too_strict");
+    const resolved = resolveFinalAllocationReason(
+      rejectionReason,
+      canAfford,
+      capReq,
+      freeCapital,
+    );
 
     rows.push({
       ticker: c.ticker,
@@ -303,6 +626,13 @@ export function buildScoredPoolNotSelectedDiagnostics(
       distinctPositionsAtDecision: distinctPositions,
       freeCapitalAtDecision: freeCapital,
       maxPositionsLimit: maxPositionLines,
+      evaluatedOrder,
+      evaluatedSweepIndex: sweepIndexByTicker[tk] ?? sweepIndexByTicker[c.ticker] ?? null,
+      lastEvaluatedPhase,
+      allocationDecision: resolved.allocationDecision,
+      allocationBlocker: resolved.allocationBlocker,
+      finalAllocationReason: resolved.finalAllocationReason,
+      capitalGapUsd: resolved.capitalGapUsd,
     });
   }
   return rows;

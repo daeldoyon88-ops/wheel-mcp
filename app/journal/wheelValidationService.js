@@ -218,7 +218,7 @@ function computeStaleQuoteFlag(strikeRow) {
   const spreadPct =
     toNumberOrNull(strikeRow?.spreadPct) ??
     toNumberOrNull(strikeRow?.liquidity?.spreadPct);
-  if (spreadPct != null && spreadPct > 0.5) return true;
+  if (spreadPct != null && spreadPct > 50) return true;
   return false;
 }
 
@@ -8005,6 +8005,7 @@ export function createWheelValidationService(options = {}) {
 // capture/éligibilité sans modifier l'API publique du service.
 export const __testables__ = {
   normalizeRecord,
+  computeStaleQuoteFlag,
   isOnePercentProfileRecord,
   selectBalancedRealisticDecision,
 };

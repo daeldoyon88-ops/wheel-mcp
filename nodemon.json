@@ -1,4 +1,13 @@
 {
-  "ignore": ["node_modules", "wheel-dashboard", "*.log"],
-  "ext": "js,json"
+  "watch": ["server.js", "app"],
+  "ignore": [
+    "node_modules/**",
+    "wheel-dashboard/**",
+    "data/**",
+    "debug/**",
+    "*.log",
+    "test-scan*.json",
+    "result-scan*.json"
+  ],
+  "ext": "js"
 }

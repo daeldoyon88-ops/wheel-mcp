@@ -1,9 +1,9 @@
 // Bandes de bucket Capital Combinations — rendement PÉRIODE (jusqu'à expiration).
 //
-// Décision fonctionnelle (2026-07-14), remplace les bandes hebdomadaires AF-17 :
-//   SAFE       : periodYieldPct ∈ [0,45 ; 0,80)
-//   BALANCED   : periodYieldPct ∈ [0,70 ; 1,05)
-//   AGGRESSIVE : periodYieldPct >= 0,95
+// Décision fonctionnelle (2026-07-14), politique hybride hybrid-period-v1 :
+//   SAFE       : periodYieldPct ∈ [26×7/365 ; 0,80) à DTE≤7 ; × DTE/7 au-delà
+//   BALANCED   : periodYieldPct ∈ [0,70 ; 1,05) à DTE≤7 ; × DTE/7 au-delà
+//   AGGRESSIVE : periodYieldPct >= 0,95 à DTE≤7 ; × DTE/7 au-delà
 //
 // bucketEligibilityYield = periodYieldPct (décide l'admissibilité)
 // dteComparisonYield     = weeklyNormalizedYieldPct (reste calculé/affiché/persisté,
@@ -17,7 +17,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPortfolioCombos } from "./capitalComboPortfolio.js";
+import { buildPortfolioCombos, SAFE_BASE_PERIOD_MIN_PCT } from "./capitalComboPortfolio.js";
 
 function approx(a, b, eps = 0.01) {
   assert.ok(Math.abs(Number(a) - Number(b)) <= eps, `${a} ≈ ${b}`);
@@ -108,7 +108,7 @@ function pickOf(combos, label, ticker) {
   return (bucketOf(combos, label)?.picks ?? []).find((p) => p.ticker === ticker) ?? null;
 }
 
-// ── SAFE [0,45 ; 0,80) ──────────────────────────────────────────────────────
+// ── SAFE [26×7/365 ; 0,80) à DTE ≤ 7 ────────────────────────────────────────
 
 test("SAFE — période 0,44 % / 7J ~1,03 % → rejet PERIOD_YIELD_BELOW_BUCKET_MIN", () => {
   const pool = [makeCandidate({ ticker: "CRM", safe: makeLeg({ strike: 100, periodYieldPct: 0.44, dteDays: 3 }) })];
@@ -118,16 +118,23 @@ test("SAFE — période 0,44 % / 7J ~1,03 % → rejet PERIOD_YIELD_BELOW_BUCKET_
   assert.equal(row?.primaryBlocker, "PERIOD_YIELD_BELOW_BUCKET_MIN");
   approx(row.periodYieldPct, 0.44, 0.001);
   approx(row.weeklyNormalizedYieldPct, 1.0267, 0.01);
-  approx(row.minPeriodYieldPct, 0.45, 0.0001);
+  approx(row.minPeriodYieldPct, SAFE_BASE_PERIOD_MIN_PCT, 0.0000001);
 });
 
-test("SAFE — période 0,45 % / 7J 1,05 % → accepté (min inclusif)", () => {
+test("SAFE — période 0,45 % (ancien min) → rejeté sous le nouveau minimum exact", () => {
   const pool = [makeCandidate({ ticker: "CRM", safe: makeLeg({ strike: 100, periodYieldPct: 0.45, dteDays: 3 }) })];
+  const { combos, holder } = runBuckets(pool);
+  assert.equal(pickOf(combos, "SAFE", "CRM"), null);
+  const row = rejectsOf(holder, "SAFE").find((r) => r.ticker === "CRM");
+  assert.equal(row?.primaryBlocker, "PERIOD_YIELD_BELOW_BUCKET_MIN");
+});
+
+test("SAFE — période 0,50 % / 7J ~1,17 % → accepté (au-dessus du min exact 26 % ann.)", () => {
+  const pool = [makeCandidate({ ticker: "CRM", safe: makeLeg({ strike: 100, periodYieldPct: 0.5, dteDays: 3 }) })];
   const { combos } = runBuckets(pool);
   const p = pickOf(combos, "SAFE", "CRM");
-  assert.ok(p, "0,45 % période >= min SAFE 0,45");
-  approx(p.periodYield, 0.45, 0.001);
-  approx(p.weeklyReturn, 1.05, 0.01);
+  assert.ok(p, "0,50 % période >= min SAFE exact");
+  approx(p.periodYield, 0.5, 0.001);
 });
 
 test("SAFE — exemple réel strike 127, prime 0,67 $, DTE 3 : période ~0,53 % → accepté malgré 7J ~1,23 %", () => {
@@ -230,7 +237,7 @@ test("AGGRESSIVE — période 0,95 % → accepté (min inclusif)", () => {
   assert.ok(pickOf(combos, "AGGRESSIVE", "NVDA"));
 });
 
-test("AGGRESSIVE — période 1,50 % (30 DTE, 7J 0,35 %) → accepté malgré 7J sous l'ancien min hebdo", () => {
+test("AGGRESSIVE — période 1,50 % (30 DTE, 7J 0,35 %) → rejeté (min effectif ~4,07 %)", () => {
   const pool = [
     makeCandidate({
       ticker: "NVDA",
@@ -238,11 +245,11 @@ test("AGGRESSIVE — période 1,50 % (30 DTE, 7J 0,35 %) → accepté malgré 7J
       agg: makeLeg({ strike: 100, periodYieldPct: 1.5, dteDays: 30, distancePct: -6 }),
     }),
   ];
-  const { combos } = runBuckets(pool);
-  const p = pickOf(combos, "AGGRESSIVE", "NVDA");
-  assert.ok(p, "1,50 % période >= 0,95 — le 7J 0,35 % ne décide plus");
-  approx(p.periodYield, 1.5, 0.005);
-  approx(p.weeklyReturn, 0.35, 0.01);
+  const { combos, holder } = runBuckets(pool);
+  assert.equal(pickOf(combos, "AGGRESSIVE", "NVDA"), null);
+  const row = rejectsOf(holder, "AGGRESSIVE").find((r) => r.ticker === "NVDA");
+  assert.equal(row?.primaryBlocker, "PERIOD_YIELD_BELOW_BUCKET_MIN");
+  approx(row.effectivePeriodMinPct, 0.95 * (30 / 7), 0.0001);
 });
 
 // ── Indépendance DTE ─────────────────────────────────────────────────────────

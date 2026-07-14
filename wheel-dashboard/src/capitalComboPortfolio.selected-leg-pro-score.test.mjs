@@ -25,6 +25,7 @@ function makeLeg({
   proFinalScore,
   proDistanceScore,
   proExecutionScore,
+  dteDays = 7,
 } = {}) {
   const premium = bid ?? (yieldPct != null && strike ? (yieldPct * strike) / 100 : null);
   const leg = {
@@ -34,6 +35,8 @@ function makeLeg({
     premiumUsed: premium,
     mid: premium,
     weeklyYield: yieldPct,
+    periodYield: yieldPct,
+    dteDays,
     distancePct,
     popProfitEstimated: popDecimal,
     liquidity: { spreadPct },
@@ -59,9 +62,11 @@ function makeCandidate({
   proExecutionScore = 0.8,
   proDistanceScore = 0.9,
   targetExpiration = "2026-07-17",
+  dteDays = 7,
 } = {}) {
   return {
     ticker,
+    dteDays,
     safeStrike: safe,
     aggressiveStrike: agg,
     safeGrade,

@@ -101,7 +101,7 @@ test("56 candidate 3 DTE 0,50 % période — bande décidée par la PÉRIODE : a
   // Ancienne règle AF-17 : le 7J ~1,17 % sortait cette jambe de SAFE (plafond
   // hebdo 0,80) et le 7J de la jambe agressive (~1,28 %) la rendait admissible
   // AGGRESSIVE. Nouvelle règle : la bande utilise le rendement jusqu'à
-  // expiration — 0,50 % ∈ [0,45 ; 0,80) SAFE ; 0,55 % < 0,95 hors AGGRESSIVE.
+  // Nouvelle règle hybrid-period-v1 : 0,50 % ∈ [26×7/365 ; 0,80) SAFE ; 0,55 % < 0,95 hors AGGRESSIVE.
   const pool = [
     makeCandidate({
       ticker: "AAPL",
@@ -115,7 +115,7 @@ test("56 candidate 3 DTE 0,50 % période — bande décidée par la PÉRIODE : a
   approx(built._safeYieldPct, 1.1667, 0.02); // 7J toujours calculé (comparaison DTE)
   approx(built._safePeriodYieldPct, 0.5, 0.01);
   const { admissibleSafe, admissibleAgg } = combosSafeAgg(pool);
-  assert.equal(admissibleSafe, true, "0,50 % période dans la bande SAFE [0,45 ; 0,80)");
+  assert.equal(admissibleSafe, true, "0,50 % période dans la bande SAFE [26×7/365 ; 0,80)");
   assert.equal(admissibleAgg, false, "0,55 % période < min AGGRESSIVE 0,95 malgré 7J ~1,28 %");
 });
 
@@ -127,9 +127,8 @@ function combosSafeAgg(pool) {
   };
 }
 
-test("57 candidate 30 DTE 1,50 % période — admissible AGGRESSIVE par la PÉRIODE malgré 7J 0,35 %", () => {
-  // Ancienne règle AF-17 : 7J 0,35 % < 0,95 rejetait ce candidat AGGRESSIVE.
-  // Nouvelle règle : 1,50 % période >= 0,95 → admissible (indépendance DTE).
+test("57 candidate 30 DTE 1,50 % période — rejeté AGGRESSIVE (min effectif ~4,07 %)", () => {
+  // Politique hybride : à 30 DTE le minimum AGGRESSIVE = 0,95 × 30/7 ≈ 4,07 %.
   const pool = [
     makeCandidate({
       ticker: "MSFT",
@@ -139,11 +138,11 @@ test("57 candidate 30 DTE 1,50 % période — admissible AGGRESSIVE par la PÉRI
     }),
   ];
   const built = buildCapitalComboCandidate(pool[0], 100000);
-  approx(built._aggYieldPct, 0.35, 0.02); // 7J toujours calculé (comparaison DTE)
+  approx(built._aggYieldPct, 0.35, 0.02);
   approx(built._aggPeriodYieldPct, 1.5, 0.01);
   const combos = runCombos(pool);
   const agg = combos.find((c) => c.label === "AGGRESSIVE");
-  assert.ok(pickByTicker(agg, "MSFT"), "bande AGGRESSIVE décidée par le rendement expiration");
+  assert.equal(pickByTicker(agg, "MSFT"), null, "1,50 % période < min AGGRESSIVE effectif à 30 DTE");
 });
 
 test("58 capital par contrat inchangé", () => {

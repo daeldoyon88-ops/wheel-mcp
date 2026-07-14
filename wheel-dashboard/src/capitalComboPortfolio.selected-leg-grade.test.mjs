@@ -21,6 +21,7 @@ function makeLeg({
   volume = 1000,
   openInterest = 2000,
   mode,
+  dteDays = 7,
 } = {}) {
   const leg = {
     strike,
@@ -28,6 +29,8 @@ function makeLeg({
     premiumUsed: bid,
     mid: bid,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct,
     volume,
     openInterest,
@@ -51,9 +54,11 @@ function makeCandidate({
   proFinalScore = 0.85,
   proExecutionScore = 0.9,
   proDistanceScore = 0.9,
+  dteDays = 7,
 } = {}) {
   const candidate = {
     ticker,
+    dteDays,
     finalDisplayMode,
     finalDisplayGrade,
     optionsSource: "IBKR live",

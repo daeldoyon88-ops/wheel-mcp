@@ -19,6 +19,7 @@ function makeLeg({
   distancePct = -8,
   popProfitEstimated = POP_MISSING,
   popEstimate = POP_MISSING,
+  dteDays = 7,
 } = {}) {
   const leg = {
     strike,
@@ -26,6 +27,8 @@ function makeLeg({
     premiumUsed: bid,
     mid: bid,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct,
     liquidity: { spreadPct },
     volume: 500,
@@ -40,6 +43,7 @@ function makeLeg({
 function makeAggressiveCandidate(popProfitEstimated, popEstimate = null) {
   return {
     ticker: "NFLX",
+    dteDays: 7,
     aggressiveGrade: "A",
     aggressiveStrike: makeLeg({ popProfitEstimated, popEstimate, weeklyYield: 1.2 }),
     optionsSource: "IBKR live",
@@ -55,6 +59,8 @@ function makeAggressiveCandidate(popProfitEstimated, popEstimate = null) {
 function makeSafeCandidate(popProfitEstimated, popEstimate = null) {
   return {
     ticker: "MSFT",
+    dteDays: 7,
+    safeGrade: "A",
     safeStrike: makeLeg({ popProfitEstimated, popEstimate, weeklyYield: 0.6 }),
     optionsSource: "IBKR live",
     hasEarningsBeforeExpiration: false,

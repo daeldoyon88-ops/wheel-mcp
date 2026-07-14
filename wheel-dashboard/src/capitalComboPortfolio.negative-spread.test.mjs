@@ -12,6 +12,7 @@ import {
   gradeLeg,
   toSpreadPctPercent,
   compareCapitalComboCandidatesStable,
+  SAFE_BASE_PERIOD_MIN_PCT,
 } from "./capitalComboPortfolio.js";
 import { computeScoreV2 } from "./scoreV2.js";
 import {
@@ -32,7 +33,7 @@ const SAFE_MODE = {
     diversificationPenalty: 6,
   },
   distanceTargetAbs: 8,
-  minWeeklyYield: 0.45,
+  minWeeklyYield: SAFE_BASE_PERIOD_MIN_PCT,
 };
 
 const KNOWN_TICKER = "AAPL";
@@ -54,6 +55,7 @@ function makeLeg({
   quoteStatus = undefined,
   liquiditySpread = undefined,
   omitBidAsk = false,
+  dteDays = 7,
 } = {}) {
   const resolvedAsk =
     ask !== undefined
@@ -66,6 +68,8 @@ function makeLeg({
     premiumUsed: bid,
     mid: bid,
     weeklyYield: yieldPct,
+    periodYield: yieldPct,
+    dteDays,
     distancePct,
     popProfitEstimated: popDecimal,
     volume: 300,
@@ -93,9 +97,11 @@ function makeCandidate({
   aggressiveGrade = "A",
   finalDisplayMode = "SAFE",
   finalDisplayGrade = "A",
+  dteDays = 7,
 } = {}) {
   return {
     ticker,
+    dteDays,
     name: ticker,
     safeStrike: safe,
     aggressiveStrike: agg,

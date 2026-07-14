@@ -1004,6 +1004,189 @@ export function resolveLegDte(leg, candidate) {
   return isValidComboDte(raw) ? raw : null;
 }
 
+/** Politique hybride de rendement par DTE — source de vérité unique (moteur + UI). */
+export const YIELD_POLICY_VERSION = "hybrid-period-v1";
+
+/** Minimum SAFE canonique : 26 % annualisé simple (pas 0,45 % ni 0,49 % arrondi). */
+export const SAFE_ANNUAL_SIMPLE_MIN_PCT = 26;
+
+/** Base hebdomadaire exacte : 26 × 7 / 365 = 0,4986301369863014 % */
+export const SAFE_BASE_PERIOD_MIN_PCT = (SAFE_ANNUAL_SIMPLE_MIN_PCT * 7) / 365;
+
+/** Bandes de base (DTE ≤ 7, facteur 1) — pourcentage, pas fraction décimale. */
+export const BASE_PERIOD_YIELD_BANDS = Object.freeze({
+  SAFE: Object.freeze({
+    minPct: SAFE_BASE_PERIOD_MIN_PCT,
+    maxPct: 0.8,
+    annualizedSimpleMinPct: SAFE_ANNUAL_SIMPLE_MIN_PCT,
+  }),
+  BALANCED: Object.freeze({
+    minPct: 0.7,
+    maxPct: 1.05,
+    annualizedSimpleMinPct: null,
+  }),
+  AGGRESSIVE: Object.freeze({
+    minPct: 0.95,
+    maxPct: null,
+    annualizedSimpleMinPct: null,
+  }),
+});
+
+export function normalizeYieldPolicyMode(mode) {
+  const m = String(mode || "").trim().toUpperCase();
+  if (m === "CONSERVATIVE" || m === "SAFE") return "SAFE";
+  if (m === "BALANCED" || m === "ÉQUILIBRÉ") return "BALANCED";
+  if (m === "AGGRESSIVE" || m === "AGRESSIF") return "AGGRESSIVE";
+  return m;
+}
+
+/**
+ * Bande effective de rendement période pour un bucket et un DTE.
+ * DTE ≤ 7 : facteur 1 ; DTE > 7 : bornes × DTE / 7.
+ */
+export function getCanonicalPeriodYieldBand(mode, dteDays) {
+  const normalizedMode = normalizeYieldPolicyMode(mode);
+  const base = BASE_PERIOD_YIELD_BANDS[normalizedMode];
+  const dte = Number(dteDays);
+
+  if (!base) {
+    throw new Error(`Unknown mode: ${mode}`);
+  }
+  if (!Number.isFinite(dte) || dte <= 0) {
+    throw new Error(`Invalid DTE: ${dteDays}`);
+  }
+
+  const dteScaleFactor = dte > 7 ? dte / 7 : 1;
+
+  return {
+    mode: normalizedMode,
+    yieldPolicyVersion: YIELD_POLICY_VERSION,
+    dteDays: dte,
+    dteScaleFactor,
+    annualizedSimpleMinPct: base.annualizedSimpleMinPct,
+    basePeriodMinPct: base.minPct,
+    basePeriodMaxPct: base.maxPct,
+    effectivePeriodMinPct: base.minPct * dteScaleFactor,
+    effectivePeriodMaxPct: base.maxPct == null ? null : base.maxPct * dteScaleFactor,
+    weeklyEquivalentMinPct: base.minPct,
+    weeklyEquivalentMaxPct: base.maxPct,
+  };
+}
+
+export function isPeriodYieldAdmissibleInBand(periodYieldPct, band) {
+  const y = Number(periodYieldPct);
+  if (!Number.isFinite(y)) return false;
+  const min = Number(band?.effectivePeriodMinPct);
+  if (!Number.isFinite(min) || !(y >= min)) return false;
+  if (band.effectivePeriodMaxPct != null && !(y < band.effectivePeriodMaxPct)) return false;
+  return true;
+}
+
+export function formatPeriodYieldBandDisplayPct(pct, { decimals = 2 } = {}) {
+  if (pct == null || !Number.isFinite(Number(pct))) return "n/d";
+  return Number(pct).toFixed(decimals);
+}
+
+/** Affichage UI du minimum SAFE de base (arrondi à 0,50 %, jamais utilisé par le moteur). */
+export function formatSafeBaseMinDisplayPct() {
+  return "0.50";
+}
+
+export function formatEffectiveYieldBandDisplay(band) {
+  if (!band) return "n/d";
+  const baseMin =
+    band.mode === "SAFE"
+      ? formatSafeBaseMinDisplayPct()
+      : formatPeriodYieldBandDisplayPct(band.basePeriodMinPct);
+  const baseMax =
+    band.basePeriodMaxPct == null
+      ? null
+      : formatPeriodYieldBandDisplayPct(band.basePeriodMaxPct);
+  const effMin = formatPeriodYieldBandDisplayPct(band.effectivePeriodMinPct);
+  const effMax =
+    band.effectivePeriodMaxPct == null
+      ? null
+      : formatPeriodYieldBandDisplayPct(band.effectivePeriodMaxPct);
+  if (band.dteDays <= 7) {
+    return baseMax != null ? `${baseMin}%–${baseMax}%` : `≥${baseMin}%`;
+  }
+  return effMax != null ? `${effMin}%–${effMax}%` : `≥${effMin}%`;
+}
+
+export function formatHybridYieldPolicyCardLines(band) {
+  if (!band) return [];
+  const baseMin =
+    band.mode === "SAFE"
+      ? formatSafeBaseMinDisplayPct()
+      : formatPeriodYieldBandDisplayPct(band.basePeriodMinPct);
+  const baseMax =
+    band.basePeriodMaxPct == null
+      ? null
+      : formatPeriodYieldBandDisplayPct(band.basePeriodMaxPct);
+  const effMin = formatPeriodYieldBandDisplayPct(band.effectivePeriodMinPct);
+  const effMax =
+    band.effectivePeriodMaxPct == null
+      ? null
+      : formatPeriodYieldBandDisplayPct(band.effectivePeriodMaxPct);
+  const factor = Number(band.dteScaleFactor).toFixed(2);
+  const dteLabel = band.dteDays <= 7 ? `${band.dteDays} DTE ou moins` : `${band.dteDays} DTE`;
+  const lines = [`Politique hybride · ${dteLabel}`];
+  if (band.mode === "SAFE") {
+    lines.push("Minimum SAFE : 26 % annualisé simple");
+  }
+  if (band.dteDays <= 7) {
+    lines.push(
+      `Cible effective : ${baseMin}%${baseMax != null ? `–${baseMax}%` : "+"} jusqu'à expiration`,
+    );
+    lines.push(
+      `Équivalent hebdomadaire : ${baseMin}%${baseMax != null ? `–${baseMax}%` : "+"} / 7J`,
+    );
+  } else {
+    lines.push(
+      `Base jusqu'à 7 DTE : ${baseMin}%${baseMax != null ? `–${baseMax}%` : "+"} jusqu'à expiration`,
+    );
+    if (effMax != null) {
+      lines.push(`Cible effective ${band.dteDays} DTE : ${effMin}%–${effMax}% jusqu'à expiration`);
+    } else {
+      lines.push(`Cible effective ${band.dteDays} DTE : ≥${effMin}% jusqu'à expiration`);
+    }
+    lines.push(
+      `Équivalent hebdomadaire : ${baseMin}%${baseMax != null ? `–${baseMax}%` : "+"} / 7J`,
+    );
+  }
+  lines.push(`Facteur : ${factor}×`);
+  return lines;
+}
+
+export function buildYieldPolicyRejectionFields(
+  mode,
+  dteDays,
+  periodYieldPct,
+  weeklyNormalizedYieldPct,
+) {
+  const band = getCanonicalPeriodYieldBand(mode, dteDays);
+  return {
+    yieldPolicyVersion: YIELD_POLICY_VERSION,
+    mode: band.mode,
+    dteDays: band.dteDays,
+    dteScaleFactor: band.dteScaleFactor,
+    annualizedSimpleMinPct: band.annualizedSimpleMinPct,
+    periodYieldPct: Number.isFinite(Number(periodYieldPct)) ? Number(periodYieldPct) : null,
+    weeklyNormalizedYieldPct: Number.isFinite(Number(weeklyNormalizedYieldPct))
+      ? Number(weeklyNormalizedYieldPct)
+      : null,
+    basePeriodMinPct: band.basePeriodMinPct,
+    basePeriodMaxPct: band.basePeriodMaxPct,
+    effectivePeriodMinPct: band.effectivePeriodMinPct,
+    effectivePeriodMaxPct: band.effectivePeriodMaxPct,
+    minPeriodYieldPct: band.effectivePeriodMinPct,
+    yieldPolicyNoteFr:
+      band.dteDays > 7
+        ? `Seuils période multipliés par DTE/7 (${band.dteScaleFactor.toFixed(4)}×) ; minimum SAFE basé sur 26 % annualisé simple.`
+        : "Seuils fixes jusqu'à 7 DTE ; minimum SAFE basé sur 26 % annualisé simple.",
+  };
+}
+
 function hasExplicitInvalidDte(leg, candidate) {
   for (const value of [
     leg?.dteDays,
@@ -1855,6 +2038,17 @@ export const BALANCED_PREFERRED_LEG_YIELD_BAND = Object.freeze({
   midTargetPct: 0.875,
 });
 
+export function getScaledBalancedPreferredLegYieldBand(dteDays) {
+  const dte = Number(dteDays);
+  if (!isValidComboDte(dte)) return BALANCED_PREFERRED_LEG_YIELD_BAND;
+  const factor = dte > 7 ? dte / 7 : 1;
+  return Object.freeze({
+    minInclusivePct: BALANCED_PREFERRED_LEG_YIELD_BAND.minInclusivePct * factor,
+    maxExclusivePct: BALANCED_PREFERRED_LEG_YIELD_BAND.maxExclusivePct * factor,
+    midTargetPct: BALANCED_PREFERRED_LEG_YIELD_BAND.midTargetPct * factor,
+  });
+}
+
 /**
  * AF-07 — résolution générique de la jambe d'un bucket parmi une liste ordonnée
  * de jambes candidates. Chaque jambe est évaluée selon ses propres données :
@@ -1887,6 +2081,8 @@ export function resolveCompatibleLegForMode({
   minYieldPctInclusive,
   maxYieldPctExclusive,
   preferredBand = null,
+  yieldPolicyMode = null,
+  candidateForDte = null,
 }) {
   const list = Array.isArray(legCandidates) ? legCandidates : [];
   const usable = list.filter(
@@ -1896,12 +2092,23 @@ export function resolveCompatibleLegForMode({
 
   const min = Number(minYieldPctInclusive);
   const max = maxYieldPctExclusive == null ? null : Number(maxYieldPctExclusive);
+  const resolveBandForDescriptor = (d) => {
+    if (yieldPolicyMode) {
+      const dte = resolveLegDte(d.leg, candidateForDte);
+      if (!isValidComboDte(dte)) return null;
+      return getCanonicalPeriodYieldBand(yieldPolicyMode, dte);
+    }
+    return {
+      effectivePeriodMinPct: min,
+      effectivePeriodMaxPct: max,
+    };
+  };
   const conformsToBand = (d) => {
     const y = Number(d.yieldPct);
     if (!Number.isFinite(y)) return false;
-    if (Number.isFinite(min) && !(y >= min)) return false;
-    if (max != null && Number.isFinite(max) && !(y < max)) return false;
-    return true;
+    const band = resolveBandForDescriptor(d);
+    if (!band) return false;
+    return isPeriodYieldAdmissibleInBand(y, band);
   };
   const priorityOf = (d) => {
     const p = Number(d.priority);
@@ -1919,12 +2126,29 @@ export function resolveCompatibleLegForMode({
       const mid = Number(preferredBand.midTargetPct);
       const inPreferred = conforming.filter((d) => {
         const y = Number(d.yieldPct);
-        return y >= pMin && y < pMax;
+        let bandMin = pMin;
+        let bandMax = pMax;
+        let bandMid = mid;
+        if (yieldPolicyMode) {
+          const dte = resolveLegDte(d.leg, candidateForDte);
+          if (!isValidComboDte(dte)) return false;
+          const scaled = getScaledBalancedPreferredLegYieldBand(dte);
+          bandMin = scaled.minInclusivePct;
+          bandMax = scaled.maxExclusivePct;
+          bandMid = scaled.midTargetPct;
+        }
+        return y >= bandMin && y < bandMax;
       });
       if (inPreferred.length) {
         let best = inPreferred[0];
+        const bestMid = yieldPolicyMode
+          ? getScaledBalancedPreferredLegYieldBand(resolveLegDte(best.leg, candidateForDte)).midTargetPct
+          : mid;
         for (const d of inPreferred.slice(1)) {
-          if (Math.abs(Number(d.yieldPct) - mid) <= Math.abs(Number(best.yieldPct) - mid)) best = d;
+          const dMid = yieldPolicyMode
+            ? getScaledBalancedPreferredLegYieldBand(resolveLegDte(d.leg, candidateForDte)).midTargetPct
+            : mid;
+          if (Math.abs(Number(d.yieldPct) - dMid) <= Math.abs(Number(best.yieldPct) - bestMid)) best = d;
         }
         return best;
       }
@@ -1955,9 +2179,21 @@ function pickFirstValidLegDescriptor(legCandidates) {
  * gardent leur nom historique min/maxWeeklyYield pour compatibilité de lecture.
  */
 export const BUCKET_PRESENTATION_YIELD_BANDS = Object.freeze({
-  SAFE: Object.freeze({ minWeeklyYield: 0.45, maxWeeklyYield: 0.80 }),
-  BALANCED: Object.freeze({ minWeeklyYield: 0.70, maxWeeklyYield: 1.05 }),
-  AGGRESSIVE: Object.freeze({ minWeeklyYield: 0.95, maxWeeklyYield: null }),
+  SAFE: Object.freeze({
+    minWeeklyYield: SAFE_BASE_PERIOD_MIN_PCT,
+    maxWeeklyYield: 0.8,
+    yieldPolicyVersion: YIELD_POLICY_VERSION,
+  }),
+  BALANCED: Object.freeze({
+    minWeeklyYield: 0.7,
+    maxWeeklyYield: 1.05,
+    yieldPolicyVersion: YIELD_POLICY_VERSION,
+  }),
+  AGGRESSIVE: Object.freeze({
+    minWeeklyYield: 0.95,
+    maxWeeklyYield: null,
+    yieldPolicyVersion: YIELD_POLICY_VERSION,
+  }),
 });
 
 /**
@@ -2018,8 +2254,8 @@ export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usabl
     ];
     const conforming = resolveCompatibleLegForMode({
       legCandidates,
-      minYieldPctInclusive: cfg.minWeeklyYield,
-      maxYieldPctExclusive: cfg.maxWeeklyYield,
+      yieldPolicyMode: "BALANCED",
+      candidateForDte: built,
       preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
     });
     const resolved = conforming ?? pickFirstValidLegDescriptor(legCandidates);
@@ -2313,8 +2549,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       maxThemeCapitalPct: 0.40,
       maxSectorCapitalPct: 0.40,
       maxHighBetaCapitalPct: 0.35,
-      // Bande d'admissibilité — rendement PÉRIODE (jusqu'à expiration), en %.
-      minWeeklyYield: 0.45,
+      // Bande d'admissibilité — rendement PÉRIODE base (DTE ≤ 7) ; politique hybride au gate.
+      minWeeklyYield: SAFE_BASE_PERIOD_MIN_PCT,
       maxWeeklyYield: 0.80,
       minExecutionScore: 0,
       maxSpreadPct: 15,
@@ -2450,8 +2686,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           ];
           const conformingBalanced = resolveCompatibleLegForMode({
               legCandidates,
-              minYieldPctInclusive: modeAlloc.minWeeklyYield,
-              maxYieldPctExclusive: modeAlloc.maxWeeklyYield,
+              yieldPolicyMode: "BALANCED",
+              candidateForDte: candidate,
               preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
             });
           const resolved =
@@ -2579,26 +2815,47 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         _isWatchPremium: cand.finalDisplayGrade === "WATCH" && !!modeAlloc.watchPremiumFilter?.(cand),
       };
 
-      // Bande d'admissibilité du bucket : décidée par le rendement PÉRIODE
-      // (jusqu'à expiration) de la jambe bucket. Le rendement 7J normalisé
-      // reste exposé dans les diagnostics à titre informatif seulement.
-      const bucketPeriodYieldPct = Number(candWp.selectedPeriodYieldPct);
-      if (!(Number.isFinite(bucketPeriodYieldPct) && bucketPeriodYieldPct >= modeAlloc.minWeeklyYield)) {
-        pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_BELOW_BUCKET_MIN", {
-          minPeriodYieldPct: modeAlloc.minWeeklyYield,
-          periodYieldPct: Number.isFinite(bucketPeriodYieldPct) ? bucketPeriodYieldPct : null,
+      // Bande d'admissibilité du bucket : politique hybride sur rendement PÉRIODE.
+      const bucketDteDays = resolveLegDte(candWp.selectedLeg, candWp);
+      if (!isValidComboDte(bucketDteDays)) {
+        pushScoredPoolReject(candWp.ticker, "MISSING_OR_INVALID_DTE_FOR_YIELD_POLICY", {
+          yieldPolicyVersion: YIELD_POLICY_VERSION,
+          mode: mode.label,
+          periodYieldPct: Number.isFinite(Number(candWp.selectedPeriodYieldPct))
+            ? Number(candWp.selectedPeriodYieldPct)
+            : null,
           weeklyNormalizedYieldPct: candWp.weeklyReturn ?? null,
-          noteFr: "Bande décidée par le rendement jusqu'à expiration ; le 7J est informatif.",
+          noteFr: "DTE manquant ou invalide — impossible d'appliquer la politique hybride de rendement.",
         });
         continue;
       }
-      if (!(modeAlloc.maxWeeklyYield == null || bucketPeriodYieldPct < modeAlloc.maxWeeklyYield)) {
-        pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_ABOVE_BUCKET_MAX", {
-          maxPeriodYieldConfig: modeAlloc.maxWeeklyYield,
-          periodYieldPct: bucketPeriodYieldPct,
-          weeklyNormalizedYieldPct: candWp.weeklyReturn ?? null,
-          noteFr: "Bande décidée par le rendement jusqu'à expiration ; le 7J est informatif.",
-        });
+      const yieldBand = getCanonicalPeriodYieldBand(mode.label, bucketDteDays);
+      const bucketPeriodYieldPct = Number(candWp.selectedPeriodYieldPct);
+      if (!isPeriodYieldAdmissibleInBand(bucketPeriodYieldPct, yieldBand)) {
+        if (!Number.isFinite(bucketPeriodYieldPct) || bucketPeriodYieldPct < yieldBand.effectivePeriodMinPct) {
+          pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_BELOW_BUCKET_MIN", {
+            ...buildYieldPolicyRejectionFields(
+              mode.label,
+              bucketDteDays,
+              bucketPeriodYieldPct,
+              candWp.weeklyReturn,
+            ),
+            noteFr:
+              "Bande décidée par le rendement jusqu'à expiration (politique hybride) ; le 7J est informatif.",
+          });
+        } else {
+          pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_ABOVE_BUCKET_MAX", {
+            ...buildYieldPolicyRejectionFields(
+              mode.label,
+              bucketDteDays,
+              bucketPeriodYieldPct,
+              candWp.weeklyReturn,
+            ),
+            maxPeriodYieldConfig: yieldBand.effectivePeriodMaxPct,
+            noteFr:
+              "Bande décidée par le rendement jusqu'à expiration (politique hybride) ; le 7J est informatif.",
+          });
+        }
         continue;
       }
       const executionScoreForFilter = getCandidateExecutionScore(candWp, candWp.selectedLeg);

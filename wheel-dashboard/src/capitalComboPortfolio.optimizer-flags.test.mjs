@@ -10,13 +10,15 @@ import {
   resolveCapitalOptimizerV2Flags,
 } from "./capitalComboEngineV2.js";
 
-function makeSafeLeg(strike, weeklyYield = 0.6) {
+function makeSafeLeg(strike, weeklyYield = 0.6, dteDays = 7) {
   return {
     strike,
     bid: 0.6,
     premiumUsed: 0.6,
     mid: 0.6,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct: -8,
     liquidity: { spreadPct: 8 },
     volume: 500,
@@ -26,13 +28,15 @@ function makeSafeLeg(strike, weeklyYield = 0.6) {
   };
 }
 
-function makeAggLeg(strike, weeklyYield = 1.1) {
+function makeAggLeg(strike, weeklyYield = 1.1, dteDays = 7) {
   return {
     strike,
     bid: 0.35,
     premiumUsed: 0.35,
     mid: 0.35,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct: -9,
     liquidity: { spreadPct: 8 },
     volume: 500,
@@ -42,9 +46,10 @@ function makeAggLeg(strike, weeklyYield = 1.1) {
   };
 }
 
-function makeCandidate(ticker, { safeStrike = null, aggressiveStrike = null } = {}) {
+function makeCandidate(ticker, { safeStrike = null, aggressiveStrike = null, dteDays = 7 } = {}) {
   return {
     ticker,
+    dteDays,
     optionsSource: "IBKR live",
     hasEarningsBeforeExpiration: false,
     hasUpcomingEarningsBeforeExpiration: false,

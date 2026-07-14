@@ -20,13 +20,15 @@ import {
 import { buildPortfolioCombos } from "./capitalComboPortfolio.js";
 
 // ── Fixtures : 4 candidats admissibles SAFE (style tests AF-05) ──────────────
-function makeLeg({ strike = 50, bid = 0.27, weeklyYield = 0.54, spreadPct = 12, distancePct = -8 } = {}) {
+function makeLeg({ strike = 50, bid = 0.27, weeklyYield = 0.54, spreadPct = 12, distancePct = -8, dteDays = 7 } = {}) {
   return {
     strike,
     bid,
     premiumUsed: bid,
     mid: bid,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct,
     volume: 1000,
     openInterest: 2000,
@@ -36,10 +38,12 @@ function makeLeg({ strike = 50, bid = 0.27, weeklyYield = 0.54, spreadPct = 12, 
   };
 }
 
-function makeCandidate({ ticker, name, proFinalScore, qualityScore, weeklyReturn, spreadPct, targetExpiration = "2026-07-17" }) {
+function makeCandidate({ ticker, name, proFinalScore, qualityScore, weeklyReturn, spreadPct, targetExpiration = "2026-07-17", dteDays = 7 }) {
+  const periodYield = weeklyReturn ?? 0.54;
   return {
     ticker,
     name,
+    dteDays,
     finalDisplayMode: "SAFE",
     finalDisplayGrade: "B",
     safeGrade: "B",
@@ -53,7 +57,7 @@ function makeCandidate({ ticker, name, proFinalScore, qualityScore, weeklyReturn
     qualityScore,
     weeklyReturn,
     targetExpiration,
-    safeStrike: makeLeg({ spreadPct }),
+    safeStrike: makeLeg({ spreadPct, weeklyYield: periodYield, dteDays }),
     rank: 0,
   };
 }

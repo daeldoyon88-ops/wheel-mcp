@@ -27,6 +27,9 @@ import {
   buildCapitalComboCandidate,
   buildCapitalComboPoolStats,
   BALANCED_PREFERRED_LEG_YIELD_BAND,
+  getCanonicalPeriodYieldBand,
+  isPeriodYieldAdmissibleInBand,
+  SAFE_BASE_PERIOD_MIN_PCT,
 } from "./capitalComboPortfolio.js";
 
 function leg({
@@ -214,11 +217,10 @@ test("33 CAS 45 DTE 2,00 % → ~0,3111 %", () => {
 // hebdomadaire normalisé. Nouvelle règle : gates sur le rendement période ;
 // le 7J reste calculé mais ne décide plus (assertions croisées ci-dessous).
 
-function gatePeriod(periodYieldPct, min, max = null) {
+function gatePeriod(periodYieldPct, mode, dteDays) {
   if (periodYieldPct == null || !Number.isFinite(periodYieldPct) || periodYieldPct <= 0) return false;
-  if (periodYieldPct < min) return false;
-  if (max != null && periodYieldPct >= max) return false;
-  return true;
+  const band = getCanonicalPeriodYieldBand(mode, dteDays);
+  return isPeriodYieldAdmissibleInBand(periodYieldPct, band);
 }
 
 test("34 SAFE 3 DTE 0,50 % période admis par la bande PÉRIODE malgré 7J ≥ plafond", () => {
@@ -226,7 +228,7 @@ test("34 SAFE 3 DTE 0,50 % période admis par la bande PÉRIODE malgré 7J ≥ p
   const p = getLegPeriodYieldPct(l, candidate(3));
   const w = getLegWeeklyNormalizedYieldPct(l, candidate(3));
   assert.ok(w >= 0.8, "7J au-dessus du plafond SAFE — il ne décide plus");
-  assert.ok(gatePeriod(p, 0.45, 0.8), "0,50 % période ∈ [0,45 ; 0,80)");
+  assert.ok(gatePeriod(p, "SAFE", 3), "0,50 % période ∈ bande SAFE à DTE 3");
 });
 
 test("35 AGGRESSIVE 3 DTE 0,50 % période rejeté (période < 0,95) malgré 7J ≥ 0,95", () => {
@@ -234,23 +236,23 @@ test("35 AGGRESSIVE 3 DTE 0,50 % période rejeté (période < 0,95) malgré 7J �
   const p = getLegPeriodYieldPct(l, candidate(3));
   const w = getLegWeeklyNormalizedYieldPct(l, candidate(3));
   assert.ok(w >= 0.95, "7J franchit le min AGGRESSIVE — il ne décide plus");
-  assert.ok(!gatePeriod(p, 0.95, null));
+  assert.ok(!gatePeriod(p, "AGGRESSIVE", 3));
 });
 
-test("36 SAFE 14 DTE 0,80 % période rejeté au plafond période (0,80 >= max 0,80)", () => {
-  const l = leg({ periodYield: 0.8, dteDays: 14 });
+test("36 SAFE 14 DTE 1,20 % période accepté (entre min ~0,997 % et max 1,60 %)", () => {
+  const l = leg({ periodYield: 1.2, dteDays: 14 });
   const p = getLegPeriodYieldPct(l, candidate(14));
   const w = getLegWeeklyNormalizedYieldPct(l, candidate(14));
-  assert.ok(w < 0.45, "7J sous le min SAFE — il ne décide plus");
-  assert.ok(!gatePeriod(p, 0.45, 0.8), "max exclusif sur la période");
+  assert.ok(w > 0, "7J toujours calculé");
+  assert.ok(gatePeriod(p, "SAFE", 14), "1,20 % période dans la bande SAFE effective à 14 DTE");
 });
 
-test("37 AGGRESSIVE 30 DTE 1,50 % période admis par la bande PÉRIODE malgré 7J 0,35 %", () => {
+test("37 AGGRESSIVE 30 DTE 1,50 % période rejeté (min effectif ~4,07 %)", () => {
   const l = leg({ periodYield: 1.5, dteDays: 30 });
   const p = getLegPeriodYieldPct(l, candidate(30));
   const w = getLegWeeklyNormalizedYieldPct(l, candidate(30));
-  assert.ok(w < 0.95, "7J sous le min AGGRESSIVE — il ne décide plus");
-  assert.ok(gatePeriod(p, 0.95, null));
+  assert.ok(w < 0.95, "7J sous le min AGGRESSIVE base — il ne décide plus");
+  assert.ok(!gatePeriod(p, "AGGRESSIVE", 30));
 });
 
 test("38 7 DTE classification équivalente période/hebdo", () => {
@@ -308,8 +310,8 @@ test("39 WATCH path : selectedYieldPct = hebdomadaire", () => {
 test("40 la bande max utilise le rendement PÉRIODE (indépendance DTE)", () => {
   const p3 = getLegPeriodYieldPct(leg({ periodYield: 0.53, dteDays: 3 }), candidate(3));
   const p7 = getLegPeriodYieldPct(leg({ periodYield: 0.53, dteDays: 7 }), candidate(7));
-  assert.equal(gatePeriod(p3, 0.45, 0.8), gatePeriod(p7, 0.45, 0.8), "même décision quel que soit le DTE");
-  assert.ok(gatePeriod(p3, 0.45, 0.8));
+  assert.equal(gatePeriod(p3, "SAFE", 3), gatePeriod(p7, "SAFE", 7), "même décision période à DTE ≤ 7");
+  assert.ok(gatePeriod(p3, "SAFE", 3));
 });
 
 // ── E. BALANCED / AF-07 ────────────────────────────────────────────────────
@@ -404,7 +406,7 @@ test("48 aucune jambe compatible", () => {
 
 // ── F. Score ───────────────────────────────────────────────────────────────
 
-const MODE_SAFE = { minWeeklyYield: 0.45, maxWeeklyYield: 0.8, yieldHardCap: 0.95, weights: { grade: 10, yield: 10, spread: 10, distance: 10, quality: 10, riskPenalty: 10, capitalFit: 10, diversificationPenalty: 10 } };
+const MODE_SAFE = { minWeeklyYield: SAFE_BASE_PERIOD_MIN_PCT, maxWeeklyYield: 0.8, yieldHardCap: 0.95, weights: { grade: 10, yield: 10, spread: 10, distance: 10, quality: 10, riskPenalty: 10, capitalFit: 10, diversificationPenalty: 10 } };
 
 test("49 normalizeComboYieldScore reçoit hebdomadaire via selectedYieldPct", () => {
   const c7 = { finalDisplayGrade: "A", selectedYieldPct: 0.7, selectedSpreadPct: 8, selectedDistancePct: -8, proFinalScore: 0.5, proExecutionScore: 0.5, proDistanceScore: 0.5, capitalPerContract: 4000, _qualityOverlay: { qualityScore: 0.8 }, _tickerMeta: { name: "X", sector: "Tech" } };

@@ -55,6 +55,7 @@ function makeLeg({
   bid = undefined,
   volume = 300,
   openInterest = 800,
+  dteDays = 7,
 } = {}) {
   const premium =
     bid !== undefined
@@ -69,6 +70,8 @@ function makeLeg({
     premiumUsed: premium,
     mid: premium,
     weeklyYield: yieldPct,
+    periodYield: yieldPct,
+    dteDays,
     distancePct,
     popProfitEstimated: popDecimal,
     popEstimate: null,
@@ -91,9 +94,11 @@ function makeCandidate({
   proExecutionScore = 0.8,
   proDistanceScore = 1,
   name,
+  dteDays = 7,
 } = {}) {
   const c = {
     ticker,
+    dteDays,
     safeStrike: safe,
     aggressiveStrike: agg,
     weeklyReturn: safe?.weeklyYield ?? agg?.weeklyYield ?? 0,

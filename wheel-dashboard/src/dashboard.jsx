@@ -79,6 +79,15 @@ import {
   resolveCapitalComboInspectorLegView,
   formatCapitalComboPickLegBadge,
   formatCapitalComboPickBucketContext,
+  getCanonicalPeriodYieldBand,
+  formatEffectiveYieldBandDisplay,
+  formatHybridYieldPolicyCardLines,
+  formatSafeBaseMinDisplayPct,
+  resolveLegDte,
+  isValidComboDte,
+  YIELD_POLICY_VERSION,
+  SAFE_ANNUAL_SIMPLE_MIN_PCT,
+  SAFE_BASE_PERIOD_MIN_PCT,
 } from "./capitalComboPortfolio.js";
 import {
   formatCapBlockerReason,
@@ -9017,13 +9026,13 @@ const LABEL_TO_MODE_ID = {
 // PERIOD_YIELD_ABOVE_BUCKET_MAX. Le rendement 7J normalisé reste affiché à
 // titre informatif et sert aux miroirs qualité/speculative (parité moteur).
 
+// minYield/maxYield retirés — bandes via getCanonicalPeriodYieldBand (politique hybride).
+
 const _INSP_BUCKETS = {
   SAFE: {
     label: "SAFE",
     allowedModes: new Set(["SAFE"]),
     allowedGrades: new Set(["A", "B"]),
-    minYield: 0.45,
-    maxYield: 0.80,
     maxSpread: 15,
     minDistancePct: null,
     color: "green",
@@ -9041,8 +9050,6 @@ const _INSP_BUCKETS = {
     label: "BALANCED",
     allowedModes: new Set(["SAFE", "AGGRESSIVE"]),
     allowedGrades: new Set(["A", "B"]),
-    minYield: 0.70,
-    maxYield: 1.05,
     maxSpread: 20,
     minDistancePct: null,
     color: "sky",
@@ -9060,8 +9067,6 @@ const _INSP_BUCKETS = {
     label: "AGGRESSIVE",
     allowedModes: new Set(["AGGRESSIVE"]),
     allowedGrades: new Set(["A", "B"]),
-    minYield: 0.95,
-    maxYield: null,
     maxSpread: 25,
     minDistancePct: -5,
     color: "orange",
@@ -9077,6 +9082,14 @@ const _INSP_BUCKETS = {
   },
 };
 const _INSP_BUCKET_KEYS = ["SAFE", "BALANCED", "AGGRESSIVE"];
+
+function _inspResolveYieldBand(bucketKey, candidate, bucketLeg) {
+  const dteDays = bucketLeg ? resolveLegDte(bucketLeg, candidate) : resolveLegDte(null, candidate);
+  if (!isValidComboDte(dteDays)) {
+    return { band: null, dteDays: null };
+  }
+  return { band: getCanonicalPeriodYieldBand(bucketKey, dteDays), dteDays };
+}
 
 function _inspFindCombo(combos, bucketKey) {
   const aliases = {
@@ -9124,6 +9137,9 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const periodYieldPct =
     legView.selectedPeriodYieldPct ??
     (bucketLeg != null ? getLegPeriodYieldPct(bucketLeg, candidate) : null);
+  const yieldBandCtx = _inspResolveYieldBand(bucketKey, candidate, bucketLeg);
+  const yieldBand = yieldBandCtx.band;
+  const dteDays = yieldBandCtx.dteDays;
   const distance = bucketLeg != null ? getLegDistancePct(bucketLeg) : null;
   const pop = bucketLeg != null ? getLegPopPct(bucketLeg) : null;
   const strike = legView.selectedStrike ?? Number(bucketLeg?.strike ?? NaN);
@@ -9156,14 +9172,22 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const blockedByStaticSpread = bucketLegAvailable && spread != null && spread > cfg.maxSpread;
   // Bande décidée par le rendement PÉRIODE (miroir PERIOD_YIELD_BELOW_BUCKET_MIN /
   // PERIOD_YIELD_ABOVE_BUCKET_MAX) — jamais par le rendement 7J normalisé.
+  const blockedByMissingDte =
+    bucketLegAvailable && periodYieldPct != null && !isValidComboDte(dteDays);
+  const effectiveMin = yieldBand?.effectivePeriodMinPct ?? null;
+  const effectiveMax = yieldBand?.effectivePeriodMaxPct ?? null;
   const blockedByPeriodYieldBelowMin =
-    bucketLegAvailable && periodYieldPct != null && periodYieldPct < cfg.minYield;
+    bucketLegAvailable &&
+    periodYieldPct != null &&
+    effectiveMin != null &&
+    periodYieldPct < effectiveMin;
   const blockedByPeriodYieldAboveMax =
     bucketLegAvailable &&
     periodYieldPct != null &&
-    cfg.maxYield != null &&
-    periodYieldPct >= cfg.maxYield;
-  const blockedByStaticYield = blockedByPeriodYieldBelowMin || blockedByPeriodYieldAboveMax;
+    effectiveMax != null &&
+    periodYieldPct >= effectiveMax;
+  const blockedByStaticYield =
+    blockedByMissingDte || blockedByPeriodYieldBelowMin || blockedByPeriodYieldAboveMax;
   const blockedByStaticCapital =
     capitalRequired != null && capital > 0 && capitalRequired > capital;
   const blockedByUnknown = meta.qualityTier === "Inconnu à valider";
@@ -9296,12 +9320,18 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
     raisonProbable = "bloqué avant scoredPool — spread trop large";
+  } else if (blockedByMissingDte) {
+    diagCategory = "blocked_static";
+    statusProbable = "rejeté avant scoredPool";
+    raisonProbable =
+      "bloqué avant scoredPool — MISSING_OR_INVALID_DTE_FOR_YIELD_POLICY : DTE manquant ou invalide";
   } else if (blockedByStaticYield) {
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
+    const targetLabel = yieldBand ? formatEffectiveYieldBandDisplay(yieldBand) : "n/d";
     raisonProbable = blockedByPeriodYieldBelowMin
-      ? `bloqué avant scoredPool — PERIOD_YIELD_BELOW_BUCKET_MIN : rendement expiration ${periodYieldPct?.toFixed(2)}% < min ${cfg.minYield}% (7J ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} informatif)`
-      : `bloqué avant scoredPool — PERIOD_YIELD_ABOVE_BUCKET_MAX : rendement expiration ${periodYieldPct?.toFixed(2)}% >= max ${cfg.maxYield}% (7J ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} informatif)`;
+      ? `bloqué avant scoredPool — PERIOD_YIELD_BELOW_BUCKET_MIN : rendement expiration ${periodYieldPct?.toFixed(2)}% < cible ${targetLabel} (7J ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} informatif)`
+      : `bloqué avant scoredPool — PERIOD_YIELD_ABOVE_BUCKET_MAX : rendement expiration ${periodYieldPct?.toFixed(2)}% >= max effectif ${effectiveMax?.toFixed(2)}% (7J ${yieldPct != null ? yieldPct.toFixed(2) + "%" : "n/d"} informatif)`;
   } else if (blockedByStaticCapital) {
     diagCategory = "blocked_static";
     statusProbable = "rejeté avant scoredPool";
@@ -9402,7 +9432,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     bid: Number.isFinite(bid) ? bid : null,
     ask: Number.isFinite(ask) ? ask : null,
     mid: Number.isFinite(mid) ? mid : null,
-    spread, yieldPct, periodYieldPct, distance, pop,
+    spread, yieldPct, periodYieldPct, dteDays, yieldBand, distance, pop,
     capitalRequired, premiumUnit: premium,
     premiumTotal: inPicks ? pick.premiumCollected : null,
     scoreCombo: inPicks ? pick.selectionScore : null,
@@ -9417,6 +9447,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     blockedByStaticYield,
     blockedByPeriodYieldBelowMin,
     blockedByPeriodYieldAboveMax,
+    blockedByMissingDte,
     blockedByStaticCapital,
     blockedByAvoid,
     blockedByPremiumTrap,
@@ -9511,6 +9542,7 @@ function _inspLineStatusCls(diag) {
 
 function BucketTickerLine({ diag }) {
   const capStr = diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d";
+  const targetLabel = diag.yieldBand ? formatEffectiveYieldBandDisplay(diag.yieldBand) : "n/d";
   const greedyReason =
     diag.greedyPoolDiag?.rejectionReason &&
     diag.greedyPoolDiag.rejectionReason !== "not_selected_greedy_lower_marginalScore"
@@ -9524,7 +9556,10 @@ function BucketTickerLine({ diag }) {
     <div className="text-xs text-slate-300 py-px leading-snug">
       <span className="font-semibold text-slate-100">{diag.ticker}</span>
       {" — "}{diag.selectedLegMode || diag.bucket} {diag.grade || "n/d"}
-      {" — "}rend. hebdo. {_inspFmt(diag.yieldPct, "%")}
+      {" — "}rend. exp. {_inspFmt(diag.periodYieldPct, "%")}
+      {" — "}7J {_inspFmt(diag.yieldPct, "%")}
+      {diag.dteDays != null ? ` · DTE ${diag.dteDays}` : ""}
+      {diag.yieldBand ? ` · cible ${targetLabel}` : ""}
       {" — "}spread {_inspFmt(diag.spread, "%", 1)}
       {" — "}dist {_inspFmt(diag.distance, "%", 1)}
       {" — "}POP {_inspFmt(diag.pop, "%", 0)}
@@ -9822,6 +9857,23 @@ function CapitalCombosInspector({
                             <Row label="Spread %" val={fmt(diag.spread, "%", 1)} />
                             <Row label="Rend. expiration % (décide bucket)" val={fmt(diag.periodYieldPct, "%")} />
                             <Row label="Rend. 7J % (informatif)" val={fmt(diag.yieldPct, "%")} />
+                            <Row label="DTE" val={diag.dteDays != null ? String(diag.dteDays) : "n/d"} />
+                            <Row
+                              label="Facteur DTE"
+                              val={
+                                diag.yieldBand?.dteScaleFactor != null
+                                  ? `${Number(diag.yieldBand.dteScaleFactor).toFixed(2)}×`
+                                  : "n/d"
+                              }
+                            />
+                            <Row
+                              label={`Cible ${diag.bucket} effective`}
+                              val={
+                                diag.yieldBand
+                                  ? formatEffectiveYieldBandDisplay(diag.yieldBand)
+                                  : "n/d"
+                              }
+                            />
                             <Row label="Distance %" val={fmt(diag.distance, "%", 1)} />
                             <Row label="POP estimée" val={fmt(diag.pop, "%", 0)} />
                             <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
@@ -9905,8 +9957,11 @@ function CapitalCombosInspector({
                                 className="text-slate-500"
                                 title="Information descriptive. Ce champ n'est pas un filtre utilisateur ni une option d'allocation."
                               >
-                                Critères {diag.bucket} — yield hebdo [{cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}]
-                                · spread max {cfg.maxSpread}%
+                                Critères {diag.bucket} — politique {YIELD_POLICY_VERSION}
+                                {diag.yieldBand
+                                  ? ` · cible ${formatEffectiveYieldBandDisplay(diag.yieldBand)}`
+                                  : ""}
+                                {" · "}spread max {cfg.maxSpread}%
                                 {(cfg.minExecutionScore ?? 0) > 0
                                   ? ` · min executionScore ${Number(cfg.minExecutionScore).toFixed(2)}`
                                   : ""}
@@ -9942,17 +9997,30 @@ function CapitalCombosInspector({
                       const cfg = _INSP_BUCKETS[b];
                       const isBalanced = b === "BALANCED";
                       const isAggressive = b === "AGGRESSIVE";
+                      const isSafe = b === "SAFE";
+                      const comboForBucket = _inspFindCombo(combos, b);
+                      const bucketPicks = comboForBucket?.picks ?? [];
+                      const sampleDte =
+                        bucketPicks[0]?.dteDays ??
+                        bucketPicks[0]?.selectedLeg?.dteDays ??
+                        candidates.find((c) => c?.dteDays)?.dteDays ??
+                        7;
+                      const displayBand = isValidComboDte(sampleDte)
+                        ? getCanonicalPeriodYieldBand(b, sampleDte)
+                        : null;
+                      const policyLines = displayBand ? formatHybridYieldPolicyCardLines(displayBand) : [];
                       return (
                         <div className="text-[10px] text-slate-500 italic mb-1.5 space-y-0.5">
+                          {policyLines.map((line, idx) => (
+                            <p key={idx}>{line}</p>
+                          ))}
                           <p>
-                            Yield {cfg.minYield}%{cfg.maxYield != null ? `–${cfg.maxYield}%` : "+"}
-                            {" · "}Spread ≤{cfg.maxSpread}%
+                            Spread ≤{cfg.maxSpread}%
                             {" · "}Grades {[...cfg.allowedGrades ?? ["A","B"]].join("/")}
                           </p>
                           {isAggressive && (
                             <p>
                               Seuil executionScore AGGRESSIVE : {Number(CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE).toFixed(2)}
-                              {" · "}yield ≥0.95%
                               {" · "}POP WATCH premium ≥85% (max 1 contrat)
                               {" · "}distance OTM ≤ -5%
                             </p>
@@ -9963,6 +10031,12 @@ function CapitalCombosInspector({
                               {" · "}Ticker cap 30%
                               {" · "}High beta cap 35%
                               {" · "}BITX max 1 contrat
+                            </p>
+                          )}
+                          {isSafe && (
+                            <p>
+                              Minimum SAFE canonique : {SAFE_ANNUAL_SIMPLE_MIN_PCT} % annualisé simple
+                              {" · "}base affichée {formatSafeBaseMinDisplayPct()} % / 7J
                             </p>
                           )}
                         </div>

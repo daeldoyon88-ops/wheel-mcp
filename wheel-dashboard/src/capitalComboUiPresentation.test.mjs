@@ -29,13 +29,15 @@ function fingerprint(pool) {
   }));
 }
 
-function makeLeg(strike, yieldPct) {
+function makeLeg(strike, yieldPct, dteDays = 7) {
   const premium = (yieldPct * strike) / 100;
   return {
     strike,
     bid: premium,
     premiumUsed: premium,
     weeklyYield: yieldPct,
+    periodYield: yieldPct,
+    dteDays,
     distancePct: -8,
     liquidity: { spreadPct: 8 },
     volume: 500,
@@ -66,6 +68,7 @@ test("AF-13/16 — invariants moteur inchangés", () => {
   const pool = [
     {
       ticker: "AAPL",
+      dteDays: 7,
       safeStrike: makeLeg(50, 0.6),
       aggressiveStrike: makeLeg(48, 1.0),
       safeGrade: "A",

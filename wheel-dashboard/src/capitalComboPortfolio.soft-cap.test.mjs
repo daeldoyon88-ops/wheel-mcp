@@ -11,13 +11,15 @@ import { VirtualAllocator } from "./alternativeCompositionSimV1.js";
 // restent stricts dans toutes les phases. Tests sur le vrai moteur de
 // production (buildPortfolioCombos) + miroir simulation (VirtualAllocator).
 
-function makeSafeLeg(strike, weeklyYield = 0.6) {
+function makeSafeLeg(strike, weeklyYield = 0.6, dteDays = 7) {
   return {
     strike,
     bid: 0.6,
     premiumUsed: 0.6,
     mid: 0.6,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct: -8,
     liquidity: { spreadPct: 8 },
     volume: 500,
@@ -27,13 +29,15 @@ function makeSafeLeg(strike, weeklyYield = 0.6) {
   };
 }
 
-function makeAggLeg(strike, weeklyYield = 1.2) {
+function makeAggLeg(strike, weeklyYield = 1.2, dteDays = 7) {
   return {
     strike,
     bid: 0.6,
     premiumUsed: 0.6,
     mid: 0.6,
     weeklyYield,
+    periodYield: weeklyYield,
+    dteDays,
     distancePct: -8,
     liquidity: { spreadPct: 8 },
     volume: 500,
@@ -43,9 +47,10 @@ function makeAggLeg(strike, weeklyYield = 1.2) {
   };
 }
 
-function makeCandidate(ticker, { safeStrike = null, aggressiveStrike = null } = {}) {
+function makeCandidate(ticker, { safeStrike = null, aggressiveStrike = null, dteDays = 7 } = {}) {
   const candidate = {
     ticker,
+    dteDays,
     optionsSource: "IBKR live",
     hasEarningsBeforeExpiration: false,
     hasUpcomingEarningsBeforeExpiration: false,

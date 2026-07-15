@@ -28,6 +28,7 @@ import {
   resolveCompatibleLegForMode,
   resolveLegSpreadPctPercent,
   BALANCED_PREFERRED_LEG_YIELD_BAND,
+  getCanonicalPeriodYieldBand,
 } from "./capitalComboPortfolio.js";
 import {
   buildComboCandidatePool,
@@ -179,29 +180,12 @@ function deepFreeze(obj, seen = new Set()) {
 }
 
 // ── Extraction des bornes RÉELLES de la bande effective BALANCED ─────────────
-// Deux sondes volontairement hors bande (0,5 % très bas / 5 % très haut) font
-// émettre au moteur ses propres bornes dans les diagnostics de rejet.
+// Source canonique partagée avec le moteur ; les fixtures de cette suite
+// déclarent implicitement une chaîne absente, donc testent uniquement le fallback.
 function extractBalancedYieldBand() {
-  const lowProbe = makeCandidate({
-    ticker: "CRM",
-    safe: makeLeg({ strike: 40, yieldPct: 0.5, distancePct: -12, popDecimal: 0.94 }),
-    safeGrade: "A",
-    finalDisplayMode: "SAFE",
-    finalDisplayGrade: "A",
-  });
-  const highProbe = makeCandidate({
-    ticker: "ORCL",
-    agg: makeLeg({ strike: 43, yieldPct: 5.0, distancePct: -6, popDecimal: 0.88 }),
-    aggressiveGrade: "A",
-  });
-  const { holder } = runCombos([lowProbe, highProbe]);
-  const rows = balancedRejections(holder);
-  const minRow = rows.find((r) => r.primaryBlocker === "PERIOD_YIELD_BELOW_BUCKET_MIN");
-  const maxRow = rows.find((r) => r.primaryBlocker === "PERIOD_YIELD_ABOVE_BUCKET_MAX");
-  assert.ok(minRow, "sonde basse : le moteur doit exposer minPeriodYieldPct");
-  assert.ok(maxRow, "sonde haute : le moteur doit exposer maxPeriodYieldConfig");
-  const min = Number(minRow.minPeriodYieldPct);
-  const max = Number(maxRow.maxPeriodYieldConfig);
+  const band = getCanonicalPeriodYieldBand("BALANCED", 7);
+  const min = Number(band.effectivePeriodMinPct);
+  const max = Number(band.effectivePeriodMaxPct);
   assert.ok(Number.isFinite(min) && Number.isFinite(max) && min < max);
   return { min, max };
 }
@@ -307,10 +291,11 @@ test("TEST 4 — aucune jambe conforme ⇒ candidat BALANCED rejeté, aucune jam
   });
   const { bal, holder } = runBalanced([cand]);
   assert.equal(bal?.picks?.length ?? 0, 0);
-  // Chemin de rejet existant conservé : le dernier recours (AGG) est rejeté par la bande.
+  // Aucun fallback hors bande n'est forcé : diagnostic BALANCED indisponible.
   const rows = balancedRejections(holder);
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].primaryBlocker, "PERIOD_YIELD_ABOVE_BUCKET_MAX");
+  assert.equal(rows[0].primaryBlocker, "NO_BUCKET_LEG_FOR_MODE");
+  assert.equal(rows[0].balancedReasonCode, "NO_BALANCED_FALLBACK_ELIGIBLE");
   // Et le helper lui-même retourne null (aucune jambe hors bande n'est « conforme »).
   assert.equal(
     resolveCompatibleLegForMode({
@@ -421,7 +406,8 @@ test("TEST 11 — borne maximum exacte : max exclusif (jambe rejetée)", () => {
   const { bal, holder } = runBalanced([cand]);
   assert.equal(bal?.picks?.length ?? 0, 0, "rendement == max ⇒ non conforme (convention < max du moteur)");
   const rows = balancedRejections(holder);
-  assert.equal(rows[0]?.primaryBlocker, "PERIOD_YIELD_ABOVE_BUCKET_MAX");
+  assert.equal(rows[0]?.primaryBlocker, "NO_BUCKET_LEG_FOR_MODE");
+  assert.equal(rows[0]?.balancedReasonCode, "NO_BALANCED_FALLBACK_ELIGIBLE");
 });
 
 test("TEST 12 — min − epsilon : jambe rejetée puis jambe suivante essayée", () => {

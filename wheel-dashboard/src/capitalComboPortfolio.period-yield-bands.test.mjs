@@ -178,13 +178,14 @@ test("SAFE — période 0,80 % → rejet PERIOD_YIELD_ABOVE_BUCKET_MAX (max excl
 
 // ── BALANCED [0,70 ; 1,05) ──────────────────────────────────────────────────
 
-test("BALANCED — période 0,69 % → rejet PERIOD_YIELD_BELOW_BUCKET_MIN", () => {
+test("BALANCED — période 0,69 % → aucun fallback hors bande", () => {
   const pool = [makeCandidate({ ticker: "CRM", safe: makeLeg({ strike: 100, periodYieldPct: 0.69, dteDays: 7 }) })];
   const { combos, holder } = runBuckets(pool);
   assert.equal(pickOf(combos, "BALANCED", "CRM"), null);
   const row = rejectsOf(holder, "BALANCED").find((r) => r.ticker === "CRM");
-  assert.equal(row?.primaryBlocker, "PERIOD_YIELD_BELOW_BUCKET_MIN");
-  approx(row.minPeriodYieldPct, 0.7, 0.0001);
+  assert.equal(row?.primaryBlocker, "NO_BUCKET_LEG_FOR_MODE");
+  assert.equal(row?.balancedReasonCode, "NO_BALANCED_FALLBACK_ELIGIBLE");
+  approx(row?.balancedLegDiagnostics?.effectivePeriodMinPct, 0.7, 0.0001);
 });
 
 test("BALANCED — période 0,70 % → accepté (min inclusif)", () => {
@@ -207,13 +208,14 @@ test("BALANCED — période 1,049 % → accepté", () => {
   assert.ok(pickOf(combos, "BALANCED", "CRM"));
 });
 
-test("BALANCED — période 1,05 % → rejet PERIOD_YIELD_ABOVE_BUCKET_MAX (max exclusif)", () => {
+test("BALANCED — période 1,05 % → aucun fallback (max exclusif)", () => {
   const pool = [makeCandidate({ ticker: "CRM", safe: makeLeg({ strike: 100, periodYieldPct: 1.05, dteDays: 7 }) })];
   const { combos, holder } = runBuckets(pool);
   assert.equal(pickOf(combos, "BALANCED", "CRM"), null);
   const row = rejectsOf(holder, "BALANCED").find((r) => r.ticker === "CRM");
-  assert.equal(row?.primaryBlocker, "PERIOD_YIELD_ABOVE_BUCKET_MAX");
-  approx(row.maxPeriodYieldConfig, 1.05, 0.0001);
+  assert.equal(row?.primaryBlocker, "NO_BUCKET_LEG_FOR_MODE");
+  assert.equal(row?.balancedReasonCode, "NO_BALANCED_FALLBACK_ELIGIBLE");
+  approx(row?.balancedLegDiagnostics?.effectivePeriodMaxPct, 1.05, 0.0001);
 });
 
 // ── AGGRESSIVE [0,95 ; ∞) ───────────────────────────────────────────────────

@@ -131,7 +131,7 @@ test("AF-01 — BALANCED→AGGRESSIVE", () => {
   assert.equal(p.selectedLegMode, "AGGRESSIVE");
 });
 
-test("AF-01 — fallback AF-07 sur résolution bucket", () => {
+test("AF-01 — aucun fallback hors bande sur résolution bucket", () => {
   const raw = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: 0.55 }),
@@ -139,8 +139,11 @@ test("AF-01 — fallback AF-07 sur résolution bucket", () => {
   });
   const leg = resolveBucketLegForPresentation("BALANCED", raw, CAPITAL);
   assert.equal(leg.source, "runtime");
-  assert.equal(leg.fallbackUsed, true);
-  assert.equal(leg.selectedLegMode, "AGGRESSIVE");
+  assert.equal(leg.bucketLegAvailable, false);
+  assert.equal(leg.fallbackUsed, false);
+  assert.equal(leg.selectedLegMode, null);
+  assert.equal(leg.balancedLegSource, "BALANCED_UNAVAILABLE");
+  assert.equal(leg.selectionReason, "NO_BALANCED_FALLBACK_ELIGIBLE");
 });
 
 test("AF-01 — JSON stringify et pas de mutation", () => {
@@ -213,14 +216,15 @@ test("AF-14 — Inspector lit pick runtime", () => {
   assert.equal(insp.selectedWeeklyYieldPct, p.weeklyReturn);
 });
 
-test("AF-14 — legacy sans jambe", () => {
+test("AF-14 — BALANCED indisponible exposé par le runtime", () => {
   const insp = resolveCapitalComboInspectorLegView({
     bucketKey: "BALANCED",
     candidate: { ticker: "ZZZZ" },
     usableCapital: CAPITAL,
   });
-  assert.equal(insp.source, "legacy");
+  assert.equal(insp.source, "runtime");
   assert.equal(insp.bucketLegAvailable, false);
+  assert.equal(insp.balancedLegSource, "BALANCED_UNAVAILABLE");
 });
 
 test("AF-01 — projection sur candidat bucket sans pick", () => {

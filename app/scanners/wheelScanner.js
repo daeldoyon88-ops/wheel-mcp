@@ -685,6 +685,41 @@ export function createWheelScanner(marketService) {
 
     const safeStrike = buildStrike(strikeSelection.safeStrike);
     const aggressiveStrike = buildStrike(strikeSelection.aggressiveStrike);
+    const safeStrikeValue = toNumber(safeStrike?.strike);
+    const aggressiveStrikeValue = toNumber(aggressiveStrike?.strike);
+    const lowerBalancedBoundary = Math.min(safeStrikeValue, aggressiveStrikeValue);
+    const upperBalancedBoundary = Math.max(safeStrikeValue, aggressiveStrikeValue);
+    // Transporte uniquement les vrais puts déjà reçus dans la chaîne et strictement
+    // situés entre SAFE et AGGRESSIVE. Aucun nouvel appel réseau ni contrat synthétique.
+    const balancedPutCandidates =
+      safeStrikeValue > 0 && aggressiveStrikeValue > 0
+        ? strikeSelection.eligible
+            .filter(
+              (row) =>
+                toNumber(row?.strike) > lowerBalancedBoundary &&
+                toNumber(row?.strike) < upperBalancedBoundary,
+            )
+            .map((row) => {
+              const leg = buildStrike(row);
+              const raw = puts.find((put) => toNumber(put?.strike) === toNumber(row?.strike)) ?? null;
+              return {
+                ...leg,
+                ticker: symbol,
+                symbol,
+                expiration: normalizedExpiration,
+                right: "PUT",
+                optionType: "PUT",
+                optionSymbol: raw?.contractSymbol ?? null,
+                contractSymbol: raw?.contractSymbol ?? null,
+                conId: raw?.conId ?? null,
+                contractId: raw?.contractId ?? null,
+                localSymbol: raw?.localSymbol ?? null,
+                quoteTimestamp: raw?.quoteTimestamp ?? raw?.timestamp ?? null,
+                marketDataType: raw?.marketDataType ?? null,
+                quoteSource: "Yahoo",
+              };
+            })
+        : [];
     const diagnosticsV12Market = marketDiagnostics?.diagnosticsV12Market ?? null;
     const safeStrikeIvRaw = toNumber(safeStrike?.impliedVolatility);
     const safeStrikeIv = safeStrikeIvRaw > 0 ? round(safeStrikeIvRaw, 6) : null;
@@ -906,6 +941,8 @@ export function createWheelScanner(marketService) {
       safeSelectionMode: strikeSelection.safeSelectionMode,
       safeStrike,
       aggressiveStrike,
+      balancedPutChainAvailable: true,
+      balancedPutCandidates,
       finalScore: proScore.finalScore,
       executionScore: proScore.executionScore,
       distanceScore: proScore.distanceScore,

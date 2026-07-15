@@ -64,6 +64,19 @@ test("AF-16 — labels corrigés présents", () => {
   assert.ok(DASHBOARD.includes("formatCapitalComboPickLegBadge"));
 });
 
+test("BALANCED native — badges, géométrie et compteurs moteur affichés", () => {
+  assert.ok(DASHBOARD.includes('"BALANCED native"'));
+  assert.ok(DASHBOARD.includes('"Fallback SAFE"'));
+  assert.ok(DASHBOARD.includes('"Fallback AGGRESSIVE"'));
+  assert.ok(DASHBOARD.includes('label="Strike SAFE frontière"'));
+  assert.ok(DASHBOARD.includes('label="Strike AGG frontière"'));
+  assert.ok(DASHBOARD.includes('label="Milieu"'));
+  assert.ok(DASHBOARD.includes('label="Strike BALANCED retenu"'));
+  assert.ok(DASHBOARD.includes("balancedLegSourceCounts"));
+  assert.ok(DASHBOARD.includes("Strikes intermédiaires"));
+  assert.ok(DASHBOARD.includes("Raison native"));
+});
+
 test("AF-13/16 — invariants moteur inchangés", () => {
   const pool = [
     {

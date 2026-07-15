@@ -9048,7 +9048,7 @@ const _INSP_BUCKETS = {
   },
   BALANCED: {
     label: "BALANCED",
-    allowedModes: new Set(["SAFE", "AGGRESSIVE"]),
+    allowedModes: new Set(["SAFE", "BALANCED", "AGGRESSIVE"]),
     allowedGrades: new Set(["A", "B"]),
     maxSpread: 20,
     minDistancePct: null,
@@ -9125,7 +9125,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     pick,
     usableCapital: capital,
   });
-  const bucketLeg = legView.bucketLeg ?? null;
+  const bucketLeg = legView.selectedLeg ?? legView.bucketLeg ?? null;
+  const balancedLegDiagnostics = legView.balancedLegDiagnostics ?? null;
   const bucketGrade = legView.selectedGrade ?? null;
   const inspectorLegSource = legView.legSourceLabel ?? null;
 
@@ -9424,6 +9425,8 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     inspectorLegSource,
     legViewSource: legView.source ?? null,
     fallbackUsed: legView.fallbackUsed === true,
+    balancedLegSource: legView.balancedLegSource ?? null,
+    balancedLegDiagnostics,
     legRetainedNotAllocated,
     safeLegAvailable: safeLeg != null,
     aggLegAvailable: aggLeg != null,
@@ -9847,6 +9850,46 @@ function CapitalCombosInspector({
                             <Row label="Jambe bucket dispo" val={diag.bucketLegAvailable != null ? (diag.bucketLegAvailable ? "oui" : "non") : "n/d"} />
                             <Row label="Jambe retenue" val={diag.selectedLegMode ?? "n/d"} />
                             <Row label="Source jambe" val={diag.inspectorLegSource ?? "n/d"} />
+                            {diag.bucket === "BALANCED" && (
+                              <>
+                                <Row
+                                  label="Badge BALANCED"
+                                  val={
+                                    diag.balancedLegSource === "BALANCED_NATIVE"
+                                      ? "BALANCED native"
+                                      : diag.balancedLegSource === "BALANCED_FALLBACK_SAFE"
+                                        ? "Fallback SAFE"
+                                        : diag.balancedLegSource === "BALANCED_FALLBACK_AGGRESSIVE"
+                                          ? "Fallback AGGRESSIVE"
+                                          : "BALANCED indisponible"
+                                  }
+                                />
+                                <Row
+                                  label="Raison native"
+                                  val={
+                                    diag.balancedLegDiagnostics?.diagnostics?.nativePrimaryReason ??
+                                    diag.balancedLegDiagnostics?.primaryReason ??
+                                    "n/d"
+                                  }
+                                />
+                                <Row label="Strike SAFE frontière" val={diag.balancedLegDiagnostics?.safeStrike ?? "n/d"} />
+                                <Row label="Strike AGG frontière" val={diag.balancedLegDiagnostics?.aggressiveStrike ?? "n/d"} />
+                                <Row label="Milieu" val={diag.balancedLegDiagnostics?.midpointStrike ?? "n/d"} />
+                                <Row label="Strike BALANCED retenu" val={diag.balancedLegDiagnostics?.selectedStrike ?? "n/d"} />
+                                <Row
+                                  label="Strikes intermédiaires"
+                                  val={diag.balancedLegDiagnostics?.intermediateContractCount ?? 0}
+                                />
+                                <Row
+                                  label="Cible centrale effective"
+                                  val={
+                                    diag.balancedLegDiagnostics?.effectiveTargetPct != null
+                                      ? `${Number(diag.balancedLegDiagnostics.effectiveTargetPct).toFixed(3)}%`
+                                      : "n/d"
+                                  }
+                                />
+                              </>
+                            )}
                             {diag.legRetainedNotAllocated ? (
                               <Row label="Allocation" val="Jambe retenue, mais non allouée" />
                             ) : null}
@@ -10061,6 +10104,16 @@ function CapitalCombosInspector({
                       );
                     })()}
                     <Row label="Total scan" val={s.totalScanCards} />
+                    {b === "BALANCED" && (() => {
+                      const counts = _inspFindCombo(combos, b)?.balancedLegSourceCounts;
+                      if (!counts) return null;
+                      return (
+                        <p className="mt-1 text-[11px] font-medium text-sky-200">
+                          {counts.native} natives · {counts.fallbackSafe} fallback SAFE ·{" "}
+                          {counts.fallbackAggressive} fallback AGGRESSIVE · {counts.unavailable} sans jambe
+                        </p>
+                      );
+                    })()}
                     <div className="border-t border-slate-700 mt-2 pt-1">
                       <BucketSection title="Sélectionnés" items={s.selected} />
                       <div className="mt-1.5">
@@ -10967,6 +11020,28 @@ function PortfolioCombos({
                       </span>
                     )}
                   </div>
+                  {combo.label === "BALANCED" && pick.balancedLegDiagnostics && (
+                    <div className="mt-1 text-[11px] leading-snug text-sky-300">
+                      SAFE {pick.balancedLegDiagnostics.safeStrike ?? "n/d"} · AGGRESSIVE{" "}
+                      {pick.balancedLegDiagnostics.aggressiveStrike ?? "n/d"} · milieu{" "}
+                      {pick.balancedLegDiagnostics.midpointStrike ?? "n/d"} · strike retenu{" "}
+                      {pick.balancedLegDiagnostics.selectedStrike ?? pick.strike}
+                      {" · "}DTE {pick.balancedLegDiagnostics.dteDays ?? "n/d"}
+                      {" · "}rend. expiration{" "}
+                      {pick.periodYield != null ? `${Number(pick.periodYield).toFixed(2)}%` : "n/d"}
+                      {" · "}rend. 7J{" "}
+                      {pick.weeklyReturn != null ? `${Number(pick.weeklyReturn).toFixed(2)}%` : "n/d"}
+                      {" · "}cible{" "}
+                      {pick.balancedLegDiagnostics.effectivePeriodMinPct != null
+                        ? `${Number(pick.balancedLegDiagnostics.effectivePeriodMinPct).toFixed(2)}%–${Number(
+                            pick.balancedLegDiagnostics.effectivePeriodMaxPct,
+                          ).toFixed(2)}%`
+                        : "n/d"}
+                      {" · "}raison{" "}
+                      {pick.balancedLegDiagnostics.diagnostics?.nativePrimaryReason ??
+                        pick.balancedLegDiagnostics.primaryReason}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

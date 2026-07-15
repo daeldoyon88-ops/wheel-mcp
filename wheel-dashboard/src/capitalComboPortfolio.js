@@ -2158,6 +2158,667 @@ export function resolveCompatibleLegForMode({
   return null;
 }
 
+export const BALANCED_LEG_SOURCES = Object.freeze({
+  NATIVE: "BALANCED_NATIVE",
+  FALLBACK_SAFE: "BALANCED_FALLBACK_SAFE",
+  FALLBACK_AGGRESSIVE: "BALANCED_FALLBACK_AGGRESSIVE",
+  UNAVAILABLE: "BALANCED_UNAVAILABLE",
+});
+
+export const BALANCED_NATIVE_REASON_CODES = Object.freeze({
+  SELECTED: "NATIVE_BALANCED_SELECTED",
+  SAFE_MISSING: "SAFE_LEG_MISSING",
+  AGGRESSIVE_MISSING: "AGGRESSIVE_LEG_MISSING",
+  EXPIRATION_MISMATCH: "SAFE_AGGRESSIVE_EXPIRATION_MISMATCH",
+  CHAIN_MISSING: "MISSING_CHAIN_DATA_FOR_NATIVE_BALANCED",
+  NO_INTERMEDIATE_STRIKE: "NO_STRIKE_STRICTLY_BETWEEN",
+  INTERMEDIATE_FOUND: "INTERMEDIATE_CONTRACTS_FOUND",
+  QUOTES_INVALID: "INTERMEDIATE_QUOTES_INVALID",
+  BELOW_MIN: "INTERMEDIATE_STRIKES_BELOW_BALANCED_MIN",
+  ABOVE_MAX: "INTERMEDIATE_STRIKES_ABOVE_BALANCED_MAX",
+  OUTSIDE_YIELD_BAND: "INTERMEDIATE_STRIKES_OUTSIDE_BALANCED_YIELD_BAND",
+  FAILED_SPREAD: "INTERMEDIATE_STRIKES_FAILED_SPREAD",
+  FAILED_GRADE: "INTERMEDIATE_STRIKES_FAILED_GRADE",
+  FAILED_STATIC_FILTERS: "INTERMEDIATE_STRIKES_FAILED_STATIC_FILTERS",
+  NONE_ELIGIBLE: "NO_NATIVE_BALANCED_CONTRACT_ELIGIBLE",
+  FALLBACK_SAFE: "FALLBACK_SAFE_SELECTED",
+  FALLBACK_AGGRESSIVE: "FALLBACK_AGGRESSIVE_SELECTED",
+  NO_FALLBACK: "NO_BALANCED_FALLBACK_ELIGIBLE",
+  INVALID_DTE: "MISSING_OR_INVALID_DTE_FOR_YIELD_POLICY",
+  EQUAL_BOUNDARIES: "SAFE_AGGRESSIVE_STRIKES_EQUAL",
+  INVERTED_BOUNDARIES: "SAFE_AGGRESSIVE_STRIKE_ORDER_INVERTED",
+});
+
+/** Limite réellement appliquée par BALANCED Institutional V3. */
+export const BALANCED_EFFECTIVE_MAX_SPREAD_PCT = 20;
+
+function balancedExpirationKey(value) {
+  if (value == null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const compact = text.replace(/-/g, "");
+  return /^\d{8}$/.test(compact) ? compact : text;
+}
+
+function resolveBalancedChainInput(candidate, explicitChain) {
+  if (Array.isArray(explicitChain)) {
+    return { available: true, rows: explicitChain, source: "explicit" };
+  }
+  const ibkrRows = candidate?.ibkrDirect?.putCandidates ?? candidate?.ibkrDirect?.raw?.putCandidates;
+  if (Array.isArray(ibkrRows)) {
+    return { available: true, rows: ibkrRows, source: "ibkr_putCandidates" };
+  }
+  if (Array.isArray(candidate?.balancedPutCandidates)) {
+    return { available: true, rows: candidate.balancedPutCandidates, source: "balancedPutCandidates" };
+  }
+  if (candidate?.balancedPutChainAvailable === true) {
+    return { available: true, rows: [], source: "balancedPutCandidates" };
+  }
+  if (Array.isArray(candidate?.putCandidates)) {
+    return { available: true, rows: candidate.putCandidates, source: "putCandidates" };
+  }
+  if (Array.isArray(candidate?.raw?.balancedPutCandidates)) {
+    return { available: true, rows: candidate.raw.balancedPutCandidates, source: "raw.balancedPutCandidates" };
+  }
+  if (Array.isArray(candidate?.raw?.putCandidates)) {
+    return { available: true, rows: candidate.raw.putCandidates, source: "raw.putCandidates" };
+  }
+  const optionPuts = candidate?.optionChain?.puts ?? candidate?.raw?.optionChain?.puts;
+  if (Array.isArray(optionPuts)) {
+    return { available: true, rows: optionPuts, source: "optionChain.puts" };
+  }
+  return { available: false, rows: [], source: null };
+}
+
+function resolveBalancedContractExpiration(row, candidate, chainSource) {
+  return (
+    row?.expiration ??
+    row?.targetExpiration ??
+    (chainSource === "ibkr_putCandidates"
+      ? candidate?.ibkrDirect?.expiration ?? candidate?.ibkrDirect?.raw?.expiration
+      : null) ??
+    candidate?.targetExpiration ??
+    candidate?.selectedExpiration ??
+    candidate?.expiration ??
+    null
+  );
+}
+
+function normalizeRealBalancedPutLeg(row, candidate, chainSource) {
+  if (!row || typeof row !== "object") return null;
+  const strike = Number(row.strike);
+  if (!Number.isFinite(strike) || strike <= 0) return null;
+  const bid = row.bid == null || row.bid === "" ? null : Number(row.bid);
+  const ask = row.ask == null || row.ask === "" ? null : Number(row.ask);
+  const explicitMid = row.mid == null || row.mid === "" ? null : Number(row.mid);
+  const mid =
+    Number.isFinite(explicitMid) && explicitMid > 0
+      ? explicitMid
+      : Number.isFinite(bid) && Number.isFinite(ask) && bid >= 0 && ask >= bid
+        ? (bid + ask) / 2
+        : null;
+  const ticker = String(
+    row.ticker ?? row.symbol ?? candidate?.ticker ?? candidate?.symbol ?? "",
+  ).trim().toUpperCase();
+  const expiration = resolveBalancedContractExpiration(row, candidate, chainSource);
+  const spot = Number(candidate?.price ?? candidate?.currentPrice ?? candidate?.underlyingPrice);
+  const distancePct =
+    Number.isFinite(Number(row.distancePct)) &&
+    Math.abs(Number(row.distancePct)) > 1
+      ? Number(row.distancePct)
+      : Number.isFinite(spot) && spot > 0
+        ? ((strike - spot) / spot) * 100
+        : Number.isFinite(Number(row.distancePct))
+          ? Number(row.distancePct)
+          : null;
+  const optionSymbol =
+    pickMetadataString(row.optionSymbol, row.contractSymbol, row.localSymbol) ?? null;
+  const source =
+    chainSource === "ibkr_putCandidates"
+      ? "IBKR live"
+      : pickMetadataString(row.source, candidate?.optionsSource, "Yahoo");
+  return {
+    ...row,
+    ticker,
+    symbol: ticker,
+    expiration,
+    right: String(row.right ?? row.optionType ?? "PUT").trim().toUpperCase(),
+    optionType: String(row.optionType ?? row.right ?? "PUT").trim().toUpperCase(),
+    strike,
+    bid: Number.isFinite(bid) ? bid : null,
+    ask: Number.isFinite(ask) ? ask : null,
+    mid,
+    premium: Number.isFinite(bid) && bid > 0 ? bid : null,
+    premiumUsed: Number.isFinite(bid) && bid > 0 ? bid : null,
+    primeUsed: Number.isFinite(bid) && bid > 0 ? bid : null,
+    distancePct,
+    dteDays: resolveLegDte(row, candidate),
+    optionSymbol,
+    contractSymbol: pickMetadataString(row.contractSymbol, optionSymbol),
+    conId: pickMetadataNumber(row.conId),
+    contractId: pickMetadataNumber(row.contractId, row.conId),
+    quoteTimestamp: pickMetadataString(
+      row.quoteTimestamp,
+      row.quoteTime,
+      candidate?.ibkrDirect?.scanCompletedAt,
+    ),
+    marketDataType: pickMetadataString(
+      row.marketDataType,
+      row.marketDataTypeRaw,
+      candidate?.ibkrDirect?.marketDataTypeReceivedLabel,
+    ),
+    quoteSource: pickMetadataString(
+      row.quoteSource,
+      chainSource === "ibkr_putCandidates" ? "IBKR" : "Yahoo",
+    ),
+    source,
+    raw: row.raw ?? row,
+  };
+}
+
+function evaluateBalancedLegEligibility({
+  leg,
+  candidate,
+  band,
+  maxSpreadPct,
+  requireRealQuote = true,
+  explicitGrade = null,
+}) {
+  const bid = Number(leg?.bid);
+  const ask = Number(leg?.ask);
+  const mid = Number(leg?.mid);
+  const quoteValid =
+    !requireRealQuote ||
+    (Number.isFinite(bid) &&
+      bid > 0 &&
+      Number.isFinite(ask) &&
+      ask > 0 &&
+      ask >= bid &&
+      Number.isFinite(mid) &&
+      mid > 0);
+  const periodYieldPct = quoteValid ? getLegPeriodYieldPct(leg, candidate) : null;
+  const weeklyNormalizedYieldPct = quoteValid
+    ? getLegWeeklyNormalizedYieldPct(leg, candidate)
+    : null;
+  const yieldEligible =
+    quoteValid && isPeriodYieldAdmissibleInBand(periodYieldPct, band);
+  const spreadPct = quoteValid ? getLegSpreadPct(leg) : null;
+  const spreadEligible =
+    yieldEligible &&
+    Number.isFinite(spreadPct) &&
+    spreadPct >= 0 &&
+    spreadPct <= maxSpreadPct;
+  const grade = spreadEligible
+    ? resolveSelectedLegGrade({
+        explicitGrade: explicitGrade ?? leg?.grade,
+        selectedLeg: leg,
+        selectedMode: "BALANCED",
+        candidate,
+      })
+    : null;
+  const popPct = getLegPopPct(leg);
+  const distancePct = getLegDistancePct(leg);
+  const watchEligible =
+    grade === "WATCH" &&
+    popPct != null &&
+    popPct >= 88 &&
+    spreadPct <= 15 &&
+    weeklyNormalizedYieldPct != null &&
+    weeklyNormalizedYieldPct >= 0.75 &&
+    weeklyNormalizedYieldPct <= 1.05 &&
+    distancePct != null &&
+    distancePct <= -6;
+  const gradeEligible = spreadEligible && (grade === "A" || grade === "B" || watchEligible);
+  const meta = candidate?._tickerMeta ?? getTickerDisplayMeta(
+    String(candidate?.ticker ?? candidate?.symbol ?? "").trim().toUpperCase(),
+  );
+  const qualityOverlay = gradeEligible
+    ? computeTickerQualityOverlay({
+        ...candidate,
+        selectedLeg: leg,
+        selectedSpreadPct: spreadPct,
+        selectedYieldPct: weeklyNormalizedYieldPct,
+        selectedPeriodYieldPct: periodYieldPct,
+        selectedDistancePct: distancePct,
+        _popForCombo: popPct,
+      })
+    : null;
+  const commonBlocked =
+    (meta?.isCryptoBlocked && !meta?.isCryptoAllowed) ||
+    meta?.qualityTier === "Inconnu à valider";
+  const qualityBlocked =
+    qualityOverlay?.qualityTier === "avoid" ||
+    (qualityOverlay?.qualityTier === "speculative" &&
+      (popPct == null ||
+        popPct < 82 ||
+        (spreadPct != null && spreadPct > 20) ||
+        weeklyNormalizedYieldPct == null ||
+        weeklyNormalizedYieldPct < 0.75));
+  const fullyEligible = gradeEligible && !commonBlocked && !qualityBlocked;
+  const pro = fullyEligible
+    ? resolveSelectedLegProScore(
+        { ...candidate, selectedLeg: leg, selectedLegMode: "BALANCED" },
+        { selectedLeg: leg, selectedMode: "BALANCED" },
+      )
+    : null;
+  return {
+    leg,
+    quoteValid,
+    periodYieldPct,
+    weeklyNormalizedYieldPct,
+    yieldEligible,
+    spreadPct,
+    spreadEligible,
+    grade,
+    gradeEligible,
+    qualityOverlay,
+    fullyEligible,
+    score: pro?.proFinalScore ?? 0,
+  };
+}
+
+function balancedNativeBaseResult({
+  source = BALANCED_LEG_SOURCES.UNAVAILABLE,
+  status = "unavailable",
+  reasonCode,
+  reasonCodes = [],
+  safeStrike = null,
+  aggressiveStrike = null,
+  lowerBoundaryStrike = null,
+  upperBoundaryStrike = null,
+  midpointStrike = null,
+  dteDays = null,
+  band = null,
+  chainSource = null,
+  diagnostics = {},
+}) {
+  return {
+    selectedLeg: null,
+    source,
+    status,
+    reasonCode,
+    primaryReason: reasonCode,
+    reasonCodes: [...new Set([reasonCode, ...reasonCodes].filter(Boolean))],
+    safeStrike,
+    aggressiveStrike,
+    lowerBoundaryStrike,
+    upperBoundaryStrike,
+    midpointStrike,
+    intermediateContractCount: 0,
+    quoteValidIntermediateCount: 0,
+    yieldEligibleIntermediateCount: 0,
+    fullyEligibleIntermediateCount: 0,
+    selectedStrike: null,
+    selectedDistanceFromMidpoint: null,
+    dteDays,
+    yieldPolicyVersion: YIELD_POLICY_VERSION,
+    effectivePeriodMinPct: band?.effectivePeriodMinPct ?? null,
+    effectivePeriodMaxPct: band?.effectivePeriodMaxPct ?? null,
+    effectiveTargetPct:
+      band?.effectivePeriodMaxPct == null
+        ? null
+        : (band.effectivePeriodMinPct + band.effectivePeriodMaxPct) / 2,
+    chainSource,
+    diagnostics,
+  };
+}
+
+/**
+ * Résout une vraie jambe BALANCED à partir des contrats déjà présents dans le scan.
+ * Aucun fetch, interpolation de prime ou création de strike synthétique.
+ */
+export function resolveNativeBalancedLeg({
+  candidate = {},
+  safeLeg = candidate?._safeLeg ?? candidate?.safeStrike ?? null,
+  aggressiveLeg = candidate?._aggLeg ?? candidate?.aggressiveStrike ?? null,
+  chain = null,
+  expiration = null,
+  dteDays = null,
+  maxSpreadPct = BALANCED_EFFECTIVE_MAX_SPREAD_PCT,
+} = {}) {
+  const safeStrike = Number(safeLeg?.strike);
+  const aggressiveStrike = Number(aggressiveLeg?.strike);
+  const resolvedDte = isValidComboDte(dteDays)
+    ? Number(dteDays)
+    : resolveLegDte(safeLeg ?? aggressiveLeg, candidate);
+  const band = isValidComboDte(resolvedDte)
+    ? getCanonicalPeriodYieldBand("BALANCED", resolvedDte)
+    : null;
+  const common = {
+    safeStrike: Number.isFinite(safeStrike) ? safeStrike : null,
+    aggressiveStrike: Number.isFinite(aggressiveStrike) ? aggressiveStrike : null,
+    dteDays: resolvedDte,
+    band,
+  };
+  if (!safeLeg || !Number.isFinite(safeStrike) || safeStrike <= 0) {
+    return balancedNativeBaseResult({
+      ...common,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.SAFE_MISSING,
+    });
+  }
+  if (!aggressiveLeg || !Number.isFinite(aggressiveStrike) || aggressiveStrike <= 0) {
+    return balancedNativeBaseResult({
+      ...common,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.AGGRESSIVE_MISSING,
+    });
+  }
+  if (!band) {
+    return balancedNativeBaseResult({
+      ...common,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.INVALID_DTE,
+    });
+  }
+  const expectedExpiration =
+    expiration ??
+    candidate?.targetExpiration ??
+    candidate?.selectedExpiration ??
+    candidate?.expiration ??
+    null;
+  const safeExpiration = balancedExpirationKey(
+    safeLeg?.expiration ?? safeLeg?.targetExpiration ?? expectedExpiration,
+  );
+  const aggressiveExpiration = balancedExpirationKey(
+    aggressiveLeg?.expiration ?? aggressiveLeg?.targetExpiration ?? expectedExpiration,
+  );
+  if (safeExpiration && aggressiveExpiration && safeExpiration !== aggressiveExpiration) {
+    return balancedNativeBaseResult({
+      ...common,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.EXPIRATION_MISMATCH,
+      diagnostics: { safeExpiration, aggressiveExpiration },
+    });
+  }
+  const lowerBoundaryStrike = Math.min(safeStrike, aggressiveStrike);
+  const upperBoundaryStrike = Math.max(safeStrike, aggressiveStrike);
+  const midpointStrike = (lowerBoundaryStrike + upperBoundaryStrike) / 2;
+  const inverted = safeStrike > aggressiveStrike;
+  const reasonCodes = inverted ? [BALANCED_NATIVE_REASON_CODES.INVERTED_BOUNDARIES] : [];
+  const geometry = {
+    ...common,
+    lowerBoundaryStrike,
+    upperBoundaryStrike,
+    midpointStrike,
+  };
+  if (safeStrike === aggressiveStrike) {
+    return balancedNativeBaseResult({
+      ...geometry,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE,
+      reasonCodes: [BALANCED_NATIVE_REASON_CODES.EQUAL_BOUNDARIES],
+    });
+  }
+  const chainInput = resolveBalancedChainInput(candidate, chain);
+  if (!chainInput.available) {
+    return balancedNativeBaseResult({
+      ...geometry,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.CHAIN_MISSING,
+      reasonCodes,
+    });
+  }
+  const ticker = String(candidate?.ticker ?? candidate?.symbol ?? "").trim().toUpperCase();
+  const expectedExpirationKey = balancedExpirationKey(expectedExpiration);
+  let scopeRejectedContractCount = 0;
+  const intermediate = [];
+  for (const row of chainInput.rows) {
+    const leg = normalizeRealBalancedPutLeg(row, candidate, chainInput.source);
+    if (!leg) {
+      scopeRejectedContractCount += 1;
+      continue;
+    }
+    const rowTicker = String(leg.ticker ?? "").trim().toUpperCase();
+    const rowExpiration = balancedExpirationKey(leg.expiration);
+    const right = String(leg.right ?? leg.optionType ?? "").trim().toUpperCase();
+    const scopeOk =
+      (!ticker || !rowTicker || ticker === rowTicker) &&
+      (!expectedExpirationKey || !rowExpiration || expectedExpirationKey === rowExpiration) &&
+      (right === "PUT" || right === "P") &&
+      leg.strike > lowerBoundaryStrike &&
+      leg.strike < upperBoundaryStrike;
+    if (!scopeOk) {
+      scopeRejectedContractCount += 1;
+      continue;
+    }
+    intermediate.push(leg);
+  }
+  if (!intermediate.length) {
+    return balancedNativeBaseResult({
+      ...geometry,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE,
+      reasonCodes,
+      chainSource: chainInput.source,
+      diagnostics: { scopeRejectedContractCount, invertedSafeAggressiveOrder: inverted },
+    });
+  }
+  const evaluated = intermediate.map((leg) =>
+    evaluateBalancedLegEligibility({
+      leg,
+      candidate,
+      band,
+      maxSpreadPct,
+      requireRealQuote: true,
+    }),
+  );
+  const quoteValid = evaluated.filter((row) => row.quoteValid);
+  const yieldEligible = evaluated.filter((row) => row.yieldEligible);
+  const spreadEligible = evaluated.filter((row) => row.spreadEligible);
+  const gradeEligible = evaluated.filter((row) => row.gradeEligible);
+  const fullyEligible = evaluated.filter((row) => row.fullyEligible);
+  let primaryReason = BALANCED_NATIVE_REASON_CODES.NONE_ELIGIBLE;
+  const detailedReasons = [
+    ...reasonCodes,
+    BALANCED_NATIVE_REASON_CODES.INTERMEDIATE_FOUND,
+  ];
+  if (!quoteValid.length) {
+    primaryReason = BALANCED_NATIVE_REASON_CODES.QUOTES_INVALID;
+  } else if (!yieldEligible.length) {
+    const allBelow = quoteValid.every(
+      (row) => Number(row.periodYieldPct) < band.effectivePeriodMinPct,
+    );
+    const allAbove = quoteValid.every(
+      (row) => Number(row.periodYieldPct) >= band.effectivePeriodMaxPct,
+    );
+    if (allBelow) detailedReasons.push(BALANCED_NATIVE_REASON_CODES.BELOW_MIN);
+    if (allAbove) detailedReasons.push(BALANCED_NATIVE_REASON_CODES.ABOVE_MAX);
+    primaryReason = BALANCED_NATIVE_REASON_CODES.OUTSIDE_YIELD_BAND;
+  } else if (!spreadEligible.length) {
+    primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_SPREAD;
+  } else if (!gradeEligible.length) {
+    primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_GRADE;
+  } else if (!fullyEligible.length) {
+    primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_STATIC_FILTERS;
+  }
+  if (!fullyEligible.length) {
+    return {
+      ...balancedNativeBaseResult({
+        ...geometry,
+        reasonCode: primaryReason,
+        reasonCodes: [...detailedReasons, BALANCED_NATIVE_REASON_CODES.NONE_ELIGIBLE],
+        chainSource: chainInput.source,
+        diagnostics: {
+          scopeRejectedContractCount,
+          invertedSafeAggressiveOrder: inverted,
+          maxSpreadPct,
+        },
+      }),
+      intermediateContractCount: intermediate.length,
+      quoteValidIntermediateCount: quoteValid.length,
+      yieldEligibleIntermediateCount: yieldEligible.length,
+      fullyEligibleIntermediateCount: 0,
+    };
+  }
+  fullyEligible.sort((a, b) => {
+    const distanceA = Math.abs(a.leg.strike - midpointStrike);
+    const distanceB = Math.abs(b.leg.strike - midpointStrike);
+    const keyA = String(a.leg.optionSymbol ?? a.leg.conId ?? "");
+    const keyB = String(b.leg.optionSymbol ?? b.leg.conId ?? "");
+    return (
+      distanceA - distanceB ||
+      a.leg.strike - b.leg.strike ||
+      a.spreadPct - b.spreadPct ||
+      b.score - a.score ||
+      keyA.localeCompare(keyB)
+    );
+  });
+  const selected = fullyEligible[0];
+  return {
+    ...balancedNativeBaseResult({
+      ...geometry,
+      source: BALANCED_LEG_SOURCES.NATIVE,
+      status: "selected",
+      reasonCode: BALANCED_NATIVE_REASON_CODES.SELECTED,
+      reasonCodes: detailedReasons,
+      chainSource: chainInput.source,
+      diagnostics: {
+        scopeRejectedContractCount,
+        invertedSafeAggressiveOrder: inverted,
+        maxSpreadPct,
+        selectedGrade: selected.grade,
+        selectedScore: selected.score,
+      },
+    }),
+    selectedLeg: {
+      ...selected.leg,
+      periodYield: selected.periodYieldPct,
+      weeklyNormalizedYield: selected.weeklyNormalizedYieldPct,
+      spreadPct: selected.spreadPct,
+      grade: selected.grade,
+      score: selected.score,
+      proFinalScore: selected.score,
+      capitalRequired: selected.leg.strike * 100,
+    },
+    intermediateContractCount: intermediate.length,
+    quoteValidIntermediateCount: quoteValid.length,
+    yieldEligibleIntermediateCount: yieldEligible.length,
+    fullyEligibleIntermediateCount: fullyEligible.length,
+    selectedStrike: selected.leg.strike,
+    selectedDistanceFromMidpoint: Math.abs(selected.leg.strike - midpointStrike),
+  };
+}
+
+export function resolveBalancedLegSelection({
+  candidate,
+  maxSpreadPct = BALANCED_EFFECTIVE_MAX_SPREAD_PCT,
+} = {}) {
+  const safeLeg = candidate?._safeLeg ?? candidate?.safeStrike ?? null;
+  const aggressiveLeg = candidate?._aggLeg ?? candidate?.aggressiveStrike ?? null;
+  const native = resolveNativeBalancedLeg({
+    candidate,
+    safeLeg,
+    aggressiveLeg,
+    maxSpreadPct,
+  });
+  if (native.selectedLeg) return native;
+  const dteDays = resolveLegDte(safeLeg ?? aggressiveLeg, candidate);
+  if (!isValidComboDte(dteDays)) {
+    return {
+      ...native,
+      source: BALANCED_LEG_SOURCES.UNAVAILABLE,
+      status: "unavailable",
+      reasonCode: BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+      primaryReason: BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+      reasonCodes: [
+        ...new Set([
+          ...(native.reasonCodes ?? []),
+          BALANCED_NATIVE_REASON_CODES.INVALID_DTE,
+          BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+        ]),
+      ],
+    };
+  }
+  const band = getCanonicalPeriodYieldBand("BALANCED", dteDays);
+  const fallbackDescriptors = [
+    {
+      mode: "SAFE",
+      leg: safeLeg,
+      valid: candidate?._hasSafeLegValid ?? !!safeLeg,
+      explicitGrade: candidate?._safeGrade ?? candidate?.safeGrade ?? null,
+    },
+    {
+      mode: "AGGRESSIVE",
+      leg: aggressiveLeg,
+      valid: candidate?._hasAggLegValid ?? !!aggressiveLeg,
+      explicitGrade: candidate?._aggGrade ?? candidate?.aggressiveGrade ?? null,
+    },
+  ]
+    .filter((row) => row.valid && row.leg)
+    .map((row) => ({
+      ...row,
+      evaluation: evaluateBalancedLegEligibility({
+        leg: row.leg,
+        candidate,
+        band,
+        maxSpreadPct,
+        // Les jambes SAFE/AGGRESSIVE sont déjà validées par le scanner et
+        // buildCapitalComboCandidate; conserver la compatibilité des payloads
+        // historiques qui n'avaient pas toujours ask/mid.
+        requireRealQuote: false,
+        explicitGrade: row.explicitGrade,
+      }),
+    }))
+    .filter((row) => row.evaluation.fullyEligible);
+  if (!fallbackDescriptors.length) {
+    return {
+      ...native,
+      source: BALANCED_LEG_SOURCES.UNAVAILABLE,
+      status: "unavailable",
+      reasonCode: BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+      primaryReason: BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+      reasonCodes: [
+        ...new Set([
+          ...(native.reasonCodes ?? []),
+          BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+        ]),
+      ],
+    };
+  }
+  const target = (band.effectivePeriodMinPct + band.effectivePeriodMaxPct) / 2;
+  fallbackDescriptors.sort((a, b) => {
+    const da = Math.abs(a.evaluation.periodYieldPct - target);
+    const db = Math.abs(b.evaluation.periodYieldPct - target);
+    if (da !== db) return da - db;
+    if (a.mode === b.mode) return 0;
+    return a.mode === "SAFE" ? -1 : 1;
+  });
+  const selected = fallbackDescriptors[0];
+  const isSafe = selected.mode === "SAFE";
+  return {
+    ...native,
+    selectedLeg: selected.leg,
+    source: isSafe
+      ? BALANCED_LEG_SOURCES.FALLBACK_SAFE
+      : BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE,
+    status: "fallback",
+    reasonCode: isSafe
+      ? BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE
+      : BALANCED_NATIVE_REASON_CODES.FALLBACK_AGGRESSIVE,
+    primaryReason: isSafe
+      ? BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE
+      : BALANCED_NATIVE_REASON_CODES.FALLBACK_AGGRESSIVE,
+    reasonCodes: [
+      ...new Set([
+        ...(native.reasonCodes ?? []),
+        isSafe
+          ? BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE
+          : BALANCED_NATIVE_REASON_CODES.FALLBACK_AGGRESSIVE,
+      ]),
+    ],
+    selectedStrike: Number(selected.leg.strike),
+    selectedDistanceFromMidpoint:
+      native.midpointStrike == null
+        ? null
+        : Math.abs(Number(selected.leg.strike) - native.midpointStrike),
+    effectiveTargetPct: target,
+    selectedGrade: selected.evaluation.grade,
+    selectedPeriodYieldPct: selected.evaluation.periodYieldPct,
+    selectedWeeklyNormalizedYieldPct: selected.evaluation.weeklyNormalizedYieldPct,
+    selectedSpreadPct: selected.evaluation.spreadPct,
+    diagnostics: {
+      ...(native.diagnostics ?? {}),
+      nativePrimaryReason: native.primaryReason,
+      fallbackEligibleModes: fallbackDescriptors.map((row) => row.mode),
+      effectiveTargetPct: target,
+    },
+  };
+}
+
 /**
  * Dernier recours AF-07 : première jambe structurellement valide dans l'ordre
  * de fallback, sans test de bande. Utilisé uniquement quand aucune jambe n'est
@@ -2213,6 +2874,7 @@ export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usabl
   let bucketGrade = null;
   let selectedLegMode = null;
   let fallbackUsed = false;
+  let balancedLegResolution = null;
 
   if (bucketKey === "SAFE") {
     if (built._hasSafeLegValid) {
@@ -2229,52 +2891,34 @@ export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usabl
       selectedLegMode = "AGGRESSIVE";
     }
   } else if (bucketKey === "BALANCED") {
-    // Bande décidée sur le rendement PÉRIODE (jusqu'à expiration), pas le 7J.
-    const legCandidates = [
-      {
-        mode: "AGGRESSIVE",
-        priority: 1,
-        valid: built._hasAggLegValid === true,
-        leg: built._aggLeg,
-        yieldPct: built._aggPeriodYieldPct,
-        strikeValue: built._aggStrikeValue,
-        capital: built._aggCapital,
-        grade: built._aggGrade,
-      },
-      {
-        mode: "SAFE",
-        priority: 1,
-        valid: built._hasSafeLegValid === true,
-        leg: built._safeLeg,
-        yieldPct: built._safePeriodYieldPct,
-        strikeValue: built._safeStrikeValue,
-        capital: built._safeCapital,
-        grade: built._safeGrade,
-      },
-    ];
-    const conforming = resolveCompatibleLegForMode({
-      legCandidates,
-      yieldPolicyMode: "BALANCED",
-      candidateForDte: built,
-      preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
-    });
-    const resolved = conforming ?? pickFirstValidLegDescriptor(legCandidates);
-    fallbackUsed = conforming == null && resolved != null;
-    if (resolved) {
-      bucketLeg = resolved.leg;
-      bucketStrikeValue = resolved.strikeValue;
-      bucketGrade = resolved.grade;
-      selectedLegMode = resolved.mode;
+    balancedLegResolution = resolveBalancedLegSelection({ candidate: built });
+    if (balancedLegResolution.selectedLeg) {
+      bucketLeg = balancedLegResolution.selectedLeg;
+      bucketStrikeValue = Number(balancedLegResolution.selectedLeg.strike);
+      bucketGrade =
+        balancedLegResolution.selectedGrade ??
+        balancedLegResolution.selectedLeg.grade ??
+        null;
+      selectedLegMode =
+        balancedLegResolution.source === BALANCED_LEG_SOURCES.NATIVE
+          ? "BALANCED"
+          : balancedLegResolution.source === BALANCED_LEG_SOURCES.FALLBACK_SAFE
+            ? "SAFE"
+            : "AGGRESSIVE";
+      fallbackUsed = balancedLegResolution.status === "fallback";
     }
   }
 
   if (!bucketLeg) {
     return {
-      source: "legacy",
+      source: balancedLegResolution ? "runtime" : "legacy",
       bucketLegAvailable: false,
       bucketMode: bucketKey,
       selectedLegMode: null,
       fallbackUsed: false,
+      balancedLegSource: balancedLegResolution?.source ?? null,
+      balancedLegDiagnostics: balancedLegResolution,
+      selectionReason: balancedLegResolution?.reasonCode ?? null,
     };
   }
 
@@ -2302,7 +2946,9 @@ export function resolveBucketLegForPresentation(bucketLabel, rawCandidate, usabl
     selectedSpreadPct,
     selectedGrade,
     fallbackUsed,
-    selectionReason: null,
+    balancedLegSource: balancedLegResolution?.source ?? null,
+    balancedLegDiagnostics: balancedLegResolution,
+    selectionReason: balancedLegResolution?.reasonCode ?? null,
   };
 }
 
@@ -2335,7 +2981,7 @@ export function resolveCapitalComboInspectorLegView({
       inPicks: true,
       bucketMode: pick.bucketMode ?? bucket,
       selectedLegMode: pick.selectedLegMode ?? null,
-      selectedLeg: null,
+      selectedLeg: pick.balancedLegDiagnostics?.selectedLeg ?? null,
       selectedStrike: pick.strike ?? null,
       selectedWeeklyYieldPct: pick.weeklyReturn ?? null,
       selectedPeriodYieldPct: pick.periodYield ?? pick.selectedPeriodYieldPct ?? null,
@@ -2343,18 +2989,22 @@ export function resolveCapitalComboInspectorLegView({
       selectedGrade: pick.grade ?? null,
       selectionReason: pick.selectionReason ?? null,
       fallbackUsed: pick.fallbackUsed === true,
+      balancedLegSource: pick.balancedLegSource ?? null,
+      balancedLegDiagnostics: pick.balancedLegDiagnostics ?? null,
       legSourceLabel: "Décision runtime (pick)",
     };
   }
 
   const runtime = resolveBucketLegForPresentation(bucket, candidate, usableCapital);
-  if (runtime.bucketLegAvailable) {
+  if (runtime.bucketLegAvailable || runtime.source === "runtime") {
     return {
       ...runtime,
       inPicks: false,
-      legSourceLabel: runtime.fallbackUsed
-        ? "Décision runtime (fallback AF-07)"
-        : "Décision runtime (bucket)",
+      legSourceLabel: !runtime.bucketLegAvailable
+        ? "Décision runtime (BALANCED indisponible)"
+        : runtime.fallbackUsed
+          ? "Décision runtime (fallback BALANCED)"
+          : "Décision runtime (bucket)",
     };
   }
 
@@ -2379,12 +3029,18 @@ export function resolveCapitalComboInspectorLegView({
 export function formatCapitalComboLegModeShort(selectedLegMode) {
   const m = String(selectedLegMode || "").trim().toUpperCase();
   if (m === "SAFE") return "SAFE";
+  if (m === "BALANCED") return "BALANCED";
   if (m === "AGGRESSIVE") return "AGG";
   return null;
 }
 
 /** Badge jambe pour UI pick (AF-01 / AF-16). */
 export function formatCapitalComboPickLegBadge(pick) {
+  if (pick?.balancedLegSource === BALANCED_LEG_SOURCES.NATIVE) return "BALANCED native";
+  if (pick?.balancedLegSource === BALANCED_LEG_SOURCES.FALLBACK_SAFE) return "Fallback SAFE";
+  if (pick?.balancedLegSource === BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE) {
+    return "Fallback AGGRESSIVE";
+  }
   const legShort = formatCapitalComboLegModeShort(pick?.selectedLegMode);
   const grade = pick?.grade ? String(pick.grade).trim() : "";
   const legLabel = legShort ? `Jambe ${legShort}` : "Jambe —";
@@ -2633,6 +3289,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         let bucketGrade = null;
         let bucketMode = null;
         let bucketFallbackUsed = false;
+        let balancedLegResolution = null;
 
         if (mode.id === "conservative") {
           // SAFE : utiliser exclusivement la jambe SAFE
@@ -2653,61 +3310,38 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             bucketMode = "AGGRESSIVE";
           }
         } else {
-          // BALANCED (AF-07) : évaluer TOUTES les jambes disponibles au lieu de
-          // s'arrêter à la première. Bande préférée historique [0.75, 1.05) (jambe
-          // la plus proche du MID, égalité exacte → SAFE), sinon toute jambe
-          // conforme à la bande effective du mode ; une jambe hors bande
-          // n'empêche plus d'essayer la suivante. Ordre de fallback historique
-          // conservé : AGGRESSIVE avant SAFE.
-          // Bande décidée sur le rendement PÉRIODE (jusqu'à expiration) — le 7J
-          // normalisé reste calculé pour scoring/affichage/comparaison DTE.
-          const legCandidates = [
-            // Futur : insérer ici la vraie jambe BALANCED avec priority 0 quand elle existera.
-            {
-              mode: "AGGRESSIVE",
-              priority: 1,
-              valid: candidate._hasAggLegValid === true,
-              leg: candidate._aggLeg,
-              yieldPct: candidate._aggPeriodYieldPct,
-              strikeValue: candidate._aggStrikeValue,
-              capital: candidate._aggCapital,
-              grade: candidate._aggGrade,
-            },
-            {
-              mode: "SAFE",
-              priority: 1,
-              valid: candidate._hasSafeLegValid === true,
-              leg: candidate._safeLeg,
-              yieldPct: candidate._safePeriodYieldPct,
-              strikeValue: candidate._safeStrikeValue,
-              capital: candidate._safeCapital,
-              grade: candidate._safeGrade,
-            },
-          ];
-          const conformingBalanced = resolveCompatibleLegForMode({
-              legCandidates,
-              yieldPolicyMode: "BALANCED",
-              candidateForDte: candidate,
-              preferredBand: BALANCED_PREFERRED_LEG_YIELD_BAND,
-            });
-          const resolved =
-            conformingBalanced ??
-            // Aucune jambe conforme : dernier recours identique à l'ancien
-            // fallback (AGG puis SAFE) pour conserver le chemin et les
-            // diagnostics de rejet existants en aval — aucune jambe forcée
-            // dans le portefeuille, les gates min/maxWeeklyYield rejettent.
-            pickFirstValidLegDescriptor(legCandidates);
-          bucketFallbackUsed = conformingBalanced == null && resolved != null;
-          if (resolved) {
-            bucketLeg = resolved.leg;
-            bucketStrikeValue = resolved.strikeValue;
-            bucketCapital = resolved.capital;
-            bucketGrade = resolved.grade;
-            bucketMode = resolved.mode;
+          // BALANCED : vraie jambe intermédiaire prioritaire, puis fallback
+          // SAFE/AGGRESSIVE conforme à la même politique hybride.
+          balancedLegResolution = resolveBalancedLegSelection({
+            candidate,
+            maxSpreadPct: modeAlloc.maxSpreadPct,
+          });
+          bucketFallbackUsed = balancedLegResolution.status === "fallback";
+          if (balancedLegResolution.selectedLeg) {
+            bucketLeg = balancedLegResolution.selectedLeg;
+            bucketStrikeValue = Number(bucketLeg.strike);
+            bucketCapital = bucketStrikeValue * 100;
+            bucketGrade =
+              balancedLegResolution.selectedGrade ??
+              bucketLeg.grade ??
+              null;
+            bucketMode =
+              balancedLegResolution.source === BALANCED_LEG_SOURCES.NATIVE
+                ? "BALANCED"
+                : balancedLegResolution.source === BALANCED_LEG_SOURCES.FALLBACK_SAFE
+                  ? "SAFE"
+                  : "AGGRESSIVE";
           }
         }
 
-        if (!bucketLeg) return { ...candidate, _hasBucketLeg: false };
+        if (!bucketLeg) {
+          return {
+            ...candidate,
+            _hasBucketLeg: false,
+            _balancedLegSource: balancedLegResolution?.source ?? null,
+            _balancedLegDiagnostics: balancedLegResolution,
+          };
+        }
 
         const bucketPremium = getLegPremiumValue(bucketLeg);
         const bucketSpread = getLegSpreadPct(bucketLeg);
@@ -2744,6 +3378,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           _hasBucketLeg: true,
           _capitalComboMode: mode.label,
           _bucketFallbackUsed: bucketFallbackUsed,
+          _balancedLegSource: balancedLegResolution?.source ?? null,
+          _balancedLegDiagnostics: balancedLegResolution,
           selectedLeg: bucketLeg,
           selectedLegMode: bucketMode,
           _bucketSelectedMode: bucketMode,
@@ -2783,6 +3419,10 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       if (!cand0._hasBucketLeg) {
         pushScoredPoolReject(cand0.ticker, "NO_BUCKET_LEG_FOR_MODE", {
           noteFr: `Aucune jambe valide pour le bucket « ${mode.label} ».`,
+          balancedLegSource: cand0._balancedLegSource ?? null,
+          balancedReasonCode: cand0._balancedLegDiagnostics?.reasonCode ?? null,
+          balancedReasonCodes: cand0._balancedLegDiagnostics?.reasonCodes ?? null,
+          balancedLegDiagnostics: cand0._balancedLegDiagnostics ?? null,
         });
         continue;
       }
@@ -3408,6 +4048,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         selectedLegMode: modeFields.selectedLegMode,
         scannerMode: modeFields.scannerMode,
         fallbackUsed: candidate._bucketFallbackUsed === true,
+        balancedLegSource: candidate._balancedLegSource ?? null,
+        balancedLegDiagnostics: candidate._balancedLegDiagnostics ?? null,
         grade: candidate.finalDisplayGrade,
         strike: candidate.selectedStrike.strike,
         source: candidate.source,
@@ -4332,6 +4974,23 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             };
           })
         : picks;
+    const balancedLegSourceCounts =
+      mode.id === "balanced"
+        ? {
+            native: bucketResolvedPool.filter(
+              (row) => row?._balancedLegSource === BALANCED_LEG_SOURCES.NATIVE,
+            ).length,
+            fallbackSafe: bucketResolvedPool.filter(
+              (row) => row?._balancedLegSource === BALANCED_LEG_SOURCES.FALLBACK_SAFE,
+            ).length,
+            fallbackAggressive: bucketResolvedPool.filter(
+              (row) => row?._balancedLegSource === BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE,
+            ).length,
+            unavailable: bucketResolvedPool.filter(
+              (row) => row?._balancedLegSource === BALANCED_LEG_SOURCES.UNAVAILABLE,
+            ).length,
+          }
+        : null;
 
     return {
       label: mode.label,
@@ -4344,6 +5003,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       // Reliquat du capital déployable uniquement — la réserve hors maxCapitalPct est exclue.
       freeCapital: Math.max(0, usableCapital - used),
       picks: picksOut,
+      balancedLegSourceCounts,
       balancedInstitutionalV3Audit: mode.id === "balanced" ? balancedInstitutionalV3Audit : null,
       avgQualityScore: picks.length > 0 ? qualityStats.totalQualityScore / picks.length : null,
       qualityAvoidCount: qualityStats.avoidCount,

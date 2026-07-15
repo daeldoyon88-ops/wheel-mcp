@@ -1,7 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveSelectedStrikeForSupportResistanceV4 } from "./wheelScanner.js";
+import {
+  resolveFiniteBalancedStrikeBoundaries,
+  resolveSelectedStrikeForSupportResistanceV4,
+} from "./wheelScanner.js";
+
+test("resolveFiniteBalancedStrikeBoundaries: normalise les frontières inversées", () => {
+  assert.deepEqual(resolveFiniteBalancedStrikeBoundaries(75, 67), {
+    valid: true,
+    lowerBoundaryStrike: 67,
+    upperBoundaryStrike: 75,
+  });
+});
+
+test("resolveFiniteBalancedStrikeBoundaries: refuse les frontières non finies", () => {
+  for (const [safe, aggressive] of [
+    [NaN, 75],
+    [67, Infinity],
+    [null, 75],
+    [67, undefined],
+  ]) {
+    assert.deepEqual(resolveFiniteBalancedStrikeBoundaries(safe, aggressive), {
+      valid: false,
+      lowerBoundaryStrike: null,
+      upperBoundaryStrike: null,
+    });
+  }
+});
 
 test("resolveSelectedStrikeForSupportResistanceV4: aggressive selected prioritaire", () => {
   const strike = resolveSelectedStrikeForSupportResistanceV4({

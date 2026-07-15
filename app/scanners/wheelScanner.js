@@ -41,6 +41,21 @@ const TIER_3_SPECULATIVE = new Set([
   "AI", "AA", "AG", "AGQ", "AMC", "ALT",
 ]);
 
+export function resolveFiniteBalancedStrikeBoundaries(safeStrikeValue, aggressiveStrikeValue) {
+  const safe = Number(safeStrikeValue);
+  const aggressive = Number(aggressiveStrikeValue);
+  const valid =
+    Number.isFinite(safe) &&
+    safe > 0 &&
+    Number.isFinite(aggressive) &&
+    aggressive > 0;
+  return {
+    valid,
+    lowerBoundaryStrike: valid ? Math.min(safe, aggressive) : null,
+    upperBoundaryStrike: valid ? Math.max(safe, aggressive) : null,
+  };
+}
+
 /** Minutes from midnight in `timeZone` for this instant (local exchange clock). */
 function minutesSinceMidnightInZone(date, timeZone) {
   const tz = timeZone || "America/New_York";
@@ -687,12 +702,16 @@ export function createWheelScanner(marketService) {
     const aggressiveStrike = buildStrike(strikeSelection.aggressiveStrike);
     const safeStrikeValue = toNumber(safeStrike?.strike);
     const aggressiveStrikeValue = toNumber(aggressiveStrike?.strike);
-    const lowerBalancedBoundary = Math.min(safeStrikeValue, aggressiveStrikeValue);
-    const upperBalancedBoundary = Math.max(safeStrikeValue, aggressiveStrikeValue);
+    const balancedBoundaries = resolveFiniteBalancedStrikeBoundaries(
+      safeStrikeValue,
+      aggressiveStrikeValue,
+    );
+    const lowerBalancedBoundary = balancedBoundaries.lowerBoundaryStrike;
+    const upperBalancedBoundary = balancedBoundaries.upperBoundaryStrike;
     // Transporte uniquement les vrais puts déjà reçus dans la chaîne et strictement
     // situés entre SAFE et AGGRESSIVE. Aucun nouvel appel réseau ni contrat synthétique.
     const balancedPutCandidates =
-      safeStrikeValue > 0 && aggressiveStrikeValue > 0
+      balancedBoundaries.valid
         ? strikeSelection.eligible
             .filter(
               (row) =>

@@ -101,7 +101,13 @@ import {
 } from "./capitalComboInputPool.js";
 import {
   DASHBOARD_MODE_FILTER_OPTIONS,
+  computeAnnualizedSimpleYieldPct,
+  enrichCandidateRowForDisplay,
+  formatAnnualizedSimpleYieldPct,
   resolveBalancedCardViewModel,
+  resolveDashboardModeForFilter,
+  resolveDashboardModePresentation,
+  resolvePortfolioSelectionByTicker,
 } from "./balancedModeUi.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
@@ -1967,7 +1973,9 @@ function FaceplateStrikeColumn({
   const distanceNumber = Number(strikeData.distancePct);
   const tradeYieldNumber = Number(strikeData.weeklyYield);
   const weeklyNormalizedYieldNumber = Number(strikeData.weeklyNormalizedYield);
-  const annualizedYieldNumber = Number(strikeData.annualizedYield);
+  const annualizedYieldRaw = strikeData.annualizedYield;
+  const annualizedYieldNumber =
+    annualizedYieldRaw == null || annualizedYieldRaw === "" ? NaN : Number(annualizedYieldRaw);
   const popProfitNumber = Number(strikeData.popProfitEstimated ?? strikeData.popEstimate);
   const popOtmNumber = Number(strikeData.popOtmEstimated);
   const dteNumber = Number(strikeData.dteDays ?? fallbackDte);
@@ -1979,9 +1987,8 @@ function FaceplateStrikeColumn({
     ? rend7j != null
       ? rend7j * 52
       : null
-    : Number.isFinite(annualizedYieldNumber)
-      ? annualizedYieldNumber
-      : null;
+    : computeAnnualizedSimpleYieldPct(weeklyNormalizedYieldNumber) ??
+      (Number.isFinite(annualizedYieldNumber) ? annualizedYieldNumber : null);
   const spreadClass = classifySpreadPctPercent(strikeData.liquidity?.spreadPct);
   const accent =
     tone === "safe"
@@ -2045,7 +2052,7 @@ function FaceplateStrikeColumn({
           },
           {
             label: "Annualisé 7J",
-            value: `${annualise7j.toFixed(1)}%`,
+            value: formatAnnualizedSimpleYieldPct(annualise7j),
             tone: "text-[#21ff7a]",
             strong: true,
           },
@@ -2130,6 +2137,7 @@ function FaceplateStrikeColumn({
 function BalancedFaceplateStrikeColumn({ viewModel }) {
   const vm = viewModel ?? null;
   if (!vm?.available) {
+    const diag = vm?.unavailableDiagnostics ?? null;
     return (
       <div className="rounded-[8px] border border-dashed border-[#563078] bg-[#050d16]/95 p-4 shadow-lg shadow-violet-950/20">
         <p className="text-sm font-semibold tracking-wide text-[#c76bff]">BALANCED</p>
@@ -2140,6 +2148,30 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
         <p className="mt-3 break-words text-xs leading-5 text-amber-300">
           Raison : {vm?.primaryReason ?? "n/d"}
         </p>
+        {diag && (
+          <div className="mt-3 space-y-2 rounded-[7px] border border-[#563078] bg-violet-950/20 px-3 py-3 text-xs text-slate-300">
+            <p>
+              SAFE {diag.safeStrike ?? "n/d"} · rendement {diag.safePeriodYieldPct != null ? `${diag.safePeriodYieldPct.toFixed(2)} %` : "n/d"}
+              {" · "}AGRESSIF {diag.aggressiveStrike ?? "n/d"} · rendement{" "}
+              {diag.aggressivePeriodYieldPct != null ? `${diag.aggressivePeriodYieldPct.toFixed(2)} %` : "n/d"}
+            </p>
+            <p>
+              {diag.midpointStrikeNote ?? "Milieu n/d"} · bande BALANCED{" "}
+              {diag.effectivePeriodMinPct != null && diag.effectivePeriodMaxPct != null
+                ? `${diag.effectivePeriodMinPct.toFixed(2)} %–${diag.effectivePeriodMaxPct.toFixed(2)} % exclusif`
+                : "n/d"}
+            </p>
+            <p>
+              Strikes intermédiaires : {diag.intermediateContractCount ?? 0} · quotes valides :{" "}
+              {diag.quoteValidIntermediateCount ?? 0} · dans bande : {diag.yieldEligibleIntermediateCount ?? 0}
+            </p>
+            {diag.nativePrimaryReason ? (
+              <p>Native : {diag.nativePrimaryReason}</p>
+            ) : null}
+            <p>{diag.safeFallbackRejection}</p>
+            <p>{diag.aggressiveFallbackRejection}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -2218,7 +2250,7 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
       selectedGrade={vm.grade}
       selectedMode="BALANCED"
       displayGrade={vm.grade}
-      selectionBadgeLabel={vm.badgeLabel}
+      selectionBadgeLabel={vm.badgeLabel ?? (vm.selectedForBalanced ? "Sélectionné dans BALANCED" : null)}
       allowAnnualizedFallback={false}
       extraMetricRows={extraMetricRows}
       footerContent={footerContent}
@@ -3248,14 +3280,19 @@ function FaceplateStrikeOpportunities({ item }) {
   const hasSafe = !!item.safeStrike;
   const hasAggressive = !!item.aggressiveStrike;
   const balancedCardViewModel = item.balancedCardViewModel ?? null;
-  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
-  const safeSelected = finalDisplayMode === "SAFE";
-  const aggressiveSelected = finalDisplayMode === "AGGRESSIVE";
-  const safeDebug = `safeRank=${item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
-  const aggressiveDebug = `aggressiveRank=${item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
+  const safeSelected = item.selectedForSafe === true;
+  const aggressiveSelected = item.selectedForAggressive === true;
+  const balancedSelected = item.selectedForBalanced === true;
+  const multiPortfolioSelection =
+    [safeSelected, balancedSelected, aggressiveSelected].filter(Boolean).length > 1;
+  const safeDebug = `selectedForSafe=${safeSelected ? "true" : "false"} • safeRank=${item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"}`;
+  const aggressiveDebug = `selectedForAggressive=${aggressiveSelected ? "true" : "false"} • aggressiveRank=${item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"}`;
 
   return (
     <div className="h-full">
+      {multiPortfolioSelection ? (
+        <p className="mb-2 text-[11px] text-slate-400">Sélections indépendantes par portefeuille</p>
+      ) : null}
       <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-3">
         {hasSafe && (
           <FaceplateStrikeColumn
@@ -3264,9 +3301,10 @@ function FaceplateStrikeOpportunities({ item }) {
             strikeData={item.safeStrike}
             fallbackDte={item.dteDays}
             isSelected={safeSelected}
-            selectedGrade={safeSelected ? finalDisplayGrade : null}
-            selectedMode={finalDisplayMode}
-            displayGrade={finalDisplayGrade}
+            selectedGrade={safeSelected ? item.safeGrade ?? item.finalDisplayGrade : null}
+            selectedMode="SAFE"
+            displayGrade={item.safeGrade ?? item.finalDisplayGrade}
+            selectionBadgeLabel={safeSelected ? "Sélectionné dans SAFE" : null}
             debugLabel={safeDebug}
           />
         )}
@@ -3278,9 +3316,10 @@ function FaceplateStrikeOpportunities({ item }) {
             strikeData={item.aggressiveStrike}
             fallbackDte={item.dteDays}
             isSelected={aggressiveSelected}
-            selectedGrade={aggressiveSelected ? finalDisplayGrade : null}
-            selectedMode={finalDisplayMode}
-            displayGrade={finalDisplayGrade}
+            selectedGrade={aggressiveSelected ? item.aggressiveGrade ?? item.finalDisplayGrade : null}
+            selectedMode="AGGRESSIVE"
+            displayGrade={item.aggressiveGrade ?? item.finalDisplayGrade}
+            selectionBadgeLabel={aggressiveSelected ? "Sélectionné dans AGRESSIF" : null}
             debugLabel={aggressiveDebug}
           />
         )}
@@ -7659,7 +7698,7 @@ const CREAM_BUCKET_ICON = {
 // Sections sans carte complète — affichage compact uniquement.
 const CREAM_COMPACT_BUCKETS = new Set(["unknownReview", "spreadRejected"]);
 
-function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null, sortBy = "quality" }) {
+function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbol, seasonalityMap, onOpenDetail, highlightedTicker = null, sortBy = "quality", modeFilter = "all" }) {
   const [activeBucket, setActiveBucket] = useState(null);
   const [expandedTickerCards, setExpandedTickerCards] = useState({});
 
@@ -7833,6 +7872,7 @@ function CremeDeLaCremePanel({ items, ibkrBatchByTicker, yahooRankForIbkrBySymbo
                     ibkrBatchRow={ibkrBatchByTicker.get(sym) ?? null}
                     seasonality={seasonalityMap[sym] ?? null}
                     highlightedTicker={highlightedTicker}
+                    modeFilter={modeFilter}
                   />
                 );
               })}
@@ -7875,13 +7915,15 @@ function CremeTableRow({
   ibkrBatchRow,
   seasonality,
   highlightedTicker,
+  modeFilter = "all",
 }) {
-  const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
+  const modePresentation = resolveDashboardModePresentation(item, { modeFilter });
   const tickerMeta = getTickerDisplayMeta(item.ticker);
   const resolvedName =
     tickerMeta.name ?? item.companyName ?? item.longName ?? item.shortName ?? null;
-  const isAggressive = finalDisplayMode === "AGGRESSIVE";
-  const displayLeg = isAggressive ? item.aggressiveStrike : item.safeStrike;
+  const displayLeg =
+    modePresentation.displayLeg ??
+    (modePresentation.bucketMode === "AGGRESSIVE" ? item.aggressiveStrike : item.safeStrike);
 
   const priceNum = Number(item?.price);
   const strikeNum = Number(displayLeg?.strike);
@@ -7899,12 +7941,15 @@ function CremeTableRow({
   const capitalPerContract =
     Number.isFinite(strikeNum) && strikeNum > 0 ? strikeNum * 100 : Number(item.capitalPerContract);
 
-  const modeLabel = finalDisplayMode === "AGGRESSIVE" ? "AGRESSIF" : finalDisplayMode === "REJECT" ? "REJECT" : "SAFE";
+  const modeLabel = modePresentation.bucketLabel ?? "—";
+  const modeGrade = modePresentation.grade;
   const modeTone =
-    finalDisplayMode === "REJECT"
+    modePresentation.bucketMode === "REJECT"
       ? "border-[#ff4d57]/40 bg-[#ff4d57]/10 text-[#ff8089]"
-      : isAggressive
+      : modePresentation.bucketMode === "AGGRESSIVE"
       ? "border-[#a855f7]/40 bg-[#a855f7]/12 text-[#cba6f7]"
+      : modePresentation.bucketMode === "BALANCED"
+      ? "border-[#c76bff]/40 bg-[#c76bff]/12 text-[#e2b6ff]"
       : "border-[#19a7ff]/40 bg-[#19a7ff]/12 text-[#7cc7ff]";
 
   const spreadTone =
@@ -7960,9 +8005,14 @@ function CremeTableRow({
           </div>
         </td>
         <td className="px-2 py-2">
-          <span className={cn("inline-flex items-center rounded-[5px] border px-1.5 py-0.5 text-[11px] font-semibold", modeTone)}>
-            {modeLabel}{finalDisplayGrade ? ` ${finalDisplayGrade}` : ""}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className={cn("inline-flex w-fit items-center rounded-[5px] border px-1.5 py-0.5 text-[11px] font-semibold", modeTone)}>
+              {modeLabel}{modeGrade ? ` ${modeGrade}` : ""}
+            </span>
+            {modePresentation.legSourceLabel ? (
+              <span className="text-[10px] leading-tight text-[#91a8c4]">{modePresentation.legSourceLabel}</span>
+            ) : null}
+          </div>
         </td>
         <td className="px-2 py-2 text-right">{numCell(priceNum, (v) => `${v.toFixed(2)} $`, "text-[#c2d3e6]")}</td>
         <td className="px-2 py-2 text-right">
@@ -13581,11 +13631,51 @@ export default function Dashboard() {
     [enrichedCandidates, selectedExpiration]
   );
 
+  // AF-06 : le moteur reçoit le pool canonique, jamais les lignes visibles.
+  // AF-18 : flags optimizer résolus une fois ici (localStorage → parsing strict) puis passés explicitement.
+  const combos = useMemo(() => {
+    const optimizerV2 = readCapitalOptimizerV2FlagsFromLocalStorage();
+    return buildPortfolioCombos(
+      comboCandidateRows,
+      Number(capital),
+      Number(maxCapitalPct),
+      Number(maxPositions),
+      ibkrRejectedSymbols,
+      { optimizerV2 },
+    );
+  }, [comboCandidateRows, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
+
+  const portfolioSelectionByTicker = useMemo(
+    () => resolvePortfolioSelectionByTicker(combos),
+    [combos],
+  );
+
+  const displayComboCandidateRows = useMemo(
+    () =>
+      comboCandidateRows.map((item) => {
+        const balancedCardViewModel = resolveBalancedCardViewModel({
+          candidate: item,
+          usableCapital: Number(capital),
+          portfolioSelection: portfolioSelectionByTicker,
+        });
+        return enrichCandidateRowForDisplay(
+          {
+            ...item,
+            balancedCardViewModel,
+            capitalComboBucketMode: balancedCardViewModel.available ? "BALANCED" : item.capitalComboBucketMode ?? null,
+            balancedLegSource: balancedCardViewModel.source ?? item.balancedLegSource ?? null,
+          },
+          portfolioSelectionByTicker,
+        );
+      }),
+    [comboCandidateRows, capital, portfolioSelectionByTicker],
+  );
+
   // Lignes visibles du tableau : recherche + filtre Mode (UI seulement, voir
   // capitalComboInputPool.js — incluant la projection BALANCED canonique) + tri, appliqués
   // au-dessus du pool canonique. Ne jamais transmettre ce tableau au moteur.
   const filtered = useMemo(() => {
-    const sorted = buildVisibleTableRows(comboCandidateRows, {
+    const sorted = buildVisibleTableRows(displayComboCandidateRows, {
       query,
       modeFilter: filter,
       sortBy,
@@ -13599,7 +13689,7 @@ export default function Dashboard() {
     }
 
     return sorted;
-  }, [comboCandidateRows, query, filter, sortBy, sortOrder, dataSource]);
+  }, [displayComboCandidateRows, query, filter, sortBy, sortOrder, dataSource]);
 
   // Seasonality V1: auto-fetch for all visible shortlist tickers (non-blocking)
   useEffect(() => {
@@ -13695,20 +13785,6 @@ export default function Dashboard() {
         .filter(([symbol]) => Boolean(symbol))
     );
   }, [ibkrDirectResult]);
-
-  // AF-06 : le moteur reçoit le pool canonique, jamais les lignes visibles.
-  // AF-18 : flags optimizer résolus une fois ici (localStorage → parsing strict) puis passés explicitement.
-  const combos = useMemo(() => {
-    const optimizerV2 = readCapitalOptimizerV2FlagsFromLocalStorage();
-    return buildPortfolioCombos(
-      comboCandidateRows,
-      Number(capital),
-      Number(maxCapitalPct),
-      Number(maxPositions),
-      ibkrRejectedSymbols,
-      { optimizerV2 },
-    );
-  }, [comboCandidateRows, capital, maxCapitalPct, maxPositions, ibkrRejectedSymbols]);
 
   const resolvedPreIbkrPool = useMemo(
     () =>
@@ -14029,7 +14105,7 @@ export default function Dashboard() {
       String(item?.ticker || "").toLowerCase().includes(q) ||
       String(item?.name || "").toLowerCase().includes(q);
     const matchesVerdict = (item) =>
-      filter === "all" ? true : getFinalDisplayRecommendation(item)?.finalDisplayMode === filter;
+      filter === "all" ? true : resolveDashboardModeForFilter(item) === filter;
     const afterQueryCount = (enrichedCandidates || []).filter((item) => matchesQuery(item)).length;
     const afterVerdictCount = (enrichedCandidates || [])
       .filter((item) => matchesQuery(item) && matchesVerdict(item))
@@ -17770,6 +17846,7 @@ export default function Dashboard() {
                       onOpenDetail={setSelectedItem}
                       highlightedTicker={highlightedTicker}
                       sortBy={sortBy}
+                      modeFilter={filter}
                     />
                     <p className="mt-3 px-1 text-xs text-slate-500">
                       Les cryptos exclus sont masqués du classement principal. Ils ne sont pas encore remplacés automatiquement par les prochains candidats Yahoo.

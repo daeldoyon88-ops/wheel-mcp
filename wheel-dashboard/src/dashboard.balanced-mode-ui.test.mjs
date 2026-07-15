@@ -171,8 +171,8 @@ test("UI-11/UI-12/UI-18/UI-21 — native conserve données, frontières, DTE et 
   const view = resolveBalancedCardViewModel({ candidate });
 
   assert.equal(view.source, BALANCED_LEG_SOURCES.NATIVE);
-  assert.equal(view.sourceLabel, "BALANCED native");
-  assert.equal(view.badgeLabel, "Sélectionné BALANCED");
+  assert.equal(view.sourceLabel, "Native");
+  assert.equal(view.badgeLabel, null);
   assert.equal(view.strike, engine.selectedStrike);
   assert.equal(view.premium, engine.selectedLeg.premiumUsed);
   assert.equal(view.periodYieldPct, getLegPeriodYieldPct(engine.selectedLeg, candidate));
@@ -199,7 +199,7 @@ test("UI-13/UI-19 — fallback SAFE garde les données SAFE mais le bucket BALAN
   const view = resolveBalancedCardViewModel({ candidate });
   assert.equal(view.source, BALANCED_LEG_SOURCES.FALLBACK_SAFE);
   assert.equal(view.sourceLabel, "Fallback SAFE");
-  assert.equal(view.badgeLabel, "BALANCED fallback");
+  assert.equal(view.badgeLabel, null);
   assert.equal(view.mode, "BALANCED");
   assert.equal(view.strike, candidate.safeStrike.strike);
   assert.equal(view.optionSymbol, candidate.safeStrike.optionSymbol);
@@ -210,8 +210,8 @@ test("UI-14/UI-19 — fallback AGGRESSIVE garde les données AGGRESSIVE mais le 
   const candidate = makeCandidate({ safeYield: 0.5, aggressiveYield: 0.9, chain: [] });
   const view = resolveBalancedCardViewModel({ candidate });
   assert.equal(view.source, BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE);
-  assert.equal(view.sourceLabel, "Fallback AGGRESSIVE");
-  assert.equal(view.badgeLabel, "BALANCED fallback");
+  assert.equal(view.sourceLabel, "Fallback AGRESSIF");
+  assert.equal(view.badgeLabel, null);
   assert.equal(view.mode, "BALANCED");
   assert.equal(view.strike, candidate.aggressiveStrike.strike);
   assert.equal(view.optionSymbol, candidate.aggressiveStrike.optionSymbol);

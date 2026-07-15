@@ -4371,6 +4371,38 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
           : null,
     };
   };
+  // POP live des puts intermédiaires de la chaîne IBKR.
+  //
+  // La chaîne IBKR brute ne transporte aucun champ POP (strike/bid/ask/delta/IV
+  // seulement) et, hors liquidité Yahoo (`liquiditySource: "yahoo_unreliable"`),
+  // `balancedPutCandidates` du scanner est vide : la jambe BALANCED native, choisie
+  // dans cette chaîne, n'avait alors aucune POP à transporter.
+  //
+  // Chaque put reçoit donc la POP de SON PROPRE contrat, via exactement la fonction
+  // canonique et la convention de niveau (strike − prime encaissée) déjà utilisées
+  // par `applyPop` pour SAFE/AGGRESSIVE. Aucun appel réseau, aucun strike fabriqué,
+  // aucune POP empruntée à une autre jambe : POP inconnue => le put reste tel quel.
+  const ibkrPutCandidatesWithPop = Array.isArray(ibkrCandidate?.putCandidates)
+    ? ibkrCandidate.putCandidates.map((put) => {
+        const strike = Number(put?.strike);
+        const rawPu = put?.primeUsed ?? put?.bid;
+        const premiumUsed = Number.isFinite(Number(rawPu)) ? Number(rawPu) : null;
+        const popProfitEstimated =
+          premiumUsed == null || !Number.isFinite(strike)
+            ? null
+            : estimateShortPutPopFromExpectedMove({
+                spot,
+                level: strike - premiumUsed,
+                expectedMove,
+              });
+        if (popProfitEstimated == null) return put;
+        return { ...put, popProfitEstimated, popSource: "IBKR expected move" };
+      })
+    : null;
+  const ibkrDirectWithPop =
+    ibkrCandidate && ibkrPutCandidatesWithPop
+      ? { ...ibkrCandidate, putCandidates: ibkrPutCandidatesWithPop }
+      : ibkrCandidate;
   const safeStrikeWithPop = applyPop(safeStrike, ibkrCandidate?.safeStrike, yahooCandidate?.safeStrike);
   const aggressiveStrikeWithPop = applyPop(
     aggressiveStrike,
@@ -4593,7 +4625,7 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     techniqueSource: yahooCandidate ? "Yahoo" : "—",
     optionsSource: "IBKR live",
     dataProvenance: buildIbkrDataProvenance({ ibkrCandidate, spot }),
-    ibkrDirect: ibkrCandidate,
+    ibkrDirect: ibkrDirectWithPop,
     ibkrSpreadPct: ibkrCandidate?.spreadPct ?? primaryStrike?.raw?.spreadPct ?? null,
     ibkrDevIncompleteSurface: ibkrCandidate?.devIncompleteMarketData === true,
     ibkrDevObjectiveBlocked: ibkrObjectiveBlock,

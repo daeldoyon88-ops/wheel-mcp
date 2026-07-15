@@ -2230,6 +2230,28 @@ function resolveBalancedChainInput(candidate, explicitChain) {
   return { available: false, rows: [], source: null };
 }
 
+/** Type d'option canonique : `P`/`PUT` => "PUT", `C`/`CALL` => "CALL". */
+function balancedOptionRightKey(...values) {
+  for (const value of values) {
+    if (value == null) continue;
+    const text = String(value).trim().toUpperCase();
+    if (!text) continue;
+    if (text === "P" || text === "PUT") return "PUT";
+    if (text === "C" || text === "CALL") return "CALL";
+  }
+  return null;
+}
+
+/** Ticker canonique — `ticker` et `symbol` sont interchangeables selon la source. */
+function balancedTickerKey(...values) {
+  for (const value of values) {
+    if (value == null) continue;
+    const text = String(value).trim().toUpperCase();
+    if (text) return text;
+  }
+  return null;
+}
+
 function resolveBalancedContractExpiration(row, candidate, chainSource) {
   return (
     row?.expiration ??
@@ -2248,45 +2270,78 @@ function resolveBalancedContractExpiration(row, candidate, chainSource) {
  * POP canonique d'un contrat BALANCED intermédiaire réel.
  *
  * Transport strict, jamais synthétique :
- *  1. POP déjà portée par le contrat réel (`popProfitEstimated` / `popEstimate`,
- *     présente quand la chaîne provient du scanner Yahoo enrichi) ;
- *  2. sinon, POP calculée par le scanner pour le MÊME contrat (identité
- *     strike + expiration) via la chaîne BALANCED enrichie
- *     (`balancedPutCandidates`). La chaîne IBKR brute (`ibkrDirect.putCandidates`)
- *     ne transporte que le delta : la POP réelle de ce strike existe déjà dans
- *     la chaîne enrichie et doit être transportée, jamais recopiée depuis SAFE
- *     ou AGGRESSIVE.
+ *  1. POP déjà portée par le contrat réel (`popProfitEstimated` / `popEstimate`).
+ *     C'est le cas nominal en live : `mergeIbkrIntoDashboardCandidate` enrichit
+ *     chaque put de la chaîne IBKR avec la POP de SON propre contrat, via la même
+ *     fonction canonique que SAFE/AGGRESSIVE ;
+ *  2. sinon, POP calculée par le scanner Yahoo pour le MÊME contrat économique via
+ *     la chaîne enrichie (`balancedPutCandidates`).
  *
- * Une POP inconnue reste `null` (jamais 0 par conversion implicite).
+ * L'appariement (2) est canonique et jamais opportuniste : même ticker, même
+ * expiration (compacte ou ISO), même strike numérique, même PUT. `localSymbol` et
+ * `optionSymbol` ne sont jamais exigés — les deux sources les formatent
+ * différemment. Une POP inconnue reste `null` (jamais 0, jamais recopiée depuis
+ * SAFE ou AGGRESSIVE).
  */
-function resolveRealBalancedLegPop(row, candidate) {
+function resolveRealBalancedLegPop(row, candidate, chainSource) {
+  const unmatched = (popMatchReason) => ({
+    popDecimal: null,
+    popSource: null,
+    popMatchStatus: "unmatched",
+    popMatchSource: null,
+    popMatchReason,
+  });
   const direct = firstKnownOptionalPopDecimal(row?.popProfitEstimated, row?.popEstimate);
   if (direct != null) {
-    return { popDecimal: direct, popSource: pickMetadataString(row?.popSource) ?? "contract" };
+    return {
+      popDecimal: direct,
+      popSource: pickMetadataString(row?.popSource) ?? "contract",
+      popMatchStatus: "matched",
+      popMatchSource: "contract",
+      popMatchReason: "pop_present_on_contract",
+    };
   }
   const strike = Number(row?.strike);
-  if (!Number.isFinite(strike)) return { popDecimal: null, popSource: null };
-  const rowExpiration = balancedExpirationKey(row?.expiration);
+  if (!Number.isFinite(strike)) return unmatched("invalid_strike");
+  const rowRight = balancedOptionRightKey(row?.right, row?.optionType) ?? "PUT";
+  if (rowRight !== "PUT") return unmatched("row_not_a_put");
+  const rowTicker = balancedTickerKey(
+    row?.ticker,
+    row?.symbol,
+    candidate?.ticker,
+    candidate?.symbol,
+  );
+  const rowExpiration = balancedExpirationKey(
+    resolveBalancedContractExpiration(row, candidate, chainSource),
+  );
   const enrichedLists = [
     candidate?.balancedPutCandidates,
     candidate?.raw?.balancedPutCandidates,
   ];
+  let sawSameContract = false;
   for (const list of enrichedLists) {
     if (!Array.isArray(list)) continue;
     for (const entry of list) {
       if (Number(entry?.strike) !== strike) continue;
-      const entryExpiration = balancedExpirationKey(entry?.expiration);
+      if ((balancedOptionRightKey(entry?.right, entry?.optionType) ?? "PUT") !== "PUT") continue;
+      const entryTicker = balancedTickerKey(entry?.ticker, entry?.symbol);
+      if (rowTicker && entryTicker && rowTicker !== entryTicker) continue;
+      const entryExpiration = balancedExpirationKey(entry?.expiration ?? entry?.targetExpiration);
       if (rowExpiration && entryExpiration && rowExpiration !== entryExpiration) continue;
+      sawSameContract = true;
       const matched = firstKnownOptionalPopDecimal(entry?.popProfitEstimated, entry?.popEstimate);
       if (matched != null) {
         return {
           popDecimal: matched,
           popSource: pickMetadataString(entry?.popSource) ?? "scanner_balanced_chain",
+          popMatchStatus: "matched",
+          popMatchSource: "scanner_balanced_chain",
+          popMatchReason: "enriched_contract_matched",
         };
       }
     }
   }
-  return { popDecimal: null, popSource: null };
+  return unmatched(sawSameContract ? "enriched_contract_without_pop" : "no_enriched_contract");
 }
 
 function normalizeRealBalancedPutLeg(row, candidate, chainSource) {
@@ -2324,10 +2379,13 @@ function normalizeRealBalancedPutLeg(row, candidate, chainSource) {
       : pickMetadataString(row.source, candidate?.optionsSource, "Yahoo");
   // POP canonique du contrat réel — transportée explicitement pour ne jamais
   // être perdue (chaîne IBKR brute sans POP) ni synthétisée depuis SAFE/AGG.
-  const { popDecimal: legPopDecimal, popSource: legPopSource } = resolveRealBalancedLegPop(
-    row,
-    candidate,
-  );
+  const {
+    popDecimal: legPopDecimal,
+    popSource: legPopSource,
+    popMatchStatus,
+    popMatchSource,
+    popMatchReason,
+  } = resolveRealBalancedLegPop(row, candidate, chainSource);
   return {
     ...row,
     ticker,
@@ -2344,6 +2402,10 @@ function normalizeRealBalancedPutLeg(row, candidate, chainSource) {
     popDecimal: legPopDecimal,
     popPct: legPopDecimal == null ? null : legPopDecimal * 100,
     popSource: legPopDecimal == null ? null : legPopSource,
+    // Diagnostics d'appariement — internes, jamais rendus dans l'interface.
+    popMatchStatus,
+    popMatchSource,
+    popMatchReason,
     bid: Number.isFinite(bid) ? bid : null,
     ask: Number.isFinite(ask) ? ask : null,
     mid,

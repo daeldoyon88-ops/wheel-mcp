@@ -99,6 +99,10 @@ import {
   buildComboCandidatePool,
   buildVisibleTableRows,
 } from "./capitalComboInputPool.js";
+import {
+  DASHBOARD_MODE_FILTER_OPTIONS,
+  resolveBalancedCardViewModel,
+} from "./balancedModeUi.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
   applyResearchExpandedFlagsToCandidates,
@@ -1940,6 +1944,11 @@ function FaceplateStrikeColumn({
   selectedMode = null,
   displayGrade = null,
   debugLabel = null,
+  subtitle = null,
+  selectionBadgeLabel = null,
+  allowAnnualizedFallback = true,
+  extraMetricRows = [],
+  footerContent = null,
 }) {
   if (!strikeData) {
     return (
@@ -1966,11 +1975,32 @@ function FaceplateStrikeColumn({
     Number.isFinite(dteNumber) && dteNumber > 0 && Number.isFinite(weeklyNormalizedYieldNumber) && weeklyNormalizedYieldNumber > 0
       ? weeklyNormalizedYieldNumber
       : null;
-  const annualise7j = rend7j != null ? rend7j * 52 : null;
+  const annualise7j = allowAnnualizedFallback
+    ? rend7j != null
+      ? rend7j * 52
+      : null
+    : Number.isFinite(annualizedYieldNumber)
+      ? annualizedYieldNumber
+      : null;
   const spreadClass = classifySpreadPctPercent(strikeData.liquidity?.spreadPct);
-  const accent = tone === "safe" ? "text-[#00c8ff]" : "text-[#e052ff]";
-  const border = tone === "safe" ? "border-[#12354a]" : "border-[#3b1a4a]";
-  const glow = tone === "safe" ? "shadow-sky-950/30" : "shadow-fuchsia-950/30";
+  const accent =
+    tone === "safe"
+      ? "text-[#00c8ff]"
+      : tone === "balanced"
+        ? "text-[#c76bff]"
+        : "text-[#e052ff]";
+  const border =
+    tone === "safe"
+      ? "border-[#12354a]"
+      : tone === "balanced"
+        ? "border-[#563078]"
+        : "border-[#3b1a4a]";
+  const glow =
+    tone === "safe"
+      ? "shadow-sky-950/30"
+      : tone === "balanced"
+        ? "shadow-violet-950/30"
+        : "shadow-fuchsia-950/30";
   const hasSelection =
     isSelected && (selectedGrade === "A" || selectedGrade === "B" || selectedGrade === "WATCH");
   const selectionBorder = !hasSelection
@@ -1981,8 +2011,10 @@ function FaceplateStrikeColumn({
   const selectionBadgeClass = selectedGrade === "WATCH"
     ? "border border-amber-700 bg-amber-950/40 text-amber-300"
     : "border border-emerald-300 bg-emerald-950/40 text-emerald-300";
-  const titleText = tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)";
-  const subtitleText = tone === "safe" ? "safe IBKR live" : "agressif IBKR live";
+  const titleText =
+    title ?? (tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)");
+  const subtitleText =
+    subtitle ?? (tone === "safe" ? "safe IBKR live" : "agressif IBKR live");
   const metricRows = [
     {
       label: "Strike",
@@ -2037,6 +2069,7 @@ function FaceplateStrikeColumn({
       tone: "text-[#21ff7a]",
       strong: true,
     },
+    ...extraMetricRows,
   ];
 
   return (
@@ -2049,7 +2082,7 @@ function FaceplateStrikeColumn({
         <div className="flex flex-col items-end gap-2">
           {hasSelection && (
             <Badge className={cn("rounded-full px-2.5 py-1 text-xs", selectionBadgeClass)}>
-              Sélectionné{selectedGrade ? ` [${selectedGrade}]` : ""}
+              {selectionBadgeLabel ?? `Sélectionné${selectedGrade ? ` [${selectedGrade}]` : ""}`}
             </Badge>
           )}
           <Badge className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
@@ -2089,7 +2122,107 @@ function FaceplateStrikeColumn({
           </span>
         </div>
       </div>
+      {footerContent}
     </div>
+  );
+}
+
+function BalancedFaceplateStrikeColumn({ viewModel }) {
+  const vm = viewModel ?? null;
+  if (!vm?.available) {
+    return (
+      <div className="rounded-[8px] border border-dashed border-[#563078] bg-[#050d16]/95 p-4 shadow-lg shadow-violet-950/20">
+        <p className="text-sm font-semibold tracking-wide text-[#c76bff]">BALANCED</p>
+        <p className="mt-1 text-xs text-slate-400">BALANCED indisponible</p>
+        <Badge className="mt-3 rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
+          BALANCED_UNAVAILABLE
+        </Badge>
+        <p className="mt-3 break-words text-xs leading-5 text-amber-300">
+          Raison : {vm?.primaryReason ?? "n/d"}
+        </p>
+      </div>
+    );
+  }
+
+  const strikeData = {
+    strike: vm.strike,
+    premiumUsed: vm.premium,
+    premiumLabel: "Prime utilisée",
+    bid: vm.bid,
+    ask: vm.ask,
+    mid: vm.mid,
+    weeklyYield: vm.periodYieldPct,
+    weeklyNormalizedYield: vm.weeklyNormalizedYieldPct,
+    annualizedYield: vm.annualizedSimpleYieldPct,
+    distancePct: vm.distancePct,
+    popProfitEstimated: vm.popDecimal,
+    dteDays: vm.dteDays,
+    liquidity: { spreadPct: vm.spreadPct },
+    label: vm.sourceLabel,
+  };
+  const targetLabel =
+    vm.effectivePeriodMinPct != null && vm.effectivePeriodMaxPct != null
+      ? `${vm.effectivePeriodMinPct.toFixed(2)}%–${vm.effectivePeriodMaxPct.toFixed(2)}%`
+      : "n/d";
+  const extraMetricRows = [
+    {
+      label: "Grade réel",
+      value: vm.grade ?? "n/d",
+      tone: "text-[#c76bff]",
+      strong: true,
+    },
+    {
+      label: "Expiration",
+      value: vm.expiration ?? "n/d",
+      tone: "text-slate-50",
+    },
+    {
+      label: "Capital requis",
+      value: vm.capitalRequired != null ? formatMoneyOrDash(vm.capitalRequired) : "n/d",
+      tone: "text-slate-50",
+    },
+    {
+      label: "Source quote",
+      value: [vm.quoteSource, vm.marketDataType].filter(Boolean).join(" · ") || "n/d",
+      tone: "text-slate-50",
+    },
+  ];
+  const footerContent = (
+    <div className="mt-3 space-y-2 rounded-[7px] border border-[#563078] bg-violet-950/20 px-3 py-3 text-xs text-slate-300">
+      {vm.source === "BALANCED_NATIVE" ? (
+        <p>
+          SAFE {vm.safeStrike ?? "n/d"} · Milieu {vm.midpointStrike ?? "n/d"} · AGRESSIF{" "}
+          {vm.aggressiveStrike ?? "n/d"} · BALANCED retenu {vm.strike ?? "n/d"}
+        </p>
+      ) : (
+        <p>
+          Source native indisponible · {vm.sourceLabel}
+          {vm.primaryReason ? ` · ${vm.primaryReason}` : ""}
+        </p>
+      )}
+      <p>
+        Cible effective {targetLabel} · option {vm.optionSymbol ?? "n/d"} · conId{" "}
+        {vm.conId ?? "n/d"}
+      </p>
+    </div>
+  );
+
+  return (
+    <FaceplateStrikeColumn
+      title="BALANCED"
+      subtitle={vm.sourceLabel}
+      tone="balanced"
+      strikeData={strikeData}
+      fallbackDte={vm.dteDays}
+      isSelected={vm.selectedForBalanced === true}
+      selectedGrade={vm.grade}
+      selectedMode="BALANCED"
+      displayGrade={vm.grade}
+      selectionBadgeLabel={vm.badgeLabel}
+      allowAnnualizedFallback={false}
+      extraMetricRows={extraMetricRows}
+      footerContent={footerContent}
+    />
   );
 }
 
@@ -3114,6 +3247,7 @@ function StrikeOpportunities({ item }) {
 function FaceplateStrikeOpportunities({ item }) {
   const hasSafe = !!item.safeStrike;
   const hasAggressive = !!item.aggressiveStrike;
+  const balancedCardViewModel = item.balancedCardViewModel ?? null;
   const { finalDisplayMode, finalDisplayGrade } = getFinalDisplayRecommendation(item);
   const safeSelected = finalDisplayMode === "SAFE";
   const aggressiveSelected = finalDisplayMode === "AGGRESSIVE";
@@ -3122,8 +3256,8 @@ function FaceplateStrikeOpportunities({ item }) {
 
   return (
     <div className="h-full">
-      {hasSafe || hasAggressive ? (
-        <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-2">
+      <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {hasSafe && (
           <FaceplateStrikeColumn
             title="Safe (IBKR live)"
             tone="safe"
@@ -3135,6 +3269,9 @@ function FaceplateStrikeOpportunities({ item }) {
             displayGrade={finalDisplayGrade}
             debugLabel={safeDebug}
           />
+        )}
+        <BalancedFaceplateStrikeColumn viewModel={balancedCardViewModel} />
+        {hasAggressive && (
           <FaceplateStrikeColumn
             title="Aggressif (IBKR live)"
             tone="aggressive"
@@ -3146,12 +3283,8 @@ function FaceplateStrikeOpportunities({ item }) {
             displayGrade={finalDisplayGrade}
             debugLabel={aggressiveDebug}
           />
-        </div>
-      ) : (
-        <div className="rounded-[8px] border border-dashed border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
-          Aucun strike local disponible.
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -13426,11 +13559,19 @@ export default function Dashboard() {
         : item;
     });
 
-    return enriched.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-    }));
-  }, [activeCandidates, ibkrDirectByTicker, selectedExpiration]);
+    return enriched.map((item, index) => {
+      const balancedCardViewModel = resolveBalancedCardViewModel({
+        candidate: item,
+        usableCapital: Number(capital),
+      });
+      return {
+        ...item,
+        rank: index + 1,
+        balancedCardViewModel,
+        capitalComboBucketMode: balancedCardViewModel.available ? "BALANCED" : null,
+      };
+    });
+  }, [activeCandidates, ibkrDirectByTicker, selectedExpiration, capital]);
 
   // AF-06 : pool canonique du moteur de combinaisons. Seul filtre appliqué ici :
   // l'expiration sélectionnée (règle métier). Indépendant de la recherche, du
@@ -13441,7 +13582,7 @@ export default function Dashboard() {
   );
 
   // Lignes visibles du tableau : recherche + filtre Mode (UI seulement, voir
-  // capitalComboInputPool.js — BALANCED strike leg future phase) + tri, appliqués
+  // capitalComboInputPool.js — incluant la projection BALANCED canonique) + tri, appliqués
   // au-dessus du pool canonique. Ne jamais transmettre ce tableau au moteur.
   const filtered = useMemo(() => {
     const sorted = buildVisibleTableRows(comboCandidateRows, {
@@ -17581,19 +17722,17 @@ export default function Dashboard() {
                     <TickerPipelineDiagnosticPanel diagnostic={pipelineTickerDiagnostic} />
                   </div>
 
-                  {/* Filtre Mode — basé sur le mode réellement affiché par ligne (finalDisplayMode).
-                      BALANCED strike leg future phase — do not expose as line filter until backend
-                      provides a real balanced leg. Les buckets Top/Favoris/Autres/Rejetés restent
-                      les filtres principaux du classement. */}
+                  {/* Filtre Mode UI — la projection partagée conserve le bucket BALANCED même
+                      lorsque sa jambe réelle est un fallback SAFE ou AGGRESSIVE. */}
                   <Select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                     className="rounded-xl border-slate-700"
-                    title="Filtre Mode — affiche uniquement les lignes dont le mode retenu correspond (SAFE / AGRESSIF)."
+                    title="Filtre Mode — affiche uniquement les lignes dont le mode retenu correspond."
                   >
-                    <option value="all">Mode: Tous</option>
-                    <option value="SAFE">Mode: SAFE</option>
-                    <option value="AGGRESSIVE">Mode: AGRESSIF</option>
+                    {DASHBOARD_MODE_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
                   </Select>
                   <Select
                     value={sortBy}

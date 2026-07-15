@@ -17,7 +17,7 @@
  */
 
 import { candidateRowMatchesSelectedExpiration } from "./expirationKey.js";
-import { getFinalDisplayRecommendation } from "./capitalComboPortfolio.js";
+import { resolveDashboardModeForFilter } from "./balancedModeUi.js";
 
 /**
  * Recherche visuelle : ticker ou nom, insensible à la casse, espaces de bord
@@ -34,11 +34,11 @@ export function rowMatchesSearchQuery(item, query) {
 
 /**
  * Filtre Mode (UI seulement) : compare le mode réellement retenu/affiché par la
- * ligne (SAFE / AGGRESSIVE). Ne participe jamais au pool du moteur.
+ * ligne (SAFE / BALANCED / AGGRESSIVE). Ne participe jamais au pool du moteur.
  */
 export function rowMatchesModeFilter(item, modeFilter) {
   if (!modeFilter || modeFilter === "all") return true;
-  return getFinalDisplayRecommendation(item)?.finalDisplayMode === modeFilter;
+  return resolveDashboardModeForFilter(item) === modeFilter;
 }
 
 /**

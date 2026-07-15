@@ -105,6 +105,32 @@ export function formatAnnualizedSimpleYieldPct(annualizedSimpleYieldPct) {
   return `${value.toFixed(1)}%`;
 }
 
+/**
+ * Moyenne pondérée par le capital, excluant strictement les valeurs inconnues.
+ *
+ * Une valeur inconnue (`null` / `undefined` / chaîne vide) n'est JAMAIS comptée
+ * comme 0 : elle est écartée du numérateur ET du dénominateur. Un 0 réel et fini
+ * reste inclus (ex. distance 0 %). Retourne `null` si aucune ligne exploitable —
+ * jamais 0 ni NaN.
+ *
+ * Exemple POP : [94, 94, 95, null] à capital égal ⇒ 94,3 % (et non 70,8 %).
+ */
+export function weightedMeanByCapitalExcludingUnknown(rows, valueOf, weightOf) {
+  let sumWx = 0;
+  let sumW = 0;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const rawValue = valueOf(row);
+    // Garde explicite : inconnue reste inconnue (jamais 0 par conversion).
+    if (rawValue == null || rawValue === "") continue;
+    const x = Number(rawValue);
+    const w = Number(weightOf(row));
+    if (!Number.isFinite(x) || !Number.isFinite(w) || w <= 0) continue;
+    sumWx += x * w;
+    sumW += w;
+  }
+  return sumW > 0 ? sumWx / sumW : null;
+}
+
 function resolveBalancedBucketContext(row) {
   const balancedVm = row?.balancedCardViewModel ?? null;
   const balancedSource = stringOrNull(

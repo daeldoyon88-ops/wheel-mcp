@@ -111,6 +111,7 @@ import {
   resolvePortfolioSelectionByTicker,
   resolveSafeLegDisplayGrade,
   resolveScanRecommendationSemantics,
+  weightedMeanByCapitalExcludingUnknown,
 } from "./balancedModeUi.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
@@ -2209,10 +2210,6 @@ function BalancedFaceplateStrikeColumn({ viewModel, scanRecommendationMode = nul
     liquidity: { spreadPct: vm.spreadPct },
     label: vm.sourceLabel,
   };
-  const targetLabel =
-    vm.effectivePeriodMinPct != null && vm.effectivePeriodMaxPct != null
-      ? `${vm.effectivePeriodMinPct.toFixed(2)}%–${vm.effectivePeriodMaxPct.toFixed(2)}%`
-      : "n/d";
   const extraMetricRows = [
     {
       label: "Grade réel",
@@ -2236,26 +2233,12 @@ function BalancedFaceplateStrikeColumn({ viewModel, scanRecommendationMode = nul
       tone: "text-slate-50",
     },
   ];
-  const footerContent = (
-    <div className="mt-3 space-y-2 rounded-[7px] border border-[#563078] bg-violet-950/20 px-3 py-3 text-xs text-slate-300">
-      {vm.source === "BALANCED_NATIVE" ? (
-        <p>
-          SAFE {vm.safeStrike ?? "n/d"} · Milieu {vm.midpointStrike ?? "n/d"} · AGRESSIF{" "}
-          {vm.aggressiveStrike ?? "n/d"} · BALANCED retenu {vm.strike ?? "n/d"}
-        </p>
-      ) : (
-        <p>
-          Source native indisponible · {vm.sourceLabel}
-          {vm.nativePrimaryReason ? ` · ${vm.nativePrimaryReason}` : ""}
-        </p>
-      )}
-      <p>
-        Cible effective {targetLabel} · option {vm.optionSymbol ?? "n/d"} · conId{" "}
-        {vm.conId ?? "n/d"}
-      </p>
-    </div>
-  );
-
+  // Carte BALANCED disponible : seules les métriques utilisateur sont rendues.
+  // Les identifiants de contrat, les frontières internes et la cible de bande
+  // restent portés par le view model (objets internes + tests) mais ne sont plus
+  // affichés. Les diagnostics techniques ne subsistent que sur la carte
+  // indisponible (branche ci-dessus).
+  //
   // Cas A (audit) : la recommandation canonique du scan ne vaut jamais
   // BALANCED — cette carte n'a donc jamais le contour vert de recommandation.
   // L'appartenance au portefeuille BALANCED reste un badge secondaire.
@@ -2275,7 +2258,6 @@ function BalancedFaceplateStrikeColumn({ viewModel, scanRecommendationMode = nul
       debugLabel={`source=${vm.source} • underlyingLegMode=${vm.source === "BALANCED_FALLBACK_SAFE" ? "SAFE" : vm.source === "BALANCED_FALLBACK_AGGRESSIVE" ? "AGGRESSIVE" : "BALANCED"}`}
       allowAnnualizedFallback={false}
       extraMetricRows={extraMetricRows}
-      footerContent={footerContent}
     />
   );
 }
@@ -10375,16 +10357,14 @@ function Row({ label, val }) {
 
 /** Moyenne pondérée par le capital déployé sur la ligne (capitalUsed), pour POP / OTM — UI seulement. */
 function weightedMetricByCapital(picks, pickMetricAccessor) {
-  let sumWx = 0;
-  let sumW = 0;
-  for (const p of picks || []) {
-    const w = Number(p?.capitalUsed ?? p?.capitalRequired ?? NaN);
-    const x = Number(pickMetricAccessor(p));
-    if (!Number.isFinite(w) || w <= 0 || !Number.isFinite(x)) continue;
-    sumWx += x * w;
-    sumW += w;
-  }
-  return sumW > 0 ? sumWx / sumW : null;
+  // Une métrique inconnue (POP absente d'une jambe) ne doit jamais être comptée
+  // comme 0 : le helper l'exclut du numérateur et du dénominateur. Un 0 réel et
+  // fini (ex. distance) reste inclus.
+  return weightedMeanByCapitalExcludingUnknown(
+    picks,
+    pickMetricAccessor,
+    (p) => p?.capitalUsed ?? p?.capitalRequired,
+  );
 }
 
 // ────────────────────────────────────────────────────────────────────────────

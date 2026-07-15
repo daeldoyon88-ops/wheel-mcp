@@ -1,9 +1,12 @@
 import {
   BALANCED_LEG_SOURCES,
+  BALANCED_NATIVE_REASON_CODES,
+  getAggressivePriorityGrade,
   getCanonicalPeriodYieldBand,
   getFinalDisplayRecommendation,
   getLegPeriodYieldPct,
   getLegSpreadPct,
+  gradeLeg,
   isPeriodYieldAdmissibleInBand,
   isValidComboDte,
   resolveCapitalComboInspectorLegView,
@@ -36,10 +39,31 @@ const LEG_SOURCE_LABELS = Object.freeze({
 });
 
 const PORTFOLIO_BADGE_LABELS = Object.freeze({
-  SAFE: "Sélectionné dans SAFE",
-  BALANCED: "Sélectionné dans BALANCED",
-  AGGRESSIVE: "Sélectionné dans AGRESSIF",
+  SAFE: "Portefeuille SAFE",
+  BALANCED: "Portefeuille BALANCED",
+  AGGRESSIVE: "Portefeuille AGRESSIF",
 });
+
+/**
+ * Codes de raison strictement natifs — jamais issus des fallbacks ni de la
+ * décision finale. NO_BALANCED_FALLBACK_ELIGIBLE et FALLBACK_*_SELECTED ne
+ * doivent jamais être présentés comme raison native.
+ */
+const BALANCED_NON_NATIVE_REASON_CODES = new Set([
+  BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE,
+  BALANCED_NATIVE_REASON_CODES.FALLBACK_AGGRESSIVE,
+  BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
+]);
+
+function resolveNativeScopedReason(...values) {
+  for (const value of values) {
+    const text = stringOrNull(value);
+    if (!text) continue;
+    if (BALANCED_NON_NATIVE_REASON_CODES.has(text)) continue;
+    return text;
+  }
+  return null;
+}
 
 function finiteOrNull(...values) {
   for (const value of values) {
@@ -104,86 +128,231 @@ function resolveUnderlyingLegMode(source) {
   return null;
 }
 
+/**
+ * Projection pure des quatre concepts indépendants :
+ * - recommandation du scan (contour vert, badge principal) ;
+ * - appartenances aux portefeuilles SAFE/BALANCED/AGGRESSIVE (informations
+ *   secondaires uniquement, jamais le contour).
+ * Cas A confirmé par audit : getFinalDisplayRecommendation ne retourne que
+ * SAFE, AGGRESSIVE ou REJECT — la recommandation canonique du scan ne vaut
+ * jamais BALANCED, donc isBalancedScanRecommended est toujours false.
+ */
+export function resolveScanRecommendationSemantics(row) {
+  const recommendation = getFinalDisplayRecommendation(row);
+  const scanRecommendationMode = recommendation.finalDisplayMode;
+  const isInSafePortfolio = row?.selectedForSafe === true;
+  const isInBalancedPortfolio = row?.selectedForBalanced === true;
+  const isInAggressivePortfolio = row?.selectedForAggressive === true;
+  return {
+    scanRecommendationMode,
+    scanRecommendationGrade: recommendation.finalDisplayGrade,
+    isSafeScanRecommended: scanRecommendationMode === "SAFE",
+    isAggressiveScanRecommended: scanRecommendationMode === "AGGRESSIVE",
+    isBalancedScanRecommended: false,
+    isInSafePortfolio,
+    isInBalancedPortfolio,
+    isInAggressivePortfolio,
+    portfolioMembershipLabels: [
+      ...(isInSafePortfolio ? ["SAFE"] : []),
+      ...(isInBalancedPortfolio ? ["BALANCED"] : []),
+      ...(isInAggressivePortfolio ? ["AGRESSIF"] : []),
+    ],
+  };
+}
+
+/**
+ * Grade réellement porté par la jambe SAFE affichée. Si le scan recommande
+ * SAFE, le grade canonique est finalDisplayGrade (calculé sur cette même
+ * jambe) ; sinon on lit le grade de la jambe elle-même, dérivé en dernier
+ * recours des métriques de cette jambe — jamais d'une autre jambe.
+ */
+export function resolveSafeLegDisplayGrade(row, recommendation = null) {
+  if (!recommendation) recommendation = getFinalDisplayRecommendation(row);
+  if (recommendation?.finalDisplayMode === "SAFE") return recommendation.finalDisplayGrade;
+  const diag = row?.recommendationDiagnostics ?? null;
+  const explicit = stringOrNull(row?.safeGrade, diag?.safeGrade)?.toUpperCase();
+  if (explicit) return explicit;
+  const leg = row?.safeStrike ?? null;
+  if (!leg) return null;
+  return gradeLeg({
+    spreadPct: leg?.liquidity?.spreadPct ?? leg?.spreadPct ?? diag?.safeSpreadPct ?? null,
+    weeklyYieldPct: leg?.weeklyYield ?? diag?.safeYieldPct ?? null,
+    popDecimal: leg?.popProfitEstimated ?? leg?.popEstimate ?? null,
+  });
+}
+
+/**
+ * Grade réellement porté par la jambe AGGRESSIVE affichée — même résolution
+ * effective que getFinalDisplayRecommendation (priorityGrade ?? grade brut),
+ * pour que le classement ne mélange jamais mode effectif et grade brut
+ * (cause du « AGRESSIF REJET » incohérent).
+ */
+export function resolveAggressiveLegDisplayGrade(row, recommendation = null) {
+  if (!recommendation) recommendation = getFinalDisplayRecommendation(row);
+  if (recommendation?.finalDisplayMode === "AGGRESSIVE") return recommendation.finalDisplayGrade;
+  const diag = row?.recommendationDiagnostics ?? null;
+  const leg = row?.aggressiveStrike ?? null;
+  const priorityGrade = getAggressivePriorityGrade({
+    spreadPct:
+      leg?.liquidity?.spreadPct ??
+      leg?.spreadPct ??
+      diag?.aggressiveSpreadPctDisplay ??
+      diag?.aggressiveSpreadPct ??
+      null,
+    weeklyYieldPct: leg?.weeklyYield ?? diag?.aggressiveYieldPct ?? null,
+    popDecimal: leg?.popProfitEstimated ?? leg?.popEstimate ?? diag?.aggressivePop ?? null,
+    distancePct:
+      leg?.distancePct ?? diag?.aggressiveDistancePctDisplay ?? diag?.aggressiveDistancePct ?? null,
+  });
+  if (priorityGrade) return priorityGrade;
+  const explicit = stringOrNull(row?.aggressiveGrade, diag?.aggressiveGrade)?.toUpperCase();
+  if (explicit) return explicit;
+  if (!leg) return null;
+  return gradeLeg({
+    spreadPct: leg?.liquidity?.spreadPct ?? leg?.spreadPct ?? null,
+    weeklyYieldPct: leg?.weeklyYield ?? null,
+    popDecimal: leg?.popProfitEstimated ?? leg?.popEstimate ?? null,
+  });
+}
+
+function resolveLegDisplayFinancials(leg) {
+  const popDecimal = finiteOrNull(leg?.popProfitEstimated ?? leg?.popEstimate);
+  return {
+    strike: finiteOrNull(leg?.strike),
+    premium: finiteOrNull(leg?.premiumUsed ?? leg?.mid ?? leg?.premium ?? leg?.bid),
+    periodYieldPct: finiteOrNull(leg?.weeklyYield),
+    weeklyNormalizedYieldPct: finiteOrNull(leg?.weeklyNormalizedYield),
+    spreadPct: finiteOrNull(leg?.liquidity?.spreadPct ?? leg?.spreadPct),
+    distancePct: finiteOrNull(leg?.distancePct),
+    popPct: popDecimal == null ? null : popDecimal <= 1 ? popDecimal * 100 : popDecimal,
+  };
+}
+
+function finalizeModePresentation(base, { scannerMode, scannerGrade, modeFilter }) {
+  const isScanRecommended =
+    (base.bucketMode === "SAFE" || base.bucketMode === "AGGRESSIVE") &&
+    base.bucketMode === scannerMode;
+  return {
+    ...base,
+    mode: base.bucketMode,
+    modeLabel: base.bucketLabel,
+    leg: base.displayLeg,
+    status:
+      base.displayLeg == null || base.bucketMode === "REJECT"
+        ? "unavailable"
+        : isScanRecommended
+          ? "recommended"
+          : "available",
+    isScanRecommended,
+    scanRecommendationMode: scannerMode,
+    scanRecommendationGrade: scannerGrade,
+    recommendationSource: modeFilter === "all" ? "scan" : "modeFilter",
+    ...resolveLegDisplayFinancials(base.displayLeg),
+  };
+}
+
+/**
+ * Jambe canonique affichée dans une ligne du classement : mode, libellé,
+ * grade, strike, prime, rendement, spread, distance et POP proviennent tous
+ * du même objet jambe (displayLeg). Aucun mélange de sources.
+ */
 export function resolveDashboardModePresentation(row, { modeFilter = "all" } = {}) {
   const { balancedVm, balancedSource, balancedAvailable } = resolveBalancedBucketContext(row);
   const recommendation = getFinalDisplayRecommendation(row);
   const scannerMode = recommendation.finalDisplayMode;
   const scannerGrade = recommendation.finalDisplayGrade;
+  const context = { scannerMode, scannerGrade, modeFilter };
 
   if (balancedAvailable && modeFilter === "BALANCED") {
     const legSourceLabel = LEG_SOURCE_LABELS[balancedSource] ?? balancedVm?.sourceLabel ?? null;
-    return {
-      bucketMode: "BALANCED",
-      bucketLabel: "BALANCED",
-      grade: stringOrNull(balancedVm?.grade, row?.balancedGrade),
-      legSource: balancedSource,
-      legSourceLabel,
-      underlyingLegMode: resolveUnderlyingLegMode(balancedSource),
-      filterMode: "BALANCED",
-      displayLeg:
-        balancedVm?.strike != null
-          ? {
-              strike: balancedVm.strike,
-              bid: balancedVm.bid,
-              weeklyYield: balancedVm.periodYieldPct,
-              weeklyNormalizedYield: balancedVm.weeklyNormalizedYieldPct,
-              liquidity: { spreadPct: balancedVm.spreadPct },
-              distancePct: balancedVm.distancePct,
-              popProfitEstimated: balancedVm.popDecimal,
-            }
-          : null,
-    };
+    return finalizeModePresentation(
+      {
+        bucketMode: "BALANCED",
+        bucketLabel: "BALANCED",
+        grade: stringOrNull(balancedVm?.grade, row?.balancedGrade),
+        legSource: balancedSource,
+        legSourceLabel,
+        underlyingLegMode: resolveUnderlyingLegMode(balancedSource),
+        filterMode: "BALANCED",
+        displayLeg:
+          balancedVm?.strike != null
+            ? {
+                strike: balancedVm.strike,
+                bid: balancedVm.bid,
+                premiumUsed: balancedVm.premium,
+                weeklyYield: balancedVm.periodYieldPct,
+                weeklyNormalizedYield: balancedVm.weeklyNormalizedYieldPct,
+                liquidity: { spreadPct: balancedVm.spreadPct },
+                distancePct: balancedVm.distancePct,
+                popProfitEstimated: balancedVm.popDecimal,
+              }
+            : null,
+      },
+      context,
+    );
   }
 
   if (modeFilter === "SAFE" || (modeFilter === "all" && scannerMode === "SAFE")) {
-    return {
-      bucketMode: "SAFE",
-      bucketLabel: "SAFE",
-      grade: stringOrNull(row?.safeGrade, scannerGrade),
-      legSource: null,
-      legSourceLabel: null,
-      underlyingLegMode: "SAFE",
-      filterMode: "SAFE",
-      displayLeg: row?.safeStrike ?? null,
-    };
+    return finalizeModePresentation(
+      {
+        bucketMode: "SAFE",
+        bucketLabel: "SAFE",
+        grade: resolveSafeLegDisplayGrade(row, recommendation),
+        legSource: null,
+        legSourceLabel: null,
+        underlyingLegMode: "SAFE",
+        filterMode: "SAFE",
+        displayLeg: row?.safeStrike ?? null,
+      },
+      context,
+    );
   }
 
   if (modeFilter === "AGGRESSIVE" || (modeFilter === "all" && scannerMode === "AGGRESSIVE")) {
-    return {
-      bucketMode: "AGGRESSIVE",
-      bucketLabel: "AGRESSIF",
-      grade: stringOrNull(row?.aggressiveGrade, scannerGrade),
-      legSource: null,
-      legSourceLabel: null,
-      underlyingLegMode: "AGGRESSIVE",
-      filterMode: "AGGRESSIVE",
-      displayLeg: row?.aggressiveStrike ?? null,
-    };
+    return finalizeModePresentation(
+      {
+        bucketMode: "AGGRESSIVE",
+        bucketLabel: "AGRESSIF",
+        grade: resolveAggressiveLegDisplayGrade(row, recommendation),
+        legSource: null,
+        legSourceLabel: null,
+        underlyingLegMode: "AGGRESSIVE",
+        filterMode: "AGGRESSIVE",
+        displayLeg: row?.aggressiveStrike ?? null,
+      },
+      context,
+    );
   }
 
   if (scannerMode === "REJECT") {
-    return {
-      bucketMode: "REJECT",
-      bucketLabel: "REJECT",
+    return finalizeModePresentation(
+      {
+        bucketMode: "REJECT",
+        bucketLabel: "REJECT",
+        grade: scannerGrade,
+        legSource: null,
+        legSourceLabel: null,
+        underlyingLegMode: null,
+        filterMode: null,
+        displayLeg: row?.safeStrike ?? row?.aggressiveStrike ?? null,
+      },
+      context,
+    );
+  }
+
+  return finalizeModePresentation(
+    {
+      bucketMode: scannerMode,
+      bucketLabel: bucketLabelForMode(scannerMode),
       grade: scannerGrade,
       legSource: null,
       legSourceLabel: null,
-      underlyingLegMode: null,
-      filterMode: null,
-      displayLeg: row?.safeStrike ?? row?.aggressiveStrike ?? null,
-    };
-  }
-
-  return {
-    bucketMode: scannerMode,
-    bucketLabel: bucketLabelForMode(scannerMode),
-    grade: scannerGrade,
-    legSource: null,
-    legSourceLabel: null,
-    underlyingLegMode: scannerMode,
-    filterMode: scannerMode,
-    displayLeg: scannerMode === "AGGRESSIVE" ? row?.aggressiveStrike ?? null : row?.safeStrike ?? null,
-  };
+      underlyingLegMode: scannerMode,
+      filterMode: scannerMode,
+      displayLeg: scannerMode === "AGGRESSIVE" ? row?.aggressiveStrike ?? null : row?.safeStrike ?? null,
+    },
+    context,
+  );
 }
 
 export function resolveDashboardModeForFilter(item) {
@@ -265,12 +434,21 @@ export function buildBalancedUnavailableDiagnostics({
         : null;
   const safePeriodYieldPct = safeLeg ? getLegPeriodYieldPct(safeLeg, candidate) : null;
   const aggressivePeriodYieldPct = aggressiveLeg ? getLegPeriodYieldPct(aggressiveLeg, candidate) : null;
-  const nativePrimaryReason = stringOrNull(
+  // Raison native strictement scoped : jamais NO_BALANCED_FALLBACK_ELIGIBLE
+  // ni FALLBACK_*_SELECTED (ce sont des raisons de fallback/finale).
+  const nativePrimaryReason = resolveNativeScopedReason(
     diagnostics?.diagnostics?.nativePrimaryReason,
     diagnostics?.primaryReason,
+    diagnostics?.reasonCode,
+  );
+  const finalReason = stringOrNull(
+    diagnostics?.primaryReason,
+    diagnostics?.reasonCode,
     legView?.selectionReason,
   );
   const reasonCodes = Array.isArray(diagnostics?.reasonCodes) ? diagnostics.reasonCodes : [];
+  const safeFallbackRejection = describeFallbackRejection("SAFE", safeLeg, candidate, band);
+  const aggressiveFallbackRejection = describeFallbackRejection("AGRESSIF", aggressiveLeg, candidate, band);
 
   return {
     safeStrike,
@@ -285,9 +463,39 @@ export function buildBalancedUnavailableDiagnostics({
     yieldEligibleIntermediateCount: finiteOrNull(diagnostics?.yieldEligibleIntermediateCount),
     fullyEligibleIntermediateCount: finiteOrNull(diagnostics?.fullyEligibleIntermediateCount),
     nativePrimaryReason,
+    finalReason,
     reasonCodes,
-    safeFallbackRejection: describeFallbackRejection("SAFE", safeLeg, candidate, band),
-    aggressiveFallbackRejection: describeFallbackRejection("AGRESSIF", aggressiveLeg, candidate, band),
+    safeFallbackRejection,
+    aggressiveFallbackRejection,
+    // Projection structurée : la raison native, les raisons de fallback et la
+    // raison finale sont trois niveaux distincts, jamais interchangeables.
+    native: {
+      status: "unavailable",
+      primaryReason: nativePrimaryReason,
+      intermediateContractCount: finiteOrNull(diagnostics?.intermediateContractCount),
+      quoteValidIntermediateCount: finiteOrNull(diagnostics?.quoteValidIntermediateCount),
+      yieldEligibleIntermediateCount: finiteOrNull(diagnostics?.yieldEligibleIntermediateCount),
+      fullyEligibleIntermediateCount: finiteOrNull(diagnostics?.fullyEligibleIntermediateCount),
+    },
+    fallbackSafe: {
+      status: safeLeg ? "rejected" : "absent",
+      reason: safeFallbackRejection,
+      periodYieldPct: safePeriodYieldPct,
+      effectiveMinPct: band?.effectivePeriodMinPct ?? null,
+      effectiveMaxPct: band?.effectivePeriodMaxPct ?? null,
+    },
+    fallbackAggressive: {
+      status: aggressiveLeg ? "rejected" : "absent",
+      reason: aggressiveFallbackRejection,
+      periodYieldPct: aggressivePeriodYieldPct,
+      effectiveMinPct: band?.effectivePeriodMinPct ?? null,
+      effectiveMaxPct: band?.effectivePeriodMaxPct ?? null,
+    },
+    final: {
+      source: BALANCED_LEG_SOURCES.UNAVAILABLE,
+      status: "unavailable",
+      reason: finalReason,
+    },
     midpointStrikeNote:
       midpointStrike != null
         ? `Milieu ${midpointStrike}`
@@ -428,8 +636,19 @@ export function resolveBalancedCardViewModel({
     midpointStrike: finiteOrNull(diagnostics?.midpointStrike),
     effectivePeriodMinPct: finiteOrNull(diagnostics?.effectivePeriodMinPct),
     effectivePeriodMaxPct: finiteOrNull(diagnostics?.effectivePeriodMaxPct),
+    // Raison finale (source retenue ou NO_BALANCED_FALLBACK_ELIGIBLE) — jamais
+    // confondue avec la raison native, exposée séparément ci-dessous.
     primaryReason: stringOrNull(
+      diagnostics?.primaryReason,
+      diagnostics?.reasonCode,
+      legView?.selectionReason,
+    ),
+    nativePrimaryReason: resolveNativeScopedReason(
       diagnostics?.diagnostics?.nativePrimaryReason,
+      diagnostics?.primaryReason,
+      diagnostics?.reasonCode,
+    ),
+    finalReason: stringOrNull(
       diagnostics?.primaryReason,
       diagnostics?.reasonCode,
       legView?.selectionReason,

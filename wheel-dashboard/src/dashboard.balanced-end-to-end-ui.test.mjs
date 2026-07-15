@@ -210,7 +210,9 @@ test("TQQQ — native 70, annualisé non nul, badge portefeuille BALANCED", () =
   const balancedPick = combos.find((c) => c.label === "BALANCED")?.picks?.find((p) => p.ticker === "TQQQ");
   if (balancedPick) {
     assert.equal(enriched.selectedForBalanced, true);
-    assert.equal(view.badgeLabel, "Sélectionné dans BALANCED");
+    // Badge secondaire d'appartenance au portefeuille — jamais un badge de
+    // recommandation du scan.
+    assert.equal(view.badgeLabel, "Portefeuille BALANCED");
   }
 
   const mode = resolveDashboardModePresentation(enriched, { modeFilter: "BALANCED" });

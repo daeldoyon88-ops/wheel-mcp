@@ -2721,6 +2721,10 @@ export function resolveBalancedLegSelection({
           BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
         ]),
       ],
+      diagnostics: {
+        ...(native.diagnostics ?? {}),
+        nativePrimaryReason: native.primaryReason,
+      },
     };
   }
   const band = getCanonicalPeriodYieldBand("BALANCED", dteDays);
@@ -2767,6 +2771,10 @@ export function resolveBalancedLegSelection({
           BALANCED_NATIVE_REASON_CODES.NO_FALLBACK,
         ]),
       ],
+      diagnostics: {
+        ...(native.diagnostics ?? {}),
+        nativePrimaryReason: native.primaryReason,
+      },
     };
   }
   const target = (band.effectivePeriodMinPct + band.effectivePeriodMaxPct) / 2;

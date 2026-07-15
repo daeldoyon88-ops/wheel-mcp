@@ -242,8 +242,11 @@ test("UI-17/UI-20/UI-22/UI-23 — React affiche la projection sans résoudre BAL
   assert.ok(!cardSource.includes("resolveNativeBalancedLeg"));
   assert.ok(!cardSource.includes("getCanonicalPeriodYieldBand"));
   assert.ok(!cardSource.includes("weeklyNormalizedYieldPct *"));
-  assert.ok(cardSource.includes('selectedMode="BALANCED"'));
+  assert.ok(cardSource.includes('cardMode="BALANCED"'));
+  // L'appartenance au portefeuille BALANCED n'alimente que le badge
+  // secondaire, jamais le contour de recommandation du scan.
   assert.ok(cardSource.includes("vm.selectedForBalanced === true"));
+  assert.ok(cardSource.includes("isScanRecommended={false}"));
 });
 
 test("UI-11/UI-25 — trois cartes SAFE, BALANCED, AGRESSIF dans une grille responsive", () => {

@@ -104,10 +104,13 @@ import {
   computeAnnualizedSimpleYieldPct,
   enrichCandidateRowForDisplay,
   formatAnnualizedSimpleYieldPct,
+  resolveAggressiveLegDisplayGrade,
   resolveBalancedCardViewModel,
   resolveDashboardModeForFilter,
   resolveDashboardModePresentation,
   resolvePortfolioSelectionByTicker,
+  resolveSafeLegDisplayGrade,
+  resolveScanRecommendationSemantics,
 } from "./balancedModeUi.js";
 import { buildSupportResistanceV4ConfirmedZones } from "../../app/scanners/supportResistanceV4ConfirmedZones.js";
 import {
@@ -1945,10 +1948,14 @@ function FaceplateStrikeColumn({
   tone = "safe",
   strikeData,
   fallbackDte,
-  isSelected = false,
+  // Contour vert : uniquement la recommandation du scan (jamais l'appartenance
+  // aux portefeuilles Combinaisons capital, qui est une info secondaire).
+  isScanRecommended = false,
   selectedGrade = null,
-  selectedMode = null,
+  cardMode = null,
+  scanRecommendationMode = null,
   displayGrade = null,
+  portfolioBadges = [],
   debugLabel = null,
   subtitle = null,
   selectionBadgeLabel = null,
@@ -2009,7 +2016,7 @@ function FaceplateStrikeColumn({
         ? "shadow-violet-950/30"
         : "shadow-fuchsia-950/30";
   const hasSelection =
-    isSelected && (selectedGrade === "A" || selectedGrade === "B" || selectedGrade === "WATCH");
+    isScanRecommended && (selectedGrade === "A" || selectedGrade === "B" || selectedGrade === "WATCH");
   const selectionBorder = !hasSelection
     ? border
     : selectedGrade === "WATCH"
@@ -2018,6 +2025,7 @@ function FaceplateStrikeColumn({
   const selectionBadgeClass = selectedGrade === "WATCH"
     ? "border border-amber-700 bg-amber-950/40 text-amber-300"
     : "border border-emerald-300 bg-emerald-950/40 text-emerald-300";
+  const resolvedPortfolioBadges = (Array.isArray(portfolioBadges) ? portfolioBadges : []).filter(Boolean);
   const titleText =
     title ?? (tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)");
   const subtitleText =
@@ -2089,17 +2097,25 @@ function FaceplateStrikeColumn({
         <div className="flex flex-col items-end gap-2">
           {hasSelection && (
             <Badge className={cn("rounded-full px-2.5 py-1 text-xs", selectionBadgeClass)}>
-              {selectionBadgeLabel ?? `Sélectionné${selectedGrade ? ` [${selectedGrade}]` : ""}`}
+              {selectionBadgeLabel ?? `Recommandée par le scan${selectedGrade ? ` [${selectedGrade}]` : ""}`}
             </Badge>
           )}
           <Badge className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
             PUT
           </Badge>
+          {resolvedPortfolioBadges.map((label) => (
+            <Badge
+              key={label}
+              className="rounded-full border border-slate-600 bg-slate-900/80 px-2.5 py-1 text-[10px] text-slate-400"
+            >
+              {label}
+            </Badge>
+          ))}
         </div>
       </div>
 
       <div className="mt-3 rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-2 text-[11px] text-slate-400">
-        {`selected=${hasSelection ? "true" : "false"} • mode=${selectedMode ?? "—"} • grade=${displayGrade ?? selectedGrade ?? "—"}${debugLabel ? ` • ${debugLabel}` : ""}`}
+        {`cardMode=${cardMode ?? "—"} • scanRecommendation=${scanRecommendationMode ?? "—"} • isScanRecommended=${isScanRecommended ? "true" : "false"} • grade=${displayGrade ?? selectedGrade ?? "—"}${resolvedPortfolioBadges.length ? ` • portefeuilles=${resolvedPortfolioBadges.join("+")}` : ""}${debugLabel ? ` • ${debugLabel}` : ""}`}
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-y-2.5">
@@ -2134,7 +2150,7 @@ function FaceplateStrikeColumn({
   );
 }
 
-function BalancedFaceplateStrikeColumn({ viewModel }) {
+function BalancedFaceplateStrikeColumn({ viewModel, scanRecommendationMode = null }) {
   const vm = viewModel ?? null;
   if (!vm?.available) {
     const diag = vm?.unavailableDiagnostics ?? null;
@@ -2146,7 +2162,7 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
           BALANCED_UNAVAILABLE
         </Badge>
         <p className="mt-3 break-words text-xs leading-5 text-amber-300">
-          Raison : {vm?.primaryReason ?? "n/d"}
+          Raison finale : {vm?.primaryReason ?? "n/d"}
         </p>
         {diag && (
           <div className="mt-3 space-y-2 rounded-[7px] border border-[#563078] bg-violet-950/20 px-3 py-3 text-xs text-slate-300">
@@ -2164,6 +2180,7 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
             <p>
               Strikes intermédiaires : {diag.intermediateContractCount ?? 0} · quotes valides :{" "}
               {diag.quoteValidIntermediateCount ?? 0} · dans bande : {diag.yieldEligibleIntermediateCount ?? 0}
+              {" · "}pleinement admissibles : {diag.fullyEligibleIntermediateCount ?? 0}
             </p>
             {diag.nativePrimaryReason ? (
               <p>Native : {diag.nativePrimaryReason}</p>
@@ -2229,7 +2246,7 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
       ) : (
         <p>
           Source native indisponible · {vm.sourceLabel}
-          {vm.primaryReason ? ` · ${vm.primaryReason}` : ""}
+          {vm.nativePrimaryReason ? ` · ${vm.nativePrimaryReason}` : ""}
         </p>
       )}
       <p>
@@ -2239,6 +2256,9 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
     </div>
   );
 
+  // Cas A (audit) : la recommandation canonique du scan ne vaut jamais
+  // BALANCED — cette carte n'a donc jamais le contour vert de recommandation.
+  // L'appartenance au portefeuille BALANCED reste un badge secondaire.
   return (
     <FaceplateStrikeColumn
       title="BALANCED"
@@ -2246,11 +2266,13 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
       tone="balanced"
       strikeData={strikeData}
       fallbackDte={vm.dteDays}
-      isSelected={vm.selectedForBalanced === true}
-      selectedGrade={vm.grade}
-      selectedMode="BALANCED"
+      isScanRecommended={false}
+      selectedGrade={null}
+      cardMode="BALANCED"
+      scanRecommendationMode={scanRecommendationMode}
       displayGrade={vm.grade}
-      selectionBadgeLabel={vm.badgeLabel ?? (vm.selectedForBalanced ? "Sélectionné dans BALANCED" : null)}
+      portfolioBadges={vm.selectedForBalanced === true ? [vm.badgeLabel ?? "Portefeuille BALANCED"] : []}
+      debugLabel={`source=${vm.source} • underlyingLegMode=${vm.source === "BALANCED_FALLBACK_SAFE" ? "SAFE" : vm.source === "BALANCED_FALLBACK_AGGRESSIVE" ? "AGGRESSIVE" : "BALANCED"}`}
       allowAnnualizedFallback={false}
       extraMetricRows={extraMetricRows}
       footerContent={footerContent}
@@ -3280,18 +3302,31 @@ function FaceplateStrikeOpportunities({ item }) {
   const hasSafe = !!item.safeStrike;
   const hasAggressive = !!item.aggressiveStrike;
   const balancedCardViewModel = item.balancedCardViewModel ?? null;
-  const safeSelected = item.selectedForSafe === true;
-  const aggressiveSelected = item.selectedForAggressive === true;
-  const balancedSelected = item.selectedForBalanced === true;
-  const multiPortfolioSelection =
-    [safeSelected, balancedSelected, aggressiveSelected].filter(Boolean).length > 1;
-  const safeDebug = `selectedForSafe=${safeSelected ? "true" : "false"} • safeRank=${item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"}`;
-  const aggressiveDebug = `selectedForAggressive=${aggressiveSelected ? "true" : "false"} • aggressiveRank=${item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"}`;
+  // Sémantique historique restaurée : le contour vert suit uniquement la
+  // recommandation canonique du scan (getFinalDisplayRecommendation), jamais
+  // l'appartenance aux portefeuilles Combinaisons capital.
+  const semantics = resolveScanRecommendationSemantics(item);
+  const {
+    scanRecommendationMode,
+    scanRecommendationGrade,
+    isSafeScanRecommended,
+    isAggressiveScanRecommended,
+    isInSafePortfolio,
+    isInBalancedPortfolio,
+    isInAggressivePortfolio,
+    portfolioMembershipLabels,
+  } = semantics;
+  const safeDisplayGrade = resolveSafeLegDisplayGrade(item);
+  const aggressiveDisplayGrade = resolveAggressiveLegDisplayGrade(item);
+  const safeDebug = `safeRank=${item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
+  const aggressiveDebug = `aggressiveRank=${item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
 
   return (
     <div className="h-full">
-      {multiPortfolioSelection ? (
-        <p className="mb-2 text-[11px] text-slate-400">Sélections indépendantes par portefeuille</p>
+      {portfolioMembershipLabels.length > 0 ? (
+        <p className="mb-2 text-[11px] text-slate-400">
+          Portefeuilles : {portfolioMembershipLabels.join(" · ")} — sélections indépendantes, sans effet sur la recommandation du scan
+        </p>
       ) : null}
       <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-3">
         {hasSafe && (
@@ -3300,26 +3335,35 @@ function FaceplateStrikeOpportunities({ item }) {
             tone="safe"
             strikeData={item.safeStrike}
             fallbackDte={item.dteDays}
-            isSelected={safeSelected}
-            selectedGrade={safeSelected ? item.safeGrade ?? item.finalDisplayGrade : null}
-            selectedMode="SAFE"
-            displayGrade={item.safeGrade ?? item.finalDisplayGrade}
-            selectionBadgeLabel={safeSelected ? "Sélectionné dans SAFE" : null}
+            isScanRecommended={isSafeScanRecommended}
+            selectedGrade={isSafeScanRecommended ? scanRecommendationGrade : null}
+            cardMode="SAFE"
+            scanRecommendationMode={scanRecommendationMode}
+            displayGrade={safeDisplayGrade}
+            portfolioBadges={isInSafePortfolio ? ["Portefeuille SAFE"] : []}
             debugLabel={safeDebug}
           />
         )}
-        <BalancedFaceplateStrikeColumn viewModel={balancedCardViewModel} />
+        <BalancedFaceplateStrikeColumn
+          viewModel={
+            balancedCardViewModel
+              ? { ...balancedCardViewModel, selectedForBalanced: isInBalancedPortfolio || balancedCardViewModel.selectedForBalanced === true }
+              : balancedCardViewModel
+          }
+          scanRecommendationMode={scanRecommendationMode}
+        />
         {hasAggressive && (
           <FaceplateStrikeColumn
             title="Aggressif (IBKR live)"
             tone="aggressive"
             strikeData={item.aggressiveStrike}
             fallbackDte={item.dteDays}
-            isSelected={aggressiveSelected}
-            selectedGrade={aggressiveSelected ? item.aggressiveGrade ?? item.finalDisplayGrade : null}
-            selectedMode="AGGRESSIVE"
-            displayGrade={item.aggressiveGrade ?? item.finalDisplayGrade}
-            selectionBadgeLabel={aggressiveSelected ? "Sélectionné dans AGRESSIF" : null}
+            isScanRecommended={isAggressiveScanRecommended}
+            selectedGrade={isAggressiveScanRecommended ? scanRecommendationGrade : null}
+            cardMode="AGGRESSIVE"
+            scanRecommendationMode={scanRecommendationMode}
+            displayGrade={aggressiveDisplayGrade}
+            portfolioBadges={isInAggressivePortfolio ? ["Portefeuille AGRESSIF"] : []}
             debugLabel={aggressiveDebug}
           />
         )}

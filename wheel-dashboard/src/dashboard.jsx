@@ -13631,6 +13631,15 @@ export default function Dashboard() {
     [enrichedCandidates, selectedExpiration]
   );
 
+  const ibkrRejectedSymbols = useMemo(() => {
+    const rows = Array.isArray(ibkrDirectResult?.rejected) ? ibkrDirectResult.rejected : [];
+    return new Set(
+      rows
+        .map((row) => String(row?.symbol || "").trim().toUpperCase())
+        .filter(Boolean)
+    );
+  }, [ibkrDirectResult]);
+
   // AF-06 : le moteur reçoit le pool canonique, jamais les lignes visibles.
   // AF-18 : flags optimizer résolus une fois ici (localStorage → parsing strict) puis passés explicitement.
   const combos = useMemo(() => {
@@ -13761,14 +13770,6 @@ export default function Dashboard() {
         .filter(([ticker]) => Boolean(ticker))
     );
   }, [ibkrBatchResult]);
-  const ibkrRejectedSymbols = useMemo(() => {
-    const rows = Array.isArray(ibkrDirectResult?.rejected) ? ibkrDirectResult.rejected : [];
-    return new Set(
-      rows
-        .map((row) => String(row?.symbol || "").trim().toUpperCase())
-        .filter(Boolean)
-    );
-  }, [ibkrDirectResult]);
   const ibkrKeptSymbols = useMemo(() => {
     const rows = Array.isArray(ibkrDirectResult?.shortlist) ? ibkrDirectResult.shortlist : [];
     return new Set(

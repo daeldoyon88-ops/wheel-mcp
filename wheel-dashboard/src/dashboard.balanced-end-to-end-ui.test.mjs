@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   computeAnnualizedSimpleYieldPct,
@@ -19,6 +22,9 @@ import {
   getLegWeeklyNormalizedYieldPct,
   resolveBalancedLegSelection,
 } from "./capitalComboPortfolio.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DASHBOARD_SOURCE = fs.readFileSync(path.join(__dirname, "dashboard.jsx"), "utf8");
 
 const EXPIRATION = "2026-07-31";
 
@@ -321,4 +327,59 @@ test("non-régression moteur — projection UI ne change pas la résolution BALA
   assert.deepEqual(candidate, before);
   assert.deepEqual(engineAfter, engineBefore);
   assert.equal(getLegPeriodYieldPct(engineAfter.selectedLeg, candidate), getLegPeriodYieldPct(engineBefore.selectedLeg, candidate));
+});
+
+test("initialisation Dashboard — ibkrRejectedSymbols avant combos sans ReferenceError", () => {
+  const rejectedDecl = DASHBOARD_SOURCE.indexOf("const ibkrRejectedSymbols = useMemo");
+  const combosDecl = DASHBOARD_SOURCE.indexOf("const combos = useMemo(() => {");
+  assert.ok(rejectedDecl >= 0, "déclaration ibkrRejectedSymbols introuvable");
+  assert.ok(combosDecl >= 0, "déclaration combos introuvable");
+  assert.ok(
+    rejectedDecl < combosDecl,
+    "ibkrRejectedSymbols doit être déclaré avant combos pour éviter la TDZ",
+  );
+  assert.equal(
+    (DASHBOARD_SOURCE.match(/const ibkrRejectedSymbols = useMemo/g) ?? []).length,
+    1,
+    "ibkrRejectedSymbols ne doit être déclaré qu'une fois",
+  );
+
+  const ibkrDirectResult = {
+    rejected: [{ symbol: "SOFI" }],
+  };
+  const comboCandidateRows = [makeCandidate({ ticker: "TQQQ" })];
+  const ibkrRejectedSymbols = new Set(
+    (Array.isArray(ibkrDirectResult.rejected) ? ibkrDirectResult.rejected : [])
+      .map((row) => String(row?.symbol || "").trim().toUpperCase())
+      .filter(Boolean),
+  );
+  const combos = buildPortfolioCombos(
+    comboCandidateRows,
+    250000,
+    100,
+    10,
+    ibkrRejectedSymbols,
+    { optimizerV2: {} },
+  );
+  const portfolioSelectionByTicker = resolvePortfolioSelectionByTicker(combos);
+  const displayComboCandidateRows = comboCandidateRows.map((item) => {
+    const balancedCardViewModel = resolveBalancedCardViewModel({
+      candidate: item,
+      usableCapital: 250000,
+      portfolioSelection: portfolioSelectionByTicker,
+    });
+    return enrichCandidateRowForDisplay(
+      {
+        ...item,
+        balancedCardViewModel,
+        capitalComboBucketMode: balancedCardViewModel.available ? "BALANCED" : null,
+        balancedLegSource: balancedCardViewModel.source ?? null,
+      },
+      portfolioSelectionByTicker,
+    );
+  });
+
+  assert.equal(ibkrRejectedSymbols.has("SOFI"), true);
+  assert.equal(Array.isArray(displayComboCandidateRows), true);
+  assert.equal(displayComboCandidateRows.length, 1);
 });

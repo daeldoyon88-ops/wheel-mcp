@@ -387,7 +387,10 @@ test("UI — la carte BALANCED disponible ne rend plus les détails techniques",
   }
   // Les métriques utilisateur essentielles restent présentes.
   assert.ok(availableSource.includes("POP estimée") || DASHBOARD.includes('label: "POP estimée"'));
-  assert.ok(availableSource.includes('label: "Grade réel"'));
+  assert.ok(!availableSource.includes('label: "Grade réel"'));
+  assert.ok(!availableSource.includes('label: "Expiration"'));
+  assert.ok(!availableSource.includes('label: "Capital requis"'));
+  assert.ok(!availableSource.includes('label: "Source quote"'));
   // Les diagnostics techniques restent disponibles sur la carte INDISPONIBLE.
   const unavailableSource = fnSource.slice(0, availableStart);
   assert.ok(unavailableSource.includes("Milieu"), "diagnostics conservés pour la carte indisponible");

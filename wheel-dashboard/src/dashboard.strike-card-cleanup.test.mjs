@@ -37,6 +37,11 @@ const opportunities = sectionBetween(
   "function SupportStatusLine",
 );
 
+const balancedAvailableBranch = balancedColumn.slice(
+  balancedColumn.indexOf("const strikeData = {"),
+  balancedColumn.indexOf("// Carte BALANCED disponible : seules les métriques utilisateur"),
+);
+
 const DEBUG_MARKERS = [
   "cardMode=",
   "scanRecommendation=",
@@ -51,55 +56,158 @@ const DEBUG_MARKERS = [
 ];
 
 for (const [index, marker] of DEBUG_MARKERS.entries()) {
-  test(`${index + 1} — marqueur debug absent du JSX : ${marker}`, () => {
+  test(`debug-${index + 1} — marqueur debug absent : ${marker}`, () => {
     assert.ok(!faceplateColumn.includes(marker), `FaceplateStrikeColumn contient ${marker}`);
     assert.ok(!balancedColumn.includes(marker), `BalancedFaceplateStrikeColumn contient ${marker}`);
     assert.ok(!opportunities.includes(marker), `FaceplateStrikeOpportunities contient ${marker}`);
   });
 }
 
-test("9 — badge de recommandation conservé", () => {
-  assert.ok(faceplateColumn.includes("Recommandée par le scan"));
-  assert.ok(faceplateColumn.includes("hasSelection &&"));
+test("1 — badge « Recommandée par le scan » n'est plus rendu", () => {
+  assert.ok(!faceplateColumn.includes("selectionBadgeClass"));
+  assert.ok(!faceplateColumn.includes("selectionBadgeLabel"));
+  assert.ok(!faceplateColumn.match(/<Badge[\s\S]{0,200}Recommandée par le scan/));
+  assert.ok(faceplateColumn.includes("selectionAriaLabel"));
 });
 
-test("10 — contour SAFE recommandé conservé", () => {
+test("2 — grades [A]/[B]/[WATCH] ne sont plus ajoutés dans un badge visible", () => {
+  assert.ok(!faceplateColumn.includes("[${selectedGrade}]"));
+  assert.ok(faceplateColumn.includes("selectionAriaLabel"));
+});
+
+test("3 — contour SAFE recommandé reste actif", () => {
   assert.ok(faceplateColumn.includes('isScanRecommended && (selectedGrade === "A"'));
   assert.ok(faceplateColumn.includes("border-emerald-500 ring-2 ring-emerald-300/55"));
   assert.ok(opportunities.includes("isScanRecommended={isSafeScanRecommended}"));
 });
 
-test("11 — contour AGGRESSIVE recommandé conservé", () => {
-  assert.ok(faceplateColumn.includes("border-amber-500 ring-2 ring-amber-300/55"));
+test("4 — contour AGGRESSIVE recommandé reste actif", () => {
   assert.ok(opportunities.includes("isScanRecommended={isAggressiveScanRecommended}"));
 });
 
-test("12 — portefeuille sans effet sur le contour", () => {
+test("5 — contour WATCH reste ambre", () => {
+  assert.ok(faceplateColumn.includes("border-amber-500 ring-2 ring-amber-300/55"));
+  assert.ok(faceplateColumn.includes('selectedGrade === "WATCH"'));
+});
+
+test("6 — jambe non recommandée garde le contour normal", () => {
+  assert.ok(faceplateColumn.includes("const selectionBorder = !hasSelection"));
+  assert.ok(faceplateColumn.includes("? border"));
+});
+
+test("7 — badge PUT reste visible", () => {
+  assert.ok(faceplateColumn.includes("border-slate-700 bg-slate-950/80"));
+  assert.ok(faceplateColumn.includes("PUT"));
+});
+
+test("8 — badges portefeuille restent indépendants du contour", () => {
   assert.ok(!opportunities.includes("isScanRecommended={item.selectedFor"));
   assert.ok(opportunities.includes('portfolioBadges={isInSafePortfolio ? ["Portefeuille SAFE"] : []}'));
   assert.ok(opportunities.includes('portfolioBadges={isInAggressivePortfolio ? ["Portefeuille AGRESSIF"] : []}'));
-  assert.ok(balancedColumn.includes("isScanRecommended={false}"));
+  assert.ok(balancedColumn.includes("vm.selectedForBalanced === true"));
 });
 
-test("13/14/15/16 — libellés Native, fallback et indisponible conservés", () => {
+for (const [num, label] of [
+  ["9", "Grade réel"],
+  ["10", "Expiration"],
+  ["11", "Capital requis"],
+  ["12", "Source quote"],
+]) {
+  test(`${num} — « ${label} » absent de la carte BALANCED disponible`, () => {
+    assert.ok(!balancedAvailableBranch.includes(`label: "${label}"`), `carte disponible contient ${label}`);
+    assert.ok(!balancedAvailableBranch.includes(label), `carte disponible contient ${label}`);
+  });
+}
+
+test("13 — valeurs techniques restent dans le view model interne", () => {
+  const EXPIRATION = "2026-07-31";
+  const makeLeg = (strike, periodYieldPct, ticker = "ORCL") => {
+    const bid = (strike * periodYieldPct) / 100;
+    const ask = bid * 1.08;
+    return {
+      ticker,
+      symbol: ticker,
+      expiration: EXPIRATION,
+      right: "PUT",
+      strike,
+      bid,
+      ask,
+      mid: (bid + ask) / 2,
+      dteDays: 3,
+      distancePct: -8,
+      popProfitEstimated: 0.9,
+      volume: 500,
+      openInterest: 1000,
+      quoteSource: "IBKR",
+      marketDataType: "live",
+    };
+  };
+  const candidate = {
+    ticker: "ORCL",
+    symbol: "ORCL",
+    targetExpiration: EXPIRATION,
+    dteDays: 3,
+    price: 120,
+    safeStrike: makeLeg(110, 0.7),
+    aggressiveStrike: makeLeg(118, 1.1),
+    safeGrade: "A",
+    aggressiveGrade: "A",
+    balancedPutChainAvailable: true,
+    balancedPutCandidates: [makeLeg(116, 0.9)],
+    hasEarningsBeforeExpiration: false,
+    hasUpcomingEarningsBeforeExpiration: false,
+    proFinalScore: 0.5,
+    proExecutionScore: 0.8,
+    proDistanceScore: 0.8,
+  };
+  const vm = resolveBalancedCardViewModel({ candidate });
+  assert.equal(vm.available, true);
+  assert.equal(vm.strike, 116);
+  assert.ok(vm.grade);
+  assert.equal(vm.expiration, EXPIRATION);
+  assert.ok(vm.capitalRequired != null);
+  assert.equal(vm.quoteSource, "IBKR");
+});
+
+for (const [num, label] of [
+  ["14", "Strike"],
+  ["15", "Prime utilisée"],
+  ["16", "Rendement"],
+  ["17", "Rend. 7J"],
+  ["18", "Annualisé 7J"],
+  ["19", "Distance"],
+  ["20", "POP estimée"],
+  ["21", "DTE"],
+  ["22", "Marché live"],
+]) {
+  test(`${num} — métrique « ${label} » conservée`, () => {
+    assert.ok(
+      faceplateColumn.includes(label) || balancedColumn.includes(label),
+      `métrique manquante : ${label}`,
+    );
+  });
+}
+
+test("23/24/25 — Native, Fallback SAFE et Fallback AGRESSIF conservés", () => {
   assert.ok(balancedColumn.includes("vm.sourceLabel"));
+  assert.ok(balancedColumn.includes('title="BALANCED"'));
+});
+
+test("26 — BALANCED indisponible reste fonctionnel", () => {
   assert.ok(balancedColumn.includes("BALANCED indisponible"));
   assert.ok(balancedColumn.includes("Raison finale :"));
-  assert.ok(balancedColumn.includes("diag.safeFallbackRejection"));
-  assert.ok(balancedColumn.includes("diag.aggressiveFallbackRejection"));
   assert.ok(balancedColumn.includes("Diagnostics SAFE / AGRESSIF"));
 });
 
-test("17/18/19/20 — structure d'alignement vertical", () => {
+test("27/28 — alignement vertical conservé", () => {
   assert.ok(faceplateColumn.includes("flex h-full flex-col"));
   assert.ok(faceplateColumn.includes("flex flex-1 flex-col"));
   assert.ok(faceplateColumn.includes("mt-auto"));
   assert.ok(opportunities.includes("items-stretch"));
   assert.ok(opportunities.includes('className="h-full"'));
-  assert.ok(balancedColumn.includes("flex h-full flex-col"));
 });
 
-test("21 — aucun footer technique réintroduit", () => {
+test("29 — aucun footer technique réintroduit", () => {
   const banned = [
     "optionSymbol",
     "localSymbol",
@@ -108,38 +216,15 @@ test("21 — aucun footer technique réintroduit", () => {
     "SAFE · Milieu · AGRESSIF",
     "BALANCED retenu",
     "Cible effective",
+    "extraMetricRows",
   ];
   for (const token of banned) {
     assert.ok(!faceplateColumn.includes(token), `footer technique : ${token}`);
-    assert.ok(!balancedColumn.includes(token), `footer technique : ${token}`);
+    assert.ok(!balancedAvailableBranch.includes(token), `footer technique : ${token}`);
   }
 });
 
-test("22 — métriques principales conservées", () => {
-  const required = [
-    "Prime utilisée",
-    "Rendement",
-    "Rend. 7J",
-    "Annualisé 7J",
-    "Distance",
-    "POP estimée",
-    "DTE",
-    "Marché live",
-    "Bid",
-    "Ask",
-    "Mid",
-    "Spread",
-    "Grade réel",
-  ];
-  for (const label of required) {
-    assert.ok(
-      faceplateColumn.includes(label) || balancedColumn.includes(label),
-      `métrique manquante : ${label}`,
-    );
-  }
-});
-
-test("helpers — sémantique scan inchangée malgré le nettoyage UI", () => {
+test("30 — sémantique scan et moteur inchangés", () => {
   const EXPIRATION = "2026-07-31";
   const makeLeg = (strike, periodYieldPct, ticker = "SMCI") => {
     const bid = (strike * periodYieldPct) / 100;

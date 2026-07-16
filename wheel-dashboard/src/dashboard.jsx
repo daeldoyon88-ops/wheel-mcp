@@ -1953,9 +1953,7 @@ function FaceplateStrikeColumn({
   selectedGrade = null,
   portfolioBadges = [],
   subtitle = null,
-  selectionBadgeLabel = null,
   allowAnnualizedFallback = true,
-  extraMetricRows = [],
   footerContent = null,
 }) {
   if (!strikeData) {
@@ -2017,9 +2015,6 @@ function FaceplateStrikeColumn({
     : selectedGrade === "WATCH"
     ? "border-amber-500 ring-2 ring-amber-300/55 shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
     : "border-emerald-500 ring-2 ring-emerald-300/55 shadow-[0_0_0_1px_rgba(16,185,129,0.18)]";
-  const selectionBadgeClass = selectedGrade === "WATCH"
-    ? "border border-amber-700 bg-amber-950/40 text-amber-300"
-    : "border border-emerald-300 bg-emerald-950/40 text-emerald-300";
   const resolvedPortfolioBadges = (Array.isArray(portfolioBadges) ? portfolioBadges : []).filter(Boolean);
   const titleText =
     title ?? (tone === "safe" ? "SAFE (IBKR live)" : "AGRESSIF (IBKR live)");
@@ -2079,22 +2074,23 @@ function FaceplateStrikeColumn({
       tone: "text-[#21ff7a]",
       strong: true,
     },
-    ...extraMetricRows,
   ];
 
+  const selectionAriaLabel = hasSelection
+    ? `Recommandée par le scan${selectedGrade ? ` grade ${selectedGrade}` : ""}`
+    : undefined;
+
   return (
-    <div className={cn("flex h-full flex-col rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", selectionBorder, glow)}>
+    <div
+      className={cn("flex h-full flex-col rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", selectionBorder, glow)}
+      aria-label={selectionAriaLabel}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={cn("text-sm font-semibold tracking-wide", accent)}>{titleText}</p>
           <p className="mt-1 text-xs text-slate-500">{strikeData.label || subtitleText}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {hasSelection && (
-            <Badge className={cn("rounded-full px-2.5 py-1 text-xs", selectionBadgeClass)}>
-              {selectionBadgeLabel ?? `Recommandée par le scan${selectedGrade ? ` [${selectedGrade}]` : ""}`}
-            </Badge>
-          )}
           <Badge className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
             PUT
           </Badge>
@@ -2207,29 +2203,6 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
     liquidity: { spreadPct: vm.spreadPct },
     label: vm.sourceLabel,
   };
-  const extraMetricRows = [
-    {
-      label: "Grade réel",
-      value: vm.grade ?? "n/d",
-      tone: "text-[#c76bff]",
-      strong: true,
-    },
-    {
-      label: "Expiration",
-      value: vm.expiration ?? "n/d",
-      tone: "text-slate-50",
-    },
-    {
-      label: "Capital requis",
-      value: vm.capitalRequired != null ? formatMoneyOrDash(vm.capitalRequired) : "n/d",
-      tone: "text-slate-50",
-    },
-    {
-      label: "Source quote",
-      value: [vm.quoteSource, vm.marketDataType].filter(Boolean).join(" · ") || "n/d",
-      tone: "text-slate-50",
-    },
-  ];
   // Carte BALANCED disponible : seules les métriques utilisateur sont rendues.
   // Les identifiants de contrat, les frontières internes et la cible de bande
   // restent portés par le view model (objets internes + tests) mais ne sont plus
@@ -2250,7 +2223,6 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
       selectedGrade={null}
       portfolioBadges={vm.selectedForBalanced === true ? [vm.badgeLabel ?? "Portefeuille BALANCED"] : []}
       allowAnnualizedFallback={false}
-      extraMetricRows={extraMetricRows}
     />
   );
 }

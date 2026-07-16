@@ -531,7 +531,8 @@ test("source dashboard.jsx — contour piloté par le scan, badges portefeuille 
   // Le contour (ring émeraude/ambre) découle exclusivement de hasSelection,
   // lui-même dérivé de isScanRecommended.
   assert.ok(columnSection.includes('isScanRecommended && (selectedGrade === "A"'));
-  assert.ok(columnSection.includes("Recommandée par le scan"));
+  assert.ok(!columnSection.includes("selectionBadgeClass"));
+  assert.ok(columnSection.includes("selectionAriaLabel"));
   assert.ok(!columnSection.includes("Sélectionné dans SAFE"));
   assert.ok(!columnSection.includes("Sélectionné dans AGRESSIF"));
 

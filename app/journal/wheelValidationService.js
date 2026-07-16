@@ -19,6 +19,10 @@ import {
 } from "./technicalSnapshot.js";
 import { buildSeasonalitySnapshotFromCache } from "./seasonalitySnapshot.js";
 import { isCryptoDigitalAssetBlocked } from "../watchlist/cryptoWheelFilter.js";
+import {
+  getCalendarDte,
+  WHEEL_MARKET_TIME_ZONE,
+} from "../calculations/wheelMetrics.js";
 
 function toNumberOrNull(value) {
   if (value == null) return null;
@@ -94,11 +98,11 @@ function formatExpirationCohort(expirationYmd) {
 function computeDteAtScan(scanTimestamp, expirationYmd) {
   const exp = normalizeYmd(expirationYmd);
   if (!exp) return null;
-  const scanDate = normalizeIsoTimestamp(scanTimestamp).slice(0, 10);
-  const scanUtc = new Date(`${scanDate}T00:00:00.000Z`);
-  const expUtc = new Date(`${exp.slice(0, 4)}-${exp.slice(4, 6)}-${exp.slice(6, 8)}T00:00:00.000Z`);
-  if (Number.isNaN(scanUtc.getTime()) || Number.isNaN(expUtc.getTime())) return null;
-  return Math.round((expUtc.getTime() - scanUtc.getTime()) / 86400000);
+  return getCalendarDte({
+    asOfDate: normalizeIsoTimestamp(scanTimestamp),
+    expirationDate: exp,
+    timeZone: WHEEL_MARKET_TIME_ZONE,
+  });
 }
 
 function getScanDayInfo(scanDate) {

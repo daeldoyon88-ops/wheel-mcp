@@ -56,6 +56,10 @@ import { SeasonalityBadge } from "./components/SeasonalityBadge.jsx";
 import { getTickerDisplayMeta, QUALITY_TIER_STYLE, USER_PREFS, CRYPTO_BLOCK_REASON } from "./tickerMeta.js";
 import { isCryptoDigitalAssetBlocked } from "../../app/watchlist/cryptoWheelFilter.js";
 import {
+  getCalendarDte,
+  WHEEL_MARKET_TIME_ZONE,
+} from "../../app/calculations/wheelMetrics.js";
+import {
   buildPortfolioCombos,
   buildCapitalComboCandidate,
   computeTickerQualityOverlay,
@@ -1060,25 +1064,28 @@ function normalizeExpirationYmd(value) {
 function computeDteAtScan(scanTimestamp, expirationYmd) {
   const exp = normalizeExpirationYmd(expirationYmd);
   if (!exp) return null;
-  const scanIso = scanTimestamp == null ? new Date().toISOString() : String(scanTimestamp);
-  const scanDate = new Date(scanIso);
-  if (Number.isNaN(scanDate.getTime())) return null;
-  const scanDayUtc = Date.UTC(scanDate.getUTCFullYear(), scanDate.getUTCMonth(), scanDate.getUTCDate());
-  const [y, m, d] = exp.split("-").map(Number);
-  const expDayUtc = Date.UTC(y, m - 1, d);
-  if (!Number.isFinite(scanDayUtc) || !Number.isFinite(expDayUtc)) return null;
-  return Math.round((expDayUtc - scanDayUtc) / 86400000);
+  return getCalendarDte({
+    asOfDate: scanTimestamp == null ? new Date() : scanTimestamp,
+    expirationDate: exp,
+    timeZone: WHEEL_MARKET_TIME_ZONE,
+  });
 }
 
-function resolveMergedDteDays({ ibkrDte, yahooDte, expirationYmd, todayYmd = ymdTodayLocal() }) {
-  const ibkr = Number(ibkrDte);
+function resolveMergedDteDays({ ibkrDte, yahooDte, expirationYmd, asOfDate = new Date() }) {
+  const ibkr = ibkrDte == null || ibkrDte === "" ? NaN : Number(ibkrDte);
   if (Number.isFinite(ibkr) && ibkr >= 0) return Math.max(0, Math.ceil(ibkr));
 
   const exp = normalizeExpirationYmd(expirationYmd);
-  const fallbackDiff = exp ? daysBetweenYmd(todayYmd, exp) : null;
+  const fallbackDiff = exp
+    ? getCalendarDte({
+        asOfDate,
+        expirationDate: exp,
+        timeZone: WHEEL_MARKET_TIME_ZONE,
+      })
+    : null;
   if (Number.isFinite(fallbackDiff)) return Math.max(0, Math.ceil(fallbackDiff));
 
-  const yahoo = Number(yahooDte);
+  const yahoo = yahooDte == null || yahooDte === "" ? NaN : Number(yahooDte);
   if (Number.isFinite(yahoo) && yahoo >= 0) return Math.max(0, Math.ceil(yahoo));
 
   return null;
@@ -4266,13 +4273,19 @@ function mergeIbkrIntoDashboardCandidate(yahooCandidate, ibkrCandidate, index, s
     normalizeExpirationYmd(yahooCandidate?.targetExpiration) ??
     normalizeExpirationYmd(yahooCandidate?.expiration) ??
     null;
+  const dteAsOfDate = new Date();
   const fallbackDte = expirationForDte
-    ? daysBetweenYmd(ymdTodayLocal(), expirationForDte)
+    ? getCalendarDte({
+        asOfDate: dteAsOfDate,
+        expirationDate: expirationForDte,
+        timeZone: WHEEL_MARKET_TIME_ZONE,
+      })
     : null;
   const resolvedDteDays = resolveMergedDteDays({
     ibkrDte: ibkrCandidate?.dteDays,
     yahooDte: yahooCandidate?.dteDays,
     expirationYmd: expirationForDte,
+    asOfDate: dteAsOfDate,
   });
   if (DEBUG_DTE_RESOLVE) console.log("[DTE_RESOLVE]", {
     symbol,

@@ -5,6 +5,87 @@ import {
 } from "../config/constants.js";
 import { round, roundMoney, toNumber } from "../utils/number.js";
 
+export const WHEEL_MARKET_TIME_ZONE = "America/New_York";
+const CALENDAR_DAY_MS = 24 * 60 * 60 * 1000;
+
+function normalizeCalendarParts(year, month, day) {
+  if (![year, month, day].every(Number.isInteger)) return null;
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return { year, month, day, ordinal: date.getTime() };
+}
+
+function parseCalendarDateString(value) {
+  if (typeof value !== "string") return { matched: false, parts: null };
+  const raw = value.trim();
+  const dashed = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const compact = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  const match = dashed ?? compact;
+  if (!match) return { matched: false, parts: null };
+  return {
+    matched: true,
+    parts: normalizeCalendarParts(Number(match[1]), Number(match[2]), Number(match[3])),
+  };
+}
+
+function calendarPartsFor(value, timeZone) {
+  const parsedCalendar = parseCalendarDateString(value);
+  if (parsedCalendar.matched) return parsedCalendar.parts;
+
+  const instant = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(instant.getTime())) return null;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(instant);
+    const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return normalizeCalendarParts(
+      Number(byType.year),
+      Number(byType.month),
+      Number(byType.day),
+    );
+  } catch (_error) {
+    return null;
+  }
+}
+
+function isValidTimeZone(timeZone) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date(0));
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+/**
+ * Différence entre deux dates civiles dans le fuseau du marché.
+ * Retourne 0 le même jour, un entier négatif pour une expiration passée,
+ * et null lorsqu'une date ou le fuseau est invalide.
+ */
+export function getCalendarDte({
+  asOfDate = new Date(),
+  expirationDate,
+  timeZone = WHEEL_MARKET_TIME_ZONE,
+} = {}) {
+  if (!isValidTimeZone(timeZone)) return null;
+  const asOf = calendarPartsFor(asOfDate, timeZone);
+  const expiration = calendarPartsFor(expirationDate, timeZone);
+  if (!asOf || !expiration) return null;
+  return (expiration.ordinal - asOf.ordinal) / CALENDAR_DAY_MS;
+}
+
 export function getTargetWeeks(dteDays) {
   if (!dteDays || dteDays <= 0) return 1;
   return Math.max(1, Math.ceil(dteDays / 7));
@@ -34,11 +115,13 @@ export function strikeDistancePct(strike, spot) {
   return ((strike - spot) / spot) * 100;
 }
 
-export function getDteDays(expiration) {
-  const now = new Date();
-  const exp = new Date(`${expiration}T00:00:00`);
-  const diff = exp - now;
-  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+export function getDteDays(
+  expiration,
+  asOfDate = new Date(),
+  timeZone = WHEEL_MARKET_TIME_ZONE,
+) {
+  const calendarDte = getCalendarDte({ asOfDate, expirationDate: expiration, timeZone });
+  return calendarDte == null ? Number.NaN : Math.max(1, calendarDte);
 }
 
 export function pickReliablePremium(row, strictBidAsk = false) {

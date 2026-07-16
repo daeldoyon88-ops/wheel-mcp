@@ -32,6 +32,10 @@ import {
 import { createMarketDataProvider } from "./app/data_providers/createMarketDataProvider.js";
 import { createMarketService } from "./app/services/marketService.js";
 import { createWheelScanner } from "./app/scanners/wheelScanner.js";
+import {
+  getCalendarDte,
+  WHEEL_MARKET_TIME_ZONE,
+} from "./app/calculations/wheelMetrics.js";
 import { createWatchlistCache } from "./app/watchlist/watchlistCache.js";
 import { createWatchlistBuilder } from "./app/watchlist/watchlistBuilder.js";
 import { buildResearchExpandedPool } from "./app/watchlist/researchExpandedPool.js";
@@ -1759,10 +1763,11 @@ function dteDaysFromIbkrExpiration(expStr) {
   if (!expStr) return null;
   const clean = String(expStr).replace(/-/g, "");
   if (!/^\d{8}$/.test(clean)) return null;
-  const exp = new Date(`${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T00:00:00Z`);
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const days = Math.round((exp.getTime() - today.getTime()) / 86400000);
+  const days = getCalendarDte({
+    asOfDate: new Date(),
+    expirationDate: clean,
+    timeZone: WHEEL_MARKET_TIME_ZONE,
+  });
   return days > 0 ? days : null;
 }
 
@@ -2011,6 +2016,8 @@ function toIbkrScanCandidate(row, devScanEnabled = false) {
   /** @type {Record<string, unknown>} */
   const cand = {
     symbol: row.symbol,
+    expiration: row.expiration ?? null,
+    dteDays: rowDteDays,
     currentPrice: row.underlyingPrice ?? null,
     underlyingPrice: row.underlyingPrice ?? null,
     expectedMove: row.expectedMove ?? null,

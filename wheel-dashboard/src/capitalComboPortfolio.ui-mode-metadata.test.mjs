@@ -121,7 +121,7 @@ test("AF-01 — BALANCED→SAFE avec scanner AGGRESSIVE", () => {
 test("AF-01 — BALANCED→AGGRESSIVE", () => {
   const c = makeCandidate({
     ticker: "CRM",
-    safe: makeLeg({ strike: 40, yieldPct: 0.55 }),
+    safe: makeLeg({ strike: 40, yieldPct: 0.55, spreadPct: 30 }),
     agg: makeLeg({ strike: 43, yieldPct: 0.95 }),
     finalDisplayMode: "SAFE",
   });
@@ -131,7 +131,7 @@ test("AF-01 — BALANCED→AGGRESSIVE", () => {
   assert.equal(p.selectedLegMode, "AGGRESSIVE");
 });
 
-test("AF-01 — aucun fallback hors bande sur résolution bucket", () => {
+test("AF-01 — fallback hors cible conservé avec statut informatif", () => {
   const raw = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: 0.55 }),
@@ -139,11 +139,11 @@ test("AF-01 — aucun fallback hors bande sur résolution bucket", () => {
   });
   const leg = resolveBucketLegForPresentation("BALANCED", raw, CAPITAL);
   assert.equal(leg.source, "runtime");
-  assert.equal(leg.bucketLegAvailable, false);
-  assert.equal(leg.fallbackUsed, false);
-  assert.equal(leg.selectedLegMode, null);
-  assert.equal(leg.balancedLegSource, "BALANCED_UNAVAILABLE");
-  assert.equal(leg.selectionReason, "NO_BALANCED_FALLBACK_ELIGIBLE");
+  assert.equal(leg.bucketLegAvailable, true);
+  assert.equal(leg.fallbackUsed, true);
+  assert.equal(leg.selectedLegMode, "SAFE");
+  assert.equal(leg.balancedLegSource, "BALANCED_FALLBACK_SAFE");
+  assert.equal(leg.balancedLegDiagnostics.selectedYieldBandStatus, "BELOW");
 });
 
 test("AF-01 — JSON stringify et pas de mutation", () => {

@@ -175,7 +175,9 @@ test("TEST 3 — BALANCED→SAFE : score SAFE", () => {
 });
 
 test("TEST 4 — BALANCED→AGGRESSIVE : score AGGRESSIVE", () => {
-  const safeBal = makeLeg({ strike: 40, bid: 0.28, yieldPct: 0.70, distancePct: -9 });
+  const safeBal = makeLeg({ strike: 40, bid: 0.28, yieldPct: 0.70, distancePct: -9, spreadPct: 30 });
+  safeBal.ask = safeBal.bid * 1.5;
+  safeBal.mid = (safeBal.bid + safeBal.ask) / 2;
   const aggBal = makeLeg({ strike: 43, bid: 0.86, yieldPct: 0.95, distancePct: -3 });
   const c = makeCandidate({ ticker: "ORCL", safe: safeBal, agg: aggBal, finalDisplayMode: "AGGRESSIVE", aggressiveGrade: "A" });
   const pick = comboPick([c], "BALANCED", "ORCL");
@@ -206,7 +208,9 @@ test("TEST 5 — fallback AF-07 vers SAFE : score jambe retenue", () => {
 });
 
 test("TEST 6 — fallback AF-07 vers AGGRESSIVE si chemin atteignable", () => {
-  const safeBal = makeLeg({ strike: 40, bid: 0.20, yieldPct: 0.50, distancePct: -12 });
+  const safeBal = makeLeg({ strike: 40, bid: 0.20, yieldPct: 0.50, distancePct: -12, spreadPct: 30 });
+  safeBal.ask = safeBal.bid * 1.5;
+  safeBal.mid = (safeBal.bid + safeBal.ask) / 2;
   const aggBal = makeLeg({ strike: 43, bid: 0.86, yieldPct: 0.95, distancePct: -3 });
   const c = makeCandidate({ ticker: "MSFT", safe: safeBal, agg: aggBal, aggressiveGrade: "A", proFinalScore: 0.01 });
   const pick = comboPick([c], "BALANCED", "MSFT");

@@ -234,7 +234,7 @@ test("TEST 1 — reproduction AF-07 : SAFE conforme + AGGRESSIVE trop élevée �
   assert.equal(balancedRejections(holder).length, 0, "aucun rejet de bande résiduel");
 });
 
-test("TEST 2 — inverse : SAFE trop faible + AGGRESSIVE conforme ⇒ AGGRESSIVE sélectionnée", () => {
+test("TEST 2 — SAFE sous la cible reste admissible et prioritaire", () => {
   const cand = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: Y_TOO_LOW, distancePct: -12, popDecimal: 0.94 }),
@@ -245,12 +245,11 @@ test("TEST 2 — inverse : SAFE trop faible + AGGRESSIVE conforme ⇒ AGGRESSIVE
   const { bal } = runBalanced([cand]);
   const pick = bal?.picks?.[0] ?? null;
   assert.ok(pick);
-  assert.equal(pick.strike, 43, "strike de la jambe AGGRESSIVE");
-  assert.equal(pick.weeklyReturn, Y_MID);
+  assert.equal(pick.strike, 40, "strike de la jambe SAFE");
+  assert.equal(pick.weeklyReturn, Y_TOO_LOW);
 });
 
-test("TEST 3 — deux jambes conformes : préférence historique conservée (MID, égalité → SAFE, sous-bande → AGGRESSIVE)", () => {
-  // (a) bande préférée : la jambe la plus proche du MID gagne (ici AGGRESSIVE).
+test("TEST 3 — deux fallbacks exécutables : SAFE reste toujours prioritaire", () => {
   const closerAgg = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: PREF.minInclusivePct + 0.05, distancePct: -9 }),
@@ -258,7 +257,7 @@ test("TEST 3 — deux jambes conformes : préférence historique conservée (MID
     safeGrade: "A",
     aggressiveGrade: "A",
   });
-  assert.equal(runBalanced([closerAgg]).bal?.picks?.[0]?.strike, 43);
+  assert.equal(runBalanced([closerAgg]).bal?.picks?.[0]?.strike, 40);
 
   // (b) égalité exacte de distance au MID → règle « <= » historique : SAFE gagne.
   const tie = makeCandidate({
@@ -270,7 +269,7 @@ test("TEST 3 — deux jambes conformes : préférence historique conservée (MID
   });
   assert.equal(runBalanced([tie]).bal?.picks?.[0]?.strike, 40);
 
-  // (c) deux conformes SOUS la bande préférée → ordre de fallback historique : AGGRESSIVE.
+  // Deux rendements sous la bande préférée : le statut reste informatif.
   const bothBelowPref = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: Y_IN_BAND_BELOW_PREF, distancePct: -9 }),
@@ -278,10 +277,10 @@ test("TEST 3 — deux jambes conformes : préférence historique conservée (MID
     safeGrade: "A",
     aggressiveGrade: "A",
   });
-  assert.equal(runBalanced([bothBelowPref]).bal?.picks?.[0]?.strike, 43);
+  assert.equal(runBalanced([bothBelowPref]).bal?.picks?.[0]?.strike, 40);
 });
 
-test("TEST 4 — aucune jambe conforme ⇒ candidat BALANCED rejeté, aucune jambe forcée", () => {
+test("TEST 4 — deux fallbacks hors cible restent admissibles, SAFE prioritaire", () => {
   const cand = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: Y_TOO_LOW, distancePct: -12, popDecimal: 0.94 }),
@@ -290,24 +289,21 @@ test("TEST 4 — aucune jambe conforme ⇒ candidat BALANCED rejeté, aucune jam
     aggressiveGrade: "A",
   });
   const { bal, holder } = runBalanced([cand]);
-  assert.equal(bal?.picks?.length ?? 0, 0);
-  // Aucun fallback hors bande n'est forcé : diagnostic BALANCED indisponible.
+  assert.equal(bal?.picks?.[0]?.strike, 40);
   const rows = balancedRejections(holder);
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0].primaryBlocker, "NO_BUCKET_LEG_FOR_MODE");
-  assert.equal(rows[0].balancedReasonCode, "NO_BALANCED_FALLBACK_ELIGIBLE");
-  // Et le helper lui-même retourne null (aucune jambe hors bande n'est « conforme »).
+  assert.equal(rows.length, 0);
   assert.equal(
     resolveCompatibleLegForMode({
       legCandidates: [
-        desc({ mode: "AGGRESSIVE", yieldPct: Y_TOO_HIGH }),
         desc({ mode: "SAFE", yieldPct: Y_TOO_LOW }),
+        desc({ mode: "AGGRESSIVE", yieldPct: Y_TOO_HIGH }),
       ],
       minYieldPctInclusive: BAND.min,
       maxYieldPctExclusive: BAND.max,
       preferredBand: PREF,
-    }),
-    null,
+      yieldPolicyMode: "BALANCED",
+    })?.mode,
+    "SAFE",
   );
 });
 
@@ -396,7 +392,7 @@ test("TEST 10 — borne minimum exacte : min inclusif (jambe acceptée)", () => 
   assert.equal(pick.weeklyReturn, BAND.min);
 });
 
-test("TEST 11 — borne maximum exacte : max exclusif (jambe rejetée)", () => {
+test("TEST 11 — borne maximum exacte : statut ABOVE mais jambe admise", () => {
   const cand = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: BAND.max, distancePct: -9, popDecimal: 0.91 }),
@@ -404,13 +400,13 @@ test("TEST 11 — borne maximum exacte : max exclusif (jambe rejetée)", () => {
     finalDisplayMode: "SAFE",
   });
   const { bal, holder } = runBalanced([cand]);
-  assert.equal(bal?.picks?.length ?? 0, 0, "rendement == max ⇒ non conforme (convention < max du moteur)");
+  assert.equal(bal?.picks?.length ?? 0, 1);
+  assert.equal(bal?.picks?.[0]?.balancedLegDiagnostics?.selectedYieldBandStatus, "ABOVE");
   const rows = balancedRejections(holder);
-  assert.equal(rows[0]?.primaryBlocker, "NO_BUCKET_LEG_FOR_MODE");
-  assert.equal(rows[0]?.balancedReasonCode, "NO_BALANCED_FALLBACK_ELIGIBLE");
+  assert.equal(rows.length, 0);
 });
 
-test("TEST 12 — min − epsilon : jambe rejetée puis jambe suivante essayée", () => {
+test("TEST 12 — min − epsilon : SAFE reste admissible et prioritaire", () => {
   const cand = makeCandidate({
     ticker: "CRM",
     safe: makeLeg({ strike: 40, yieldPct: BAND.min - EPS, distancePct: -9, popDecimal: 0.91 }),
@@ -419,7 +415,7 @@ test("TEST 12 — min − epsilon : jambe rejetée puis jambe suivante essayée"
     aggressiveGrade: "A",
   });
   const pick = runBalanced([cand]).bal?.picks?.[0] ?? null;
-  assert.equal(pick?.strike, 43, "SAFE sous min ignorée, AGGRESSIVE conforme sélectionnée");
+  assert.equal(pick?.strike, 40, "SAFE sous min conservée avec statut informatif");
 });
 
 test("TEST 13 — max + epsilon : jambe rejetée puis jambe suivante essayée", () => {
@@ -464,7 +460,7 @@ test("TEST 15 — données du pick entièrement issues de la jambe AGGRESSIVE (a
   // Règle moteur existante pour la jambe AGGRESSIVE : grade DÉRIVÉ de la jambe
   // (priorityGrade ?? gradeLeg ?? stocké). Spread 10 + POP 88 + yield conforme ⇒ dérivé "A",
   // distinct du grade SAFE "B" : une fuite SAFE afficherait "B".
-  const safeLeg = makeLeg({ strike: 40, spreadPct: 9, yieldPct: Y_TOO_LOW, distancePct: -12.5, popDecimal: 0.94 });
+  const safeLeg = makeLeg({ strike: 40, spreadPct: 30, yieldPct: Y_TOO_LOW, distancePct: -12.5, popDecimal: 0.94 });
   const aggLeg = makeLeg({ strike: 43, spreadPct: 9, yieldPct: Y_MID, distancePct: -6.2, popDecimal: 0.88 });
   const cand = makeCandidate({ ticker: "CRM", safe: safeLeg, agg: aggLeg, safeGrade: "B", aggressiveGrade: "A" });
   const pick = runBalanced([cand]).bal?.picks?.[0] ?? null;
@@ -533,7 +529,7 @@ test("TEST 18 — POP réelle zéro : comportement existant préservé (grade d�
   assert.equal(bal?.picks?.length ?? 0, 0);
 });
 
-test("TEST 19 — spreads différents : le choix de jambe reste piloté par la bande, pas par le spread", () => {
+test("TEST 19 — fallbacks exécutables : SAFE prioritaire malgré les spreads relatifs", () => {
   const mk = (safeSpread, aggSpread) =>
     makeCandidate({
       ticker: "CRM",
@@ -542,12 +538,11 @@ test("TEST 19 — spreads différents : le choix de jambe reste piloté par la b
       safeGrade: "A",
       aggressiveGrade: "A",
     });
-  // AGG plus proche du MID gagne, quel que soit le côté du meilleur spread.
-  assert.equal(runBalanced([mk(8, 15)]).bal?.picks?.[0]?.strike, 43);
-  assert.equal(runBalanced([mk(15, 8)]).bal?.picks?.[0]?.strike, 43);
+  assert.equal(runBalanced([mk(8, 15)]).bal?.picks?.[0]?.strike, 40);
+  assert.equal(runBalanced([mk(15, 8)]).bal?.picks?.[0]?.strike, 40);
 });
 
-test("TEST 20 — distances différentes : préférence de jambe inchangée", () => {
+test("TEST 20 — distances différentes : ordre SAFE puis AGRESSIF inchangé", () => {
   const mk = (safeDist, aggDist) =>
     makeCandidate({
       ticker: "CRM",
@@ -556,8 +551,8 @@ test("TEST 20 — distances différentes : préférence de jambe inchangée", ()
       safeGrade: "A",
       aggressiveGrade: "A",
     });
-  assert.equal(runBalanced([mk(-12, -6)]).bal?.picks?.[0]?.strike, 43);
-  assert.equal(runBalanced([mk(-6, -12)]).bal?.picks?.[0]?.strike, 43);
+  assert.equal(runBalanced([mk(-12, -6)]).bal?.picks?.[0]?.strike, 40);
+  assert.equal(runBalanced([mk(-6, -12)]).bal?.picks?.[0]?.strike, 40);
 });
 
 test("TEST 21 — scores différents : la jambe sélectionnée ne dépend pas du score qualité du candidat", () => {

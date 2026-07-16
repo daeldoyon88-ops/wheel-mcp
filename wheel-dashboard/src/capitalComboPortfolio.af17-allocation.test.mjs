@@ -94,7 +94,7 @@ test("55 allocation 7 DTE homogène — NVDA admissible BALANCED", () => {
   const bal = combos.find((c) => c.label === "BALANCED");
   assert.ok(bal?.picks?.length >= 1);
   const p = pickByTicker(bal, "NVDA");
-  approx(p.weeklyReturn, 0.88, 0.01);
+  approx(p.weeklyReturn, 0.72, 0.01);
 });
 
 test("56 candidate 3 DTE 0,50 % période — bande décidée par la PÉRIODE : admissible SAFE, pas AGGRESSIVE", () => {

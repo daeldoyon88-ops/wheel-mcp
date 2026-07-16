@@ -1082,6 +1082,19 @@ export function isPeriodYieldAdmissibleInBand(periodYieldPct, band) {
   return true;
 }
 
+/** Statut informatif de rendement BALANCED, sans effet sur l'admissibilite. */
+export function getBalancedYieldBandStatus(periodYieldPct, band) {
+  const y = Number(periodYieldPct);
+  const min = Number(band?.effectivePeriodMinPct);
+  if (!Number.isFinite(y) || !Number.isFinite(min)) return null;
+  if (y < min) return "BELOW";
+  const max = band?.effectivePeriodMaxPct == null
+    ? null
+    : Number(band.effectivePeriodMaxPct);
+  if (max != null && Number.isFinite(max) && y >= max) return "ABOVE";
+  return "WITHIN";
+}
+
 export function formatPeriodYieldBandDisplayPct(pct, { decimals = 2 } = {}) {
   if (pct == null || !Number.isFinite(Number(pct))) return "n/d";
   return Number(pct).toFixed(decimals);
@@ -2092,6 +2105,8 @@ export function resolveCompatibleLegForMode({
 
   const min = Number(minYieldPctInclusive);
   const max = maxYieldPctExclusive == null ? null : Number(maxYieldPctExclusive);
+  const balancedYieldIsInformational =
+    normalizeYieldPolicyMode(yieldPolicyMode) === "BALANCED";
   const resolveBandForDescriptor = (d) => {
     if (yieldPolicyMode) {
       const dte = resolveLegDte(d.leg, candidateForDte);
@@ -2106,6 +2121,7 @@ export function resolveCompatibleLegForMode({
   const conformsToBand = (d) => {
     const y = Number(d.yieldPct);
     if (!Number.isFinite(y)) return false;
+    if (balancedYieldIsInformational) return true;
     const band = resolveBandForDescriptor(d);
     if (!band) return false;
     return isPeriodYieldAdmissibleInBand(y, band);
@@ -2120,7 +2136,7 @@ export function resolveCompatibleLegForMode({
     const conforming = usable.filter((d) => priorityOf(d) === priority && conformsToBand(d));
     if (!conforming.length) continue;
 
-    if (preferredBand) {
+    if (preferredBand && !balancedYieldIsInformational) {
       const pMin = Number(preferredBand.minInclusivePct);
       const pMax = Number(preferredBand.maxExclusivePct);
       const mid = Number(preferredBand.midTargetPct);
@@ -2177,7 +2193,9 @@ export const BALANCED_NATIVE_REASON_CODES = Object.freeze({
   BELOW_MIN: "INTERMEDIATE_STRIKES_BELOW_BALANCED_MIN",
   ABOVE_MAX: "INTERMEDIATE_STRIKES_ABOVE_BALANCED_MAX",
   OUTSIDE_YIELD_BAND: "INTERMEDIATE_STRIKES_OUTSIDE_BALANCED_YIELD_BAND",
+  ALL_YIELDS_OUTSIDE_TARGET_BAND: "ALL_INTERMEDIATE_YIELDS_OUTSIDE_TARGET_BAND",
   FAILED_SPREAD: "INTERMEDIATE_STRIKES_FAILED_SPREAD",
+  FAILED_LIQUIDITY: "INTERMEDIATE_STRIKES_FAILED_LIQUIDITY",
   FAILED_GRADE: "INTERMEDIATE_STRIKES_FAILED_GRADE",
   FAILED_STATIC_FILTERS: "INTERMEDIATE_STRIKES_FAILED_STATIC_FILTERS",
   NONE_ELIGIBLE: "NO_NATIVE_BALANCED_CONTRACT_ELIGIBLE",
@@ -2461,14 +2479,24 @@ function evaluateBalancedLegEligibility({
   const weeklyNormalizedYieldPct = quoteValid
     ? getLegWeeklyNormalizedYieldPct(leg, candidate)
     : null;
-  const yieldEligible =
-    quoteValid && isPeriodYieldAdmissibleInBand(periodYieldPct, band);
+  const yieldBandStatus = quoteValid
+    ? getBalancedYieldBandStatus(periodYieldPct, band)
+    : null;
+  // Compat diagnostic : "yieldEligible" signifie desormais uniquement
+  // "dans la cible". Il ne participe plus a l'admissibilite d'execution.
+  const yieldEligible = quoteValid && yieldBandStatus === "WITHIN";
   const spreadPct = quoteValid ? getLegSpreadPct(leg) : null;
   const spreadEligible =
-    yieldEligible &&
+    quoteValid &&
     Number.isFinite(spreadPct) &&
     spreadPct >= 0 &&
     spreadPct <= maxSpreadPct;
+  const executionBreakdown = spreadEligible ? getLegExecutionBreakdown(leg) : null;
+  const executionScore = executionBreakdown?.executionScore ?? null;
+  // BALANCED n'a pas de seuil OI/volume additionnel dans ce moteur. Les
+  // metriques existantes restent requises par le score d'execution et servent
+  // au departage, sans creer un nouveau seuil.
+  const liquidityEligible = spreadEligible && executionBreakdown != null;
   const grade = spreadEligible
     ? resolveSelectedLegGrade({
         explicitGrade: explicitGrade ?? leg?.grade,
@@ -2484,12 +2512,9 @@ function evaluateBalancedLegEligibility({
     popPct != null &&
     popPct >= 88 &&
     spreadPct <= 15 &&
-    weeklyNormalizedYieldPct != null &&
-    weeklyNormalizedYieldPct >= 0.75 &&
-    weeklyNormalizedYieldPct <= 1.05 &&
     distancePct != null &&
     distancePct <= -6;
-  const gradeEligible = spreadEligible && (grade === "A" || grade === "B" || watchEligible);
+  const gradeEligible = liquidityEligible && (grade === "A" || grade === "B" || watchEligible);
   const meta = candidate?._tickerMeta ?? getTickerDisplayMeta(
     String(candidate?.ticker ?? candidate?.symbol ?? "").trim().toUpperCase(),
   );
@@ -2512,9 +2537,8 @@ function evaluateBalancedLegEligibility({
     (qualityOverlay?.qualityTier === "speculative" &&
       (popPct == null ||
         popPct < 82 ||
-        (spreadPct != null && spreadPct > 20) ||
-        weeklyNormalizedYieldPct == null ||
-        weeklyNormalizedYieldPct < 0.75));
+        (spreadPct != null && spreadPct > 20)));
+  const executionEligible = liquidityEligible;
   const fullyEligible = gradeEligible && !commonBlocked && !qualityBlocked;
   const pro = fullyEligible
     ? resolveSelectedLegProScore(
@@ -2527,15 +2551,47 @@ function evaluateBalancedLegEligibility({
     quoteValid,
     periodYieldPct,
     weeklyNormalizedYieldPct,
+    yieldBandStatus,
     yieldEligible,
     spreadPct,
     spreadEligible,
+    executionBreakdown,
+    executionScore,
+    liquidityEligible,
     grade,
     gradeEligible,
     qualityOverlay,
     fullyEligible,
+    executionEligible,
+    rejectionReasons: [
+      ...(!quoteValid ? ["INVALID_QUOTE"] : []),
+      ...(quoteValid && !spreadEligible ? ["SPREAD_NOT_ELIGIBLE"] : []),
+      ...(spreadEligible && !liquidityEligible ? ["LIQUIDITY_NOT_ELIGIBLE"] : []),
+      ...(liquidityEligible && !gradeEligible ? ["GRADE_NOT_ELIGIBLE"] : []),
+      ...(gradeEligible && (commonBlocked || qualityBlocked) ? ["STATIC_FILTER_NOT_ELIGIBLE"] : []),
+    ],
     score: pro?.proFinalScore ?? 0,
   };
+}
+
+function compareBalancedEvaluationsByMidpoint(a, b, midpointStrike) {
+  const distanceA = Math.abs(a.leg.strike - midpointStrike);
+  const distanceB = Math.abs(b.leg.strike - midpointStrike);
+  const spreadA = Number.isFinite(a.spreadPct) ? a.spreadPct : Number.POSITIVE_INFINITY;
+  const spreadB = Number.isFinite(b.spreadPct) ? b.spreadPct : Number.POSITIVE_INFINITY;
+  const liquidityA = Number.isFinite(a.executionScore) ? a.executionScore : -1;
+  const liquidityB = Number.isFinite(b.executionScore) ? b.executionScore : -1;
+  const spreadDelta = spreadA - spreadB;
+  const liquidityDelta = liquidityB - liquidityA;
+  const keyA = String(a.leg.optionSymbol ?? a.leg.conId ?? "");
+  const keyB = String(b.leg.optionSymbol ?? b.leg.conId ?? "");
+  return (
+    distanceA - distanceB ||
+    (Math.abs(spreadDelta) > 1e-9 ? spreadDelta : 0) ||
+    (Math.abs(liquidityDelta) > 1e-12 ? liquidityDelta : 0) ||
+    a.leg.strike - b.leg.strike ||
+    keyA.localeCompare(keyB)
+  );
 }
 
 function balancedNativeBaseResult({
@@ -2568,9 +2624,20 @@ function balancedNativeBaseResult({
     intermediateContractCount: 0,
     quoteValidIntermediateCount: 0,
     yieldEligibleIntermediateCount: 0,
+    spreadEligibleIntermediateCount: 0,
+    liquidityEligibleIntermediateCount: 0,
     fullyEligibleIntermediateCount: 0,
+    executionEligibleIntermediateCount: 0,
     selectedStrike: null,
     selectedDistanceFromMidpoint: null,
+    selectedPeriodYieldPct: null,
+    selectedYieldBandStatus: null,
+    selectedExecutionEligible: false,
+    balancedLegAvailable: false,
+    executionEligible: false,
+    includedInBalancedPool: false,
+    selectedByOptimizer: null,
+    notSelectedReason: null,
     dteDays,
     yieldPolicyVersion: YIELD_POLICY_VERSION,
     effectivePeriodMinPct: band?.effectivePeriodMinPct ?? null,
@@ -2652,7 +2719,7 @@ export function resolveNativeBalancedLeg({
   const upperBoundaryStrike = Math.max(safeStrike, aggressiveStrike);
   const midpointStrike = (lowerBoundaryStrike + upperBoundaryStrike) / 2;
   const inverted = safeStrike > aggressiveStrike;
-  const reasonCodes = inverted ? [BALANCED_NATIVE_REASON_CODES.INVERTED_BOUNDARIES] : [];
+  const reasonCodes = [];
   const geometry = {
     ...common,
     lowerBoundaryStrike,
@@ -2664,6 +2731,14 @@ export function resolveNativeBalancedLeg({
       ...geometry,
       reasonCode: BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE,
       reasonCodes: [BALANCED_NATIVE_REASON_CODES.EQUAL_BOUNDARIES],
+    });
+  }
+  if (inverted) {
+    return balancedNativeBaseResult({
+      ...geometry,
+      reasonCode: BALANCED_NATIVE_REASON_CODES.INVERTED_BOUNDARIES,
+      reasonCodes: [BALANCED_NATIVE_REASON_CODES.INVERTED_BOUNDARIES],
+      diagnostics: { invertedSafeAggressiveOrder: true },
     });
   }
   const chainInput = resolveBalancedChainInput(candidate, chain);
@@ -2708,18 +2783,22 @@ export function resolveNativeBalancedLeg({
       diagnostics: { scopeRejectedContractCount, invertedSafeAggressiveOrder: inverted },
     });
   }
-  const evaluated = intermediate.map((leg) =>
-    evaluateBalancedLegEligibility({
-      leg,
-      candidate,
-      band,
-      maxSpreadPct,
-      requireRealQuote: true,
-    }),
-  );
+  const evaluated = intermediate
+    .map((leg) =>
+      evaluateBalancedLegEligibility({
+        leg,
+        candidate,
+        band,
+        maxSpreadPct,
+        requireRealQuote: true,
+      }),
+    )
+    .sort((a, b) => compareBalancedEvaluationsByMidpoint(a, b, midpointStrike));
   const quoteValid = evaluated.filter((row) => row.quoteValid);
   const yieldEligible = evaluated.filter((row) => row.yieldEligible);
   const spreadEligible = evaluated.filter((row) => row.spreadEligible);
+  const liquidityEligible = evaluated.filter((row) => row.liquidityEligible);
+  const executionEligible = evaluated.filter((row) => row.executionEligible);
   const gradeEligible = evaluated.filter((row) => row.gradeEligible);
   const fullyEligible = evaluated.filter((row) => row.fullyEligible);
   let primaryReason = BALANCED_NATIVE_REASON_CODES.NONE_ELIGIBLE;
@@ -2729,23 +2808,41 @@ export function resolveNativeBalancedLeg({
   ];
   if (!quoteValid.length) {
     primaryReason = BALANCED_NATIVE_REASON_CODES.QUOTES_INVALID;
-  } else if (!yieldEligible.length) {
-    const allBelow = quoteValid.every(
-      (row) => Number(row.periodYieldPct) < band.effectivePeriodMinPct,
-    );
-    const allAbove = quoteValid.every(
-      (row) => Number(row.periodYieldPct) >= band.effectivePeriodMaxPct,
-    );
-    if (allBelow) detailedReasons.push(BALANCED_NATIVE_REASON_CODES.BELOW_MIN);
-    if (allAbove) detailedReasons.push(BALANCED_NATIVE_REASON_CODES.ABOVE_MAX);
-    primaryReason = BALANCED_NATIVE_REASON_CODES.OUTSIDE_YIELD_BAND;
   } else if (!spreadEligible.length) {
     primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_SPREAD;
+  } else if (!liquidityEligible.length) {
+    primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_LIQUIDITY;
   } else if (!gradeEligible.length) {
     primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_GRADE;
   } else if (!fullyEligible.length) {
     primaryReason = BALANCED_NATIVE_REASON_CODES.FAILED_STATIC_FILTERS;
   }
+  if (quoteValid.length && !yieldEligible.length) {
+    detailedReasons.push(BALANCED_NATIVE_REASON_CODES.ALL_YIELDS_OUTSIDE_TARGET_BAND);
+    const allBelow = quoteValid.every((row) => row.yieldBandStatus === "BELOW");
+    const allAbove = quoteValid.every((row) => row.yieldBandStatus === "ABOVE");
+    if (allBelow) detailedReasons.push(BALANCED_NATIVE_REASON_CODES.BELOW_MIN);
+    if (allAbove) detailedReasons.push(BALANCED_NATIVE_REASON_CODES.ABOVE_MAX);
+  }
+  const candidateDiagnostics = evaluated.map((row, index) => ({
+    rank: index + 1,
+    strike: row.leg.strike,
+    distanceToMidpoint: Math.abs(row.leg.strike - midpointStrike),
+    bid: row.leg.bid ?? null,
+    ask: row.leg.ask ?? null,
+    spreadPct: row.spreadPct,
+    volume: row.executionBreakdown?.volume ?? null,
+    openInterest: row.executionBreakdown?.openInterest ?? null,
+    executionScore: row.executionScore,
+    periodYieldPct: row.periodYieldPct,
+    yieldBandStatus: row.yieldBandStatus,
+    quoteValid: row.quoteValid,
+    spreadEligible: row.spreadEligible,
+    liquidityEligible: row.liquidityEligible,
+    executionEligible: row.executionEligible,
+    admissionEligible: row.fullyEligible,
+    rejectionReasons: row.rejectionReasons,
+  }));
   if (!fullyEligible.length) {
     return {
       ...balancedNativeBaseResult({
@@ -2757,27 +2854,18 @@ export function resolveNativeBalancedLeg({
           scopeRejectedContractCount,
           invertedSafeAggressiveOrder: inverted,
           maxSpreadPct,
+          candidateDiagnostics,
         },
       }),
       intermediateContractCount: intermediate.length,
       quoteValidIntermediateCount: quoteValid.length,
       yieldEligibleIntermediateCount: yieldEligible.length,
+      spreadEligibleIntermediateCount: spreadEligible.length,
+      liquidityEligibleIntermediateCount: liquidityEligible.length,
       fullyEligibleIntermediateCount: 0,
+      executionEligibleIntermediateCount: executionEligible.length,
     };
   }
-  fullyEligible.sort((a, b) => {
-    const distanceA = Math.abs(a.leg.strike - midpointStrike);
-    const distanceB = Math.abs(b.leg.strike - midpointStrike);
-    const keyA = String(a.leg.optionSymbol ?? a.leg.conId ?? "");
-    const keyB = String(b.leg.optionSymbol ?? b.leg.conId ?? "");
-    return (
-      distanceA - distanceB ||
-      a.leg.strike - b.leg.strike ||
-      a.spreadPct - b.spreadPct ||
-      b.score - a.score ||
-      keyA.localeCompare(keyB)
-    );
-  });
   const selected = fullyEligible[0];
   return {
     ...balancedNativeBaseResult({
@@ -2793,6 +2881,7 @@ export function resolveNativeBalancedLeg({
         maxSpreadPct,
         selectedGrade: selected.grade,
         selectedScore: selected.score,
+        candidateDiagnostics,
       },
     }),
     selectedLeg: {
@@ -2803,14 +2892,29 @@ export function resolveNativeBalancedLeg({
       grade: selected.grade,
       score: selected.score,
       proFinalScore: selected.score,
+      yieldBandStatus: selected.yieldBandStatus,
+      executionEligible: true,
       capitalRequired: selected.leg.strike * 100,
     },
     intermediateContractCount: intermediate.length,
     quoteValidIntermediateCount: quoteValid.length,
     yieldEligibleIntermediateCount: yieldEligible.length,
+    spreadEligibleIntermediateCount: spreadEligible.length,
+    liquidityEligibleIntermediateCount: liquidityEligible.length,
     fullyEligibleIntermediateCount: fullyEligible.length,
+    executionEligibleIntermediateCount: executionEligible.length,
     selectedStrike: selected.leg.strike,
     selectedDistanceFromMidpoint: Math.abs(selected.leg.strike - midpointStrike),
+    selectedPeriodYieldPct: selected.periodYieldPct,
+    selectedWeeklyNormalizedYieldPct: selected.weeklyNormalizedYieldPct,
+    selectedSpreadPct: selected.spreadPct,
+    selectedGrade: selected.grade,
+    selectedYieldBandStatus: selected.yieldBandStatus,
+    yieldBandStatus: selected.yieldBandStatus,
+    selectedExecutionEligible: true,
+    balancedLegAvailable: true,
+    executionEligible: true,
+    includedInBalancedPool: true,
   };
 }
 
@@ -2899,13 +3003,8 @@ export function resolveBalancedLegSelection({
     };
   }
   const target = (band.effectivePeriodMinPct + band.effectivePeriodMaxPct) / 2;
-  fallbackDescriptors.sort((a, b) => {
-    const da = Math.abs(a.evaluation.periodYieldPct - target);
-    const db = Math.abs(b.evaluation.periodYieldPct - target);
-    if (da !== db) return da - db;
-    if (a.mode === b.mode) return 0;
-    return a.mode === "SAFE" ? -1 : 1;
-  });
+  // Ordre metier canonique : SAFE, puis AGGRESSIVE. Le rendement reste
+  // informatif et ne peut plus reordonner ni exclure les fallbacks.
   const selected = fallbackDescriptors[0];
   const isSafe = selected.mode === "SAFE";
   return {
@@ -2939,10 +3038,23 @@ export function resolveBalancedLegSelection({
     selectedPeriodYieldPct: selected.evaluation.periodYieldPct,
     selectedWeeklyNormalizedYieldPct: selected.evaluation.weeklyNormalizedYieldPct,
     selectedSpreadPct: selected.evaluation.spreadPct,
+    selectedYieldBandStatus: selected.evaluation.yieldBandStatus,
+    yieldBandStatus: selected.evaluation.yieldBandStatus,
+    selectedExecutionEligible: true,
+    balancedLegAvailable: true,
+    executionEligible: true,
+    includedInBalancedPool: true,
     diagnostics: {
       ...(native.diagnostics ?? {}),
       nativePrimaryReason: native.primaryReason,
       fallbackEligibleModes: fallbackDescriptors.map((row) => row.mode),
+      fallbackEvaluations: fallbackDescriptors.map((row) => ({
+        mode: row.mode,
+        periodYieldPct: row.evaluation.periodYieldPct,
+        yieldBandStatus: row.evaluation.yieldBandStatus,
+        spreadPct: row.evaluation.spreadPct,
+        executionEligible: row.evaluation.executionEligible,
+      })),
       effectiveTargetPct: target,
     },
   };
@@ -3286,12 +3398,10 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       watchPremiumFilter: (c) => {
         const pop = c._popForCombo;
         const spread = c.selectedSpreadPct;
-        const yld = c.selectedYieldPct;
         const dist = c.selectedDistancePct;
         return (
           pop != null && pop >= 88 &&
           (spread == null || spread <= 15) &&
-          yld != null && yld >= 0.75 && yld <= 1.05 &&
           dist != null && dist <= -6
         );
       },
@@ -3318,7 +3428,6 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         if (ov.qualityTier === "speculative") {
           if (c._popForCombo == null || c._popForCombo < 82) return false;
           if (c.selectedSpreadPct != null && c.selectedSpreadPct > 20) return false;
-          if ((c.selectedYieldPct ?? 0) < 0.75) return false;
         }
         return true;
       },
@@ -3562,7 +3671,11 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       };
 
       if (!(cand.capitalPerContract > 0 && cand.capitalPerContract <= usableCapital && cand.weeklyReturn > 0)) {
-        pushScoredPoolReject(cand.ticker, "CAPITAL_OR_YIELD_GATE", {
+        const capitalOrYieldBlocker =
+          mode.id === "balanced" && cand.capitalPerContract > usableCapital
+            ? "CAPITAL_INSUFFICIENT"
+            : "CAPITAL_OR_YIELD_GATE";
+        pushScoredPoolReject(cand.ticker, capitalOrYieldBlocker, {
           capitalPerContract: cand.capitalPerContract,
           usableCapitalUsd: usableCapital,
           weeklyReturnPct: cand.weeklyReturn,
@@ -3600,7 +3713,10 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       }
       const yieldBand = getCanonicalPeriodYieldBand(mode.label, bucketDteDays);
       const bucketPeriodYieldPct = Number(candWp.selectedPeriodYieldPct);
-      if (!isPeriodYieldAdmissibleInBand(bucketPeriodYieldPct, yieldBand)) {
+      if (
+        mode.id !== "balanced" &&
+        !isPeriodYieldAdmissibleInBand(bucketPeriodYieldPct, yieldBand)
+      ) {
         if (!Number.isFinite(bucketPeriodYieldPct) || bucketPeriodYieldPct < yieldBand.effectivePeriodMinPct) {
           pushScoredPoolReject(candWp.ticker, "PERIOD_YIELD_BELOW_BUCKET_MIN", {
             ...buildYieldPolicyRejectionFields(

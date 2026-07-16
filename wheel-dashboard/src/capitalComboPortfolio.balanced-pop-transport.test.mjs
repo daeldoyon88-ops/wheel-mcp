@@ -201,6 +201,8 @@ test("5 — fallback AGGRESSIVE utilise la POP réelle de la jambe AGGRESSIVE", 
   candidate.ibkrDirect = { putCandidates: [], expiration: EXP };
   candidate.safeStrike = sideLeg(67, 0.5, 0.99, { optionSymbol: "TQQQ-SAFE" });
   candidate.aggressiveStrike = sideLeg(75, 0.9, 0.83, { optionSymbol: "TQQQ-AGG" });
+  candidate.safeStrike.ask = askForSpread(candidate.safeStrike.bid, 30);
+  candidate.safeStrike.mid = (candidate.safeStrike.bid + candidate.safeStrike.ask) / 2;
   const engine = resolveBalancedLegSelection({ candidate });
   assert.equal(engine.source, BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE);
   const view = resolveBalancedCardViewModel({ candidate });

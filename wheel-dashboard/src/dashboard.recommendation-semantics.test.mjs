@@ -364,8 +364,8 @@ test("21 — jambe réellement rejetée : mode/statut corrects avec raison véri
 test("22/24/25/26 — diagnostics NFLX : native ≠ fallbacks ≠ finale, NO_FALLBACK jamais natif", () => {
   const candidate = makeNflx({ chain: [] });
   const engine = resolveBalancedLegSelection({ candidate });
-  assert.equal(engine.source, BALANCED_LEG_SOURCES.UNAVAILABLE);
-  assert.equal(engine.primaryReason, BALANCED_NATIVE_REASON_CODES.NO_FALLBACK);
+  assert.equal(engine.source, BALANCED_LEG_SOURCES.FALLBACK_SAFE);
+  assert.equal(engine.primaryReason, BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE);
   // La raison native est conservée séparément par le moteur.
   assert.equal(
     engine.diagnostics?.nativePrimaryReason,
@@ -373,22 +373,15 @@ test("22/24/25/26 — diagnostics NFLX : native ≠ fallbacks ≠ finale, NO_FAL
   );
 
   const view = resolveBalancedCardViewModel({ candidate });
-  const diag = view.unavailableDiagnostics;
-  assert.ok(diag);
-  // 24 — NO_BALANCED_FALLBACK_ELIGIBLE n'est jamais présenté comme raison native.
-  assert.notEqual(diag.nativePrimaryReason, BALANCED_NATIVE_REASON_CODES.NO_FALLBACK);
-  assert.equal(diag.nativePrimaryReason, BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE);
-  assert.equal(diag.native.primaryReason, BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE);
-  // Raison finale distincte.
-  assert.equal(diag.final.reason, BALANCED_NATIVE_REASON_CODES.NO_FALLBACK);
-  assert.equal(view.primaryReason, BALANCED_NATIVE_REASON_CODES.NO_FALLBACK);
+  assert.equal(view.available, true);
+  assert.equal(view.unavailableDiagnostics, null);
+  // 24 — la raison native reste distincte de la sélection finale fallback.
+  assert.notEqual(view.nativePrimaryReason, BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE);
   assert.equal(view.nativePrimaryReason, BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE);
-  // 25 — fallback SAFE 0,65 % rejeté sous 0,70 % inclusif.
-  assert.equal(diag.fallbackSafe.status, "rejected");
-  assert.match(diag.fallbackSafe.reason, /0\.65 % < minimum BALANCED 0\.70 %/);
-  // 26 — fallback AGGRESSIVE 1,15 % rejeté au-dessus de 1,05 % exclusif.
-  assert.equal(diag.fallbackAggressive.status, "rejected");
-  assert.match(diag.fallbackAggressive.reason, /1\.15 % ≥ maximum BALANCED exclusif 1\.05 %/);
+  assert.equal(view.primaryReason, BALANCED_NATIVE_REASON_CODES.FALLBACK_SAFE);
+  // 25/26 — la bande est informative : SAFE hors cible gagne avant AGGRESSIVE.
+  assert.equal(view.yieldBandStatus, "BELOW");
+  assert.equal(view.strike, candidate.safeStrike.strike);
 });
 
 test("23 — strike intermédiaire dans bande mais filtre postérieur : compteurs et raison exacts", () => {
@@ -398,7 +391,7 @@ test("23 — strike intermédiaire dans bande mais filtre postérieur : compteur
     chain: [makeLeg(67, 0.82, { ticker: "NFLX", dteDays: 3, spreadPct: 25 })],
   });
   const engine = resolveBalancedLegSelection({ candidate });
-  assert.equal(engine.source, BALANCED_LEG_SOURCES.UNAVAILABLE);
+  assert.equal(engine.source, BALANCED_LEG_SOURCES.FALLBACK_SAFE);
   assert.equal(engine.intermediateContractCount, 1);
   assert.equal(engine.quoteValidIntermediateCount, 1);
   assert.equal(engine.yieldEligibleIntermediateCount, 1);
@@ -409,8 +402,10 @@ test("23 — strike intermédiaire dans bande mais filtre postérieur : compteur
   );
 
   const view = resolveBalancedCardViewModel({ candidate });
-  assert.equal(view.unavailableDiagnostics.nativePrimaryReason, BALANCED_NATIVE_REASON_CODES.FAILED_SPREAD);
-  assert.equal(view.unavailableDiagnostics.native.fullyEligibleIntermediateCount, 0);
+  assert.equal(view.available, true);
+  assert.equal(view.source, BALANCED_LEG_SOURCES.FALLBACK_SAFE);
+  assert.equal(view.nativePrimaryReason, BALANCED_NATIVE_REASON_CODES.FAILED_SPREAD);
+  assert.equal(view.diagnostics.fullyEligibleIntermediateCount, 0);
 
   // Un contrat sur une autre expiration n'entre pas dans les compteurs.
   const otherExpiration = makeNflx({

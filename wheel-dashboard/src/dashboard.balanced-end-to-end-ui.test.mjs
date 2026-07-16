@@ -71,6 +71,8 @@ function makeCandidate({
   aggressiveStrike = 72,
   safeYield = 0.55,
   aggressiveYield = 1.14,
+  safeSpread = 8,
+  aggressiveSpread = 8,
   dteDays = 3,
   chain = [],
   chainAvailable = true,
@@ -81,10 +83,11 @@ function makeCandidate({
     targetExpiration: EXPIRATION,
     dteDays,
     price: 100,
-    safeStrike: makeLeg(safeStrike, safeYield, { ticker, dteDays, optionSymbol: `${ticker}-SAFE` }),
+    safeStrike: makeLeg(safeStrike, safeYield, { ticker, dteDays, spreadPct: safeSpread, optionSymbol: `${ticker}-SAFE` }),
     aggressiveStrike: makeLeg(aggressiveStrike, aggressiveYield, {
       ticker,
       dteDays,
+      spreadPct: aggressiveSpread,
       optionSymbol: `${ticker}-AGG`,
     }),
     safeGrade: "A",
@@ -227,6 +230,8 @@ test("NFLX — indisponible avec diagnostics frontières et fallbacks rejetés",
     aggressiveStrike: 68,
     safeYield: 0.65,
     aggressiveYield: 1.15,
+    safeSpread: 30,
+    aggressiveSpread: 30,
     dteDays: 3,
     chain: [],
   });
@@ -240,8 +245,8 @@ test("NFLX — indisponible avec diagnostics frontières et fallbacks rejetés",
   assert.equal(view.unavailableDiagnostics.safeStrike, 66);
   assert.equal(view.unavailableDiagnostics.aggressiveStrike, 68);
   assert.equal(view.unavailableDiagnostics.midpointStrike, 67);
-  assert.match(view.unavailableDiagnostics.safeFallbackRejection, /0\.65 % < minimum BALANCED 0\.70 %/);
-  assert.match(view.unavailableDiagnostics.aggressiveFallbackRejection, /1\.15 % ≥ maximum BALANCED exclusif 1\.05 %/);
+  assert.match(view.unavailableDiagnostics.safeFallbackRejection, /spread 30\.00 % > 20 %/);
+  assert.match(view.unavailableDiagnostics.aggressiveFallbackRejection, /spread 30\.00 % > 20 %/);
   assert.ok(view.unavailableDiagnostics.reasonCodes.includes(BALANCED_NATIVE_REASON_CODES.NO_INTERMEDIATE_STRIKE));
 });
 

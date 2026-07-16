@@ -65,6 +65,8 @@ function makeCandidate({
   ticker = "TQQQ",
   safeYield = 0.74,
   aggressiveYield = 1,
+  safeSpread = 8,
+  aggressiveSpread = 8,
   chain = [],
   chainAvailable = true,
 } = {}) {
@@ -74,9 +76,10 @@ function makeCandidate({
     targetExpiration: EXPIRATION,
     dteDays: 7,
     price: 100,
-    safeStrike: makeLeg(67, safeYield, { ticker, optionSymbol: `${ticker}-SAFE` }),
+    safeStrike: makeLeg(67, safeYield, { ticker, spreadPct: safeSpread, optionSymbol: `${ticker}-SAFE` }),
     aggressiveStrike: makeLeg(75, aggressiveYield, {
       ticker,
+      spreadPct: aggressiveSpread,
       optionSymbol: `${ticker}-AGG`,
     }),
     safeGrade: "A",
@@ -207,7 +210,7 @@ test("UI-13/UI-19 — fallback SAFE garde les données SAFE mais le bucket BALAN
 });
 
 test("UI-14/UI-19 — fallback AGGRESSIVE garde les données AGGRESSIVE mais le bucket BALANCED", () => {
-  const candidate = makeCandidate({ safeYield: 0.5, aggressiveYield: 0.9, chain: [] });
+  const candidate = makeCandidate({ safeYield: 0.5, aggressiveYield: 0.9, safeSpread: 30, chain: [] });
   const view = resolveBalancedCardViewModel({ candidate });
   assert.equal(view.source, BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE);
   assert.equal(view.sourceLabel, "Fallback AGRESSIF");
@@ -219,7 +222,13 @@ test("UI-14/UI-19 — fallback AGGRESSIVE garde les données AGGRESSIVE mais le 
 });
 
 test("UI-15/UI-16/UI-24 — unavailable reste visible avec raison et valeurs absentes stables", () => {
-  const candidate = makeCandidate({ safeYield: 0.5, aggressiveYield: 1.2, chain: [] });
+  const candidate = makeCandidate({
+    safeYield: 0.5,
+    aggressiveYield: 1.2,
+    safeSpread: 30,
+    aggressiveSpread: 30,
+    chain: [],
+  });
   const view = resolveBalancedCardViewModel({ candidate });
   assert.equal(view.available, false);
   assert.equal(view.source, BALANCED_LEG_SOURCES.UNAVAILABLE);

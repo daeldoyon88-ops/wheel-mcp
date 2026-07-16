@@ -84,6 +84,7 @@ import {
   formatCapitalComboPickLegBadge,
   formatCapitalComboPickBucketContext,
   getCanonicalPeriodYieldBand,
+  getBalancedYieldBandStatus,
   formatEffectiveYieldBandDisplay,
   formatHybridYieldPolicyCardLines,
   formatSafeBaseMinDisplayPct,
@@ -2179,8 +2180,11 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
               </p>
               <p>
                 Strikes intermédiaires : {diag.intermediateContractCount ?? 0} · quotes valides :{" "}
-                {diag.quoteValidIntermediateCount ?? 0} · dans bande : {diag.yieldEligibleIntermediateCount ?? 0}
-                {" · "}pleinement admissibles : {diag.fullyEligibleIntermediateCount ?? 0}
+                {diag.quoteValidIntermediateCount ?? 0} · spreads admissibles :{" "}
+                {diag.spreadEligibleIntermediateCount ?? 0} · liquidité admissible :{" "}
+                {diag.liquidityEligibleIntermediateCount ?? 0} · exécutables :{" "}
+                {diag.executionEligibleIntermediateCount ?? 0} · admissibles :{" "}
+                {diag.fullyEligibleIntermediateCount ?? 0}
               </p>
               {diag.nativePrimaryReason ? (
                 <p>Native : {diag.nativePrimaryReason}</p>
@@ -2210,11 +2214,7 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
     liquidity: { spreadPct: vm.spreadPct },
     label: vm.sourceLabel,
   };
-  // Carte BALANCED disponible : seules les métriques utilisateur sont rendues.
-  // Les identifiants de contrat, les frontières internes et la cible de bande
-  // restent portés par le view model (objets internes + tests) mais ne sont plus
-  // affichés. Les diagnostics techniques ne subsistent que sur la carte
-  // indisponible (branche ci-dessus).
+  const diag = vm.diagnostics ?? null;
   //
   // Cas A (audit) : la recommandation canonique du scan ne vaut jamais
   // BALANCED — cette carte n'a donc jamais le contour vert de recommandation.
@@ -2230,6 +2230,46 @@ function BalancedFaceplateStrikeColumn({ viewModel }) {
       selectedGrade={null}
       portfolioBadges={vm.selectedForBalanced === true ? [vm.badgeLabel ?? "Portefeuille BALANCED"] : []}
       allowAnnualizedFallback={false}
+      footerContent={diag ? (
+        <details className="border-t border-violet-900/60 px-3 py-2 text-xs text-slate-300">
+          <summary className="cursor-pointer font-medium text-[#c76bff] hover:text-violet-200">
+            Diagnostics BALANCED
+          </summary>
+          <div className="mt-2 space-y-1.5 leading-5">
+            <p>
+              SAFE {vm.safeStrike ?? "n/d"} · AGRESSIF {vm.aggressiveStrike ?? "n/d"} · milieu{" "}
+              {vm.midpointStrike ?? "n/d"}
+            </p>
+            <p>
+              Strikes intermédiaires {diag.intermediateContractCount ?? 0} · quotes valides{" "}
+              {diag.quoteValidIntermediateCount ?? 0} · spreads admissibles{" "}
+              {diag.spreadEligibleIntermediateCount ?? 0} · liquidité admissible{" "}
+              {diag.liquidityEligibleIntermediateCount ?? 0} · exécutables{" "}
+              {diag.executionEligibleIntermediateCount ?? 0} · admissibles{" "}
+              {diag.fullyEligibleIntermediateCount ?? 0}
+            </p>
+            <p>
+              Strike choisi {vm.strike ?? "n/d"} · distance au milieu{" "}
+              {diag.selectedDistanceFromMidpoint != null
+                ? Number(diag.selectedDistanceFromMidpoint).toFixed(2)
+                : "n/d"} · source {vm.sourceLabel}
+            </p>
+            <p>
+              Rendement {vm.periodYieldPct != null ? `${Number(vm.periodYieldPct).toFixed(2)} %` : "n/d"} · cible{" "}
+              {vm.effectivePeriodMinPct != null
+                ? `${Number(vm.effectivePeriodMinPct).toFixed(2)} %–${vm.effectivePeriodMaxPct != null
+                    ? `${Number(vm.effectivePeriodMaxPct).toFixed(2)} %`
+                    : "n/d"}`
+                : "n/d"} · statut {vm.yieldBandStatus ?? "n/d"}
+            </p>
+            <p>
+              Exécution {vm.executionEligible ? "admissible" : "non admissible"} · pool Combinaisons capital{" "}
+              {vm.includedInBalancedPool ? "oui" : "non"} · optimiseur{" "}
+              {vm.selectedByOptimizer ? "sélectionné" : `non retenu (${vm.notSelectedReason ?? "n/d"})`}
+            </p>
+          </div>
+        </details>
+      ) : null}
     />
   );
 }
@@ -9267,7 +9307,7 @@ const _INSP_BUCKETS = {
     filterAvoid: true,
     filterSpeculativePopMin: 82,
     filterSpeculativeSpreadMax: 20,
-    filterSpeculativeYieldMin: 0.75,
+    filterSpeculativeYieldMin: null,
     filterSpeculativeRequireNoEarnings: false,
     filterPremiumTrapPenaltyMin: null,
     filterPremiumTrapPopMin: null,
@@ -9387,12 +9427,16 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     bucketLegAvailable && periodYieldPct != null && !isValidComboDte(dteDays);
   const effectiveMin = yieldBand?.effectivePeriodMinPct ?? null;
   const effectiveMax = yieldBand?.effectivePeriodMaxPct ?? null;
+  const yieldBandStatus = getBalancedYieldBandStatus(periodYieldPct, yieldBand);
+  const yieldBandBlocksAdmission = bucketKey !== "BALANCED";
   const blockedByPeriodYieldBelowMin =
+    yieldBandBlocksAdmission &&
     bucketLegAvailable &&
     periodYieldPct != null &&
     effectiveMin != null &&
     periodYieldPct < effectiveMin;
   const blockedByPeriodYieldAboveMax =
+    yieldBandBlocksAdmission &&
     bucketLegAvailable &&
     periodYieldPct != null &&
     effectiveMax != null &&
@@ -9645,7 +9689,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     bid: Number.isFinite(bid) ? bid : null,
     ask: Number.isFinite(ask) ? ask : null,
     mid: Number.isFinite(mid) ? mid : null,
-    spread, yieldPct, periodYieldPct, dteDays, yieldBand, distance, pop,
+    spread, yieldPct, periodYieldPct, dteDays, yieldBand, yieldBandStatus, distance, pop,
     capitalRequired, premiumUnit: premium,
     premiumTotal: inPicks ? pick.premiumCollected : null,
     scoreCombo: inPicks ? pick.selectionScore : null,

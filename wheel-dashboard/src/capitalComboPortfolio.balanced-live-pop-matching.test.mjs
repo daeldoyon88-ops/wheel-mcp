@@ -397,8 +397,8 @@ test("15 — le fallback AGGRESSIVE conserve sa POP AGGRESSIVE", () => {
 test("16 — la native conserve les quotes et IDs du contrat IBKR brut", () => {
   const candidate = INTC();
   const leg = nativeLegOf(candidate);
-  const raw = candidate.ibkrDirect.putCandidates.find((p) => p.strike === 99);
-  assert.equal(leg.strike, 99);
+  const raw = candidate.ibkrDirect.putCandidates.find((p) => p.strike === 100);
+  assert.equal(leg.strike, 100);
   assert.equal(leg.bid, raw.bid);
   assert.equal(leg.ask, raw.ask);
   assert.equal(leg.mid, raw.mid);
@@ -411,15 +411,15 @@ test("16 — la native conserve les quotes et IDs du contrat IBKR brut", () => {
 test("17 — la native prend la POP du contrat enrichi correspondant, pas d'un autre strike", () => {
   const candidate = INTC();
   const leg = nativeLegOf(candidate);
-  const raw = candidate.ibkrDirect.putCandidates.find((p) => p.strike === 99);
+  const raw = candidate.ibkrDirect.putCandidates.find((p) => p.strike === 100);
   assert.equal(leg.popProfitEstimated, raw.popProfitEstimated);
   // POP strictement encadrée par SAFE (97,5) et AGGRESSIVE (102), et distincte des deux.
   assert.ok(leg.popProfitEstimated < candidate.safeStrike.popProfitEstimated);
   assert.ok(leg.popProfitEstimated > candidate.aggressiveStrike.popProfitEstimated);
 });
 
-test("18 — aucune modification de strike (INTC 99, ORCL 122, TQQQ 70, NOW 100)", () => {
-  assert.equal(nativeLegOf(INTC()).strike, 99);
+test("18 — résolution géométrique des strikes (INTC 100, ORCL 122, TQQQ 70, NOW 100)", () => {
+  assert.equal(nativeLegOf(INTC()).strike, 100);
   assert.equal(nativeLegOf(ORCL()).strike, 122);
   assert.equal(nativeLegOf(TQQQ()).strike, 70);
   assert.equal(nativeLegOf(NOW()).strike, 100);
@@ -449,7 +449,7 @@ test("20 — aucune modification de score", () => {
 test("21 — aucune modification du greedy : le pick reste sur le strike natif", () => {
   const { pick } = balancedComboFor(INTC());
   assert.ok(pick, "pick BALANCED attendu");
-  assert.equal(pick.strike, 99);
+  assert.equal(pick.strike, 100);
 });
 
 // ── Part E — carte, portefeuille, moyenne ───────────────────────────────────

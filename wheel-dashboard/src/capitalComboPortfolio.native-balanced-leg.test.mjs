@@ -147,16 +147,15 @@ test("A3-A4 — midpoint invalide : autre strike valide, pas la meilleure prime"
   assert.notEqual(result.selectedStrike, 74);
 });
 
-test("A5 — frontières inversées normalisées et diagnostiquées", () => {
+test("A5 — frontières inversées : BALANCED natif indisponible et diagnostic explicite", () => {
   const c = candidate({
     safe: leg(75, 0.8),
     aggressive: leg(67, 1.0),
     chain: [leg(71, 0.875)],
   });
   const result = native(c);
-  assert.equal(result.lowerBoundaryStrike, 67);
-  assert.equal(result.upperBoundaryStrike, 75);
-  assert.equal(result.selectedStrike, 71);
+  assert.equal(result.selectedLeg, null);
+  assert.equal(result.reasonCode, BALANCED_NATIVE_REASON_CODES.INVERTED_BOUNDARIES);
   assert.equal(result.diagnostics.invertedSafeAggressiveOrder, true);
 });
 
@@ -215,7 +214,7 @@ test("C13 — toutes les métadonnées viennent du vrai contrat retenu", () => {
   }
 });
 
-test("D14-D18 — bande hybride BALANCED 7/17 DTE, min inclusif et max exclusif", () => {
+test("D14-D18 — bande hybride BALANCED 7/17 DTE reste calculée et informative", () => {
   const b7 = getCanonicalPeriodYieldBand("BALANCED", 7);
   const b17 = getCanonicalPeriodYieldBand("BALANCED", 17);
   assert.equal(b7.effectivePeriodMinPct, 0.7);
@@ -231,9 +230,9 @@ test("D14-D18 — bande hybride BALANCED 7/17 DTE, min inclusif et max exclusif"
     dteDays: 17,
     chain: [leg(100, yieldPct, { dteDays: 17 })],
   });
-  assert.equal(native(c17(1.7)).source, BALANCED_LEG_SOURCES.NATIVE);
-  assert.equal(native(c17(2.55)).source, BALANCED_LEG_SOURCES.UNAVAILABLE);
-  assert.equal(native(c17(1.699)).source, BALANCED_LEG_SOURCES.UNAVAILABLE);
+  assert.equal(native(c17(1.7)).selectedYieldBandStatus, "WITHIN");
+  assert.equal(native(c17(2.55)).selectedYieldBandStatus, "ABOVE");
+  assert.equal(native(c17(1.699)).selectedYieldBandStatus, "BELOW");
 });
 
 test("D19 — DTE manquant : diagnostic explicite, aucun NaN", () => {
@@ -265,11 +264,12 @@ test("E21 — tous spreads invalides : fallback et raison spread", () => {
   assert.ok(final.reasonCodes.includes(BALANCED_NATIVE_REASON_CODES.FAILED_SPREAD));
 });
 
-test("E22 — tous rendements hors bande : fallback et raison yield", () => {
+test("E22 — tous rendements hors bande : native conservée et statut informatif", () => {
   const c = candidate({ chain: [leg(71, 1.2)] });
   const final = resolveBalancedLegSelection({ candidate: c });
-  assert.match(final.source, /^BALANCED_FALLBACK_/);
-  assert.ok(final.reasonCodes.includes(BALANCED_NATIVE_REASON_CODES.OUTSIDE_YIELD_BAND));
+  assert.equal(final.source, BALANCED_LEG_SOURCES.NATIVE);
+  assert.equal(final.selectedYieldBandStatus, "ABOVE");
+  assert.equal(final.reasonCodes.includes(BALANCED_NATIVE_REASON_CODES.OUTSIDE_YIELD_BAND), false);
 });
 
 test("E23 — grade non admissible : fallback et raison grade", () => {
@@ -288,7 +288,7 @@ test("F24-F25 — fallback SAFE seul puis AGGRESSIVE seul", () => {
     chain: [],
   });
   const aggOnly = candidate({
-    safe: leg(67, 0.5),
+    safe: leg(67, 0.5, { spreadPct: 30 }),
     aggressive: leg(75, 0.9),
     chain: [],
   });
@@ -302,7 +302,7 @@ test("F24-F25 — fallback SAFE seul puis AGGRESSIVE seul", () => {
   );
 });
 
-test("F26-F27 — fallback le plus proche du centre, égalité SAFE", () => {
+test("F26-F27 — fallback SAFE prioritaire quel que soit le rendement", () => {
   const closerAgg = candidate({
     safe: leg(67, 0.72),
     aggressive: leg(75, 0.87),
@@ -315,7 +315,7 @@ test("F26-F27 — fallback le plus proche du centre, égalité SAFE", () => {
   });
   assert.equal(
     resolveBalancedLegSelection({ candidate: closerAgg }).source,
-    BALANCED_LEG_SOURCES.FALLBACK_AGGRESSIVE,
+    BALANCED_LEG_SOURCES.FALLBACK_SAFE,
   );
   assert.equal(
     resolveBalancedLegSelection({ candidate: tie }).source,
@@ -325,8 +325,8 @@ test("F26-F27 — fallback le plus proche du centre, égalité SAFE", () => {
 
 test("F28 — aucun fallback admissible : BALANCED_UNAVAILABLE", () => {
   const c = candidate({
-    safe: leg(67, 0.5),
-    aggressive: leg(75, 1.2),
+    safe: leg(67, 0.5, { spreadPct: 30 }),
+    aggressive: leg(75, 1.2, { spreadPct: 30 }),
     chain: [],
   });
   const result = resolveBalancedLegSelection({ candidate: c });

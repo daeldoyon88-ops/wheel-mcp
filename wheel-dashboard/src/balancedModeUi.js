@@ -1,13 +1,14 @@
 import {
+  BALANCED_EFFECTIVE_MAX_SPREAD_PCT,
   BALANCED_LEG_SOURCES,
   BALANCED_NATIVE_REASON_CODES,
   getAggressivePriorityGrade,
+  getBalancedYieldBandStatus,
   getCanonicalPeriodYieldBand,
   getFinalDisplayRecommendation,
   getLegPeriodYieldPct,
   getLegSpreadPct,
   gradeLeg,
-  isPeriodYieldAdmissibleInBand,
   isValidComboDte,
   resolveCapitalComboInspectorLegView,
   resolveLegDte,
@@ -421,21 +422,16 @@ function describeFallbackRejection(modeLabel, leg, candidate, band) {
   const periodYieldPct = getLegPeriodYieldPct(leg, candidate);
   const spreadPct = getLegSpreadPct(leg);
   if (periodYieldPct == null) {
-    return `${modeLabel} fallback rejeté : rendement indisponible`;
+    return `${modeLabel} fallback rejeté : données de rendement indisponibles`;
   }
-  if (band?.effectivePeriodMinPct != null && periodYieldPct < band.effectivePeriodMinPct) {
-    return `${modeLabel} fallback rejeté : rendement ${periodYieldPct.toFixed(2)} % < minimum BALANCED ${band.effectivePeriodMinPct.toFixed(2)} %`;
+  if (!Number.isFinite(spreadPct) || spreadPct < 0) {
+    return `${modeLabel} fallback rejeté : spread indisponible ou invalide`;
   }
-  if (band?.effectivePeriodMaxPct != null && periodYieldPct >= band.effectivePeriodMaxPct) {
-    return `${modeLabel} fallback rejeté : rendement ${periodYieldPct.toFixed(2)} % ≥ maximum BALANCED exclusif ${band.effectivePeriodMaxPct.toFixed(2)} %`;
+  if (spreadPct > BALANCED_EFFECTIVE_MAX_SPREAD_PCT) {
+    return `${modeLabel} fallback rejeté : spread ${spreadPct.toFixed(2)} % > ${BALANCED_EFFECTIVE_MAX_SPREAD_PCT} %`;
   }
-  if (spreadPct != null && spreadPct > 20) {
-    return `${modeLabel} fallback rejeté : spread ${spreadPct.toFixed(2)} % > 20 %`;
-  }
-  if (!isPeriodYieldAdmissibleInBand(periodYieldPct, band)) {
-    return `${modeLabel} fallback rejeté : rendement ${periodYieldPct.toFixed(2)} % hors bande BALANCED`;
-  }
-  return `${modeLabel} fallback rejeté : filtre statique`;
+  const yieldBandStatus = getBalancedYieldBandStatus(periodYieldPct, band);
+  return `${modeLabel} fallback rejeté : filtre d'exécution ou de qualité (statut rendement ${yieldBandStatus ?? "n/d"})`;
 }
 
 export function buildBalancedUnavailableDiagnostics({
@@ -487,7 +483,10 @@ export function buildBalancedUnavailableDiagnostics({
     intermediateContractCount: finiteOrNull(diagnostics?.intermediateContractCount),
     quoteValidIntermediateCount: finiteOrNull(diagnostics?.quoteValidIntermediateCount),
     yieldEligibleIntermediateCount: finiteOrNull(diagnostics?.yieldEligibleIntermediateCount),
+    spreadEligibleIntermediateCount: finiteOrNull(diagnostics?.spreadEligibleIntermediateCount),
+    liquidityEligibleIntermediateCount: finiteOrNull(diagnostics?.liquidityEligibleIntermediateCount),
     fullyEligibleIntermediateCount: finiteOrNull(diagnostics?.fullyEligibleIntermediateCount),
+    executionEligibleIntermediateCount: finiteOrNull(diagnostics?.executionEligibleIntermediateCount),
     nativePrimaryReason,
     finalReason,
     reasonCodes,
@@ -501,7 +500,10 @@ export function buildBalancedUnavailableDiagnostics({
       intermediateContractCount: finiteOrNull(diagnostics?.intermediateContractCount),
       quoteValidIntermediateCount: finiteOrNull(diagnostics?.quoteValidIntermediateCount),
       yieldEligibleIntermediateCount: finiteOrNull(diagnostics?.yieldEligibleIntermediateCount),
+      spreadEligibleIntermediateCount: finiteOrNull(diagnostics?.spreadEligibleIntermediateCount),
+      liquidityEligibleIntermediateCount: finiteOrNull(diagnostics?.liquidityEligibleIntermediateCount),
       fullyEligibleIntermediateCount: finiteOrNull(diagnostics?.fullyEligibleIntermediateCount),
+      executionEligibleIntermediateCount: finiteOrNull(diagnostics?.executionEligibleIntermediateCount),
     },
     fallbackSafe: {
       status: safeLeg ? "rejected" : "absent",
@@ -543,6 +545,10 @@ export function enrichCandidateRowForDisplay(item, portfolioSelection = new Map(
     ? {
         ...item.balancedCardViewModel,
         selectedForBalanced: selection.selectedForBalanced,
+        selectedByOptimizer: selection.selectedForBalanced,
+        notSelectedReason: selection.selectedForBalanced
+          ? null
+          : item.balancedCardViewModel.notSelectedReason,
         badgeLabel: selection.selectedForBalanced
           ? PORTFOLIO_BADGE_LABELS.BALANCED
           : null,
@@ -600,6 +606,24 @@ export function resolveBalancedCardViewModel({
   const explicitCapitalRequired = finiteOrNull(
     selectedLeg?.capitalRequired ?? pick?.capitalRequired,
   );
+  const capitalRequired =
+    explicitCapitalRequired ?? (strike != null && strike > 0 ? strike * 100 : null);
+  const resolvedDteDays = finiteOrNull(
+    diagnostics?.dteDays ?? selectedLeg?.dteDays,
+    resolveLegDte(selectedLeg, candidate),
+  );
+  const yieldBand =
+    diagnostics?.effectivePeriodMinPct != null
+      ? {
+          effectivePeriodMinPct: diagnostics.effectivePeriodMinPct,
+          effectivePeriodMaxPct: diagnostics.effectivePeriodMaxPct,
+        }
+      : isValidComboDte(resolvedDteDays)
+        ? getCanonicalPeriodYieldBand("BALANCED", resolvedDteDays)
+        : null;
+  const yieldBandStatus =
+    stringOrNull(diagnostics?.selectedYieldBandStatus, diagnostics?.yieldBandStatus) ??
+    getBalancedYieldBandStatus(periodYieldPct, yieldBand);
   const engineAnnualized = finiteOrNull(selectedLeg?.annualizedYield);
   const annualizedSimpleYieldPct =
     engineAnnualized != null && engineAnnualized > 0 && engineAnnualized <= 5
@@ -613,6 +637,21 @@ export function resolveBalancedCardViewModel({
       ? portfolioSelection
       : null);
   const selectedForBalanced = selection?.selectedForBalanced === true;
+  const executionEligible =
+    available &&
+    diagnostics?.selectedExecutionEligible !== false &&
+    diagnostics?.executionEligible !== false;
+  const capitalFitsBalancedPool =
+    capitalRequired != null && capitalRequired > 0 && capitalRequired <= usableCapital;
+  const includedInBalancedPool =
+    available &&
+    diagnostics?.includedInBalancedPool !== false &&
+    capitalFitsBalancedPool;
+  const notSelectedReason = !available || selectedForBalanced
+    ? null
+    : !capitalFitsBalancedPool
+      ? "CAPITAL_INSUFFICIENT"
+      : "GREEDY_NOT_SELECTED";
 
   const unavailableDiagnostics = available
     ? null
@@ -642,12 +681,17 @@ export function resolveBalancedCardViewModel({
         selectedLeg?.spreadPct,
     ),
     periodYieldPct,
+    yieldBandStatus,
+    executionEligible,
+    includedInBalancedPool,
+    selectedByOptimizer: selectedForBalanced,
+    notSelectedReason,
     weeklyNormalizedYieldPct,
     annualizedSimpleYieldPct,
     distancePct: finiteOrNull(selectedLeg?.distancePct),
     popPct: popDecimal == null ? null : popDecimal * 100,
     popDecimal,
-    dteDays: finiteOrNull(diagnostics?.dteDays ?? selectedLeg?.dteDays, resolveLegDte(selectedLeg, candidate)),
+    dteDays: resolvedDteDays,
     expiration: stringOrNull(selectedLeg?.expiration, candidate?.targetExpiration, candidate?.expiration),
     optionSymbol: stringOrNull(selectedLeg?.optionSymbol, selectedLeg?.contractSymbol),
     conId: finiteOrNull(selectedLeg?.conId),
@@ -655,8 +699,7 @@ export function resolveBalancedCardViewModel({
     quoteTimestamp: stringOrNull(selectedLeg?.quoteTimestamp),
     marketDataType: stringOrNull(selectedLeg?.marketDataType),
     quoteSource: stringOrNull(selectedLeg?.quoteSource, selectedLeg?.source),
-    capitalRequired:
-      explicitCapitalRequired ?? (strike != null && strike > 0 ? strike * 100 : null),
+    capitalRequired,
     safeStrike: finiteOrNull(diagnostics?.safeStrike, candidate?.safeStrike?.strike),
     aggressiveStrike: finiteOrNull(diagnostics?.aggressiveStrike, candidate?.aggressiveStrike?.strike),
     midpointStrike: finiteOrNull(diagnostics?.midpointStrike),

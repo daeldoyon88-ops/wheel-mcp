@@ -264,7 +264,7 @@ test("TEST 11 - current BALANCED selection rule keeps choosing existing SAFE or 
   const aggressiveChosen = makeCandidate({
     ticker: "ORCL",
     finalDisplayGrade: "A",
-    safeStrike: makeLeg({ strike: 45, bid: 0.27, weeklyYield: 0.6, spreadPct: 12, distancePct: -9 }),
+    safeStrike: makeLeg({ strike: 45, bid: 0.27, weeklyYield: 0.6, spreadPct: 30, distancePct: -9 }),
     aggressiveStrike: makeLeg({ strike: 50, bid: 0.4, weeklyYield: 0.8, spreadPct: 12, distancePct: -8 }),
   });
 

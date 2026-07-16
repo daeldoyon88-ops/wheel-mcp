@@ -104,12 +104,10 @@ import {
   computeAnnualizedSimpleYieldPct,
   enrichCandidateRowForDisplay,
   formatAnnualizedSimpleYieldPct,
-  resolveAggressiveLegDisplayGrade,
   resolveBalancedCardViewModel,
   resolveDashboardModeForFilter,
   resolveDashboardModePresentation,
   resolvePortfolioSelectionByTicker,
-  resolveSafeLegDisplayGrade,
   resolveScanRecommendationSemantics,
   weightedMeanByCapitalExcludingUnknown,
 } from "./balancedModeUi.js";
@@ -1953,11 +1951,7 @@ function FaceplateStrikeColumn({
   // aux portefeuilles Combinaisons capital, qui est une info secondaire).
   isScanRecommended = false,
   selectedGrade = null,
-  cardMode = null,
-  scanRecommendationMode = null,
-  displayGrade = null,
   portfolioBadges = [],
-  debugLabel = null,
   subtitle = null,
   selectionBadgeLabel = null,
   allowAnnualizedFallback = true,
@@ -2089,7 +2083,7 @@ function FaceplateStrikeColumn({
   ];
 
   return (
-    <div className={cn("rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", selectionBorder, glow)}>
+    <div className={cn("flex h-full flex-col rounded-[8px] border bg-[#050d16]/95 p-3 shadow-lg", selectionBorder, glow)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={cn("text-sm font-semibold tracking-wide", accent)}>{titleText}</p>
@@ -2115,23 +2109,21 @@ function FaceplateStrikeColumn({
         </div>
       </div>
 
-      <div className="mt-3 rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-2 text-[11px] text-slate-400">
-        {`cardMode=${cardMode ?? "—"} • scanRecommendation=${scanRecommendationMode ?? "—"} • isScanRecommended=${isScanRecommended ? "true" : "false"} • grade=${displayGrade ?? selectedGrade ?? "—"}${resolvedPortfolioBadges.length ? ` • portefeuilles=${resolvedPortfolioBadges.join("+")}` : ""}${debugLabel ? ` • ${debugLabel}` : ""}`}
+      <div className="mt-3 flex flex-1 flex-col">
+        <div className="grid grid-cols-1 gap-y-2.5">
+          {metricRows.map((row) => (
+            <div key={row.label} className="min-h-[42px]">
+              <p className="text-xs leading-tight text-slate-400">{row.label}</p>
+              <p className={cn("mt-1 text-[15px] leading-tight tabular-nums", row.strong && "font-semibold", row.tone)}>
+                {row.value}
+              </p>
+              {row.sub && <p className="mt-0.5 text-[11px] leading-tight text-slate-500">{row.sub}</p>}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-y-2.5">
-        {metricRows.map((row) => (
-          <div key={row.label} className="min-h-[42px]">
-            <p className="text-xs leading-tight text-slate-400">{row.label}</p>
-            <p className={cn("mt-1 text-[15px] leading-tight tabular-nums", row.strong && "font-semibold", row.tone)}>
-              {row.value}
-            </p>
-            {row.sub && <p className="mt-0.5 text-[11px] leading-tight text-slate-500">{row.sub}</p>}
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-3 rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-3 text-sm text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="mt-auto rounded-[7px] border border-[#172637] bg-[#06111b]/95 px-3 py-3 text-sm text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
         <p className={cn("mb-2 text-sm font-semibold", accent)}>Marché live</p>
         <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-2">
           <span className="text-slate-400">Bid</span>
@@ -2151,44 +2143,49 @@ function FaceplateStrikeColumn({
   );
 }
 
-function BalancedFaceplateStrikeColumn({ viewModel, scanRecommendationMode = null }) {
+function BalancedFaceplateStrikeColumn({ viewModel }) {
   const vm = viewModel ?? null;
   if (!vm?.available) {
     const diag = vm?.unavailableDiagnostics ?? null;
     return (
-      <div className="rounded-[8px] border border-dashed border-[#563078] bg-[#050d16]/95 p-4 shadow-lg shadow-violet-950/20">
+      <div className="flex h-full flex-col rounded-[8px] border border-dashed border-[#563078] bg-[#050d16]/95 p-4 shadow-lg shadow-violet-950/20">
         <p className="text-sm font-semibold tracking-wide text-[#c76bff]">BALANCED</p>
         <p className="mt-1 text-xs text-slate-400">BALANCED indisponible</p>
         <Badge className="mt-3 rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-300">
-          BALANCED_UNAVAILABLE
+          BALANCED indisponible
         </Badge>
         <p className="mt-3 break-words text-xs leading-5 text-amber-300">
           Raison finale : {vm?.primaryReason ?? "n/d"}
         </p>
         {diag && (
-          <div className="mt-3 space-y-2 rounded-[7px] border border-[#563078] bg-violet-950/20 px-3 py-3 text-xs text-slate-300">
-            <p>
-              SAFE {diag.safeStrike ?? "n/d"} · rendement {diag.safePeriodYieldPct != null ? `${diag.safePeriodYieldPct.toFixed(2)} %` : "n/d"}
-              {" · "}AGRESSIF {diag.aggressiveStrike ?? "n/d"} · rendement{" "}
-              {diag.aggressivePeriodYieldPct != null ? `${diag.aggressivePeriodYieldPct.toFixed(2)} %` : "n/d"}
-            </p>
-            <p>
-              {diag.midpointStrikeNote ?? "Milieu n/d"} · bande BALANCED{" "}
-              {diag.effectivePeriodMinPct != null && diag.effectivePeriodMaxPct != null
-                ? `${diag.effectivePeriodMinPct.toFixed(2)} %–${diag.effectivePeriodMaxPct.toFixed(2)} % exclusif`
-                : "n/d"}
-            </p>
-            <p>
-              Strikes intermédiaires : {diag.intermediateContractCount ?? 0} · quotes valides :{" "}
-              {diag.quoteValidIntermediateCount ?? 0} · dans bande : {diag.yieldEligibleIntermediateCount ?? 0}
-              {" · "}pleinement admissibles : {diag.fullyEligibleIntermediateCount ?? 0}
-            </p>
-            {diag.nativePrimaryReason ? (
-              <p>Native : {diag.nativePrimaryReason}</p>
-            ) : null}
-            <p>{diag.safeFallbackRejection}</p>
-            <p>{diag.aggressiveFallbackRejection}</p>
-          </div>
+          <details className="mt-3 flex min-h-0 flex-1 flex-col">
+            <summary className="cursor-pointer text-xs font-medium text-[#c76bff] hover:text-violet-200">
+              Diagnostics SAFE / AGRESSIF
+            </summary>
+            <div className="mt-2 max-h-44 space-y-2 overflow-y-auto rounded-[7px] border border-[#563078] bg-violet-950/20 px-3 py-3 text-xs text-slate-300">
+              <p>
+                SAFE {diag.safeStrike ?? "n/d"} · rendement {diag.safePeriodYieldPct != null ? `${diag.safePeriodYieldPct.toFixed(2)} %` : "n/d"}
+                {" · "}AGRESSIF {diag.aggressiveStrike ?? "n/d"} · rendement{" "}
+                {diag.aggressivePeriodYieldPct != null ? `${diag.aggressivePeriodYieldPct.toFixed(2)} %` : "n/d"}
+              </p>
+              <p>
+                {diag.midpointStrikeNote ?? "Milieu n/d"} · bande BALANCED{" "}
+                {diag.effectivePeriodMinPct != null && diag.effectivePeriodMaxPct != null
+                  ? `${diag.effectivePeriodMinPct.toFixed(2)} %–${diag.effectivePeriodMaxPct.toFixed(2)} % exclusif`
+                  : "n/d"}
+              </p>
+              <p>
+                Strikes intermédiaires : {diag.intermediateContractCount ?? 0} · quotes valides :{" "}
+                {diag.quoteValidIntermediateCount ?? 0} · dans bande : {diag.yieldEligibleIntermediateCount ?? 0}
+                {" · "}pleinement admissibles : {diag.fullyEligibleIntermediateCount ?? 0}
+              </p>
+              {diag.nativePrimaryReason ? (
+                <p>Native : {diag.nativePrimaryReason}</p>
+              ) : null}
+              <p>{diag.safeFallbackRejection}</p>
+              <p>{diag.aggressiveFallbackRejection}</p>
+            </div>
+          </details>
         )}
       </div>
     );
@@ -2251,11 +2248,7 @@ function BalancedFaceplateStrikeColumn({ viewModel, scanRecommendationMode = nul
       fallbackDte={vm.dteDays}
       isScanRecommended={false}
       selectedGrade={null}
-      cardMode="BALANCED"
-      scanRecommendationMode={scanRecommendationMode}
-      displayGrade={vm.grade}
       portfolioBadges={vm.selectedForBalanced === true ? [vm.badgeLabel ?? "Portefeuille BALANCED"] : []}
-      debugLabel={`source=${vm.source} • underlyingLegMode=${vm.source === "BALANCED_FALLBACK_SAFE" ? "SAFE" : vm.source === "BALANCED_FALLBACK_AGGRESSIVE" ? "AGGRESSIVE" : "BALANCED"}`}
       allowAnnualizedFallback={false}
       extraMetricRows={extraMetricRows}
     />
@@ -3289,7 +3282,6 @@ function FaceplateStrikeOpportunities({ item }) {
   // l'appartenance aux portefeuilles Combinaisons capital.
   const semantics = resolveScanRecommendationSemantics(item);
   const {
-    scanRecommendationMode,
     scanRecommendationGrade,
     isSafeScanRecommended,
     isAggressiveScanRecommended,
@@ -3298,11 +3290,6 @@ function FaceplateStrikeOpportunities({ item }) {
     isInAggressivePortfolio,
     portfolioMembershipLabels,
   } = semantics;
-  const safeDisplayGrade = resolveSafeLegDisplayGrade(item);
-  const aggressiveDisplayGrade = resolveAggressiveLegDisplayGrade(item);
-  const safeDebug = `safeRank=${item.safeRank ?? item.recommendationDiagnostics?.safeRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
-  const aggressiveDebug = `aggressiveRank=${item.aggressiveRank ?? item.recommendationDiagnostics?.aggressiveRank ?? "—"} • finalRank=${item.finalRank ?? item.recommendationDiagnostics?.finalRank ?? "—"}`;
-
   return (
     <div className="h-full">
       {portfolioMembershipLabels.length > 0 ? (
@@ -3312,42 +3299,39 @@ function FaceplateStrikeOpportunities({ item }) {
       ) : null}
       <div className="grid h-full grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-3">
         {hasSafe && (
-          <FaceplateStrikeColumn
-            title="Safe (IBKR live)"
-            tone="safe"
-            strikeData={item.safeStrike}
-            fallbackDte={item.dteDays}
-            isScanRecommended={isSafeScanRecommended}
-            selectedGrade={isSafeScanRecommended ? scanRecommendationGrade : null}
-            cardMode="SAFE"
-            scanRecommendationMode={scanRecommendationMode}
-            displayGrade={safeDisplayGrade}
-            portfolioBadges={isInSafePortfolio ? ["Portefeuille SAFE"] : []}
-            debugLabel={safeDebug}
-          />
+          <div className="h-full">
+            <FaceplateStrikeColumn
+              title="Safe (IBKR live)"
+              tone="safe"
+              strikeData={item.safeStrike}
+              fallbackDte={item.dteDays}
+              isScanRecommended={isSafeScanRecommended}
+              selectedGrade={isSafeScanRecommended ? scanRecommendationGrade : null}
+              portfolioBadges={isInSafePortfolio ? ["Portefeuille SAFE"] : []}
+            />
+          </div>
         )}
-        <BalancedFaceplateStrikeColumn
-          viewModel={
-            balancedCardViewModel
-              ? { ...balancedCardViewModel, selectedForBalanced: isInBalancedPortfolio || balancedCardViewModel.selectedForBalanced === true }
-              : balancedCardViewModel
-          }
-          scanRecommendationMode={scanRecommendationMode}
-        />
-        {hasAggressive && (
-          <FaceplateStrikeColumn
-            title="Aggressif (IBKR live)"
-            tone="aggressive"
-            strikeData={item.aggressiveStrike}
-            fallbackDte={item.dteDays}
-            isScanRecommended={isAggressiveScanRecommended}
-            selectedGrade={isAggressiveScanRecommended ? scanRecommendationGrade : null}
-            cardMode="AGGRESSIVE"
-            scanRecommendationMode={scanRecommendationMode}
-            displayGrade={aggressiveDisplayGrade}
-            portfolioBadges={isInAggressivePortfolio ? ["Portefeuille AGRESSIF"] : []}
-            debugLabel={aggressiveDebug}
+        <div className="h-full">
+          <BalancedFaceplateStrikeColumn
+            viewModel={
+              balancedCardViewModel
+                ? { ...balancedCardViewModel, selectedForBalanced: isInBalancedPortfolio || balancedCardViewModel.selectedForBalanced === true }
+                : balancedCardViewModel
+            }
           />
+        </div>
+        {hasAggressive && (
+          <div className="h-full">
+            <FaceplateStrikeColumn
+              title="Aggressif (IBKR live)"
+              tone="aggressive"
+              strikeData={item.aggressiveStrike}
+              fallbackDte={item.dteDays}
+              isScanRecommended={isAggressiveScanRecommended}
+              selectedGrade={isAggressiveScanRecommended ? scanRecommendationGrade : null}
+              portfolioBadges={isInAggressivePortfolio ? ["Portefeuille AGRESSIF"] : []}
+            />
+          </div>
         )}
       </div>
     </div>

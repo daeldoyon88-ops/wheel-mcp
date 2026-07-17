@@ -65,9 +65,7 @@ import {
   computeTickerQualityOverlay,
   getAggressivePriorityGrade,
   getFinalDisplayRecommendation,
-  getLegDistancePct,
   getLegPeriodYieldPct,
-  getLegPopPct,
   getLegPremiumValue,
   getLegSpreadPct,
   getLegYieldPct,
@@ -82,6 +80,7 @@ import {
   MODE_GRADE_RANK,
   toSpreadPctPercent,
   resolveCapitalComboInspectorLegView,
+  resolveCapitalComboInspectorPopDistance,
   formatCapitalComboPickLegBadge,
   formatCapitalComboPickBucketContext,
   getCanonicalPeriodYieldBand,
@@ -9399,8 +9398,19 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   const yieldBandCtx = _inspResolveYieldBand(bucketKey, candidate, bucketLeg);
   const yieldBand = yieldBandCtx.band;
   const dteDays = yieldBandCtx.dteDays;
-  const distance = bucketLeg != null ? getLegDistancePct(bucketLeg) : null;
-  const pop = bucketLeg != null ? getLegPopPct(bucketLeg) : null;
+  // P0 — POP/distance : pick final d'abord (évite n/d SAFE/AGG sans balancedLegDiagnostics).
+  const inspectorMetrics = resolveCapitalComboInspectorPopDistance({
+    pick,
+    bucketLeg,
+    balancedSelectedLeg: balancedLegDiagnostics?.selectedLeg ?? null,
+    bucketKey,
+    candidate,
+    usableCapital: capital,
+  });
+  const distance = inspectorMetrics.distance;
+  const pop = inspectorMetrics.pop;
+  const popSource = inspectorMetrics.popSource;
+  const distanceSource = inspectorMetrics.distanceSource;
   const strike = legView.selectedStrike ?? Number(bucketLeg?.strike ?? NaN);
   const capitalRequired = Number.isFinite(strike) && strike > 0 ? strike * 100 : null;
   const bid = bucketLeg != null ? Number(bucketLeg?.bid ?? NaN) : NaN;
@@ -9693,6 +9703,7 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
     ask: Number.isFinite(ask) ? ask : null,
     mid: Number.isFinite(mid) ? mid : null,
     spread, yieldPct, periodYieldPct, dteDays, yieldBand, yieldBandStatus, distance, pop,
+    popSource, distanceSource,
     capitalRequired, premiumUnit: premium,
     premiumTotal: inPicks ? pick.premiumCollected : null,
     scoreCombo: inPicks ? pick.selectionScore : null,
@@ -9747,6 +9758,8 @@ function _inspBucketSummary(bucketKey, combos, candidates, capital, ibkrRejected
     totalCapital: combo?.totalCapital ?? 0,
     freeCapital: combo?.freeCapital ?? 0,
     totalScanCards: candidates.length,
+    concentrationDiagnostics: combo?.concentrationDiagnostics ?? null,
+    allocationTrace: combo?.allocationTrace ?? combo?.capDiagnosticsV2?.allocationTrace ?? null,
     selected,
     affiliated,
     eligibleNotSelected,
@@ -9822,7 +9835,9 @@ function BucketTickerLine({ diag }) {
       {diag.yieldBand ? ` · cible ${targetLabel}` : ""}
       {" — "}spread {_inspFmt(diag.spread, "%", 1)}
       {" — "}dist {_inspFmt(diag.distance, "%", 1)}
+      {diag.distanceSource ? ` · source ${diag.distanceSource}` : ""}
       {" — "}POP {_inspFmt(diag.pop, "%", 0)}
+      {diag.popSource ? ` · source ${diag.popSource}` : ""}
       {" — "}capital {capStr}
       {" — "}<span className={_inspLineStatusCls(diag)}>{_inspLineStatus(diag)}</span>
       {execRejectHint ? <span className="text-amber-400">{execRejectHint}</span> : null}
@@ -9921,6 +9936,8 @@ function CapitalCombosInspector({
         positions: c.positions,
         totalCapital: c.totalCapital,
         freeCapital: c.freeCapital,
+        concentrationDiagnostics: c.concentrationDiagnostics ?? null,
+        allocationTrace: c.allocationTrace ?? c.capDiagnosticsV2?.allocationTrace ?? null,
         capDiagnosticsV2: c.capDiagnosticsV2 ?? null,
         picks: (c.picks ?? []).map((p) => ({
           ticker: p.ticker,
@@ -9928,6 +9945,8 @@ function CapitalCombosInspector({
           capitalRequired: p.capitalRequired,
           premiumCollected: p.premiumCollected,
           selectionScore: p.selectionScore,
+          popEstimate: p.popEstimate ?? null,
+          distancePct: p.distancePct ?? null,
         })),
       })),
       inspecteurParBucket: Object.fromEntries(
@@ -9943,6 +9962,8 @@ function CapitalCombosInspector({
             spread: d.spread,
             distance: d.distance,
             pop: d.pop,
+            popSource: d.popSource ?? null,
+            distanceSource: d.distanceSource ?? null,
             capitalRequired: d.capitalRequired,
             qualityTierBucket: d.qualityTierBucket ?? null,
             premiumTrapPenaltyBucket: d.premiumTrapPenaltyBucket ?? null,
@@ -9971,6 +9992,8 @@ function CapitalCombosInspector({
             totalCapital: s.totalCapital,
             freeCapital: s.freeCapital,
             totalScanCards: s.totalScanCards,
+            concentrationDiagnostics: s.concentrationDiagnostics ?? null,
+            allocationTrace: s.allocationTrace ?? null,
             bucketMetrics: {
               selectedCount: s.selected.length,
               affiliatedCount: s.affiliated.length,
@@ -10183,8 +10206,22 @@ function CapitalCombosInspector({
                                   : "n/d"
                               }
                             />
-                            <Row label="Distance %" val={fmt(diag.distance, "%", 1)} />
-                            <Row label="POP estimée" val={fmt(diag.pop, "%", 0)} />
+                            <Row
+                              label="Distance %"
+                              val={
+                                diag.distance != null
+                                  ? `${fmt(diag.distance, "%", 1)}${diag.distanceSource ? ` · source ${diag.distanceSource}` : ""}`
+                                  : "n/d"
+                              }
+                            />
+                            <Row
+                              label="POP estimée"
+                              val={
+                                diag.pop != null
+                                  ? `${fmt(diag.pop, "%", 0)}${diag.popSource ? ` · source ${diag.popSource}` : ""}`
+                                  : "n/d"
+                              }
+                            />
                             <Row label="Capital requis" val={diag.capitalRequired != null ? `${diag.capitalRequired.toFixed(0)}$` : "n/d"} />
                             <Row label="Capital libre bucket" val={diag.comboFreeCapital != null ? `${Number(diag.comboFreeCapital).toFixed(0)}$` : "n/d"} />
                             <Row label="Prime/contrat" val={diag.premiumUnit != null ? `${fmt(diag.premiumUnit)}$` : "n/d"} />
@@ -10354,6 +10391,46 @@ function CapitalCombosInspector({
                     <Row label="Capital utilisé" val={`${s.totalCapital.toFixed(0)}$`} />
                     <Row label="Libre déployable" val={`${freeDeployable.toFixed(0)}$`} />
                     {(() => {
+                      const conc = s.concentrationDiagnostics;
+                      if (!conc) return null;
+                      return (
+                        <div className="mt-1.5 mb-1 rounded border border-slate-700/80 bg-slate-950/40 px-2 py-1.5 space-y-0.5 text-[10px] text-slate-400 leading-snug">
+                          <p className="font-semibold text-slate-300">Concentration (informatif, read-only)</p>
+                          <Row
+                            label="Conforme aux caps"
+                            val={conc.capsCompliant == null ? "n/d" : conc.capsCompliant ? "oui" : "non"}
+                          />
+                          <Row
+                            label="Concentration économique"
+                            val={conc.economicConcentrationLevel ?? "n/d"}
+                          />
+                          <Row
+                            label="Top 3 / total"
+                            val={conc.top3TotalPct != null ? `${Number(conc.top3TotalPct).toFixed(2)}%` : "n/d"}
+                          />
+                          <Row
+                            label="Top 3 / investi"
+                            val={conc.top3InvestedPct != null ? `${Number(conc.top3InvestedPct).toFixed(2)}%` : "n/d"}
+                          />
+                          <Row
+                            label="HHI investi"
+                            val={conc.hhiInvested != null ? Number(conc.hhiInvested).toFixed(1) : "n/d"}
+                          />
+                          <Row
+                            label="Positions effectives"
+                            val={
+                              conc.effectivePositions != null
+                                ? Number(conc.effectivePositions).toFixed(2)
+                                : "n/d"
+                            }
+                          />
+                          <p className="text-[9px] text-slate-500 italic">
+                            Classification HHI informative — pas une règle de risque validée.
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
                       const comboV2 = _inspFindCombo(combos, b)?.capDiagnosticsV2;
                       if (!comboV2) return null;
                       const topBlk = (comboV2.blockerSummaryMerged ?? []).slice(0, 2);
@@ -10366,6 +10443,9 @@ function CapitalCombosInspector({
                               {topBlk.map((x) => `${x.reason}×${x.count}`).join(", ")}
                             </>
                           ) : ""}
+                          {(s.allocationTrace?.length ?? 0) > 0 ? (
+                            <> · allocationTrace {s.allocationTrace.length} entrées</>
+                          ) : null}
                         </p>
                       );
                     })()}

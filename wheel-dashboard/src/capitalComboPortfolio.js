@@ -3274,6 +3274,278 @@ export function projectCapitalComboPickModeFields(candidate) {
   };
 }
 
+/** Sources métriques Inspecteur — lecture seule, pas de règle métier. */
+export const CAPITAL_COMBO_INSPECTOR_METRIC_SOURCES = Object.freeze({
+  PICK_FINAL: "PICK_FINAL",
+  BUCKET_LEG: "BUCKET_LEG",
+  BALANCED_SELECTED_LEG: "BALANCED_SELECTED_LEG",
+  MISSING: "MISSING",
+});
+
+/**
+ * Seuils informatifs uniquement pour la concentration économique.
+ * Ce n’est PAS une règle de risque validée ni un cap moteur.
+ * HHI = Σ (poids_i × 100)² sur le capital investi ; effectivePositions = 10 000 / HHI.
+ * - faible : HHI < 1 500
+ * - modérée : 1 500 ≤ HHI ≤ 2 500
+ * - élevée : HHI > 2 500
+ */
+export const CAPITAL_COMBO_CONCENTRATION_HHI_BANDS = Object.freeze({
+  lowMaxExclusive: 1500,
+  moderateMaxInclusive: 2500,
+  noteFr:
+    "Classification informative (HHI) — ne remplace pas les caps ticker/secteur/thème/high-beta du moteur.",
+});
+
+/** Nombre fini ou null — ne convertit jamais une absence en 0. */
+export function finiteNumberOrNull(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * POP / distance Inspecteur — priorité déterministe pour un pick final.
+ * POP % déjà en pourcentage sur pick.popEstimate ; jambe via getLegPopPct.
+ * Distance signée en % sur pick.distancePct / jambe.distancePct.
+ */
+export function resolveCapitalComboInspectorPopDistance({
+  pick = null,
+  bucketLeg = null,
+  balancedSelectedLeg = null,
+  bucketKey = null,
+  candidate = null,
+  usableCapital = 100000,
+} = {}) {
+  const sources = CAPITAL_COMBO_INSPECTOR_METRIC_SOURCES;
+  let effectiveBucketLeg = bucketLeg ?? null;
+  if (
+    effectiveBucketLeg == null &&
+    candidate != null &&
+    bucketKey != null &&
+    String(bucketKey).trim() !== ""
+  ) {
+    const runtime = resolveBucketLegForPresentation(bucketKey, candidate, usableCapital);
+    if (runtime?.selectedLeg) effectiveBucketLeg = runtime.selectedLeg;
+  }
+
+  const balancedLeg =
+    balancedSelectedLeg ??
+    pick?.balancedLegDiagnostics?.selectedLeg ??
+    null;
+
+  let pop = null;
+  let popSource = sources.MISSING;
+  const pickPop = finiteNumberOrNull(pick?.popEstimate);
+  if (pickPop != null) {
+    pop = pickPop;
+    popSource = sources.PICK_FINAL;
+  } else {
+    const bucketPop = getLegPopPct(effectiveBucketLeg);
+    if (bucketPop != null) {
+      pop = bucketPop;
+      popSource = sources.BUCKET_LEG;
+    } else {
+      const balPop = getLegPopPct(balancedLeg);
+      if (balPop != null) {
+        pop = balPop;
+        popSource = sources.BALANCED_SELECTED_LEG;
+      }
+    }
+  }
+
+  let distance = null;
+  let distanceSource = sources.MISSING;
+  const pickDist = finiteNumberOrNull(pick?.distancePct);
+  if (pickDist != null) {
+    distance = pickDist;
+    distanceSource = sources.PICK_FINAL;
+  } else {
+    const bucketDist = getLegDistancePct(effectiveBucketLeg);
+    if (bucketDist != null) {
+      distance = bucketDist;
+      distanceSource = sources.BUCKET_LEG;
+    } else {
+      const balDist = getLegDistancePct(balancedLeg);
+      if (balDist != null) {
+        distance = balDist;
+        distanceSource = sources.BALANCED_SELECTED_LEG;
+      }
+    }
+  }
+
+  return { pop, popSource, distance, distanceSource };
+}
+
+/**
+ * Diagnostics de concentration read-only (aucun cap / score / sélection modifié).
+ * @param {{ picks?: Array, totalCapital: number, investedCapital?: number, modeAlloc?: object|null }} args
+ */
+export function buildCapitalComboConcentrationDiagnostics({
+  picks = [],
+  totalCapital,
+  investedCapital = null,
+  modeAlloc = null,
+} = {}) {
+  const total = finiteNumberOrNull(totalCapital) ?? 0;
+  const list = Array.isArray(picks) ? picks : [];
+  const invested =
+    investedCapital != null && Number.isFinite(Number(investedCapital))
+      ? Number(investedCapital)
+      : list.reduce((s, p) => s + (Number(p?.capitalUsed) || 0), 0);
+  const freeCapital = Math.max(0, total - invested);
+
+  const positions = list.map((p) => {
+    const capitalUsed = Number(p?.capitalUsed) || 0;
+    const sectorRaw = p?.sectorKey;
+    const themeRaw = p?.concentrationTheme;
+    const sectorKey =
+      sectorRaw == null || String(sectorRaw).trim() === ""
+        ? null
+        : String(sectorRaw).trim().toLowerCase();
+    const themeKey =
+      themeRaw == null || String(themeRaw).trim() === ""
+        ? null
+        : String(themeRaw).trim().toLowerCase();
+    return {
+      ticker: p?.ticker ?? null,
+      capitalUsed,
+      weightOfTotalPct: total > 0 ? (capitalUsed / total) * 100 : null,
+      weightOfInvestedPct: invested > 0 ? (capitalUsed / invested) * 100 : null,
+      sectorKey,
+      themeKey,
+      isHighBeta: p?.isHighBeta === true || themeKey === "high_beta_growth",
+    };
+  });
+
+  const sortedByCapital = [...positions].sort(
+    (a, b) => (b.capitalUsed || 0) - (a.capitalUsed || 0),
+  );
+  const top3Positions = sortedByCapital.slice(0, 3);
+  const top3Capital = top3Positions.reduce((s, p) => s + (p.capitalUsed || 0), 0);
+  const top3TotalPct = total > 0 ? (top3Capital / total) * 100 : null;
+  const top3InvestedPct = invested > 0 ? (top3Capital / invested) * 100 : null;
+
+  let hhiInvested = null;
+  let effectivePositions = null;
+  if (invested > 0 && positions.length > 0) {
+    hhiInvested = positions.reduce((acc, p) => {
+      const pct = ((p.capitalUsed || 0) / invested) * 100;
+      return acc + pct * pct;
+    }, 0);
+    effectivePositions = hhiInvested > 0 ? 10000 / hhiInvested : null;
+  } else if (positions.length === 0) {
+    hhiInvested = null;
+    effectivePositions = null;
+  }
+
+  const bySector = new Map();
+  const byTheme = new Map();
+  let highBetaCapital = 0;
+  for (const p of positions) {
+    if (p.sectorKey != null) {
+      bySector.set(p.sectorKey, (bySector.get(p.sectorKey) ?? 0) + p.capitalUsed);
+    }
+    if (p.themeKey != null) {
+      byTheme.set(p.themeKey, (byTheme.get(p.themeKey) ?? 0) + p.capitalUsed);
+    }
+    if (p.isHighBeta) highBetaCapital += p.capitalUsed;
+  }
+
+  const sectorConcentration = [...bySector.entries()]
+    .map(([sectorKey, capitalUsed]) => ({
+      sectorKey,
+      capitalUsed,
+      weightOfInvestedPct: invested > 0 ? (capitalUsed / invested) * 100 : null,
+      weightOfTotalPct: total > 0 ? (capitalUsed / total) * 100 : null,
+    }))
+    .sort((a, b) => b.capitalUsed - a.capitalUsed);
+
+  const themeConcentration = [...byTheme.entries()]
+    .map(([themeKey, capitalUsed]) => ({
+      themeKey,
+      capitalUsed,
+      weightOfInvestedPct: invested > 0 ? (capitalUsed / invested) * 100 : null,
+      weightOfTotalPct: total > 0 ? (capitalUsed / total) * 100 : null,
+    }))
+    .sort((a, b) => b.capitalUsed - a.capitalUsed);
+
+  const highBeta = {
+    capitalUsed: highBetaCapital,
+    weightOfInvestedPct: invested > 0 ? (highBetaCapital / invested) * 100 : null,
+    weightOfTotalPct: total > 0 ? (highBetaCapital / total) * 100 : null,
+  };
+
+  let economicConcentrationLevel = null;
+  if (hhiInvested == null) {
+    economicConcentrationLevel = positions.length === 0 ? "n/a" : null;
+  } else if (hhiInvested < CAPITAL_COMBO_CONCENTRATION_HHI_BANDS.lowMaxExclusive) {
+    economicConcentrationLevel = "faible";
+  } else if (hhiInvested <= CAPITAL_COMBO_CONCENTRATION_HHI_BANDS.moderateMaxInclusive) {
+    economicConcentrationLevel = "modérée";
+  } else {
+    economicConcentrationLevel = "élevée";
+  }
+
+  const largestTickerPct =
+    invested > 0 && positions.length > 0
+      ? Math.max(...positions.map((p) => ((p.capitalUsed || 0) / invested) * 100))
+      : 0;
+  const largestSectorPct =
+    invested > 0 && sectorConcentration.length > 0
+      ? Math.max(...sectorConcentration.map((s) => s.weightOfInvestedPct ?? 0))
+      : 0;
+  const largestThemePct =
+    invested > 0 && themeConcentration.length > 0
+      ? Math.max(...themeConcentration.map((t) => t.weightOfInvestedPct ?? 0))
+      : 0;
+  const highBetaPct = highBeta.weightOfInvestedPct ?? 0;
+
+  const tickerCapPct = Number(modeAlloc?.tickerCapPct);
+  const sectorCapPct = Number(modeAlloc?.maxSectorCapitalPct);
+  const themeCapPct = Number(modeAlloc?.maxThemeCapitalPct);
+  const highBetaCapPct = Number(modeAlloc?.maxHighBetaCapitalPct);
+  const hasCaps =
+    Number.isFinite(tickerCapPct) ||
+    Number.isFinite(sectorCapPct) ||
+    Number.isFinite(themeCapPct) ||
+    Number.isFinite(highBetaCapPct);
+
+  let capsCompliant = null;
+  if (hasCaps && invested > 0) {
+    capsCompliant =
+      (!Number.isFinite(tickerCapPct) || largestTickerPct <= tickerCapPct * 100 + 1e-9) &&
+      (!Number.isFinite(sectorCapPct) || largestSectorPct <= sectorCapPct * 100 + 1e-9) &&
+      (!Number.isFinite(themeCapPct) || largestThemePct <= themeCapPct * 100 + 1e-9) &&
+      (!Number.isFinite(highBetaCapPct) || highBetaPct <= highBetaCapPct * 100 + 1e-9);
+  }
+
+  return {
+    version: "capital-combo-concentration-v1",
+    informationalOnly: true,
+    classificationNoteFr: CAPITAL_COMBO_CONCENTRATION_HHI_BANDS.noteFr,
+    hhiBands: { ...CAPITAL_COMBO_CONCENTRATION_HHI_BANDS },
+    totalCapital: total,
+    investedCapital: invested,
+    freeCapital,
+    positions,
+    top3Capital,
+    top3TotalPct,
+    top3InvestedPct,
+    top3Tickers: top3Positions.map((p) => p.ticker),
+    hhiInvested,
+    effectivePositions,
+    sectorConcentration,
+    themeConcentration,
+    highBeta,
+    capsCompliant,
+    economicConcentrationLevel,
+    largestTickerPct,
+    largestSectorPct,
+    largestThemePct,
+  };
+}
+
 /**
  * Vue Inspector — priorité pick runtime, sinon résolution bucket moteur, sinon legacy.
  */
@@ -3285,6 +3557,14 @@ export function resolveCapitalComboInspectorLegView({
 }) {
   const bucket = String(bucketKey || "").trim().toUpperCase();
   if (pick && (pick.selectedLegMode != null || pick.strike != null)) {
+    const metrics = resolveCapitalComboInspectorPopDistance({
+      pick,
+      bucketLeg: pick.balancedLegDiagnostics?.selectedLeg ?? null,
+      balancedSelectedLeg: pick.balancedLegDiagnostics?.selectedLeg ?? null,
+      bucketKey: bucket,
+      candidate,
+      usableCapital,
+    });
     return {
       source: "runtime",
       bucketLegAvailable: true,
@@ -3297,6 +3577,12 @@ export function resolveCapitalComboInspectorLegView({
       selectedPeriodYieldPct: pick.periodYield ?? pick.selectedPeriodYieldPct ?? null,
       selectedSpreadPct: pick.spreadPct ?? null,
       selectedGrade: pick.grade ?? null,
+      selectedPopEstimate: finiteNumberOrNull(pick.popEstimate),
+      selectedDistancePct: finiteNumberOrNull(pick.distancePct),
+      inspectorPop: metrics.pop,
+      inspectorDistance: metrics.distance,
+      inspectorPopSource: metrics.popSource,
+      inspectorDistanceSource: metrics.distanceSource,
       selectionReason: pick.selectionReason ?? null,
       fallbackUsed: pick.fallbackUsed === true,
       balancedLegSource: pick.balancedLegSource ?? null,
@@ -3307,9 +3593,20 @@ export function resolveCapitalComboInspectorLegView({
 
   const runtime = resolveBucketLegForPresentation(bucket, candidate, usableCapital);
   if (runtime.bucketLegAvailable || runtime.source === "runtime") {
+    const metrics = resolveCapitalComboInspectorPopDistance({
+      pick: null,
+      bucketLeg: runtime.selectedLeg ?? null,
+      balancedSelectedLeg: runtime.balancedLegDiagnostics?.selectedLeg ?? null,
+    });
     return {
       ...runtime,
       inPicks: false,
+      selectedPopEstimate: null,
+      selectedDistancePct: getLegDistancePct(runtime.selectedLeg ?? null),
+      inspectorPop: metrics.pop,
+      inspectorDistance: metrics.distance,
+      inspectorPopSource: metrics.popSource,
+      inspectorDistanceSource: metrics.distanceSource,
       legSourceLabel: !runtime.bucketLegAvailable
         ? "Décision runtime (BALANCED indisponible)"
         : runtime.fallbackUsed
@@ -3330,6 +3627,12 @@ export function resolveCapitalComboInspectorLegView({
     selectedPeriodYieldPct: null,
     selectedSpreadPct: null,
     selectedGrade: null,
+    selectedPopEstimate: null,
+    selectedDistancePct: null,
+    inspectorPop: null,
+    inspectorDistance: null,
+    inspectorPopSource: CAPITAL_COMBO_INSPECTOR_METRIC_SOURCES.MISSING,
+    inspectorDistanceSource: CAPITAL_COMBO_INSPECTOR_METRIC_SOURCES.MISSING,
     selectionReason: null,
     fallbackUsed: false,
     legSourceLabel: "Estimation legacy — sans pick runtime",
@@ -3903,7 +4206,13 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
     /** Phase 2A — instrumentation lecture seule (export Inspector / allocationTraceV1). */
     const diagnosticsEnabledForTrace = optimizerV2.capDiagnosticsEnabled !== false;
     const traceAccum = diagnosticsEnabledForTrace
-      ? { cycleRows: [], selectedRows: [], rejectionRows: [], leftoverRejectSamples: [] }
+      ? {
+          cycleRows: [],
+          selectedRows: [],
+          rejectionRows: [],
+          leftoverRejectSamples: [],
+          attemptRows: [],
+        }
       : null;
     const CYCLE_ROWS_CAP = 5200;
     const REJECTION_ROWS_CAP = 900;
@@ -3958,6 +4267,28 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       traceAccum.leftoverRejectSamples.push(sample);
     }
 
+    function snapshotTraceConstraints(candidate) {
+      const state = computePortfolioState();
+      const themeKey = String(candidate?._qualityOverlay?.concentrationTheme || "").trim().toLowerCase();
+      const sectorKey = String(candidate?._tickerMeta?.sector || "").trim().toLowerCase();
+      return {
+        currentTickerCapital: state.tickerCapitalMap.get(candidate.ticker) ?? 0,
+        tickerCapLimit: tickerCapDollars,
+        currentSectorCapital:
+          sectorKey && !NEUTRAL_CLUSTER_KEYS.has(sectorKey)
+            ? state.sectorCapitalMap.get(sectorKey) ?? 0
+            : 0,
+        sectorCapLimit: usableCapital * (Number(modeAlloc.maxSectorCapitalPct) || 0.45),
+        currentThemeCapital:
+          themeKey && !NEUTRAL_CLUSTER_KEYS.has(themeKey)
+            ? state.themeCapitalMap.get(themeKey) ?? 0
+            : 0,
+        themeCapLimit: usableCapital * (Number(modeAlloc.maxThemeCapitalPct) || 0.45),
+        currentHighBetaCapital: state.highBetaCapital,
+        highBetaCapLimit: usableCapital * (Number(modeAlloc.maxHighBetaCapitalPct) || 0.4),
+      };
+    }
+
     function flushSweepTrace(
       rows,
       phaseLabel,
@@ -4005,6 +4336,28 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           }
         }
 
+        const constraints = snapshotTraceConstraints(cand);
+        const selected = decision === "selected";
+        const isExistingPick = pickMap.has(cand.ticker);
+        const positionsAfter = selected
+          ? positionsBeforeSweep + (isExistingPick ? 0 : 1)
+          : positionsBeforeSweep;
+        const strikeVal = finiteNumberOrNull(
+          cand.selectedStrikeValue ?? cand.selectedStrike?.strike ?? cand.selectedLeg?.strike,
+        );
+        const expirationVal =
+          pickMetadataString(
+            cand.selectedLeg?.expiration,
+            cand.targetExpiration,
+            cand.expiration,
+          ) ?? null;
+        const allocScore =
+          cand._comboScoreBreakdown?.totalScore ?? cand.allocScore ?? null;
+        const marginalScore =
+          row.okEvaluated?.ok && Number.isFinite(Number(row.okEvaluated.marginalScore))
+            ? Number(row.okEvaluated.marginalScore)
+            : null;
+
         pushCycleRow({
           cycle: cycleNum,
           allocationPhase: phaseLabel,
@@ -4017,8 +4370,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             cand.capitalPerContract ?? null,
           candidateYieldPct:
             cand.weeklyReturn ?? cand.selectedYieldPct ?? null,
-          candidateScore:
-            cand._comboScoreBreakdown?.totalScore ?? cand.allocScore ?? null,
+          candidateScore: allocScore,
           candidateRank: candidateRankByTicker[tk] ?? null,
           candidateGrade: cand.finalDisplayGrade ?? cand.grade ?? null,
           candidateSpreadPct: cand.selectedSpreadPct ?? cand.spreadPct ?? null,
@@ -4031,7 +4383,36 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
               : null,
           usedSoftCapsInEval: !!row.usedSoftCaps,
           sweepOrdinalInBucket: candidateSweepIndexByTicker[tk] ?? null,
+          ...constraints,
         });
+
+        if (traceAccum.attemptRows) {
+          traceAccum.attemptRows.push({
+            sequence: traceAccum.attemptRows.length + 1,
+            pass: phaseLabel,
+            cycle: cycleNum,
+            ticker: tickerKey,
+            mode: cand.finalDisplayMode ?? cand.mode ?? null,
+            strike: strikeVal,
+            expiration: expirationVal,
+            capitalRequired: cand.capitalPerContract ?? null,
+            capitalBefore: capitalBeforeSweep,
+            capitalAfter:
+              typeof capitalAfterIfSel === "number" && Number.isFinite(capitalAfterIfSel)
+                ? capitalAfterIfSel
+                : null,
+            allocScore,
+            marginalScore,
+            rank: candidateRankByTicker[tk] ?? null,
+            selected,
+            decision,
+            reasonCode: reasonStr,
+            constraint: decision === "rejected" ? reasonStr : null,
+            ...constraints,
+            positionsBefore: positionsBeforeSweep,
+            positionsAfter,
+          });
+        }
 
         if (decision === "rejected" && row.failReason) {
           const flags = traceFlagsFromRejectReason(false, row.failReason);
@@ -4050,6 +4431,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
             passedHighBetaCap: flags.passedHighBetaCap,
             allocationPhase: phaseLabel,
             cycle: cycleNum,
+            ...constraints,
           });
         }
       }
@@ -5128,6 +5510,11 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
           ? [...new Set(stoppedPieces)].join(" · ")
           : "allocation_greedy_exited_under_normal_terminal_conditions_no_extra_residual_flags_emitted";
 
+      const allocationTrace =
+        diagnosticsEnabledForTrace && traceAccum?.attemptRows
+          ? [...traceAccum.attemptRows]
+          : null;
+
       const allocationTraceV1 =
         diagnosticsEnabledForTrace && traceAccum
           ? {
@@ -5145,6 +5532,8 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
               finalPositionCount:
                 picks.length,
               stoppedBecause: stoppedBecauseTrace,
+              /** Trace aplatie append-only (P0) — même contenu que combo.allocationTrace. */
+              attempts: allocationTrace,
               cycleTrace: [...traceAccum.cycleRows],
               selectedTrace: [...traceAccum.selectedRows],
               rejectionTrace: [...traceAccum.rejectionRows],
@@ -5264,6 +5653,7 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
               })
             : null,
         allocationTraceV1,
+        allocationTrace,
         alternativeCompositionSimV1,
       };
 
@@ -5271,6 +5661,13 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
         capitalShortfallReason = unusedCapitalDiagnostic.legacyShortfallReason;
       }
     }
+
+    const concentrationDiagnostics = buildCapitalComboConcentrationDiagnostics({
+      picks,
+      totalCapital: capital,
+      investedCapital: used,
+      modeAlloc,
+    });
 
     const picksOut =
       mode.id === "balanced" && balancedInstitutionalV3Audit
@@ -5333,6 +5730,12 @@ export function buildPortfolioCombos(candidates, capital, maxCapitalPct, maxPosi
       diversificationHealthScore,
       clusterWarnings,
       totalPremiumCollected,
+      concentrationDiagnostics,
+      allocationTrace:
+        capDiagnosticsV2?.allocationTrace ??
+        (diagnosticsEnabledForTrace && traceAccum?.attemptRows
+          ? [...traceAccum.attemptRows]
+          : null),
       capDiagnosticsV2,
     };
   }

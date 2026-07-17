@@ -74,6 +74,7 @@ import {
   getLegWeeklyNormalizedYieldPct,
   getCandidateExecutionScore,
   getLegExecutionBreakdown,
+  resolveLegExecutionLiquidity,
   CAPITAL_COMBO_AGGRESSIVE_MIN_EXECUTION_SCORE,
   getModeGradeRank,
   gradeLeg,
@@ -4159,6 +4160,7 @@ function mergeYahooAndIbkrCandidate(yahooCandidate, ibkrCandidate) {
 function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = false, dteDays = null) {
   if (!strike) return null;
   const strikeValue = Number(strike.strike);
+  const executionLiquidity = resolveLegExecutionLiquidity(strike);
   const primeFromQuote = strike.primeUsed ?? strike.bid ?? null;
   const premiumUsed = Number.isFinite(Number(primeFromQuote))
     ? Number(primeFromQuote)
@@ -4237,9 +4239,15 @@ function ibkrStrikeToDashboardStrike(strike, spot, label, preserveNullQuotes = f
       spread: strike.spread ?? null,
       spreadPct: Number.isFinite(spreadPctDecimal) ? spreadPctDecimal * 100 : null,
       isLiquid: Number.isFinite(spreadPctDecimal) && spreadPctDecimal <= 0.3,
+      volume: executionLiquidity.volume,
+      openInterest: executionLiquidity.openInterest,
+      source: executionLiquidity.liquiditySource ?? "IBKR live",
     },
     bid: strike.bid ?? null,
     ask: strike.ask ?? null,
+    volume: executionLiquidity.volume,
+    openInterest: executionLiquidity.openInterest,
+    liquiditySource: executionLiquidity.liquiditySource ?? "IBKR live",
     primeUsed:
       strike.primeUsed ?? (premiumUsed != null ? premiumUsed : preserveNullQuotes ? null : resolvedPremiumUsed),
     source: "IBKR live",
@@ -9655,19 +9663,14 @@ function _inspCandidateDiag(candidate, bucketKey, combos, capital, ibkrRejectedS
   }
 
   const executionBreakdown =
-    blockedByExecutionScore && bucketLeg
+    bucketLeg
       ? (() => {
           const bd = getLegExecutionBreakdown(bucketLeg);
           if (!bd) return null;
           return {
-            executionScore: bd.executionScore,
+            ...bd,
             minExecutionScore: cfg.minExecutionScore,
-            spreadScore: bd.spreadScore,
-            volumeScore: bd.volumeScore,
-            openInterestScore: bd.openInterestScore,
-            spreadPct: bd.spreadPct,
-            volume: bd.volume,
-            openInterest: bd.openInterest,
+            legSource: inspectorLegSource ?? bd.legSource,
           };
         })()
       : null;
@@ -9807,7 +9810,7 @@ function BucketTickerLine({ diag }) {
       : "";
   const execRejectHint =
     diag.blockedByExecutionScore && diag.executionBreakdown
-      ? ` · executionScore ${Number(diag.executionBreakdown.executionScore).toFixed(2)} < min AGGRESSIVE ${Number(diag.executionBreakdown.minExecutionScore).toFixed(2)}`
+      ? ` · executionScore ${Number(diag.executionBreakdown.executionScore).toFixed(4)} < minimum AGGRESSIVE ${Number(diag.executionBreakdown.minExecutionScore).toFixed(4)}`
       : "";
   return (
     <div className="text-xs text-slate-300 py-px leading-snug">
@@ -10074,21 +10077,30 @@ function CapitalCombosInspector({
                       <p className="font-semibold text-sm">{diag.ticker} — {diag.bucket}</p>
                       <span className={_inspStatusBadge(diag.statusProbable)}>{diag.statusProbable}</span>
                       <p className="text-xs mt-1 italic">{diag.raisonProbable}</p>
-                      {diag.blockedByExecutionScore && diag.executionBreakdown && (
+                      {diag.executionBreakdown && (
                         <div className="mt-1 rounded border border-amber-800 bg-amber-950/35 px-2 py-1 text-[11px] leading-snug text-amber-300">
-                          <p className="font-semibold">Execution</p>
+                          <p className="font-semibold">Exécution</p>
                           <p>
-                            score {Number(diag.executionBreakdown.executionScore).toFixed(2)} / min{" "}
-                            {Number(diag.executionBreakdown.minExecutionScore).toFixed(2)}
+                            executionScore {Number(diag.executionBreakdown.executionScore).toFixed(4)} / seuil{" "}
+                            {diag.bucket} {Number(diag.executionBreakdown.minExecutionScore).toFixed(4)}
                           </p>
                           <p>
-                            spreadScore {Number(diag.executionBreakdown.spreadScore).toFixed(2)} · volumeScore{" "}
-                            {Number(diag.executionBreakdown.volumeScore).toFixed(2)} · OI score{" "}
-                            {Number(diag.executionBreakdown.openInterestScore).toFixed(2)}
+                            spread brut {diag.executionBreakdown.spread != null ? Number(diag.executionBreakdown.spread).toFixed(4) : "n/d"} · spreadPct{" "}
+                            {Number(diag.executionBreakdown.spreadPct).toFixed(4)} % · spreadScore{" "}
+                            {Number(diag.executionBreakdown.spreadScore).toFixed(4)}
                           </p>
                           <p>
-                            spread {Number(diag.executionBreakdown.spreadPct).toFixed(2)} % · volume{" "}
-                            {diag.executionBreakdown.volume} · OI {diag.executionBreakdown.openInterest}
+                            Volume {diag.executionBreakdown.volumeKnown ? diag.executionBreakdown.volume : "n/d"} · volumeScore{" "}
+                            {Number(diag.executionBreakdown.volumeScore).toFixed(4)} · Open interest{" "}
+                            {diag.executionBreakdown.openInterestKnown ? diag.executionBreakdown.openInterest : "n/d"} · openInterestScore{" "}
+                            {Number(diag.executionBreakdown.openInterestScore).toFixed(4)}
+                          </p>
+                          <p>
+                            Données d’exécution complètes : {diag.executionBreakdown.executionDataComplete ? "oui" : "non"}
+                          </p>
+                          <p>
+                            Source jambe : {diag.executionBreakdown.legSource ?? "n/d"} · Source liquidité :{" "}
+                            {diag.executionBreakdown.liquiditySource ?? "n/d"}
                           </p>
                         </div>
                       )}

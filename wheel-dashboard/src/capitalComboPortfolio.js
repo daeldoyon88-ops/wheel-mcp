@@ -1305,6 +1305,66 @@ export function getLegPopPct(leg) {
   return popDecimal == null ? null : popDecimal * 100;
 }
 
+function resolveKnownExecutionValue(candidates) {
+  for (const candidate of candidates) {
+    const rawValue = candidate?.value;
+    if (rawValue == null || rawValue === "") continue;
+    const value = Number(rawValue);
+    if (Number.isFinite(value)) {
+      return { value, known: true, source: candidate.source };
+    }
+  }
+  return { value: null, known: false, source: null };
+}
+
+/**
+ * Liquidite d'execution de la jambe exacte, sans fallback vers une autre jambe.
+ * Priorite canonique : champs jambe, objet liquidity, puis raw de cette meme jambe.
+ */
+export function resolveLegExecutionLiquidity(leg) {
+  const volume = resolveKnownExecutionValue([
+    { value: leg?.volume, source: "leg.volume" },
+    { value: leg?.liquidity?.volume, source: "leg.liquidity.volume" },
+    { value: leg?.raw?.volume, source: "leg.raw.volume" },
+  ]);
+  const openInterest = resolveKnownExecutionValue([
+    { value: leg?.openInterest, source: "leg.openInterest" },
+    { value: leg?.liquidity?.openInterest, source: "leg.liquidity.openInterest" },
+    { value: leg?.raw?.openInterest, source: "leg.raw.openInterest" },
+  ]);
+  const liquiditySourceRaw =
+    leg?.liquiditySource ??
+    leg?.liquidity?.source ??
+    leg?.quoteSource ??
+    leg?.source ??
+    null;
+  const liquiditySource =
+    liquiditySourceRaw == null || String(liquiditySourceRaw).trim() === ""
+      ? null
+      : String(liquiditySourceRaw).trim();
+
+  return {
+    volume: volume.value,
+    openInterest: openInterest.value,
+    volumeKnown: volume.known,
+    openInterestKnown: openInterest.known,
+    volumeSource: volume.source,
+    openInterestSource: openInterest.source,
+    liquiditySource,
+  };
+}
+
+function resolveLegRawSpread(leg) {
+  const explicit = resolveKnownExecutionValue([
+    { value: leg?.spread, source: "leg.spread" },
+    { value: leg?.liquidity?.spread, source: "leg.liquidity.spread" },
+    { value: leg?.raw?.spread, source: "leg.raw.spread" },
+  ]);
+  if (explicit.known) return explicit.value;
+  const book = legBidAskFinite(leg);
+  return book.both && book.ask >= book.bid ? book.ask - book.bid : null;
+}
+
 /**
  * Score d'exécution pour une jambe option — même formule que computeProScore (wheelScanner).
  * Le score backend global est toujours calculé sur la jambe SAFE ; pour AGGRESSIVE il faut
@@ -1315,12 +1375,12 @@ export function getLegExecutionBreakdown(leg) {
   const spreadPct = getLegSpreadPct(leg);
   if (!Number.isFinite(spreadPct) || spreadPct < 0) return null;
 
-  const volume = Number(leg?.volume ?? leg?.liquidity?.volume ?? NaN);
-  const openInterest = Number(leg?.openInterest ?? leg?.liquidity?.openInterest ?? NaN);
+  const executionLiquidity = resolveLegExecutionLiquidity(leg);
+  const { volume, openInterest, volumeKnown, openInterestKnown } = executionLiquidity;
   const spreadScore = Math.max(0, 1 - spreadPct / 50);
-  const volumeScore = Number.isFinite(volume) && volume > 0 ? Math.min(volume / 200, 1) : 0;
+  const volumeScore = volumeKnown && volume > 0 ? Math.min(volume / 200, 1) : 0;
   const openInterestScore =
-    Number.isFinite(openInterest) && openInterest > 0 ? Math.min(openInterest / 500, 1) : 0;
+    openInterestKnown && openInterest > 0 ? Math.min(openInterest / 500, 1) : 0;
   const rawExecutionScore =
     spreadScore * 0.5 + volumeScore * 0.3 + openInterestScore * 0.2;
   const executionScore = Math.max(0, Math.min(1, rawExecutionScore));
@@ -1330,9 +1390,18 @@ export function getLegExecutionBreakdown(leg) {
     spreadScore,
     volumeScore,
     openInterestScore,
+    spread: resolveLegRawSpread(leg),
     spreadPct,
-    volume: Number.isFinite(volume) ? volume : 0,
-    openInterest: Number.isFinite(openInterest) ? openInterest : 0,
+    volume,
+    openInterest,
+    spreadKnown: true,
+    volumeKnown,
+    openInterestKnown,
+    executionDataComplete: volumeKnown && openInterestKnown,
+    volumeSource: executionLiquidity.volumeSource,
+    openInterestSource: executionLiquidity.openInterestSource,
+    legSource: leg?.source ?? null,
+    liquiditySource: executionLiquidity.liquiditySource,
     formula: "spreadScore*0.5 + volumeScore*0.3 + openInterestScore*0.2",
   };
 }

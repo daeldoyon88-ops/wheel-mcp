@@ -11,6 +11,7 @@ import {
   gradeLeg,
   isValidComboDte,
   resolveCapitalComboInspectorLegView,
+  resolveLegExecutionLiquidity,
   resolveLegDte,
 } from "./capitalComboPortfolio.js";
 
@@ -309,9 +310,18 @@ export function resolveDashboardModePresentation(row, { modeFilter = "all" } = {
                 premiumUsed: balancedVm.premium,
                 weeklyYield: balancedVm.periodYieldPct,
                 weeklyNormalizedYield: balancedVm.weeklyNormalizedYieldPct,
-                liquidity: { spreadPct: balancedVm.spreadPct },
+                volume: balancedVm.volume,
+                openInterest: balancedVm.openInterest,
+                liquiditySource: balancedVm.liquiditySource,
+                liquidity: {
+                  spreadPct: balancedVm.spreadPct,
+                  volume: balancedVm.volume,
+                  openInterest: balancedVm.openInterest,
+                  source: balancedVm.liquiditySource,
+                },
                 distancePct: balancedVm.distancePct,
                 popProfitEstimated: balancedVm.popDecimal,
+                source: balancedVm.quoteSource,
               }
             : null,
       },
@@ -582,6 +592,7 @@ export function resolveBalancedCardViewModel({
   });
   const diagnostics = legView?.balancedLegDiagnostics ?? null;
   const selectedLeg = legView?.selectedLeg ?? diagnostics?.selectedLeg ?? null;
+  const executionLiquidity = resolveLegExecutionLiquidity(selectedLeg);
   const source =
     stringOrNull(legView?.balancedLegSource, diagnostics?.source) ??
     BALANCED_LEG_SOURCES.UNAVAILABLE;
@@ -674,6 +685,11 @@ export function resolveBalancedCardViewModel({
     bid: finiteOrNull(selectedLeg?.bid),
     ask: finiteOrNull(selectedLeg?.ask),
     mid: finiteOrNull(selectedLeg?.mid),
+    volume: executionLiquidity.volume,
+    openInterest: executionLiquidity.openInterest,
+    volumeKnown: executionLiquidity.volumeKnown,
+    openInterestKnown: executionLiquidity.openInterestKnown,
+    liquiditySource: executionLiquidity.liquiditySource,
     spreadPct: finiteOrNull(
       legView?.selectedSpreadPct ??
         diagnostics?.selectedSpreadPct ??

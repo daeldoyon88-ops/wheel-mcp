@@ -1,0 +1,41 @@
+{
+  "bars": [
+    {
+      "qualityFlags": ["SYNTHETIC_DIVIDEND"],
+      "corporateActions": {"cashDividend": 0.25, "splitFactor": null},
+      "volume": 1200,
+      "close": 31,
+      "low": 29,
+      "high": 32,
+      "open": 30,
+      "availableAt": "2026-04-03T20:00:00Z",
+      "eventTime": "2026-04-03T20:00:00Z",
+      "sessionDate": "2026-04-03"
+    },
+    {
+      "sessionDate": "2026-04-01",
+      "eventTime": "2026-04-01T20:00:00Z",
+      "availableAt": "2026-04-01T20:00:00Z",
+      "open": 15,
+      "high": 16,
+      "low": 14,
+      "close": 15.5,
+      "volume": 2000,
+      "corporateActions": {"splitFactor": 2, "cashDividend": null},
+      "qualityFlags": ["SYNTHETIC_SPLIT", "SYNTHETIC", "SYNTHETIC"]
+    },
+    {
+      "sessionDate": "2026-04-02",
+      "eventTime": "2026-04-02T20:00:00Z",
+      "availableAt": "2026-04-02T20:00:00Z",
+      "open": null,
+      "high": null,
+      "low": null,
+      "close": null,
+      "volume": null,
+      "corporateActions": {"splitFactor": null, "cashDividend": null},
+      "qualityFlags": ["SYNTHETIC_NULLS"]
+    }
+  ],
+  "schemaVersion": "CanonicalDailyBars/1"
+}

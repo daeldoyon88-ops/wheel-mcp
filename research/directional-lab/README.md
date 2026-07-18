@@ -154,6 +154,39 @@ produit le même hash (`test/deterministic-results.test.mjs`).
   au régime; série absente → `BENCHMARK_UNAVAILABLE`, date absente →
   `BENCHMARK_DATE_MISSING`.
 
+## L1 — snapshots de données immuables (fixtures uniquement)
+
+L1 sépare quatre identités : les octets source exacts (`sourceObjectId`),
+les barres normalisées exactes (`normalizedObjectId`), le processus
+déterministe (`DatasetSnapshotCore/1`) et une acquisition particulière
+(`DatasetSnapshotRecord/1`). `sourceAcquiredAt` reste nullable et n’est
+jamais déduit de `ingestedIntoLabAt`.
+
+`CanonicalJSON/1` produit du JSON UTF-8 compact, sans BOM, avec clés triées
+et exactement un LF inclus dans le SHA-256. La validation/normalisation reste
+propre à chaque schéma; le sérialiseur générique ne connaît aucune règle
+financière. Le manifest `TransformImplementationManifest/1` couvre une liste
+explicite de modules par chemins logiques relatifs et hash de leurs octets.
+
+Le CAS exige un root absolu déjà existant. Il peut créer ses sous-dossiers,
+mais ne supprime jamais un objet permanent. Les URI sont relatives et
+portables. Chaque lecture revérifie taille et SHA-256; chaque écriture prend
+un lock par hash, écrit et synchronise un temporaire dans le même dossier,
+puis publie par une primitive atomique sans remplacement ou échoue fermé.
+Les locks abandonnés demandent une récupération administrative explicite.
+
+Threat model L1 : protection contre erreurs de programmation, traversal,
+chemins absolus, symlinks/junctions détectables, overwrite accidentel,
+corruption, troncature, publication partielle et concurrence coopérative.
+L1 ne prétend pas résister à un administrateur local hostile, un malware
+privilégié, une course de remplacement de junction au niveau système, ni une
+attaque kernel/filesystem.
+
+Ce lot ne contient que des fixtures synthétiques. Il n’accède à aucun réseau,
+n’implémente aucune stratégie et ne suppose aucun droit de redistribution de
+données. Les tests CAS utilisent exclusivement le répertoire temporaire du
+système; aucun CAS de test n’est écrit dans le dépôt.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

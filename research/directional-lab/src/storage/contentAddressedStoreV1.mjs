@@ -14,13 +14,9 @@ import {
 } from 'node:fs';
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { canonicalHash, canonicalJsonBytes, parseCanonicalJsonBytes } from '../canonical/canonicalJsonV1.mjs';
-import { normalizeCanonicalValue } from '../canonical/canonicalSchemaRegistryV1.mjs';
+import { SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS, normalizeCanonicalValue } from '../canonical/canonicalSchemaRegistryV1.mjs';
 import { CANONICAL_DAILY_BARS_SCHEMA_VERSION } from '../canonical/canonicalDailyBarsV1.mjs';
-import {
-  DATASET_SNAPSHOT_CORE_SCHEMA_VERSION,
-  DATASET_SNAPSHOT_RECORD_SCHEMA_VERSION,
-  SHA256_OBJECT_ID_PATTERN,
-} from '../contracts/datasetSnapshotV1.mjs';
+import { SHA256_OBJECT_ID_PATTERN } from '../contracts/datasetSnapshotV1.mjs';
 
 export class ContentAddressedStoreError extends Error {
   /** @param {string} code @param {string} message @param {object} [details] */
@@ -328,11 +324,8 @@ export function createContentAddressedStore(options) {
       if (input.namespace === 'normalized' && input.schemaVersion !== CANONICAL_DAILY_BARS_SCHEMA_VERSION) {
         throw new ContentAddressedStoreError('CAS_PATH_ESCAPE', 'normalized namespace only accepts CanonicalDailyBars/1');
       }
-      if (input.namespace === 'snapshots' && ![
-        DATASET_SNAPSHOT_CORE_SCHEMA_VERSION,
-        DATASET_SNAPSHOT_RECORD_SCHEMA_VERSION,
-      ].includes(input.schemaVersion)) {
-        throw new ContentAddressedStoreError('CAS_PATH_ESCAPE', 'snapshots namespace only accepts snapshot core/record schemas');
+      if (input.namespace === 'snapshots' && !SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes(input.schemaVersion)) {
+        throw new ContentAddressedStoreError('CAS_PATH_ESCAPE', 'snapshots namespace only accepts registered snapshot metadata schemas');
       }
       const normalized = normalizeCanonicalValue(input.schemaVersion, input.value);
       const bytes = canonicalJsonBytes(normalized);

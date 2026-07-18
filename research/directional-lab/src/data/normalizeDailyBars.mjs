@@ -13,6 +13,8 @@ import { DAILY_BAR_SCHEMA_VERSION, ADJUSTMENT_TYPES } from '../contracts/dailyBa
 import { assertCivilDate } from '../time/civilDate.mjs';
 import { sessionCloseUtc } from '../time/marketSession.mjs';
 
+export const NORMALIZE_DAILY_BARS_VERSION = 'normalizeDailyBars/1';
+
 /**
  * @typedef {Object} NormalizeOptions
  * @property {string} symbol
@@ -62,7 +64,7 @@ export function normalizeDailyBars(rows, options) {
   }
   const currency = options.currency ?? 'USD';
   const timezone = options.timezone ?? 'America/New_York';
-  const loaderVersion = options.loaderVersion ?? 'normalizeDailyBars/1';
+  const loaderVersion = options.loaderVersion ?? NORMALIZE_DAILY_BARS_VERSION;
   const splitsByDate = new Map();
   for (const s of options.documentedSplits ?? []) splitsByDate.set(s.date, s);
 

@@ -187,6 +187,89 @@ n’implémente aucune stratégie et ne suppose aucun droit de redistribution de
 données. Les tests CAS utilisent exclusivement le répertoire temporaire du
 système; aucun CAS de test n’est écrit dans le dépôt.
 
+## L2A — manifests de qualité de snapshot (fixtures uniquement)
+
+L2A ajoute une enveloppe Phase 2 autour d'un snapshot L1, sans modifier
+`DatasetManifestV1` ni aucun consommateur Phase 1 :
+
+- **`SnapshotDatasetManifestV1`** référence le core et le record L1, une
+  copie canonique optionnelle du `DatasetManifestV1` historique (pièce de
+  preuve seulement : son `sourcePath` local est préservé mais n'entre jamais
+  dans `snapshotCoreId`, `sourceObjectId` ni `normalizedObjectId`), plus des
+  ensembles triés et uniques de vérifications de matérialisation et de
+  records d'évaluation de qualité. Ajouter une évaluation publie un
+  **nouveau** manifest; l'ancien reste immuable dans le CAS.
+- **`DatasetMaterializationVerification/1`** rejoue réellement les octets
+  source relus du CAS à travers le registre fermé `materializerRegistry/1`.
+  L'API officielle accepte un `pipelineProfileId`, jamais des callbacks
+  `adapt`/`normalize`. Le pipeline reçoit le snapshot core complet et
+  recanonicalise en
+  `CanonicalDailyBars/1`, recalcule le hash et le compare au
+  `normalizedObjectId` attendu. Toute incohérence est `FAIL` (jamais
+  `WARN`); rien n'est réparé ni réécrit. Un seul octet source changé ou une
+  transformation différente produit un mismatch détecté.
+- **`TransformImplementationManifest/2`** est le manifest officiel L2A.
+  Sa politique `TransformSourceText/1` décode les modules JavaScript en UTF-8
+  strict, refuse BOM, UTF-8 invalide et surrogates invalides, normalise CRLF
+  et CR isolé vers LF, et préserve tout le reste ainsi que la présence d'une
+  LF finale. V1 reste reconnu sans changement pour les preuves L1. Le manifest
+  V2 canonique est stocké dans le CAS; son object ID est le
+  `transformImplementationHash`.
+- **`TransformPipelineProfileV1`** déclare explicitement les rôles du
+  pipeline (`SOURCE_ADAPTER`, `DAILY_BAR_NORMALIZER`,
+  `MATERIALIZER_REGISTRY`, `CANONICAL_DAILY_BARS`, `PRICE_BASIS_POLICY`, et
+  `CORPORATE_ACTION_POLICY` lorsqu'exigée) avec chemins logiques ET hash de
+  contenu. La couverture contre le `TransformImplementationManifest/2`
+  transforme un module oublié ou modifié en erreur explicite. Liste
+  explicite versionnée, pas d'analyse de dépendances transitives.
+- **`DatasetQualityPolicyV1` + `DatasetQualityAssessmentCore/1` +
+  `DatasetQualityAssessmentRecord/1`** séparent la politique versionnée et
+  hashée, les faits déterministes d'une évaluation (aucune horloge murale,
+  aucun chemin local, aucune note humaine) et son exécution horodatée
+  (`assessedAt` injecté par l'appelant, jamais `Date.now()`). Mêmes faits →
+  même core ID; deux exécutions → deux record IDs. Base d'évaluation
+  `OBSERVED_SERIES_ONLY` : uniquement la série observée, aucun calendrier
+  officiel, jour férié ou early close inventé. `PASS`/`WARN`/`FAIL` sont des
+  statuts techniques des contrôles exécutés — aucun score sur 100, aucune
+  admissibilité scientifique (`admissibleFor` est refusé par contrat), et un
+  mouvement observé important reste un diagnostic, jamais un split confirmé.
+  Le calcul read-only `computeDatasetSnapshotQualityAssessment` est séparé de
+  la persistance. La vérification relit toute la provenance et recalcule le
+  core exact; un check, une métrique, une raison ou un résumé forgé est refusé.
+  `executionIdentity` est fermé à `{ runnerId, runId, environment }`, avec
+  `environment` dans `LOCAL_TEST | LOCAL_MANUAL | CI`; chemins physiques et
+  clés supplémentaires sont interdits.
+
+Depuis un seul `SnapshotDatasetManifestV1`, la vérification traverse le
+snapshot complet, chaque materialization verification, son profile et son
+transform manifest V2, puis chaque record/core de qualité, sa policy et les
+dépendances de matérialisation recalculées.
+
+Ce lot reste entièrement sur fixtures synthétiques : aucun cache réel
+(APLD, IONQ, TQQQ, TECL, SPY, QQQ, IWM, VIX, DIA) n'est importé.
+
+### Objets CAS orphelins
+
+Le CAS est append-only. Une opération multi-étapes (source → normalisé →
+core → record → vérifications → évaluations → manifest) peut échouer après
+avoir déjà écrit des objets : un objet source, normalisé, core ou quality
+core peut donc exister sans manifest final. Un tel objet est un **orphelin
+CAS**. Un orphelin n'est **pas** une corruption : il reste adressé par son
+hash et vérifiable individuellement. Règles L1/L2A :
+
+- aucun nettoyage automatique; aucun objet supprimé silencieusement;
+- seul un `SnapshotDatasetManifestV1` vérifié représente un ensemble publié
+  complet — le manifest est toujours la **dernière** écriture;
+- aucun manifest incomplet n'est publié : si une étape échoue avant la
+  publication, il n'existe simplement aucun manifest;
+- les orphelins sont réutilisables tels quels lors d'une nouvelle
+  tentative (même contenu → même ID → `created:false`);
+- un futur garbage collector serait un lot séparé, explicite et audité —
+  jamais un effet de bord.
+
+Le test `l2a-integration.test.mjs` simule un échec d'écriture juste avant
+la publication du manifest et vérifie ces garanties.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

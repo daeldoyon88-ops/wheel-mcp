@@ -32,20 +32,35 @@ Règles structurelles (validées par `dailyBarProblems`) :
   DST américaine post-2007, calculée sans fuseau local).
 - `availableAt` = premier instant où la barre était réellement utilisable;
   `availableAt >= eventTime` obligatoire.
-- Prix négatif interdit; volume négatif interdit; `high >= open/close/low`;
+- Prix présents doivent être finis et **strictement > 0** (zéro refusé);
+  volume présent fini et ≥ 0; `high >= open/close/low`;
   `low <= open/close/high` (OHLC impossible signalé).
+- `splitFactor` null ou fini > 0; `cashDividend` null ou fini ≥ 0;
+  `adjustmentFactor` null ou fini > 0.
+- `eventTime` / `availableAt` : instants UTC ISO réellement parsables
+  (round-trip Date), avec `availableAt >= eventTime` (comparaison temporelle,
+  pas seulement lexicale).
+- `qualityFlags` : tableau de chaînes non vides, sans doublon.
 - Doublons et dates non triées détectés au niveau série
   (`validateDailyBars`), jamais corrigés silencieusement.
+  `validateDailyBars(null)` / non-array → erreur contractuelle stable
+  (jamais un TypeError accidentel).
 
 ## 2. Missingness — null reste null
 
 - Un volume absent devient `null` + flag `VOLUME_MISSING`, **jamais 0**.
 - Aucune donnée future, aucun forward-fill de prix ni d'événement.
 - Toute fenêtre rolling contenant un null produit null.
-- Chaque feature nulle porte un `missingReason`
-  (`INSUFFICIENT_HISTORY`, `VOLUME_MISSING`, `BENCHMARK_UNAVAILABLE`,
-  `NO_COMPLETED_WEEK`, ...). La paire null↔reason est imposée par
-  `featureValue()` (exception sinon).
+- Vocabulaire canonique centralisé dans `src/contracts/missingReasonsV1.mjs` :
+  `INVALID_INPUT`, `BENCHMARK_UNAVAILABLE`, `BENCHMARK_DATE_MISSING`,
+  `VOLUME_MISSING`, `INPUT_MISSING`, `NO_VALID_OBSERVATIONS`,
+  `INSUFFICIENT_HISTORY`, `NO_COMPLETED_WEEK`.
+- Précédence (plus haute d'abord) : INVALID_INPUT → benchmark absent/date
+  absente → VOLUME_MISSING / INPUT_MISSING → NO_VALID_OBSERVATIONS →
+  INSUFFICIENT_HISTORY.
+- Historique trop court ≠ donnée manquante; benchmark absent ≠ date
+  benchmark absente. La paire null↔reason est imposée par `featureValue()`
+  (raison inconnue refusée).
 
 ## 3. Politique raw / adjusted
 
@@ -99,10 +114,19 @@ Règles dures :
 - fractions : `quantité × splitFactor` doit être un entier (tolérance
   1e-6); sinon refus `FRACTIONAL_SPLIT_RESULT_UNSUPPORTED` — pas de
   cash-in-lieu inventé, aucun arrondi silencieux;
-- split + dividende la même séance sur une base où le moteur doit agir :
-  refus `CORPORATE_ACTION_ORDER_AMBIGUOUS` (l'ordre des événements n'est
-  pas démontrable à partir de la source, il n'est jamais choisi
-  arbitrairement);
+- split + dividende la même séance :
+  - `RAW` : refus `CORPORATE_ACTION_ORDER_AMBIGUOUS` (le moteur doit
+    appliquer le split et créditer le dividende; l'ordre n'est pas
+    démontrable);
+  - `SPLIT_ADJUSTED` : autorisé — split informatif
+    (`SPLIT_ALREADY_EMBEDDED`), dividende crédité sur la quantité
+    admissible, quantité inchangée;
+  - `TOTAL_RETURN_ADJUSTED` : autorisé — événements informatifs seulement,
+    aucun cash séparé;
+  - `DERIVED_ADJUSTED` : refus `CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED`;
+- `cashDividend > 0` avec `eligibleQuantity = 0` (RAW / SPLIT_ADJUSTED) :
+  aucun crédit cash; événement d'audit `CASH_DIVIDEND_NOT_ENTITLED`
+  (`cashImpact: 0`), hors `realizedPnl`;
 - chaque action laisse un événement d'audit déterministe dans
   `corporateActionEvents` (valeurs avant/après exactes) et les dividendes
   crédités s'additionnent dans `totalDividendsCash`, séparés du PnL des
@@ -125,10 +149,23 @@ Les ratios texte des caches (`"1:6"`) sont parsés explicitement
   source originale, et le cas échéant `totalReturnClose` (adjclose transporté
   séparément, jamais mélangé à l'OHLC).
 
-## 6. DatasetManifestV1
+## 6. DatasetManifestV1 — couverture (`coverageVersion: coverage/1`)
 
 `buildDatasetManifest` produit, en lecture seule : hash sha256 du fichier
 source (toute mutation ultérieure est détectée par `validateDatasetManifest
---verifyHash`), couverture (firstDate/lastDate/barCount), disponibilité
-(volume, raw OHLC, adjusted OHLC/close, splits), gapStats (jours ouvrés
-manquants, plus long trou), qualityFlags et warnings.
+--verifyHash`), counts/pourcentages de couverture, gapStats, qualityFlags
+et warnings.
+
+Sémantique obligatoire (le close seul ne suffit jamais pour un OHLC) :
+
+- `rawOhlcValidBars` / `adjustedOhlcValidBars` : barres où open, high, low
+  **et** close sont tous finis et > 0;
+- `volumeValidBars` : barres où le volume sélectionné est fini et ≥ 0;
+- `coveragePct = barCount > 0 ? round6(validBars/barCount*100) : 0`;
+- `available <=> coveragePct > 0` (présence partielle);
+- `complete <=> barCount > 0 && validBars === barCount` (jamais synonyme
+  d'`available`);
+- dataset vide : `EMPTY_DATASET`, `admissible: false`, jamais `complete`.
+
+Champs booléens historiques (`rawOhlcAvailable`, `volumeAvailable`, …)
+conservés avec la nouvelle sémantique `available` (pas `complete`).

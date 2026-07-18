@@ -26,7 +26,13 @@ import { createCommissionModel } from '../execution/commissionModel.mjs';
 import { createSlippageModel } from '../execution/slippageModel.mjs';
 import { sizeAllInBuy, marketOpenFill } from '../execution/fillModel.mjs';
 import { resolveLongStopFill } from '../execution/stopFillModel.mjs';
-import { openPosition, updatePositionOnClose, applySplitToPosition, scaleWholeQuantity } from './positionState.mjs';
+import {
+  openPosition,
+  updatePositionOnClose,
+  applySplitToPosition,
+  scaleWholeQuantity,
+  assertExitQuantityAllowed,
+} from './positionState.mjs';
 import { createPortfolio, markEquity } from './portfolioState.mjs';
 import {
   corporateActionPolicyFor,
@@ -97,7 +103,11 @@ export function runBacktest(input) {
    */
   function executeExit(fillInput, t) {
     const position = portfolio.position;
+    if (position === null) {
+      throw new Error(`SELL_WITHOUT_POSITION: ${input.symbol} attempted exit with no open position`);
+    }
     const quantity = fillInput.quantity;
+    assertExitQuantityAllowed(quantity, position.quantity, input.symbol);
     const fill = createFill(fillInput.fill);
     portfolio.fills.push(fill);
     portfolio.cash += quantity * fill.fillPrice - fill.commission;
@@ -177,7 +187,11 @@ export function runBacktest(input) {
           `action on a ${input.priceBasis} series; the embedded treatment cannot be proven, refusing to guess`
         );
       }
-      if (splitFactor !== null && cashDividend !== null && (caPolicy.engineAppliesSplit || caPolicy.creditsCashDividend)) {
+      // RAW only: engine must apply the split AND credit the dividend; order is
+      // not provable from the source. SPLIT_ADJUSTED / TOTAL_RETURN_ADJUSTED keep
+      // the split informational (already embedded) and never re-scale quantity,
+      // so same-session dividend handling is unambiguous.
+      if (splitFactor !== null && cashDividend !== null && caPolicy.engineAppliesSplit) {
         throw new Error(
           `${ERROR_CORPORATE_ACTION_ORDER_AMBIGUOUS}: ${input.symbol} ${bar.sessionDate} has a split and a cash dividend ` +
           'on the same session; the source does not prove their order, refusing to pick one arbitrarily'
@@ -253,6 +267,17 @@ export function runBacktest(input) {
               cashDividendPerShare: cashDividend,
               eligibleQuantity,
               cashImpact,
+              source: bar.source ?? null,
+            });
+          } else {
+            portfolio.corporateActionEvents.push({
+              type: 'CASH_DIVIDEND_NOT_ENTITLED',
+              sessionDate: bar.sessionDate,
+              symbol: input.symbol,
+              priceBasis: input.priceBasis,
+              cashDividendPerShare: cashDividend,
+              eligibleQuantity: 0,
+              cashImpact: 0,
               source: bar.source ?? null,
             });
           }

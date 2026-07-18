@@ -26,7 +26,14 @@ test('null volume propagates as null through volume features, with VOLUME_MISSIN
   assert.equal(series[i].volume, null);
   const relVol = snapshots[i].features.relativeVolume;
   assert.equal(relVol.value, null);
+  // Current observation volume is null -> VOLUME_MISSING (precedence over short history).
   assert.equal(relVol.missingReason, 'VOLUME_MISSING');
+  // volumeSma20 before a full window is INSUFFICIENT_HISTORY when the series is simply too short.
+  assert.equal(snapshots[i].features.volumeSma20.missingReason, 'INSUFFICIENT_HISTORY');
+  // Once 20 bars exist, a null inside the window is VOLUME_MISSING.
+  const fullWindow = snapshots[19].features.volumeSma20;
+  assert.equal(fullWindow.value, null);
+  assert.equal(fullWindow.missingReason, 'VOLUME_MISSING');
   // A null inside the window also nullifies the rolling average (no forward-fill).
   assert.equal(snapshots[12].features.volumeSma20.value, null);
 });
@@ -46,7 +53,7 @@ test('ATR is null before enough history exists (INSUFFICIENT_HISTORY, never 0)',
   assert.equal(atrSeries([null, null, null], 14).every((v) => v === null), true);
 });
 
-test('missing benchmark dates yield BENCHMARK_UNAVAILABLE, not a neutral value', () => {
+test('missing benchmark dates yield BENCHMARK_DATE_MISSING; absent series yields BENCHMARK_UNAVAILABLE', () => {
   const fixture = JSON.parse(readFileSync(join(FIXTURES, 'multi-symbol-bars.json'), 'utf8'));
   const opts = (s) => ({ symbol: s, source: 'fixture', ohlcBasis: 'SPLIT_ADJUSTED' });
   const tick = selectPriceBasis(normalizeDailyBars(fixture.symbols.TICK, opts('TICK')), 'SPLIT_ADJUSTED').series;
@@ -56,9 +63,9 @@ test('missing benchmark dates yield BENCHMARK_UNAVAILABLE, not a neutral value',
   for (const i of [30, 31, 32]) {
     const rs = snapshots[i].features.rsRatioBenchmark;
     assert.equal(rs.value, null);
-    assert.equal(rs.missingReason, 'BENCHMARK_UNAVAILABLE');
+    assert.equal(rs.missingReason, 'BENCHMARK_DATE_MISSING');
   }
-  // With no benchmark at all, every RS feature is null with the same reason.
+  // With no benchmark at all, every RS feature is null with BENCHMARK_UNAVAILABLE.
   const noBench = computeFeatureSnapshots({ symbol: 'TICK', series: tick, priceBasis: 'SPLIT_ADJUSTED' });
   const last = noBench[noBench.length - 1].features;
   for (const name of ['rsRatioBenchmark', 'relReturn20', 'relReturn60', 'rsRatioSlope20']) {

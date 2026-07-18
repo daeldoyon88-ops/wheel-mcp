@@ -57,9 +57,21 @@ function isNullOrFiniteNumber(v) {
   return v === null || (typeof v === 'number' && Number.isFinite(v));
 }
 
-/** @param {unknown} v @returns {boolean} */
-function isUtcIso(v) {
-  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(v);
+/**
+ * Strict UTC ISO instant: regex shape + Date round-trip (rejects 2024-02-30…).
+ * @param {unknown} v
+ * @returns {boolean}
+ */
+export function isStrictUtcIsoInstant(v) {
+  if (typeof v !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(v)) return false;
+  const ms = Date.parse(v);
+  if (!Number.isFinite(ms)) return false;
+  const roundTrip = new Date(ms).toISOString();
+  if (v.endsWith('Z') && !v.includes('.')) {
+    return roundTrip === `${v.slice(0, -1)}.000Z` || roundTrip === v;
+  }
+  return roundTrip === v;
 }
 
 /**
@@ -73,15 +85,21 @@ export function dailyBarProblems(bar) {
   if (bar === null || typeof bar !== 'object') return ['bar is not an object'];
   const b = /** @type {any} */ (bar);
   if (b.schemaVersion !== DAILY_BAR_SCHEMA_VERSION) problems.push(`schemaVersion must be ${DAILY_BAR_SCHEMA_VERSION}`);
-  if (typeof b.symbol !== 'string' || b.symbol.length === 0) problems.push('symbol must be a non-empty string');
+  if (typeof b.symbol !== 'string' || b.symbol.trim().length === 0) {
+    problems.push('symbol must be a non-empty string (whitespace-only forbidden)');
+  } else if (b.symbol !== b.symbol.trim()) {
+    problems.push('symbol must be trimmed (leading/trailing whitespace forbidden)');
+  }
   if (!isValidCivilDate(b.sessionDate)) problems.push(`sessionDate invalid: ${JSON.stringify(b.sessionDate)}`);
-  if (!isUtcIso(b.eventTime)) problems.push('eventTime must be a UTC ISO instant');
-  if (!isUtcIso(b.availableAt)) problems.push('availableAt must be a UTC ISO instant');
+  if (!isStrictUtcIsoInstant(b.eventTime)) problems.push('eventTime must be a real UTC ISO instant');
+  if (!isStrictUtcIsoInstant(b.availableAt)) problems.push('availableAt must be a real UTC ISO instant');
   if (typeof b.timezone !== 'string' || b.timezone.length === 0) problems.push('timezone required');
   if (typeof b.source !== 'string' || b.source.length === 0) problems.push('source required');
   if (typeof b.currency !== 'string' || b.currency.length === 0) problems.push('currency required');
-  if (isUtcIso(b.eventTime) && isUtcIso(b.availableAt) && b.availableAt < b.eventTime) {
-    problems.push('availableAt cannot precede eventTime');
+  if (isStrictUtcIsoInstant(b.eventTime) && isStrictUtcIsoInstant(b.availableAt)) {
+    if (Date.parse(b.availableAt) < Date.parse(b.eventTime)) {
+      problems.push('availableAt cannot precede eventTime');
+    }
   }
 
   for (const blockName of ['raw', 'adjusted']) {
@@ -101,18 +119,43 @@ export function dailyBarProblems(bar) {
     if (adj.adjustmentType !== null && !ADJUSTMENT_TYPES.includes(adj.adjustmentType)) {
       problems.push(`adjusted.adjustmentType invalid: ${JSON.stringify(adj.adjustmentType)}`);
     }
-    if (!isNullOrFiniteNumber(adj.adjustmentFactor)) problems.push('adjusted.adjustmentFactor must be null or finite');
+    if (adj.adjustmentFactor !== null) {
+      if (typeof adj.adjustmentFactor !== 'number' || !Number.isFinite(adj.adjustmentFactor) || adj.adjustmentFactor <= 0) {
+        problems.push('adjusted.adjustmentFactor must be null or a finite number > 0');
+      }
+    }
   }
 
   const ca = b.corporateActions;
   if (ca === null || typeof ca !== 'object') {
     problems.push('corporateActions block missing');
   } else {
-    if (!isNullOrFiniteNumber(ca.splitFactor)) problems.push('corporateActions.splitFactor must be null or finite');
-    if (!isNullOrFiniteNumber(ca.cashDividend)) problems.push('corporateActions.cashDividend must be null or finite');
+    if (ca.splitFactor !== null) {
+      if (typeof ca.splitFactor !== 'number' || !Number.isFinite(ca.splitFactor) || ca.splitFactor <= 0) {
+        problems.push('corporateActions.splitFactor must be null or a finite number > 0');
+      }
+    }
+    if (ca.cashDividend !== null) {
+      if (typeof ca.cashDividend !== 'number' || !Number.isFinite(ca.cashDividend) || ca.cashDividend < 0) {
+        problems.push('corporateActions.cashDividend must be null or a finite number >= 0');
+      }
+    }
   }
 
-  if (!Array.isArray(b.qualityFlags)) problems.push('qualityFlags must be an array');
+  if (!Array.isArray(b.qualityFlags)) {
+    problems.push('qualityFlags must be an array');
+  } else {
+    const seen = new Set();
+    for (let i = 0; i < b.qualityFlags.length; i++) {
+      const flag = b.qualityFlags[i];
+      if (typeof flag !== 'string' || flag.length === 0) {
+        problems.push(`qualityFlags[${i}] must be a non-empty string`);
+        continue;
+      }
+      if (seen.has(flag)) problems.push(`qualityFlags contains duplicate: ${flag}`);
+      seen.add(flag);
+    }
+  }
   if (b.lineage === null || typeof b.lineage !== 'object') problems.push('lineage must be an object');
   return problems;
 }
@@ -128,17 +171,27 @@ export function priceBlockProblems(block, label) {
   const problems = [];
   const { open, high, low, close, volume } = block;
   for (const [name, v] of [['open', open], ['high', high], ['low', low], ['close', close]]) {
-    if (typeof v === 'number' && v < 0) problems.push(`${label}.${name} negative price forbidden`);
-  }
-  if (typeof volume === 'number' && volume < 0) problems.push(`${label}.volume negative volume forbidden`);
-  if (typeof high === 'number') {
-    for (const [name, v] of [['open', open], ['close', close], ['low', low]]) {
-      if (typeof v === 'number' && high < v) problems.push(`${label}.high < ${label}.${name} (impossible OHLC)`);
+    if (typeof v === 'number') {
+      if (!Number.isFinite(v)) problems.push(`${label}.${name} must be finite`);
+      else if (v <= 0) problems.push(`${label}.${name} must be strictly > 0 when present`);
     }
   }
-  if (typeof low === 'number') {
+  if (typeof volume === 'number') {
+    if (!Number.isFinite(volume)) problems.push(`${label}.volume must be finite`);
+    else if (volume < 0) problems.push(`${label}.volume negative volume forbidden`);
+  }
+  if (typeof high === 'number' && Number.isFinite(high) && high > 0) {
+    for (const [name, v] of [['open', open], ['close', close], ['low', low]]) {
+      if (typeof v === 'number' && Number.isFinite(v) && high < v) {
+        problems.push(`${label}.high < ${label}.${name} (impossible OHLC)`);
+      }
+    }
+  }
+  if (typeof low === 'number' && Number.isFinite(low) && low > 0) {
     for (const [name, v] of [['open', open], ['close', close], ['high', high]]) {
-      if (typeof v === 'number' && low > v) problems.push(`${label}.low > ${label}.${name} (impossible OHLC)`);
+      if (typeof v === 'number' && Number.isFinite(v) && low > v) {
+        problems.push(`${label}.low > ${label}.${name} (impossible OHLC)`);
+      }
     }
   }
   return problems;

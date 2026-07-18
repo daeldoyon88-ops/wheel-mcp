@@ -52,7 +52,10 @@ export function sessionDateFromRowDate(d) {
  */
 export function normalizeDailyBars(rows, options) {
   if (!Array.isArray(rows)) throw new Error('normalizeDailyBars: rows must be an array');
-  if (!options || typeof options.symbol !== 'string' || !options.symbol) throw new Error('normalizeDailyBars: options.symbol required');
+  if (!options || typeof options.symbol !== 'string' || options.symbol.trim().length === 0) {
+    throw new Error('normalizeDailyBars: options.symbol required');
+  }
+  const symbol = options.symbol.trim();
   if (typeof options.source !== 'string' || !options.source) throw new Error('normalizeDailyBars: options.source required');
   if (!ADJUSTMENT_TYPES.includes(options.ohlcBasis)) {
     throw new Error(`normalizeDailyBars: ohlcBasis must be one of ${ADJUSTMENT_TYPES.join(', ')}`);
@@ -135,7 +138,7 @@ export function normalizeDailyBars(rows, options) {
 
     return {
       schemaVersion: DAILY_BAR_SCHEMA_VERSION,
-      symbol: options.symbol,
+      symbol,
       sessionDate,
       eventTime,
       availableAt: eventTime,

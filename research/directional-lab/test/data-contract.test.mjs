@@ -30,7 +30,7 @@ test('sessionDate comes from the civil part of the UTC date, no local timezone',
 test('negative price and negative volume are rejected', () => {
   const bar = validBar();
   bar.adjusted.low = -1;
-  assert.ok(dailyBarProblems(bar).some((p) => p.includes('negative price')));
+  assert.ok(dailyBarProblems(bar).some((p) => p.includes('strictly > 0')));
   const bar2 = validBar();
   bar2.adjusted.volume = -5;
   assert.ok(dailyBarProblems(bar2).some((p) => p.includes('negative volume')));
@@ -100,5 +100,6 @@ test('featureValue enforces null <-> missingReason pairing and refuses NaN', () 
   assert.throws(() => featureValue(null, meta));
   assert.throws(() => featureValue(5, { ...meta, missingReason: 'WHY' }));
   assert.throws(() => featureValue(NaN, meta));
-  assert.equal(featureValue(null, { ...meta, missingReason: 'NO_DATA' }).missingReason, 'NO_DATA');
+  assert.equal(featureValue(null, { ...meta, missingReason: 'INPUT_MISSING' }).missingReason, 'INPUT_MISSING');
+  assert.throws(() => featureValue(null, { ...meta, missingReason: 'NO_DATA' }));
 });

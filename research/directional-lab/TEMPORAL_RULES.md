@@ -43,8 +43,13 @@ Ordre de traitement d'une séance t (moteur, avant tout ordre et tout stop) :
 7. mise à jour de la position à la clôture;
 8. décision pour t+1.
 
-Split et dividende la même séance sans ordre démontrable → refus
-`CORPORATE_ACTION_ORDER_AMBIGUOUS`. Aucune information future n'est
+Split et dividende la même séance :
+- `RAW` → refus `CORPORATE_ACTION_ORDER_AMBIGUOUS` (ordre non démontrable);
+- `SPLIT_ADJUSTED` → autorisé (`SPLIT_ALREADY_EMBEDDED` + crédit dividende,
+  quantité inchangée);
+- `TOTAL_RETURN_ADJUSTED` → autorisé (événements informatifs seulement);
+- `DERIVED_ADJUSTED` → refus `CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED`.
+Aucune information future n'est
 utilisée : l'admissibilité ne dépend que de l'état hérité de t-1.
 
 ## 3. Weekly
@@ -111,7 +116,11 @@ utilisée : l'admissibilité ne dépend que de l'état hérité de t-1.
 | Raw/adjusted jamais mélangés | `split-adjustment.test.mjs` |
 | Dividende causal (droit à la clôture t-1) | `dividend-accounting.test.mjs` |
 | Split RAW avant l'open (position, stops, fractions) | `raw-split-accounting.test.mjs` |
-| Entêtes CSV canoniques (BOM, casse, collisions) | `csv-header-normalization.test.mjs` |
+| Split+dividende : RAW refusé; SPLIT_ADJUSTED autorisé | `correctif-a-p2.test.mjs` |
+| Entêtes CSV canoniques (BOM, casse, collisions, no-data) | `csv-header-normalization.test.mjs` |
+| Couverture manifest available≠complete | `manifest-coverage.test.mjs` |
+| missingReason canoniques | `missing-reasons.test.mjs` |
+| Contrats DailyBar/Order/Fill durcis | `contract-hardening.test.mjs` |
 | Aucune référence d'écriture mémoire externe | `no-production-coupling.test.mjs` |
 | Déterminisme | `deterministic-results.test.mjs` |
 | Purge/embargo | `purge-embargo.test.mjs`, `walk-forward.test.mjs` |

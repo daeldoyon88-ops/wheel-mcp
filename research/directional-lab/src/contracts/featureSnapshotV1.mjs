@@ -5,6 +5,8 @@
  * missingReason says why.
  */
 
+import { isCanonicalMissingReason } from './missingReasonsV1.mjs';
+
 export const FEATURE_SNAPSHOT_SCHEMA_VERSION = 'FeatureSnapshotV1';
 
 /**
@@ -45,6 +47,9 @@ export function featureValue(value, meta) {
   if (!isMissing && meta.missingReason) {
     throw new Error('featureValue: non-null value must not carry a missingReason');
   }
+  if (isMissing && !isCanonicalMissingReason(meta.missingReason)) {
+    throw new Error(`featureValue: unknown missingReason ${JSON.stringify(meta.missingReason)}`);
+  }
   return {
     value,
     asOf: meta.asOf,
@@ -73,6 +78,9 @@ export function featureSnapshotProblems(snapshot) {
   for (const [name, fv] of Object.entries(s.features)) {
     if (fv === null || typeof fv !== 'object') { problems.push(`feature ${name} is not an object`); continue; }
     if (fv.value === null && !fv.missingReason) problems.push(`feature ${name}: null without missingReason`);
+    if (fv.value === null && fv.missingReason && !isCanonicalMissingReason(fv.missingReason)) {
+      problems.push(`feature ${name}: unknown missingReason ${JSON.stringify(fv.missingReason)}`);
+    }
     if (fv.value !== null && fv.missingReason) problems.push(`feature ${name}: value with missingReason`);
     if (typeof fv.value === 'number' && !Number.isFinite(fv.value)) problems.push(`feature ${name}: non-finite value`);
     if (typeof fv.availableAt !== 'string') problems.push(`feature ${name}: availableAt required`);

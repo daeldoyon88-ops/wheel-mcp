@@ -77,7 +77,17 @@ test('D2 — a buy filled at the open of the ex-date receives no dividend', () =
   const result = run(series, { script: { '2024-03-05': { intent: 'ENTER_LONG' } } });
   // No position at close 2024-03-05 -> the fill at the ex-date open is not entitled.
   assert.equal(result.totalDividendsCash, 0);
-  assert.equal(result.corporateActionEvents.length, 0);
+  assert.equal(result.corporateActionEvents.length, 1);
+  assert.deepEqual(result.corporateActionEvents[0], {
+    type: 'CASH_DIVIDEND_NOT_ENTITLED',
+    sessionDate: '2024-03-06',
+    symbol: 'TST',
+    priceBasis: 'RAW',
+    cashDividendPerShare: 0.75,
+    eligibleQuantity: 0,
+    cashImpact: 0,
+    source: 'inline-fixture',
+  });
   assert.equal(result.metrics.finalEquity, 10000);
 });
 

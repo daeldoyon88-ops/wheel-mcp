@@ -27,8 +27,11 @@ expérimental**, entièrement isolé du reste du dépôt.
   d'agent, un index de mémoire ou quelque fichier persistant que ce soit
   hors de `research/directional-lab/`. Les fichiers temporaires des tests
   vivent sous le répertoire temporaire du système et sont supprimés par les
-  tests eux-mêmes. Un test de couplage vérifie qu'aucun code du laboratoire
-  ne référence de tels chemins.
+  tests eux-mêmes. Le scan anti-mémoire
+  (`test/no-production-coupling.test.mjs` + `test/memoryScan.mjs`)
+  normalise casse et séparateurs de chemin, et ne couvre que le **code
+  source du laboratoire** — il ne prétend pas contrôler le comportement
+  global de l'agent hors dépôt.
 
 ## Ce que ce laboratoire EST
 

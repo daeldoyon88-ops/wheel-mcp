@@ -105,6 +105,26 @@ export function updatePositionOnClose(position, bar) {
 }
 
 /**
+ * Refuse a sell that would exceed the open position (whole shares, long-only).
+ * @param {number} sellQuantity positive shares to sell
+ * @param {number} positionQuantity shares currently held
+ * @param {string} symbol
+ */
+export function assertExitQuantityAllowed(sellQuantity, positionQuantity, symbol) {
+  if (!(Number.isInteger(sellQuantity) && sellQuantity > 0)) {
+    throw new Error(`SELL_INVALID_QUANTITY: ${symbol} exit quantity must be a positive integer, got ${sellQuantity}`);
+  }
+  if (!(Number.isInteger(positionQuantity) && positionQuantity >= 0)) {
+    throw new Error(`SELL_INVALID_POSITION: ${symbol} position quantity invalid: ${positionQuantity}`);
+  }
+  if (sellQuantity > positionQuantity) {
+    throw new Error(
+      `SELL_EXCEEDS_POSITION: ${symbol} attempted to sell ${sellQuantity} share(s) but only ${positionQuantity} available`
+    );
+  }
+}
+
+/**
  * Convert a whole-share quantity through a split factor. Refuses fractional
  * results (V1 supports whole shares only and has no cash-in-lieu policy) —
  * never rounds silently.

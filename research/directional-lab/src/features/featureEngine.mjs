@@ -11,6 +11,11 @@
  */
 
 import { featureValue, FEATURE_SNAPSHOT_SCHEMA_VERSION } from '../contracts/featureSnapshotV1.mjs';
+import {
+  MISSING_REASONS,
+  reasonForTrailingWindow,
+  pickMissingReason,
+} from '../contracts/missingReasonsV1.mjs';
 import { isoWeekKey } from '../time/civilDate.mjs';
 import { smaSeries, emaSeries, slopeSeries, countAboveSeries } from './movingAverages.mjs';
 import { rsiSeries, macdSeries, rocSeries } from './momentum.mjs';
@@ -26,7 +31,7 @@ import {
 import { relativeStrengthSeries } from './relativeStrength.mjs';
 import { diffSeries } from './rolling.mjs';
 
-export const FEATURE_ENGINE_VERSION = 'featureEngine/1';
+export const FEATURE_ENGINE_VERSION = 'featureEngine/2';
 
 /**
  * Last fully completed ISO week's close, per index.
@@ -52,6 +57,22 @@ export function lastCompletedWeekSeries(series) {
     currentWeek = { weekKey: week, close: bar.close, availableAt: bar.availableAt };
   }
   return out;
+}
+
+/**
+ * @param {number|null} value
+ * @param {(number|null)[]} source
+ * @param {number} window
+ * @param {number} index
+ * @param {{nullReason?: string, fallback?: string}} [opts]
+ * @returns {string|null}
+ */
+function reasonIfNull(value, source, window, index, opts = {}) {
+  if (value !== null) return null;
+  const diagnosed = reasonForTrailingWindow(source, window, index, {
+    nullReason: opts.nullReason ?? MISSING_REASONS.INPUT_MISSING,
+  });
+  return diagnosed ?? opts.fallback ?? MISSING_REASONS.INSUFFICIENT_HISTORY;
 }
 
 /**
@@ -121,8 +142,11 @@ export function computeFeatureSnapshots(input) {
   // Market benchmark trends (close > SMA50 with positive slope -> UP, etc.)
   /** @type {Record<string, Map<string, string>>} */
   const benchTrendByDate = {};
+  /** @type {Record<string, boolean>} */
+  const benchSeriesPresent = {};
   for (const name of ['QQQ', 'SPY', 'IWM']) {
     const b = benchmarks[name];
+    benchSeriesPresent[name] = Array.isArray(b) && b.length > 0;
     if (!b) continue;
     const bClose = b.map((x) => x.close);
     const bSma50 = smaSeries(bClose, 50);
@@ -138,6 +162,7 @@ export function computeFeatureSnapshots(input) {
     benchTrendByDate[name] = map;
   }
   const vixByDate = new Map();
+  const vixPresent = Array.isArray(benchmarks.VIX) && benchmarks.VIX.length > 0;
   if (benchmarks.VIX) for (const b of benchmarks.VIX) if (b.close !== null) vixByDate.set(b.sessionDate, b.close);
 
   const weekly = lastCompletedWeekSeries(series);
@@ -146,10 +171,6 @@ export function computeFeatureSnapshots(input) {
     const meta = { asOf: bar.eventTime, availableAt: bar.availableAt, source };
     /** @param {number|boolean|string|null} v @param {string} reason */
     const f = (v, reason) => featureValue(v, v === null ? { ...meta, missingReason: reason } : meta);
-
-    const H = 'INSUFFICIENT_HISTORY';
-    const V = 'VOLUME_MISSING';
-    const B = 'BENCHMARK_UNAVAILABLE';
 
     const closeVsSma50 = close[i] !== null && sma50[i] !== null && sma50[i] !== 0
       ? (close[i] / sma50[i] - 1) * 100 : null;
@@ -161,16 +182,63 @@ export function computeFeatureSnapshots(input) {
 
     const w = weekly[i];
     const weeklyFeature = w === null || w.close === null
-      ? featureValue(null, { ...meta, missingReason: 'NO_COMPLETED_WEEK' })
+      ? featureValue(null, { ...meta, missingReason: MISSING_REASONS.NO_COMPLETED_WEEK })
       : featureValue(w.close, { asOf: w.availableAt, availableAt: w.availableAt, source: `${source}:weekly:${w.weekKey}` });
 
     const trend = {};
     for (const name of ['QQQ', 'SPY', 'IWM']) {
       const map = benchTrendByDate[name];
       const v = map ? map.get(bar.sessionDate) ?? null : null;
-      trend[`market${name}Trend`] = f(v, B);
+      const reason = !benchSeriesPresent[name]
+        ? MISSING_REASONS.BENCHMARK_UNAVAILABLE
+        : MISSING_REASONS.BENCHMARK_DATE_MISSING;
+      trend[`market${name}Trend`] = f(v, reason);
     }
     const vix = vixByDate.get(bar.sessionDate) ?? null;
+    const vixReason = !vixPresent
+      ? MISSING_REASONS.BENCHMARK_UNAVAILABLE
+      : MISSING_REASONS.BENCHMARK_DATE_MISSING;
+
+    const volSmaReason = reasonIfNull(volSma20[i], volume, 20, i, {
+      nullReason: MISSING_REASONS.VOLUME_MISSING,
+    });
+    const volPctReason = reasonIfNull(volPctile[i], volume, 60, i, {
+      nullReason: MISSING_REASONS.VOLUME_MISSING,
+    });
+    let relVolReason = null;
+    if (relVol[i] === null) {
+      relVolReason = pickMissingReason([
+        volume[i] === null || volume[i] === undefined ? MISSING_REASONS.VOLUME_MISSING : null,
+        volSmaReason,
+        MISSING_REASONS.VOLUME_MISSING,
+      ]);
+    }
+
+    const rsBenchReason = rs.benchmarkMissingReason[i];
+    const rsRatioReason = rs.ratio[i] === null
+      ? (rsBenchReason ?? reasonIfNull(null, close, 1, i) ?? MISSING_REASONS.INSUFFICIENT_HISTORY)
+      : null;
+    const rel20Reason = rs.relReturn20[i] === null
+      ? pickMissingReason([
+        rsBenchReason,
+        reasonForTrailingWindow(close, 21, i),
+        MISSING_REASONS.INSUFFICIENT_HISTORY,
+      ])
+      : null;
+    const rel60Reason = rs.relReturn60[i] === null
+      ? pickMissingReason([
+        rsBenchReason,
+        reasonForTrailingWindow(close, 61, i),
+        MISSING_REASONS.INSUFFICIENT_HISTORY,
+      ])
+      : null;
+    const rsSlopeReason = rs.ratioSlope20[i] === null
+      ? pickMissingReason([
+        rsBenchReason,
+        reasonForTrailingWindow(rs.ratio, 20, i, { nullReason: MISSING_REASONS.INPUT_MISSING }),
+        MISSING_REASONS.INSUFFICIENT_HISTORY,
+      ])
+      : null;
 
     return {
       schemaVersion: FEATURE_SNAPSHOT_SCHEMA_VERSION,
@@ -181,51 +249,51 @@ export function computeFeatureSnapshots(input) {
       priceBasis,
       features: {
         // Trend
-        sma20: f(sma20[i], H),
-        sma50: f(sma50[i], H),
-        sma50Slope: f(sma50Slope[i], H),
-        ema21: f(ema21[i], H),
-        ema50: f(ema50[i], H),
-        closeVsSma50Pct: f(closeVsSma50, H),
-        closeVsEma21Pct: f(closeVsEma21, H),
-        ema21DistanceAtr: f(ema21DistAtr, H),
-        ema21AboveEma50: f(emaOrder, H),
-        closesAboveSma50Count20: f(closesAbove50[i], H),
+        sma20: f(sma20[i], reasonIfNull(sma20[i], close, 20, i)),
+        sma50: f(sma50[i], reasonIfNull(sma50[i], close, 50, i)),
+        sma50Slope: f(sma50Slope[i], reasonIfNull(sma50Slope[i], sma50, 5, i)),
+        ema21: f(ema21[i], reasonIfNull(ema21[i], close, 21, i)),
+        ema50: f(ema50[i], reasonIfNull(ema50[i], close, 50, i)),
+        closeVsSma50Pct: f(closeVsSma50, reasonIfNull(closeVsSma50, close, 50, i)),
+        closeVsEma21Pct: f(closeVsEma21, reasonIfNull(closeVsEma21, close, 21, i)),
+        ema21DistanceAtr: f(ema21DistAtr, reasonIfNull(ema21DistAtr, atr14, 14, i)),
+        ema21AboveEma50: f(emaOrder, reasonIfNull(emaOrder, close, 50, i)),
+        closesAboveSma50Count20: f(closesAbove50[i], reasonIfNull(closesAbove50[i], close, 50, i)),
         // Momentum
-        rsi14: f(rsi14[i], H),
-        macdLine: f(macdLine[i], H),
-        macdSignal: f(signalLine[i], H),
-        macdHistogram: f(histogram[i], H),
-        macdHistogramDelta: f(histDelta[i], H),
-        roc20: f(roc20[i], H),
+        rsi14: f(rsi14[i], reasonIfNull(rsi14[i], close, 15, i)),
+        macdLine: f(macdLine[i], reasonIfNull(macdLine[i], close, 26, i)),
+        macdSignal: f(signalLine[i], reasonIfNull(signalLine[i], close, 35, i)),
+        macdHistogram: f(histogram[i], reasonIfNull(histogram[i], close, 35, i)),
+        macdHistogramDelta: f(histDelta[i], reasonIfNull(histDelta[i], histogram, 2, i)),
+        roc20: f(roc20[i], reasonIfNull(roc20[i], close, 21, i)),
         // Volatility
-        trueRange: f(tr[i], H),
-        atr14: f(atr14[i], H),
-        atrPct: f(atrPct[i], H),
-        realizedVol20: f(rv20[i], H),
-        realizedVol20Pctile: f(rv20Pctile[i], H),
-        distanceFromPeakAtr: f(distPeakAtr[i], H),
+        trueRange: f(tr[i], reasonIfNull(tr[i], close, 1, i)),
+        atr14: f(atr14[i], reasonIfNull(atr14[i], tr, 14, i)),
+        atrPct: f(atrPct[i], reasonIfNull(atrPct[i], atr14, 14, i)),
+        realizedVol20: f(rv20[i], reasonIfNull(rv20[i], close, 21, i)),
+        realizedVol20Pctile: f(rv20Pctile[i], reasonIfNull(rv20Pctile[i], rv20, 126, i)),
+        distanceFromPeakAtr: f(distPeakAtr[i], reasonIfNull(distPeakAtr[i], atr14, 14, i)),
         // Volume
-        volumeSma20: f(volSma20[i], V),
-        relativeVolume: f(relVol[i], V),
-        volumePctile60: f(volPctile[i], V),
+        volumeSma20: f(volSma20[i], volSmaReason),
+        relativeVolume: f(relVol[i], relVolReason),
+        volumePctile60: f(volPctile[i], volPctReason),
         // Structure
-        prevHighestClose20: f(prevHigh20[i], H),
-        prevLowestClose20: f(prevLow20[i], H),
-        breakout20: f(breakout20[i], H),
-        drawdownFromCausalPeakPct: f(ddFromPeak[i], H),
-        higherHigh: f(hh[i], H),
-        higherLow: f(hl[i], H),
+        prevHighestClose20: f(prevHigh20[i], reasonIfNull(prevHigh20[i], close, 20, i)),
+        prevLowestClose20: f(prevLow20[i], reasonIfNull(prevLow20[i], close, 20, i)),
+        breakout20: f(breakout20[i], reasonIfNull(breakout20[i], close, 21, i)),
+        drawdownFromCausalPeakPct: f(ddFromPeak[i], reasonIfNull(ddFromPeak[i], close, 1, i)),
+        higherHigh: f(hh[i], reasonIfNull(hh[i], high, 2, i)),
+        higherLow: f(hl[i], reasonIfNull(hl[i], low, 2, i)),
         // Weekly (last completed week only)
         weeklyLastCompletedClose: weeklyFeature,
         // Relative strength
-        rsRatioBenchmark: f(rs.benchmarkMissing[i] ? null : rs.ratio[i], rs.benchmarkMissing[i] ? B : H),
-        relReturn20: f(rs.relReturn20[i], rs.benchmarkMissing[i] ? B : H),
-        relReturn60: f(rs.relReturn60[i], rs.benchmarkMissing[i] ? B : H),
-        rsRatioSlope20: f(rs.ratioSlope20[i], rs.benchmarkMissing[i] ? B : H),
+        rsRatioBenchmark: f(rs.benchmarkMissing[i] ? null : rs.ratio[i], rsRatioReason ?? MISSING_REASONS.INSUFFICIENT_HISTORY),
+        relReturn20: f(rs.relReturn20[i], rel20Reason ?? MISSING_REASONS.INSUFFICIENT_HISTORY),
+        relReturn60: f(rs.relReturn60[i], rel60Reason ?? MISSING_REASONS.INSUFFICIENT_HISTORY),
+        rsRatioSlope20: f(rs.ratioSlope20[i], rsSlopeReason ?? MISSING_REASONS.INSUFFICIENT_HISTORY),
         // Market context
         ...trend,
-        vixClose: f(vix, B),
+        vixClose: f(vix, vixReason),
       },
     };
   });

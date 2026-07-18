@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve, relative } from 'node:path';
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { findForbiddenMemoryMarkers } from './memoryScan.mjs';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 const LAB_ROOT = resolve(TEST_DIR, '..');
@@ -91,20 +92,11 @@ test('lab code never references external agent-memory or persistent paths outsid
     ...walk(join(LAB_ROOT, 'test')).filter((f) => f.endsWith('.mjs')),
     ...walk(LAB_ROOT).filter((f) => f.endsWith('.md')),
   ];
-  // Markers are assembled by concatenation so that this file itself never
-  // contains them literally; any lab file writing toward these targets fails.
-  const forbiddenMarkers = [
-    '.cla' + 'ude',
-    'MEMORY' + '.md',
-    'project_' + 'directional_lab',
-    'project ' + 'memory',
-  ];
   assert.ok(labFiles.length > 40, `expected the lab file tree, found ${labFiles.length} files`);
   for (const file of labFiles) {
     const text = readFileSync(file, 'utf8');
-    for (const marker of forbiddenMarkers) {
-      assert.ok(!text.includes(marker), `${file}: forbidden external-memory reference "${marker}"`);
-    }
+    const hits = findForbiddenMemoryMarkers(text);
+    assert.deepEqual(hits, [], `${file}: forbidden external-memory reference(s) ${hits.join(', ')}`);
   }
 });
 

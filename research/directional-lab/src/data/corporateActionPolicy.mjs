@@ -26,9 +26,19 @@
  * (FRACTIONAL_SPLIT_RESULT_UNSUPPORTED) — V1 has no cash-in-lieu policy and
  * never rounds silently.
  *
- * Same-session split + dividend: when both are present on one session and the
- * engine must act on either, their order is not provable from the source and
- * the backtest is refused (CORPORATE_ACTION_ORDER_AMBIGUOUS).
+ * Same-session split + dividend:
+ *  - RAW: engine must apply the split AND credit the dividend; order is not
+ *    provable from the source -> refuse (CORPORATE_ACTION_ORDER_AMBIGUOUS);
+ *  - SPLIT_ADJUSTED: split is informational (SPLIT_ALREADY_EMBEDDED); dividend
+ *    is credited on the eligible close-t-1 quantity; quantity is never rescaled
+ *    -> allowed;
+ *  - TOTAL_RETURN_ADJUSTED: both are informational (*_ALREADY_EMBEDDED); no
+ *    separate cash credit, no quantity change -> allowed;
+ *  - DERIVED_ADJUSTED: any meaningful action refuses
+ *    (CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED).
+ *
+ * Declared cashDividend > 0 with eligibleQuantity = 0 (RAW / SPLIT_ADJUSTED):
+ * no cash credit; emit CASH_DIVIDEND_NOT_ENTITLED (audit only, cashImpact 0).
  */
 
 export const CORPORATE_ACTION_POLICY_VERSION = 'corporateActionPolicy/1';

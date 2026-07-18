@@ -156,3 +156,26 @@ test('C13 — splitFactor and cashDividend columns land in DailyBarV1.corporateA
   assert.deepEqual(bars[1].corporateActions, { splitFactor: 0.5, cashDividend: null });
   assert.deepEqual(bars[2].corporateActions, { splitFactor: null, cashDividend: 0.25 });
 });
+
+test('C14 — header-only CSV is refused with CSV_NO_DATA_ROWS', () => {
+  assert.throws(
+    () => load('date,open,high,low,close,volume\n'),
+    /CSV_NO_DATA_ROWS/
+  );
+  assert.throws(
+    () => load('date,open,high,low,close,volume\n\n\n'),
+    /CSV_NO_DATA_ROWS/
+  );
+});
+
+test('C15 — blank lines between valid data rows remain ignored', () => {
+  const { bars } = load(
+    'date,open,high,low,close,volume\n' +
+    '2024-03-04,100,101,99,100,1000\n' +
+    '\n' +
+    '2024-03-05,100,101,99,100,1000\n' +
+    '\n\n' +
+    '2024-03-06,100,101,99,100,1000\n'
+  );
+  assert.equal(bars.length, 3);
+});

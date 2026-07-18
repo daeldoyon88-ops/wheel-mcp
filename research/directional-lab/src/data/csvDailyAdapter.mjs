@@ -70,6 +70,9 @@ export function loadCsvDaily(filePath, options) {
       throw new Error(`${filePath}: CSV missing required column "${required}" (headers: ${header.join(', ')})`);
     }
   }
+  if (rows.length === 0) {
+    throw new Error(`CSV_NO_DATA_ROWS: ${filePath}: header present but no data rows`);
+  }
   const objects = rows.map(({ cells, lineNumber }) => {
     if (cells.length !== header.length) {
       throw new Error(

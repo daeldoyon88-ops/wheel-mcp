@@ -28,20 +28,11 @@ export function continuityClose(bar) {
   return null;
 }
 
-/**
- * @param {import('../contracts/dailyBarV1.mjs').DailyBarV1[]} bars
- * @param {{splitSuspectThreshold?: number, longGapWeekdays?: number}} [options]
- * @returns {SeriesValidation}
- */
-export function validateDailyBars(bars, options = {}) {
-  const splitSuspectThreshold = options.splitSuspectThreshold ?? 0.5;
-  const longGapWeekdays = options.longGapWeekdays ?? 5;
-  const problems = [];
-  const warnings = [];
-  const stats = {
-    bars: bars.length,
-    firstDate: bars.length ? bars[0].sessionDate : null,
-    lastDate: bars.length ? bars[bars.length - 1].sessionDate : null,
+function emptyStats() {
+  return {
+    bars: 0,
+    firstDate: null,
+    lastDate: null,
     duplicateDates: 0,
     unsortedPairs: 0,
     weekendSessions: 0,
@@ -51,8 +42,32 @@ export function validateDailyBars(bars, options = {}) {
     barsWithNullVolume: 0,
     splitSuspects: /** @type {string[]} */ ([]),
   };
+}
 
-  if (!Array.isArray(bars)) return { problems: ['bars is not an array'], warnings, stats };
+/**
+ * @param {unknown} bars
+ * @param {{splitSuspectThreshold?: number, longGapWeekdays?: number}} [options]
+ * @returns {SeriesValidation}
+ */
+export function validateDailyBars(bars, options = {}) {
+  const splitSuspectThreshold = options.splitSuspectThreshold ?? 0.5;
+  const longGapWeekdays = options.longGapWeekdays ?? 5;
+  const problems = [];
+  const warnings = [];
+  const stats = emptyStats();
+
+  if (!Array.isArray(bars)) {
+    const kind = bars === null ? 'null' : bars === undefined ? 'undefined' : typeof bars;
+    return {
+      problems: [`bars is not an array (got ${kind})`],
+      warnings,
+      stats,
+    };
+  }
+
+  stats.bars = bars.length;
+  stats.firstDate = bars.length ? bars[0]?.sessionDate ?? null : null;
+  stats.lastDate = bars.length ? bars[bars.length - 1]?.sessionDate ?? null : null;
 
   const seen = new Set();
   let prevBar = null;

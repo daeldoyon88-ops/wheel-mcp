@@ -105,26 +105,34 @@ Politique canonique par base dans `src/data/corporateActionPolicy.mjs`
   cash-in-lieu) et crédite les dividendes en cash sur la quantité détenue
   à la clôture précédente (droit causal : une vente à l'open de l'ex-date
   conserve le dividende, un achat à l'open ne le reçoit pas);
-- **SPLIT_ADJUSTED** : splits jamais réappliqués; dividendes crédités
-  lorsque les montants par barre existent;
+- **SPLIT_ADJUSTED** : splits jamais réappliqués (`SPLIT_ALREADY_EMBEDDED`);
+  dividendes crédités lorsque les montants existent; split+dividende même
+  séance **autorisé**;
 - **TOTAL_RETURN_ADJUSTED** : rien n'est réappliqué ni crédité (déjà dans
-  les prix, aucun double comptage);
+  les prix, aucun double comptage); split+dividende informatif autorisé;
 - **DERIVED_ADJUSTED** : toute corporate action refuse le backtest
   (`CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED`);
-- split + dividende la même séance sans ordre démontrable :
-  `CORPORATE_ACTION_ORDER_AMBIGUOUS`.
+- **RAW** split + dividende la même séance : refus
+  `CORPORATE_ACTION_ORDER_AMBIGUOUS`;
+- dividende déclaré sans position : `CASH_DIVIDEND_NOT_ENTITLED`
+  (cashImpact 0);
+- CSV header-only / sans lignes de données : `CSV_NO_DATA_ROWS`.
 
 Chaque événement laisse une trace déterministe dans
 `corporateActionEvents` et les dividendes crédités s'additionnent dans
 `totalDividendsCash`, séparés du PnL des trades, des commissions et du
 slippage. Suites dédiées : `dividend-accounting.test.mjs`,
-`raw-split-accounting.test.mjs`, `csv-header-normalization.test.mjs`.
+`raw-split-accounting.test.mjs`, `csv-header-normalization.test.mjs`,
+`manifest-coverage.test.mjs`, `missing-reasons.test.mjs`,
+`contract-hardening.test.mjs`, `correctif-a-p2.test.mjs`.
 
 Le laboratoire n'écrit jamais hors de son dossier : aucune mémoire
-d'agent, aucun index persistant, aucun checkpoint externe (verrouillé par
-`no-production-coupling.test.mjs`); les tests utilisent uniquement le
-répertoire temporaire du système et suppriment leurs fichiers. Les
-commandes de la section ci-dessus sont inchangées.
+d'agent, aucun index persistant, aucun checkpoint externe (scan
+insensible à la casse / séparateurs dans
+`no-production-coupling.test.mjs`; ce scan ne contrôle que le **code du
+laboratoire**, pas le comportement global de l'agent). Les tests
+utilisent uniquement le répertoire temporaire du système et
+suppriment leurs fichiers.
 
 ## Reproduire un résultat
 
@@ -143,7 +151,8 @@ produit le même hash (`test/deterministic-results.test.mjs`).
   aucun accès aux bougies futures, intents `ENTER_LONG/HOLD/REDUCE_25/
   REDUCE_50/EXIT/NO_ACTION`), l'enregistrer dans `STRATEGIES` de `cli.mjs`.
 - **Un benchmark** : passer `benchmarks: {SYM: series}` au featureEngine ou
-  au régime; les dates absentes restent null (`BENCHMARK_UNAVAILABLE`).
+  au régime; série absente → `BENCHMARK_UNAVAILABLE`, date absente →
+  `BENCHMARK_DATE_MISSING`.
 
 ## Limites connues (V1)
 

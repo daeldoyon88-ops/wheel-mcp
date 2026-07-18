@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "BaselineConfigsV1",
+  "note": "Fixed research parameters for Phase 1. These are EXAMPLE cost values for comparability between runs, not a universal market truth. No optimization is performed on any of these values in Phase 1.",
+  "initialCapital": 100000,
+  "commission": {
+    "fixedPerOrder": 0,
+    "perShare": 0.005,
+    "minimum": 1
+  },
+  "slippage": {
+    "bps": 5,
+    "minPerShare": 0.01,
+    "gapMultiplier": 1.5
+  },
+  "strategies": {
+    "BUY_HOLD": {
+      "description": "B0 — first admissible open entry, hold to end, costs included, dividends only when per-bar data exists"
+    },
+    "MA50": {
+      "description": "B1 — enter close>SMA50 & slope>0, exit close<SMA50, fills at next open",
+      "params": {}
+    },
+    "EMA21_EMA50": {
+      "description": "B2 — enter EMA21>EMA50 & close>EMA21, exit close<EMA21 or EMA21<EMA50, fills at next open",
+      "params": {}
+    },
+    "TREND_ATR": {
+      "description": "B3 — enter close>SMA50 & slope>0, causal trailing stop max(prevStop, highestCloseSinceEntry - k*ATR14), stop active next session, gap-aware",
+      "params": { "k": 2.5 },
+      "note": "k=2.5 only in Phase 1; 1.5/2/3 explicitly NOT tested (no optimization)"
+    }
+  }
+}

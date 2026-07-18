@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "PilotUniverseV1",
+  "note": "Pilot universe built ONLY from clean, identifiable local histories found on 2026-07-17 (read-only discovery, no download). Untracked source files are read but never modified or staged. PILOT_TECHNICAL_ONLY.",
+  "discoveryDate": "2026-07-17",
+  "allowedPaths": ["debug", "debug/tradingview"],
+  "entries": [
+    {
+      "symbol": "APLD",
+      "sourcePath": "debug/ohlc-cache-APLD.json",
+      "sourceGitStatus": "untracked",
+      "format": "OHLC_CACHE_JSON_V1",
+      "ohlcBasis": "SPLIT_ADJUSTED",
+      "priceBasis": "SPLIT_ADJUSTED",
+      "observed": {
+        "firstDate": "2022-04-13",
+        "lastDate": "2026-07-13",
+        "bars": 1064,
+        "volumeAvailable": true,
+        "adjustedCloseAvailable": false,
+        "splitsDocumented": true,
+        "sourceNote": "Yahoo Finance v8 chart API (close brut, non ajusté dividendes); splits: [{2022-04-13, 1:6}]"
+      },
+      "admissible": true,
+      "reason": "clean identifiable daily history with embedded validation metadata (dup=0, unsorted=0, badPrice=0)"
+    },
+    {
+      "symbol": "IONQ",
+      "sourcePath": "debug/ohlc-cache-IONQ.json",
+      "sourceGitStatus": "untracked",
+      "format": "OHLC_CACHE_JSON_V1",
+      "ohlcBasis": "SPLIT_ADJUSTED",
+      "priceBasis": "SPLIT_ADJUSTED",
+      "observed": {
+        "firstDate": "2021-01-04",
+        "lastDate": "2026-07-13",
+        "bars": 1386,
+        "volumeAvailable": true,
+        "adjustedCloseAvailable": false,
+        "splitsDocumented": false,
+        "sourceNote": "Yahoo Finance v8 chart API (close brut, non ajusté dividendes); no splits, no dividends"
+      },
+      "admissible": true,
+      "reason": "clean identifiable daily history with embedded validation metadata"
+    },
+    {
+      "symbol": "TQQQ",
+      "sourcePath": "debug/tradingview/ohlc-cache-TQQQ-to-2026-07-09.json",
+      "sourceGitStatus": "untracked",
+      "format": "OHLC_CACHE_JSON_V1",
+      "ohlcBasis": "SPLIT_ADJUSTED",
+      "priceBasis": "SPLIT_ADJUSTED",
+      "observed": {
+        "firstDate": "2010-02-11",
+        "lastDate": "2026-07-09",
+        "bars": null,
+        "volumeAvailable": true,
+        "adjustedCloseAvailable": false,
+        "splitsDocumented": false,
+        "sourceNote": "TradingView reconciliation cache; prices split-adjusted (2010 prices ~0.20); split events not itemized"
+      },
+      "admissible": true,
+      "reason": "most recent TQQQ history available locally (newer than debug/ohlc-cache-TQQQ.json)",
+      "alternatesNotSelected": ["debug/ohlc-cache-TQQQ.json (older, to 2026-05-31)"]
+    },
+    {
+      "symbol": "TECL",
+      "sourcePath": "debug/tradingview/ohlc-cache-TECL-raw.json",
+      "sourceGitStatus": "untracked",
+      "format": "OHLC_CACHE_JSON_V1",
+      "ohlcBasis": "SPLIT_ADJUSTED",
+      "priceBasis": "SPLIT_ADJUSTED",
+      "observed": {
+        "firstDate": "2008-12-30",
+        "lastDate": null,
+        "bars": null,
+        "volumeAvailable": true,
+        "adjustedCloseAvailable": true,
+        "splitsDocumented": false,
+        "sourceNote": "post-corruption-fix cache: RAW close coherent with OHLC (split-adjusted basis), adjclose kept as a separate extra column (never mixed)"
+      },
+      "admissible": true,
+      "reason": "the reconciled TECL series (June 2026 fix: raw close coherent with OHLC); adjclose is carried separately as totalReturnClose lineage",
+      "alternatesNotSelected": ["debug/ohlc-cache-TECL.json (same series without the adjclose extra)"]
+    },
+    {
+      "symbol": "SPY",
+      "sourcePath": "debug/ohlc-cache-SPY.json",
+      "sourceGitStatus": "untracked",
+      "format": "OHLC_CACHE_JSON_V1",
+      "ohlcBasis": "SPLIT_ADJUSTED",
+      "priceBasis": "SPLIT_ADJUSTED",
+      "observed": {
+        "firstDate": "2008-01-02",
+        "lastDate": null,
+        "bars": null,
+        "volumeAvailable": true,
+        "adjustedCloseAvailable": false,
+        "splitsDocumented": false,
+        "sourceNote": "older cache variant (no source field); close excludes dividend adjustment"
+      },
+      "admissible": true,
+      "reason": "only local SPY history; long coverage from 2008"
+    },
+    {
+      "symbol": "QQQ",
+      "sourcePath": "debug/ohlc-cache-QQQ-20260713.json",
+      "sourceGitStatus": "untracked",
+      "format": "OHLC_CACHE_JSON_V1",
+      "ohlcBasis": "SPLIT_ADJUSTED",
+      "priceBasis": "SPLIT_ADJUSTED",
+      "observed": {
+        "firstDate": "2015-01-02",
+        "lastDate": "2026-07-13",
+        "bars": 2897,
+        "volumeAvailable": true,
+        "adjustedCloseAvailable": false,
+        "splitsDocumented": false,
+        "sourceNote": "Yahoo Finance v8 chart API; 46 dividend events counted in metadata but per-bar amounts absent -> dividends not includable"
+      },
+      "admissible": true,
+      "reason": "most recent QQQ cache with embedded validation metadata (dup=0, unsorted=0)",
+      "alternatesNotSelected": ["debug/ohlc-cache-QQQ.json (older, from 2008)", "debug/tradingview/ohlc-cache-QQQ-to-2026-07-09.json (older snapshot)"]
+    }
+  ],
+  "refused": [
+    {
+      "symbols": "all other research-universe symbols",
+      "reason": "no clean identifiable local daily history found under the allowed paths; downloading data is out of scope for Phase 1"
+    }
+  ]
+}

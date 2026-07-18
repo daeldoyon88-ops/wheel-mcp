@@ -22,6 +22,13 @@ expérimental**, entièrement isolé du reste du dépôt.
 - **Aucune modification du scanner.** SAFE, BALANCED, AGGRESSIVE, les
   strikes, le ranking, les caps, le score Elite, le Journal POP et
   `universe.master.json` ne sont ni lus pour décision, ni modifiés.
+- **Aucune écriture persistante externe.** Ni le laboratoire ni l'agent qui
+  y travaille ne créent ou ne modifient automatiquement une mémoire
+  d'agent, un index de mémoire ou quelque fichier persistant que ce soit
+  hors de `research/directional-lab/`. Les fichiers temporaires des tests
+  vivent sous le répertoire temporaire du système et sont supprimés par les
+  tests eux-mêmes. Un test de couplage vérifie qu'aucun code du laboratoire
+  ne référence de tels chemins.
 
 ## Ce que ce laboratoire EST
 

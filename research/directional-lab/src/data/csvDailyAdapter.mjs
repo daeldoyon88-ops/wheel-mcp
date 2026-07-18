@@ -2,34 +2,47 @@
  * Read-only adapter for simple daily CSV files:
  *   date,open,high,low,close,volume[,adjclose][,splitFactor][,cashDividend]
  *
+ * Headers are normalized through canonicalizeCsvHeaderRow (csvHeader.mjs):
+ * BOM/case/space/hyphen/underscore-insensitive, usual synonyms mapped
+ * (Adj Close -> adjclose, session_date -> date, Dividend -> cashDividend...).
+ * Unknown columns are reported in sourceMeta.ignoredColumns and never
+ * interpreted under another name. Collisions after normalization and rows
+ * whose cell count differs from the header are refused. Quoted fields stay
+ * explicitly out of scope.
+ *
  * The caller must state the basis of the OHLC columns (default RAW for CSV,
  * since generic CSV exports are usually unadjusted). Nothing is written back.
  */
 
 import { readFileSync } from 'node:fs';
 import { normalizeDailyBars } from './normalizeDailyBars.mjs';
+import { canonicalizeCsvHeaderRow } from './csvHeader.mjs';
 
-export const CSV_ADAPTER_VERSION = 'csvDailyAdapter/1';
+export const CSV_ADAPTER_VERSION = 'csvDailyAdapter/2';
 
-const KNOWN_COLUMNS = new Set([
-  'date', 'sessionDate', 'open', 'high', 'low', 'close', 'volume',
-  'adjclose', 'adjClose', 'adjOpen', 'adjHigh', 'adjLow', 'adjVolume',
-  'rawOpen', 'rawHigh', 'rawLow', 'rawClose', 'rawVolume',
-  'splitFactor', 'cashDividend',
-]);
+const REQUIRED_CANONICAL = ['date', 'open', 'high', 'low', 'close'];
 
 /**
  * Minimal CSV parser: comma separated, no quoted fields with embedded commas
- * (rejects them explicitly rather than mis-parsing).
+ * (rejects them explicitly rather than mis-parsing). Data rows keep their
+ * original 1-based line number so malformed rows can be reported precisely.
  * @param {string} text
- * @returns {{header: string[], rows: string[][]}}
+ * @returns {{header: string[], rows: Array<{cells: string[], lineNumber: number}>}}
  */
 export function parseCsv(text) {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
-  if (lines.length === 0) throw new Error('CSV is empty');
   if (text.includes('"')) throw new Error('Quoted CSV fields are not supported by this adapter');
-  const header = lines[0].split(',').map((h) => h.trim());
-  const rows = lines.slice(1).map((l) => l.split(',').map((c) => c.trim()));
+  const lines = text.split(/\r?\n/);
+  /** @type {string[]|null} */
+  let header = null;
+  /** @type {Array<{cells: string[], lineNumber: number}>} */
+  const rows = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '') continue;
+    const cells = lines[i].split(',').map((c) => c.trim());
+    if (header === null) header = cells;
+    else rows.push({ cells, lineNumber: i + 1 });
+  }
+  if (header === null) throw new Error('CSV is empty');
   return { header, rows };
 }
 
@@ -45,17 +58,29 @@ export function loadCsvDaily(filePath, options) {
   }
   const text = readFileSync(filePath, 'utf8');
   const { header, rows } = parseCsv(text);
-  const lower = header.map((h) => h.toLowerCase());
-  for (const required of ['date', 'open', 'high', 'low', 'close']) {
-    if (!lower.includes(required)) throw new Error(`${filePath}: CSV missing required column "${required}"`);
+  let canonicalized;
+  try {
+    canonicalized = canonicalizeCsvHeaderRow(header);
+  } catch (err) {
+    throw new Error(`${filePath}: ${/** @type {Error} */ (err).message}`);
   }
-  const unknown = header.filter((h) => !KNOWN_COLUMNS.has(h) && !KNOWN_COLUMNS.has(h.toLowerCase()));
-  const objects = rows.map((cells) => {
+  const { canonical, ignoredColumns } = canonicalized;
+  for (const required of REQUIRED_CANONICAL) {
+    if (!canonical.includes(required)) {
+      throw new Error(`${filePath}: CSV missing required column "${required}" (headers: ${header.join(', ')})`);
+    }
+  }
+  const objects = rows.map(({ cells, lineNumber }) => {
+    if (cells.length !== header.length) {
+      throw new Error(
+        `${filePath}: line ${lineNumber} has ${cells.length} cell(s) but the header has ${header.length} column(s); malformed row refused`
+      );
+    }
     /** @type {Record<string, string|null>} */
     const o = {};
-    header.forEach((h, i) => {
-      const cell = cells[i];
-      o[h.toLowerCase() === h ? h : h] = cell === undefined || cell === '' ? null : cell;
+    canonical.forEach((name, i) => {
+      if (name === null) return; // unknown column: reported in ignoredColumns, never interpreted
+      o[name] = cells[i] === '' ? null : cells[i];
     });
     return o;
   });
@@ -67,7 +92,7 @@ export function loadCsvDaily(filePath, options) {
   });
   return {
     bars,
-    sourceMeta: { header, ignoredColumns: unknown },
+    sourceMeta: { header, canonicalHeader: canonical, ignoredColumns },
     format: 'CSV_DAILY_V1',
   };
 }

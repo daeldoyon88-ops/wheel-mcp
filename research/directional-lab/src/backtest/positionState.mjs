@@ -4,6 +4,11 @@
  * onward; nothing before the entry leaks into them.
  */
 
+import {
+  SPLIT_QUANTITY_TOLERANCE,
+  ERROR_FRACTIONAL_SPLIT_RESULT_UNSUPPORTED,
+} from '../data/corporateActionPolicy.mjs';
+
 /**
  * @typedef {Object} PositionStateV1
  * @property {string} symbol
@@ -97,4 +102,57 @@ export function updatePositionOnClose(position, bar) {
       : null;
     position.unrealizedPnl = (bar.close - position.averageCost) * position.quantity;
   }
+}
+
+/**
+ * Convert a whole-share quantity through a split factor. Refuses fractional
+ * results (V1 supports whole shares only and has no cash-in-lieu policy) —
+ * never rounds silently.
+ * @param {number} quantity
+ * @param {number} splitFactor shares after / shares before, > 0
+ * @param {string} context label for the error message
+ * @returns {number} the exact whole-share result
+ */
+export function scaleWholeQuantity(quantity, splitFactor, context) {
+  const scaled = quantity * splitFactor;
+  const rounded = Math.round(scaled);
+  if (rounded <= 0 || Math.abs(scaled - rounded) > SPLIT_QUANTITY_TOLERANCE * Math.max(1, Math.abs(rounded))) {
+    throw new Error(
+      `${ERROR_FRACTIONAL_SPLIT_RESULT_UNSUPPORTED}: ${context}: ${quantity} share(s) x splitFactor ${splitFactor} = ${scaled} ` +
+      'is not a whole number of shares; V1 has no cash-in-lieu policy and never rounds silently'
+    );
+  }
+  return rounded;
+}
+
+/**
+ * Apply a RAW split to an open position, effective before the session open.
+ * Economic value is preserved: quantity x splitFactor, every per-share price
+ * reference / splitFactor. Dollar aggregates (realizedPnl, unrealizedPnl,
+ * commissions, slippage) and percentage extrema (mfePct, maePct, ...) are
+ * scale-invariant and stay untouched. Historical partialExits records are
+ * never rewritten. Cash is never touched by a split.
+ * @param {PositionStateV1} position
+ * @param {number} splitFactor shares after / shares before, > 0
+ * @returns {{quantityBefore: number, quantityAfter: number, averageCostBefore: number, averageCostAfter: number}}
+ */
+export function applySplitToPosition(position, splitFactor) {
+  if (!(Number.isFinite(splitFactor) && splitFactor > 0)) {
+    throw new Error(`applySplitToPosition: splitFactor must be finite and > 0, got ${splitFactor}`);
+  }
+  const quantityBefore = position.quantity;
+  const averageCostBefore = position.averageCost;
+  position.quantity = scaleWholeQuantity(quantityBefore, splitFactor, 'position.quantity');
+  position.maxQuantity = scaleWholeQuantity(position.maxQuantity, splitFactor, 'position.maxQuantity');
+  position.averageCost = position.averageCost / splitFactor;
+  position.entryPrice = position.entryPrice / splitFactor;
+  for (const field of ['currentPrice', 'highestCloseSinceEntry', 'highestHighSinceEntry', 'lowestLowSinceEntry', 'lastStop']) {
+    if (position[field] !== null) position[field] = position[field] / splitFactor;
+  }
+  return {
+    quantityBefore,
+    quantityAfter: position.quantity,
+    averageCostBefore,
+    averageCostAfter: position.averageCost,
+  };
 }

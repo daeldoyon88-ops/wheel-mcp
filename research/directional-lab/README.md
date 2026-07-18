@@ -44,7 +44,7 @@ research/directional-lab/
     backtest/               position, portefeuille, moteur causal, walk-forward
     metrics/                rendements, drawdown, risque, trades, excursions
     reporting/              stdout, JSON déterministe, rapport qualité
-  test/                     15 suites (77 tests) anti-look-ahead + fixtures
+  test/                     18 suites (114 tests) anti-look-ahead + fixtures
 ```
 
 ## Commandes
@@ -84,7 +84,47 @@ Bases de prix : `RAW`, `SPLIT_ADJUSTED`, `TOTAL_RETURN_ADJUSTED`,
 - `OHLC_CACHE_JSON_V1` : les caches locaux `{symbol, rows:[{date, open,
   high, low, close, volume, [adjclose]}]}` présents sous `debug/` (lus en
   lecture seule, jamais modifiés ni stagés).
-- `CSV_DAILY_V1` : CSV `date,open,high,low,close,volume[,adjclose]`.
+- `CSV_DAILY_V1` : CSV `date,open,high,low,close,volume[,adjclose]
+  [,splitFactor][,cashDividend]`. Entêtes normalisées (`src/data/
+  csvHeader.mjs`) : insensibles à la casse, au BOM UTF-8, aux espaces et
+  aux underscores; synonymes usuels mappés (`Adj Close`, `Adjusted Close`,
+  `session_date`, `split_factor`, `Dividend`, ...); colonnes inconnues
+  signalées dans `ignoredColumns` (jamais interprétées); collisions après
+  normalisation refusées (`CSV_HEADER_COLLISION`); lignes au mauvais nombre
+  de cellules refusées avec leur numéro de ligne; champs entre guillemets
+  hors périmètre (refus explicite).
+
+## Corporate actions
+
+Politique canonique par base dans `src/data/corporateActionPolicy.mjs`
+(`splitFactor` = actions après/avant, ex. 2 = 2:1, 0.2 = reverse 1:5;
+`cashDividend` = cash par action admissible à l'ex-date) :
+
+- **RAW** : le moteur applique les splits à la position avant l'open
+  (fractions refusées : `FRACTIONAL_SPLIT_RESULT_UNSUPPORTED`, pas de
+  cash-in-lieu) et crédite les dividendes en cash sur la quantité détenue
+  à la clôture précédente (droit causal : une vente à l'open de l'ex-date
+  conserve le dividende, un achat à l'open ne le reçoit pas);
+- **SPLIT_ADJUSTED** : splits jamais réappliqués; dividendes crédités
+  lorsque les montants par barre existent;
+- **TOTAL_RETURN_ADJUSTED** : rien n'est réappliqué ni crédité (déjà dans
+  les prix, aucun double comptage);
+- **DERIVED_ADJUSTED** : toute corporate action refuse le backtest
+  (`CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED`);
+- split + dividende la même séance sans ordre démontrable :
+  `CORPORATE_ACTION_ORDER_AMBIGUOUS`.
+
+Chaque événement laisse une trace déterministe dans
+`corporateActionEvents` et les dividendes crédités s'additionnent dans
+`totalDividendsCash`, séparés du PnL des trades, des commissions et du
+slippage. Suites dédiées : `dividend-accounting.test.mjs`,
+`raw-split-accounting.test.mjs`, `csv-header-normalization.test.mjs`.
+
+Le laboratoire n'écrit jamais hors de son dossier : aucune mémoire
+d'agent, aucun index persistant, aucun checkpoint externe (verrouillé par
+`no-production-coupling.test.mjs`); les tests utilisent uniquement le
+répertoire temporaire du système et suppriment leurs fichiers. Les
+commandes de la section ci-dessus sont inchangées.
 
 ## Reproduire un résultat
 
@@ -107,9 +147,14 @@ produit le même hash (`test/deterministic-results.test.mjs`).
 
 ## Limites connues (V1)
 
-- Les caches locaux fournissent un OHLC split-adjusted **sans dividendes** :
-  le rendement total des payeurs de dividendes (SPY, QQQ) est sous-estimé
-  (warning `DIVIDENDS_NOT_INCLUDED` systématique).
+- Les caches locaux fournissent un OHLC split-adjusted **sans montants de
+  dividendes par barre** : pour ces fichiers le rendement total des payeurs
+  de dividendes (SPY, QQQ) reste sous-estimé (warning
+  `DIVIDENDS_NOT_INCLUDED`). Lorsque `cashDividend` est fourni (CSV), le
+  moteur le crédite causalement (voir « Corporate actions »).
+- Actions entières uniquement : un split produisant une quantité
+  fractionnaire refuse le backtest (`FRACTIONAL_SPLIT_RESULT_UNSUPPORTED`),
+  aucun cash-in-lieu n'est simulé.
 - Pas de demi-séances (early closes) dans `marketSession`.
 - Pas de raw OHLC natif dans les caches : la base `RAW` est refusée pour
   ces fichiers plutôt que fabriquée.

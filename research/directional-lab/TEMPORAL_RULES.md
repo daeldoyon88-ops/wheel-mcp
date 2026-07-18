@@ -26,6 +26,27 @@ fichier. Toute stratégie future DOIT respecter ces règles.
 - **Un stop ne protège jamais contre un gap nocturne** et le moteur ne le
   prétend jamais.
 
+## 2 bis. Corporate actions — ordre intra-séance
+
+Ordre de traitement d'une séance t (moteur, avant tout ordre et tout stop) :
+
+1. quantité détenue héritée de la clôture t-1;
+2. split RAW effectif appliqué **avant l'open** (quantité × facteur; toute
+   référence de prix par action ÷ facteur : coût moyen, prix d'entrée,
+   extrêmes depuis l'entrée, stop actif, stop en attente);
+3. droit au dividende déterminé sur la quantité détenue à la clôture t-1 :
+   une vente exécutée à l'open de l'ex-date **conserve** le dividende; un
+   achat exécuté à l'open de l'ex-date **ne le reçoit pas**;
+4. crédit du dividende (`cash += quantitéAdmissible × cashDividend`);
+5. ordres à l'open (décidés à la clôture t-1);
+6. stops actifs;
+7. mise à jour de la position à la clôture;
+8. décision pour t+1.
+
+Split et dividende la même séance sans ordre démontrable → refus
+`CORPORATE_ACTION_ORDER_AMBIGUOUS`. Aucune information future n'est
+utilisée : l'admissibilité ne dépend que de l'état hérité de t-1.
+
 ## 3. Weekly
 
 - Une feature Weekly utilisée le jour t provient exclusivement de la
@@ -88,6 +109,10 @@ fichier. Toute stratégie future DOIT respecter ces règles.
 | Null préservé | `null-preservation.test.mjs` |
 | Split sans faux drawdown/stop | `split-adjustment.test.mjs` |
 | Raw/adjusted jamais mélangés | `split-adjustment.test.mjs` |
+| Dividende causal (droit à la clôture t-1) | `dividend-accounting.test.mjs` |
+| Split RAW avant l'open (position, stops, fractions) | `raw-split-accounting.test.mjs` |
+| Entêtes CSV canoniques (BOM, casse, collisions) | `csv-header-normalization.test.mjs` |
+| Aucune référence d'écriture mémoire externe | `no-production-coupling.test.mjs` |
 | Déterminisme | `deterministic-results.test.mjs` |
 | Purge/embargo | `purge-embargo.test.mjs`, `walk-forward.test.mjs` |
 | Aucun couplage production/réseau | `no-production-coupling.test.mjs` |

@@ -14,6 +14,8 @@
  * @property {number} totalCommissions
  * @property {number} totalSlippage
  * @property {number} totalTradedNotional
+ * @property {number} totalDividendsCash sum of cash dividends credited (kept separate from trade PnL)
+ * @property {Array} corporateActionEvents deterministic audit trail (SPLIT, CASH_DIVIDEND, ...)
  * @property {boolean} everEntered
  * @property {string[]} warnings
  */
@@ -34,6 +36,8 @@ export function createPortfolio(initialCapital) {
     totalCommissions: 0,
     totalSlippage: 0,
     totalTradedNotional: 0,
+    totalDividendsCash: 0,
+    corporateActionEvents: [],
     everEntered: false,
     warnings: [],
   };

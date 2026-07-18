@@ -23,6 +23,7 @@ import { ADJUSTMENT_TYPES } from '../contracts/dailyBarV1.mjs';
  * @property {number|null} volume
  * @property {number|null} splitFactor
  * @property {number|null} cashDividend
+ * @property {string} source provenance label of the underlying bar
  * @property {string[]} qualityFlags
  */
 
@@ -97,12 +98,22 @@ export function selectPriceBasis(bars, basis, options = {}) {
       volume: block.volume,
       splitFactor: bar.corporateActions.splitFactor,
       cashDividend: bar.corporateActions.cashDividend,
+      source: bar.source,
       qualityFlags: [...bar.qualityFlags, ...flags],
     });
   }
 
   if (basis === 'SPLIT_ADJUSTED') {
-    warnings.push('DIVIDENDS_NOT_INCLUDED: split-adjusted close excludes dividends; total return is understated for dividend payers');
+    // Policy (corporateActionPolicy.mjs): split-adjusted prices exclude
+    // dividends. When per-bar cashDividend amounts exist the engine credits
+    // them separately; when they are absent the total return stays
+    // understated and this is said explicitly, never pretended otherwise.
+    const hasDividendData = series.some((b) => b.cashDividend !== null);
+    if (hasDividendData) {
+      warnings.push('DIVIDENDS_CASH_SEPARATE: split-adjusted prices exclude dividends; per-bar cashDividend amounts are credited separately by the backtest engine');
+    } else {
+      warnings.push('DIVIDENDS_NOT_INCLUDED: split-adjusted close excludes dividends; total return is understated for dividend payers');
+    }
   }
   if (basis === 'DERIVED_ADJUSTED') {
     warnings.push('DERIVED_ADJUSTED: adjusted OHLC synthesized from close ratio; not a native series');

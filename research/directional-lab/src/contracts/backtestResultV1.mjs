@@ -22,6 +22,8 @@ export const BACKTEST_RESULT_SCHEMA_VERSION = 'BacktestResultV1';
  * @property {Array} trades
  * @property {Array} fills
  * @property {Array<{sessionDate: string, equity: number, cash: number, quantity: number}>} equityCurve
+ * @property {number} totalDividendsCash cash dividends credited, kept separate from trade PnL/commissions/slippage
+ * @property {Array} corporateActionEvents deterministic audit trail (SPLIT, CASH_DIVIDEND, *_ALREADY_EMBEDDED)
  * @property {Object} metrics
  * @property {string[]} warnings
  * @property {string} resultHash sha256 of the stable serialization (excluding itself)

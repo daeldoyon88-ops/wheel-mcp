@@ -85,6 +85,29 @@ test('the lab does not import production modules (no ../../app, ../../scripts, s
   }
 });
 
+test('lab code never references external agent-memory or persistent paths outside the lab', () => {
+  const labFiles = [
+    ...labSourceFiles,
+    ...walk(join(LAB_ROOT, 'test')).filter((f) => f.endsWith('.mjs')),
+    ...walk(LAB_ROOT).filter((f) => f.endsWith('.md')),
+  ];
+  // Markers are assembled by concatenation so that this file itself never
+  // contains them literally; any lab file writing toward these targets fails.
+  const forbiddenMarkers = [
+    '.cla' + 'ude',
+    'MEMORY' + '.md',
+    'project_' + 'directional_lab',
+    'project ' + 'memory',
+  ];
+  assert.ok(labFiles.length > 40, `expected the lab file tree, found ${labFiles.length} files`);
+  for (const file of labFiles) {
+    const text = readFileSync(file, 'utf8');
+    for (const marker of forbiddenMarkers) {
+      assert.ok(!text.includes(marker), `${file}: forbidden external-memory reference "${marker}"`);
+    }
+  }
+});
+
 test('package.json is untouched by the lab (no new dependencies)', () => {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'));
   const allDeps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };

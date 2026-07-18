@@ -64,8 +64,10 @@ Règles absolues :
 - une règle de trading ne peut pas combiner adjusted close et raw open/high/
   low sans transformation déclarée (testé dans
   `test/split-adjustment.test.mjs`);
-- les dividendes sont traités séparément du prix : les caches locaux ne
-  fournissant pas les montants par barre, ils ne sont **pas** inclus et le
+- les dividendes sont traités séparément du prix : lorsque `cashDividend`
+  est fourni par barre, le moteur le crédite en cash selon la politique par
+  base (§4) et le warning devient `DIVIDENDS_CASH_SEPARATE`; lorsque les
+  montants sont absents (caches locaux), ils ne sont **pas** inclus et le
   warning `DIVIDENDS_NOT_INCLUDED` est émis (rendement total sous-estimé);
 - les splits doivent préserver la continuité économique : quantités et coûts
   restent cohérents sur la base ajustée (fixture `split-bars.json` :
@@ -73,12 +75,43 @@ Règles absolues :
 - un saut de prix > 50 % sans split documenté est signalé
   `SPLIT_SUSPECT` — signalé, pas corrigé.
 
-## 4. Splits et dividendes (CorporateActionV1)
+## 4. Splits et dividendes — politique canonique
 
-`src/contracts/corporateActionV1.mjs` : `SPLIT` (splitFactor > 0, ex. 2 pour
-2:1) ou `CASH_DIVIDEND` (cashAmount ≥ 0), avec `effectiveDate` civile et
-`source`. Les événements ne sont jamais forward-fillés ni fusionnés dans les
-prix. Les ratios texte des caches (`"1:6"`) sont parsés explicitement
+Définition canonique unique (`src/data/corporateActionPolicy.mjs`) :
+
+    splitFactor = actions après le split / actions avant le split
+
+2:1 → 2 ; 3:2 → 1.5 ; reverse 1:5 → 0.2. Facteur strictement positif; un
+facteur de 1 est un no-op ignoré. `cashDividend` = montant de cash par
+action admissible à la date ex-dividende.
+
+Politique par base, consultée par le moteur, le sélecteur et les tests :
+
+| Base | Split | Dividende cash |
+|------|-------|----------------|
+| `RAW` | appliqué par le moteur à la position (quantité × facteur, tout prix par action ÷ facteur; cash et PnL réalisé intacts) | crédité séparément sur la quantité détenue à la clôture précédente |
+| `SPLIT_ADJUSTED` | déjà dans les prix, jamais réappliqué (événement informatif `SPLIT_ALREADY_EMBEDDED`) | crédité lorsque `cashDividend` est disponible |
+| `TOTAL_RETURN_ADJUSTED` | déjà dans les prix | déjà dans les prix, jamais crédité séparément (`CASH_DIVIDEND_ALREADY_EMBEDDED` informatif) |
+| `DERIVED_ADJUSTED` | refus `CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED` | refus idem (traitement incorporé non démontrable) |
+
+Règles dures :
+
+- fractions : `quantité × splitFactor` doit être un entier (tolérance
+  1e-6); sinon refus `FRACTIONAL_SPLIT_RESULT_UNSUPPORTED` — pas de
+  cash-in-lieu inventé, aucun arrondi silencieux;
+- split + dividende la même séance sur une base où le moteur doit agir :
+  refus `CORPORATE_ACTION_ORDER_AMBIGUOUS` (l'ordre des événements n'est
+  pas démontrable à partir de la source, il n'est jamais choisi
+  arbitrairement);
+- chaque action laisse un événement d'audit déterministe dans
+  `corporateActionEvents` (valeurs avant/après exactes) et les dividendes
+  crédités s'additionnent dans `totalDividendsCash`, séparés du PnL des
+  trades, des commissions, du slippage et du capital déposé.
+
+`src/contracts/corporateActionV1.mjs` : `SPLIT` (splitFactor > 0) ou
+`CASH_DIVIDEND` (cashAmount ≥ 0), avec `effectiveDate` civile et `source`.
+Les événements ne sont jamais forward-fillés ni fusionnés dans les prix.
+Les ratios texte des caches (`"1:6"`) sont parsés explicitement
 (`parseSplitRatio`) et marqués `SPLIT_DOCUMENTED` sur la barre concernée.
 
 ## 5. availableAt et lineage

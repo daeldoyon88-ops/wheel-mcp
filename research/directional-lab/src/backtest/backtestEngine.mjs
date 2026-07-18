@@ -9,6 +9,11 @@
  *  - a stop decided at close t is active from session t+1 only;
  *  - a gap through the stop fills at the open (with gap slippage), never at
  *    the stop level;
+ *  - corporate actions are handled before the open of their effective
+ *    session, per the canonical per-basis policy (corporateActionPolicy.mjs):
+ *    RAW splits adjust the position, cash dividends are credited causally on
+ *    the quantity held at the previous close, embedded actions are never
+ *    applied twice;
  *  - results contain no wall-clock timestamps and hash deterministically.
  */
 
@@ -21,8 +26,13 @@ import { createCommissionModel } from '../execution/commissionModel.mjs';
 import { createSlippageModel } from '../execution/slippageModel.mjs';
 import { sizeAllInBuy, marketOpenFill } from '../execution/fillModel.mjs';
 import { resolveLongStopFill } from '../execution/stopFillModel.mjs';
-import { openPosition, updatePositionOnClose } from './positionState.mjs';
+import { openPosition, updatePositionOnClose, applySplitToPosition, scaleWholeQuantity } from './positionState.mjs';
 import { createPortfolio, markEquity } from './portfolioState.mjs';
+import {
+  corporateActionPolicyFor,
+  ERROR_CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED,
+  ERROR_CORPORATE_ACTION_ORDER_AMBIGUOUS,
+} from '../data/corporateActionPolicy.mjs';
 import { computeFeatureSnapshots } from '../features/featureEngine.mjs';
 import { computeAllMetrics } from '../metrics/aggregateMetrics.mjs';
 
@@ -61,6 +71,7 @@ export function runBacktest(input) {
   const slippageModel = createSlippageModel(input.slippage ?? {});
   const portfolio = createPortfolio(initialCapital);
   const warnings = [...(input.seriesWarnings ?? [])];
+  const caPolicy = corporateActionPolicyFor(input.priceBasis);
 
   const snapshots = input.precomputedSnapshots ?? computeFeatureSnapshots({
     symbol: input.symbol,
@@ -141,6 +152,124 @@ export function runBacktest(input) {
 
   for (let t = 0; t < series.length; t++) {
     const bar = series[t];
+
+    // 0. Corporate actions effective before this session's open, before any
+    //    order or stop is processed (policy: corporateActionPolicy.mjs).
+    //    Dividend entitlement is causal: the eligible quantity is the
+    //    position held at close t-1 (nothing of session t has executed yet
+    //    at this point in the loop), so a sell filling at this open keeps
+    //    the dividend and a buy filling at this open does not receive it.
+    {
+      const declaredSplit = bar.splitFactor ?? null;
+      const declaredDividend = bar.cashDividend ?? null;
+      if (declaredSplit !== null && !(Number.isFinite(declaredSplit) && declaredSplit > 0)) {
+        throw new Error(`${bar.sessionDate}: splitFactor must be finite and > 0, got ${declaredSplit}`);
+      }
+      if (declaredDividend !== null && !(Number.isFinite(declaredDividend) && declaredDividend >= 0)) {
+        throw new Error(`${bar.sessionDate}: cashDividend must be finite and >= 0, got ${declaredDividend}`);
+      }
+      // splitFactor 1 and cashDividend 0 are economic no-ops.
+      const splitFactor = declaredSplit !== null && declaredSplit !== 1 ? declaredSplit : null;
+      const cashDividend = declaredDividend !== null && declaredDividend > 0 ? declaredDividend : null;
+      if (caPolicy.refusesCorporateActions && (splitFactor !== null || cashDividend !== null)) {
+        throw new Error(
+          `${ERROR_CORPORATE_ACTION_AMBIGUOUS_FOR_DERIVED_ADJUSTED}: ${input.symbol} ${bar.sessionDate} carries a corporate ` +
+          `action on a ${input.priceBasis} series; the embedded treatment cannot be proven, refusing to guess`
+        );
+      }
+      if (splitFactor !== null && cashDividend !== null && (caPolicy.engineAppliesSplit || caPolicy.creditsCashDividend)) {
+        throw new Error(
+          `${ERROR_CORPORATE_ACTION_ORDER_AMBIGUOUS}: ${input.symbol} ${bar.sessionDate} has a split and a cash dividend ` +
+          'on the same session; the source does not prove their order, refusing to pick one arbitrarily'
+        );
+      }
+      if (splitFactor !== null) {
+        if (caPolicy.engineAppliesSplit) {
+          if (portfolio.position !== null) {
+            const activeStopBefore = activeStop;
+            const adjusted = applySplitToPosition(portfolio.position, splitFactor);
+            if (activeStop !== null) activeStop = activeStop / splitFactor;
+            if (pendingStop !== null) pendingStop = pendingStop / splitFactor;
+            if (openTrade !== null) {
+              openTrade.entryPrice = openTrade.entryPrice / splitFactor;
+              openTrade.maxQuantity = scaleWholeQuantity(openTrade.maxQuantity, splitFactor, 'openTrade.maxQuantity');
+              openTrade.entryCommissionShare = openTrade.entryCommissionShare / splitFactor;
+            }
+            portfolio.corporateActionEvents.push({
+              type: 'SPLIT',
+              sessionDate: bar.sessionDate,
+              symbol: input.symbol,
+              priceBasis: input.priceBasis,
+              splitFactor,
+              quantityBefore: adjusted.quantityBefore,
+              quantityAfter: adjusted.quantityAfter,
+              averageCostBefore: adjusted.averageCostBefore,
+              averageCostAfter: adjusted.averageCostAfter,
+              activeStopBefore,
+              activeStopAfter: activeStop,
+              source: bar.source ?? null,
+            });
+          } else {
+            portfolio.corporateActionEvents.push({
+              type: 'SPLIT',
+              sessionDate: bar.sessionDate,
+              symbol: input.symbol,
+              priceBasis: input.priceBasis,
+              splitFactor,
+              quantityBefore: 0,
+              quantityAfter: 0,
+              averageCostBefore: null,
+              averageCostAfter: null,
+              activeStopBefore: null,
+              activeStopAfter: null,
+              source: bar.source ?? null,
+            });
+          }
+        } else {
+          // Split already embedded in the price series: informational only,
+          // the position is never adjusted a second time.
+          portfolio.corporateActionEvents.push({
+            type: 'SPLIT_ALREADY_EMBEDDED',
+            sessionDate: bar.sessionDate,
+            symbol: input.symbol,
+            priceBasis: input.priceBasis,
+            splitFactor,
+            source: bar.source ?? null,
+          });
+        }
+      }
+      if (cashDividend !== null) {
+        if (caPolicy.creditsCashDividend) {
+          const eligibleQuantity = portfolio.position !== null ? portfolio.position.quantity : 0;
+          if (eligibleQuantity > 0) {
+            const cashImpact = eligibleQuantity * cashDividend;
+            portfolio.cash += cashImpact;
+            portfolio.totalDividendsCash += cashImpact;
+            portfolio.corporateActionEvents.push({
+              type: 'CASH_DIVIDEND',
+              sessionDate: bar.sessionDate,
+              symbol: input.symbol,
+              priceBasis: input.priceBasis,
+              cashDividendPerShare: cashDividend,
+              eligibleQuantity,
+              cashImpact,
+              source: bar.source ?? null,
+            });
+          }
+        } else {
+          // Dividend already embedded in total-return prices: informational
+          // only, never credited a second time.
+          portfolio.corporateActionEvents.push({
+            type: 'CASH_DIVIDEND_ALREADY_EMBEDDED',
+            sessionDate: bar.sessionDate,
+            symbol: input.symbol,
+            priceBasis: input.priceBasis,
+            cashDividendPerShare: cashDividend,
+            source: bar.source ?? null,
+          });
+        }
+      }
+    }
 
     // 1. Stop decided at close t-1 becomes active for this session.
     if (pendingStop !== null) {
@@ -380,6 +509,8 @@ export function runBacktest(input) {
     trades: portfolio.trades,
     fills: portfolio.fills,
     equityCurve: portfolio.equityCurve,
+    totalDividendsCash: portfolio.totalDividendsCash,
+    corporateActionEvents: portfolio.corporateActionEvents,
     metrics,
     metricReasons,
     warnings: [...warnings, ...portfolio.warnings],

@@ -39,11 +39,39 @@ import {
   normalizeDatasetQualityAssessmentRecordV1,
   normalizeDatasetQualityPolicyV1,
 } from '../contracts/datasetQualityAssessmentV1.mjs';
+import {
+  DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION,
+  INSTRUMENT_ALIAS_BINDING_CORE_SCHEMA_VERSION,
+  INSTRUMENT_ALIAS_REVOCATION_CORE_SCHEMA_VERSION,
+  INSTRUMENT_DESCRIPTOR_CORE_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_AUTHORITY_POLICY_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_CORE_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_MANIFEST_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_RECORD_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  PROVIDER_INSTRUMENT_BINDING_CORE_SCHEMA_VERSION,
+  PROVIDER_INSTRUMENT_REVOCATION_CORE_SCHEMA_VERSION,
+  SYMBOL_NAMESPACE_POLICY_SCHEMA_VERSION,
+  normalizeDatasetSnapshotInstrumentBindingV1,
+  normalizeInstrumentAliasBindingCoreV1,
+  normalizeInstrumentAliasRevocationCoreV1,
+  normalizeInstrumentDescriptorCoreV1,
+  normalizeInstrumentIdentityAuthorityPolicyV1,
+  normalizeInstrumentIdentityCoreV1,
+  normalizeInstrumentIdentityManifestV1,
+  normalizeInstrumentIdentityRecordV1,
+  normalizeInstrumentIdentityRegistryManifestV1,
+  normalizeProviderInstrumentBindingCoreV1,
+  normalizeProviderInstrumentRevocationCoreV1,
+  normalizeSymbolNamespacePolicyV1,
+} from '../contracts/instrumentIdentityV1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
  * legacy DatasetManifestV1 canonical copy is historical evidence only; the
  * snapshot identity remains founded on the L1 core and CAS objects.
+ * L2B instrument-identity schemas are additive registrations in the same
+ * namespace (no new CAS path layout; no change to L1/L2A contract bytes).
  */
 export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   DATASET_SNAPSHOT_CORE_SCHEMA_VERSION,
@@ -57,6 +85,18 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   DATASET_QUALITY_POLICY_SCHEMA_VERSION,
   DATASET_QUALITY_ASSESSMENT_CORE_SCHEMA_VERSION,
   DATASET_QUALITY_ASSESSMENT_RECORD_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_AUTHORITY_POLICY_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_CORE_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_RECORD_SCHEMA_VERSION,
+  INSTRUMENT_DESCRIPTOR_CORE_SCHEMA_VERSION,
+  SYMBOL_NAMESPACE_POLICY_SCHEMA_VERSION,
+  INSTRUMENT_ALIAS_BINDING_CORE_SCHEMA_VERSION,
+  PROVIDER_INSTRUMENT_BINDING_CORE_SCHEMA_VERSION,
+  INSTRUMENT_ALIAS_REVOCATION_CORE_SCHEMA_VERSION,
+  PROVIDER_INSTRUMENT_REVOCATION_CORE_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_MANIFEST_SCHEMA_VERSION,
+  INSTRUMENT_IDENTITY_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -86,6 +126,30 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeDatasetQualityAssessmentCoreV1(value);
     case DATASET_QUALITY_ASSESSMENT_RECORD_SCHEMA_VERSION:
       return normalizeDatasetQualityAssessmentRecordV1(value);
+    case INSTRUMENT_IDENTITY_AUTHORITY_POLICY_SCHEMA_VERSION:
+      return normalizeInstrumentIdentityAuthorityPolicyV1(value);
+    case INSTRUMENT_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeInstrumentIdentityCoreV1(value);
+    case INSTRUMENT_IDENTITY_RECORD_SCHEMA_VERSION:
+      return normalizeInstrumentIdentityRecordV1(value);
+    case INSTRUMENT_DESCRIPTOR_CORE_SCHEMA_VERSION:
+      return normalizeInstrumentDescriptorCoreV1(value);
+    case SYMBOL_NAMESPACE_POLICY_SCHEMA_VERSION:
+      return normalizeSymbolNamespacePolicyV1(value);
+    case INSTRUMENT_ALIAS_BINDING_CORE_SCHEMA_VERSION:
+      return normalizeInstrumentAliasBindingCoreV1(value);
+    case PROVIDER_INSTRUMENT_BINDING_CORE_SCHEMA_VERSION:
+      return normalizeProviderInstrumentBindingCoreV1(value);
+    case INSTRUMENT_ALIAS_REVOCATION_CORE_SCHEMA_VERSION:
+      return normalizeInstrumentAliasRevocationCoreV1(value);
+    case PROVIDER_INSTRUMENT_REVOCATION_CORE_SCHEMA_VERSION:
+      return normalizeProviderInstrumentRevocationCoreV1(value);
+    case INSTRUMENT_IDENTITY_MANIFEST_SCHEMA_VERSION:
+      return normalizeInstrumentIdentityManifestV1(value);
+    case INSTRUMENT_IDENTITY_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      return normalizeInstrumentIdentityRegistryManifestV1(value);
+    case DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION:
+      return normalizeDatasetSnapshotInstrumentBindingV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

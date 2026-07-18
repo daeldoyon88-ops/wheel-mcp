@@ -270,6 +270,116 @@ hash et vérifiable individuellement. Règles L1/L2A :
 Le test `l2a-integration.test.mjs` simule un échec d'écriture juste avant
 la publication du manifest et vérifie ces garanties.
 
+## L2B — identité permanente des instruments (fixtures uniquement)
+
+L2B résout un problème distinct de L1/L2A : **un ticker n’est pas une
+identité**. Un symbole peut changer, être réutilisé après radiation, différer
+selon le fournisseur, ou coexister sur plusieurs marchés. L2B n’importe aucune
+donnée réelle et n’appelle ni Yahoo ni IBKR. Aucun réseau.
+
+### Authority policy et graine opaque
+
+`InstrumentIdentityAuthorityPolicy/1` fixe le format de graine. La politique
+initiale exige `identitySeedFormat = HEX_LOWERCASE` et
+`identitySeedLength = 64` (256 bits en hex minuscule). Le builder **ne génère
+jamais** de graine : l’appelant fournit un token conforme.
+
+Le système garantit le **format opaque**, pas l’intention humaine. Un ticker
+comme `APLD` est refusé parce qu’il viole la policy, pas parce qu’il serait
+« mathématiquement impossible » en dehors de cette policy. Même policy + même
+seed + même `instrumentKind` → même `instrumentIdentityId`.
+
+### Ticker vs identité
+
+| Concept | Rôle |
+|---------|------|
+| `authorityPolicyId` | Policy CAS qui contraint le format de seed |
+| `instrumentIdentityId` | Identité opaque permanente (= object ID du `InstrumentIdentityCore/1`) |
+| `identitySeed` | Token opaque hex 64 fourni explicitement — jamais un ticker libre |
+| Alias (`InstrumentAliasBindingCore/1`) | Symbole historique dans un namespace versionné, `[from, toExclusive)` |
+| Révocation explicite | Coupe la période active ; le binding original reste intact |
+| Provider binding | Identifiant stable propre au fournisseur (pas un ticker) |
+| Descriptor | Noms / devise / statut ; `instrumentKind` doit matcher l’identity core |
+| Registry global | Ensemble autoritatif de manifests + snapshot bindings |
+
+### Chaîne d’objets (registre global)
+
+```text
+InstrumentIdentityAuthorityPolicy/1
+  → InstrumentIdentityCore/1
+  → InstrumentIdentityRecord/1
+  → InstrumentDescriptorCore/1
+  → SymbolNamespacePolicy/1          (namespaceId + namespaceVersion explicite)
+  → InstrumentAliasBindingCore/1
+  → ProviderInstrumentBindingCore/1
+  → InstrumentAliasRevocationCore/1 / ProviderInstrumentRevocationCore/1
+  → InstrumentIdentityManifest/1     (append-only récursif via supersedes)
+  → DatasetSnapshotInstrumentBinding/1
+  → InstrumentIdentityRegistryManifest/1   (registre global append-only)
+```
+
+Tous ces schémas sont enregistrés de façon **additive** dans le namespace CAS
+`snapshots`. Les contrats L1/L2A publiés ne sont pas modifiés.
+
+Les `evidenceObjectIds` génériques sont **retirés** de L2B : aucun contrat de
+preuve vérifiable n’existe encore ; des hashes non relus ne sont pas acceptés.
+
+### Registre global et résolution officielle
+
+Le resolver officiel accepte **uniquement** :
+
+```text
+resolveInstrumentIdentityAsOf({ store, registryManifestId, namespacePolicyId,
+  providerId, venueId, symbol, currency, asOfDate })
+```
+
+Il refuse `identityManifestId`, `identityManifestIds`, `manifests` et
+`aliases`. Omettre un manifest concurrent est donc impossible : le registre
+est reluj et vérifié en entier (chaîne `supersedes` incluse). Les manifests
+historiques restent listés (append-only) ; résolution et unicité utilisent
+les manifests tip.
+
+Unicité globale vérifiée à la construction du registre :
+
+- aliases actifs (même namespace/provider/venue/lookup/currency + chevauchement)
+  → `INSTRUMENT_ALIAS_AMBIGUOUS` ;
+- provider IDs (même provider + providerInstrumentId + chevauchement, identités
+  distinctes) → `PROVIDER_INSTRUMENT_BINDING_AMBIGUOUS` ;
+- un `snapshotCoreId` → au plus une identité (doublons sémantiquement
+  identiques tolérés) → sinon `SNAPSHOT_INSTRUMENT_BINDING_CONFLICT`.
+
+Résultats as-of : `RESOLVED`, `INSTRUMENT_ALIAS_NOT_FOUND`,
+`INSTRUMENT_ALIAS_AMBIGUOUS`, `INSTRUMENT_ALIAS_REVOKED`,
+`SYMBOL_NAMESPACE_MISMATCH`.
+
+### Append-only
+
+Si `M2.supersedesManifestId = M1`, tous les sets d’IDs de M1 sont inclus dans
+M2 (records, descriptors, aliases, providers, révocations). Même règle pour
+les registres : `identityManifestIds` et `snapshotInstrumentBindingIds` du
+précédent sont conservés. La chaîne entière est reparcourue ; une dépendance
+ancienne manquante ou corrompue bloque la tip.
+
+### Révocations
+
+Plus de pseudo-révocation via `bindingStatus = REVOKED`. Une révocation
+référence explicitement le binding révoqué, la même identité, une
+`effectiveFrom ≥ validFrom`, et un `reasonCode` fermé. Le binding actif ne
+gagne jamais contre sa révocation à/après la date effective.
+
+### Séparation L2B / L2C
+
+L2B ne modélise **pas** les corporate actions (splits, dividendes, fusions).
+Ces événements appartiennent au ledger L2C.
+
+### Tests
+
+La suite `test/instrument-identity-l2b.test.mjs` couvre authority/seed,
+registre global, unicité aliases/providers/snapshots, append-only, chaînes
+historiques, révocations, namespace versionné, cohérence descriptor, entrées
+invalides, récupération ID-only et un E2E synthétique. Aucun réseau, aucune
+donnée réelle.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

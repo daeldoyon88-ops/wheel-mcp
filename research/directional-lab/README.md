@@ -1113,6 +1113,87 @@ Les suites `test/market-data-l3-i6.test.mjs` et
 fixtures synthétiques. Le harness adversatif (60 contre-tests) vit
 exclusivement sous `os.tmpdir()`.
 
+## L4A-A — features techniques point-in-time
+
+L4A-A est un pipeline de recherche hors ligne qui consomme exclusivement des
+bindings officiels L3-I6. Il relit leur snapshot L1
+`MarketDataEodOhlcvCanonicalRows/1`, vérifie toute la fermeture I6/I5/I4/L1/L2A,
+puis calcule quatre familles isolées :
+
+- A1 : rendements simples 1/3/5/10/20/60 et drawdowns causalement bornés ;
+- A2 : true range, ATR14 Wilder, ranges/gaps et volatilités réalisées ;
+- A3 : RSI14, MACD 12/26/9, stochastique, Stoch RSI, CCI20 et ROC ;
+- A4 : SMA/EMA, distances, pentes, états de tendance, ADX14 et force relative.
+
+Trois contrats portent le total canonique de 77 à 80 :
+
+```text
+MarketTechnicalFeatureSourceBundle/1
+MarketTechnicalFeatureComputationPolicy/1
+MarketTechnicalFeatureComputationReport/1
+```
+
+`MarketTechnicalFeatureRows/1` est un contenu fermé du namespace
+`normalized`; comme le contenu OHLCV I5, il ne compte pas parmi les 80 schémas
+de métadonnées `snapshots`.
+
+### Politique numérique et seeds
+
+Le chemin autoritaire utilise uniquement des atomes `BigInt`, une échelle de
+calcul 24, des sorties prix/ratios à l'échelle 12 et l'arrondi `HALF_EVEN`.
+Les résultats ne dépendent ni de `parseFloat`, ni de `Number(atome)`, ni de
+`Math.sqrt`, ni d'une arithmétique flottante native. La racine carrée est
+entière et déterministe.
+
+- ATR14 : moyenne des 14 premiers TR, puis Wilder ; le premier TR vaut
+  `high - low`.
+- RSI14 : moyenne des 14 premières variations, puis Wilder ; plat = 50,
+  gains seuls = 100, pertes seules = 0.
+- EMA : SMA complète de période `n`, puis alpha exact `2/(n+1)` ; le signal
+  MACD attend neuf lignes MACD admissibles.
+- Stoch RSI : raw sur 14 RSI, puis SMA3 de raw pour K, puis SMA3 de K pour D.
+- ADX14 : 14 variations TR/+DM/-DM pour le premier DI/DX, puis moyenne des
+  14 premiers DX pour le seed ADX.
+- Les pics égaux de drawdown choisissent la session la plus récente.
+
+Une feature absente est toujours `null` avec une raison fermée : jamais un
+zéro de remplacement. Les débuts de série sont conservés, y compris avant
+SMA200/EMA200. Les volatilités utilisent l'écart-type échantillonnal des
+rendements simples observés et l'annualisation déterministe `sqrt(252)`.
+
+### Benchmarks et absence de lookahead
+
+Les rôles fermés sont `MARKET`, `SECTOR` et `UNDERLYING`, au plus un binding
+par rôle. Un benchmark configuré doit partager cutoff, fréquence EOD,
+calendrier compatible, devise, price basis et traitement corporate action.
+L'alignement est exclusivement la `sessionDate` exacte : aucun forward-fill,
+backward-fill, voisin le plus proche, téléchargement ou interpolation. Une
+session absente produit `BENCHMARK_SESSION_MISSING`.
+
+Chaque ligne à la session `t` ne lit que des sessions `<= t`. Un append futur
+ne modifie donc aucun byte historique. Un registre de bindings descendant qui
+n'ajoute rien au binding source est réduit à son premier pin autoritaire et ne
+contamine ni le source bundle, ni les rows, ni le rapport.
+
+### API et portée
+
+```js
+buildMarketTechnicalFeatureSourceBundle({ store, subject, benchmarks })
+buildMarketTechnicalFeatureComputationPolicy({ store })
+computeMarketTechnicalFeatures({
+  store, technicalFeatureSourceBundleId, technicalFeatureComputationPolicyId,
+})
+verifyMarketTechnicalFeatureComputation({
+  store, technicalFeatureComputationReportId,
+})
+```
+
+Le verifier relit les bindings et snapshots, recalcule A1–A4, compare toutes
+les lignes puis le rapport complet; un digest seul ne suffit pas. L4A-A ne
+transforme pas les prix, n'entraîne aucun modèle, ne produit ni score ni
+recommandation, et n'est importé ni par le scanner, ni par `server.js`, ni par
+le dashboard. L4A-B et L4A-C ne sont pas implémentés.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

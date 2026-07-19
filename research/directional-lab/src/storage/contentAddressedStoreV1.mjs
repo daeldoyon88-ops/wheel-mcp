@@ -26,6 +26,7 @@ import { SHA256_OBJECT_ID_PATTERN } from '../contracts/datasetSnapshotV1.mjs';
 const NORMALIZED_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   CANONICAL_DAILY_BARS_SCHEMA_VERSION,
   'MarketDataEodOhlcvCanonicalRows/1',
+  'MarketTechnicalFeatureRows/1',
 ]);
 
 export class ContentAddressedStoreError extends Error {
@@ -335,7 +336,7 @@ export function createContentAddressedStore(options) {
           && !NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.includes(input.schemaVersion)) {
         throw new ContentAddressedStoreError(
           'CAS_PATH_ESCAPE',
-          'normalized namespace only accepts CanonicalDailyBars/1 or MarketDataEodOhlcvCanonicalRows/1',
+          'normalized namespace only accepts registered closed normalized content schemas',
         );
       }
       if (input.namespace === 'snapshots' && !SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes(input.schemaVersion)) {

@@ -159,6 +159,17 @@ import {
   normalizeMarketDataDatasetSnapshotBindingRegistryManifestV1,
   normalizeMarketDataDatasetSnapshotBindingV1,
 } from '../contracts/marketDataDatasetSnapshotBindingL3V1.mjs';
+import {
+  MARKET_TECHNICAL_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_TECHNICAL_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+  MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS,
+  MARKET_TECHNICAL_FEATURE_ROWS_SCHEMA_VERSION,
+  MARKET_TECHNICAL_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
+  normalizeMarketTechnicalFeatureComputationPolicyV1,
+  normalizeMarketTechnicalFeatureComputationReportV1,
+  normalizeMarketTechnicalFeatureRowsV1,
+  normalizeMarketTechnicalFeatureSourceBundleV1,
+} from '../contracts/marketTechnicalFeatureComputationL4V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -202,6 +213,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_DATA_RESOLVED_SERIES_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_SNAPSHOT_MATERIALIZATION_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_DATASET_SNAPSHOT_BINDING_L3_SCHEMA_VERSIONS,
+  ...MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -361,10 +373,20 @@ export function normalizeCanonicalValue(schemaVersion, value) {
         throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
       }
       return normalizeMarketDataDatasetSnapshotBindingRegistryManifestV1(value);
+    case MARKET_TECHNICAL_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION:
+      return normalizeMarketTechnicalFeatureSourceBundleV1(value);
+    case MARKET_TECHNICAL_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION:
+      return normalizeMarketTechnicalFeatureComputationPolicyV1(value);
+    case MARKET_TECHNICAL_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION:
+      return normalizeMarketTechnicalFeatureComputationReportV1(value);
     case MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_SCHEMA_VERSION:
       // Normalized-namespace content schema (like CanonicalDailyBars/1): not
       // counted in SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.
       return normalizeMarketDataEodOhlcvCanonicalRowsV1(value);
+    case MARKET_TECHNICAL_FEATURE_ROWS_SCHEMA_VERSION:
+      // Normalized-namespace content; intentionally excluded from the
+      // snapshots schema count, exactly like L3-I5 canonical OHLCV rows.
+      return normalizeMarketTechnicalFeatureRowsV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

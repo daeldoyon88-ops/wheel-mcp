@@ -665,6 +665,68 @@ Les suites permanentes `test/market-data-l3-i2.test.mjs` et
 fixtures synthétiques. Le second test génère son harness de contre-tests sous
 `os.tmpdir()`; aucun harness temporaire n'est écrit dans le dépôt.
 
+## L3-I3 — manifeste d'ingestion et registre autoritaire
+
+L3-I3 ajoute exactement deux schémas CAS et l'orchestration déterministe
+`runIngestion`. Les objets I2 peuvent exister physiquement dans le CAS sans
+être autoritaires : seule une entrée dans un
+`MarketDataIngestionRegistryManifest/1` explicitement piné constitue la
+frontière d'autorité.
+
+```text
+MarketDataIngestionManifest/1
+MarketDataIngestionRegistryManifest/1
+```
+
+Le manifeste d'ingestion est strictement delta-only. Il ferme la lignée, la
+policy, les registres L2B/L2C/calendrier pinés, l'artifact/attestation/
+acquisition, le ParseResult, le CandidateSet, le ValidationReport, le
+publication manifest I2 et le delta assembly. Les tableaux
+`newBarObservationIds` / `newBarCorrectionIds` sont triés, uniques, et égaux
+exactement aux unions du publication manifest et de l'assembly. Un parent
+historique référencé par une correction n'est jamais ajouté comme nouvel
+objet du delta.
+
+`priceBasis` et `corporateActionTreatment` sont dérivés (jamais acceptés comme
+vérité libre) :
+
+```text
+RAW ↔ RAW_SOURCE_UNTRANSFORMED
+SPLIT_ADJUSTED ↔ PROVIDER_SPLIT_ADJUSTED_UNTRANSFORMED
+```
+
+`temporalCapability` est le minimum des modes de connaissance des objets
+contributifs de cette ingestion :
+
+```text
+CAPTURE_TIME_ONLY → RETROSPECTIVE_CAPTURE_ONLY
+PROVIDER_PUBLICATION_TIME_ATTESTED → POINT_IN_TIME_PUBLICATION_ATTESTED
+PROVIDER_REVISION_HISTORY_ATTESTED → POINT_IN_TIME_REVISION_HISTORY_ATTESTED
+```
+
+Le registre est append-only, racine vide autorisée, tips par lignée, aucun
+« latest » global, aucune recherche globale de tip. L'API fermée
+`appendMarketDataIngestionRegistry` exige le registre de base piné, le parent
+attendu (y compris `null` pour une première tip) et un seul
+`ingestionManifestId`.
+
+`runIngestion` orchestre parse → normalisation atoms-table fermée →
+`validateMarketDataCandidateSet` → `publishValidatedMarketDataDelta` (publisher
+I2 durci obligatoire) → manifeste d'ingestion → append du registre. Zéro
+accepted non fatal → `NO_AUTHORITATIVE_DELTA` sans nouveau manifeste ni
+registre. Fatals → `MARKET_DATA_VALIDATION_FAILED`, jamais convertis en no-op.
+Aucun snapshot officiel n'est produit en I3.
+
+La normalisation économique V1 n'accepte que la table atoms fermée dont les
+noms de colonnes sont des champs de contrats existants (replacementValues,
+pins CandidateSet, `sessionDate`, `knowledgeMode`, plus les champs temporels
+déclarés par la policy). Aucun mapping de colonnes fournisseur n'est inventé.
+
+Les suites `test/market-data-l3-i3.test.mjs` et
+`test/market-data-l3-i3-adversarial.test.mjs` utilisent uniquement des
+fixtures synthétiques. Le harness adversatif vit exclusivement sous
+`os.tmpdir()`.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

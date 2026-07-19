@@ -127,6 +127,13 @@ import {
   normalizeNormalizedMarketDataDeltaAssemblyManifestV1,
   normalizeNormalizedMarketDataDeltaChunkV1,
 } from '../contracts/marketDataDeltaL3V1.mjs';
+import {
+  MARKET_DATA_INGESTION_MANIFEST_SCHEMA_VERSION,
+  MARKET_DATA_INGESTION_REGISTRY_L3_SCHEMA_VERSIONS,
+  MARKET_DATA_INGESTION_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  normalizeMarketDataIngestionManifestV1,
+  normalizeMarketDataIngestionRegistryManifestV1,
+} from '../contracts/marketDataIngestionRegistryL3V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -166,6 +173,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_DATA_CANDIDATE_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_BAR_REVISION_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_DELTA_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_INGESTION_REGISTRY_L3_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -269,6 +277,20 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeNormalizedMarketDataDeltaChunkV1(value);
     case NORMALIZED_MARKET_DATA_DELTA_ASSEMBLY_MANIFEST_SCHEMA_VERSION:
       return normalizeNormalizedMarketDataDeltaAssemblyManifestV1(value);
+    case MARKET_DATA_INGESTION_MANIFEST_SCHEMA_VERSION:
+      // Preserve the L3-I2 negative dispatch probe for unbound values while
+      // accepting properly bound L3-I3 ingestion manifests.
+      if (!value || typeof value !== 'object'
+          || /** @type {any} */ (value).schemaVersion !== MARKET_DATA_INGESTION_MANIFEST_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataIngestionManifestV1(value);
+    case MARKET_DATA_INGESTION_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      if (!value || typeof value !== 'object'
+          || /** @type {any} */ (value).schemaVersion !== MARKET_DATA_INGESTION_REGISTRY_MANIFEST_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataIngestionRegistryManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

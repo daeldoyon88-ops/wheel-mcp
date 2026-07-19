@@ -65,6 +65,10 @@ import {
   normalizeProviderInstrumentRevocationCoreV1,
   normalizeSymbolNamespacePolicyV1,
 } from '../contracts/instrumentIdentityV1.mjs';
+import {
+  CORPORATE_ACTION_SCHEMA_VERSIONS,
+  normalizeCorporateActionCanonicalValue,
+} from '../contracts/corporateActionL2CV1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -97,10 +101,14 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   INSTRUMENT_IDENTITY_MANIFEST_SCHEMA_VERSION,
   INSTRUMENT_IDENTITY_REGISTRY_MANIFEST_SCHEMA_VERSION,
   DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION,
+  ...CORPORATE_ACTION_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
 export function normalizeCanonicalValue(schemaVersion, value) {
+  if (CORPORATE_ACTION_SCHEMA_VERSIONS.includes(schemaVersion)) {
+    return normalizeCorporateActionCanonicalValue(schemaVersion, value);
+  }
   switch (schemaVersion) {
     case CANONICAL_DAILY_BARS_SCHEMA_VERSION:
       return normalizeCanonicalDailyBarsV1(value);

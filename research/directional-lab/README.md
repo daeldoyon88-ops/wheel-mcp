@@ -380,6 +380,95 @@ historiques, révocations, namespace versionné, cohérence descriptor, entrées
 invalides, récupération ID-only et un E2E synthétique. Aucun réseau, aucune
 donnée réelle.
 
+## L2C — registre bitemporel des corporate actions
+
+L2C complète les couches sans les redéfinir : L1 conserve les snapshots
+immuables, L2A leurs preuves et évaluations, L2B l'identité permanente des
+instruments, et L2C l'identité permanente B2 des événements, leurs claims et
+leur résolution temporelle. Les fixtures L2C sont exclusivement synthétiques;
+aucun réseau, fournisseur réel ou code de production n'est utilisé.
+
+L'identité `CorporateActionIdentityCore/1` contient seulement une policy
+d'autorité et un seed hexadécimal fourni par l'appelant. Ticker, instrument,
+provider, date, ratio et horloge n'entrent jamais dans cette identité. Les
+instruments concernés sont des `CorporateActionParticipantCore/1` séparés :
+un événement multi-instruments (fusion, spin-off, conversion) doit donc être
+indexé par chaque ledger instrument participant.
+
+Le DAG CAS autorisé est :
+
+```text
+InstrumentIdentityRegistryManifest (L2B, piné)
+Policies / TimeZoneRuleset
+  -> CorporateActionIdentityCore
+  -> SourcePayload -> SourceAttestation -> Observation -> ObservationRecord
+  -> ProviderBinding / Participant / Revision / Adjudication
+  -> CorporateActionEventManifest
+  -> InstrumentCorporateActionLedgerManifest
+  -> CorporateActionRegistryManifest
+  -> PriceAdjustmentPlan / EntitlementPlan
+  -> CorporateActionPlanManifest
+  -> DatasetSnapshotCorporateActionBinding
+  -> DatasetSnapshotCorporateActionBindingAuthorityPolicy
+  -> DatasetSnapshotCorporateActionBindingRegistryManifest
+```
+
+`CorporateActionRegistryManifest/1` pinne obligatoirement un
+`InstrumentIdentityRegistryManifest/1` L2B. L'existence physique d'un core L2B
+dans le CAS ne suffit pas : chaque `instrumentIdentityId` participant doit
+appartenir à l'ensemble autoritaire reconstruit depuis ce registre piné.
+Le graphe reste acyclique (L2B ne référence jamais L2C).
+
+Le registry corporate-action est autoritaire et ne référence jamais un plan ou
+un binding snapshot. Events, ledgers, registry, plan manifests et binding
+registries sont append-only; chaque vérification reparcourt les ancêtres et
+relit les dépendances CAS. La récupération depuis le seul ID du registry L2C
+couvre le registre L2B piné, les manifests/cores d'identité, ledgers, events,
+observations, records, provenance, bindings provider, participants, révisions,
+adjudications, policies et rulesets atteignables.
+
+Pour un `bindingRegistryManifestId` autoritaire explicitement piné, un
+`snapshotCoreId` possède au plus un binding cohérent. La vérification
+structurelle individuelle d'un binding ne prouve pas l'unicité globale parmi
+toutes les racines CAS possibles.
+
+La bitemporalité sépare date économique et temps de connaissance. L'API
+officielle exige `registryManifestId` et `knowledgeCutoff`; une information est
+visible seulement si `knowledgeTimeUpperBound <= knowledgeCutoff`. Il n'existe
+aucun « latest » implicite. En précision `DATE_ONLY`, les bornes UTC sont
+relues dans une table `TimeZoneRuleset/1` stockée en CAS : ni ICU, ni `Intl`, ni
+timezone locale ne recalculent ces bornes.
+
+La provenance embedded conserve réellement le JSON canonique ou le texte UTF-8
+(maximum 1 048 576 octets) avec digest et longueur recalculés. Le mode
+digest-only est une attestation, jamais une promesse de récupération du
+document. L2C refuse les secrets et localisateurs sensibles détectables dans
+ses champs structurés et applique un filtrage best-effort au contenu
+embedded. Le système ne peut pas prouver qu'un payload arbitraire ne
+contient aucune information sensible. L'appelant doit fournir un
+payload synthétique, public ou préalablement expurgé.
+
+Une observation reste immuable même si elle est erronée; les corrections sont
+de nouvelles révisions (`revisionReasonCode` fermé) et les décisions sont des
+adjudications append-only (`decisionReasonCodes`) qui doivent considérer
+toutes les observations visibles. Un changement de `eventKind` exige une
+reclassification explicite adjudiquée; il n'y a pas de mutation silencieuse.
+
+Les plans de prix sont distincts des entitlements. `RAW` ne transforme pas les
+OHLCV; `SPLIT_ADJUSTED` produit des facteurs rationnels exacts pour split,
+reverse split et stock dividend; `PROVIDER_ADJUSTED` exige une déclaration
+fermée empêchant l'ambiguïté de double ajustement. Le producteur total-return
+est hors V1. Dividendes cash et ajustements de quantité restent dans le plan
+d'entitlements et ne modifient jamais une série RAW. Fusions, spin-offs,
+conversions, liquidations et règles économiques incomplètes échouent de façon
+fermée plutôt que d'être ajustés arbitrairement.
+
+Les suites permanentes `test/corporate-action-l2c.test.mjs` et
+`test/corporate-action-l2c-r1.test.mjs` couvrent identité B2, pin L2B
+autoritaire, rulesets, provenance best-effort, anti-fuite 2:1/3:1, append-only,
+récupération ID-only, plans séparés, binding registry autoritaire,
+reclassification explicite, cardinalité des rôles et entrées publiques invalides.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

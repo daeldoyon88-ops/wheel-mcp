@@ -102,6 +102,31 @@ import {
   MARKET_DATA_BAR_IDENTITY_L3_SCHEMA_VERSIONS,
   normalizeMarketDataBarIdentityCoreV1,
 } from '../contracts/marketDataBarIdentityL3V1.mjs';
+import {
+  MARKET_DATA_CANDIDATE_L3_SCHEMA_VERSIONS,
+  MARKET_DATA_CANDIDATE_SET_CORE_SCHEMA_VERSION,
+  MARKET_DATA_NORMALIZED_CANDIDATE_SCHEMA_VERSION,
+  MARKET_DATA_VALIDATION_REPORT_SCHEMA_VERSION,
+  normalizeMarketDataCandidateSetCoreV1,
+  normalizeMarketDataNormalizedCandidateV1,
+  normalizeMarketDataValidationReportV1,
+} from '../contracts/marketDataCandidateL3V1.mjs';
+import {
+  MARKET_DATA_ACCEPTED_CANDIDATE_PUBLICATION_MANIFEST_SCHEMA_VERSION,
+  MARKET_DATA_BAR_CORRECTION_CORE_SCHEMA_VERSION,
+  MARKET_DATA_BAR_OBSERVATION_CORE_SCHEMA_VERSION,
+  MARKET_DATA_BAR_REVISION_L3_SCHEMA_VERSIONS,
+  normalizeMarketDataAcceptedCandidatePublicationManifestV1,
+  normalizeMarketDataBarCorrectionCoreV1,
+  normalizeMarketDataBarObservationCoreV1,
+} from '../contracts/marketDataBarRevisionL3V1.mjs';
+import {
+  MARKET_DATA_DELTA_L3_SCHEMA_VERSIONS,
+  NORMALIZED_MARKET_DATA_DELTA_ASSEMBLY_MANIFEST_SCHEMA_VERSION,
+  NORMALIZED_MARKET_DATA_DELTA_CHUNK_SCHEMA_VERSION,
+  normalizeNormalizedMarketDataDeltaAssemblyManifestV1,
+  normalizeNormalizedMarketDataDeltaChunkV1,
+} from '../contracts/marketDataDeltaL3V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -138,6 +163,9 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_CALENDAR_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_SOURCE_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_BAR_IDENTITY_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_CANDIDATE_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_BAR_REVISION_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_DELTA_L3_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -218,6 +246,29 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMarketDataSourceTemporalEvidenceCoreV1(value);
     case MARKET_DATA_BAR_IDENTITY_CORE_SCHEMA_VERSION:
       return normalizeMarketDataBarIdentityCoreV1(value);
+    case MARKET_DATA_NORMALIZED_CANDIDATE_SCHEMA_VERSION:
+      // Preserve the L3-I1 negative dispatch probe: a schema name supplied
+      // with no self-bound schemaVersion is still an unknown canonical value,
+      // while every properly bound L3-I2 candidate dispatches below.
+      if (!value || typeof value !== 'object'
+          || value.schemaVersion !== MARKET_DATA_NORMALIZED_CANDIDATE_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataNormalizedCandidateV1(value);
+    case MARKET_DATA_CANDIDATE_SET_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataCandidateSetCoreV1(value);
+    case MARKET_DATA_VALIDATION_REPORT_SCHEMA_VERSION:
+      return normalizeMarketDataValidationReportV1(value);
+    case MARKET_DATA_BAR_OBSERVATION_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataBarObservationCoreV1(value);
+    case MARKET_DATA_BAR_CORRECTION_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataBarCorrectionCoreV1(value);
+    case MARKET_DATA_ACCEPTED_CANDIDATE_PUBLICATION_MANIFEST_SCHEMA_VERSION:
+      return normalizeMarketDataAcceptedCandidatePublicationManifestV1(value);
+    case NORMALIZED_MARKET_DATA_DELTA_CHUNK_SCHEMA_VERSION:
+      return normalizeNormalizedMarketDataDeltaChunkV1(value);
+    case NORMALIZED_MARKET_DATA_DELTA_ASSEMBLY_MANIFEST_SCHEMA_VERSION:
+      return normalizeNormalizedMarketDataDeltaAssemblyManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

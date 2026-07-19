@@ -580,6 +580,75 @@ Les suites synthétiques permanentes sont
 `test/market-data-l3-i1-adversarial.test.mjs`. Elles n'utilisent ni réseau,
 ni Yahoo, ni IBKR, ni données réelles.
 
+## L3-I2 — candidats normalisés et delta de révisions
+
+L3-I2 ajoute exactement huit schémas CAS, sans implémenter un ingestion
+manifest, un registre d'ingestion final, un resolver as-of ou un snapshot :
+
+```text
+MarketDataNormalizedCandidate/1
+MarketDataCandidateSetCore/1
+MarketDataValidationReport/1
+MarketDataBarObservationCore/1
+MarketDataBarCorrectionCore/1
+MarketDataAcceptedCandidatePublicationManifest/1
+NormalizedMarketDataDeltaChunk/1
+NormalizedMarketDataDeltaAssemblyManifest/1
+```
+
+`MarketDataNormalizedCandidate/1` est une union fermée discriminée par
+`candidateKind`. Les cinq variantes sont `BAR_INITIAL_VALUE`,
+`BAR_VALUE_REVISION`, `BAR_WITHDRAWAL`, `BAR_RESTORATION` et
+`SESSION_DATE_CORRECTION`. Un champ appartenant à une autre variante est
+refusé. Les valeurs OHLCV sont des chaînes d'atoms décimaux avec scales
+entières de 0 à 18; aucun float ne porte l'autorité. Le volume reste nullable
+avec l'équivalence stricte `volumeAtoms = null` si et seulement si
+`volumeScale = null`. Les bases V1 restent `RAW` et `SPLIT_ADJUSTED`.
+
+Les trois modes temporels I1 sont projetés sans contamination :
+
+- `CAPTURE_TIME_ONLY` conserve lower à `null`, upper à l'acquisition et
+  evidence/revision à `null`, même si la policy expose des champs provider;
+- `PROVIDER_PUBLICATION_TIME_ATTESTED` exige une preuve de publication et des
+  bornes égales à son timestamp;
+- `PROVIDER_REVISION_HISTORY_ATTESTED` exige la même égalité et le même
+  `providerRevisionId` que la preuve de révision.
+
+Le CandidateSet ne contient aucune disposition. Il ferme une acquisition, un
+ParseResult, une policy, une lignée et les registres L2B/L2C/calendrier
+explicitement pinnés. Le validator reçoit une vue de base explicite : IDs de
+corrections visibles et terminales, identités occupées/publiées et pins du
+registre d'ingestion synthétique. Il n'existe aucun « current tip » implicite.
+Le ValidationReport partitionne exactement le CandidateSet en `ACCEPTED`,
+`REJECTED`, `QUARANTINED`, `DUPLICATE` ou `CONFLICTING`; ses reason codes,
+fatal errors et warnings sont fermés, triés et uniques.
+
+Une observation est la projection immuable et sans perte d'un candidat
+accepté. Une correction est l'un des six nœuds fermés `INITIAL_ROOT`,
+`VALUE_REVISION`, `WITHDRAWAL`, `RESTORATION`,
+`SESSION_DATE_WITHDRAWAL` ou `SESSION_DATE_REPLACEMENT`. Une correction de
+date est une paire explicite : retrait de l'ancienne identité puis racine de
+remplacement liée au retrait. Parent absent, invisible, étranger, stale,
+branche concurrente et destination occupée échouent avec des codes distincts.
+
+L'ordre d'autorité est : CandidateSet, ValidationReport, objets acceptés,
+publication manifest, delta chunks, delta assembly. Les objets physiques CAS
+ne deviennent pas autoritaires hors du publication manifest. L'assembly est
+strictement delta-only : son union d'observations/corrections égale à la fois
+l'union des chunks et le publication manifest; aucun historique antérieur ni
+objet rejeté n'est admis. La taille maximale V1 est
+`MAX_NORMALIZED_MARKET_DATA_DELTA_CHUNK_SIZE_V1 = 100` objets par chunk. Les
+plages sont civiles, demi-ouvertes et exactes.
+
+Si aucun candidat n'est accepté, le publisher ne crée aucun publication
+manifest, chunk ou assembly et retourne `NO_AUTHORITATIVE_DELTA` avec deux IDs
+à `null`. Une erreur fatale retourne `MARKET_DATA_VALIDATION_FAILED`.
+
+Les suites permanentes `test/market-data-l3-i2.test.mjs` et
+`test/market-data-l3-i2-adversarial.test.mjs` utilisent uniquement des
+fixtures synthétiques. Le second test génère son harness de contre-tests sous
+`os.tmpdir()`; aucun harness temporaire n'est écrit dans le dépôt.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

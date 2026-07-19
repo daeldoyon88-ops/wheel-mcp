@@ -471,10 +471,10 @@ function manifestTemplate(graph, registryId, published, overrides = {}) {
   };
 }
 
-test('L3-I3 registers exactly two additive schemas (74 total after additive L3-I5)', () => {
+test('L3-I3 registers exactly two additive schemas (77 total after additive L3-I6)', () => {
   assert.deepEqual(MARKET_DATA_INGESTION_REGISTRY_L3_SCHEMA_VERSIONS, I3_SCHEMAS);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 74);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 74);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 77);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 77);
   assert.deepEqual(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.filter((schema) => I3_SCHEMAS.includes(schema)),
     I3_SCHEMAS,

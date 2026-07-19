@@ -961,7 +961,54 @@ verifyMaterializedMarketDataSnapshot({
 
 ### Limites honnêtes d'I5
 
-I5 n'implémente pas encore :
+I5 ne publie pas encore le binding officiel ni le registre append-only
+(ces contrats appartiennent à I6, ci-dessous). Pas de macro, pas de Fed,
+pas de features, pas de modèle, pas de réseau, pas d'API Yahoo/IBKR,
+aucun impact scanner.
+
+Les suites `test/market-data-l3-i5.test.mjs` et
+`test/market-data-l3-i5-adversarial.test.mjs` utilisent uniquement des
+fixtures synthétiques. Le harness adversatif (50 contre-tests) vit
+exclusivement sous `os.tmpdir()`.
+
+## L3-I6 — Binding officiel de snapshot et registre append-only
+
+L3-I6 est la dernière phase de l'infrastructure L3. Elle publie un binding
+officiel et versionné entre :
+
+```text
+MarketDataResolvedSeriesManifest/1
+MarketDataSnapshotSourceBundle/1
+MarketDataSnapshotMaterializationPolicy/1
+MarketDataSnapshotMaterializationReport/1
+snapshot L1 officiel
+évaluation de qualité L2A
+```
+
+puis l'inscrit dans un registre append-only explicitement piné :
+
+```text
+série point-in-time I4
+→ matérialisation I5
+→ snapshot L1
+→ évaluation de qualité L2A
+→ MarketDataDatasetSnapshotBinding/1
+→ MarketDataDatasetSnapshotBindingRegistryManifest/1
+```
+
+L3-I6 répond exactement à : quel snapshot officiel, quelle série historique,
+quelle politique de matérialisation et quelle évaluation de qualité
+constituent la publication autoritaire pour cette lignée, ce cutoff et cette
+politique, sous ce registre de bindings explicitement piné?
+
+Aucune sélection `latest`. Aucune autorité globale implicite. Un binding
+présent dans le CAS n'est pas autoritaire tant qu'il n'est pas tip sous le
+registre piné.
+
+**L3-I6 est un pipeline de recherche hors ligne. Il ne fait partie d'aucun
+chemin critique de scan.**
+
+Contrats ajoutés (77 schémas canoniques au total ; 29 contrats L3) :
 
 ```text
 MarketDataDatasetSnapshotBinding/1
@@ -969,12 +1016,101 @@ MarketDataDatasetSnapshotBindingAuthorityPolicy/1
 MarketDataDatasetSnapshotBindingRegistryManifest/1
 ```
 
-(ces contrats appartiennent à I6). Pas de macro, pas de Fed, pas de features,
-pas de modèle, pas de réseau, pas d'API Yahoo/IBKR, aucun impact scanner.
+### Authority policy
 
-Les suites `test/market-data-l3-i5.test.mjs` et
-`test/market-data-l3-i5-adversarial.test.mjs` utilisent uniquement des
-fixtures synthétiques. Le harness adversatif (50 contre-tests) vit
+Politique fermée, déterministe (`buildMarketDataDatasetSnapshotBindingAuthorityPolicy({ store })`) :
+
+- `authorityScope = MARKET_DATA_SNAPSHOT_BINDING`
+- `bindingUniquenessKeyVersion = INGESTION_LINEAGE_KNOWLEDGE_CUTOFF_MATERIALIZATION_POLICY_V1`
+
+### Publication key
+
+Chaque binding porte `bindingPublicationKey` dérivée exclusivement des
+objets référencés :
+
+```text
+ingestionLineageId
+knowledgeCutoff
+materializationPolicyId
+```
+
+Jamais acceptée librement comme déclaration d'autorité. L'unicité de tip
+reste relative au registre piné.
+
+### Binding officiel
+
+Le binding est un objet de références et de provenance. Il ferme au minimum :
+
+- resolved-series, source bundle, materialization policy, materialization report
+- `datasetSnapshotManifestId`, `snapshotCoreId`, `snapshotRecordId`, `normalizedObjectId`
+- `qualityAssessmentId` (record L2A) + `qualityAssessmentCoreId`
+- `ingestionRegistryManifestId` = préfixe contributif I4 (pas un pin descendant non contributif)
+- lignée, cutoff, capacité temporelle, pins identité/calendrier/L2C
+- `priceBasis` / `corporateActionTreatment`
+
+Il ne copie ni les lignes, ni les barres, ni les rapports complets.
+
+### Qualité L2A obligatoire
+
+Absence → `MARKET_DATA_QUALITY_ASSESSMENT_REQUIRED`.
+L2A ne décide pas l'admissibilité scientifique ; le binding conserve la
+conclusion L2A (PASS / WARN / FAIL) sans la réinterpréter, pourvu que
+l'évaluation cible exactement le même snapshot.
+
+### Supersession
+
+`supersedesBindingId` est obligatoire (`null` pour la première publication
+d'une clé). Le parent attendu doit être exactement le tip de cette clé sous
+le registre de base piné. Aucun builder ne cherche automatiquement le tip.
+
+### Registry root et append
+
+Root déterministe : `supersedes = null`, `bindingIds = []`, `bindingTips = []`.
+
+`appendMarketDataDatasetSnapshotBindingRegistry` ajoute exactement un
+binding, met à jour exactement un tip, conserve l'historique et les autres
+tips byte-identiques, conserve la même authority policy.
+
+### Orchestration
+
+```js
+publishOfficialMarketDataSnapshotBinding({
+  store, baseBindingRegistryManifestId, expectedParentBindingId,
+  materializationReportId, qualityAssessmentId,
+})
+```
+
+Ordre : vérifier registre + policy + parent → report I5 → snapshot L1 →
+qualité L2A → construire binding → append → retourner les deux IDs.
+
+### Propriétés
+
+- Autorité relative au pin uniquement ; aucun scan CAS pour un « officiel ».
+- Stale-base / parent historique non tip / sibling / branche →
+  `MARKET_DATA_SNAPSHOT_BINDING_CONFLICT` (ou codes d'autorité/cycle).
+- Idempotence préférée : même tip déjà autoritaire sous le pin → mêmes IDs,
+  pas de version artificielle (`noop`).
+- Échec atomique : binding orphelin non autoritaire avant append ; relance
+  déterministe.
+- Non-interférence : pin d'ingestion descendant non contributif → même
+  `bindingId` ; révision historique contributive → nouveau binding qui
+  supersède.
+- Clés indépendantes (cutoff / lignée) : tips isolés ; append K1 sans effet
+  sur K2.
+
+### Limites honnêtes d'I6 / fin de L3
+
+Après I6, la fondation L3 est complète localement. I6 n'ajoute pas :
+
+- features, macro, Fed, modèle
+- réseau, Yahoo, IBKR, API
+- intégration scanner / dashboard
+- recherche `latest` ou autorité globale hors pin
+- second format de snapshot au-delà du V1 EOD OHLCV I5
+
+Les suites `test/market-data-l3-i6.test.mjs` et
+`test/market-data-l3-i6-adversarial.test.mjs` utilisent uniquement des
+fixtures synthétiques. Le harness adversatif (60 contre-tests) vit
 exclusivement sous `os.tmpdir()`.
 
 ## Limites connues (V1)

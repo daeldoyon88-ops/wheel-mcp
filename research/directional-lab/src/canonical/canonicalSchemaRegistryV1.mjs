@@ -150,6 +150,15 @@ import {
   normalizeMarketDataSnapshotMaterializationReportV1,
   normalizeMarketDataSnapshotSourceBundleV1,
 } from '../contracts/marketDataSnapshotMaterializationL3V1.mjs';
+import {
+  MARKET_DATA_DATASET_SNAPSHOT_BINDING_AUTHORITY_POLICY_SCHEMA_VERSION,
+  MARKET_DATA_DATASET_SNAPSHOT_BINDING_L3_SCHEMA_VERSIONS,
+  MARKET_DATA_DATASET_SNAPSHOT_BINDING_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  MARKET_DATA_DATASET_SNAPSHOT_BINDING_SCHEMA_VERSION,
+  normalizeMarketDataDatasetSnapshotBindingAuthorityPolicyV1,
+  normalizeMarketDataDatasetSnapshotBindingRegistryManifestV1,
+  normalizeMarketDataDatasetSnapshotBindingV1,
+} from '../contracts/marketDataDatasetSnapshotBindingL3V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -192,6 +201,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_DATA_INGESTION_REGISTRY_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_RESOLVED_SERIES_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_SNAPSHOT_MATERIALIZATION_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_DATASET_SNAPSHOT_BINDING_L3_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -333,6 +343,24 @@ export function normalizeCanonicalValue(schemaVersion, value) {
         throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
       }
       return normalizeMarketDataSnapshotMaterializationReportV1(value);
+    case MARKET_DATA_DATASET_SNAPSHOT_BINDING_SCHEMA_VERSION:
+      if (!value || typeof value !== 'object'
+          || /** @type {any} */ (value).schemaVersion !== MARKET_DATA_DATASET_SNAPSHOT_BINDING_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataDatasetSnapshotBindingV1(value);
+    case MARKET_DATA_DATASET_SNAPSHOT_BINDING_AUTHORITY_POLICY_SCHEMA_VERSION:
+      if (!value || typeof value !== 'object'
+          || /** @type {any} */ (value).schemaVersion !== MARKET_DATA_DATASET_SNAPSHOT_BINDING_AUTHORITY_POLICY_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataDatasetSnapshotBindingAuthorityPolicyV1(value);
+    case MARKET_DATA_DATASET_SNAPSHOT_BINDING_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      if (!value || typeof value !== 'object'
+          || /** @type {any} */ (value).schemaVersion !== MARKET_DATA_DATASET_SNAPSHOT_BINDING_REGISTRY_MANIFEST_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataDatasetSnapshotBindingRegistryManifestV1(value);
     case MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_SCHEMA_VERSION:
       // Normalized-namespace content schema (like CanonicalDailyBars/1): not
       // counted in SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.

@@ -513,10 +513,10 @@ function resolveArgs(store, graph, registryId, knowledgeCutoff) {
   };
 }
 
-test('L3-I4 registers exactly one additive schema for a total of 74', () => {
+test('L3-I4 registers exactly one additive schema for a total of 77', () => {
   assert.deepEqual([...MARKET_DATA_RESOLVED_SERIES_L3_SCHEMA_VERSIONS], I4_SCHEMAS);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 74);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 74);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 77);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 77);
   assert.deepEqual(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.filter((schema) => I4_SCHEMAS.includes(schema)),
     I4_SCHEMAS,

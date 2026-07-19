@@ -469,6 +469,117 @@ autoritaire, rulesets, provenance best-effort, anti-fuite 2:1/3:1, append-only,
 récupération ID-only, plans séparés, binding registry autoritaire,
 reclassification explicite, cardinalité des rôles et entrées publiques invalides.
 
+## L3-I1 — fondations market data
+
+L3-I1 ajoute exactement douze schémas CAS, sans produire de snapshot L1 réel
+ou synthétique et sans modifier L1/L2A/L2B/L2C :
+
+```text
+MarketCalendarAuthorityPolicy/1
+MarketSessionCalendarCore/1
+MarketCalendarRegistryManifest/1
+MarketDataIngestionPolicy/1
+MarketDataIngestionLineageCore/1
+MarketDataIngestionRegistryAuthorityPolicy/1
+MarketDataSourceArtifactCore/1
+MarketDataSourceAttestationCore/1
+MarketDataAcquisitionRecordCore/1
+MarketDataParseResultCore/1
+MarketDataSourceTemporalEvidenceCore/1
+MarketDataBarIdentityCore/1
+```
+
+Toutes les API publiques échouent avec `MarketDataL3Error { code, message,
+details }`, jamais avec un `TypeError` brut. Les champs inconnus, versions de
+schéma non supportées, références absentes, corrompues ou du mauvais type sont
+distingués. Les builders publient dans le namespace CAS `snapshots`, relisent
+l'objet publié et les verifiers repartent de l'ID CAS. Le registre calendrier
+est récupérable depuis son seul ID et reparcourt toute sa chaîne `supersedes`.
+
+### Calendrier
+
+`MarketSessionCalendarCore/1` transporte uniquement des sessions explicites
+dans une couverture civile demi-ouverte. Une date fermée est une absence de
+session : aucune règle lundi-vendredi n'est inventée. `openUtc`, `closeUtc` et
+`marketValidTime` sont fournis; `marketValidTime` doit être exactement le
+close. `REGULAR_SESSION` et `HALF_DAY_SESSION` sont autorisés par une policy
+de venue (`ARCX`, `XNAS`, `XNYS`) qui pinne un `TimeZoneRuleset/1` CAS.
+Le module legacy `time/marketSession.mjs` n'est jamais importé par L3.
+
+Un registre calendrier est append-only. Les intervalles de couverture doivent
+former une couverture continue; des cores peuvent se chevaucher uniquement
+si toute session commune est identique. La vérification ne prétend rien sur
+un sibling qui n'est pas dans la chaîne du registry ID explicitement pinné.
+
+### Policy d'ingestion et lignée
+
+La policy V1 ferme les domaines suivants : instruments `EQUITY`, `ETF`,
+`ETN`; fréquence `DAILY_REGULAR_SESSION`; bases `RAW`, `SPLIT_ADJUSTED`;
+dataset `EOD_OHLCV`; formats `CSV_UTF8`, `CANONICAL_JSON`; unknown fields
+`REJECT`; doublons identiques `REJECT` ou `ACCEPT_IDENTICAL`; volume
+`NULLABLE_NON_NEGATIVE_DECIMAL_STRING`. `maxArtifactBytes` est un entier sûr
+strictement positif. Aucune compression, URL ou chemin n'est un paramètre V1.
+
+Modes de connaissance :
+
+- `CAPTURE_TIME_ONLY` exige les deux noms de champs fournisseur à `null`;
+- `PROVIDER_PUBLICATION_TIME_ATTESTED` exige
+  `providerPublicationTimeField`;
+- `PROVIDER_REVISION_HISTORY_ATTESTED` exige le champ de publication et
+  `providerRevisionIdField`.
+
+`MarketDataIngestionLineageCore/1` contient seulement provider, identité
+instrument, fréquence, venue, base de prix et type de dataset. Les IDs des
+registres L2B, calendrier et L2C sont des contextes d'autorité externes fournis
+au builder/verifier; ils n'entrent jamais dans le core. Un descendant de
+registre conserve donc l'ID de lignée, tandis qu'un changement de provider ou
+de base de prix le change.
+
+### Provenance, parsing et preuve temporelle
+
+Un `MarketDataSourceArtifactCore/1` référence uniquement des octets déjà
+capturés dans le CAS source. Digest, longueur, limite de taille, format et
+media type sont revérifiés. Le screening de secrets structurés est
+best-effort : il ne prouve pas qu'un payload arbitraire est exempt de secrets.
+
+`MarketDataSourceAttestationCore/1` est une union fermée. Le mode
+`EMBEDDED_ARTIFACT` pinne l'artifact et garde les quatre champs digest-only à
+`null`; les valeurs effectives sont relues depuis l'artifact. Le mode
+`DIGEST_ONLY` conserve digest, longueur, format et provider, sans promettre la
+récupération d'octets. Ce lot ne publie aucun snapshot officiel à partir du
+mode digest-only.
+
+`MarketDataAcquisitionRecordCore/1` exige un `acquisitionTimeUtc` explicite,
+le endpoint logique fermé `EOD_OHLCV_DATASET`, le dataset `EOD_OHLCV` et une
+`executionIdentity` fermée `{ runnerId, runId, environment }`. Aucun appel à
+`Date.now()` n'est utilisé pour construire un fait d'acquisition.
+
+Le builder de `MarketDataParseResultCore/1` relit l'artifact embedded et parse
+strictement `CSV_UTF8` ou une table `CANONICAL_JSON { headerFields, rows }`.
+Il conserve header, ordre des lignes, cellules textuelles, ligne vide ou
+fautive, digest par ligne et erreurs syntaxiques; aucune décision économique
+n'est prise. Le verifier reparse les octets et compare le résultat canonique.
+
+Une `MarketDataSourceTemporalEvidenceCore/1` doit pointer une cellule exacte
+du ParseResult : index, chemin `/cells/<index>`, valeur brute et digest sont
+revérifiés. Le timestamp V1 est un instant UTC strict. Une preuve de révision
+exige en plus que `providerRevisionId` soit présent dans le champ fournisseur
+épinglé de la même ligne. Une valeur fournie seulement par l'appelant n'est
+jamais une preuve.
+
+### Identité de barre
+
+`MarketDataBarIdentityCore/1` contient exactement identité instrument,
+fréquence, venue, date de session et `sessionKind = DAILY_REGULAR_SESSION`.
+Provider, base de prix, lignée, registre, calendrier, timestamp, ticker,
+prix et volume sont exclus. La même barre garde donc le même ID entre deux
+providers, deux bases de prix ou deux descendants de registre.
+
+Les suites synthétiques permanentes sont
+`test/market-data-l3-i1.test.mjs` et
+`test/market-data-l3-i1-adversarial.test.mjs`. Elles n'utilisent ni réseau,
+ni Yahoo, ni IBKR, ni données réelles.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

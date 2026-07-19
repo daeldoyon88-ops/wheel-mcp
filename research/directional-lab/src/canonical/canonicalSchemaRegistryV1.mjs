@@ -69,6 +69,39 @@ import {
   CORPORATE_ACTION_SCHEMA_VERSIONS,
   normalizeCorporateActionCanonicalValue,
 } from '../contracts/corporateActionL2CV1.mjs';
+import {
+  MARKET_CALENDAR_AUTHORITY_POLICY_SCHEMA_VERSION,
+  MARKET_CALENDAR_L3_SCHEMA_VERSIONS,
+  MARKET_CALENDAR_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  MARKET_SESSION_CALENDAR_CORE_SCHEMA_VERSION,
+  normalizeMarketCalendarAuthorityPolicyV1,
+  normalizeMarketCalendarRegistryManifestV1,
+  normalizeMarketSessionCalendarCoreV1,
+} from '../contracts/marketCalendarL3V1.mjs';
+import {
+  MARKET_DATA_ACQUISITION_RECORD_CORE_SCHEMA_VERSION,
+  MARKET_DATA_INGESTION_LINEAGE_CORE_SCHEMA_VERSION,
+  MARKET_DATA_INGESTION_POLICY_SCHEMA_VERSION,
+  MARKET_DATA_INGESTION_REGISTRY_AUTHORITY_POLICY_SCHEMA_VERSION,
+  MARKET_DATA_PARSE_RESULT_CORE_SCHEMA_VERSION,
+  MARKET_DATA_SOURCE_ARTIFACT_CORE_SCHEMA_VERSION,
+  MARKET_DATA_SOURCE_ATTESTATION_CORE_SCHEMA_VERSION,
+  MARKET_DATA_SOURCE_L3_SCHEMA_VERSIONS,
+  MARKET_DATA_SOURCE_TEMPORAL_EVIDENCE_CORE_SCHEMA_VERSION,
+  normalizeMarketDataAcquisitionRecordCoreV1,
+  normalizeMarketDataIngestionLineageCoreV1,
+  normalizeMarketDataIngestionPolicyV1,
+  normalizeMarketDataIngestionRegistryAuthorityPolicyV1,
+  normalizeMarketDataParseResultCoreV1,
+  normalizeMarketDataSourceArtifactCoreV1,
+  normalizeMarketDataSourceAttestationCoreV1,
+  normalizeMarketDataSourceTemporalEvidenceCoreV1,
+} from '../contracts/marketDataSourceL3V1.mjs';
+import {
+  MARKET_DATA_BAR_IDENTITY_CORE_SCHEMA_VERSION,
+  MARKET_DATA_BAR_IDENTITY_L3_SCHEMA_VERSIONS,
+  normalizeMarketDataBarIdentityCoreV1,
+} from '../contracts/marketDataBarIdentityL3V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -102,6 +135,9 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   INSTRUMENT_IDENTITY_REGISTRY_MANIFEST_SCHEMA_VERSION,
   DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION,
   ...CORPORATE_ACTION_SCHEMA_VERSIONS,
+  ...MARKET_CALENDAR_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_SOURCE_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_BAR_IDENTITY_L3_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -158,6 +194,30 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeInstrumentIdentityRegistryManifestV1(value);
     case DATASET_SNAPSHOT_INSTRUMENT_BINDING_SCHEMA_VERSION:
       return normalizeDatasetSnapshotInstrumentBindingV1(value);
+    case MARKET_CALENDAR_AUTHORITY_POLICY_SCHEMA_VERSION:
+      return normalizeMarketCalendarAuthorityPolicyV1(value);
+    case MARKET_SESSION_CALENDAR_CORE_SCHEMA_VERSION:
+      return normalizeMarketSessionCalendarCoreV1(value);
+    case MARKET_CALENDAR_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      return normalizeMarketCalendarRegistryManifestV1(value);
+    case MARKET_DATA_INGESTION_POLICY_SCHEMA_VERSION:
+      return normalizeMarketDataIngestionPolicyV1(value);
+    case MARKET_DATA_INGESTION_LINEAGE_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataIngestionLineageCoreV1(value);
+    case MARKET_DATA_INGESTION_REGISTRY_AUTHORITY_POLICY_SCHEMA_VERSION:
+      return normalizeMarketDataIngestionRegistryAuthorityPolicyV1(value);
+    case MARKET_DATA_SOURCE_ARTIFACT_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataSourceArtifactCoreV1(value);
+    case MARKET_DATA_SOURCE_ATTESTATION_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataSourceAttestationCoreV1(value);
+    case MARKET_DATA_ACQUISITION_RECORD_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataAcquisitionRecordCoreV1(value);
+    case MARKET_DATA_PARSE_RESULT_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataParseResultCoreV1(value);
+    case MARKET_DATA_SOURCE_TEMPORAL_EVIDENCE_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataSourceTemporalEvidenceCoreV1(value);
+    case MARKET_DATA_BAR_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeMarketDataBarIdentityCoreV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

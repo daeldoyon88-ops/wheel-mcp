@@ -855,6 +855,128 @@ Les suites `test/market-data-l3-i4.test.mjs` et
 fixtures synthétiques. Le harness adversatif vit exclusivement sous
 `os.tmpdir()`.
 
+## L3-I5 — matérialisation officielle de snapshot (source bundle + politique)
+
+L3-I5 répond exactement à : quel dataset byte-reproductible a été matérialisé
+à partir de cette série point-in-time, selon quelle politique, avec quelles
+sources et quel résultat d'intégrité?
+
+Frontière nette :
+
+```text
+L3-I4 → décide quelles observations sont historiquement visibles
+L3-I5 → matérialise exactement ces observations dans un snapshot officiel
+```
+
+L3-I5 ne refait pas la résolution temporelle. Aucune recherche `latest`.
+Aucune transformation de prix (pas de split adjust, pas de total return, pas
+de forward-fill, pas d'indicateur).
+
+**L3-I5 est un pipeline de recherche hors ligne. Il ne fait partie d'aucun
+chemin critique de scan.**
+
+Contrats ajoutés (74 schémas canoniques au total) :
+
+```text
+MarketDataSnapshotSourceBundle/1
+MarketDataSnapshotMaterializationPolicy/1
+MarketDataSnapshotMaterializationReport/1
+```
+
+Contenu normalisé L1 additif (namespace `normalized`, hors décompte 74) :
+
+```text
+MarketDataEodOhlcvCanonicalRows/1
+```
+
+Cette extension L1 minimale est nécessaire parce que `CanonicalDailyBars/1`
+force des nombres IEEE et ne peut pas préserver les atomes/échelles L3 sans
+coercition. Le writer/verifier L1 existants acceptent désormais ce second
+schéma de contenu, sans second stockage ni second hash.
+
+### Source bundle
+
+Dérivé uniquement d'un `MarketDataResolvedSeriesManifest/1` pleinement
+vérifié. Les listes contributives ne sont jamais acceptées de l'appelant.
+Un pin de registre descendant du préfixe contributif est accepté; un pin
+sibling est refusé.
+
+### Politique fermée
+
+Une seule politique V1, sans paramètre économique libre :
+
+- format `MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_V1`
+- `PRESENT_ONLY` / `SESSION_DATE_THEN_BAR_IDENTITY`
+- `WITHDRAWN` et `MOVED_TO_OTHER_SESSION` omis (aucune ligne de prix pour
+  l'ancienne identité)
+- `priceTransformation = NONE`, `corporateActionTransformation = NONE`
+- sérialisation `CanonicalJSON/1`, atomes L3 préservés
+
+### Projection et ordre
+
+Une ligne par entrée `PRESENT`, ordonnée par `sessionDate` puis
+`barIdentityId`. L3-I4 garantit une seule lignée/instrument; la dimension
+multi-instrument n'est pas inventée. Les atomes OHLCV, la devise et la
+`priceBasis` viennent de l'observation résolue; la `sessionDate` vient de
+l'identité de barre.
+
+### Stockage L1 officiel
+
+```text
+lignes canoniques
+→ CanonicalJSON/1
+→ buildDatasetSnapshot (writer L1)
+→ SnapshotDatasetManifestV1
+→ verifyDatasetSnapshot + verifySnapshotDatasetManifest
+→ MarketDataSnapshotMaterializationReport/1
+```
+
+Snapshots vides officiels supportés (`MATERIALIZED_EMPTY`) lorsqu'aucune
+entrée n'est `PRESENT`.
+
+### API
+
+```js
+buildMarketDataSnapshotSourceBundle({ store, resolvedSeriesManifestId, ingestionRegistryManifestId })
+verifyMarketDataSnapshotSourceBundle({ store, snapshotSourceBundleId, ingestionRegistryManifestId })
+buildMarketDataSnapshotMaterializationPolicy({ store })
+materializeMarketDataSnapshot({
+  store, ingestionRegistryManifestId, resolvedSeriesManifestId, materializationPolicyId,
+})
+verifyMaterializedMarketDataSnapshot({
+  store, ingestionRegistryManifestId, materializationReportId,
+})
+```
+
+### Propriétés
+
+- Idempotence : mêmes IDs malgré l'ordre CAS, les orphelins, le replay.
+- Non-interférence : append futur non contributif → mêmes IDs; révision
+  historique contributive → nouveaux IDs.
+- Échec atomique : relance après arrêt partiel → mêmes IDs, aucun faux
+  rapport, aucun `latest`.
+- Provenance fermée : snapshot → report → policy → source bundle →
+  resolved-series → préfixe → ingestions → acquisitions → artifacts →
+  observations → corrections → identité / calendrier / corporate-action.
+
+### Limites honnêtes d'I5
+
+I5 n'implémente pas encore :
+
+```text
+MarketDataDatasetSnapshotBinding/1
+MarketDataDatasetSnapshotBindingAuthorityPolicy/1
+MarketDataDatasetSnapshotBindingRegistryManifest/1
+```
+
+(ces contrats appartiennent à I6). Pas de macro, pas de Fed, pas de features,
+pas de modèle, pas de réseau, pas d'API Yahoo/IBKR, aucun impact scanner.
+
+Les suites `test/market-data-l3-i5.test.mjs` et
+`test/market-data-l3-i5-adversarial.test.mjs` utilisent uniquement des
+fixtures synthétiques. Le harness adversatif (50 contre-tests) vit
+exclusivement sous `os.tmpdir()`.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

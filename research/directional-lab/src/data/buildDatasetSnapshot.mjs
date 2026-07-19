@@ -1,4 +1,4 @@
-import { canonicalHash } from '../canonical/canonicalJsonV1.mjs';
+import { canonicalHash, parseCanonicalJsonBytes } from '../canonical/canonicalJsonV1.mjs';
 import {
   CANONICAL_DAILY_BARS_SCHEMA_VERSION,
   normalizeCanonicalDailyBarsV1,
@@ -11,6 +11,39 @@ import {
   normalizeDatasetSnapshotCoreV1,
   normalizeDatasetSnapshotRecordV1,
 } from '../contracts/datasetSnapshotV1.mjs';
+import {
+  MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_SCHEMA_VERSION,
+  normalizeMarketDataEodOhlcvCanonicalRowsV1,
+} from '../contracts/marketDataSnapshotMaterializationL3V1.mjs';
+
+/**
+ * Normalize L1 snapshot content. CanonicalDailyBars/1 remains the historical
+ * default. MarketDataEodOhlcvCanonicalRows/1 is the additive L3-I5 path that
+ * preserves atom/scale numerics without IEEE float coercion.
+ * @param {unknown} value
+ */
+function normalizeSnapshotNormalizedContent(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new DatasetSnapshotError('SNAPSHOT_CONTRACT_INVALID', 'normalized content must be an object');
+  }
+  const schemaVersion = /** @type {{schemaVersion?: unknown}} */ (value).schemaVersion;
+  if (schemaVersion === CANONICAL_DAILY_BARS_SCHEMA_VERSION) {
+    return {
+      schemaVersion: CANONICAL_DAILY_BARS_SCHEMA_VERSION,
+      normalized: normalizeCanonicalDailyBarsV1(value),
+    };
+  }
+  if (schemaVersion === MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_SCHEMA_VERSION) {
+    return {
+      schemaVersion: MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_SCHEMA_VERSION,
+      normalized: normalizeMarketDataEodOhlcvCanonicalRowsV1(value),
+    };
+  }
+  throw new DatasetSnapshotError(
+    'SNAPSHOT_CONTRACT_INVALID',
+    'normalized content schemaVersion must be CanonicalDailyBars/1 or MarketDataEodOhlcvCanonicalRows/1',
+  );
+}
 
 /** @param {unknown} value */
 function assertStore(value) {
@@ -69,11 +102,12 @@ export function buildDatasetSnapshot(input) {
   rejectDerivedFields(input.core, ['schemaVersion', 'sourceObjectId', 'normalizedObjectId'], 'core');
   rejectDerivedFields(input.record, ['schemaVersion', 'snapshotCoreId'], 'record');
 
-  const normalizedDailyBars = normalizeCanonicalDailyBarsV1(input.normalizedDailyBars);
+  const { schemaVersion: normalizedSchemaVersion, normalized: normalizedDailyBars } =
+    normalizeSnapshotNormalizedContent(input.normalizedDailyBars);
   const sourceObject = input.store.putSourceBytes(input.sourceBytes);
   const normalizedObject = input.store.putCanonicalObject({
     namespace: 'normalized',
-    schemaVersion: CANONICAL_DAILY_BARS_SCHEMA_VERSION,
+    schemaVersion: normalizedSchemaVersion,
     value: normalizedDailyBars,
   });
   const core = normalizeDatasetSnapshotCoreV1({
@@ -154,10 +188,28 @@ export function verifyDatasetSnapshot(input) {
   let normalizedRead;
   const normalizedUri = input.store.uriForObject({ namespace: 'normalized', objectId: core.normalizedObjectId });
   try {
-    normalizedRead = input.store.readCanonicalObject({
-      uri: normalizedUri, expectedObjectId: core.normalizedObjectId, schemaVersion: CANONICAL_DAILY_BARS_SCHEMA_VERSION,
+    const normalizedRaw = input.store.readObject({
+      uri: normalizedUri, expectedObjectId: core.normalizedObjectId,
     });
-  } catch (error) { throw mapReferenceError(error, 'normalized', core.normalizedObjectId); }
+    const parsed = parseCanonicalJsonBytes(normalizedRaw.bytes);
+    const normalizedSchemaVersion = parsed?.schemaVersion;
+    if (normalizedSchemaVersion !== CANONICAL_DAILY_BARS_SCHEMA_VERSION
+        && normalizedSchemaVersion !== MARKET_DATA_EOD_OHLCV_CANONICAL_ROWS_SCHEMA_VERSION) {
+      throw new DatasetSnapshotError(
+        'SNAPSHOT_CONTRACT_INVALID',
+        'normalized object schemaVersion is not an accepted L1 content schema',
+        { normalizedObjectId: core.normalizedObjectId, schemaVersion: normalizedSchemaVersion },
+      );
+    }
+    normalizedRead = input.store.readCanonicalObject({
+      uri: normalizedUri,
+      expectedObjectId: core.normalizedObjectId,
+      schemaVersion: normalizedSchemaVersion,
+    });
+  } catch (error) {
+    if (error instanceof DatasetSnapshotError) throw error;
+    throw mapReferenceError(error, 'normalized', core.normalizedObjectId);
+  }
 
   return {
     snapshotRecordId: input.snapshotRecordId,

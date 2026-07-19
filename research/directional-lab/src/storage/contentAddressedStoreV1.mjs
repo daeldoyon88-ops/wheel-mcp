@@ -18,6 +18,16 @@ import { SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS, normalizeCanonicalValue } from '../
 import { CANONICAL_DAILY_BARS_SCHEMA_VERSION } from '../canonical/canonicalDailyBarsV1.mjs';
 import { SHA256_OBJECT_ID_PATTERN } from '../contracts/datasetSnapshotV1.mjs';
 
+/**
+ * Closed set of schemas accepted in the L1 `normalized` namespace.
+ * MarketDataEodOhlcvCanonicalRows/1 is the additive L3-I5 atom-preserving
+ * content schema (literal kept here to avoid a storage↔contract cycle).
+ */
+const NORMALIZED_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
+  CANONICAL_DAILY_BARS_SCHEMA_VERSION,
+  'MarketDataEodOhlcvCanonicalRows/1',
+]);
+
 export class ContentAddressedStoreError extends Error {
   /** @param {string} code @param {string} message @param {object} [details] */
   constructor(code, message, details = {}) {
@@ -321,8 +331,12 @@ export function createContentAddressedStore(options) {
       if (!input || !['normalized', 'snapshots'].includes(input.namespace)) {
         throw new ContentAddressedStoreError('CAS_PATH_ESCAPE', 'canonical namespace must be normalized or snapshots');
       }
-      if (input.namespace === 'normalized' && input.schemaVersion !== CANONICAL_DAILY_BARS_SCHEMA_VERSION) {
-        throw new ContentAddressedStoreError('CAS_PATH_ESCAPE', 'normalized namespace only accepts CanonicalDailyBars/1');
+      if (input.namespace === 'normalized'
+          && !NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.includes(input.schemaVersion)) {
+        throw new ContentAddressedStoreError(
+          'CAS_PATH_ESCAPE',
+          'normalized namespace only accepts CanonicalDailyBars/1 or MarketDataEodOhlcvCanonicalRows/1',
+        );
       }
       if (input.namespace === 'snapshots' && !SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes(input.schemaVersion)) {
         throw new ContentAddressedStoreError('CAS_PATH_ESCAPE', 'snapshots namespace only accepts registered snapshot metadata schemas');

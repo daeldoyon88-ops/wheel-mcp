@@ -134,6 +134,11 @@ import {
   normalizeMarketDataIngestionManifestV1,
   normalizeMarketDataIngestionRegistryManifestV1,
 } from '../contracts/marketDataIngestionRegistryL3V1.mjs';
+import {
+  MARKET_DATA_RESOLVED_SERIES_L3_SCHEMA_VERSIONS,
+  MARKET_DATA_RESOLVED_SERIES_MANIFEST_SCHEMA_VERSION,
+  normalizeMarketDataResolvedSeriesManifestV1,
+} from '../contracts/marketDataResolvedSeriesL3V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -174,6 +179,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_DATA_BAR_REVISION_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_DELTA_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_INGESTION_REGISTRY_L3_SCHEMA_VERSIONS,
+  ...MARKET_DATA_RESOLVED_SERIES_L3_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -291,6 +297,12 @@ export function normalizeCanonicalValue(schemaVersion, value) {
         throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
       }
       return normalizeMarketDataIngestionRegistryManifestV1(value);
+    case MARKET_DATA_RESOLVED_SERIES_MANIFEST_SCHEMA_VERSION:
+      if (!value || typeof value !== 'object'
+          || /** @type {any} */ (value).schemaVersion !== MARKET_DATA_RESOLVED_SERIES_MANIFEST_SCHEMA_VERSION) {
+        throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown or unbound canonical schema: ${String(schemaVersion)}`);
+      }
+      return normalizeMarketDataResolvedSeriesManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

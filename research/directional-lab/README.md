@@ -727,6 +727,134 @@ Les suites `test/market-data-l3-i3.test.mjs` et
 fixtures synthétiques. Le harness adversatif vit exclusivement sous
 `os.tmpdir()`.
 
+## L3-I4 — resolver point-in-time (série résolue)
+
+L3-I4 répond exactement à : sous un registre d'ingestion explicitement piné
+et un instant `knowledgeCutoff`, quelle série de marché était prouvablement
+connaissable à cet instant? Il n'ajoute aucun snapshot L1 officiel, aucun
+schéma I5, aucun réseau, aucun Yahoo/IBKR, et aucun impact sur le scanner
+ou le dashboard de production.
+
+Contrat ajouté (71 schémas canoniques au total) :
+
+```text
+MarketDataResolvedSeriesManifest/1
+```
+
+Chaîne d'autorité :
+
+```text
+MarketDataIngestionRegistryManifest
+→ chaîne autoritaire de MarketDataIngestionManifest
+→ observations et corrections autoritaires
+→ filtrage objet par objet au cutoff
+→ reconstruction des chaînes visibles
+→ tip visible par barIdentityId
+→ MarketDataResolvedSeriesManifest
+```
+
+### API fermée
+
+```js
+resolveMarketDataAsOf({
+  store,
+  ingestionRegistryManifestId,
+  ingestionLineageId,
+  knowledgeCutoff,
+})
+
+buildMarketDataResolvedSeriesManifest({
+  store,
+  ingestionRegistryManifestId,
+  ingestionLineageId,
+  knowledgeCutoff,
+  corporateActionRegistryManifestId,
+})
+
+verifyMarketDataResolvedSeriesManifest({
+  store,
+  resolvedSeriesManifestId,
+})
+
+verifyMarketDataResolvedSeries({
+  store,
+  resolvedSeriesManifestId,
+  ingestionRegistryManifestId,
+})
+```
+
+Toutes les clés sont obligatoires. Aucun registre, lignée ou cutoff implicite.
+Aucun read model libre fourni par l'appelant. Aucune horloge système.
+
+### Visibilité objet par objet
+
+La règle canonique est `knowledgeTimeUpperBound <= knowledgeCutoff`, appliquée
+à chaque observation et chaque correction. Une même ingestion peut contenir
+simultanément un objet visible et un objet invisible. Le filtrage n'est jamais
+fait seulement au niveau de l'ingestion.
+
+`knowledgeCutoff` est un instant UTC canonique explicite fourni par l'appelant.
+Il définit la borne supérieure de connaissance prouvable; il n'est pas « now »
+et ne lit jamais `Date.now()`.
+
+Modes :
+
+- `CAPTURE_TIME_ONLY` — visible si `acquisitionTimeUtc <= knowledgeCutoff`;
+- `PROVIDER_PUBLICATION_TIME_ATTESTED` — une acquisition tardive peut être
+  visible historiquement si la publication attestée est ≤ cutoff;
+- `PROVIDER_REVISION_HISTORY_ATTESTED` — une correction acquise tardivement
+  peut être visible historiquement si sa révision attestée était disponible
+  ≤ cutoff.
+
+Aucune rétroactivité sans preuve.
+
+### Connaissance historique non prouvable
+
+Si la lignée a des objets autoritaires mais qu'aucun n'est visible au cutoff
+(ex. première capture-only le 2026-07-18, cutoff 2026-06-01), le resolver
+refuse avec `MARKET_DATA_HISTORICAL_KNOWLEDGE_NOT_PROVABLE`. Une série vide
+n'est jamais retournée comme état historique valide.
+
+### Chaînes de corrections et tips
+
+Les corrections visibles sont regroupées par
+`(ingestionLineageId, barIdentityId)`. Les arêtes
+`parentCorrectionId → childCorrectionId` sont reconstruites; racine unique,
+parent récupérable et visible, même lignée/barre, aucun cycle, aucune branche,
+aucun root concurrent. Les tips ne sont jamais choisis par ordre CAS ni par
+ordre d'insertion.
+
+Dispositions fermées : `PRESENT`, `WITHDRAWN`, `MOVED_TO_OTHER_SESSION`.
+
+### Préfixe contributif et non-interférence
+
+`contributingRegistryPrefixId` est le premier registre de la chaîne
+racine → pin d'appel qui liste tous les ingestion manifests contributifs.
+Appendre une ingestion future non contributive sous un pin descendant produit
+le même manifeste logique (même `resolvedSeriesManifestId`). Une révision
+historique tardive mais prouvablement antérieure au cutoff devient
+contributive : le préfixe et l'ID du manifeste changent.
+
+### Capacité temporelle et pins
+
+`temporalCapability` est le minimum dérivé des modes de connaissance de tous
+les objets contributifs. Une capacité persistée divergente est refusée. Les
+pins identité, calendrier et corporate-action sont dérivés des contributeurs
+(chaîne unique, couverture des sessions, pin descendant le plus avancé).
+Aucune transformation de prix L2C n'est appliquée en I4; bases et treatments
+mixtes sont refusés.
+
+### Limites honnêtes d'I4
+
+I4 ne gère pas encore : macro, Fed, features, modèle prédictif, classement
+SAFE/BALANCED/AGRESSIVE, scanner de production, ni snapshots L1 officiels.
+Il résout uniquement la série de marché prouvable sous un pin et un cutoff.
+
+Les suites `test/market-data-l3-i4.test.mjs` et
+`test/market-data-l3-i4-adversarial.test.mjs` utilisent uniquement des
+fixtures synthétiques. Le harness adversatif vit exclusivement sous
+`os.tmpdir()`.
+
 ## Limites connues (V1)
 
 - Les caches locaux fournissent un OHLC split-adjusted **sans montants de

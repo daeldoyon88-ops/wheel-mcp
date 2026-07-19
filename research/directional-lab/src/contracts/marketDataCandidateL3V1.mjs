@@ -270,12 +270,26 @@ export function normalizeMarketDataValidationReportV1(value) {
       throw new MarketDataL3Error('MARKET_DATA_VALIDATION_FAILED', 'decisions must be sorted and unique by candidateId');
     }
   }
+  const fatalErrors = normalizeDiagnosticCodes(report.fatalErrors, 'fatalErrors');
+  const warnings = normalizeDiagnosticCodes(report.warnings, 'warnings');
+  assertFatalErrorsExcludeAccepted(decisions, fatalErrors);
   return {
     ...report,
     decisions,
-    fatalErrors: normalizeDiagnosticCodes(report.fatalErrors, 'fatalErrors'),
-    warnings: normalizeDiagnosticCodes(report.warnings, 'warnings'),
+    fatalErrors,
+    warnings,
   };
+}
+
+/** Fatal diagnostics and ACCEPTED dispositions are mutually exclusive. */
+function assertFatalErrorsExcludeAccepted(decisions, fatalErrors) {
+  if (fatalErrors.length > 0
+      && decisions.some((decision) => decision.disposition === 'ACCEPTED')) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_VALIDATION_FAILED',
+      'fatalErrors prohibit ACCEPTED decisions',
+    );
+  }
 }
 
 function findCalendarSession(calendarRegistry, sessionDate) {
@@ -452,6 +466,7 @@ function verifyReportPartition(store, report) {
   if (!canonicalValuesEqual(reportIds, candidateSet.candidateIds)) {
     throw new MarketDataL3Error('MARKET_DATA_VALIDATION_FAILED', 'decisions must partition the CandidateSet exactly');
   }
+  assertFatalErrorsExcludeAccepted(report.decisions, report.fatalErrors);
   return candidateSet;
 }
 
@@ -498,16 +513,6 @@ function candidatePrimaryBarId(candidate) {
     ? candidate.previousBarIdentityId : candidate.barIdentityId;
 }
 
-function readBaseCorrections(store, view) {
-  const corrections = new Map();
-  for (const correctionId of view.visibleCorrectionIds) {
-    corrections.set(correctionId, readTypedReference(
-      store, correctionId, 'MarketDataBarCorrectionCore/1', 'base correction',
-    ));
-  }
-  return corrections;
-}
-
 function baseContainsCycle(corrections) {
   for (const correctionId of corrections.keys()) {
     const seen = new Set();
@@ -521,27 +526,134 @@ function baseContainsCycle(corrections) {
   return false;
 }
 
-/** Deterministic validation against one explicitly supplied, pinned base view. @param {unknown} input */
-export function validateMarketDataCandidateSet(input) {
-  const api = assertApiInput(input, ['candidateSetId', 'baseView']);
-  const resolved = verifyMarketDataCandidateSet({ store: api.store, candidateSetId: api.candidateSetId });
-  const view = normalizeBaseView(api.baseView);
-  const corrections = readBaseCorrections(api.store, view);
-  const fatalErrors = baseContainsCycle(corrections) ? ['MARKET_DATA_CORRECTION_CHAIN_INVALID'] : [];
-  const childrenByParent = new Map();
-  resolved.candidates.forEach((candidate, index) => {
+/**
+ * Effective observation immediately at one correction node.
+ * WITHDRAWAL / SESSION_DATE_WITHDRAWAL yield null (no live observation).
+ * @param {any} correction
+ */
+function effectiveObservationIdAt(correction) {
+  if (['INITIAL_ROOT', 'VALUE_REVISION', 'SESSION_DATE_REPLACEMENT'].includes(correction.correctionKind)) {
+    return correction.observationId;
+  }
+  if (correction.correctionKind === 'RESTORATION') return correction.restoredObservationId;
+  return null;
+}
+
+/**
+ * Derive the visible correction graph and its true terminal leaves.
+ * Caller-supplied terminalCorrectionIds never grant authority; they must match.
+ * @param {any} store @param {any} view
+ */
+function deriveVisibleCorrectionGraph(store, view) {
+  const corrections = new Map();
+  const fatal = new Set();
+  for (const correctionId of view.visibleCorrectionIds) {
+    try {
+      corrections.set(correctionId, readTypedReference(
+        store, correctionId, 'MarketDataBarCorrectionCore/1', 'base correction',
+      ));
+    } catch {
+      fatal.add('MARKET_DATA_CORRECTION_CHAIN_INVALID');
+    }
+  }
+  const visibleChildrenByParent = new Map();
+  for (const [correctionId, correction] of corrections) {
+    const parentId = correction.parentCorrectionId;
+    if (parentId === null) continue;
+    if (!corrections.has(parentId)) {
+      fatal.add('MARKET_DATA_CORRECTION_PARENT_MISMATCH');
+      continue;
+    }
+    const parent = corrections.get(parentId);
+    if (parent.ingestionLineageId !== correction.ingestionLineageId) {
+      fatal.add('MARKET_DATA_CORRECTION_LINEAGE_MISMATCH');
+    }
+    if (parent.barIdentityId !== correction.barIdentityId) {
+      fatal.add('MARKET_DATA_CORRECTION_PARENT_MISMATCH');
+    }
+    if (!visibleChildrenByParent.has(parentId)) visibleChildrenByParent.set(parentId, []);
+    visibleChildrenByParent.get(parentId).push(correctionId);
+  }
+  for (const childIds of visibleChildrenByParent.values()) {
+    if (childIds.length > 1 || new Set(childIds).size !== childIds.length) {
+      fatal.add('MARKET_DATA_BAR_REVISION_BRANCH');
+    }
+  }
+  if (baseContainsCycle(corrections)) fatal.add('MARKET_DATA_CORRECTION_CHAIN_INVALID');
+  const derivedTerminalIds = view.visibleCorrectionIds
+    .filter((correctionId) => corrections.has(correctionId) && !visibleChildrenByParent.has(correctionId))
+    .slice()
+    .sort();
+  const suppliedTerminalIds = [...view.terminalCorrectionIds].sort();
+  if (!canonicalValuesEqual(derivedTerminalIds, suppliedTerminalIds)) {
+    for (const terminalId of suppliedTerminalIds) {
+      if (visibleChildrenByParent.has(terminalId)) fatal.add('MARKET_DATA_BAR_REVISION_BRANCH');
+      else fatal.add('MARKET_DATA_CORRECTION_CHAIN_INVALID');
+    }
+    for (const terminalId of derivedTerminalIds) {
+      if (!suppliedTerminalIds.includes(terminalId)) fatal.add('MARKET_DATA_CORRECTION_CHAIN_INVALID');
+    }
+    if (fatal.size === 0) fatal.add('MARKET_DATA_CORRECTION_CHAIN_INVALID');
+  }
+  return {
+    corrections,
+    visibleChildrenByParent,
+    derivedTerminalIds,
+    fatalErrors: [...fatal].sort(),
+  };
+}
+
+/**
+ * Restoration may only revive the observation that was effective immediately
+ * before the targeted WITHDRAWAL.
+ * @param {any} candidate @param {any} withdrawal @param {Map<string, any>} corrections
+ */
+function restorationReasonCodes(candidate, withdrawal, corrections) {
+  if (withdrawal.correctionKind !== 'WITHDRAWAL') {
+    return ['MARKET_DATA_CORRECTION_CHAIN_INVALID'];
+  }
+  if (withdrawal.ingestionLineageId !== candidate.ingestionLineageId
+      || withdrawal.barIdentityId !== candidate.barIdentityId) {
+    return ['MARKET_DATA_CORRECTION_PARENT_MISMATCH'];
+  }
+  const priorId = withdrawal.parentCorrectionId;
+  if (priorId === null || !corrections.has(priorId)) {
+    return ['MARKET_DATA_CORRECTION_CHAIN_INVALID'];
+  }
+  const prior = corrections.get(priorId);
+  if (prior.ingestionLineageId !== candidate.ingestionLineageId
+      || prior.barIdentityId !== candidate.barIdentityId) {
+    return ['MARKET_DATA_CORRECTION_LINEAGE_MISMATCH'];
+  }
+  const effective = effectiveObservationIdAt(prior);
+  if (effective === null || effective !== candidate.restoredObservationId) {
+    return ['MARKET_DATA_CORRECTION_CHAIN_INVALID'];
+  }
+  return [];
+}
+
+/**
+ * Single deterministic authority for economic dispositions.
+ * Builder, publisher revalidation and tests must all use this path.
+ * @param {any} store @param {any} candidateSet @param {any[]} candidates @param {any} view
+ */
+export function deriveMarketDataValidationEconomics(store, candidateSet, candidates, view) {
+  const graph = deriveVisibleCorrectionGraph(store, view);
+  const fatalErrors = [...graph.fatalErrors];
+  const candidateChildrenByParent = new Map();
+  candidates.forEach((candidate, index) => {
     const parentId = candidateParentId(candidate);
     if (parentId === null) return;
-    if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
-    childrenByParent.get(parentId).push(resolved.candidateSet.candidateIds[index]);
+    if (!candidateChildrenByParent.has(parentId)) candidateChildrenByParent.set(parentId, []);
+    candidateChildrenByParent.get(parentId).push(candidateSet.candidateIds[index]);
   });
-  const decisions = resolved.candidateSet.candidateIds.map((candidateId, index) => {
-    const candidate = resolved.candidates[index];
+  const decisions = candidateSet.candidateIds.map((candidateId, index) => {
+    const candidate = candidates[index];
     if (view.duplicateCandidateIds.includes(candidateId)) {
       return { candidateId, disposition: 'DUPLICATE', reasonCodes: ['MARKET_DATA_CANDIDATE_DUPLICATE'] };
     }
     if (fatalErrors.length > 0) {
-      return { candidateId, disposition: 'REJECTED', reasonCodes: ['MARKET_DATA_CORRECTION_CHAIN_INVALID'] };
+      return { candidateId, disposition: 'REJECTED', reasonCodes: [fatalErrors[0]] };
     }
     if (candidate.candidateKind === 'BAR_INITIAL_VALUE') {
       if (view.occupiedBarIdentityIds.includes(candidate.barIdentityId)) {
@@ -558,7 +670,7 @@ export function validateMarketDataCandidateSet(input) {
       }
     }
     const parentId = candidateParentId(candidate);
-    const parent = corrections.get(parentId);
+    const parent = graph.corrections.get(parentId);
     if (!parent) {
       return { candidateId, disposition: 'REJECTED', reasonCodes: ['MARKET_DATA_CORRECTION_PARENT_MISMATCH'] };
     }
@@ -568,17 +680,72 @@ export function validateMarketDataCandidateSet(input) {
     if (parent.barIdentityId !== candidatePrimaryBarId(candidate)) {
       return { candidateId, disposition: 'REJECTED', reasonCodes: ['MARKET_DATA_CORRECTION_PARENT_MISMATCH'] };
     }
-    if (!view.terminalCorrectionIds.includes(parentId)) {
-      return { candidateId, disposition: 'REJECTED', reasonCodes: ['MARKET_DATA_CORRECTION_STALE_PARENT'] };
-    }
-    if (childrenByParent.get(parentId).length > 1) {
+    const visibleKids = graph.visibleChildrenByParent.get(parentId) || [];
+    const candidateKids = candidateChildrenByParent.get(parentId) || [];
+    if (visibleKids.length > 0 || candidateKids.length > 1) {
       return { candidateId, disposition: 'CONFLICTING', reasonCodes: ['MARKET_DATA_BAR_REVISION_BRANCH'] };
     }
-    if (candidate.candidateKind === 'BAR_RESTORATION' && parent.correctionKind !== 'WITHDRAWAL') {
-      return { candidateId, disposition: 'REJECTED', reasonCodes: ['MARKET_DATA_CORRECTION_CHAIN_INVALID'] };
+    if (!graph.derivedTerminalIds.includes(parentId)) {
+      return { candidateId, disposition: 'REJECTED', reasonCodes: ['MARKET_DATA_CORRECTION_STALE_PARENT'] };
+    }
+    if (candidate.candidateKind === 'BAR_RESTORATION') {
+      const reasonCodes = restorationReasonCodes(candidate, parent, graph.corrections);
+      if (reasonCodes.length > 0) {
+        return { candidateId, disposition: 'REJECTED', reasonCodes };
+      }
     }
     return { candidateId, disposition: 'ACCEPTED', reasonCodes: [] };
   });
+  return { decisions, fatalErrors, warnings: [], derivedTerminalIds: graph.derivedTerminalIds };
+}
+
+const VALIDATION_REPORT_COMPARE_FIELDS = Object.freeze([
+  'candidateSetId', 'ingestionPolicyId', 'baseIngestionRegistryManifestId',
+  'expectedParentIngestionManifestId', 'decisions', 'fatalErrors', 'warnings',
+]);
+
+/**
+ * Recompute the deterministic ValidationReport for a pinned base view and
+ * refuse any stored report that diverges. Stored dispositions are never authority.
+ * @param {unknown} input
+ */
+export function assertDeterministicValidationReport(input) {
+  const api = assertApiInput(input, ['candidateSetId', 'validationReportId', 'baseView']);
+  const view = normalizeBaseView(api.baseView);
+  const provided = verifyMarketDataValidationReport({
+    store: api.store, validationReportId: api.validationReportId,
+  }).validationReport;
+  if (provided.candidateSetId !== api.candidateSetId) {
+    throw new MarketDataL3Error('MARKET_DATA_VALIDATION_FAILED', 'validation report belongs to another CandidateSet');
+  }
+  if (provided.baseIngestionRegistryManifestId !== view.baseIngestionRegistryManifestId
+      || provided.expectedParentIngestionManifestId !== view.expectedParentIngestionManifestId) {
+    throw new MarketDataL3Error('MARKET_DATA_VALIDATION_FAILED', 'base view pins diverge from the validation report');
+  }
+  assertFatalErrorsExcludeAccepted(provided.decisions, provided.fatalErrors);
+  const expected = validateMarketDataCandidateSet({
+    store: api.store, candidateSetId: api.candidateSetId, baseView: view,
+  }).validationReport;
+  for (const field of VALIDATION_REPORT_COMPARE_FIELDS) {
+    if (!canonicalValuesEqual(provided[field], expected[field])) {
+      throw new MarketDataL3Error(
+        'MARKET_DATA_VALIDATION_FAILED',
+        'stored ValidationReport diverges from deterministic recomputation',
+        { field },
+      );
+    }
+  }
+  return { validationReport: provided, expectedValidationReport: expected, baseView: view };
+}
+
+/** Deterministic validation against one explicitly supplied, pinned base view. @param {unknown} input */
+export function validateMarketDataCandidateSet(input) {
+  const api = assertApiInput(input, ['candidateSetId', 'baseView']);
+  const resolved = verifyMarketDataCandidateSet({ store: api.store, candidateSetId: api.candidateSetId });
+  const view = normalizeBaseView(api.baseView);
+  const economics = deriveMarketDataValidationEconomics(
+    api.store, resolved.candidateSet, resolved.candidates, view,
+  );
   return buildMarketDataValidationReport({
     store: api.store,
     report: {
@@ -587,9 +754,9 @@ export function validateMarketDataCandidateSet(input) {
       ingestionPolicyId: resolved.candidateSet.ingestionPolicyId,
       baseIngestionRegistryManifestId: view.baseIngestionRegistryManifestId,
       expectedParentIngestionManifestId: view.expectedParentIngestionManifestId,
-      decisions,
-      fatalErrors,
-      warnings: [],
+      decisions: economics.decisions,
+      fatalErrors: economics.fatalErrors,
+      warnings: economics.warnings,
     },
   });
 }

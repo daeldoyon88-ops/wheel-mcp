@@ -111,6 +111,59 @@ test('L3-I2 ValidationReport closes decisions, dispositions, reason codes and di
     decisions: [{ ...report.decisions[0], disposition: 'REJECTED' }] }), 'MARKET_DATA_VALIDATION_FAILED');
   expectCode(() => Candidate.normalizeMarketDataValidationReportV1({ ...report,
     fatalErrors: ['UNREGISTERED_ERROR'] }), 'MARKET_DATA_VALIDATION_FAILED');
+  expectCode(() => Candidate.normalizeMarketDataValidationReportV1({ ...report,
+    fatalErrors: ['MARKET_DATA_CORRECTION_CHAIN_INVALID'] }), 'MARKET_DATA_VALIDATION_FAILED');
+});
+
+test('L3-I2-P1 temporary counter-harness covers forged authority, terminals, restoration and status', () => {
+  const root = mkdtempSync(join(tmpdir(), 'market-data-l3-i2-p1-'));
+  const harnessPath = join(root, 'p1-counter-harness.mjs');
+  const candidateUrl = pathToFileURL(resolve('research/directional-lab/src/contracts/marketDataCandidateL3V1.mjs')).href;
+  const revisionUrl = pathToFileURL(resolve('research/directional-lab/src/contracts/marketDataBarRevisionL3V1.mjs')).href;
+  const deltaUrl = pathToFileURL(resolve('research/directional-lab/src/contracts/marketDataDeltaL3V1.mjs')).href;
+  const source = `
+import assert from 'node:assert/strict';
+import * as C from ${JSON.stringify(candidateUrl)};
+import * as R from ${JSON.stringify(revisionUrl)};
+import * as D from ${JSON.stringify(deltaUrl)};
+const A=${JSON.stringify(ID_A)},B=${JSON.stringify(ID_B)},C0=${JSON.stringify(ID_C)},D0=${JSON.stringify(ID_D)};
+const report=(o={})=>({schemaVersion:C.MARKET_DATA_VALIDATION_REPORT_SCHEMA_VERSION,candidateSetId:A,ingestionPolicyId:B,baseIngestionRegistryManifestId:C0,expectedParentIngestionManifestId:null,decisions:[{candidateId:D0,disposition:'ACCEPTED',reasonCodes:[]}],fatalErrors:[],warnings:[],...o});
+const scenarios=[
+// 41 forged ACCEPTED cannot coexist with fatalErrors at contract level
+()=>C.normalizeMarketDataValidationReportV1(report({fatalErrors:['MARKET_DATA_CORRECTION_CHAIN_INVALID']})),
+// 42 ACCEPTED with reason codes
+()=>C.normalizeMarketDataValidationReportV1(report({decisions:[{candidateId:D0,disposition:'ACCEPTED',reasonCodes:['MARKET_DATA_BAR_REVISION_BRANCH']}]})),
+// 43 REJECTED without reason codes
+()=>C.normalizeMarketDataValidationReportV1(report({decisions:[{candidateId:D0,disposition:'REJECTED',reasonCodes:[]}]})),
+// 45 unregistered fatal diagnostic
+()=>C.normalizeMarketDataValidationReportV1(report({fatalErrors:['UNREGISTERED_ERROR'],decisions:[{candidateId:D0,disposition:'DUPLICATE',reasonCodes:['MARKET_DATA_CANDIDATE_DUPLICATE']}]})),
+()=>C.normalizeMarketDataValidationReportV1(report({fatalErrors:['MARKET_DATA_BAR_REVISION_BRANCH']})),
+()=>C.normalizeMarketDataValidationReportV1(report({decisions:[{candidateId:D0,disposition:'CONFLICTING',reasonCodes:[]}]})),
+()=>R.normalizeMarketDataBarCorrectionCoreV1({schemaVersion:R.MARKET_DATA_BAR_CORRECTION_CORE_SCHEMA_VERSION,correctionKind:'RESTORATION',ingestionLineageId:A,barIdentityId:B,parentCorrectionId:null,observationId:null,restoredObservationId:C0,sessionDateLink:null,sourceArtifactId:C0,acquisitionRecordId:D0,parseResultId:A,sourceRowIndex:0,sourceRowDigest:B,knowledgeMode:'CAPTURE_TIME_ONLY',knowledgeTimeLowerBound:null,knowledgeTimeUpperBound:'2026-01-03T00:00:00.000Z',sourceTimestampEvidenceId:null,providerRevisionId:null}),
+()=>R.normalizeMarketDataBarCorrectionCoreV1({schemaVersion:R.MARKET_DATA_BAR_CORRECTION_CORE_SCHEMA_VERSION,correctionKind:'RESTORATION',ingestionLineageId:A,barIdentityId:B,parentCorrectionId:D0,observationId:C0,restoredObservationId:C0,sessionDateLink:null,sourceArtifactId:C0,acquisitionRecordId:D0,parseResultId:A,sourceRowIndex:0,sourceRowDigest:B,knowledgeMode:'CAPTURE_TIME_ONLY',knowledgeTimeLowerBound:null,knowledgeTimeUpperBound:'2026-01-03T00:00:00.000Z',sourceTimestampEvidenceId:null,providerRevisionId:null}),
+()=>R.normalizeMarketDataBarCorrectionCoreV1({schemaVersion:R.MARKET_DATA_BAR_CORRECTION_CORE_SCHEMA_VERSION,correctionKind:'WITHDRAWAL',ingestionLineageId:A,barIdentityId:B,parentCorrectionId:D0,observationId:C0,restoredObservationId:null,sessionDateLink:null,sourceArtifactId:C0,acquisitionRecordId:D0,parseResultId:A,sourceRowIndex:0,sourceRowDigest:B,knowledgeMode:'CAPTURE_TIME_ONLY',knowledgeTimeLowerBound:null,knowledgeTimeUpperBound:'2026-01-03T00:00:00.000Z',sourceTimestampEvidenceId:null,providerRevisionId:null}),
+()=>D.normalizeNormalizedMarketDataDeltaAssemblyManifestV1({schemaVersion:D.NORMALIZED_MARKET_DATA_DELTA_ASSEMBLY_MANIFEST_SCHEMA_VERSION,ingestionLineageId:A,candidateSetId:B,validationReportId:C0,publicationManifestId:D0,chunkIds:[A],acceptedObservationIds:[],acceptedCorrectionIds:[],coverageFromDate:'2026-01-02',coverageToDateExclusive:'2026-01-03',acceptedCandidateCount:0}),
+()=>C.normalizeMarketDataNormalizedCandidateV1({schemaVersion:C.MARKET_DATA_NORMALIZED_CANDIDATE_SCHEMA_VERSION,candidateKind:'BAR_RESTORATION',ingestionLineageId:A,sourceArtifactId:B,acquisitionRecordId:C0,parseResultId:D0,sourceRowIndex:0,sourceRowDigest:A,knowledgeMode:'CAPTURE_TIME_ONLY',knowledgeTimeLowerBound:null,knowledgeTimeUpperBound:'2026-01-03T00:00:00.000Z',sourceTimestampEvidenceId:null,providerRevisionId:null,calendarRegistryManifestId:B,marketValidTime:'2026-01-02T21:00:00.000Z',barIdentityId:C0,targetWithdrawalCorrectionId:null,restoredObservationId:B}),
+()=>C.normalizeMarketDataValidationReportV1(report({decisions:[{candidateId:D0,disposition:'ACCEPTED',reasonCodes:[]},{candidateId:D0,disposition:'REJECTED',reasonCodes:['MARKET_DATA_CORRECTION_CHAIN_INVALID']}]})),
+()=>C.normalizeMarketDataValidationReportV1(report({warnings:['UNREGISTERED_ERROR']})),
+()=>R.normalizeMarketDataAcceptedCandidatePublicationManifestV1({schemaVersion:R.MARKET_DATA_ACCEPTED_CANDIDATE_PUBLICATION_MANIFEST_SCHEMA_VERSION,candidateSetId:A,validationReportId:B,baseIngestionRegistryManifestId:C0,expectedParentIngestionManifestId:null,ingestionLineageId:D0,publications:[]}),
+()=>D.normalizeNormalizedMarketDataDeltaChunkV1({schemaVersion:D.NORMALIZED_MARKET_DATA_DELTA_CHUNK_SCHEMA_VERSION,ingestionLineageId:A,chunkIndex:0,fromSessionDate:'2026-01-02',toSessionDateExclusive:'2026-01-03',observationIds:[],correctionIds:[]}),
+()=>{assert.notEqual('PUBLISHED','AUTHORITATIVE_DELTA_READY');assert.equal(typeof D.publishValidatedMarketDataDelta,'function');throw new Error('STATUS_ALIAS_REFUSED')},
+];
+let passed=0;for(const scenario of scenarios){assert.throws(scenario);passed+=1}
+assert.ok(passed>=15);console.log(JSON.stringify({scenarios:scenarios.length,passed,audit:[41,42,43,45]}));
+`;
+  writeFileSync(harnessPath, source, 'utf8');
+  const run = spawnSync(process.execPath, [harnessPath], { encoding: 'utf8' });
+  try {
+    assert.equal(run.status, 0, run.stderr + run.stdout);
+    const result = JSON.parse(run.stdout.trim().split('\n').at(-1));
+    assert.ok(result.passed >= 15);
+    assert.equal(result.passed, result.scenarios);
+    assert.deepEqual(result.audit, [41, 42, 43, 45]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('L3-I2 temporary adversarial harness runs at least 25 independent fail-closed scenarios', () => {

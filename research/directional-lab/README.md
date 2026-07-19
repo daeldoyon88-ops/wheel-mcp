@@ -618,10 +618,22 @@ Le CandidateSet ne contient aucune disposition. Il ferme une acquisition, un
 ParseResult, une policy, une lignée et les registres L2B/L2C/calendrier
 explicitement pinnés. Le validator reçoit une vue de base explicite : IDs de
 corrections visibles et terminales, identités occupées/publiées et pins du
-registre d'ingestion synthétique. Il n'existe aucun « current tip » implicite.
-Le ValidationReport partitionne exactement le CandidateSet en `ACCEPTED`,
-`REJECTED`, `QUARANTINED`, `DUPLICATE` ou `CONFLICTING`; ses reason codes,
-fatal errors et warnings sont fermés, triés et uniques.
+registre d'ingestion synthétique. Il n'existe aucun « current tip » implicite
+et aucun « latest ». I2 ne découvre pas d'état global et ne choisit aucun tip
+implicite : la complétude de la vue est l'autorité explicitement pinnée fournie
+par la couche d'ingestion future. Tout élément fourni est recoupé contre le
+graphe visible (terminaux dérivés, lignée, barre, cycles, branches) ; I2 ne
+prétend pas découvrir des corrections omises de la vue. I3 rendra cette vue
+récupérable depuis le registre canonique. Les `terminalCorrectionIds` fournis
+ne sont jamais l'autorité : ils doivent égaler exactement les feuilles dérivées
+du graphe visible. Le ValidationReport partitionne exactement le CandidateSet
+en `ACCEPTED`, `REJECTED`, `QUARANTINED`, `DUPLICATE` ou `CONFLICTING`; ses
+reason codes, fatal errors et warnings sont fermés, triés et uniques. Un
+rapport avec `fatalErrors` non vides ne peut contenir aucune décision
+`ACCEPTED`. Les dispositions stockées ne sont jamais une autorité autonome :
+avant toute publication, le publisher réexécute le validateur déterministe
+canonique sur la vue pinnée et refuse toute divergence avec
+`MARKET_DATA_VALIDATION_FAILED`.
 
 Une observation est la projection immuable et sans perte d'un candidat
 accepté. Une correction est l'un des six nœuds fermés `INITIAL_ROOT`,
@@ -642,7 +654,11 @@ plages sont civiles, demi-ouvertes et exactes.
 
 Si aucun candidat n'est accepté, le publisher ne crée aucun publication
 manifest, chunk ou assembly et retourne `NO_AUTHORITATIVE_DELTA` avec deux IDs
-à `null`. Une erreur fatale retourne `MARKET_DATA_VALIDATION_FAILED`.
+à `null`. Un succès avec au moins un candidat accepté retourne exactement
+`PUBLISHED` (aucun alias). Une erreur fatale ou un rapport non recomputable
+retourne `MARKET_DATA_VALIDATION_FAILED`. Une restauration n'accepte que
+l'observation effectivement en vigueur immédiatement avant le `WITHDRAWAL`
+ciblé.
 
 Les suites permanentes `test/market-data-l3-i2.test.mjs` et
 `test/market-data-l3-i2-adversarial.test.mjs` utilisent uniquement des

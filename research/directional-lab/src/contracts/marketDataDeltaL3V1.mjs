@@ -18,6 +18,7 @@ import {
   MARKET_DATA_BAR_IDENTITY_CORE_SCHEMA_VERSION,
 } from './marketDataBarIdentityL3V1.mjs';
 import {
+  assertDeterministicValidationReport,
   verifyMarketDataCandidateSet,
   verifyMarketDataValidationReport,
 } from './marketDataCandidateL3V1.mjs';
@@ -266,12 +267,14 @@ function makeChunkGroups(items) {
 
 /** Publishes only the authoritative delta for one already validated CandidateSet. @param {unknown} input */
 export function publishValidatedMarketDataDelta(input) {
-  const api = assertApiInput(input, ['candidateSetId', 'validationReportId']);
+  const api = assertApiInput(input, ['candidateSetId', 'validationReportId', 'baseView']);
+  const { validationReport: report } = assertDeterministicValidationReport({
+    store: api.store,
+    candidateSetId: api.candidateSetId,
+    validationReportId: api.validationReportId,
+    baseView: api.baseView,
+  });
   const candidateSet = verifyMarketDataCandidateSet({ store: api.store, candidateSetId: api.candidateSetId }).candidateSet;
-  const report = verifyMarketDataValidationReport({ store: api.store, validationReportId: api.validationReportId }).validationReport;
-  if (report.candidateSetId !== api.candidateSetId) {
-    throw new MarketDataL3Error('MARKET_DATA_VALIDATION_PUBLICATION_ORDER_VIOLATION', 'validation report belongs to another CandidateSet');
-  }
   if (report.fatalErrors.length > 0) {
     throw new MarketDataL3Error('MARKET_DATA_VALIDATION_FAILED', 'fatal validation diagnostics prohibit publication');
   }
@@ -353,7 +356,7 @@ export function publishValidatedMarketDataDelta(input) {
     },
   });
   return {
-    status: 'AUTHORITATIVE_DELTA_READY',
+    status: 'PUBLISHED',
     publicationManifestId: publication.publicationManifestId,
     deltaAssemblyManifestId: assembly.deltaAssemblyManifestId,
   };

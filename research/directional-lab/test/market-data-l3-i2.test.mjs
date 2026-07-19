@@ -21,6 +21,7 @@ import * as Source from '../src/contracts/marketDataSourceL3V1.mjs';
 import * as Calendar from '../src/contracts/marketCalendarL3V1.mjs';
 import * as Bar from '../src/contracts/marketDataBarIdentityL3V1.mjs';
 import { sha256Digest } from '../src/contracts/marketDataL3CommonV1.mjs';
+import { canonicalJsonBytes } from '../src/canonical/canonicalJsonV1.mjs';
 import { addDays } from '../src/time/civilDate.mjs';
 
 const I2_SCHEMAS = [
@@ -285,8 +286,29 @@ function validateAndPublish(store, set, view) {
   });
   const delta = Delta.publishValidatedMarketDataDelta({
     store, candidateSetId: set.candidateSetId, validationReportId: report.validationReportId,
+    baseView: view,
   });
   return { report, delta };
+}
+
+function putRevisionChild(store, graph, parentCorrectionId, overrides = {}) {
+  return putBaseCorrection(store, graph, {
+    correctionKind: 'VALUE_REVISION',
+    parentCorrectionId,
+    observationId: graph.ingestionPolicy.ingestionPolicyId,
+    restoredObservationId: null,
+    ...overrides,
+  });
+}
+
+function putWithdrawalChild(store, graph, parentCorrectionId, overrides = {}) {
+  return putBaseCorrection(store, graph, {
+    correctionKind: 'WITHDRAWAL',
+    parentCorrectionId,
+    observationId: null,
+    restoredObservationId: null,
+    ...overrides,
+  });
 }
 
 function putBaseCorrection(store, graph, overrides = {}) {
@@ -343,7 +365,7 @@ test('L3-I2 initial candidate flows losslessly through validation, publication a
   const set = buildSet(store, graph, [baseCandidate(graph)]);
   const { report, delta } = validateAndPublish(store, set, baseView(graph));
   assert.equal(report.validationReport.decisions[0].disposition, 'ACCEPTED');
-  assert.equal(delta.status, 'AUTHORITATIVE_DELTA_READY');
+  assert.equal(delta.status, 'PUBLISHED');
   const recovered = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
     store, deltaAssemblyManifestId: delta.deltaAssemblyManifestId,
   });
@@ -461,6 +483,7 @@ test('L3-I2 duplicates produce no publication manifest, chunk or assembly', () =
   const report = Candidate.validateMarketDataCandidateSet({ store, candidateSetId: set.candidateSetId, baseView: view });
   const result = Delta.publishValidatedMarketDataDelta({
     store, candidateSetId: set.candidateSetId, validationReportId: report.validationReportId,
+    baseView: view,
   });
   assert.deepEqual(result, {
     status: 'NO_AUTHORITATIVE_DELTA', publicationManifestId: null, deltaAssemblyManifestId: null,
@@ -520,13 +543,19 @@ test('L3-I2 rejects a foreign-lineage parent with MARKET_DATA_CORRECTION_LINEAGE
   assert.deepEqual(decision.reasonCodes, ['MARKET_DATA_CORRECTION_LINEAGE_MISMATCH']);
 }));
 
-test('L3-I2 rejects a visible non-terminal parent with MARKET_DATA_CORRECTION_STALE_PARENT', () => withStore((store) => {
+test('L3-I2 rejects a visible non-terminal parent with MARKET_DATA_BAR_REVISION_BRANCH', () => withStore((store) => {
   const graph = setupI2(store);
   const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent);
   const decision = decisionFor(store, graph, baseCandidate(graph, {
     candidateKind: 'BAR_VALUE_REVISION', targetCorrectionId: parent,
-  }), baseView(graph, { visibleCorrectionIds: [parent] }));
-  assert.deepEqual(decision.reasonCodes, ['MARKET_DATA_CORRECTION_STALE_PARENT']);
+    replacementValues: { ...VALUES, closeAtoms: '1125' },
+  }), baseView(graph, {
+    terminalCorrectionIds: [child],
+    visibleCorrectionIds: [parent, child].sort(),
+  }));
+  assert.equal(decision.disposition, 'CONFLICTING');
+  assert.deepEqual(decision.reasonCodes, ['MARKET_DATA_BAR_REVISION_BRANCH']);
 }));
 
 test('L3-I2 rejects two children of one parent with MARKET_DATA_BAR_REVISION_BRANCH', () => withStore((store) => {
@@ -623,6 +652,7 @@ test('L3-I2 fatal validation mixed with a duplicate fails publication with MARKE
   const graph = setupI2(store);
   const set = buildSet(store, graph, [baseCandidate(graph)]);
   const candidateId = set.candidateSet.candidateIds[0];
+  const view = baseView(graph, { duplicateCandidateIds: [candidateId] });
   const report = Candidate.buildMarketDataValidationReport({
     store,
     report: {
@@ -636,6 +666,7 @@ test('L3-I2 fatal validation mixed with a duplicate fails publication with MARKE
   });
   assert.throws(() => Delta.publishValidatedMarketDataDelta({
     store, candidateSetId: set.candidateSetId, validationReportId: report.validationReportId,
+    baseView: view,
   }), (error) => error.code === 'MARKET_DATA_VALIDATION_FAILED');
 }));
 
@@ -700,4 +731,441 @@ test('L3-I2 supports a deterministic multi-chunk delta whose exact union is ID-o
   });
   assert.equal(recovered.chunks.length, 2);
   assert.deepEqual(recovered.deltaAssemblyManifest.acceptedCorrectionIds, [withdrawalId, replacementId]);
+}));
+
+test('forged ACCEPTED report cannot override deterministic CONFLICTING validation', () => withStore((store) => {
+  const graph = setupI2(store);
+  const set = buildSet(store, graph, [baseCandidate(graph)]);
+  const view = baseView(graph, { occupiedBarIdentityIds: [graph.bars[0].barIdentityId] });
+  const honest = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: set.candidateSetId, baseView: view,
+  }).validationReport;
+  assert.equal(honest.decisions[0].disposition, 'CONFLICTING');
+  const forged = Candidate.buildMarketDataValidationReport({
+    store,
+    report: {
+      schemaVersion: Candidate.MARKET_DATA_VALIDATION_REPORT_SCHEMA_VERSION,
+      candidateSetId: set.candidateSetId,
+      ingestionPolicyId: graph.ingestionPolicy.ingestionPolicyId,
+      baseIngestionRegistryManifestId: view.baseIngestionRegistryManifestId,
+      expectedParentIngestionManifestId: view.expectedParentIngestionManifestId,
+      decisions: [{
+        candidateId: set.candidateSet.candidateIds[0], disposition: 'ACCEPTED', reasonCodes: [],
+      }],
+      fatalErrors: [], warnings: [],
+    },
+  });
+  assert.throws(() => Delta.publishValidatedMarketDataDelta({
+    store, candidateSetId: set.candidateSetId, validationReportId: forged.validationReportId, baseView: view,
+  }), (error) => error.code === 'MARKET_DATA_VALIDATION_FAILED');
+}));
+
+test('visible child makes its parent non-terminal and blocks a second branch', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent);
+  const set = buildSet(store, graph, [baseCandidate(graph, {
+    candidateKind: 'BAR_VALUE_REVISION', targetCorrectionId: parent,
+    replacementValues: { ...VALUES, closeAtoms: '1180' },
+  })]);
+  const wrongTerminals = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: set.candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [parent],
+      visibleCorrectionIds: [parent, child].sort(),
+    }),
+  }).validationReport;
+  assert.ok(wrongTerminals.fatalErrors.includes('MARKET_DATA_BAR_REVISION_BRANCH'));
+  assert.equal(wrongTerminals.decisions.every((item) => item.disposition !== 'ACCEPTED'), true);
+  const validated = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: set.candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [child],
+      visibleCorrectionIds: [parent, child].sort(),
+    }),
+  });
+  assert.equal(validated.validationReport.decisions[0].disposition, 'CONFLICTING');
+  assert.deepEqual(validated.validationReport.decisions[0].reasonCodes, ['MARKET_DATA_BAR_REVISION_BRANCH']);
+  const published = Delta.publishValidatedMarketDataDelta({
+    store, candidateSetId: set.candidateSetId, validationReportId: validated.validationReportId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [child],
+      visibleCorrectionIds: [parent, child].sort(),
+    }),
+  });
+  assert.deepEqual(published, {
+    status: 'NO_AUTHORITATIVE_DELTA', publicationManifestId: null, deltaAssemblyManifestId: null,
+  });
+}));
+
+test('restoration must restore the effective observation immediately preceding withdrawal', () => withStore((store) => {
+  const graph = setupI2(store);
+  const initial = validateAndPublish(store, buildSet(store, graph, [baseCandidate(graph)]), baseView(graph));
+  const initialCorrectionId = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: initial.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedCorrectionIds[0];
+  const revision = validateAndPublish(store, buildSet(store, graph, [baseCandidate(graph, {
+    candidateKind: 'BAR_VALUE_REVISION', targetCorrectionId: initialCorrectionId,
+    replacementValues: { ...VALUES, closeAtoms: '1150' },
+  })]), baseView(graph, {
+    terminalCorrectionIds: [initialCorrectionId], visibleCorrectionIds: [initialCorrectionId],
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  const revisionAssembly = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: revision.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest;
+  const revisionCorrectionId = revisionAssembly.acceptedCorrectionIds[0];
+  const o1 = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: initial.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedObservationIds[0];
+  const o2Independent = store.putCanonicalObject({
+    namespace: 'snapshots',
+    schemaVersion: Revision.MARKET_DATA_BAR_OBSERVATION_CORE_SCHEMA_VERSION,
+    value: Revision.normalizeMarketDataBarObservationCoreV1({
+      schemaVersion: Revision.MARKET_DATA_BAR_OBSERVATION_CORE_SCHEMA_VERSION,
+      ingestionLineageId: graph.lineage.ingestionLineageId,
+      barIdentityId: graph.bars[0].barIdentityId,
+      sourceArtifactId: graph.artifact.sourceArtifactId,
+      acquisitionRecordId: graph.acquisition.acquisitionRecordId,
+      parseResultId: graph.parseResult.parseResultId,
+      sourceRowIndex: 0,
+      sourceRowDigest: graph.parseResult.parseResult.rows[0].rowDigest,
+      values: { ...VALUES, closeAtoms: '1199' },
+      calendarRegistryManifestId: graph.calendarRegistry.calendarRegistryManifestId,
+      marketValidTime: '2026-01-02T21:00:00.000Z',
+      knowledgeMode: 'CAPTURE_TIME_ONLY',
+      knowledgeTimeLowerBound: null,
+      knowledgeTimeUpperBound: '2026-01-07T00:00:00.000Z',
+      sourceTimestampEvidenceId: null,
+      providerRevisionId: null,
+    }),
+  }).objectId;
+  assert.notEqual(o2Independent, o1);
+  assert.notEqual(o2Independent, revisionAssembly.acceptedObservationIds[0]);
+  const withdrawalCandidate = { ...baseCandidate(graph), candidateKind: 'BAR_WITHDRAWAL',
+    targetCorrectionId: revisionCorrectionId };
+  delete withdrawalCandidate.replacementValues;
+  const withdrawal = validateAndPublish(store, buildSet(store, graph, [withdrawalCandidate]), baseView(graph, {
+    terminalCorrectionIds: [revisionCorrectionId],
+    visibleCorrectionIds: [initialCorrectionId, revisionCorrectionId].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  const withdrawalCorrectionId = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: withdrawal.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedCorrectionIds[0];
+  const restorationCandidate = { ...baseCandidate(graph), candidateKind: 'BAR_RESTORATION',
+    targetWithdrawalCorrectionId: withdrawalCorrectionId, restoredObservationId: o2Independent };
+  delete restorationCandidate.targetCorrectionId;
+  delete restorationCandidate.replacementValues;
+  const decision = decisionFor(store, graph, restorationCandidate, baseView(graph, {
+    terminalCorrectionIds: [withdrawalCorrectionId],
+    visibleCorrectionIds: [initialCorrectionId, revisionCorrectionId, withdrawalCorrectionId].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  assert.deepEqual(decision.reasonCodes, ['MARKET_DATA_CORRECTION_CHAIN_INVALID']);
+}));
+
+test('restoration of the exact effective pre-withdrawal observation succeeds', () => withStore((store) => {
+  const graph = setupI2(store);
+  const initial = validateAndPublish(store, buildSet(store, graph, [baseCandidate(graph)]), baseView(graph));
+  const initialCorrectionId = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: initial.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedCorrectionIds[0];
+  const revision = validateAndPublish(store, buildSet(store, graph, [baseCandidate(graph, {
+    candidateKind: 'BAR_VALUE_REVISION', targetCorrectionId: initialCorrectionId,
+    replacementValues: { ...VALUES, closeAtoms: '1150' },
+  })]), baseView(graph, {
+    terminalCorrectionIds: [initialCorrectionId], visibleCorrectionIds: [initialCorrectionId],
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  const revisionAssembly = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: revision.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest;
+  const revisionCorrectionId = revisionAssembly.acceptedCorrectionIds[0];
+  const withdrawalCandidate = { ...baseCandidate(graph), candidateKind: 'BAR_WITHDRAWAL',
+    targetCorrectionId: revisionCorrectionId };
+  delete withdrawalCandidate.replacementValues;
+  const withdrawal = validateAndPublish(store, buildSet(store, graph, [withdrawalCandidate]), baseView(graph, {
+    terminalCorrectionIds: [revisionCorrectionId],
+    visibleCorrectionIds: [initialCorrectionId, revisionCorrectionId].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  const withdrawalCorrectionId = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: withdrawal.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedCorrectionIds[0];
+  const restorationCandidate = { ...baseCandidate(graph), candidateKind: 'BAR_RESTORATION',
+    targetWithdrawalCorrectionId: withdrawalCorrectionId,
+    restoredObservationId: revisionAssembly.acceptedObservationIds[0] };
+  delete restorationCandidate.targetCorrectionId;
+  delete restorationCandidate.replacementValues;
+  const restoration = validateAndPublish(store, buildSet(store, graph, [restorationCandidate]), baseView(graph, {
+    terminalCorrectionIds: [withdrawalCorrectionId],
+    visibleCorrectionIds: [initialCorrectionId, revisionCorrectionId, withdrawalCorrectionId].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  assert.equal(restoration.delta.status, 'PUBLISHED');
+}));
+
+test('validation report with fatal errors cannot contain accepted decisions', () => {
+  const report = {
+    schemaVersion: Candidate.MARKET_DATA_VALIDATION_REPORT_SCHEMA_VERSION,
+    candidateSetId: `sha256:${'a'.repeat(64)}`,
+    ingestionPolicyId: `sha256:${'b'.repeat(64)}`,
+    baseIngestionRegistryManifestId: `sha256:${'c'.repeat(64)}`,
+    expectedParentIngestionManifestId: null,
+    decisions: [{
+      candidateId: `sha256:${'d'.repeat(64)}`, disposition: 'ACCEPTED', reasonCodes: [],
+    }],
+    fatalErrors: ['MARKET_DATA_CORRECTION_CHAIN_INVALID'],
+    warnings: [],
+  };
+  assert.throws(() => Candidate.normalizeMarketDataValidationReportV1(report),
+    (error) => error.code === 'MARKET_DATA_VALIDATION_FAILED');
+});
+
+test('successful authoritative delta returns PUBLISHED', () => withStore((store) => {
+  const graph = setupI2(store);
+  const { delta } = validateAndPublish(store, buildSet(store, graph, [baseCandidate(graph)]), baseView(graph));
+  assert.equal(delta.status, 'PUBLISHED');
+  assert.notEqual(delta.status, 'AUTHORITATIVE_DELTA_READY');
+  assert.match(JSON.stringify(delta), /"status":"PUBLISHED"/);
+  assert.doesNotMatch(JSON.stringify(delta), /AUTHORITATIVE_DELTA_READY/);
+}));
+
+test('L3-I2 terminal list missing a leaf fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent);
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [],
+      visibleCorrectionIds: [parent, child].sort(),
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_CORRECTION_CHAIN_INVALID'));
+  assert.equal(report.decisions.every((item) => item.disposition !== 'ACCEPTED'), true);
+}));
+
+test('L3-I2 terminal list with a non-terminal parent added fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent);
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [parent, child].sort(),
+      visibleCorrectionIds: [parent, child].sort(),
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_BAR_REVISION_BRANCH'));
+}));
+
+test('L3-I2 terminal list with a foreign ID fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const foreign = `sha256:${'e'.repeat(64)}`;
+  assert.throws(() => Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [foreign],
+      visibleCorrectionIds: [parent],
+    }),
+  }), (error) => error.code === 'MARKET_DATA_VALIDATION_FAILED');
+}));
+
+test('L3-I2 visible child of another lineage fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent, {
+    ingestionLineageId: `sha256:${'f'.repeat(64)}`,
+  });
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [child],
+      visibleCorrectionIds: [parent, child].sort(),
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_CORRECTION_LINEAGE_MISMATCH'));
+}));
+
+test('L3-I2 visible child of another bar fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent, {
+    barIdentityId: graph.bars[1].barIdentityId,
+  });
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [child],
+      visibleCorrectionIds: [parent, child].sort(),
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_CORRECTION_PARENT_MISMATCH'));
+}));
+
+test('L3-I2 two visible children of the same parent fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const childA = putRevisionChild(store, graph, parent, {
+    observationId: graph.calendarRegistry.calendarRegistryManifestId,
+  });
+  const childB = putRevisionChild(store, graph, parent, {
+    observationId: graph.artifact.sourceArtifactId,
+  });
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [childA, childB].sort(),
+      visibleCorrectionIds: [parent, childA, childB].sort(),
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_BAR_REVISION_BRANCH'));
+}));
+
+test('L3-I2 visible parent missing from the closure fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const parent = putBaseCorrection(store, graph);
+  const child = putRevisionChild(store, graph, parent);
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [child],
+      visibleCorrectionIds: [child],
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_CORRECTION_PARENT_MISMATCH'));
+}));
+
+test('L3-I2 indirect correction cycle fails closed', () => withStore((baseStore) => {
+  const graph = setupI2(baseStore);
+  const idA = `sha256:${'1'.repeat(64)}`;
+  const idB = `sha256:${'2'.repeat(64)}`;
+  const idC = `sha256:${'3'.repeat(64)}`;
+  const cyclicValue = (parentCorrectionId) => Revision.normalizeMarketDataBarCorrectionCoreV1({
+    schemaVersion: Revision.MARKET_DATA_BAR_CORRECTION_CORE_SCHEMA_VERSION,
+    correctionKind: 'VALUE_REVISION',
+    ingestionLineageId: graph.lineage.ingestionLineageId,
+    barIdentityId: graph.bars[0].barIdentityId,
+    parentCorrectionId,
+    observationId: graph.ingestionPolicy.ingestionPolicyId,
+    restoredObservationId: null,
+    sessionDateLink: null,
+    sourceArtifactId: graph.artifact.sourceArtifactId,
+    acquisitionRecordId: graph.acquisition.acquisitionRecordId,
+    parseResultId: graph.parseResult.parseResultId,
+    sourceRowIndex: 0,
+    sourceRowDigest: graph.parseResult.parseResult.rows[0].rowDigest,
+    knowledgeMode: 'CAPTURE_TIME_ONLY',
+    knowledgeTimeLowerBound: null,
+    knowledgeTimeUpperBound: '2026-01-07T00:00:00.000Z',
+    sourceTimestampEvidenceId: null,
+    providerRevisionId: null,
+  });
+  const overlay = new Map([
+    [idA, cyclicValue(idC)],
+    [idB, cyclicValue(idA)],
+    [idC, cyclicValue(idB)],
+  ]);
+  const store = {
+    root: baseStore.root,
+    uriForObject: (input) => baseStore.uriForObject(input),
+    putSourceBytes: (bytes) => baseStore.putSourceBytes(bytes),
+    putCanonicalObject: (input) => baseStore.putCanonicalObject(input),
+    verifyObject: (input) => baseStore.verifyObject(input),
+    readObject(input) {
+      if (overlay.has(input.expectedObjectId)) {
+        const bytes = canonicalJsonBytes(overlay.get(input.expectedObjectId));
+        return { bytes, objectId: input.expectedObjectId, uri: input.uri, sizeBytes: bytes.length };
+      }
+      return baseStore.readObject(input);
+    },
+    readCanonicalObject(input) {
+      if (overlay.has(input.expectedObjectId)) {
+        return {
+          objectId: input.expectedObjectId, uri: input.uri,
+          value: overlay.get(input.expectedObjectId), bytes: Buffer.alloc(0), sizeBytes: 0,
+        };
+      }
+      return baseStore.readCanonicalObject(input);
+    },
+  };
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: buildSet(store, graph, [baseCandidate(graph)]).candidateSetId,
+    baseView: baseView(graph, {
+      terminalCorrectionIds: [],
+      visibleCorrectionIds: [idA, idB, idC].sort(),
+      occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+    }),
+  }).validationReport;
+  assert.ok(report.fatalErrors.includes('MARKET_DATA_CORRECTION_CHAIN_INVALID'));
+}));
+
+test('L3-I2 restoration after a previous restoration requires a withdrawal parent', () => withStore((store) => {
+  const graph = setupI2(store);
+  const initial = validateAndPublish(store, buildSet(store, graph, [baseCandidate(graph)]), baseView(graph));
+  const initialAssembly = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: initial.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest;
+  const initialCorrectionId = initialAssembly.acceptedCorrectionIds[0];
+  const withdrawalCandidate = { ...baseCandidate(graph), candidateKind: 'BAR_WITHDRAWAL',
+    targetCorrectionId: initialCorrectionId };
+  delete withdrawalCandidate.replacementValues;
+  const withdrawal = validateAndPublish(store, buildSet(store, graph, [withdrawalCandidate]), baseView(graph, {
+    terminalCorrectionIds: [initialCorrectionId], visibleCorrectionIds: [initialCorrectionId],
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  const withdrawalCorrectionId = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: withdrawal.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedCorrectionIds[0];
+  const restorationCandidate = { ...baseCandidate(graph), candidateKind: 'BAR_RESTORATION',
+    targetWithdrawalCorrectionId: withdrawalCorrectionId,
+    restoredObservationId: initialAssembly.acceptedObservationIds[0] };
+  delete restorationCandidate.targetCorrectionId;
+  delete restorationCandidate.replacementValues;
+  const restoration = validateAndPublish(store, buildSet(store, graph, [restorationCandidate]), baseView(graph, {
+    terminalCorrectionIds: [withdrawalCorrectionId],
+    visibleCorrectionIds: [initialCorrectionId, withdrawalCorrectionId].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  const restorationCorrectionId = Delta.recoverNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: restoration.delta.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest.acceptedCorrectionIds[0];
+  const second = { ...baseCandidate(graph), candidateKind: 'BAR_RESTORATION',
+    targetWithdrawalCorrectionId: restorationCorrectionId,
+    restoredObservationId: initialAssembly.acceptedObservationIds[0] };
+  delete second.targetCorrectionId;
+  delete second.replacementValues;
+  const decision = decisionFor(store, graph, second, baseView(graph, {
+    terminalCorrectionIds: [restorationCorrectionId],
+    visibleCorrectionIds: [initialCorrectionId, withdrawalCorrectionId, restorationCorrectionId].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  assert.deepEqual(decision.reasonCodes, ['MARKET_DATA_CORRECTION_CHAIN_INVALID']);
+}));
+
+test('L3-I2 restoration when the prior state is already withdrawn fails closed', () => withStore((store) => {
+  const graph = setupI2(store);
+  const root = putBaseCorrection(store, graph);
+  const firstWithdrawal = putWithdrawalChild(store, graph, root);
+  const secondWithdrawal = putWithdrawalChild(store, graph, firstWithdrawal);
+  const candidate = { ...baseCandidate(graph), candidateKind: 'BAR_RESTORATION',
+    targetWithdrawalCorrectionId: secondWithdrawal,
+    restoredObservationId: graph.ingestionPolicy.ingestionPolicyId };
+  delete candidate.targetCorrectionId;
+  delete candidate.replacementValues;
+  const decision = decisionFor(store, graph, candidate, baseView(graph, {
+    terminalCorrectionIds: [secondWithdrawal],
+    visibleCorrectionIds: [root, firstWithdrawal, secondWithdrawal].sort(),
+    occupiedBarIdentityIds: [graph.bars[0].barIdentityId],
+  }));
+  assert.deepEqual(decision.reasonCodes, ['MARKET_DATA_CORRECTION_CHAIN_INVALID']);
 }));

@@ -22,7 +22,18 @@ import {
   MARKET_DATA_INGESTION_PRICE_BASES,
   MARKET_DATA_TEMPORAL_CAPABILITIES,
 } from './marketDataIngestionRegistryL3V1.mjs';
-import { MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1 } from './marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
+import {
+  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1,
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1,
+  extractMarketVolumeStructureFeaturePolicyValuesV1,
+} from './marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
+
+export {
+  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1,
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1,
+  extractMarketVolumeStructureFeaturePolicyValuesV1,
+  findClosedMarketVolumeStructureFeaturePolicyMismatchPathV1,
+} from './marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
 
 export const MARKET_VOLUME_STRUCTURE_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION =
   'MarketVolumeStructureFeatureSourceBundle/1';
@@ -208,21 +219,6 @@ const REPORT_FIELDS = Object.freeze([
   'detectedGapCount', 'openGapCount',
 ]);
 
-/** Deep equality for closed policy values (strings, ints, fixed, arrays). */
-function closedValueEquals(expected, actual) {
-  if (Array.isArray(expected)) {
-    return Array.isArray(actual) && expected.length === actual.length
-      && expected.every((item, index) => closedValueEquals(item, actual[index]));
-  }
-  if (expected !== null && typeof expected === 'object') {
-    if (actual === null || typeof actual !== 'object' || Array.isArray(actual)) return false;
-    const expectedKeys = Object.keys(expected);
-    return expectedKeys.length === Object.keys(actual).length
-      && expectedKeys.every((key) => closedValueEquals(expected[key], actual[key]));
-  }
-  return expected === actual;
-}
-
 /** Rebuild a mutable canonical copy of a closed policy value. */
 function copyClosedValue(value) {
   if (Array.isArray(value)) return value.map(copyClosedValue);
@@ -274,15 +270,9 @@ export function normalizeMarketVolumeStructureFeatureComputationPolicyV1(value) 
   const policy = assertPlainObject(value, MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION);
   assertSchemaVersion(policy, MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION);
   assertExactFields(policy, POLICY_FIELDS);
-  for (const field of Object.keys(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES)) {
-    const expected = MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES[field];
-    if (!closedValueEquals(expected, policy[field])) {
-      throw new MarketDataL3Error(
-        'MARKET_DATA_INPUT_INVALID', `policy field ${field} must be the closed V1 value`,
-        { field, expected, actual: policy[field] },
-      );
-    }
-  }
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(
+    extractMarketVolumeStructureFeaturePolicyValuesV1(policy),
+  );
   const normalized = { schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION };
   for (const field of Object.keys(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES)) {
     normalized[field] = copyClosedValue(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES[field]);

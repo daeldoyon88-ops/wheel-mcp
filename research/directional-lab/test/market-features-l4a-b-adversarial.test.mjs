@@ -190,6 +190,29 @@ test('L4A-B adversarial oracle imports no production fixed-point helper or polic
   )].map((match) => match[1]);
   assert.equal(importSpecifiers.some((specifier) => specifier.includes('fixedPointFeatureMath')), false);
   assert.equal(importStatements.join('\n').includes('MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES'), false);
+  assert.equal(importSpecifiers.some((specifier) => /fixedPointFeatureMathL4V1/.test(specifier)), false);
+  const forbiddenImportNames = ['divideRoundHalfEven', 'fixedToCanonical', 'powerOfTen', 'availableFixedCell'];
+  for (const name of forbiddenImportNames) {
+    assert.equal(
+      importStatements.some((statement) => new RegExp(`\\b${name}\\b`).test(statement)),
+      false,
+      name,
+    );
+  }
+  const oracleStart = harnessSource.lastIndexOf('function independentPowerOfTen(scale) {');
+  const oracleEnd = harnessSource.lastIndexOf("const ID = 'sha256:' + 'a'.repeat(64);");
+  assert.ok(oracleStart > 0 && oracleEnd > oracleStart);
+  const expectedOracleSource = harnessSource.slice(oracleStart, oracleEnd);
+  assert.equal(expectedOracleSource.includes('referenceNearestEvenQuotient'), true);
+  assert.equal(expectedOracleSource.includes('distanceToLower'), true);
+  assert.equal(expectedOracleSource.includes('distanceToUpper'), true);
+  assert.equal(expectedOracleSource.includes('independentDivideRoundHalfEven'), false);
+  assert.equal(expectedOracleSource.includes('twiceRemainder'), false);
+  assert.equal(expectedOracleSource.includes('absoluteRemainder * 2n'), false);
+  assert.equal(expectedOracleSource.includes('const twice = absoluteRemainder * 2n'), false);
+  assert.equal(expectedOracleSource.includes('const quotient = n / d'), false);
+  assert.equal(expectedOracleSource.includes('const remainder = n % d'), false);
+  assert.equal(expectedOracleSource.includes('fixedPointFeatureMathL4V1'), false);
 });
 
 for (const size of [250, 1000, 5000, 10000]) {
@@ -258,26 +281,29 @@ function independentPowerOfTen(scale) {
   for (let index = 0; index < scale; index += 1) value *= 10n;
   return value;
 }
-function independentDivideRoundHalfEven(numerator, denominator) {
+// Independent half-even oracle: absolute nearest-candidate distances + even tie,
+// structurally distinct from the production remainder-doubling comparison path.
+function referenceNearestEvenQuotient(numerator, denominator) {
   if (typeof numerator !== 'bigint' || typeof denominator !== 'bigint' || denominator === 0n) {
-    throw new RangeError('independent HALF_EVEN requires BigInt and a non-zero denominator');
+    throw new RangeError('reference nearest-even quotient requires BigInt and a non-zero denominator');
   }
-  let n = numerator; let d = denominator;
-  if (d < 0n) { n = -n; d = -d; }
-  const quotient = n / d;
-  const remainder = n % d;
-  const absoluteRemainder = remainder < 0n ? -remainder : remainder;
-  const twice = absoluteRemainder * 2n;
-  if (twice < d) return quotient;
-  const direction = n < 0n ? -1n : 1n;
-  if (twice > d) return quotient + direction;
-  const absoluteQuotient = quotient < 0n ? -quotient : quotient;
-  return absoluteQuotient % 2n === 0n ? quotient : quotient + direction;
+  const resultIsNegative = (numerator < 0n) !== (denominator < 0n);
+  const absoluteNumerator = numerator < 0n ? -numerator : numerator;
+  const absoluteDenominator = denominator < 0n ? -denominator : denominator;
+  const lowerCandidate = absoluteNumerator / absoluteDenominator;
+  const upperCandidate = lowerCandidate + 1n;
+  const distanceToLower = absoluteNumerator - lowerCandidate * absoluteDenominator;
+  const distanceToUpper = upperCandidate * absoluteDenominator - absoluteNumerator;
+  let absoluteChosen;
+  if (distanceToLower < distanceToUpper) absoluteChosen = lowerCandidate;
+  else if (distanceToUpper < distanceToLower) absoluteChosen = upperCandidate;
+  else absoluteChosen = (lowerCandidate % 2n === 0n) ? lowerCandidate : upperCandidate;
+  return resultIsNegative ? -absoluteChosen : absoluteChosen;
 }
 function independentRescale(atoms, fromScale, toScale) {
   if (fromScale === toScale) return atoms;
   if (fromScale < toScale) return atoms * independentPowerOfTen(toScale - fromScale);
-  return independentDivideRoundHalfEven(atoms, independentPowerOfTen(fromScale - toScale));
+  return referenceNearestEvenQuotient(atoms, independentPowerOfTen(fromScale - toScale));
 }
 function independentFixedToCanonical(value, outputScale) {
   const atoms = independentRescale(value.atoms, value.scale, outputScale);
@@ -286,7 +312,7 @@ function independentFixedToCanonical(value, outputScale) {
 function independentTo12(atoms24) {
   return independentFixedToCanonical({ atoms: atoms24, scale: 24 }, 12).atoms;
 }
-function he(num, den) { return independentDivideRoundHalfEven(num, den); }
+function he(num, den) { return referenceNearestEvenQuotient(num, den); }
 function to12(atoms24) { return independentTo12(atoms24); }
 const UNIT = independentPowerOfTen(24);
 
@@ -316,13 +342,45 @@ const manualPrimitiveVectors = [
   ['large_exact', () => he(999999999999999999999999999999n, 3n), 333333333333333333333333333333n],
   ['large_above_half', () => he(1000000000000000000000000000001n, 3n), 333333333333333333333333333334n],
   ['fib_236', () => he(1000n * 236n, 1000n), 236n],
+  ['fib_382', () => he(1000n * 382n, 1000n), 382n],
+  ['fib_500', () => he(1000n * 500n, 1000n), 500n],
+  ['fib_618', () => he(1000n * 618n, 1000n), 618n],
+  ['fib_786', () => he(1000n * 786n, 1000n), 786n],
   ['threshold_5_1000', () => he(1000n * 5n, 1000n), 5n],
   ['threshold_25_100', () => he(100n * 25n, 100n), 25n],
   ['threshold_15_10', () => he(10n * 15n, 10n), 15n],
   ['threshold_30_100', () => he(100n * 30n, 100n), 30n],
+  ['ratio_4_1', () => he(4n, 1n), 4n],
+  ['ratio_236_1000', () => he(236n, 1000n), 0n],
+  ['ratio_382_1000', () => he(382n, 1000n), 0n],
+  ['ratio_500_1000', () => he(500n, 1000n), 0n],
+  ['ratio_618_1000', () => he(618n, 1000n), 1n],
+  ['ratio_786_1000', () => he(786n, 1000n), 1n],
+  ['exact_one', () => he(100n, 100n), 1n],
+  ['below_half_small', () => he(1n, 4n), 0n],
+  ['above_half_small', () => he(3n, 4n), 1n],
+  ['tie_to_even_zero', () => he(1n, 2n), 0n],
+  ['tie_to_even_two', () => he(5n, 2n), 2n],
+  ['tie_to_even_neg_zero', () => he(-1n, 2n), 0n],
+  ['large_below_half', () => he(1000000000000000000000000000000n, 3n), 333333333333333333333333333333n],
+  ['scale_preserve', () => independentRescale(42n, 7, 7), 42n],
+  ['scale_up_zero', () => independentRescale(0n, 0, 12), 0n],
+  ['scale_down_below_half', () => independentRescale(1249n, 3, 1), 12n],
+  ['scale_down_above_half', () => independentRescale(1260n, 3, 1), 13n],
   ['canonical_zero', () => independentFixedToCanonical({ atoms: 0n, scale: 24 }, 12).atoms, '0'],
   ['canonical_positive', () => independentFixedToCanonical({ atoms: 1234500000000000n, scale: 15 }, 12).atoms, '1234500000000'],
   ['canonical_negative', () => independentFixedToCanonical({ atoms: -1234500000000000n, scale: 15 }, 12).atoms, '-1234500000000'],
+  ['to12_exact', () => to12(123456789012n * independentPowerOfTen(12)), '123456789012'],
+  ['to12_tie_even', () => to12(125n * independentPowerOfTen(11)), '12'],
+  ['to12_tie_odd', () => to12(135n * independentPowerOfTen(11)), '14'],
+  ['denom_neg_exact', () => he(9n, -3n), -3n],
+  ['num_zero_neg_den', () => he(0n, -5n), 0n],
+  ['near_half_pos', () => he(10n, 6n), 2n],
+  ['near_half_neg', () => he(-10n, 6n), -2n],
+  ['big_tie_even', () => he(1000000000000000000000000000005n, 2n), 500000000000000000000000000002n],
+  ['big_tie_odd', () => he(1000000000000000000000000000003n, 2n), 500000000000000000000000000002n],
+  ['fib_scale_236', () => independentRescale(236n, 3, 3), 236n],
+  ['fib_scale_786', () => independentRescale(786n, 3, 0), 1n],
 ];
 for (const [name, compute, expected] of manualPrimitiveVectors) {
   ok('independent_primitive_' + name, () => assert.equal(compute(), expected));

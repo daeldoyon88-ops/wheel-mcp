@@ -4,6 +4,9 @@ import { test } from 'node:test';
 import {
   MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
   MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES,
+  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1,
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1,
+  normalizeMarketVolumeStructureFeatureComputationPolicyV1,
 } from '../src/contracts/marketVolumeStructureFeatureComputationL4V1.mjs';
 import { MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1 } from '../src/contracts/marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
 import {
@@ -20,7 +23,10 @@ import { computeSupportResistanceFeatures } from '../src/features/supportResista
 import { computeGapBreakoutFeatures } from '../src/features/gapBreakoutFeaturesL4V1.mjs';
 import { computeCongestionFeatures } from '../src/features/congestionFeaturesL4V1.mjs';
 import { computeFibonacciFeatures } from '../src/features/fibonacciStructureFeaturesL4V1.mjs';
-import { buildMarketVolumeStructureFeatureComputationPolicy } from '../src/features/computeMarketVolumeStructureFeaturesL4V1.mjs';
+import {
+  buildMarketVolumeStructureFeatureComputationPolicy,
+  verifyMarketVolumeStructureFeatureComputationPolicy,
+} from '../src/features/computeMarketVolumeStructureFeaturesL4V1.mjs';
 import {
   makeTechnicalCellsFromBars,
   makeVolumeBars,
@@ -362,4 +368,374 @@ test('L4A-B README records policy authority, independent oracle, empty snapshots
     "pas un véritable VWAP intraday", "l'OBV reste relatif au début du\nsnapshot",
     "L4A-C n'est pas implémenté", "n'est connectée\nau scanner",
   ]) assert.equal(readme.includes(required), true, required);
+});
+
+function deepClonePolicyValues(value) {
+  if (Array.isArray(value)) return value.map(deepClonePolicyValues);
+  if (value !== null && typeof value === 'object') {
+    const copy = {};
+    for (const key of Object.keys(value)) copy[key] = deepClonePolicyValues(value[key]);
+    return copy;
+  }
+  return value;
+}
+
+function fullPolicyFromValues(values) {
+  return {
+    schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+    ...values,
+  };
+}
+
+function assertClosedRefusal(mutatedValues, expectedPath) {
+  const errMatcher = (error) => {
+    assert.equal(error.code, MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1);
+    assert.equal(error.details.path, expectedPath);
+    assert.equal(error.message.includes(expectedPath), true);
+    return true;
+  };
+  assert.throws(
+    () => assertClosedMarketVolumeStructureFeaturePolicyValuesV1(mutatedValues),
+    errMatcher,
+  );
+  assert.throws(
+    () => normalizeMarketVolumeStructureFeatureComputationPolicyV1(fullPolicyFromValues(mutatedValues)),
+    errMatcher,
+  );
+  assert.throws(
+    () => deriveMarketVolumeStructureRuntimePolicyV1(fullPolicyFromValues(mutatedValues)),
+    errMatcher,
+  );
+}
+
+test('L4A-B closed policy gate accepts canon, deep copies, reordered keys and frozen values', () => {
+  const canon = MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1;
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(canon);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(deepClonePolicyValues(canon));
+  const reorderedRoot = {};
+  for (const key of Object.keys(canon).reverse()) reorderedRoot[key] = deepClonePolicyValues(canon[key]);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(reorderedRoot);
+  const nested = deepClonePolicyValues(canon);
+  nested.levelToleranceAtrMultiplier = {
+    scale: nested.levelToleranceAtrMultiplier.scale,
+    atoms: nested.levelToleranceAtrMultiplier.atoms,
+  };
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(nested);
+  const normalized = normalizeMarketVolumeStructureFeatureComputationPolicyV1(fullPolicyFromValues(canon));
+  const { schemaVersion, ...normalizedValues } = normalized;
+  assert.equal(schemaVersion, MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(normalizedValues);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(normalizedValues);
+  const frozenCopy = deepClonePolicyValues(canon);
+  Object.freeze(frozenCopy);
+  Object.freeze(frozenCopy.fibonacciRatios);
+  Object.freeze(frozenCopy.fibonacciRatios[0]);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(frozenCopy);
+  const mutableIdentical = deepClonePolicyValues(canon);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(mutableIdentical);
+  deriveMarketVolumeStructureRuntimePolicyV1(fullPolicyFromValues(reorderedRoot));
+  deriveMarketVolumeStructureRuntimePolicyV1(normalized);
+});
+
+test('L4A-B closed policy gate emits deterministic errors for identical mismatches', () => {
+  const left = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+  const right = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+  left.mfiPeriod = 13;
+  right.mfiPeriod = 13;
+  let first;
+  let second;
+  try { assertClosedMarketVolumeStructureFeaturePolicyValuesV1(left); }
+  catch (error) { first = error; }
+  try { assertClosedMarketVolumeStructureFeaturePolicyValuesV1(right); }
+  catch (error) { second = error; }
+  assert.equal(first.code, second.code);
+  assert.equal(first.message, second.message);
+  assert.equal(first.details.path, '$.mfiPeriod');
+});
+
+test('L4A-B deriver refuses the exact audit drift proofs', () => {
+  const base = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+  const proofs = [
+    [{ ...base, mfiPeriod: 13 }, '$.mfiPeriod'],
+    [{ ...base, volumePercentileWindow: 3 }, '$.volumePercentileWindow'],
+    [{ ...base, pivotRadius: 4 }, '$.pivotRadius'],
+    [{ ...base, pivotConfirmationDelay: 4 }, '$.pivotConfirmationDelay'],
+    [{
+      ...base,
+      fibonacciRatios: [{ atoms: '100', scale: 3 }],
+    }, '$.fibonacciRatios'],
+  ];
+  for (const [mutated, path] of proofs) {
+    assert.throws(
+      () => deriveMarketVolumeStructureRuntimePolicyV1(fullPolicyFromValues(mutated)),
+      (error) => {
+        assert.equal(error.code, MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1);
+        assert.equal(error.details.path, path);
+        return true;
+      },
+    );
+  }
+});
+
+test('L4A-B verifier shares the closed policy gate with the normalizer', () => withStore((store) => {
+  const built = buildMarketVolumeStructureFeatureComputationPolicy({ store });
+  const verified = verifyMarketVolumeStructureFeatureComputationPolicy({
+    store,
+    volumeStructureFeatureComputationPolicyId: built.volumeStructureFeatureComputationPolicyId,
+  });
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(
+    Object.fromEntries(
+      Object.keys(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1).map((key) => [
+        key, verified.verifiedPolicy[key],
+      ]),
+    ),
+  );
+  const drift = {
+    ...verified.verifiedPolicy,
+    mfiPeriod: 13,
+  };
+  assert.throws(
+    () => normalizeMarketVolumeStructureFeatureComputationPolicyV1(drift),
+    (error) => error.code === MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1,
+  );
+  assert.throws(
+    () => deriveMarketVolumeStructureRuntimePolicyV1(drift),
+    (error) => error.code === MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1,
+  );
+}));
+
+const FIELD_MUTATIONS = [
+  ['numericRepresentation', (v) => { v.numericRepresentation = 'FLOAT64'; return '$.numericRepresentation'; }],
+  ['internalScale', (v) => { v.internalScale = 23; return '$.internalScale'; }],
+  ['ratioScale', (v) => { v.ratioScale = 11; return '$.ratioScale'; }],
+  ['priceScale', (v) => { v.priceScale = 11; return '$.priceScale'; }],
+  ['roundingMode', (v) => { v.roundingMode = 'HALF_UP'; return '$.roundingMode'; }],
+  ['rowOrdering', (v) => { v.rowOrdering = 'BAR_IDENTITY_ONLY'; return '$.rowOrdering'; }],
+  ['futureDataPolicy', (v) => { v.futureDataPolicy = 'ALLOWED'; return '$.futureDataPolicy'; }],
+  ['missingHistoryPolicy', (v) => { v.missingHistoryPolicy = 'THROW'; return '$.missingHistoryPolicy'; }],
+  ['volumeBaseline20', (v) => { v.volumeBaseline20 = 'INCLUDING_CURRENT'; return '$.volumeBaseline20'; }],
+  ['volumeBaseline50', (v) => { v.volumeBaseline50 = 'INCLUDING_CURRENT'; return '$.volumeBaseline50'; }],
+  ['volumePercentileWindow', (v) => { v.volumePercentileWindow = 3; return '$.volumePercentileWindow'; }],
+  ['obvOrigin', (v) => { v.obvOrigin = 'ZERO_BEFORE_SNAPSHOT'; return '$.obvOrigin'; }],
+  ['obvDeltaPeriods_element', (v) => { v.obvDeltaPeriods = [5, 21, 60]; return '$.obvDeltaPeriods[1]'; }],
+  ['obvDeltaPeriods_order', (v) => { v.obvDeltaPeriods = [60, 20, 5]; return '$.obvDeltaPeriods[0]'; }],
+  ['obvDeltaPeriods_add', (v) => { v.obvDeltaPeriods = [5, 20, 60, 120]; return '$.obvDeltaPeriods'; }],
+  ['obvDeltaPeriods_remove', (v) => { v.obvDeltaPeriods = [5, 20]; return '$.obvDeltaPeriods'; }],
+  ['obvDeltaPeriods_duplicate', (v) => { v.obvDeltaPeriods = [5, 20, 20]; return '$.obvDeltaPeriods[2]'; }],
+  ['obvDeltaPeriods_object', (v) => { v.obvDeltaPeriods = { 0: 5, 1: 20, 2: 60 }; return '$.obvDeltaPeriods'; }],
+  ['adLineOrigin', (v) => { v.adLineOrigin = 'ZERO_AT_START'; return '$.adLineOrigin'; }],
+  ['adLineDeltaPeriod', (v) => { v.adLineDeltaPeriod = 19; return '$.adLineDeltaPeriod'; }],
+  ['flatRangeMoneyFlowConvention', (v) => {
+    v.flatRangeMoneyFlowConvention = 'MIDPOINT'; return '$.flatRangeMoneyFlowConvention';
+  }],
+  ['mfiPeriod', (v) => { v.mfiPeriod = 13; return '$.mfiPeriod'; }],
+  ['cmfPeriod', (v) => { v.cmfPeriod = 21; return '$.cmfPeriod'; }],
+  ['rollingEodVwapPeriods_element', (v) => { v.rollingEodVwapPeriods = [20, 61]; return '$.rollingEodVwapPeriods[1]'; }],
+  ['rollingEodVwapPeriods_order', (v) => { v.rollingEodVwapPeriods = [60, 20]; return '$.rollingEodVwapPeriods[0]'; }],
+  ['rollingEodVwapPeriods_add', (v) => { v.rollingEodVwapPeriods = [20, 60, 120]; return '$.rollingEodVwapPeriods'; }],
+  ['rollingEodVwapPeriods_remove', (v) => { v.rollingEodVwapPeriods = [20]; return '$.rollingEodVwapPeriods'; }],
+  ['eodVwapBasis', (v) => { v.eodVwapBasis = 'EXCHANGE_INTRADAY'; return '$.eodVwapBasis'; }],
+  ['anchoredEodVwapActivation', (v) => {
+    v.anchoredEodVwapActivation = 'FROM_PIVOT_ONLY'; return '$.anchoredEodVwapActivation';
+  }],
+  ['priceVolumeComparisonPeriod', (v) => {
+    v.priceVolumeComparisonPeriod = 19; return '$.priceVolumeComparisonPeriod';
+  }],
+  ['pivotRadius', (v) => { v.pivotRadius = 4; return '$.pivotRadius'; }],
+  ['pivotTiePolicy', (v) => { v.pivotTiePolicy = 'ALLOW_PLATEAU'; return '$.pivotTiePolicy'; }],
+  ['pivotConfirmationDelay', (v) => { v.pivotConfirmationDelay = 4; return '$.pivotConfirmationDelay'; }],
+  ['pivotSameSessionOrder', (v) => {
+    v.pivotSameSessionOrder = 'SWING_HIGH_FIRST'; return '$.pivotSameSessionOrder';
+  }],
+  ['pivotStreamCompression', (v) => {
+    v.pivotStreamCompression = 'KEEP_FIRST'; return '$.pivotStreamCompression';
+  }],
+  ['structureLookback', (v) => { v.structureLookback = 251; return '$.structureLookback'; }],
+  ['levelTouchLookback', (v) => { v.levelTouchLookback = 121; return '$.levelTouchLookback'; }],
+  ['levelTieBreak', (v) => { v.levelTieBreak = 'OLDEST'; return '$.levelTieBreak'; }],
+  ['levelToleranceAtrMultiplier_atoms', (v) => {
+    v.levelToleranceAtrMultiplier = { atoms: '26', scale: 2 }; return '$.levelToleranceAtrMultiplier.atoms';
+  }],
+  ['levelToleranceAtrMultiplier_scale', (v) => {
+    v.levelToleranceAtrMultiplier = { atoms: '25', scale: 3 }; return '$.levelToleranceAtrMultiplier.scale';
+  }],
+  ['levelTolerancePricePct_atoms', (v) => {
+    v.levelTolerancePricePct = { atoms: '6', scale: 3 }; return '$.levelTolerancePricePct.atoms';
+  }],
+  ['levelTolerancePricePct_scale', (v) => {
+    v.levelTolerancePricePct = { atoms: '5', scale: 2 }; return '$.levelTolerancePricePct.scale';
+  }],
+  ['levelToleranceCombination', (v) => {
+    v.levelToleranceCombination = 'MIN'; return '$.levelToleranceCombination';
+  }],
+  ['breakoutVolumeThreshold_atoms', (v) => {
+    v.breakoutVolumeThreshold = { atoms: '16', scale: 1 }; return '$.breakoutVolumeThreshold.atoms';
+  }],
+  ['breakoutVolumeThreshold_scale', (v) => {
+    v.breakoutVolumeThreshold = { atoms: '15', scale: 2 }; return '$.breakoutVolumeThreshold.scale';
+  }],
+  ['failedBreakoutObservationWindow', (v) => {
+    v.failedBreakoutObservationWindow = 6; return '$.failedBreakoutObservationWindow';
+  }],
+  ['openGapLookback', (v) => { v.openGapLookback = 251; return '$.openGapLookback'; }],
+  ['openGapSidePolicy', (v) => {
+    v.openGapSidePolicy = 'INCLUDE_STRADDLE'; return '$.openGapSidePolicy';
+  }],
+  ['openGapTieBreak', (v) => { v.openGapTieBreak = 'MOST_RECENT_ONLY'; return '$.openGapTieBreak'; }],
+  ['congestionWindow', (v) => { v.congestionWindow = 21; return '$.congestionWindow'; }],
+  ['congestionReferenceWindow', (v) => {
+    v.congestionReferenceWindow = 61; return '$.congestionReferenceWindow';
+  }],
+  ['congestionEfficiencyThreshold_atoms', (v) => {
+    v.congestionEfficiencyThreshold = { atoms: '31', scale: 2 };
+    return '$.congestionEfficiencyThreshold.atoms';
+  }],
+  ['congestionEfficiencyThreshold_scale', (v) => {
+    v.congestionEfficiencyThreshold = { atoms: '30', scale: 3 };
+    return '$.congestionEfficiencyThreshold.scale';
+  }],
+  ['congestionAtrMultiplier_atoms', (v) => {
+    v.congestionAtrMultiplier = { atoms: '5', scale: 0 }; return '$.congestionAtrMultiplier.atoms';
+  }],
+  ['congestionAtrMultiplier_scale', (v) => {
+    v.congestionAtrMultiplier = { atoms: '4', scale: 1 }; return '$.congestionAtrMultiplier.scale';
+  }],
+  ['fibonacciRatios_element_atoms', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '100', scale: 3 },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].atoms';
+  }],
+  ['fibonacciRatios_element_scale', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236', scale: 2 },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].scale';
+  }],
+  ['fibonacciRatios_order', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '786', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '382', scale: 3 },
+      { atoms: '236', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].atoms';
+  }],
+  ['fibonacciRatios_add', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236', scale: 3 },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+      { atoms: '1000', scale: 3 },
+    ];
+    return '$.fibonacciRatios';
+  }],
+  ['fibonacciRatios_remove', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236', scale: 3 },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+    ];
+    return '$.fibonacciRatios';
+  }],
+  ['fibonacciRatios_duplicate', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236', scale: 3 },
+      { atoms: '236', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[1].atoms';
+  }],
+  ['fibonacciRatios_object', (v) => {
+    v.fibonacciRatios = { 0: { atoms: '236', scale: 3 } }; return '$.fibonacciRatios';
+  }],
+  ['fibonacciRatios_atoms_type', (v) => {
+    v.fibonacciRatios = [
+      { atoms: 236, scale: 3 },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].atoms';
+  }],
+  ['fibonacciRatios_scale_type', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236', scale: '3' },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].scale';
+  }],
+  ['fibonacciRatios_unknown_key', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236', scale: 3, extra: true },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].extra';
+  }],
+  ['fibonacciRatios_missing_key', (v) => {
+    v.fibonacciRatios = [
+      { atoms: '236' },
+      { atoms: '382', scale: 3 },
+      { atoms: '500', scale: 3 },
+      { atoms: '618', scale: 3 },
+      { atoms: '786', scale: 3 },
+    ];
+    return '$.fibonacciRatios[0].scale';
+  }],
+  ['wrong_type_period', (v) => { v.cmfPeriod = '20'; return '$.cmfPeriod'; }],
+];
+
+for (const [name, mutate] of FIELD_MUTATIONS) {
+  test(`L4A-B closed policy refuses mutation ${name}`, () => {
+    const mutated = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+    const path = mutate(mutated);
+    assertClosedRefusal(mutated, path);
+  });
+}
+
+test('L4A-B closed gate and field-shape checks jointly refuse unknown and missing fields', () => {
+  const withAlien = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+  withAlien.alienField = true;
+  assert.throws(
+    () => assertClosedMarketVolumeStructureFeaturePolicyValuesV1(withAlien),
+    (error) => error.code === MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1
+      && error.details.path === '$.alienField',
+  );
+  assert.throws(() => normalizeMarketVolumeStructureFeatureComputationPolicyV1(
+    fullPolicyFromValues(withAlien),
+  ));
+  assert.throws(() => deriveMarketVolumeStructureRuntimePolicyV1(fullPolicyFromValues(withAlien)));
+
+  const missing = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+  delete missing.mfiPeriod;
+  assert.throws(
+    () => assertClosedMarketVolumeStructureFeaturePolicyValuesV1(missing),
+    (error) => error.code === MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1
+      && error.details.path === '$.mfiPeriod',
+  );
+  assert.throws(() => normalizeMarketVolumeStructureFeatureComputationPolicyV1(
+    fullPolicyFromValues(missing),
+  ));
+  assert.throws(() => deriveMarketVolumeStructureRuntimePolicyV1(fullPolicyFromValues(missing)));
 });

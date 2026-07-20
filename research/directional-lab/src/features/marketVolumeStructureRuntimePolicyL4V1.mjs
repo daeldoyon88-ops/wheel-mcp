@@ -4,7 +4,11 @@
  * period, window, threshold, ratio, scale and behavior comes from the input.
  */
 
-import { MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1 } from '../contracts/marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
+import {
+  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1,
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1,
+  extractMarketVolumeStructureFeaturePolicyValuesV1,
+} from '../contracts/marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
 import {
   FEATURE_CALCULATION_SCALE,
   FEATURE_PRICE_SCALE,
@@ -197,6 +201,9 @@ export function deriveMarketVolumeStructureRuntimePolicyV1(verifiedPolicy) {
   if (verifiedPolicy.schemaVersion !== POLICY_SCHEMA_VERSION) {
     throw new TypeError(`verified L4A-B policy must use ${POLICY_SCHEMA_VERSION}`);
   }
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(
+    extractMarketVolumeStructureFeaturePolicyValuesV1(verifiedPolicy),
+  );
   const scales = {
     internalScale: verifiedPolicy.internalScale,
     ratioScale: verifiedPolicy.ratioScale,

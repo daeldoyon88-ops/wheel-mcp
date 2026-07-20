@@ -559,10 +559,10 @@ function readRegistry(store, registryId) {
 // Schemas + authority policy
 // ---------------------------------------------------------------------------
 
-test('L3-I6 registers exactly three additive schemas for a total of 80 after L4A-A', () => {
+test('L3-I6 registers exactly three additive schemas for a total of 83 after L4A-B', () => {
   assert.deepEqual([...MARKET_DATA_DATASET_SNAPSHOT_BINDING_L3_SCHEMA_VERSIONS], I6_SCHEMAS);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 80);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 80);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 83);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 83);
   assert.deepEqual(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.filter((schema) => I6_SCHEMAS.includes(schema)),
     I6_SCHEMAS,

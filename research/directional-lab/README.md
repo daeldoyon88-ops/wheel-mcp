@@ -1192,7 +1192,84 @@ Le verifier relit les bindings et snapshots, recalcule A1–A4, compare toutes
 les lignes puis le rapport complet; un digest seul ne suffit pas. L4A-A ne
 transforme pas les prix, n'entraîne aucun modèle, ne produit ni score ni
 recommandation, et n'est importé ni par le scanner, ni par `server.js`, ni par
-le dashboard. L4A-B et L4A-C ne sont pas implémentés.
+le dashboard.
+
+## L4A-B — volume, participation et structure de prix
+
+L4A-B est un artefact **séparé** de L4A-A. Il consomme exclusivement un rapport
+L4A-A déjà vérifié, le binding officiel L3-I6 sous-jacent et le snapshot L1
+EOD OHLCV. Il ne modifie jamais `MarketTechnicalFeatureRows/1`, ni les IDs, ni
+les formules L4A-A. L4A-C réunira plus tard les deux artefacts; L4A-C n'est
+pas implémenté.
+
+Trois contrats portent le total canonique de 80 à 83 :
+
+```text
+MarketVolumeStructureFeatureSourceBundle/1
+MarketVolumeStructureFeatureComputationPolicy/1
+MarketVolumeStructureFeatureComputationReport/1
+```
+
+`MarketVolumeStructureFeatureRows/1` est un contenu fermé du namespace
+`normalized` et ne compte pas parmi les 83 schémas `snapshots`.
+
+### Familles B1 et B2
+
+- B1 volume / participation : moyennes 20/50 sur séances **précédentes**
+  uniquement, volume relatif, percentile 60
+  `(2·countLess + countEqual)/(2·N)`, OBV partant de 0 au début du snapshot,
+  multiplicateur / volume money-flow, ligne A/D, CMF20, MFI14, confirmations
+  et divergences prix-volume descriptives.
+- B1 VWAP EOD approximatif : rolling 20/60 et ancré sur le dernier swing
+  high/low confirmé. Ce n'est **jamais** un VWAP intraday d'échange.
+- B2 pivots causaux : rayon 3, confirmation à `i+3`, plateaux interdits,
+  compression du flux alterné (extrême puis plus récemment confirmé) sans
+  réécriture historique.
+- B2 supports / résistances : pivots confirmés dans un lookback 252, tolérance
+  `max(level×0.005, ATR14×0.25)`, contacts sur 120 séances.
+- B2 breakouts / faux breakouts : niveaux de la ligne précédente; échec
+  constaté seulement quand le close repasse de l'autre côté dans les 5
+  séances suivantes.
+- B2 gaps complets ouverts, congestion descriptive
+  (`efficiency ≤ 0.30` et `range20 ≤ 4×ATR14%`), Fibonacci déterministe
+  `236/382/500/618/786` sur la jambe alternée active.
+
+### Convention d'ancrage EOD VWAP
+
+Un pivot n'est utilisable qu'à partir de sa date de confirmation. À cette
+date, les barres depuis la séance du pivot sont déjà connues et peuvent
+entrer dans la somme ancrée — jamais de données futures.
+
+### Fixed-point et absence de lookahead
+
+Même politique numérique que L4A-A : BigInt, échelle interne 24, sorties 12,
+`HALF_EVEN`, ratios entiers exacts. Aucun `parseFloat`, `Number(atome)`,
+`Math.round`, `Math.sqrt` ou flottant autoritaire. Chaque ligne à `t` ne lit
+que des sessions `≤ t`; un append futur (y compris dix années extrêmes) ne
+change aucun byte historique.
+
+### API et portée
+
+```js
+buildMarketVolumeStructureFeatureSourceBundle({
+  store, technicalFeatureComputationReportId,
+})
+buildMarketVolumeStructureFeatureComputationPolicy({ store })
+computeMarketVolumeStructureFeatures({
+  store,
+  volumeStructureFeatureSourceBundleId,
+  volumeStructureFeatureComputationPolicyId,
+})
+verifyMarketVolumeStructureFeatureComputation({
+  store, volumeStructureFeatureComputationReportId,
+})
+```
+
+Le verifier complet revérifie L4A-A, le binding I6, la policy, relit OHLCV et
+les rows L4A-A, recalcule toutes les features B, reconstruit rows et report,
+puis compare octet par octet. L4A-B reste hors scanner, hors dashboard, sans
+réseau, sans Yahoo, sans IBKR, sans modèle, sans score et sans
+recommandation.
 
 ## Limites connues (V1)
 

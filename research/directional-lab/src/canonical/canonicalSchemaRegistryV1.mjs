@@ -170,6 +170,17 @@ import {
   normalizeMarketTechnicalFeatureRowsV1,
   normalizeMarketTechnicalFeatureSourceBundleV1,
 } from '../contracts/marketTechnicalFeatureComputationL4V1.mjs';
+import {
+  MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+  MARKET_VOLUME_STRUCTURE_FEATURE_L4_SCHEMA_VERSIONS,
+  MARKET_VOLUME_STRUCTURE_FEATURE_ROWS_SCHEMA_VERSION,
+  MARKET_VOLUME_STRUCTURE_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
+  normalizeMarketVolumeStructureFeatureComputationPolicyV1,
+  normalizeMarketVolumeStructureFeatureComputationReportV1,
+  normalizeMarketVolumeStructureFeatureRowsV1,
+  normalizeMarketVolumeStructureFeatureSourceBundleV1,
+} from '../contracts/marketVolumeStructureFeatureComputationL4V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -214,6 +225,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_DATA_SNAPSHOT_MATERIALIZATION_L3_SCHEMA_VERSIONS,
   ...MARKET_DATA_DATASET_SNAPSHOT_BINDING_L3_SCHEMA_VERSIONS,
   ...MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS,
+  ...MARKET_VOLUME_STRUCTURE_FEATURE_L4_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -387,6 +399,16 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       // Normalized-namespace content; intentionally excluded from the
       // snapshots schema count, exactly like L3-I5 canonical OHLCV rows.
       return normalizeMarketTechnicalFeatureRowsV1(value);
+    case MARKET_VOLUME_STRUCTURE_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION:
+      return normalizeMarketVolumeStructureFeatureSourceBundleV1(value);
+    case MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION:
+      return normalizeMarketVolumeStructureFeatureComputationPolicyV1(value);
+    case MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION:
+      return normalizeMarketVolumeStructureFeatureComputationReportV1(value);
+    case MARKET_VOLUME_STRUCTURE_FEATURE_ROWS_SCHEMA_VERSION:
+      // Normalized-namespace content; intentionally excluded from the
+      // snapshots schema count, exactly like the L4A-A feature rows.
+      return normalizeMarketVolumeStructureFeatureRowsV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

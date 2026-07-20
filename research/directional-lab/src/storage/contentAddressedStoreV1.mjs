@@ -22,11 +22,13 @@ import { SHA256_OBJECT_ID_PATTERN } from '../contracts/datasetSnapshotV1.mjs';
  * Closed set of schemas accepted in the L1 `normalized` namespace.
  * MarketDataEodOhlcvCanonicalRows/1 is the additive L3-I5 atom-preserving
  * content schema (literal kept here to avoid a storage↔contract cycle).
+ * MarketVolumeStructureFeatureRows/1 is the additive L4A-B content schema.
  */
 const NORMALIZED_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   CANONICAL_DAILY_BARS_SCHEMA_VERSION,
   'MarketDataEodOhlcvCanonicalRows/1',
   'MarketTechnicalFeatureRows/1',
+  'MarketVolumeStructureFeatureRows/1',
 ]);
 
 export class ContentAddressedStoreError extends Error {

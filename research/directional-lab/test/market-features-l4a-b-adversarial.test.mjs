@@ -15,10 +15,13 @@ import { canonicalJsonBytes } from '../src/canonical/canonicalJsonV1.mjs';
 import { SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS } from '../src/canonical/canonicalSchemaRegistryV1.mjs';
 import {
   MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
-  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES,
   MARKET_VOLUME_STRUCTURE_FEATURE_ROWS_SCHEMA_VERSION,
   normalizeMarketVolumeStructureFeatureComputationPolicyV1,
 } from '../src/contracts/marketVolumeStructureFeatureComputationL4V1.mjs';
+import {
+  buildMarketVolumeStructureFeatureComputationPolicy,
+} from '../src/features/computeMarketVolumeStructureFeaturesL4V1.mjs';
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 } from '../src/features/marketVolumeStructureRuntimePolicyL4V1.mjs';
 import { computeVolumeParticipationFeatures } from '../src/features/volumeParticipationFeaturesL4V1.mjs';
 import { computeEodVolumeWeightedPriceFeatures } from '../src/features/eodVolumeWeightedPriceFeaturesL4V1.mjs';
 import {
@@ -39,14 +42,28 @@ function fullFeatureRows(bars) {
   const technical = makeTechnicalCellsFromBars(bars);
   const participation = computeVolumeParticipationFeatures(
     bars, technical.map((cell) => cell.return20),
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.volumeParticipation,
   );
-  const pivots = detectConfirmedPivots(bars);
-  const stream = computeAlternatedStreamStates(bars, pivots);
-  const weighted = computeEodVolumeWeightedPriceFeatures(bars, stream);
-  const support = computeSupportResistanceFeatures(bars, pivots, technical);
-  const gaps = computeGapBreakoutFeatures(bars, support.levels, participation.relativeVolume20Internal);
-  const congestion = computeCongestionFeatures(bars, technical);
-  const fibonacci = computeFibonacciFeatures(bars, stream);
+  const pivots = detectConfirmedPivots(bars, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots);
+  const stream = computeAlternatedStreamStates(
+    bars, pivots, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots,
+  );
+  const weighted = computeEodVolumeWeightedPriceFeatures(
+    bars, stream, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.eodVolumeWeightedPrices,
+  );
+  const support = computeSupportResistanceFeatures(
+    bars, pivots, technical, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.supportResistance,
+  );
+  const gaps = computeGapBreakoutFeatures(
+    bars, support.levels, participation.relativeVolumeComparisonInternal,
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.gapsBreakouts,
+  );
+  const congestion = computeCongestionFeatures(
+    bars, technical, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.congestion,
+  );
+  const fibonacci = computeFibonacciFeatures(
+    bars, stream, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.fibonacci,
+  );
   return bars.map((_, index) => ({
     volumeParticipation: participation.rows[index],
     eodVolumeWeightedPrices: weighted[index],
@@ -57,11 +74,15 @@ function fullFeatureRows(bars) {
   }));
 }
 
-test('L4A-B policy refuses free periods, scales, thresholds and unknown fields', () => {
-  const base = {
+test('L4A-B policy refuses free periods, scales, thresholds and unknown fields', () => withStore((store) => {
+  const built = buildMarketVolumeStructureFeatureComputationPolicy({ store });
+  const base = store.readCanonicalObject({
+    uri: store.uriForObject({
+      namespace: 'snapshots', objectId: built.volumeStructureFeatureComputationPolicyId,
+    }),
+    expectedObjectId: built.volumeStructureFeatureComputationPolicyId,
     schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
-    ...MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES,
-  };
+  }).value;
   assert.throws(() => normalizeMarketVolumeStructureFeatureComputationPolicyV1({
     ...base, pivotRadius: 4,
   }));
@@ -74,7 +95,7 @@ test('L4A-B policy refuses free periods, scales, thresholds and unknown fields',
   assert.throws(() => normalizeMarketVolumeStructureFeatureComputationPolicyV1({
     ...base, freeField: true,
   }));
-});
+}));
 
 test('L4A-B normalized namespace accepts only the closed volume-structure rows shape', () => withStore((store) => {
   const empty = store.putCanonicalObject({
@@ -115,10 +136,12 @@ for (const boundary of [3, 4, 13, 14, 20, 50, 60, 120, 252]) {
 test('L4A-B a pivot at i is invisible before confirmation row i+3', () => {
   const closes = [10n, 20n, 30n, 100n, 30n, 20n, 10n, 10n];
   const bars = makeVolumeBars(closes, { spread: 1n });
-  const pivots = detectConfirmedPivots(bars);
+  const pivots = detectConfirmedPivots(bars, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots);
   assert.equal(pivots[0].pivotIndex, 3);
   assert.equal(pivots[0].confirmedIndex, 6);
-  const stream = computeAlternatedStreamStates(bars, pivots);
+  const stream = computeAlternatedStreamStates(
+    bars, pivots, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots,
+  );
   assert.equal(stream[5].lastSwingHigh, null);
   assert.equal(stream[6].lastSwingHigh.pivotIndex, 3);
 });
@@ -157,6 +180,18 @@ test('L4A-B additive schemas leave L4A-A feature family imports and formulas unt
   assert.equal(returns.includes('volumeMean20Previous'), false);
 });
 
+test('L4A-B adversarial oracle imports no production fixed-point helper or policy values', () => {
+  const harnessSource = readFileSync(new URL(import.meta.url), 'utf8');
+  const importStatements = [...harnessSource.matchAll(
+    /^import[\s\S]*?from\s+['"]([^'"]+)['"];?$/gm,
+  )].map((match) => match[0]);
+  const importSpecifiers = [...harnessSource.matchAll(
+    /^import[\s\S]*?from\s+['"]([^'"]+)['"];?$/gm,
+  )].map((match) => match[1]);
+  assert.equal(importSpecifiers.some((specifier) => specifier.includes('fixedPointFeatureMath')), false);
+  assert.equal(importStatements.join('\n').includes('MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES'), false);
+});
+
 for (const size of [250, 1000, 5000, 10000]) {
   test(`L4A-B direct feature path stays near-linear at ${size} sessions`, () => {
     const closes = Array.from({ length: size }, (_, index) => 10_000n + BigInt((index * 17) % 500));
@@ -183,7 +218,7 @@ test('L4A-B temporary adversarial harness runs at least 220 independent counter-
     ['cong', 'research/directional-lab/src/features/congestionFeaturesL4V1.mjs'],
     ['fib', 'research/directional-lab/src/features/fibonacciStructureFeaturesL4V1.mjs'],
     ['contract', 'research/directional-lab/src/contracts/marketVolumeStructureFeatureComputationL4V1.mjs'],
-    ['math', 'research/directional-lab/src/features/fixedPointFeatureMathL4V1.mjs'],
+    ['runtime', 'research/directional-lab/src/features/marketVolumeStructureRuntimePolicyL4V1.mjs'],
   ].map(([key, relative]) => [key, pathToFileURL(resolve(relative)).href]));
 
   const source = `
@@ -200,7 +235,6 @@ import { computeCongestionFeatures } from ${JSON.stringify(urls.cong)};
 import { computeFibonacciFeatures } from ${JSON.stringify(urls.fib)};
 import {
   MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
-  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES,
   MARKET_VOLUME_STRUCTURE_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
   MARKET_VOLUME_STRUCTURE_FEATURE_ROWS_SCHEMA_VERSION,
   MARKET_VOLUME_STRUCTURE_FEATURE_FAMILY_VERSIONS,
@@ -209,11 +243,8 @@ import {
   normalizeMarketVolumeStructureFeatureSourceBundleV1,
   normalizeMarketVolumeStructureFeatureRowsV1,
 } from ${JSON.stringify(urls.contract)};
-import {
-  divideRoundHalfEven, fixedToCanonical, powerOfTen,
-} from ${JSON.stringify(urls.math)};
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 as RUNTIME } from ${JSON.stringify(urls.runtime)};
 
-const UNIT = powerOfTen(24);
 const results = [];
 function ok(name, fn) {
   try { fn(); results.push({ name, ok: true }); }
@@ -221,9 +252,80 @@ function ok(name, fn) {
     results.push({ name, ok: false, error: String(error && error.message || error) });
   }
 }
-function he(num, den) { return divideRoundHalfEven(num, den); }
-function to12(atoms24) {
-  return fixedToCanonical({ atoms: atoms24, scale: 24 }, 12).atoms;
+function independentPowerOfTen(scale) {
+  if (!Number.isSafeInteger(scale) || scale < 0) throw new RangeError('invalid independent scale');
+  let value = 1n;
+  for (let index = 0; index < scale; index += 1) value *= 10n;
+  return value;
+}
+function independentDivideRoundHalfEven(numerator, denominator) {
+  if (typeof numerator !== 'bigint' || typeof denominator !== 'bigint' || denominator === 0n) {
+    throw new RangeError('independent HALF_EVEN requires BigInt and a non-zero denominator');
+  }
+  let n = numerator; let d = denominator;
+  if (d < 0n) { n = -n; d = -d; }
+  const quotient = n / d;
+  const remainder = n % d;
+  const absoluteRemainder = remainder < 0n ? -remainder : remainder;
+  const twice = absoluteRemainder * 2n;
+  if (twice < d) return quotient;
+  const direction = n < 0n ? -1n : 1n;
+  if (twice > d) return quotient + direction;
+  const absoluteQuotient = quotient < 0n ? -quotient : quotient;
+  return absoluteQuotient % 2n === 0n ? quotient : quotient + direction;
+}
+function independentRescale(atoms, fromScale, toScale) {
+  if (fromScale === toScale) return atoms;
+  if (fromScale < toScale) return atoms * independentPowerOfTen(toScale - fromScale);
+  return independentDivideRoundHalfEven(atoms, independentPowerOfTen(fromScale - toScale));
+}
+function independentFixedToCanonical(value, outputScale) {
+  const atoms = independentRescale(value.atoms, value.scale, outputScale);
+  return { atoms: atoms === 0n ? '0' : atoms.toString(), scale: outputScale };
+}
+function independentTo12(atoms24) {
+  return independentFixedToCanonical({ atoms: atoms24, scale: 24 }, 12).atoms;
+}
+function he(num, den) { return independentDivideRoundHalfEven(num, den); }
+function to12(atoms24) { return independentTo12(atoms24); }
+const UNIT = independentPowerOfTen(24);
+
+const manualPrimitiveVectors = [
+  ['tie_even_positive', () => he(5n, 2n), 2n],
+  ['tie_odd_positive', () => he(3n, 2n), 2n],
+  ['tie_even_negative', () => he(-5n, 2n), -2n],
+  ['tie_odd_negative', () => he(-3n, 2n), -2n],
+  ['zero', () => he(0n, 7n), 0n],
+  ['exact_positive', () => he(12n, 3n), 4n],
+  ['exact_negative', () => he(-12n, 3n), -4n],
+  ['below_half_positive', () => he(7n, 3n), 2n],
+  ['above_half_positive', () => he(8n, 3n), 3n],
+  ['below_half_negative', () => he(-7n, 3n), -2n],
+  ['above_half_negative', () => he(-8n, 3n), -3n],
+  ['negative_denominator', () => he(3n, -2n), -2n],
+  ['both_negative', () => he(-3n, -2n), 2n],
+  ['scale_up', () => independentRescale(123n, 2, 5), 123000n],
+  ['scale_down_exact', () => independentRescale(123000n, 5, 2), 123n],
+  ['scale_down_tie_even', () => independentRescale(1250n, 3, 1), 12n],
+  ['scale_down_tie_odd', () => independentRescale(1350n, 3, 1), 14n],
+  ['scale_down_negative_tie_even', () => independentRescale(-1250n, 3, 1), -12n],
+  ['scale_down_negative_tie_odd', () => independentRescale(-1350n, 3, 1), -14n],
+  ['power_zero', () => independentPowerOfTen(0), 1n],
+  ['power_twelve', () => independentPowerOfTen(12), 1000000000000n],
+  ['power_twenty_four', () => independentPowerOfTen(24), 1000000000000000000000000n],
+  ['large_exact', () => he(999999999999999999999999999999n, 3n), 333333333333333333333333333333n],
+  ['large_above_half', () => he(1000000000000000000000000000001n, 3n), 333333333333333333333333333334n],
+  ['fib_236', () => he(1000n * 236n, 1000n), 236n],
+  ['threshold_5_1000', () => he(1000n * 5n, 1000n), 5n],
+  ['threshold_25_100', () => he(100n * 25n, 100n), 25n],
+  ['threshold_15_10', () => he(10n * 15n, 10n), 15n],
+  ['threshold_30_100', () => he(100n * 30n, 100n), 30n],
+  ['canonical_zero', () => independentFixedToCanonical({ atoms: 0n, scale: 24 }, 12).atoms, '0'],
+  ['canonical_positive', () => independentFixedToCanonical({ atoms: 1234500000000000n, scale: 15 }, 12).atoms, '1234500000000'],
+  ['canonical_negative', () => independentFixedToCanonical({ atoms: -1234500000000000n, scale: 15 }, 12).atoms, '-1234500000000'],
+];
+for (const [name, compute, expected] of manualPrimitiveVectors) {
+  ok('independent_primitive_' + name, () => assert.equal(compute(), expected));
 }
 
 function indepMeanPrevious(volumes, index, period) {
@@ -305,7 +407,40 @@ function indepFibLevel(high, low, bullish, numerator) {
 const ID = 'sha256:' + 'a'.repeat(64);
 const basePolicy = {
   schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
-  ...MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES,
+  numericRepresentation: 'FIXED_POINT_BIGINT_V1', internalScale: 24,
+  ratioScale: 12, priceScale: 12, roundingMode: 'HALF_EVEN',
+  rowOrdering: 'SESSION_DATE_THEN_BAR_IDENTITY', futureDataPolicy: 'FORBIDDEN',
+  missingHistoryPolicy: 'NULL_WITH_REASON',
+  volumeBaseline20: 'PREVIOUS_SESSIONS_EXCLUDING_CURRENT',
+  volumeBaseline50: 'PREVIOUS_SESSIONS_EXCLUDING_CURRENT',
+  volumePercentileWindow: 60, obvOrigin: 'ZERO_AT_SNAPSHOT_START',
+  obvDeltaPeriods: [5, 20, 60], adLineOrigin: 'ZERO_BEFORE_SNAPSHOT_START',
+  adLineDeltaPeriod: 20,
+  flatRangeMoneyFlowConvention: 'ZERO_MULTIPLIER_AND_ZERO_MONEY_FLOW_VOLUME',
+  mfiPeriod: 14, cmfPeriod: 20, rollingEodVwapPeriods: [20, 60],
+  eodVwapBasis: 'EOD_APPROXIMATION_FROM_DAILY_OHLCV_NOT_EXCHANGE_INTRADAY_VWAP',
+  anchoredEodVwapActivation: 'FROM_PIVOT_CONFIRMATION_INCLUDING_BARS_SINCE_PIVOT_SESSION',
+  priceVolumeComparisonPeriod: 20, pivotRadius: 3,
+  pivotTiePolicy: 'STRICT_NO_PLATEAU', pivotConfirmationDelay: 3,
+  pivotSameSessionOrder: 'SWING_LOW_FIRST',
+  pivotStreamCompression: 'KEEP_EXTREME_THEN_MOST_RECENTLY_CONFIRMED',
+  structureLookback: 252, levelTouchLookback: 120,
+  levelTieBreak: 'MOST_RECENTLY_CONFIRMED',
+  levelToleranceAtrMultiplier: { atoms: '25', scale: 2 },
+  levelTolerancePricePct: { atoms: '5', scale: 3 },
+  levelToleranceCombination: 'MAX',
+  breakoutVolumeThreshold: { atoms: '15', scale: 1 },
+  failedBreakoutObservationWindow: 5, openGapLookback: 252,
+  openGapSidePolicy: 'EXCLUDE_GAPS_STRADDLING_CLOSE',
+  openGapTieBreak: 'NEAREST_BOUNDARY_THEN_MOST_RECENT_SESSION',
+  congestionWindow: 20, congestionReferenceWindow: 60,
+  congestionEfficiencyThreshold: { atoms: '30', scale: 2 },
+  congestionAtrMultiplier: { atoms: '4', scale: 0 },
+  fibonacciRatios: [
+    { atoms: '236', scale: 3 }, { atoms: '382', scale: 3 },
+    { atoms: '500', scale: 3 }, { atoms: '618', scale: 3 },
+    { atoms: '786', scale: 3 },
+  ],
 };
 const baseBundle = {
   schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
@@ -334,7 +469,7 @@ const policyMutations = [
   ['levelTolerancePricePct', { atoms: '6', scale: 3 }],
   ['congestionEfficiencyThreshold', { atoms: '31', scale: 2 }],
   ['congestionAtrMultiplier', { atoms: '5', scale: 0 }],
-  ['fibonacciRatios', MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES.fibonacciRatios.slice(0, 4)],
+  ['fibonacciRatios', basePolicy.fibonacciRatios.slice(0, 4)],
   ['rollingEodVwapPeriods', [20]], ['obvDeltaPeriods', [5, 20]], ['freeField', 1],
 ];
 for (const [field, value] of policyMutations) {
@@ -373,7 +508,9 @@ for (let seed = 0; seed < 25; seed += 1) {
   const volumes = closes.map((_, index) => BigInt(80 + ((index * (seed + 5)) % 41)));
   const bars = makeVolumeBars(closes, { volumes, spread: 2n });
   const technical = makeTechnicalCellsFromBars(bars);
-  const auth = computeVolumeParticipationFeatures(bars, technical.map((cell) => cell.return20)).rows;
+  const auth = computeVolumeParticipationFeatures(
+    bars, technical.map((cell) => cell.return20), RUNTIME.volumeParticipation,
+  ).rows;
   const volAtoms = bars.map((bar) => bar.volume.atoms);
   ok('mean20_' + seed, () => {
     assert.equal(auth[30].volumeMean20Previous.value.atoms, to12(indepMeanPrevious(volAtoms, 30, 20)));
@@ -402,8 +539,9 @@ for (let seed = 0; seed < 25; seed += 1) {
 for (let seed = 0; seed < 15; seed += 1) {
   const closes = Array.from({ length: 40 }, (_, index) => BigInt(40 + ((index * 5 + seed) % 23)));
   const bars = makeVolumeBars(closes, { volumes: closes.map(() => 7n), spread: 0n });
-  const stream = computeAlternatedStreamStates(bars, detectConfirmedPivots(bars));
-  const vwap = computeEodVolumeWeightedPriceFeatures(bars, stream);
+  const pivots = detectConfirmedPivots(bars, RUNTIME.pivots);
+  const stream = computeAlternatedStreamStates(bars, pivots, RUNTIME.pivots);
+  const vwap = computeEodVolumeWeightedPriceFeatures(bars, stream, RUNTIME.eodVolumeWeightedPrices);
   ok('vwap20_' + seed, () => {
     assert.equal(vwap[24].eodVolumeWeightedAveragePrice20.value.atoms, to12(indepVwap(bars, 5, 24)));
   });
@@ -419,14 +557,16 @@ for (let seed = 0; seed < 20; seed += 1) {
   ));
   const lows = highs.map((high, index) => high - 4n - BigInt(index % 2));
   const bars = makeVolumeBars(highs.map((high) => high - 1n), { highs, lows });
-  const auth = detectConfirmedPivots(bars);
+  const auth = detectConfirmedPivots(bars, RUNTIME.pivots);
   const indep = indepPivots(bars);
   ok('pivot_count_' + seed, () => assert.equal(auth.length, indep.length));
   ok('pivot_delay_' + seed, () => {
     for (const pivot of auth) assert.equal(pivot.confirmedIndex, pivot.pivotIndex + 3);
   });
   ok('pivot_invisible_before_confirm_' + seed, () => {
-    const rows = computePivotFamilyRows(computeAlternatedStreamStates(bars, auth));
+    const rows = computePivotFamilyRows(
+      computeAlternatedStreamStates(bars, auth, RUNTIME.pivots), RUNTIME.pivots,
+    );
     for (const pivot of auth) {
       if (pivot.confirmedIndex <= 0) continue;
       const field = pivot.pivotType === 'SWING_HIGH'
@@ -443,7 +583,10 @@ for (let seed = 0; seed < 20; seed += 1) {
 for (let seed = 0; seed < 12; seed += 1) {
   const closes = [10n, 20n, 30n, 100n, 30n, 20n, 5n, 20n, 30n, 40n + BigInt(seed)];
   const bars = makeVolumeBars(closes, { spread: 1n });
-  const fib = computeFibonacciFeatures(bars, computeAlternatedStreamStates(bars, detectConfirmedPivots(bars)));
+  const pivots = detectConfirmedPivots(bars, RUNTIME.pivots);
+  const fib = computeFibonacciFeatures(
+    bars, computeAlternatedStreamStates(bars, pivots, RUNTIME.pivots), RUNTIME.fibonacci,
+  );
   ok('fib500_' + seed, () => {
     assert.equal(fib[9].fibonacciDirection.value, 'BEARISH_RETRACEMENT');
     const level = indepFibLevel(101n * (10n ** 24n), 4n * (10n ** 24n), false, 500n);
@@ -454,7 +597,9 @@ for (let seed = 0; seed < 12; seed += 1) {
 for (let seed = 0; seed < 12; seed += 1) {
   const closes = Array.from({ length: 35 }, (_, index) => 100n + BigInt((index + seed) % 2));
   const bars = makeVolumeBars(closes, { spread: 1n });
-  const cong = computeCongestionFeatures(bars, makeTechnicalCellsFromBars(bars));
+  const cong = computeCongestionFeatures(
+    bars, makeTechnicalCellsFromBars(bars), RUNTIME.congestion,
+  );
   ok('congestion_' + seed, () => {
     assert.equal(cong[25].isCongestion20.availability, 'AVAILABLE');
     assert.equal(typeof cong[25].isCongestion20.value, 'boolean');
@@ -465,10 +610,14 @@ for (let seed = 0; seed < 12; seed += 1) {
   const closes = [10n, 20n, 30n, 100n, 30n, 20n, 10n, 50n + BigInt(seed), 130n, 40n, 30n, 20n, 15n];
   const bars = makeVolumeBars(closes, { spread: 1n });
   const technical = makeTechnicalCellsFromBars(bars);
-  const pivots = detectConfirmedPivots(bars);
-  const part = computeVolumeParticipationFeatures(bars, technical.map((cell) => cell.return20));
-  const sr = computeSupportResistanceFeatures(bars, pivots, technical);
-  const gaps = computeGapBreakoutFeatures(bars, sr.levels, part.relativeVolume20Internal);
+  const pivots = detectConfirmedPivots(bars, RUNTIME.pivots);
+  const part = computeVolumeParticipationFeatures(
+    bars, technical.map((cell) => cell.return20), RUNTIME.volumeParticipation,
+  );
+  const sr = computeSupportResistanceFeatures(bars, pivots, technical, RUNTIME.supportResistance);
+  const gaps = computeGapBreakoutFeatures(
+    bars, sr.levels, part.relativeVolumeComparisonInternal, RUNTIME.gapsBreakouts,
+  );
   ok('sr_' + seed, () => {
     assert.ok(MARKET_VOLUME_STRUCTURE_AVAILABILITY_CODES.includes(
       sr.rows[7].nearestResistancePrice.availability,
@@ -482,7 +631,6 @@ for (let seed = 0; seed < 12; seed += 1) {
 
 while (results.length < 220) {
   ok('closed_constants_' + results.length, () => {
-    assert.equal(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES.pivotRadius, 3);
     assert.equal(MARKET_VOLUME_STRUCTURE_FEATURE_FAMILY_VERSIONS.volumeParticipation, 'L4A-B1-VP/1');
     assert.ok(MARKET_VOLUME_STRUCTURE_AVAILABILITY_CODES.includes('NO_ACTIVE_FIBONACCI_LEG'));
   });
@@ -497,6 +645,17 @@ console.log(JSON.stringify({
 }));
 if (failed.length) process.exit(1);
 `;
+
+  const expectedOracleStart = source.indexOf('function independentPowerOfTen');
+  const expectedOracleEnd = source.indexOf("const ID = 'sha256:'");
+  const expectedOracleSource = source.slice(expectedOracleStart, expectedOracleEnd);
+  for (const productionCalculator of [
+    'computeVolumeParticipationFeatures', 'computeEodVolumeWeightedPriceFeatures',
+    'detectConfirmedPivots', 'computeSupportResistanceFeatures',
+    'computeGapBreakoutFeatures', 'computeCongestionFeatures', 'computeFibonacciFeatures',
+  ]) assert.equal(expectedOracleSource.includes(productionCalculator), false, productionCalculator);
+  assert.equal(source.includes('fixedPointFeatureMathL4V1.mjs'), false);
+  assert.equal(source.includes('MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES'), false);
 
   writeFileSync(harnessPath, source, 'utf8');
   const run = spawnSync(process.execPath, [harnessPath], {

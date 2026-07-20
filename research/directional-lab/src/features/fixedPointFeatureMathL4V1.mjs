@@ -219,8 +219,8 @@ export function squareRootFixed(value, outputScale = FEATURE_CALCULATION_SCALE) 
 }
 
 /** close / reference - 1, at calculation scale. */
-export function ratioChangeFixed(close, reference) {
-  const ratio = divideFixed(close, reference);
+export function ratioChangeFixed(close, reference, scale = FEATURE_CALCULATION_SCALE) {
+  const ratio = divideFixed(close, reference, scale);
   return subtractFixed(ratio, fixedFromInteger(1n, ratio.scale));
 }
 

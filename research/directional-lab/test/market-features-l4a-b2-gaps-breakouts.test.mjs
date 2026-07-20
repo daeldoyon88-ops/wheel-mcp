@@ -4,6 +4,7 @@ import { computeVolumeParticipationFeatures } from '../src/features/volumePartic
 import { detectConfirmedPivots } from '../src/features/confirmedPivotFeaturesL4V1.mjs';
 import { computeSupportResistanceFeatures } from '../src/features/supportResistanceFeaturesL4V1.mjs';
 import { computeGapBreakoutFeatures } from '../src/features/gapBreakoutFeaturesL4V1.mjs';
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 } from '../src/features/marketVolumeStructureRuntimePolicyL4V1.mjs';
 import {
   makeTechnicalCellsFromBars,
   makeVolumeBars,
@@ -15,9 +16,18 @@ function fixed(atoms) {
 
 function gapBreakoutRows(bars) {
   const cells = makeTechnicalCellsFromBars(bars);
-  const participation = computeVolumeParticipationFeatures(bars, cells.map((cell) => cell.return20));
-  const levels = computeSupportResistanceFeatures(bars, detectConfirmedPivots(bars), cells).levels;
-  return computeGapBreakoutFeatures(bars, levels, participation.relativeVolume20Internal);
+  const participation = computeVolumeParticipationFeatures(
+    bars, cells.map((cell) => cell.return20),
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.volumeParticipation,
+  );
+  const pivots = detectConfirmedPivots(bars, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots);
+  const levels = computeSupportResistanceFeatures(
+    bars, pivots, cells, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.supportResistance,
+  ).levels;
+  return computeGapBreakoutFeatures(
+    bars, levels, participation.relativeVolumeComparisonInternal,
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.gapsBreakouts,
+  );
 }
 
 test('L4A-B2 a breakout uses the previous row levels and requires a strict cross of the resistance', () => {

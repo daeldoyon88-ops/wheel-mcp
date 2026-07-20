@@ -23,31 +23,28 @@
  */
 
 import {
-  FEATURE_CALCULATION_SCALE,
   availableFixedCell,
   divideRoundHalfEven,
   fixedFromScaledAtoms,
   powerOfTen,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const OBV_DELTA_PERIODS = Object.freeze([5, 20, 60]);
-const PERCENTILE_WINDOW = 60;
-const CMF_PERIOD = 20;
-const MFI_PERIOD = 14;
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /** @param {bigint|null} atoms */
-function fixedCellFromAtoms(atoms) {
+function fixedCellFromAtoms(atoms, internalScale, outputScale) {
   if (atoms === null) return unavailableCell('MISSING_INPUT');
-  return availableFixedCell(fixedFromScaledAtoms(atoms));
+  return availableFixedCell(fixedFromScaledAtoms(atoms, internalScale), outputScale);
 }
 
 /**
  * @param {Array<any>} bars internal volume-structure bars
  * @param {Array<{value: any, availability: string}>} return20Cells L4A-A return20 cells
  */
-export function computeVolumeParticipationFeatures(bars, return20Cells) {
-  const unit = powerOfTen(FEATURE_CALCULATION_SCALE);
+export function computeVolumeParticipationFeatures(bars, return20Cells, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'volumeParticipation');
+  const { internalScale, ratioScale } = config.scales;
+  const unit = powerOfTen(internalScale);
   const count = bars.length;
   const volumeAtoms = bars.map((bar) => (bar.volume === null ? null : bar.volume.atoms));
 
@@ -62,7 +59,7 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
 
   const meanCells = new Map();
   const meanWindowSums = new Map();
-  for (const period of [20, 50]) {
+  for (const period of config.baselinePeriods) {
     const cells = [];
     const sums = [];
     for (let index = 0; index < count; index += 1) {
@@ -78,14 +75,16 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
       }
       const sum = volumeWindowSum(index - period, index - 1);
       sums.push(sum);
-      cells.push(availableFixedCell(fixedFromScaledAtoms(divideRoundHalfEven(sum, BigInt(period)))));
+      cells.push(availableFixedCell(
+        fixedFromScaledAtoms(divideRoundHalfEven(sum, BigInt(period)), internalScale), ratioScale,
+      ));
     }
     meanCells.set(period, cells);
     meanWindowSums.set(period, sums);
   }
 
   const relativeInternal = new Map();
-  for (const period of [20, 50]) {
+  for (const period of config.baselinePeriods) {
     const cells = [];
     for (let index = 0; index < count; index += 1) {
       const sum = meanWindowSums.get(period)[index];
@@ -111,24 +110,25 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
 
   const percentileCells = [];
   for (let index = 0; index < count; index += 1) {
-    if (index < PERCENTILE_WINDOW) {
+    if (index < config.percentileWindow) {
       percentileCells.push(unavailableCell('INSUFFICIENT_HISTORY'));
       continue;
     }
-    if (volumeAtoms[index] === null || !volumeWindowClean(index - PERCENTILE_WINDOW, index - 1)) {
+    if (volumeAtoms[index] === null
+        || !volumeWindowClean(index - config.percentileWindow, index - 1)) {
       percentileCells.push(unavailableCell('MISSING_INPUT'));
       continue;
     }
     let countLess = 0n;
     let countEqual = 0n;
-    for (let cursor = index - PERCENTILE_WINDOW; cursor < index; cursor += 1) {
+    for (let cursor = index - config.percentileWindow; cursor < index; cursor += 1) {
       if (volumeAtoms[cursor] < volumeAtoms[index]) countLess += 1n;
       else if (volumeAtoms[cursor] === volumeAtoms[index]) countEqual += 1n;
     }
     const numerator = (2n * countLess + countEqual) * unit;
     percentileCells.push(availableFixedCell(fixedFromScaledAtoms(
-      divideRoundHalfEven(numerator, 2n * BigInt(PERCENTILE_WINDOW)),
-    )));
+      divideRoundHalfEven(numerator, 2n * BigInt(config.percentileWindow)), internalScale,
+    ), ratioScale));
   }
 
   const obvAtoms = [];
@@ -185,11 +185,11 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
 
   const cmfCells = [];
   for (let index = 0; index < count; index += 1) {
-    if (index + 1 < CMF_PERIOD) {
+    if (index + 1 < config.cmfPeriod) {
       cmfCells.push(unavailableCell('INSUFFICIENT_HISTORY'));
       continue;
     }
-    const start = index - CMF_PERIOD + 1;
+    const start = index - config.cmfPeriod + 1;
     if (!volumeWindowClean(start, index) || lastNullMfv[index + 1] >= start) {
       cmfCells.push(unavailableCell('MISSING_INPUT'));
       continue;
@@ -201,8 +201,8 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
     }
     const sumMfv = prefixMfv[index + 1] - prefixMfv[start];
     cmfCells.push(availableFixedCell(fixedFromScaledAtoms(
-      divideRoundHalfEven(sumMfv * unit, sumVolume),
-    )));
+      divideRoundHalfEven(sumMfv * unit, sumVolume), internalScale,
+    ), ratioScale));
   }
 
   const typicalAtoms = bars.map((bar) => divideRoundHalfEven(
@@ -215,14 +215,14 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
   ));
   const mfiCells = [];
   for (let index = 0; index < count; index += 1) {
-    if (index < MFI_PERIOD) {
+    if (index < config.mfiPeriod) {
       mfiCells.push(unavailableCell('INSUFFICIENT_HISTORY'));
       continue;
     }
     let positive = 0n;
     let negative = 0n;
     let missing = false;
-    for (let cursor = index - MFI_PERIOD + 1; cursor <= index; cursor += 1) {
+    for (let cursor = index - config.mfiPeriod + 1; cursor <= index; cursor += 1) {
       if (rawMoneyFlowAtoms[cursor] === null) {
         missing = true;
         break;
@@ -239,29 +239,37 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
     else if (negative === 0n) atoms = 100n * unit;
     else if (positive === 0n) atoms = 0n;
     else atoms = divideRoundHalfEven(positive * 100n * unit, positive + negative);
-    mfiCells.push(availableFixedCell(fixedFromScaledAtoms(atoms)));
+    mfiCells.push(availableFixedCell(fixedFromScaledAtoms(atoms, internalScale), ratioScale));
   }
 
   const rows = bars.map((bar, index) => {
     const obvDeltas = {};
-    for (const period of OBV_DELTA_PERIODS) {
+    for (const period of config.obvDeltaPeriods) {
       const delta = deltaFor(obvAtoms, index, period);
       obvDeltas[period] = delta.atoms === null
         ? { cell: unavailableCell(delta.availability), internal: delta }
-        : { cell: availableFixedCell(fixedFromScaledAtoms(delta.atoms)), internal: delta };
+        : {
+          cell: availableFixedCell(fixedFromScaledAtoms(delta.atoms, internalScale), ratioScale),
+          internal: delta,
+        };
     }
-    const adDelta = deltaFor(adAtoms, index, 20);
+    const adDelta = deltaFor(adAtoms, index, config.adLineDeltaPeriod);
 
     const return20 = return20Cells[index];
-    const obvDelta20 = obvDeltas[20].internal;
+    const comparisonPeriod = config.priceVolumeComparisonPeriod;
+    const obvDeltaComparison = obvDeltas[comparisonPeriod]?.internal;
     let comparison;
     if (return20.availability !== 'AVAILABLE') comparison = { reason: return20.availability };
-    else if (obvDelta20.availability !== 'AVAILABLE') comparison = { reason: obvDelta20.availability };
+    else if (obvDeltaComparison === undefined) {
+      throw new RangeError('priceVolumeComparisonPeriod must be present in obvDeltaPeriods');
+    } else if (obvDeltaComparison.availability !== 'AVAILABLE') {
+      comparison = { reason: obvDeltaComparison.availability };
+    }
     else {
       const priceUp = return20.value.atoms > 0n;
       const priceDown = return20.value.atoms < 0n;
-      const flowUp = obvDelta20.atoms > 0n;
-      const flowDown = obvDelta20.atoms < 0n;
+      const flowUp = obvDeltaComparison.atoms > 0n;
+      const flowDown = obvDeltaComparison.atoms < 0n;
       comparison = {
         bullishConfirmation: priceUp && flowUp,
         bearishConfirmation: priceDown && flowDown,
@@ -275,39 +283,39 @@ export function computeVolumeParticipationFeatures(bars, return20Cells) {
         : { value: comparison[name], availability: 'AVAILABLE' }
     );
 
-    return {
-      volumeMean20Previous: meanCells.get(20)[index],
-      volumeMean50Previous: meanCells.get(50)[index],
-      relativeVolume20: relativeInternal.get(20)[index].atoms === null
-        ? unavailableCell(relativeInternal.get(20)[index].availability)
-        : availableFixedCell(fixedFromScaledAtoms(relativeInternal.get(20)[index].atoms)),
-      relativeVolume50: relativeInternal.get(50)[index].atoms === null
-        ? unavailableCell(relativeInternal.get(50)[index].availability)
-        : availableFixedCell(fixedFromScaledAtoms(relativeInternal.get(50)[index].atoms)),
-      volumePercentile60Previous: percentileCells[index],
+    const cells = {
+      [`volumePercentile${config.percentileWindow}Previous`]: percentileCells[index],
       obv: index === 0
-        ? availableFixedCell(fixedFromScaledAtoms(0n))
-        : fixedCellFromAtoms(obvAtoms[index]),
-      obvDelta5: obvDeltas[5].cell,
-      obvDelta20: obvDeltas[20].cell,
-      obvDelta60: obvDeltas[60].cell,
-      moneyFlowMultiplier: availableFixedCell(fixedFromScaledAtoms(mfmAtoms[index])),
-      moneyFlowVolume: fixedCellFromAtoms(mfvAtoms[index]),
-      accumulationDistributionLine: fixedCellFromAtoms(adAtoms[index]),
-      adLineDelta20: adDelta.atoms === null
+        ? availableFixedCell(fixedFromScaledAtoms(0n, internalScale), ratioScale)
+        : fixedCellFromAtoms(obvAtoms[index], internalScale, ratioScale),
+      moneyFlowMultiplier: availableFixedCell(
+        fixedFromScaledAtoms(mfmAtoms[index], internalScale), ratioScale,
+      ),
+      moneyFlowVolume: fixedCellFromAtoms(mfvAtoms[index], internalScale, ratioScale),
+      accumulationDistributionLine: fixedCellFromAtoms(adAtoms[index], internalScale, ratioScale),
+      [`adLineDelta${config.adLineDeltaPeriod}`]: adDelta.atoms === null
         ? unavailableCell(adDelta.availability)
-        : availableFixedCell(fixedFromScaledAtoms(adDelta.atoms)),
-      chaikinMoneyFlow20: cmfCells[index],
-      moneyFlowIndex14: mfiCells[index],
-      priceVolumeBullishConfirmation20: comparisonCell('bullishConfirmation'),
-      priceVolumeBearishConfirmation20: comparisonCell('bearishConfirmation'),
-      bullishPriceVolumeDivergence20: comparisonCell('bullishDivergence'),
-      bearishPriceVolumeDivergence20: comparisonCell('bearishDivergence'),
+        : availableFixedCell(fixedFromScaledAtoms(adDelta.atoms, internalScale), ratioScale),
+      [`chaikinMoneyFlow${config.cmfPeriod}`]: cmfCells[index],
+      [`moneyFlowIndex${config.mfiPeriod}`]: mfiCells[index],
+      [`priceVolumeBullishConfirmation${comparisonPeriod}`]: comparisonCell('bullishConfirmation'),
+      [`priceVolumeBearishConfirmation${comparisonPeriod}`]: comparisonCell('bearishConfirmation'),
+      [`bullishPriceVolumeDivergence${comparisonPeriod}`]: comparisonCell('bullishDivergence'),
+      [`bearishPriceVolumeDivergence${comparisonPeriod}`]: comparisonCell('bearishDivergence'),
     };
+    for (const period of config.baselinePeriods) {
+      cells[`volumeMean${period}Previous`] = meanCells.get(period)[index];
+      const relative = relativeInternal.get(period)[index];
+      cells[`relativeVolume${period}`] = relative.atoms === null
+        ? unavailableCell(relative.availability)
+        : availableFixedCell(fixedFromScaledAtoms(relative.atoms, internalScale), ratioScale);
+    }
+    for (const period of config.obvDeltaPeriods) cells[`obvDelta${period}`] = obvDeltas[period].cell;
+    return cells;
   });
 
   return {
     rows,
-    relativeVolume20Internal: relativeInternal.get(20),
+    relativeVolumeComparisonInternal: relativeInternal.get(config.priceVolumeComparisonPeriod),
   };
 }

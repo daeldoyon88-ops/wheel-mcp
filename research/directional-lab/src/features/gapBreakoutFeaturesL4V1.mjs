@@ -23,16 +23,14 @@
  */
 
 import {
-  FEATURE_CALCULATION_SCALE,
   availableFixedCell,
+  divideRoundHalfEven,
   fixedFromScaledAtoms,
   powerOfTen,
   ratioChangeFixed,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const FAILED_EVENT_WINDOW = 5;
-const OPEN_GAP_LOOKBACK = 252;
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /**
  * @param {Array<any>} bars internal volume-structure bars
@@ -40,9 +38,13 @@ const OPEN_GAP_LOOKBACK = 252;
  * @param {Array<{atoms: bigint|null, availability: string}>} relativeVolume20Internal
  * @returns {{rows: Array<object>, detectedGapCount: number, openGapCount: number}}
  */
-export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Internal) {
-  const unit = powerOfTen(FEATURE_CALCULATION_SCALE);
-  const volumeThresholdAtoms = 15n * unit / 10n;
+export function computeGapBreakoutFeatures(bars, levels, relativeVolumeComparisonInternal, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'gapsBreakouts');
+  const { internalScale, priceScale, ratioScale } = config.scales;
+  const unit = powerOfTen(internalScale);
+  const volumeThresholdAtoms = divideRoundHalfEven(
+    config.volumeThreshold.numerator * unit, config.volumeThreshold.denominator,
+  );
   const rows = [];
   const events = [];
   const openGaps = [];
@@ -82,17 +84,17 @@ export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Interna
       : { value: state.value, availability: 'AVAILABLE' });
     const levelCell = (state) => (state.reason
       ? unavailableCell(state.reason)
-      : availableFixedCell(state.level, 12));
+      : availableFixedCell(state.level, priceScale));
     const volumeCell = (state) => {
       if (state.reason) return unavailableCell(state.reason);
       if (state.value === false) return { value: false, availability: 'AVAILABLE' };
-      const relative = relativeVolume20Internal[index];
+      const relative = relativeVolumeComparisonInternal[index];
       if (relative.atoms === null) return unavailableCell(relative.availability);
       return { value: relative.atoms >= volumeThresholdAtoms, availability: 'AVAILABLE' };
     };
 
     const failedFor = (kind) => {
-      const first = Math.max(1, index - FAILED_EVENT_WINDOW);
+      const first = Math.max(1, index - config.failedEventWindow);
       if (index === 0 || first > index - 1) return { reason: 'INSUFFICIENT_HISTORY' };
       let failure = null;
       let incomplete = false;
@@ -127,7 +129,7 @@ export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Interna
     let failedLevelCell;
     if (latestFailure !== null) {
       failedAgeCell = { value: index - latestFailure.eventIndex, availability: 'AVAILABLE' };
-      failedLevelCell = availableFixedCell(latestFailure.level, 12);
+      failedLevelCell = availableFixedCell(latestFailure.level, priceScale);
     } else {
       const reason = failedBreakout.reason ?? failedBreakdown.reason ?? 'NO_FAILED_EVENT';
       failedAgeCell = unavailableCell(reason);
@@ -140,7 +142,7 @@ export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Interna
         const filled = gap.gapType === 'FULL_GAP_UP'
           ? bars[index].low.atoms <= gap.lowerAtoms
           : bars[index].high.atoms >= gap.upperAtoms;
-        if (filled || gap.gapIndex < index - OPEN_GAP_LOOKBACK + 1) openGaps.splice(cursor, 1);
+        if (filled || gap.gapIndex < index - config.openGapLookback + 1) openGaps.splice(cursor, 1);
       }
       if (bars[index].low.atoms > bars[index - 1].high.atoms) {
         openGaps.push({
@@ -187,11 +189,18 @@ export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Interna
         'nearestOpenGapBelowAgeSessions', 'distanceToNearestOpenGapBelow',
       ]) gapCells[name] = unavailableCell('NO_OPEN_GAP');
     } else {
-      gapCells.nearestOpenGapBelowLower = availableFixedCell(fixedFromScaledAtoms(nearestBelow.lowerAtoms), 12);
-      gapCells.nearestOpenGapBelowUpper = availableFixedCell(fixedFromScaledAtoms(nearestBelow.upperAtoms), 12);
+      gapCells.nearestOpenGapBelowLower = availableFixedCell(
+        fixedFromScaledAtoms(nearestBelow.lowerAtoms, internalScale), priceScale,
+      );
+      gapCells.nearestOpenGapBelowUpper = availableFixedCell(
+        fixedFromScaledAtoms(nearestBelow.upperAtoms, internalScale), priceScale,
+      );
       gapCells.nearestOpenGapBelowAgeSessions = { value: index - nearestBelow.gapIndex, availability: 'AVAILABLE' };
       gapCells.distanceToNearestOpenGapBelow = availableFixedCell(
-        ratioChangeFixed(close, fixedFromScaledAtoms(nearestBelow.upperAtoms)),
+        ratioChangeFixed(
+          close, fixedFromScaledAtoms(nearestBelow.upperAtoms, internalScale), internalScale,
+        ),
+        ratioScale,
       );
     }
     if (nearestAbove === null) {
@@ -200,11 +209,18 @@ export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Interna
         'nearestOpenGapAboveAgeSessions', 'distanceToNearestOpenGapAbove',
       ]) gapCells[name] = unavailableCell('NO_OPEN_GAP');
     } else {
-      gapCells.nearestOpenGapAboveLower = availableFixedCell(fixedFromScaledAtoms(nearestAbove.lowerAtoms), 12);
-      gapCells.nearestOpenGapAboveUpper = availableFixedCell(fixedFromScaledAtoms(nearestAbove.upperAtoms), 12);
+      gapCells.nearestOpenGapAboveLower = availableFixedCell(
+        fixedFromScaledAtoms(nearestAbove.lowerAtoms, internalScale), priceScale,
+      );
+      gapCells.nearestOpenGapAboveUpper = availableFixedCell(
+        fixedFromScaledAtoms(nearestAbove.upperAtoms, internalScale), priceScale,
+      );
       gapCells.nearestOpenGapAboveAgeSessions = { value: index - nearestAbove.gapIndex, availability: 'AVAILABLE' };
       gapCells.distanceToNearestOpenGapAbove = availableFixedCell(
-        ratioChangeFixed(fixedFromScaledAtoms(nearestAbove.lowerAtoms), close),
+        ratioChangeFixed(
+          fixedFromScaledAtoms(nearestAbove.lowerAtoms, internalScale), close, internalScale,
+        ),
+        ratioScale,
       );
     }
 
@@ -215,8 +231,8 @@ export function computeGapBreakoutFeatures(bars, levels, relativeVolume20Interna
       breakdownLevel: levelCell(breakdownState),
       volumeConfirmedBreakout: volumeCell(breakoutState),
       volumeConfirmedBreakdown: volumeCell(breakdownState),
-      failedBreakoutAboveResistanceWithin5: failedFlagCell(failedBreakout),
-      failedBreakdownBelowSupportWithin5: failedFlagCell(failedBreakdown),
+      [`failedBreakoutAboveResistanceWithin${config.failedEventWindow}`]: failedFlagCell(failedBreakout),
+      [`failedBreakdownBelowSupportWithin${config.failedEventWindow}`]: failedFlagCell(failedBreakdown),
       failedEventAgeSessions: failedAgeCell,
       failedEventLevel: failedLevelCell,
       ...gapCells,

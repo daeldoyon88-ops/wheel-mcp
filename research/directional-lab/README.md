@@ -1242,11 +1242,43 @@ entrer dans la somme ancrée — jamais de données futures.
 
 ### Fixed-point et absence de lookahead
 
-Même politique numérique que L4A-A : BigInt, échelle interne 24, sorties 12,
-`HALF_EVEN`, ratios entiers exacts. Aucun `parseFloat`, `Number(atome)`,
+La policy CAS L4A-B vérifiée est la source runtime effective de toutes les
+périodes, fenêtres, seuils, ratios, scales et règles d'arrondi. Une runtime
+config pure est dérivée du résultat normalisé du verifier puis injectée
+explicitement dans chaque calculateur; aucun calculateur ne conserve de copie
+sémantique concurrente ni de fallback silencieux. La policy publique V1 reste
+fermée à BigInt, échelle interne 24, sorties ratio/prix 12 et `HALF_EVEN`.
+Aucun `parseFloat`, `Number(atome)`,
 `Math.round`, `Math.sqrt` ou flottant autoritaire. Chaque ligne à `t` ne lit
 que des sessions `≤ t`; un append futur (y compris dix années extrêmes) ne
 change aucun byte historique.
+
+### Harness adversarial et oracle indépendant
+
+Le seuil contractuel minimal du harness adversarial permanent est de **220
+scénarios**. Le nombre observé lors d'une exécution peut être supérieur; il ne
+réduit jamais ce minimum. Les attendus mathématiques sont produits par une
+implémentation BigInt / `HALF_EVEN` indépendante (`powerOfTen`, division,
+rescale et conversion canonique locales), validée d'abord par au moins 30
+vecteurs manuels. L'oracle n'importe aucun helper fixed-point de production et
+n'utilise aucun calculateur de production pour construire ses attendus; les
+APIs de production ne servent qu'à produire les résultats observés.
+
+### Snapshot vide
+
+Le pipeline officiel supporte zéro séance de bout en bout : snapshot L1
+`MATERIALIZED_EMPTY`, binding L3-I6 officiel, rows L4A-A et L4A-B vides,
+dates `null`, compteurs et treize codes d'availability à zéro, puis report
+L4A-B entièrement vérifiable. Les quatre IDs source bundle / policy / rows /
+report restent non nuls et déterministes au replay comme entre deux stores
+physiques distincts, avec des bytes identiques.
+
+### Performance normative
+
+Les critères normatifs sont une croissance proche de `O(n)`, des fenêtres
+bornées, aucune croissance quadratique manifeste et aucun réseau. La garde de
+test généreuse `n × 0,5 ms` est uniquement un plafond de non-régression local;
+elle n'est ni une garantie normative, ni une borne contractuelle officielle.
 
 ### API et portée
 
@@ -1270,6 +1302,11 @@ les rows L4A-A, recalcule toutes les features B, reconstruit rows et report,
 puis compare octet par octet. L4A-B reste hors scanner, hors dashboard, sans
 réseau, sans Yahoo, sans IBKR, sans modèle, sans score et sans
 recommandation.
+
+Limites propres à L4A-B V1 : l'EOD VWAP reste une approximation sur barres
+journalières, pas un véritable VWAP intraday; l'OBV reste relatif au début du
+snapshot; L4A-C n'est pas implémenté; aucune partie de L4A-B n'est connectée
+au scanner.
 
 ## Limites connues (V1)
 

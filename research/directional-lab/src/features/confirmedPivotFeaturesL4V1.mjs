@@ -17,29 +17,29 @@ import {
   availableFixedCell,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const PIVOT_RADIUS = 3;
-const CONFIRMATION_DELAY = 3;
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /**
  * Detect every strict confirmed pivot of the full series. Callers must only
  * use a pivot at rows >= pivot.confirmedIndex.
  * @param {Array<any>} bars
  */
-export function detectConfirmedPivots(bars) {
+export function detectConfirmedPivots(bars, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'pivots');
   const pivots = [];
-  for (let index = PIVOT_RADIUS; index + PIVOT_RADIUS < bars.length; index += 1) {
+  for (let index = config.radius; index + config.radius < bars.length; index += 1) {
     const bar = bars[index];
     let isHigh = true;
     let isLow = true;
-    for (let offset = 1; offset <= PIVOT_RADIUS; offset += 1) {
+    for (let offset = 1; offset <= config.radius; offset += 1) {
       if (bars[index - offset].high.atoms >= bar.high.atoms
           || bars[index + offset].high.atoms >= bar.high.atoms) isHigh = false;
       if (bars[index - offset].low.atoms <= bar.low.atoms
           || bars[index + offset].low.atoms <= bar.low.atoms) isLow = false;
       if (!isHigh && !isLow) break;
     }
-    const confirmedIndex = index + CONFIRMATION_DELAY;
+    const confirmedIndex = index + config.confirmationDelay;
+    if (confirmedIndex >= bars.length) continue;
     const shared = {
       pivotIndex: index,
       confirmedIndex,
@@ -82,7 +82,8 @@ function foldIntoStream(stream, pivot) {
  * last confirmed swing high/low entries and the active opposite-type leg.
  * @param {Array<any>} bars @param {Array<any>} pivots
  */
-export function computeAlternatedStreamStates(bars, pivots) {
+export function computeAlternatedStreamStates(bars, pivots, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'pivots');
   const stream = [];
   let cursor = 0;
   return bars.map((bar, index) => {
@@ -104,7 +105,7 @@ export function computeAlternatedStreamStates(bars, pivots) {
 }
 
 /** @param {any} entry @param {number} index @param {string} prefix */
-function pivotCells(entry, index, prefix) {
+function pivotCells(entry, index, prefix, priceScale) {
   if (entry === null) {
     return {
       [`${prefix}Price`]: unavailableCell('NO_CONFIRMED_PIVOT'),
@@ -114,7 +115,7 @@ function pivotCells(entry, index, prefix) {
     };
   }
   return {
-    [`${prefix}Price`]: availableFixedCell(entry.pivotPrice, 12),
+    [`${prefix}Price`]: availableFixedCell(entry.pivotPrice, priceScale),
     [`${prefix}PivotSessionDate`]: { value: entry.pivotSessionDate, availability: 'AVAILABLE' },
     [`${prefix}ConfirmedAtSessionDate`]: { value: entry.confirmedAtSessionDate, availability: 'AVAILABLE' },
     [`${prefix}AgeSessions`]: { value: index - entry.pivotIndex, availability: 'AVAILABLE' },
@@ -125,9 +126,10 @@ function pivotCells(entry, index, prefix) {
  * Per-row pivot family cells from the alternated stream states.
  * @param {Array<any>} streamStates
  */
-export function computePivotFamilyRows(streamStates) {
+export function computePivotFamilyRows(streamStates, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'pivots');
   return streamStates.map((state, index) => ({
-    ...pivotCells(state.lastSwingHigh, index, 'lastConfirmedSwingHigh'),
-    ...pivotCells(state.lastSwingLow, index, 'lastConfirmedSwingLow'),
+    ...pivotCells(state.lastSwingHigh, index, 'lastConfirmedSwingHigh', config.scales.priceScale),
+    ...pivotCells(state.lastSwingLow, index, 'lastConfirmedSwingLow', config.scales.priceScale),
   }));
 }

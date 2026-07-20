@@ -23,20 +23,15 @@ import {
   addFixed,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const RATIO_NUMERATORS = Object.freeze([
-  ['236', 236n],
-  ['382', 382n],
-  ['500', 500n],
-  ['618', 618n],
-  ['786', 786n],
-]);
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /**
  * @param {Array<any>} bars internal volume-structure bars
  * @param {Array<any>} streamStates per-row alternated pivot stream states
  */
-export function computeFibonacciFeatures(bars, streamStates) {
+export function computeFibonacciFeatures(bars, streamStates, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'fibonacci');
+  const { internalScale, priceScale, ratioScale } = config.scales;
   return bars.map((bar, index) => {
     const leg = streamStates[index].leg;
     if (leg === null) {
@@ -46,7 +41,7 @@ export function computeFibonacciFeatures(bars, streamStates) {
         'fibonacciStartSessionDate', 'fibonacciStartConfirmedAtSessionDate', 'fibonacciStartPrice',
         'fibonacciEndSessionDate', 'fibonacciEndConfirmedAtSessionDate', 'fibonacciEndPrice',
       ]) cells[name] = unavailableCell('NO_ACTIVE_FIBONACCI_LEG');
-      for (const [suffix] of RATIO_NUMERATORS) {
+      for (const { suffix } of config.ratios) {
         cells[`fibonacci${suffix}`] = unavailableCell('NO_ACTIVE_FIBONACCI_LEG');
         cells[`distanceToFibonacci${suffix}`] = unavailableCell('NO_ACTIVE_FIBONACCI_LEG');
       }
@@ -63,16 +58,18 @@ export function computeFibonacciFeatures(bars, streamStates) {
       },
       fibonacciStartSessionDate: { value: leg.start.pivotSessionDate, availability: 'AVAILABLE' },
       fibonacciStartConfirmedAtSessionDate: { value: leg.start.confirmedAtSessionDate, availability: 'AVAILABLE' },
-      fibonacciStartPrice: availableFixedCell(leg.start.pivotPrice, 12),
+      fibonacciStartPrice: availableFixedCell(leg.start.pivotPrice, priceScale),
       fibonacciEndSessionDate: { value: leg.end.pivotSessionDate, availability: 'AVAILABLE' },
       fibonacciEndConfirmedAtSessionDate: { value: leg.end.confirmedAtSessionDate, availability: 'AVAILABLE' },
-      fibonacciEndPrice: availableFixedCell(leg.end.pivotPrice, 12),
+      fibonacciEndPrice: availableFixedCell(leg.end.pivotPrice, priceScale),
     };
-    for (const [suffix, numerator] of RATIO_NUMERATORS) {
-      const retracement = multiplyByRatio(range, numerator, 1000n);
+    for (const { suffix, numerator, denominator } of config.ratios) {
+      const retracement = multiplyByRatio(range, numerator, denominator);
       const level = bullish ? subtractFixed(high, retracement) : addFixed(low, retracement);
-      cells[`fibonacci${suffix}`] = availableFixedCell(level, 12);
-      cells[`distanceToFibonacci${suffix}`] = availableFixedCell(ratioChangeFixed(bar.close, level));
+      cells[`fibonacci${suffix}`] = availableFixedCell(level, priceScale);
+      cells[`distanceToFibonacci${suffix}`] = availableFixedCell(
+        ratioChangeFixed(bar.close, level, internalScale), ratioScale,
+      );
     }
     return cells;
   });

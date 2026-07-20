@@ -19,9 +19,18 @@ import {
 } from '../src/data/buildCorporateAction.mjs';
 import * as Source from '../src/contracts/marketDataSourceL3V1.mjs';
 import * as Calendar from '../src/contracts/marketCalendarL3V1.mjs';
+import * as Candidate from '../src/contracts/marketDataCandidateL3V1.mjs';
+import * as Delta from '../src/contracts/marketDataDeltaL3V1.mjs';
 import {
+  MARKET_DATA_INGESTION_MANIFEST_SCHEMA_VERSION,
   MARKET_DATA_INGESTION_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  appendMarketDataIngestionRegistry,
+  buildMarketDataIngestionManifest,
   buildMarketDataIngestionRegistryManifest,
+  deriveCorporateActionTreatment,
+  deriveTemporalCapabilityFromDeltaObjects,
+  derivePinnedIngestionBaseView,
+  verifyMarketDataIngestionManifest,
 } from '../src/contracts/marketDataIngestionRegistryL3V1.mjs';
 import {
   MARKET_DATA_EOD_OHLCV_ATOMS_HEADER_V1,
@@ -61,9 +70,12 @@ import {
 import { simpleReturnAt } from '../src/features/returnsDrawdownFeaturesL4V1.mjs';
 import { divideFixed } from '../src/features/fixedPointFeatureMathL4V1.mjs';
 import { toInternalVolumeStructureBars } from '../src/features/volumeStructureBarInputsL4V1.mjs';
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 } from '../src/features/marketVolumeStructureRuntimePolicyL4V1.mjs';
 import { withStore } from './l2aSyntheticPipeline.mjs';
 
 const FIRST_SESSION_DATE = '2026-01-02';
+const EMPTY_FIXTURE_CUTOFF = '2026-01-02T22:00:00.000Z';
+const EMPTY_FIXTURE_ASSESSED_AT = '2026-01-02T23:00:00.000Z';
 
 /**
  * Build internal volume-structure bars for direct formula tests. Volumes may
@@ -95,7 +107,7 @@ export function makeVolumeBars(closes, options = {}) {
       priceBasis: 'RAW',
     };
   });
-  return toInternalVolumeStructureBars(rows);
+  return toInternalVolumeStructureBars(rows, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.barInputs);
 }
 
 /** @param {any} cell canonical-roundtrip an internal L4A-A cell like the orchestrator does */
@@ -145,8 +157,10 @@ function corporateRegistryArgs(policies, instrumentRegistry) {
 }
 
 function buildAuthorityGraph(store, sessionDates) {
-  const lastDate = sessionDates[sessionDates.length - 1];
-  const boundsToExclusive = addDays(lastDate, 1);
+  const lastSessionDate = sessionDates.length === 0 ? null : sessionDates[sessionDates.length - 1];
+  const boundsToExclusive = lastSessionDate === null
+    ? addDays(FIRST_SESSION_DATE, 1)
+    : addDays(lastSessionDate, 1);
   const instrumentAuthority = buildInstrumentIdentityAuthorityPolicy({
     store,
     authorityId: 'l4b-synthetic-instruments/1',
@@ -212,7 +226,7 @@ function buildAuthorityGraph(store, sessionDates) {
     store,
     ...corporateRegistryArgs(corporatePolicies, instrumentRegistry),
   });
-  const dayCount = sessionDates.length;
+  const dayCount = sessionDates.length === 0 ? 1 : sessionDates.length;
   const ruleset = buildTimeZoneRuleset({
     store,
     ruleset: {
@@ -330,7 +344,7 @@ function buildAuthorityGraph(store, sessionDates) {
 }
 
 function buildSource(store, graph, sessions) {
-  const lastDate = sessions[sessions.length - 1].sessionDate;
+  const lastSessionDate = sessions.length === 0 ? null : sessions[sessions.length - 1].sessionDate;
   const header = [...MARKET_DATA_EOD_OHLCV_ATOMS_HEADER_V1];
   header.push(graph.ingestionPolicy.ingestionPolicy.providerPublicationTimeField);
   header.push(graph.ingestionPolicy.ingestionPolicy.providerRevisionIdField);
@@ -385,7 +399,9 @@ function buildSource(store, graph, sessions) {
     record: {
       schemaVersion: Source.MARKET_DATA_ACQUISITION_RECORD_CORE_SCHEMA_VERSION,
       ingestionLineageId: graph.lineage.ingestionLineageId,
-      acquisitionTimeUtc: `${lastDate}T22:00:00.000Z`,
+      acquisitionTimeUtc: lastSessionDate === null
+        ? EMPTY_FIXTURE_CUTOFF
+        : `${lastSessionDate}T22:00:00.000Z`,
       providerId: graph.lineage.ingestionLineage.providerId,
       logicalEndpointKind: 'EOD_OHLCV_DATASET',
       requestDatasetKind: 'EOD_OHLCV',
@@ -396,16 +412,138 @@ function buildSource(store, graph, sessions) {
   return { artifact, attestation, acquisition };
 }
 
+function appendWithdrawalForOnlySession(store, graph, firstIngestion) {
+  const verifiedFirst = verifyMarketDataIngestionManifest({
+    store, ingestionManifestId: firstIngestion.ingestionManifestId,
+  }).ingestionManifest;
+  const candidateSet = Candidate.verifyMarketDataCandidateSet({
+    store, candidateSetId: firstIngestion.candidateSetId,
+  });
+  if (candidateSet.candidates.length !== 1) {
+    throw new Error('empty L4A-B fixture requires exactly one seed candidate');
+  }
+  const firstAssembly = Delta.verifyNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: firstIngestion.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest;
+  if (firstAssembly.acceptedCorrectionIds.length !== 1) {
+    throw new Error('empty L4A-B fixture requires exactly one seed correction');
+  }
+  const registryId = firstIngestion.ingestionRegistryManifestId;
+  const parentId = firstIngestion.ingestionManifestId;
+  const pins = {
+    identityRegistryManifestId: graph.instrumentRegistry.registryManifestId,
+    calendarRegistryManifestId: graph.calendarRegistry.calendarRegistryManifestId,
+    corporateActionRegistryManifestId: graph.corporateRegistry.registryManifestId,
+  };
+  const full = derivePinnedIngestionBaseView(
+    store, registryId, graph.lineage.ingestionLineageId, parentId,
+  );
+  const initial = candidateSet.candidates[0];
+  const withdrawal = {
+    ...initial,
+    candidateKind: 'BAR_WITHDRAWAL',
+    targetCorrectionId: firstAssembly.acceptedCorrectionIds[0],
+  };
+  delete withdrawal.replacementValues;
+  const built = Candidate.buildMarketDataNormalizedCandidate({ store, candidate: withdrawal });
+  const view = {
+    baseIngestionRegistryManifestId: registryId,
+    expectedParentIngestionManifestId: parentId,
+    terminalCorrectionIds: full.terminalCorrectionIds,
+    visibleCorrectionIds: full.visibleCorrectionIds,
+    occupiedBarIdentityIds: full.occupiedBarIdentityIds,
+    publishedBarIdentityIds: full.publishedBarIdentityIds,
+    duplicateCandidateIds: [],
+  };
+  const set = Candidate.buildMarketDataCandidateSet({
+    store,
+    candidateSet: {
+      schemaVersion: Candidate.MARKET_DATA_CANDIDATE_SET_CORE_SCHEMA_VERSION,
+      ingestionLineageId: graph.lineage.ingestionLineageId,
+      sourceArtifactId: initial.sourceArtifactId,
+      acquisitionRecordId: initial.acquisitionRecordId,
+      parseResultId: initial.parseResultId,
+      ingestionPolicyId: graph.ingestionPolicy.ingestionPolicyId,
+      ...pins,
+      candidateIds: [built.candidateId],
+    },
+  });
+  const report = Candidate.validateMarketDataCandidateSet({
+    store, candidateSetId: set.candidateSetId, baseView: view,
+  });
+  const published = Delta.publishValidatedMarketDataDelta({
+    store, candidateSetId: set.candidateSetId,
+    validationReportId: report.validationReportId, baseView: view,
+  });
+  if (published.status !== 'PUBLISHED') throw new Error('empty L4A-B withdrawal was not published');
+  const assembly = Delta.verifyNormalizedMarketDataDeltaAssemblyManifest({
+    store, deltaAssemblyManifestId: published.deltaAssemblyManifestId,
+  }).deltaAssemblyManifest;
+  const newBarObservationIds = [...assembly.acceptedObservationIds].sort();
+  const newBarCorrectionIds = [...assembly.acceptedCorrectionIds].sort();
+  const ingestion = buildMarketDataIngestionManifest({
+    store,
+    manifest: {
+      schemaVersion: MARKET_DATA_INGESTION_MANIFEST_SCHEMA_VERSION,
+      ingestionLineageId: graph.lineage.ingestionLineageId,
+      ingestionPolicyId: graph.ingestionPolicy.ingestionPolicyId,
+      baseIngestionRegistryManifestId: registryId,
+      expectedParentIngestionManifestId: parentId,
+      supersedesIngestionManifestId: parentId,
+      ...pins,
+      sourceArtifactId: initial.sourceArtifactId,
+      sourceAttestationId: verifiedFirst.sourceAttestationId,
+      acquisitionRecordId: initial.acquisitionRecordId,
+      parseResultId: initial.parseResultId,
+      candidateSetId: set.candidateSetId,
+      validationReportId: report.validationReportId,
+      acceptedCandidatePublicationManifestId: published.publicationManifestId,
+      deltaAssemblyManifestId: published.deltaAssemblyManifestId,
+      newBarObservationIds,
+      newBarCorrectionIds,
+      temporalCapability: deriveTemporalCapabilityFromDeltaObjects(
+        store, newBarObservationIds, newBarCorrectionIds,
+      ),
+      priceBasis: graph.lineage.ingestionLineage.priceBasis,
+      corporateActionTreatment: deriveCorporateActionTreatment(
+        graph.lineage.ingestionLineage.priceBasis,
+      ),
+    },
+  });
+  return appendMarketDataIngestionRegistry({
+    store,
+    baseIngestionRegistryManifestId: registryId,
+    expectedParentIngestionManifestId: parentId,
+    ingestionManifestId: ingestion.ingestionManifestId,
+  }).ingestionRegistryManifestId;
+}
+
 /**
  * Build a full official L3-I6 binding over the supplied synthetic sessions.
  * @param {Array<object>} sessions rows with atoms strings and sessionDate
  * @param {(context: object) => any} callback
  */
-export function withOfficialVolumeStructureBinding(sessions, callback) {
-  return withStore((store) => {
-    const lastDate = sessions[sessions.length - 1].sessionDate;
-    const graph = buildAuthorityGraph(store, sessions.map((session) => session.sessionDate));
-    const source = buildSource(store, graph, sessions);
+export function withOfficialVolumeStructureBinding(sessions, callback, options = {}) {
+  return withStore((store, root) => {
+    if (options.beforeBuild !== undefined) options.beforeBuild({ store, root });
+    const lastSessionDate = sessions.length === 0 ? null : sessions[sessions.length - 1].sessionDate;
+    const knowledgeCutoff = lastSessionDate === null
+      ? EMPTY_FIXTURE_CUTOFF
+      : `${lastSessionDate}T22:00:00.000Z`;
+    const assessedAt = lastSessionDate === null
+      ? EMPTY_FIXTURE_ASSESSED_AT
+      : `${lastSessionDate}T23:00:00.000Z`;
+    const pipelineSessions = sessions.length === 0
+      ? [{
+        sessionDate: FIRST_SESSION_DATE,
+        openAtoms: '10000', highAtoms: '10100', lowAtoms: '9900', closeAtoms: '10000',
+        priceScale: '2', volumeAtoms: '1000000', volumeScale: '0',
+      }]
+      : sessions;
+    const graph = buildAuthorityGraph(
+      store, pipelineSessions.map((session) => session.sessionDate),
+    );
+    const source = buildSource(store, graph, pipelineSessions);
     const ingestion = runIngestion({
       store,
       baseIngestionRegistryManifestId: graph.rootRegistry.ingestionRegistryManifestId,
@@ -416,17 +554,20 @@ export function withOfficialVolumeStructureBinding(sessions, callback) {
       sourceAttestationId: source.attestation.sourceAttestationId,
       acquisitionRecordId: source.acquisition.acquisitionRecordId,
     });
+    const ingestionRegistryManifestId = sessions.length === 0
+      ? appendWithdrawalForOnlySession(store, graph, ingestion)
+      : ingestion.ingestionRegistryManifestId;
     const resolved = buildMarketDataResolvedSeriesManifest({
       store,
-      ingestionRegistryManifestId: ingestion.ingestionRegistryManifestId,
+      ingestionRegistryManifestId,
       ingestionLineageId: graph.lineage.ingestionLineageId,
-      knowledgeCutoff: `${lastDate}T22:00:00.000Z`,
+      knowledgeCutoff,
       corporateActionRegistryManifestId: graph.corporateRegistry.registryManifestId,
     });
     const materializationPolicy = buildMarketDataSnapshotMaterializationPolicy({ store });
     const materialization = materializeMarketDataSnapshot({
       store,
-      ingestionRegistryManifestId: ingestion.ingestionRegistryManifestId,
+      ingestionRegistryManifestId,
       resolvedSeriesManifestId: resolved.resolvedSeriesManifestId,
       materializationPolicyId: materializationPolicy.materializationPolicyId,
     });
@@ -442,7 +583,7 @@ export function withOfficialVolumeStructureBinding(sessions, callback) {
     const quality = buildDatasetQualityAssessmentRecord({
       store,
       qualityAssessmentCoreId: assessed.qualityCoreId,
-      assessedAt: `${lastDate}T23:00:00.000Z`,
+      assessedAt,
       assessmentToolVersion: 'l4b-quality/1',
       nodeVersion: 'v20.0.0',
       executionIdentity: { runnerId: 'node-test', runId: 'l4b-quality', environment: 'LOCAL_TEST' },
@@ -459,7 +600,7 @@ export function withOfficialVolumeStructureBinding(sessions, callback) {
       materializationReportId: materialization.materializationReportId,
       qualityAssessmentId: quality.recordId,
     });
-    return callback({ store, graph, materialization, bindingRoot, published });
+    return callback({ store, root, graph, materialization, bindingRoot, published });
   });
 }
 
@@ -467,7 +608,7 @@ export function withOfficialVolumeStructureBinding(sessions, callback) {
  * Official binding + verified L4A-A computation over the sessions, handing
  * the L4A-A report ID to the callback — the authoritative L4A-B entry.
  */
-export function withOfficialL4AReport(sessions, callback) {
+export function withOfficialL4AReport(sessions, callback, options = {}) {
   return withOfficialVolumeStructureBinding(sessions, (context) => {
     const technicalPolicy = buildMarketTechnicalFeatureComputationPolicy({ store: context.store });
     const technicalBundle = buildMarketTechnicalFeatureSourceBundle({
@@ -484,7 +625,7 @@ export function withOfficialL4AReport(sessions, callback) {
       technicalFeatureComputationPolicyId: technicalPolicy.technicalFeatureComputationPolicyId,
     });
     return callback({ ...context, technicalPolicy, technicalBundle, technical });
-  });
+  }, options);
 }
 
 /** Simple deterministic OHLCV session specs for pipeline-level tests. */

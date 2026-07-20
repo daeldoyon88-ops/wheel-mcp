@@ -6,11 +6,16 @@ import {
   detectConfirmedPivots,
 } from '../src/features/confirmedPivotFeaturesL4V1.mjs';
 import { makeVolumeBars } from './marketVolumeStructureL4SyntheticFixture.mjs';
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 } from '../src/features/marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 function vwapRows(bars) {
-  const pivots = detectConfirmedPivots(bars);
-  const states = computeAlternatedStreamStates(bars, pivots);
-  return computeEodVolumeWeightedPriceFeatures(bars, states);
+  const pivots = detectConfirmedPivots(bars, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots);
+  const states = computeAlternatedStreamStates(
+    bars, pivots, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots,
+  );
+  return computeEodVolumeWeightedPriceFeatures(
+    bars, states, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.eodVolumeWeightedPrices,
+  );
 }
 
 function fixed(atoms) {

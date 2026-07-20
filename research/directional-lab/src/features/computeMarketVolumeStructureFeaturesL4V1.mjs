@@ -46,6 +46,7 @@ import { computeSupportResistanceFeatures } from './supportResistanceFeaturesL4V
 import { computeGapBreakoutFeatures } from './gapBreakoutFeaturesL4V1.mjs';
 import { computeCongestionFeatures } from './congestionFeaturesL4V1.mjs';
 import { computeFibonacciFeatures } from './fibonacciStructureFeaturesL4V1.mjs';
+import { deriveMarketVolumeStructureRuntimePolicyV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 const STORE_METHODS = Object.freeze([
   'putCanonicalObject', 'readCanonicalObject', 'uriForObject', 'readObject', 'putSourceBytes',
@@ -184,14 +185,22 @@ export function verifyMarketVolumeStructureFeatureComputationPolicy(input) {
   return {
     volumeStructureFeatureComputationPolicyId: api.volumeStructureFeatureComputationPolicyId,
     policy: stored,
+    verifiedPolicy: stored,
   };
 }
 
 /** @param {Record<string, {value: unknown, availability: string}>} cells */
-function splitCells(cells) {
+function splitCells(cells, runtimePolicy) {
   const features = {};
   const availability = {};
   for (const [name, cell] of Object.entries(cells)) {
+    if (cell.availability === 'AVAILABLE' && cell.value !== null
+        && typeof cell.value === 'object' && !Array.isArray(cell.value)
+        && typeof cell.value.atoms === 'string'
+        && ![runtimePolicy.barInputs.scales.priceScale, runtimePolicy.barInputs.scales.ratioScale]
+          .includes(cell.value.scale)) {
+      throw new RangeError(`${name} output scale diverges from the verified L4A-B policy`);
+    }
     features[name] = cell.value;
     availability[name] = cell.availability;
   }
@@ -199,34 +208,44 @@ function splitCells(cells) {
 }
 
 /** Recompute every B1/B2 row strictly left-to-right plus report counters. */
-function deriveFeatureRowsDocument(runtime) {
-  const bars = toInternalVolumeStructureBars(runtime.subjectRows);
-  const technicalCells = extractTechnicalCells(runtime.technicalRows);
+export function deriveFeatureRowsDocument(runtime, runtimePolicy) {
+  if (runtimePolicy === null || typeof runtimePolicy !== 'object') {
+    throw new TypeError('verified L4A-B runtime policy is required');
+  }
+  const bars = toInternalVolumeStructureBars(runtime.subjectRows, runtimePolicy.barInputs);
+  const technicalCells = extractTechnicalCells(runtime.technicalRows, runtimePolicy.barInputs);
   const return20Cells = technicalCells.map((cells) => cells.return20);
 
-  const participation = computeVolumeParticipationFeatures(bars, return20Cells);
-  const pivots = detectConfirmedPivots(bars);
-  const streamStates = computeAlternatedStreamStates(bars, pivots);
-  const weighted = computeEodVolumeWeightedPriceFeatures(bars, streamStates);
-  const pivotRows = computePivotFamilyRows(streamStates);
-  const supportResistance = computeSupportResistanceFeatures(bars, pivots, technicalCells);
-  const gapsBreakouts = computeGapBreakoutFeatures(
-    bars, supportResistance.levels, participation.relativeVolume20Internal,
+  const participation = computeVolumeParticipationFeatures(
+    bars, return20Cells, runtimePolicy.volumeParticipation,
   );
-  const congestion = computeCongestionFeatures(bars, technicalCells);
-  const fibonacci = computeFibonacciFeatures(bars, streamStates);
+  const pivots = detectConfirmedPivots(bars, runtimePolicy.pivots);
+  const streamStates = computeAlternatedStreamStates(bars, pivots, runtimePolicy.pivots);
+  const weighted = computeEodVolumeWeightedPriceFeatures(
+    bars, streamStates, runtimePolicy.eodVolumeWeightedPrices,
+  );
+  const pivotRows = computePivotFamilyRows(streamStates, runtimePolicy.pivots);
+  const supportResistance = computeSupportResistanceFeatures(
+    bars, pivots, technicalCells, runtimePolicy.supportResistance,
+  );
+  const gapsBreakouts = computeGapBreakoutFeatures(
+    bars, supportResistance.levels, participation.relativeVolumeComparisonInternal,
+    runtimePolicy.gapsBreakouts,
+  );
+  const congestion = computeCongestionFeatures(bars, technicalCells, runtimePolicy.congestion);
+  const fibonacci = computeFibonacciFeatures(bars, streamStates, runtimePolicy.fibonacci);
 
   const technicalFeatureRowsId = runtime.volumeStructureFeatureSourceBundle.technicalFeatureRowsId;
   const sourceBindingId = runtime.volumeStructureFeatureSourceBundle.subjectBindingId;
   const rows = bars.map((bar, index) => {
     const families = {
-      volumeParticipation: splitCells(participation.rows[index]),
-      eodVolumeWeightedPrices: splitCells(weighted[index]),
-      pivots: splitCells(pivotRows[index]),
-      supportResistance: splitCells(supportResistance.rows[index]),
-      gapsBreakouts: splitCells(gapsBreakouts.rows[index]),
-      congestion: splitCells(congestion[index]),
-      fibonacci: splitCells(fibonacci[index]),
+      volumeParticipation: splitCells(participation.rows[index], runtimePolicy),
+      eodVolumeWeightedPrices: splitCells(weighted[index], runtimePolicy),
+      pivots: splitCells(pivotRows[index], runtimePolicy),
+      supportResistance: splitCells(supportResistance.rows[index], runtimePolicy),
+      gapsBreakouts: splitCells(gapsBreakouts.rows[index], runtimePolicy),
+      congestion: splitCells(congestion[index], runtimePolicy),
+      fibonacci: splitCells(fibonacci[index], runtimePolicy),
     };
     const features = {};
     const availability = {};
@@ -308,12 +327,13 @@ export function computeMarketVolumeStructureFeatures(input) {
     store: api.store,
     volumeStructureFeatureSourceBundleId: api.volumeStructureFeatureSourceBundleId,
   });
-  verifyMarketVolumeStructureFeatureComputationPolicy({
+  const { verifiedPolicy } = verifyMarketVolumeStructureFeatureComputationPolicy({
     store: api.store,
     volumeStructureFeatureComputationPolicyId: api.volumeStructureFeatureComputationPolicyId,
   });
+  const runtimePolicy = deriveMarketVolumeStructureRuntimePolicyV1(verifiedPolicy);
 
-  const derived = deriveFeatureRowsDocument(runtime);
+  const derived = deriveFeatureRowsDocument(runtime, runtimePolicy);
   const storedRows = api.store.putCanonicalObject({
     namespace: 'normalized',
     schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_ROWS_SCHEMA_VERSION,
@@ -360,11 +380,12 @@ export function verifyMarketVolumeStructureFeatureComputation(input) {
     store: api.store,
     volumeStructureFeatureSourceBundleId: storedReport.volumeStructureFeatureSourceBundleId,
   });
-  verifyMarketVolumeStructureFeatureComputationPolicy({
+  const { verifiedPolicy } = verifyMarketVolumeStructureFeatureComputationPolicy({
     store: api.store,
     volumeStructureFeatureComputationPolicyId: storedReport.volumeStructureFeatureComputationPolicyId,
   });
-  const derived = deriveFeatureRowsDocument(runtime);
+  const runtimePolicy = deriveMarketVolumeStructureRuntimePolicyV1(verifiedPolicy);
+  const derived = deriveFeatureRowsDocument(runtime, runtimePolicy);
   const storedRows = readVolumeStructureRows(api.store, storedReport.volumeStructureFeatureRowsId);
   if (!canonicalValuesEqual(storedRows, derived.document)) {
     throw new MarketDataL3Error(

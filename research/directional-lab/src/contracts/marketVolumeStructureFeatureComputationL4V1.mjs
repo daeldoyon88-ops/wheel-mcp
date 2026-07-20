@@ -22,6 +22,7 @@ import {
   MARKET_DATA_INGESTION_PRICE_BASES,
   MARKET_DATA_TEMPORAL_CAPABILITIES,
 } from './marketDataIngestionRegistryL3V1.mjs';
+import { MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1 } from './marketVolumeStructureFeaturePolicyValuesL4V1.mjs';
 
 export const MARKET_VOLUME_STRUCTURE_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION =
   'MarketVolumeStructureFeatureSourceBundle/1';
@@ -69,68 +70,14 @@ export const FIBONACCI_DIRECTIONS = Object.freeze([
   'BEARISH_RETRACEMENT',
 ]);
 
-/** Exact non-float scalar: canonical fixed-point atoms at a closed scale. */
-function frozenFixed(atoms, scale) {
-  return Object.freeze({ atoms, scale });
-}
-
 /**
  * Closed V1 policy. Ratios and thresholds are exact fixed-point values —
  * never authoritative IEEE-754 floats. The rolling and anchored EOD VWAP
  * values are approximations from daily OHLCV bars, not exchange intraday
  * VWAPs, and OBV / the A/D line are relative to the snapshot start.
  */
-export const MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES = Object.freeze({
-  numericRepresentation: 'FIXED_POINT_BIGINT_V1',
-  internalScale: 24,
-  ratioScale: 12,
-  priceScale: 12,
-  roundingMode: 'HALF_EVEN',
-  rowOrdering: 'SESSION_DATE_THEN_BAR_IDENTITY',
-  futureDataPolicy: 'FORBIDDEN',
-  missingHistoryPolicy: 'NULL_WITH_REASON',
-  volumeBaseline20: 'PREVIOUS_SESSIONS_EXCLUDING_CURRENT',
-  volumeBaseline50: 'PREVIOUS_SESSIONS_EXCLUDING_CURRENT',
-  volumePercentileWindow: 60,
-  obvOrigin: 'ZERO_AT_SNAPSHOT_START',
-  obvDeltaPeriods: Object.freeze([5, 20, 60]),
-  adLineOrigin: 'ZERO_BEFORE_SNAPSHOT_START',
-  adLineDeltaPeriod: 20,
-  flatRangeMoneyFlowConvention: 'ZERO_MULTIPLIER_AND_ZERO_MONEY_FLOW_VOLUME',
-  mfiPeriod: 14,
-  cmfPeriod: 20,
-  rollingEodVwapPeriods: Object.freeze([20, 60]),
-  eodVwapBasis: 'EOD_APPROXIMATION_FROM_DAILY_OHLCV_NOT_EXCHANGE_INTRADAY_VWAP',
-  anchoredEodVwapActivation: 'FROM_PIVOT_CONFIRMATION_INCLUDING_BARS_SINCE_PIVOT_SESSION',
-  priceVolumeComparisonPeriod: 20,
-  pivotRadius: 3,
-  pivotTiePolicy: 'STRICT_NO_PLATEAU',
-  pivotConfirmationDelay: 3,
-  pivotSameSessionOrder: 'SWING_LOW_FIRST',
-  pivotStreamCompression: 'KEEP_EXTREME_THEN_MOST_RECENTLY_CONFIRMED',
-  structureLookback: 252,
-  levelTouchLookback: 120,
-  levelTieBreak: 'MOST_RECENTLY_CONFIRMED',
-  levelToleranceAtrMultiplier: frozenFixed('25', 2),
-  levelTolerancePricePct: frozenFixed('5', 3),
-  levelToleranceCombination: 'MAX',
-  breakoutVolumeThreshold: frozenFixed('15', 1),
-  failedBreakoutObservationWindow: 5,
-  openGapLookback: 252,
-  openGapSidePolicy: 'EXCLUDE_GAPS_STRADDLING_CLOSE',
-  openGapTieBreak: 'NEAREST_BOUNDARY_THEN_MOST_RECENT_SESSION',
-  congestionWindow: 20,
-  congestionReferenceWindow: 60,
-  congestionEfficiencyThreshold: frozenFixed('30', 2),
-  congestionAtrMultiplier: frozenFixed('4', 0),
-  fibonacciRatios: Object.freeze([
-    frozenFixed('236', 3),
-    frozenFixed('382', 3),
-    frozenFixed('500', 3),
-    frozenFixed('618', 3),
-    frozenFixed('786', 3),
-  ]),
-});
+export const MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES =
+  MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1;
 
 export const VOLUME_PARTICIPATION_FEATURE_NAMES = Object.freeze([
   'volumeMean20Previous', 'volumeMean50Previous',

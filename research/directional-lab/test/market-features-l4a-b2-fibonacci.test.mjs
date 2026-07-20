@@ -6,6 +6,7 @@ import {
 } from '../src/features/confirmedPivotFeaturesL4V1.mjs';
 import { computeFibonacciFeatures } from '../src/features/fibonacciStructureFeaturesL4V1.mjs';
 import { computeCongestionFeatures } from '../src/features/congestionFeaturesL4V1.mjs';
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 } from '../src/features/marketVolumeStructureRuntimePolicyL4V1.mjs';
 import {
   makeTechnicalCellsFromBars,
   makeVolumeBars,
@@ -17,7 +18,13 @@ function fixed(atoms) {
 
 function fibRows(bars) {
   return computeFibonacciFeatures(
-    bars, computeAlternatedStreamStates(bars, detectConfirmedPivots(bars)),
+    bars,
+    computeAlternatedStreamStates(
+      bars,
+      detectConfirmedPivots(bars, MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots),
+      MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.pivots,
+    ),
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.fibonacci,
   );
 }
 
@@ -77,6 +84,7 @@ test('L4A-B2 congestion windows report INSUFFICIENT_HISTORY before their first c
   const rows = computeCongestionFeatures(
     makeVolumeBars(closes, { spread: 1n }),
     makeTechnicalCellsFromBars(makeVolumeBars(closes, { spread: 1n })),
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.congestion,
   );
   assert.deepEqual(rows[18].priceRange20Pct, { value: null, availability: 'INSUFFICIENT_HISTORY' });
   assert.equal(rows[19].priceRange20Pct.availability, 'AVAILABLE');
@@ -86,7 +94,9 @@ test('L4A-B2 congestion windows report INSUFFICIENT_HISTORY before their first c
 test('L4A-B2 directionalEfficiency20 is zero on a flat path and DIVISION_BY_ZERO on a zero path sum', () => {
   const flat = Array.from({ length: 25 }, () => 100n);
   const bars = makeVolumeBars(flat, { spread: 0n });
-  const rows = computeCongestionFeatures(bars, makeTechnicalCellsFromBars(bars));
+  const rows = computeCongestionFeatures(
+    bars, makeTechnicalCellsFromBars(bars), MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.congestion,
+  );
   assert.deepEqual(rows[20].directionalEfficiency20, {
     value: null, availability: 'DIVISION_BY_ZERO',
   });
@@ -99,7 +109,9 @@ test('L4A-B2 isCongestion20 is descriptive and fires only under the closed dual 
     closes.push(100n + BigInt(index % 2));
   }
   const bars = makeVolumeBars(closes, { spread: 1n });
-  const rows = computeCongestionFeatures(bars, makeTechnicalCellsFromBars(bars));
+  const rows = computeCongestionFeatures(
+    bars, makeTechnicalCellsFromBars(bars), MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.congestion,
+  );
   assert.equal(rows[30].isCongestion20.availability, 'AVAILABLE');
   assert.equal(typeof rows[30].isCongestion20.value, 'boolean');
   assert.equal(rows[30].isCongestion20.value, true);
@@ -108,7 +120,9 @@ test('L4A-B2 isCongestion20 is descriptive and fires only under the closed dual 
 test('L4A-B2 a strong directional move refuses the congestion boolean', () => {
   const closes = Array.from({ length: 40 }, (_, index) => 100n + BigInt(index) * 5n);
   const bars = makeVolumeBars(closes, { spread: 1n });
-  const rows = computeCongestionFeatures(bars, makeTechnicalCellsFromBars(bars));
+  const rows = computeCongestionFeatures(
+    bars, makeTechnicalCellsFromBars(bars), MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.congestion,
+  );
   assert.deepEqual(rows[30].isCongestion20, { value: false, availability: 'AVAILABLE' });
 });
 
@@ -117,7 +131,9 @@ test('L4A-B2 rangeCompression20Vs60 divides the raw ranges exactly', () => {
   const highs = closes.map((_, index) => (index < 50 ? 110n : 105n));
   const lows = closes.map((_, index) => (index < 50 ? 90n : 95n));
   const bars = makeVolumeBars(closes, { highs, lows });
-  const rows = computeCongestionFeatures(bars, makeTechnicalCellsFromBars(bars));
+  const rows = computeCongestionFeatures(
+    bars, makeTechnicalCellsFromBars(bars), MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.congestion,
+  );
   // last 20 range = 10, last 60 range = 20 → 0.5
   assert.deepEqual(rows[69].rangeCompression20Vs60, {
     value: fixed('500000000000'), availability: 'AVAILABLE',

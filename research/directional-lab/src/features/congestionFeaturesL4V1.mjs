@@ -18,7 +18,6 @@
  */
 
 import {
-  FEATURE_CALCULATION_SCALE,
   availableFixedCell,
   divideRoundHalfEven,
   fixedFromScaledAtoms,
@@ -26,9 +25,7 @@ import {
   powerOfTen,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const WINDOW = 20;
-const REFERENCE_WINDOW = 60;
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /** @param {Array<any>} bars @param {number} index @param {number} period */
 function rawRangeAtoms(bars, index, period) {
@@ -45,9 +42,13 @@ function rawRangeAtoms(bars, index, period) {
  * @param {Array<any>} bars internal volume-structure bars
  * @param {Array<{atr14Pct: {value: any, availability: string}}>} technicalCells
  */
-export function computeCongestionFeatures(bars, technicalCells) {
-  const unit = powerOfTen(FEATURE_CALCULATION_SCALE);
-  const efficiencyThresholdAtoms = 30n * unit / 100n;
+export function computeCongestionFeatures(bars, technicalCells, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'congestion');
+  const { internalScale, ratioScale } = config.scales;
+  const unit = powerOfTen(internalScale);
+  const efficiencyThresholdAtoms = divideRoundHalfEven(
+    config.efficiencyThreshold.numerator * unit, config.efficiencyThreshold.denominator,
+  );
 
   const prefixAbsoluteMove = [0n, 0n];
   for (let index = 1; index < bars.length; index += 1) {
@@ -61,34 +62,35 @@ export function computeCongestionFeatures(bars, technicalCells) {
     let range20 = null;
     let priceRange20Pct;
     let congestionPosition20;
-    if (index + 1 < WINDOW) {
+    if (index + 1 < config.window) {
       priceRange20Pct = unavailableCell('INSUFFICIENT_HISTORY');
       congestionPosition20 = unavailableCell('INSUFFICIENT_HISTORY');
     } else {
-      range20 = rawRangeAtoms(bars, index, WINDOW);
+      range20 = rawRangeAtoms(bars, index, config.window);
       priceRange20Pct = closeAtoms === 0n
         ? unavailableCell('DIVISION_BY_ZERO')
         : availableFixedCell(fixedFromScaledAtoms(
-          divideRoundHalfEven(range20.rangeAtoms * unit, closeAtoms),
-        ));
+          divideRoundHalfEven(range20.rangeAtoms * unit, closeAtoms), internalScale,
+        ), ratioScale);
       congestionPosition20 = range20.rangeAtoms === 0n
         ? unavailableCell('FLAT_RANGE')
         : availableFixedCell(fixedFromScaledAtoms(
           divideRoundHalfEven((closeAtoms - range20.lowestAtoms) * unit, range20.rangeAtoms),
-        ));
+          internalScale,
+        ), ratioScale);
     }
 
     let range60 = null;
     let priceRange60Pct;
-    if (index + 1 < REFERENCE_WINDOW) {
+    if (index + 1 < config.referenceWindow) {
       priceRange60Pct = unavailableCell('INSUFFICIENT_HISTORY');
     } else {
-      range60 = rawRangeAtoms(bars, index, REFERENCE_WINDOW);
+      range60 = rawRangeAtoms(bars, index, config.referenceWindow);
       priceRange60Pct = closeAtoms === 0n
         ? unavailableCell('DIVISION_BY_ZERO')
         : availableFixedCell(fixedFromScaledAtoms(
-          divideRoundHalfEven(range60.rangeAtoms * unit, closeAtoms),
-        ));
+          divideRoundHalfEven(range60.rangeAtoms * unit, closeAtoms), internalScale,
+        ), ratioScale);
     }
 
     let rangeCompression20Vs60;
@@ -97,20 +99,23 @@ export function computeCongestionFeatures(bars, technicalCells) {
     else if (range60.rangeAtoms === 0n) rangeCompression20Vs60 = unavailableCell('FLAT_RANGE');
     else {
       rangeCompression20Vs60 = availableFixedCell(fixedFromScaledAtoms(
-        divideRoundHalfEven(range20.rangeAtoms * unit, range60.rangeAtoms),
-      ));
+        divideRoundHalfEven(range20.rangeAtoms * unit, range60.rangeAtoms), internalScale,
+      ), ratioScale);
     }
 
     let efficiencyAtoms = null;
     let directionalEfficiency20;
-    if (index < WINDOW) directionalEfficiency20 = unavailableCell('INSUFFICIENT_HISTORY');
+    if (index < config.window) directionalEfficiency20 = unavailableCell('INSUFFICIENT_HISTORY');
     else {
-      const pathAtoms = prefixAbsoluteMove[index + 1] - prefixAbsoluteMove[index - WINDOW + 1];
+      const pathAtoms = prefixAbsoluteMove[index + 1]
+        - prefixAbsoluteMove[index - config.window + 1];
       if (pathAtoms === 0n) directionalEfficiency20 = unavailableCell('DIVISION_BY_ZERO');
       else {
-        const move = closeAtoms - bars[index - WINDOW].close.atoms;
+        const move = closeAtoms - bars[index - config.window].close.atoms;
         efficiencyAtoms = divideRoundHalfEven((move < 0n ? -move : move) * unit, pathAtoms);
-        directionalEfficiency20 = availableFixedCell(fixedFromScaledAtoms(efficiencyAtoms));
+        directionalEfficiency20 = availableFixedCell(
+          fixedFromScaledAtoms(efficiencyAtoms, internalScale), ratioScale,
+        );
       }
     }
 
@@ -124,7 +129,9 @@ export function computeCongestionFeatures(bars, technicalCells) {
       isCongestion20 = unavailableCell(atrPct.availability);
     } else {
       const rangePctAtoms = divideRoundHalfEven(range20.rangeAtoms * unit, closeAtoms);
-      const atrBoundAtoms = multiplyByRatio(atrPct.value, 4n, 1n).atoms;
+      const atrBoundAtoms = multiplyByRatio(
+        atrPct.value, config.atrMultiplier.numerator, config.atrMultiplier.denominator,
+      ).atoms;
       isCongestion20 = {
         value: efficiencyAtoms <= efficiencyThresholdAtoms && rangePctAtoms <= atrBoundAtoms,
         availability: 'AVAILABLE',
@@ -132,12 +139,12 @@ export function computeCongestionFeatures(bars, technicalCells) {
     }
 
     return {
-      priceRange20Pct,
-      priceRange60Pct,
-      rangeCompression20Vs60,
-      directionalEfficiency20,
-      congestionPosition20,
-      isCongestion20,
+      [`priceRange${config.window}Pct`]: priceRange20Pct,
+      [`priceRange${config.referenceWindow}Pct`]: priceRange60Pct,
+      [`rangeCompression${config.window}Vs${config.referenceWindow}`]: rangeCompression20Vs60,
+      [`directionalEfficiency${config.window}`]: directionalEfficiency20,
+      [`congestionPosition${config.window}`]: congestionPosition20,
+      [`isCongestion${config.window}`]: isCongestion20,
     };
   });
 }

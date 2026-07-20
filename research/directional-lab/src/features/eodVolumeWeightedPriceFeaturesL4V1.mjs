@@ -18,7 +18,6 @@
  */
 
 import {
-  FEATURE_CALCULATION_SCALE,
   availableFixedCell,
   divideRoundHalfEven,
   fixedFromScaledAtoms,
@@ -26,15 +25,16 @@ import {
   ratioChangeFixed,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const ROLLING_PERIODS = Object.freeze([20, 60]);
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /**
  * @param {Array<any>} bars internal volume-structure bars
  * @param {Array<any>} streamStates per-row alternated pivot stream states
  */
-export function computeEodVolumeWeightedPriceFeatures(bars, streamStates) {
-  const unit = powerOfTen(FEATURE_CALCULATION_SCALE);
+export function computeEodVolumeWeightedPriceFeatures(bars, streamStates, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'eodVolumeWeightedPrices');
+  const { internalScale, priceScale, ratioScale } = config.scales;
+  const unit = powerOfTen(internalScale);
   const count = bars.length;
   const volumeAtoms = bars.map((bar) => (bar.volume === null ? null : bar.volume.atoms));
   const typicalAtoms = bars.map((bar) => divideRoundHalfEven(
@@ -65,7 +65,7 @@ export function computeEodVolumeWeightedPriceFeatures(bars, streamStates) {
 
   return bars.map((bar, index) => {
     const cells = {};
-    for (const period of ROLLING_PERIODS) {
+    for (const period of config.rollingPeriods) {
       const priceName = `eodVolumeWeightedAveragePrice${period}`;
       const distanceName = `distanceToEodVwap${period}`;
       if (index + 1 < period) {
@@ -79,9 +79,11 @@ export function computeEodVolumeWeightedPriceFeatures(bars, streamStates) {
         cells[distanceName] = unavailableCell(result.reason);
         continue;
       }
-      const vwap = fixedFromScaledAtoms(result.atoms);
-      cells[priceName] = availableFixedCell(vwap, 12);
-      cells[distanceName] = availableFixedCell(ratioChangeFixed(bar.close, vwap));
+      const vwap = fixedFromScaledAtoms(result.atoms, internalScale);
+      cells[priceName] = availableFixedCell(vwap, priceScale);
+      cells[distanceName] = availableFixedCell(
+        ratioChangeFixed(bar.close, vwap, internalScale), ratioScale,
+      );
     }
 
     for (const [anchorKey, priceName, distanceName] of [
@@ -100,9 +102,11 @@ export function computeEodVolumeWeightedPriceFeatures(bars, streamStates) {
         cells[distanceName] = unavailableCell(result.reason);
         continue;
       }
-      const vwap = fixedFromScaledAtoms(result.atoms);
-      cells[priceName] = availableFixedCell(vwap, 12);
-      cells[distanceName] = availableFixedCell(ratioChangeFixed(bar.close, vwap));
+      const vwap = fixedFromScaledAtoms(result.atoms, internalScale);
+      cells[priceName] = availableFixedCell(vwap, priceScale);
+      cells[distanceName] = availableFixedCell(
+        ratioChangeFixed(bar.close, vwap, internalScale), ratioScale,
+      );
     }
     return cells;
   });

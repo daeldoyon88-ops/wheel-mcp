@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { computeVolumeParticipationFeatures } from '../src/features/volumeParticipationFeaturesL4V1.mjs';
+import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 } from '../src/features/marketVolumeStructureRuntimePolicyL4V1.mjs';
 import {
   makeTechnicalCellsFromBars,
   makeVolumeBars,
@@ -8,7 +9,10 @@ import {
 
 function participationRows(bars) {
   const cells = makeTechnicalCellsFromBars(bars);
-  return computeVolumeParticipationFeatures(bars, cells.map((cell) => cell.return20)).rows;
+  return computeVolumeParticipationFeatures(
+    bars, cells.map((cell) => cell.return20),
+    MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1.volumeParticipation,
+  ).rows;
 }
 
 function fixed(atoms) {

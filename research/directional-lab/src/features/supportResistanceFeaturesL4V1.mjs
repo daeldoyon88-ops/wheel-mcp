@@ -23,25 +23,27 @@ import {
   ratioChangeFixed,
   unavailableCell,
 } from './fixedPointFeatureMathL4V1.mjs';
-
-const STRUCTURE_LOOKBACK = 252;
-const TOUCH_LOOKBACK = 120;
+import { assertMarketVolumeStructureRuntimeSectionV1 } from './marketVolumeStructureRuntimePolicyL4V1.mjs';
 
 /** @param {any} level @param {{value: any, availability: string}} atrCell */
-function toleranceAtomsFor(level, atrCell) {
-  const priceTolerance = multiplyByRatio(level, 5n, 1000n);
+function toleranceAtomsFor(level, atrCell, config) {
+  const priceTolerance = multiplyByRatio(
+    level, config.priceTolerance.numerator, config.priceTolerance.denominator,
+  );
   if (atrCell.availability !== 'AVAILABLE') return priceTolerance.atoms;
-  const atrTolerance = multiplyByRatio(atrCell.value, 25n, 100n);
+  const atrTolerance = multiplyByRatio(
+    atrCell.value, config.atrTolerance.numerator, config.atrTolerance.denominator,
+  );
   return atrTolerance.atoms > priceTolerance.atoms ? atrTolerance.atoms : priceTolerance.atoms;
 }
 
 /** @param {Array<any>} bars @param {number} index @param {any} level @param {bigint} tolerance */
-function touchStatistics(bars, index, level, tolerance) {
+function touchStatistics(bars, index, level, tolerance, touchLookback) {
   const lowerBound = level.atoms - tolerance;
   const upperBound = level.atoms + tolerance;
   let touchCount = 0;
   let lastTouchIndex = null;
-  for (let cursor = Math.max(0, index - TOUCH_LOOKBACK + 1); cursor <= index; cursor += 1) {
+  for (let cursor = Math.max(0, index - touchLookback + 1); cursor <= index; cursor += 1) {
     if (bars[cursor].low.atoms <= upperBound && bars[cursor].high.atoms >= lowerBound) {
       touchCount += 1;
       lastTouchIndex = cursor;
@@ -51,7 +53,8 @@ function touchStatistics(bars, index, level, tolerance) {
 }
 
 /** Emit the seven descriptive cells for one selected level side. */
-function levelCells(prefix, bars, index, selected, atrCell, missingReason) {
+function levelCells(prefix, bars, index, selected, atrCell, missingReason, config) {
+  const touchCountName = `${prefix}TouchCount${config.touchLookback}`;
   if (selected === null) {
     const reason = unavailableCell(missingReason);
     return {
@@ -60,23 +63,27 @@ function levelCells(prefix, bars, index, selected, atrCell, missingReason) {
       [`${prefix}PivotSessionDate`]: reason,
       [`${prefix}ConfirmedAtSessionDate`]: reason,
       [`${prefix}AgeSessions`]: reason,
-      [`${prefix}TouchCount120`]: reason,
+      [touchCountName]: reason,
       [`${prefix}LastTouchSessionsAgo`]: reason,
     };
   }
   const level = selected.pivotPrice;
-  const tolerance = toleranceAtomsFor(level, atrCell);
-  const { touchCount, lastTouchIndex } = touchStatistics(bars, index, level, tolerance);
+  const tolerance = toleranceAtomsFor(level, atrCell, config);
+  const { touchCount, lastTouchIndex } = touchStatistics(
+    bars, index, level, tolerance, config.touchLookback,
+  );
   const distance = prefix === 'nearestSupport'
-    ? ratioChangeFixed(bars[index].close, level)
-    : ratioChangeFixed(level, bars[index].close);
+    ? ratioChangeFixed(bars[index].close, level, config.scales.internalScale)
+    : ratioChangeFixed(level, bars[index].close, config.scales.internalScale);
   return {
-    [`${prefix}Price`]: availableFixedCell(level, 12),
-    [`distanceTo${prefix[0].toUpperCase()}${prefix.slice(1)}`]: availableFixedCell(distance),
+    [`${prefix}Price`]: availableFixedCell(level, config.scales.priceScale),
+    [`distanceTo${prefix[0].toUpperCase()}${prefix.slice(1)}`]: availableFixedCell(
+      distance, config.scales.ratioScale,
+    ),
     [`${prefix}PivotSessionDate`]: { value: selected.pivotSessionDate, availability: 'AVAILABLE' },
     [`${prefix}ConfirmedAtSessionDate`]: { value: selected.confirmedAtSessionDate, availability: 'AVAILABLE' },
     [`${prefix}AgeSessions`]: { value: index - selected.pivotIndex, availability: 'AVAILABLE' },
-    [`${prefix}TouchCount120`]: { value: touchCount, availability: 'AVAILABLE' },
+    [touchCountName]: { value: touchCount, availability: 'AVAILABLE' },
     [`${prefix}LastTouchSessionsAgo`]: lastTouchIndex === null
       ? unavailableCell('NO_LEVEL_TOUCH')
       : { value: index - lastTouchIndex, availability: 'AVAILABLE' },
@@ -89,7 +96,8 @@ function levelCells(prefix, bars, index, selected, atrCell, missingReason) {
  * @param {Array<{atr14: {value: any, availability: string}}>} technicalCells
  * @returns {{rows: Array<object>, levels: Array<{support: any, resistance: any}>}}
  */
-export function computeSupportResistanceFeatures(bars, pivots, technicalCells) {
+export function computeSupportResistanceFeatures(bars, pivots, technicalCells, config) {
+  assertMarketVolumeStructureRuntimeSectionV1(config, 'supportResistance');
   const rows = [];
   const levels = [];
   const active = [];
@@ -100,7 +108,7 @@ export function computeSupportResistanceFeatures(bars, pivots, technicalCells) {
       active.push(pivots[cursor]);
       cursor += 1;
     }
-    while (head < active.length && active[head].pivotIndex < index - STRUCTURE_LOOKBACK + 1) {
+    while (head < active.length && active[head].pivotIndex < index - config.structureLookback + 1) {
       head += 1;
     }
     const close = bars[index].close;
@@ -129,22 +137,32 @@ export function computeSupportResistanceFeatures(bars, pivots, technicalCells) {
     let supportPenetration;
     if (support === null) supportPenetration = unavailableCell('NO_SUPPORT_LEVEL');
     else if (bars[index].low.atoms < support.pivotPrice.atoms) {
-      supportPenetration = availableFixedCell(ratioChangeFixed(support.pivotPrice, bars[index].low));
+      supportPenetration = availableFixedCell(
+        ratioChangeFixed(support.pivotPrice, bars[index].low, config.scales.internalScale),
+        config.scales.ratioScale,
+      );
     } else {
-      supportPenetration = availableFixedCell({ atoms: 0n, scale: support.pivotPrice.scale });
+      supportPenetration = availableFixedCell(
+        { atoms: 0n, scale: support.pivotPrice.scale }, config.scales.ratioScale,
+      );
     }
     let resistancePenetration;
     if (resistance === null) resistancePenetration = unavailableCell('NO_RESISTANCE_LEVEL');
     else if (bars[index].high.atoms > resistance.pivotPrice.atoms) {
-      resistancePenetration = availableFixedCell(ratioChangeFixed(bars[index].high, resistance.pivotPrice));
+      resistancePenetration = availableFixedCell(
+        ratioChangeFixed(bars[index].high, resistance.pivotPrice, config.scales.internalScale),
+        config.scales.ratioScale,
+      );
     } else {
-      resistancePenetration = availableFixedCell({ atoms: 0n, scale: resistance.pivotPrice.scale });
+      resistancePenetration = availableFixedCell(
+        { atoms: 0n, scale: resistance.pivotPrice.scale }, config.scales.ratioScale,
+      );
     }
 
     rows.push({
-      ...levelCells('nearestSupport', bars, index, support, atrCell, 'NO_SUPPORT_LEVEL'),
+      ...levelCells('nearestSupport', bars, index, support, atrCell, 'NO_SUPPORT_LEVEL', config),
       supportPenetrationPct: supportPenetration,
-      ...levelCells('nearestResistance', bars, index, resistance, atrCell, 'NO_RESISTANCE_LEVEL'),
+      ...levelCells('nearestResistance', bars, index, resistance, atrCell, 'NO_RESISTANCE_LEVEL', config),
       resistancePenetrationPct: resistancePenetration,
     });
     levels.push({

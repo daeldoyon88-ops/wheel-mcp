@@ -24,11 +24,12 @@ import { SHA256_OBJECT_ID_PATTERN } from '../contracts/datasetSnapshotV1.mjs';
  * content schema (literal kept here to avoid a storage↔contract cycle).
  * MarketVolumeStructureFeatureRows/1 is the additive L4A-B content schema.
  */
-const NORMALIZED_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
+export const NORMALIZED_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   CANONICAL_DAILY_BARS_SCHEMA_VERSION,
   'MarketDataEodOhlcvCanonicalRows/1',
   'MarketTechnicalFeatureRows/1',
   'MarketVolumeStructureFeatureRows/1',
+  'MarketSeasonalityFeatureRows/1',
 ]);
 
 export class ContentAddressedStoreError extends Error {

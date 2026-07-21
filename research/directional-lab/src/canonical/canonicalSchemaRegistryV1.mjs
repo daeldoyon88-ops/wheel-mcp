@@ -181,6 +181,15 @@ import {
   normalizeMarketVolumeStructureFeatureRowsV1,
   normalizeMarketVolumeStructureFeatureSourceBundleV1,
 } from '../contracts/marketVolumeStructureFeatureComputationL4V1.mjs';
+import {
+  MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
+  MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION,
+  MARKET_SEASONALITY_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
+  normalizeMarketSeasonalityFeatureComputationPolicyV1,
+  normalizeMarketSeasonalityFeatureRowsV1,
+  normalizeMarketSeasonalityFeatureSourceBundleV1,
+} from '../contracts/marketSeasonalityFeatureComputationL4V1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -226,6 +235,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_DATA_DATASET_SNAPSHOT_BINDING_L3_SCHEMA_VERSIONS,
   ...MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS,
   ...MARKET_VOLUME_STRUCTURE_FEATURE_L4_SCHEMA_VERSIONS,
+  ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -409,6 +419,13 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       // Normalized-namespace content; intentionally excluded from the
       // snapshots schema count, exactly like the L4A-A feature rows.
       return normalizeMarketVolumeStructureFeatureRowsV1(value);
+    case MARKET_SEASONALITY_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION:
+      return normalizeMarketSeasonalityFeatureSourceBundleV1(value);
+    case MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION:
+      return normalizeMarketSeasonalityFeatureComputationPolicyV1(value);
+    case MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION:
+      // L4A-C1 normalized content. Report/verifier schemas belong to L4A-C2.
+      return normalizeMarketSeasonalityFeatureRowsV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

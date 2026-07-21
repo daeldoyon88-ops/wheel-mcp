@@ -24,11 +24,11 @@ import {
 } from '../src/features/computeMarketTechnicalFeaturesL4V1.mjs';
 import { withOfficialL4Binding } from './marketFeaturesL4SyntheticPipeline.mjs';
 
-test('L4A foundation keeps its three additive schemas registered (83 total after L4A-B)', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 83);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 83);
+test('L4A foundation keeps its three additive schemas registered (85 total after L4A-C1)', () => {
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 85);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 85);
   assert.deepEqual(
-    SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-6, -3),
+    SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-8, -5),
     [...MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS],
   );
 });

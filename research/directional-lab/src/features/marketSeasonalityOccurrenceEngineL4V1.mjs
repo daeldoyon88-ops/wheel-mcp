@@ -472,8 +472,8 @@ export function calculateCurrentSeasonalityWindowV1(input, runtime) {
   };
 }
 
-/** Build normalized rows end-to-end without creating a C2 report/verifier. */
-export function deriveMarketSeasonalityFeatureRowsDocumentV1(sourceRuntime, runtime) {
+/** Build normalized rows end-to-end. C2 report digests are derived from the same artifacts. */
+export function deriveMarketSeasonalityFeatureComputationArtifactsV1(sourceRuntime, runtime) {
   assertMarketSeasonalityRuntimePolicyV1(runtime);
   validateSeasonalityPriceBasisClosureV1({
     priceBasis: sourceRuntime.sourceBundle.priceBasis,
@@ -487,6 +487,22 @@ export function deriveMarketSeasonalityFeatureRowsDocumentV1(sourceRuntime, runt
   const outputSourceRows = sourceRuntime.targetSessionDate === undefined
     ? sourceRuntime.sourceRows
     : sourceRuntime.sourceRows.filter((row) => row.sessionDate === sourceRuntime.targetSessionDate);
+
+  const allOccurrenceIds = new Set();
+  const allHistoricalYears = new Set();
+  const occurrenceIdsByHorizon = Object.fromEntries(
+    runtime.horizons.map((horizon) => [String(horizon), new Set()]),
+  );
+  const occurrenceIdsByForward = Object.fromEntries(
+    runtime.forwardSessionCounts.map((count) => [String(count), new Set()]),
+  );
+  const historicalYearsByHorizon = Object.fromEntries(
+    runtime.horizons.map((horizon) => [String(horizon), new Set()]),
+  );
+  const historicalYearsByForward = Object.fromEntries(
+    runtime.forwardSessionCounts.map((count) => [String(count), new Set()]),
+  );
+
   const rows = outputSourceRows.map((sourceRow) => {
     const horizonWindows = [];
     for (const horizonYears of runtime.horizons) {
@@ -505,6 +521,14 @@ export function deriveMarketSeasonalityFeatureRowsDocumentV1(sourceRuntime, runt
           preparedCalendarIndex,
           preparedBarIndex,
         }, runtime);
+        for (const occurrence of resolved.occurrences) {
+          allOccurrenceIds.add(occurrence.occurrenceIdentityId);
+          allHistoricalYears.add(occurrence.historicalYear);
+          occurrenceIdsByHorizon[String(horizonYears)].add(occurrence.occurrenceIdentityId);
+          occurrenceIdsByForward[String(forwardSessionCount)].add(occurrence.occurrenceIdentityId);
+          historicalYearsByHorizon[String(horizonYears)].add(occurrence.historicalYear);
+          historicalYearsByForward[String(forwardSessionCount)].add(occurrence.historicalYear);
+        }
         horizonWindows.push({
           horizonYears,
           forwardSessionCount,
@@ -546,10 +570,41 @@ export function deriveMarketSeasonalityFeatureRowsDocumentV1(sourceRuntime, runt
       },
     };
   });
-  return normalizeMarketSeasonalityFeatureRowsV1({
+  const document = normalizeMarketSeasonalityFeatureRowsV1({
     schemaVersion: MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION,
     rows,
   });
+  return {
+    document,
+    occurrenceUnions: {
+      distinctOccurrenceCount: allOccurrenceIds.size,
+      distinctHistoricalYearCount: allHistoricalYears.size,
+      distinctOccurrenceCountByHorizon: Object.fromEntries(
+        runtime.horizons.map((horizon) => [
+          String(horizon), occurrenceIdsByHorizon[String(horizon)].size,
+        ]),
+      ),
+      distinctOccurrenceCountByForwardSessionCount: Object.fromEntries(
+        runtime.forwardSessionCounts.map((count) => [
+          String(count), occurrenceIdsByForward[String(count)].size,
+        ]),
+      ),
+      distinctHistoricalYearCountByHorizon: Object.fromEntries(
+        runtime.horizons.map((horizon) => [
+          String(horizon), historicalYearsByHorizon[String(horizon)].size,
+        ]),
+      ),
+      distinctHistoricalYearCountByForwardSessionCount: Object.fromEntries(
+        runtime.forwardSessionCounts.map((count) => [
+          String(count), historicalYearsByForward[String(count)].size,
+        ]),
+      ),
+    },
+  };
+}
+
+export function deriveMarketSeasonalityFeatureRowsDocumentV1(sourceRuntime, runtime) {
+  return deriveMarketSeasonalityFeatureComputationArtifactsV1(sourceRuntime, runtime).document;
 }
 
 /** Testable single-row derivation using the same authoritative implementation. */

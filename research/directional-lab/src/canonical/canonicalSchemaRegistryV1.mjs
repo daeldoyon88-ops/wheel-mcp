@@ -183,10 +183,12 @@ import {
 } from '../contracts/marketVolumeStructureFeatureComputationL4V1.mjs';
 import {
   MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
   MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION,
   MARKET_SEASONALITY_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
   normalizeMarketSeasonalityFeatureComputationPolicyV1,
+  normalizeMarketSeasonalityFeatureComputationReportV1,
   normalizeMarketSeasonalityFeatureRowsV1,
   normalizeMarketSeasonalityFeatureSourceBundleV1,
 } from '../contracts/marketSeasonalityFeatureComputationL4V1.mjs';
@@ -423,8 +425,10 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMarketSeasonalityFeatureSourceBundleV1(value);
     case MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION:
       return normalizeMarketSeasonalityFeatureComputationPolicyV1(value);
+    case MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION:
+      return normalizeMarketSeasonalityFeatureComputationReportV1(value);
     case MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION:
-      // L4A-C1 normalized content. Report/verifier schemas belong to L4A-C2.
+      // L4A-C1 normalized content. Report verification authority belongs to L4A-C2.
       return normalizeMarketSeasonalityFeatureRowsV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);

@@ -1,4 +1,4 @@
-/** Closed L4A-C1 contracts. No report/publication contract is introduced here. */
+/** Closed L4A-C1/C2 contracts. Publication contracts belong to L4A-C3. */
 
 import {
   MarketDataL3Error,
@@ -33,6 +33,8 @@ export const MARKET_SEASONALITY_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION =
   'MarketSeasonalityFeatureSourceBundle/1';
 export const MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION =
   'MarketSeasonalityFeatureComputationPolicy/1';
+export const MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION =
+  'MarketSeasonalityFeatureComputationReport/1';
 export const MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION = 'MarketSeasonalityFeatureRows/1';
 export const MARKET_SEASONALITY_OCCURRENCE_IDENTITY_SCHEMA_VERSION =
   'MarketSeasonalityOccurrenceIdentity/1';
@@ -40,6 +42,21 @@ export const MARKET_SEASONALITY_OCCURRENCE_IDENTITY_SCHEMA_VERSION =
 export const MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS = Object.freeze([
   MARKET_SEASONALITY_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
   MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+]);
+
+export const MARKET_SEASONALITY_FEATURE_FAMILY_VERSION =
+  'MARKET_SEASONALITY_FEATURE_L4A_C2/1';
+
+export const MARKET_SEASONALITY_CONFIGURED_HORIZON_WINDOW_PAIR_COUNT =
+  MARKET_SEASONALITY_FEATURE_POLICY_VALUES_V1.horizons.length
+  * MARKET_SEASONALITY_FEATURE_POLICY_VALUES_V1.forwardSessionCounts.length;
+
+export const MARKET_SEASONALITY_REJECTED_OCCURRENCE_COUNT_KEYS = Object.freeze([
+  'calendarAlignmentUnavailableCount',
+  'lookaheadRejectedCount',
+  'missingInputCount',
+  'divisionByZeroCount',
 ]);
 
 export const MARKET_SEASONALITY_PRIMARY_AVAILABILITY_REASONS = Object.freeze([
@@ -71,6 +88,23 @@ const SOURCE_BUNDLE_FIELDS = Object.freeze([
 ]);
 const POLICY_FIELDS = Object.freeze([
   'schemaVersion', ...Object.keys(MARKET_SEASONALITY_FEATURE_POLICY_VALUES_V1),
+]);
+const REPORT_FIELDS = Object.freeze([
+  'schemaVersion', 'seasonalityFeatureSourceBundleId', 'seasonalityFeatureComputationPolicyId',
+  'seasonalityFeatureRowsId', 'datasetSnapshotBindingId', 'instrumentIdentityId',
+  'normalizedMarketDataObjectId', 'knowledgeCutoff', 'priceBasis', 'corporateActionTreatment',
+  'featureFamilyVersion', 'implementationManifestId', 'rowCount', 'firstSessionDate',
+  'lastSessionDate', 'configuredHorizonWindowPairCount', 'countsByHorizon',
+  'countsByForwardSessionCount', 'availabilityCounts', 'primaryAvailabilityReasonCounts',
+  'rejectedOccurrenceCounts', 'currentWindowStatusCounts', 'partialCurrentWindowCount',
+  'completedCurrentWindowCount', 'distinctOccurrenceCount', 'distinctHistoricalYearCount',
+  'emptySnapshot', 'orderedRowIdentityDigest',
+]);
+const HORIZON_COUNT_FIELDS = Object.freeze([
+  'rowPresenceCount', 'occurrenceCountSum', 'distinctOccurrenceCount',
+]);
+const AVAILABILITY_COUNT_FIELDS = Object.freeze([
+  'availableHorizonWindowCount', 'unavailableHorizonWindowCount',
 ]);
 const ROWS_FIELDS = Object.freeze(['schemaVersion', 'rows']);
 const ROW_FIELDS = Object.freeze([
@@ -367,4 +401,146 @@ export function normalizeMarketSeasonalityFeatureRowsV1(value) {
     }
   }
   return { schemaVersion: MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION, rows };
+}
+
+function normalizeHorizonBucketCounts(value, label) {
+  const bucket = closedRecord(value, HORIZON_COUNT_FIELDS, label);
+  const normalized = {};
+  for (const field of HORIZON_COUNT_FIELDS) {
+    assertSafeInteger(bucket[field], `${label}.${field}`, { nonNegative: true });
+    normalized[field] = bucket[field];
+  }
+  return normalized;
+}
+
+function normalizeKeyedBucketMap(value, keys, label) {
+  const map = closedRecord(value, keys.map(String), label);
+  const normalized = {};
+  for (const key of keys) {
+    const field = String(key);
+    normalized[field] = normalizeHorizonBucketCounts(map[field], `${label}.${field}`);
+  }
+  return normalized;
+}
+
+function normalizeIntegerEnumCounts(value, keys, label) {
+  const counts = closedRecord(value, keys, label);
+  const normalized = {};
+  for (const key of keys) {
+    assertSafeInteger(counts[key], `${label}.${key}`, { nonNegative: true });
+    normalized[key] = counts[key];
+  }
+  return normalized;
+}
+
+/** @param {unknown} value */
+export function normalizeMarketSeasonalityFeatureComputationReportV1(value) {
+  const report = closedRecord(
+    value, REPORT_FIELDS, MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+    'MARKET_DATA_SEASONALITY_REPORT_INVALID',
+  );
+  assertSchemaVersion(report, MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION);
+  for (const field of [
+    'seasonalityFeatureSourceBundleId', 'seasonalityFeatureComputationPolicyId',
+    'seasonalityFeatureRowsId', 'datasetSnapshotBindingId', 'instrumentIdentityId',
+    'normalizedMarketDataObjectId', 'implementationManifestId',
+  ]) assertCasId(report[field], field);
+  assertUtcInstant(report.knowledgeCutoff, 'knowledgeCutoff');
+  assertEnum(report.priceBasis, MARKET_DATA_INGESTION_PRICE_BASES, 'priceBasis');
+  assertEnum(
+    report.corporateActionTreatment, MARKET_DATA_CORPORATE_ACTION_TREATMENTS,
+    'corporateActionTreatment',
+  );
+  if (report.featureFamilyVersion !== MARKET_SEASONALITY_FEATURE_FAMILY_VERSION) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_INVALID', 'featureFamilyVersion is invalid',
+    );
+  }
+  assertSafeInteger(report.rowCount, 'rowCount', { nonNegative: true });
+  if (report.firstSessionDate !== null) assertCivilDate(report.firstSessionDate, 'firstSessionDate');
+  if (report.lastSessionDate !== null) assertCivilDate(report.lastSessionDate, 'lastSessionDate');
+  if ((report.firstSessionDate === null) !== (report.lastSessionDate === null)
+      || (report.rowCount === 0) !== (report.firstSessionDate === null)
+      || (report.rowCount === 0) !== (report.emptySnapshot === true)
+      || (report.rowCount > 0) !== (report.emptySnapshot === false)) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_INVALID', 'report empty/date range must match rowCount',
+    );
+  }
+  if (report.firstSessionDate !== null && report.firstSessionDate > report.lastSessionDate) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_INVALID', 'report date range is reversed',
+    );
+  }
+  if (report.configuredHorizonWindowPairCount !== MARKET_SEASONALITY_CONFIGURED_HORIZON_WINDOW_PAIR_COUNT) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_INVALID',
+      'configuredHorizonWindowPairCount must equal the closed V1 pair count',
+    );
+  }
+  if (typeof report.orderedRowIdentityDigest !== 'string'
+      || !/^sha256:[0-9a-f]{64}$/.test(report.orderedRowIdentityDigest)) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_INVALID', 'orderedRowIdentityDigest is invalid',
+    );
+  }
+  for (const field of [
+    'partialCurrentWindowCount', 'completedCurrentWindowCount',
+    'distinctOccurrenceCount', 'distinctHistoricalYearCount',
+  ]) assertSafeInteger(report[field], field, { nonNegative: true });
+  if (typeof report.emptySnapshot !== 'boolean') {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_INVALID', 'emptySnapshot must be boolean',
+    );
+  }
+  return {
+    schemaVersion: MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+    seasonalityFeatureSourceBundleId: report.seasonalityFeatureSourceBundleId,
+    seasonalityFeatureComputationPolicyId: report.seasonalityFeatureComputationPolicyId,
+    seasonalityFeatureRowsId: report.seasonalityFeatureRowsId,
+    datasetSnapshotBindingId: report.datasetSnapshotBindingId,
+    instrumentIdentityId: report.instrumentIdentityId,
+    normalizedMarketDataObjectId: report.normalizedMarketDataObjectId,
+    knowledgeCutoff: report.knowledgeCutoff,
+    priceBasis: report.priceBasis,
+    corporateActionTreatment: report.corporateActionTreatment,
+    featureFamilyVersion: MARKET_SEASONALITY_FEATURE_FAMILY_VERSION,
+    implementationManifestId: report.implementationManifestId,
+    rowCount: report.rowCount,
+    firstSessionDate: report.firstSessionDate,
+    lastSessionDate: report.lastSessionDate,
+    configuredHorizonWindowPairCount: MARKET_SEASONALITY_CONFIGURED_HORIZON_WINDOW_PAIR_COUNT,
+    countsByHorizon: normalizeKeyedBucketMap(
+      report.countsByHorizon, MARKET_SEASONALITY_FEATURE_POLICY_VALUES_V1.horizons, 'countsByHorizon',
+    ),
+    countsByForwardSessionCount: normalizeKeyedBucketMap(
+      report.countsByForwardSessionCount,
+      MARKET_SEASONALITY_FEATURE_POLICY_VALUES_V1.forwardSessionCounts,
+      'countsByForwardSessionCount',
+    ),
+    availabilityCounts: normalizeIntegerEnumCounts(
+      report.availabilityCounts, AVAILABILITY_COUNT_FIELDS, 'availabilityCounts',
+    ),
+    primaryAvailabilityReasonCounts: normalizeIntegerEnumCounts(
+      report.primaryAvailabilityReasonCounts,
+      MARKET_SEASONALITY_PRIMARY_AVAILABILITY_REASONS,
+      'primaryAvailabilityReasonCounts',
+    ),
+    rejectedOccurrenceCounts: normalizeIntegerEnumCounts(
+      report.rejectedOccurrenceCounts,
+      MARKET_SEASONALITY_REJECTED_OCCURRENCE_COUNT_KEYS,
+      'rejectedOccurrenceCounts',
+    ),
+    currentWindowStatusCounts: normalizeIntegerEnumCounts(
+      report.currentWindowStatusCounts,
+      MARKET_SEASONALITY_CURRENT_WINDOW_STATUSES,
+      'currentWindowStatusCounts',
+    ),
+    partialCurrentWindowCount: report.partialCurrentWindowCount,
+    completedCurrentWindowCount: report.completedCurrentWindowCount,
+    distinctOccurrenceCount: report.distinctOccurrenceCount,
+    distinctHistoricalYearCount: report.distinctHistoricalYearCount,
+    emptySnapshot: report.emptySnapshot,
+    orderedRowIdentityDigest: report.orderedRowIdentityDigest,
+  };
 }

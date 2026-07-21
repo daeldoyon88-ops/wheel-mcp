@@ -1,4 +1,4 @@
-/** L4A-C1 orchestration only: bundle, closed policy, runtime and normalized rows. */
+/** L4A-C1/C2 orchestration: bundle, closed policy, runtime, rows and recomputable report. */
 
 import {
   MarketDataL3Error,
@@ -23,10 +23,12 @@ import {
 import { verifyMarketCalendarRegistry } from '../contracts/marketCalendarL3V1.mjs';
 import {
   MARKET_SEASONALITY_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
   MARKET_SEASONALITY_FEATURE_POLICY_VALUES,
   MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION,
   MARKET_SEASONALITY_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
   normalizeMarketSeasonalityFeatureComputationPolicyV1,
+  normalizeMarketSeasonalityFeatureComputationReportV1,
   normalizeMarketSeasonalityFeatureRowsV1,
   normalizeMarketSeasonalityFeatureSourceBundleV1,
 } from '../contracts/marketSeasonalityFeatureComputationL4V1.mjs';
@@ -35,9 +37,10 @@ import { verifyDatasetSnapshot } from '../data/buildDatasetSnapshot.mjs';
 import { verifySnapshotDatasetManifest } from '../data/buildSnapshotDatasetManifest.mjs';
 import { deriveMarketSeasonalityRuntimePolicyV1 } from './marketSeasonalityRuntimePolicyL4V1.mjs';
 import {
-  deriveMarketSeasonalityFeatureRowsDocumentV1,
+  deriveMarketSeasonalityFeatureComputationArtifactsV1,
   validateSeasonalityPriceBasisClosureV1,
 } from './marketSeasonalityOccurrenceEngineL4V1.mjs';
+import { deriveMarketSeasonalityFeatureComputationReportValueV1 } from './marketSeasonalityFeatureReportL4V1.mjs';
 
 const STORE_METHODS = Object.freeze([
   'putCanonicalObject', 'readCanonicalObject', 'uriForObject', 'readObject', 'putSourceBytes',
@@ -250,40 +253,132 @@ export function verifyMarketSeasonalityFeatureComputationPolicy(input) {
   };
 }
 
-/** Compute rows only. C2 will own the report and full recomputation verifier. */
-export function computeMarketSeasonalityFeatureRows(input) {
-  const api = assertApiInput(input, [
-    'seasonalityFeatureSourceBundleId', 'seasonalityFeatureComputationPolicyId',
-  ]);
-  assertStore(api.store, STORE_METHODS);
+function recomputeSeasonalityArtifacts(api, sourceBundleId, policyId) {
   const source = verifyMarketSeasonalityFeatureSourceBundle({
-    store: api.store, seasonalityFeatureSourceBundleId: api.seasonalityFeatureSourceBundleId,
+    store: api.store, seasonalityFeatureSourceBundleId: sourceBundleId,
   });
   const { verifiedPolicy } = verifyMarketSeasonalityFeatureComputationPolicy({
-    store: api.store,
-    seasonalityFeatureComputationPolicyId: api.seasonalityFeatureComputationPolicyId,
+    store: api.store, seasonalityFeatureComputationPolicyId: policyId,
   });
   const runtime = deriveMarketSeasonalityRuntimePolicyV1(verifiedPolicy);
-  const document = deriveMarketSeasonalityFeatureRowsDocumentV1({
-    sourceBundleId: api.seasonalityFeatureSourceBundleId,
-    computationPolicyId: api.seasonalityFeatureComputationPolicyId,
+  const artifacts = deriveMarketSeasonalityFeatureComputationArtifactsV1({
+    sourceBundleId,
+    computationPolicyId: policyId,
     sourceBundle: source.seasonalityFeatureSourceBundle,
     sourceRows: source.sourceRows,
     calendarSessions: source.calendarSessions,
     calendarCoverage: source.calendarCoverage,
   }, runtime);
+  return { source, artifacts };
+}
+
+/** Compute rows only (C1 surface). Bytes remain identical under the C2 report path. */
+export function computeMarketSeasonalityFeatureRows(input) {
+  const api = assertApiInput(input, [
+    'seasonalityFeatureSourceBundleId', 'seasonalityFeatureComputationPolicyId',
+  ]);
+  assertStore(api.store, STORE_METHODS);
+  const { artifacts } = recomputeSeasonalityArtifacts(
+    api, api.seasonalityFeatureSourceBundleId, api.seasonalityFeatureComputationPolicyId,
+  );
   const stored = api.store.putCanonicalObject({
     namespace: 'normalized',
     schemaVersion: MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION,
-    value: document,
+    value: artifacts.document,
   });
   const reread = readSeasonalityRows(api.store, stored.objectId);
-  if (!canonicalValuesEqual(document, reread)) {
+  if (!canonicalValuesEqual(artifacts.document, reread)) {
     throw new MarketDataL3Error(
       'MARKET_DATA_REFERENCE_CORRUPT', 'seasonality rows failed read-after-write verification',
     );
   }
   return { seasonalityFeatureRowsId: stored.objectId, seasonalityFeatureRows: reread };
+}
+
+/** Full C2 computation: rows + report, with byte-for-byte verifier gate. */
+export function computeMarketSeasonalityFeatures(input) {
+  const api = assertApiInput(input, [
+    'seasonalityFeatureSourceBundleId', 'seasonalityFeatureComputationPolicyId',
+  ]);
+  assertStore(api.store, STORE_METHODS);
+  const { source, artifacts } = recomputeSeasonalityArtifacts(
+    api, api.seasonalityFeatureSourceBundleId, api.seasonalityFeatureComputationPolicyId,
+  );
+  const storedRows = api.store.putCanonicalObject({
+    namespace: 'normalized',
+    schemaVersion: MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION,
+    value: artifacts.document,
+  });
+  const rereadRows = readSeasonalityRows(api.store, storedRows.objectId);
+  if (!canonicalValuesEqual(artifacts.document, rereadRows)) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_REFERENCE_CORRUPT', 'seasonality rows failed read-after-write verification',
+    );
+  }
+  const report = deriveMarketSeasonalityFeatureComputationReportValueV1({
+    seasonalityFeatureSourceBundleId: api.seasonalityFeatureSourceBundleId,
+    seasonalityFeatureComputationPolicyId: api.seasonalityFeatureComputationPolicyId,
+    seasonalityFeatureRowsId: storedRows.objectId,
+    sourceBundle: source.seasonalityFeatureSourceBundle,
+    document: artifacts.document,
+    occurrenceUnions: artifacts.occurrenceUnions,
+  });
+  const storedReport = putCanonicalL3(
+    api.store, MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION, report,
+  );
+  verifyMarketSeasonalityFeatureComputation({
+    store: api.store, seasonalityFeatureComputationReportId: storedReport.objectId,
+  });
+  return {
+    seasonalityFeatureRowsId: storedRows.objectId,
+    seasonalityFeatureComputationReportId: storedReport.objectId,
+  };
+}
+
+/** Full verifier: recompute rows and report from pinned authorities, compare bytes. */
+export function verifyMarketSeasonalityFeatureComputation(input) {
+  const api = assertApiInput(input, ['seasonalityFeatureComputationReportId']);
+  assertStore(api.store, STORE_METHODS);
+  assertCasId(api.seasonalityFeatureComputationReportId, 'seasonalityFeatureComputationReportId');
+  const storedReport = normalizeMarketSeasonalityFeatureComputationReportV1(readTypedReference(
+    api.store, api.seasonalityFeatureComputationReportId,
+    MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+    'seasonality feature computation report',
+  ));
+  const { source, artifacts } = recomputeSeasonalityArtifacts(
+    api,
+    storedReport.seasonalityFeatureSourceBundleId,
+    storedReport.seasonalityFeatureComputationPolicyId,
+  );
+  const storedRows = normalizeMarketSeasonalityFeatureRowsV1(
+    readSeasonalityRows(api.store, storedReport.seasonalityFeatureRowsId),
+  );
+  if (!canonicalValuesEqual(storedRows, artifacts.document)) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_ROWS_MISMATCH',
+      'stored seasonality feature rows diverge from full recomputation',
+    );
+  }
+  const expectedReport = deriveMarketSeasonalityFeatureComputationReportValueV1({
+    seasonalityFeatureSourceBundleId: storedReport.seasonalityFeatureSourceBundleId,
+    seasonalityFeatureComputationPolicyId: storedReport.seasonalityFeatureComputationPolicyId,
+    seasonalityFeatureRowsId: storedReport.seasonalityFeatureRowsId,
+    sourceBundle: source.seasonalityFeatureSourceBundle,
+    document: artifacts.document,
+    occurrenceUnions: artifacts.occurrenceUnions,
+  });
+  if (!canonicalValuesEqual(storedReport, expectedReport)) {
+    throw new MarketDataL3Error(
+      'MARKET_DATA_SEASONALITY_REPORT_MISMATCH',
+      'seasonality feature report diverges from full recomputation',
+    );
+  }
+  return {
+    seasonalityFeatureComputationReportId: api.seasonalityFeatureComputationReportId,
+    seasonalityFeatureComputationReport: storedReport,
+    seasonalityFeatureRowsId: storedReport.seasonalityFeatureRowsId,
+    seasonalityFeatureRows: storedRows,
+  };
 }
 
 export function readMarketSeasonalityFeatureRows(input) {

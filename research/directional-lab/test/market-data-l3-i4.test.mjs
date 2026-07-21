@@ -513,10 +513,10 @@ function resolveArgs(store, graph, registryId, knowledgeCutoff) {
   };
 }
 
-test('L3-I4 registers exactly one additive schema for a total of 85 after L4A-C1', () => {
+test('L3-I4 registers exactly one additive schema for a total of 85 after L4A-C2', () => {
   assert.deepEqual([...MARKET_DATA_RESOLVED_SERIES_L3_SCHEMA_VERSIONS], I4_SCHEMAS);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 85);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 85);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 86);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 86);
   assert.deepEqual(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.filter((schema) => I4_SCHEMAS.includes(schema)),
     I4_SCHEMAS,

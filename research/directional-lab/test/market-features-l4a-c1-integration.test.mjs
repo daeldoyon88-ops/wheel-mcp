@@ -70,6 +70,9 @@ test('L4A-C1 official L3-I6 binding builds bundle, policy and deterministic rows
   const first = captureOfficial();
   const second = captureOfficial();
   assert.equal(first.rowCount, 2);
+  assert.equal(first.ids.sourceBundleId, 'sha256:ce5cd6558127b55932e9db90cc0c4827c35ef2bf1e80a93909175abe8ec09ca1');
+  assert.equal(first.ids.policyId, 'sha256:91b0486256b7c2364a9e2a62e7d53c283a41320714115f25daa429da930933c5');
+  assert.equal(first.ids.rowsId, 'sha256:344d82d727842dfb532783bd99bc6b144e270b7ef60904de93086865a0ebe457');
   assert.deepEqual(first.ids, second.ids);
   assert.deepEqual(first.bytes, second.bytes);
 });

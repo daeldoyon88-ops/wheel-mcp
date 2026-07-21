@@ -37,6 +37,17 @@ import {
   makeTechnicalCellsFromBars,
   makeVolumeBars,
 } from './marketVolumeStructureL4SyntheticFixture.mjs';
+import {
+  INDEPENDENT_FIXED_POINT_MANUAL_VECTORS_L4V1,
+  independentPowerOfTen,
+  independentRescale,
+  independentTo12,
+  referenceNearestEvenQuotient,
+} from './helpers/independentFixedPointOracleL4V1.mjs';
+import {
+  assertIndependentOracleSourcePolicy,
+  findIndependentOracleSourcePolicyViolations,
+} from './helpers/independentOracleSourcePolicyL4V1.mjs';
 
 function fullFeatureRows(bars) {
   const technical = makeTechnicalCellsFromBars(bars);
@@ -180,40 +191,68 @@ test('L4A-B additive schemas leave L4A-A feature family imports and formulas unt
   assert.equal(returns.includes('volumeMean20Previous'), false);
 });
 
-test('L4A-B adversarial oracle imports no production fixed-point helper or policy values', () => {
-  const harnessSource = readFileSync(new URL(import.meta.url), 'utf8');
-  const importStatements = [...harnessSource.matchAll(
-    /^import[\s\S]*?from\s+['"]([^'"]+)['"];?$/gm,
-  )].map((match) => match[0]);
-  const importSpecifiers = [...harnessSource.matchAll(
-    /^import[\s\S]*?from\s+['"]([^'"]+)['"];?$/gm,
-  )].map((match) => match[1]);
-  assert.equal(importSpecifiers.some((specifier) => specifier.includes('fixedPointFeatureMath')), false);
-  assert.equal(importStatements.join('\n').includes('MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES'), false);
-  assert.equal(importSpecifiers.some((specifier) => /fixedPointFeatureMathL4V1/.test(specifier)), false);
-  const forbiddenImportNames = ['divideRoundHalfEven', 'fixedToCanonical', 'powerOfTen', 'availableFixedCell'];
-  for (const name of forbiddenImportNames) {
-    assert.equal(
-      importStatements.some((statement) => new RegExp(`\\b${name}\\b`).test(statement)),
-      false,
-      name,
-    );
+test('L4A-B independent oracle helper is isolated and distance-based', () => {
+  const oracleSource = readFileSync(new URL(
+    './helpers/independentFixedPointOracleL4V1.mjs', import.meta.url,
+  ), 'utf8');
+  assertIndependentOracleSourcePolicy(oracleSource, { allowlist: [] });
+  assert.equal(oracleSource.includes('referenceNearestEvenQuotient'), true);
+  assert.equal(oracleSource.includes('distanceToLower'), true);
+  assert.equal(oracleSource.includes('distanceToUpper'), true);
+  assert.equal(oracleSource.includes('independentDivideRoundHalfEven'), false);
+  assert.equal(oracleSource.includes('twiceRemainder'), false);
+  assert.equal(oracleSource.includes('absoluteRemainder * 2n'), false);
+  assert.equal(oracleSource.includes('const twice = absoluteRemainder * 2n'), false);
+  assert.equal(oracleSource.includes('const quotient = n / d'), false);
+  assert.equal(oracleSource.includes('const remainder = n % d'), false);
+  assert.equal(/\bfixedPointFeatureMathL4V1\b/.test(oracleSource), false);
+  assert.equal(/\bMARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES\b/.test(oracleSource), false);
+  assert.equal(INDEPENDENT_FIXED_POINT_MANUAL_VECTORS_L4V1.length, 64);
+  for (const [name, compute, expected] of INDEPENDENT_FIXED_POINT_MANUAL_VECTORS_L4V1) {
+    assert.equal(compute(), expected, name);
   }
-  const oracleStart = harnessSource.lastIndexOf('function independentPowerOfTen(scale) {');
-  const oracleEnd = harnessSource.lastIndexOf("const ID = 'sha256:' + 'a'.repeat(64);");
-  assert.ok(oracleStart > 0 && oracleEnd > oracleStart);
-  const expectedOracleSource = harnessSource.slice(oracleStart, oracleEnd);
-  assert.equal(expectedOracleSource.includes('referenceNearestEvenQuotient'), true);
-  assert.equal(expectedOracleSource.includes('distanceToLower'), true);
-  assert.equal(expectedOracleSource.includes('distanceToUpper'), true);
-  assert.equal(expectedOracleSource.includes('independentDivideRoundHalfEven'), false);
-  assert.equal(expectedOracleSource.includes('twiceRemainder'), false);
-  assert.equal(expectedOracleSource.includes('absoluteRemainder * 2n'), false);
-  assert.equal(expectedOracleSource.includes('const twice = absoluteRemainder * 2n'), false);
-  assert.equal(expectedOracleSource.includes('const quotient = n / d'), false);
-  assert.equal(expectedOracleSource.includes('const remainder = n % d'), false);
-  assert.equal(expectedOracleSource.includes('fixedPointFeatureMathL4V1'), false);
+  assert.equal(referenceNearestEvenQuotient(5n, 2n), 2n);
+  assert.equal(independentRescale(1250n, 3, 1), 12n);
+  assert.equal(independentTo12(125n * independentPowerOfTen(11)), '12');
 });
+
+const ORACLE_POISON_FIXTURES = [
+  ['static_named', 'import { divideRoundHalfEven } from "../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['static_renamed', 'import { divideRoundHalfEven as d } from "../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['static_namespace', 'import * as math from "../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['static_side_effect', 'import "../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['static_different_relative', 'import { x } from "../../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['dynamic_await_multiline', 'const m = await import(\n  "../src/features/fixedPointFeatureMathL4V1.mjs"\n);\n'],
+  ['dynamic_then', 'import("../src/features/fixedPointFeatureMathL4V1.mjs").then((m) => m);\n'],
+  ['concat_specifier', 'const p = "../src/features/" + "fixedPointFeatureMathL4V1.mjs";\nawait import(p);\n'],
+  ['template_specifier', 'const p = `../src/features/fixedPointFeatureMathL4V1.mjs`;\nawait import(p);\n'],
+  ['createRequire', 'import { createRequire } from "node:module";\nconst require = createRequire(import.meta.url);\n'],
+  ['require_call', 'const m = require("../src/features/fixedPointFeatureMathL4V1.mjs");\n'],
+  ['eval_import', 'eval("import(\\"../src/features/fixedPointFeatureMathL4V1.mjs\\")");\n'],
+  ['new_Function', 'new Function("return import(\\"../src/features/fixedPointFeatureMathL4V1.mjs\\")");\n'],
+  ['Function_ctor', 'Function("return import(\\"../src/features/fixedPointFeatureMathL4V1.mjs\\")");\n'],
+  ['local_reexport', 'export { divideRoundHalfEven } from "../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['fs_readFileSync', 'import { readFileSync } from "node:fs";\nreadFileSync("../src/features/fixedPointFeatureMathL4V1.mjs");\n'],
+  ['fs_promises_readFile', 'import fs from "node:fs";\nfs.promises.readFile("../src/features/fixedPointFeatureMathL4V1.mjs");\n'],
+  ['import_meta_resolve', 'import.meta.resolve("./fixedPointFeatureMathL4V1.mjs");\n'],
+  ['file_url', 'await import("file:///C:/repo/src/features/fixedPointFeatureMathL4V1.mjs");\n'],
+  ['helper_reexport_wrapper', 'export { powerOfTen } from "../src/features/fixedPointFeatureMathL4V1.mjs";\n'],
+  ['alias_forbidden_fn', 'const divideRoundHalfEven = (a, b) => a / b;\n'],
+  ['dynamic_in_variable', 'const loader = import;\nconst m = await loader("../src/features/fixedPointFeatureMathL4V1.mjs");\n'],
+  ['dynamic_with_spaces', 'const m = await import   (\n  /*x*/  "../src/features/fixedPointFeatureMathL4V1.mjs"  \n);\n'],
+  ['dynamic_multiline_exact_audit', 'const poisoned = await import(\n  "../src/features/fixedPointFeatureMathL4V1.mjs"\n)\n'],
+];
+
+for (const [name, poisoned] of ORACLE_POISON_FIXTURES) {
+  test(`L4A-B oracle source policy refuses poison ${name}`, () => {
+    const violations = findIndependentOracleSourcePolicyViolations(poisoned, { allowlist: [] });
+    assert.ok(violations.length > 0, name);
+    assert.throws(
+      () => assertIndependentOracleSourcePolicy(poisoned, { allowlist: [] }),
+      (error) => error.name === 'IndependentOracleSourcePolicyError',
+    );
+  });
+}
 
 for (const size of [250, 1000, 5000, 10000]) {
   test(`L4A-B direct feature path stays near-linear at ${size} sessions`, () => {
@@ -242,6 +281,7 @@ test('L4A-B temporary adversarial harness runs at least 220 independent counter-
     ['fib', 'research/directional-lab/src/features/fibonacciStructureFeaturesL4V1.mjs'],
     ['contract', 'research/directional-lab/src/contracts/marketVolumeStructureFeatureComputationL4V1.mjs'],
     ['runtime', 'research/directional-lab/src/features/marketVolumeStructureRuntimePolicyL4V1.mjs'],
+    ['oracle', 'research/directional-lab/test/helpers/independentFixedPointOracleL4V1.mjs'],
   ].map(([key, relative]) => [key, pathToFileURL(resolve(relative)).href]));
 
   const source = `
@@ -267,6 +307,12 @@ import {
   normalizeMarketVolumeStructureFeatureRowsV1,
 } from ${JSON.stringify(urls.contract)};
 import { MARKET_VOLUME_STRUCTURE_RUNTIME_POLICY_V1 as RUNTIME } from ${JSON.stringify(urls.runtime)};
+import {
+  INDEPENDENT_FIXED_POINT_MANUAL_VECTORS_L4V1,
+  independentPowerOfTen,
+  referenceNearestEvenQuotient,
+  independentTo12,
+} from ${JSON.stringify(urls.oracle)};
 
 const results = [];
 function ok(name, fn) {
@@ -275,114 +321,11 @@ function ok(name, fn) {
     results.push({ name, ok: false, error: String(error && error.message || error) });
   }
 }
-function independentPowerOfTen(scale) {
-  if (!Number.isSafeInteger(scale) || scale < 0) throw new RangeError('invalid independent scale');
-  let value = 1n;
-  for (let index = 0; index < scale; index += 1) value *= 10n;
-  return value;
-}
-// Independent half-even oracle: absolute nearest-candidate distances + even tie,
-// structurally distinct from the production remainder-doubling comparison path.
-function referenceNearestEvenQuotient(numerator, denominator) {
-  if (typeof numerator !== 'bigint' || typeof denominator !== 'bigint' || denominator === 0n) {
-    throw new RangeError('reference nearest-even quotient requires BigInt and a non-zero denominator');
-  }
-  const resultIsNegative = (numerator < 0n) !== (denominator < 0n);
-  const absoluteNumerator = numerator < 0n ? -numerator : numerator;
-  const absoluteDenominator = denominator < 0n ? -denominator : denominator;
-  const lowerCandidate = absoluteNumerator / absoluteDenominator;
-  const upperCandidate = lowerCandidate + 1n;
-  const distanceToLower = absoluteNumerator - lowerCandidate * absoluteDenominator;
-  const distanceToUpper = upperCandidate * absoluteDenominator - absoluteNumerator;
-  let absoluteChosen;
-  if (distanceToLower < distanceToUpper) absoluteChosen = lowerCandidate;
-  else if (distanceToUpper < distanceToLower) absoluteChosen = upperCandidate;
-  else absoluteChosen = (lowerCandidate % 2n === 0n) ? lowerCandidate : upperCandidate;
-  return resultIsNegative ? -absoluteChosen : absoluteChosen;
-}
-function independentRescale(atoms, fromScale, toScale) {
-  if (fromScale === toScale) return atoms;
-  if (fromScale < toScale) return atoms * independentPowerOfTen(toScale - fromScale);
-  return referenceNearestEvenQuotient(atoms, independentPowerOfTen(fromScale - toScale));
-}
-function independentFixedToCanonical(value, outputScale) {
-  const atoms = independentRescale(value.atoms, value.scale, outputScale);
-  return { atoms: atoms === 0n ? '0' : atoms.toString(), scale: outputScale };
-}
-function independentTo12(atoms24) {
-  return independentFixedToCanonical({ atoms: atoms24, scale: 24 }, 12).atoms;
-}
 function he(num, den) { return referenceNearestEvenQuotient(num, den); }
 function to12(atoms24) { return independentTo12(atoms24); }
 const UNIT = independentPowerOfTen(24);
 
-const manualPrimitiveVectors = [
-  ['tie_even_positive', () => he(5n, 2n), 2n],
-  ['tie_odd_positive', () => he(3n, 2n), 2n],
-  ['tie_even_negative', () => he(-5n, 2n), -2n],
-  ['tie_odd_negative', () => he(-3n, 2n), -2n],
-  ['zero', () => he(0n, 7n), 0n],
-  ['exact_positive', () => he(12n, 3n), 4n],
-  ['exact_negative', () => he(-12n, 3n), -4n],
-  ['below_half_positive', () => he(7n, 3n), 2n],
-  ['above_half_positive', () => he(8n, 3n), 3n],
-  ['below_half_negative', () => he(-7n, 3n), -2n],
-  ['above_half_negative', () => he(-8n, 3n), -3n],
-  ['negative_denominator', () => he(3n, -2n), -2n],
-  ['both_negative', () => he(-3n, -2n), 2n],
-  ['scale_up', () => independentRescale(123n, 2, 5), 123000n],
-  ['scale_down_exact', () => independentRescale(123000n, 5, 2), 123n],
-  ['scale_down_tie_even', () => independentRescale(1250n, 3, 1), 12n],
-  ['scale_down_tie_odd', () => independentRescale(1350n, 3, 1), 14n],
-  ['scale_down_negative_tie_even', () => independentRescale(-1250n, 3, 1), -12n],
-  ['scale_down_negative_tie_odd', () => independentRescale(-1350n, 3, 1), -14n],
-  ['power_zero', () => independentPowerOfTen(0), 1n],
-  ['power_twelve', () => independentPowerOfTen(12), 1000000000000n],
-  ['power_twenty_four', () => independentPowerOfTen(24), 1000000000000000000000000n],
-  ['large_exact', () => he(999999999999999999999999999999n, 3n), 333333333333333333333333333333n],
-  ['large_above_half', () => he(1000000000000000000000000000001n, 3n), 333333333333333333333333333334n],
-  ['fib_236', () => he(1000n * 236n, 1000n), 236n],
-  ['fib_382', () => he(1000n * 382n, 1000n), 382n],
-  ['fib_500', () => he(1000n * 500n, 1000n), 500n],
-  ['fib_618', () => he(1000n * 618n, 1000n), 618n],
-  ['fib_786', () => he(1000n * 786n, 1000n), 786n],
-  ['threshold_5_1000', () => he(1000n * 5n, 1000n), 5n],
-  ['threshold_25_100', () => he(100n * 25n, 100n), 25n],
-  ['threshold_15_10', () => he(10n * 15n, 10n), 15n],
-  ['threshold_30_100', () => he(100n * 30n, 100n), 30n],
-  ['ratio_4_1', () => he(4n, 1n), 4n],
-  ['ratio_236_1000', () => he(236n, 1000n), 0n],
-  ['ratio_382_1000', () => he(382n, 1000n), 0n],
-  ['ratio_500_1000', () => he(500n, 1000n), 0n],
-  ['ratio_618_1000', () => he(618n, 1000n), 1n],
-  ['ratio_786_1000', () => he(786n, 1000n), 1n],
-  ['exact_one', () => he(100n, 100n), 1n],
-  ['below_half_small', () => he(1n, 4n), 0n],
-  ['above_half_small', () => he(3n, 4n), 1n],
-  ['tie_to_even_zero', () => he(1n, 2n), 0n],
-  ['tie_to_even_two', () => he(5n, 2n), 2n],
-  ['tie_to_even_neg_zero', () => he(-1n, 2n), 0n],
-  ['large_below_half', () => he(1000000000000000000000000000000n, 3n), 333333333333333333333333333333n],
-  ['scale_preserve', () => independentRescale(42n, 7, 7), 42n],
-  ['scale_up_zero', () => independentRescale(0n, 0, 12), 0n],
-  ['scale_down_below_half', () => independentRescale(1249n, 3, 1), 12n],
-  ['scale_down_above_half', () => independentRescale(1260n, 3, 1), 13n],
-  ['canonical_zero', () => independentFixedToCanonical({ atoms: 0n, scale: 24 }, 12).atoms, '0'],
-  ['canonical_positive', () => independentFixedToCanonical({ atoms: 1234500000000000n, scale: 15 }, 12).atoms, '1234500000000'],
-  ['canonical_negative', () => independentFixedToCanonical({ atoms: -1234500000000000n, scale: 15 }, 12).atoms, '-1234500000000'],
-  ['to12_exact', () => to12(123456789012n * independentPowerOfTen(12)), '123456789012'],
-  ['to12_tie_even', () => to12(125n * independentPowerOfTen(11)), '12'],
-  ['to12_tie_odd', () => to12(135n * independentPowerOfTen(11)), '14'],
-  ['denom_neg_exact', () => he(9n, -3n), -3n],
-  ['num_zero_neg_den', () => he(0n, -5n), 0n],
-  ['near_half_pos', () => he(10n, 6n), 2n],
-  ['near_half_neg', () => he(-10n, 6n), -2n],
-  ['big_tie_even', () => he(1000000000000000000000000000005n, 2n), 500000000000000000000000000002n],
-  ['big_tie_odd', () => he(1000000000000000000000000000003n, 2n), 500000000000000000000000000002n],
-  ['fib_scale_236', () => independentRescale(236n, 3, 3), 236n],
-  ['fib_scale_786', () => independentRescale(786n, 3, 0), 1n],
-];
-for (const [name, compute, expected] of manualPrimitiveVectors) {
+for (const [name, compute, expected] of INDEPENDENT_FIXED_POINT_MANUAL_VECTORS_L4V1) {
   ok('independent_primitive_' + name, () => assert.equal(compute(), expected));
 }
 
@@ -704,16 +647,10 @@ console.log(JSON.stringify({
 if (failed.length) process.exit(1);
 `;
 
-  const expectedOracleStart = source.indexOf('function independentPowerOfTen');
-  const expectedOracleEnd = source.indexOf("const ID = 'sha256:'");
-  const expectedOracleSource = source.slice(expectedOracleStart, expectedOracleEnd);
-  for (const productionCalculator of [
-    'computeVolumeParticipationFeatures', 'computeEodVolumeWeightedPriceFeatures',
-    'detectConfirmedPivots', 'computeSupportResistanceFeatures',
-    'computeGapBreakoutFeatures', 'computeCongestionFeatures', 'computeFibonacciFeatures',
-  ]) assert.equal(expectedOracleSource.includes(productionCalculator), false, productionCalculator);
   assert.equal(source.includes('fixedPointFeatureMathL4V1.mjs'), false);
   assert.equal(source.includes('MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES'), false);
+  assert.equal(source.includes('independentFixedPointOracleL4V1.mjs')
+    || source.includes('independentFixedPointOracleL4V1'), true);
 
   writeFileSync(harnessPath, source, 'utf8');
   const run = spawnSync(process.execPath, [harnessPath], {

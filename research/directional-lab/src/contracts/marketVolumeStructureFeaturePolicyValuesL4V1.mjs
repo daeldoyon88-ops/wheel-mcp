@@ -76,9 +76,57 @@ export const MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1 =
   'MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1';
 
 /**
+ * Stable Symbol path fragment for deterministic closed-policy errors.
+ * Global symbols use Symbol.for("key"); others use Symbol(description) or Symbol().
+ * @param {symbol} key
+ * @returns {string}
+ */
+function formatClosedPolicySymbolKeyV1(key) {
+  const globalKey = Symbol.keyFor(key);
+  if (globalKey !== undefined) return `Symbol.for(${JSON.stringify(globalKey)})`;
+  if (key.description === undefined) return 'Symbol()';
+  return `Symbol(${key.description})`;
+}
+
+/**
+ * @param {string} path
+ * @param {string | symbol} key
+ * @returns {string}
+ */
+function closedPolicyOwnKeyPathV1(path, key) {
+  if (typeof key === 'symbol') return `${path}[${formatClosedPolicySymbolKeyV1(key)}]`;
+  return `${path}.${key}`;
+}
+
+/**
+ * Normative own data property: own, enumerable, data (not accessor).
+ * writable/configurable are intentionally non-normative so mutable deep copies pass.
+ * @param {object} value
+ * @param {string | symbol} key
+ * @returns {PropertyDescriptor | null}
+ */
+function getClosedPolicyEnumerableDataDescriptorV1(value, key) {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  if (descriptor === undefined) return null;
+  if (!descriptor.enumerable) return null;
+  if ('get' in descriptor || 'set' in descriptor) return null;
+  return descriptor;
+}
+
+/**
  * Recursive closed comparison against the unique V1 canon.
- * Object key order is ignored; array order is significant.
+ * Inspects all own keys (enumerable, non-enumerable, Symbol).
+ * Object string-key insertion order is ignored for acceptance; array order is significant.
  * Returns the first deterministic JSON-path mismatch, or null when closed.
+ *
+ * Deterministic mismatch priority at each node:
+ * 1. canonical string keys missing/invalid (sorted string order);
+ * 2. extra string own keys (sorted);
+ * 3. Symbol own keys (sorted by formatClosedPolicySymbolKeyV1);
+ * 4. nested mismatches under the same rules.
+ *
+ * Proxy limitation: a Proxy can forge getOwnPropertyDescriptor/ownKeys answers;
+ * this gate does not claim perfect Proxy detection.
  * @param {unknown} expected
  * @param {unknown} actual
  * @param {string} path
@@ -89,31 +137,59 @@ export function findClosedMarketVolumeStructureFeaturePolicyMismatchPathV1(
 ) {
   if (Array.isArray(expected)) {
     if (!Array.isArray(actual)) return path;
+    if (Object.getPrototypeOf(actual) !== Array.prototype) return path;
     if (expected.length !== actual.length) return path;
+
     for (let index = 0; index < expected.length; index += 1) {
+      const indexKey = String(index);
+      const descriptor = getClosedPolicyEnumerableDataDescriptorV1(actual, indexKey);
+      if (descriptor === null) return `${path}[${index}]`;
       const child = findClosedMarketVolumeStructureFeaturePolicyMismatchPathV1(
-        expected[index], actual[index], `${path}[${index}]`,
+        expected[index], descriptor.value, `${path}[${index}]`,
       );
       if (child !== null) return child;
     }
+
+    const allowed = new Set(
+      Array.from({ length: expected.length }, (_, index) => String(index)),
+    );
+    allowed.add('length');
+    const ownKeys = Reflect.ownKeys(actual);
+    const extraStrings = ownKeys
+      .filter((key) => typeof key === 'string' && !allowed.has(key))
+      .sort();
+    if (extraStrings.length > 0) return closedPolicyOwnKeyPathV1(path, extraStrings[0]);
+    const symbols = ownKeys
+      .filter((key) => typeof key === 'symbol')
+      .sort((left, right) => (
+        formatClosedPolicySymbolKeyV1(left).localeCompare(formatClosedPolicySymbolKeyV1(right))
+      ));
+    if (symbols.length > 0) return closedPolicyOwnKeyPathV1(path, symbols[0]);
     return null;
   }
   if (expected !== null && typeof expected === 'object') {
     if (!isPlainObject(actual)) return path;
     const expectedKeys = Object.keys(expected).sort();
-    const actualKeys = Object.keys(actual).sort();
     for (const key of expectedKeys) {
-      if (!Object.hasOwn(actual, key)) return `${path}.${key}`;
-    }
-    for (const key of actualKeys) {
-      if (!Object.hasOwn(expected, key)) return `${path}.${key}`;
-    }
-    for (const key of expectedKeys) {
+      const descriptor = getClosedPolicyEnumerableDataDescriptorV1(actual, key);
+      if (descriptor === null) return closedPolicyOwnKeyPathV1(path, key);
       const child = findClosedMarketVolumeStructureFeaturePolicyMismatchPathV1(
-        expected[key], actual[key], `${path}.${key}`,
+        expected[key], descriptor.value, closedPolicyOwnKeyPathV1(path, key),
       );
       if (child !== null) return child;
     }
+    const expectedKeySet = new Set(expectedKeys);
+    const ownKeys = Reflect.ownKeys(actual);
+    const extraStrings = ownKeys
+      .filter((key) => typeof key === 'string' && !expectedKeySet.has(key))
+      .sort();
+    if (extraStrings.length > 0) return closedPolicyOwnKeyPathV1(path, extraStrings[0]);
+    const symbols = ownKeys
+      .filter((key) => typeof key === 'symbol')
+      .sort((left, right) => (
+        formatClosedPolicySymbolKeyV1(left).localeCompare(formatClosedPolicySymbolKeyV1(right))
+      ));
+    if (symbols.length > 0) return closedPolicyOwnKeyPathV1(path, symbols[0]);
     return null;
   }
   return Object.is(expected, actual) ? null : path;
@@ -145,7 +221,11 @@ export function assertClosedMarketVolumeStructureFeaturePolicyValuesV1(actual) {
   return actual;
 }
 
-/** Extract value fields from a full policy object (drops schemaVersion extras). */
+/**
+ * Extract value fields from a full policy object (drops schemaVersion only).
+ * Preserves every other own key and its descriptor so the closed gate can see
+ * non-enumerable strings, Symbols and accessor/data shape.
+ */
 export function extractMarketVolumeStructureFeaturePolicyValuesV1(policy) {
   if (!isPlainObject(policy)) {
     throw new MarketDataL3Error(
@@ -155,14 +235,11 @@ export function extractMarketVolumeStructureFeaturePolicyValuesV1(policy) {
     );
   }
   const values = {};
-  for (const key of Object.keys(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1)) {
-    if (Object.hasOwn(policy, key)) values[key] = policy[key];
-  }
-  for (const key of Object.keys(policy)) {
+  for (const key of Reflect.ownKeys(policy)) {
     if (key === 'schemaVersion') continue;
-    if (!Object.hasOwn(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1, key)) {
-      values[key] = policy[key];
-    }
+    const descriptor = Object.getOwnPropertyDescriptor(policy, key);
+    if (descriptor === undefined) continue;
+    Object.defineProperty(values, key, descriptor);
   }
   return values;
 }

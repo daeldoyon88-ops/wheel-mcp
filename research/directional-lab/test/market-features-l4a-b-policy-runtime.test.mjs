@@ -387,6 +387,19 @@ function fullPolicyFromValues(values) {
   };
 }
 
+/** Like fullPolicyFromValues but preserves non-enumerable keys, Symbols and accessors. */
+function fullPolicyFromValuesPreservingOwnKeys(values) {
+  const full = {
+    schemaVersion: MARKET_VOLUME_STRUCTURE_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  };
+  for (const key of Reflect.ownKeys(values)) {
+    const descriptor = Object.getOwnPropertyDescriptor(values, key);
+    if (descriptor === undefined) continue;
+    Object.defineProperty(full, key, descriptor);
+  }
+  return full;
+}
+
 function assertClosedRefusal(mutatedValues, expectedPath) {
   const errMatcher = (error) => {
     assert.equal(error.code, MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1);
@@ -738,4 +751,329 @@ test('L4A-B closed gate and field-shape checks jointly refuse unknown and missin
     fullPolicyFromValues(missing),
   ));
   assert.throws(() => deriveMarketVolumeStructureRuntimePolicyV1(fullPolicyFromValues(missing)));
+});
+
+const OWN_KEY_MUTATIONS = [
+  ['root_extra_enumerable', (v) => {
+    v.hiddenAlien = true;
+    return '$.hiddenAlien';
+  }],
+  ['root_extra_non_enumerable', (v) => {
+    Object.defineProperty(v, 'hiddenAlien', {
+      value: true, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.hiddenAlien';
+  }],
+  ['root_symbol_described', (v) => {
+    v[Symbol('alien')] = true;
+    return '$[Symbol(alien)]';
+  }],
+  ['root_symbol_empty', (v) => {
+    v[Symbol()] = true;
+    return '$[Symbol()]';
+  }],
+  ['root_symbol_global', (v) => {
+    v[Symbol.for('l4ab-alien')] = true;
+    return '$[Symbol.for("l4ab-alien")]';
+  }],
+  ['root_canon_non_enumerable', (v) => {
+    const value = v.mfiPeriod;
+    delete v.mfiPeriod;
+    Object.defineProperty(v, 'mfiPeriod', {
+      value, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.mfiPeriod';
+  }],
+  ['root_canon_getter', (v) => {
+    const value = v.mfiPeriod;
+    delete v.mfiPeriod;
+    Object.defineProperty(v, 'mfiPeriod', {
+      get() { return value; }, enumerable: true, configurable: true,
+    });
+    return '$.mfiPeriod';
+  }],
+  ['root_canon_setter', (v) => {
+    let value = v.mfiPeriod;
+    delete v.mfiPeriod;
+    Object.defineProperty(v, 'mfiPeriod', {
+      get() { return value; },
+      set(next) { value = next; },
+      enumerable: true,
+      configurable: true,
+    });
+    return '$.mfiPeriod';
+  }],
+  ['root_inherited_instead_of_own', (v) => {
+    const value = v.mfiPeriod;
+    delete v.mfiPeriod;
+    Object.defineProperty(Object.prototype, 'mfiPeriod', {
+      value, enumerable: true, configurable: true, writable: true,
+    });
+    return ['__pollute__', 'mfiPeriod', '$.mfiPeriod', v];
+  }],
+  ['root_custom_prototype', (v) => {
+    Object.setPrototypeOf(v, { alien: true });
+    return ['__nonplain__', '$', v];
+  }],
+  ['root_class_instance', () => {
+    class PolicyBag {}
+    const instance = new PolicyBag();
+    Object.assign(instance, deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1));
+    return ['__nonplain__', '$', instance];
+  }],
+  ['root_null_prototype_accepted_shape', (v) => {
+    // Project convention already accepts null-prototype plain objects; keep acceptance.
+    const copy = Object.assign(Object.create(null), v);
+    return [copy, null];
+  }],
+  ['root_two_extras_deterministic_order', (v) => {
+    v.zebraExtra = 1;
+    v.alphaExtra = 1;
+    return '$.alphaExtra';
+  }],
+  ['ratio_extra_enumerable', (v) => {
+    v.levelToleranceAtrMultiplier.extra = true;
+    return '$.levelToleranceAtrMultiplier.extra';
+  }],
+  ['ratio_extra_non_enumerable', (v) => {
+    Object.defineProperty(v.levelToleranceAtrMultiplier, 'hiddenAlien', {
+      value: true, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.levelToleranceAtrMultiplier.hiddenAlien';
+  }],
+  ['ratio_symbol', (v) => {
+    v.levelToleranceAtrMultiplier[Symbol('alien')] = true;
+    return '$.levelToleranceAtrMultiplier[Symbol(alien)]';
+  }],
+  ['ratio_atoms_non_enumerable', (v) => {
+    const atoms = v.levelToleranceAtrMultiplier.atoms;
+    delete v.levelToleranceAtrMultiplier.atoms;
+    Object.defineProperty(v.levelToleranceAtrMultiplier, 'atoms', {
+      value: atoms, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.levelToleranceAtrMultiplier.atoms';
+  }],
+  ['ratio_scale_non_enumerable', (v) => {
+    const scale = v.levelToleranceAtrMultiplier.scale;
+    delete v.levelToleranceAtrMultiplier.scale;
+    Object.defineProperty(v.levelToleranceAtrMultiplier, 'scale', {
+      value: scale, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.levelToleranceAtrMultiplier.scale';
+  }],
+  ['ratio_atoms_getter', (v) => {
+    const atoms = v.levelToleranceAtrMultiplier.atoms;
+    delete v.levelToleranceAtrMultiplier.atoms;
+    Object.defineProperty(v.levelToleranceAtrMultiplier, 'atoms', {
+      get() { return atoms; }, enumerable: true, configurable: true,
+    });
+    return '$.levelToleranceAtrMultiplier.atoms';
+  }],
+  ['ratio_scale_getter', (v) => {
+    const scale = v.levelToleranceAtrMultiplier.scale;
+    delete v.levelToleranceAtrMultiplier.scale;
+    Object.defineProperty(v.levelToleranceAtrMultiplier, 'scale', {
+      get() { return scale; }, enumerable: true, configurable: true,
+    });
+    return '$.levelToleranceAtrMultiplier.scale';
+  }],
+  ['ratio_setter', (v) => {
+    let atoms = v.levelToleranceAtrMultiplier.atoms;
+    delete v.levelToleranceAtrMultiplier.atoms;
+    Object.defineProperty(v.levelToleranceAtrMultiplier, 'atoms', {
+      get() { return atoms; },
+      set(next) { atoms = next; },
+      enumerable: true,
+      configurable: true,
+    });
+    return '$.levelToleranceAtrMultiplier.atoms';
+  }],
+  ['ratio_custom_prototype', (v) => {
+    Object.setPrototypeOf(v.levelToleranceAtrMultiplier, { alien: true });
+    return '$.levelToleranceAtrMultiplier';
+  }],
+  ['ratio_atoms_inherited', (v) => {
+    const atoms = v.levelToleranceAtrMultiplier.atoms;
+    delete v.levelToleranceAtrMultiplier.atoms;
+    Object.defineProperty(Object.prototype, 'atoms', {
+      value: atoms, enumerable: true, configurable: true, writable: true,
+    });
+    return ['__pollute__', 'atoms', '$.levelToleranceAtrMultiplier.atoms', v];
+  }],
+  ['ratio_scale_inherited', (v) => {
+    const scale = v.levelToleranceAtrMultiplier.scale;
+    delete v.levelToleranceAtrMultiplier.scale;
+    Object.defineProperty(Object.prototype, 'scale', {
+      value: scale, enumerable: true, configurable: true, writable: true,
+    });
+    return ['__pollute__', 'scale', '$.levelToleranceAtrMultiplier.scale', v];
+  }],
+  ['ratio_missing_key', (v) => {
+    delete v.levelToleranceAtrMultiplier.scale;
+    return '$.levelToleranceAtrMultiplier.scale';
+  }],
+  ['ratio_extra_key', (v) => {
+    v.levelToleranceAtrMultiplier.bonus = 1;
+    return '$.levelToleranceAtrMultiplier.bonus';
+  }],
+  ['array_extra_enumerable', (v) => {
+    v.obvDeltaPeriods.hidden = true;
+    return '$.obvDeltaPeriods.hidden';
+  }],
+  ['array_extra_non_enumerable', (v) => {
+    Object.defineProperty(v.obvDeltaPeriods, 'hiddenAlien', {
+      value: true, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.obvDeltaPeriods.hiddenAlien';
+  }],
+  ['array_symbol', (v) => {
+    v.obvDeltaPeriods[Symbol('alien')] = true;
+    return '$.obvDeltaPeriods[Symbol(alien)]';
+  }],
+  ['array_hole', (v) => {
+    delete v.obvDeltaPeriods[1];
+    return '$.obvDeltaPeriods[1]';
+  }],
+  ['array_index_non_enumerable', (v) => {
+    const value = v.obvDeltaPeriods[0];
+    Object.defineProperty(v.obvDeltaPeriods, '0', {
+      value, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.obvDeltaPeriods[0]';
+  }],
+  ['array_index_getter', (v) => {
+    const value = v.obvDeltaPeriods[0];
+    Object.defineProperty(v.obvDeltaPeriods, '0', {
+      get() { return value; }, enumerable: true, configurable: true,
+    });
+    return '$.obvDeltaPeriods[0]';
+  }],
+  ['array_index_inherited', (v) => {
+    const value = v.obvDeltaPeriods[1];
+    delete v.obvDeltaPeriods[1];
+    Object.defineProperty(Array.prototype, '1', {
+      value, enumerable: true, configurable: true, writable: true,
+    });
+    return ['__pollute_array__', '1', '$.obvDeltaPeriods[1]', v];
+  }],
+  ['array_index_beyond_length', (v) => {
+    // Assigning an index >= length extends length; closed gate rejects length drift first.
+    v.obvDeltaPeriods[3] = 120;
+    return '$.obvDeltaPeriods';
+  }],
+  ['array_order_changed', (v) => {
+    v.obvDeltaPeriods = [60, 20, 5];
+    return '$.obvDeltaPeriods[0]';
+  }],
+  ['array_length_changed', (v) => {
+    v.obvDeltaPeriods = [5, 20];
+    return '$.obvDeltaPeriods';
+  }],
+  ['array_element_removed', (v) => {
+    v.obvDeltaPeriods = [5, 20];
+    return '$.obvDeltaPeriods';
+  }],
+  ['array_element_added', (v) => {
+    v.obvDeltaPeriods = [5, 20, 60, 120];
+    return '$.obvDeltaPeriods';
+  }],
+  ['array_duplicate', (v) => {
+    v.obvDeltaPeriods = [5, 20, 20];
+    return '$.obvDeltaPeriods[2]';
+  }],
+  ['array_replaced_by_set', (v) => {
+    v.obvDeltaPeriods = new Set([5, 20, 60]);
+    return '$.obvDeltaPeriods';
+  }],
+  ['array_replaced_by_object', (v) => {
+    v.obvDeltaPeriods = { 0: 5, 1: 20, 2: 60 };
+    return '$.obvDeltaPeriods';
+  }],
+  ['array_prototype_altered', (v) => {
+    Object.setPrototypeOf(v.obvDeltaPeriods, null);
+    return '$.obvDeltaPeriods';
+  }],
+  ['fib_ratio_extra_non_enumerable', (v) => {
+    Object.defineProperty(v.fibonacciRatios[0], 'hiddenAlien', {
+      value: true, enumerable: false, configurable: true, writable: true,
+    });
+    return '$.fibonacciRatios[0].hiddenAlien';
+  }],
+  ['fib_ratio_symbol', (v) => {
+    v.fibonacciRatios[0][Symbol('alien')] = true;
+    return '$.fibonacciRatios[0][Symbol(alien)]';
+  }],
+];
+
+for (const [name, mutate] of OWN_KEY_MUTATIONS) {
+  test(`L4A-B closed own-key gate refuses ${name}`, () => {
+    const mutated = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+    let polluteKey = null;
+    let polluteTarget = null;
+    try {
+      const result = mutate(mutated);
+      let target = mutated;
+      let expectedPath;
+      let nonPlainRoot = false;
+      if (Array.isArray(result)) {
+        if (result[0] === '__pollute__') {
+          polluteTarget = Object.prototype;
+          polluteKey = result[1];
+          expectedPath = result[2];
+          target = result[3];
+        } else if (result[0] === '__pollute_array__') {
+          polluteTarget = Array.prototype;
+          polluteKey = result[1];
+          expectedPath = result[2];
+          target = result[3];
+        } else if (result[0] === '__nonplain__') {
+          nonPlainRoot = true;
+          expectedPath = result[1];
+          target = result[2];
+        } else {
+          target = result[0];
+          expectedPath = result[1];
+          if (expectedPath === null) {
+            assertClosedMarketVolumeStructureFeaturePolicyValuesV1(target);
+            return;
+          }
+        }
+      } else {
+        expectedPath = result;
+      }
+      let first;
+      let second;
+      try { assertClosedMarketVolumeStructureFeaturePolicyValuesV1(target); }
+      catch (error) { first = error; }
+      try { assertClosedMarketVolumeStructureFeaturePolicyValuesV1(target); }
+      catch (error) { second = error; }
+      assert.equal(first.code, MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_NOT_CLOSED_V1);
+      assert.equal(first.details.path, expectedPath);
+      assert.equal(first.code, second.code);
+      assert.equal(first.message, second.message);
+      assert.equal(first.details.path, second.details.path);
+      const preserved = fullPolicyFromValuesPreservingOwnKeys(target);
+      const full = nonPlainRoot
+        ? Object.create(Object.getPrototypeOf(target), Object.getOwnPropertyDescriptors(preserved))
+        : preserved;
+      // Field-shape gates may fire before the closed gate on some paths; refusal is required.
+      assert.throws(() => normalizeMarketVolumeStructureFeatureComputationPolicyV1(full));
+      assert.throws(() => deriveMarketVolumeStructureRuntimePolicyV1(full));
+    } finally {
+      if (polluteTarget !== null && polluteKey !== null) {
+        delete polluteTarget[polluteKey];
+      }
+    }
+  });
+}
+
+test('L4A-B closed own-key gate still accepts mutable deep clones and null-prototype copies', () => {
+  const clone = deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1);
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(clone);
+  const nullProto = Object.assign(
+    Object.create(null),
+    deepClonePolicyValues(MARKET_VOLUME_STRUCTURE_FEATURE_POLICY_VALUES_V1),
+  );
+  // nested objects keep Object.prototype from deepClone; replace root only.
+  assertClosedMarketVolumeStructureFeaturePolicyValuesV1(nullProto);
 });

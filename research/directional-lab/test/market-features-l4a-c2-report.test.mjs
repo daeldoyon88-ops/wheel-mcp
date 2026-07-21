@@ -330,14 +330,14 @@ test('L4A-C2 anti-double-count: distinctOccurrenceCount <= Σ occurrenceCountSum
   });
 });
 
-test('L4A-C2 registry keeps 86 snapshot schemas, report registered, publication absent, normalized=5', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 86);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 86);
+test('L4A-C2 report remains registered before the three C3 publication schemas, normalized=5', () => {
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 89);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 89);
   assert.equal(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes(MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION),
     true,
   );
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-3), [
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-6, -3), [
     ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ]);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
@@ -345,8 +345,8 @@ test('L4A-C2 registry keeps 86 snapshot schemas, report registered, publication 
     NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.includes(MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION),
     true,
   );
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes('MarketFeaturePublicationManifest/1'), true);
   for (const absent of [
-    'MarketFeaturePublicationManifest/1',
     'MarketSeasonalityFeaturePublicationManifest/1',
     'SeasonalityFeaturePublication/1',
   ]) {

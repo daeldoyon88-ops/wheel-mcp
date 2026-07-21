@@ -44,10 +44,10 @@ function policy() {
   }));
 }
 
-test('L4A-C1/C2 register three seasonality snapshot schemas and one normalized type (86 total)', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 86);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 86);
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-3), [
+test('L4A-C1/C2 seasonality schemas remain registered before C3 (89 total)', () => {
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 89);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 89);
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-6, -3), [
     ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ]);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);
@@ -60,7 +60,7 @@ test('L4A-C1/C2 register three seasonality snapshot schemas and one normalized t
   );
   assert.equal(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes('MarketFeaturePublicationManifest/1'),
-    false,
+    true,
   );
 });
 

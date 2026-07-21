@@ -192,6 +192,15 @@ import {
   normalizeMarketSeasonalityFeatureRowsV1,
   normalizeMarketSeasonalityFeatureSourceBundleV1,
 } from '../contracts/marketSeasonalityFeatureComputationL4V1.mjs';
+import {
+  MARKET_FEATURE_PUBLICATION_AUTHORITY_POLICY_SCHEMA_VERSION,
+  MARKET_FEATURE_PUBLICATION_L4_SCHEMA_VERSIONS,
+  MARKET_FEATURE_PUBLICATION_MANIFEST_SCHEMA_VERSION,
+  MARKET_FEATURE_PUBLICATION_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  normalizeMarketFeaturePublicationAuthorityPolicyV1,
+  normalizeMarketFeaturePublicationManifestV1,
+  normalizeMarketFeaturePublicationRegistryManifestV1,
+} from '../contracts/marketFeaturePublicationContractsV1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -238,6 +247,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_TECHNICAL_FEATURE_L4_SCHEMA_VERSIONS,
   ...MARKET_VOLUME_STRUCTURE_FEATURE_L4_SCHEMA_VERSIONS,
   ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
+  ...MARKET_FEATURE_PUBLICATION_L4_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -430,6 +440,12 @@ export function normalizeCanonicalValue(schemaVersion, value) {
     case MARKET_SEASONALITY_FEATURE_ROWS_SCHEMA_VERSION:
       // L4A-C1 normalized content. Report verification authority belongs to L4A-C2.
       return normalizeMarketSeasonalityFeatureRowsV1(value);
+    case MARKET_FEATURE_PUBLICATION_AUTHORITY_POLICY_SCHEMA_VERSION:
+      return normalizeMarketFeaturePublicationAuthorityPolicyV1(value);
+    case MARKET_FEATURE_PUBLICATION_MANIFEST_SCHEMA_VERSION:
+      return normalizeMarketFeaturePublicationManifestV1(value);
+    case MARKET_FEATURE_PUBLICATION_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      return normalizeMarketFeaturePublicationRegistryManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

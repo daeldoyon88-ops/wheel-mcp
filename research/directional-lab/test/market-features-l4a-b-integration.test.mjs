@@ -146,11 +146,11 @@ function captureOfficialL4AB(sessions, options = {}) {
   }, options);
 }
 
-test('L4A-B remains registered before the three additive L4A-C1/C2 schemas (86 total)', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 86);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 86);
+test('L4A-B remains registered before the additive L4A-C1/C2/C3 schemas (89 total)', () => {
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 89);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 89);
   assert.deepEqual(
-    SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-6, -3),
+    SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-9, -6),
     [...MARKET_VOLUME_STRUCTURE_FEATURE_L4_SCHEMA_VERSIONS],
   );
   assert.equal(

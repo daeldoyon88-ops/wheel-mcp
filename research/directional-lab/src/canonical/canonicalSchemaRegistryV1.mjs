@@ -231,7 +231,17 @@ import {
   normalizeMacroMaterializationReportV1,
   normalizeMacroReleaseCalendarRegistryManifestV1,
 } from '../contracts/macroMaterializationContractsL4BV1.mjs';
-
+import {
+  MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS,
+  MACRO_STATE_BY_SESSION_ROWS_SCHEMA_VERSION,
+  MARKET_MACRO_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION,
+  MARKET_MACRO_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
+  MARKET_MACRO_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION,
+  normalizeMacroStateBySessionRowsV1,
+  normalizeMarketMacroFeatureComputationPolicyV1,
+  normalizeMarketMacroFeatureComputationReportV1,
+  normalizeMarketMacroFeatureSourceBundleV1,
+} from '../contracts/macroFeatureContractsL4BV1.mjs';
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
  * legacy DatasetManifestV1 canonical copy is historical evidence only; the
@@ -280,6 +290,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_FEATURE_PUBLICATION_L4_SCHEMA_VERSIONS,
   ...MACRO_INGESTION_L4B_SCHEMA_VERSIONS,
   ...MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS,
+  ...MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -502,6 +513,14 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMacroDatasetBindingV1(value);
     case MACRO_MATERIALIZATION_REPORT_SCHEMA_VERSION:
       return normalizeMacroMaterializationReportV1(value);
+    case MARKET_MACRO_FEATURE_SOURCE_BUNDLE_SCHEMA_VERSION:
+      return normalizeMarketMacroFeatureSourceBundleV1(value);
+    case MARKET_MACRO_FEATURE_COMPUTATION_POLICY_SCHEMA_VERSION:
+      return normalizeMarketMacroFeatureComputationPolicyV1(value);
+    case MACRO_STATE_BY_SESSION_ROWS_SCHEMA_VERSION:
+      return normalizeMacroStateBySessionRowsV1(value);
+    case MARKET_MACRO_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION:
+      return normalizeMarketMacroFeatureComputationReportV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

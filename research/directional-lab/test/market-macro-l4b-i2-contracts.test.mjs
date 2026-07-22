@@ -34,9 +34,9 @@ const schema = {
 
 test('L4B-I2 registers exactly four macro schemas: 101 total, all unique', () => {
   assert.equal(MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS.length, 4);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 101);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 101);
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-4), MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 105);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 105);
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-8, -4), MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS);
 });
 test('L4B-I2 adds no normalized CAS type: exactly 5', () => {
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);

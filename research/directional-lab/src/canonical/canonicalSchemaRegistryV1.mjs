@@ -220,6 +220,17 @@ import {
   normalizeMacroVintageIdentityCoreV1,
   normalizeMacroVintageSetManifestV1,
 } from '../contracts/macroIngestionContractsL4BV1.mjs';
+import {
+  MACRO_AS_OF_RESOLUTION_POLICY_SCHEMA_VERSION,
+  MACRO_DATASET_BINDING_SCHEMA_VERSION,
+  MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS,
+  MACRO_MATERIALIZATION_REPORT_SCHEMA_VERSION,
+  MACRO_RELEASE_CALENDAR_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  normalizeMacroAsOfResolutionPolicyV1,
+  normalizeMacroDatasetBindingV1,
+  normalizeMacroMaterializationReportV1,
+  normalizeMacroReleaseCalendarRegistryManifestV1,
+} from '../contracts/macroMaterializationContractsL4BV1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -268,6 +279,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ...MARKET_FEATURE_PUBLICATION_L4_SCHEMA_VERSIONS,
   ...MACRO_INGESTION_L4B_SCHEMA_VERSIONS,
+  ...MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -482,6 +494,14 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMacroIngestionPolicyV1(value);
     case MACRO_DATASET_SNAPSHOT_MANIFEST_SCHEMA_VERSION:
       return normalizeMacroDatasetSnapshotManifestV1(value);
+    case MACRO_AS_OF_RESOLUTION_POLICY_SCHEMA_VERSION:
+      return normalizeMacroAsOfResolutionPolicyV1(value);
+    case MACRO_RELEASE_CALENDAR_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      return normalizeMacroReleaseCalendarRegistryManifestV1(value);
+    case MACRO_DATASET_BINDING_SCHEMA_VERSION:
+      return normalizeMacroDatasetBindingV1(value);
+    case MACRO_MATERIALIZATION_REPORT_SCHEMA_VERSION:
+      return normalizeMacroMaterializationReportV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

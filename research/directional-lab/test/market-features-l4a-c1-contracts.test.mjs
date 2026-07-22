@@ -45,9 +45,9 @@ function policy() {
 }
 
 test('L4A-C1/C2 seasonality schemas remain registered before C3 (97 total)', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 97);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 97);
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-14, -11), [
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 101);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 101);
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-18, -15), [
     ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ]);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);

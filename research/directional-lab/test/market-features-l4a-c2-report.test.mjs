@@ -331,13 +331,13 @@ test('L4A-C2 anti-double-count: distinctOccurrenceCount <= Σ occurrenceCountSum
 });
 
 test('L4A-C2 report remains registered before the three C3 publication schemas, normalized=5', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 89);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 89);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 97);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 97);
   assert.equal(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.includes(MARKET_SEASONALITY_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION),
     true,
   );
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-6, -3), [
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-14, -11), [
     ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ]);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);

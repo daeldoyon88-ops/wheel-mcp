@@ -470,8 +470,8 @@ function seedTwoSessions(store) {
 
 test('L3-I5 registers exactly three additive schemas for a total of 85 after L4A-C2', () => {
   assert.deepEqual([...MARKET_DATA_SNAPSHOT_MATERIALIZATION_L3_SCHEMA_VERSIONS], I5_SCHEMAS);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 89);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 89);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 97);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 97);
   assert.deepEqual(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.filter((schema) => I5_SCHEMAS.includes(schema)),
     I5_SCHEMAS,

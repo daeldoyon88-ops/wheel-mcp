@@ -201,6 +201,25 @@ import {
   normalizeMarketFeaturePublicationManifestV1,
   normalizeMarketFeaturePublicationRegistryManifestV1,
 } from '../contracts/marketFeaturePublicationContractsV1.mjs';
+import {
+  MACRO_DATASET_SNAPSHOT_MANIFEST_SCHEMA_VERSION,
+  MACRO_INGESTION_L4B_SCHEMA_VERSIONS,
+  MACRO_INGESTION_POLICY_SCHEMA_VERSION,
+  MACRO_OBSERVATION_IDENTITY_CORE_SCHEMA_VERSION,
+  MACRO_OBSERVATION_VINTAGE_CORE_SCHEMA_VERSION,
+  MACRO_SERIES_IDENTITY_CORE_SCHEMA_VERSION,
+  MACRO_SERIES_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  MACRO_VINTAGE_IDENTITY_CORE_SCHEMA_VERSION,
+  MACRO_VINTAGE_SET_MANIFEST_SCHEMA_VERSION,
+  normalizeMacroDatasetSnapshotManifestV1,
+  normalizeMacroIngestionPolicyV1,
+  normalizeMacroObservationIdentityCoreV1,
+  normalizeMacroObservationVintageCoreV1,
+  normalizeMacroSeriesIdentityCoreV1,
+  normalizeMacroSeriesRegistryManifestV1,
+  normalizeMacroVintageIdentityCoreV1,
+  normalizeMacroVintageSetManifestV1,
+} from '../contracts/macroIngestionContractsL4BV1.mjs';
 
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
@@ -248,6 +267,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MARKET_VOLUME_STRUCTURE_FEATURE_L4_SCHEMA_VERSIONS,
   ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ...MARKET_FEATURE_PUBLICATION_L4_SCHEMA_VERSIONS,
+  ...MACRO_INGESTION_L4B_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -446,6 +466,22 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMarketFeaturePublicationManifestV1(value);
     case MARKET_FEATURE_PUBLICATION_REGISTRY_MANIFEST_SCHEMA_VERSION:
       return normalizeMarketFeaturePublicationRegistryManifestV1(value);
+    case MACRO_SERIES_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeMacroSeriesIdentityCoreV1(value);
+    case MACRO_SERIES_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      return normalizeMacroSeriesRegistryManifestV1(value);
+    case MACRO_OBSERVATION_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeMacroObservationIdentityCoreV1(value);
+    case MACRO_VINTAGE_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeMacroVintageIdentityCoreV1(value);
+    case MACRO_OBSERVATION_VINTAGE_CORE_SCHEMA_VERSION:
+      return normalizeMacroObservationVintageCoreV1(value);
+    case MACRO_VINTAGE_SET_MANIFEST_SCHEMA_VERSION:
+      return normalizeMacroVintageSetManifestV1(value);
+    case MACRO_INGESTION_POLICY_SCHEMA_VERSION:
+      return normalizeMacroIngestionPolicyV1(value);
+    case MACRO_DATASET_SNAPSHOT_MANIFEST_SCHEMA_VERSION:
+      return normalizeMacroDatasetSnapshotManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

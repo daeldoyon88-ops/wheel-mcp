@@ -242,6 +242,17 @@ import {
   normalizeMarketMacroFeatureComputationReportV1,
   normalizeMarketMacroFeatureSourceBundleV1,
 } from '../contracts/macroFeatureContractsL4BV1.mjs';
+import {
+  MACRO_FEATURE_L4B_F2_SCHEMA_VERSIONS,
+  MARKET_MACRO_FULL_COMPUTATION_REPORT_SCHEMA_VERSION,
+  MARKET_MACRO_FULL_STATE_ROWS_SCHEMA_VERSION,
+  MARKET_MACRO_INSTRUMENT_PROJECTION_POLICY_SCHEMA_VERSION,
+  MARKET_MACRO_INSTRUMENT_ROWS_SCHEMA_VERSION,
+  normalizeMarketMacroFullComputationReportV1,
+  normalizeMarketMacroFullStateRowsV1,
+  normalizeMarketMacroInstrumentProjectionPolicyV1,
+  normalizeMarketMacroInstrumentRowsV1,
+} from '../contracts/macroFullFeatureContractsL4BF2V1.mjs';
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
  * legacy DatasetManifestV1 canonical copy is historical evidence only; the
@@ -291,6 +302,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MACRO_INGESTION_L4B_SCHEMA_VERSIONS,
   ...MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS,
   ...MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS,
+  ...MACRO_FEATURE_L4B_F2_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -521,6 +533,14 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMacroStateBySessionRowsV1(value);
     case MARKET_MACRO_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION:
       return normalizeMarketMacroFeatureComputationReportV1(value);
+    case MARKET_MACRO_INSTRUMENT_PROJECTION_POLICY_SCHEMA_VERSION:
+      return normalizeMarketMacroInstrumentProjectionPolicyV1(value);
+    case MARKET_MACRO_FULL_STATE_ROWS_SCHEMA_VERSION:
+      return normalizeMarketMacroFullStateRowsV1(value);
+    case MARKET_MACRO_INSTRUMENT_ROWS_SCHEMA_VERSION:
+      return normalizeMarketMacroInstrumentRowsV1(value);
+    case MARKET_MACRO_FULL_COMPUTATION_REPORT_SCHEMA_VERSION:
+      return normalizeMarketMacroFullComputationReportV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

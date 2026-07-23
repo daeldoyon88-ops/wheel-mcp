@@ -473,8 +473,8 @@ function manifestTemplate(graph, registryId, published, overrides = {}) {
 
 test('L3-I3 schemas remain registered (97 total after additive L4B-I1)', () => {
   assert.deepEqual(MARKET_DATA_INGESTION_REGISTRY_L3_SCHEMA_VERSIONS, I3_SCHEMAS);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 105);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 105);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 109);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 109);
   assert.deepEqual(
     SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.filter((schema) => I3_SCHEMAS.includes(schema)),
     I3_SCHEMAS,

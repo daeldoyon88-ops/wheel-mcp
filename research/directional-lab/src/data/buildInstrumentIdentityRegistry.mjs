@@ -251,10 +251,16 @@ export function buildInstrumentIdentityRegistry(input) {
   assertBuildInput(input);
   assertStore(input.store, ['putCanonicalObject', 'readCanonicalObject', 'uriForObject']);
   assertObjectId(input.authorityPolicyId, 'authorityPolicyId');
+  if (!Array.isArray(input.identityManifestIds)) {
+    throw new InstrumentIdentityError(
+      'INSTRUMENT_IDENTITY_REGISTRY_INVALID',
+      'identityManifestIds must be an explicitly supplied array',
+    );
+  }
   const candidate = normalizeInstrumentIdentityRegistryManifestV1({
     schemaVersion: INSTRUMENT_IDENTITY_REGISTRY_MANIFEST_SCHEMA_VERSION,
     authorityPolicyId: input.authorityPolicyId,
-    identityManifestIds: sortedUniqueStrings(input.identityManifestIds ?? []),
+    identityManifestIds: sortedUniqueStrings(input.identityManifestIds),
     snapshotInstrumentBindingIds: sortedUniqueStrings(input.snapshotInstrumentBindingIds ?? []),
     supersedesRegistryManifestId: input.supersedesRegistryManifestId ?? null,
   });

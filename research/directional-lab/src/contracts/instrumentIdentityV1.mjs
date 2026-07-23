@@ -865,9 +865,6 @@ export function instrumentIdentityRegistryManifestProblems(value) {
   }
   checkObjectId(registry.authorityPolicyId, 'authorityPolicyId', problems);
   checkSortedUniqueObjectIdArray(registry.identityManifestIds, 'identityManifestIds', problems);
-  if (Array.isArray(registry.identityManifestIds) && registry.identityManifestIds.length === 0) {
-    problems.push('identityManifestIds must be non-empty');
-  }
   checkSortedUniqueObjectIdArray(registry.snapshotInstrumentBindingIds, 'snapshotInstrumentBindingIds', problems);
   checkNullableObjectId(registry.supersedesRegistryManifestId, 'supersedesRegistryManifestId', problems);
   return problems;

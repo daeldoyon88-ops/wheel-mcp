@@ -494,9 +494,29 @@ test('L2B-M1 — overlapping aliases across identities refuse registry', () => {
   });
 });
 
-test('L2B-RG1 — official API refuses free identityManifestIds; omission impossible', () => {
+test('L2B-RG1 — explicit empty registry is valid; free IDs and omission are refused', () => {
   withLabStore((store) => {
     const auth = publishAuthority(store);
+    const emptyRegistry = buildInstrumentIdentityRegistry({
+      store,
+      authorityPolicyId: auth.authorityPolicyId,
+      identityManifestIds: [],
+    });
+    assert.deepEqual(emptyRegistry.registryManifest.identityManifestIds, []);
+    assert.deepEqual(
+      verifyInstrumentIdentityRegistry({
+        store,
+        registryManifestId: emptyRegistry.registryManifestId,
+      }).identityBundles,
+      [],
+    );
+    assert.throws(
+      () => buildInstrumentIdentityRegistry({
+        store,
+        authorityPolicyId: auth.authorityPolicyId,
+      }),
+      code('INSTRUMENT_IDENTITY_REGISTRY_INVALID'),
+    );
     const identity = publishIdentity(store, auth.authorityPolicyId, SEED_5);
     const ns = publishNamespace(store);
     const alias = buildInstrumentAliasBinding({

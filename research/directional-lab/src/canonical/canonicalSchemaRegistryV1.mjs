@@ -253,6 +253,17 @@ import {
   normalizeMarketMacroInstrumentProjectionPolicyV1,
   normalizeMarketMacroInstrumentRowsV1,
 } from '../contracts/macroFullFeatureContractsL4BF2V1.mjs';
+import {
+  MARKET_MACRO_FEATURE_AUTHORITY_POLICY_SCHEMA_VERSION,
+  MARKET_MACRO_FEATURE_COVERAGE_REPORT_SCHEMA_VERSION,
+  MARKET_MACRO_FEATURE_PUBLICATION_L4BP_SCHEMA_VERSIONS,
+  MARKET_MACRO_FEATURE_PUBLICATION_MANIFEST_SCHEMA_VERSION,
+  MARKET_MACRO_FEATURE_REGISTRY_MANIFEST_SCHEMA_VERSION,
+  normalizeMarketMacroFeatureAuthorityPolicyV1,
+  normalizeMarketMacroFeatureCoverageReportV1,
+  normalizeMarketMacroFeaturePublicationManifestV1,
+  normalizeMarketMacroFeatureRegistryManifestV1,
+} from '../contracts/marketMacroFeaturePublicationContractsL4BPV1.mjs';
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
  * legacy DatasetManifestV1 canonical copy is historical evidence only; the
@@ -303,6 +314,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MACRO_MATERIALIZATION_L4B_SCHEMA_VERSIONS,
   ...MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS,
   ...MACRO_FEATURE_L4B_F2_SCHEMA_VERSIONS,
+  ...MARKET_MACRO_FEATURE_PUBLICATION_L4BP_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -541,6 +553,14 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMarketMacroInstrumentRowsV1(value);
     case MARKET_MACRO_FULL_COMPUTATION_REPORT_SCHEMA_VERSION:
       return normalizeMarketMacroFullComputationReportV1(value);
+    case MARKET_MACRO_FEATURE_AUTHORITY_POLICY_SCHEMA_VERSION:
+      return normalizeMarketMacroFeatureAuthorityPolicyV1(value);
+    case MARKET_MACRO_FEATURE_REGISTRY_MANIFEST_SCHEMA_VERSION:
+      return normalizeMarketMacroFeatureRegistryManifestV1(value);
+    case MARKET_MACRO_FEATURE_COVERAGE_REPORT_SCHEMA_VERSION:
+      return normalizeMarketMacroFeatureCoverageReportV1(value);
+    case MARKET_MACRO_FEATURE_PUBLICATION_MANIFEST_SCHEMA_VERSION:
+      return normalizeMarketMacroFeaturePublicationManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

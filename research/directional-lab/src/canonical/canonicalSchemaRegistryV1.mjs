@@ -264,6 +264,41 @@ import {
   normalizeMarketMacroFeaturePublicationManifestV1,
   normalizeMarketMacroFeatureRegistryManifestV1,
 } from '../contracts/marketMacroFeaturePublicationContractsL4BPV1.mjs';
+import {
+  EARNINGS_DATASET_SNAPSHOT_MANIFEST_SCHEMA_VERSION,
+  EARNINGS_EVENT_IDENTITY_CORE_SCHEMA_VERSION,
+  EARNINGS_EVENT_SET_MANIFEST_SCHEMA_VERSION,
+  EARNINGS_EXTRACTION_SET_MANIFEST_SCHEMA_VERSION,
+  EARNINGS_INGESTION_POLICY_SCHEMA_VERSION,
+  EARNINGS_L4C_I1_SCHEMA_VERSIONS,
+  EARNINGS_METRIC_EXTRACTION_POLICY_SCHEMA_VERSION,
+  EARNINGS_METRIC_EXTRACTION_REPORT_SCHEMA_VERSION,
+  EARNINGS_METRIC_OBSERVATION_CORE_SCHEMA_VERSION,
+  EARNINGS_REVISION_CORE_SCHEMA_VERSION,
+  EARNINGS_REVISION_IDENTITY_CORE_SCHEMA_VERSION,
+  EARNINGS_REVISION_SET_MANIFEST_SCHEMA_VERSION,
+  EARNINGS_TAXONOMY_BUNDLE_MANIFEST_SCHEMA_VERSION,
+  FINANCIAL_PERIOD_IDENTITY_CORE_SCHEMA_VERSION,
+  SEC_DOCUMENT_BYTES_CORE_SCHEMA_VERSION,
+  SEC_FILING_SOURCE_DOCUMENT_CORE_SCHEMA_VERSION,
+  XBRL_CANONICAL_UNIT_CORE_SCHEMA_VERSION,
+  normalizeEarningsDatasetSnapshotManifestV1,
+  normalizeEarningsEventIdentityCoreV1,
+  normalizeEarningsEventSetManifestV1,
+  normalizeEarningsExtractionSetManifestV1,
+  normalizeEarningsIngestionPolicyV1,
+  normalizeEarningsMetricExtractionPolicyV1,
+  normalizeEarningsMetricExtractionReportV1,
+  normalizeEarningsMetricObservationCoreV1,
+  normalizeEarningsRevisionCoreV1,
+  normalizeEarningsRevisionIdentityCoreV1,
+  normalizeEarningsRevisionSetManifestV1,
+  normalizeEarningsTaxonomyBundleManifestV1,
+  normalizeFinancialPeriodIdentityCoreV1,
+  normalizeSecDocumentBytesCoreV1,
+  normalizeSecFilingSourceDocumentCoreV1,
+  normalizeXbrlCanonicalUnitCoreV1,
+} from '../contracts/earningsContractsL4CIV1.mjs';
 /**
  * Snapshot-metadata schemas the CAS `snapshots` namespace may store. The
  * legacy DatasetManifestV1 canonical copy is historical evidence only; the
@@ -315,6 +350,7 @@ export const SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS = Object.freeze([
   ...MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS,
   ...MACRO_FEATURE_L4B_F2_SCHEMA_VERSIONS,
   ...MARKET_MACRO_FEATURE_PUBLICATION_L4BP_SCHEMA_VERSIONS,
+  ...EARNINGS_L4C_I1_SCHEMA_VERSIONS,
 ]);
 
 /** @param {string} schemaVersion @param {unknown} value */
@@ -561,6 +597,38 @@ export function normalizeCanonicalValue(schemaVersion, value) {
       return normalizeMarketMacroFeatureCoverageReportV1(value);
     case MARKET_MACRO_FEATURE_PUBLICATION_MANIFEST_SCHEMA_VERSION:
       return normalizeMarketMacroFeaturePublicationManifestV1(value);
+    case EARNINGS_INGESTION_POLICY_SCHEMA_VERSION:
+      return normalizeEarningsIngestionPolicyV1(value);
+    case EARNINGS_METRIC_EXTRACTION_POLICY_SCHEMA_VERSION:
+      return normalizeEarningsMetricExtractionPolicyV1(value);
+    case SEC_FILING_SOURCE_DOCUMENT_CORE_SCHEMA_VERSION:
+      return normalizeSecFilingSourceDocumentCoreV1(value);
+    case SEC_DOCUMENT_BYTES_CORE_SCHEMA_VERSION:
+      return normalizeSecDocumentBytesCoreV1(value);
+    case EARNINGS_TAXONOMY_BUNDLE_MANIFEST_SCHEMA_VERSION:
+      return normalizeEarningsTaxonomyBundleManifestV1(value);
+    case XBRL_CANONICAL_UNIT_CORE_SCHEMA_VERSION:
+      return normalizeXbrlCanonicalUnitCoreV1(value);
+    case FINANCIAL_PERIOD_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeFinancialPeriodIdentityCoreV1(value);
+    case EARNINGS_EVENT_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeEarningsEventIdentityCoreV1(value);
+    case EARNINGS_REVISION_IDENTITY_CORE_SCHEMA_VERSION:
+      return normalizeEarningsRevisionIdentityCoreV1(value);
+    case EARNINGS_REVISION_CORE_SCHEMA_VERSION:
+      return normalizeEarningsRevisionCoreV1(value);
+    case EARNINGS_METRIC_OBSERVATION_CORE_SCHEMA_VERSION:
+      return normalizeEarningsMetricObservationCoreV1(value);
+    case EARNINGS_METRIC_EXTRACTION_REPORT_SCHEMA_VERSION:
+      return normalizeEarningsMetricExtractionReportV1(value);
+    case EARNINGS_EVENT_SET_MANIFEST_SCHEMA_VERSION:
+      return normalizeEarningsEventSetManifestV1(value);
+    case EARNINGS_REVISION_SET_MANIFEST_SCHEMA_VERSION:
+      return normalizeEarningsRevisionSetManifestV1(value);
+    case EARNINGS_EXTRACTION_SET_MANIFEST_SCHEMA_VERSION:
+      return normalizeEarningsExtractionSetManifestV1(value);
+    case EARNINGS_DATASET_SNAPSHOT_MANIFEST_SCHEMA_VERSION:
+      return normalizeEarningsDatasetSnapshotManifestV1(value);
     default:
       throw new CanonicalizationError('CANONICAL_SCHEMA_UNKNOWN', `unknown canonical schema: ${String(schemaVersion)}`);
   }

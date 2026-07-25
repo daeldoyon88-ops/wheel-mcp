@@ -1,0 +1,22 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-U001", "units", "USD unit core normalize", "");
+authoritativeCase("I1-U002", "units", "USD_PER_SHARE unit core normalize", "");
+authoritativeCase("I1-U003", "units", "unknown unit rejected", "");
+authoritativeCase("I1-U004", "units", "shares-only unit rejected for revenue", "");
+authoritativeCase("I1-U005", "units", "EPS requires USD_PER_SHARE", "");
+authoritativeCase("I1-U006", "units", "Revenue requires USD", "");
+authoritativeCase("I1-U007", "units", "unitRef mapping deterministic", "");
+authoritativeCase("I1-U008", "units", "unit unknown field", "");
+authoritativeCase("I1-U009", "units", "unit schemaVersion pin", "");
+authoritativeCase("I1-U010", "units", "unit id stable inter-store", "");
+authoritativeCase("I1-U011", "units", "measure localName closed", "");
+authoritativeCase("I1-U012", "units", "divide unit numerator/denominator pins", "");
+authoritativeCase("I1-U013", "units", "pure measure unit no divide", "");
+authoritativeCase("I1-U014", "units", "unit digest/recompute", "");
+authoritativeCase("I1-U015", "units", "observation unit pin required", "");
+authoritativeCase("I1-U016", "units", "unit resolvable from observation", "");
+authoritativeCase("I1-U017", "units", "forbidden float unit scale", "");
+authoritativeCase("I1-U018", "units", "unit list exhaustiveness V1 = 2 members", "");
+authoritativeCase("I1-U019", "units", "unit id independent of observation value", "");
+authoritativeCase("I1-U020", "units", "unit canonicalization key order irrelevant", "");

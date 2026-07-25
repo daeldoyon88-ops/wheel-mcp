@@ -1,0 +1,21 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-O001", "oracle", "golden sourceDocumentId from filing bytes", "");
+authoritativeCase("I1-O002", "oracle", "golden eventIdentityId from cik+accession", "");
+authoritativeCase("I1-O003", "oracle", "two accessions two event ids", "");
+authoritativeCase("I1-O006", "oracle", "multi-duration raw period ids (no Q4/Annual labels)", "");
+authoritativeCase("I1-O007", "oracle", "comparative/non-current ignored+digested under CURRENT_REPORTED", "");
+authoritativeCase("I1-O008", "oracle", "DURATION raw golden (not ANNUAL label)", "");
+authoritativeCase("I1-O009", "oracle", "EPS diluted tag priority golden", "");
+authoritativeCase("I1-O010", "oracle", "revenue tag priority golden", "");
+authoritativeCase("I1-O011", "oracle", "fixed-point EPS encoding golden", "");
+authoritativeCase("I1-O012", "oracle", "EventSet digest golden", "");
+authoritativeCase("I1-O013", "oracle", "RevisionSet digest golden", "");
+authoritativeCase("I1-O014", "oracle", "Snapshot golden includes ExtractionSet+series+digests+supersedes", "");
+authoritativeCase("I1-O015", "oracle", "NY DST acceptanceDatetime golden", "");
+authoritativeCase("I1-O016", "oracle", "release without metrics retained golden", "");
+authoritativeCase("I1-O017", "oracle", "exactly one INITIAL revision: one accession fixture → golden ids", "");
+authoritativeCase("I1-O018", "oracle", "two independent events: 8-K then 8-K/A fixtures → two event ids; no parent edge", "");
+authoritativeCase("I1-O019", "oracle", "series+jur+cur+auth: datasetIdentityKey golden preimage → sha256 match", "");
+authoritativeCase("I1-O020", "oracle", "obs ids: orderedMetricObservationIdentityDigest global sorted set → digest match independent of grouping", "");
+authoritativeCase("I1-O021", "oracle", "empty lists: empty list digests use domain+separators preimage → non-null domain hash", "");

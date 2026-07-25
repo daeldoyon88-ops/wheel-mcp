@@ -52,11 +52,11 @@ const schema = {
   report: MARKET_MACRO_FEATURE_COMPUTATION_REPORT_SCHEMA_VERSION,
 };
 
-test('L4B-F1 schemas remain registered inside the 113-schema additive registry', () => {
+test('L4B-F1 schemas remain registered inside the 129-schema additive registry', () => {
   assert.equal(MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS.length, 4);
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 113);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 113);
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-12, -8), MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-28, -24), MACRO_FEATURE_L4B_F1_SCHEMA_VERSIONS);
 });
 
 test('L4B-F1 adds no normalized CAS type: exactly 5', () => {

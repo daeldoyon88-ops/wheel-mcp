@@ -1,0 +1,25 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-R001", "integration", "replay store A→B identical ids", "");
+authoritativeCase("I1-R002", "integration", "prefix invariance future noise", "");
+authoritativeCase("I1-R003", "integration", "multi-store A/B identical", "");
+authoritativeCase("I1-R004", "integration", "multi-store A/B/C with noise", "");
+authoritativeCase("I1-R005", "integration", "canonical JSON key order irrelevant", "");
+authoritativeCase("I1-R006", "integration", "CRLF vs LF transform source text normalized", "");
+authoritativeCase("I1-R007", "integration", "negative EPS accepted integration", "");
+authoritativeCase("I1-R008", "integration", "negative revenue accepted integration", "");
+authoritativeCase("I1-R009", "integration", "8-K and 10-Q remain distinct events", "");
+authoritativeCase("I1-R010", "integration", "transitive closure via ExtractionSet; no global CAS scan", "");
+authoritativeCase("I1-R011", "integration", "amendment /A immutability of old filing", "");
+authoritativeCase("I1-R012", "integration", "empty snapshot e2e with empty ExtractionSet", "");
+authoritativeCase("I1-R017", "integration", "snapshot closure: every closure ref resolved by expectedObjectId → all resolve", "");
+authoritativeCase("I1-R018", "integration", "hook fs: no readdir/glob during verify → no scan APIs", "");
+authoritativeCase("I1-R019", "integration", "rev→filing: source filing from RevisionIdentity/RevisionCore → resolvable", "");
+authoritativeCase("I1-R020", "integration", "filing→bytes: bytes via orderedDocuments[].secDocumentBytesId → resolvable", "");
+authoritativeCase("I1-R021", "integration", "bytes→source: raw bytes via documentObjectId → bytes load", "");
+authoritativeCase("I1-R022", "integration", "EXS→obs: observations via ExtractionSet entries → all reachable", "");
+authoritativeCase("I1-R023", "integration", "obs→period/unit: period and unit from observation → resolvable", "");
+authoritativeCase("I1-R024", "integration", "bundle→bytes: taxonomy components via orderedComponentDocumentIds → resolvable", "");
+authoritativeCase("I1-R025", "integration", "modules: TIM/2 modules via logicalPath + transformSourceTextSha256 → hash match; not CAS objectId claim", "");
+authoritativeCase("I1-R026", "integration", "parent: snapshot parent via supersedes when non-null → resolvable acyclic", "");
+authoritativeCase("I1-R027", "integration", "noise outside: corrupt object outside closure ignored → verify still pass", "");

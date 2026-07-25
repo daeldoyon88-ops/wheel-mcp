@@ -1,0 +1,25 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-C073", "extraction-set", "missing entry: revision in RevisionSet without ExtractionSet entry → reject", "EARNINGS_EXTRACTION_ENTRY_MISSING");
+authoritativeCase("I1-C074", "extraction-set", "foreign id: entry for foreign revisionIdentityId → reject", "EARNINGS_EXTRACTION_ENTRY_FOREIGN_REVISION");
+authoritativeCase("I1-C075", "extraction-set", "dup: duplicate entry same revisionIdentityId → reject", "EARNINGS_EXTRACTION_ENTRY_DUPLICATE");
+authoritativeCase("I1-C076", "extraction-set", "permute: entry order differs from RevisionSet order → reject", "EARNINGS_EXTRACTION_ENTRY_ORDER_INVALID");
+authoritativeCase("I1-C077", "extraction-set", "missing report: report id absent from CAS → reject", "EARNINGS_EXTRACTION_REPORT_MISSING");
+authoritativeCase("I1-C078", "extraction-set", "missing obs: observation id absent from CAS → reject", "EARNINGS_METRIC_ORPHAN");
+authoritativeCase("I1-C079", "extraction-set", "dup obs: duplicate observation id in entry list → reject", "EARNINGS_EXTRACTION_OBSERVATION_DUPLICATE");
+authoritativeCase("I1-C080", "extraction-set", "unsorted: observation order not bytewise sorted → reject", "EARNINGS_EXTRACTION_OBSERVATION_ORDER_INVALID");
+authoritativeCase("I1-C081", "extraction-set", "mismatch lists: report.orderedObservationIds != entry.orderedMetricObservationIds → reject", "EARNINGS_EXTRACTION_REPORT_OBS_MISMATCH");
+authoritativeCase("I1-C082", "extraction-set", "[] obs: zero observations with valid report+diagnostics → accepted", "");
+authoritativeCase("I1-C083", "extraction-set", "empty: empty dataset orderedRevisionExtractionEntries=[] → accepted; counts 0", "");
+authoritativeCase("I1-C084", "extraction-set", "count+1: extractionReportCount forged → reject", "EARNINGS_EXTRACTION_SET_COUNT_MISMATCH");
+authoritativeCase("I1-C085", "extraction-set", "count+1: metricObservationCount forged → reject", "EARNINGS_EXTRACTION_SET_COUNT_MISMATCH");
+authoritativeCase("I1-C086", "extraction-set", "tamper: orderedExtractionReportDigest forged → reject", "EARNINGS_EXTRACTION_SET_DIGEST_MISMATCH");
+authoritativeCase("I1-C087", "extraction-set", "tamper: orderedMetricObservationDigest forged → reject", "EARNINGS_EXTRACTION_SET_DIGEST_MISMATCH");
+authoritativeCase("I1-C088", "extraction-set", "A→B: inter-store byte-identical ExtractionSet → same id", "");
+authoritativeCase("I1-C089", "extraction-set", "grouping: groups A→[X],B→[Y] vs A→[X,Y],B→[] → digests differ", "");
+authoritativeCase("I1-C090", "extraction-set", "all []: all entries zero observations → digest = empty-groups preimage", "");
+authoritativeCase("I1-C091", "extraction-set", "[]: empty ExtractionSet entries → empty domain digest", "");
+authoritativeCase("I1-C092", "extraction-set", "permute: entry order != RevisionSet → reject before digest accept", "EARNINGS_EXTRACTION_ENTRY_ORDER_INVALID");
+authoritativeCase("I1-C093", "extraction-set", "unsorted: obs order not bytewise → reject", "EARNINGS_EXTRACTION_OBSERVATION_ORDER_INVALID");
+authoritativeCase("I1-C094", "extraction-set", "tamper: claimed grouped digest != recomputed → reject", "EARNINGS_EXTRACTION_SET_DIGEST_MISMATCH");
+authoritativeCase("I1-C095", "extraction-set", "A/B: grouped digest inter-store reproduction → same digest/id", "");

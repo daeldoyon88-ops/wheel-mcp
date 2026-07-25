@@ -1,0 +1,20 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-D001", "periods", "INSTANT identity (periodStart null, periodEnd set)", "");
+authoritativeCase("I1-D002", "periods", "DURATION identity (start<end exact)", "");
+authoritativeCase("I1-D003", "periods", "exact dates 52/53-week", "");
+authoritativeCase("I1-D004", "periods", "approx 90-day without identity unavailable", "");
+authoritativeCase("I1-D005", "periods", "two durations same periodEnd distinct", "");
+authoritativeCase("I1-D006", "periods", "periodStart < periodEnd required", "");
+authoritativeCase("I1-D007", "periods", "INSTANT requires periodStart null", "");
+authoritativeCase("I1-D008", "periods", "DURATION requires periodStart", "");
+authoritativeCase("I1-D009", "periods", "DEI metadata does not alter period identity", "");
+authoritativeCase("I1-D010", "periods", "comparative period ignored under CURRENT_REPORTED", "");
+authoritativeCase("I1-D011", "periods", "current instant matches DocumentPeriodEndDate", "");
+authoritativeCase("I1-D012", "periods", "current duration end matches DocumentPeriodEndDate", "");
+authoritativeCase("I1-D013", "periods", "no ±N day approximation", "");
+authoritativeCase("I1-D014", "periods", "period identity stable across stores", "");
+authoritativeCase("I1-D019", "periods", "rejected: periodType=QUARTER → reject", "EARNINGS_PERIOD_TYPE_INVALID");
+authoritativeCase("I1-D020", "periods", "rejected: periodType=YEAR_TO_DATE → reject", "EARNINGS_PERIOD_TYPE_INVALID");
+authoritativeCase("I1-D021", "periods", "rejected: periodType=FISCAL_YEAR → reject", "EARNINGS_PERIOD_TYPE_INVALID");
+authoritativeCase("I1-D022", "periods", "no derived period: annual−9M derived Q4 attempt → reject", "EARNINGS_DERIVED_PERIOD_FORBIDDEN");

@@ -1,0 +1,24 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-I001", "identities", "one accession one event", "");
+authoritativeCase("I1-I002", "identities", "EventIdentity fields cik+accession only (+schema)", "");
+authoritativeCase("I1-I003", "identities", "8-K maps to EARNINGS_RELEASE at event typing layer", "");
+authoritativeCase("I1-I004", "identities", "10-Q maps to EARNINGS_FILING", "");
+authoritativeCase("I1-I005", "identities", "COMBINED_EARNINGS forbidden", "");
+authoritativeCase("I1-I006", "identities", "RevisionIdentity includes eventIdentityId", "");
+authoritativeCase("I1-I007", "identities", "RevisionIdentity includes publicAvailableAt", "");
+authoritativeCase("I1-I008", "identities", "RevisionIdentity includes sourceFilingDocumentId", "");
+authoritativeCase("I1-I009", "identities", "RevisionIdentity excludes parentRevisionIdentityId", "");
+authoritativeCase("I1-I010", "identities", "RevisionCore aligns with RevisionIdentity fields", "");
+authoritativeCase("I1-I011", "identities", "RevisionCore.eventIdentityId === Identity.eventIdentityId", "");
+authoritativeCase("I1-I012", "identities", "RevisionCore.sourceFilingDocumentId === Identity.sourceFiling", "");
+authoritativeCase("I1-I013", "identities", "RevisionCore.publicAvailableAt === Identity.publicAvailableAt", "");
+authoritativeCase("I1-I014", "identities", "/A accession is independent event", "");
+authoritativeCase("I1-I015", "identities", "hash identity stability ≠ immutability conflict semantics clarified", "");
+authoritativeCase("I1-I016", "identities", "dataset immutability conflict for same accession distinct content", "");
+authoritativeCase("I1-I017", "identities", "amendsFilingAccessionNumber documentary only", "");
+authoritativeCase("I1-I018", "identities", "event identity independent of extracted periods", "");
+authoritativeCase("I1-I023", "identities", "only INITIAL: revisionKind=REPUBLISHED_SOURCE_DOCUMENT|WITHDRAWAL|OTHER → reject", "EARNINGS_REVISION_KIND_FORBIDDEN_V1");
+authoritativeCase("I1-I024", "identities", "forbidden: eventType=EARNINGS_AMENDMENT → reject", "EARNINGS_EVENT_TYPE_INVALID");
+authoritativeCase("I1-I025", "identities", "forbidden V1: revisionKind=REPUBLISHED_SOURCE_DOCUMENT → reject", "EARNINGS_REVISION_KIND_FORBIDDEN_V1");
+authoritativeCase("I1-I026", "identities", "forbidden V1: revisionKind=WITHDRAWAL → reject", "EARNINGS_REVISION_KIND_FORBIDDEN_V1");

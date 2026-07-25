@@ -1,0 +1,22 @@
+import { authoritativeCase } from './helpers/earningsOfficialTestHarnessL4CIV1.mjs';
+
+authoritativeCase("I1-B001", "source-document", "SecDocumentBytesCore pins documentObjectId", "");
+authoritativeCase("I1-B002", "source-document", "documentObjectId loads raw source bytes", "");
+authoritativeCase("I1-B003", "source-document", "sha256 of raw bytes matches claim", "");
+authoritativeCase("I1-B004", "source-document", "byteLength matches raw bytes", "");
+authoritativeCase("I1-B005", "source-document", "mediaType closed enum", "");
+authoritativeCase("I1-B006", "source-document", "documentFormat closed enum", "");
+authoritativeCase("I1-B007", "source-document", "documentRole closed enum", "");
+authoritativeCase("I1-B008", "source-document", "SourceFiling orderedDocuments[].secDocumentBytesId resolves", "");
+authoritativeCase("I1-B009", "source-document", "missing secDocumentBytesId bytes rejected", "");
+authoritativeCase("I1-B010", "source-document", "bytes digest mismatch rejected", "");
+authoritativeCase("I1-B011", "source-document", "exhibit order significant in orderedDocuments", "");
+authoritativeCase("I1-B012", "source-document", "primary + exhibits all via orderedDocuments", "");
+authoritativeCase("I1-B013", "source-document", "no reparse point / symlink escape", "");
+authoritativeCase("I1-B014", "source-document", "path field forbidden on bytes core", "");
+authoritativeCase("I1-B015", "source-document", "taxonomy component bytes via SecDocumentBytes", "");
+authoritativeCase("I1-B016", "source-document", "raw bytes namespace is source not snapshots", "");
+authoritativeCase("I1-B017", "source-document", "immutable bytes core mutation rejected", "");
+authoritativeCase("I1-B018", "source-document", "empty bytes rejected", "");
+authoritativeCase("I1-B019", "source-document", "documentObjectId must be sha256 lowercase", "");
+authoritativeCase("I1-B020", "source-document", "inter-store byte-identical reproduction", "");

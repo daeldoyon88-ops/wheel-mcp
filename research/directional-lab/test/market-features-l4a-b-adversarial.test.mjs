@@ -158,7 +158,7 @@ test('L4A-B a pivot at i is invisible before confirmation row i+3', () => {
 });
 
 test('L4A-B additive CAS registration preserves the previous eighty snapshot schemas', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 113);
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
   const parentList = spawnSync(
     'git',
     ['show', 'b41f442:research/directional-lab/src/canonical/canonicalSchemaRegistryV1.mjs'],
@@ -173,7 +173,7 @@ test('L4A-B additive CAS registration preserves the previous eighty snapshot sch
   assert.equal(first80.includes('MarketVolumeStructureFeatureComputationPolicy/1'), false);
   assert.equal(first80.includes('MarketVolumeStructureFeatureComputationReport/1'), false);
   assert.equal(first80.at(-1), 'MarketTechnicalFeatureComputationReport/1');
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-33, -30), [
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-49, -46), [
     'MarketVolumeStructureFeatureSourceBundle/1',
     'MarketVolumeStructureFeatureComputationPolicy/1',
     'MarketVolumeStructureFeatureComputationReport/1',

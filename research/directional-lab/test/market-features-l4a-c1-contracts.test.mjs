@@ -44,10 +44,10 @@ function policy() {
   }));
 }
 
-test('L4A-C1/C2 seasonality schemas remain registered before C3 (97 total)', () => {
-  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 113);
-  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 113);
-  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-30, -27), [
+test('L4A-C1/C2 seasonality schemas remain registered before C3 (129 total)', () => {
+  assert.equal(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.length, 129);
+  assert.equal(new Set(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS).size, 129);
+  assert.deepEqual(SNAPSHOT_NAMESPACE_SCHEMA_VERSIONS.slice(-46, -43), [
     ...MARKET_SEASONALITY_FEATURE_L4_SCHEMA_VERSIONS,
   ]);
   assert.equal(NORMALIZED_NAMESPACE_SCHEMA_VERSIONS.length, 5);

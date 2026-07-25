@@ -14,10 +14,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CanonicalizationError } from '../../src/canonical/canonicalJsonV1.mjs';
+import { CanonicalizationError, canonicalHash } from '../../src/canonical/canonicalJsonV1.mjs';
 import {
   NORMALIZED_NAMESPACE_SCHEMA_VERSIONS,
 } from '../../src/storage/contentAddressedStoreV1.mjs';
@@ -27,6 +27,8 @@ import {
 } from '../../src/canonical/canonicalSchemaRegistryV1.mjs';
 import {
   TRANSFORM_IMPLEMENTATION_MANIFEST_V2_SCHEMA_VERSION,
+  TRANSFORM_SOURCE_TEXT_POLICY_VERSION,
+  transformSourceTextSha256,
 } from '../../src/data/transformImplementationManifestV2.mjs';
 import {
   EARNINGS_DATASET_SERIES_IDENTITY,
@@ -47,6 +49,7 @@ import {
   earningsEventIdentityIdFor,
   earningsIngestionPolicyIdFor,
   earningsMetricExtractionPolicyIdFor,
+  earningsOrderedDiagnosticDigestV1,
   earningsOrderedEventIdentityDigestV1,
   earningsOrderedMetricObservationIdentityDigestV1,
   earningsOrderedRevisionIdentityDigestV1,
@@ -66,6 +69,7 @@ import {
 } from '../../src/earnings/earningsFinancialPeriodL4CIV1.mjs';
 import {
   admitSecFilingForEarningsV1,
+  buildSecFilingSourceDocument,
   earningsEventTypeForFormV1,
 } from '../../src/earnings/earningsSecFilingSourceDocumentL4CIV1.mjs';
 import {
@@ -82,10 +86,12 @@ import {
   verifyEarningsRevisionIdentityCore,
 } from '../../src/earnings/earningsRevisionL4CIV1.mjs';
 import {
+  putEarningsSecDocumentBytes,
   verifyEarningsSecDocumentBytes,
 } from '../../src/earnings/earningsSecDocumentBytesL4CIV1.mjs';
 import {
   buildEarningsMetricObservationCore,
+  verifyEarningsMetricObservationCore,
 } from '../../src/earnings/earningsMetricObservationL4CIV1.mjs';
 import {
   EARNINGS_TRAVERSAL_EDGE_COUNT_V1,
@@ -105,6 +111,9 @@ import {
   withOfficialEarningsL4CI1Fixture,
   withStore,
 } from '../earningsIngestionL4CISyntheticFixture.mjs';
+import {
+  oracleDatasetIdentityKeyV1,
+} from './independentEarningsIngestionOracleL4CIV1.mjs';
 
 const TEST_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const OFFICIAL_TEST_FILE = /^market-earnings-l4c-i1-.*\.test\.mjs$/;
@@ -146,8 +155,11 @@ function admitDefinition(definition) {
   });
 }
 
-/** Ingest an explicit list of synthetic filing definitions end to end. */
-function ingestDefinitions(definitions) {
+/**
+ * Ingest an explicit list of synthetic filing definitions end to end and hand
+ * the still-live store to the callback, so stored objects can be read back.
+ */
+function withIngestedDefinitions(definitions, callback) {
   return withStore((store) => {
     const transform = pinEarningsTransformImplementationManifestV2(store);
     const taxonomy = pinSyntheticTaxonomyBundle(store);
@@ -160,9 +172,79 @@ function ingestDefinitions(definitions) {
       earningsTaxonomyBundleManifestId: taxonomy.earningsTaxonomyBundleManifestId,
       previousSnapshotId: null,
     });
-    return { store, transform, taxonomy, filings, pipeline };
+    return callback({ store, transform, taxonomy, filings, pipeline });
   });
 }
+
+/** Ingest an explicit list of synthetic filing definitions end to end. */
+function ingestDefinitions(definitions) {
+  return withIngestedDefinitions(definitions, (context) => context);
+}
+
+/** Every observation id the ExtractionSet reaches, in manifest order. */
+function pipelineObservationIds(pipeline) {
+  return pipeline.extractionSet.earningsExtractionSetManifest
+    .orderedRevisionExtractionEntries.flatMap((entry) => entry.orderedMetricObservationIds);
+}
+
+/** Read every stored observation back, resolving its canonical unit code. */
+function pipelineObservations(store, pipeline) {
+  return pipelineObservationIds(pipeline).map((earningsMetricObservationId) => {
+    const core = verifyEarningsMetricObservationCore({
+      store, earningsMetricObservationId,
+    }).earningsMetricObservationCore;
+    const unitCode = verifyXbrlCanonicalUnitCore({
+      store, xbrlCanonicalUnitId: core.xbrlCanonicalUnitId,
+    }).xbrlCanonicalUnitCore.unitCode;
+    return { earningsMetricObservationId, unitCode, ...core };
+  });
+}
+
+/** Pin one filing whose primary XBRL instance carries explicit custom bytes. */
+function pinCustomXbrlFiling(store, definition, xml) {
+  const document = putEarningsSecDocumentBytes({
+    store, bytes: Buffer.from(xml, 'utf8'), mediaType: 'application/xml',
+    documentFormat: 'XBRL_XML', documentRole: 'PRIMARY_XBRL_INSTANCE',
+  });
+  return buildSecFilingSourceDocument({
+    store,
+    filerCik: definition.filerCik,
+    accessionNumber: definition.accessionNumber,
+    formType: definition.formType,
+    items: definition.items,
+    acceptanceDatetimeRaw: definition.acceptanceDatetimeRaw,
+    amendmentFlag: definition.amendmentFlag,
+    amendsFilingAccessionNumber: definition.amendsFilingAccessionNumber,
+    orderedDocuments: [{
+      secDocumentBytesId: document.secDocumentBytesId,
+      documentRole: 'PRIMARY_XBRL_INSTANCE',
+    }],
+  });
+}
+
+/**
+ * Fabricated instance carrying one current-period EPS fact (context D1, the
+ * DocumentPeriodEndDate period) and one prior-year comparative EPS fact under
+ * the very same tag (context D0). No value is real market data.
+ */
+const COMPARATIVE_INSTANCE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance"
+ xmlns:xbrli="http://www.xbrl.org/2003/instance"
+ xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+ xmlns:us-gaap="http://fasb.org/us-gaap/2025"
+ xmlns:dei="http://xbrl.sec.gov/dei/2025">
+ <context id="D1"><entity><identifier scheme="http://www.sec.gov/CIK">1234567890</identifier></entity>
+  <period><startDate>2026-01-01</startDate><endDate>2026-03-31</endDate></period></context>
+ <context id="D0"><entity><identifier scheme="http://www.sec.gov/CIK">1234567890</identifier></entity>
+  <period><startDate>2025-01-01</startDate><endDate>2025-03-31</endDate></period></context>
+ <context id="I1"><entity><identifier scheme="http://www.sec.gov/CIK">1234567890</identifier></entity>
+  <period><instant>2026-03-31</instant></period></context>
+ <unit id="USDPS"><divide><unitNumerator><measure>iso4217:USD</measure></unitNumerator>
+  <unitDenominator><measure>xbrli:shares</measure></unitDenominator></divide></unit>
+ <dei:DocumentPeriodEndDate contextRef="I1">2026-03-31</dei:DocumentPeriodEndDate>
+ <us-gaap:EarningsPerShareDiluted contextRef="D1" unitRef="USDPS" decimals="2">1.25</us-gaap:EarningsPerShareDiluted>
+ <us-gaap:EarningsPerShareDiluted contextRef="D0" unitRef="USDPS" decimals="2">0.77</us-gaap:EarningsPerShareDiluted>
+</xbrl>`;
 
 function buildPeriod(store, periodType, periodStart, periodEnd) {
   return buildFinancialPeriodIdentityCore({ store, periodType, periodStart, periodEnd });
@@ -282,11 +364,47 @@ define('I1-P025', () => {
   assert.equal(snapshot.emptySnapshot, false);
 });
 define('I1-P026', () => {
-  const base = earningsIngestionPolicyIdFor(ingestionPolicyRecord());
-  const again = earningsIngestionPolicyIdFor(ingestionPolicyRecord());
-  assert.equal(base, again, 'an unchanged policy keeps its id');
-  const other = earningsMetricExtractionPolicyIdFor(extractionPolicyRecord());
-  assert.notEqual(base, other, 'a different policy content yields a different id');
+  // Both sides of this comparison are EarningsIngestionPolicy/1 records that
+  // differ in exactly one functional field; an ingestion/extraction pair would
+  // prove nothing about a policy *change*.
+  const schemaVersion = EARNINGS_INGESTION_POLICY_SCHEMA_VERSION;
+  const baseId = earningsIngestionPolicyIdFor(ingestionPolicyRecord());
+  const sameInputId = earningsIngestionPolicyIdFor(ingestionPolicyRecord());
+  assert.equal(baseId, sameInputId, 'an unchanged policy keeps its id');
+  const base = normalizeEarningsIngestionPolicyV1(ingestionPolicyRecord());
+  assert.equal(base.schemaVersion, schemaVersion);
+  assert.equal(canonicalHash(schemaVersion, base), baseId,
+    'the policy id is the canonical hash of the whole normalized policy record');
+  // The closed singleton admits exactly one value per field, so no second
+  // valid ingestion policy exists to compare against. That constraint is
+  // demonstrated rather than worked around: each changed value is rejected by
+  // the contract, and the same one-field change still has to move the id.
+  const changes = [
+    ['datasetSeriesIdentity', 'SEC_US_DOMESTIC_EARNINGS_RELEASE_ONLY_V2'],
+    ['jurisdictionCode', 'CA'],
+    ['currencyCode', 'EUR'],
+    ['allowedSourceAuthority', 'YAHOO'],
+    ['latestReferencePolicy', 'ALLOWED'],
+    ['networkDuringComputationPolicy', 'ALLOWED'],
+    ['item202Rule', 'OPTIONAL_FOR_8K_FAMILY'],
+    ['periodSelectionPolicy', 'ALL_PERIODS'],
+  ];
+  for (const [field, value] of changes) {
+    assert.ok(Object.hasOwn(base, field),
+      `${field} must be part of the canonical policy preimage`);
+    assert.notEqual(base[field], value, `${field} must really change`);
+    const changed = { ...base, [field]: value };
+    assert.deepEqual(Object.keys(changed), Object.keys(base), 'exactly one field changes');
+    const changedId = canonicalHash(schemaVersion, changed);
+    assert.notEqual(changedId, baseId, `a changed ${field} must create a new policy id`);
+    assert.throws(() => earningsIngestionPolicyIdFor({ ...ingestionPolicyRecord(), [field]: value }),
+      (error) => typeof error?.code === 'string' && error.code.length > 0,
+      `${field} is pinned: a changed policy is inadmissible, never a silent id reuse`);
+  }
+  // Sanity: the allowedFormTypes list is closed too, and reordering it moves the id.
+  const reordered = { ...base, allowedFormTypes: [...base.allowedFormTypes].reverse() };
+  assert.notEqual(canonicalHash(schemaVersion, reordered), baseId);
+  assert.notEqual(baseId, earningsMetricExtractionPolicyIdFor(extractionPolicyRecord()));
 });
 define('I1-P027', () => {
   const ingestionId = earningsIngestionPolicyIdFor(ingestionPolicyRecord());
@@ -344,9 +462,48 @@ define('I1-D009', () => {
   }), (error) => error instanceof CanonicalizationError);
 });
 define('I1-D010', () => withStore((store) => {
+  // The instance carries the current reported EPS and a prior-year comparative
+  // EPS under the same tag; only the current one may become an observation.
+  assert.equal(COMPARATIVE_INSTANCE_XML.split('us-gaap:EarningsPerShareDiluted').length - 1, 4,
+    'the fixture really carries two EPS facts (open and close tags)');
+  assert.ok(COMPARATIVE_INSTANCE_XML.includes('<startDate>2025-01-01</startDate>'),
+    'the fixture really carries a comparative duration context');
   const current = buildPeriod(store, 'DURATION', '2026-01-01', '2026-03-31');
   const comparative = buildPeriod(store, 'DURATION', '2025-01-01', '2025-03-31');
   assert.notEqual(current.financialPeriodIdentityId, comparative.financialPeriodIdentityId);
+
+  const transform = pinEarningsTransformImplementationManifestV2(store);
+  const taxonomy = pinSyntheticTaxonomyBundle(store);
+  const filing = pinCustomXbrlFiling(store, synthetic8KFiling(), COMPARATIVE_INSTANCE_XML);
+  const pipeline = ingestEarningsDatasetL4CIV1({
+    store,
+    sourceFilingDocumentIds: [filing.sourceFilingDocumentId],
+    transformImplementationManifestId: transform.transformImplementationManifestId,
+    earningsTaxonomyBundleManifestId: taxonomy.earningsTaxonomyBundleManifestId,
+    previousSnapshotId: null,
+  });
+
+  const observations = pipelineObservations(store, pipeline);
+  assert.equal(observations.length, 1, 'only the current reported period is observed');
+  assert.equal(pipeline.snapshot.earningsDatasetSnapshotManifest.metricObservationCount, 1);
+  const [observed] = observations;
+  assert.equal(observed.metricCode, 'EPS_DILUTED');
+  assert.equal(observed.financialPeriodIdentityId, current.financialPeriodIdentityId,
+    'the extracted fact belongs to the current reported period');
+  assert.equal(observed.atoms, '125', 'the current fact value, not the comparative one');
+  assert.equal(observed.scale, 2);
+  for (const observation of observations) {
+    assert.notEqual(observation.financialPeriodIdentityId, comparative.financialPeriodIdentityId,
+      'the comparative period never reaches an observation');
+    assert.notEqual(observation.atoms, '77', 'the comparative value never reaches an observation');
+  }
+  // A comparative fact is out of scope by policy, not an extraction defect, so
+  // the report stays diagnostic-free and keeps the closed empty-list digest.
+  const report = pipeline.items[0].report.earningsMetricExtractionReport;
+  assert.equal(report.diagnosticCount, 0);
+  assert.equal(report.orderedDiagnosticDigest, earningsOrderedDiagnosticDigestV1([]));
+  assert.deepEqual(report.orderedObservationIds,
+    observations.map((observation) => observation.earningsMetricObservationId));
   const policy = normalizeEarningsIngestionPolicyV1(ingestionPolicyRecord());
   assert.equal(policy.periodSelectionPolicy, 'CURRENT_REPORTED_PERIODS_ONLY');
 }));
@@ -1061,6 +1218,25 @@ define('I1-R005', () => {
   assert.equal(ordered, earningsIngestionPolicyIdFor(shuffled));
 });
 define('I1-R006', () => officialTraversal(({ store, transform, pipeline }) => {
+  // Two byte-different encodings of one logical source text hash identically.
+  const lf = Buffer.from('line1\nline2\n', 'utf8');
+  const crlf = Buffer.from('line1\r\nline2\r\n', 'utf8');
+  assert.notEqual(lf.toString('hex'), crlf.toString('hex'), 'the encodings really differ');
+  assert.equal(crlf.length, lf.length + 2);
+  const hashLf = transformSourceTextSha256(lf);
+  const hashCrlf = transformSourceTextSha256(crlf);
+  assert.equal(hashLf, hashCrlf, 'CRLF is normalized to LF before the module hash');
+  assert.equal(hashLf, `sha256:${createHash('sha256').update(lf).digest('hex')}`,
+    'the normalized form is the LF form, not the CRLF form');
+  assert.equal(transformSourceTextSha256(Buffer.from('line1\rline2\r', 'utf8')), hashLf,
+    'an isolated CR normalizes to LF the same way');
+  // Only line endings are neutral: real content differences still move the hash.
+  assert.notEqual(hashLf, transformSourceTextSha256(Buffer.from('line1\nline3\n', 'utf8')));
+  assert.notEqual(hashLf, transformSourceTextSha256(Buffer.from('line1\nline2', 'utf8')),
+    'a missing terminal newline stays significant');
+  assert.notEqual(hashLf, transformSourceTextSha256(Buffer.from('line1\n\nline2\n', 'utf8')));
+  assert.equal(transform.transformImplementationManifest.moduleHashPolicyVersion,
+    TRANSFORM_SOURCE_TEXT_POLICY_VERSION);
   // The transform manifest re-derives its module hashes from disk on verify.
   const rebuilt = verifyEarningsSnapshotTraversalV1({
     store,
@@ -1070,16 +1246,46 @@ define('I1-R006', () => officialTraversal(({ store, transform, pipeline }) => {
   assert.equal(rebuilt.verified, true);
   assert.ok(transform.transformImplementationManifest.modules.length >= 1);
 }));
-define('I1-R007', () => {
-  const { pipeline } = ingestDefinitions([synthetic8KFiling({ eps: '-1.25' })]);
-  assert.equal(pipeline.snapshot.earningsDatasetSnapshotManifest.eventCount, 1);
-  assert.ok(pipeline.snapshot.earningsDatasetSnapshotManifest.metricObservationCount >= 1);
-});
-define('I1-R008', () => {
-  const { pipeline } = ingestDefinitions([synthetic8KFiling({ revenue: '-125000000' })]);
-  assert.equal(pipeline.snapshot.earningsDatasetSnapshotManifest.eventCount, 1);
-  assert.ok(pipeline.snapshot.earningsDatasetSnapshotManifest.metricObservationCount >= 1);
-});
+define('I1-R007', () => withIngestedDefinitions([synthetic8KFiling({ eps: '-1.25' })],
+  ({ store, pipeline }) => {
+    assert.equal(pipeline.snapshot.earningsDatasetSnapshotManifest.eventCount, 1);
+    const observations = pipelineObservations(store, pipeline);
+    const eps = observations.filter((item) => item.metricCode === 'EPS_DILUTED');
+    assert.equal(eps.length, 1, 'the negative EPS fact is admitted, not dropped');
+    assert.equal(eps[0].atoms, '-125', 'the sign survives the fixed-point encoding');
+    assert.equal(eps[0].scale, 2);
+    assert.equal(eps[0].unitCode, 'USD_PER_SHARE');
+    assert.equal(eps[0].shareBasis, 'DILUTED');
+    assert.equal(eps[0].accountingBasis, 'GAAP');
+    // Positive control: the sign is the only difference against the same fixture.
+    const positive = ingestDefinitions([synthetic8KFiling({ eps: '1.25' })]);
+    assert.equal(positive.pipeline.snapshot.earningsDatasetSnapshotManifest
+      .metricObservationCount,
+    pipeline.snapshot.earningsDatasetSnapshotManifest.metricObservationCount);
+    assert.notEqual(positive.pipeline.snapshot.earningsDatasetSnapshotManifestId,
+      pipeline.snapshot.earningsDatasetSnapshotManifestId,
+      'a negative EPS is a distinct snapshot from its positive twin');
+  }));
+define('I1-R008', () => withIngestedDefinitions([synthetic8KFiling({ revenue: '-125000000' })],
+  ({ store, pipeline }) => {
+    assert.equal(pipeline.snapshot.earningsDatasetSnapshotManifest.eventCount, 1);
+    const observations = pipelineObservations(store, pipeline);
+    const revenue = observations.filter((item) => item.metricCode === 'REVENUE_CONSOLIDATED');
+    assert.equal(revenue.length, 1, 'the negative revenue fact is admitted, not dropped');
+    assert.equal(revenue[0].atoms, '-125000000', 'the sign survives the fixed-point encoding');
+    assert.equal(revenue[0].scale, 0);
+    assert.equal(revenue[0].unitCode, 'USD');
+    assert.equal(revenue[0].shareBasis, null);
+    assert.equal(revenue[0].accountingBasis, null);
+    // Positive control: the sign is the only difference against the same fixture.
+    const positive = ingestDefinitions([synthetic8KFiling({ revenue: '125000000' })]);
+    assert.equal(positive.pipeline.snapshot.earningsDatasetSnapshotManifest
+      .metricObservationCount,
+    pipeline.snapshot.earningsDatasetSnapshotManifest.metricObservationCount);
+    assert.notEqual(positive.pipeline.snapshot.earningsDatasetSnapshotManifestId,
+      pipeline.snapshot.earningsDatasetSnapshotManifestId,
+      'a negative revenue is a distinct snapshot from its positive twin');
+  }));
 define('I1-R009', () => {
   const { pipeline } = ingestDefinitions([synthetic8KFiling(), synthetic10QFiling()]);
   const entries = pipeline.eventSet.earningsEventSetManifest.orderedEventEntries;
@@ -1162,15 +1368,94 @@ define('I1-R024', () => officialTraversal(({ traversal, taxonomy }) => {
     assert.ok(traversal.closureObjectIds.includes(id));
   }
 }));
-define('I1-R025', () => officialTraversal(({ transform }) => {
+define('I1-R025', () => withOfficialEarningsL4CI1Fixture(({ store, transform, pipeline }) => {
   const modules = transform.transformImplementationManifest.modules;
   assert.ok(modules.length >= 1);
   for (const module of modules) {
+    // A TIM/2 module is addressed by a safe relative lab path, never by CAS id.
     assert.ok(!/^sha256:/.test(module.logicalPath),
       'logicalPath is a lab-root path, never a CAS object id');
     assert.match(module.logicalPath, /^src\//);
+    assert.ok(!isAbsolute(module.logicalPath), 'logicalPath stays relative');
+    assert.ok(!module.logicalPath.includes('\\'), 'logicalPath uses portable separators');
+    assert.ok(!module.logicalPath.split('/').includes('..'), 'logicalPath never escapes labRoot');
+    assert.match(module.canonicalContentSha256, /^sha256:[0-9a-f]{64}$/);
+    // The recorded hash must re-derive from the real bytes on disk.
+    const bytes = readFileSync(join(transform.labRoot, ...module.logicalPath.split('/')));
+    assert.ok(bytes.length > 0, `${module.logicalPath} must be a real readable module`);
+    assert.equal(transformSourceTextSha256(bytes), module.canonicalContentSha256,
+      `${module.logicalPath} module hash must re-derive from the real file`);
+    // One significant character changed in a temporary copy must break the match.
+    const text = bytes.toString('utf8');
+    assert.ok(text.includes('export '), `${module.logicalPath} must contain the mutated token`);
+    const mutatedCopy = Buffer.from(text.replace('export ', 'exporT '), 'utf8');
+    assert.notEqual(mutatedCopy.toString('hex'), bytes.toString('hex'));
+    assert.notEqual(transformSourceTextSha256(mutatedCopy), module.canonicalContentSha256,
+      `${module.logicalPath} module hash must be content sensitive`);
   }
+  assert.equal(new Set(modules.map((module) => module.canonicalContentSha256)).size,
+    modules.length, 'distinct modules never collapse onto one hash');
+  const traversal = verifyEarningsSnapshotTraversalV1({
+    store,
+    earningsDatasetSnapshotManifestId: pipeline.snapshot.earningsDatasetSnapshotManifestId,
+    labRoot: transform.labRoot,
+  });
+  assert.equal(traversal.verified, true);
+  assert.equal(traversal.edgeCount, 35);
 }));
+
+/* ---------------------------------------------------------------- oracle -- */
+
+define('I1-O019', () => {
+  const identity = {
+    datasetSeriesIdentity: EARNINGS_DATASET_SERIES_IDENTITY,
+    jurisdictionCode: 'US',
+    currencyCode: 'USD',
+    allowedSourceAuthority: 'SEC_EDGAR',
+  };
+  assert.equal(identity.datasetSeriesIdentity, 'SEC_US_DOMESTIC_EARNINGS_RELEASE_ONLY_V1');
+  // The preimage is written out field by field here, never taken from
+  // production, and the golden below is its literal SHA-256.
+  const preimage = Buffer.from([
+    'EarningsDatasetIdentityKey/1',
+    'SEC_US_DOMESTIC_EARNINGS_RELEASE_ONLY_V1',
+    'US',
+    'USD',
+    'SEC_EDGAR',
+    '',
+  ].join('\n'), 'utf8');
+  assert.equal(preimage.length, 87, 'the preimage is exactly the five LF-terminated lines');
+  const GOLDEN_DATASET_IDENTITY_KEY =
+    'sha256:4488962c76ac24a0d52a8f3f72692f9389b7d6ec2ca07a46958adce363afe8bd';
+  assert.equal(`sha256:${createHash('sha256').update(preimage).digest('hex')}`,
+    GOLDEN_DATASET_IDENTITY_KEY,
+    'the literal golden really is the SHA-256 of the literal preimage');
+  assert.equal(earningsDatasetIdentityKeyV1(identity), GOLDEN_DATASET_IDENTITY_KEY,
+    'production reproduces the independently computed golden');
+  assert.equal(oracleDatasetIdentityKeyV1(identity), GOLDEN_DATASET_IDENTITY_KEY);
+  // Domain, separator, field order and every field are load bearing.
+  const variants = [
+    ['EarningsDatasetIdentityKey/2', ...preimage.toString('utf8').split('\n').slice(1)].join('\n'),
+    preimage.toString('utf8').replace(/\n/g, ''),
+    ['EarningsDatasetIdentityKey/1', 'US', 'SEC_US_DOMESTIC_EARNINGS_RELEASE_ONLY_V1',
+      'USD', 'SEC_EDGAR', ''].join('\n'),
+    ['EarningsDatasetIdentityKey/1', 'SEC_US_DOMESTIC_EARNINGS_RELEASE_ONLY_V1',
+      'USD', 'SEC_EDGAR', ''].join('\n'),
+  ];
+  for (const variant of variants) {
+    assert.notEqual(`sha256:${createHash('sha256').update(Buffer.from(variant, 'utf8')).digest('hex')}`,
+      GOLDEN_DATASET_IDENTITY_KEY,
+      'a changed domain, separator, field order or missing field must move the digest');
+  }
+  for (const field of Object.keys(identity)) {
+    const changed = { ...identity, [field]: `${identity[field]}_X` };
+    assert.notEqual(earningsDatasetIdentityKeyV1(changed), GOLDEN_DATASET_IDENTITY_KEY,
+      `${field} must enter the dataset identity key`);
+    assert.equal(earningsDatasetIdentityKeyV1(changed), oracleDatasetIdentityKeyV1(changed));
+  }
+  assert.equal(earningsDatasetIdentityKeyV1(identity),
+    earningsDatasetIdentityKeyV1({ ...identity }), 'the key is a pure function of the four fields');
+});
 
 /* ----------------------------------------------------------- adversarial -- */
 

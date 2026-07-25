@@ -112,6 +112,7 @@ import {
   oracleGroupedMetricObservationDigestV1,
   oracleOrderedMetricObservationIdentityDigestV1,
 } from './independentEarningsIngestionOracleL4CIV1.mjs';
+import { EARNINGS_INTENT_ASSERTIONS } from './earningsIntentAssertionsL4CIV1.mjs';
 
 export const casId = (n) => `sha256:${n.toString(16).padStart(64, '0')}`;
 export const errorHasCode = (expected) => (error) => error?.code === expected;
@@ -1225,6 +1226,10 @@ function assertExtractionSetPositive(id) {
 }
 
 function assertPositive(id, group, intent) {
+  // An explicit per-ID assertion always wins over the category dispatcher, so
+  // that every authoritative intent is pinned to the production branch it names.
+  const intentAssertion = EARNINGS_INTENT_ASSERTIONS.get(id);
+  if (intentAssertion) return intentAssertion();
   if (['I1-B020', 'I1-D014', 'I1-U010', 'I1-C088', 'I1-C095',
     'I1-R001', 'I1-R003', 'I1-R004'].includes(id)) return assertIndependentStores(id);
   if (group === 'contracts') return assertContractIntent(intent);

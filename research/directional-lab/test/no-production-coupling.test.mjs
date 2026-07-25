@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve, relative } from 'node:path';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { findForbiddenMemoryMarkers } from './memoryScan.mjs';
+import { scanModuleSpecifiers } from './moduleSpecifierScan.mjs';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 const LAB_ROOT = resolve(TEST_DIR, '..');
@@ -31,23 +32,31 @@ function walk(dir, out = []) {
 const labSourceFiles = walk(join(LAB_ROOT, 'src')).filter((f) => f.endsWith('.mjs'));
 
 test('lab imports only node: builtins and lab-internal relative modules', () => {
-  const importRe = /(?:import\s[^'"]*?|from|import\()\s*['"]([^'"]+)['"]/g;
   const allowedBuiltins = new Set(['node:fs', 'node:path', 'node:crypto', 'node:url', 'node:os', 'node:util', 'node:test', 'node:assert', 'node:assert/strict']);
   assert.ok(labSourceFiles.length > 30, `expected the lab source tree, found ${labSourceFiles.length} files`);
+  let scannedSpecifiers = 0;
   for (const file of labSourceFiles) {
     const text = readFileSync(file, 'utf8');
-    for (const m of text.matchAll(importRe)) {
-      const spec = m[1];
+    const { specifiers, diagnostics } = scanModuleSpecifiers(text);
+    assert.deepEqual(
+      diagnostics.map((d) => `${d.code}@${d.line}`), [],
+      `${file}: module specifiers must stay statically resolvable`,
+    );
+    scannedSpecifiers += specifiers.length;
+    for (const { specifier: spec, kind, line } of specifiers) {
       if (spec.startsWith('node:')) {
-        assert.ok(allowedBuiltins.has(spec), `${file}: builtin ${spec} not in the allowlist`);
+        assert.ok(allowedBuiltins.has(spec), `${file}:${line}: builtin ${spec} not in the allowlist`);
       } else {
-        assert.ok(spec.startsWith('./') || spec.startsWith('../'), `${file}: bare import "${spec}" forbidden (no dependencies)`);
+        assert.ok(spec.startsWith('./') || spec.startsWith('../'), `${file}:${line}: bare ${kind} "${spec}" forbidden (no dependencies)`);
         const resolved = resolve(dirname(file), spec);
         const rel = relative(LAB_ROOT, resolved);
-        assert.ok(!rel.startsWith('..'), `${file}: import "${spec}" escapes the lab directory`);
+        assert.ok(!rel.startsWith('..'), `${file}:${line}: import "${spec}" escapes the lab directory`);
       }
     }
   }
+  // Guard against a silently vacuous gate: the lab tree always declares many
+  // module specifiers, so an empty or near-empty scan means the scanner broke.
+  assert.ok(scannedSpecifiers > 300, `expected the lab specifier graph, found ${scannedSpecifiers}`);
 });
 
 test('lab never imports network/process modules and never calls fetch/IBKR/Yahoo endpoints', () => {

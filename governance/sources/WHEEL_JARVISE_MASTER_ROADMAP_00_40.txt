@@ -1,0 +1,556 @@
+WHEEL / JARVISE — FEUILLE DE ROUTE STRATEGIQUE MAITRESSE GATE00 A GATE40
+SOURCE_ID = OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40
+SOURCE_TYPE = CANONICAL_STRATEGIC_GUIDANCE
+SOURCE_AUTHORITY = PROJECT_OWNER_PROVIDED
+DECLARED_GATE_RANGE = GATE00_TO_GATE40
+GATE_COUNT = 41
+
+Transcription integrale des sections C a H de la mission
+GOVERNERNANCE_PACK_V1_SPEC_SOURCE_RECOVERY_R1, fournie par le proprietaire
+du projet le 2026-08-01.
+
+Cette source definit la vision strategique generale, les principes permanents,
+les noms attestes de GATE00 a GATE20 et les definitions strategiques de
+GATE21 a GATE40.
+
+Elle ne remplace pas :
+- les contrats d'execution versionnes ;
+- les checkpoints operationnels ;
+- le ledger de statut ;
+- les preuves de fermeture ;
+- les autorites techniques historiques de chaque gate.
+
+Aucun detail absent ne doit etre invente.
+
+======================================================================
+SECTION D. VISION FINALE WHEEL / JARVISE
+======================================================================
+
+Construire un systeme intelligent de marche, causal, auditable, explicable et
+probabiliste capable de :
+
+- reconnaitre des configurations precedant souvent un creux, un sommet, une
+  forte hausse, une forte baisse, une reprise, une capitulation, une
+  accumulation ou une distribution ;
+- detecter qu'un mouvement haussier devient fragile ;
+- proteger les profits lorsque le potentiel haussier restant devient inferieur
+  au risque de baisse ;
+- detecter des zones d'epuisement baissier ;
+- recommander une entree prudente, progressive ou agressive, ou recommander
+  d'attendre ;
+- comparer plusieurs titres et proposer des rotations ;
+- mesurer le risque portefeuille ;
+- expliquer chaque recommandation ;
+- produire des probabilites mesurees et calibrees ;
+- apprendre sans utiliser de donnees futures ;
+- fonctionner d'abord comme aide a la decision, puis en paper trading, avant
+  toute execution reelle controlee.
+
+Objectifs fondamentaux :
+
+POTENTIEL HAUSSIER RESTANT < RISQUE DE BAISSE
+
+ou :
+
+POTENTIEL DE REPRISE > RISQUE DE BAISSE SUPPLEMENTAIRE
+
+Le succes doit etre evalue notamment par :
+
+- capital protege ;
+- profits proteges ;
+- drawdowns evites ;
+- qualite des entrees ;
+- qualite des sorties ;
+- qualite des rotations ;
+- calibration des probabilites ;
+- robustesse hors echantillon.
+
+======================================================================
+SECTION E. PRINCIPES NON NEGOCIABLES
+======================================================================
+
+- aucune fuite du futur ;
+- aucune probabilite inventee ;
+- aucun PASS code en dur ;
+- aucune preuve circulaire ;
+- aucune regle speciale pour des dates historiques favorites ;
+- aucun modele unique controlant seul une decision critique ;
+- causalite temporelle stricte ;
+- validation hors echantillon ;
+- calibration des probabilites ;
+- explication obligatoire ;
+- paper trading avant execution reelle ;
+- reprise depuis checkpoint ;
+- aucune reprise depuis zero apres interruption ;
+- blocage sur contradiction d'autorite ;
+- aucun sous-agent par defaut ;
+- aucun reseau sans autorisation ;
+- aucune ecriture Git non autorisee ;
+- operations deterministes confiees a des outils locaux ;
+- inspection independante dans une session principale separee.
+
+======================================================================
+SECTION F. REGISTRE HISTORIQUE ATTESTE GATE00 A GATE20
+======================================================================
+
+Les identifiants et noms suivants sont attestes :
+
+GATE00 - Git and input bundles
+GATE01 - Finding reproduction
+GATE02 - Authority hierarchy and conflicts
+GATE03 - F1 authority
+GATE04 - D-01 authority
+GATE05 - XML/XBRL and corpus
+GATE06 - L4C-I1 production alignment
+GATE07 - TransformImplementationManifest/2
+GATE08 - Complete expected object graph
+GATE09 - Calculators A/B and canonical validator C
+GATE10 - Independent property registry
+GATE11 - Explicit 353 test map
+GATE12 - Executable counter cases
+GATE13 - Oracles and coverage
+GATE14 - Mutations, threats and traversal
+GATE15 - Anti-invention validators
+GATE16 - Independent crosscheck
+GATE17 - Generated report
+GATE18 - Implementation prompt V3
+GATE19 - Final bundle and manifest
+GATE20 - Final git and verdict
+
+Interpretation strategique globale :
+
+GATE00 a GATE20 constituent la fondation de gouvernance, d'autorite, de
+validation, de preuves, de couverture, de packaging et de fermeture technique
+requise avant le programme intelligent de marche GATE21 a GATE40.
+
+Limite de la source :
+
+Cette source atteste les identifiants, les noms et la sequence.
+
+Elle ne prouve pas que chaque gate GATE00 a GATE20 possede deja, dans cette
+source unique :
+
+- un objectif strategique individuel complet ;
+- toutes ses dependances ;
+- toutes ses conditions d'entree ;
+- toutes ses conditions de sortie ;
+- tous ses artefacts ;
+- tous ses tests ;
+- un contrat d'execution actif complet.
+
+Classification attendue pour GATE00 a GATE20 :
+
+IDENTIFIER_AND_NAME_SOURCE_ATTESTED
+
+et, selon les autres autorites reellement trouvees :
+
+EXPLICIT_PARTIAL ou EXPLICIT_COMPLETE
+
+Aucune entree ne doit etre declaree complete sans source suffisante.
+
+======================================================================
+SECTION G. FEUILLE DE ROUTE STRATEGIQUE GATE21 A GATE40
+======================================================================
+
+GATE21 - MARKET DATA CAUSAL FOUNDATION
+
+Objectif :
+Creer la fondation causale des donnees de marche.
+
+Couvre notamment :
+- OHLCV ;
+- splits ;
+- dividendes ;
+- actions corporatives ;
+- calendriers ;
+- sessions ;
+- fuseaux horaires ;
+- donnees manquantes ;
+- metadonnees ;
+- provenance ;
+- date d'evenement ;
+- date reelle de disponibilite ;
+- snapshots historiques rejouables ;
+- controles anti-fuite.
+
+GATE22 - BOTTOM/TOP LABEL ENGINE
+
+Objectif :
+Creer des labels historiques pour les zones de creux, sommets, fortes hausses,
+fortes baisses, reprises, capitulations, accumulations, distributions,
+continuations et faux signaux.
+
+Les labels peuvent utiliser le futur pour definir le resultat a predire, mais
+aucune feature disponible au moment historique ne peut utiliser ce futur.
+
+GATE23 - CONFLUENCE FEATURE ENGINE
+
+Objectif :
+Creer un feature store causal multi-horizon.
+
+Familles possibles :
+- tendance ;
+- momentum ;
+- volatilite ;
+- volume ;
+- breadth ;
+- macro ;
+- taux ;
+- options ;
+- saisonnalite ;
+- liquidite ;
+- correlations ;
+- divergences ;
+- structure de marche ;
+- comportement relatif.
+
+Chaque feature doit etre sourcee, versionnee, horodatee causalement et testee.
+
+GATE24 - MARKET REGIME ENGINE
+
+Objectif :
+Identifier les regimes de marche.
+
+Exemples :
+- bull calme ;
+- bull volatil ;
+- bear calme ;
+- bear volatil ;
+- crise ;
+- reprise ;
+- range ;
+- transition ;
+- stress de liquidite ;
+- inflation ;
+- desinflation ;
+- taux croissants ou decroissants.
+
+GATE25 - HISTORICAL ANALOGUE ENGINE
+
+Objectif :
+Comparer la situation actuelle a des configurations historiques similaires.
+
+Doit produire :
+- analogues proches ;
+- distance ou similarite ;
+- facteurs communs ;
+- differences ;
+- distribution des resultats futurs ;
+- horizons ;
+- taille d'echantillon ;
+- incertitude ;
+- dependance au regime.
+
+GATE26 - PREDICTIVE ENSEMBLE ENGINE
+
+Objectif :
+Combiner plusieurs modeles, regles et familles de signaux.
+
+Peut inclure :
+- modeles statistiques ;
+- arbres ;
+- series temporelles ;
+- classement ;
+- analogues historiques ;
+- regles robustes ;
+- modeles specialises par regime ;
+- modeles multi-horizons.
+
+Aucun modele unique ne doit controler silencieusement toute la decision.
+
+GATE27 - PROFIT PROTECTION ENGINE
+
+Objectif :
+Detecter quand le risque de baisse depasse le potentiel haussier restant.
+
+Decisions possibles :
+- conserver ;
+- resserrer la protection ;
+- reduire legerement ;
+- reduire fortement ;
+- sortir progressivement ;
+- sortir completement ;
+- couvrir ;
+- attendre une confirmation.
+
+GATE28 - ENTRY ENGINE
+
+Objectif :
+Identifier les zones d'entree presentant une asymetrie favorable.
+
+Decisions possibles :
+- attendre ;
+- entree prudente ;
+- entree progressive ;
+- entree agressive ;
+- confirmation exigee ;
+- eviter.
+
+Le moteur doit fournir taille, etapes, invalidation, horizon et conditions
+d'abandon.
+
+GATE29 - ROTATION ENGINE
+
+Objectif :
+Comparer les occasions et recommander la meilleure utilisation du capital.
+
+Peut recommander :
+- conserver ;
+- reduire ;
+- sortir ;
+- garder du cash ;
+- entrer dans un autre titre ;
+- repartir le capital.
+
+GATE30 - PORTFOLIO RISK ENGINE
+
+Objectif :
+Mesurer et controler le risque au niveau du portefeuille.
+
+Couvre notamment :
+- concentration ;
+- correlations ;
+- beta ;
+- levier ;
+- secteurs ;
+- facteurs ;
+- macro ;
+- volatilite ;
+- drawdown ;
+- liquidite ;
+- options ;
+- assignation ;
+- cash requis ;
+- scenarios de stress.
+
+GATE31 - EXPLANATION ENGINE
+
+Objectif :
+Produire une explication structuree derivee des memes donnees que la decision.
+
+Inclure :
+- decision ;
+- confiance ;
+- probabilites ;
+- horizons ;
+- facteurs favorables ;
+- facteurs defavorables ;
+- contradictions ;
+- regime ;
+- analogues ;
+- scenarios ;
+- invalidation ;
+- plan d'action ;
+- qualite des donnees.
+
+GATE32 - OUT-OF-SAMPLE WALK-FORWARD VALIDATION
+
+Objectif :
+Evaluer le systeme sur des periodes reellement hors echantillon.
+
+Exiger :
+- entrainement uniquement sur le passe ;
+- test sur le futur non vu ;
+- fenetres temporelles ;
+- reentrainement controle ;
+- aucune fuite ;
+- mesure par regime ;
+- mesure par horizon ;
+- couts realistes ;
+- survivorship bias controle.
+
+GATE33 - PROBABILITY CALIBRATION
+
+Objectif :
+Calibrer les probabilites des modeles.
+
+Mesures possibles :
+- reliability curves ;
+- Brier score ;
+- log loss ;
+- calibration par horizon ;
+- calibration par regime ;
+- stabilite temporelle ;
+- intervalles d'incertitude.
+
+GATE34 - GOLDEN HISTORICAL SCENARIOS
+
+Objectif :
+Creer des scenarios historiques de non-regression.
+
+Inclure :
+- sommets ;
+- creux ;
+- crises ;
+- reprises ;
+- faux signaux ;
+- differents regimes ;
+- titres a levier ;
+- titres individuels ;
+- evenements macro.
+
+Aucune regle speciale ne doit etre creee pour reussir un cas historique favori.
+
+GATE35 - JARVISE ALERT ENGINE
+
+Objectif :
+Transformer les resultats en alertes utiles et actionnables.
+
+Types possibles :
+- protection du profit ;
+- fragilite de tendance ;
+- risque de correction ;
+- zone de creux ;
+- reprise ;
+- rotation ;
+- risque portefeuille ;
+- invalidation ;
+- changement de regime ;
+- donnees insuffisantes ou perimees.
+
+GATE36 - PAPER TRADING
+
+Objectif :
+Tester les recommandations sans capital reel.
+
+Enregistrer notamment :
+- signal ;
+- decision ;
+- prix disponible ;
+- prix simule ;
+- slippage ;
+- liquidite ;
+- taille ;
+- entree ;
+- sortie ;
+- invalidation ;
+- resultat ;
+- latence ;
+- erreurs techniques.
+
+GATE37 - LIVE DECISION SUPPORT
+
+Objectif :
+Utiliser le systeme avec des donnees courantes comme aide a la decision.
+
+Exiger :
+- fraicheur des donnees ;
+- detection des donnees manquantes ;
+- blocage sur gouvernance invalide ;
+- decision finale humaine ;
+- journalisation des recommandations ;
+- comparaison entre previsions et resultats.
+
+GATE38 - CONTROLLED EXECUTION
+
+Objectif :
+Permettre une execution limitee et fortement controlee uniquement apres les
+validations necessaires.
+
+Controles :
+- limites de taille ;
+- limites de perte ;
+- instruments autorises ;
+- environnement paper ou reel explicite ;
+- confirmation humaine ;
+- kill switch ;
+- idempotence ;
+- reconciliation ;
+- journal complet ;
+- blocage sur donnees perimees ;
+- blocage sur gouvernance invalide.
+
+GATE39 - CONTINUOUS LEARNING
+
+Objectif :
+Permettre l'apprentissage continu sans degrader les garanties.
+
+Couvre :
+- nouvelles observations ;
+- reentrainement ;
+- comparaison champion/challenger ;
+- validation hors echantillon ;
+- calibration ;
+- derive des donnees ;
+- derive des performances ;
+- versionnement ;
+- rollback ;
+- approbation ;
+- journal d'apprentissage.
+
+GATE40 - FINAL INTELLIGENT MARKET SYSTEM
+
+Objectif :
+Fermer l'integration complete de Wheel/Jarvise.
+
+Le systeme final reunit :
+- donnees causales ;
+- labels ;
+- features ;
+- regimes ;
+- analogues ;
+- modeles d'ensemble ;
+- protection des profits ;
+- entrees ;
+- rotations ;
+- risque portefeuille ;
+- explications ;
+- validation walk-forward ;
+- calibration ;
+- scenarios golden ;
+- alertes ;
+- paper trading ;
+- aide live ;
+- execution controlee ;
+- apprentissage continu ;
+- gouvernance ;
+- audit ;
+- reprise ;
+- preuve.
+
+Conditions finales :
+- aucune fuite future connue ;
+- probabilites mesurees et calibrees ;
+- validations hors echantillon ;
+- scenarios golden stables ;
+- aucune preuve circulaire ;
+- aucun PASS code en dur ;
+- systeme explicable ;
+- risque controle ;
+- paper trading valide ;
+- execution reelle non autorisee sans conditions explicites ;
+- rollback ;
+- monitoring ;
+- gouvernance complete ;
+- audit independant.
+
+======================================================================
+SECTION H. CLASSIFICATION DOCUMENTAIRE OBLIGATOIRE
+======================================================================
+
+DECLARED_GATE_RANGE = GATE00_TO_GATE40
+DECLARED_GATE_RANGE_SOURCE = OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40
+GATE00_TO_GATE20_NAME_STATUS = SOURCE_ATTESTED
+GATE00_TO_GATE20_INDIVIDUAL_DEFINITION_STATUS = PARTIAL_REQUIRES_HISTORICAL_AUTHORITY_BINDING
+GATE21_TO_GATE40_STRATEGIC_DEFINITION_STATUS = EXPLICIT_SOURCE_AVAILABLE
+GATE13_OFFICIAL_NAME = ORACLES_AND_COVERAGE
+GATE13_STRATEGIC_DEFINITION_STATUS = PARTIAL_UNTIL_HISTORICAL_AUTHORITY_BINDING
+GATE13_EXECUTION_CONTRACT_STATUS = MISSING_OR_INCOMPLETE_UNLESS_SEPARATELY_PROVEN
+
+Le futur registre doit distinguer definitionCompleteness.
+
+Valeurs minimales :
+EXPLICIT_COMPLETE
+EXPLICIT_PARTIAL
+IDENTIFIER_AND_NAME_ONLY
+RANGE_ONLY
+MISSING_SOURCE
+
+Chaque entree incomplete doit contenir missingCanonicalFields.
+
+Aucune entree incomplete ne doit devenir implicitement complete.
+
+Une gate ne peut pas etre activee sans contrat executable suffisant, meme si
+elle existe dans la feuille de route strategique.
+
+FIN DE LA SOURCE

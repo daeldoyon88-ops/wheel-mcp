@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-checkpoint.schema.json",
+  "title": "Immutable state checkpoint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gateId", "stateRevision", "milestone", "resumePoint", "completedTasks", "openTasks", "reusableEvidence", "invalidatedEvidence", "requiredNextActions", "protectedHashes", "createdAt"],
+  "properties": {
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "stateRevision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "milestone": { "type": "string", "minLength": 1 },
+    "resumePoint": { "type": "string", "minLength": 1 },
+    "completedTasks": { "type": "array" },
+    "openTasks": { "type": "array" },
+    "reusableEvidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "validUntilCondition"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "validUntilCondition": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "invalidatedEvidence": { "type": "array" },
+    "requiredNextActions": { "type": "array" },
+    "protectedHashes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}

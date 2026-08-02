@@ -1,0 +1,68 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { canonicalize, sha256Bytes } from './canonical-json.mjs';
+import { validateLedger } from './validate-status-ledger.mjs';
+
+function option(name, fallback = null) {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : fallback;
+}
+
+function atomicWrite(file, bytes) {
+  const temp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, bytes);
+  fs.renameSync(temp, file);
+}
+
+const toolsDir = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(option('--root', path.resolve(toolsDir, '..', '..')));
+const ledgerPath = path.resolve(option('--ledger', path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson')));
+const outputPath = path.resolve(option('--output', path.join(root, 'governance', 'state', 'generated', 'GATE_STATUS_SNAPSHOT.json')));
+const sourceMapPath = option('--source-map', null) ? path.resolve(option('--source-map')) : null;
+const check = process.argv.includes('--check');
+const report = validateLedger({ root, ledgerPath, sourceMapPath });
+if (!report.valid) {
+  process.stdout.write(JSON.stringify({ valid: false, stale: false, findings: report.findings }, null, 2) + '\n');
+  process.exitCode = 2;
+} else {
+  const toolPath = fileURLToPath(import.meta.url);
+  const byGate = new Map();
+  for (const event of report.events) {
+    byGate.set(event.gateId, {
+      gateId: event.gateId,
+      currentStatus: event.toStatus,
+      lastEventId: event.eventId,
+      lastEventOrdinal: event.ordinal,
+      lastEventSha256: event.eventPayloadSha256,
+      statusAuthorityPath: event.authorityPath,
+      statusAuthoritySha256: event.authoritySha256
+    });
+  }
+  const generatedAt = report.events.length ? report.events.at(-1).recordedAt : '1970-01-01T00:00:00.000Z';
+  const snapshot = {
+    schemaVersion: 1,
+    canonical: false,
+    generatedFrom: {
+      sourceLedgerPath: path.relative(root, ledgerPath).replaceAll('\\', '/'),
+      sourceLedgerSha256: report.ledgerSha256,
+      generationTool: 'governance/tools/generate-status-snapshot.mjs',
+      generationToolSha256: sha256Bytes(fs.readFileSync(toolPath)),
+      provenance: 'Derived exclusively by replaying the canonical status ledger.'
+    },
+    generatedAt,
+    gates: [...byGate.values()].sort((a, b) => a.gateId.localeCompare(b.gateId))
+  };
+  const bytes = Buffer.from(canonicalize(snapshot) + '\n', 'utf8');
+  const existing = fs.existsSync(outputPath) ? fs.readFileSync(outputPath) : null;
+  const stale = !existing || existing.length !== bytes.length || !crypto.timingSafeEqual(Buffer.from(existing), bytes);
+  if (check) {
+    process.stdout.write(JSON.stringify({ valid: true, stale, sourceLedgerSha256: report.ledgerSha256, outputPath: path.relative(root, outputPath).replaceAll('\\', '/') }, null, 2) + '\n');
+    process.exitCode = stale ? 2 : 0;
+  } else {
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    atomicWrite(outputPath, bytes);
+    process.stdout.write(JSON.stringify({ valid: true, stale: false, generated: true, outputPath: path.relative(root, outputPath).replaceAll('\\', '/'), sourceLedgerSha256: report.ledgerSha256 }, null, 2) + '\n');
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "dimensions": [
+    {
+      "description": "Nature du travail.",
+      "dimension": "workClass",
+      "enum": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ]
+    },
+    {
+      "description": "Cadre de session. Orthogonal à workClass.",
+      "dimension": "executionMode",
+      "enum": [
+        "PRIMARY_AGENT_SESSION",
+        "SEPARATE_MANUAL_MAIN_AGENT_SESSION"
+      ]
+    },
+    {
+      "description": "Défaut false.",
+      "dimension": "subagentsAllowed",
+      "enum": [
+        false,
+        true
+      ]
+    },
+    {
+      "description": "Défaut FORBIDDEN.",
+      "dimension": "networkPolicy",
+      "enum": [
+        "FORBIDDEN",
+        "EXPLICITLY_GRANTED"
+      ]
+    },
+    {
+      "description": "Défaut FORBIDDEN.",
+      "dimension": "gitWritePolicy",
+      "enum": [
+        "FORBIDDEN",
+        "CONTRACT_AUTHORIZED"
+      ]
+    },
+    {
+      "description": "Exigence, pas une marque.",
+      "dimension": "recommendedReasoningDepth",
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "MAXIMUM"
+      ]
+    },
+    {
+      "description": "Niveau d’indépendance exigé.",
+      "dimension": "requiredIndependence",
+      "enum": [
+        "NONE",
+        "SEPARATE_SESSION",
+        "SEPARATE_SESSION_AND_INDEPENDENT_RECOMPUTATION"
+      ]
+    },
+    {
+      "description": "Défaut MILESTONE_ONLY.",
+      "dimension": "checkpointExpectation",
+      "enum": [
+        "MILESTONE_ONLY",
+        "MILESTONE_AND_INTERRUPTION"
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "checkpointExpectation": "MILESTONE_AND_INTERRUPTION",
+      "executionMode": "PRIMARY_AGENT_SESSION",
+      "gitWritePolicy": "FORBIDDEN",
+      "networkPolicy": "FORBIDDEN",
+      "profileId": "PRF-DESIGN",
+      "recommendedReasoningDepth": "MAXIMUM",
+      "requiredIndependence": "NONE",
+      "subagentsAllowed": false,
+      "workClass": "CRITICAL_REASONING"
+    },
+    {
+      "checkpointExpectation": "MILESTONE_ONLY",
+      "executionMode": "PRIMARY_AGENT_SESSION",
+      "gitWritePolicy": "CONTRACT_AUTHORIZED",
+      "networkPolicy": "FORBIDDEN",
+      "profileId": "PRF-IMPL",
+      "recommendedReasoningDepth": "HIGH",
+      "requiredIndependence": "NONE",
+      "subagentsAllowed": false,
+      "workClass": "TARGETED_IMPLEMENTATION"
+    },
+    {
+      "checkpointExpectation": "MILESTONE_ONLY",
+      "executionMode": "PRIMARY_AGENT_SESSION",
+      "gitWritePolicy": "CONTRACT_AUTHORIZED",
+      "networkPolicy": "FORBIDDEN",
+      "profileId": "PRF-TOOLING",
+      "recommendedReasoningDepth": "MEDIUM",
+      "requiredIndependence": "NONE",
+      "subagentsAllowed": false,
+      "workClass": "DETERMINISTIC_LOCAL"
+    },
+    {
+      "checkpointExpectation": "MILESTONE_ONLY",
+      "executionMode": "SEPARATE_MANUAL_MAIN_AGENT_SESSION",
+      "gitWritePolicy": "FORBIDDEN",
+      "networkPolicy": "FORBIDDEN",
+      "profileId": "PRF-REINSPECTION",
+      "recommendedReasoningDepth": "MAXIMUM",
+      "requiredIndependence": "SEPARATE_SESSION_AND_INDEPENDENT_RECOMPUTATION",
+      "subagentsAllowed": false,
+      "workClass": "READONLY_AUDIT"
+    }
+  ]
+}

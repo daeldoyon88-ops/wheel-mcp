@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repositoryId",
+    "role",
+    "canonicalPath",
+    "gitRoot",
+    "branch",
+    "requiredProjectMarkers",
+    "headIsIdentity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "repositoryId": {
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "WHEEL_JARVISE_PRODUCTION_PROGRAM",
+        "UI_EXPERIMENTATION_AND_VALIDATION_LAB"
+      ]
+    },
+    "canonicalPath": {
+      "type": "string"
+    },
+    "gitRoot": {
+      "type": "string"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "requiredProjectMarkers": {
+      "type": "array"
+    },
+    "headIsIdentity": {
+      "const": false
+    }
+  }
+}

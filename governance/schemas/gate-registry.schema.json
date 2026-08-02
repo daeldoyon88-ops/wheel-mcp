@@ -1,0 +1,74 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "declaredGateRange",
+    "declaredGateRangeSource",
+    "registryEntryCount",
+    "gates"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "declaredGateRange": {
+      "type": "object"
+    },
+    "declaredGateRangeSource": {
+      "type": "object"
+    },
+    "registryEntryCount": {
+      "const": 41
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 41,
+      "maxItems": 41,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gateId",
+          "officialName",
+          "canonicalObjective",
+          "strategicPurpose",
+          "dependencies",
+          "entryConditions",
+          "expectedOutputs",
+          "exitConditions",
+          "nextGate",
+          "sourceReferences",
+          "definitionCompleteness",
+          "missingCanonicalFields",
+          "notes",
+          "collectiveStrategicPurposeRef",
+          "confidenceLevel",
+          "deferredLinks",
+          "gapJustification",
+          "minimumSourceToClose"
+        ],
+        "properties": {
+          "gateId": {},
+          "officialName": {},
+          "canonicalObjective": {},
+          "strategicPurpose": {},
+          "dependencies": {},
+          "entryConditions": {},
+          "expectedOutputs": {},
+          "exitConditions": {},
+          "nextGate": {},
+          "sourceReferences": {},
+          "definitionCompleteness": {},
+          "missingCanonicalFields": {},
+          "notes": {},
+          "collectiveStrategicPurposeRef": {},
+          "confidenceLevel": {},
+          "deferredLinks": {},
+          "gapJustification": {},
+          "minimumSourceToClose": {}
+        }
+      }
+    }
+  }
+}

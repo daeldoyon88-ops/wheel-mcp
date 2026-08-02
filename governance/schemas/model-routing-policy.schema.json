@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "dimensions",
+    "profiles"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "dimensions": {
+      "type": "array",
+      "minItems": 8
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 4
+    }
+  }
+}

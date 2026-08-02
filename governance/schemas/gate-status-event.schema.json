@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-status-event.schema.json",
+  "title": "Canonical gate status event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ordinal",
+    "eventId",
+    "gateId",
+    "fromStatus",
+    "toStatus",
+    "transitionType",
+    "authorityPath",
+    "authoritySha256",
+    "previousEventSha256",
+    "recordedAt",
+    "eventPayloadSha256"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "ordinal": { "type": "integer", "minimum": 1 },
+    "eventId": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "fromStatus": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "enum": ["NOT_STARTED", "AUTHORIZED_NOT_STARTED", "IN_PROGRESS", "REPAIR_REQUIRED", "BLOCKED_GOVERNANCE", "INTERRUPTED_RESUMABLE", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "SUPERSEDED", "REOPENED_AUTHORIZED"] }
+      ]
+    },
+    "toStatus": { "type": "string", "enum": ["NOT_STARTED", "AUTHORIZED_NOT_STARTED", "IN_PROGRESS", "REPAIR_REQUIRED", "BLOCKED_GOVERNANCE", "INTERRUPTED_RESUMABLE", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "SUPERSEDED", "REOPENED_AUTHORIZED"] },
+    "transitionType": { "type": "string", "enum": ["GENESIS_IMPORT", "AUTHORIZATION", "START", "INTERRUPTION", "RESUME", "DEFECT_OPENED", "REPAIR_ACCEPTED", "GOVERNANCE_BLOCK", "GOVERNANCE_UNBLOCK", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "EXTERNAL_REJECTION", "AUTHORIZED_REOPEN", "RESUME_AFTER_REOPEN", "SUPERSESSION"] },
+    "authorityPath": { "type": "string", "minLength": 1 },
+    "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "previousEventSha256": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      ]
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "eventPayloadSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

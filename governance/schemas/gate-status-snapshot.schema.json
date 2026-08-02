@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-status-snapshot.schema.json",
+  "title": "Generated gate status snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "canonical", "generatedFrom", "generatedAt", "gates"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "canonical": { "const": false },
+    "generatedFrom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceLedgerPath", "sourceLedgerSha256", "generationTool", "generationToolSha256", "provenance"],
+      "properties": {
+        "sourceLedgerPath": { "type": "string", "minLength": 1 },
+        "sourceLedgerSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "generationTool": { "type": "string", "const": "governance/tools/generate-status-snapshot.mjs" },
+        "generationToolSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "provenance": { "type": "string", "minLength": 1 }
+      }
+    },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gateId", "currentStatus", "lastEventId", "lastEventOrdinal", "lastEventSha256", "statusAuthorityPath", "statusAuthoritySha256"],
+        "properties": {
+          "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+          "currentStatus": { "type": "string" },
+          "lastEventId": { "type": "string" },
+          "lastEventOrdinal": { "type": "integer", "minimum": 1 },
+          "lastEventSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "statusAuthorityPath": { "type": "string", "minLength": 1 },
+          "statusAuthoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    }
+  }
+}

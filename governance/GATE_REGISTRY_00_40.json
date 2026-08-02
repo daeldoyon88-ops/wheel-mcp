@@ -1,0 +1,2115 @@
+{
+  "schemaVersion": 1,
+  "declaredGateRange": {
+    "start": "GATE00",
+    "end": "GATE40",
+    "gateCount": 41,
+    "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+    "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d"
+  },
+  "declaredGateRangeSource": {
+    "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
+    "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+    "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d"
+  },
+  "registryEntryCount": 41,
+  "gates": [
+    {
+      "gateId": "GATE00",
+      "officialName": "Git and input bundles",
+      "canonicalObjective": "Établir et protéger la ligne de base Git du programme et les bundles d’entrée, puis prouver que leurs empreintes restent conformes à la baseline protégée.",
+      "strategicPurpose": null,
+      "dependencies": [],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate00_measurement.json"
+      ],
+      "exitConditions": [
+        "Les empreintes des bundles sont à jour",
+        "La mesure Git de transition fraîche correspond à la baseline protégée"
+      ],
+      "nextGate": "GATE01",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE00 - Git and input bundles »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "validatorPath=validators/agent_transition_inventory.mjs ; reason=« Bundle hashes are current and the fresh transition Git measurement matches the protected baseline. »",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Première gate de la séquence attestée ; aucune gate antérieure.",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "measurementPath=measurements/gate00_measurement.json",
+          "field": "expectedOutputs",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "reason, statusRecomputed=COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE01",
+      "officialName": "Finding reproduction",
+      "canonicalObjective": "Reproduire indépendamment les constats (findings) de l’audit, la reproduction ne valant ni correction ni fermeture.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE00"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate01_final_reproduction_measurement.json",
+        "measurements/gate01_reference_field_registry_v3.tsv",
+        "measurements/gate01_superseded_measurements.tsv"
+      ],
+      "exitConditions": [
+        "Les 19 findings demeurent reproduits",
+        "UAR-N1-003 et UAR-N1-019 supersédés par des réaudits frais"
+      ],
+      "nextGate": "GATE02",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE01 - Finding reproduction »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« All 19 findings remain reproduced… ; reproduction is not correction or closure. » ; validator=gate01_finalize.mjs",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée : GATE00 précède immédiatement.",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers gate01_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "reason ; statusRecomputed=COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE02",
+      "officialName": "Authority hierarchy and conflicts",
+      "canonicalObjective": "Énumérer mécaniquement les candidats d’autorité, établir la hiérarchie d’autorité et résoudre tous les conflits d’autorité.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE01"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate02_final_measurement.json",
+        "measurements/gate02_conflict_candidate_inventory.tsv",
+        "measurements/gate02_open_conflicts.tsv",
+        "measurements/gate02_source_audit.json"
+      ],
+      "exitConditions": [
+        "Tous les candidats A–Q classés",
+        "Les 8 conflits d’autorité RESOLVED",
+        "Aucune autorité propriétaire deferred, open, unknown, invalid ou conflicting restante"
+      ],
+      "nextGate": "GATE03",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE02 - Authority hierarchy and conflicts »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« All mechanically enumerated A-Q candidates are classified; all 8 authority conflicts are RESOLVED… » ; validator=finalize_gate02_v3.mjs",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers gate02_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "reason ; statusRecomputed=COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE03",
+      "officialName": "F1 authority",
+      "canonicalObjective": "Établir l’autorité F1 et prouver, par validation K6 sur autorité seule et par cas A/B/C frais, la sensibilité et l’invariance contract-valid de chaque champ testable.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE02"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate03_final_measurement.json",
+        "measurements/gate03_contract_valid_measurement.json",
+        "measurements/gate03_source_audit.json"
+      ],
+      "exitConditions": [
+        "88 cas A/B/C frais exécutés",
+        "Sensibilité/invariance prouvée pour chaque champ testable",
+        "Six champs uniques justifiés NO_SECOND_VALID_VALUE"
+      ],
+      "nextGate": "GATE04",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE03 - F1 authority »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« Authority-only K6 validation and 88 fresh A/B/C cases prove contract-valid sensitivity/invariance… » ; validator=f1_crosscheck_v2.mjs",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers gate03_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "reason ; statusRecomputed=COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE04",
+      "officialName": "D-01 authority",
+      "canonicalObjective": "Établir l’autorité D-01 et son intégrité conjointe avec K6 et F1, via calculateurs A/B indépendants, validateur C et crosscheck.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE03"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate04_measurement.json",
+        "measurements/gate04_revalidation_after_gate06_repair.json",
+        "measurements/gate04_revalidation_after_gate08.json"
+      ],
+      "exitConditions": null,
+      "nextGate": "GATE05",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE04 - D-01 authority »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "validators/d01_calculator_a.mjs, d01_calculator_b.mjs, d01_validator_c.mjs, d01_crosscheck.mjs, d01_close_gate04.mjs ; reason=« D01/K6/F1 integrity remains valid »",
+          "field": "canonicalObjective",
+          "sourceId": "HS-VALIDATORS-DIR"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers gate04_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": {
+        "evidence": "reason=« only Gate11/Gate14 links remain » ; UAR-N1-002 : « GATE-11 and GATE-14 golden-vector testId and mutationId links »",
+        "sourceId": "HS-CHECKPOINT-V7",
+        "to": [
+          "GATE11",
+          "GATE14"
+        ]
+      },
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE05",
+      "officialName": "XML/XBRL and corpus",
+      "canonicalObjective": "Construire et valider le corpus XML/XBRL et prouver l’identité binaire des documents validés.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE04"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate05_corpus_build_measurement.json",
+        "measurements/gate05_corpus_inventory.tsv",
+        "measurements/gate05_xml_xbrl_validation.json",
+        "measurements/gate05_validator_a_output.json",
+        "measurements/gate05_validator_b_output.json",
+        "measurements/gate05_validator_c_output.json"
+      ],
+      "exitConditions": [
+        "Les 64 documents XML validés sont byte-identiques après la réparation d’attente de GATE06"
+      ],
+      "nextGate": "GATE06",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE05 - XML/XBRL and corpus »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« All 64 validated XML documents are byte-identical… » ; artefacts gate05_corpus_* et gate05_xml_xbrl_validation.*",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers gate05_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "reason ; statusRecomputed=COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE06",
+      "officialName": "L4C-I1 production alignment",
+      "canonicalObjective": "Aligner la production L4C-I1 sur l’autorité d’attente réparée et le prouver par exécutions primaires, contre-tests, replays, vérifications indépendantes et crosschecks.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE05"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "measurements/gate06_repair_measurement.json",
+        "measurements/gate06_alignment_output.json",
+        "measurements/gate06_negative_countertests.json",
+        "measurements/gate06_determinism.tsv",
+        "measurements/gate06_crosscheck_output.json"
+      ],
+      "exitConditions": [
+        "Autorité d’attente réparée",
+        "13 exécutions primaires",
+        "14 contre-tests",
+        "6 replays",
+        "148 vérifications indépendantes",
+        "32 crosschecks"
+      ],
+      "nextGate": "GATE07",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE06 - L4C-I1 production alignment »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« Repaired expectation authority, 13 primary runs, 14 countertests, 6 replays, 148 independent checks, and 32 crosschecks are complete. »",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers gate06_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "reason ; statusRecomputed=COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE07",
+      "officialName": "TransformImplementationManifest/2",
+      "canonicalObjective": "Construire le TransformImplementationManifest/2 final à partir des modules de production planifiés.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE06"
+      ],
+      "entryConditions": [
+        "Les dix modules de production planifiés doivent être présents"
+      ],
+      "expectedOutputs": [
+        "measurements/gate07_measurement.json",
+        "TransformImplementationManifest/2 (non construit à la date de la source)"
+      ],
+      "exitConditions": null,
+      "nextGate": "GATE08",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE07 - TransformImplementationManifest/2 »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« …no final TransformImplementationManifest/2 can be built » ; validator=gate07_finalize.mjs",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« the ten planned production modules remain absent » — condition d’entrée déduite d’un blocage explicitement mesuré, non d’une inférence sur le nom",
+          "field": "entryConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "measurementPath + nom de l’artefact cité dans reason",
+          "field": "expectedOutputs",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE08",
+      "officialName": "Complete expected object graph",
+      "canonicalObjective": "Construire et valider le graphe d’objets attendu complet, sans jamais le fabriquer en l’absence d’entrées.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE07"
+      ],
+      "entryConditions": [
+        "GATE07 doit être complet (aucun graphe actif constructible sans lui)"
+      ],
+      "expectedOutputs": [
+        "measurements/gate08_measurement.json",
+        "measurements/gate08_builder_a_output.json",
+        "measurements/gate08_crosscheck_output.json",
+        "measurements/gate08_pass_a_graph_reproduction.json"
+      ],
+      "exitConditions": null,
+      "nextGate": "GATE09",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE08 - Complete expected object graph »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reason=« blocked by GATE-07; no active object graph exists and none was fabricated. » ; validator=gate08_finalize.mjs",
+          "field": "canonicalObjective",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "reason=« blocked by GATE-07 » — dépendance explicitement mesurée",
+          "field": "dependencies",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "reason=« blocked by GATE-07 »",
+          "field": "entryConditions",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Fichiers gate08_* réellement présents",
+          "field": "expectedOutputs",
+          "sourceId": "HS-MEASUREMENTS-DIR"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE09",
+      "officialName": "Calculators A/B and canonical validator C",
+      "canonicalObjective": "Produire deux calculateurs indépendants A et B et un validateur canonique C, puis sceller l’autorité de calcul résultante.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE08"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "gate09/final_authorities/gate09_calculator_authority_v3.json",
+        "gate09/final_authorities/gate09_calculated_output_manifest_v3.tsv",
+        "gate09/final_authorities/gate09_calculation_target_registry.tsv",
+        "gate09/final_authorities/gate09_final_authority_seal_v3.json"
+      ],
+      "exitConditions": [
+        "GATE-09 = GATE09_COMPLETE au statut de checkpoint V8_FINAL"
+      ],
+      "nextGate": "GATE10",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE09 - Calculators A/B and canonical validator C »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Autorités réelles : gate09_calculator_authority(_v2,_v3).json, manifestes de sortie calculée et registre de cibles de calcul, scellés",
+          "field": "canonicalObjective",
+          "sourceId": "HS-GATE09-AUTH"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers réellement présents dans gate09/final_authorities/",
+          "field": "expectedOutputs",
+          "sourceId": "HS-GATE09-AUTH"
+        },
+        {
+          "evidence": "gate_status_v8_final_post_gate09.tsv : GATE-09 GATE09_COMPLETE V8_FINAL",
+          "field": "exitConditions",
+          "sourceId": "HS-GATE09-STATUS"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE10",
+      "officialName": "Independent property registry",
+      "canonicalObjective": "Construire un registre de propriétés indépendant, avec contrat de propriété et contrat d’identité, produit en trois exemplaires indépendants A/B/C et scellé.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE09"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "gate10/final_authorities/gate10_property_registry.jsonl",
+        "gate10/final_authorities/gate10_property_contract.json",
+        "gate10/final_authorities/gate10_property_identity_contract.json",
+        "gate10/final_authorities/gate10_property_dependency_graph.tsv",
+        "gate10/final_authorities/gate10_property_authority_coverage.tsv",
+        "gate10/final_authorities/gate10_deferred_scope_registry.tsv",
+        "gate10/final_authorities/gate10_final_authority_seal.json"
+      ],
+      "exitConditions": [
+        "GATE-10 = GATE10_COMPLETE au statut de checkpoint V9"
+      ],
+      "nextGate": "GATE11",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE10 - Independent property registry »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Autorités réelles ; l’indépendance est attestée par les trois répertoires registry_a, registry_b, registry_c (HS-GATE10-TRIPLICATE)",
+          "field": "canonicalObjective",
+          "sourceId": "HS-GATE10-AUTH"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "dependencies",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Fichiers réellement présents dans gate10/final_authorities/",
+          "field": "expectedOutputs",
+          "sourceId": "HS-GATE10-AUTH"
+        },
+        {
+          "evidence": "gate_status_v9_post_gate10.tsv : GATE-10 GATE10_COMPLETE",
+          "field": "exitConditions",
+          "sourceId": "HS-GATE10-STATUS"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE11",
+      "officialName": "Explicit 353 test map",
+      "canonicalObjective": "Établir la carte explicite des assertions de test et son contrat d’identité, avec couverture de mapping et pont de provenance vers les propriétés de GATE10.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE10"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "gate11/final_authorities/gate11_assertion_registry_v2.jsonl",
+        "gate11/final_authorities/gate11_assertion_mapping_coverage_v2.tsv",
+        "gate11/final_authorities/gate11_assertion_identity_contract_v2.json",
+        "gate11/final_authorities/gate11_assertion_property_provenance_bridge_v2.jsonl"
+      ],
+      "exitConditions": [
+        "GATE-11 = GATE11_COMPLETE",
+        "nextAllowed = GATE-12"
+      ],
+      "nextGate": "GATE12",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE11 - Explicit 353 test map »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Autorités réelles ; inventory_a/b/c et classification_v3_a/b/c attestent la production indépendante",
+          "field": "canonicalObjective",
+          "sourceId": "HS-GATE11-AUTH"
+        },
+        {
+          "evidence": "gate11_assertion_property_provenance_bridge_v2 relie explicitement les assertions aux propriétés de GATE10",
+          "field": "dependencies",
+          "sourceId": "HS-GATE11-AUTH"
+        },
+        {
+          "evidence": "Fichiers réellement présents dans gate11/final_authorities/",
+          "field": "expectedOutputs",
+          "sourceId": "HS-GATE11-AUTH"
+        },
+        {
+          "evidence": "gate_status_v10_final_repaired_post_gate11.tsv : GATE-11 GATE11_COMPLETE, nextAllowed GATE-12",
+          "field": "exitConditions",
+          "sourceId": "HS-GATE11-STATUS"
+        },
+        {
+          "evidence": "Colonne nextAllowed = GATE-12",
+          "field": "nextGate",
+          "sourceId": "HS-GATE11-STATUS"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE12",
+      "officialName": "Executable counter cases",
+      "canonicalObjective": "Produire un registre exécutable de contre-cas et de conditions, avec matrice condition↔contre-cas, contrat d’identité et contrat d’isolation d’exécution, puis fermer par réinspection externe.",
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE11"
+      ],
+      "entryConditions": null,
+      "expectedOutputs": [
+        "gate12/final_authorities/gate12_countercase_registry.jsonl",
+        "gate12/final_authorities/gate12_condition_registry.jsonl",
+        "gate12/final_authorities/gate12_condition_countercase_matrix.tsv",
+        "gate12/final_authorities/gate12_countercase_identity_contract.json",
+        "gate12/final_authorities/gate12_countercase_isolation_execution_contract.json",
+        "GATE12_L3_RECLOSURE_R1_20260801T115430Z.zip"
+      ],
+      "exitConditions": [
+        "Réinspection externe R1 = PASS",
+        "12/12 contre-tests logiques",
+        "12/12 contre-tests de packaging",
+        "0 faux négatif",
+        "GATE12 = COMPLETE_CONFIRMED"
+      ],
+      "nextGate": "GATE13",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE12 - Executable counter cases »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Autorités réelles gate12_countercase_* et gate12_condition_* ; niveaux L1/L2/L3 attestés par l’arborescence",
+          "field": "canonicalObjective",
+          "sourceId": "HS-GATE12-AUTH"
+        },
+        {
+          "evidence": "nextAllowed = GATE-12",
+          "field": "dependencies",
+          "sourceId": "HS-GATE11-STATUS"
+        },
+        {
+          "evidence": "Fichiers réellement présents ; paquet R1 scellé et haché",
+          "field": "expectedOutputs",
+          "sourceId": "HS-GATE12-AUTH"
+        },
+        {
+          "evidence": "externalReinspectionVerdict=PASS ; 12/12 + 12/12 ; falseNegativeCount=0 ; GATE12 COMPLETE_CONFIRMED",
+          "field": "exitConditions",
+          "sourceId": "HS-GATE12-R1-EXTERNAL"
+        },
+        {
+          "evidence": "sourceGate=GATE12, targetGate=GATE13",
+          "field": "nextGate",
+          "sourceId": "HS-GATE13-HANDOFF"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "entryConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "HIGH",
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE13",
+      "officialName": "Oracles and coverage",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": [
+        "GATE12"
+      ],
+      "entryConditions": [
+        "VERIFY_ACTIVE_POINTERS",
+        "RECOMPUTE_ACTIVE_HASHES",
+        "LOAD_INVALIDATION_MATRIX",
+        "LOAD_AUTONOMY_CERTIFICATION",
+        "CONFIRM_RESUME_REGISTRY_CLOSED",
+        "CONFIRM_DISK_RESERVE"
+      ],
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE14",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE13 - Oracles and coverage »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "sourceGate=GATE12, targetGate=GATE13, targetGateStatus=AUTHORIZED_NOT_STARTED",
+          "field": "dependencies",
+          "sourceId": "HS-GATE13-HANDOFF"
+        },
+        {
+          "evidence": "requiredInitialChecks : les 6 contrôles initiaux exigés, littéraux",
+          "field": "entryConditions",
+          "sourceId": "HS-GATE13-HANDOFF"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "MEDIUM",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "HS-GATE13-DISCOVERY établit canonicalRequirementCount=0 et GATE13_CANONICAL_OBJECTIVE=NOT_DOCUMENTED. Déduire l’objectif du seul nom « Oracles and coverage » serait spéculatif : le nom ne dit ni quels oracles, ni sur quelle population, ni quel seuil de couverture.",
+        "exitConditions": "Aucune condition de sortie documentée dans le handoff ni ailleurs.",
+        "expectedOutputs": "Aucun artefact nommé gate13* n’existe (HS-NEGATIVE-SWEEP, COUNT=0)."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution GATE13 (canonicalRequirements, requiredOutputs, closureConditions) ou un prompt d’implémentation historique GATE13."
+    },
+    {
+      "gateId": "GATE14",
+      "officialName": "Mutations, threats and traversal",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": [
+        "Liens golden-vector mutationId (différés depuis GATE04)"
+      ],
+      "exitConditions": null,
+      "nextGate": "GATE15",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE14 - Mutations, threats and traversal »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "GATE-04 reason=« only Gate11/Gate14 links remain » et UAR-N1-002=« GATE-11 and GATE-14 golden-vector testId and mutationId links » — livrable partiel attesté par une dépendance différée réelle, non par le nom",
+          "field": "expectedOutputs",
+          "sourceId": "HS-CHECKPOINT-V7"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Aucun artefact gate14* (HS-NEGATIVE-SWEEP, COUNT=0). Le nom évoque mutations, menaces et traversée, mais rien n’atteste le périmètre, la stratégie de mutation ni le modèle de menace retenus.",
+        "dependencies": "Non documentées. GATE04 renvoie des liens vers GATE14, ce qui prouve une relation, mais pas la liste des dépendances de GATE14.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées."
+      },
+      "minimumSourceToClose": "Un contrat ou prompt d’implémentation GATE14, ou le registre de mutations golden-vector."
+    },
+    {
+      "gateId": "GATE15",
+      "officialName": "Anti-invention validators",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE16",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE15 - Anti-invention validators »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate15* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
+        "dependencies": "Non documentées.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées.",
+        "expectedOutputs": "Non documentés."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE15, ou les autorités finales de cette gate."
+    },
+    {
+      "gateId": "GATE16",
+      "officialName": "Independent crosscheck",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE17",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE16 - Independent crosscheck »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate16* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
+        "dependencies": "Non documentées.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées.",
+        "expectedOutputs": "Non documentés."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE16, ou les autorités finales de cette gate."
+    },
+    {
+      "gateId": "GATE17",
+      "officialName": "Generated report",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": [
+        "Rapport généré (reportState demeure STALE_REGENERATE_STALE_UNTIL_GATE17)"
+      ],
+      "exitConditions": null,
+      "nextGate": "GATE18",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE17 - Generated report »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "reportState=« STALE_REGENERATE_STALE_UNTIL_GATE17 » — atteste que le rapport final est produit à GATE17",
+          "field": "expectedOutputs",
+          "sourceId": "HS-CHECKPOINT-V7"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate17* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
+        "dependencies": "Non documentées.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées.",
+        "expectedOutputs": "Partiellement attesté."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE17, ou les autorités finales de cette gate."
+    },
+    {
+      "gateId": "GATE18",
+      "officialName": "Implementation prompt V3",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE19",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE18 - Implementation prompt V3 »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate18* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
+        "dependencies": "Non documentées.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées.",
+        "expectedOutputs": "Non documentés."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE18, ou les autorités finales de cette gate."
+    },
+    {
+      "gateId": "GATE19",
+      "officialName": "Final bundle and manifest",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE20",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE19 - Final bundle and manifest »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Séquence attestée",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate19* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
+        "dependencies": "Non documentées.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées.",
+        "expectedOutputs": "Non documentés."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE19, ou les autorités finales de cette gate."
+    },
+    {
+      "gateId": "GATE20",
+      "officialName": "Final git and verdict",
+      "canonicalObjective": null,
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE21",
+      "sourceReferences": [
+        {
+          "evidence": "Ligne « GATE20 - Final git and verdict »",
+          "field": "officialName",
+          "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Dernière gate du bloc fondation ; GATE21 ouvre le programme de marché",
+          "field": "nextGate",
+          "sourceId": "HS-ROADMAP"
+        }
+      ],
+      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
+      "missingCanonicalFields": [
+        "canonicalObjective",
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": {
+        "appliesToBlock": "GATE00-GATE20",
+        "establishesIndividualPurpose": false,
+        "sourceId": "HS-ROADMAP",
+        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
+      },
+      "confidenceLevel": "LOW",
+      "deferredLinks": null,
+      "gapJustification": {
+        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate20* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
+        "dependencies": "Non documentées.",
+        "entryConditions": "Non documentées.",
+        "exitConditions": "Non documentées.",
+        "expectedOutputs": "Non documentés."
+      },
+      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE20, ou les autorités finales de cette gate."
+    },
+    {
+      "gateId": "GATE21",
+      "officialName": "MARKET DATA CAUSAL FOUNDATION",
+      "canonicalObjective": "Creer la fondation causale des donnees de marche.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE22",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE21 - MARKET DATA CAUSAL FOUNDATION",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE22",
+      "officialName": "BOTTOM/TOP LABEL ENGINE",
+      "canonicalObjective": "Creer des labels historiques pour les zones de creux, sommets, fortes hausses, fortes baisses, reprises, capitulations, accumulations, distributions, continuations et faux signaux.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE23",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE22 - BOTTOM/TOP LABEL ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE23",
+      "officialName": "CONFLUENCE FEATURE ENGINE",
+      "canonicalObjective": "Creer un feature store causal multi-horizon.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE24",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE23 - CONFLUENCE FEATURE ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE24",
+      "officialName": "MARKET REGIME ENGINE",
+      "canonicalObjective": "Identifier les regimes de marche.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE25",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE24 - MARKET REGIME ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE25",
+      "officialName": "HISTORICAL ANALOGUE ENGINE",
+      "canonicalObjective": "Comparer la situation actuelle a des configurations historiques similaires.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE26",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE25 - HISTORICAL ANALOGUE ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE26",
+      "officialName": "PREDICTIVE ENSEMBLE ENGINE",
+      "canonicalObjective": "Combiner plusieurs modeles, regles et familles de signaux.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE27",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE26 - PREDICTIVE ENSEMBLE ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE27",
+      "officialName": "PROFIT PROTECTION ENGINE",
+      "canonicalObjective": "Detecter quand le risque de baisse depasse le potentiel haussier restant.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE28",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE27 - PROFIT PROTECTION ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE28",
+      "officialName": "ENTRY ENGINE",
+      "canonicalObjective": "Identifier les zones d'entree presentant une asymetrie favorable.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE29",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE28 - ENTRY ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE29",
+      "officialName": "ROTATION ENGINE",
+      "canonicalObjective": "Comparer les occasions et recommander la meilleure utilisation du capital.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE30",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE29 - ROTATION ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE30",
+      "officialName": "PORTFOLIO RISK ENGINE",
+      "canonicalObjective": "Mesurer et controler le risque au niveau du portefeuille.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE31",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE30 - PORTFOLIO RISK ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE31",
+      "officialName": "EXPLANATION ENGINE",
+      "canonicalObjective": "Produire une explication structuree derivee des memes donnees que la decision.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE32",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE31 - EXPLANATION ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE32",
+      "officialName": "OUT-OF-SAMPLE WALK-FORWARD VALIDATION",
+      "canonicalObjective": "Evaluer le systeme sur des periodes reellement hors echantillon.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE33",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE32 - OUT-OF-SAMPLE WALK-FORWARD VALIDATION",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE33",
+      "officialName": "PROBABILITY CALIBRATION",
+      "canonicalObjective": "Calibrer les probabilites des modeles.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE34",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE33 - PROBABILITY CALIBRATION",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE34",
+      "officialName": "GOLDEN HISTORICAL SCENARIOS",
+      "canonicalObjective": "Creer des scenarios historiques de non-regression.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE35",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE34 - GOLDEN HISTORICAL SCENARIOS",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE35",
+      "officialName": "JARVISE ALERT ENGINE",
+      "canonicalObjective": "Transformer les resultats en alertes utiles et actionnables.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE36",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE35 - JARVISE ALERT ENGINE",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE36",
+      "officialName": "PAPER TRADING",
+      "canonicalObjective": "Tester les recommandations sans capital reel.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE37",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE36 - PAPER TRADING",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE37",
+      "officialName": "LIVE DECISION SUPPORT",
+      "canonicalObjective": "Utiliser le systeme avec des donnees courantes comme aide a la decision.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE38",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE37 - LIVE DECISION SUPPORT",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE38",
+      "officialName": "CONTROLLED EXECUTION",
+      "canonicalObjective": "Permettre une execution limitee et fortement controlee uniquement apres les validations necessaires.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE39",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE38 - CONTROLLED EXECUTION",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE39",
+      "officialName": "CONTINUOUS LEARNING",
+      "canonicalObjective": "Permettre l'apprentissage continu sans degrader les garanties.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": "GATE40",
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE39 - CONTINUOUS LEARNING",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    },
+    {
+      "gateId": "GATE40",
+      "officialName": "FINAL INTELLIGENT MARKET SYSTEM",
+      "canonicalObjective": "Fermer l'integration complete de Wheel/Jarvise.",
+      "strategicPurpose": null,
+      "dependencies": null,
+      "entryConditions": null,
+      "expectedOutputs": null,
+      "exitConditions": null,
+      "nextGate": null,
+      "sourceReferences": [
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "GATE40 - FINAL INTELLIGENT MARKET SYSTEM",
+          "field": "officialName"
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "sourceLocation": "Objectif",
+          "field": "canonicalObjective"
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_PARTIAL",
+      "missingCanonicalFields": [
+        "strategicPurpose",
+        "dependencies",
+        "entryConditions",
+        "expectedOutputs",
+        "exitConditions"
+      ],
+      "notes": null,
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": null,
+      "deferredLinks": null,
+      "gapJustification": null,
+      "minimumSourceToClose": null
+    }
+  ]
+}

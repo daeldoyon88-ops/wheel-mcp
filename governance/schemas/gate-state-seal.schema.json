@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-state-seal.schema.json",
+  "title": "Non-recursive state seal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gateId", "stateRevision", "sealedMembers", "previousStateSealSha256", "sealedAt", "payload", "payloadSha256"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "stateRevision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "sealedMembers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repoRelativePath", "sha256", "byteLength"],
+        "properties": {
+          "repoRelativePath": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "byteLength": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "previousStateSealSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "sealedAt": { "type": "string", "format": "date-time" },
+    "payload": { "type": "object" },
+    "payloadSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

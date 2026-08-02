@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "canonical",
+    "generatedBy",
+    "generatedFrom",
+    "generatedAt",
+    "sourceDigest"
+  ],
+  "properties": {
+    "canonical": {
+      "const": false
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "generatedFrom": {
+      "type": "array"
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "sourceDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

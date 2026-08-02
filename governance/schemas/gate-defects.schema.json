@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-defects.schema.json",
+  "title": "Immutable open defects revision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gateId", "stateRevision", "defects"],
+  "properties": {
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "stateRevision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["defectId", "severity", "status", "description", "affectedRequirements", "evidence", "detector", "repairScope", "blockingProgression", "openedAt", "closedAt", "closureEvidence"],
+        "properties": {
+          "defectId": { "type": "string", "minLength": 1 },
+          "severity": { "type": "string", "enum": ["BLOCKING", "MAJOR", "MINOR"] },
+          "status": { "type": "string", "enum": ["OPEN", "IN_REPAIR", "CLOSED", "ACCEPTED_RISK"] },
+          "description": { "type": "string", "minLength": 1 },
+          "affectedRequirements": { "type": "array" },
+          "evidence": { "type": "array" },
+          "detector": { "type": "string", "minLength": 1 },
+          "repairScope": { "type": "array" },
+          "blockingProgression": { "type": "boolean" },
+          "openedAt": { "type": "string", "format": "date-time" },
+          "closedAt": { "type": ["string", "null"], "format": "date-time" },
+          "closureEvidence": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

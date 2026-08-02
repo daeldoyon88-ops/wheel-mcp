@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "current-state.schema.json",
+  "title": "Current state pointer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gateId", "stateRevision", "revisionPath", "stateSealSha256", "committedByTransactionId"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "stateRevision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "revisionPath": { "type": "string", "minLength": 1 },
+    "stateSealSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "committedByTransactionId": { "type": "string", "minLength": 1 }
+  }
+}

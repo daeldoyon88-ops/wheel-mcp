@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-contract.schema.json",
+  "title": "Versioned governance execution contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "gateId",
+    "contractRevision",
+    "strategicRegistryReference",
+    "canonicalRequirements",
+    "requiredOutputs",
+    "validators",
+    "closureConditions",
+    "nextGateAuthorizationConditions",
+    "performanceBudget",
+    "checkpointPolicy",
+    "authorizedPaths",
+    "requiredPolicyIds",
+    "sourceReferences"
+  ],
+  "properties": {
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "contractRevision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "strategicRegistryReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registryPath", "registrySha256", "gateId", "canonicalObjectiveSha256"],
+      "properties": {
+        "registryPath": { "type": "string", "minLength": 1 },
+        "registrySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+        "canonicalObjectiveSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "canonicalRequirements": { "type": "array" },
+    "requiredInputs": { "type": "array" },
+    "requiredOutputs": { "type": "array" },
+    "validators": { "type": "array" },
+    "positiveTests": { "type": "array" },
+    "negativeTests": { "type": "array" },
+    "countertests": { "type": "array" },
+    "reuseRules": { "type": "array" },
+    "invalidationRules": { "type": "array" },
+    "forbiddenReplays": { "type": "array" },
+    "packagingRequirements": { "type": "array" },
+    "closureConditions": { "type": "array" },
+    "nextGateAuthorizationConditions": { "type": "array" },
+    "performanceBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targetMinutes", "expectedMaximumMinutes", "closeoutStartMinutes", "absoluteMaximumMinutes"],
+      "properties": {
+        "targetMinutes": { "type": "integer", "minimum": 1 },
+        "expectedMaximumMinutes": { "type": "integer", "minimum": 1, "maximum": 480 },
+        "closeoutStartMinutes": { "type": "integer", "minimum": 1 },
+        "absoluteMaximumMinutes": { "type": "integer", "minimum": 1, "maximum": 480 }
+      }
+    },
+    "checkpointPolicy": { "type": ["array", "object"] },
+    "authorizedPaths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requiredPolicyIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "sourceReferences": { "type": "array" }
+  }
+}

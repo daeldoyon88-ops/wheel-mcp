@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "current-contract.schema.json",
+  "title": "Current contract pointer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gateId", "contractRevision", "contractPath", "contractSha256", "activatedByEventId"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "contractRevision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "contractPath": { "type": "string", "minLength": 1 },
+    "contractSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "activatedByEventId": { "type": ["string", "null"] }
+  }
+}

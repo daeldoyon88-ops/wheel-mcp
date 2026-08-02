@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "constitutionVersion",
+    "governedRepository",
+    "rules",
+    "adapterRegistry"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer"
+    },
+    "constitutionVersion": {
+      "type": "string"
+    },
+    "governedRepository": {
+      "type": "object"
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17
+    },
+    "adapterRegistry": {
+      "type": "array",
+      "minItems": 1
+    }
+  }
+}

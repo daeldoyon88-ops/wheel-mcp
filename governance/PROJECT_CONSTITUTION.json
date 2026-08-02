@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "constitutionVersion": "R2",
+  "governedRepository": {
+    "repositoryName": "REPO-WHEEL-JARVISE-PRIMARY",
+    "originUrl": "https://github.com/daeldoyon88-ops/wheel-mcp.git",
+    "genesisCommit": null,
+    "declaredBy": "WHEEL_JARVISE_PRODUCTION_PROGRAM",
+    "declaredAt": "2026-08-01",
+    "repositoryId": "REPO-WHEEL-JARVISE-PRIMARY",
+    "role": "WHEEL_JARVISE_PRODUCTION_PROGRAM",
+    "canonicalPath": "C:/Users/melan/Desktop/wheel-mcp-remote",
+    "gitRoot": "C:/Users/melan/Desktop/wheel-mcp-remote",
+    "branch": "main",
+    "requiredProjectMarkers": [
+      "server.js",
+      "package.json",
+      "research/directional-lab",
+      "scripts",
+      "python_ibkr"
+    ],
+    "headIsIdentity": false
+  },
+  "rules": [
+    {
+      "allowedOverrides": [
+        "EXPLICIT_MISSION_GRANT"
+      ],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Le travail gouverné s’exécute dans la session de l’agent principal.",
+      "name": "Exécution par l’agent principal",
+      "overrideAuthority": "PROJECT_OWNER",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "MAIN_AGENT_ONLY",
+      "runtimeMeasurement": "NOT_INSTRUMENTED_SELF_DECLARED",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_MAIN_AGENT"
+    },
+    {
+      "allowedOverrides": [
+        "EXPLICIT_MISSION_GRANT"
+      ],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Aucune délégation à un sous-agent sans autorisation explicite de mission.",
+      "name": "Sous-agents interdits par défaut",
+      "overrideAuthority": "PROJECT_OWNER",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+      "runtimeMeasurement": "PARTIALLY_INSTRUMENTED_SUBAGENTS_USED_COUNT",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_SUBAGENT"
+    },
+    {
+      "allowedOverrides": [
+        "EXPLICIT_MISSION_GRANT"
+      ],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Aucun appel réseau pendant une mission gouvernée.",
+      "name": "Réseau interdit par défaut",
+      "overrideAuthority": "PROJECT_OWNER",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "NETWORK_FORBIDDEN_BY_DEFAULT",
+      "runtimeMeasurement": "PARTIALLY_INSTRUMENTED_NETWORK_CALL_COUNT",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_NETWORK"
+    },
+    {
+      "allowedOverrides": [
+        "CONTRACT_AUTHORIZED_WRITE"
+      ],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Aucun commit, push, add, stash sans autorisation explicite du contrat.",
+      "name": "Écritures Git interdites par défaut",
+      "overrideAuthority": "EXECUTION_CONTRACT",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/20-wheel-git-safety.mdc"
+      ],
+      "ruleId": "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_GIT_STATE_DIFF",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_GIT_WRITE"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "git clean, reset, restore, checkout, stash, add -A, add . sont interdits en toute circonstance gouvernée.",
+      "name": "Commandes Git destructives interdites",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/20-wheel-git-safety.mdc"
+      ],
+      "ruleId": "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_GIT_STATE_DIFF",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_DESTRUCTIVE_GIT"
+    },
+    {
+      "allowedOverrides": [
+        "CONTRACT_AUTHORIZED_PATH"
+      ],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Toute écriture doit tomber dans authorizedPaths du contrat courant.",
+      "name": "Chemins autorisés uniquement",
+      "overrideAuthority": "EXECUTION_CONTRACT",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "AUTHORIZED_PATHS_ONLY",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_FILESYSTEM_DIFF",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_PATH"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Après interruption, la reprise part du dernier checkpoint valide.",
+      "name": "Pas de reprise depuis zéro",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "NO_RESTART_FROM_ZERO",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_CHECKPOINT_LINEAGE",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_RESTART"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "La mission lit resumePoint de la révision courante avant toute action.",
+      "name": "Reprise depuis checkpoint",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "RESUME_FROM_CHECKPOINT",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_CHECKPOINT_LINEAGE",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_RESUME"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Un verdict doit être recalculé par un validateur, jamais lu dans un champ ni écrit littéralement.",
+      "name": "Aucun PASS codé en dur",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "NO_HARDCODED_PASS",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_VALIDATOR_RECOMPUTATION",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_FALSE_PASS"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Le producteur d’un artefact ne peut pas être sa propre autorité de réinspection.",
+      "name": "Aucune validation circulaire",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "NO_CIRCULAR_VALIDATION",
+      "runtimeMeasurement": "PARTIALLY_INSTRUMENTED_SESSION_IDENTITY",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_CIRCULAR"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Aucun artefact ne peut dépendre d’une donnée postérieure à son as-of déclaré.",
+      "name": "Aucune fuite du futur",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "NO_FUTURE_LEAKAGE",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_TIMESTAMP_ORDERING",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_LEAKAGE"
+    },
+    {
+      "allowedOverrides": [
+        "REGISTRY_AMENDMENT"
+      ],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Un contrat d’exécution ne peut ni contredire ni remplacer canonicalObjective du registre.",
+      "name": "Aucune redéfinition du mandat d’une gate",
+      "overrideAuthority": "PROJECT_OWNER",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "NO_GATE_MANDATE_REDEFINITION",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_CONTRACT_STRATEGY_DIVERGENCE",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_MANDATE"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Deux autorités contradictoires non résolues arrêtent la mission ; aucune sélection arbitraire.",
+      "name": "Arrêt sur conflit d’autorité",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "BLOCK_ON_AUTHORITY_CONFLICT",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_PREFLIGHT",
+      "severity": "BLOCKING",
+      "violationStatus": "BLOCKED_GOVERNANCE"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "DETERMINISTIC_LOCAL",
+        "TARGETED_IMPLEMENTATION"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Les outils de gouvernance sont purs, locaux, sans réseau, et reproductibles.",
+      "name": "Opérations déterministes et locales",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "DETERMINISTIC_OPERATIONS_LOCAL",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_DOUBLE_RUN_DIGEST",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_NONDETERMINISM"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Toute réinspection externe se fait dans une session d’agent principal distincte et manuelle.",
+      "name": "Réinspection en session séparée",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "SEPARATE_SESSION_REINSPECTION",
+      "runtimeMeasurement": "PARTIALLY_INSTRUMENTED_SESSION_IDENTITY",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_CIRCULAR"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Aucun fichier généré ne peut être cité comme autorité ni comme preuve de fermeture.",
+      "name": "Fichiers générés non canoniques",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "GENERATED_FILES_NON_CANONICAL",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_GENERATED_FILE_DRIFT",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_GENERATED_AUTHORITY"
+    },
+    {
+      "allowedOverrides": [],
+      "applicableWorkClasses": [
+        "CRITICAL_REASONING",
+        "TARGETED_IMPLEMENTATION",
+        "DETERMINISTIC_LOCAL",
+        "READONLY_AUDIT"
+      ],
+      "defaultState": "ENFORCED",
+      "description": "Aucun pointeur actif ne peut résoudre vers une autorité classée HISTORICAL_REJECTED.",
+      "name": "Autorité rejetée jamais active",
+      "overrideAuthority": "NONE",
+      "requiredAdapterCoverage": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursor/rules/00-wheel-critical-policy.mdc"
+      ],
+      "ruleId": "HISTORICAL_REJECTED_NOT_ACTIVE",
+      "runtimeMeasurement": "INSTRUMENTED_VIA_PREFLIGHT",
+      "severity": "BLOCKING",
+      "violationStatus": "GOVERNANCE_VIOLATION_STALE_AUTHORITY"
+    }
+  ],
+  "adapterRegistry": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".cursor/rules/00-wheel-critical-policy.mdc",
+    ".cursor/rules/20-wheel-git-safety.mdc"
+  ]
+}

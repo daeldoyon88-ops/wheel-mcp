@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE12",
+  "stateRevision": "R0002",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+      "sha256": "fb72d034525535bb36e1585f326d55a58d8d6f5b2fdf442fe6cbecf734218389",
+      "byteLength": 8546
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE12/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": "23aa9578c5743fe4e55daec4c5bd6e8c928a3e24f369483c831957027298ab67",
+      "byteLength": 3784
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b",
+      "byteLength": 17711
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "sha256": "235555ccca6a2b05023bf51648cc02099946b9d68a4485a21b8c70317e4b3fd1",
+      "byteLength": 281
+    }
+  ],
+  "previousStateSealSha256": "a1e1b547142692c113a6e3d521f70d1ce97ac4b94f493b419be30da66c6810b8",
+  "sealedAt": "2026-08-06T05:03:37.000Z",
+  "payload": {
+    "gateId": "GATE12",
+    "stateRevision": "R0002",
+    "mission": "I4_COMPLETE_CONFIRMED_CANONICAL_RECORDING_R1",
+    "milestone": "I4_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE",
+    "recordingAuthorityId": "I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1",
+    "recordingAuthoritySha256": "5468283684cb2e49c52f3ef22325630710b5f74dfc4dd1171c824a7f45a79e46",
+    "priorBootstrapAuthorityId": "I4_BOOTSTRAP_EXECUTION_AUTHORITY_R1",
+    "priorBootstrapAuthoritySha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a",
+    "priorBootstrapAuthorityStatus": "SUPERSEDED",
+    "priorBootstrapAuthoritySupersessionCondition": "I4_AUDITED_CLOSURE",
+    "ledgerSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+    "ledgerMutated": false,
+    "canonicalSourceMapSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+    "validatorSha256": "738492ce5d18edda523aae446bad696e3a604ecdff02e181a633d72200db9ec8",
+    "testFileSha256": "6ce638b28349ac3508ac1a147ce1e35a84ba4c7579f883fa218edda297de1d5e",
+    "finalIndependentAuditMarkdownSha256": "61b5038a3a5c0384dfa3b7ecdb0854236da894d08030178d5db7c1cbe0c592fa",
+    "finalIndependentAuditJsonSha256": "53929a397a6f850be7c153e802ecc3b06bcd03d40f7118b5c1d6a4ce1de1955c",
+    "finalIndependentAuditVerdict": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1_FINAL_INDEPENDENT_AUDIT_PASS_AND_COMPLETE_CONFIRMED_RECORDING_AUTHORIZED",
+    "correctedDetachedReceiptSha256": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10",
+    "authorizedPaths": [
+      "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json",
+      "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.md",
+      "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+      "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json",
+      "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+      "governance/gates/GATE12/state/revisions/R0002/OPEN_DEFECTS.json",
+      "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+      "governance/gates/GATE12/state/CURRENT_STATE.json"
+    ],
+    "r0001StateSealSha256": "a1e1b547142692c113a6e3d521f70d1ce97ac4b94f493b419be30da66c6810b8",
+    "r0001Immutable": true,
+    "defaultLedgerExitCode": 0,
+    "defaultLedgerValid": true,
+    "defaultLedgerFindings": 0,
+    "overrideLedgerExitCode": 0,
+    "overrideLedgerValid": true,
+    "overrideLedgerFindings": 0,
+    "obsR201Status": "CLOSED",
+    "i4Status": "COMPLETE_CONFIRMED",
+    "i4CompleteConfirmed": true,
+    "gate13Created": false,
+    "gate13Executable": false,
+    "gate13Authorized": false,
+    "nextAction": "Separate discovery or authorization of GATE13; not automatic, not authorized by this revision.",
+    "sealedAt": "2026-08-06T05:03:37.000Z"
+  },
+  "payloadSha256": "4c546f78a9dd5c2225df549d34a3c2f2457564f21c760ad74fcea773879338c3"
+}

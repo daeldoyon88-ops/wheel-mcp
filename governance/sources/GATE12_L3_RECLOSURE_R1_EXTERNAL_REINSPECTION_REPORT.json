@@ -1,0 +1,655 @@
+{
+  "document": "GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT",
+  "VERDICT": "PASS",
+  "previousInterruption": "PACKAGING_VALIDATOR_HOST_LIMIT_120_SECONDS",
+  "TECHNICAL_INTERRUPTION_RECOVERED": true,
+  "resumedFromCheckpoint": true,
+  "restartFromZero": false,
+  "reusedStaticChecks": true,
+  "reexecutedStaticChecks": false,
+  "statuses": {
+    "GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION": "PASS",
+    "GATE12_L3_RECLOSURE_R1": "COMPLETE_CONFIRMED",
+    "GATE12_L3_LOGICAL_COUNTERTESTS": "12_OF_12_CONFIRMED",
+    "GATE12_L3_PACKAGING_COUNTERTESTS": "12_OF_12_CONFIRMED",
+    "GATE12_L3": "COMPLETE_CONFIRMED",
+    "GATE12": "COMPLETE_CONFIRMED",
+    "GATE13": "AUTHORIZED_NOT_STARTED",
+    "GATE13_STATUS": "NOT_STARTED"
+  },
+  "countertests": {
+    "packaging": {
+      "counterTestCount": 12,
+      "closedTestCount": 12,
+      "actualMutationCount": 12,
+      "actualDetectorExecutionCount": 12,
+      "detectedCount": 12,
+      "falseNegativeCount": 0,
+      "fabricatedDetectionCount": 0,
+      "technicalTimeoutCount": 0,
+      "baselinePassAfterMutations": true,
+      "results": [
+        {
+          "testId": "PKG-CT-01",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "9e5b2cd45ac5323e168e4af4351b5b8a9fc9ad5ee3533a00dddceb13cf7c50cf",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:20.864Z",
+          "closedAt": "2026-08-01T12:20:20.926Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "POST_FREEZE_MUTATION",
+          "observedFailure": [
+            "WORKSPACE_PACKAGE_DIVERGENCE",
+            "POST_FREEZE_MUTATION"
+          ],
+          "expectedFailure": "POST_FREEZE_MUTATION",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-02",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "71eb1d5673b96d0e07ac1f34e751dceaf4b0741e02a280a33ad54b5c88a905b9",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:20.930Z",
+          "closedAt": "2026-08-01T12:20:20.952Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "MISSING_ZIP_MEMBER",
+          "observedFailure": [
+            "MISSING_ZIP_MEMBER",
+            "MISSING_TIMING_FILE",
+            "DESCRIPTOR_MEMBER_COUNT",
+            "SEAL_MEMBER_COUNT",
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "RECEIPT_MEMBER_COUNT"
+          ],
+          "expectedFailure": "MISSING_ZIP_MEMBER",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-03",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "31b691152de296804dff957c5ae74a3742f147c64af2ec012a9cccbd655180c4",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:20.953Z",
+          "closedAt": "2026-08-01T12:20:20.971Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "UNEXPECTED_ZIP_MEMBER",
+          "observedFailure": [
+            "UNEXPECTED_ZIP_MEMBER",
+            "DESCRIPTOR_MEMBER_COUNT",
+            "SEAL_MEMBER_COUNT",
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "RECEIPT_MEMBER_COUNT"
+          ],
+          "expectedFailure": "UNEXPECTED_ZIP_MEMBER",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-04",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "2782b3567948e60f6211882cb92b87fae30eb907dc528dd5aaddde4cd4281afa",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:27.986Z",
+          "closedAt": "2026-08-01T12:20:28.029Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "MANIFEST_JSON_SHA_MISMATCH",
+          "observedFailure": [
+            "MANIFEST_JSON_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "RECEIPT_META_SHA_MISMATCH"
+          ],
+          "expectedFailure": "MANIFEST_JSON_SHA_MISMATCH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-05",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "13ab95b2629426707e8c2a521e60d6ee7df233c04587d891b80faa49c2acd3d4",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:28.031Z",
+          "closedAt": "2026-08-01T12:20:28.052Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "MANIFEST_TSV_SHA_MISMATCH",
+          "observedFailure": [
+            "MANIFEST_TSV_NOT_EQUIVALENT",
+            "MANIFEST_TSV_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "RECEIPT_META_SHA_MISMATCH"
+          ],
+          "expectedFailure": "MANIFEST_TSV_SHA_MISMATCH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-06",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "6738d3e9fb09cee6bcbee29cbf579da089b665efbc4f845dbac8374dfdc1b16e",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:28.054Z",
+          "closedAt": "2026-08-01T12:20:28.075Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "DESCRIPTOR_SHA_MISMATCH",
+          "observedFailure": [
+            "DESCRIPTOR_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "RECEIPT_META_SHA_MISMATCH"
+          ],
+          "expectedFailure": "DESCRIPTOR_SHA_MISMATCH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-07",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "e782d9ec8feda131f1e6e612192a8538cdee3007a78440770635b6a81a4261e4",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:28.255Z",
+          "closedAt": "2026-08-01T12:20:28.294Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "SEAL_SHA_MISMATCH",
+          "observedFailure": [
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "SEAL_SHA_MISMATCH"
+          ],
+          "expectedFailure": "SEAL_SHA_MISMATCH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-08",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "d832c4e6e05c9bab28b6d682ebab3ebf4cad15e3c4030ab5fb3e49b82cc2a799",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:28.298Z",
+          "closedAt": "2026-08-01T12:20:28.320Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "RECURSIVE_PACKAGE_HASH",
+          "observedFailure": [
+            "RECURSIVE_PACKAGE_HASH",
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH",
+            "SEAL_SHA_MISMATCH"
+          ],
+          "expectedFailure": "RECURSIVE_PACKAGE_HASH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-09",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "9f025d1aa4b9d1a1472dd449b52d7e0e899a379bb2c85d031e9f43f36349fa44",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:28.321Z",
+          "closedAt": "2026-08-01T12:20:28.335Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "RECEIPT_PACKAGE_SHA_MISMATCH",
+          "observedFailure": [
+            "RECEIPT_PACKAGE_SHA_MISMATCH",
+            "RECEIPT_PACKAGE_SIZE_MISMATCH"
+          ],
+          "expectedFailure": "RECEIPT_PACKAGE_SHA_MISMATCH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-10",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "f7fbda700a93b48976c0971989ef082b69b68f10d52de78e2b17477d7751953b",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:36.516Z",
+          "closedAt": "2026-08-01T12:20:36.547Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "RECEIPT_PACKAGE_SHA_MISMATCH",
+          "observedFailure": [
+            "RECEIPT_PACKAGE_SHA_MISMATCH"
+          ],
+          "expectedFailure": "RECEIPT_PACKAGE_SHA_MISMATCH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-11",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "7e69fc3abe09f3136e331260f2d4704be204fb5f026e406b1f1ae2ad212bb4f4",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:36.549Z",
+          "closedAt": "2026-08-01T12:20:36.562Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "DUPLICATE_NORMALIZED_PATH",
+          "observedFailure": [
+            "DUPLICATE_NORMALIZED_PATH"
+          ],
+          "expectedFailure": "DUPLICATE_NORMALIZED_PATH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "PKG-CT-12",
+          "testFamily": "packaging",
+          "baselineDigest": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+          "mutationDigest": "9e5b2cd45ac5323e168e4af4351b5b8a9fc9ad5ee3533a00dddceb13cf7c50cf",
+          "validatorDigest": "307e70df1a165f66bf8223959bb2e46a5b2a5e640cce20f9144502688c5a76b1",
+          "startedAt": "2026-08-01T12:20:36.563Z",
+          "closedAt": "2026-08-01T12:20:36.604Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "WORKSPACE_PACKAGE_DIVERGENCE",
+          "observedFailure": [
+            "WORKSPACE_PACKAGE_DIVERGENCE",
+            "POST_FREEZE_MUTATION"
+          ],
+          "expectedFailure": "WORKSPACE_PACKAGE_DIVERGENCE",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        }
+      ],
+      "document": "GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_PACKAGING_COUNTERTESTS",
+      "verdict": "PASS"
+    },
+    "logical": {
+      "counterTestCount": 12,
+      "closedTestCount": 12,
+      "actualMutationCount": 12,
+      "actualDetectorExecutionCount": 12,
+      "detectedCount": 12,
+      "falseNegativeCount": 0,
+      "fabricatedDetectionCount": 0,
+      "technicalTimeoutCount": 0,
+      "baselinePassAfterMutations": true,
+      "results": [
+        {
+          "testId": "L-CT-01",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "06848008b842620f8718ad599060461ac51bd48e826e165ef5d2c30356fa971a",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:36.798Z",
+          "closedAt": "2026-08-01T12:20:36.827Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "ACTIVE_PAYLOAD_POINTER_HASH",
+          "observedFailure": [
+            "ACTIVE_PAYLOAD_POINTER_HASH",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "ACTIVE_PAYLOAD_POINTER_HASH",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-02",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "1fb89dab585d0bc49028754153ecd5cf113742c55140437421cfd00ed2532c35",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:36.831Z",
+          "closedAt": "2026-08-01T12:20:36.845Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "ACTIVE_DELIVERY_AMBIGUITY",
+          "observedFailure": [
+            "ACTIVE_DELIVERY_AMBIGUITY",
+            "HISTORICAL_214849Z_MARKED_ACTIVE",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "ACTIVE_DELIVERY_AMBIGUITY",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-03",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "819c637d4cf998b1b14fac51f709b1b84397bf0e855564384027c8ad341401de",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:36.846Z",
+          "closedAt": "2026-08-01T12:20:36.860Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "MISSING_INVALIDATION_RULE",
+          "observedFailure": [
+            "MISSING_INVALIDATION_RULE",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "MISSING_INVALIDATION_RULE",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-04",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "c3fda5f0777e5000594407cd269b637575f0339bb3e0bee2a9aee01dfaed0817",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:36.861Z",
+          "closedAt": "2026-08-01T12:20:36.875Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "CERT_SHIM_SENSITIVITY",
+          "observedFailure": [
+            "CERT_SHIM_SENSITIVITY",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "CERT_SHIM_SENSITIVITY",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-05",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "d17270056c69f2be535bf4cc4ffb7ef030bc63d173c983fd099ab36dc18395e8",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:44.718Z",
+          "closedAt": "2026-08-01T12:20:44.746Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "CERT_R2B_SENSITIVITY",
+          "observedFailure": [
+            "CERT_R2B_SENSITIVITY",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "CERT_R2B_SENSITIVITY",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-06",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "d1b921cafdada75dfb60169804451fcfcbefe7b5a4552aaab2054a547e86e836",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:44.750Z",
+          "closedAt": "2026-08-01T12:20:44.766Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "OPEN_PHASE_PRESENT",
+          "observedFailure": [
+            "CLOSED_OUTPUT_ABSENT",
+            "OPEN_PHASE_PRESENT"
+          ],
+          "expectedFailure": "OPEN_PHASE_PRESENT",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-07",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "66185c78445194deaaba97f040ee777f3286c57f9696e2a2cbed09ceeb8b8647",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:44.767Z",
+          "closedAt": "2026-08-01T12:20:44.780Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "CLOSED_OUTPUT_ABSENT",
+          "observedFailure": [
+            "CLOSED_OUTPUT_ABSENT",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "CLOSED_OUTPUT_ABSENT",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-08",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "0fd6b57750ae36d7c78be8e7d559c7f469e162de976735d717b42cca848b9bb8",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:44.782Z",
+          "closedAt": "2026-08-01T12:20:44.795Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "CERT_EXTRACTOR_SENSITIVITY",
+          "observedFailure": [
+            "CERT_EXTRACTOR_SENSITIVITY",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "CERT_EXTRACTOR_SENSITIVITY",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-09",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "0da0a57e22041c9246e8a5e7204edb417eaf393e37900fcef57acba374ad85fe",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:44.966Z",
+          "closedAt": "2026-08-01T12:20:44.993Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "ACTIVE_DELIVERY_AMBIGUITY",
+          "observedFailure": [
+            "ACTIVE_DELIVERY_AMBIGUITY",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "ACTIVE_DELIVERY_AMBIGUITY",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-10",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "7bf22c0acf70ab83bdf03691d5511a22f5d16c25373671f718be27227d6e3447",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:44.996Z",
+          "closedAt": "2026-08-01T12:20:45.008Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "UNKNOWN_REUSE_ALLOWED",
+          "observedFailure": [
+            "UNKNOWN_REUSE_ALLOWED",
+            "CLOSED_OUTPUT_ABSENT"
+          ],
+          "expectedFailure": "UNKNOWN_REUSE_ALLOWED",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-11",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "fef674baa856aa599bad39ff47b882f90cd86c1cdf8087010daa1ead4a9dd5a4",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:45.009Z",
+          "closedAt": "2026-08-01T12:20:45.022Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "RESTART_FROM_ZERO_NOT_FALSE",
+          "observedFailure": [
+            "CLOSED_OUTPUT_ABSENT",
+            "RESTART_FROM_ZERO_NOT_FALSE"
+          ],
+          "expectedFailure": "RESTART_FROM_ZERO_NOT_FALSE",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        },
+        {
+          "testId": "L-CT-12",
+          "testFamily": "logical",
+          "baselineDigest": "c85b96c2741efeb37c0b4a8c1d9c49dcc4ea490ce40eec9d69e6bcf82e57cba4",
+          "mutationDigest": "7ed2117da3518f429ff2cf98ac146abedc3d8c4aee8538de9624d4e395f1ff12",
+          "validatorDigest": "6328fa190c37dd1a0076c850dd324adc10f1a3ed8e92c1d7446a16e65940ea1d",
+          "startedAt": "2026-08-01T12:20:45.023Z",
+          "closedAt": "2026-08-01T12:20:45.037Z",
+          "status": "CLOSED_PASS",
+          "detectorId": "HANDOFF_POINTS_HISTORICAL",
+          "observedFailure": [
+            "CLOSED_OUTPUT_ABSENT",
+            "HANDOFF_POINTS_HISTORICAL"
+          ],
+          "expectedFailure": "HANDOFF_POINTS_HISTORICAL",
+          "realMutationApplied": true,
+          "realValidatorExecuted": true,
+          "cleanupComplete": true,
+          "reusable": true
+        }
+      ],
+      "document": "GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_LOGICAL_COUNTERTESTS",
+      "verdict": "PASS"
+    }
+  },
+  "openRunCount": 0,
+  "runningRunCount": 0,
+  "technicalTimeoutCount": 0,
+  "hostileCopyCount": 0,
+  "heavyTemporaryRootCount": 0,
+  "MISSION_NODE_PROCESS_REMAINING_COUNT": 0,
+  "finalBaseline": {
+    "realR1LogicalValidator": {
+      "document": "GATE12_L3_RECLOSURE_R1_PREPACKAGE_VALIDATION",
+      "producedAt": "2026-08-01T12:21:50.950Z",
+      "verdict": "PASS",
+      "failureCount": 0,
+      "failures": [],
+      "checksSatisfiedCount": 40,
+      "hardcodedPassCount": 0,
+      "circularValidationCount": 0,
+      "recomputed": {
+        "payloadR2Sha256": "73178f42b14ec58c4c1a864ad1e684e1dcf22a89e273aad69b0ec57830c3ffb8",
+        "deliveryR2Sha256": "4a444f0815e26e6091d966c5c90655d26538ec676949cc8222bbf3cb829cadb2",
+        "receiptR2Sha256": "b3b6cc914d08086f2a14738c4659db6106a3a8919be95007a78c2acd1c9d3d8b"
+      }
+    },
+    "independentPackagingValidator": "PASS_CONFIRMED_DURING_FINALIZE",
+    "invariants": {
+      "package": {
+        "sha256": "d8281866979263fe8f1d0fbff437bf2a6d45de162ca9ac1218d5d437fffd6406",
+        "bytes": 62725
+      },
+      "receipt": {
+        "sha256": "6347b5916b2b659efea144d2ed1b1931c2f4091c3d544569afd15fb44da73233",
+        "bytes": 1340
+      },
+      "payload": {
+        "sha256": "73178f42b14ec58c4c1a864ad1e684e1dcf22a89e273aad69b0ec57830c3ffb8",
+        "bytes": 400690543
+      },
+      "delivery": {
+        "sha256": "4a444f0815e26e6091d966c5c90655d26538ec676949cc8222bbf3cb829cadb2",
+        "bytes": 400022396
+      },
+      "receiptR2": {
+        "sha256": "b3b6cc914d08086f2a14738c4659db6106a3a8919be95007a78c2acd1c9d3d8b",
+        "bytes": 1984
+      },
+      "rejectedR0": {
+        "sha256": "a3aa2581acc39915043caa9ebb5078394dfe54288cd02b2aa3b60748a02e73f1",
+        "bytes": 49318
+      }
+    },
+    "frozenContent": {
+      "contentSetDigest": "7a36e676b1d96d02cb9020f44fbe3370bc6177fbf7536124049c075ce1865211",
+      "treeDigest": "a3fe89accaff2fb4f22e349cd6911aff4d82fe54e5c56848a83a027ff5c7925a",
+      "fileCount": 28,
+      "totalBytes": 213373
+    },
+    "packageMeta": {
+      "contentSetDigest": "063e0cdb8c1c55d152617492619d2003e705f857391c5a01f73c8cf4de4df551",
+      "treeDigest": "83c501e76304c8f72b06eac118f61ec263aa5685ce89ffbf1547eb94cf41304d",
+      "fileCount": 4,
+      "totalBytes": 11989
+    }
+  },
+  "staticAuditPath": "C:/Users/melan/AppData/Local/Temp/gate12-l3-r1-external-reinspection-20260801T120900Z/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_STATIC_AUDIT.json",
+  "closedAt": "2026-08-01T12:21:50.967Z",
+  "initialDefectCount": 4,
+  "closedDefectCount": 4,
+  "remainingDefectCount": 0,
+  "defects": [
+    {
+      "defectId": "DEF-PACKAGE-WORKSPACE-DIVERGENCE",
+      "r0Reproduced": "previous R0 baseline retained; not replayed in targeted resume",
+      "r1ObservedState": "CLOSED",
+      "detectorId": "external-static-byte-validation-plus-fragmented-countertests",
+      "status": "CLOSED"
+    },
+    {
+      "defectId": "DEF-DISK-MANIFEST-STALE",
+      "r0Reproduced": "previous R0 baseline retained; not replayed in targeted resume",
+      "r1ObservedState": "CLOSED",
+      "detectorId": "external-static-byte-validation-plus-fragmented-countertests",
+      "status": "CLOSED"
+    },
+    {
+      "defectId": "DEF-ZIP-SEAL-MISSING-PACKAGE-SHA",
+      "r0Reproduced": "previous R0 baseline retained; not replayed in targeted resume",
+      "r1ObservedState": "CLOSED",
+      "detectorId": "external-static-byte-validation-plus-fragmented-countertests",
+      "status": "CLOSED"
+    },
+    {
+      "defectId": "DEF-ZIP-UNEXPECTED-MEMBERS",
+      "r0Reproduced": "previous R0 baseline retained; not replayed in targeted resume",
+      "r1ObservedState": "CLOSED",
+      "detectorId": "external-static-byte-validation-plus-fragmented-countertests",
+      "status": "CLOSED"
+    }
+  ],
+  "cleanup": {
+    "hostileCopyCount": 0,
+    "temporaryExecutableRemoved": true,
+    "openRunCount": 0,
+    "runningRunCount": 0,
+    "technicalTimeoutCount": 0,
+    "MISSION_NODE_PROCESS_REMAINING_COUNT": 0
+  }
+}

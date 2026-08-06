@@ -1,0 +1,60 @@
+{
+  "gateId": "GATE12",
+  "stateRevision": "R0002",
+  "defects": [
+    {
+      "defectId": "OBS-R2-01",
+      "severity": "MAJOR",
+      "status": "CLOSED",
+      "description": "The canonical GENESIS_IMPORT source map was adopted, but the normal ledger-validation entrypoint still required a manual --source-map argument. Without that argument the live ledger validation exited 2 with valid=false and three BLOCKING findings, so the adopted authority was not reachable through the normal entrypoint.",
+      "affectedRequirements": [
+        "REQ-I4-01",
+        "REQ-I4-02",
+        "REQ-I4-07",
+        "REQ-BST-01",
+        "REQ-LED-03"
+      ],
+      "evidence": [
+        {
+          "role": "PRE_PATCH_BASELINE",
+          "path": "evidence/FUNCTIONAL_BASELINE_BEFORE_PATCH.json",
+          "observed": "no --source-map: exitCode=2, valid=false, findings=3 (MISSING_TRANSITION_AUTHORITY x2, COMPLETE_CONFIRMED_WITHOUT_INDEPENDENT_REINSPECTION)"
+        },
+        {
+          "role": "AUTHORIZING_INDEPENDENT_AUDIT",
+          "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+          "observed": "disposition[\"OBS-R2-01\"]=AUTHORIZED_FOR_COMPLETE_CONFIRMED_CLOSURE, I4=AUTHORIZED_TO_START"
+        },
+        {
+          "role": "POST_PATCH_EXECUTED_RUN",
+          "path": "evidence/I4_TEST_EXECUTION_RESULTS.json",
+          "observed": "no --source-map: exitCode=0, valid=true, eventCount=41, findings=0, sourceMap.origin=CANONICAL_DEFAULT"
+        },
+        {
+          "role": "OVERRIDE_NON_REGRESSION",
+          "path": "checkpoints/CP03_VALIDATOR_ACTIVATION.json",
+          "observed": "--source-map override: exitCode=0, valid=true, findings=0, sourceMap.origin=EXPLICIT_OVERRIDE"
+        },
+        {
+          "role": "HOSTILE_COUNTERTESTS",
+          "path": "evidence/I4_TEST_EXECUTION_RESULTS.json",
+          "observed": "11/11 node:test cases pass; mutants M1_UNPATCHED_VALIDATOR, M2_CORRUPT_DEFAULT_MAP and M3_SILENT_FALLBACK are all killed"
+        },
+        {
+          "role": "FINAL_INDEPENDENT_AUDIT",
+          "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+          "observed": "verdict=I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1_FINAL_INDEPENDENT_AUDIT_PASS_AND_COMPLETE_CONFIRMED_RECORDING_AUTHORIZED, obsR201Closed=true"
+        }
+      ],
+      "detector": "node governance/tools/validate-status-ledger.mjs (normal entrypoint, no --source-map) plus node --test governance/tests/i4-default-source-map-activation.test.mjs",
+      "repairScope": [
+        "governance/tools/validate-status-ledger.mjs",
+        "governance/tests/i4-default-source-map-activation.test.mjs"
+      ],
+      "blockingProgression": false,
+      "openedAt": "2026-08-06T03:06:43.989Z",
+      "closedAt": "2026-08-06T04:11:58.062Z",
+      "closureEvidence": "Executed I4 validation, not a summary: normal no-override ledger validation exits 0 with valid=true, eventCount=41 and zero findings against the pinned live ledger a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5; the explicit --source-map override still exits 0 with zero findings; 11/11 positive and hostile cases pass in governance/tests/i4-default-source-map-activation.test.mjs; three mutation-probativity runs (unpatched validator, corrupted canonical map, reintroduced silent fallback) all fail, proving the tests are probative; the R4 independent audit authorized this closure; the final independent audit (CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS) confirms this closure and authorizes recording I4 COMPLETE_CONFIRMED at R0002. No new defect was opened or invented at R0002; this entry is carried forward unchanged from R0001 to preserve history."
+    }
+  ]
+}

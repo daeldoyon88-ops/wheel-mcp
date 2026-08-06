@@ -1,0 +1,103 @@
+{
+  "document": "I4_BOOTSTRAP_EXECUTION_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "I4_BOOTSTRAP_EXECUTION_AUTHORITY_R1",
+  "authorityClass": "TEMPORARY_PROJECT_OWNER_EXECUTION_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-06T03:06:43.989Z",
+  "temporary": true,
+  "singleUse": true,
+  "canonicalExecutionContract": false,
+  "replacesExistingCanonicalContract": false,
+  "authorizedMission": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1",
+  "scopeId": "I4",
+  "authorizedObjectives": [
+    "Load governance/authority/GENESIS_IMPORT_SOURCE_MAP.json automatically in the normal ledger-validator entrypoint.",
+    "Preserve --source-map as an explicit override.",
+    "Make normal no-override ledger validation exit 0 with valid=true and zero findings.",
+    "Install the minimal GATE12 I4 contract, authorizedPaths, R0001 checkpoint, state pointer, defect state, and seal.",
+    "Close OBS-R2-01 only after executed validation evidence exists.",
+    "Produce I4 evidence for a separate independent audit.",
+    "Keep GATE13 non-executable and non-authorized by this authority."
+  ],
+  "authorizedPaths": [
+    "governance/tools/validate-status-ledger.mjs",
+    "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+    "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+    "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+    "governance/gates/GATE12/state/CURRENT_STATE.json",
+    "governance/tests/i4-default-source-map-activation.test.mjs"
+  ],
+  "executionScopeMapping": {
+    "document": "I4_EXECUTION_SCOPE_MAPPING",
+    "sha256": "5d00d2d1d4b41920ca30e1cac5dc11fe8a66d884661fe73a5ebf7befc2c0444e",
+    "futurePathCount": 8,
+    "gates": {
+      "executionScopeAmbiguities": 0,
+      "unjustifiedFuturePaths": 0,
+      "unresolvedSchemas": 0,
+      "unresolvedValidators": 0,
+      "historicalRevisionMutations": 0,
+      "gate13AuthorizationPaths": 0
+    }
+  },
+  "strategicBinding": {
+    "gateId": "GATE12",
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a",
+    "canonicalObjectiveSha256": "a2bf6e9649766e5ae28e5d5a496c197cae03970ec049db52805adb912c611157",
+    "scopeDoesNotRedefineCanonicalObjective": true
+  },
+  "independentAdoptionAudit": {
+    "markdownPath": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.md",
+    "markdownSha256": "5a3c7a17c74ff1a8bfd009a9024c9c7e3f532e58d065255522477593735f3daa",
+    "jsonPath": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+    "jsonSha256": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c",
+    "verdict": "R4_CANONICAL_ADOPTION_AND_LIVE_REPOSITORY_VALIDATION_R1_INDEPENDENT_AUDIT_PASS_FOR_OBS_R2_01_CLOSURE_AND_I4_AUTHORIZATION_WITH_NONBLOCKING_HYBRID_REPLAY_SOURCE_ROOT_OBSERVATION"
+  },
+  "baselinePins": {
+    "head": "a2aca4c44d3469e95e9f0d3e9490056336830ad1",
+    "originMain": "a2aca4c44d3469e95e9f0d3e9490056336830ad1",
+    "divergence": "0 0",
+    "ledgerSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+    "adoptedR4FileCount": 14
+  },
+  "constraints": {
+    "networkAllowed": false,
+    "subagentsAllowed": false,
+    "gitStagingAllowed": false,
+    "gitCommitAllowed": false,
+    "gitPushAllowed": false,
+    "ledgerMutationAllowed": false,
+    "adoptedR4MutationAllowed": false,
+    "historicalRevisionMutationAllowed": false,
+    "obsR201ClosureRequiresExecutedI4Validation": true,
+    "i4ExecutionAllowed": true,
+    "gate13ExecutableAllowed": false,
+    "gate13Authorized": false,
+    "gate14Authorized": false,
+    "r8Authorized": false,
+    "lunaAuthorized": false
+  },
+  "singleUseConsumption": {
+    "mode": "EXACT_MISSION_ONCE",
+    "consumeOn": "FIRST_AUTHORIZED_REPOSITORY_WRITE_BY_AUTHORIZED_MISSION",
+    "reusableByAnotherMission": false
+  },
+  "automaticSupersession": {
+    "enabled": true,
+    "condition": "I4_AUDITED_CLOSURE",
+    "requiresIndependentAuditPass": true,
+    "supersededWithoutAuthorityMutation": true,
+    "authorityStatusAfterCondition": "SUPERSEDED"
+  },
+  "forbiddenClaims": [
+    "OBS-R2-01 closed before I4 validation",
+    "I4 independently audited before a separate audit exists",
+    "GATE13 authorized or executable",
+    "authority treated as an existing canonical execution contract",
+    "authorization outside the eight exact authorizedPaths"
+  ]
+}

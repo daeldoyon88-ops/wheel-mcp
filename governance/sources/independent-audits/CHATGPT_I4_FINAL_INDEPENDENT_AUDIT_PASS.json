@@ -1,0 +1,51 @@
+{
+  "document": "CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS",
+  "schemaVersion": 1,
+  "verdict": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1_FINAL_INDEPENDENT_AUDIT_PASS_AND_COMPLETE_CONFIRMED_RECORDING_AUTHORIZED",
+  "subjectMission": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1",
+  "auditedEvidence": {
+    "zipSha256": "7a92038faffba9bad39f8e67107d11c57c0bb16110e2a3d7d5d25fc19c5c7bb2",
+    "selftestSha256": "b200671092599ef398c9cef836859d6fd6e93c3e91a5ca2a650cd829b5e3309e",
+    "correctedReceiptSha256": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10",
+    "supersededReceiptSha256": "ee4d2bc0d542f7879b48fa57aaa9ba0fa09daac777818a71291628f5ed1240a4"
+  },
+  "independentConclusions": {
+    "zipPortable": true,
+    "zipEntries": 82,
+    "manifestAndPackageSealValid": true,
+    "stateRevisionR0001SealValid": true,
+    "authorizedPathsPresent": 8,
+    "outsideAllowlist": 0,
+    "reportedTestsPassed": "11/11",
+    "reportedMutantsKilled": "3/3",
+    "defaultSourceMapActivationAccepted": true,
+    "explicitOverridePreserved": true,
+    "obsR201Closed": true,
+    "gate13Created": false,
+    "gate13Executable": false,
+    "gate13Authorized": false
+  },
+  "receiptRepairClosure": {
+    "bomMismatchFindingClosed": true,
+    "correctedSelftestSha256": "b200671092599ef398c9cef836859d6fd6e93c3e91a5ca2a650cd829b5e3309e",
+    "correctedReceiptUtf8Bom": false,
+    "correctedReceiptJsonValid": true
+  },
+  "authorization": {
+    "recordI4CompleteConfirmed": true,
+    "recordThroughNewImmutableStateRevision": true,
+    "mutateR0001": false,
+    "authorizeGate13": false,
+    "authorizeNextGateExecution": false
+  },
+  "requiredRecordingConstraints": [
+    "Preserve GATE12 state revision R0001 byte-for-byte.",
+    "Create a new immutable state revision rather than editing the sealed R0001 files.",
+    "Reference this audit and the corrected detached receipt by exact SHA-256.",
+    "Do not modify the I4 ZIP, self-test, validator, tests, contract R0001, ledger, adopted R4 files, or bootstrap authority unless an existing canonical transition mechanism explicitly requires and authorizes it.",
+    "Keep GATE13 non-executable and non-authorized."
+  ],
+  "limitations": [
+    "The live Windows repository was not mounted during the final receipt re-audit. The I4 implementation package had already been directly inspected; this final pass closes only the detached-receipt byte-binding defect."
+  ]
+}

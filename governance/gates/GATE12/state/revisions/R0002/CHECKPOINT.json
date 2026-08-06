@@ -1,0 +1,161 @@
+{
+  "gateId": "GATE12",
+  "stateRevision": "R0002",
+  "milestone": "I4_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE",
+  "resumePoint": "I4 is executed, sealed at R0001, and now independently audited PASS; I4 is recorded COMPLETE_CONFIRMED at R0002 under I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1. R0001 remains sealed and byte-identical as the executed evidence base and is never mutated. The exact next action is a separate discovery or authorization of GATE13; GATE13 is not created, not executable, and not authorized by this revision or by any prior authority.",
+  "completedTasks": [
+    "Separate independent audit of the I4 evidence package and of revision R0001.",
+    "Record COMPLETE_CONFIRMED for I4 only if that independent audit passes.",
+    "Do not create, modify, or make executable any next-gate tree before that audit.",
+    "Verify byte-for-byte the two final independent audit files and the corrected detached terminal verification receipt against their declared SHA-256 hashes.",
+    "Verify byte-for-byte that GATE12 state revision R0001 and its four sealed members are unchanged.",
+    "Verify byte-for-byte that all files listed in R0001's protectedHashes are unchanged.",
+    "Deposit the audited evidence as canonical sources under governance/sources/ and governance/sources/independent-audits/.",
+    "Create GATE12 state revision R0002 recording I4=COMPLETE_CONFIRMED, OBS-R2-01=CLOSED, GATE13 non-executable and non-authorized.",
+    "Point CURRENT_STATE.json to R0002 and its recomputed STATE_SEAL hash."
+  ],
+  "openTasks": [
+    "Separate discovery or authorization of GATE13."
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "738492ce5d18edda523aae446bad696e3a604ecdff02e181a633d72200db9ec8",
+      "validUntilCondition": "valid while governance/tools/validate-status-ledger.mjs keeps these exact bytes"
+    },
+    {
+      "path": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "sha256": "6ce638b28349ac3508ac1a147ce1e35a84ba4c7579f883fa218edda297de1d5e",
+      "validUntilCondition": "valid while the I4 test file keeps these exact bytes"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b",
+      "validUntilCondition": "valid while R0001 remains the active GATE12 contract revision"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+      "validUntilCondition": "valid while the canonical ledger is byte-invariant"
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "sha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "validUntilCondition": "valid while the adopted canonical source map is byte-invariant"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "a1e1b547142692c113a6e3d521f70d1ce97ac4b94f493b419be30da66c6810b8",
+      "validUntilCondition": "valid while R0001 remains sealed and byte-identical"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+      "sha256": "53929a397a6f850be7c153e802ecc3b06bcd03d40f7118b5c1d6a4ce1de1955c",
+      "validUntilCondition": "valid while the final independent audit keeps these exact bytes"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.md",
+      "sha256": "61b5038a3a5c0384dfa3b7ecdb0854236da894d08030178d5db7c1cbe0c592fa",
+      "validUntilCondition": "valid while the final independent audit keeps these exact bytes"
+    },
+    {
+      "path": "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json",
+      "sha256": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10",
+      "validUntilCondition": "valid while the corrected detached receipt keeps these exact bytes"
+    }
+  ],
+  "invalidatedEvidence": [
+    {
+      "evidence": "I4 status EXECUTED_BY_AGENT_PENDING_INDEPENDENT_AUDIT and i4CompleteConfirmed=false recorded in R0001's STATE_SEAL payload.",
+      "reason": "Superseded by the final independent audit PASS verdict; I4 is now COMPLETE_CONFIRMED as of R0002.",
+      "supersededBy": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json"
+    },
+    {
+      "evidence": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json treated as an active execution authority.",
+      "reason": "Its own automaticSupersession clause (condition I4_AUDITED_CLOSURE) is satisfied by this audited closure; the authority file itself is not mutated and its historical bytes remain unchanged and protected.",
+      "supersededBy": "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json"
+    }
+  ],
+  "requiredNextActions": [
+    "Separate discovery or authorization of GATE13; GATE13 execution is never automatic and is not authorized or made executable by this revision."
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "sha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5"
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "sha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b"
+    },
+    {
+      "path": "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08"
+    },
+    {
+      "path": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json",
+      "sha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+      "sha256": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.md",
+      "sha256": "5a3c7a17c74ff1a8bfd009a9024c9c7e3f532e58d065255522477593735f3daa"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "738492ce5d18edda523aae446bad696e3a604ecdff02e181a633d72200db9ec8"
+    },
+    {
+      "path": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "sha256": "6ce638b28349ac3508ac1a147ce1e35a84ba4c7579f883fa218edda297de1d5e"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "sha256": "235555ccca6a2b05023bf51648cc02099946b9d68a4485a21b8c70317e4b3fd1"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "1271c3673f635baa98eb8940d066774e626b8d98d98dd036ca40051e48170976"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "55a8be9c9ae1a99829c1292ff432c56ca073e755e1d9b3b6726dda6e37c3683a"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "a1e1b547142692c113a6e3d521f70d1ce97ac4b94f493b419be30da66c6810b8"
+    },
+    {
+      "path": "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json",
+      "sha256": "5468283684cb2e49c52f3ef22325630710b5f74dfc4dd1171c824a7f45a79e46"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.md",
+      "sha256": "61b5038a3a5c0384dfa3b7ecdb0854236da894d08030178d5db7c1cbe0c592fa"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+      "sha256": "53929a397a6f850be7c153e802ecc3b06bcd03d40f7118b5c1d6a4ce1de1955c"
+    },
+    {
+      "path": "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json",
+      "sha256": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10"
+    }
+  ],
+  "createdAt": "2026-08-06T05:03:37.000Z"
+}

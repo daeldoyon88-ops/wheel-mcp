@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE12",
+  "stateRevision": "R0002",
+  "revisionPath": "governance/gates/GATE12/state/revisions/R0002",
+  "stateSealSha256": "4f07a913d1a472bdea9731b495053949b99eeebaf62b4f9edc3b0b308c08ccd7",
+  "committedByTransactionId": "I4-R0002-COMPLETE-CONFIRMED-RECORDING-FILESYSTEM-ONLY-NO-LEDGER-EVENT"
+}

@@ -1,0 +1,82 @@
+{
+  "document": "I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1",
+  "authorityClass": "TEMPORARY_PROJECT_OWNER_EXECUTION_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-06T05:01:45.000Z",
+  "temporary": true,
+  "singleUse": true,
+  "canonicalExecutionContract": false,
+  "replacesExistingCanonicalContract": false,
+  "authorizedMission": "I4_COMPLETE_CONFIRMED_CANONICAL_RECORDING_R1",
+  "scopeId": "I4",
+  "authorizedObjectives": [
+    "Record I4 as COMPLETE_CONFIRMED in a new immutable GATE12 state revision R0002.",
+    "Deposit byte-identical copies of the final independent audit and the corrected detached terminal verification receipt as canonical sources.",
+    "Preserve GATE12 state revision R0001 byte-for-byte.",
+    "Preserve the eight previously created or modified I4 files byte-for-byte.",
+    "Keep GATE13 non-executable and non-authorized by this authority."
+  ],
+  "authorizedPaths": [
+    "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json",
+    "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.md",
+    "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+    "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json",
+    "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE12/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+    "governance/gates/GATE12/state/CURRENT_STATE.json"
+  ],
+  "auditedEvidence": {
+    "finalIndependentAuditMarkdownPath": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.md",
+    "finalIndependentAuditMarkdownSha256": "61b5038a3a5c0384dfa3b7ecdb0854236da894d08030178d5db7c1cbe0c592fa",
+    "finalIndependentAuditJsonPath": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+    "finalIndependentAuditJsonSha256": "53929a397a6f850be7c153e802ecc3b06bcd03d40f7118b5c1d6a4ce1de1955c",
+    "correctedDetachedReceiptPath": "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json",
+    "correctedDetachedReceiptSha256": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10",
+    "auditedVerdict": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1_FINAL_INDEPENDENT_AUDIT_PASS_AND_COMPLETE_CONFIRMED_RECORDING_AUTHORIZED"
+  },
+  "r0001Protection": {
+    "stateRevision": "R0001",
+    "mutable": false,
+    "stateSealSha256": "a1e1b547142692c113a6e3d521f70d1ce97ac4b94f493b419be30da66c6810b8",
+    "requirement": "R0001 files must remain byte-identical; only a new immutable revision R0002 may be created."
+  },
+  "constraints": {
+    "networkAllowed": false,
+    "subagentsAllowed": false,
+    "gitStagingAllowed": false,
+    "gitCommitAllowed": false,
+    "gitPushAllowed": false,
+    "ledgerMutationAllowed": false,
+    "adoptedR4MutationAllowed": false,
+    "historicalRevisionMutationAllowed": false,
+    "completeConfirmedRecordingAllowed": true,
+    "gate13Authorized": false,
+    "gate13ExecutableAllowed": false,
+    "gate14Authorized": false,
+    "r8Authorized": false,
+    "lunaAuthorized": false
+  },
+  "singleUseConsumption": {
+    "mode": "EXACT_MISSION_ONCE",
+    "consumeOn": "FIRST_AUTHORIZED_REPOSITORY_WRITE_BY_AUTHORIZED_MISSION",
+    "reusableByAnotherMission": false
+  },
+  "automaticSupersession": {
+    "enabled": true,
+    "condition": "R0002_VALID_SEAL_RECORDED",
+    "requiresValidStateSealAndStateRevision": true,
+    "supersededWithoutAuthorityMutation": true,
+    "authorityStatusAfterCondition": "SUPERSEDED"
+  },
+  "forbiddenClaims": [
+    "I4 COMPLETE_CONFIRMED recorded without a matching final independent audit PASS verdict",
+    "R0001 modified or replaced",
+    "GATE13 authorized, executable, or created",
+    "authority treated as an existing canonical execution contract",
+    "authorization outside the eight exact authorizedPaths",
+    "any validator finding fabricated or read from a field instead of recomputed"
+  ]
+}

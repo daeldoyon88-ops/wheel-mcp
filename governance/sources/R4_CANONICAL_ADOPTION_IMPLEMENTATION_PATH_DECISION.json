@@ -1,0 +1,64 @@
+{
+  "document": "R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION",
+  "schemaVersion": 1,
+  "decisionClass": "OWNER_IMPLEMENTATION_PATH_DECISION",
+  "authoritative": true,
+  "canonicalArtifact": false,
+  "implementationDependencyDecision": true,
+  "authorizedBy": "PROJECT_OWNER",
+  "authorizedAtUtc": "2026-08-05T21:41:58.677Z",
+  "sourceMission": "R4_CANONICAL_ADOPTION_AND_LIVE_REPOSITORY_VALIDATION_R1",
+  "sourceR4ZipSha256": "c55970995f8320e75dabc883d95598944922e388c5b7dfa66eed58571491bdec",
+  "implementationDependencies": [
+    {
+      "sourcePathInR4": "package/support/authority/R1_RECON_NORMATIVE_INPUT_REGISTRY.json",
+      "targetRepositoryPath": "governance/implementation/r1-recon/authority/R1_RECON_NORMATIVE_INPUT_REGISTRY.json",
+      "expectedSha256": "9585a0bf257016822bbf46cd0ce06cbb3c1e7cef3dcbeed2f221708cd50767a2"
+    },
+    {
+      "sourcePathInR4": "package/support/authority/R1_RECON_OWNER_POLICY_REGISTRY.json",
+      "targetRepositoryPath": "governance/implementation/r1-recon/authority/R1_RECON_OWNER_POLICY_REGISTRY.json",
+      "expectedSha256": "077d82cf8d976e3a185e470ceb9ca5c2442f91e8b75897ea7297abb6538ca04b"
+    },
+    {
+      "sourcePathInR4": "package/support/authority/R1_RECON_SEMANTIC_CLASSIFICATION_REGISTRY.json",
+      "targetRepositoryPath": "governance/implementation/r1-recon/authority/R1_RECON_SEMANTIC_CLASSIFICATION_REGISTRY.json",
+      "expectedSha256": "11cf6ace0aaa1a25522aa09a87ba2937eb88fe6404490623f79876a9cbca6dbc"
+    },
+    {
+      "sourcePathInR4": "package/support/authority/R1_RECON_TRANSFORMATION_REGISTRY.json",
+      "targetRepositoryPath": "governance/implementation/r1-recon/authority/R1_RECON_TRANSFORMATION_REGISTRY.json",
+      "expectedSha256": "e1f135c86a7a2978a14e29dc124fe8c8393a920d236ee87d0ace09b8f86fa467"
+    },
+    {
+      "sourcePathInR4": "package/support/lib/R1_RECON_CANONICAL_PRIMITIVES.mjs",
+      "targetRepositoryPath": "governance/implementation/r1-recon/lib/R1_RECON_CANONICAL_PRIMITIVES.mjs",
+      "expectedSha256": "88afbe6447582fa812174315f9cc4b6768ca383c873f2f3ec5b8be236250370f"
+    }
+  ],
+  "constraints": {
+    "canonicalAdoptionPathMustRemainFalse": true,
+    "treatAsPublicCanonicalArtifacts": false,
+    "bytesMustRemainIdenticalToAuditedR4Package": true,
+    "suppliedToToolsByExplicitCliArguments": true
+  },
+  "writeAllowlist": [
+    "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+    "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json",
+    "governance/authority/GENESIS_IMPORT_SOURCE_MAP_FIELD_PROVENANCE.json",
+    "governance/schemas/genesis-import-source-map.schema.json",
+    "governance/schemas/genesis-import-source-map-field-provenance.schema.json",
+    "governance/tools/generate-genesis-import-source-map.mjs",
+    "governance/tools/validate-genesis-import-source-map-provenance.mjs",
+    "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+    "governance/implementation/r1-recon/authority/R1_RECON_NORMATIVE_INPUT_REGISTRY.json",
+    "governance/implementation/r1-recon/authority/R1_RECON_OWNER_POLICY_REGISTRY.json",
+    "governance/implementation/r1-recon/authority/R1_RECON_SEMANTIC_CLASSIFICATION_REGISTRY.json",
+    "governance/implementation/r1-recon/authority/R1_RECON_TRANSFORMATION_REGISTRY.json",
+    "governance/implementation/r1-recon/lib/R1_RECON_CANONICAL_PRIMITIVES.mjs",
+    "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+  ],
+  "noOtherRepositoryPathAuthorized": true,
+  "ownerCryptographicSignature": null,
+  "ownerCryptographicSignatureInvented": false
+}

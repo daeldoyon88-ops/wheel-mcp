@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE12",
+  "stateRevision": "R0001",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "1271c3673f635baa98eb8940d066774e626b8d98d98dd036ca40051e48170976",
+      "byteLength": 5925
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "55a8be9c9ae1a99829c1292ff432c56ca073e755e1d9b3b6726dda6e37c3683a",
+      "byteLength": 3154
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b",
+      "byteLength": 17711
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "sha256": "235555ccca6a2b05023bf51648cc02099946b9d68a4485a21b8c70317e4b3fd1",
+      "byteLength": 281
+    }
+  ],
+  "previousStateSealSha256": null,
+  "sealedAt": "2026-08-06T04:11:58.062Z",
+  "payload": {
+    "gateId": "GATE12",
+    "stateRevision": "R0001",
+    "mission": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1",
+    "milestone": "I4_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE",
+    "bootstrapAuthorityId": "I4_BOOTSTRAP_EXECUTION_AUTHORITY_R1",
+    "bootstrapAuthoritySha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a",
+    "ledgerSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+    "ledgerMutated": false,
+    "canonicalSourceMapSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+    "validatorSha256Before": "fe515381499447137d563751cea7a77211e0e63f94e94e9427ef9e48f9536054",
+    "validatorSha256After": "738492ce5d18edda523aae446bad696e3a604ecdff02e181a633d72200db9ec8",
+    "testFileSha256": "6ce638b28349ac3508ac1a147ce1e35a84ba4c7579f883fa218edda297de1d5e",
+    "authorizedPaths": [
+      "governance/tools/validate-status-ledger.mjs",
+      "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+      "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+      "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+      "governance/gates/GATE12/state/CURRENT_STATE.json",
+      "governance/tests/i4-default-source-map-activation.test.mjs"
+    ],
+    "defaultLedgerExitCode": 0,
+    "defaultLedgerValid": true,
+    "defaultLedgerFindings": 0,
+    "overrideLedgerExitCode": 0,
+    "overrideLedgerValid": true,
+    "overrideLedgerFindings": 0,
+    "i4TestsTotal": 11,
+    "i4TestsPassed": 11,
+    "i4TestsFailed": 0,
+    "mutationProbativityMutantsKilled": 3,
+    "obsR201Status": "CLOSED",
+    "i4Status": "EXECUTED_BY_AGENT_PENDING_INDEPENDENT_AUDIT",
+    "i4CompleteConfirmed": false,
+    "gate13Created": false,
+    "gate13Executable": false,
+    "gate13AuthorizedByThisMission": false,
+    "sealedAt": "2026-08-06T04:11:58.062Z"
+  },
+  "payloadSha256": "96593cea11bd64554078986817d5f71823cda2f64ec2339d5fcfe005423a8ae4"
+}

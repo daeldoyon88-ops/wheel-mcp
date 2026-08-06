@@ -1,0 +1,116 @@
+{
+  "gateId": "GATE12",
+  "stateRevision": "R0001",
+  "milestone": "I4_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE",
+  "resumePoint": "I4 is executed and sealed at R0001. The exact next action is a separate independent audit session that reinspects governance/gates/GATE12/state/revisions/R0001 and the executed I4 evidence package, then decides whether COMPLETE_CONFIRMED may be recorded. No further repository write is authorized before that audit.",
+  "completedTasks": [
+    "Repin HEAD, origin/main, divergence, the canonical ledger hash, and the 14 adopted R4 files.",
+    "Verify the temporary single-use bootstrap authority byte-for-byte against its portable evidence package.",
+    "Reproduce the pre-patch functional baseline with and without --source-map.",
+    "Design and sandbox-preflight the minimal default source-map activation patch.",
+    "Rehearse the full filesystem rollback in a physical sandbox copy.",
+    "Create the GATE12 R0001 execution contract and its CURRENT_CONTRACT pointer.",
+    "Activate the canonical default source map in the normal ledger-validator entrypoint while preserving --source-map as an explicit override.",
+    "Create and execute governance/tests/i4-default-source-map-activation.test.mjs.",
+    "Execute positive tests, hostile countertests, and three mutation-probativity runs.",
+    "Close OBS-R2-01 on executed validation evidence."
+  ],
+  "openTasks": [
+    "Separate independent audit of the I4 evidence package and of revision R0001."
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "738492ce5d18edda523aae446bad696e3a604ecdff02e181a633d72200db9ec8",
+      "validUntilCondition": "valid while governance/tools/validate-status-ledger.mjs keeps these exact bytes"
+    },
+    {
+      "path": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "sha256": "6ce638b28349ac3508ac1a147ce1e35a84ba4c7579f883fa218edda297de1d5e",
+      "validUntilCondition": "valid while the I4 test file keeps these exact bytes"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b",
+      "validUntilCondition": "valid while R0001 remains the active GATE12 contract revision"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+      "validUntilCondition": "valid while the canonical ledger is byte-invariant"
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "sha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "validUntilCondition": "valid while the adopted canonical source map is byte-invariant"
+    }
+  ],
+  "invalidatedEvidence": [
+    {
+      "evidence": "Pre-I4 claim that normal no-override ledger validation exits 2 with three BLOCKING findings.",
+      "reason": "Superseded by the executed post-patch run: exit 0, valid=true, zero findings.",
+      "supersededBy": "evidence/I4_TEST_EXECUTION_RESULTS.json"
+    },
+    {
+      "evidence": "Historical PT-R2-21 narrative stating the external reinspection report was absent.",
+      "reason": "ADOPT-AUD-OBS-02 of the R4 independent audit forbids reusing that narrative as current-state evidence.",
+      "supersededBy": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json"
+    }
+  ],
+  "requiredNextActions": [
+    "Separate independent audit of the I4 evidence package and of revision R0001.",
+    "Record COMPLETE_CONFIRMED for I4 only if that independent audit passes.",
+    "Do not create, modify, or make executable any next-gate tree before that audit."
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "sha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5"
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "sha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b"
+    },
+    {
+      "path": "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08"
+    },
+    {
+      "path": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json",
+      "sha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+      "sha256": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c"
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.md",
+      "sha256": "5a3c7a17c74ff1a8bfd009a9024c9c7e3f532e58d065255522477593735f3daa"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "738492ce5d18edda523aae446bad696e3a604ecdff02e181a633d72200db9ec8"
+    },
+    {
+      "path": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "sha256": "6ce638b28349ac3508ac1a147ce1e35a84ba4c7579f883fa218edda297de1d5e"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "sha256": "235555ccca6a2b05023bf51648cc02099946b9d68a4485a21b8c70317e4b3fd1"
+    }
+  ],
+  "createdAt": "2026-08-06T04:11:58.062Z"
+}

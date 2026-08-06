@@ -117,6 +117,49 @@ function resolveAuthority({ root, event, sourceMap, findings, lineNumber }) {
   return { filePath, authorityClass, actualSha };
 }
 
+export const DEFAULT_GENESIS_IMPORT_SOURCE_MAP_PATH = 'governance/authority/GENESIS_IMPORT_SOURCE_MAP.json';
+
+// The default map is always resolved below --root, never below the terminal working directory.
+export function resolveSourceMapPath({ root, sourceMapPath = null }) {
+  const rootResolved = path.resolve(root);
+  if (sourceMapPath === null || sourceMapPath === undefined) {
+    return {
+      origin: 'CANONICAL_DEFAULT',
+      declaredPath: DEFAULT_GENESIS_IMPORT_SOURCE_MAP_PATH,
+      resolvedPath: path.resolve(rootResolved, DEFAULT_GENESIS_IMPORT_SOURCE_MAP_PATH)
+    };
+  }
+  const declared = String(sourceMapPath);
+  return {
+    origin: 'EXPLICIT_OVERRIDE',
+    declaredPath: declared,
+    resolvedPath: path.isAbsolute(declared) ? path.resolve(declared) : path.resolve(rootResolved, declared)
+  };
+}
+
+// Fail-closed: an explicit override never silently degrades to the canonical default.
+function loadSourceMap({ origin, declaredPath, resolvedPath }, findings) {
+  const authorityRequirement = origin === 'EXPLICIT_OVERRIDE'
+    ? 'explicit --source-map override'
+    : DEFAULT_GENESIS_IMPORT_SOURCE_MAP_PATH;
+  if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
+    finding(findings, 'MISSING_GENESIS_IMPORT_SOURCE_MAP', null, 0, '/sourceMap', declaredPath, 'existing GENESIS_IMPORT source map file', authorityRequirement, origin === 'EXPLICIT_OVERRIDE' ? 'Explicit --source-map override does not resolve to a file; the canonical default is never substituted.' : 'Canonical GENESIS_IMPORT source map is absent below --root.', 'REQ-BST-01');
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = readJson(resolvedPath);
+  } catch (error) {
+    finding(findings, 'INVALID_GENESIS_IMPORT_SOURCE_MAP', null, 0, '/sourceMap', declaredPath, 'parsable canonical JSON source map', authorityRequirement, `GENESIS_IMPORT source map is not parsable JSON: ${error.message}`, 'REQ-BST-01');
+    return null;
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    finding(findings, 'INVALID_GENESIS_IMPORT_SOURCE_MAP', null, 0, '/sourceMap', declaredPath, 'JSON object source map', authorityRequirement, 'GENESIS_IMPORT source map is not a JSON object.', 'REQ-BST-01');
+    return null;
+  }
+  return parsed;
+}
+
 function checkEventShape(event, findings, lineNumber) {
   const keys = Object.keys(event);
   const missing = REQUIRED_EVENT_FIELDS.filter((key) => !Object.prototype.hasOwnProperty.call(event, key));
@@ -140,10 +183,17 @@ function checkEventShape(event, findings, lineNumber) {
 
 export function validateLedger({ root, ledgerPath, sourceMapPath = null }) {
   const findings = [];
-  const sourceMap = sourceMapPath && fs.existsSync(sourceMapPath) ? readJson(sourceMapPath) : null;
+  const sourceMapResolution = resolveSourceMapPath({ root, sourceMapPath });
+  const sourceMap = loadSourceMap(sourceMapResolution, findings);
+  const sourceMapReport = {
+    origin: sourceMapResolution.origin,
+    declaredPath: sourceMapResolution.declaredPath,
+    resolvedPath: path.relative(path.resolve(root), sourceMapResolution.resolvedPath).replaceAll('\\', '/'),
+    loaded: sourceMap !== null
+  };
   if (!fs.existsSync(ledgerPath)) {
     finding(findings, 'MISSING_LEDGER', null, 0, '/', ledgerPath, 'existing NDJSON ledger', 'canonical ledger', 'Ledger file is missing.', 'REQ-LED-01');
-    return { valid: false, findings, events: [], ledgerSha256: null, gates: [] };
+    return { valid: false, findings, events: [], ledgerSha256: null, gates: [], sourceMap: sourceMapReport };
   }
   const bytes = fs.readFileSync(ledgerPath);
   const text = bytes.toString('utf8');
@@ -228,7 +278,8 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null }) {
     findings,
     events: events.map(({ ledgerPath, ...event }) => event),
     ledgerSha256: sha256Bytes(bytes),
-    gates: [...currentByGate.entries()].map(([gateId, currentStatus]) => ({ gateId, currentStatus }))
+    gates: [...currentByGate.entries()].map(([gateId, currentStatus]) => ({ gateId, currentStatus })),
+    sourceMap: sourceMapReport
   };
 }
 
@@ -236,9 +287,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const toolsDir = path.dirname(fileURLToPath(import.meta.url));
   const root = path.resolve(option('--root', path.resolve(toolsDir, '..', '..')));
   const ledgerPath = path.resolve(option('--ledger', path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson')));
-  const sourceMapPath = option('--source-map', null) ? path.resolve(option('--source-map')) : null;
+  const sourceMapFlagIndex = process.argv.indexOf('--source-map');
+  const sourceMapPath = sourceMapFlagIndex >= 0 ? process.argv[sourceMapFlagIndex + 1] ?? '' : null;
   const report = validateLedger({ root, ledgerPath, sourceMapPath });
-  const output = { valid: report.valid, ledgerPath: path.relative(root, ledgerPath).replaceAll('\\', '/'), ledgerSha256: report.ledgerSha256, eventCount: report.events.length, findings: report.findings };
+  const output = { valid: report.valid, ledgerPath: path.relative(root, ledgerPath).replaceAll('\\', '/'), ledgerSha256: report.ledgerSha256, eventCount: report.events.length, sourceMap: report.sourceMap, findings: report.findings };
   process.stdout.write(JSON.stringify(output, null, 2) + '\n');
   process.exitCode = report.valid ? 0 : 2;
 }

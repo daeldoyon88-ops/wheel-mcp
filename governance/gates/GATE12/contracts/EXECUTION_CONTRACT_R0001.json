@@ -1,0 +1,371 @@
+{
+  "gateId": "GATE12",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a",
+    "gateId": "GATE12",
+    "canonicalObjectiveSha256": "a2bf6e9649766e5ae28e5d5a496c197cae03970ec049db52805adb912c611157"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "REQ-I4-01",
+      "statement": "The normal ledger-validator entrypoint, invoked without --source-map, must load governance/authority/GENESIS_IMPORT_SOURCE_MAP.json automatically.",
+      "normativeSource": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json#/authorizedObjectives/0"
+    },
+    {
+      "requirementId": "REQ-I4-02",
+      "statement": "The default source-map path is resolved below --root and never below the terminal working directory.",
+      "normativeSource": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1"
+    },
+    {
+      "requirementId": "REQ-I4-03",
+      "statement": "--source-map remains an explicit override with strict priority over the canonical default.",
+      "normativeSource": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json#/authorizedObjectives/1"
+    },
+    {
+      "requirementId": "REQ-I4-04",
+      "statement": "An invalid explicit override fails closed and never silently degrades to the canonical default map.",
+      "normativeSource": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1"
+    },
+    {
+      "requirementId": "REQ-I4-05",
+      "statement": "An absent or unparsable canonical default map produces a structured BLOCKING finding and a fail-closed exit; no resolution error is ever masked.",
+      "normativeSource": "I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1"
+    },
+    {
+      "requirementId": "REQ-I4-06",
+      "statement": "An absent external authority or an external authority hash mismatch still produces a structured failure once the default map is active.",
+      "normativeSource": "governance/tools/validate-status-ledger.mjs#resolveAuthority"
+    },
+    {
+      "requirementId": "REQ-I4-07",
+      "statement": "Normal no-override ledger validation exits 0 with valid=true and zero findings against the pinned live repository.",
+      "normativeSource": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json#/authorizedObjectives/2"
+    },
+    {
+      "requirementId": "REQ-I4-08",
+      "statement": "OBS-R2-01 is closed only after executed I4 validation evidence exists; no closure on summary or intent.",
+      "normativeSource": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json#/constraints/obsR201ClosureRequiresExecutedI4Validation"
+    },
+    {
+      "requirementId": "REQ-I4-09",
+      "statement": "This contract does not redefine, narrow, or extend the canonical GATE12 objective recorded in the pinned registry; the objective hash is bound and recalculated.",
+      "normativeSource": "NO_GATE_MANDATE_REDEFINITION"
+    },
+    {
+      "requirementId": "REQ-I4-10",
+      "statement": "I4 closes as executed by the agent and pending independent audit; COMPLETE_CONFIRMED is not reachable through this mission.",
+      "normativeSource": "SEPARATE_SESSION_REINSPECTION"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "role": "SUPREME_AUTHORITY",
+      "mutable": false
+    },
+    {
+      "path": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json",
+      "role": "TEMPORARY_SINGLE_USE_EXECUTION_AUTHORITY",
+      "sha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a",
+      "mutable": false
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "role": "STRATEGIC_REGISTRY",
+      "sha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a",
+      "mutable": false
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "role": "CANONICAL_LEDGER",
+      "sha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+      "mutable": false
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "role": "CANONICAL_DEFAULT_SOURCE_MAP",
+      "sha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "mutable": false
+    },
+    {
+      "path": "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "role": "EXTERNAL_REINSPECTION_REPORT",
+      "sha256": "8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08",
+      "mutable": false
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+      "role": "INDEPENDENT_ADOPTION_AUDIT",
+      "sha256": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c",
+      "mutable": false
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "classification": "FUNCTIONAL",
+      "action": "MODIFY"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "classification": "CONTRACT",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "classification": "CONTRACT",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+      "classification": "CHECKPOINT",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+      "classification": "STATE",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+      "classification": "STATE",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE12/state/CURRENT_STATE.json",
+      "classification": "STATE",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "classification": "TEST",
+      "action": "CREATE"
+    }
+  ],
+  "validators": [
+    "node --check governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/validate-status-ledger.mjs --source-map governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+    "node --check governance/tests/i4-default-source-map-activation.test.mjs",
+    "node --test governance/tests/i4-default-source-map-activation.test.mjs",
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE12 --current-state governance/gates/GATE12/state/CURRENT_STATE.json --contract governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json"
+  ],
+  "positiveTests": [
+    {
+      "testId": "I4-POS-01",
+      "requirementId": "REQ-I4-01",
+      "name": "1. normal entry without --source-map activates the canonical default and passes",
+      "expected": "exitCode=0, valid=true, findings=0, eventCount=41, sourceMap.origin=CANONICAL_DEFAULT"
+    },
+    {
+      "testId": "I4-POS-02",
+      "requirementId": "REQ-I4-03",
+      "name": "2. explicit valid override is preserved, relative and absolute",
+      "expected": "exitCode=0, valid=true, findings=0, sourceMap.origin=EXPLICIT_OVERRIDE"
+    },
+    {
+      "testId": "I4-POS-03",
+      "requirementId": "REQ-I4-02",
+      "name": "8. the result is identical from any terminal working directory",
+      "expected": "identical report from five working directories; a decoy map beside the terminal cwd is ignored"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "I4-NEG-01",
+      "requirementId": "REQ-I4-04",
+      "name": "3. invalid explicit override fails closed and never falls back to the default",
+      "expected": "exitCode=2, MISSING_GENESIS_IMPORT_SOURCE_MAP or INVALID_GENESIS_IMPORT_SOURCE_MAP, no default substitution"
+    },
+    {
+      "testId": "I4-NEG-02",
+      "requirementId": "REQ-I4-05",
+      "name": "4. absent canonical default map fails closed with a structured finding",
+      "expected": "exitCode=2, BLOCKING MISSING_GENESIS_IMPORT_SOURCE_MAP at /sourceMap"
+    },
+    {
+      "testId": "I4-NEG-03",
+      "requirementId": "REQ-I4-05",
+      "name": "5. unparsable canonical default map fails closed with a structured finding",
+      "expected": "exitCode=2, BLOCKING INVALID_GENESIS_IMPORT_SOURCE_MAP at /sourceMap"
+    },
+    {
+      "testId": "I4-NEG-04",
+      "requirementId": "REQ-I4-06",
+      "name": "6. absent external authority fails even with the default map active",
+      "expected": "exitCode=2, MISSING_TRANSITION_AUTHORITY and COMPLETE_CONFIRMED_WITHOUT_INDEPENDENT_REINSPECTION"
+    },
+    {
+      "testId": "I4-NEG-05",
+      "requirementId": "REQ-I4-06",
+      "name": "7. external authority hash mismatch fails even with the default map active",
+      "expected": "exitCode=2, AUTHORITY_HASH_MISMATCH and AUTHORITY_MANIFEST_HASH_MISMATCH"
+    }
+  ],
+  "countertests": [
+    {
+      "counterTestId": "I4-CT-01",
+      "target": "REQ-I4-04",
+      "hostileMutation": "explicit override pointing at a non-existent file inside a sandbox copy",
+      "falsePassWouldMean": "the validator silently substituted the canonical default map"
+    },
+    {
+      "counterTestId": "I4-CT-02",
+      "target": "REQ-I4-04",
+      "hostileMutation": "--source-map flag declared with no value",
+      "falsePassWouldMean": "an empty override was coerced back to the canonical default"
+    },
+    {
+      "counterTestId": "I4-CT-03",
+      "target": "REQ-I4-05",
+      "hostileMutation": "canonical default map deleted in a sandbox copy",
+      "falsePassWouldMean": "the validator degraded to sourceMap=null and hid the bootstrap cardinality checks"
+    },
+    {
+      "counterTestId": "I4-CT-04",
+      "target": "REQ-I4-05",
+      "hostileMutation": "canonical default map replaced by unparsable text and by a JSON array",
+      "falsePassWouldMean": "a malformed map was accepted as a valid source map"
+    },
+    {
+      "counterTestId": "I4-CT-05",
+      "target": "REQ-I4-06",
+      "hostileMutation": "external reinspection report deleted in a sandbox copy",
+      "falsePassWouldMean": "COMPLETE_CONFIRMED was accepted without an independent reinspection report"
+    },
+    {
+      "counterTestId": "I4-CT-06",
+      "target": "REQ-I4-06",
+      "hostileMutation": "external reinspection report byte-tampered in a sandbox copy",
+      "falsePassWouldMean": "authority hash binding was not recalculated from real bytes"
+    },
+    {
+      "counterTestId": "I4-CT-07",
+      "target": "REQ-I4-02",
+      "hostileMutation": "decoy GENESIS_IMPORT_SOURCE_MAP.json planted beside the terminal working directory",
+      "falsePassWouldMean": "the default path was resolved relative to the terminal working directory instead of --root"
+    }
+  ],
+  "reuseRules": [
+    "CP00 repinning evidence is reusable while HEAD, origin/main, the ledger hash, and the bootstrap authority hash are unchanged.",
+    "The sandbox patch preflight is reusable while the patched validator bytes are unchanged."
+  ],
+  "invalidationRules": [
+    "Any change to governance/state/GATE_STATUS_LEDGER.ndjson invalidates every executed validation in this revision.",
+    "Any change to governance/authority/GENESIS_IMPORT_SOURCE_MAP.json invalidates REQ-I4-01, REQ-I4-05, and REQ-I4-07 evidence.",
+    "Any change to governance/tools/validate-status-ledger.mjs after sealing invalidates the R0001 protected hashes.",
+    "Any change to the 14 adopted R4 files invalidates this revision."
+  ],
+  "forbiddenReplays": [
+    "Subagent delegation of any part of this mission.",
+    "Any network access.",
+    "git add, git commit, git push, git reset, git restore, git checkout, git clean, git stash, git switch, git merge, git rebase, git cherry-pick, git apply, git am, git update-index, git rm, git mv, git fetch, git pull, git worktree.",
+    "Mutation of governance/state/GATE_STATUS_LEDGER.ndjson.",
+    "Mutation of any of the 14 adopted R4 files.",
+    "Mutation of governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json or of the independent audits.",
+    "Mutation of any historical state revision.",
+    "Any write outside the eight authorizedPaths.",
+    "A second consumption of the single-use bootstrap authority.",
+    "Declaring I4 COMPLETE_CONFIRMED before a separate independent audit.",
+    "Creating, modifying, or making executable anything under the next gate directory tree."
+  ],
+  "packagingRequirements": [
+    "Portable ZIP entries written through ZipArchive with explicit package/<relative path using /> names.",
+    "BACKSLASH_ENTRIES=0, OUTSIDE_PACKAGE_PREFIX=0, UNSAFE_PATHS=0, DUPLICATE_ENTRIES=0.",
+    "SOURCE_STAGE_MATCH=true with MISSING=0, EXTRA=0, MISMATCHES=0.",
+    "FINAL_ZIP_SELFTEST.json and DETACHED_TERMINAL_VERIFICATION_RECEIPT.json produced outside the ZIP.",
+    "The full repository is never included in the package."
+  ],
+  "closureConditions": [
+    "node --check on the patched validator and on the I4 test file exits 0.",
+    "Normal no-override ledger validation exits 0 with valid=true and zero findings.",
+    "Explicit override validation exits 0 with valid=true and zero findings.",
+    "Every positive and hostile test in governance/tests/i4-default-source-map-activation.test.mjs passes with zero failures.",
+    "validate-gate-contract reports valid=true for R0001 and its pointer.",
+    "validate-state-revision reports valid=true for GATE12.",
+    "validate-state-seal reports valid=true for R0001.",
+    "OBS-R2-01 is CLOSED with executed closure evidence only after all validations above are green.",
+    "The Git delta contains exactly one modified existing file and seven created files, all inside authorizedPaths, with zero staged, zero committed, and zero pushed changes.",
+    "The ledger, the 14 adopted R4 files, the bootstrap authority, and the independent audits are byte-invariant.",
+    "I4 is recorded as executed by the agent and pending independent audit, never as COMPLETE_CONFIRMED."
+  ],
+  "nextGateAuthorizationConditions": [
+    "A separate independent audit session must reinspect this revision before any progression claim.",
+    "GATE13 is not authorized and not made executable by this mission or by the temporary bootstrap authority.",
+    "No next-gate execution contract, state, or directory tree is created by this mission.",
+    "The temporary bootstrap authority is single-use and becomes SUPERSEDED only on audited I4 closure."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 45,
+    "expectedMaximumMinutes": 60,
+    "closeoutStartMinutes": 50,
+    "absoluteMaximumMinutes": 120
+  },
+  "checkpointPolicy": {
+    "milestones": [
+      "I4_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE"
+    ],
+    "checkpointRequired": true,
+    "resumeContractRequired": true,
+    "restartFromZeroForbidden": true
+  },
+  "authorizedPaths": [
+    "governance/tools/validate-status-ledger.mjs",
+    "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+    "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+    "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+    "governance/gates/GATE12/state/CURRENT_STATE.json",
+    "governance/tests/i4-default-source-map-activation.test.mjs"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "I4-BOOTSTRAP-AUTHORITY",
+      "path": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json",
+      "sha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a",
+      "evidence": "authorityId I4_BOOTSTRAP_EXECUTION_AUTHORITY_R1, authorizedMission I4_ADAPTER_DEFAULT_SOURCE_MAP_ACTIVATION_AND_GOVERNANCE_CLOSURE_R1, eight authorizedPaths"
+    },
+    {
+      "sourceId": "I4-EXECUTION-SCOPE-MAPPING",
+      "path": "evidence/I4_EXECUTION_SCOPE_MAPPING.json (bootstrap package)",
+      "sha256": "5d00d2d1d4b41920ca30e1cac5dc11fe8a66d884661fe73a5ebf7befc2c0444e",
+      "evidence": "exact per-path classification, action, schema, and validators; verdict I4_EXECUTION_SCOPE_RESOLVED"
+    },
+    {
+      "sourceId": "R4-INDEPENDENT-AUDIT",
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+      "sha256": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c",
+      "evidence": "PASS verdict authorizing OBS-R2-01 closure and I4 execution"
+    },
+    {
+      "sourceId": "GATE12-REGISTRY-OBJECTIVE",
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a",
+      "evidence": "GATE12 canonicalObjective recalculated to a2bf6e9649766e5ae28e5d5a496c197cae03970ec049db52805adb912c611157"
+    }
+  ]
+}

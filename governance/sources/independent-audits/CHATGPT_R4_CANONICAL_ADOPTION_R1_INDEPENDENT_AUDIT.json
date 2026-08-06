@@ -1,0 +1,179 @@
+{
+  "document": "CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT",
+  "schemaVersion": 1,
+  "verdict": "R4_CANONICAL_ADOPTION_AND_LIVE_REPOSITORY_VALIDATION_R1_INDEPENDENT_AUDIT_PASS_FOR_OBS_R2_01_CLOSURE_AND_I4_AUTHORIZATION_WITH_NONBLOCKING_HYBRID_REPLAY_SOURCE_ROOT_OBSERVATION",
+  "archive": {
+    "file": "R4_CANONICAL_ADOPTION_AND_LIVE_REPOSITORY_VALIDATION_R1_FULL_EVIDENCE.zip",
+    "sizeBytes": 1416223,
+    "sha256": "b88705d093b694041463a3d510e8a48b26b6978376bf4711acc810b4670023e0",
+    "entryCount": 72,
+    "crcIntegrity": "PASS",
+    "portablePaths": true,
+    "backslashEntries": 0,
+    "outsidePackagePrefix": 0,
+    "unsafePaths": 0,
+    "duplicateEntries": 0,
+    "symlinkEntries": 0,
+    "jsonFiles": 41,
+    "jsonParseErrors": 0
+  },
+  "contentSeal": {
+    "coveredEntries": 69,
+    "missing": 0,
+    "hashMismatches": 0,
+    "sizeMismatches": 0,
+    "manifestSha256": "f6d23a5b0f1f7150b7939351659c91277e47ad71f0975039ebadf5b79b27c5f4",
+    "triplesDigest": "a5f14baad4a787b05fa5a28f5373c7e2fc7d3b48ba927d23b3aafd34229be0c5",
+    "sealSha256": "022197f52ddcfe4bfe850e9d0899e398e3d8d1f6dc432085cb0e87aa8bc258b7",
+    "sealValid": true,
+    "uncoveredExpectedFiles": [
+      "seals/CONTENT_MANIFEST.json",
+      "seals/CONTENT_SEAL.json",
+      "final/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json"
+    ],
+    "unexpectedUncoveredFiles": 0,
+    "receiptSha256": "aa8662739e8686f9299f67a18d82d997508b1042d1fa089edc1ab62b67b4f5cc"
+  },
+  "adoptionBytes": {
+    "adoptedFileCount": 14,
+    "r4SourceFilesCompared": 13,
+    "r4SourceByteMismatches": 0,
+    "ownerDecisionCopiedByteIdenticallyIntoAdoptedRepository": true,
+    "ownerDecisionSha256": "02fa65fbe47b9bc3cc7c1e8d8939357c25d6c7d032bb8d3a5531978f5134771e",
+    "canonicalAdoptionPathFalseChecks": 5,
+    "canonicalAdoptionPathFalsePass": true,
+    "allowlistConsistency": {
+      "actualVsMapping": true,
+      "actualVsAdoptedManifest": true,
+      "actualVsOwnerDecision": true,
+      "actualVsDeltaAllowlist": true,
+      "actualVsGitNewChangesEvidence": true
+    }
+  },
+  "directReplay": {
+    "generatorRun1ExitCode": 0,
+    "generatorRun2ExitCode": 0,
+    "generationsByteIdentical": true,
+    "mapSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+    "provenanceSha256": "bd87bc283590e97522552ce484f7b31c5a5b4199590ef86a2fbadfac192294ce",
+    "generatedMapEqualsAdopted": true,
+    "generatedProvenanceEqualsAdopted": true,
+    "provenanceValidator": {
+      "exitCode": 0,
+      "valid": true,
+      "errors": 0,
+      "primitiveTargetCount": 463,
+      "provenanceRowCount": 463,
+      "uniqueTargetPointerCount": 463,
+      "uncoveredPrimitiveFields": 0,
+      "orphanProvenanceRows": 0,
+      "duplicateTargetPointers": 0,
+      "gateIndexTargetMismatches": 0,
+      "branchSelectionMismatches": 0,
+      "externalConfirmationMismatches": 0,
+      "sourceIndexBindingMismatches": 0,
+      "ledgerEventGateBindingMismatches": 0,
+      "sourceBranchPointerMismatches": 0,
+      "failedTransformationReplays": 0
+    },
+    "countertests": {
+      "satisfied": 54,
+      "total": 54,
+      "allProbative": true,
+      "replayedDirectly": true
+    }
+  },
+  "authorityResolution": {
+    "authorityId": "SRC-R1-EXTERNAL-PASS",
+    "sourceMapPath": "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+    "sourceMapSha256": "8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08",
+    "adoptedReportHashMatches": true,
+    "ledgerEventsBound": [
+      {
+        "line": 13,
+        "gateId": "GATE12",
+        "status": "COMPLETE_CONFIRMED"
+      },
+      {
+        "line": 14,
+        "gateId": "GATE13",
+        "status": "AUTHORIZED_NOT_STARTED"
+      }
+    ],
+    "reportVerdict": "PASS",
+    "remainingDefectCount": 0
+  },
+  "sealedExecutionEvidence": {
+    "rawOutputsMatchStructuredEvidence": true,
+    "ledgerWithSourceMap": {
+      "exitCode": 0,
+      "valid": true,
+      "eventCount": 41,
+      "findings": 0
+    },
+    "ledgerWithoutSourceMap": {
+      "exitCode": 2,
+      "valid": false,
+      "findings": 3,
+      "classification": "PRE_I4_DEFAULT_ENTRYPOINT_OBSERVATION"
+    },
+    "positiveTests": "35/35",
+    "negativeCountertests": "54/54",
+    "gitDeltaEvidence": {
+      "authorizedNewFiles": 14,
+      "outsideAllowlist": 0,
+      "deleted": 0,
+      "renamed": 0,
+      "staged": 0,
+      "ledgerInvariant": true,
+      "headInvariant": true,
+      "originMainInvariant": true,
+      "divergenceInvariant": true
+    },
+    "historicalRunRoot": "154/154 unchanged according to the sealed before/after inventory checks",
+    "rollbackSandbox": "PASS"
+  },
+  "observations": [
+    {
+      "id": "ADOPT-AUD-OBS-01",
+      "title": "HYBRID_REPLAY_SOURCE_ROOT",
+      "blocking": false,
+      "finding": "The double-generation replay bound three inputs to the live repository (ledger, gate registry, external report), while nine historical normative inputs were supplied from the sealed R4 fixture source root.",
+      "impact": "The replay is deterministic and hash-pinned, but it is more accurately a hybrid live-bound replay than a replay using only repository-resident sources.",
+      "recommendation": "During I4 or a later hardening task, define a durable immutable locator or CAS entry for the complete pinned replay source root so replay does not depend on a Temp extraction."
+    },
+    {
+      "id": "ADOPT-AUD-OBS-02",
+      "title": "STALE_HISTORICAL_PT_R2_21_NARRATIVE",
+      "blocking": false,
+      "finding": "The 35-test replay preserves a historical PT-R2-21 narrative saying the external report was absent, even though the adoption package proves it was created.",
+      "impact": "The stale sentence does not control the test outcome; direct live-ledger evidence correctly reports 0 findings with the source map.",
+      "recommendation": "Do not reuse that narrative as current-state evidence in I4."
+    },
+    {
+      "id": "ADOPT-AUD-OBS-03",
+      "title": "FINAL_ZIP_SELFTEST_IS_DETACHED",
+      "blocking": false,
+      "finding": "PACKAGE_CANDIDATE_SELFTEST.json describes the pre-final 65-entry candidate. The final 72-entry ZIP self-test was generated outside the ZIP to avoid a recursive artifact.",
+      "impact": "No defect in the delivered ZIP; this audit directly verified the final 72-entry archive.",
+      "recommendation": "Keep the final ZIP hash alongside the external audit report."
+    }
+  ],
+  "limitations": [
+    "The Windows repository itself was not mounted in this audit sandbox. The Git delta and execution of governance/tools/validate-status-ledger.mjs were therefore validated through sealed raw outputs, scripts, and cross-consistent evidence rather than rerun against the current workstation."
+  ],
+  "disposition": {
+    "adoptionPackageAccepted": true,
+    "OBS-R2-01": "AUTHORIZED_FOR_COMPLETE_CONFIRMED_CLOSURE",
+    "I4": "AUTHORIZED_TO_START",
+    "GATE13": "NOT_AUTHORIZED_BY_THIS_AUDIT",
+    "R5RepairRequired": false
+  },
+  "nextSequence": [
+    "Record the independent audit as the authority closing OBS-R2-01.",
+    "Start I4 adapter/default-entrypoint activation.",
+    "Make the normal ledger-validation entrypoint resolve the adopted source map without a manual --source-map argument.",
+    "Run I4 tests, hostile countertests, packaging, and independent audit.",
+    "Declare I4 COMPLETE_CONFIRMED only after that independent audit passes."
+  ]
+}

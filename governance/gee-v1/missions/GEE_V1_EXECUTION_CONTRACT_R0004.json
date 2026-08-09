@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4",
+  "type": "MISSION_REVISION",
+  "version": "R0004",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Implement GEE V1 R4 Evidence Graph and Evidence Reuse only: deterministic content-addressed evidence identity, dependency-aware selective invalidation, and fail-closed reuse driven by R3 deltas.",
+  "prerequisites": [
+    { "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3", "statement": "GEE V1 R3 delivered: its sealed contract is intact and every declared artifact exists", "critical": true, "satisfactionRule": "gee-mission-revision-delivered" },
+    { "id": "GATE13", "statement": "GATE13 COMPLETE_CONFIRMED", "critical": true, "satisfactionRule": "wheel-adapter-status" }
+  ],
+  "invariants": [
+    "Project-agnostic Evidence Graph and CAS core; Wheel interpretation remains in the adapter",
+    "Use R2 context and R3 delta interfaces; do not reconstruct or duplicate their logic",
+    "Deterministic ordering, content identity and graph output",
+    "Reuse is granted only when content, dependencies, parent evidence, provenance and authority inputs remain valid",
+    "Missing, removed, tampered or unverifiable evidence fails closed",
+    "Unrelated evidence remains reusable when another dependency changes",
+    "No mutation of R1, R2 or R3 artifacts, contracts, seals or witnesses",
+    "No new ledger, key, witness, release system, remote storage, routing or recovery engine",
+    "No network access, staging, commit or push"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/evidence/evidence-graph.mjs",
+    "governance/gee-v1/cas/content-addressed-store.mjs",
+    "governance/gee-v1/adapters/wheel/evidence-wheel-adapter.mjs",
+    "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs"
+  ],
+  "requiredTests": ["governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs"],
+  "requiredNegativeTests": ["tampered CAS content/hash, forged previous identity, missing dependency and missing required evidence fail closed"],
+  "requiredHostileOrCounterTests": ["controlled source mutation selectively invalidates direct and downstream evidence while preserving unrelated evidence"],
+  "evidenceRequirements": ["R2 context bytes", "R3 unchanged/changed/reprocess/avoided result", "content-addressed identity and deduplication", "provenance and dependency graph", "unchanged replay and controlled mutation metrics"],
+  "closureConditions": ["R4-01 through R4-17 targeted tests PASS", "CAS tamper detection PASS", "selective dependency invalidation PASS", "synthetic non-Wheel and Wheel adapter PASS", "R2 and R3 interfaces remain non-authoritative and unchanged", "R5+ remains unauthorized", "no writes outside authorizedPaths"],
+  "authorizedVerdicts": ["R4_EVIDENCE_GRAPH_IMPLEMENTED_READY_FOR_INDEPENDENT_VALIDATION", "R4_EVIDENCE_GRAPH_REPAIR_REQUIRED", "R4_BLOCKED_ARCHITECTURE_CONTRADICTION"],
+  "stateTransitionRules": ["R3_COMPLETE -> R4_AUTHORIZED -> R4_IMPLEMENTATION -> R4_INDEPENDENT_VALIDATION"],
+  "invalidationDeclarations": ["This contract authorizes GEE V1 R4 Evidence Graph / Evidence Reuse only; R5 and later remain unauthorized.", "Any mutation of this sealed contract after activation invalidates R4 readiness", "Any write outside authorizedPaths invalidates R4 closure"],
+  "authorizedPaths": [
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json",
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004_SEAL.json",
+    "governance/gee-v1/evidence/",
+    "governance/gee-v1/cas/",
+    "governance/gee-v1/adapters/wheel/evidence-",
+    "governance/gee-v1/tests/gee-r4-",
+    "governance/gee-v1/tests/gee-foundation-work-unit-authority.test.mjs"
+  ],
+  "activationPolicy": { "requiresSealBeforeActivation": true, "closureCriteriaMutableAfterActivation": false }
+}

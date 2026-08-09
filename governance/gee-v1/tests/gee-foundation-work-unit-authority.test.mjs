@@ -167,22 +167,27 @@ test('AUTH-05: R1 mutation through R2 authority is BLOCKED', () => {
   }
 });
 
-test('AUTH-06: R3 is authorized only by its own sealed revision', () => {
-  const r3 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3');
-  assert.equal(r3.executionAuthorized, true);
-  assert.equal(r3.decision, 'AUTHORIZED');
-  assert.equal(r3.authoritySource, 'gee-mission-authority-source');
-  assert.equal(r3.proofs.EXECUTION_CONTRACT.state, 'PROVEN');
-  assert.equal(r3.proofs.CONTRACT_INTEGRITY.state, 'PROVEN');
-  assert.equal(r3.proofs.PREREQUISITES.state, 'PROVEN');
+test('AUTH-06: R4 is authorized only by its own sealed revision', () => {
+  const r4 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4');
+  assert.equal(r4.executionAuthorized, true);
+  assert.equal(r4.decision, 'AUTHORIZED');
+  assert.equal(r4.authoritySource, 'gee-mission-authority-source');
+  assert.equal(r4.proofs.EXECUTION_CONTRACT.state, 'PROVEN');
+  assert.equal(r4.proofs.CONTRACT_INTEGRITY.state, 'PROVEN');
+  assert.equal(r4.proofs.PREREQUISITES.state, 'PROVEN');
 
-  // R2's own contract remains historical and refuses to stand in for R3.
+  const r3 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3');
+  assert.equal(r3.executionAuthorized, false);
+  assert.ok(r3.findings.some((finding) => finding.detail.includes('delivered and superseded by GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4')));
+
+  // R3's own contract remains historical and refuses to stand in for R4.
   const r2Contract = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0002.json'), 'utf8')
   );
   assert.equal(r2Contract.authorizedVerdicts.some((verdict) => /^R[3-9]/.test(verdict)), false);
   assert.ok(r2Contract.invalidationDeclarations.some((d) => d.includes('never authorizes R3')));
-  assert.ok(r2Contract.invariants.some((i) => i.includes('No R3+ engine implementation')));
+  const r3Contract = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003.json'), 'utf8'));
+  assert.ok(r3Contract.invalidationDeclarations.some((d) => d.includes('R4')));
 });
 
 test('AUTH-11: an out-of-scope R2 write is BLOCKED, and in-scope writes are allowed', () => {
@@ -592,7 +597,7 @@ test('AUTH-18: the R2 execution contract is compatible with its referenced strat
   assert.equal(strategic.version, 'R0002');
 });
 
-test('AUTH-18b: only the sealed R3 revision is current; R4+ remain unauthorized', () => {
+test('AUTH-18b: only the sealed R4 revision is current; R5+ remain unauthorized', () => {
   const strategic = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json'), 'utf8')
   );
@@ -601,17 +606,17 @@ test('AUTH-18b: only the sealed R3 revision is current; R4+ remain unauthorized'
   assert.ok(strategic.invalidationDeclarations.some((d) => /NOT authorized for execution/i.test(d)));
   assert.ok(strategic.invalidationDeclarations.some((d) => /no revision authorizes a later stage/i.test(d)));
 
-  // And the resolver agrees: R3 exists as its own sealed revision, while no
+  // And the resolver agrees: R4 exists as its own sealed revision, while no
   // execution contract exists for any later stage.
   const missions = fs.readdirSync(path.join(REPO_ROOT, 'governance/gee-v1/missions'));
   assert.deepEqual(
     missions.filter((file) => /^GEE_V1_EXECUTION_CONTRACT_R\d{4}\.json$/.test(file)).sort(),
-    ['GEE_V1_EXECUTION_CONTRACT_R0001.json', 'GEE_V1_EXECUTION_CONTRACT_R0002.json', 'GEE_V1_EXECUTION_CONTRACT_R0003.json']
+    ['GEE_V1_EXECUTION_CONTRACT_R0001.json', 'GEE_V1_EXECUTION_CONTRACT_R0002.json', 'GEE_V1_EXECUTION_CONTRACT_R0003.json', 'GEE_V1_EXECUTION_CONTRACT_R0004.json']
   );
-  const r3 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3');
-  assert.equal(r3.executionAuthorized, true);
-  assert.equal(r3.decision, 'AUTHORIZED');
-  for (const laterStage of ['R4', 'R5', 'R6', 'R7']) {
+  const r4 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4');
+  assert.equal(r4.executionAuthorized, true);
+  assert.equal(r4.decision, 'AUTHORIZED');
+  for (const laterStage of ['R5', 'R6', 'R7']) {
     const authority = resolve(MISSION_WORK_UNIT_TYPE, `GOVERNANCE_EXECUTION_EFFICIENCY_V1_${laterStage}`);
     assert.equal(authority.executionAuthorized, false, laterStage);
     assert.ok(authority.findings.some((f) => f.code === 'UNKNOWN_WORK_UNIT_ID'), laterStage);

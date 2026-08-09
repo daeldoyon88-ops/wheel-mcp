@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3",
+  "type": "MISSION_REVISION",
+  "version": "R0003",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Implement the GEE V1 R3 Delta Engine only: compare a trusted prior R2 context state with current canonical sources, preserve provenance, and fail closed when identity or critical inputs cannot be proven.",
+  "prerequisites": [
+    { "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R2", "statement": "GEE V1 R2 delivered: its sealed contract is intact and every declared artifact exists", "critical": true, "satisfactionRule": "gee-mission-revision-delivered" },
+    { "id": "GATE13", "statement": "GATE13 COMPLETE_CONFIRMED", "critical": true, "satisfactionRule": "wheel-adapter-status" }
+  ],
+  "invariants": [
+    "Project-agnostic delta core; Wheel interpretation remains in the adapter",
+    "No mutation of R1 or R2 artifacts, contracts, seals or witnesses",
+    "Deterministic ordering and byte-stable identities",
+    "Every delta and reusable fact retains provenance",
+    "Missing or unverifiable critical inputs fail closed",
+    "R2 context remains DERIVED / NON_AUTHORITATIVE",
+    "No R4 Evidence Graph, ledger, key, witness, release system or Git write"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/delta/delta-engine.mjs",
+    "governance/gee-v1/adapters/wheel/delta-wheel-adapter.mjs",
+    "governance/gee-v1/tests/gee-r3-delta-engine.test.mjs"
+  ],
+  "requiredTests": ["governance/gee-v1/tests/gee-r3-delta-engine.test.mjs"],
+  "requiredNegativeTests": ["missing critical input, forged digest and unknown prior identity fail closed"],
+  "requiredHostileOrCounterTests": ["controlled mutation, add/remove, dependency invalidation and unrelated change"],
+  "evidenceRequirements": ["real byte hashes", "provenance for every delta", "unchanged and mutation efficiency metrics"],
+  "closureConditions": ["Delta classification PASS", "Fail-closed negatives PASS", "R2 context remains non-authoritative", "R4 capability is not claimed"],
+  "authorizedVerdicts": ["R3_DELTA_ENGINE_IMPLEMENTED_READY_FOR_INDEPENDENT_VALIDATION", "R3_DELTA_ENGINE_REPAIR_REQUIRED", "R3_BLOCKED_ARCHITECTURE_CONTRADICTION"],
+  "stateTransitionRules": ["R2_COMPLETE -> R3_AUTHORIZED -> R3_IMPLEMENTATION -> R3_INDEPENDENT_VALIDATION"],
+  "invalidationDeclarations": ["This contract authorizes R3 Delta Engine only; R4 and later remain unauthorized."],
+  "authorizedPaths": [
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003.json",
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003_SEAL.json",
+    "governance/gee-v1/delta/",
+    "governance/gee-v1/adapters/wheel/delta-",
+    "governance/gee-v1/tests/gee-r3-"
+  ],
+  "activationPolicy": { "requiresSealBeforeActivation": true, "closureCriteriaMutableAfterActivation": false }
+}

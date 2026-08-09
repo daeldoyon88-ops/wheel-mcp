@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "sealKind": "EXECUTION_CONTRACT_SEAL",
+  "payload": {
+    "contractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3",
+    "contractVersion": "R0003",
+    "contractKind": "EXECUTION",
+    "sealedAt": "2026-08-09T00:00:00.000Z",
+    "contractSha256": "379a980fbf2c822c8e5391f1a097354b01bd9d7db218a7ca3785fd6774f1eda8",
+    "closureConditionsSha256": "8d0f33800578898455c398f1d7bd1e910eaed5afb137c6f1f984a30cc27e4e35",
+    "authorizedVerdictsSha256": "064f5cfd9b7585377b51d12dba510485ce9787014224f5e0cf95bd5cbcdbd79a"
+  },
+  "payloadSha256": "bf587c3f39ccb40c433eb27372a6624ee2d532284a1de700d1124902a7e96bc3",
+  "sealSha256": "2d28086aef8866b219c343dc10fee89f058d160e4e67f624c1d186cf01c41411"
+}

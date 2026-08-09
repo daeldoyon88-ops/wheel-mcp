@@ -1,0 +1,18 @@
+{
+  "schemaVersion":1,
+  "fixtureId":"G13-HOSTILE-ORACLE-MUTATIONS-R1",
+  "mutations":[
+    "missing mandatory oracle source",
+    "stale expectedSha256",
+    "duplicate oracleId",
+    "orphan requiredOracleId",
+    "cyclic coverage dependency",
+    "silent fallback",
+    "generated oracle marked mandatory",
+    "unsafe path",
+    "contradictory duplicate source path",
+    "preproduced PASS report with a failing source",
+    "GATE14 active pointer",
+    "invalid JSON source"
+  ]
+}

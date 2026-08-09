@@ -1,0 +1,69 @@
+{
+  "gateId": "GATE13",
+  "stateRevision": "R0002",
+  "milestone": "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT",
+  "resumePoint": "GATE13 is COMPLETE_CONFIRMED after independent audit PASS of the portable evidence package. Do not authorize or execute GATE14 from this closure. The exact next authorized chantier is GOVERNANCE_EXECUTION_EFFICIENCY_V1 — R1, under a separate mission. Do not start GEE V1 inside residual GATE13 work.",
+  "completedTasks": [
+    "Obtain a separate PROJECT_OWNER authorization to modify governance/tools/validate-active-gate.mjs (or an equivalent canonical activation mechanism) before attempting to set governance/active/ACTIVE_GATE.json to GATE13.",
+    "Do not create, modify, or make executable any GATE13 functional implementation file before that authorization and before EXECUTION_CONTRACT_R0001 authorizedPaths are consumed by a dedicated future mission.",
+    "Create the eight canonical GATE13 implementation outputs, four schemas, the hostile mutation fixture and the GATE13 oracle-coverage test suite strictly within authorizedPaths.",
+    "Execute the real oracle-coverage validator offline from the repository root and from an unrelated working directory.",
+    "Execute positive, negative and hostile tests with real mutations, fail-closed findings and byte-stable replay evidence.",
+    "Recompute mandatory coverage from real source bytes: 12 applicable mandatory items, 12 satisfied, 100 percent, zero missing, invalid, stale, contradictory or unresolved mandatory findings.",
+    "Preserve the canonical ledger, active pointer, contract R0001, R0001 state seal and all Wheel/Jarvise application files byte-invariant.",
+    "A separate independent audit must re-inspect the portable GATE13 evidence package and validate the final closure matrix.",
+    "Close G13-AUDIT-001 only with authentic independent-audit evidence and a subsequent sealed state revision.",
+    "Independent audit PASS frozen at C:\\Users\\melan\\AppData\\Local\\Temp\\GATE13_INDEPENDENT_AUDIT_R1\\20260808_093157 with verdict sha256 91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352.",
+    "Record GATE13 COMPLETE_CONFIRMED at R0002 under PROJECT_OWNER mission grant + mandate supersession condition GATE13_AUDITED_COMPLETE_CONFIRMED_CLOSURE after independent audit PASS.",
+    "Preserve canonical ledger byte-invariant; do not rewrite GENESIS_IMPORT_GATE13 AUTHORIZED_NOT_STARTED history."
+  ],
+  "openTasks": [
+    "Separate mission: GOVERNANCE_EXECUTION_EFFICIENCY_V1 — R1.",
+    "Do not authorize GATE14 and do not create GATE14 execution artefacts from this closure."
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/gates/GATE13/implementation/COVERAGE_REPORT.json",
+      "sha256": null,
+      "validUntilCondition": "valid while all pinned canonical oracle bytes and implementation bytes remain unchanged"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/REPLAY_AND_PROVENANCE_EVIDENCE.json",
+      "sha256": null,
+      "validUntilCondition": "valid while the validator, registries and source hashes remain unchanged"
+    },
+    {
+      "path": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "sha256": null,
+      "validUntilCondition": "valid while the test file remains byte-identical"
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": null,
+      "validUntilCondition": "valid while G13-AUDIT-001 remains CLOSED with the recorded closureEvidence"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/COVERAGE_REPORT.json",
+      "sha256": null,
+      "validUntilCondition": "valid while oracle pins and implementation bytes remain unchanged after closure recompute"
+    }
+  ],
+  "invalidatedEvidence": [
+    {
+      "evidence": "GATE13 R0001 state recorded executionStatus=AUTHORIZED_NOT_STARTED and gate13Started=false.",
+      "reason": "Superseded by execution evidence recorded at R0002; the gate is executed but not independently audited or COMPLETE_CONFIRMED.",
+      "supersededBy": "GATE13 R0002 execution evidence"
+    },
+    {
+      "evidence": "R0002 pre-audit seal payload independentAuditStatus=MISSING and executionStatus=EXECUTED_PENDING_INDEPENDENT_AUDIT",
+      "reason": "Superseded by independent audit PASS and COMPLETE_CONFIRMED recording in the resealed R0002 revision.",
+      "supersededBy": "independent verdict 91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352"
+    }
+  ],
+  "requiredNextActions": [
+    "Separate mission: GOVERNANCE_EXECUTION_EFFICIENCY_V1 — R1.",
+    "Do not authorize GATE14 and do not create GATE14 execution artefacts from this closure."
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-08-08T13:39:23.145Z"
+}

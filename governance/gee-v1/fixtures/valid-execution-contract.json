@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "EXAMPLE_WU_ALPHA",
+  "type": "MISSION_STEP",
+  "version": "R0001",
+  "strategicContractId": "EXAMPLE_WU_ALPHA",
+  "objective": "Demonstrate a valid execution contract for GEE V1 R1.",
+  "prerequisites": [
+    {
+      "id": "PREREQ_CORE",
+      "statement": "Generic core exists",
+      "critical": true,
+      "satisfactionRule": "caller-supplied"
+    }
+  ],
+  "invariants": [
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/core/work-unit-core.mjs"
+  ],
+  "requiredTests": [
+    "gee-r1-contract-layer.test.mjs"
+  ],
+  "requiredNegativeTests": [
+    "H01 missing objective"
+  ],
+  "requiredHostileOrCounterTests": [
+    "H04 bad schema"
+  ],
+  "evidenceRequirements": [
+    "RUN_ROOT hashes and closure matrix"
+  ],
+  "closureConditions": [
+    "All R1 foundation tests PASS",
+    "No critical open defects"
+  ],
+  "authorizedVerdicts": [
+    "R1_COMPLETE",
+    "R1_INCOMPLETE",
+    "R1_REPAIR_REQUIRED"
+  ],
+  "stateTransitionRules": [
+    "NOT_STARTED -> READY -> ACTIVE -> CLOSED"
+  ],
+  "authorizedPaths": [
+    "governance/gee-v1/"
+  ],
+  "activationPolicy": {
+    "requiresSealBeforeActivation": true,
+    "closureCriteriaMutableAfterActivation": false
+  }
+}

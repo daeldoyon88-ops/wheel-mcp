@@ -1,0 +1,9 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object","additionalProperties":false,
+  "required":["schemaVersion","gateId","policyId","oracleStatuses","coverageResults","counts","mandatoryCoverage","verdict","findings"],
+  "properties":{
+    "schemaVersion":{"const":1},"gateId":{"const":"GATE13"},"policyId":{"type":"string"},
+    "oracleStatuses":{"type":"array"},"coverageResults":{"type":"array"},"counts":{"type":"object"},"mandatoryCoverage":{"type":"number"},"verdict":{"type":"string"},"findings":{"type":"array"}
+  }
+}

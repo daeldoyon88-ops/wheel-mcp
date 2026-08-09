@@ -1,0 +1,103 @@
+{
+  "document": "GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1",
+  "schemaVersion": 1,
+  "authorityId": "GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-07T01:05:24.267Z",
+  "temporary": false,
+  "singleUseExecutionAuthorization": true,
+  "gateId": "GATE13",
+  "canonicalName": "Oracles and coverage",
+  "canonicalObjective": "Établir une couche canonique, vérifiable et fail-closed d’oracles et de couverture qui identifie toutes les autorités et données nécessaires aux décisions de gouvernance, mesure leur disponibilité, leur provenance, leur fraîcheur et leur couverture, détecte les lacunes ou contradictions, et interdit toute conclusion valide lorsqu’une dépendance obligatoire n’est pas prouvée.",
+  "strategicPurpose": "Empêcher qu’une gate, un validateur ou un agent conclue à partir d’une source absente, non autoritaire, d’une couverture partielle non déclarée, d’une donnée périmée, d’un fallback synthétique, d’un rapport résumé non vérifié, d’une contradiction silencieuse ou d’une dépendance non traçable ; GATE13 fournit une vérité mesurable sur les sources requises, existantes, utilisables, absentes, périmées ou contradictoires, la couverture réelle obtenue, et pourquoi une conclusion est autorisée ou bloquée.",
+  "definitions": {
+    "oracle": "Une source, autorité, preuve ou mécanisme canonique fournissant une information nécessaire à une décision gouvernée.",
+    "coverageItem": "Une exigence de données, d’autorité, de preuve, de validateur ou de dépendance qui doit être satisfaite pour qu’une conclusion ou transition soit autorisée.",
+    "mandatoryOracle": "Oracle sans lequel une conclusion doit échouer en mode fail-closed.",
+    "optionalOracle": "Oracle améliorant l’explication ou la confiance, dont l’absence est explicitement déclarée et ne remplace jamais une exigence obligatoire.",
+    "coverage": "Rapport déterministe entre les coverage items obligatoires satisfaits et le total des coverage items obligatoires applicables, jamais inventé ou estimé."
+  },
+  "requiredOutputs": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE13/implementation/ORACLE_REGISTRY.json"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE13/implementation/COVERAGE_REQUIREMENTS_REGISTRY.json"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE13/implementation/ORACLE_AND_COVERAGE_POLICY.json"
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs"
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs"
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE13/implementation/COVERAGE_REPORT.json"
+    },
+    {
+      "ordinal": 8,
+      "path": "governance/gates/GATE13/implementation/REPLAY_AND_PROVENANCE_EVIDENCE.json"
+    }
+  ],
+  "closureConditions": [
+    "mandatoryCoverage = 100% pour le périmètre obligatoire applicable et défini par le contrat, sans réduction artificielle du dénominateur",
+    "missingMandatory = 0, invalidMandatory = 0, staleMandatory = 0, contradictoryMandatory = 0, unresolvedMandatory = 0",
+    "aucun oracle ID ni coverage item ID dupliqué, aucune référence orpheline, aucune dépendance circulaire",
+    "fallback silencieux = 0, aucune autorité générée ne supplante une source canonique",
+    "tests positifs PASS, contre-tests hostiles probants, mutants critiques tués",
+    "fonctionnement offline PASS et exécution depuis un autre working directory PASS",
+    "package portable PASS et audit indépendant PASS",
+    "GATE14 non autorisé automatiquement par la clôture de GATE13"
+  ],
+  "forbiddenActions": [
+    "Construire les futurs modèles de marché.",
+    "Entraîner un modèle.",
+    "Produire des probabilités de trading.",
+    "Modifier le scanner Wheel.",
+    "Modifier IBKR.",
+    "Modifier le tableau de bord.",
+    "Exécuter GATE14 ou une gate ultérieure.",
+    "Source synthétique présentée comme réelle, PASS codé en dur, fallback silencieux, autorité circulaire, validateur se validant lui-même, conclusion summary-only, source absente masquée, contradiction ignorée, probabilité inventée, autorisation de gate implicite."
+  ],
+  "authorizedContractPath": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+  "authorizedStatePath": "governance/gates/GATE13/state/CURRENT_STATE.json",
+  "futureExecutionMissionId": "GATE13_ORACLES_AND_COVERAGE_IMPLEMENTATION_R1",
+  "futureExecutionAuthorized": true,
+  "gate14Authorized": false,
+  "gate14Executable": false,
+  "sourceAuditHashes": {
+    "discoveryAuditMarkdownSha256": "989963053745f2c8461f3c4eef922ef936e252012a49e36ab91d68b802bed7b9",
+    "discoveryAuditJsonSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+    "discoveryAuditVerdict": "GATE13_CANONICAL_MANDATE_DISCOVERY_R1_INDEPENDENT_AUDIT_PASS_WITH_NONBLOCKING_REFERENCE_COUNTER_DEFECT"
+  },
+  "contractSha256AfterFinalization": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+  "supersessionRules": {
+    "enabled": true,
+    "condition": "GATE13_AUDITED_COMPLETE_CONFIRMED_CLOSURE",
+    "requiresIndependentAuditPass": true,
+    "supersededWithoutAuthorityMutation": true,
+    "authorityStatusAfterCondition": "SUPERSEDED"
+  },
+  "ownerDecisionProvenance": {
+    "decisionType": "PROJECT_OWNER_TEMPORARY_SINGLE_USE_AUTHORIZATION",
+    "scope": "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT_R1",
+    "missionOnly": true,
+    "baselinePins": {
+      "head": null,
+      "originMain": null,
+      "divergence": "0 0"
+    }
+  }
+}

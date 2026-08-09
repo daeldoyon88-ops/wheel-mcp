@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/project-adapter.schema.json",
+  "title": "GEE V1 project adapter contract (interface)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "projectId", "workUnitType", "capabilities"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "projectId": { "type": "string", "minLength": 1 },
+    "workUnitType": { "type": "string", "minLength": 1 },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["listWorkUnitIds", "getWorkUnitView", "resolvePrerequisite"],
+      "properties": {
+        "listWorkUnitIds": { "type": "boolean", "const": true },
+        "getWorkUnitView": { "type": "boolean", "const": true },
+        "resolvePrerequisite": { "type": "boolean", "const": true },
+        "loadStrategicContract": { "type": "boolean" },
+        "loadExecutionContract": { "type": "boolean" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

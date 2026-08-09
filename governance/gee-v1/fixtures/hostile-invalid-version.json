@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "HOSTILE_BAD_VERSION",
+  "type": "MISSION_STEP",
+  "version": "v1",
+  "strategicContractId": "HOSTILE_BAD_VERSION",
+  "objective": "Invalid version",
+  "prerequisites": [],
+  "invariants": ["X"],
+  "requiredArtifacts": ["a"],
+  "requiredTests": ["t"],
+  "requiredNegativeTests": ["n"],
+  "requiredHostileOrCounterTests": ["h"],
+  "evidenceRequirements": ["e"],
+  "closureConditions": ["done"],
+  "authorizedVerdicts": ["R1_COMPLETE"],
+  "stateTransitionRules": ["A->B"],
+  "authorizedPaths": ["governance/gee-v1/"]
+}

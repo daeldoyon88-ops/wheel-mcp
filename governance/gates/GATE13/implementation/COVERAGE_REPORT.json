@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "totalApplicable": 12,
+  "totalMandatory": 12,
+  "satisfied": 12,
+  "missingMandatory": 0,
+  "invalidMandatory": 0,
+  "staleMandatory": 0,
+  "contradictoryMandatory": 0,
+  "unresolvedMandatory": 0,
+  "mandatoryCoverage": 100,
+  "findings": [],
+  "verdict": "GATE13_ORACLE_COVERAGE_PASS"
+}

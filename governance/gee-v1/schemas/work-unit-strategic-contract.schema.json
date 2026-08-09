@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/work-unit-strategic-contract.schema.json",
+  "title": "GEE V1 strategic work-unit contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractKind",
+    "id",
+    "type",
+    "version",
+    "objective",
+    "invariants",
+    "authorizedVerdicts"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "contractKind": { "type": "string", "const": "STRATEGIC" },
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "objective": { "type": "string", "minLength": 1 },
+    "strategicPurpose": { "type": "string" },
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "critical"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "statement": { "type": "string", "minLength": 1 },
+          "critical": { "type": "boolean" }
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "authorizedVerdicts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "stateTransitionRules": { "type": "array" },
+    "invalidationDeclarations": { "type": "array" },
+    "notes": { "type": "string" }
+  }
+}

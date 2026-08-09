@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "stateRevision": "R0002",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE13/state/revisions/R0002/CHECKPOINT.json",
+      "sha256": "8a098573ec2226522b3411a04ed4c8e70eeb53a24e8611f320aff699490f8df1",
+      "byteLength": 4771
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE13/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": "1652ec6f6bf43d19469d8bed5ec7069b27aa686978e9021de4d0ff8b77e85557",
+      "byteLength": 2049
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+      "byteLength": 18253
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+      "sha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+      "byteLength": 281
+    }
+  ],
+  "previousStateSealSha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+  "sealedAt": "2026-08-08T13:39:23.145Z",
+  "payload": {
+    "gateId": "GATE13",
+    "stateRevision": "R0002",
+    "mission": "GATE13_INDEPENDENT_AUDIT_AND_COMPLETE_CONFIRMED_CLOSURE_R1",
+    "executionAuthorityId": "GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1",
+    "executionAuthoritySha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+    "ledgerSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+    "ledgerMutated": false,
+    "coverageReportVerdict": "GATE13_ORACLE_COVERAGE_PASS",
+    "mandatoryCoverage": 100,
+    "totalApplicable": 12,
+    "totalMandatory": 12,
+    "satisfied": 12,
+    "missingMandatory": 0,
+    "invalidMandatory": 0,
+    "staleMandatory": 0,
+    "contradictoryMandatory": 0,
+    "unresolvedMandatory": 0,
+    "positiveTests": "6/6",
+    "negativeAndCounterTests": "15/15",
+    "independentCountertests": "10/10",
+    "executionStatus": "COMPLETE_CONFIRMED",
+    "gate13Started": true,
+    "gate13Complete": true,
+    "gate13CompleteConfirmed": true,
+    "gate14Authorized": false,
+    "gate14Executable": false,
+    "independentAuditStatus": "PASS",
+    "independentAuditRunRoot": "C:/Users/melan/AppData/Local/Temp/GATE13_INDEPENDENT_AUDIT_R1/20260808_093157",
+    "independentVerdictSha256": "91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352",
+    "blockingDefectId": null,
+    "nextAction": "GOVERNANCE_EXECUTION_EFFICIENCY_V1 — R1 (separate mission). GATE14 not authorized.",
+    "sealedAt": "2026-08-08T13:39:23.145Z"
+  },
+  "payloadSha256": "315995e99a30e07b1f19c586105b10e4629674f6dd49280f73b0a327641e9be2"
+}

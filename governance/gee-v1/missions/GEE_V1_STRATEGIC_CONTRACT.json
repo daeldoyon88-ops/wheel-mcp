@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "STRATEGIC",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "type": "MISSION",
+  "version": "R0001",
+  "objective": "Build a project-agnostic governance execution-efficiency foundation: canonical contracts, Wheel adapter, and Definition-of-Ready activation gate, without implementing R2+ engines.",
+  "strategicPurpose": "Prevent under-defined Gates from being activated and prevent Wheel-specific hardcoding in the reusable core.",
+  "prerequisites": [
+    {
+      "id": "GATE13_COMPLETE_CONFIRMED",
+      "statement": "GATE13 must be COMPLETE_CONFIRMED after independent audit",
+      "critical": true
+    }
+  ],
+  "invariants": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS",
+    "NO_RESTART_FROM_ZERO",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "authorizedVerdicts": [
+    "R1_COMPLETE",
+    "R1_REPAIR_REQUIRED",
+    "R1_ROOT_CAUSE_ANALYSIS_REQUIRED",
+    "R1_BLOCKED_GATE13_STATE_CONTRADICTION",
+    "R1_BLOCKED_ARCHITECTURE_CONTRADICTION",
+    "R1_INCOMPLETE"
+  ],
+  "stateTransitionRules": [
+    "R0_COMPLETE -> R1_ACTIVE -> R1_COMPLETE -> R2_AUTHORIZED"
+  ],
+  "notes": "Authorized by PROJECT_OWNER mission GOVERNANCE_EXECUTION_EFFICIENCY_V1 R1 after GATE13 COMPLETE_CONFIRMED."
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": 12345,
+  "type": "MISSION_STEP",
+  "version": "R0001",
+  "objective": "bad schema"
+}

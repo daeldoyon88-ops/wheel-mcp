@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/work-unit-execution-contract.schema.json",
+  "title": "GEE V1 execution work-unit contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractKind",
+    "id",
+    "type",
+    "version",
+    "strategicContractId",
+    "objective",
+    "prerequisites",
+    "invariants",
+    "requiredArtifacts",
+    "requiredTests",
+    "requiredNegativeTests",
+    "requiredHostileOrCounterTests",
+    "evidenceRequirements",
+    "closureConditions",
+    "authorizedVerdicts",
+    "stateTransitionRules",
+    "authorizedPaths"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "contractKind": { "type": "string", "const": "EXECUTION" },
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "strategicContractId": { "type": "string", "minLength": 1 },
+    "objective": { "type": "string", "minLength": 1 },
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "critical"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "statement": { "type": "string", "minLength": 1 },
+          "critical": { "type": "boolean" },
+          "satisfactionRule": { "type": "string" }
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "requiredArtifacts": { "type": "array", "minItems": 1 },
+    "requiredTests": { "type": "array", "minItems": 1 },
+    "requiredNegativeTests": { "type": "array", "minItems": 1 },
+    "requiredHostileOrCounterTests": { "type": "array", "minItems": 1 },
+    "evidenceRequirements": { "type": "array", "minItems": 1 },
+    "closureConditions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "authorizedVerdicts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "stateTransitionRules": { "type": "array", "minItems": 1 },
+    "invalidationDeclarations": { "type": "array" },
+    "authorizedPaths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "activationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requiresSealBeforeActivation": { "type": "boolean" },
+        "closureCriteriaMutableAfterActivation": { "type": "boolean", "const": false }
+      }
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "document": "CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT",
+  "schemaVersion": 1,
+  "verdict": "GATE13_CANONICAL_MANDATE_DISCOVERY_R1_INDEPENDENT_AUDIT_PASS_WITH_NONBLOCKING_REFERENCE_COUNTER_DEFECT",
+  "inputs": {
+    "zip": {
+      "file": "GATE13_CANONICAL_MANDATE_DISCOVERY_R1_FULL_EVIDENCE.zip",
+      "sizeBytes": 21090,
+      "sha256": "898db2f0deb6a7948d1432438249a67df8fafc4d1b77f6d2fe591ba6b05d0a3d"
+    },
+    "selftest": {
+      "file": "GATE13_DISCOVERY_FINAL_ZIP_SELFTEST.json",
+      "sizeBytes": 557,
+      "sha256": "bc3a95856a128cddc900bdf9d45f00f4a0026cb2b00e58dc87843b17b72e4c0d"
+    },
+    "receipt": {
+      "file": "GATE13_DISCOVERY_DETACHED_TERMINAL_VERIFICATION_RECEIPT.json",
+      "sizeBytes": 1776,
+      "sha256": "01b688718be99ff262ad0dff5519b7a5def73f9d2d6371c2d6b64e10f601b92e"
+    }
+  },
+  "zipAudit": {
+    "entryCount": 14,
+    "crcIntegrity": "PASS",
+    "jsonFiles": 9,
+    "jsonParseErrors": 0,
+    "backslashEntries": 0,
+    "unsafePaths": 0,
+    "duplicateEntries": 0,
+    "portablePaths": true,
+    "manifestListedFiles": 12,
+    "manifestHashMismatches": 0
+  },
+  "substantiveFindings": {
+    "canonicalName": "Oracles and coverage",
+    "canonicalObjective": "NOT_CANONICALLY_DEFINED",
+    "requiredArtifacts": "NOT_CANONICALLY_DEFINED",
+    "requiredTests": "NOT_CANONICALLY_DEFINED",
+    "closureConditions": "NOT_CANONICALLY_DEFINED",
+    "gate13ContractPresent": false,
+    "gate13StatePresent": false,
+    "gate13ExecutionAuthorityPresent": false,
+    "gate13Authorized": false,
+    "gate13Executable": false,
+    "i4CompleteConfirmed": true,
+    "obsR201Closed": true,
+    "repositoryWrites": 0,
+    "verdictSupported": true
+  },
+  "referenceCartographyAudit": {
+    "actualReferenceCount": 16,
+    "actualClassificationCounts": {
+      "CANONICAL_ACTIVE": 10,
+      "CANONICAL_HISTORICAL": 2,
+      "GENERATED": 2,
+      "INFORMATIONAL": 2,
+      "STALE": 0,
+      "CONTRADICTORY": 0,
+      "UNRESOLVED": 0
+    },
+    "declaredClassificationCounts": {
+      "CANONICAL_ACTIVE": 11,
+      "CANONICAL_HISTORICAL": 2,
+      "GENERATED": 2,
+      "INFORMATIONAL": 2,
+      "STALE": 0,
+      "CONTRADICTORY": 0,
+      "UNRESOLVED": 0
+    },
+    "declaredCountsSum": 17,
+    "actualCountsSum": 16,
+    "defect": "CANONICAL_ACTIVE overcounted by 1 in counters block and final narrative.",
+    "impact": "Nonblocking. The 16 individual references are present and the mandate/authorization conclusion does not depend on the erroneous aggregate."
+  },
+  "otherObservations": [
+    {
+      "id": "G13-DISC-OBS-02",
+      "title": "R0001 immutability described as assumed from authority",
+      "impact": "Nonblocking for a readonly GATE13 mandate discovery, but future audits should avoid labeling byte invariance as verified unless hashes are directly recomputed."
+    },
+    {
+      "id": "G13-DISC-OBS-03",
+      "title": "Self-test names Compress-Archive/System.IO.Compression ambiguously",
+      "impact": "Nonblocking because the actual ZIP has 0 backslash entries and valid portable names."
+    }
+  ],
+  "disposition": {
+    "correctFilesUploaded": true,
+    "discoveryAccepted": true,
+    "navigatorTestAccepted": true,
+    "ownerDecisionRequired": true,
+    "gate13ExecutionAuthorized": false,
+    "repositoryRepairRequired": false,
+    "packageRepairRequiredBeforeNextStep": false,
+    "recommendedNextMission": "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT_R1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object","additionalProperties":false,
+  "required":["schemaVersion","gateId","registryRevision","policyId","coverageItems"],
+  "properties":{
+    "schemaVersion":{"const":1},"gateId":{"const":"GATE13"},"registryRevision":{"type":"string"},"policyId":{"type":"string"},
+    "coverageItems":{"type":"array","minItems":1,"items":{"type":"object","additionalProperties":false,"required":["coverageItemId","consumer","requiredOracleIds","mandatory","applicability","requiredEvidence","failClosed","dependsOnCoverageItemIds"],"properties":{"coverageItemId":{"type":"string","pattern":"^G13-C-[0-9]{3}$"},"consumer":{"type":"string"},"requiredOracleIds":{"type":"array","items":{"type":"string"}},"mandatory":{"type":"boolean"},"applicability":{"enum":["ALWAYS","OPTIONAL"]},"requiredEvidence":{"type":"string"},"failClosed":{"type":"boolean"},"dependsOnCoverageItemIds":{"type":"array","items":{"type":"string"}}}}
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "PROJECT_OWNER_RELEASE_PUBLIC_KEY",
+  "keyId": "WHEEL-OWNER-RELEASE-2D441D1E",
+  "algorithm": "ed25519",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAIn6CWi5V761JF4OzYpOBbwnMl7uQd/H5+xv2Ps+coBs=\n-----END PUBLIC KEY-----\n"
+}

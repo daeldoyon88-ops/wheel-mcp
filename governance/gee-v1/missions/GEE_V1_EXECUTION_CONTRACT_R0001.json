@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R1",
+  "type": "MISSION_REVISION",
+  "version": "R0001",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Implement R1-A Canonical Contract Layer, R1-B Project-Agnostic Core, R1-C Wheel Adapter, and R1-D Gate Readiness only.",
+  "prerequisites": [
+    {
+      "id": "GATE13",
+      "statement": "GATE13 COMPLETE_CONFIRMED",
+      "critical": true,
+      "satisfactionRule": "wheel-adapter-status"
+    }
+  ],
+  "invariants": [
+    "Additive gee-v1 namespace only",
+    "No historical gate schema mutation",
+    "No R2+ engine implementation",
+    "No destructive git operations",
+    "Preserve preexisting dirty baseline"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/schemas/work-unit-strategic-contract.schema.json",
+    "governance/gee-v1/schemas/work-unit-execution-contract.schema.json",
+    "governance/gee-v1/core/work-unit-core.mjs",
+    "governance/gee-v1/adapters/wheel/wheel-project-adapter.mjs",
+    "governance/gee-v1/readiness/evaluate-readiness.mjs"
+  ],
+  "requiredTests": [
+    "governance/gee-v1/tests/gee-r1-contract-layer.test.mjs",
+    "governance/gee-v1/tests/gee-r1-core-adapter-readiness.test.mjs"
+  ],
+  "requiredNegativeTests": [
+    "H01 missing objective -> BLOCKED",
+    "H02 missing closure -> BLOCKED",
+    "H03 unsatisfied prerequisite -> BLOCKED",
+    "H04 bad schema -> BLOCKED"
+  ],
+  "requiredHostileOrCounterTests": [
+    "H06 synthetic work unit id",
+    "H09 sealed mutation detection",
+    "H10 wheel facts absent from core"
+  ],
+  "evidenceRequirements": [
+    "R1 RUN_ROOT baseline",
+    "R1 requirement matrix",
+    "R1 write plan",
+    "R1 closure matrix",
+    "test summary with hashes"
+  ],
+  "closureConditions": [
+    "Canonical Contract Layer PASS",
+    "Project-Agnostic Core PASS",
+    "Wheel Adapter PASS",
+    "Gate Readiness PASS",
+    "Positive and hostile tests PASS",
+    "Backward compatibility PASS",
+    "GATE13 remains COMPLETE_CONFIRMED",
+    "No writes outside gee-v1 CREATE list",
+    "No critical open defects"
+  ],
+  "authorizedVerdicts": [
+    "R1_COMPLETE",
+    "R1_REPAIR_REQUIRED",
+    "R1_ROOT_CAUSE_ANALYSIS_REQUIRED",
+    "R1_BLOCKED_GATE13_STATE_CONTRADICTION",
+    "R1_BLOCKED_ARCHITECTURE_CONTRADICTION",
+    "R1_INCOMPLETE"
+  ],
+  "stateTransitionRules": [
+    "R1 planning -> R1 implementation -> R1 validation -> R1_COMPLETE"
+  ],
+  "invalidationDeclarations": [
+    "Any mutation of sealed GEE_V1_EXECUTION_CONTRACT after activation invalidates readiness"
+  ],
+  "authorizedPaths": [
+    "governance/gee-v1/"
+  ],
+  "activationPolicy": {
+    "requiresSealBeforeActivation": true,
+    "closureCriteriaMutableAfterActivation": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "gateId": "GATE13",
+  "stateRevision": "R0001",
+  "milestone": "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT",
+  "resumePoint": "GATE13 mandate, contract R0001, and state R0001 are defined and sandbox-validated. governance/active/ACTIVE_GATE.json cannot be flipped to GATE13 because governance/tools/validate-active-gate.mjs contains an unconditional rule rejecting activeGate=GATE13 and activeGate=GATE14; that tool is outside this contract authorizedPaths. The exact next action is a separate PROJECT_OWNER decision authorizing modification of governance/tools/validate-active-gate.mjs (or an equivalent canonical activation path) before GATE13 can become the active gate; no repository write is authorized before that decision.",
+  "completedTasks": [
+    "Repin HEAD, origin/main, divergence, and the canonical ledger hash.",
+    "Verify the two independent discovery audit files byte-for-byte against their declared SHA-256 hashes.",
+    "Verify GENESIS_IMPORT_GATE13 ledger event (ordinal 14, toStatus=AUTHORIZED_NOT_STARTED) exists without any ledger mutation.",
+    "Build the GATE13 write-scope mapping and confirm AMBIGUOUS_PATHS=0, UNRESOLVED_AUTHORITIES=0, EXISTING_CREATE_TARGETS=0, UNAUTHORIZED_PATHS=0, SCHEMA_GAPS=0.",
+    "Fill the GATE13 registry entry (canonicalObjective, strategicPurpose, expectedOutputs, exitConditions) under PROJECT_OWNER decision provenance.",
+    "Regenerate governance/generated/GATE_REGISTRY_00_40.md from the updated registry and verify parity.",
+    "Create governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json.",
+    "Create governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json and CURRENT_CONTRACT.json.",
+    "Create governance/gates/GATE13/state/revisions/R0001 (CHECKPOINT, OPEN_DEFECTS, STATE_SEAL) and CURRENT_STATE.json.",
+    "Create governance/tests/gate13-contract-and-mandate.test.mjs and execute positive and hostile cases.",
+    "Empirically prove, via a non-mutating validator probe and via full sandbox rehearsal, that governance/tools/validate-active-gate.mjs rejects activeGate=GATE13 unconditionally.",
+    "Determine that the ACTIVE_GATE pointer flip is unreachable within this contract authorizedPaths and stop before performing it in the tracked repository."
+  ],
+  "openTasks": [
+    "A separate PROJECT_OWNER decision on governance/tools/validate-active-gate.mjs (or an equivalent canonical activation mechanism) before GATE13 can become the active gate.",
+    "Execution of the GATE13_ORACLES_AND_COVERAGE_IMPLEMENTATION_R1 future mission strictly within the authorizedPaths declared in EXECUTION_CONTRACT_R0001."
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+      "validUntilCondition": "valid while R0001 remains the active GATE13 contract revision"
+    },
+    {
+      "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+      "sha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+      "validUntilCondition": "valid while the owner authority keeps these exact bytes"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": null,
+      "validUntilCondition": "valid while the canonical ledger is byte-invariant"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "Obtain a separate PROJECT_OWNER authorization to modify governance/tools/validate-active-gate.mjs (or an equivalent canonical activation mechanism) before attempting to set governance/active/ACTIVE_GATE.json to GATE13.",
+    "Do not create, modify, or make executable any GATE13 functional implementation file before that authorization and before EXECUTION_CONTRACT_R0001 authorizedPaths are consumed by a dedicated future mission."
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-08-07T01:05:24.267Z"
+}

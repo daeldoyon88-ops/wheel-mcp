@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "constitutionVersion": "R2",
+  "constitutionVersion": "R3",
   "governedRepository": {
     "repositoryName": "REPO-WHEEL-JARVISE-PRIMARY",
     "originUrl": "https://github.com/daeldoyon88-ops/wheel-mcp.git",
@@ -96,7 +96,8 @@
     },
     {
       "allowedOverrides": [
-        "CONTRACT_AUTHORIZED_WRITE"
+        "CONTRACT_AUTHORIZED_WRITE",
+        "OWNER_AUTHORIZED_RELEASE_COMMIT"
       ],
       "applicableWorkClasses": [
         "CRITICAL_REASONING",
@@ -105,7 +106,7 @@
         "READONLY_AUDIT"
       ],
       "defaultState": "ENFORCED",
-      "description": "Aucun commit, push, add, stash sans autorisation explicite du contrat.",
+      "description": "Aucun commit, push, add, stash sans autorisation explicite du contrat, ou sans autorisation de publication signée par le PROJECT_OWNER et validée hors du dépôt (OWNER_AUTHORIZED_RELEASE_COMMIT). L’autorisation de publication ne couvre jamais push ni aucune commande destructive.",
       "name": "Écritures Git interdites par défaut",
       "overrideAuthority": "EXECUTION_CONTRACT",
       "requiredAdapterCoverage": [
@@ -116,7 +117,11 @@
       "ruleId": "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
       "runtimeMeasurement": "INSTRUMENTED_VIA_GIT_STATE_DIFF",
       "severity": "BLOCKING",
-      "violationStatus": "GOVERNANCE_VIOLATION_GIT_WRITE"
+      "violationStatus": "GOVERNANCE_VIOLATION_GIT_WRITE",
+      "overrideAuthorities": [
+        "EXECUTION_CONTRACT",
+        "PROJECT_OWNER_RELEASE_AUTHORIZATION"
+      ]
     },
     {
       "allowedOverrides": [],

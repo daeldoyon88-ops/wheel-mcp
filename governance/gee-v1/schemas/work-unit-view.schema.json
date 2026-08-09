@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/work-unit-view.schema.json",
+  "title": "GEE V1 generic work-unit view",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "projectId",
+    "workUnitId",
+    "workUnitType",
+    "status",
+    "objective",
+    "sources"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "projectId": { "type": "string", "minLength": 1 },
+    "workUnitId": { "type": "string", "minLength": 1 },
+    "workUnitType": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "minLength": 1 },
+    "statusAuthority": { "type": "string" },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "verified", "trustLevel", "identityBinding"],
+      "properties": {
+        "value": { "type": "string", "minLength": 1 },
+        "verified": { "type": "boolean" },
+        "trustLevel": { "type": "string", "enum": ["BROKEN", "UNANCHORED_LEGACY", "ANCHORED_APPEND_ONLY", "ANCHORED_EXTERNAL"] },
+        "authority": { "type": ["object", "null"], "additionalProperties": true },
+        "evidenceRef": { "type": "array", "items": { "type": "string" } },
+        "identityBinding": { "type": "string", "enum": ["BOUND", "VIOLATION"] }
+      }
+    },
+    "authorityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["consistent", "source", "trustLevel"],
+      "properties": {
+        "consistent": { "type": "boolean" },
+        "source": { "type": "string" },
+        "reason": { "type": ["string", "null"] },
+        "sealValid": { "type": "boolean" },
+        "statusKnowledge": { "type": ["string", "null"] },
+        "trustLevel": { "type": "string", "enum": ["BROKEN", "UNANCHORED_LEGACY", "ANCHORED_APPEND_ONLY", "ANCHORED_EXTERNAL"] },
+        "canonicalRevisionStructurallyValid": { "type": "boolean" },
+        "canonicalRevisionDriftFindingCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["activated", "source"],
+      "properties": {
+        "activated": { "type": "boolean" },
+        "anchor": { "type": ["object", "null"] },
+        "source": { "type": "string" },
+        "ledgerBinding": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "state": { "type": "string", "enum": ["PROVEN", "FAILED", "UNKNOWN"] }
+          }
+        }
+      }
+    },
+    "objective": { "type": ["string", "null"] },
+    "stateRevision": { "type": ["string", "null"] },
+    "contract": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "execution": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["contract", "seal"],
+      "properties": {
+        "contract": { "type": ["object", "null"], "additionalProperties": true },
+        "seal": { "type": ["object", "null"], "additionalProperties": true }
+      }
+    },
+    "provenance": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "sourceKind": { "type": "string" },
+        "sourcePath": { "type": "string" },
+        "sourceSha256": { "type": "string" },
+        "mappingId": { "type": "string" },
+        "mappingVersion": { "type": "integer" },
+        "fidelity": { "type": "string" },
+        "missingForGenericReadiness": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "prerequisites": { "type": "array" },
+    "dependencies": { "type": "array" },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "verified"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "path": { "type": "string" },
+          "sha256": { "type": ["string", "null"] },
+          "verified": { "type": "boolean" }
+        }
+      }
+    },
+    "closure": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["executionStatus", "gateCompleteConfirmed", "finalClosureTrustLevel", "nextAction"],
+      "properties": {
+        "executionStatus": { "type": "string", "minLength": 1 },
+        "gateCompleteConfirmed": { "type": "boolean" },
+        "finalClosureTrustLevel": { "type": "string", "enum": ["BROKEN", "UNANCHORED_LEGACY", "ANCHORED_APPEND_ONLY", "ANCHORED_EXTERNAL"] },
+        "nextAction": { "type": ["string", "null"] }
+      }
+    },
+    "defectsOpenCount": { "type": ["integer", "null"], "minimum": 0 },
+    "defectsOpenKnowledge": {
+      "type": "string",
+      "enum": ["KNOWN_ZERO", "KNOWN_NONZERO", "UNKNOWN"]
+    },
+    "defectsValidationReason": { "type": ["string", "null"] },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interpreted", "copiedAuthority"],
+      "properties": {
+        "interpreted": { "type": "array", "items": { "type": "string" } },
+        "copiedAuthority": { "type": "boolean", "const": false }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

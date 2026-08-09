@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "release-request.schema.json",
+  "title": "Agent-authored, non-authoritative post-closure release request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentKind",
+    "requestId",
+    "projectId",
+    "repositoryOriginUrl",
+    "branch",
+    "baseCommit",
+    "purpose",
+    "workUnits",
+    "governedStateBindings",
+    "requestedOperations",
+    "pushRequested",
+    "maxCommitCount",
+    "commitMessage",
+    "manifest",
+    "manifestDigest",
+    "requestDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "documentKind": { "const": "RELEASE_REQUEST" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "projectId": { "type": "string", "minLength": 1 },
+    "repositoryOriginUrl": { "type": "string", "minLength": 1 },
+    "branch": { "type": "string", "minLength": 1 },
+    "baseCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "purpose": { "const": "POST_CLOSURE_LOCAL_RELEASE_COMMIT" },
+    "workUnits": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["workUnitType", "workUnitId", "closureVerdict"],
+        "properties": {
+          "workUnitType": { "type": "string", "minLength": 1 },
+          "workUnitId": { "type": "string", "minLength": 1 },
+          "closureVerdict": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "governedStateBindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bindingId", "path", "sha256"],
+        "properties": {
+          "bindingId": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "externalWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "requestedOperations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"] }
+    },
+    "pushRequested": { "const": false },
+    "maxCommitCount": { "const": 1 },
+    "commitMessage": { "type": "string", "minLength": 1 },
+    "manifest": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "status", "workingTreeSha256", "stageAction"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\][^\\\\]*$" },
+          "status": { "enum": ["ADDED", "MODIFIED", "DELETED"] },
+          "workingTreeSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+          "stageAction": { "enum": ["STAGE_CONTENT", "STAGE_DELETION"] }
+        }
+      }
+    },
+    "manifestDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "requestDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

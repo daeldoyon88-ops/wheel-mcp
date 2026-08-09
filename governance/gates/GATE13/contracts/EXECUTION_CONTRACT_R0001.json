@@ -1,0 +1,349 @@
+{
+  "gateId": "GATE13",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+    "gateId": "GATE13",
+    "canonicalObjectiveSha256": "d542b2d1e1990fa51aba00a543494c8a456cece28e238cca3d7a37f731cefb0b"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "REQ-G13-01",
+      "statement": "GATE13 maintains a versioned ORACLE_REGISTRY identifying every oracle, its authority, provenance, freshness policy, failure policy, fallback policy, mandatory/optional class and consumers.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/0"
+    },
+    {
+      "requirementId": "REQ-G13-02",
+      "statement": "GATE13 maintains a COVERAGE_REQUIREMENTS_REGISTRY listing every coverage item, its consuming gate/component, required oracle, mandatory flag, applicability condition, required evidence and fail-closed expectation.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/1"
+    },
+    {
+      "requirementId": "REQ-G13-03",
+      "statement": "GATE13 maintains a deterministic ORACLE_COVERAGE_MATRIX recomputable from real bytes and paths, linking oracles, coverage items, consumers, evidence, statuses, gaps and contradictions.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/2"
+    },
+    {
+      "requirementId": "REQ-G13-04",
+      "statement": "GATE13 maintains an ORACLE_AND_COVERAGE_POLICY defining authority, provenance, freshness, failure, fallback, contradiction, coverage, statuses and fail-closed rules.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/3"
+    },
+    {
+      "requirementId": "REQ-G13-05",
+      "statement": "The oracle-coverage validator recomputes coverage results from source files; it never re-reads a preproduced verdict.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/4"
+    },
+    {
+      "requirementId": "REQ-G13-06",
+      "statement": "The GATE13 test suite covers, at minimum, the fifteen positive and hostile cases enumerated in the canonical authority, plus reproducibility from another working directory and offline sealed-package operation.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/5"
+    },
+    {
+      "requirementId": "REQ-G13-07",
+      "statement": "The COVERAGE_REPORT is recomputed and states total applicable, total mandatory, satisfied, missing, invalid, stale, contradictory, exact coverage, findings and verdict.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/6"
+    },
+    {
+      "requirementId": "REQ-G13-08",
+      "statement": "Replay and provenance evidence reproduces the coverage calculation, classifications, findings, hashes and verdict.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/requiredOutputs/7"
+    },
+    {
+      "requirementId": "REQ-G13-09",
+      "statement": "mandatoryCoverage = 100% applies only to mandatory coverage items that are actually applicable and defined by this contract; the denominator cannot be reduced by deleting, reclassifying, or marking NOT_APPLICABLE without verifiable authority.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/closureConditions"
+    },
+    {
+      "requirementId": "REQ-G13-10",
+      "statement": "This contract does not redefine, narrow, or extend the canonical GATE13 objective recorded in the pinned registry; the objective hash is bound and recalculated.",
+      "normativeSource": "NO_GATE_MANDATE_REDEFINITION"
+    },
+    {
+      "requirementId": "REQ-G13-11",
+      "statement": "GATE13 execution does not build market models, train a model, produce trading probabilities, or modify the Wheel scanner, IBKR, or the dashboard.",
+      "normativeSource": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/forbiddenActions"
+    },
+    {
+      "requirementId": "REQ-G13-12",
+      "statement": "GATE14 is never authorized automatically by GATE13 closure; a separate independent audit is required before any progression claim.",
+      "normativeSource": "SEPARATE_SESSION_REINSPECTION"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "role": "SUPREME_AUTHORITY",
+      "mutable": false
+    },
+    {
+      "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+      "role": "TEMPORARY_SINGLE_USE_MANDATE_AND_EXECUTION_AUTHORITY",
+      "sha256": null,
+      "mutable": false
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "role": "STRATEGIC_REGISTRY",
+      "sha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+      "mutable": false
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+      "role": "INDEPENDENT_DISCOVERY_AUDIT",
+      "sha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+      "mutable": false
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.md",
+      "role": "INDEPENDENT_DISCOVERY_AUDIT",
+      "sha256": "989963053745f2c8461f3c4eef922ef936e252012a49e36ab91d68b802bed7b9",
+      "mutable": false
+    },
+    {
+      "path": "governance/gates/GATE12/state/CURRENT_STATE.json",
+      "role": "PREDECESSOR_GATE_STATE",
+      "sha256": null,
+      "mutable": false
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "path": "governance/gates/GATE13/implementation/ORACLE_REGISTRY.json",
+      "classification": "FUNCTIONAL",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/COVERAGE_REQUIREMENTS_REGISTRY.json",
+      "classification": "FUNCTIONAL",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json",
+      "classification": "FUNCTIONAL",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/ORACLE_AND_COVERAGE_POLICY.json",
+      "classification": "POLICY",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs",
+      "classification": "VALIDATOR",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "classification": "TEST",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/COVERAGE_REPORT.json",
+      "classification": "REPORT",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE13/implementation/REPLAY_AND_PROVENANCE_EVIDENCE.json",
+      "classification": "EVIDENCE",
+      "action": "CREATE"
+    }
+  ],
+  "validators": [
+    "node --check governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json (JSON parse)",
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE13 --current-state governance/gates/GATE13/state/CURRENT_STATE.json --contract governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE13/state/revisions/R0001/STATE_SEAL.json",
+    "node governance/tools/validate-gate-registry.mjs",
+    "node governance/tools/generate-governance-docs.mjs --check",
+    "node governance/tools/validate-active-gate.mjs",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/validate-adapter-parity.mjs",
+    "node governance/tools/governance-preflight.mjs",
+    "node --check governance/tests/gate13-contract-and-mandate.test.mjs",
+    "node --test governance/tests/gate13-contract-and-mandate.test.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G13-POS-01",
+      "requirementId": "REQ-G13-01",
+      "name": "GATE13 registry entry declares the exact canonical name and a non-null objective",
+      "expected": "officialName=Oracles and coverage, canonicalObjective is a non-empty string"
+    },
+    {
+      "testId": "G13-POS-02",
+      "requirementId": "REQ-G13-10",
+      "name": "Contract strategicRegistryReference.canonicalObjectiveSha256 matches sha256Canonical(registry.gates[GATE13].canonicalObjective)",
+      "expected": "hashes are equal"
+    },
+    {
+      "testId": "G13-POS-03",
+      "requirementId": "REQ-G13-09",
+      "name": "Contract closureConditions require mandatoryCoverage=100% without denominator reduction language",
+      "expected": "closure condition text present and unaltered"
+    },
+    {
+      "testId": "G13-POS-04",
+      "requirementId": "REQ-G13-12",
+      "name": "ACTIVE_GATE.json for GATE13 is rejected by the current validate-active-gate.mjs",
+      "expected": "valid=false, findingIds includes ACTIVE_GATE_NOT_AUTHORIZED"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G13-NEG-01",
+      "requirementId": "REQ-G13-10",
+      "name": "A sandbox mutation lowering mandatoryCoverage below 100% is rejected",
+      "expected": "mutation detected, contract test fails"
+    },
+    {
+      "testId": "G13-NEG-02",
+      "requirementId": "REQ-G13-09",
+      "name": "A sandbox mutation introducing a wildcard authorizedPath is rejected",
+      "expected": "mutation detected, contract test fails"
+    },
+    {
+      "testId": "G13-NEG-03",
+      "requirementId": "REQ-G13-12",
+      "name": "A sandbox mutation marking executionStatus=STARTED in CURRENT_STATE is rejected",
+      "expected": "mutation detected, contract test fails"
+    }
+  ],
+  "countertests": [
+    {
+      "counterTestId": "G13-CT-01",
+      "target": "REQ-G13-10",
+      "hostileMutation": "registry canonicalObjective for GATE13 set to null in a sandbox copy",
+      "falsePassWouldMean": "the contract objective hash binding was not recalculated from real bytes"
+    },
+    {
+      "counterTestId": "G13-CT-02",
+      "target": "REQ-G13-09",
+      "hostileMutation": "requiredOutputs array emptied in a sandbox copy of the contract",
+      "falsePassWouldMean": "closure could be claimed with zero functional deliverables"
+    },
+    {
+      "counterTestId": "G13-CT-03",
+      "target": "REQ-G13-12",
+      "hostileMutation": "ACTIVE_GATE.json activeGate field set to GATE14 in a sandbox copy",
+      "falsePassWouldMean": "the hardcoded GATE13/GATE14 activation guard was bypassed"
+    }
+  ],
+  "reuseRules": [
+    "CP00 repinning evidence is reusable while HEAD, origin/main, the ledger hash, and the audit hashes are unchanged.",
+    "The sandbox rehearsal of this contract, state, and registry update is reusable while the sandbox repo-copy bytes are unchanged."
+  ],
+  "invalidationRules": [
+    "Any change to governance/GATE_REGISTRY_00_40.json invalidates the strategicRegistryReference.canonicalObjectiveSha256 binding.",
+    "Any change to governance/state/GATE_STATUS_LEDGER.ndjson invalidates every executed validation in this revision.",
+    "Any change to governance/tools/validate-active-gate.mjs after sealing invalidates the ACTIVE_POINTER_FAILURE evidence in this revision."
+  ],
+  "forbiddenReplays": [
+    "Subagent delegation of any part of this mission.",
+    "Any network access.",
+    "git add, git commit, git push, git reset, git restore, git checkout, git clean, git stash, git switch, git merge, git rebase, git cherry-pick, git apply, git am, git update-index, git rm, git mv, git fetch, git pull, git worktree.",
+    "Mutation of governance/state/GATE_STATUS_LEDGER.ndjson.",
+    "Mutation of governance/tools/validate-active-gate.mjs or of any other file outside this contract authorizedPaths.",
+    "Declaring GATE13 COMPLETE, COMPLETE_CONFIRMED, or GATE14 AUTHORIZED.",
+    "Creating, modifying, or making executable anything under the GATE13 functional implementation tree before this contract exists and is valid.",
+    "Flipping governance/active/ACTIVE_GATE.json to GATE13 or GATE14 given the current unconditional validate-active-gate.mjs guard."
+  ],
+  "packagingRequirements": [
+    "Portable ZIP entries written through ZipArchive with explicit package/<relative path using /> names.",
+    "BACKSLASH_ENTRIES=0, OUTSIDE_PACKAGE_PREFIX=0, UNSAFE_PATHS=0, DUPLICATE_ENTRIES=0.",
+    "FINAL_ZIP_SELFTEST.json and DETACHED_TERMINAL_VERIFICATION_RECEIPT.json produced outside the ZIP.",
+    "The full repository is never included in the package."
+  ],
+  "closureConditions": [
+    "The GATE13 registry entry has a non-null canonicalObjective, strategicPurpose, expectedOutputs and exitConditions, with missingCanonicalFields=[].",
+    "validate-gate-contract reports valid=true for EXECUTION_CONTRACT_R0001 and its CURRENT_CONTRACT pointer.",
+    "validate-state-revision reports valid=true for GATE13.",
+    "validate-state-seal reports valid=true for R0001.",
+    "validate-gate-registry reports verdict=PASS.",
+    "generate-governance-docs --check reports zero GENERATED_FILE_DRIFT.",
+    "Every positive and hostile test in governance/tests/gate13-contract-and-mandate.test.mjs passes with zero failures.",
+    "mandatoryCoverage=100% is required text in this contract for the future mission, with missingMandatory=0, invalidMandatory=0, staleMandatory=0, contradictoryMandatory=0, unresolvedMandatory=0 as future closure targets.",
+    "The Git delta contains zero staged, zero committed, and zero pushed changes to the tracked repository for this mission.",
+    "GATE12 R0001/R0002 state, the I4 evidence, and the canonical ledger remain byte-invariant.",
+    "GATE13 is recorded as AUTHORIZED_NOT_STARTED with executionStarted=false; GATE13 COMPLETE, COMPLETE_CONFIRMED, and GATE14 AUTHORIZED are never claimed."
+  ],
+  "nextGateAuthorizationConditions": [
+    "A separate mission executes governance/gates/GATE13/implementation and governance/gates/GATE13/tests strictly within the future allowlist declared in this contract authorizedPaths.",
+    "GATE14 is not authorized and not made executable by this mission or by the GATE13 mandate authority.",
+    "No GATE14 execution contract, state, or directory tree is created by this mission.",
+    "The GATE13 mandate and execution authority becomes SUPERSEDED only on audited GATE13 COMPLETE_CONFIRMED closure."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 180,
+    "expectedMaximumMinutes": 300,
+    "closeoutStartMinutes": 270,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "milestones": [
+      "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT"
+    ],
+    "checkpointRequired": true,
+    "resumeContractRequired": true,
+    "restartFromZeroForbidden": true
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE13/implementation/ORACLE_REGISTRY.json",
+    "governance/gates/GATE13/implementation/COVERAGE_REQUIREMENTS_REGISTRY.json",
+    "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json",
+    "governance/gates/GATE13/implementation/ORACLE_AND_COVERAGE_POLICY.json",
+    "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs",
+    "governance/gates/GATE13/implementation/COVERAGE_REPORT.json",
+    "governance/gates/GATE13/implementation/REPLAY_AND_PROVENANCE_EVIDENCE.json",
+    "governance/gates/GATE13/schemas/oracle-registry.schema.json",
+    "governance/gates/GATE13/schemas/coverage-requirements-registry.schema.json",
+    "governance/gates/GATE13/schemas/oracle-coverage-matrix.schema.json",
+    "governance/gates/GATE13/schemas/oracle-and-coverage-policy.schema.json",
+    "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+    "governance/gates/GATE13/tests/fixtures/HOSTILE_ORACLE_MUTATIONS.json",
+    "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0002.json",
+    "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE13/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE13/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json",
+    "governance/gates/GATE13/state/CURRENT_STATE.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "GATE13-MANDATE-AUTHORITY",
+      "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+      "sha256": null,
+      "evidence": "authorityId GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1, issuedBy PROJECT_OWNER, futureExecutionMissionId GATE13_ORACLES_AND_COVERAGE_IMPLEMENTATION_R1"
+    },
+    {
+      "sourceId": "GATE13-DISCOVERY-AUDIT",
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+      "sha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+      "evidence": "verdict GATE13_CANONICAL_MANDATE_DISCOVERY_R1_INDEPENDENT_AUDIT_PASS_WITH_NONBLOCKING_REFERENCE_COUNTER_DEFECT"
+    },
+    {
+      "sourceId": "GATE13-REGISTRY-OBJECTIVE",
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+      "evidence": "GATE13 canonicalObjective recalculated to d542b2d1e1990fa51aba00a543494c8a456cece28e238cca3d7a37f731cefb0b"
+    }
+  ]
+}

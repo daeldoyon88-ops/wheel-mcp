@@ -916,8 +916,8 @@
     {
       "gateId": "GATE13",
       "officialName": "Oracles and coverage",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
+      "canonicalObjective": "Établir une couche canonique, vérifiable et fail-closed d’oracles et de couverture qui identifie toutes les autorités et données nécessaires aux décisions de gouvernance, mesure leur disponibilité, leur provenance, leur fraîcheur et leur couverture, détecte les lacunes ou contradictions, et interdit toute conclusion valide lorsqu’une dépendance obligatoire n’est pas prouvée.",
+      "strategicPurpose": "Empêcher qu’une gate, un validateur ou un agent conclue à partir d’une source absente, non autoritaire, d’une couverture partielle non déclarée, d’une donnée périmée, d’un fallback synthétique, d’un rapport résumé non vérifié, d’une contradiction silencieuse ou d’une dépendance non traçable ; GATE13 fournit une vérité mesurable sur les sources requises, existantes, utilisables, absentes, périmées ou contradictoires, la couverture réelle obtenue, et pourquoi une conclusion est autorisée ou bloquée.",
       "dependencies": [
         "GATE12"
       ],
@@ -929,8 +929,26 @@
         "CONFIRM_RESUME_REGISTRY_CLOSED",
         "CONFIRM_DISK_RESERVE"
       ],
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "expectedOutputs": [
+        "governance/gates/GATE13/implementation/ORACLE_REGISTRY.json",
+        "governance/gates/GATE13/implementation/COVERAGE_REQUIREMENTS_REGISTRY.json",
+        "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json",
+        "governance/gates/GATE13/implementation/ORACLE_AND_COVERAGE_POLICY.json",
+        "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs",
+        "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+        "governance/gates/GATE13/implementation/COVERAGE_REPORT.json",
+        "governance/gates/GATE13/implementation/REPLAY_AND_PROVENANCE_EVIDENCE.json"
+      ],
+      "exitConditions": [
+        "mandatoryCoverage = 100% pour le périmètre obligatoire applicable et défini par le contrat, sans réduction artificielle du dénominateur",
+        "missingMandatory = 0, invalidMandatory = 0, staleMandatory = 0, contradictoryMandatory = 0, unresolvedMandatory = 0",
+        "aucun oracle ID ni coverage item ID dupliqué, aucune référence orpheline, aucune dépendance circulaire",
+        "fallback silencieux = 0, aucune autorité générée ne supplante une source canonique",
+        "tests positifs PASS, contre-tests hostiles probants, mutants critiques tués",
+        "fonctionnement offline PASS et exécution depuis un autre working directory PASS",
+        "package portable PASS et audit indépendant PASS",
+        "GATE14 non autorisé automatiquement par la clôture de GATE13"
+      ],
       "nextGate": "GATE14",
       "sourceReferences": [
         {
@@ -952,30 +970,41 @@
           "evidence": "Séquence attestée",
           "field": "nextGate",
           "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "authorityId GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1, issuedBy PROJECT_OWNER",
+          "field": "canonicalObjective",
+          "sourceId": "GATE13-MANDATE-R1"
+        },
+        {
+          "evidence": "strategicPurpose section of the owner authority",
+          "field": "strategicPurpose",
+          "sourceId": "GATE13-MANDATE-R1"
+        },
+        {
+          "evidence": "requiredOutputs section of EXECUTION_CONTRACT_R0001 for GATE13",
+          "field": "expectedOutputs",
+          "sourceId": "GATE13-CONTRACT-R0001"
+        },
+        {
+          "evidence": "closureConditions section of EXECUTION_CONTRACT_R0001 for GATE13",
+          "field": "exitConditions",
+          "sourceId": "GATE13-CONTRACT-R0001"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Objectif, finalité, sorties et conditions de fermeture établis par décision PROJECT_OWNER dans governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json (mission GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT_R1). Cette définition n'autorise pas l'exécution fonctionnelle de GATE13 ni GATE14.",
       "collectiveStrategicPurposeRef": {
         "appliesToBlock": "GATE00-GATE20",
         "establishesIndividualPurpose": false,
         "sourceId": "HS-ROADMAP",
         "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
       },
-      "confidenceLevel": "MEDIUM",
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "HS-GATE13-DISCOVERY établit canonicalRequirementCount=0 et GATE13_CANONICAL_OBJECTIVE=NOT_DOCUMENTED. Déduire l’objectif du seul nom « Oracles and coverage » serait spéculatif : le nom ne dit ni quels oracles, ni sur quelle population, ni quel seuil de couverture.",
-        "exitConditions": "Aucune condition de sortie documentée dans le handoff ni ailleurs.",
-        "expectedOutputs": "Aucun artefact nommé gate13* n’existe (HS-NEGATIVE-SWEEP, COUNT=0)."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution GATE13 (canonicalRequirements, requiredOutputs, closureConditions) ou un prompt d’implémentation historique GATE13."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE14",

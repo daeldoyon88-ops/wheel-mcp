@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "STRATEGIC",
+  "id": "HOSTILE_NO_OBJECTIVE",
+  "type": "MISSION_STEP",
+  "version": "R0001",
+  "objective": "",
+  "invariants": ["X"],
+  "authorizedVerdicts": ["R1_COMPLETE"]
+}

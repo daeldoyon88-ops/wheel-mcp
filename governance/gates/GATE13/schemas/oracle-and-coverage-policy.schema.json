@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object","additionalProperties":false,
+  "required":["schemaVersion","gateId","policyId","authorityRule","provenanceRule","freshnessRule","failureRule","fallbackRule","contradictionRule","coverageRule","statusVocabulary","failClosedVerdict","canonicalAuthorityClasses","forbiddenPatterns","determinism"],
+  "properties":{"schemaVersion":{"const":1},"gateId":{"const":"GATE13"},"policyId":{"type":"string"},"authorityRule":{"type":"string"},"provenanceRule":{"type":"string"},"freshnessRule":{"type":"string"},"failureRule":{"type":"string"},"fallbackRule":{"type":"string"},"contradictionRule":{"type":"string"},"coverageRule":{"type":"string"},"statusVocabulary":{"type":"array"},"failClosedVerdict":{"type":"string"},"canonicalAuthorityClasses":{"type":"array"},"forbiddenPatterns":{"type":"array"},"determinism":{"type":"object"}}
+}

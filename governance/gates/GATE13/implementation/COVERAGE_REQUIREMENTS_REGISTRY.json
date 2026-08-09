@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "registryRevision": "R0001",
+  "policyId": "GATE13_ORACLE_AND_COVERAGE_POLICY_R1",
+  "coverageItems": [
+    {"coverageItemId":"G13-C-001","consumer":"governance decision runtime","requiredOracleIds":["G13-O-001"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Constitution bytes and SHA-256","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-002","consumer":"GATE13 objective binding","requiredOracleIds":["G13-O-002"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Strategic registry bytes and objective hash","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-003","consumer":"GATE13 objective binding","requiredOracleIds":["G13-O-002","G13-O-003"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Registry and owner mandate agree on the objective scope","failClosed":true,"dependsOnCoverageItemIds":["G13-C-002"]},
+    {"coverageItemId":"G13-C-004","consumer":"GATE13 mandate authority","requiredOracleIds":["G13-O-003"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Owner authority identifies required outputs and closure conditions","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-005","consumer":"GATE13 execution contract","requiredOracleIds":["G13-O-003","G13-O-004"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Contract requirements are traceable to the canonical mandate","failClosed":true,"dependsOnCoverageItemIds":["G13-C-004"]},
+    {"coverageItemId":"G13-C-006","consumer":"active contract pointer","requiredOracleIds":["G13-O-004","G13-O-005"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"CURRENT_CONTRACT points to the pinned execution contract","failClosed":true,"dependsOnCoverageItemIds":["G13-C-005"]},
+    {"coverageItemId":"G13-C-007","consumer":"GATE13 checkpoint and seal","requiredOracleIds":["G13-O-006","G13-O-007"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"State pointer and sealed revision are present and byte-valid","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-008","consumer":"active gate authorization","requiredOracleIds":["G13-O-008"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Active pointer is canonical and points to GATE13","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-009","consumer":"status and historical authority","requiredOracleIds":["G13-O-009","G13-O-012"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Ledger and source map are both present and byte-valid","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-010","consumer":"predecessor closure","requiredOracleIds":["G13-O-010"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"GATE12 predecessor state is available","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-011","consumer":"independent discovery provenance","requiredOracleIds":["G13-O-011"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Independent discovery audit is present and hash-pinned","failClosed":true,"dependsOnCoverageItemIds":[]},
+    {"coverageItemId":"G13-C-012","consumer":"non-canonical authority guard","requiredOracleIds":["G13-O-001","G13-O-008"],"mandatory":true,"applicability":"ALWAYS","requiredEvidence":"Canonical sources are used; generated context cannot authorize","failClosed":true,"dependsOnCoverageItemIds":["G13-C-008"]}
+  ]
+}

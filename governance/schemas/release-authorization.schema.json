@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "release-authorization.schema.json",
+  "title": "Project-owner post-closure local release authorization",
+  "description": "Owner-issued, ed25519-signed grant for exactly one targeted local Git commit. Never valid inside the governed set. Never authorizes push.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentKind",
+    "authorizationId",
+    "issuedBy",
+    "issuedAtUtc",
+    "projectId",
+    "branch",
+    "baseCommit",
+    "purpose",
+    "approvedRequestDigest",
+    "authorizedOperations",
+    "pushAllowed",
+    "maxCommitCount",
+    "ownerKeyId",
+    "signatureAlgorithm",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "documentKind": { "const": "PROJECT_OWNER_RELEASE_AUTHORIZATION" },
+    "authorizationId": { "type": "string", "minLength": 1 },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "issuedAtUtc": { "type": "string", "format": "date-time" },
+    "expiresAtUtc": { "type": "string", "format": "date-time" },
+    "projectId": { "type": "string", "minLength": 1 },
+    "branch": { "type": "string", "minLength": 1 },
+    "baseCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "purpose": { "const": "POST_CLOSURE_LOCAL_RELEASE_COMMIT" },
+    "approvedRequestDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "authorizedOperations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"] }
+    },
+    "pushAllowed": { "const": false },
+    "maxCommitCount": { "const": 1 },
+    "ownerKeyId": { "type": "string", "minLength": 1 },
+    "signatureAlgorithm": { "const": "ed25519" },
+    "signature": { "type": "string", "minLength": 1 }
+  }
+}

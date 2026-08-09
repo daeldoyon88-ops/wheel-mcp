@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "registryRevision": "R0001",
+  "policyId": "GATE13_ORACLE_AND_COVERAGE_POLICY_R1",
+  "oracles": [
+    {
+      "oracleId": "G13-O-001",
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "authorityClass": "CANONICAL_CONSTITUTION",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "PROJECT_OWNER constitutional source",
+      "consumerIds": [
+        "G13-C-001"
+      ]
+    },
+    {
+      "oracleId": "G13-O-002",
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "authorityClass": "CANONICAL_STRATEGIC_REGISTRY",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Pinned strategic gate registry",
+      "consumerIds": [
+        "G13-C-002",
+        "G13-C-003"
+      ]
+    },
+    {
+      "oracleId": "G13-O-003",
+      "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+      "authorityClass": "CANONICAL_MANDATE",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "PROJECT_OWNER single-use GATE13 authority",
+      "consumerIds": [
+        "G13-C-004",
+        "G13-C-005"
+      ]
+    },
+    {
+      "oracleId": "G13-O-004",
+      "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+      "authorityClass": "CANONICAL_CONTRACT",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Active GATE13 execution contract R0001",
+      "consumerIds": [
+        "G13-C-005",
+        "G13-C-006"
+      ]
+    },
+    {
+      "oracleId": "G13-O-005",
+      "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+      "authorityClass": "CANONICAL_CONTRACT",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Canonical contract pointer",
+      "consumerIds": [
+        "G13-C-006"
+      ]
+    },
+    {
+      "oracleId": "G13-O-006",
+      "path": "governance/gates/GATE13/state/CURRENT_STATE.json",
+      "authorityClass": "CANONICAL_STATE",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Canonical GATE13 state pointer",
+      "consumerIds": [
+        "G13-C-007"
+      ]
+    },
+    {
+      "oracleId": "G13-O-007",
+      "path": "governance/gates/GATE13/state/revisions/R0001/STATE_SEAL.json",
+      "authorityClass": "CANONICAL_STATE_SEAL",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Sealed GATE13 R0001 checkpoint",
+      "consumerIds": [
+        "G13-C-007"
+      ]
+    },
+    {
+      "oracleId": "G13-O-008",
+      "path": "governance/active/ACTIVE_GATE.json",
+      "authorityClass": "CANONICAL_ACTIVE_POINTER",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Canonical active gate pointer",
+      "consumerIds": [
+        "G13-C-008"
+      ]
+    },
+    {
+      "oracleId": "G13-O-009",
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "authorityClass": "CANONICAL_LEDGER",
+      "sourceType": "NDJSON",
+      "required": true,
+      "expectedSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Canonical append-only status ledger",
+      "consumerIds": [
+        "G13-C-009"
+      ]
+    },
+    {
+      "oracleId": "G13-O-010",
+      "path": "governance/gates/GATE12/state/CURRENT_STATE.json",
+      "authorityClass": "CANONICAL_PREDECESSOR_STATE",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "ba26bacf2616066a59e04bd045601a29d62fec0ac1e8700599cbaacc8b857a59",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Closed predecessor GATE12 state",
+      "consumerIds": [
+        "G13-C-010"
+      ]
+    },
+    {
+      "oracleId": "G13-O-011",
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+      "authorityClass": "CANONICAL_DISCOVERY_AUDIT",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Independent GATE13 discovery audit",
+      "consumerIds": [
+        "G13-C-011"
+      ]
+    },
+    {
+      "oracleId": "G13-O-012",
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "authorityClass": "CANONICAL_SOURCE_MAP",
+      "sourceType": "JSON",
+      "required": true,
+      "expectedSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "BLOCK_IF_MISSING_INVALID_OR_STALE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Canonical ledger authority source map",
+      "consumerIds": [
+        "G13-C-009"
+      ]
+    },
+    {
+      "oracleId": "G13-O-013",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "authorityClass": "GENERATED_NON_CANONICAL",
+      "sourceType": "JSON",
+      "required": false,
+      "expectedSha256": "b9979d64b5abd59bafa6435ac7f08d74a35bc588359c0ad0a9a0040461da207f",
+      "freshnessPolicy": "BYTE_PINNED",
+      "failurePolicy": "REPORT_ONLY_NEVER_AUTHORIZE",
+      "fallbackPolicy": "NONE",
+      "provenance": "Generated context; never an authority",
+      "consumerIds": []
+    }
+  ]
+}

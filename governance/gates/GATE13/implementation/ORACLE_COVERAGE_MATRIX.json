@@ -1,0 +1,496 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "policyId": "GATE13_ORACLE_AND_COVERAGE_POLICY_R1",
+  "oracleStatuses": [
+    {
+      "oracleId": "G13-O-001",
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "required": true,
+      "authorityClass": "CANONICAL_CONSTITUTION",
+      "expectedSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+      "actualSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+      "byteLength": 14156,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-002",
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "required": true,
+      "authorityClass": "CANONICAL_STRATEGIC_REGISTRY",
+      "expectedSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+      "actualSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+      "byteLength": 86026,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-003",
+      "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+      "required": true,
+      "authorityClass": "CANONICAL_MANDATE",
+      "expectedSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+      "actualSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+      "byteLength": 5874,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-004",
+      "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+      "required": true,
+      "authorityClass": "CANONICAL_CONTRACT",
+      "expectedSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+      "actualSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+      "byteLength": 18253,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-005",
+      "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+      "required": true,
+      "authorityClass": "CANONICAL_CONTRACT",
+      "expectedSha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+      "actualSha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+      "byteLength": 281,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-006",
+      "path": "governance/gates/GATE13/state/CURRENT_STATE.json",
+      "required": true,
+      "authorityClass": "CANONICAL_STATE",
+      "expectedSha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+      "actualSha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+      "byteLength": 346,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-007",
+      "path": "governance/gates/GATE13/state/revisions/R0001/STATE_SEAL.json",
+      "required": true,
+      "authorityClass": "CANONICAL_STATE_SEAL",
+      "expectedSha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+      "actualSha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+      "byteLength": 2614,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-008",
+      "path": "governance/active/ACTIVE_GATE.json",
+      "required": true,
+      "authorityClass": "CANONICAL_ACTIVE_POINTER",
+      "expectedSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+      "actualSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+      "byteLength": 367,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-009",
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "required": true,
+      "authorityClass": "CANONICAL_LEDGER",
+      "expectedSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+      "actualSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+      "byteLength": 21155,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-010",
+      "path": "governance/gates/GATE12/state/CURRENT_STATE.json",
+      "required": true,
+      "authorityClass": "CANONICAL_PREDECESSOR_STATE",
+      "expectedSha256": "ba26bacf2616066a59e04bd045601a29d62fec0ac1e8700599cbaacc8b857a59",
+      "actualSha256": "ba26bacf2616066a59e04bd045601a29d62fec0ac1e8700599cbaacc8b857a59",
+      "byteLength": 334,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-011",
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+      "required": true,
+      "authorityClass": "CANONICAL_DISCOVERY_AUDIT",
+      "expectedSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+      "actualSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+      "byteLength": 3436,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-012",
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "required": true,
+      "authorityClass": "CANONICAL_SOURCE_MAP",
+      "expectedSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "actualSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "byteLength": 26476,
+      "status": "VALID"
+    },
+    {
+      "oracleId": "G13-O-013",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "required": false,
+      "authorityClass": "GENERATED_NON_CANONICAL",
+      "expectedSha256": "b9979d64b5abd59bafa6435ac7f08d74a35bc588359c0ad0a9a0040461da207f",
+      "actualSha256": "b9979d64b5abd59bafa6435ac7f08d74a35bc588359c0ad0a9a0040461da207f",
+      "byteLength": 1142,
+      "status": "GENERATED_NON_CANONICAL"
+    }
+  ],
+  "coverageResults": [
+    {
+      "coverageItemId": "G13-C-001",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-001"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-001",
+          "path": "governance/PROJECT_CONSTITUTION.json",
+          "required": true,
+          "authorityClass": "CANONICAL_CONSTITUTION",
+          "expectedSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+          "actualSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+          "byteLength": 14156,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-002",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-002"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-002",
+          "path": "governance/GATE_REGISTRY_00_40.json",
+          "required": true,
+          "authorityClass": "CANONICAL_STRATEGIC_REGISTRY",
+          "expectedSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+          "actualSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+          "byteLength": 86026,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-003",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-002",
+        "G13-O-003"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-002",
+          "path": "governance/GATE_REGISTRY_00_40.json",
+          "required": true,
+          "authorityClass": "CANONICAL_STRATEGIC_REGISTRY",
+          "expectedSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+          "actualSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+          "byteLength": 86026,
+          "status": "VALID"
+        },
+        {
+          "oracleId": "G13-O-003",
+          "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+          "required": true,
+          "authorityClass": "CANONICAL_MANDATE",
+          "expectedSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+          "actualSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+          "byteLength": 5874,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-004",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-003"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-003",
+          "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+          "required": true,
+          "authorityClass": "CANONICAL_MANDATE",
+          "expectedSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+          "actualSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+          "byteLength": 5874,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-005",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-003",
+        "G13-O-004"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-003",
+          "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+          "required": true,
+          "authorityClass": "CANONICAL_MANDATE",
+          "expectedSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+          "actualSha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+          "byteLength": 5874,
+          "status": "VALID"
+        },
+        {
+          "oracleId": "G13-O-004",
+          "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+          "required": true,
+          "authorityClass": "CANONICAL_CONTRACT",
+          "expectedSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+          "actualSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+          "byteLength": 18253,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-006",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-004",
+        "G13-O-005"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-004",
+          "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+          "required": true,
+          "authorityClass": "CANONICAL_CONTRACT",
+          "expectedSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+          "actualSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+          "byteLength": 18253,
+          "status": "VALID"
+        },
+        {
+          "oracleId": "G13-O-005",
+          "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+          "required": true,
+          "authorityClass": "CANONICAL_CONTRACT",
+          "expectedSha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+          "actualSha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+          "byteLength": 281,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-007",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-006",
+        "G13-O-007"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-006",
+          "path": "governance/gates/GATE13/state/CURRENT_STATE.json",
+          "required": true,
+          "authorityClass": "CANONICAL_STATE",
+          "expectedSha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+          "actualSha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+          "byteLength": 346,
+          "status": "VALID"
+        },
+        {
+          "oracleId": "G13-O-007",
+          "path": "governance/gates/GATE13/state/revisions/R0001/STATE_SEAL.json",
+          "required": true,
+          "authorityClass": "CANONICAL_STATE_SEAL",
+          "expectedSha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+          "actualSha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+          "byteLength": 2614,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-008",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-008"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-008",
+          "path": "governance/active/ACTIVE_GATE.json",
+          "required": true,
+          "authorityClass": "CANONICAL_ACTIVE_POINTER",
+          "expectedSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+          "actualSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+          "byteLength": 367,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-009",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-009",
+        "G13-O-012"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-009",
+          "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "required": true,
+          "authorityClass": "CANONICAL_LEDGER",
+          "expectedSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+          "actualSha256": "a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5",
+          "byteLength": 21155,
+          "status": "VALID"
+        },
+        {
+          "oracleId": "G13-O-012",
+          "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+          "required": true,
+          "authorityClass": "CANONICAL_SOURCE_MAP",
+          "expectedSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+          "actualSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+          "byteLength": 26476,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-010",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-010"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-010",
+          "path": "governance/gates/GATE12/state/CURRENT_STATE.json",
+          "required": true,
+          "authorityClass": "CANONICAL_PREDECESSOR_STATE",
+          "expectedSha256": "ba26bacf2616066a59e04bd045601a29d62fec0ac1e8700599cbaacc8b857a59",
+          "actualSha256": "ba26bacf2616066a59e04bd045601a29d62fec0ac1e8700599cbaacc8b857a59",
+          "byteLength": 334,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-011",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-011"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-011",
+          "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+          "required": true,
+          "authorityClass": "CANONICAL_DISCOVERY_AUDIT",
+          "expectedSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+          "actualSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+          "byteLength": 3436,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    },
+    {
+      "coverageItemId": "G13-C-012",
+      "mandatory": true,
+      "applicability": "ALWAYS",
+      "requiredOracleIds": [
+        "G13-O-001",
+        "G13-O-008"
+      ],
+      "oracleStatuses": [
+        {
+          "oracleId": "G13-O-001",
+          "path": "governance/PROJECT_CONSTITUTION.json",
+          "required": true,
+          "authorityClass": "CANONICAL_CONSTITUTION",
+          "expectedSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+          "actualSha256": "494bcdb4f0eaeb712033f4df4cc0d32621b024340df0e13329051f8e50335bb0",
+          "byteLength": 14156,
+          "status": "VALID"
+        },
+        {
+          "oracleId": "G13-O-008",
+          "path": "governance/active/ACTIVE_GATE.json",
+          "required": true,
+          "authorityClass": "CANONICAL_ACTIVE_POINTER",
+          "expectedSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+          "actualSha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d",
+          "byteLength": 367,
+          "status": "VALID"
+        }
+      ],
+      "dependencyFailures": [],
+      "status": "SATISFIED",
+      "reason": null
+    }
+  ],
+  "counts": {
+    "totalApplicable": 12,
+    "totalMandatory": 12,
+    "satisfied": 12,
+    "missingMandatory": 0,
+    "invalidMandatory": 0,
+    "staleMandatory": 0,
+    "contradictoryMandatory": 0,
+    "unresolvedMandatory": 0,
+    "fallbackSilent": 0,
+    "dependencyCycles": 0
+  },
+  "mandatoryCoverage": 100,
+  "verdict": "GATE13_ORACLE_COVERAGE_PASS",
+  "findings": []
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "HOSTILE_PREREQ",
+  "type": "MISSION_STEP",
+  "version": "R0001",
+  "strategicContractId": "HOSTILE_PREREQ",
+  "objective": "Critical prerequisite unsatisfied",
+  "prerequisites": [
+    {
+      "id": "MUST_EXIST",
+      "statement": "Critical dependency missing",
+      "critical": true
+    }
+  ],
+  "invariants": ["X"],
+  "requiredArtifacts": ["a"],
+  "requiredTests": ["t"],
+  "requiredNegativeTests": ["n"],
+  "requiredHostileOrCounterTests": ["h"],
+  "evidenceRequirements": ["e"],
+  "closureConditions": ["done"],
+  "authorizedVerdicts": ["R1_COMPLETE"],
+  "stateTransitionRules": ["A->B"],
+  "authorizedPaths": ["governance/gee-v1/"],
+  "activationPolicy": {
+    "requiresSealBeforeActivation": true,
+    "closureCriteriaMutableAfterActivation": false
+  }
+}

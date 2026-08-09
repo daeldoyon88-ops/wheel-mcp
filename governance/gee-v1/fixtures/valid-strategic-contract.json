@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "STRATEGIC",
+  "id": "EXAMPLE_WU_ALPHA",
+  "type": "MISSION_STEP",
+  "version": "R0001",
+  "objective": "Demonstrate a valid strategic contract for GEE V1 R1.",
+  "prerequisites": [
+    {
+      "id": "PREREQ_CORE",
+      "statement": "Generic core exists",
+      "critical": true
+    }
+  ],
+  "invariants": [
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_HARDCODED_PASS"
+  ],
+  "authorizedVerdicts": [
+    "R1_COMPLETE",
+    "R1_INCOMPLETE",
+    "R1_REPAIR_REQUIRED"
+  ],
+  "stateTransitionRules": [
+    "NOT_STARTED -> READY -> ACTIVE -> CLOSED"
+  ]
+}

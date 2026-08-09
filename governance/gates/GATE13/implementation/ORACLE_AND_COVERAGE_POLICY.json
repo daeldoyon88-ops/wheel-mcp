@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "policyId": "GATE13_ORACLE_AND_COVERAGE_POLICY_R1",
+  "authorityRule": "Only repository-relative canonical source paths may satisfy a mandatory oracle.",
+  "provenanceRule": "Every oracle declares its authority class, source path, provenance and consumer coverage items.",
+  "freshnessRule": "Mandatory byte-pinned sources are stale when their recomputed SHA-256 differs from the pinned hash.",
+  "failureRule": "Missing, unreadable, malformed or stale mandatory sources block the verdict.",
+  "fallbackRule": "No fallback is permitted for a mandatory oracle; generated material can never replace a canonical source.",
+  "contradictionRule": "Duplicate IDs, duplicate source paths with divergent pins, conflicting authorities and orphan references block the verdict.",
+  "coverageRule": "mandatoryCoverage is satisfied divided by applicable mandatory items; the denominator is fixed by this registry and cannot be reduced by runtime findings.",
+  "statusVocabulary": [
+    "VALID",
+    "MISSING",
+    "INVALID",
+    "STALE",
+    "CONTRADICTORY",
+    "UNRESOLVED",
+    "GENERATED_NON_CANONICAL"
+  ],
+  "failClosedVerdict": "GATE13_BLOCKED",
+  "canonicalAuthorityClasses": [
+    "CANONICAL_CONSTITUTION",
+    "CANONICAL_STRATEGIC_REGISTRY",
+    "CANONICAL_MANDATE",
+    "CANONICAL_CONTRACT",
+    "CANONICAL_STATE",
+    "CANONICAL_STATE_SEAL",
+    "CANONICAL_ACTIVE_POINTER",
+    "CANONICAL_LEDGER",
+    "CANONICAL_PREDECESSOR_STATE",
+    "CANONICAL_DISCOVERY_AUDIT",
+    "CANONICAL_SOURCE_MAP",
+    "GENERATED_NON_CANONICAL"
+  ],
+  "forbiddenPatterns": [
+    "*",
+    "?",
+    "silent fallback",
+    "fallback autoris"
+  ],
+  "determinism": {
+    "network": "FORBIDDEN",
+    "clock": "NOT_USED",
+    "randomness": "NOT_USED",
+    "workingDirectory": "SCRIPT_ROOT_OR_EXPLICIT_ROOT"
+  }
+}

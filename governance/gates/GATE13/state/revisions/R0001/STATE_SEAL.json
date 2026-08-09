@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE13",
+  "stateRevision": "R0001",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE13/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "fcb5a316dfef61ed2a812bff853fab37f4760385bc007e9c48ddd8bbd9d07966",
+      "byteLength": 3964
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE13/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "e7090224acc5a70d24372e0b5a26d300808f65cf04beaae041459525e8be9740",
+      "byteLength": 70
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+      "sha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+      "byteLength": 281
+    }
+  ],
+  "previousStateSealSha256": null,
+  "sealedAt": "2026-08-07T01:05:24.267Z",
+  "payload": {
+    "gateId": "GATE13",
+    "stateRevision": "R0001",
+    "mission": "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT_R1",
+    "milestone": "GATE13_CANONICAL_MANDATE_DEFINITION_AND_EXECUTION_CONTRACT",
+    "ownerAuthorityId": "GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1",
+    "ownerAuthoritySha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+    "ledgerMutated": false,
+    "registrySha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+    "contractSha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+    "discoveryAuditJsonSha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+    "discoveryAuditMdSha256": "989963053745f2c8461f3c4eef922ef936e252012a49e36ab91d68b802bed7b9",
+    "mandateStatus": "DEFINED",
+    "contractStatus": "ACTIVE",
+    "executionStatus": "AUTHORIZED_NOT_STARTED",
+    "gate13Authorized": true,
+    "gate13Executable": true,
+    "gate13Started": false,
+    "gate13Complete": false,
+    "gate13CompleteConfirmed": false,
+    "gate14Authorized": false,
+    "gate14Executable": false,
+    "activeGatePointerFlipped": false,
+    "activeGatePointerBlockedReason": "validate-active-gate.mjs unconditionally rejects activeGate=GATE13 and activeGate=GATE14; that file is outside this contract authorizedPaths.",
+    "nextMission": "GATE13_ORACLES_AND_COVERAGE_IMPLEMENTATION_R1",
+    "referenceCounters": {
+      "TOTAL_REFERENCES": 16,
+      "CANONICAL_ACTIVE": 10,
+      "CANONICAL_HISTORICAL": 2,
+      "GENERATED": 2,
+      "INFORMATIONAL": 2,
+      "STALE": 0,
+      "CONTRADICTORY": 0,
+      "UNRESOLVED": 0
+    },
+    "sealedAt": "2026-08-07T01:05:24.267Z"
+  },
+  "payloadSha256": "b061669ee548fbc8d2f5943525ec2da2a8cd422b370adb883ae04cf6eddd39e5"
+}

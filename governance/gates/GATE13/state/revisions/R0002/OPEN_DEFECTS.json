@@ -1,0 +1,36 @@
+{
+  "gateId": "GATE13",
+  "stateRevision": "R0002",
+  "defects": [
+    {
+      "defectId": "G13-AUDIT-001",
+      "severity": "MAJOR",
+      "status": "CLOSED",
+      "description": "The implementation and hostile evidence are internally passing, but the separate independent audit required by the canonical closure conditions has not been supplied in this mission.",
+      "affectedRequirements": [
+        "REQ-G13-08",
+        "REQ-G13-CLOSE-INDEPENDENT-AUDIT"
+      ],
+      "evidence": [
+        {
+          "role": "CLOSURE_GAP",
+          "path": "governance/gates/GATE13/state/revisions/R0002/CHECKPOINT.json",
+          "observed": "independent audit status is not provided"
+        },
+        {
+          "role": "INDEPENDENT_AUDIT_PASS",
+          "path": "C:/Users/melan/AppData/Local/Temp/GATE13_INDEPENDENT_AUDIT_R1/20260808_093157",
+          "observed": "INDEPENDENT_AUDIT=PASS verdictSha256=91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352"
+        }
+      ],
+      "detector": "GATE13 clause-by-clause closure review",
+      "repairScope": [
+        "separate independent audit of the portable GATE13 evidence package"
+      ],
+      "blockingProgression": false,
+      "openedAt": "2026-08-08T00:00:00.000Z",
+      "closedAt": "2026-08-08T13:39:23.145Z",
+      "closureEvidence": "INDEPENDENT_AUDIT=PASS; AUDIT_RUN_ROOT=C:\\Users\\melan\\AppData\\Local\\Temp\\GATE13_INDEPENDENT_AUDIT_R1\\20260808_093157; INDEPENDENT_VERDICT_SHA256=91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352; CLOSURE_MATRIX_SHA256=6e1e42fa0eb985324218879bb18990634cee7036636b48af94c6d7e1579d5a1b; PORTABILITY_AUDIT_SHA256=bfb72d01382789dae2bfcf7fde6ee2f1cd987a7af8a0069aa98a46ab4e522329; DELIVERABLES=8/8; POSITIVE=6/6; NEGATIVE=15/15; COUNTERTESTS=10/10; PORTABILITY=PASS; INVALIDATION=PASS; fresh_validator=GATE13_ORACLE_COVERAGE_PASS mandatoryCoverage=100 12/12; validate-state-seal R0002 pre-closure valid=true; No GATE14 authorization. Ledger left byte-invariant (AUTHORIZED_NOT_STARTED genesis retained)."
+    }
+  ]
+}

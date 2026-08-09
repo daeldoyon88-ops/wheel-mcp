@@ -3,9 +3,9 @@
   "contractKind": "STRATEGIC",
   "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
   "type": "MISSION",
-  "version": "R0001",
-  "objective": "Build a project-agnostic governance execution-efficiency foundation: canonical contracts, Wheel adapter, and Definition-of-Ready activation gate, without implementing R2+ engines.",
-  "strategicPurpose": "Prevent under-defined Gates from being activated and prevent Wheel-specific hardcoding in the reusable core.",
+  "version": "R0002",
+  "objective": "Deliver the staged, project-agnostic governance execution-efficiency program GEE V1: R1 canonical foundation (contracts, project-agnostic core, project adapter, Definition-of-Ready activation), R2 Context Compiler, R3 Delta Engine, R4 Evidence Graph and reuse, R5 routing, cost and repair containment, R6 recovery, index and usage, R7 benchmarks, hostile validation and program closure. Each stage is implemented only by its own revision, under its own sealed execution contract; declaring a stage here never authorizes its execution.",
+  "strategicPurpose": "Prevent under-defined work units from being activated, prevent project-specific hardcoding in the reusable core, and keep every program stage bounded by its own execution authority so no revision can implement a later stage.",
   "prerequisites": [
     {
       "id": "GATE13_COMPLETE_CONFIRMED",
@@ -29,10 +29,28 @@
     "R1_ROOT_CAUSE_ANALYSIS_REQUIRED",
     "R1_BLOCKED_GATE13_STATE_CONTRADICTION",
     "R1_BLOCKED_ARCHITECTURE_CONTRADICTION",
-    "R1_INCOMPLETE"
+    "R1_INCOMPLETE",
+    "R2_COMPLETE",
+    "R2_REPAIR_REQUIRED",
+    "R2_ROOT_CAUSE_ANALYSIS_REQUIRED",
+    "R2_BLOCKED_ARCHITECTURE_CONTRADICTION",
+    "R2_INCOMPLETE"
   ],
   "stateTransitionRules": [
-    "R0_COMPLETE -> R1_ACTIVE -> R1_COMPLETE -> R2_AUTHORIZED"
+    "R0_COMPLETE -> R1_ACTIVE -> R1_COMPLETE -> R2_AUTHORIZED",
+    "R1 stage = canonical foundation: contracts, project-agnostic core, project adapter, Definition-of-Ready",
+    "R2 stage = Context Compiler",
+    "R3 stage = Delta Engine",
+    "R4 stage = Evidence Graph and reuse",
+    "R5 stage = routing, cost and repair containment",
+    "R6 stage = recovery, index and usage",
+    "R7 stage = benchmarks, hostile validation and program closure",
+    "R2_COMPLETE -> R3_AUTHORIZED -> R3_COMPLETE -> R4_AUTHORIZED -> R4_COMPLETE -> R5_AUTHORIZED -> R5_COMPLETE -> R6_AUTHORIZED -> R6_COMPLETE -> R7_AUTHORIZED -> R7_COMPLETE"
   ],
-  "notes": "Authorized by PROJECT_OWNER mission GOVERNANCE_EXECUTION_EFFICIENCY_V1 R1 after GATE13 COMPLETE_CONFIRMED."
+  "invalidationDeclarations": [
+    "A stage declared at strategic level is NOT authorized for execution: execution authority exists only where that revision has its own sealed execution contract.",
+    "Each revision's execution authority is limited to its own stage; no revision authorizes a later stage.",
+    "A revision whose execution contract declares a verdict this strategic authority does not know is invalid."
+  ],
+  "notes": "R0001 authorized by PROJECT_OWNER mission GOVERNANCE_EXECUTION_EFFICIENCY_V1 R1 after GATE13 COMPLETE_CONFIRMED. R0002 restates the objective at PROGRAM level after independent review found a semantic authority contradiction: the R0001 objective ended with 'without implementing R2+ engines' while GEE_V1_EXECUTION_CONTRACT_R0002.json, which references this contract, authorizes the R2 Context Compiler. No execution scope was broadened by this revision."
 }

@@ -1,0 +1,5 @@
+---
+description: Git safety defaults
+alwaysApply: true
+---
+GIT_WRITES_FORBIDDEN_BY_DEFAULT and DANGEROUS_GIT_COMMANDS_FORBIDDEN are blocking. Preserve pre-existing changes and never use destructive Git operations.

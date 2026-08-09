@@ -97,6 +97,7 @@
     {
       "allowedOverrides": [
         "CONTRACT_AUTHORIZED_WRITE",
+        "OWNER_EXPLICIT_COMMIT_APPROVAL",
         "OWNER_AUTHORIZED_RELEASE_COMMIT"
       ],
       "applicableWorkClasses": [
@@ -106,7 +107,7 @@
         "READONLY_AUDIT"
       ],
       "defaultState": "ENFORCED",
-      "description": "Aucun commit, push, add, stash sans autorisation explicite du contrat, ou sans autorisation de publication signée par le PROJECT_OWNER et validée hors du dépôt (OWNER_AUTHORIZED_RELEASE_COMMIT). L’autorisation de publication ne couvre jamais push ni aucune commande destructive.",
+      "description": "Sujet de la règle : l’exécution autonome de l’agent gouverné, jamais les commandes que le PROJECT_OWNER exécute lui-même dans son propre terminal. Aucun commit, add ou stash par l’agent sans autorisation explicite du contrat, ou sans approbation explicite et non ambiguë du PROJECT_OWNER dans la mission (OWNER_EXPLICIT_COMMIT_APPROVAL). Cette approbation du propriétaire autorise UN commit local ciblé, avec pathspecs explicites, et n’exige ni signature, ni clé, ni témoin, ni document de publication. L’autorisation de publication signée (OWNER_AUTHORIZED_RELEASE_COMMIT) reste disponible en mode haute sécurité optionnel mais n’est plus requise sur le chemin normal. Aucune autorisation, d’aucune sorte, ne couvre jamais push ni aucune commande destructive : push automatique par l’agent est interdit en toutes circonstances. Le push manuel du PROJECT_OWNER (git push origin main) est hors du périmètre de l’autorité d’exécution de l’agent et ne requiert aucune autorisation supplémentaire.",
       "name": "Écritures Git interdites par défaut",
       "overrideAuthority": "EXECUTION_CONTRACT",
       "requiredAdapterCoverage": [
@@ -120,8 +121,23 @@
       "violationStatus": "GOVERNANCE_VIOLATION_GIT_WRITE",
       "overrideAuthorities": [
         "EXECUTION_CONTRACT",
+        "PROJECT_OWNER_EXPLICIT_APPROVAL",
         "PROJECT_OWNER_RELEASE_AUTHORIZATION"
-      ]
+      ],
+      "gitOperationPolicy": {
+        "subject": "GOVERNED_AGENT_EXECUTION",
+        "agentAutomaticPush": "FORBIDDEN_ALWAYS",
+        "agentAutomaticCommitWithoutOwnerApproval": "FORBIDDEN",
+        "ownerApprovedTargetedLocalCommit": "ALLOWED_BY_OWNER_EXPLICIT_APPROVAL",
+        "ownerApprovedCommitRequiresCryptographicAuthorization": false,
+        "ownerManualShellPush": "OUT_OF_SCOPE_OF_AGENT_EXECUTION_AUTHORITY",
+        "ownerManualShellPushRequiresCryptographicAuthorization": false,
+        "cryptographicReleaseAuthorization": "OPTIONAL_HIGH_SECURITY_MODE",
+        "commitPathspecPolicy": "EXPLICIT_PATHSPECS_ONLY",
+        "maxCommitsPerOwnerApproval": 1,
+        "humanShellDetection": "NOT_A_MECHANISM_THIS_IS_A_GOVERNANCE_BOUNDARY",
+        "notes": "L’agent ne peut jamais déduire une permission de push d’une permission de commit. L’approbation du propriétaire est une frontière de gouvernance constatée dans la mission, pas un artefact cryptographique à produire."
+      }
     },
     {
       "allowedOverrides": [],

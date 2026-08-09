@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "canonical": false,
+  "activeGate": "GATE13",
+  "currentStatus": "COMPLETE_CONFIRMED",
+  "resumePoint": "No executable contract/state revision is present; remain blocked until one is supplied.",
+  "requiredReadSet": [
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/active/ACTIVE_GATE.json",
+    "governance/PROJECT_CONSTITUTION.json",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+  ],
+  "optionalAuditReadSet": [
+    "governance/GATE_REGISTRY_00_40.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson"
+  ],
+  "generatedFrom": [
+    {
+      "path": "governance/active/ACTIVE_GATE.json",
+      "sha256": "d60fe99177f71d24f9e57bbba2afcc7aaa21d7b282d2c234947e89fb1043130d"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478"
+    }
+  ],
+  "generatedAt": "2026-08-01T16:00:00.000Z",
+  "officialName": "Oracles and coverage"
+}

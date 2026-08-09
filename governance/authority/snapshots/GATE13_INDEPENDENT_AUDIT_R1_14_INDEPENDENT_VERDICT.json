@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-08-08T13:38:42.013Z",
+  "INDEPENDENT_AUDIT": "PASS",
+  "PHASE_A_COMPLETE": true,
+  "PHASE_B_AUTHORIZED": true,
+  "CLOSURE_MATRIX": "24/24",
+  "DELIVERABLES": "8/8",
+  "POSITIVE": "6/6",
+  "NEGATIVE": "15/15",
+  "COUNTERTESTS": "10/10",
+  "PORTABILITY": "PASS",
+  "INVALIDATION": "PASS",
+  "G13_AUDIT_001_AUDIT_RESULT": "PASS",
+  "G13_AUDIT_001_STATUS": "OPEN_PENDING_PHASE_B_SEAL",
+  "HEAD": "707e814c84c313cfce783b4fd14d2e6e63dc0e31",
+  "AUDIT_RUN_ROOT": "C:\\Users\\melan\\AppData\\Local\\Temp\\GATE13_INDEPENDENT_AUDIT_R1\\20260808_093157",
+  "PORTABLE_AUDIT_ROOT": "C:\\Users\\melan\\AppData\\Local\\Temp\\GATE13_PORTABLE_AUDIT\\20260808_093352",
+  "proposed_mission_verdict_if_phase_b_blocked": "GATE13_INCOMPLETE",
+  "proposed_mission_verdict_if_phase_b_succeeds": "GATE13_COMPLETE_CONFIRMED"
+}

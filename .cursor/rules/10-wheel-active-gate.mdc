@@ -1,0 +1,4 @@
+---
+description: Dynamic active context
+---
+Read governance/generated/ACTIVE_GATE_CONTEXT.json and verify governance/active/ACTIVE_GATE.json with the canonical preflight. Never hardcode a gate identifier, status, objective, or contract here.

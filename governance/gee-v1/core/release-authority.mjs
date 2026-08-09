@@ -1,5 +1,24 @@
 /**
- * GEE V1 core — post-closure release authority.
+ * GEE V1 core — post-closure release authority (OPTIONAL HIGH-SECURITY MODE).
+ *
+ * SCOPE, as fixed by PROJECT_CONSTITUTION.json#GIT_WRITES_FORBIDDEN_BY_DEFAULT:
+ * this signed-authorization flow is NO LONGER the required route to a normal
+ * targeted local commit. On the normal path, an explicit and unambiguous
+ * PROJECT_OWNER approval in the mission (OWNER_EXPLICIT_COMMIT_APPROVAL) is
+ * itself sufficient authority for one targeted commit with explicit pathspecs,
+ * with no signature, key, witness or request document. This module remains
+ * available, unchanged and fully valid, for the cases where the owner wants
+ * cryptographic non-repudiation instead — and it remains the authority under
+ * which the existing historical release artifacts were issued. Nothing here
+ * was weakened to achieve that simplification: every rule below still holds
+ * whenever this mode IS used.
+ *
+ * It also does NOT govern the project owner's own shell. The subject of this
+ * module, like the constitutional rule it implements, is autonomous agent
+ * execution. An owner who types `git push origin main` in their own terminal
+ * is not performing an agent operation and needs no artifact from this file.
+ * That is a governance boundary, deliberately not a detection mechanism: no
+ * code here attempts to prove whether a shell is human.
  *
  * Answers a question the execution-contract layer deliberately does NOT answer:
  * "may the already-validated repository delta be persisted in ONE local Git commit?"
@@ -44,9 +63,13 @@ export const GRANTABLE_OPERATIONS = Object.freeze(['GIT_ADD_PATHSPEC', 'GIT_COMM
 
 /**
  * Operations this authority kind may NEVER grant, at any schema version.
- * `git push` is a separate authority. The rest are covered by a constitutional
- * rule whose override authority is NONE, so no release authorization may claim
- * them even if a future owner document tried to.
+ *
+ * `git push` is not "a separate authority to be built later": no authority of
+ * any kind grants automatic push to an agent, and the constitution states that
+ * as FORBIDDEN_ALWAYS. An agent may never infer permission to push from
+ * permission to commit. The rest are covered by a constitutional rule whose
+ * override authority is NONE, so no release authorization may claim them even
+ * if a future owner document tried to.
  */
 export const NEVER_GRANTABLE_OPERATIONS = Object.freeze([
   'GIT_PUSH', 'GIT_PUSH_FORCE', 'GIT_ADD_ALL', 'GIT_ADD_DOT', 'GIT_COMMIT_ALL',

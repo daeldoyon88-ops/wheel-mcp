@@ -1,1 +1,9 @@
 research/directional-lab/test/fixtures/cas/** -text
+
+# Governance is content-addressed: the ledger, seals, snapshots and the active
+# pointer all pin sha256 digests of these exact bytes. Git's end-of-line
+# conversion (core.autocrlf is enabled system-wide on Windows) rewrites those
+# bytes on checkout, so a normal clone would break every pin at once and the
+# preflight would report LEDGER_INVALID before any work could start. Same
+# reason, same mechanism as the content-addressed fixtures above.
+governance/** -text

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R2",
+  "type": "MISSION_REVISION",
+  "version": "R0002",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Implement the R2 Context Compiler only: a deterministic, provenance-preserving compilation of the minimum authoritative context a governed work unit needs, built on the existing R1 contract layer, core and adapters.",
+  "prerequisites": [
+    {
+      "id": "GATE13",
+      "statement": "GATE13 COMPLETE_CONFIRMED",
+      "critical": true,
+      "satisfactionRule": "wheel-adapter-status"
+    },
+    {
+      "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R1",
+      "statement": "GEE V1 R1 delivered: its execution contract is sealed and intact and every artifact it declared required exists",
+      "critical": true,
+      "satisfactionRule": "gee-mission-revision-delivered"
+    }
+  ],
+  "invariants": [
+    "Additive gee-v1 context namespace only",
+    "No mutation of R1 artifacts, contracts, seals or witnesses",
+    "No R3+ engine implementation",
+    "Deterministic and reproducible compilation: identical inputs produce identical bytes",
+    "Every compiled fact carries provenance back to a canonical source",
+    "No compiled context may be cited as authority in place of its source",
+    "No network access",
+    "No git write of any kind by autonomous agent execution",
+    "Preserve preexisting dirty baseline"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/context/compile-context.mjs",
+    "governance/gee-v1/context/context-provenance.mjs",
+    "governance/gee-v1/schemas/context-bundle.schema.json",
+    "governance/gee-v1/tools/context-compile.mjs"
+  ],
+  "requiredTests": [
+    "governance/gee-v1/tests/gee-r2-context-compiler.test.mjs",
+    "governance/gee-v1/tests/gee-r2-determinism.test.mjs"
+  ],
+  "requiredNegativeTests": [
+    "R2-N01 missing canonical source -> BLOCKED, never an empty context",
+    "R2-N02 provenance absent for a compiled fact -> BLOCKED",
+    "R2-N03 generated file cited as authority -> BLOCKED",
+    "R2-N04 compilation of an unknown work unit -> BLOCKED"
+  ],
+  "requiredHostileOrCounterTests": [
+    "R2-H01 two runs over identical inputs produce byte-identical bundles",
+    "R2-H02 a mutated canonical source changes the bundle digest",
+    "R2-H03 compiled context cannot satisfy a prerequisite its source does not satisfy",
+    "R2-H04 no R1 artifact is written by any R2 code path"
+  ],
+  "evidenceRequirements": [
+    "R2 RUN_ROOT baseline",
+    "R2 write plan with per-file justification",
+    "R2 determinism proof with bundle digests",
+    "R2 provenance matrix source -> compiled fact",
+    "test summary with hashes"
+  ],
+  "closureConditions": [
+    "Context Compiler PASS",
+    "Determinism PASS",
+    "Provenance completeness PASS",
+    "Positive, negative and hostile tests PASS",
+    "R1 artifacts byte-unchanged",
+    "GATE13 remains COMPLETE_CONFIRMED",
+    "No writes outside authorizedPaths",
+    "No critical open defects"
+  ],
+  "authorizedVerdicts": [
+    "R2_COMPLETE",
+    "R2_REPAIR_REQUIRED",
+    "R2_ROOT_CAUSE_ANALYSIS_REQUIRED",
+    "R2_BLOCKED_ARCHITECTURE_CONTRADICTION",
+    "R2_INCOMPLETE"
+  ],
+  "stateTransitionRules": [
+    "R1_COMPLETE -> R2 planning -> R2 implementation -> R2 validation -> R2_COMPLETE"
+  ],
+  "invalidationDeclarations": [
+    "Any mutation of this sealed contract after activation invalidates R2 readiness",
+    "Any write outside authorizedPaths invalidates R2 closure",
+    "This contract authorizes R2 only: it never authorizes R3 or any later revision, any gate, any git commit, any git push, or any release operation"
+  ],
+  "authorizedPaths": [
+    "governance/gee-v1/context/",
+    "governance/gee-v1/schemas/context-",
+    "governance/gee-v1/tools/context-",
+    "governance/gee-v1/tests/gee-r2-",
+    "governance/gee-v1/fixtures/gee-r2-",
+    "governance/gee-v1/adapters/wheel/context-"
+  ],
+  "activationPolicy": {
+    "requiresSealBeforeActivation": true,
+    "closureCriteriaMutableAfterActivation": false
+  }
+}

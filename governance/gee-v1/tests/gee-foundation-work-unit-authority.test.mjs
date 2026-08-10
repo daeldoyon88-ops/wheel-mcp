@@ -53,6 +53,25 @@ function resolve(workUnitType, workUnitId, reg = registry()) {
   return resolveExecutionAuthority({ projectId: PROJECT_ID, workUnitType, workUnitId, registry: reg });
 }
 
+/**
+ * The GEE mission revisions that actually exist on disk, oldest first. Cases
+ * about "the current revision" read the frontier from here rather than naming
+ * one, so a legitimately shipped successor advances them instead of breaking
+ * them — which is the same rule the authority source itself follows.
+ */
+function missionRevisions() {
+  const dir = path.join(REPO_ROOT, 'governance/gee-v1/missions');
+  return fs.readdirSync(dir)
+    .map((file) => ({ file, match: /^GEE_V1_EXECUTION_CONTRACT_R(\d{4})\.json$/.exec(file) }))
+    .filter((entry) => entry.match)
+    .map((entry) => ({
+      file: entry.file,
+      stage: Number(entry.match[1]),
+      id: JSON.parse(fs.readFileSync(path.join(dir, entry.file), 'utf8')).id
+    }))
+    .sort((a, b) => a.stage - b.stage);
+}
+
 function preflight(args = []) {
   const result = spawnSync(process.execPath, ['governance/tools/governance-preflight.mjs', ...args], {
     cwd: REPO_ROOT,
@@ -167,18 +186,23 @@ test('AUTH-05: R1 mutation through R2 authority is BLOCKED', () => {
   }
 });
 
-test('AUTH-06: R4 is authorized only by its own sealed revision', () => {
-  const r4 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4');
-  assert.equal(r4.executionAuthorized, true);
-  assert.equal(r4.decision, 'AUTHORIZED');
-  assert.equal(r4.authoritySource, 'gee-mission-authority-source');
-  assert.equal(r4.proofs.EXECUTION_CONTRACT.state, 'PROVEN');
-  assert.equal(r4.proofs.CONTRACT_INTEGRITY.state, 'PROVEN');
-  assert.equal(r4.proofs.PREREQUISITES.state, 'PROVEN');
+test('AUTH-06: the newest revision is authorized only by its own sealed contract', () => {
+  const revisions = missionRevisions();
+  const current = revisions[revisions.length - 1];
+  const predecessor = revisions[revisions.length - 2];
 
-  const r3 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R3');
-  assert.equal(r3.executionAuthorized, false);
-  assert.ok(r3.findings.some((finding) => finding.detail.includes('delivered and superseded by GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4')));
+  const authority = resolve(MISSION_WORK_UNIT_TYPE, current.id);
+  assert.equal(authority.executionAuthorized, true);
+  assert.equal(authority.decision, 'AUTHORIZED');
+  assert.equal(authority.authoritySource, 'gee-mission-authority-source');
+  assert.equal(authority.proofs.EXECUTION_CONTRACT.state, 'PROVEN');
+  assert.equal(authority.proofs.CONTRACT_INTEGRITY.state, 'PROVEN');
+  assert.equal(authority.proofs.PREREQUISITES.state, 'PROVEN');
+
+  // Its immediate predecessor is closed by that succession, with no new document.
+  const superseded = resolve(MISSION_WORK_UNIT_TYPE, predecessor.id);
+  assert.equal(superseded.executionAuthorized, false);
+  assert.ok(superseded.findings.some((finding) => finding.detail.includes(`delivered and superseded by ${current.id}`)));
 
   // R3's own contract remains historical and refuses to stand in for R4.
   const r2Contract = JSON.parse(
@@ -597,7 +621,7 @@ test('AUTH-18: the R2 execution contract is compatible with its referenced strat
   assert.equal(strategic.version, 'R0002');
 });
 
-test('AUTH-18b: only the sealed R4 revision is current; R5+ remain unauthorized', () => {
+test('AUTH-18b: only the newest sealed revision is current; later stages remain unauthorized', () => {
   const strategic = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json'), 'utf8')
   );
@@ -606,17 +630,18 @@ test('AUTH-18b: only the sealed R4 revision is current; R5+ remain unauthorized'
   assert.ok(strategic.invalidationDeclarations.some((d) => /NOT authorized for execution/i.test(d)));
   assert.ok(strategic.invalidationDeclarations.some((d) => /no revision authorizes a later stage/i.test(d)));
 
-  // And the resolver agrees: R4 exists as its own sealed revision, while no
-  // execution contract exists for any later stage.
-  const missions = fs.readdirSync(path.join(REPO_ROOT, 'governance/gee-v1/missions'));
-  assert.deepEqual(
-    missions.filter((file) => /^GEE_V1_EXECUTION_CONTRACT_R\d{4}\.json$/.test(file)).sort(),
-    ['GEE_V1_EXECUTION_CONTRACT_R0001.json', 'GEE_V1_EXECUTION_CONTRACT_R0002.json', 'GEE_V1_EXECUTION_CONTRACT_R0003.json', 'GEE_V1_EXECUTION_CONTRACT_R0004.json']
-  );
-  const r4 = resolve(MISSION_WORK_UNIT_TYPE, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4');
-  assert.equal(r4.executionAuthorized, true);
-  assert.equal(r4.decision, 'AUTHORIZED');
-  for (const laterStage of ['R5', 'R6', 'R7']) {
+  // And the resolver agrees: the newest revision exists as its own sealed
+  // contract, while no execution contract exists for any later stage. The
+  // revisions themselves must form an unbroken R0001.. sequence, so a stage
+  // cannot be reached by skipping the one before it.
+  const revisions = missionRevisions();
+  assert.deepEqual(revisions.map((revision) => revision.stage), revisions.map((_, index) => index + 1));
+  const current = revisions[revisions.length - 1];
+  const authorized = resolve(MISSION_WORK_UNIT_TYPE, current.id);
+  assert.equal(authorized.executionAuthorized, true);
+  assert.equal(authorized.decision, 'AUTHORIZED');
+  for (const stage of [current.stage + 1, current.stage + 2, current.stage + 3]) {
+    const laterStage = `R${stage}`;
     const authority = resolve(MISSION_WORK_UNIT_TYPE, `GOVERNANCE_EXECUTION_EFFICIENCY_V1_${laterStage}`);
     assert.equal(authority.executionAuthorized, false, laterStage);
     assert.ok(authority.findings.some((f) => f.code === 'UNKNOWN_WORK_UNIT_ID'), laterStage);

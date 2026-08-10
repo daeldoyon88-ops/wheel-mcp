@@ -247,10 +247,19 @@ test('R4-16 Evidence Graph does not grant execution authority', () => {
   assert.equal(result.graph.nodes[0].authorityStatus, 'UNKNOWN');
 });
 
-test('R4-17 R5 and later remain unauthorized', () => {
+test('R4-17 no stage beyond the newest sealed revision is authorized', () => {
+  // The invariant is that a mission revision never pre-authorizes a later
+  // stage. Naming R5 stated that as a fact about one moment in the program, so
+  // the case is written against the frontier the missions directory actually
+  // declares and keeps holding once a later revision legitimately ships.
+  const newest = Math.max(...fs.readdirSync(path.join(REPO_ROOT, 'governance/gee-v1/missions'))
+    .map((file) => /^GEE_V1_EXECUTION_CONTRACT_R(\d{4})\.json$/.exec(file))
+    .filter(Boolean)
+    .map((match) => Number(match[1])));
   const authority = createGeeMissionAuthoritySource(REPO_ROOT, { projectId: 'WHEEL' });
   const registry = createExecutionAuthorityRegistry([authority]);
-  for (const revision of ['R5', 'R6', 'R7']) {
+  for (const stage of [newest + 1, newest + 2, newest + 3]) {
+    const revision = `R${stage}`;
     const result = resolveExecutionAuthority({ projectId: 'WHEEL', workUnitType: MISSION_WORK_UNIT_TYPE, workUnitId: `GOVERNANCE_EXECUTION_EFFICIENCY_V1_${revision}`, registry });
     assert.equal(result.executionAuthorized, false, revision);
     assert.ok(result.findings.some((finding) => finding.code === 'UNKNOWN_WORK_UNIT_ID'), revision);

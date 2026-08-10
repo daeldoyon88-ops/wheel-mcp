@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/route-plan.schema.json",
+  "title": "GEE V1 R5 route plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "planKind",
+    "engine",
+    "workUnitId",
+    "routeDecision",
+    "routeReasonCodes",
+    "tasks",
+    "deterministicTasks",
+    "reasoningTasks",
+    "deepReasoningTasks",
+    "ownerDecisionTasks",
+    "blockedTasks",
+    "avoidedTasks",
+    "deferredTasks",
+    "reusableEvidenceIds",
+    "revalidationRequiredEvidenceIds",
+    "removedEvidenceIds",
+    "qualityRequirements",
+    "repairContainment",
+    "cost",
+    "metrics",
+    "provenance",
+    "routeSha256"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "planKind": { "type": "string", "const": "GEE_ROUTE_PLAN" },
+    "engine": { "type": "string", "const": "GEE_V1_ROUTER_R5" },
+    "workUnitId": { "type": "string", "minLength": 1 },
+    "routeDecision": { "type": "string", "enum": ["NO_WORK_REQUIRED", "LOCAL_DETERMINISTIC", "STANDARD_REASONING", "DEEP_REASONING", "OWNER_DECISION_REQUIRED", "BLOCKED"] },
+    "routeReasonCodes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "intent", "capability", "costClass", "deferred", "nonDeferrable", "mandatory", "reasonCodes", "sources", "requiredEvidenceIds", "produces", "blockedBy", "reprocessBytes", "avoidedBytes", "repair", "containmentState"],
+        "properties": {
+          "taskId": { "type": "string", "minLength": 1 },
+          "intent": { "type": "string", "enum": ["DETERMINISTIC", "SEMANTIC", "ROOT_CAUSE_ANALYSIS", "POLICY_DECISION"] },
+          "description": { "type": ["string", "null"] },
+          "capability": { "type": "string", "enum": ["NO_WORK_REQUIRED", "LOCAL_DETERMINISTIC", "STANDARD_REASONING", "DEEP_REASONING", "OWNER_DECISION_REQUIRED", "BLOCKED"] },
+          "costClass": { "type": "string", "enum": ["VERY_LOW", "LOW", "MEDIUM", "HIGH", "VERY_HIGH"] },
+          "deferred": { "type": "boolean" },
+          "nonDeferrable": { "type": "boolean" },
+          "mandatory": { "type": "boolean" },
+          "reasonCodes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "sources": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "requiredEvidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "produces": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "blockedBy": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "reprocessBytes": { "type": "integer", "minimum": 0 },
+          "avoidedBytes": { "type": "integer", "minimum": 0 },
+          "repair": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": ["defectId", "rootCauseClass", "incremental"],
+            "properties": {
+              "defectId": { "type": "string", "minLength": 1 },
+              "rootCauseClass": { "type": "string", "minLength": 1 },
+              "incremental": { "type": "boolean" }
+            }
+          },
+          "containmentState": { "type": ["string", "null"], "enum": ["NORMAL", "TARGETED_REPAIR_1", "TARGETED_REPAIR_2", "STOP_PATCH_CASCADE", "ROOT_CAUSE_REQUIRED", null] }
+        }
+      }
+    },
+    "deterministicTasks": { "type": "array", "items": { "type": "string" } },
+    "reasoningTasks": { "type": "array", "items": { "type": "string" } },
+    "deepReasoningTasks": { "type": "array", "items": { "type": "string" } },
+    "ownerDecisionTasks": { "type": "array", "items": { "type": "string" } },
+    "blockedTasks": { "type": "array", "items": { "type": "string" } },
+    "avoidedTasks": { "type": "array", "items": { "type": "string" } },
+    "deferredTasks": { "type": "array", "items": { "type": "string" } },
+    "reusableEvidenceIds": { "type": "array", "items": { "type": "string" } },
+    "revalidationRequiredEvidenceIds": { "type": "array", "items": { "type": "string" } },
+    "removedEvidenceIds": { "type": "array", "items": { "type": "string" } },
+    "qualityRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mandatoryTaskIds", "contradictionTaskIds", "nonDeferrableTaskIds", "pendingRevalidationTaskIds", "unmetRequirements", "qualityFloorEnforced"],
+      "properties": {
+        "mandatoryTaskIds": { "type": "array", "items": { "type": "string" } },
+        "contradictionTaskIds": { "type": "array", "items": { "type": "string" } },
+        "nonDeferrableTaskIds": { "type": "array", "items": { "type": "string" } },
+        "pendingRevalidationTaskIds": { "type": "array", "items": { "type": "string" } },
+        "unmetRequirements": { "type": "array", "items": { "type": "string" } },
+        "qualityFloorEnforced": { "type": "boolean" }
+      }
+    },
+    "repairContainment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lineages", "stopPatchCascade"],
+      "properties": {
+        "lineages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rootCauseClass", "lineageState", "nextAttemptState", "nextTargetedAttemptOrdinal", "targetedAttempts", "structuralAttempts", "rootCauseAnalyses", "postContainmentRootCauseAnalyses", "survivedTargetedAttempts", "unprovenResolutionClaims", "verifiedResolutions", "containmentCount", "incrementalPatchAuthorized", "structuralRepairAuthorized", "structuralRepairObstacle", "requiredNextAction", "reasonCode"],
+            "properties": {
+              "rootCauseClass": { "type": "string", "minLength": 1 },
+              "lineageState": { "type": "string", "enum": ["NORMAL", "TARGETED_REPAIR_1", "TARGETED_REPAIR_2", "STOP_PATCH_CASCADE", "ROOT_CAUSE_REQUIRED"] },
+              "nextAttemptState": { "type": "string", "enum": ["NORMAL", "TARGETED_REPAIR_1", "TARGETED_REPAIR_2", "STOP_PATCH_CASCADE", "ROOT_CAUSE_REQUIRED"] },
+              "nextTargetedAttemptOrdinal": { "type": "integer", "minimum": 1 },
+              "targetedAttempts": { "type": "integer", "minimum": 0 },
+              "structuralAttempts": { "type": "integer", "minimum": 0 },
+              "rootCauseAnalyses": { "type": "integer", "minimum": 0 },
+              "postContainmentRootCauseAnalyses": { "type": "integer", "minimum": 0 },
+              "survivedTargetedAttempts": { "type": "integer", "minimum": 0 },
+              "unprovenResolutionClaims": { "type": "integer", "minimum": 0 },
+              "verifiedResolutions": { "type": "integer", "minimum": 0 },
+              "containmentCount": { "type": "integer", "minimum": 0 },
+              "incrementalPatchAuthorized": { "type": "boolean" },
+              "structuralRepairAuthorized": { "type": "boolean" },
+              "structuralRepairObstacle": { "type": ["string", "null"], "enum": ["ROOT_CAUSE_ANALYSIS_REQUIRED_BEFORE_STRUCTURAL_REPAIR", null] },
+              "requiredNextAction": { "type": "string", "enum": ["REPAIR_ATTEMPT", "ROOT_CAUSE_ANALYSIS"] },
+              "reasonCode": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "stopPatchCascade": { "type": "boolean" }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policyVersion", "costCeiling", "byCostClass", "deterministicTaskCount", "standardReasoningTaskCount", "deepReasoningTaskCount", "ownerDecisionTaskCount", "blockedTaskCount", "avoidedTaskCount", "deferredTaskCount"],
+      "properties": {
+        "policyVersion": { "type": "string", "minLength": 1 },
+        "costCeiling": { "type": "string", "enum": ["VERY_LOW", "LOW", "MEDIUM", "HIGH", "VERY_HIGH"] },
+        "byCostClass": { "type": "object" },
+        "deterministicTaskCount": { "type": "integer", "minimum": 0 },
+        "standardReasoningTaskCount": { "type": "integer", "minimum": 0 },
+        "deepReasoningTaskCount": { "type": "integer", "minimum": 0 },
+        "ownerDecisionTaskCount": { "type": "integer", "minimum": 0 },
+        "blockedTaskCount": { "type": "integer", "minimum": 0 },
+        "avoidedTaskCount": { "type": "integer", "minimum": 0 },
+        "deferredTaskCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["TOKEN_MEASUREMENT", "R2_CONTEXT_BYTES", "R3_TOTAL_SOURCE_BYTES", "R3_UNCHANGED_BYTES", "R3_CHANGED_BYTES", "R3_REPROCESS_BYTES", "R3_AVOIDED_REPROCESS_BYTES", "R4_CURRENT_EVIDENCE_NODES", "R4_REUSABLE_NODES", "R4_REVALIDATION_REQUIRED_NODES", "R4_REMOVED_EVIDENCE_NODES", "R4_AVOIDED_EVIDENCE_BYTES", "R5_TASKS_TOTAL", "R5_TASKS_AVOIDED_BY_UPSTREAM_REUSE", "R5_TASK_REPROCESS_BYTES", "R5_TASK_AVOIDED_BYTES"],
+      "properties": {
+        "TOKEN_MEASUREMENT": { "type": "string", "const": "TOKEN_COUNT_UNAVAILABLE" },
+        "R2_CONTEXT_BYTES": { "type": "integer", "minimum": 0 },
+        "R3_TOTAL_SOURCE_BYTES": { "type": "integer", "minimum": 0 },
+        "R3_UNCHANGED_BYTES": { "type": "integer", "minimum": 0 },
+        "R3_CHANGED_BYTES": { "type": "integer", "minimum": 0 },
+        "R3_REPROCESS_BYTES": { "type": "integer", "minimum": 0 },
+        "R3_AVOIDED_REPROCESS_BYTES": { "type": "integer", "minimum": 0 },
+        "R4_CURRENT_EVIDENCE_NODES": { "type": "integer", "minimum": 0 },
+        "R4_REUSABLE_NODES": { "type": "integer", "minimum": 0 },
+        "R4_REVALIDATION_REQUIRED_NODES": { "type": "integer", "minimum": 0 },
+        "R4_REMOVED_EVIDENCE_NODES": { "type": "integer", "minimum": 0 },
+        "R4_AVOIDED_EVIDENCE_BYTES": { "type": "integer", "minimum": 0 },
+        "R5_TASKS_TOTAL": { "type": "integer", "minimum": 0 },
+        "R5_TASKS_AVOIDED_BY_UPSTREAM_REUSE": { "type": "integer", "minimum": 0 },
+        "R5_TASK_REPROCESS_BYTES": { "type": "integer", "minimum": 0 },
+        "R5_TASK_AVOIDED_BYTES": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["r2ContextSha256", "r2WorkUnitId", "r3DeltaSha256", "r4GraphSha256", "repairLedgerSha256", "routerPolicySha256"],
+      "properties": {
+        "r2ContextSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "r2WorkUnitId": { "type": ["string", "null"] },
+        "r3DeltaSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "r4GraphSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "repairLedgerSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "routerPolicySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "routeSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

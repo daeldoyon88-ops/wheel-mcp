@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R5",
+  "type": "MISSION_REVISION",
+  "version": "R0005",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Implement GEE V1 R5 Router, token/cost/quality policy and repair containment only: a deterministic execution-routing layer that consumes verified R2 context, R3 delta and R4 evidence evaluation to route only the work those layers prove is still required, at an explicit capability and cost class, and that refuses to authorize a third incremental patch against a root cause that already survived two targeted repair attempts.",
+  "prerequisites": [
+    { "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R4", "statement": "GEE V1 R4 delivered: its sealed contract is intact and every declared artifact exists", "critical": true, "satisfactionRule": "gee-mission-revision-delivered" },
+    { "id": "GATE13", "statement": "GATE13 COMPLETE_CONFIRMED", "critical": true, "satisfactionRule": "wheel-adapter-status" }
+  ],
+  "invariants": [
+    "Project-agnostic router, cost policy and repair containment core; Wheel interpretation remains in the adapter",
+    "Consume the R2, R3 and R4 interfaces and re-verify them; do not reconstruct, duplicate or trust caller claims about them",
+    "Canonical routing decides capability classes only; commercial model or provider names never enter canonical route identity",
+    "Identical canonical R2/R3/R4 inputs, repair history and policy always produce the identical route decision and route digest",
+    "Cost classes are relative effort classes; token counts are never fabricated",
+    "Cost or effort never suppresses a mandatory validation, an unresolved blocker, missing evidence or an architecture contradiction",
+    "A caller-supplied route decision, capability or cost class is rejected, never honoured",
+    "A third incremental patch against a root cause that already survived two targeted repair attempts is not automatically authorized",
+    "An independent defect with its own root-cause class is never counted into another lineage's containment",
+    "Repair history is append-only and chained; a silent rewrite of an earlier record fails verification",
+    "No mutation of R1, R2, R3 or R4 engines, adapters, contracts, seals or witnesses",
+    "No new ledger directory, key, witness, signature, release system, remote storage or recovery engine",
+    "No network access, staging, commit or push"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/router/router-policy.mjs",
+    "governance/gee-v1/router/router-engine.mjs",
+    "governance/gee-v1/router/provider-adapter.mjs",
+    "governance/gee-v1/repair/repair-containment.mjs",
+    "governance/gee-v1/adapters/wheel/router-wheel-adapter.mjs",
+    "governance/gee-v1/schemas/route-plan.schema.json",
+    "governance/gee-v1/tests/gee-r5-router.test.mjs"
+  ],
+  "requiredTests": ["governance/gee-v1/tests/gee-r5-router.test.mjs"],
+  "requiredNegativeTests": ["fabricated R3 delta, fabricated or unverified R4 graph, duplicate canonical task identifiers, malformed cost policy and caller-supplied route decisions all fail closed"],
+  "requiredHostileOrCounterTests": ["a cheap route cannot be forced while required evidence is missing, and a third incremental patch against an unresolved root cause stays blocked while an independent defect stays unaffected"],
+  "evidenceRequirements": ["verified R2 context identity", "verified R3 delta identity and reprocess/avoided bytes", "verified R4 evaluated graph identity, reusable and revalidation node counts", "deterministic route digest across JSON round-trip and a separate process", "repair containment state transitions with append-only history", "compounded R2+R3+R4 reuse measured on a real Wheel work unit"],
+  "closureConditions": ["R5-T01 through R5-T28 targeted tests PASS", "route digest is stable across identical inputs, JSON round-trip and a separate process", "provider mapping changes leave canonical route semantics unchanged", "quality floor overrides any cheaper route when required evidence is missing or a validation is mandatory", "repair containment blocks a third incremental patch on the same unresolved root cause and leaves independent defects unaffected", "R2, R3 and R4 remain unchanged and non-authoritative", "R6+ remains unauthorized", "no writes outside authorizedPaths"],
+  "authorizedVerdicts": ["R5_ROUTER_COST_QUALITY_REPAIR_CONTAINMENT_COMPLETE", "R5_REPAIR_REQUIRED", "R5_BLOCKED_ARCHITECTURE_CONTRADICTION"],
+  "stateTransitionRules": ["R4_COMPLETE -> R5_AUTHORIZED -> R5_IMPLEMENTATION -> R5_INDEPENDENT_VALIDATION"],
+  "invalidationDeclarations": [
+    "This contract authorizes GEE V1 R5 Router / Cost-Quality Policy / Repair Containment only; R6 and later remain unauthorized.",
+    "Any mutation of this sealed contract after activation invalidates R5 readiness",
+    "Any write outside authorizedPaths invalidates R5 closure",
+    "The two earlier test files inside authorizedPaths are in scope only to replace an assertion that R4 is the newest revision with an assertion derived from the missions directory; no R1-R4 engine, adapter, contract or seal may be touched",
+    "authorizedPaths entries are filename prefixes as isPathAuthorized defines them; an entry equal to a whole file name authorizes nothing, so every entry below is written as a strict prefix of the artifacts it scopes"
+  ],
+  "authorizedPaths": [
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0005",
+    "governance/gee-v1/router/",
+    "governance/gee-v1/repair/",
+    "governance/gee-v1/adapters/wheel/router-",
+    "governance/gee-v1/schemas/route-plan",
+    "governance/gee-v1/tests/gee-r5-",
+    "governance/gee-v1/tests/gee-foundation-work-unit-authority",
+    "governance/gee-v1/tests/gee-r4-evidence-graph"
+  ],
+  "activationPolicy": { "requiresSealBeforeActivation": true, "closureCriteriaMutableAfterActivation": false }
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/recovery-checkpoint.schema.json",
+  "title": "GEE V1 R6 recovery checkpoint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "checkpointKind",
+    "engine",
+    "workUnitId",
+    "revision",
+    "revisionOrdinal",
+    "previousCheckpointSha256",
+    "authority",
+    "baseline",
+    "inputs",
+    "tasks",
+    "recoveryState",
+    "checkpointSha256"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "checkpointKind": { "type": "string", "const": "GEE_RECOVERY_CHECKPOINT" },
+    "engine": { "type": "string", "const": "GEE_V1_RECOVERY_R6" },
+    "workUnitId": { "type": "string", "minLength": 1 },
+    "revision": { "type": "string", "pattern": "^R[0-9]{4}$" },
+    "revisionOrdinal": { "type": "integer", "minimum": 1 },
+    "previousCheckpointSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["missionRevisionId", "contractSha256"],
+      "properties": {
+        "missionRevisionId": { "type": "string", "minLength": 1 },
+        "contractSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["head", "headSource"],
+      "properties": {
+        "head": { "type": ["string", "null"], "minLength": 1 },
+        "headSource": { "type": "string", "minLength": 1 }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["r2ContextSha256", "r3DeltaSha256", "r4GraphSha256", "routeSha256", "repoIndexSha256"],
+      "properties": {
+        "r2ContextSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "r3DeltaSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "r4GraphSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "routeSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "repoIndexSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "state", "capability", "taskSemanticSha256", "sources", "requiredEvidenceIds", "produces", "evidence", "usageRecordIds", "reasonCodes"],
+        "properties": {
+          "taskId": { "type": "string", "minLength": 1 },
+          "state": { "type": "string", "enum": ["PENDING", "IN_PROGRESS", "COMPLETE", "AVOIDED", "REVALIDATION_REQUIRED", "BLOCKED", "DEFERRED", "OWNER_DECISION_REQUIRED", "FAILED"] },
+          "capability": { "type": "string", "enum": ["NO_WORK_REQUIRED", "LOCAL_DETERMINISTIC", "STANDARD_REASONING", "DEEP_REASONING", "OWNER_DECISION_REQUIRED", "BLOCKED"] },
+          "taskSemanticSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "sources": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "requiredEvidenceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "produces": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["evidenceId", "reuseIdentity"],
+              "properties": {
+                "evidenceId": { "type": "string", "minLength": 1 },
+                "reuseIdentity": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+              }
+            }
+          },
+          "usageRecordIds": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "reasonCodes": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "recoveryState": { "type": "string", "enum": ["IN_PROGRESS", "PARTIAL_COMPLETE", "COMPLETE", "INTERRUPTED", "BLOCKED", "RECOVERY_REQUIRED"] },
+    "checkpointSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

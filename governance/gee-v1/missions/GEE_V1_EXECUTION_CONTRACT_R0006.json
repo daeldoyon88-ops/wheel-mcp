@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R6",
+  "type": "MISSION_REVISION",
+  "version": "R0006",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Implement GEE V1 R6 operational continuity only: a deterministic repository index, immutable recovery checkpoints and an append-only usage ledger, so that an interrupted mission resumes from its latest valid checkpoint against verified R2 context, R3 delta, R4 evidence and R5 route state without restarting unaffected completed work, without ever marking a task complete that no evidence and no execution outcome supports, and without fabricating token counts that the runtime never measured.",
+  "prerequisites": [
+    { "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R5", "statement": "GEE V1 R5 delivered: its sealed contract is intact and every declared artifact exists", "critical": true, "satisfactionRule": "gee-mission-revision-delivered" },
+    { "id": "GATE13", "statement": "GATE13 COMPLETE_CONFIRMED", "critical": true, "satisfactionRule": "wheel-adapter-status" }
+  ],
+  "invariants": [
+    "Project-agnostic index, recovery and usage core; Wheel interpretation remains in the adapter",
+    "Consume the R1, R2, R3, R4 and R5 interfaces as they are; do not duplicate, reimplement or weaken them",
+    "Identical repository bytes and identical index policy always produce the identical repository index digest",
+    "Canonical index, checkpoint and usage identity never depends on wall-clock time, locale, absolute repository root, temp directory or randomness",
+    "A checkpoint may declare a task COMPLETE only when its produced evidence and at least one completed usage record actually support it",
+    "A completed task is reusable after interruption only while its inputs, its R3 source basis and its R4 evidence remain valid, and its routed task semantics are unchanged",
+    "Recovery never bypasses an R5 BLOCKED, DEFERRED, OWNER_DECISION_REQUIRED or STOP_PATCH_CASCADE state",
+    "A route digest change alone never discards checkpoint progress; only a concrete invalidation does",
+    "Recovery state survives JSON serialization and a fresh process with no in-memory, closure or process-identity trust",
+    "Usage history is append-only and chained; the same execution record can never be counted twice and a genuine retry is never collapsed into the attempt before it",
+    "Unavailable token counts are recorded as TOKEN_COUNT_UNAVAILABLE and are never replaced by an estimate presented as exact",
+    "Aggregate usage totals are derived from raw records and never stored as mutable canonical truth",
+    "Observed R6 usage never feeds back into canonical R5 route identity",
+    "No mutation of R1, R2, R3, R4 or R5 engines, adapters, schemas, contracts, seals or witnesses",
+    "No new authority mechanism, key, witness, signature, release system, database, service, daemon, remote storage or network access",
+    "No staging, commit or push"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/index/repo-index.mjs",
+    "governance/gee-v1/recovery/checkpoint-store.mjs",
+    "governance/gee-v1/recovery/recovery-engine.mjs",
+    "governance/gee-v1/usage/usage-ledger.mjs",
+    "governance/gee-v1/adapters/wheel/recovery-wheel-adapter.mjs",
+    "governance/gee-v1/schemas/repo-index.schema.json",
+    "governance/gee-v1/schemas/recovery-checkpoint.schema.json",
+    "governance/gee-v1/schemas/usage-record.schema.json",
+    "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs"
+  ],
+  "requiredTests": ["governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs"],
+  "requiredNegativeTests": ["malformed prior index, index digest mismatch, duplicate canonical repository path, non-canonical persisted identifier, excluded path inside the index, malformed checkpoint, checkpoint digest mismatch, checkpoint referencing an absent usage record, malformed usage record, negative bytes or tokens and an exact token count declared under an unavailable measurement state all fail closed"],
+  "requiredHostileOrCounterTests": ["a corrupt newest checkpoint cannot silently promote an older one, a checkpoint cannot claim completion without evidence and a completed usage record, a changed dependency cannot leave a stale completed task reusable, a replayed usage record cannot be counted twice while a genuine retry stays separate, and recovery cannot bypass an R5 blocked, deferred, owner-decision or stop-patch-cascade state"],
+  "evidenceRequirements": ["deterministic repository index digest across identical bytes, JSON round-trip, a separate process, a changed locale and a different absolute repository root", "incremental index update that re-hashes only added or changed entries", "immutable checkpoint revisions with a deterministic per-revision digest", "selective invalidation of exactly the completed tasks whose basis moved", "append-only usage records with deterministic identity, replay deduplication and separate retry identity", "aggregate usage totals recomputed exactly from raw records in a separate process", "a real interrupted and resumed Wheel work unit reporting tasks reused, tasks revalidated, bytes avoided and zero duplicate usage records"],
+  "closureConditions": ["R6-I01 through R6-I12, R6-R01 through R6-R18, R6-U01 through R6-U15 and R6-X01 through R6-X09 targeted tests PASS", "the mandatory real interruption demonstration resumes in a fresh process with restarted_from_zero = NO", "repository index, checkpoint and usage identity remain independent of clock, locale, absolute root and randomness", "recovery preserves every R5 blocked, deferred, owner-decision and stop-patch-cascade state", "no checkpoint reports COMPLETE without supporting evidence and a completed usage record", "R1, R2, R3, R4 and R5 remain unchanged apart from the single frontier assertion named in the invalidation declarations", "R7 and later remain unauthorized", "no writes outside authorizedPaths"],
+  "authorizedVerdicts": ["R6_RECOVERY_REPO_INDEX_USAGE_LEDGER_COMPLETE", "R6_REPAIR_REQUIRED", "R6_BLOCKED_ARCHITECTURE_CONTRADICTION", "R6_BLOCKED_BASELINE_MISMATCH"],
+  "stateTransitionRules": ["R5_COMPLETE -> R6_AUTHORIZED -> R6_IMPLEMENTATION -> R6_INDEPENDENT_VALIDATION"],
+  "invalidationDeclarations": [
+    "This contract authorizes GEE V1 R6 Recovery / Repository Index / Usage Ledger only; R7 and later remain unauthorized.",
+    "Any mutation of this sealed contract after activation invalidates R6 readiness",
+    "Any write outside authorizedPaths invalidates R6 closure",
+    "authorizedPaths entries are filename prefixes as isPathAuthorized defines them; an entry equal to a whole file name authorizes nothing, so every entry below is written as a strict prefix of the artifacts it scopes",
+    "The R5 test file inside authorizedPaths is in scope only to replace one assertion that names R6 as an absent stage with an assertion derived from the missions directory, exactly as R0005 did for the two earlier test files it scoped; no R1-R5 engine, adapter, schema, contract or seal may be touched",
+    "R4_HISTORICAL_WRITE_SCOPE_DEFECT is carried forward unchanged: GEE_V1_EXECUTION_CONTRACT_R0004.json declares three authorizedPaths entries that are whole file names and therefore authorize nothing under the prefix semantics isPathAuthorized has always applied. The defect is CONFIRMED and its governance remediation stays DEFERRED. R6 neither rewrites nor erases any historical R0004 byte, and R6 supersedes R0004 only through the ordinary revision succession that R0005 already performed.",
+    "R6 observes execution; it never rewrites an R5 route, an R4 evidence node, an R3 snapshot or an R2 context"
+  ],
+  "authorizedPaths": [
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006",
+    "governance/gee-v1/index/",
+    "governance/gee-v1/recovery/",
+    "governance/gee-v1/usage/",
+    "governance/gee-v1/adapters/wheel/recovery-",
+    "governance/gee-v1/schemas/repo-index",
+    "governance/gee-v1/schemas/recovery-checkpoint",
+    "governance/gee-v1/schemas/usage-record",
+    "governance/gee-v1/tests/gee-r6-",
+    "governance/gee-v1/tests/gee-r5-router"
+  ],
+  "activationPolicy": { "requiresSealBeforeActivation": true, "closureCriteriaMutableAfterActivation": false }
+}

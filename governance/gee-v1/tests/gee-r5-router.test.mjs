@@ -1907,7 +1907,16 @@ test('R5-R2B the routed work unit and the compiled context must name the same wo
   );
 });
 
-test('R5-H15 R6 and later remain unauthorized while R5 is the sealed frontier', () => {
+test('R5-H15 no stage beyond the sealed frontier is authorized', () => {
+  // The invariant is that a mission revision never pre-authorizes a later
+  // stage. Naming R5 as the frontier and R6 as absent stated that as a fact
+  // about one moment in the program, so the case is written against the
+  // frontier the missions directory actually declares and keeps holding once a
+  // later revision legitimately ships. This is the same form R4-17 already uses.
+  const newest = Math.max(...fs.readdirSync(path.join(REPO_ROOT, 'governance/gee-v1/missions'))
+    .map((file) => /^GEE_V1_EXECUTION_CONTRACT_R(\d{4})\.json$/.exec(file))
+    .filter(Boolean)
+    .map((match) => Number(match[1])));
   const wheelAdapter = createWheelProjectAdapter(REPO_ROOT);
   const registry = createExecutionAuthorityRegistry([
     createGeeMissionAuthoritySource(REPO_ROOT, {
@@ -1915,11 +1924,13 @@ test('R5-H15 R6 and later remain unauthorized while R5 is the sealed frontier', 
       prerequisiteResolvers: { 'wheel-adapter-status': (prerequisite) => wheelAdapter.resolvePrerequisite(prerequisite.id, prerequisite) }
     })
   ]);
-  const r5 = resolveExecutionAuthority({ projectId: 'WHEEL', workUnitType: MISSION_WORK_UNIT_TYPE, workUnitId: 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R5', registry });
-  assert.equal(r5.executionAuthorized, true);
-  assert.equal(r5.decision, 'AUTHORIZED');
-  for (const later of ['R6', 'R7', 'R8']) {
-    const result = resolveExecutionAuthority({ projectId: 'WHEEL', workUnitType: MISSION_WORK_UNIT_TYPE, workUnitId: `GOVERNANCE_EXECUTION_EFFICIENCY_V1_${later}`, registry });
+  const resolve = (revision) => resolveExecutionAuthority({ projectId: 'WHEEL', workUnitType: MISSION_WORK_UNIT_TYPE, workUnitId: `GOVERNANCE_EXECUTION_EFFICIENCY_V1_${revision}`, registry });
+
+  // The frontier revision is a work unit this authority source knows.
+  assert.equal(resolve(`R${newest}`).findings.some((finding) => finding.code === 'UNKNOWN_WORK_UNIT_ID'), false);
+  for (const stage of [newest + 1, newest + 2, newest + 3]) {
+    const later = `R${stage}`;
+    const result = resolve(later);
     assert.equal(result.executionAuthorized, false, later);
     assert.ok(result.findings.some((finding) => finding.code === 'UNKNOWN_WORK_UNIT_ID'), later);
   }

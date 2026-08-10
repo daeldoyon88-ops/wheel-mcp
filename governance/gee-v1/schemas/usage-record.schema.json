@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gee-v1/usage-record.schema.json",
+  "title": "GEE V1 R6 usage record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "recordKind",
+    "engine",
+    "schemaVersion",
+    "workUnitId",
+    "taskId",
+    "attempt",
+    "capability",
+    "outcome",
+    "routeSha256",
+    "bytes",
+    "tokens",
+    "provider",
+    "durationMs",
+    "observedAt",
+    "usageRecordId",
+    "usageRecordSha256"
+  ],
+  "properties": {
+    "recordKind": { "type": "string", "const": "GEE_USAGE_RECORD" },
+    "engine": { "type": "string", "const": "GEE_V1_USAGE_LEDGER_R6" },
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "workUnitId": { "type": "string", "minLength": 1 },
+    "taskId": { "type": "string", "minLength": 1 },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "capability": { "type": "string", "enum": ["NO_WORK_REQUIRED", "LOCAL_DETERMINISTIC", "STANDARD_REASONING", "DEEP_REASONING", "OWNER_DECISION_REQUIRED", "BLOCKED"] },
+    "outcome": { "type": "string", "enum": ["COMPLETED", "FAILED", "BLOCKED", "DEFERRED", "OWNER_DECISION_REQUIRED", "AVOIDED_BY_REUSE"] },
+    "routeSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "bytes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contextBytes", "sourceProcessedBytes", "sourceAvoidedBytes", "evidenceReusedBytes", "evidenceRevalidatedBytes"],
+      "properties": {
+        "contextBytes": { "type": "integer", "minimum": 0 },
+        "sourceProcessedBytes": { "type": "integer", "minimum": 0 },
+        "sourceAvoidedBytes": { "type": "integer", "minimum": 0 },
+        "evidenceReusedBytes": { "type": "integer", "minimum": 0 },
+        "evidenceRevalidatedBytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement", "inputTokens", "outputTokens", "source"],
+      "properties": {
+        "measurement": { "type": "string", "enum": ["TOKEN_COUNT_UNAVAILABLE", "MEASURED", "ESTIMATED"] },
+        "inputTokens": { "type": ["integer", "null"], "minimum": 0 },
+        "outputTokens": { "type": ["integer", "null"], "minimum": 0 },
+        "source": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "provider": { "type": ["string", "null"], "minLength": 1 },
+    "durationMs": { "type": ["integer", "null"], "minimum": 0 },
+    "observedAt": { "type": ["string", "null"], "minLength": 1 },
+    "usageRecordId": { "type": "string", "pattern": "^usage:.+#.+#[1-9][0-9]*$" },
+    "usageRecordSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "previousLedgerSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

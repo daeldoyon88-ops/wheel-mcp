@@ -30,7 +30,11 @@
       ]
     },
     "toStatus": { "type": "string", "enum": ["NOT_STARTED", "AUTHORIZED_NOT_STARTED", "IN_PROGRESS", "REPAIR_REQUIRED", "BLOCKED_GOVERNANCE", "INTERRUPTED_RESUMABLE", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "SUPERSEDED", "REOPENED_AUTHORIZED"] },
-    "transitionType": { "type": "string", "enum": ["GENESIS_IMPORT", "AUTHORIZATION", "START", "INTERRUPTION", "RESUME", "DEFECT_OPENED", "REPAIR_ACCEPTED", "GOVERNANCE_BLOCK", "GOVERNANCE_UNBLOCK", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "EXTERNAL_REJECTION", "AUTHORIZED_REOPEN", "RESUME_AFTER_REOPEN", "SUPERSESSION"] },
+    "transitionType": {
+      "type": "string",
+      "enum": ["GENESIS_IMPORT", "AUTHORIZATION", "START", "INTERRUPTION", "RESUME", "DEFECT_OPENED", "REPAIR_ACCEPTED", "GOVERNANCE_BLOCK", "GOVERNANCE_UNBLOCK", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "EXTERNAL_REJECTION", "AUTHORIZED_REOPEN", "RESUME_AFTER_REOPEN", "SUPERSESSION", "HISTORICAL_RECONCILIATION"],
+      "description": "The first fifteen values are NORMAL_EXECUTION_TRANSITION types, governed by the closed I2 transition table. HISTORICAL_RECONCILIATION is a distinct, strictly narrower transition class: it corrects a documented UNRESOLVED_STATUS_FALLBACK genesis status from recovered historical authority without implying authorization, start, execution or completion. Its authorityPath/authoritySha256 must pin a historical-reconciliation.schema.json record, which in turn binds the superseded genesis event, the fallback basis, a PROJECT_OWNER authorization and a byte-verified evidence cohort. The two classes never share a transition table; see governance/tools/validate-status-ledger.mjs."
+    },
     "authorityPath": { "type": "string", "minLength": 1 },
     "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "previousEventSha256": {

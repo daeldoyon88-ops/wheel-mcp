@@ -1,0 +1,19 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HR_R2_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-10T00:00:00.000Z",
+  "targetSystem": "GEE_V1",
+  "frozenRevision": "R7",
+  "workUnitId": "HISTORICAL_RECONCILIATION_PRIMITIVE_REPAIR_R2",
+  "reason": "Repair concrete independently reproduced post-freeze defects HR-R2-001 and HR-R2-002.",
+  "defects": ["HR-R2-001", "HR-R2-002"],
+  "authorizedPaths": ["governance/tools/validate-status-ledger.mjs", "governance/tests/historical-reconciliation-primitive.test.mjs"],
+  "newGeeRevisionAuthorized": false,
+  "r8Authorized": false,
+  "gateExecutionAuthorized": false,
+  "successorAuthorization": false,
+  "unrelatedWritesAuthorized": false
+}

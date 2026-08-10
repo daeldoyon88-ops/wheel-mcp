@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "historical-reconciliation.schema.json",
+  "title": "Owner-authorized historical reconciliation record",
+  "description": "Authority document for exactly one HISTORICAL_RECONCILIATION ledger event. It states that a gate's canonical current status was imported as a conservative UNRESOLVED_STATUS_FALLBACK, that authentic historical authority has subsequently been recovered, and that no new gate execution occurred. It never rewrites the genesis event, never asserts external confirmation, and is only trusted when every declared binding (superseded genesis event, fallback basis, owner authorization, evidence cohort) re-verifies live. The recovered historical word lives in historicalDisposition; the governed status lives in canonicalCurrentStatus. The two are deliberately separate concepts and must never be conflated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "document",
+    "reconciliationId",
+    "gateId",
+    "recordedAt",
+    "supersededGenesisEventId",
+    "supersededGenesisEventPayloadSha256",
+    "originalImportedStatus",
+    "originalStatusBasis",
+    "originalStatusBasisSourcePath",
+    "originalStatusBasisSourceSha256",
+    "historicalDisposition",
+    "canonicalCurrentStatus",
+    "newExecutionOccurred",
+    "externalConfirmationEstablished",
+    "ownerAuthorizationPath",
+    "ownerAuthorizationSha256",
+    "authorityCohort",
+    "evidenceCohortDigest",
+    "reason"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "document": { "const": "HISTORICAL_RECONCILIATION_RECORD" },
+    "reconciliationId": { "type": "string", "pattern": "^HISTORICAL_RECONCILIATION_[A-Z0-9_]{3,64}$" },
+    "gateId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Work-unit id this reconciliation corrects. Must equal the ledger event gateId and the gateId of every authorityCohort item."
+    },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "supersededGenesisEventId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "eventId of the gate's original GENESIS_IMPORT fallback event. That event is preserved unchanged; this record supersedes only its STATUS CONCLUSION, never its bytes."
+    },
+    "supersededGenesisEventPayloadSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "eventPayloadSha256 of the superseded genesis event. Pinning it makes any later edit of that historical event break this reconciliation instead of silently re-basing it."
+    },
+    "originalImportedStatus": {
+      "type": "string",
+      "enum": ["NOT_STARTED"],
+      "description": "The conservative status the genesis import actually recorded. Must equal the ledger event fromStatus."
+    },
+    "originalStatusBasis": {
+      "const": "UNRESOLVED_STATUS_FALLBACK",
+      "description": "Only a documented unresolved-status genesis fallback may be reconciled. Any other basis is not a fallback and must be corrected through the normal execution chronology."
+    },
+    "originalStatusBasisSourcePath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Governed relative path of the GENESIS_IMPORT source map that documents the fallback. Must resolve to the source map actually active for this validation run."
+    },
+    "originalStatusBasisSourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "historicalDisposition": {
+      "type": "string",
+      "enum": ["COMPLETE", "PARTIAL"],
+      "description": "The recovered HISTORICAL word. This is provenance, not a canonical status: PARTIAL is deliberately absent from the canonical status enum."
+    },
+    "canonicalCurrentStatus": {
+      "type": "string",
+      "enum": ["COMPLETE_AGENT", "INTERRUPTED_RESUMABLE"],
+      "description": "The governed current status after correction. COMPLETE maps to COMPLETE_AGENT; PARTIAL maps to INTERRUPTED_RESUMABLE. COMPLETE_CONFIRMED is unreachable here by construction."
+    },
+    "newExecutionOccurred": {
+      "const": false,
+      "description": "A reconciliation records recovered history only. It never stands for an authorization, a start, an execution run or a new completion."
+    },
+    "externalConfirmationEstablished": {
+      "const": false,
+      "description": "COMPLETE_CONFIRMED still requires a separate-session external reinspection authority and can never be reached through reconciliation."
+    },
+    "ownerAuthorizationPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Governed relative path of the PROJECT_OWNER authorization document (historical-reconciliation-owner-authorization.schema.json) that explicitly authorizes this exact reconciliationId, gate, disposition, target status and evidenceCohortDigest."
+    },
+    "ownerAuthorizationSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "authorityCohort": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "The imported historical evidence files that prove the declared historicalDisposition. At least one item must carry evidenceRole STATUS_DISPOSITION_AUTHORITY.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gateId", "evidenceRole", "historicalLocator", "governedPath", "byteLength", "sha256"],
+        "properties": {
+          "gateId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Gate this evidence item belongs to. Evidence from another gate can never support this reconciliation."
+          },
+          "evidenceRole": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$" },
+          "historicalLocator": {
+            "type": "string",
+            "minLength": 1,
+            "description": "PROVENANCE ONLY. The original, possibly machine-specific location the bytes were recovered from. It is never the permanent canonical identity of the evidence."
+          },
+          "governedPath": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^governance/authority/historical/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$",
+            "description": "PERMANENT CANONICAL IDENTITY. A portable, normalization-safe repository-relative path below governance/authority/historical/, the canonical permanent governed historical storage root. Absolute (Windows or POSIX), drive-relative, traversing, mixed-separator and outside-the-root paths are all rejected on every host; governance/tools/validate-status-ledger.mjs classifyHistoricalEvidencePath is the normative check."
+          },
+          "byteLength": { "type": "integer", "minimum": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "evidenceCohortDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA256_CANONICAL_JSON_SORTED_COHORT_V1 digest of authorityCohort. Each item is projected onto {gateId, evidenceRole, governedPath, byteLength, sha256} (historicalLocator is excluded, being machine-specific provenance), serialized as canonical JSON, sorted by UTF-16 code unit, and SHA-256'd as a canonical JSON array. The validator always RECOMPUTES it from the actual cohort and never trusts this declared value; it must equal both the recomputation and the digest the PROJECT_OWNER authorized for this reconciliationId. Cohort ordering does not change it; any change of gate, role, governed path, byte length or content hash does."
+    },
+    "residualObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "evidenceGovernedPath", "evidenceSha256"],
+      "description": "Required when historicalDisposition is PARTIAL, forbidden otherwise. The unfinished obligation carried forward, bound to an authorityCohort item so it cannot be asserted without evidence.",
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "evidenceGovernedPath": { "type": "string", "minLength": 1 },
+        "evidenceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why this correction is truthful: what the fallback was, what authority was recovered, and why no execution is implied."
+    }
+  }
+}

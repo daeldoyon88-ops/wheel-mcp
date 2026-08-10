@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "document": "HISTORICAL_RECONCILIATION_RECORD",
+  "reconciliationId": "HISTORICAL_RECONCILIATION_GATE07_R1",
+  "gateId": "GATE07",
+  "recordedAt": "2026-08-10T12:00:00.000Z",
+  "supersededGenesisEventId": "GENESIS_IMPORT_GATE07",
+  "supersededGenesisEventPayloadSha256": "335fd12dbeaeea778b340423ebbadf97ecc60bd44dae3058316124d0df1782e1",
+  "originalImportedStatus": "NOT_STARTED",
+  "originalStatusBasis": "UNRESOLVED_STATUS_FALLBACK",
+  "originalStatusBasisSourcePath": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+  "originalStatusBasisSourceSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+  "historicalDisposition": "COMPLETE",
+  "canonicalCurrentStatus": "COMPLETE_AGENT",
+  "newExecutionOccurred": false,
+  "externalConfirmationEstablished": false,
+  "ownerAuthorizationPath": "governance/sources/HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1.json",
+  "ownerAuthorizationSha256": "78c703c4f46fd008320edb75281416aec4c209e8fad795cbfbf780bc61a7119b",
+  "authorityCohort": [
+    {
+      "gateId": "GATE07",
+      "evidenceRole": "STATUS_DISPOSITION_AUTHORITY",
+      "historicalLocator": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\pre_gate09_proof_repair_20260727T161400Z\\measurements\\gate07_gate_decision.json",
+      "governedPath": "governance/authority/historical/GATE07/gate07_gate_decision.json",
+      "byteLength": 2002,
+      "sha256": "a008e7a8059cbdbcb35868332fd34b7bdf8b25edf63bc6ce5683adb06e2ecac3"
+    }
+  ],
+  "evidenceCohortDigest": "f3e74ca5a849d927d2d5e9b3e53a05ab0965b72f14e773cb2ca60ce23c910a0d",
+  "reason": "The GENESIS_IMPORT event recorded NOT_STARTED only as an UNRESOLVED_STATUS_FALLBACK. Authentic historical authority was recovered from the approved byte-authentic cohort. This reconciliation records recovered history only; no new gate execution or external confirmation occurred."
+}

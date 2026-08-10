@@ -1,0 +1,84 @@
+{
+  "validatorId": "gate00",
+  "inputFiles": [
+    "C:\\Users\\melan\\AppData\\Local\\Temp\\L4C_I2_FINAL_CORRECTED_AUTHORITIES_BUNDLE.zip",
+    "C:\\Users\\melan\\AppData\\Local\\Temp\\L4C_I2_TEST_AUTHORITY_CLOSURE_BUNDLE.zip"
+  ],
+  "inputFileHashes": [
+    "ffdddf275cb8ebfec8214362838a10a2094ce3cce1635717a2095c0de2cb688e",
+    "f126614ac0f88058cf06791ceed56f25d48b7f7dce19b40063d7d2814c7dee76"
+  ],
+  "measurementAlgorithm": "sha256 over bundle bytes; git plumbing for state; path\\0sha per foreign file",
+  "checks": [
+    {
+      "check": "branch",
+      "expected": "main",
+      "measured": "main",
+      "match": true
+    },
+    {
+      "check": "head",
+      "expected": "a3726279c4121d6ae048a9571cf7d9665c43f6f3",
+      "measured": "a3726279c4121d6ae048a9571cf7d9665c43f6f3",
+      "match": true
+    },
+    {
+      "check": "originMain",
+      "expected": "a3726279c4121d6ae048a9571cf7d9665c43f6f3",
+      "measured": "a3726279c4121d6ae048a9571cf7d9665c43f6f3",
+      "match": true
+    },
+    {
+      "check": "divergence",
+      "expected": "0\t0",
+      "measured": "0\t0",
+      "match": true
+    },
+    {
+      "check": "trackedDiffLines",
+      "expected": 0,
+      "measured": 0,
+      "match": true
+    },
+    {
+      "check": "stagedLines",
+      "expected": 0,
+      "measured": 0,
+      "match": true
+    },
+    {
+      "check": "untracked",
+      "expected": 336,
+      "measured": 336,
+      "match": true
+    },
+    {
+      "check": "foreignListSha256",
+      "expected": "8de3ec37303c9607e6469c9a7db428a2b1f079e698c78bd47722f686705ac940",
+      "measured": "8de3ec37303c9607e6469c9a7db428a2b1f079e698c78bd47722f686705ac940",
+      "match": true
+    },
+    {
+      "check": "foreignContentSha256",
+      "expected": "e84284f2889b56a54fda3d47e96a7d19ea155856dcc47408891ad8930c7695a7",
+      "measured": "e84284f2889b56a54fda3d47e96a7d19ea155856dcc47408891ad8930c7695a7",
+      "match": true
+    },
+    {
+      "check": "bundle:L4C_I2_FINAL_CORRECTED_AUTHORITIES_BUNDLE.zip",
+      "expected": "ffdddf275cb8ebfec8214362838a10a2094ce3cce1635717a2095c0de2cb688e",
+      "measured": "ffdddf275cb8ebfec8214362838a10a2094ce3cce1635717a2095c0de2cb688e",
+      "match": true
+    },
+    {
+      "check": "bundle:L4C_I2_TEST_AUTHORITY_CLOSURE_BUNDLE.zip",
+      "expected": "f126614ac0f88058cf06791ceed56f25d48b7f7dce19b40063d7d2814c7dee76",
+      "measured": "f126614ac0f88058cf06791ceed56f25d48b7f7dce19b40063d7d2814c7dee76",
+      "match": true
+    }
+  ],
+  "failedChecks": 0,
+  "N1Count": 0,
+  "N2Count": 0,
+  "clean": true
+}

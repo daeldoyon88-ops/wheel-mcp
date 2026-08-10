@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "Gate04RevalidationAfterGate08/1",
+  "generatedAt": "2026-07-27T14:02:54.259Z",
+  "evidence": [
+    {
+      "path": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_k6_report_policy_version_authority.json",
+      "sha256": "1631737dff4243d32552df10a33ec09ec533a8c47be22685644f5e0cdefa7a9d",
+      "readable": true
+    },
+    {
+      "path": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_f1_authority.json",
+      "sha256": "6cf862826f3730dd730b03b88bcd45406938711d1e2d7f6781085751597329f2",
+      "readable": true
+    },
+    {
+      "path": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_d01_revalidation.json",
+      "sha256": "b12da95064d92f00827d3ea5f5df266e24b781b207687e95112798e8124700c0",
+      "readable": true
+    },
+    {
+      "path": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\d01_crosscheck_output.json",
+      "sha256": "e0d61659d5d7958c6f6a4286c512125eface779c76571bbac174f9360b250671",
+      "readable": true
+    },
+    {
+      "path": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\d01_reject_code_coverage.json",
+      "sha256": "af07a241edffb16a6d08fdcf3f0e75127efb8050482b5870d6915edf5a3d30d4",
+      "readable": true
+    }
+  ],
+  "k6AuthorityReadable": true,
+  "f1AuthorityReadable": true,
+  "rawPeriodIdsD01Revalidated": true,
+  "diagnosticDigestD01Revalidated": true,
+  "goldensD01Preserved": true,
+  "abcD01Agreement": true,
+  "priorGate04Status": "PARTIAL",
+  "gate07Gate08ProducedFunctionalReplacementInputs": true,
+  "validationMethod": "CURRENT_HASH_AND_STATUS_REVALIDATION; NO FUNCTIONAL REPLACEMENT INPUTS WERE PRODUCED",
+  "remainingBlockers": [
+    {
+      "field": "goldenVectors[].linkedTestIds / linkedMutationIds",
+      "count": 10,
+      "dependsOnGates": [
+        "GATE-11",
+        "GATE-14"
+      ]
+    }
+  ],
+  "onlyGate11Gate14LinksRemain": true,
+  "d01Integrity": true,
+  "gate04ReopenedByGate07Gate08": false,
+  "repositoryMutation": false,
+  "status": "PARTIAL"
+}

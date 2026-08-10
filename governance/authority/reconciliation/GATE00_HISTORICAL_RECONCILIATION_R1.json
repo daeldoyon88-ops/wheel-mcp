@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "document": "HISTORICAL_RECONCILIATION_RECORD",
+  "reconciliationId": "HISTORICAL_RECONCILIATION_GATE00_R1",
+  "gateId": "GATE00",
+  "recordedAt": "2026-08-10T12:00:00.000Z",
+  "supersededGenesisEventId": "GENESIS_IMPORT_GATE00",
+  "supersededGenesisEventPayloadSha256": "78e987aba8b406cde18ab309fefedaa796463baa771fbd51f4921769a8898cd5",
+  "originalImportedStatus": "NOT_STARTED",
+  "originalStatusBasis": "UNRESOLVED_STATUS_FALLBACK",
+  "originalStatusBasisSourcePath": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+  "originalStatusBasisSourceSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+  "historicalDisposition": "COMPLETE",
+  "canonicalCurrentStatus": "COMPLETE_AGENT",
+  "newExecutionOccurred": false,
+  "externalConfirmationEstablished": false,
+  "ownerAuthorizationPath": "governance/sources/HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1.json",
+  "ownerAuthorizationSha256": "78c703c4f46fd008320edb75281416aec4c209e8fad795cbfbf780bc61a7119b",
+  "authorityCohort": [
+    {
+      "gateId": "GATE00",
+      "evidenceRole": "STATUS_DISPOSITION_AUTHORITY",
+      "historicalLocator": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate_status_v7.tsv",
+      "governedPath": "governance/authority/historical/GATE00/gate_status_v7.tsv",
+      "byteLength": 5676,
+      "sha256": "6e5c7124cbdc750f7f91f0b7587c99f81ba8d1ac9914a287a386db7897edcdd6"
+    },
+    {
+      "gateId": "GATE00",
+      "evidenceRole": "EXECUTION_CLOSURE_EVIDENCE",
+      "historicalLocator": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate00_measurement.json",
+      "governedPath": "governance/authority/historical/GATE00/gate00_measurement.json",
+      "byteLength": 2542,
+      "sha256": "fc31ee4e8fc9f34c7cc3b978392324ae0403a0af4d79cb5c8606aeafb358d7d3"
+    }
+  ],
+  "evidenceCohortDigest": "85c1dd3be56d9226d7743345f3daecd82da31ef5cba1bc27ebd16e8fc2927c8f",
+  "reason": "The GENESIS_IMPORT event recorded NOT_STARTED only as an UNRESOLVED_STATUS_FALLBACK. Authentic historical authority was recovered from the approved byte-authentic cohort. This reconciliation records recovered history only; no new gate execution or external confirmation occurred."
+}

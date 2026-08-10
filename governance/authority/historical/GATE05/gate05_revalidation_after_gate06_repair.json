@@ -1,0 +1,582 @@
+{
+  "schemaVersion": "Gate05RevalidationAfterGate06Repair/1",
+  "generatedAt": "2026-07-26T20:32:23.178Z",
+  "gate05MeasurementPath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_measurement.json",
+  "gate05MeasurementSha256": "56408a9acbf8d5a8f3ae04109cf3127a2f606d577ac5da7b9738e07090d278d2",
+  "gate05CorpusPath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_fixture_corpus_gate05_validated.json",
+  "gate05CorpusSha256": "fbd921da3eaf5b3d05562e2ff0c1055db8789f17aff76ab3bc3bc982b337f820",
+  "repairedCorpusPath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_fixture_corpus_gate06_repaired.json",
+  "repairedCorpusSha256": "6bf10438c8253add147fc559351d7df7003da5f1ec168787ffc9b611af68e2e9",
+  "evidenceHashRows": [
+    {
+      "key": "xml",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_xml_xbrl_validation.json",
+      "expectedSha256": "d96d3bc3e7cc9e549765743b56a53610f76a71364f347a1cae99f3cdbd37592f",
+      "currentSha256": "d96d3bc3e7cc9e549765743b56a53610f76a71364f347a1cae99f3cdbd37592f",
+      "byteIdentical": true
+    },
+    {
+      "key": "validatorA",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_validator_a_output.json",
+      "expectedSha256": "ae6b329f040571d4bec5364ab6f52bc7fe18410e6ce773e0ebb49072ce131f1f",
+      "currentSha256": "ae6b329f040571d4bec5364ab6f52bc7fe18410e6ce773e0ebb49072ce131f1f",
+      "byteIdentical": true
+    },
+    {
+      "key": "validatorB",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_validator_b_output.json",
+      "expectedSha256": "a765d21d5f33080d295f5a26284ba963075d45b5dc315d4378346a4487bb5543",
+      "currentSha256": "a765d21d5f33080d295f5a26284ba963075d45b5dc315d4378346a4487bb5543",
+      "byteIdentical": true
+    },
+    {
+      "key": "validatorC",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_validator_c_output.json",
+      "expectedSha256": "72279889d0abc578668032e1c1a72eb322cef65fb33ba7049d2495562b8ec074",
+      "currentSha256": "72279889d0abc578668032e1c1a72eb322cef65fb33ba7049d2495562b8ec074",
+      "byteIdentical": true
+    },
+    {
+      "key": "crosscheck",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_crosscheck_output.json",
+      "expectedSha256": "b15cd7c4e7ce402edd30e2caa617e9c7fd5fbe83a3652a788acbb6c8bd44575e",
+      "currentSha256": "b15cd7c4e7ce402edd30e2caa617e9c7fd5fbe83a3652a788acbb6c8bd44575e",
+      "byteIdentical": true
+    },
+    {
+      "key": "corrections",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_fixture_corrections.tsv",
+      "expectedSha256": "4a0b16ce87fd1e602978a541313d490cdd2ef9bb0534dfd03490e284da4f944d",
+      "currentSha256": "4a0b16ce87fd1e602978a541313d490cdd2ef9bb0534dfd03490e284da4f944d",
+      "byteIdentical": true
+    },
+    {
+      "key": "validatedCorpus",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_fixture_corpus_gate05_validated.json",
+      "expectedSha256": "fbd921da3eaf5b3d05562e2ff0c1055db8789f17aff76ab3bc3bc982b337f820",
+      "currentSha256": "fbd921da3eaf5b3d05562e2ff0c1055db8789f17aff76ab3bc3bc982b337f820",
+      "byteIdentical": true
+    }
+  ],
+  "expectedDocumentCount": 64,
+  "comparedDocumentCount": 64,
+  "byteIdenticalDocumentCount": 64,
+  "documentRows": [
+    {
+      "caseId": "CASE-Q1-SINGLE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "95f665412dbbce9ce8eb66723e2bf1e38c716b5e902ae5ca8f237c9a7caa08c9",
+      "repairedDocumentSha256": "95f665412dbbce9ce8eb66723e2bf1e38c716b5e902ae5ca8f237c9a7caa08c9",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q1-AMBIG",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "3a649b928b4c899caca3c8457895e2cc971dde89b883544c165fb51582be72e2",
+      "repairedDocumentSha256": "3a649b928b4c899caca3c8457895e2cc971dde89b883544c165fb51582be72e2",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q2-TWO",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "93947e0975f4dd2280b78100398a742547dcd07d9d3f20226d43337023e2a65b",
+      "repairedDocumentSha256": "93947e0975f4dd2280b78100398a742547dcd07d9d3f20226d43337023e2a65b",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q3-TWO",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "907c8fdfa91b6b18c71f40883ceacf220b80c32fc5344114974db3573db76c1f",
+      "repairedDocumentSha256": "907c8fdfa91b6b18c71f40883ceacf220b80c32fc5344114974db3573db76c1f",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q2-ONE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "e2bdc0306cc890dd49a332e500109775f137ea4b83040a5d64d53622f7313939",
+      "repairedDocumentSha256": "e2bdc0306cc890dd49a332e500109775f137ea4b83040a5d64d53622f7313939",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q3-ONE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "76740d2e490487cbb11da89a259780f017beba1c1d735d0ffb036c5c686f1602",
+      "repairedDocumentSha256": "76740d2e490487cbb11da89a259780f017beba1c1d735d0ffb036c5c686f1602",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q2-THREE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "fca3556d84734ebe0add00ffad1b7a136a6a3a6fa9bc0f868860f9248ca213db",
+      "repairedDocumentSha256": "fca3556d84734ebe0add00ffad1b7a136a6a3a6fa9bc0f868860f9248ca213db",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q3-THREE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "d4217e1ed2c1ab85ede0bbfc885df76ba01e1dd2cb9fd77e5904a87859ed1651",
+      "repairedDocumentSha256": "d4217e1ed2c1ab85ede0bbfc885df76ba01e1dd2cb9fd77e5904a87859ed1651",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FY-ONE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "41ae1378eac042269355bcb32968ae08592891d6683f6500e0a96810bcdf0d04",
+      "repairedDocumentSha256": "41ae1378eac042269355bcb32968ae08592891d6683f6500e0a96810bcdf0d04",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FY-TWO",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "6bee0d53f74f743bb3d4878bd1b9d2458b49207944d5c5e2c0a920ca1e943dc4",
+      "repairedDocumentSha256": "6bee0d53f74f743bb3d4878bd1b9d2458b49207944d5c5e2c0a920ca1e943dc4",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FY-APPARENT-Q4",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "8554b08ab1a90801fc994f20c56d7466f7e7339fb91d09642913e6aed206ce72",
+      "repairedDocumentSha256": "8554b08ab1a90801fc994f20c56d7466f7e7339fb91d09642913e6aed206ce72",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FY-STUB",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "a53e65e5c1e56da121b3a1b499d41e5f163eb701eafbf1c06421d3ffebf6ed58",
+      "repairedDocumentSha256": "a53e65e5c1e56da121b3a1b499d41e5f163eb701eafbf1c06421d3ffebf6ed58",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q4-ONE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "repairedDocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q4-TWO",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "7ba90615f90c49b0213459debcd5c73aab27fddaf56f9f71c188c3520acc8cb7",
+      "repairedDocumentSha256": "7ba90615f90c49b0213459debcd5c73aab27fddaf56f9f71c188c3520acc8cb7",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q4-TWO-REVERSED",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "bdbb019b040898ee632b0b0847c2909e6404e5995f91e901d3828e0273ae5efe",
+      "repairedDocumentSha256": "bdbb019b040898ee632b0b0847c2909e6404e5995f91e901d3828e0273ae5efe",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q4-STUB",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "90c9ca46a41539bdaaec1697db1f79646082a2518fb34c66cd55dd5ecaaaaf7d",
+      "repairedDocumentSha256": "90c9ca46a41539bdaaec1697db1f79646082a2518fb34c66cd55dd5ecaaaaf7d",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-52W",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "539435223de9a48fd7315247285bb3a77445e2bc406f9376c9b80f71de8e66a5",
+      "repairedDocumentSha256": "539435223de9a48fd7315247285bb3a77445e2bc406f9376c9b80f71de8e66a5",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-53W",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "718939f725941db792b5aeca867f4d0426e1b679bc880da47f0a31aa1f2084a6",
+      "repairedDocumentSha256": "718939f725941db792b5aeca867f4d0426e1b679bc880da47f0a31aa1f2084a6",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-NONCAL-FY",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "d3b8285a2157f1df729382ecac4dc23322a43d6088480ec33a375154588403de",
+      "repairedDocumentSha256": "d3b8285a2157f1df729382ecac4dc23322a43d6088480ec33a375154588403de",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-NONCAL-FY-2026",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "259f6f5169c4e50c01fe3db86171ff229504575fedb93afd3933fca05f906185",
+      "repairedDocumentSha256": "259f6f5169c4e50c01fe3db86171ff229504575fedb93afd3933fca05f906185",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FY-STUB-DECLARED",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "a2e06dc2624fc2030b5cf53f11a73274dfe0c12ef33a2cadd759e7731e404995",
+      "repairedDocumentSha256": "a2e06dc2624fc2030b5cf53f11a73274dfe0c12ef33a2cadd759e7731e404995",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q3-STUB-SHORT",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "0331b53a08768fd844ee419a75838aa305b3cca1f9b57cf12c22200890a18e4c",
+      "repairedDocumentSha256": "0331b53a08768fd844ee419a75838aa305b3cca1f9b57cf12c22200890a18e4c",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-FOCUS-INCOMPATIBLE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "7c62b9abce20f26ef6b3d434879ec8a7d44df1752057c69aa0106e9b0aecac47",
+      "repairedDocumentSha256": "7c62b9abce20f26ef6b3d434879ec8a7d44df1752057c69aa0106e9b0aecac47",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FY-CHANGE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "aee4ad46266e3c818b11a5d410d87b903f06aedf65f214d0c72c3bfa36de8e08",
+      "repairedDocumentSha256": "aee4ad46266e3c818b11a5d410d87b903f06aedf65f214d0c72c3bfa36de8e08",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-COMPARATIVE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "c18c16ab821163d9452e0e545b3182f8415c4bf98177dcfe09dbe0b5df92c465",
+      "repairedDocumentSha256": "c18c16ab821163d9452e0e545b3182f8415c4bf98177dcfe09dbe0b5df92c465",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-DEI-COMPLETE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "cec2d9034f7e13938e0ca9e8e4cc859bbd8c888393fe8f01e8bd996b1bbde07e",
+      "repairedDocumentSha256": "cec2d9034f7e13938e0ca9e8e4cc859bbd8c888393fe8f01e8bd996b1bbde07e",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-META-ABSENT",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "c23693d1408222027c20fdded7a2951075e4f457f9de4241cab29454200533f2",
+      "repairedDocumentSha256": "c23693d1408222027c20fdded7a2951075e4f457f9de4241cab29454200533f2",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-DPE-MISMATCH",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "dc5fd8e20033a06d65dc79e0cedf6383c028e40e33e09bca160fafb8d2822033",
+      "repairedDocumentSha256": "dc5fd8e20033a06d65dc79e0cedf6383c028e40e33e09bca160fafb8d2822033",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-DEI-DUP-OK",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "0769a51ca09076f7e9f7ca18fe24017d851c32e0628a4545eca87e16a309bb5c",
+      "repairedDocumentSha256": "0769a51ca09076f7e9f7ca18fe24017d851c32e0628a4545eca87e16a309bb5c",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-DEI-DUP-CONFLICT",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "739137276633780d1b1abe82d9059c71375680d2682eb9144577ea6deae3fbcd",
+      "repairedDocumentSha256": "739137276633780d1b1abe82d9059c71375680d2682eb9144577ea6deae3fbcd",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-INSTANT-ONLY",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "38b8230998734f84d65cf507e87f7825fad91c0da227e55ffea8c98c3019db1f",
+      "repairedDocumentSha256": "38b8230998734f84d65cf507e87f7825fad91c0da227e55ffea8c98c3019db1f",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-NO-METRIC",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "0006f14e214c027cbaea48e780aec9f38e8218b7f498707ed2f27811fcb8dc1a",
+      "repairedDocumentSha256": "0006f14e214c027cbaea48e780aec9f38e8218b7f498707ed2f27811fcb8dc1a",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-10-K-FY",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "3e26c2dafc65a7f073d0cabace4a79df3f3e7a5be059510ba96f8a921c1135af",
+      "repairedDocumentSha256": "3e26c2dafc65a7f073d0cabace4a79df3f3e7a5be059510ba96f8a921c1135af",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-10-Q-Q1",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "135cd0f7fcb4b0ca7a4809ac7eaa3f1a8c8d4bf74affed1f4dff193bd46ec89d",
+      "repairedDocumentSha256": "135cd0f7fcb4b0ca7a4809ac7eaa3f1a8c8d4bf74affed1f4dff193bd46ec89d",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-8-K-Q4",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "1e98c68a8d100f2b54641b6770e2d4eb546a83016fd3d669db3406123ee690ba",
+      "repairedDocumentSha256": "1e98c68a8d100f2b54641b6770e2d4eb546a83016fd3d669db3406123ee690ba",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-10-KA-FY",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "40c70615c5845fe8559fd67746906e924ada65f46956c7d563e1056623ce3b53",
+      "repairedDocumentSha256": "40c70615c5845fe8559fd67746906e924ada65f46956c7d563e1056623ce3b53",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-10-QA-Q2",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "2f71bcc340b15f94981a2f0920acbe2e2c49ac236c4fc543feb95ad8f4f3325b",
+      "repairedDocumentSha256": "2f71bcc340b15f94981a2f0920acbe2e2c49ac236c4fc543feb95ad8f4f3325b",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FORM-8-KA-Q4",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "8ed63f7dbcaf025a56b17c96ae5b38d7ac5a400af1c3dcef94b66b5fc415350e",
+      "repairedDocumentSha256": "8ed63f7dbcaf025a56b17c96ae5b38d7ac5a400af1c3dcef94b66b5fc415350e",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-THREE-FILING",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "repairedDocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-THREE-FILING",
+      "filingIndex": 1,
+      "gate05DocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "repairedDocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-THREE-FILING",
+      "filingIndex": 2,
+      "gate05DocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "repairedDocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-THREE-FILING-REVERSED",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "repairedDocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-THREE-FILING-REVERSED",
+      "filingIndex": 1,
+      "gate05DocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "repairedDocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-THREE-FILING-REVERSED",
+      "filingIndex": 2,
+      "gate05DocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "repairedDocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-ALL-FUTURE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "c4fcdd0688c1c0d483c81e6b48c430130b1d6054a670694ab04cf7d6a62f690d",
+      "repairedDocumentSha256": "c4fcdd0688c1c0d483c81e6b48c430130b1d6054a670694ab04cf7d6a62f690d",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-TWO-STORE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "80abd58535d8dcfa7af1adc2b5c4ae97cf90475e4f62a4393348d84b63e1421b",
+      "repairedDocumentSha256": "80abd58535d8dcfa7af1adc2b5c4ae97cf90475e4f62a4393348d84b63e1421b",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FOREIGN-NOISE",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "repairedDocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FOREIGN-NOISE",
+      "filingIndex": 1,
+      "gate05DocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "repairedDocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-FOREIGN-NOISE",
+      "filingIndex": 2,
+      "gate05DocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "repairedDocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-POST-CUTOFF-EXTRA",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "repairedDocumentSha256": "4ee50eeb189a1cee9110bccdd74c3ca4e40084319762afda58e0c7e71c88fec0",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-POST-CUTOFF-EXTRA",
+      "filingIndex": 1,
+      "gate05DocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "repairedDocumentSha256": "260561b74198f864e4fcc1abb01675e4eefa9a88696a52a3437ff14ea20a697a",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-POST-CUTOFF-EXTRA",
+      "filingIndex": 2,
+      "gate05DocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "repairedDocumentSha256": "141d8dcb3b3ab6ae29e7e0b19ad552fffd56bbd06824defc4469b570bcd8dbf3",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-POST-CUTOFF-EXTRA",
+      "filingIndex": 3,
+      "gate05DocumentSha256": "49deec5cdb40481fffccfdae7d54d987b59a461ef81ef102e45fc8f088d5e8f5",
+      "repairedDocumentSha256": "49deec5cdb40481fffccfdae7d54d987b59a461ef81ef102e45fc8f088d5e8f5",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-VALID-SINGLE-INSTANT",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "38b8230998734f84d65cf507e87f7825fad91c0da227e55ffea8c98c3019db1f",
+      "repairedDocumentSha256": "38b8230998734f84d65cf507e87f7825fad91c0da227e55ffea8c98c3019db1f",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-VALID-SINGLE-DURATION",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "repairedDocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-UNUSED-CONTEXT",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "3e22a4f0aab9ad91f3e0c7b7373a9bca8a032afc69c47e64dcc3d6e570a70001",
+      "repairedDocumentSha256": "3e22a4f0aab9ad91f3e0c7b7373a9bca8a032afc69c47e64dcc3d6e570a70001",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-NO-ADMISSIBLE-METRIC",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "0006f14e214c027cbaea48e780aec9f38e8218b7f498707ed2f27811fcb8dc1a",
+      "repairedDocumentSha256": "0006f14e214c027cbaea48e780aec9f38e8218b7f498707ed2f27811fcb8dc1a",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-MISSING-CONTEXTREF",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "50f21c102d92643527d79d8cd66355ae81a47763827a01d53feae5f6f7ba0e74",
+      "repairedDocumentSha256": "50f21c102d92643527d79d8cd66355ae81a47763827a01d53feae5f6f7ba0e74",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-MISSING-UNITREF",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "9dc25117eed49fec47631699ddc913c9470ccf04b73580fe671043c096431806",
+      "repairedDocumentSha256": "9dc25117eed49fec47631699ddc913c9470ccf04b73580fe671043c096431806",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-INVALID-UNIT",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "529c19669929350415ecc7925424c82fe58de3a1b247a472e929c1a471761141",
+      "repairedDocumentSha256": "529c19669929350415ecc7925424c82fe58de3a1b247a472e929c1a471761141",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-DUPLICATE-CONTEXT-ID",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "831dc306c9fcbd39c71e1ec02207206c9acf2aa162102df7d97a4bf2de1650ba",
+      "repairedDocumentSha256": "831dc306c9fcbd39c71e1ec02207206c9acf2aa162102df7d97a4bf2de1650ba",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q4-ONE-DURATION",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "repairedDocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-Q4-TWO-DURATIONS",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "7ba90615f90c49b0213459debcd5c73aab27fddaf56f9f71c188c3520acc8cb7",
+      "repairedDocumentSha256": "7ba90615f90c49b0213459debcd5c73aab27fddaf56f9f71c188c3520acc8cb7",
+      "bytesIdentical": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "CASE-UNDECLARED-XBRLI",
+      "filingIndex": 0,
+      "gate05DocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "repairedDocumentSha256": "258cc4fa579c920cdf178c6a52cb48d4494f828b320c7cf22261de6f252887e6",
+      "bytesIdentical": true,
+      "status": "PASS"
+    }
+  ],
+  "gate05AuthorityPreserved": true,
+  "gate05Reopened": false,
+  "repositoryMutation": false,
+  "status": "COMPLETE"
+}

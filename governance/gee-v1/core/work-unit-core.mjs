@@ -125,11 +125,12 @@ export function createExecutionAuthorityRegistry(sources = []) {
 /**
  * Is `repoRelativePath` inside the write scope an authority actually granted?
  *
- * Prefix semantics, because that is what the existing authorizedPaths
- * vocabulary already is: an entry ending in "/" scopes a directory, any other
- * entry scopes a filename prefix. Separator style is normalised; absolute
- * paths and traversal are rejected before matching, so no candidate can escape
- * its own scope by spelling.
+ * An entry ending in "/" scopes a directory. A file-like entry (a final path
+ * component containing an extension) scopes exactly one file. Historical
+ * extensionless filename-stem entries retain their frozen prefix semantics;
+ * they are not directory scopes and are not accepted as new authority syntax.
+ * Separator style is normalised; absolute paths and traversal are rejected
+ * before matching, so exact-file candidates cannot gain authority by suffix.
  */
 export function isPathAuthorized(authorizedPaths, repoRelativePath) {
   if (typeof repoRelativePath !== 'string' || repoRelativePath.length === 0) return false;
@@ -140,6 +141,11 @@ export function isPathAuthorized(authorizedPaths, repoRelativePath) {
   return authorizedPaths.some((entry) => {
     if (typeof entry !== 'string' || entry.length === 0) return false;
     const scope = entry.split('\\').join('/');
+    if (scope.startsWith('/') || /^[A-Za-z]:/.test(scope)) return false;
+    if (scope.split('/').includes('..')) return false;
+    if (scope.endsWith('/')) return candidate.startsWith(scope) && candidate.length > scope.length;
+    const finalComponent = scope.slice(scope.lastIndexOf('/') + 1);
+    if (finalComponent.includes('.')) return candidate === scope;
     return candidate.startsWith(scope) && candidate.length > scope.length;
   });
 }

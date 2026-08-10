@@ -1,0 +1,97 @@
+{
+  "document": "HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION",
+  "schemaVersion": 1,
+  "authorityId": "HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1",
+  "authorityClass": "PROJECT_OWNER_HISTORICAL_RECONCILIATION_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-10T00:00:00.000Z",
+  "reexecutionAuthorized": false,
+  "externalConfirmationGranted": false,
+  "authorizedReconciliations": [
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE00_R1",
+      "gateId": "GATE00",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "85c1dd3be56d9226d7743345f3daecd82da31ef5cba1bc27ebd16e8fc2927c8f"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE01_R1",
+      "gateId": "GATE01",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "facdc10088862577fbbbbe6b21c2fb14d6923159bd1f98da4143f03533a91637"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE02_R1",
+      "gateId": "GATE02",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "31b7e36f09b025c3f92fd211f686666371581565a364928f06dcb7c4f1e1e1f4"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE03_R1",
+      "gateId": "GATE03",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "72a691291652a5cb457c531338423d99048bd1e699562b0ff71518ef17bcd0b0"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE04_R1",
+      "gateId": "GATE04",
+      "historicalDisposition": "PARTIAL",
+      "canonicalCurrentStatus": "INTERRUPTED_RESUMABLE",
+      "evidenceCohortDigest": "7beefcb55ffbad3c8b1d5a6c8b7a087da28f828de48275c71240885c5e3cdde3"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE05_R1",
+      "gateId": "GATE05",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "593e7662d44e1555817d0a03327536baff64a6e8545075273ef02d80e301f88f"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE06_R1",
+      "gateId": "GATE06",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "c3971f319ef898eb182b84e3cae0f0b78427c7213d9fa3365944ee97045dcae3"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE07_R1",
+      "gateId": "GATE07",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "f3e74ca5a849d927d2d5e9b3e53a05ab0965b72f14e773cb2ca60ce23c910a0d"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE08_R1",
+      "gateId": "GATE08",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "a54f97261f262ecebb4323bb28e93f9e1b0759ea798b193f513553588869de85"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE09_R1",
+      "gateId": "GATE09",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "55edbcf94f2608a6cf39bbc14ca058f03958c621a8e31ff7c663c13edfc154ed"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE10_R1",
+      "gateId": "GATE10",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "34594a6869b01af87c9fe468b8cca96917cddd7b7915733cba0820bcd2fabbdd"
+    },
+    {
+      "reconciliationId": "HISTORICAL_RECONCILIATION_GATE11_R1",
+      "gateId": "GATE11",
+      "historicalDisposition": "COMPLETE",
+      "canonicalCurrentStatus": "COMPLETE_AGENT",
+      "evidenceCohortDigest": "a602a4b06ce1f28fc4c512366f43bf967c17349ca4064c4d8ec4e3c4312fe8c0"
+    }
+  ],
+  "reason": "PROJECT_OWNER approved the exact byte-authentic historical evidence cohorts and reconciliation tuples for WHEEL_GATE00_11_HISTORICAL_AUTHORITY_IMPORT_AND_STATUS_RECONCILIATION_R1."
+}

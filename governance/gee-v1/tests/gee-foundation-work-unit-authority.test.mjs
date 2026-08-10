@@ -28,6 +28,8 @@ import { validateStrategicContract } from '../contracts/validate-strategic-contr
 import { EXTENSION_POINTS } from '../core/extension-points.mjs';
 import { createSyntheticAdapter } from '../fixtures/synthetic-non-wheel-adapter.mjs';
 import { createProjectSession } from '../core/work-unit-core.mjs';
+import { validateLedgerPrefix } from '../../tools/validate-status-ledger.mjs';
+import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../adapters/wheel/external-authority-policy.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..', '..', '..');
@@ -516,8 +518,23 @@ test('AUTH-16: GATE13 state, ledger closure and external confirmation are untouc
   const last = events.filter((event) => event.gateId === 'GATE13').at(-1);
   assert.equal(last.toStatus, 'COMPLETE_CONFIRMED');
   assert.equal(last.transitionType, 'EXTERNAL_CONFIRMATION');
-  // The repair appended nothing to the authority spine.
-  assert.equal(events.length, 44);
+  const prefix = validateLedgerPrefix({
+    root: REPO_ROOT,
+    ledgerPath: path.join(REPO_ROOT, 'governance/state/GATE_STATUS_LEDGER.ndjson'),
+    throughOrdinal: 44,
+    expectedPrefixSha256: '304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478',
+    policy: WHEEL_EXTERNAL_AUTHORITY_POLICY
+  });
+  assert.equal(prefix.matchesExpectedHistoricalDigest, true);
+  assert.equal(prefix.prefixChainValid, true);
+  assert.deepEqual(events.slice(41, 44).map(({ ordinal, gateId, transitionType, toStatus }) => ({
+    ordinal, gateId, transitionType, toStatus
+  })), [
+    { ordinal: 42, gateId: 'GATE13', transitionType: 'START', toStatus: 'IN_PROGRESS' },
+    { ordinal: 43, gateId: 'GATE13', transitionType: 'AGENT_CLOSURE', toStatus: 'COMPLETE_AGENT' },
+    { ordinal: 44, gateId: 'GATE13', transitionType: 'EXTERNAL_CONFIRMATION', toStatus: 'COMPLETE_CONFIRMED' }
+  ]);
+  assert.ok(events.slice(44).every((event) => event.gateId !== 'GATE13'));
 });
 
 test('AUTH-17: a synthetic non-Wheel work unit still works through the generic core', () => {

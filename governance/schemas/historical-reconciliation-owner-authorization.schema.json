@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "historical-reconciliation-owner-authorization.schema.json",
+  "title": "Project-owner historical reconciliation authorization",
+  "description": "Owner decision document authorizing specific (reconciliationId, gateId, historicalDisposition, canonicalCurrentStatus, evidenceCohortDigest) reconciliations. Follows the existing unsigned governance/sources PROJECT_OWNER authority convention (document + authorityId + issuedBy + issuedAtUtc); it deliberately introduces no key, signature, witness or external trust mechanism beyond what the normal governance path already requires. It is a SEPARATE document from the historical reconciliation record so that a record can never authorize itself: the record supplies the evidence cohort, the validator recomputes that cohort's canonical digest, and only this document decides whether that exact digest was ever approved. Because the approved evidence set is bound by digest, a reconciliation can never substitute an unapproved file, role or governed path — including an arbitrary file that merely labels itself STATUS_DISPOSITION_AUTHORITY. This document is enforced at runtime by validating it against THIS schema, so schema validity and runtime trust cannot drift apart.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document",
+    "schemaVersion",
+    "authorityId",
+    "authorityClass",
+    "issuedBy",
+    "issuedAtUtc",
+    "reexecutionAuthorized",
+    "externalConfirmationGranted",
+    "authorizedReconciliations"
+  ],
+  "properties": {
+    "document": { "const": "HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION" },
+    "schemaVersion": { "const": 1 },
+    "authorityId": { "type": "string", "minLength": 1 },
+    "authorityClass": { "const": "PROJECT_OWNER_HISTORICAL_RECONCILIATION_AUTHORITY" },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "issuedAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$",
+      "description": "UTC instant of the owner decision. The explicit pattern (not only format) is what makes runtime validation and schema validation exactly equivalent, since the canonical repository schema validator enforces pattern but not format."
+    },
+    "reexecutionAuthorized": {
+      "const": false,
+      "description": "Reconciliation never authorizes re-running a historical gate."
+    },
+    "externalConfirmationGranted": {
+      "const": false,
+      "description": "The owner cannot grant COMPLETE_CONFIRMED here; that requires separate-session external reinspection authority."
+    },
+    "authorizedReconciliations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Exhaustive allow-list. A reconciliation whose (reconciliationId, gateId, historicalDisposition, canonicalCurrentStatus, evidenceCohortDigest) tuple is absent is unauthorized. Every component is bound: an authorization issued for one reconciliationId, gate, disposition, status or evidence cohort never carries over to another.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reconciliationId", "gateId", "historicalDisposition", "canonicalCurrentStatus", "evidenceCohortDigest"],
+        "properties": {
+          "reconciliationId": {
+            "type": "string",
+            "pattern": "^HISTORICAL_RECONCILIATION_[A-Z0-9_]{3,64}$",
+            "description": "The exact reconciliation record this approval is for. An approval for reconciliation A can never be replayed for reconciliation B."
+          },
+          "gateId": { "type": "string", "minLength": 1 },
+          "historicalDisposition": { "type": "string", "enum": ["COMPLETE", "PARTIAL"] },
+          "canonicalCurrentStatus": { "type": "string", "enum": ["COMPLETE_AGENT", "INTERRUPTED_RESUMABLE"] },
+          "evidenceCohortDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA256_CANONICAL_JSON_SORTED_COHORT_V1 digest of the EXACT evidence set the owner approved for this reconciliation. The validator recomputes this digest from the record's actual authorityCohort and refuses any mismatch, so the reconciliation record cannot choose its own evidence cohort. One canonical digest binds the whole cohort exactly, so the owner document never has to duplicate every evidence file."
+          }
+        }
+      }
+    },
+    "reason": { "type": "string", "minLength": 1 }
+  }
+}

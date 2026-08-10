@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "Gate09GateDecisionV3/1",
+  "generatedAt": "2026-07-28T01:24:39.400Z",
+  "conditions": {
+    "j1Complete": true,
+    "j2Complete": true,
+    "j3BlockedPreserved": true,
+    "j4CompletePreserved": true,
+    "j5PrecheckPass": true,
+    "realReplayExecuted": true,
+    "realReplayPass": true,
+    "validatorsSeparated": true,
+    "f1D01ClosureV3Pass": true,
+    "crosscheckV3Pass": true,
+    "authorityV3Pass": true,
+    "sealV3Pass": true,
+    "sealValidationV3Pass": true,
+    "testsPass": true,
+    "ledgerPass": true,
+    "gitPass": true,
+    "noOpenProcesses": true
+  },
+  "decision": "GATE09_COMPLETE",
+  "gate09Status": "GATE09_COMPLETE",
+  "gate10Status": "NOT_STARTED",
+  "blockGate10": false
+}

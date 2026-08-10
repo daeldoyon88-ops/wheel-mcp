@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "Gate10GateDecision/1",
+  "generatedAt": "2026-07-28T01:40:01.764Z",
+  "gateId": "GATE-10",
+  "decision": "GATE10_COMPLETE",
+  "globalVerdict": "ALLOW_GATE_11",
+  "gate10Status": "GATE10_COMPLETE",
+  "gate11Status": "FORMAL_GATE11_NOT_STARTED",
+  "gate04Status": "PARTIAL",
+  "uarN1018Status": "OPEN_SCOPE_EXTENDS_TO_GATE19",
+  "globalReportStatus": "STALE",
+  "conditionFailures": [],
+  "conditionCount": 15,
+  "conditionFailureCount": 0,
+  "status": "GATE10_COMPLETE"
+}

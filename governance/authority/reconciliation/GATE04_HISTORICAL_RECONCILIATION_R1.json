@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "document": "HISTORICAL_RECONCILIATION_RECORD",
+  "reconciliationId": "HISTORICAL_RECONCILIATION_GATE04_R1",
+  "gateId": "GATE04",
+  "recordedAt": "2026-08-10T12:00:00.000Z",
+  "supersededGenesisEventId": "GENESIS_IMPORT_GATE04",
+  "supersededGenesisEventPayloadSha256": "53f0bc3a4de1cc471a189113ad65682ffae96d32544021e482f01c1d00a5f215",
+  "originalImportedStatus": "NOT_STARTED",
+  "originalStatusBasis": "UNRESOLVED_STATUS_FALLBACK",
+  "originalStatusBasisSourcePath": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+  "originalStatusBasisSourceSha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+  "historicalDisposition": "PARTIAL",
+  "canonicalCurrentStatus": "INTERRUPTED_RESUMABLE",
+  "newExecutionOccurred": false,
+  "externalConfirmationEstablished": false,
+  "ownerAuthorizationPath": "governance/sources/HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1.json",
+  "ownerAuthorizationSha256": "78c703c4f46fd008320edb75281416aec4c209e8fad795cbfbf780bc61a7119b",
+  "authorityCohort": [
+    {
+      "gateId": "GATE04",
+      "evidenceRole": "STATUS_DISPOSITION_AUTHORITY",
+      "historicalLocator": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate04_revalidation_after_gate08.json",
+      "governedPath": "governance/authority/historical/GATE04/gate04_revalidation_after_gate08.json",
+      "byteLength": 2178,
+      "sha256": "bd97a177d09d0089d5192d477a7d2a9dd666d70ef2eeb159c7b96013ea50a384"
+    }
+  ],
+  "evidenceCohortDigest": "7beefcb55ffbad3c8b1d5a6c8b7a087da28f828de48275c71240885c5e3cdde3",
+  "reason": "The GENESIS_IMPORT event recorded NOT_STARTED only as an UNRESOLVED_STATUS_FALLBACK. Authentic historical authority was recovered from the approved byte-authentic cohort. This reconciliation records recovered history only; no new gate execution or external confirmation occurred.",
+  "residualObligation": {
+    "description": "goldenVectors[].linkedTestIds / linkedMutationIds: 10 remaining links, deferred to GATE-11 and GATE-14; GATE04 historical disposition PARTIAL -> canonical INTERRUPTED_RESUMABLE.",
+    "evidenceGovernedPath": "governance/authority/historical/GATE04/gate04_revalidation_after_gate08.json",
+    "evidenceSha256": "bd97a177d09d0089d5192d477a7d2a9dd666d70ef2eeb159c7b96013ea50a384"
+  }
+}

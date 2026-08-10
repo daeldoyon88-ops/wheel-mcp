@@ -1,0 +1,34 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE00_11_INTEGRATION_SYNC_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-10T00:00:00.000Z",
+  "targetSystem": "GEE_V1",
+  "frozenRevision": "R7",
+  "workUnitId": "GATE00_11_POST_RECONCILIATION_INTEGRATION_SYNC_R1",
+  "reason": "Synchronize derived governance artifacts and historical tests after the owner-approved GATE00→11 append-only historical reconciliation.",
+  "defects": [
+    "POST_RECONCILIATION_GENERATED_STATE_DRIFT",
+    "POST_RECONCILIATION_HARDCODED_44_EVENT_ASSUMPTIONS",
+    "GATE13_PRE_RECONCILIATION_FIXTURE_CHAIN_BREAK",
+    "R7_FROZEN_BENCHMARK_CURRENT_REPLAY_DRIFT"
+  ],
+  "authorizedPaths": [
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/active/ACTIVE_GATE.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md",
+    "governance/tests/historical-reconciliation-primitive.test.mjs",
+    "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+    "governance/gee-v1/tests/gee-foundation-work-unit-authority.test.mjs",
+    "governance/gee-v1/tests/gee-r1-final-hardening.test.mjs",
+    "governance/gee-v1/tests/gee-r7-benchmark.test.mjs"
+  ],
+  "newGeeRevisionAuthorized": false,
+  "r8Authorized": false,
+  "gateExecutionAuthorized": false,
+  "successorAuthorization": false,
+  "unrelatedWritesAuthorized": false
+}

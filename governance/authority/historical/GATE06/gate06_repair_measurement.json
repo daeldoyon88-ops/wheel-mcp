@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "Gate06RepairMeasurement/1",
+  "generatedAt": "2026-07-26T20:37:30.570Z",
+  "evidence": [
+    {
+      "name": "runner",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_runner_output.json",
+      "sha256": "c25f842384ce7d9873bdbdc68f513511e98d1b102297cb0a3b58b7c94b1f4719"
+    },
+    {
+      "name": "independent",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_independent_validation.json",
+      "sha256": "c002a3ca82891f4ff1706c9b893780454568a29bb7dba05a8c08f5b0e2a26e72"
+    },
+    {
+      "name": "alignment",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_alignment.json",
+      "sha256": "3856ce2bc696db7b5dcb91d4d4a8030f653f06393735a3cf40edfb1eac58ebba"
+    },
+    {
+      "name": "crosscheck",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_crosscheck.json",
+      "sha256": "9f95507aef341c751ac3bae8ee015ac3321cdcf583012f9be82cfa484c0cf0ac"
+    },
+    {
+      "name": "authority",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_gate06_negative_expectation_authority.json",
+      "sha256": "140bb56069d17d63b904578a50207b34f256c641c7b2b7a0b53c2dd42ef3d6ff"
+    },
+    {
+      "name": "repairedCorpus",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_fixture_corpus_gate06_repaired.json",
+      "sha256": "6bf10438c8253add147fc559351d7df7003da5f1ec168787ffc9b611af68e2e9"
+    },
+    {
+      "name": "oldCorpus",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\final_authorities\\l4c_i2_fixture_corpus_gate05_validated.json",
+      "sha256": "fbd921da3eaf5b3d05562e2ff0c1055db8789f17aff76ab3bc3bc982b337f820"
+    },
+    {
+      "name": "candidateValidation",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_candidate_independent_validation.json",
+      "sha256": "512f9e8eaafa0abe11cef6524beb89d73a7bed946e4caba9a3ad93d2f5a7354a"
+    },
+    {
+      "name": "dependencyInventory",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\uar_n1_006_dependency_inventory.json",
+      "sha256": "52311c3658b005c17bc39ccc8f8075aa8f06a7f3bdbd5c2847df51002d94d7ed"
+    },
+    {
+      "name": "findingClosures",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_finding_closure_summary.json",
+      "sha256": "a434901dff084f10d726aba3c8bf68943939ebff27a3fa76993b47d17fe883fd"
+    },
+    {
+      "name": "gate05",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate05_revalidation_after_gate06_repair.json",
+      "sha256": "599332f039d2573c740d6bcd771589d2835bef37556c8ae00525ef84f4e70da8"
+    },
+    {
+      "name": "d01",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate06_repair_d01_revalidation.json",
+      "sha256": "b12da95064d92f00827d3ea5f5df266e24b781b207687e95112798e8124700c0"
+    },
+    {
+      "name": "gate04",
+      "filePath": "C:\\Users\\melan\\AppData\\Local\\Temp\\l4c_i2_unified_authority_repair\\measurements\\gate04_revalidation_after_gate06_repair.json",
+      "sha256": "aa7aabf9880aa71a92e64ba85fa90f43fc681ffe126d67711c731bd6d5bf988d"
+    }
+  ],
+  "primaryRunCount": 13,
+  "primaryPassCount": 13,
+  "acceptedCount": 11,
+  "rejectedCount": 2,
+  "countertestRunCount": 14,
+  "countertestPassCount": 14,
+  "replayRunCount": 6,
+  "replayPassCount": 6,
+  "deterministicReplayCount": 6,
+  "deterministicReplayTotal": 6,
+  "storesFreshCount": 33,
+  "storesDestroyedCount": 33,
+  "acceptedAlignmentCount": 11,
+  "acceptedAlignmentPassCount": 11,
+  "independentChecks": 148,
+  "independentFailedChecks": 0,
+  "crosscheckChecks": 32,
+  "crosscheckFailedChecks": 0,
+  "productionValidationGap": false,
+  "productionBugConfirmed": false,
+  "productionChangeRequired": false,
+  "authorityConflict": false,
+  "repairedAtLayer": "TEMPORARY_EXPECTED_AND_CANDIDATE_AUTHORITY",
+  "repositoryChanged": false,
+  "outcomeDecisionFieldCount": 8,
+  "outcomeDecisionRows": [
+    {
+      "caseId": "CASE-MISSING-CONTEXTREF",
+      "oldExpectedOutcome": "REJECTED",
+      "oldExpectedRejectionCode": "EARNINGS_CONTEXT_REJECTED",
+      "classification": "ACCEPTANCE_IS_INTENDED_WITH_DIAGNOSTIC",
+      "repairedExpectedOutcome": "ACCEPTED",
+      "repairedExpectedRejectionCode": null,
+      "actualOutcome": "ACCEPTED",
+      "actualRejectionCode": null
+    },
+    {
+      "caseId": "CASE-DUPLICATE-CONTEXT-ID",
+      "oldExpectedOutcome": "REJECTED",
+      "oldExpectedRejectionCode": "EARNINGS_CONTEXT_REJECTED",
+      "classification": "TEST_EXPECTATION_INVENTED",
+      "repairedExpectedOutcome": "ACCEPTED",
+      "repairedExpectedRejectionCode": null,
+      "actualOutcome": "ACCEPTED",
+      "actualRejectionCode": null
+    }
+  ],
+  "closedFindings": [
+    "UAR-N1-005",
+    "UAR-N1-006",
+    "UAR-N1-010"
+  ],
+  "failedChecks": [],
+  "N1Count": 0,
+  "N2Count": 0,
+  "unknownCount": 0,
+  "openCount": 0,
+  "partialCount": 0,
+  "notMeasuredCount": 0,
+  "status": "COMPLETE"
+}

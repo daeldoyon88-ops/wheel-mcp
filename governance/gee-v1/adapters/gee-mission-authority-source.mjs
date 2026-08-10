@@ -26,11 +26,21 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { validateExecutionContract } from '../contracts/validate-execution-contract.mjs';
 import { detectSealedMutation } from '../contracts/detect-sealed-mutation.mjs';
+import { validateAgainstJsonSchema } from '../contracts/validate-against-json-schema.mjs';
 
 export const MISSIONS_DIR = 'governance/gee-v1/missions';
 export const MISSION_WORK_UNIT_TYPE = 'MISSION_REVISION';
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_RELATIVE_ROOT = 'governance/sources';
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_FILENAME_RE =
+  /^GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_[A-Za-z0-9_-]+\.json$/;
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_SCHEMA_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'post-freeze-maintenance-authority.schema.json'
+);
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS = 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY';
+export const CANONICAL_GEE_REVISION_WORK_UNIT_ID_RE = /^GOVERNANCE_EXECUTION_EFFICIENCY_V1_R[0-9]+$/;
 
 /**
  * satisfactionRule naming a prerequisite on another revision of the same
@@ -39,6 +49,111 @@ export const MISSION_WORK_UNIT_TYPE = 'MISSION_REVISION';
 export const RULE_REVISION_DELIVERED = 'gee-mission-revision-delivered';
 
 const CONTRACT_FILE_RE = /^GEE_V1_EXECUTION_CONTRACT_(R\d{4})\.json$/;
+
+function loadPostFreezeMaintenanceAuthorities(root) {
+  const sourcesPath = path.join(root, ...POST_FREEZE_MAINTENANCE_AUTHORITY_RELATIVE_ROOT.split('/'));
+  let schema;
+  try {
+    schema = readJson(POST_FREEZE_MAINTENANCE_AUTHORITY_SCHEMA_PATH);
+  } catch {
+    return [{ authority: null, authorityPath: null, authorityRelativePath: null, validation: { valid: false, errors: [{ message: 'maintenance authority schema is unavailable' }] } }];
+  }
+  let entries;
+  try {
+    entries = fs.readdirSync(sourcesPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((entry) => entry.isFile() && POST_FREEZE_MAINTENANCE_AUTHORITY_FILENAME_RE.test(entry.name))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((entry) => {
+      const authorityPath = path.join(sourcesPath, entry.name);
+      const authorityRelativePath = `${POST_FREEZE_MAINTENANCE_AUTHORITY_RELATIVE_ROOT}/${entry.name}`;
+      let authority;
+      try {
+        authority = readJson(authorityPath);
+      } catch {
+        return { authority: null, authorityPath, authorityRelativePath, validation: { valid: false, errors: [{ message: 'authority is not valid JSON' }] } };
+      }
+      return { authority, authorityPath, authorityRelativePath, validation: validateAgainstJsonSchema(authority, schema) };
+    });
+}
+
+function maintenanceAuthorityConflictResult(workUnitId, candidates) {
+  const paths = candidates.map((candidate) => candidate.authorityRelativePath).join(', ');
+  return {
+    workUnitId,
+    workUnitType: MISSION_WORK_UNIT_TYPE,
+    authorityKind: 'POST_FREEZE_MAINTENANCE',
+    contract: null,
+    contractPath: null,
+    sealPath: null,
+    authorizedPaths: [],
+    findings: [{ code: 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONFLICT', detail: `multiple maintenance authorities claim workUnitId ${workUnitId}: ${paths}` }],
+    proofs: {
+      EXECUTION_CONTRACT: { state: 'NOT_APPLICABLE', reason: 'post-freeze maintenance is not a GEE revision' },
+      CONTRACT_INTEGRITY: { state: 'FAILED', reason: 'multiple post-freeze maintenance authorities claim the same work unit' },
+      PREREQUISITES: { state: 'NOT_APPLICABLE', reason: 'owner-authorized maintenance scope has no revision prerequisite' },
+      WORK_UNIT_EXECUTABLE: { state: 'FAILED', reason: 'post-freeze maintenance authority conflict' }
+    }
+  }
+}
+
+function maintenanceAuthorityResult(workUnitId, loaded) {
+  const valid = Boolean(loaded?.validation?.valid)
+    && loaded.authority?.workUnitId === workUnitId
+    && loaded.authority?.authorityClass === POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS
+    && loaded.authority?.issuedBy === 'PROJECT_OWNER'
+    && loaded.authority?.targetSystem === 'GEE_V1'
+    && loaded.authority?.frozenRevision === 'R7'
+    && loaded.authority?.newGeeRevisionAuthorized === false
+    && loaded.authority?.r8Authorized === false
+    && loaded.authority?.gateExecutionAuthorized === false
+    && loaded.authority?.successorAuthorization === false
+    && loaded.authority?.unrelatedWritesAuthorized === false;
+  const validationReason = valid
+    ? `schema-valid PROJECT_OWNER maintenance authority: ${loaded.authorityRelativePath}`
+    : `invalid PROJECT_OWNER maintenance authority: ${loaded.authorityRelativePath}`;
+  return {
+    workUnitId,
+    workUnitType: MISSION_WORK_UNIT_TYPE,
+    authorityKind: 'POST_FREEZE_MAINTENANCE',
+    contract: null,
+    contractPath: null,
+    sealPath: null,
+    authorizedPaths: valid ? [...loaded.authority.authorizedPaths] : [],
+    findings: valid ? [] : [{ code: 'POST_FREEZE_MAINTENANCE_AUTHORITY_INVALID', detail: validationReason }],
+    proofs: {
+      EXECUTION_CONTRACT: { state: 'NOT_APPLICABLE', reason: 'post-freeze maintenance is not a GEE revision' },
+      CONTRACT_INTEGRITY: { state: valid ? 'PROVEN' : 'FAILED', reason: validationReason },
+      PREREQUISITES: { state: 'NOT_APPLICABLE', reason: 'owner-authorized maintenance scope has no revision prerequisite' },
+      WORK_UNIT_EXECUTABLE: valid
+        ? { state: 'PROVEN', reason: 'exact owner-authorized post-freeze maintenance work unit' }
+        : { state: 'FAILED', reason: validationReason }
+    }
+  };
+}
+
+function reservedMaintenanceWorkUnitResult(workUnitId, candidates) {
+  const paths = candidates.map((candidate) => candidate.authorityRelativePath).join(', ');
+  return {
+    workUnitId,
+    workUnitType: MISSION_WORK_UNIT_TYPE,
+    authorityKind: 'POST_FREEZE_MAINTENANCE',
+    contract: null,
+    contractPath: null,
+    sealPath: null,
+    authorizedPaths: [],
+    findings: [{ code: 'POST_FREEZE_MAINTENANCE_RESERVED_WORK_UNIT_ID', detail: `maintenance authority cannot claim canonical GEE revision workUnitId ${workUnitId}: ${paths}` }],
+    proofs: {
+      EXECUTION_CONTRACT: { state: 'NOT_APPLICABLE', reason: 'post-freeze maintenance is not a GEE revision' },
+      CONTRACT_INTEGRITY: { state: 'FAILED', reason: 'reserved canonical GEE revision workUnitId claimed by maintenance authority' },
+      PREREQUISITES: { state: 'NOT_APPLICABLE', reason: 'owner-authorized maintenance scope has no revision prerequisite' },
+      WORK_UNIT_EXECUTABLE: { state: 'FAILED', reason: 'canonical GEE revision namespace is reserved for the revision authority' }
+    }
+  };
+}
 
 function readJson(absolutePath) {
   return JSON.parse(fs.readFileSync(absolutePath, 'utf8').replace(/^﻿/, ''));
@@ -180,6 +295,17 @@ export function createGeeMissionAuthoritySource(repoRoot, { projectId = 'WHEEL',
 
     resolveWorkUnitAuthority(workUnitId) {
       const { revisions } = loadRevisions(root);
+      const maintenance = loadPostFreezeMaintenanceAuthorities(root)
+        .filter((candidate) => candidate.authority?.workUnitId === workUnitId);
+      if (maintenance.length > 0 && CANONICAL_GEE_REVISION_WORK_UNIT_ID_RE.test(workUnitId)) {
+        return reservedMaintenanceWorkUnitResult(workUnitId, maintenance);
+      }
+      if (maintenance.length > 1) {
+        return maintenanceAuthorityConflictResult(workUnitId, maintenance);
+      }
+      if (maintenance.length === 1) {
+        return maintenanceAuthorityResult(workUnitId, maintenance[0]);
+      }
       const revision = revisions.get(workUnitId);
       if (!revision) return null;
 

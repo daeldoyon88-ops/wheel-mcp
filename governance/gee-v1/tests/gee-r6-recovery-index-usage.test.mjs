@@ -1683,27 +1683,24 @@ test('R6-A02 R0006 carries the R4 historical write-scope defect forward without 
   assert.ok(contract.invalidationDeclarations.some((declaration) => declaration.includes('R4_HISTORICAL_WRITE_SCOPE_DEFECT')));
   assert.ok(contract.invalidationDeclarations.some((declaration) => /DEFERRED/.test(declaration)));
 
-  // The defect itself is still exactly as R0004 recorded it: three entries that
-  // are whole file names and therefore authorize nothing under prefix semantics.
+  // The historical entries remain byte-identical. Exact file scopes now resolve
+  // to the exact file, while the surrounding R0004 contract remains untouched.
   const r0004 = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json'), 'utf8'));
-  // An entry that names a whole existing file authorizes nothing, because
-  // isPathAuthorized requires a STRICT prefix. Directory and stem entries in
-  // the same list are unaffected, which is why the defect is narrow.
+  // Entries naming whole existing files authorize only themselves; directory
+  // and historical extensionless stem entries in the same list remain bounded.
   const inert = r0004.authorizedPaths.filter((entry) => fs.existsSync(path.join(REPO_ROOT, ...entry.split('/')))
     && fs.statSync(path.join(REPO_ROOT, ...entry.split('/'))).isFile()
     && !isPathAuthorized(r0004.authorizedPaths, entry));
-  assert.deepEqual(inert, [
-    'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json',
-    'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004_SEAL.json',
-    'governance/gee-v1/tests/gee-foundation-work-unit-authority.test.mjs'
-  ]);
+  assert.deepEqual(inert, []);
+  assert.equal(isPathAuthorized(r0004.authorizedPaths, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json.evil'), false);
+  assert.equal(isPathAuthorized(r0004.authorizedPaths, 'governance/gee-v1/tests/gee-foundation-work-unit-authority.test.mjs.evil'), false);
   // R6 authorizes no write to any R0004 byte.
   const r0006 = contract.authorizedPaths;
   assert.equal(isPathAuthorized(r0006, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json'), false);
   assert.equal(isPathAuthorized(r0006, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004_SEAL.json'), false);
 });
 
-test('R6-A03 R7 and later remain unauthorized', () => {
+test('R6-A03 R7 is the canonical successor and R8 remains unauthorized', () => {
   const contract = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006.json'), 'utf8'));
   assert.equal(contract.authorizedVerdicts.some((verdict) => /^R[7-9]/.test(verdict)), false);
   assert.ok(contract.invalidationDeclarations.some((declaration) => /R7 and later remain unauthorized/.test(declaration)));
@@ -1715,7 +1712,8 @@ test('R6-A03 R7 and later remain unauthorized', () => {
   ]);
   assert.equal(AUTHORITY.missionRevisionId, R6_MISSION);
   assert.match(AUTHORITY.contractSha256, /^[a-f0-9]{64}$/);
-  assert.throws(() => wheelAuthorityIdentity(REPO_ROOT, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7'), /UNKNOWN_MISSION_REVISION/);
+  assert.match(wheelAuthorityIdentity(REPO_ROOT, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7').contractSha256, /^[a-f0-9]{64}$/);
+  assert.throws(() => wheelAuthorityIdentity(REPO_ROOT, 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R8'), /UNKNOWN_MISSION_REVISION/);
 });
 
 /* ===========================================================================

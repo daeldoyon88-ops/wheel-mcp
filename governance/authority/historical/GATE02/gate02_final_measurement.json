@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "Gate02FinalMeasurement/1",
+  "generatedAt": "2026-07-26T18:41:51.602Z",
+  "inputPaths": [
+    "measurements/gate02_conflict_inventory_measurement.json",
+    "measurements/gate02_open_conflicts.tsv",
+    "final_authorities/l4c_i2_authority_conflicts_v2.tsv",
+    "final_authorities/l4c_i2_k6_report_policy_version_authority.json",
+    "measurements/gate02_raw_period_static_resolution.json",
+    "measurements/k6_authority_contract_validation.json",
+    "measurements/gate03_final_measurement.json"
+  ],
+  "inputHashes": {
+    "measurements/gate02_conflict_inventory_measurement.json": "debd0a34e65ce77b3e7c035f9293fcaf4458f282e1cdb791bfaf4693d6323abd",
+    "measurements/gate02_open_conflicts.tsv": "330c0737bfaf6afb7e1679619376882c2aa4076f510634d5aed618264fb2609b",
+    "final_authorities/l4c_i2_authority_conflicts_v2.tsv": "8278b4928d35c9302af4bb0cbceccd8d02e1ad3e691cce9688438ed28882526e",
+    "final_authorities/l4c_i2_k6_report_policy_version_authority.json": "1631737dff4243d32552df10a33ec09ec533a8c47be22685644f5e0cdefa7a9d",
+    "measurements/gate02_raw_period_static_resolution.json": "19f997502555f96792c6471d615092d2ac2ac1664b0ec88a74987e7ce4c5bca9",
+    "measurements/k6_authority_contract_validation.json": "10df75ed4466bdd4823903802f63a71f3ed7f3d2f0b882108e7e9037b9ac3e4d",
+    "measurements/gate03_final_measurement.json": "b78f04a39ea35eb48ee7fef0faace993524a5b00785c687a42972153c01e78f2"
+  },
+  "conflictsV3Path": "final_authorities/l4c_i2_authority_conflicts_v3.tsv",
+  "conflictsV3Sha256": "90c5990668183507dc1129158d07d2881f9d2e30532d88838b03c0cf684747dd",
+  "inventoryStatus": "COMPLETE",
+  "inventoryRowCount": 3408,
+  "agreementRows": 2934,
+  "differenceRows": 474,
+  "requiresResolutionRows": 0,
+  "mappedToExistingConflictRows": 357,
+  "resolvedConflictCount": 8,
+  "resolvedConflictIds": [
+    "CONFLICT-F1-PREIMAGE",
+    "CONFLICT-D01-PREIMAGE",
+    "CONFLICT-TRANSFORM-MANIFEST",
+    "CONFLICT-RAW-PERIOD-SOURCE",
+    "CONFLICT-TEST-MAPPING",
+    "CONFLICT-PROPERTY-REGISTRY",
+    "CONFLICT-IMPLEMENTATION-PROMPT",
+    "DISCOVERED-K6-reportPolicyVersion"
+  ],
+  "deferredConflictCount": 0,
+  "deferredConflictIds": [],
+  "openConflictCount": 0,
+  "openConflictIds": [],
+  "unclassifiedConflictCandidates": 0,
+  "invalidAuthorityHashes": 0,
+  "unknownAuthoritySources": 0,
+  "conflictingOwnerAuthorities": 0,
+  "reportPolicyVersion": {
+    "selectedValue": "EarningsAsOfMaterializationReport/1",
+    "status": "RESOLVED",
+    "authorityOnlyK6Accepted": true
+  },
+  "rawPeriodSource": {
+    "option": "OPTION_A_STATIC_PROOF",
+    "resolutionStatus": "RESOLVED",
+    "deferredDependencyGate": "",
+    "remainingQuestion": "",
+    "gate06FindingDependenciesStillOpen": [
+      "UAR-N1-005",
+      "UAR-N1-010"
+    ]
+  },
+  "progressionExceptionEligibility": "ELIGIBLE_DEFERRED_ONLY",
+  "noteOnEligibility": "No deferred authority conflict remains; the empty set satisfies the deferred-only boundary.",
+  "noFindingClosed": true,
+  "reportRemainsStale": true,
+  "finalBundleCreated": false,
+  "failedChecks": 0,
+  "N1Count": 0,
+  "N2Count": 0,
+  "unknownCount": 0,
+  "openCount": 0,
+  "partialCount": 0,
+  "notMeasuredCount": 0,
+  "status": "COMPLETE"
+}

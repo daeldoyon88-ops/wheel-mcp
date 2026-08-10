@@ -239,10 +239,15 @@ test('HF12: ledger not complete + seal complete -> closure is not complete', () 
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(tmp, 'governance'), { recursive: true });
   const ledgerPath = path.join(tmp, LEDGER_REL);
   const lines = fs.readFileSync(ledgerPath, 'utf8').split('\n').filter(Boolean);
-  assert.equal(lines.length, 44);
+  assert.equal(lines.length, 56);
+  const historicalPrefix = lines.slice(0, 44).join('\n') + '\n';
+  assert.equal(
+    sha256Bytes(Buffer.from(historicalPrefix, 'utf8')),
+    '304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478'
+  );
   // Drop the final EXTERNAL_CONFIRMATION event: GATE13 stays at COMPLETE_AGENT on the ledger,
   // while STATE_SEAL R0002 (untouched) still declares COMPLETE_CONFIRMED.
-  fs.writeFileSync(ledgerPath, `${lines.slice(0, 43).join('\n')}\n`);
+  fs.writeFileSync(ledgerPath, lines.slice(0, 43).join('\n') + '\n');
 
   const adapter = createWheelProjectAdapter(tmp);
   const view = adapter.getWorkUnitView('GATE13');
@@ -267,7 +272,15 @@ test('HF13b: without any policy, COMPLETE_CONFIRMED can never be independently v
 test('HF14: the Wheel-specific policy still enforces the applicable Wheel requirement end to end', () => {
   const report = validateLedger({ root: REPO_ROOT, ledgerPath: path.join(REPO_ROOT, LEDGER_REL), policy: WHEEL_EXTERNAL_AUTHORITY_POLICY });
   assert.equal(report.valid, true);
-  assert.equal(report.events.length, 44);
+  const prefix = validateLedgerPrefix({
+    root: REPO_ROOT,
+    ledgerPath: path.join(REPO_ROOT, LEDGER_REL),
+    throughOrdinal: 44,
+    expectedPrefixSha256: '304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478',
+    policy: WHEEL_EXTERNAL_AUTHORITY_POLICY
+  });
+  assert.equal(prefix.matchesExpectedHistoricalDigest, true);
+  assert.equal(prefix.prefixChainValid, true);
 });
 
 // ----- HF15 / HF16: historical prefix vs current authority -----
@@ -283,9 +296,17 @@ test('HF15: the historical ledger prefix at ordinal 41 reproduces the exact pinn
   assert.equal(result.prefixChainValid, true);
 });
 
-test('HF16: the current ledger remains 44 events and derives GATE13 = COMPLETE_CONFIRMED', () => {
+test('HF16: the current ledger preserves the frozen GATE13 closure prefix and derives GATE13 = COMPLETE_CONFIRMED', () => {
   const report = validateLedger({ root: REPO_ROOT, ledgerPath: path.join(REPO_ROOT, LEDGER_REL), policy: WHEEL_EXTERNAL_AUTHORITY_POLICY });
-  assert.equal(report.events.length, 44);
+  const prefix = validateLedgerPrefix({
+    root: REPO_ROOT,
+    ledgerPath: path.join(REPO_ROOT, LEDGER_REL),
+    throughOrdinal: 44,
+    expectedPrefixSha256: '304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478',
+    policy: WHEEL_EXTERNAL_AUTHORITY_POLICY
+  });
+  assert.equal(prefix.matchesExpectedHistoricalDigest, true);
+  assert.equal(prefix.prefixChainValid, true);
   const gate13 = report.gates.find((g) => g.gateId === 'GATE13');
   assert.equal(gate13.currentStatus, 'COMPLETE_CONFIRMED');
 });

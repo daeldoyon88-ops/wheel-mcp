@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { canonicalize, sha256Canonical, sha256Bytes } from './canonical-json.mjs';
+import { validateAgainstJsonSchema } from '../gee-v1/contracts/validate-against-json-schema.mjs';
 
 const STATUSES = [
   'NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'REPAIR_REQUIRED',
@@ -12,7 +13,12 @@ const STATUSES = [
 ];
 
 // This is the single normative implementation of the 21 transitions extracted from I2.
-const TRANSITIONS = [
+// NORMAL_EXECUTION_TRANSITION class. Nothing below has been added to, removed from or relaxed in
+// this table: historical reconciliation is a separate class with its own, strictly narrower table
+// (HISTORICAL_RECONCILIATION_TRANSITIONS) and its own mandatory proof obligations. The two tables
+// are never consulted interchangeably, so a reconciliation can never impersonate an execution
+// transition and an execution transition can never borrow reconciliation permissions.
+export const TRANSITIONS = [
   [null, 'NOT_STARTED', 'GENESIS_IMPORT'],
   [null, 'AUTHORIZED_NOT_STARTED', 'GENESIS_IMPORT'],
   [null, 'COMPLETE_CONFIRMED', 'GENESIS_IMPORT'],
@@ -36,11 +42,251 @@ const TRANSITIONS = [
   ['COMPLETE_AGENT', 'SUPERSEDED', 'SUPERSESSION']
 ];
 
+export const NORMAL_EXECUTION_TRANSITION_TYPES = [
+  'GENESIS_IMPORT', 'AUTHORIZATION', 'START', 'INTERRUPTION', 'RESUME', 'DEFECT_OPENED',
+  'REPAIR_ACCEPTED', 'GOVERNANCE_BLOCK', 'GOVERNANCE_UNBLOCK', 'AGENT_CLOSURE',
+  'EXTERNAL_CONFIRMATION', 'EXTERNAL_REJECTION', 'AUTHORIZED_REOPEN', 'RESUME_AFTER_REOPEN',
+  'SUPERSESSION'
+];
+
+export const HISTORICAL_RECONCILIATION_TRANSITION_TYPE = 'HISTORICAL_RECONCILIATION';
+
+// HISTORICAL_RECONCILIATION class. Deliberately only two entries, both starting from the
+// conservative genesis fallback status. There is no entry to COMPLETE_CONFIRMED, no entry from
+// IN_PROGRESS, and no entry that could substitute for AUTHORIZATION, START or AGENT_CLOSURE.
+export const HISTORICAL_RECONCILIATION_TRANSITIONS = [
+  ['NOT_STARTED', 'COMPLETE_AGENT', 'HISTORICAL_RECONCILIATION'],
+  ['NOT_STARTED', 'INTERRUPTED_RESUMABLE', 'HISTORICAL_RECONCILIATION']
+];
+
+export const TRANSITION_TYPES = [...NORMAL_EXECUTION_TRANSITION_TYPES, HISTORICAL_RECONCILIATION_TRANSITION_TYPE];
+
 const REQUIRED_EVENT_FIELDS = [
   'schemaVersion', 'ordinal', 'eventId', 'gateId', 'fromStatus', 'toStatus',
   'transitionType', 'authorityPath', 'authoritySha256', 'previousEventSha256',
   'recordedAt', 'eventPayloadSha256'
 ];
+
+// A reconciliation event carries NO new event field: its authorityPath/authoritySha256 already pin
+// the reconciliation record byte-exactly inside the existing hash chain, and the record carries the
+// provenance, the reason and the owner-authority binding. That keeps the append-only event shape,
+// and therefore every existing event, byte-identical.
+export const HISTORICAL_RECONCILIATION_RECORD_REQUIRED_FIELDS = [
+  'schemaVersion', 'document', 'reconciliationId', 'gateId', 'recordedAt',
+  'supersededGenesisEventId', 'supersededGenesisEventPayloadSha256',
+  'originalImportedStatus', 'originalStatusBasis', 'originalStatusBasisSourcePath',
+  'originalStatusBasisSourceSha256', 'historicalDisposition', 'canonicalCurrentStatus',
+  'newExecutionOccurred', 'externalConfirmationEstablished',
+  'ownerAuthorizationPath', 'ownerAuthorizationSha256', 'authorityCohort',
+  'evidenceCohortDigest', 'reason'
+];
+export const HISTORICAL_RECONCILIATION_RECORD_OPTIONAL_FIELDS = ['residualObligation'];
+const HISTORICAL_RECONCILIATION_COHORT_REQUIRED_FIELDS = ['gateId', 'evidenceRole', 'historicalLocator', 'governedPath', 'byteLength', 'sha256'];
+const HISTORICAL_RECONCILIATION_RESIDUAL_REQUIRED_FIELDS = ['description', 'evidenceGovernedPath', 'evidenceSha256'];
+// The cohort item that actually establishes the recovered historical disposition. Without one, a
+// cohort is just a pile of bytes and proves nothing about the target status.
+const STATUS_DISPOSITION_AUTHORITY_ROLE = 'STATUS_DISPOSITION_AUTHORITY';
+// Historical word -> governed status. Kept as an explicit two-way mapping so PARTIAL can never be
+// promoted to COMPLETE_AGENT and COMPLETE can never be quietly downgraded.
+const HISTORICAL_DISPOSITION_TO_STATUS = new Map([
+  ['COMPLETE', 'COMPLETE_AGENT'],
+  ['PARTIAL', 'INTERRUPTED_RESUMABLE']
+]);
+
+// The ONLY repository root under which recovered historical evidence may claim a permanent
+// canonical identity. Narrower than "any repository-relative path": product source, dashboards,
+// research trees and repo-root manifests such as package.json are ordinary working files that a
+// reconciliation must never be able to nominate as historical status authority.
+export const HISTORICAL_EVIDENCE_GOVERNED_ROOT = 'governance/authority/historical';
+
+/**
+ * Host-independent classification of a declared historical-evidence identity.
+ *
+ * Deliberately NOT `path.isAbsolute`: that is platform-native, so a POSIX runner would happily
+ * accept "D:\archive\report.md" and a Windows runner would accept "/etc/passwd". Both forms are
+ * refused on every host here, as are drive-relative forms ("C:report.md"), UNC roots, empty,
+ * "." and ".." segments, doubled separators and mixed-separator escapes.
+ *
+ * @returns {'OK'|'UNPORTABLE'|'OUTSIDE_ROOT'}
+ */
+export function classifyHistoricalEvidencePath(value) {
+  if (typeof value !== 'string' || !value) return 'UNPORTABLE';
+  if (path.win32.isAbsolute(value) || path.posix.isAbsolute(value) || /^[A-Za-z]:/.test(value)) return 'UNPORTABLE';
+  // Backslashes are folded first so a mixed-separator traversal ("historical/GATE00/..\..\x")
+  // cannot hide a ".." segment from a POSIX host, where "\" is an ordinary filename character.
+  const slashed = value.replaceAll('\\', '/');
+  const segments = slashed.split('/');
+  if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) return 'UNPORTABLE';
+  // Normalization-safety, stated explicitly: a governed identity must already BE its canonical form,
+  // so no two spellings of the same path can produce two different cohort digests.
+  if (path.posix.normalize(slashed) !== slashed) return 'UNPORTABLE';
+  const rootSegments = HISTORICAL_EVIDENCE_GOVERNED_ROOT.split('/');
+  if (segments.length <= rootSegments.length) return 'OUTSIDE_ROOT';
+  if (!rootSegments.every((segment, i) => segments[i] === segment)) return 'OUTSIDE_ROOT';
+  return 'OK';
+}
+
+export function isCanonicalGovernedPathUnicode(pathString) {
+  return typeof pathString === 'string' && pathString.normalize('NFC') === pathString;
+}
+
+// One canonical algorithm, named so a future change of canonicalization is a visible, breaking
+// change of identity rather than a silent reinterpretation of an old owner approval.
+export const EVIDENCE_COHORT_DIGEST_ALGORITHM = 'SHA256_CANONICAL_JSON_SORTED_COHORT_V1';
+
+// historicalLocator is deliberately EXCLUDED: it is machine-specific provenance (a Temp or archive
+// root that differs per recovery host) and can never take part in a permanent, portable identity.
+const EVIDENCE_COHORT_DIGEST_FIELDS = ['gateId', 'evidenceRole', 'governedPath', 'byteLength', 'sha256'];
+
+/**
+ * SHA256_CANONICAL_JSON_SORTED_COHORT_V1 — the deterministic identity of an evidence cohort.
+ *
+ * Canonicalization, exactly:
+ *   1. project every cohort item onto {gateId, evidenceRole, governedPath, byteLength, sha256};
+ *   2. serialize each projection with the repository's canonical JSON (sorted keys, NFC strings);
+ *   3. sort those serializations by UTF-16 code unit (locale-independent, never localeCompare);
+ *   4. reject any two identical serializations (a duplicated cohort entry is never an identity);
+ *   5. digest = SHA-256 over the UTF-8 bytes of "[" + entries.join(",") + "]", which is by
+ *      construction the canonical JSON of the sorted projection array.
+ *
+ * Consequences, all intended: cohort iteration order does not change identity, while any change of
+ * gate, role, governed path, byte length or content hash does.
+ *
+ * @returns {{ digest: string|null, reason: string|null }}
+ */
+export function computeEvidenceCohortDigest(cohort) {
+  if (!Array.isArray(cohort) || cohort.length === 0) return { digest: null, reason: 'EMPTY_OR_NOT_AN_ARRAY' };
+  const entries = [];
+  for (const item of cohort) {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) return { digest: null, reason: 'MALFORMED_COHORT_ITEM' };
+    const projection = {};
+    for (const field of EVIDENCE_COHORT_DIGEST_FIELDS) {
+      const value = item[field];
+      const wellTyped = field === 'byteLength' ? Number.isInteger(value) : (typeof value === 'string' && value.length > 0);
+      if (!wellTyped) return { digest: null, reason: 'MALFORMED_COHORT_ITEM' };
+      if (field === 'governedPath' && !isCanonicalGovernedPathUnicode(value)) return { digest: null, reason: 'NON_CANONICAL_GOVERNED_PATH_UNICODE' };
+      projection[field] = value;
+    }
+    entries.push(canonicalize(projection));
+  }
+  entries.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  for (let i = 1; i < entries.length; i += 1) {
+    if (entries[i] === entries[i - 1]) return { digest: null, reason: 'DUPLICATE_COHORT_ENTRY' };
+  }
+  return { digest: sha256Bytes(Buffer.from(`[${entries.join(',')}]`, 'utf8')), reason: null };
+}
+
+function isStrictlyInsideRealRoot(realRoot, realCandidate) {
+  const relative = path.relative(realRoot, realCandidate);
+  return relative !== '' && !path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`);
+}
+
+const REAL_HISTORICAL_EVIDENCE_FS_OPS = Object.freeze({
+  lstatSync: (...args) => fs.lstatSync(...args),
+  realpathSync: (...args) => fs.realpathSync.native(...args)
+});
+
+function resolveCanonicalHistoricalRoot({ root, fsOps }) {
+  const lexicalRepositoryRoot = path.resolve(root);
+  const canonicalComponents = [
+    { name: 'repository', lexicalPath: lexicalRepositoryRoot, parentRealPath: null },
+    { name: 'governance', lexicalPath: path.join(lexicalRepositoryRoot, 'governance') },
+    { name: 'authority', lexicalPath: path.join(lexicalRepositoryRoot, 'governance', 'authority') },
+    { name: 'historical', lexicalPath: path.join(lexicalRepositoryRoot, HISTORICAL_EVIDENCE_GOVERNED_ROOT) }
+  ];
+  let parentRealPath = null;
+  const realChain = [];
+  for (const component of canonicalComponents) {
+    const stats = fsOps.lstatSync(component.lexicalPath);
+    let realPath;
+    try {
+      realPath = fsOps.realpathSync(component.lexicalPath);
+    } catch (error) {
+      if (stats.isSymbolicLink()) {
+        return { status: 'INDIRECTION', component: component.lexicalPath, error: error?.code || error?.message || String(error) };
+      }
+      throw error;
+    }
+    if (stats.isSymbolicLink()) {
+      return { status: 'INDIRECTION', component: component.lexicalPath, realPath };
+    }
+    if (!stats.isDirectory()) {
+      return { status: 'INVALID_ROOT_COMPONENT', component: component.lexicalPath, realPath };
+    }
+    if (parentRealPath !== null) {
+      const expectedRealPath = path.join(parentRealPath, component.name);
+      if (path.relative(expectedRealPath, realPath) !== '') {
+        return { status: 'ESCAPE', component: component.lexicalPath, realPath, expectedRealPath };
+      }
+    }
+    realChain.push({ lexicalPath: component.lexicalPath, realPath });
+    parentRealPath = realPath;
+  }
+  return {
+    status: 'OK',
+    lexicalRoot: canonicalComponents.at(-1).lexicalPath,
+    realRoot: parentRealPath,
+    realChain
+  };
+}
+
+export function resolveHistoricalEvidenceFilesystemPath({ root, governedPath, fsOps = REAL_HISTORICAL_EVIDENCE_FS_OPS }) {
+  const effectiveFsOps = fsOps ?? REAL_HISTORICAL_EVIDENCE_FS_OPS;
+  const lexicalRoot = path.resolve(root, HISTORICAL_EVIDENCE_GOVERNED_ROOT);
+  const lexicalCandidate = path.resolve(root, governedPath);
+  try {
+    const canonicalRoot = resolveCanonicalHistoricalRoot({ root, fsOps: effectiveFsOps });
+    if (canonicalRoot.status !== 'OK') return { ...canonicalRoot, lexicalCandidate };
+    const { realRoot } = canonicalRoot;
+    const lexicalRelative = path.relative(lexicalRoot, lexicalCandidate);
+    if (lexicalRelative === '' || path.isAbsolute(lexicalRelative) || lexicalRelative === '..' || lexicalRelative.startsWith(`..${path.sep}`)) {
+      return { status: 'ESCAPE', lexicalRoot, lexicalCandidate };
+    }
+    let cursor = lexicalRoot;
+    const relativeSegments = lexicalRelative.split(path.sep);
+    for (const segment of relativeSegments.slice(0, -1)) {
+      cursor = path.join(cursor, segment);
+      const stats = effectiveFsOps.lstatSync(cursor);
+      if (stats.isSymbolicLink()) return { status: 'INDIRECTION', lexicalRoot, lexicalCandidate, realRoot, component: cursor };
+      const realComponent = effectiveFsOps.realpathSync(cursor);
+      if (!isStrictlyInsideRealRoot(realRoot, realComponent)) {
+        return { status: 'ESCAPE', lexicalRoot, lexicalCandidate, realRoot, realComponent, component: cursor };
+      }
+    }
+    const candidateStats = effectiveFsOps.lstatSync(lexicalCandidate);
+    if (candidateStats.isSymbolicLink()) {
+      let realCandidate;
+      try {
+        realCandidate = effectiveFsOps.realpathSync(lexicalCandidate);
+      } catch {
+        return { status: 'INDIRECTION', lexicalRoot, lexicalCandidate, realRoot, component: lexicalCandidate };
+      }
+      return { status: 'INDIRECTION', lexicalRoot, lexicalCandidate, realRoot, realCandidate, component: lexicalCandidate };
+    }
+    if (!candidateStats.isFile()) return { status: 'MISSING', lexicalRoot, lexicalCandidate, realRoot };
+    const realCandidate = effectiveFsOps.realpathSync(lexicalCandidate);
+    if (!isStrictlyInsideRealRoot(realRoot, realCandidate)) {
+      return { status: 'ESCAPE', lexicalRoot, lexicalCandidate, realRoot, realCandidate };
+    }
+    return { status: 'OK', lexicalRoot, lexicalCandidate, realRoot, realCandidate };
+  } catch (error) {
+    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') {
+      return { status: 'MISSING', lexicalRoot, lexicalCandidate, error: error.code };
+    }
+    return { status: 'RESOLUTION_FAILED', lexicalRoot, lexicalCandidate, error: error?.code || error?.message || String(error) };
+  }
+}
+
+// The owner authorization is validated at runtime against the SAME schema file the schema-parity
+// tests read, so "schema-invalid" and "runtime-rejected" cannot drift apart. It is the tool's own
+// contract, so it is resolved next to this module and never below the validated --root.
+export const HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_SCHEMA_PATH =
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'historical-reconciliation-owner-authorization.schema.json');
+let ownerAuthorizationSchemaCache = null;
+function loadOwnerAuthorizationSchema() {
+  ownerAuthorizationSchemaCache ??= readJson(HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_SCHEMA_PATH);
+  return ownerAuthorizationSchemaCache;
+}
 
 function option(name, fallback = null) {
   const i = process.argv.indexOf(name);
@@ -247,6 +493,289 @@ function loadSourceMap({ origin, declaredPath, resolvedPath }, findings) {
   return parsed;
 }
 
+/**
+ * HISTORICAL_RECONCILIATION proof obligations.
+ *
+ * Normal execution transitions are unaffected by anything in this function: it runs ONLY for
+ * transitionType === HISTORICAL_RECONCILIATION, and such an event has already been rejected unless
+ * it appears in the two-entry HISTORICAL_RECONCILIATION_TRANSITIONS table. This function then
+ * refuses the transition unless every one of the following re-verifies live, from bytes:
+ *
+ *   1. the record's own bytes are pinned by the event's authoritySha256 (append-only hash chain);
+ *   2. the gate's ONLY prior event is the GENESIS_IMPORT the record names, pinned by its
+ *      eventPayloadSha256 — so no synthetic AUTHORIZATION/START/EXECUTION chronology may precede
+ *      it, and editing the old genesis event breaks the binding instead of re-basing it;
+ *   3. the GENESIS_IMPORT source map independently documents this gate's imported status as an
+ *      UNRESOLVED_STATUS_FALLBACK — the record's own assertion is never sufficient;
+ *   4. a PROJECT_OWNER authorization document, itself valid against
+ *      historical-reconciliation-owner-authorization.schema.json, explicitly allow-lists this exact
+ *      (reconciliationId, gateId, historicalDisposition, canonicalCurrentStatus,
+ *      evidenceCohortDigest) tuple — so the record never chooses its own evidence cohort, and an
+ *      unapproved substitute file cannot be smuggled in behind an approved-looking role;
+ *   5. every evidence-cohort item belongs to THIS gate, lives at a portable governed path BELOW
+ *      governance/authority/historical/, and its live bytes reproduce the declared byteLength and
+ *      SHA-256;
+ *   6. at least one cohort item carries the STATUS_DISPOSITION_AUTHORITY role, so the cohort
+ *      actually proves the disposition it claims;
+ *   7. PARTIAL maps only to INTERRUPTED_RESUMABLE and keeps an evidence-bound residual obligation;
+ *   8. COMPLETE_CONFIRMED is unreachable, leaving separate-session external reinspection as the
+ *      only path to it.
+ *
+ * Any failure is BLOCKING: the reconciliation fails closed and the gate keeps its imported status.
+ */
+function validateHistoricalReconciliation({ root, event, lineNumber, priorOwnEvents, sourceMap, sourceMapResolution, authority, findings }) {
+  const before = findings.length;
+  const R = (detectorId, jsonPointer, actualValue, expectedRule, message) =>
+    finding(findings, detectorId, event, lineNumber, jsonPointer, actualValue, expectedRule, 'HISTORICAL_RECONCILIATION_AUTHORITY', message, 'REQ-HRC-01');
+
+  // COMPLETE_CONFIRMED is already unreachable via the reconciliation table and the existing
+  // external-reinspection rule; this is an explicit, independently testable third guard.
+  if (event.toStatus === 'COMPLETE_CONFIRMED') {
+    R('HISTORICAL_RECONCILIATION_CANNOT_CONFIRM', '/toStatus', event.toStatus, 'COMPLETE_AGENT or INTERRUPTED_RESUMABLE', 'Historical reconciliation can never establish COMPLETE_CONFIRMED; that requires separate-session external confirmation authority.');
+  }
+
+  // The record must be an in-repo, portable governed path — never an external authority id that
+  // could resolve to a machine-specific absolute location.
+  if (!safeRelativePath(event.authorityPath)) {
+    R('HISTORICAL_RECONCILIATION_UNPORTABLE_AUTHORITY_IDENTITY', '/authorityPath', event.authorityPath, 'portable repository-relative reconciliation record path', 'A historical reconciliation record must be identified by a governed relative path, not an external or absolute locator.');
+    return;
+  }
+  if (!authority) return; // resolveAuthority already reported the missing/invalid authority.
+  if (authority.actualSha !== event.authoritySha256) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/authoritySha256', authority.actualSha, event.authoritySha256, 'Reconciliation record bytes are not pinned by the event; the record is not trusted.');
+    return;
+  }
+
+  let record;
+  try {
+    record = JSON.parse(fs.readFileSync(authority.filePath, 'utf8'));
+  } catch (error) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/authorityPath', event.authorityPath, 'parsable historical reconciliation record', `Reconciliation record is not parsable JSON: ${error.message}`);
+    return;
+  }
+  if (record === null || typeof record !== 'object' || Array.isArray(record)) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/', typeof record, 'JSON object record', 'Reconciliation record is not a JSON object.');
+    return;
+  }
+
+  const allowedFields = [...HISTORICAL_RECONCILIATION_RECORD_REQUIRED_FIELDS, ...HISTORICAL_RECONCILIATION_RECORD_OPTIONAL_FIELDS];
+  const missing = HISTORICAL_RECONCILIATION_RECORD_REQUIRED_FIELDS.filter((k) => !Object.prototype.hasOwnProperty.call(record, k));
+  const extra = Object.keys(record).filter((k) => !allowedFields.includes(k));
+  if (missing.length || extra.length) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/', { missing, extra }, 'exact historical-reconciliation.schema.json field set', 'Reconciliation record has missing or unknown fields.');
+    return;
+  }
+  if (record.schemaVersion !== 1) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/schemaVersion', record.schemaVersion, 'const 1', 'Unsupported reconciliation record schema version.');
+  if (record.document !== 'HISTORICAL_RECONCILIATION_RECORD') R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/document', record.document, 'HISTORICAL_RECONCILIATION_RECORD', 'Record does not declare itself a historical reconciliation record.');
+  if (typeof record.reconciliationId !== 'string' || !/^HISTORICAL_RECONCILIATION_[A-Z0-9_]{3,64}$/.test(record.reconciliationId)) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/reconciliationId', record.reconciliationId, 'HISTORICAL_RECONCILIATION_<ID>', 'Invalid reconciliationId.');
+  if (!isDateTime(record.recordedAt)) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/recordedAt', record.recordedAt, 'ISO date-time', 'Invalid reconciliation recordedAt.');
+  if (typeof record.reason !== 'string' || !record.reason.trim()) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/reason', record.reason, 'non-empty reason', 'Reconciliation must state why the correction is truthful.');
+  if (record.newExecutionOccurred !== false) R('HISTORICAL_RECONCILIATION_FABRICATED_CHRONOLOGY', '/newExecutionOccurred', record.newExecutionOccurred, 'const false', 'A reconciliation that claims new execution occurred is not a reconciliation.');
+  if (record.externalConfirmationEstablished !== false) R('HISTORICAL_RECONCILIATION_CANNOT_CONFIRM', '/externalConfirmationEstablished', record.externalConfirmationEstablished, 'const false', 'A reconciliation can never assert external confirmation.');
+
+  // ----- gate + target binding (evidence and correction must belong to THIS work unit) -----
+  if (record.gateId !== event.gateId) R('HISTORICAL_RECONCILIATION_GATE_MISMATCH', '/gateId', record.gateId, event.gateId, 'Reconciliation record belongs to a different gate than the event it authorizes.');
+  if (record.canonicalCurrentStatus !== event.toStatus) R('HISTORICAL_RECONCILIATION_TARGET_MISMATCH', '/canonicalCurrentStatus', record.canonicalCurrentStatus, event.toStatus, 'Record target status does not match the ledger event toStatus.');
+  if (record.originalImportedStatus !== event.fromStatus) R('HISTORICAL_RECONCILIATION_TARGET_MISMATCH', '/originalImportedStatus', record.originalImportedStatus, event.fromStatus, 'Record original status does not match the ledger event fromStatus.');
+
+  // ----- historical disposition is provenance, not a status: enforce the exact mapping -----
+  const expectedStatus = HISTORICAL_DISPOSITION_TO_STATUS.get(record.historicalDisposition);
+  if (expectedStatus === undefined) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/historicalDisposition', record.historicalDisposition, 'COMPLETE or PARTIAL', 'Unknown recovered historical disposition.');
+  } else if (record.canonicalCurrentStatus !== expectedStatus) {
+    const detectorId = record.historicalDisposition === 'PARTIAL' ? 'HISTORICAL_RECONCILIATION_PARTIAL_OVERREACH' : 'HISTORICAL_RECONCILIATION_DISPOSITION_STATUS_MISMATCH';
+    R(detectorId, '/canonicalCurrentStatus', record.canonicalCurrentStatus, expectedStatus, `Recovered historical disposition ${record.historicalDisposition} maps only to ${expectedStatus}.`);
+  }
+
+  // ----- the original status must independently be a documented genesis fallback -----
+  if (record.originalStatusBasis !== 'UNRESOLVED_STATUS_FALLBACK') {
+    R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalStatusBasis', record.originalStatusBasis, 'UNRESOLVED_STATUS_FALLBACK', 'Only a documented unresolved-status genesis fallback may be reconciled.');
+  }
+  const gateSource = sourceMap ? (sourceMap.gates || []).find((g) => g.gateId === event.gateId) : null;
+  if (!gateSource) {
+    R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/gateId', event.gateId, 'gate present in the active GENESIS_IMPORT source map', 'The active source map does not document this gate, so no fallback basis is proven.');
+  } else {
+    if (gateSource.confidenceClass !== 'UNRESOLVED_STATUS_FALLBACK') R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalStatusBasis', gateSource.confidenceClass, 'UNRESOLVED_STATUS_FALLBACK', 'Source map does not classify this gate as an unresolved-status fallback; its imported status is not a fallback to correct.');
+    if (gateSource.importedStatus !== event.fromStatus) R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalImportedStatus', gateSource.importedStatus, event.fromStatus, 'Source map imported status does not match the status being corrected.');
+  }
+  if (!safeRelativePath(record.originalStatusBasisSourcePath)) {
+    R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalStatusBasisSourcePath', record.originalStatusBasisSourcePath, 'portable repository-relative source map path', 'Fallback basis source must be identified by a governed relative path.');
+  } else {
+    const basisAbs = path.resolve(root, record.originalStatusBasisSourcePath);
+    if (basisAbs !== path.resolve(sourceMapResolution.resolvedPath)) {
+      R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalStatusBasisSourcePath', record.originalStatusBasisSourcePath, sourceMapResolution.declaredPath, 'Fallback basis must cite the GENESIS_IMPORT source map actually active for this validation, not a substituted one.');
+    } else if (!fs.existsSync(basisAbs) || !fs.statSync(basisAbs).isFile()) {
+      R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalStatusBasisSourcePath', record.originalStatusBasisSourcePath, 'existing source map file', 'Fallback basis source map is absent.');
+    } else if (sha256Bytes(fs.readFileSync(basisAbs)) !== record.originalStatusBasisSourceSha256) {
+      R('HISTORICAL_RECONCILIATION_WITHOUT_FALLBACK_BASIS', '/originalStatusBasisSourceSha256', record.originalStatusBasisSourceSha256, sha256Bytes(fs.readFileSync(basisAbs)), 'Fallback basis source map hash does not reproduce its live bytes.');
+    }
+  }
+
+  // ----- no fabricated chronology: the only prior event for this gate is the pinned genesis -----
+  if (priorOwnEvents.some((e) => e.transitionType === HISTORICAL_RECONCILIATION_TRANSITION_TYPE)) {
+    R('DUPLICATE_HISTORICAL_RECONCILIATION', '/gateId', event.gateId, 'at most one historical reconciliation per gate', 'This gate has already been reconciled; a second reconciliation would restate history.');
+  }
+  if (priorOwnEvents.length !== 1 || priorOwnEvents[0].transitionType !== 'GENESIS_IMPORT') {
+    R('HISTORICAL_RECONCILIATION_FABRICATED_CHRONOLOGY', '/fromStatus', priorOwnEvents.map((e) => e.transitionType), 'exactly one preceding GENESIS_IMPORT event for this gate', 'Historical reconciliation may only follow the genesis fallback directly; intervening authorization, start or execution chronology would be fabricated.');
+  } else {
+    const genesis = priorOwnEvents[0];
+    if (genesis.eventId !== record.supersededGenesisEventId) R('HISTORICAL_RECONCILIATION_GENESIS_BINDING_MISMATCH', '/supersededGenesisEventId', record.supersededGenesisEventId, genesis.eventId, 'Record supersedes a different genesis event than this gate actually has.');
+    // The pin binds the genesis event's ACTUAL bytes, recomputed here, not the hash that event
+    // declares about itself. Otherwise editing a historical event and leaving its self-declared
+    // hash in place would keep the reconciliation "bound" to history that no longer exists.
+    const { eventPayloadSha256: declaredGenesisPayloadSha, ...genesisPayload } = genesis;
+    const recomputedGenesisPayloadSha = sha256Canonical(genesisPayload);
+    if (recomputedGenesisPayloadSha !== record.supersededGenesisEventPayloadSha256) R('HISTORICAL_RECONCILIATION_GENESIS_BINDING_MISMATCH', '/supersededGenesisEventPayloadSha256', record.supersededGenesisEventPayloadSha256, recomputedGenesisPayloadSha, 'Pinned genesis event payload hash does not match the recomputed bytes of the preserved genesis event; the historical event was altered or the pin is wrong.');
+    else if (declaredGenesisPayloadSha !== recomputedGenesisPayloadSha) R('HISTORICAL_RECONCILIATION_GENESIS_BINDING_MISMATCH', '/supersededGenesisEventPayloadSha256', declaredGenesisPayloadSha, recomputedGenesisPayloadSha, 'Preserved genesis event does not recompute its own payload hash; historical history is not byte-intact.');
+    if (genesis.toStatus !== event.fromStatus) R('HISTORICAL_RECONCILIATION_GENESIS_BINDING_MISMATCH', '/originalImportedStatus', genesis.toStatus, event.fromStatus, 'Genesis event status and the corrected status do not agree.');
+  }
+
+  // ----- the cohort's canonical identity, RECOMPUTED, never taken on the record's word -----
+  // This runs before the owner check because the owner approves a DIGEST, not a description: the
+  // record supplies the cohort, the validator derives its identity, and the owner decides whether
+  // that exact identity was ever approved.
+  const nonCanonicalGovernedPath = Array.isArray(record.authorityCohort)
+    ? record.authorityCohort.find((item) => item && typeof item === 'object' && !Array.isArray(item) && !isCanonicalGovernedPathUnicode(item.governedPath))
+    : null;
+  if (nonCanonicalGovernedPath) {
+    R('HISTORICAL_RECONCILIATION_NON_CANONICAL_GOVERNED_PATH', '/authorityCohort', nonCanonicalGovernedPath.governedPath, 'governedPath already normalized to Unicode NFC', 'Permanent governedPath identity must be supplied in canonical NFC form; equivalent NFD spellings are rejected before digest and owner matching.');
+  }
+  const cohortDigest = nonCanonicalGovernedPath
+    ? { digest: null, reason: 'NON_CANONICAL_GOVERNED_PATH_UNICODE' }
+    : computeEvidenceCohortDigest(record.authorityCohort);
+  if (cohortDigest.reason === 'DUPLICATE_COHORT_ENTRY') {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/authorityCohort', 'duplicate cohort entry', 'distinct cohort entries', 'The evidence cohort repeats an identical entry; a duplicated item is never additional proof.');
+  }
+  if (cohortDigest.digest !== null && record.evidenceCohortDigest !== cohortDigest.digest) {
+    R('HISTORICAL_RECONCILIATION_EVIDENCE_COHORT_DIGEST_MISMATCH', '/evidenceCohortDigest', record.evidenceCohortDigest, cohortDigest.digest, `Declared evidenceCohortDigest does not reproduce the record's own authorityCohort under ${EVIDENCE_COHORT_DIGEST_ALGORITHM}; the declared digest is never trusted without recomputation.`);
+  }
+
+  // ----- explicit PROJECT_OWNER authorization for this exact reconciliation and exact cohort -----
+  if (!safeRelativePath(record.ownerAuthorizationPath)) {
+    R('HISTORICAL_RECONCILIATION_UNAUTHORIZED', '/ownerAuthorizationPath', record.ownerAuthorizationPath, 'portable repository-relative owner authorization path', 'Owner authorization must be identified by a governed relative path.');
+  } else {
+    const ownerAbs = path.resolve(root, record.ownerAuthorizationPath);
+    if (!fs.existsSync(ownerAbs) || !fs.statSync(ownerAbs).isFile()) {
+      R('HISTORICAL_RECONCILIATION_UNAUTHORIZED', '/ownerAuthorizationPath', record.ownerAuthorizationPath, 'existing owner authorization document', 'Owner authorization document does not exist.');
+    } else if (sha256Bytes(fs.readFileSync(ownerAbs)) !== record.ownerAuthorizationSha256) {
+      R('HISTORICAL_RECONCILIATION_UNAUTHORIZED', '/ownerAuthorizationSha256', record.ownerAuthorizationSha256, sha256Bytes(fs.readFileSync(ownerAbs)), 'Owner authorization hash does not reproduce its live bytes.');
+    } else {
+      let owner = null;
+      try { owner = JSON.parse(fs.readFileSync(ownerAbs, 'utf8')); } catch { owner = null; }
+      // Runtime trust and schema validity are the SAME judgement, evaluated by the canonical
+      // repository schema validator against the canonical schema file. There is no hand-rolled
+      // subset of the schema here to drift out of parity with it: a document the schema rejects
+      // (missing authorityId, missing issuedAtUtc, unknown property, wrong const, malformed nested
+      // authorizedReconciliations entry, ...) can never authorize a status correction.
+      const ownerSchemaResult = owner === null || typeof owner !== 'object' || Array.isArray(owner)
+        ? { valid: false, errors: [{ jsonPointer: '/', reason: 'NOT_A_JSON_OBJECT', message: 'owner authorization is not a parsable JSON object' }] }
+        : validateAgainstJsonSchema(owner, loadOwnerAuthorizationSchema());
+      if (!ownerSchemaResult.valid) {
+        R('HISTORICAL_RECONCILIATION_UNAUTHORIZED', '/ownerAuthorizationPath', ownerSchemaResult.errors, 'valid historical-reconciliation-owner-authorization.schema.json document', 'Cited document is not a schema-valid PROJECT_OWNER historical reconciliation authorization; an unrelated or malformed hash-matching file never authorizes a status correction.');
+      } else {
+        // Identity first, then cohort. Splitting the two makes "the owner never approved this
+        // reconciliation at all" and "the owner approved this reconciliation over DIFFERENT
+        // evidence" independently observable instead of collapsing into one opaque refusal.
+        const identityMatches = owner.authorizedReconciliations.filter((a) =>
+          a.reconciliationId === record.reconciliationId
+          && a.gateId === event.gateId
+          && a.historicalDisposition === record.historicalDisposition
+          && a.canonicalCurrentStatus === event.toStatus);
+        if (identityMatches.length === 0) {
+          R('HISTORICAL_RECONCILIATION_TARGET_NOT_AUTHORIZED', '/canonicalCurrentStatus', { reconciliationId: record.reconciliationId, gateId: event.gateId, historicalDisposition: record.historicalDisposition, canonicalCurrentStatus: event.toStatus }, 'tuple present in owner authorizedReconciliations', 'The owner has not explicitly authorized this reconciliation id, gate, disposition and target status.');
+        } else if (cohortDigest.digest === null || !identityMatches.some((a) => a.evidenceCohortDigest === cohortDigest.digest)) {
+          R('HISTORICAL_RECONCILIATION_EVIDENCE_COHORT_NOT_AUTHORIZED', '/authorityCohort', { recomputed: cohortDigest.digest, reason: cohortDigest.reason, authorized: identityMatches.map((a) => a.evidenceCohortDigest) }, 'recomputed evidenceCohortDigest present in the owner-authorized tuple', 'The evidence cohort actually used is not the cohort the owner approved for this reconciliation; a substituted file, role or governed path is never authorized by an approval of different evidence.');
+        }
+      }
+    }
+  }
+
+  // ----- byte-authentic evidence cohort, portable identity, this gate only -----
+  const cohort = record.authorityCohort;
+  const roles = new Set();
+  const cohortByGovernedPath = new Map();
+  if (!Array.isArray(cohort) || cohort.length === 0) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/authorityCohort', Array.isArray(cohort) ? cohort.length : typeof cohort, 'non-empty authority cohort array', 'A reconciliation must bind at least one imported historical authority.');
+  } else {
+    for (let k = 0; k < cohort.length; k += 1) {
+      const item = cohort[k];
+      const pointer = `/authorityCohort/${k}`;
+      if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+        R('INVALID_HISTORICAL_RECONCILIATION_RECORD', pointer, typeof item, 'cohort item object', 'Authority cohort item is not an object.');
+        continue;
+      }
+      const itemMissing = HISTORICAL_RECONCILIATION_COHORT_REQUIRED_FIELDS.filter((k2) => !Object.prototype.hasOwnProperty.call(item, k2));
+      const itemExtra = Object.keys(item).filter((k2) => !HISTORICAL_RECONCILIATION_COHORT_REQUIRED_FIELDS.includes(k2));
+      if (itemMissing.length || itemExtra.length) {
+        R('INVALID_HISTORICAL_RECONCILIATION_RECORD', pointer, { missing: itemMissing, extra: itemExtra }, 'exact cohort item field set', 'Authority cohort item has missing or unknown fields.');
+        continue;
+      }
+      if (typeof item.evidenceRole !== 'string' || !/^[A-Z][A-Z0-9_]{2,63}$/.test(item.evidenceRole)) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', `${pointer}/evidenceRole`, item.evidenceRole, 'uppercase evidence role token', 'Invalid cohort evidenceRole.');
+      else roles.add(item.evidenceRole);
+      // The original recovery location is provenance only; it must be present but is never identity.
+      if (typeof item.historicalLocator !== 'string' || !item.historicalLocator.trim()) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', `${pointer}/historicalLocator`, item.historicalLocator, 'non-empty historical locator', 'Cohort item must retain the original historical locator as provenance.');
+      if (item.gateId !== event.gateId) R('HISTORICAL_RECONCILIATION_GATE_MISMATCH', `${pointer}/gateId`, item.gateId, event.gateId, 'Authority cohort item belongs to another gate and can never support this reconciliation.');
+      const pathClass = classifyHistoricalEvidencePath(item.governedPath);
+      if (pathClass === 'UNPORTABLE') {
+        R('HISTORICAL_RECONCILIATION_UNPORTABLE_AUTHORITY_IDENTITY', `${pointer}/governedPath`, item.governedPath, 'portable, normalization-safe repository-relative governed path', 'A machine-specific absolute, non-normalized or escaping location can never be the permanent canonical identity of imported evidence.');
+        continue;
+      }
+      if (pathClass === 'OUTSIDE_ROOT') {
+        R('HISTORICAL_RECONCILIATION_EVIDENCE_OUTSIDE_GOVERNED_ROOT', `${pointer}/governedPath`, item.governedPath, `path below ${HISTORICAL_EVIDENCE_GOVERNED_ROOT}/`, 'Recovered historical evidence must live in permanent governed historical storage; an ordinary working file elsewhere in the repository is never historical status authority.');
+        continue;
+      }
+      if (cohortByGovernedPath.has(item.governedPath)) R('INVALID_HISTORICAL_RECONCILIATION_RECORD', `${pointer}/governedPath`, item.governedPath, 'unique governedPath per cohort', 'Duplicate cohort governedPath.');
+      cohortByGovernedPath.set(item.governedPath, item);
+      const filesystemPath = resolveHistoricalEvidenceFilesystemPath({ root, governedPath: item.governedPath });
+      if (filesystemPath.status === 'MISSING') {
+        R('HISTORICAL_RECONCILIATION_AUTHORITY_MISSING', `${pointer}/governedPath`, item.governedPath, 'existing imported evidence file', 'Imported historical authority is absent; the reconciliation is unproven.');
+        continue;
+      }
+      if (filesystemPath.status !== 'OK') {
+        R('HISTORICAL_RECONCILIATION_EVIDENCE_FILESYSTEM_SECURITY', `${pointer}/governedPath`, filesystemPath, 'regular file physically and strictly inside the real historical root', 'Historical authority evidence uses a symlink, junction, reparse indirection, realpath escape or an unresolvable filesystem boundary; the evidence is rejected fail-closed.');
+        continue;
+      }
+      const itemBytes = fs.readFileSync(filesystemPath.realCandidate);
+      if (!Number.isInteger(item.byteLength) || item.byteLength !== itemBytes.length) {
+        R('HISTORICAL_RECONCILIATION_AUTHORITY_HASH_MISMATCH', `${pointer}/byteLength`, item.byteLength, itemBytes.length, 'Imported evidence byte length does not match the declared length.');
+      }
+      const itemSha = sha256Bytes(itemBytes);
+      if (itemSha !== item.sha256) {
+        R('HISTORICAL_RECONCILIATION_AUTHORITY_HASH_MISMATCH', `${pointer}/sha256`, item.sha256, itemSha, 'Imported evidence bytes do not hash to the declared SHA-256; a regenerated or substituted artifact is never accepted as historical authority.');
+      }
+    }
+    if (!roles.has(STATUS_DISPOSITION_AUTHORITY_ROLE)) {
+      R('HISTORICAL_RECONCILIATION_DISPOSITION_NOT_PROVEN', '/authorityCohort', [...roles], `at least one ${STATUS_DISPOSITION_AUTHORITY_ROLE} cohort item`, 'No cohort item establishes the recovered historical disposition, so the target status is unproven.');
+    }
+  }
+
+  // ----- PARTIAL keeps its residual obligation, evidence-bound -----
+  if (record.historicalDisposition === 'PARTIAL') {
+    const residual = record.residualObligation;
+    if (residual === null || typeof residual !== 'object' || Array.isArray(residual)) {
+      R('HISTORICAL_RECONCILIATION_RESIDUAL_OBLIGATION_DROPPED', '/residualObligation', residual === undefined ? 'absent' : typeof residual, 'residual obligation object', 'A partially completed history must carry its residual obligation forward; dropping it would silently discharge unfinished work.');
+    } else {
+      const residualMissing = HISTORICAL_RECONCILIATION_RESIDUAL_REQUIRED_FIELDS.filter((k) => !Object.prototype.hasOwnProperty.call(residual, k));
+      const residualExtra = Object.keys(residual).filter((k) => !HISTORICAL_RECONCILIATION_RESIDUAL_REQUIRED_FIELDS.includes(k));
+      if (residualMissing.length || residualExtra.length) {
+        R('HISTORICAL_RECONCILIATION_RESIDUAL_OBLIGATION_DROPPED', '/residualObligation', { missing: residualMissing, extra: residualExtra }, 'exact residual obligation field set', 'Residual obligation has missing or unknown fields.');
+      } else {
+        if (typeof residual.description !== 'string' || !residual.description.trim()) R('HISTORICAL_RECONCILIATION_RESIDUAL_OBLIGATION_DROPPED', '/residualObligation/description', residual.description, 'non-empty description', 'Residual obligation must state what remains unfinished.');
+        const bound = cohortByGovernedPath.get(residual.evidenceGovernedPath);
+        if (!bound || bound.sha256 !== residual.evidenceSha256) {
+          R('HISTORICAL_RECONCILIATION_RESIDUAL_OBLIGATION_DROPPED', '/residualObligation/evidenceGovernedPath', residual.evidenceGovernedPath, 'authority cohort item with matching sha256', 'Residual obligation is not bound to a byte-verified cohort item.');
+        }
+      }
+    }
+  } else if (Object.prototype.hasOwnProperty.call(record, 'residualObligation')) {
+    R('INVALID_HISTORICAL_RECONCILIATION_RECORD', '/residualObligation', 'present', 'absent unless historicalDisposition is PARTIAL', 'A fully complete recovered history cannot carry a residual obligation.');
+  }
+
+  if (findings.length === before) {
+    finding(findings, 'HISTORICAL_RECONCILIATION_APPLIED', event, lineNumber, '/toStatus', event.toStatus, record.reconciliationId, 'owner-authorized, evidence-bound historical reconciliation', `Canonical status corrected from an UNRESOLVED_STATUS_FALLBACK genesis import using recovered historical authority (historicalDisposition=${record.historicalDisposition}); no gate execution occurred.`, 'REQ-HRC-01', 'INFO');
+  }
+}
+
 function checkEventShape(event, findings, lineNumber) {
   const keys = Object.keys(event);
   const missing = REQUIRED_EVENT_FIELDS.filter((key) => !Object.prototype.hasOwnProperty.call(event, key));
@@ -262,7 +791,7 @@ function checkEventShape(event, findings, lineNumber) {
   if (typeof event.gateId !== 'string' || !event.gateId) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/gateId', event.gateId, 'non-empty string work-unit id', 'event schema', 'gateId must be a non-empty string.', 'REQ-LED-01');
   if (!(event.fromStatus === null || STATUSES.includes(event.fromStatus))) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/fromStatus', event.fromStatus, 'null or status enum', 'event schema', 'Invalid fromStatus.', 'REQ-LED-01');
   if (!STATUSES.includes(event.toStatus)) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/toStatus', event.toStatus, 'status enum', 'event schema', 'Invalid toStatus.', 'REQ-LED-01');
-  if (typeof event.transitionType !== 'string' || !['GENESIS_IMPORT', 'AUTHORIZATION', 'START', 'INTERRUPTION', 'RESUME', 'DEFECT_OPENED', 'REPAIR_ACCEPTED', 'GOVERNANCE_BLOCK', 'GOVERNANCE_UNBLOCK', 'AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION', 'EXTERNAL_REJECTION', 'AUTHORIZED_REOPEN', 'RESUME_AFTER_REOPEN', 'SUPERSESSION'].includes(event.transitionType)) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/transitionType', event.transitionType, 'transition type enum', 'event schema', 'Invalid transition type.', 'REQ-LED-02');
+  if (typeof event.transitionType !== 'string' || !TRANSITION_TYPES.includes(event.transitionType)) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/transitionType', event.transitionType, 'transition type enum', 'event schema', 'Invalid transition type.', 'REQ-LED-02');
   if (event.transitionType === 'GENESIS_IMPORT' && event.fromStatus !== null) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/fromStatus', event.fromStatus, 'null for GENESIS_IMPORT', 'IMPORTED_EVIDENCE', 'GENESIS_IMPORT cannot continue a fabricated historical sequence.', 'REQ-LED-02');
   if (event.transitionType !== 'GENESIS_IMPORT' && event.fromStatus === null) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/fromStatus', event.fromStatus, 'non-null for non-GENESIS transition', 'transition table', 'Non-GENESIS transition must name its prior status.', 'REQ-LED-02');
   if (typeof event.authoritySha256 !== 'string' || !/^[a-f0-9]{64}$/.test(event.authoritySha256)) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/authoritySha256', event.authoritySha256, 'lowercase SHA-256', 'event schema', 'Invalid authority hash.', 'REQ-LED-03');
@@ -348,14 +877,32 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
     const lineNumber = i + 1;
     if (!knownGates.has(event.gateId)) finding(findings, 'UNKNOWN_GATE_ID', event, lineNumber, '/gateId', event.gateId, 'gateId in GATE_REGISTRY_00_40.json', 'registry', 'Gate is absent from the real registry.', 'REQ-LED-01');
     const key = `${event.fromStatus ?? 'null'}>${event.toStatus}:${event.transitionType}`;
-    const allowed = TRANSITIONS.some(([from, to, type]) => `${from ?? 'null'}>${to}:${type}` === key);
-    if (!allowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/', key, 'transition in closed I2 table', 'transition table', 'Transition is not present in the closed state machine.', 'REQ-LED-02');
+    // Class separation: a HISTORICAL_RECONCILIATION event is checked ONLY against the two-entry
+    // reconciliation table, and every other transition type ONLY against the closed I2 execution
+    // table. Neither class can borrow the other's permissions, so normal execution semantics are
+    // exactly what they were before reconciliation existed.
+    const isHistoricalReconciliation = event.transitionType === HISTORICAL_RECONCILIATION_TRANSITION_TYPE;
+    const table = isHistoricalReconciliation ? HISTORICAL_RECONCILIATION_TRANSITIONS : TRANSITIONS;
+    const allowed = table.some(([from, to, type]) => `${from ?? 'null'}>${to}:${type}` === key);
+    if (!allowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/', key, isHistoricalReconciliation ? 'transition in the narrow historical reconciliation table' : 'transition in closed I2 table', 'transition table', isHistoricalReconciliation ? 'Transition is not an authorized historical reconciliation.' : 'Transition is not present in the closed state machine.', 'REQ-LED-02');
     if (event.fromStatus === null) genesisCount.set(event.gateId, (genesisCount.get(event.gateId) || 0) + 1);
     const current = currentByGate.get(event.gateId);
     if (current !== undefined && event.fromStatus !== current) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/fromStatus', event.fromStatus, current, 'fromStatus equals replayed current status', 'fromStatus does not match the replayed gate state.', 'REQ-LED-02');
     currentByGate.set(event.gateId, event.toStatus);
     const authority = resolveAuthority({ root, event, sourceMap, migrations, extraExternalAuthorities: effectivePolicy.extraExternalAuthorities, findings, lineNumber });
     if (authority?.authorityClass === 'GENERATED') finding(findings, 'GENERATED_AUTHORITY_CITED', event, lineNumber, '/authorityPath', event.authorityPath, 'non-generated authority class', 'transition authority classification', 'Generated view cannot be a canonical transition authority.', 'REQ-RNS-01');
+    if (isHistoricalReconciliation) {
+      validateHistoricalReconciliation({
+        root,
+        event,
+        lineNumber,
+        priorOwnEvents: events.slice(0, i).filter((e) => e.gateId === event.gateId),
+        sourceMap,
+        sourceMapResolution,
+        authority,
+        findings
+      });
+    }
     if (event.toStatus === 'COMPLETE_CONFIRMED') {
       const completeAllowed = (event.fromStatus === null && event.transitionType === 'GENESIS_IMPORT') || (event.fromStatus === 'COMPLETE_AGENT' && event.transitionType === 'EXTERNAL_CONFIRMATION');
       if (!completeAllowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/toStatus', event.toStatus, 'GENESIS_IMPORT from null or EXTERNAL_CONFIRMATION from COMPLETE_AGENT', 'independent reinspection', 'COMPLETE_CONFIRMED is not reachable through this transition.', 'REQ-LED-02');

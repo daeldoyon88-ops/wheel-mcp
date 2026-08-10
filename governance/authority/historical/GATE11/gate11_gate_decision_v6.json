@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "Gate11GateDecisionV6/1",
+  "generatedAt": "2026-07-28T12:30:47.165Z",
+  "decision": "GATE11_COMPLETE",
+  "conditions": {
+    "d1Complete": true,
+    "d2PrecheckPass": true,
+    "populationsPass": true,
+    "dryRunPass": true,
+    "backupsPass": true,
+    "normalizationPass": true,
+    "normalizedClean": true,
+    "adoptedPass": true,
+    "baselineTestsPass": true,
+    "falseGitSuperseded": true,
+    "policyPass": true,
+    "canonicalGitPass": true,
+    "independentGitPass": true,
+    "crossPass": true,
+    "antiPass": true,
+    "revalPass": true,
+    "falsPass": true,
+    "reconPass": true,
+    "gate12NotStarted": true,
+    "openProcessZero": true
+  },
+  "failedConditions": [],
+  "gateConditionFailureCount": 0,
+  "unknownConditionCount": 0,
+  "notMeasuredConditionCount": 0,
+  "status": "PASS"
+}

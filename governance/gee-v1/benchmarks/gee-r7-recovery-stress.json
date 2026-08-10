@@ -1,0 +1,29 @@
+{
+  "scenario": "R7_FRESH_PROCESS_RECOVERY_STRESS",
+  "completedBeforeInterrupt": 2,
+  "completedPreserved": 1,
+  "resumedTaskIds": [
+    "r7-recovery:ledger"
+  ],
+  "avoidedTaskIds": [
+    "wheel-verify-fact:active-status"
+  ],
+  "avoidedNotCountedAsPreserved": true,
+  "tasksInvalidated": 1,
+  "tasksRevalidated": 1,
+  "tasksRestarted": 1,
+  "filesRehashed": 1,
+  "filesReused": 5,
+  "bytesAvoided": 44390,
+  "usageDuplicates": 0,
+  "restartedFromZero": false,
+  "decision": "REVALIDATE_SOME",
+  "canonicalDecision": "REVALIDATE_SOME",
+  "canonicalRestartedFromZero": false,
+  "unrelatedChangeImpact": 0,
+  "unrelatedChangePreserved": true,
+  "reasonCodes": [
+    "ROUTE_IDENTITY_CHANGED_PROGRESS_EVALUATED_PER_TASK",
+    "SOME_COMPLETED_TASKS_REMAIN_VALID"
+  ]
+}

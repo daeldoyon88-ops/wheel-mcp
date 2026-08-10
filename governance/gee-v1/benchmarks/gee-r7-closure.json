@@ -1,0 +1,424 @@
+{
+  "verdict": "R7_FINAL_EVIDENCE_HARNESS_REPAIR_COMPLETE",
+  "authority": {
+    "r0007": "AUTHORIZED",
+    "seal": "INTACT",
+    "r8": "UNKNOWN / UNAUTHORIZED"
+  },
+  "evals": {
+    "total": 10,
+    "pass": 10,
+    "fail": 0
+  },
+  "benchmark": {
+    "contextReduction": 1,
+    "processingReduction": 1,
+    "rehashReduction": 1,
+    "taskReuse": 1,
+    "evidenceReuse": 2,
+    "revalidationSelectivity": 0,
+    "recoveryPreservation": null,
+    "routingEfficiency": true,
+    "qualityParity": true,
+    "tokens": "TOKEN_COUNT_UNAVAILABLE"
+  },
+  "quality": {
+    "baseline": {
+      "workUnit": "GATE13",
+      "facts": [
+        {
+          "id": "active-status",
+          "value": "COMPLETE_CONFIRMED",
+          "provenance": {
+            "authorityClass": "CANONICAL_STATUS",
+            "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+            "sourceSha256": "304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478"
+          }
+        },
+        {
+          "id": "mission-objective",
+          "value": "Établir une couche canonique, vérifiable et fail-closed d’oracles et de couverture qui identifie toutes les autorités et données nécessaires aux décisions de gouvernance, mesure leur disponibilité, leur provenance, leur fraîcheur et leur couverture, détecte les lacunes ou contradictions, et interdit toute conclusion valide lorsqu’une dépendance obligatoire n’est pas prouvée.",
+          "provenance": {
+            "authorityClass": "CANONICAL_OBJECTIVE",
+            "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+            "sourceSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f"
+          }
+        }
+      ],
+      "sources": [
+        {
+          "path": "governance/GATE_REGISTRY_00_40.json",
+          "sha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+          "sha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+          "sha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/state/CURRENT_STATE.json",
+          "sha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json",
+          "sha256": "4e62299926bfe611bc39cbe911bae772e70d09726420fe0976cb618133c9ac0f",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "sha256": "304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478",
+          "authorityClass": "CANONICAL_STATUS",
+          "role": "status authority"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "wheel:active-status",
+          "contentSha256": "7c2a11a535c01e1160df1596fb613bd084a7d96e73ad4a8523495505e4b9a740",
+          "reuseIdentity": "65013605bb280b5acf4e08e3bfcc9f721bdc3867547d84d60c054c5e0c741532",
+          "dependencies": [
+            "source:governance/state/GATE_STATUS_LEDGER.ndjson"
+          ],
+          "producingValidation": {
+            "result": "PASS",
+            "validationBasisSha256": "9169856752a22894e9b99a535838871a4ad46d1a980bb13824c3d3a6bc1e47ec",
+            "validationState": "CURRENT",
+            "validator": "GEE_V1_CONTEXT_COMPILER_R2"
+          }
+        },
+        {
+          "evidenceId": "wheel:mission-objective",
+          "contentSha256": "8d0180504e9b8f9db5fe90fbce5183aff64b4079b36e680522d2337d225b1490",
+          "reuseIdentity": "e01ccc7619416ffd0d00619e2ceceaf0a93c8c0b6e38411a7672fc8aefba5f98",
+          "dependencies": [
+            "source:governance/GATE_REGISTRY_00_40.json"
+          ],
+          "producingValidation": {
+            "result": "PASS",
+            "validationBasisSha256": "9838df1e6297d9fbf54d1eb7c7e7bca6ba87c408beb047551b02dd64347540dd",
+            "validationState": "CURRENT",
+            "validator": "GEE_V1_CONTEXT_COMPILER_R2"
+          }
+        }
+      ],
+      "tasks": [
+        {
+          "taskId": "wheel-verify-fact:active-status",
+          "sources": [
+            "governance/state/GATE_STATUS_LEDGER.ndjson"
+          ],
+          "produces": [
+            "wheel:active-status"
+          ],
+          "requiredEvidenceIds": [
+            "wheel:active-status"
+          ],
+          "mandatory": false
+        },
+        {
+          "taskId": "wheel-verify-fact:mission-objective",
+          "sources": [
+            "governance/GATE_REGISTRY_00_40.json"
+          ],
+          "produces": [
+            "wheel:mission-objective"
+          ],
+          "requiredEvidenceIds": [
+            "wheel:mission-objective"
+          ],
+          "mandatory": false
+        }
+      ],
+      "activeDefectsOrBlockers": [],
+      "successConditions": [
+        "Canonical status remains verified and unchanged.",
+        "Every selected fact retains provenance.",
+        "No executable write scope is inferred for this non-executable work unit."
+      ],
+      "qualityRequirements": {
+        "mandatoryTaskIds": [],
+        "contradictionTaskIds": [],
+        "nonDeferrableTaskIds": [],
+        "unmetRequirements": [],
+        "qualityFloorEnforced": false
+      }
+    },
+    "gee": {
+      "workUnit": "GATE13",
+      "facts": [
+        {
+          "id": "active-status",
+          "value": "COMPLETE_CONFIRMED",
+          "provenance": {
+            "authorityClass": "CANONICAL_STATUS",
+            "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+            "sourceSha256": "304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478"
+          }
+        },
+        {
+          "id": "mission-objective",
+          "value": "Établir une couche canonique, vérifiable et fail-closed d’oracles et de couverture qui identifie toutes les autorités et données nécessaires aux décisions de gouvernance, mesure leur disponibilité, leur provenance, leur fraîcheur et leur couverture, détecte les lacunes ou contradictions, et interdit toute conclusion valide lorsqu’une dépendance obligatoire n’est pas prouvée.",
+          "provenance": {
+            "authorityClass": "CANONICAL_OBJECTIVE",
+            "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+            "sourceSha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f"
+          }
+        }
+      ],
+      "sources": [
+        {
+          "path": "governance/GATE_REGISTRY_00_40.json",
+          "sha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+          "sha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+          "sha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/state/CURRENT_STATE.json",
+          "sha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json",
+          "sha256": "4e62299926bfe611bc39cbe911bae772e70d09726420fe0976cb618133c9ac0f",
+          "authorityClass": "CANONICAL",
+          "role": "canonical work-unit source"
+        },
+        {
+          "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "sha256": "304a75d6675690e722a84d30fb576007dd34cad9cf0a72052cc338e579077478",
+          "authorityClass": "CANONICAL_STATUS",
+          "role": "status authority"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "wheel:active-status",
+          "contentSha256": "7c2a11a535c01e1160df1596fb613bd084a7d96e73ad4a8523495505e4b9a740",
+          "reuseIdentity": "65013605bb280b5acf4e08e3bfcc9f721bdc3867547d84d60c054c5e0c741532",
+          "dependencies": [
+            "source:governance/state/GATE_STATUS_LEDGER.ndjson"
+          ],
+          "producingValidation": {
+            "result": "PASS",
+            "validationBasisSha256": "9169856752a22894e9b99a535838871a4ad46d1a980bb13824c3d3a6bc1e47ec",
+            "validationState": "CURRENT",
+            "validator": "GEE_V1_CONTEXT_COMPILER_R2"
+          }
+        },
+        {
+          "evidenceId": "wheel:mission-objective",
+          "contentSha256": "8d0180504e9b8f9db5fe90fbce5183aff64b4079b36e680522d2337d225b1490",
+          "reuseIdentity": "e01ccc7619416ffd0d00619e2ceceaf0a93c8c0b6e38411a7672fc8aefba5f98",
+          "dependencies": [
+            "source:governance/GATE_REGISTRY_00_40.json"
+          ],
+          "producingValidation": {
+            "result": "PASS",
+            "validationBasisSha256": "9838df1e6297d9fbf54d1eb7c7e7bca6ba87c408beb047551b02dd64347540dd",
+            "validationState": "CURRENT",
+            "validator": "GEE_V1_CONTEXT_COMPILER_R2"
+          }
+        }
+      ],
+      "tasks": [
+        {
+          "taskId": "wheel-verify-fact:active-status",
+          "sources": [
+            "governance/state/GATE_STATUS_LEDGER.ndjson"
+          ],
+          "produces": [
+            "wheel:active-status"
+          ],
+          "requiredEvidenceIds": [
+            "wheel:active-status"
+          ],
+          "mandatory": false
+        },
+        {
+          "taskId": "wheel-verify-fact:mission-objective",
+          "sources": [
+            "governance/GATE_REGISTRY_00_40.json"
+          ],
+          "produces": [
+            "wheel:mission-objective"
+          ],
+          "requiredEvidenceIds": [
+            "wheel:mission-objective"
+          ],
+          "mandatory": false
+        }
+      ],
+      "activeDefectsOrBlockers": [],
+      "successConditions": [
+        "Canonical status remains verified and unchanged.",
+        "Every selected fact retains provenance.",
+        "No executable write scope is inferred for this non-executable work unit."
+      ],
+      "qualityRequirements": {
+        "mandatoryTaskIds": [],
+        "contradictionTaskIds": [],
+        "nonDeferrableTaskIds": [],
+        "unmetRequirements": [],
+        "qualityFloorEnforced": false
+      }
+    },
+    "parity": true
+  },
+  "recovery": {
+    "scenario": "R7_FRESH_PROCESS_RECOVERY_STRESS",
+    "completedBeforeInterrupt": 2,
+    "completedPreserved": 1,
+    "resumedTaskIds": [
+      "r7-recovery:ledger"
+    ],
+    "avoidedTaskIds": [
+      "wheel-verify-fact:active-status"
+    ],
+    "avoidedNotCountedAsPreserved": true,
+    "tasksInvalidated": 1,
+    "tasksRevalidated": 1,
+    "tasksRestarted": 1,
+    "filesRehashed": 1,
+    "filesReused": 5,
+    "bytesAvoided": 44390,
+    "usageDuplicates": 0,
+    "restartedFromZero": false,
+    "decision": "REVALIDATE_SOME",
+    "canonicalDecision": "REVALIDATE_SOME",
+    "canonicalRestartedFromZero": false,
+    "unrelatedChangeImpact": 0,
+    "unrelatedChangePreserved": true,
+    "reasonCodes": [
+      "ROUTE_IDENTITY_CHANGED_PROGRESS_EVALUATED_PER_TASK",
+      "SOME_COMPLETED_TASKS_REMAIN_VALID"
+    ]
+  },
+  "hostile": {
+    "total": 18,
+    "pass": 18,
+    "fail": 0,
+    "invalid": 0,
+    "materialDefects": []
+  },
+  "tokens": "TOKEN_COUNT_UNAVAILABLE",
+  "closure": {
+    "authority": {
+      "r0007": "AUTHORIZED",
+      "seal": "INTACT",
+      "r8": "UNKNOWN / UNAUTHORIZED"
+    },
+    "predicates": {
+      "authority": true,
+      "seal": true,
+      "evalStatus": true,
+      "benchmark": true,
+      "efficiencyDerived": true,
+      "quality": true,
+      "recovery": true,
+      "hostile": true,
+      "artifacts": true
+    },
+    "benchmarkMeasurement": {
+      "rawValid": true,
+      "sourcesValid": true,
+      "nestedRawMatches": true,
+      "percentagesExact": true
+    },
+    "evalStatusDerived": true,
+    "benchmarkDerived": true,
+    "efficiencyDerived": true,
+    "qualityDerived": true,
+    "recoveryDerived": true,
+    "hostileDerived": true,
+    "openMaterialDefects": [],
+    "readyToFreeze": true,
+    "verdict": "R7_FINAL_EVIDENCE_HARNESS_REPAIR_COMPLETE"
+  },
+  "authorityScope": {
+    "positive": {
+      "governance/gee-v1/evals/gee-r7-eval-suite.json": true,
+      "governance/gee-v1/benchmarks/gee-r7-benchmark.json": true,
+      "governance/gee-v1/fixtures/gee-r7-hostile.json": true,
+      "governance/gee-v1/tests/gee-r7-hostile-audit.test.mjs": true
+    },
+    "negative": {
+      "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json": false,
+      "governance/gee-v1/core/work-unit-core.mjs": false,
+      "governance/gee-v1/recovery/recovery-engine.mjs": false,
+      "governance/gee-v1/evals/gee-r8-future.json": false,
+      "governance/gee-v1/evals/gee-r7-/../R1.json": false,
+      "C:/outside.json": false
+    },
+    "authority": {
+      "r0007": "AUTHORIZED",
+      "seal": "INTACT",
+      "r8": "UNKNOWN / UNAUTHORIZED",
+      "executionAuthorized": true,
+      "proofs": {
+        "EXECUTION_CONTRACT": {
+          "state": "PROVEN",
+          "reason": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json"
+        },
+        "CONTRACT_INTEGRITY": {
+          "state": "PROVEN",
+          "reason": "sealed and intact: governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007_SEAL.json"
+        },
+        "PREREQUISITES": {
+          "state": "PROVEN",
+          "reason": "all critical prerequisites SATISFIED"
+        },
+        "WORK_UNIT_EXECUTABLE": {
+          "state": "PROVEN",
+          "reason": "latest revision of this mission with no delivered successor"
+        }
+      },
+      "findings": [],
+      "r8Findings": [
+        {
+          "code": "UNKNOWN_WORK_UNIT_ID",
+          "detail": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R8"
+        }
+      ]
+    },
+    "r8": "UNKNOWN / UNAUTHORIZED"
+  },
+  "artifactIntegrity": {
+    "required": [
+      "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json",
+      "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007_SEAL.json",
+      "governance/gee-v1/evals/gee-r7-authority-scope.json",
+      "governance/gee-v1/evals/gee-r7-eval-suite.json",
+      "governance/gee-v1/benchmarks/gee-r7-benchmark.json",
+      "governance/gee-v1/benchmarks/gee-r7-routing.json",
+      "governance/gee-v1/benchmarks/gee-r7-recovery-stress.json",
+      "governance/gee-v1/benchmarks/gee-r7-hostile-audit.json"
+    ],
+    "missingOrMalformed": [],
+    "valid": true
+  }
+}

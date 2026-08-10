@@ -1,0 +1,243 @@
+{
+  "suite": "GEE_V1_R7_EVAL_SUITE",
+  "version": 1,
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "evals": [
+    {
+      "id": "E01",
+      "objective": "mechanical deterministic snapshot replay",
+      "input": "identical synthetic sources",
+      "expectedRoute": "NO_WORK_REQUIRED",
+      "observedRoute": "NO_WORK_REQUIRED",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "reuse unchanged evidence",
+      "observedEvidenceRecovery": "all sources UNCHANGED",
+      "quality": {
+        "expected": "same digest and result",
+        "observed": true,
+        "pass": true
+      },
+      "usage": {
+        "tasksExecuted": 0
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E02",
+      "objective": "localized defect in one source",
+      "input": "src/b.json changed",
+      "expectedRoute": "LOCAL_DETERMINISTIC",
+      "observedRoute": "LOCAL_DETERMINISTIC",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "selective revalidation",
+      "observedEvidenceRecovery": [
+        "e:b"
+      ],
+      "quality": {
+        "expected": "unaffected fact remains reusable",
+        "observed": true,
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 8,
+        "tasksExecuted": 1
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E03",
+      "objective": "multi-file defect",
+      "input": "two source dependency defect",
+      "expectedRoute": "STANDARD_REASONING",
+      "observedRoute": "STANDARD_REASONING",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "both declared sources available",
+      "observedEvidenceRecovery": [
+        "src/a.json",
+        "src/b.json"
+      ],
+      "quality": {
+        "expected": "multi-file task receives semantic reasoning",
+        "observed": "STANDARD_REASONING",
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 35,
+        "tasksExecuted": 1
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E04",
+      "objective": "architecture contradiction",
+      "input": "frozen-layer contradiction",
+      "expectedRoute": "DEEP_REASONING",
+      "observedRoute": "DEEP_REASONING",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "no deferral",
+      "observedEvidenceRecovery": [
+        "t:contradiction"
+      ],
+      "quality": {
+        "expected": "contradiction is mandatory",
+        "observed": true,
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 35,
+        "tasksExecuted": 1
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E05",
+      "objective": "hostile false PASS claim",
+      "input": "forged R4 validation claim",
+      "expectedRoute": "BLOCKED",
+      "observedRoute": "BLOCKED",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "claim rejected at R4 boundary",
+      "observedEvidenceRecovery": "FABRICATED_R4_EVALUATION",
+      "quality": {
+        "expected": "false PASS cannot become evidence",
+        "observed": "FABRICATED_R4_EVALUATION",
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 0,
+        "tasksExecuted": 0
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E06",
+      "objective": "cross-layer dependency invalidation",
+      "input": "R3 source mutation reaches R4/R5",
+      "expectedRoute": "LOCAL_DETERMINISTIC",
+      "observedRoute": "LOCAL_DETERMINISTIC",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "dependent chain revalidated",
+      "observedEvidenceRecovery": [
+        "e:b"
+      ],
+      "quality": {
+        "expected": "only dependent chain moves",
+        "observed": [
+          "e:a",
+          "e:c"
+        ],
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 8,
+        "tasksExecuted": 1
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E07",
+      "objective": "genuine interruption, checkpoint and fresh-process recovery",
+      "input": "mandatory work executes before interruption",
+      "expectedRoute": "LOCAL_DETERMINISTIC",
+      "observedRoute": "LOCAL_DETERMINISTIC",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "fresh-process recovery preserves COMPLETE work",
+      "observedEvidenceRecovery": {
+        "checkpointState": "INTERRUPTED",
+        "decision": "REVALIDATE_SOME",
+        "preserved": 1,
+        "invalidated": 1
+      },
+      "quality": {
+        "expected": "execution is real and avoided work is not completed",
+        "observed": {
+          "executed": 2,
+          "avoided": 0,
+          "avoidedNotExecuted": true,
+          "restartedFromZero": false
+        },
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 108868,
+        "tasksExecuted": 2,
+        "usageRecords": 2
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E08",
+      "objective": "indirect evidence invalidation",
+      "input": "canonical source changes summary dependency",
+      "expectedRoute": "LOCAL_DETERMINISTIC",
+      "observedRoute": "LOCAL_DETERMINISTIC",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "indirect dependent invalidated",
+      "observedEvidenceRecovery": [
+        "e:c"
+      ],
+      "quality": {
+        "expected": "unrelated fact remains reusable",
+        "observed": [
+          "e:a",
+          "e:b"
+        ],
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 20,
+        "tasksExecuted": 1
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E09",
+      "objective": "unrelated repository mutation",
+      "input": "root-level irrelevant file changed",
+      "expectedRoute": "NO_WORK_REQUIRED",
+      "observedRoute": "NO_WORK_REQUIRED",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "valid evidence retained",
+      "observedEvidenceRecovery": [
+        "e:a",
+        "e:b",
+        "e:c"
+      ],
+      "quality": {
+        "expected": "same quality output",
+        "observed": "NO_WORK_REQUIRED",
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 0,
+        "tasksExecuted": 0,
+        "priorIndexDigest": "b52214618d464f24d4bbcacf3a5c578a071252da1147183fca79dd7a4fd3456c"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "E10",
+      "objective": "repeated same-root-cause containment",
+      "input": "third targeted repair after two survivors",
+      "expectedRoute": "BLOCKED",
+      "observedRoute": "BLOCKED",
+      "routeExpectation": true,
+      "expectedEvidenceRecovery": "cascade stopped",
+      "observedEvidenceRecovery": [
+        "REPAIR_CONTAINMENT_STOP_PATCH_CASCADE:RC-R7"
+      ],
+      "quality": {
+        "expected": "structural analysis required",
+        "observed": "ROOT_CAUSE_ANALYSIS",
+        "pass": true
+      },
+      "usage": {
+        "sourceBytes": 0,
+        "tasksExecuted": 0
+      },
+      "verdict": "PASS"
+    }
+  ]
+}

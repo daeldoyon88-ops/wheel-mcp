@@ -1,0 +1,48 @@
+{
+  "positive": {
+    "governance/gee-v1/evals/gee-r7-eval-suite.json": true,
+    "governance/gee-v1/benchmarks/gee-r7-benchmark.json": true,
+    "governance/gee-v1/fixtures/gee-r7-hostile.json": true,
+    "governance/gee-v1/tests/gee-r7-hostile-audit.test.mjs": true
+  },
+  "negative": {
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json": false,
+    "governance/gee-v1/core/work-unit-core.mjs": false,
+    "governance/gee-v1/recovery/recovery-engine.mjs": false,
+    "governance/gee-v1/evals/gee-r8-future.json": false,
+    "governance/gee-v1/evals/gee-r7-/../R1.json": false,
+    "C:/outside.json": false
+  },
+  "authority": {
+    "r0007": "AUTHORIZED",
+    "seal": "INTACT",
+    "r8": "UNKNOWN / UNAUTHORIZED",
+    "executionAuthorized": true,
+    "proofs": {
+      "EXECUTION_CONTRACT": {
+        "state": "PROVEN",
+        "reason": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json"
+      },
+      "CONTRACT_INTEGRITY": {
+        "state": "PROVEN",
+        "reason": "sealed and intact: governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007_SEAL.json"
+      },
+      "PREREQUISITES": {
+        "state": "PROVEN",
+        "reason": "all critical prerequisites SATISFIED"
+      },
+      "WORK_UNIT_EXECUTABLE": {
+        "state": "PROVEN",
+        "reason": "latest revision of this mission with no delivered successor"
+      }
+    },
+    "findings": [],
+    "r8Findings": [
+      {
+        "code": "UNKNOWN_WORK_UNIT_ID",
+        "detail": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R8"
+      }
+    ]
+  },
+  "r8": "UNKNOWN / UNAUTHORIZED"
+}

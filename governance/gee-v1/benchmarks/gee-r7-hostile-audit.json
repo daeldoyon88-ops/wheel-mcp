@@ -1,0 +1,307 @@
+{
+  "audit": "GEE_V1_R7_HOSTILE_AUDIT",
+  "total": 18,
+  "pass": 18,
+  "fail": 0,
+  "invalid": 0,
+  "materialDefects": [],
+  "reasonValidation": {
+    "requiresInvariantAndReason": true,
+    "invalidTargetReasonCount": 0
+  },
+  "attacks": [
+    {
+      "id": "H01",
+      "expected": "relevant mutation invalidates R4/R5 reuse",
+      "observed": [
+        "e:a",
+        "e:c"
+      ],
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H02",
+      "expected": "same-size mutation changes hash",
+      "observed": {
+        "path": "src/b.json",
+        "kind": "CHANGED",
+        "previousSha256": "b9d7ad32a6eef91e51dd3e37f399cc701170a4403efb94ed2d1d3ba649ad42f5",
+        "currentSha256": "651b5768de252a9f4d2083046d83f81c31369beb73d14411492b20ea8fd1fcf5",
+        "bytes": 8,
+        "provenance": null
+      },
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H03",
+      "expected": "fabricated REUSABLE evidence rejected at R4 identity validation",
+      "observed": "FABRICATED_R4_EVALUATION",
+      "invariantPreserved": true,
+      "reasonExpected": "FABRICATED_R4_EVALUATION",
+      "reasonObserved": "FABRICATED_R4_EVALUATION",
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H04",
+      "expected": "fabricated PASS/reuse claim rejected at R4 validation boundary",
+      "observed": "FABRICATED_R4_EVALUATION",
+      "invariantPreserved": true,
+      "reasonExpected": "FABRICATED_R4_EVALUATION",
+      "reasonObserved": "FABRICATED_R4_EVALUATION",
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H05",
+      "expected": "tampered route digest rejected",
+      "observed": "verifyRoutePlanDigest",
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H06",
+      "expected": "R6 recovery cannot bypass a newly BLOCKED route",
+      "observed": {
+        "decision": "RESTART_REQUIRED",
+        "blockedTaskIds": [
+          "t:block"
+        ],
+        "resumedTaskIds": []
+      },
+      "invariantPreserved": true,
+      "reasonExpected": "R5_BLOCKED_STATE_PRESERVED",
+      "reasonObserved": [
+        "R5_BLOCKED_STATE_PRESERVED",
+        "REQUIRED_EVIDENCE_MISSING:e:missing"
+      ],
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H07",
+      "expected": "R6 recovery cannot invent an OWNER_DECISION_REQUIRED result",
+      "observed": {
+        "decision": "RESUME",
+        "ownerDecisionTaskIds": [
+          "t:owner"
+        ],
+        "completed": false
+      },
+      "invariantPreserved": true,
+      "reasonExpected": "R5_OWNER_DECISION_PRESERVED",
+      "reasonObserved": [
+        "OWNER_POLICY_DECISION_NOT_DERIVABLE",
+        "R5_OWNER_DECISION_PRESERVED"
+      ],
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H08",
+      "expected": "R6 recovery preserves STOP_PATCH_CASCADE and schedules no third patch",
+      "observed": {
+        "stopPatchCascade": true,
+        "blockedTaskIds": [
+          "t:repair"
+        ],
+        "resumedTaskIds": []
+      },
+      "invariantPreserved": true,
+      "reasonExpected": "R5_REPAIR_CONTAINMENT_STOP_PRESERVED",
+      "reasonObserved": [
+        "NO_COMPLETED_TASK_REMAINS_VALID",
+        "R5_REPAIR_CONTAINMENT_STOP_PRESERVED",
+        "ROUTE_IDENTITY_CHANGED_PROGRESS_EVALUATED_PER_TASK"
+      ],
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H09",
+      "expected": "corrupt newest checkpoint is not silently resumed",
+      "observed": [
+        "CORRUPT_NEWEST_CHECKPOINT_REVISION",
+        "NO_VALID_CHECKPOINT_REVISION"
+      ],
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H10",
+      "expected": "broken checkpoint ancestry invalidates descendants",
+      "observed": [
+        "CORRUPT_NEWEST_CHECKPOINT_REVISION",
+        "CHECKPOINT_HISTORY_CHAIN_BROKEN",
+        "OLDER_VALID_CHECKPOINT_NOT_AUTHORIZED"
+      ],
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H11",
+      "expected": "wrong-task usage cannot prove completion",
+      "observed": "CHECKPOINT_USAGE_RECORD_TASK_MISMATCH",
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H12",
+      "expected": "duplicate usage replay is not double-counted",
+      "observed": 1,
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H13",
+      "expected": "same usage identity with conflicting content rejected",
+      "observed": "DUPLICATE_USAGE_RECORD_IDENTITY_CONFLICT",
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H14",
+      "expected": "E v1 -> E v2 REUSABLE does not revive old consumer T",
+      "observed": {
+        "freshReusable": true,
+        "revalidatedTaskIds": [
+          "t:b"
+        ],
+        "reasonCodes": [
+          "EVIDENCE_IDENTITY_CHANGED:e:b",
+          "SOURCE_CHANGED:src/b.json"
+        ]
+      },
+      "invariantPreserved": true,
+      "reasonExpected": "required evidence identity/current validation obstacle",
+      "reasonObserved": [
+        "EVIDENCE_IDENTITY_CHANGED:e:b",
+        "SOURCE_CHANGED:src/b.json"
+      ],
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H15",
+      "expected": "relevant large raw output is compacted without losing required information",
+      "observed": {
+        "route": "NO_WORK_REQUIRED",
+        "rawBytes": 38676,
+        "compactBytes": 166,
+        "qualityEquivalent": true,
+        "containsRaw": false,
+        "requiredEvidence": [
+          "e:large"
+        ]
+      },
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H16",
+      "expected": "R7 cannot write frozen R1-R6 implementation",
+      "observed": false,
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H17",
+      "expected": "Unicode identity is canonicalized or rejected",
+      "observed": "src/café.json",
+      "invariantPreserved": true,
+      "reasonExpected": null,
+      "reasonObserved": null,
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    },
+    {
+      "id": "H18",
+      "expected": "locale-independent ordering is reproduced in distinct locale processes",
+      "observed": [
+        {
+          "indexSha256": "7ba944c4699ae2e2b7d79a7e6c1c76e5f2a5df9ba73f7910117f872b0cd4a2ae",
+          "paths": [
+            "src/B.mjs",
+            "src/a.json",
+            "src/b.json"
+          ]
+        },
+        {
+          "indexSha256": "7ba944c4699ae2e2b7d79a7e6c1c76e5f2a5df9ba73f7910117f872b0cd4a2ae",
+          "paths": [
+            "src/B.mjs",
+            "src/a.json",
+            "src/b.json"
+          ]
+        },
+        {
+          "indexSha256": "7ba944c4699ae2e2b7d79a7e6c1c76e5f2a5df9ba73f7910117f872b0cd4a2ae",
+          "paths": [
+            "src/B.mjs",
+            "src/a.json",
+            "src/b.json"
+          ]
+        }
+      ],
+      "invariantPreserved": true,
+      "reasonExpected": "same digest and ordered output across en-US/tr-TR/de-DE",
+      "reasonObserved": [
+        "7ba944c4699ae2e2b7d79a7e6c1c76e5f2a5df9ba73f7910117f872b0cd4a2ae",
+        "7ba944c4699ae2e2b7d79a7e6c1c76e5f2a5df9ba73f7910117f872b0cd4a2ae",
+        "7ba944c4699ae2e2b7d79a7e6c1c76e5f2a5df9ba73f7910117f872b0cd4a2ae"
+      ],
+      "reasonMatches": true,
+      "verdict": "PASS",
+      "invalid": false
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "EXECUTION",
+  "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7",
+  "type": "MISSION_REVISION",
+  "version": "R0007",
+  "strategicContractId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1",
+  "objective": "Execute the final GEE V1 benchmark, evaluation, routing, recovery and hostile-audit mission, compare baseline-style and canonical GEE execution on the same Wheel work unit, prove quality parity or better with measured R6 usage proxies, and close GEE V1 only when the evidence supports final independent audit readiness.",
+  "prerequisites": [
+    {
+      "id": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R6",
+      "statement": "GEE V1 R6 delivered: its sealed contract is intact and every artifact it declared required exists",
+      "critical": true,
+      "satisfactionRule": "gee-mission-revision-delivered"
+    },
+    {
+      "id": "GATE13",
+      "statement": "GATE13 COMPLETE_CONFIRMED",
+      "critical": true,
+      "satisfactionRule": "wheel-adapter-status"
+    }
+  ],
+  "invariants": [
+    "R1 through R6 remain frozen canonical predecessors and are consumed through their public interfaces",
+    "R7 is the final planned GEE V1 revision and does not authorize R8 or any later revision",
+    "The benchmark compares the same functional result and quality requirements in baseline-style and canonical GEE modes",
+    "Token counts are measured only when genuinely available; otherwise TOKEN_COUNT_UNAVAILABLE is preserved",
+    "No fabricated timing, cost, token, avoided-work or quality measurements",
+    "GEE quality must be greater than or equal to baseline quality for the evaluated workload",
+    "Hostile validation, stale evidence, fabricated route or checkpoint claims, and recovery bypasses fail closed",
+    "No network access, real orders, staging, commit, push or destructive Git operation"
+  ],
+  "requiredArtifacts": [
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json",
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007_SEAL.json"
+  ],
+  "requiredTests": [
+    "governance/gee-v1/tests/gee-r7-authority-and-scope.test.mjs",
+    "governance/gee-v1/tests/gee-r7-eval-suite.test.mjs",
+    "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+    "governance/gee-v1/tests/gee-r7-hostile-audit.test.mjs",
+    "governance/gee-v1/tests/gee-r7-recovery-stress.test.mjs"
+  ],
+  "requiredNegativeTests": [
+    "unknown authority, stale evidence, fabricated PASS, fabricated REUSABLE evidence, tampered route plan, blocked-state bypass, owner-decision bypass, repair-cascade bypass, corrupt checkpoint, broken checkpoint ancestry, wrong-task usage completion, duplicate usage replay, conflicting usage identity, indirect evidence invalidation, Unicode identifier collision and locale-dependent ordering all fail closed",
+    "writes to frozen R1 through R6 artifacts and outside the declared R7 prefixes are rejected",
+    "a raw huge result cannot bypass the canonical compact R2 result path"
+  ],
+  "requiredHostileOrCounterTests": [
+    "relevant dependency mutation invalidates claimed R3/R4 reuse",
+    "same-size content mutation changes the repository index hash",
+    "unrelated mutation preserves valid work",
+    "interrupted work resumes from a valid checkpoint without restarting from zero",
+    "R5 quality requirements cannot be overridden merely to reduce cost",
+    "baseline and GEE quality outputs remain equivalent or GEE is better"
+  ],
+  "evidenceRequirements": [
+    "deterministic EVAL01 through EVAL10 definitions with objectives, inputs, expected route, evidence, recovery, quality, usage fields and PASS/FAIL conditions",
+    "before-after benchmark on one representative real Wheel/GEE work unit with raw measured usage proxies",
+    "unchanged, relevant-mutation, unrelated-mutation, interruption, route-escalation and quality-floor scenarios",
+    "fresh-process recovery stress evidence with completed_before_interrupt, completed_preserved, invalidation, revalidation, restart, reuse, duplicate and bytes-avoided measurements",
+    "routing capability counts for NO_WORK_REQUIRED, LOCAL_DETERMINISTIC, STANDARD_REASONING, DEEP_REASONING, OWNER_DECISION_REQUIRED and BLOCKED",
+    "independent hostile-audit results and quality parity evidence",
+    "TOKENS measured values or TOKEN_COUNT_UNAVAILABLE"
+  ],
+  "closureConditions": [
+    "R7 eval suite EVAL01 through EVAL10 PASS",
+    "before-after benchmark completed with percentages derived only from non-zero raw measured denominators",
+    "quality parity or better demonstrated: GEE_QUALITY >= BASELINE_QUALITY",
+    "recovery benchmark PASS with restarted_from_zero = NO unless all valid dependency bases were intentionally destroyed",
+    "hostile audit PASS with no material open defect",
+    "R1 through R6 remain COMPLETE_CONFIRMED and unchanged",
+    "R7 authority remains sealed and current",
+    "no fabricated metrics, unexplained regression or future leakage",
+    "no writes outside authorizedPaths",
+    "R8 and all future revisions remain UNKNOWN / UNAUTHORIZED"
+  ],
+  "authorizedVerdicts": [
+    "R7_GEE_V1_COMPLETE_READY_FOR_FINAL_INDEPENDENT_AUDIT",
+    "R7_REPAIR_REQUIRED",
+    "R7_BLOCKED_ARCHITECTURE_CONTRADICTION",
+    "R7_BLOCKED_BASELINE_MISMATCH"
+  ],
+  "stateTransitionRules": [
+    "R6_COMPLETE -> R7_AUTHORIZED -> R7_IMPLEMENTATION -> R7_INDEPENDENT_VALIDATION -> R7_GEE_V1_COMPLETE_READY_FOR_FINAL_INDEPENDENT_AUDIT"
+  ],
+  "invalidationDeclarations": [
+    "This contract authorizes only the final GEE V1 R7 benchmark, evaluation, routing, recovery, hostile-audit and closure work; it never authorizes R8 or later",
+    "Any mutation of this sealed contract or its seal after activation invalidates R7 readiness",
+    "Any write outside authorizedPaths invalidates R7 closure",
+    "R1 through R6 implementation files, contracts, seals, schemas, adapters and witnesses are frozen and outside R7 write scope",
+    "The R6 authority-frontier test is the sole compatibility/test frontier exception: it may update its historical successor assertion to recognize R7 while continuing to reject R8; no R6 engine write is authorized",
+    "R7 execution must consume R1 through R6 and must not reimplement, weaken or replace their canonical mechanisms",
+    "A producer PASS, seal or internal consistency claim is not independent closure evidence without recomputation by the required validators"
+  ],
+  "authorizedPaths": [
+    "governance/gee-v1/evals/gee-r7-",
+    "governance/gee-v1/benchmarks/gee-r7-",
+    "governance/gee-v1/fixtures/gee-r7-",
+    "governance/gee-v1/tests/gee-r7-",
+    "governance/gee-v1/tests/gee-r6-recovery-index-usage"
+  ],
+  "activationPolicy": {
+    "requiresSealBeforeActivation": true,
+    "closureCriteriaMutableAfterActivation": false
+  }
+}

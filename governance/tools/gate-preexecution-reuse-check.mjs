@@ -9,9 +9,19 @@
  * can it still be resolved from its declared source".
  *
  * NO HARDCODED PASS. Every verdict is recomputed from real bytes on every run.
- * Nothing is read out of a status field. The GEE liveness checks do not assert
+ * Nothing is read out of a status field. The GEE admission probes do not assert
  * that GEE is live — they execute R2, R3, R4 and R5 against a real work unit and
  * report what actually happened.
+ *
+ * WHAT THESE PROBES DO AND DO NOT PROVE. They answer "do the engines run against
+ * this repository right now", which is an ADMISSION question. They do NOT prove
+ * that the Gate lifecycle runs THROUGH those engines — a probe in a corner is
+ * not a consumer. That second question belongs to
+ * governance/tools/gate-fast-path-control-plane.mjs, which compiles the real
+ * R2→R3→R4→R5 chain for a specific Gate and binds each layer's output to the
+ * next layer's input. This file therefore checks that the consumer EXISTS
+ * (GEE_LIFECYCLE_CONSUMER_EXISTS) and stops there; it deliberately makes no
+ * claim about lifecycle consumption on its own.
  *
  * THE DISTINCTION THAT MATTERS. A future Gate legitimately has no execution
  * contract, no state revision and no START authority before it starts. That is
@@ -33,6 +43,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { checkExistingWorkIndex } from './governance-existing-work-index.mjs';
+import { establishComparability } from './regression-identity-delta.mjs';
 
 export const CHECK_DOCUMENT = 'GATE_PREEXECUTION_REUSE_CHECK';
 export const CHECK_VERSION = 'V1';
@@ -288,9 +300,10 @@ export async function runPreexecutionReuseCheck({ root, gateId, now = new Date()
     independenceOk ? 'External confirmation authority purpose and a reinspection precedent both exist.'
       : 'No usable independent-reinspection path.', independenceDetail));
 
-  // ---- 8. GEE LIVENESS — executed, never asserted -------------------------
-  // These four checks ARE the live consumer of R2-R5. They import the real
-  // engines and run them against a real, currently-verifiable work unit.
+  // ---- 8. GEE ADMISSION PROBES — executed, never asserted -----------------
+  // These four checks import the real engines and run them against a real,
+  // currently-verifiable work unit. They establish that the machinery RUNS.
+  // They are not the lifecycle consumer; see GEE_LIFECYCLE_CONSUMER_EXISTS.
   const geeIds = ['GEE_CONTEXT_LIVE', 'GEE_DELTA_LIVE', 'GEE_EVIDENCE_REUSE_LIVE', 'GEE_MIN_FRONTIER_LIVE'];
   let geeResults = null;
   try {
@@ -311,21 +324,45 @@ export async function runPreexecutionReuseCheck({ root, gateId, now = new Date()
   }
 
   // ---- 9. REGRESSION_BASELINE_KNOWN ---------------------------------------
+  // Self-consistency is necessary and not sufficient. A baseline that agrees
+  // with itself can still be uncomparable to the current suite — for instance
+  // when a file it names has been deleted, in which case that test's absence
+  // from a current run would look like a repair rather than a removal. What is
+  // required is COMPARABILITY, and it is established rather than assumed.
+  //
+  // Note what is deliberately NOT required: baseHead === current HEAD. A
+  // governed baseline legitimately spans later commits, and demanding equality
+  // would force a mechanical regeneration that empties the baseline of meaning.
   let baselineOk = false;
   let baselineDetail = {};
   try {
     if (exists(root, REGRESSION_BASELINE_PATH)) {
       const baseline = readJson(root, REGRESSION_BASELINE_PATH);
-      const identities = Array.isArray(baseline.failureIdentities) ? baseline.failureIdentities : [];
-      baselineOk = identities.length === baseline.failureIdentityCount && typeof baseline.baseHead === 'string';
-      baselineDetail = { failureIdentityCount: baseline.failureIdentityCount, baseHead: baseline.baseHead, comparisonRule: baseline.comparisonRule ?? null };
+      const comparability = establishComparability({
+        baseline,
+        current: { head: null, suiteSpec: { command: baseline?.suiteSpec?.command ?? null }, failureIdentities: [] },
+        root
+      });
+      baselineOk = comparability.comparable && typeof baseline.baseHead === 'string';
+      baselineDetail = {
+        failureIdentityCount: baseline.failureIdentityCount,
+        declaredIdentities: Array.isArray(baseline.failureIdentities) ? baseline.failureIdentities.length : null,
+        baseHead: baseline.baseHead,
+        comparisonRule: baseline.comparisonRule ?? null,
+        comparable: comparability.comparable,
+        comparabilityReasons: comparability.reasons,
+        unresolvableBaselineFiles: comparability.unresolvableBaselineFiles,
+        headEqualityRequired: false
+      };
+    } else {
+      baselineDetail = { present: false };
     }
   } catch (error) {
     errors.push(`REGRESSION_BASELINE_UNREADABLE:${error.message}`);
   }
   checks.push(check('REGRESSION_BASELINE_KNOWN', baselineOk ? 'PASS' : 'FAIL', baselineOk ? NONE : PREEXECUTION_GAP,
-    baselineOk ? 'A failure-identity regression baseline exists and is self-consistent.'
-      : 'No canonical regression baseline: new failures could not be told apart from pre-existing ones.', baselineDetail));
+    baselineOk ? 'A failure-identity regression baseline exists and is comparable to a current run.'
+      : 'No comparable regression baseline: new failures could not be told apart from pre-existing ones.', baselineDetail));
 
   // ---- 10. GIT_CONTAINMENT_AVAILABLE --------------------------------------
   // Unrelated dirty work is normal in this repository and must never be a
@@ -346,10 +383,49 @@ export async function runPreexecutionReuseCheck({ root, gateId, now = new Date()
       : 'Git state could not be read.', gitDetail));
 
   // ---- 11. UNKNOWN_PREWORK / SYSTEMIC_GAPS --------------------------------
+  // Two different amnesias, and the first alone was never enough.
+  //
+  //   DECLARED, UNRESOLVABLE — the Gate cites prior work that no longer
+  //     resolves. Detected by walking what the mandate references.
+  //   UNDECLARED, UNCLASSIFIED — governed work exists that nothing cites and
+  //     nobody dispositioned. Nothing in the citation graph can see it, because
+  //     the whole problem is that it is not in the citation graph.
+  //
+  // The second is the one that actually causes rediscovery, so UNKNOWN_PREWORK
+  // now fails on either.
   const unknownPrework = reuse.unresolvedSources.length;
-  checks.push(check('UNKNOWN_PREWORK', unknownPrework === 0 ? 'PASS' : 'FAIL', unknownPrework === 0 ? NONE : PREEXECUTION_GAP,
-    unknownPrework === 0 ? 'No declared prior work is unaccounted for.' : 'Declared prior work cannot be resolved.',
-    { unknownPrework }));
+  let unclassifiedRelevant = null;
+  try {
+    const indexReport = checkExistingWorkIndex({ root });
+    unclassifiedRelevant = indexReport.unclassifiedRelevantArtifacts;
+    reuse.existingWorkIndex = {
+      verdict: indexReport.verdict,
+      relevantArtifactCount: indexReport.relevantArtifactCount,
+      classifiedCount: indexReport.classifiedCount,
+      unclassifiedRelevantArtifactCount: indexReport.unclassifiedRelevantArtifactCount,
+      indexStale: indexReport.indexFreshness.stale
+    };
+  } catch (error) {
+    errors.push(`EXISTING_WORK_INDEX_UNREADABLE:${error.message}`);
+  }
+  const preworkOk = unknownPrework === 0 && Array.isArray(unclassifiedRelevant) && unclassifiedRelevant.length === 0;
+  checks.push(check('UNKNOWN_PREWORK', preworkOk ? 'PASS' : 'FAIL', preworkOk ? NONE : PREEXECUTION_GAP,
+    preworkOk ? 'No declared prior work is unaccounted for, and every relevant governed artifact carries a disposition.'
+      : unknownPrework > 0 ? 'Declared prior work cannot be resolved.'
+        : 'Relevant governed work exists with no disposition; it would be rediscovered.',
+    { unknownPrework, unclassifiedRelevantArtifacts: unclassifiedRelevant ?? 'UNKNOWN' }));
+
+  // ---- 11b. GEE_LIFECYCLE_CONSUMER_EXISTS ---------------------------------
+  // The probes above prove the engines run. This proves a lifecycle consumer
+  // exists to run them AS A CHAIN. It is checked by path rather than imported,
+  // because the control plane imports this file and a cycle would be worse than
+  // the weaker check.
+  const consumerPath = 'governance/tools/gate-fast-path-control-plane.mjs';
+  const consumerPresent = exists(root, consumerPath);
+  checks.push(check('GEE_LIFECYCLE_CONSUMER_EXISTS', consumerPresent ? 'PASS' : 'FAIL', consumerPresent ? NONE : SYSTEMIC_GAP,
+    consumerPresent ? 'A Gate lifecycle consumer of the R2-R5 chain exists.'
+      : 'No lifecycle consumer: R2-R5 would only ever be probed, never consumed.',
+    { consumerPath }));
 
   let openBlocking = null;
   try {
@@ -427,7 +503,7 @@ async function probeGeeLiveness({ root }) {
   const sourceHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const [
     { createWheelContextAdapter }, { compileContext }, { createWheelDeltaSnapshot },
-    { createWheelEvidenceGraph }, { routeWheelWorkUnit }, { createContentAddressedStore }
+    { createWheelEvidenceGraph, evaluateWheelEvidenceGraph }, { routeWheelWorkUnit }, { createContentAddressedStore }
   ] = await Promise.all([
     load('adapters/wheel/context-wheel-adapter.mjs'),
     load('context/compile-context.mjs'),
@@ -451,8 +527,14 @@ async function probeGeeLiveness({ root }) {
     return out;
   }
 
+  // The R3 delta produced here is the SAME object R4 is given below. An earlier
+  // revision of this probe called R4 with `r3Delta: null`, which let R4 build a
+  // graph without ever evaluating reuse against a delta — the probe went green
+  // while proving nothing about the link between the two layers.
+  let r3Delta = null;
   try {
     const snapshot = createWheelDeltaSnapshot({ repoRoot: root, context: compiled.json });
+    r3Delta = { previousSnapshot: snapshot, currentSnapshot: snapshot };
     out.r3 = { ok: true, snapshotSha256: snapshot.snapshotSha256, factCount: Array.isArray(snapshot.facts) ? snapshot.facts.length : null };
   } catch (error) {
     out.r3 = { ok: false, reason: error.message };
@@ -462,8 +544,19 @@ async function probeGeeLiveness({ root }) {
   try {
     const cas = createContentAddressedStore(casRoot);
     try {
-      const graph = createWheelEvidenceGraph({ cas, context: compiled.json, repoRoot: root, r3Delta: null });
-      out.r4 = { ok: true, graphSha256: graph.graphSha256, nodeCount: Array.isArray(graph.nodes) ? graph.nodes.length : null };
+      // Fail closed rather than substituting null: without a real R3 delta there
+      // is no R4 result worth reporting.
+      if (!r3Delta) throw new Error('R3_DELTA_UNAVAILABLE_R4_NOT_PROBED');
+      const graph = createWheelEvidenceGraph({ cas, context: compiled.json, repoRoot: root, r3Delta });
+      const evaluated = evaluateWheelEvidenceGraph({ cas, currentGraph: graph, previousGraph: null, r3Delta });
+      out.r4 = {
+        ok: true,
+        graphSha256: graph.graphSha256,
+        nodeCount: Array.isArray(graph.nodes) ? graph.nodes.length : null,
+        consumedR3DeltaSha256: evaluated.graph.evaluation.r3DeltaSha256,
+        reusableNodes: evaluated.metrics.REUSABLE_NODES,
+        invalidatedNodes: evaluated.metrics.INVALIDATED_NODES
+      };
     } catch (error) {
       out.r4 = { ok: false, reason: error.message };
     }

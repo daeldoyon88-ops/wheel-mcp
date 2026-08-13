@@ -4,7 +4,7 @@
   "version": "V1",
   "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
   "canonical": true,
-  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "baseHead": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
   "ledgerEventCount": 61,
   "recordedAt": "2026-08-13T18:00:00.000Z",
   "statement": "Every material governance capability in this repository, with its canonical source, its authority class, whether anything actually consumes it, which validator recomputes it, and what a future Gate must do about it. The purpose is to make \"work already produced but forgotten, unratified or unlinked\" impossible: a future Gate reads this matrix instead of rediscovering the same ground.",
@@ -1989,9 +1989,10 @@
       "secondaryFlags": [],
       "ratificationStatus": "SEALED_AND_CLOSED",
       "liveConsumerPaths": [
+        "governance/tools/gate-fast-path-control-plane.mjs",
         "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
       ],
-      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R2: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "liveConsumerFunction": "Gate lifecycle fast path: gate-fast-path-control-plane.mjs compiles the Gate’s own R2 context and binds its digest into the route plan provenance (edge R2_TO_R3).",
       "validatorPaths": [
         "governance/gee-v1/tests/gee-r2-*.test.mjs"
       ],
@@ -2005,7 +2006,7 @@
       "failClosedValidated": true,
       "staleOrDuplicateSources": [],
       "blockingRisk": "NONE",
-      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_CONTEXT_LIVE). Use governance/gee-v1/tools/context-compile.mjs --work-unit <GATE> instead of pasting canonical files into a prompt.",
+      "requiredAction": "NONE — now CONSUMED BY THE GATE LIFECYCLE via gate-fast-path-control-plane.mjs, which compiles the Gate’s own context and feeds it to R3. gate-preexecution-reuse-check.mjs remains an admission probe only.",
       "actionOwner": "NONE",
       "priority": "P2",
       "proofReferences": [
@@ -2030,9 +2031,10 @@
       "secondaryFlags": [],
       "ratificationStatus": "SEALED_AND_CLOSED",
       "liveConsumerPaths": [
+        "governance/tools/gate-fast-path-control-plane.mjs",
         "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
       ],
-      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R3: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "liveConsumerFunction": "Gate lifecycle fast path: The control plane builds the R3 snapshot from that exact context, extended with every minimum-evidence-frontier input, and binds the delta identity (edge R3_DELTA_IDENTITY).",
       "validatorPaths": [
         "governance/gee-v1/tests/gee-r3-*.test.mjs"
       ],
@@ -2046,7 +2048,7 @@
       "failClosedValidated": true,
       "staleOrDuplicateSources": [],
       "blockingRisk": "NONE",
-      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_DELTA_LIVE).",
+      "requiredAction": "NONE — now CONSUMED BY THE GATE LIFECYCLE: the control plane builds the snapshot from the R2 context it just compiled, extended with every minimum-evidence-frontier input, so a changed validator invalidates that validator’s reuse.",
       "actionOwner": "NONE",
       "priority": "P2",
       "proofReferences": [
@@ -2071,9 +2073,10 @@
       "secondaryFlags": [],
       "ratificationStatus": "SEALED_AND_CLOSED",
       "liveConsumerPaths": [
+        "governance/tools/gate-fast-path-control-plane.mjs",
         "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
       ],
-      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R4: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "liveConsumerFunction": "Gate lifecycle fast path: The control plane evaluates the evidence graph against that REAL R3 delta — never null — and checks R4’s recorded r3DeltaSha256 against an independently recomputed one (edge R3_TO_R4).",
       "validatorPaths": [
         "governance/gee-v1/tests/gee-r4-*.test.mjs"
       ],
@@ -2087,7 +2090,7 @@
       "failClosedValidated": true,
       "staleOrDuplicateSources": [],
       "blockingRisk": "NONE",
-      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_EVIDENCE_REUSE_LIVE).",
+      "requiredAction": "NONE — now CONSUMED BY THE GATE LIFECYCLE against a REAL R3 delta. The earlier null-delta probe is gone; R4’s recorded r3DeltaSha256 is checked against an independently recomputed one.",
       "actionOwner": "NONE",
       "priority": "P2",
       "proofReferences": [
@@ -2112,9 +2115,10 @@
       "secondaryFlags": [],
       "ratificationStatus": "SEALED_AND_CLOSED",
       "liveConsumerPaths": [
+        "governance/tools/gate-fast-path-control-plane.mjs",
         "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
       ],
-      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R5: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "liveConsumerFunction": "Gate lifecycle fast path: The control plane routes with that exact graph and derives the Gate workset from the resulting plan; the plan’s r4GraphSha256 must equal the evaluated graph digest (edge R4_TO_R5).",
       "validatorPaths": [
         "governance/gee-v1/tests/gee-r5-*.test.mjs"
       ],
@@ -2128,7 +2132,7 @@
       "failClosedValidated": true,
       "staleOrDuplicateSources": [],
       "blockingRisk": "NONE",
-      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_MIN_FRONTIER_LIVE). The R5 route plan IS the minimum evidence frontier.",
+      "requiredAction": "NONE — now CONSUMED BY THE GATE LIFECYCLE: the R5 route plan determines the actual Gate workset, and work it excludes is excluded because R3 proved the sources unchanged and R4 proved the evidence reusable.",
       "actionOwner": "NONE",
       "priority": "P2",
       "proofReferences": [
@@ -2153,9 +2157,10 @@
       "secondaryFlags": [],
       "ratificationStatus": "SEALED_AND_CLOSED",
       "liveConsumerPaths": [
+        "governance/tools/gate-fast-path-control-plane.mjs",
         "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
       ],
-      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R6: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "liveConsumerFunction": "Gate lifecycle fast path: The control plane builds a checkpoint bound to the R2/R3/R4/R5 identities above and plans recovery from it (buildRecoveryPlan).",
       "validatorPaths": [
         "governance/gee-v1/tests/gee-r6-*.test.mjs"
       ],
@@ -2169,7 +2174,7 @@
       "failClosedValidated": true,
       "staleOrDuplicateSources": [],
       "blockingRisk": "NONE",
-      "requiredAction": "NONE for capability. Proven end-to-end against GATE14 in this program. No CLI entrypoint exists; a Gate that needs resumable execution calls createWheelRecoverySession with repoRoot, workUnitId, cas, sourceHead and missionRevisionId.",
+      "requiredAction": "NONE — now CONSUMED BY THE GATE LIFECYCLE: the control plane builds a checkpoint bound to the R2/R3/R4/R5 identities and plans recovery from it. MGR-002 still applies to the historical R7 fixtures, not to this path.",
       "actionOwner": "NONE",
       "priority": "P2",
       "proofReferences": [
@@ -2194,9 +2199,10 @@
       "secondaryFlags": [],
       "ratificationStatus": "SEALED_AND_CLOSED",
       "liveConsumerPaths": [
+        "governance/tools/gate-fast-path-control-plane.mjs",
         "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
       ],
-      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R7: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "liveConsumerFunction": "Gate lifecycle fast path: The control plane runs a lightweight quality guard on every Gate; the heavy benchmark is reserved for declared architectural triggers.",
       "validatorPaths": [
         "governance/gee-v1/tests/gee-r7-*.test.mjs"
       ],
@@ -2210,7 +2216,7 @@
       "failClosedValidated": true,
       "staleOrDuplicateSources": [],
       "blockingRisk": "NONE",
-      "requiredAction": "NONE inside this program. Its real-repository benchmark, eval-suite and recovery-stress fixtures are pinned to GATE13, whose seal no longer satisfies REQ-SEA-03; tracked as MGR-002.",
+      "requiredAction": "NONE for the normal path — a lightweight quality guard now runs on every Gate. The heavy benchmark stays reserved for declared architectural triggers; its GATE13-pinned fixtures remain MGR-002.",
       "actionOwner": "PROJECT_OWNER",
       "priority": "P2",
       "proofReferences": [

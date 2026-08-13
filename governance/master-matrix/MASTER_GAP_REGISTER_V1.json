@@ -4,7 +4,7 @@
   "version": "V1",
   "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
   "canonical": true,
-  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "baseHead": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
   "ledgerEventCount": 61,
   "recordedAt": "2026-08-13T18:00:00.000Z",
   "statement": "Unresolved P0, P1 and P2 findings only. P3 hygiene is recorded in the capability rows of WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json and is deliberately absent here so this register stays a decision list rather than a backlog.",
@@ -17,7 +17,7 @@
   "openP0Count": 0,
   "openP1Count": 0,
   "openP2Count": 3,
-  "resolvedInThisProgramCount": 3,
+  "resolvedInThisProgramCount": 5,
   "ownerDecisionsRequired": 1,
   "findings": [
     {
@@ -50,7 +50,9 @@
         "inspect-work-unit.mjs --work-unit GATE13 -> authorityState.sealValid false, reason SEAL_INVALID",
         "gee-r7-eval-suite.test.mjs fails through gee-r7-recovery-child.mjs with CONFLICTING_AUTHORITY:SEAL_INVALID",
         "The same chain executes cleanly against GATE14: R2 18.112x, R3 snapshot, R4 graph, R5 plan, R6 session all succeed"
-      ]
+      ],
+      "carriedForwardBy": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+      "fastPathImpact": "NONE. The fast path compiles its own fixtures from the Gate being planned and never reads the GATE13-pinned R7 fixtures. Only the heavy R7 benchmark still depends on them."
     },
     {
       "id": "MGR-003",
@@ -79,7 +81,9 @@
       "evidence": [
         "Module import graph: 1 importer, test-only",
         "historical-architecture-h4-ledger-split.test.mjs 20 pass / 0 fail"
-      ]
+      ],
+      "carriedForwardBy": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+      "fastPathImpact": "NONE. The control plane plans only; ACTIVE_GATE succession stays lifecycle-owner semantics and is never triggered by START. Confirmed by FP19."
     },
     {
       "id": "MGR-005",
@@ -93,7 +97,9 @@
       "evidence": [
         "validate-gate-contract.mjs on GATE14 R0002 -> REGISTRY_HASH_MISMATCH, pinned f5963314, live aaa9efcd",
         "git show <commit>:governance/GATE_REGISTRY_00_40.json digests across d5b5cee6, 609cc5d1, 71074b94, 3eb0641d"
-      ]
+      ],
+      "carriedForwardBy": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+      "fastPathImpact": "NONE for a not-yet-started Gate. Operational rule stands: strategic registry amendments occur between Gates unless an explicit governed succession mechanism is used."
     },
     {
       "id": "MGR-006",
@@ -108,6 +114,30 @@
       "evidence": [
         "validate-state-revision.mjs --gate GATE14 reports gateId GATE13",
         "validate-state-revision.mjs --gate-id GATE14 reports valid true, resolvedBy NATIVE_EVENT_PIN"
+      ]
+    },
+    {
+      "id": "MGR-007",
+      "severity": "P1",
+      "status": "RESOLVED_IN_THIS_PROGRAM",
+      "title": "R2 could not compile a context for any future Gate, so no future Gate could enter the GEE chain at all",
+      "detail": "context-wheel-adapter.mjs treated authorityState.consistent === false as an authority conflict and refused to compile. For a NOT_STARTED Gate that flag only means \"this Gate’s status cannot yet satisfy someone else’s prerequisite\" — the normal pre-execution shape, since a Gate carrying only its genesis import has UNANCHORED_LEGACY ledger trust. Every GATE15-GATE40 context compile therefore failed with CONFLICTING_AUTHORITY:TRUST_LEVEL_BELOW_REQUIRED, which is why the GEE liveness probes had to run against a closed Gate instead of the Gate being planned.",
+      "resolution": "The adapter now distinguishes the pre-execution shape from a genuine conflict, by an exact fingerprint: reason is exactly TRUST_LEVEL_BELOW_REQUIRED:UNANCHORED_LEGACY<ANCHORED_APPEND_ONLY, statusKnowledge ABSENT, sealValid false, canonical revision structurally valid, ledger status NOT_STARTED. Any invalid seal, seal/ledger disagreement, unverified ledger or structural violation still conflicts. The fact is not swallowed: it is carried into the bundle as a provenance-bearing PRE_EXECUTION_TRUST_LEVEL blocker.",
+      "proofReferences": [
+        "governance/tests/gate-fast-path-control-plane.test.mjs (FP21 compiles a real GATE15 chain with every binding proven)",
+        "governance/tools/gate-fast-path-control-plane.mjs (compileFastPathChain)"
+      ]
+    },
+    {
+      "id": "MGR-008",
+      "severity": "P1",
+      "status": "RESOLVED_IN_THIS_PROGRAM",
+      "title": "GEE R2-R6 executed but the Gate lifecycle did not run through them",
+      "detail": "MGR-003 gave the layers a consumer, but that consumer was a liveness probe: it ran each engine against a closed reference Gate and, for R4, with r3Delta null. \"The engine starts\" was being read as \"the lifecycle consumes it\". No Gate plan was produced by R2→R3→R4→R5, so none of the reuse the stack computes could reach a Gate.",
+      "resolution": "gate-fast-path-control-plane.mjs compiles the chain for the Gate being planned and binds each arrow: every downstream layer records the upstream identity it consumed, and the control plane recomputes that identity independently and compares. A disagreement on any edge blocks. The admission checker now states explicitly that it probes rather than consumes, and checks that the lifecycle consumer exists.",
+      "proofReferences": [
+        "governance/tests/gate-fast-path-control-plane.test.mjs (FP01-FP05 break each arrow; FP21 proves all five bind)",
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (lifecycleConsumerProof per layer)"
       ]
     }
   ],

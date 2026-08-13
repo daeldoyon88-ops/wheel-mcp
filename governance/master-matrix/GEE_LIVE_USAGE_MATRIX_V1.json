@@ -4,7 +4,7 @@
   "version": "V1",
   "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
   "canonical": true,
-  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "baseHead": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
   "recordedAt": "2026-08-13T18:00:00.000Z",
   "statement": "What each GEE V1 revision actually does in this repository today, and who actually calls it. Liveness is not read from any historical PASS: every claim marked liveProof was produced by executing the layer against the real repository at this baseline HEAD.",
   "geeRevisionSource": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
@@ -12,7 +12,8 @@
     "LIVE": "A production lifecycle path calls this layer.",
     "LIVE_NOT_WIRED_INTO_LIFECYCLE": "The layer executes correctly against the real repository and has at least one live consumer, but the Gate lifecycle itself does not call it. Reuse is available and must be used deliberately.",
     "PARTIALLY_LIVE_FIXTURES_PINNED_TO_A_GATE_WHOSE_SEAL_NO_LONGER_VERIFIES": "Implementation is sound; its real-repository demonstration is bound to a work unit that later stopped verifying.",
-    "GEE_LAYER_NOT_LIVE": "No consumer outside tests, and no proof it runs against the real repository. No layer is in this state."
+    "GEE_LAYER_NOT_LIVE": "No consumer outside tests, and no proof it runs against the real repository. No layer is in this state.",
+    "LIVE_WIRED_INTO_GATE_LIFECYCLE": "The Gate lifecycle itself calls this layer through the fast-path control plane, consuming the previous layer’s real output."
   },
   "layerCount": 7,
   "layers": [
@@ -100,6 +101,7 @@
         "governance/gee-v1/adapters/wheel/context-wheel-adapter.mjs"
       ],
       "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (Gate lifecycle fast path — consumes the previous layer’s real output)",
         "governance/gee-v1/tools/context-compile.mjs (CLI)",
         "governance/tools/gate-preexecution-reuse-check.mjs (GEE_CONTEXT_LIVE — executes it)",
         "governance/gee-v1/adapters/wheel/router-wheel-adapter.mjs",
@@ -130,14 +132,16 @@
         "gee-r2-determinism.test.mjs",
         "gee-r1-repair-r2-hostile.test.mjs"
       ],
-      "usedByGateLifecycle": false,
+      "usedByGateLifecycle": true,
       "usedByCurrentPrompts": false,
       "workReductionMechanism": "Measured 18.112x on GATE14 at baseline HEAD: 161288 source bytes compiled to 6544 JSON bytes / 2361 markdown bytes, provenance preserved.",
       "fallbackBehavior": "NONE — never emits a partial or unprovenanced context.",
       "failClosedBehavior": "Throws CONFLICTING_AUTHORITY:<codes> rather than compiling a context from an authority it cannot verify. Demonstrated live: GATE13 throws SEAL_INVALID, GATE15 throws TRUST_LEVEL_BELOW_REQUIRED.",
       "staleImplementations": [],
       "liveProof": "Executed at baseline HEAD against GATE14: reductionRatio 18.112, compiledJsonBytes 6544.",
-      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "gate-fast-path-control-plane.mjs compiles the Gate’s own R2 context and binds its digest into the route plan provenance (edge R2_TO_R3)."
     },
     {
       "layer": "R3",
@@ -148,6 +152,7 @@
         "governance/gee-v1/adapters/wheel/delta-wheel-adapter.mjs"
       ],
       "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (Gate lifecycle fast path — consumes the previous layer’s real output)",
         "governance/tools/gate-preexecution-reuse-check.mjs (GEE_DELTA_LIVE — executes it)",
         "governance/gee-v1/router/router-engine.mjs",
         "governance/gee-v1/evidence/evidence-graph.mjs"
@@ -168,14 +173,16 @@
       "hostileTests": [
         "gee-r3-delta-engine.test.mjs"
       ],
-      "usedByGateLifecycle": false,
+      "usedByGateLifecycle": true,
       "usedByCurrentPrompts": false,
       "workReductionMechanism": "Classifies each canonical source UNCHANGED vs CHANGED by byte identity, so downstream evidence and routing only touch changed inputs.",
       "fallbackBehavior": "NONE — an unverifiable prior snapshot is not silently treated as changed or unchanged.",
       "failClosedBehavior": "Fails closed when identity or a critical input cannot be proven.",
       "staleImplementations": [],
       "liveProof": "Executed at baseline HEAD against GATE14: snapshotSha256 5d1845ee23d63cf3c87f22f886143025c94574de0bd344c1ca32b68970b915ed, 2 facts.",
-      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "The control plane builds the R3 snapshot from that exact context, extended with every minimum-evidence-frontier input, and binds the delta identity (edge R3_DELTA_IDENTITY)."
     },
     {
       "layer": "R4",
@@ -187,6 +194,7 @@
         "governance/gee-v1/adapters/wheel/evidence-wheel-adapter.mjs"
       ],
       "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (Gate lifecycle fast path — consumes the previous layer’s real output)",
         "governance/tools/gate-preexecution-reuse-check.mjs (GEE_EVIDENCE_REUSE_LIVE — executes it)",
         "governance/gee-v1/router/router-engine.mjs",
         "governance/gee-v1/recovery/recovery-engine.mjs"
@@ -208,14 +216,16 @@
       "hostileTests": [
         "gee-r4-evidence-graph.test.mjs (fabricated GROUNDED metadata cannot bootstrap reuse)"
       ],
-      "usedByGateLifecycle": false,
+      "usedByGateLifecycle": true,
       "usedByCurrentPrompts": false,
       "workReductionMechanism": "Dependency-aware selective invalidation: unchanged evidence keeps its content identity and is reused rather than recomputed.",
       "fallbackBehavior": "NONE — evidence with no verifiable grounding is never reusable.",
       "failClosedBehavior": "Reuse is refused unless the R3 delta proves the dependencies are unchanged; a modified context is rejected.",
       "staleImplementations": [],
       "liveProof": "Executed at baseline HEAD against GATE14: graphSha256 8e247aea05a205b4b52d60dc7bc7a1cf76b2077230697424ac92ee78c4c1ef20, 2 nodes.",
-      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "The control plane evaluates the evidence graph against that REAL R3 delta — never null — and checks R4’s recorded r3DeltaSha256 against an independently recomputed one (edge R3_TO_R4)."
     },
     {
       "layer": "R5",
@@ -229,6 +239,7 @@
         "governance/gee-v1/adapters/wheel/router-wheel-adapter.mjs"
       ],
       "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (Gate lifecycle fast path — consumes the previous layer’s real output)",
         "governance/tools/gate-preexecution-reuse-check.mjs (GEE_MIN_FRONTIER_LIVE — executes it)",
         "governance/gee-v1/recovery/recovery-engine.mjs"
       ],
@@ -252,14 +263,16 @@
       "hostileTests": [
         "gee-r5-router.test.mjs (fabricated route rejected; no work routed when nothing changed)"
       ],
-      "usedByGateLifecycle": false,
+      "usedByGateLifecycle": true,
       "usedByCurrentPrompts": false,
       "workReductionMechanism": "Emits NO_WORK_REQUIRED for tasks whose evidence R3/R4 prove unchanged, and caps repair attempts per root cause via repair-containment.",
       "fallbackBehavior": "NONE — an unroutable task is BLOCKED or OWNER_DECISION_REQUIRED, never silently executed.",
       "failClosedBehavior": "Routing refuses to authorize work whose evidence identity cannot be verified.",
       "staleImplementations": [],
       "liveProof": "Executed at baseline HEAD against GATE14: route plan produced with 2 tasks.",
-      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "The control plane routes with that exact graph and derives the Gate workset from the resulting plan; the plan’s r4GraphSha256 must equal the evaluated graph digest (edge R4_TO_R5)."
     },
     {
       "layer": "R6",
@@ -273,6 +286,7 @@
         "governance/gee-v1/adapters/wheel/recovery-wheel-adapter.mjs"
       ],
       "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (Gate lifecycle fast path — consumes the previous layer’s real output)",
         "governance/gee-v1/evals/gee-r7-runner.mjs",
         "governance/gee-v1/evals/gee-r7-recovery-child.mjs"
       ],
@@ -299,14 +313,16 @@
       "hostileTests": [
         "gee-r6-recovery-index-usage.test.mjs (fabricated R5 route rejected before any recovery decision)"
       ],
-      "usedByGateLifecycle": false,
+      "usedByGateLifecycle": true,
       "usedByCurrentPrompts": false,
       "workReductionMechanism": "Checkpoint binds real R2/R3/R4/R5 identities, so resume reuses proven work instead of replaying it. This is the mechanical form of NO_RESTART_FROM_ZERO.",
       "fallbackBehavior": "NONE — a checkpoint that cannot bind real upstream identities is refused.",
       "failClosedBehavior": "Refuses to mark a task complete without execution and evidence identity.",
       "staleImplementations": [],
       "liveProof": "Executed at baseline HEAD against GATE14 with missionRevisionId GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7: session built with plan, graph, r3Delta, evidenceStates, repoIndex, authority; recovery delta reported UNCHANGED for governance/GATE_REGISTRY_00_40.json.",
-      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "The control plane builds a checkpoint bound to the R2/R3/R4/R5 identities above and plans recovery from it (buildRecoveryPlan)."
     },
     {
       "layer": "R7",
@@ -323,6 +339,7 @@
         "governance/gee-v1/benchmarks/gee-r7-recovery-stress.json"
       ],
       "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (Gate lifecycle fast path — consumes the previous layer’s real output)",
         "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
         "governance/gee-v1/tests/gee-r7-eval-suite.test.mjs",
         "governance/gee-v1/tests/gee-r7-recovery-stress.test.mjs",
@@ -351,7 +368,7 @@
         "gee-r7-hostile-audit.test.mjs",
         "gee-r7-authority-and-scope.test.mjs"
       ],
-      "usedByGateLifecycle": false,
+      "usedByGateLifecycle": true,
       "usedByCurrentPrompts": false,
       "workReductionMechanism": "Quantifies the reduction the rest of the stack claims, so the optimization is measured rather than asserted.",
       "fallbackBehavior": "NONE.",
@@ -360,7 +377,9 @@
         "The real-repository benchmark and eval fixtures are pinned to GATE13, whose historical seal no longer satisfies REQ-SEA-03. gee-r7-benchmark, gee-r7-eval-suite and gee-r7-recovery-stress therefore fail at baseline HEAD. gee-r7-hostile-audit and gee-r7-authority-and-scope still pass."
       ],
       "liveProof": "gee-r7-hostile-audit.test.mjs and gee-r7-authority-and-scope.test.mjs pass at baseline HEAD. The GATE13-pinned benchmark, eval-suite and recovery-stress harnesses fail with CONFLICTING_AUTHORITY:SEAL_INVALID.",
-      "gapStatus": "PARTIALLY_LIVE_FIXTURES_PINNED_TO_A_GATE_WHOSE_SEAL_NO_LONGER_VERIFIES"
+      "gapStatus": "PARTIALLY_LIVE_FIXTURES_PINNED_TO_A_GATE_WHOSE_SEAL_NO_LONGER_VERIFIES",
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "The control plane runs a lightweight quality guard on every Gate; the heavy benchmark is reserved for declared architectural triggers."
     }
   ]
 }

@@ -1,0 +1,2102 @@
+{
+  "document": "GOVERNANCE_EXISTING_WORK_INDEX",
+  "schemaVersion": 1,
+  "version": "V1",
+  "programId": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+  "canonical": "CANONICAL_INPUT",
+  "baseHead": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
+  "ledgerEventCount": 61,
+  "recordedAt": "2026-08-13T00:00:00.000Z",
+  "statement": "Disposition of every durable decision-bearing artifact in the governed surface. Answers the inverse of the preexecution reuse check: not whether every cited source resolves, but whether anything was produced that nothing cites. DERIVED_RULE rows are recomputed from bytes on every run; EXPLICIT rows are recorded decisions. An artifact with neither is UNCLASSIFIED and blocks.",
+  "selfExcludedPath": "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+  "selfExclusionReason": "An index cannot carry its own digest; its freshness is bound by the fast-path control plane instead.",
+  "mutuallyRecursiveExclusions": [
+    "governance/historical-architecture/GATE_FAST_PATH_CONSUMPTION_R1.json"
+  ],
+  "relevantRoots": [
+    "governance/sources",
+    "governance/authority",
+    "governance/historical-architecture",
+    "governance/master-matrix",
+    "governance/gee-v1/missions",
+    "governance/implementation",
+    "governance/active",
+    "governance/gates"
+  ],
+  "relevantRootFiles": [
+    "governance/PROJECT_CONSTITUTION.json",
+    "governance/GATE_REGISTRY_00_40.json",
+    "governance/MODEL_ROUTING_POLICY.json"
+  ],
+  "dispositionVocabulary": [
+    "CANONICAL",
+    "CANONICAL_INPUT",
+    "CONSUMED",
+    "EVIDENCE_ONLY",
+    "DERIVED",
+    "HISTORICAL_LEGACY",
+    "SUPERSEDED",
+    "PENDING_DECISION"
+  ],
+  "relevantArtifactCount": 142,
+  "classifiedCount": 142,
+  "unclassifiedRelevantArtifacts": [],
+  "unlinkedRelevantArtifacts": [],
+  "staleExplicitDispositions": [],
+  "artifacts": [
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+      "byteLength": 113118,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-CANONICAL-ROOT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json",
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_FIELD_PROVENANCE.json",
+        "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson"
+      ]
+    },
+    {
+      "path": "governance/MODEL_ROUTING_POLICY.json",
+      "sha256": "1cc45e5aab7b33c1cbeec923507a919aae6352a0ca7dc8787413f8af253e9f87",
+      "byteLength": 3209,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-CANONICAL-ROOT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/tools/generate-governance-docs.mjs",
+        "governance/tools/governance-existing-work-index.mjs"
+      ]
+    },
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
+      "byteLength": 16370,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-CANONICAL-ROOT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json"
+      ]
+    },
+    {
+      "path": "governance/active/ACTIVE_GATE.json",
+      "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+      "byteLength": 305,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-CANONICAL-ROOT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json"
+      ],
+      "artifactClass": "MUTABLE_PROJECTION"
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "sha256": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+      "byteLength": 26476,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json",
+        "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/reconciliation/GATE01_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/reconciliation/GATE02_HISTORICAL_RECONCILIATION_R1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json",
+      "sha256": "1bb8e58be52d67905a4ae9952b136be14bef72613331476e9ffcbf1ddfa7cb99",
+      "byteLength": 30618,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+      ]
+    },
+    {
+      "path": "governance/authority/GENESIS_IMPORT_SOURCE_MAP_FIELD_PROVENANCE.json",
+      "sha256": "bd87bc283590e97522552ce484f7b31c5a5b4199590ef86a2fbadfac192294ce",
+      "byteLength": 478588,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+      ]
+    },
+    {
+      "path": "governance/authority/PROJECT_OWNER_RELEASE_KEY.json",
+      "sha256": "8ce3fc2cdfa0aa1a9f082374fc34fbf58916ab58f04e1fddc98da6190d9cab4f",
+      "byteLength": 286,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gee-v1/adapters/wheel/gate-authorization-authority-source.mjs",
+        "governance/gee-v1/adapters/wheel/gate-contract-succession-authority-source.mjs",
+        "governance/gee-v1/adapters/wheel/gate-start-authority-source.mjs",
+        "governance/gee-v1/adapters/wheel/precontract-authority-source.mjs"
+      ],
+      "artifactClass": "EXTERNAL_LEGACY_AUTHORITY"
+    },
+    {
+      "path": "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson",
+      "sha256": "1314c78d7bbed32e9e0f83d16a3ba8b64ba16fea61d4164c726983b139d989dd",
+      "byteLength": 750,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/MASTER_GAP_REGISTER_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/tools/validate-status-ledger.mjs"
+      ]
+    },
+    {
+      "path": "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+      "sha256": "d88e628966cdc1840062996f8a16f728305ef1fc6d16a99ae72be60af68d6839",
+      "byteLength": 3159,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gee-v1/core/gate-authorization-authority.mjs",
+        "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+        "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "sha256": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197",
+      "byteLength": 3198,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+        "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+        "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+        "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json"
+      ]
+    },
+    {
+      "path": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+      "sha256": "bb2a70bc9c5f43aeb5029ec2e1fe1366ca7de0f612ec13ac9cdd2b1e0206f8f4",
+      "byteLength": 3686,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gee-v1/core/gate-authorization-authority.mjs",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+      "sha256": "d7a8e65766f02394f1cc5ae2903d7d5ed51e8bcd1812dde222213cc16791c390",
+      "byteLength": 3649,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+        "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+        "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE00/gate00_measurement.json",
+      "sha256": "fc31ee4e8fc9f34c7cc3b978392324ae0403a0af4d79cb5c8606aeafb358d7d3",
+      "byteLength": 2542,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE01/gate01_final_reproduction_measurement.json",
+      "sha256": "989c2b554bfab2d52e37aaa995fe0f05bcdd901ed1527e60f6a38bb586b6749c",
+      "byteLength": 9363,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/reconciliation/GATE01_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE02/gate02_final_measurement.json",
+      "sha256": "f9e7d58871278c1ffb14276749b2884b571d9276509af45d21d75e7fe6bd9ce3",
+      "byteLength": 3200,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/reconciliation/GATE02_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE03/gate03_final_measurement.json",
+      "sha256": "b78f04a39ea35eb48ee7fef0faace993524a5b00785c687a42972153c01e78f2",
+      "byteLength": 74594,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/historical/GATE02/gate02_final_measurement.json",
+        "governance/authority/reconciliation/GATE03_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE04/gate04_revalidation_after_gate08.json",
+      "sha256": "bd97a177d09d0089d5192d477a7d2a9dd666d70ef2eeb159c7b96013ea50a384",
+      "byteLength": 2178,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/reconciliation/GATE04_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE05/gate05_revalidation_after_gate06_repair.json",
+      "sha256": "599332f039d2573c740d6bcd771589d2835bef37556c8ae00525ef84f4e70da8",
+      "byteLength": 24694,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/authority/historical/GATE06/gate06_repair_measurement.json",
+        "governance/authority/reconciliation/GATE05_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE06/gate06_repair_measurement.json",
+      "sha256": "d8eca91d6390bf098fa3edc84efda001f1835ade9551410bbac058d426038e72",
+      "byteLength": 5491,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/reconciliation/GATE06_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE07/gate07_gate_decision.json",
+      "sha256": "a008e7a8059cbdbcb35868332fd34b7bdf8b25edf63bc6ce5683adb06e2ecac3",
+      "byteLength": 2002,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/authority/reconciliation/GATE07_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE08/gate08_gate_decision.json",
+      "sha256": "79defe22435531e8c8bb2f78fe60928dc8ee9364af57afe4e424ffe4d58f485f",
+      "byteLength": 1102,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/authority/reconciliation/GATE08_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE09/gate09_gate_decision_v3.json",
+      "sha256": "4a539a044f2e121186a1aa8a98f6ee5e69be67698413dd6bf17f8f0c4b66d7ff",
+      "byteLength": 722,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/authority/reconciliation/GATE09_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE10/gate10_gate_decision.json",
+      "sha256": "de02e657426d49f3fdce7e53df48cc2895498c073a7fda50a63258515a2a6a27",
+      "byteLength": 493,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/authority/reconciliation/GATE10_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/historical/GATE11/gate11_gate_decision_v6.json",
+      "sha256": "0a9142be304de3263f31a5b7aff47435f8da89cd7a6a60b817be4185b497d368",
+      "byteLength": 828,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/authority/reconciliation/GATE11_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ],
+      "artifactClass": "OPAQUE"
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "0f81f95120121fa3cdb45d78412cec83a08ace6cc77dc52e6cdc65088a9fdd5f",
+      "byteLength": 2289,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE01_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "19a144ba1361d22c8962ce45398c83777a5f7f6f4d16b91e10c12b6f11189757",
+      "byteLength": 1908,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE02_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "a4ce2a63ae8c2518accb531803121dd6f8c194c26fe031d4a76f268447add276",
+      "byteLength": 1882,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE03_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "e7c8191eb552e9aee24d31eeb06b7cdc44b9d0a3179fb7fe8883b46d38e26537",
+      "byteLength": 1883,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE04_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "2709c1b9ebf7e261e873b49dceda2c31056132a009346d371f221146798c556b",
+      "byteLength": 2332,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE05_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "049ea9fdda71cb2ecb9c81796d34370fc1dd99a4e4e311d68db0c5e09bdb7435",
+      "byteLength": 1913,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE06_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "e3155db5f90c1bd8d7af10bcc4b14f3b548d27f25e44420810616108323b8361",
+      "byteLength": 1884,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE07_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "614ca99a50d67f5f27118cb61b55de173d1cee58ef92489d372729bfe22ce0be",
+      "byteLength": 1916,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE08_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "c034a75bfaa2555905a9ed203a66c24ca42d11382c7effddf1e5f220ce7cc4ce",
+      "byteLength": 1916,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE09_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "936534839a885f67df910bd3ad0a609ba933c744c7f91ebbe3d77d0cd9b9c288",
+      "byteLength": 1929,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE10_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "4b3f811fb7b1c3d3c606d14134548be48decb0ccd1a2c54a05e9d573fbb2da1c",
+      "byteLength": 1923,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/reconciliation/GATE11_HISTORICAL_RECONCILIATION_R1.json",
+      "sha256": "51b175cba3c4d5c70438c73ca891697ee71ecc770f34ae21c9a1a863e6b34f5f",
+      "byteLength": 1929,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ]
+    },
+    {
+      "path": "governance/authority/snapshots/GATE13_INDEPENDENT_AUDIT_R1_14_INDEPENDENT_VERDICT.json",
+      "sha256": "91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352",
+      "byteLength": 825,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+      "sha256": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a",
+      "byteLength": 83316,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-AUTHORITY",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+      "sha256": "235555ccca6a2b05023bf51648cc02099946b9d68a4485a21b8c70317e4b3fd1",
+      "byteLength": 281,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "4257ee44c4d1c674c456598a0d572f0ec424243d056ffcc32d4816883e5eb36b",
+      "byteLength": 17711,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/CURRENT_STATE.json",
+      "sha256": "ba26bacf2616066a59e04bd045601a29d62fec0ac1e8700599cbaacc8b857a59",
+      "byteLength": 334,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "1271c3673f635baa98eb8940d066774e626b8d98d98dd036ca40051e48170976",
+      "byteLength": 5925,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "55a8be9c9ae1a99829c1292ff432c56ca073e755e1d9b3b6726dda6e37c3683a",
+      "byteLength": 3154,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "a1e1b547142692c113a6e3d521f70d1ce97ac4b94f493b419be30da66c6810b8",
+      "byteLength": 3163,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+      "sha256": "fb72d034525535bb36e1585f326d55a58d8d6f5b2fdf442fe6cbecf734218389",
+      "byteLength": 8546,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": "23aa9578c5743fe4e55daec4c5bd6e8c928a3e24f369483c831957027298ab67",
+      "byteLength": 3784,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "4f07a913d1a472bdea9731b495053949b99eeebaf62b4f9edc3b0b308c08ccd7",
+      "byteLength": 4086,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+      "sha256": "e687284f3e0e9e92cc466b34c89a35bc6365730492ed9bbf23feb05f346778a0",
+      "byteLength": 281,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "eb2aa7db21fb5a250fe32dad30d7717c1dd49d5e14bff9ede619dfbe65a79c5c",
+      "byteLength": 18253,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/CURRENT_STATE.json",
+      "sha256": "d9cd2f88cda87f684401ab987a519efda47e4fe0fdd61ea593a27ceff994edc4",
+      "byteLength": 346,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "fcb5a316dfef61ed2a812bff853fab37f4760385bc007e9c48ddd8bbd9d07966",
+      "byteLength": 3964,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "e7090224acc5a70d24372e0b5a26d300808f65cf04beaae041459525e8be9740",
+      "byteLength": 70,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "b45d6ceab86f08c2bb69afc7bb9efc19fa6df7045fcf5a56df8cb517dbad5e06",
+      "byteLength": 2614,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0002/CHECKPOINT.json",
+      "sha256": "8a098573ec2226522b3411a04ed4c8e70eeb53a24e8611f320aff699490f8df1",
+      "byteLength": 4771,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": "1652ec6f6bf43d19469d8bed5ec7069b27aa686978e9021de4d0ff8b77e85557",
+      "byteLength": 2049,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "4e62299926bfe611bc39cbe911bae772e70d09726420fe0976cb618133c9ac0f",
+      "byteLength": 2668,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "sha256": "27a2bed562ad4528043be82f63fc4b925e7f22f6f515c42990dd017cc1a446a2",
+      "byteLength": 281,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json"
+      ],
+      "artifactClass": "MUTABLE_PROJECTION"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+      "byteLength": 11562,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/CURRENT_CONTRACT.json",
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/STATE_SEAL.json"
+      ],
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152",
+      "byteLength": 11767,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+        "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "sha256": "0b23848b89d61663021f01e15a7cb305ecb845e5d8ba5f3be0db8d8f385ce31d",
+      "byteLength": 326,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ],
+      "artifactClass": "MUTABLE_PROJECTION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "0d083f1f587288920f4a2727098a669287f5f262a89a53fad25895c0983e0605",
+      "byteLength": 380,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ],
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "351f31f59e53bd2b7413ae1b9ff1d8c8389ff1075366fef1ad88e7dc690f85b4",
+      "byteLength": 70,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ],
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "byteLength": 1238,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ],
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+      "sha256": "48c41ae01bb50bac87955bab82d2d10bc942f238bb14c13495bee0c6f3d93204",
+      "byteLength": 369,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json",
+      "sha256": "fe67f3d8121fa66b6e8fd7c04d3598b5f99ba03ca1fbd9954315cc0d3be14e3c",
+      "byteLength": 70,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd",
+      "byteLength": 1257,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ],
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/CHECKPOINT.json",
+      "sha256": "ccb62c2e5e015449d11e2f5565e62493f847f65ceb51ff2c1794e55ed17cb77b",
+      "byteLength": 1366,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/OPEN_DEFECTS.json",
+      "sha256": "43d088143fe678964e7fd371b8c1a26a55fcf102806f0c1739860cfc16306ff9",
+      "byteLength": 70,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/STATE_SEAL.json",
+      "sha256": "80b034777b50fb56b29d6a2c1b49f5ba8a8e6ee9dca2d94a4edf5c28863a2ebb",
+      "byteLength": 1353,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+      "sha256": "c3ddbbdd2483c207209ffa9b673c030c7119731a5b01022ec9ac2e55be8cb0a1",
+      "byteLength": 2398,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/OPEN_DEFECTS.json",
+      "sha256": "866797b47079f17f79a452ee5d6f0dc296e4f012b5b94565cc9062f17155247a",
+      "byteLength": 70,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "152f325a6484bd16749c7e5cf027b4292186fc47822a2fd47c29ee961a90e9c8",
+      "byteLength": 1590,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+      "sha256": "644172e89c8bd7bbbca35271d29a1dfd6f9a517b40a9760ff95fa28285d7a1e2",
+      "byteLength": 2715,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json",
+      "sha256": "d465098cb1df4d76f84430db472d52a4956948dddbf5cffc8ad1382e0727eafc",
+      "byteLength": 70,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "0415f9bdc05224e3d2fe6394e513cf813acc5254d7a05353ea526b822e753dd5",
+      "byteLength": 2577,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GATE-CANONICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0001.json",
+      "sha256": "5e68fc3c7a768bb24792b68c8ad404fdaf3341220f2d34417c75a691caafc95d",
+      "byteLength": 2837,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0002.json",
+      "sha256": "9f5cc5ba7a748a94a1699ee0f4872df53a417b9ab9ff2991a17d113478618023",
+      "byteLength": 4068,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0002_SEAL.json",
+      "sha256": "9a3e35644b8951a9f65a1ade66f09f62de53be80cb8affe71782b2eb36545464",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003.json",
+      "sha256": "e07fa196c3300741ce54bc663ea11c6959f02d5edb1ed593e952e8bd3e2ff151",
+      "byteLength": 2883,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003_SEAL.json",
+      "sha256": "9b5fcce1bea51636c3758a1bf307474b7fe8895cb94d3aa316d314bbc0b64882",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json",
+      "sha256": "c519ce595ed772d3e7eb90f364f9d4a71e7e1522f0fc3756dc4c5d30e5ac7e35",
+      "byteLength": 3852,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004_SEAL.json",
+      "sha256": "e17e8beaea8aa3dcd3c384aa3e23a6ac974ddf67f114521d9372ce56fc1aebab",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0005.json",
+      "sha256": "372a13d59a1fb0213739f86776419cdeb92eb3e48a627f9649f35d75a3cd5766",
+      "byteLength": 5947,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0005_SEAL.json",
+      "sha256": "56b018dea22c265586cdd3f7397c81601a89a0b714ec67ef5bee35443a5534f6",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006.json",
+      "sha256": "e410daf137f8e421da3053708d09b1245aef72928456a92374ff8cc3e8fd66d5",
+      "byteLength": 8292,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006_SEAL.json",
+      "sha256": "beb8b67c930dbc3cc6adaed1e15825e4bb90c171efa491ab1140af2a99326d22",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json",
+      "sha256": "b283f47a0356490151f91d83973d32344c22f9014d5ee85e40598296b3c45612",
+      "byteLength": 6757,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gee-v1/benchmarks/gee-r7-closure.json",
+        "governance/gee-v1/evals/gee-r7-authority-scope.json",
+        "governance/gee-v1/evals/gee-r7-runner.mjs",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007_SEAL.json",
+      "sha256": "a5acb89efa9088e814e16e1fba395ea779efbc0c5e2a605855ca8ba564ca9b7b",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gee-v1/benchmarks/gee-r7-closure.json",
+        "governance/gee-v1/evals/gee-r7-authority-scope.json",
+        "governance/gee-v1/evals/gee-r7-runner.mjs",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_SEAL.json",
+      "sha256": "109007746b4eafa41cec466584a63f1ced78015a3e244db6ae7e5d98fe22f91f",
+      "byteLength": 713,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "sha256": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+      "byteLength": 3341,
+      "disposition": "CANONICAL",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-GEE-MISSION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json",
+      "sha256": "445a01e57dfb931ae31aed3861f9fe7bd2857215e5433a08f73b0046f4f24b02",
+      "byteLength": 7609,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/AUTHORITY_CONSUMPTION_R1.json",
+      "sha256": "e7e1d16fd2554f86462b13bb8a98b9f234eac245e9ccaebf4b2a8acf038e5a72",
+      "byteLength": 637,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json",
+      "sha256": "4c67122deff9a67ceaa0fd1569d19ea7b705b4cc0609574212cbd04e8f9a24cb",
+      "byteLength": 2006,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/DL3_PATH_CORRECTION_RATIFICATION_R1.json",
+      "sha256": "880f67f4970e7bb8820b2f7eb86e52d6a1f55b0440bea21e64d1e955f8ee9b00",
+      "byteLength": 4686,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/F01_F34_CLASSIFICATION.json",
+      "sha256": "bb60f24c2f55696e39654bcb6b4fba354463da52021bd39992f869131d0525ad",
+      "byteLength": 9446,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+      "sha256": "df03bce64ced7d0ccdb207efaecb683c94dca1764db1baa4c0d0cba30fe96e0a",
+      "byteLength": 22896,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967",
+      "byteLength": 4313,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+      "sha256": "4701e7174ec17c6051bb30c56d2d006c1e757b6327153c50cf4e22e57df05ba1",
+      "byteLength": 599,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+      "sha256": "2ca8d92e52fa43ff66cf99316e6863c3db6b612b22ed64827fb738f0b7851930",
+      "byteLength": 4701,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json",
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_FINAL_CLOSURE_CONSUMPTION_R1.json",
+      "sha256": "fb304f703cb0df300be966e5b6b7f2ee2e1bc44a41445c9fca1b811f2e4bdaaa",
+      "byteLength": 562,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_AUTHORIZED_PATHS_R1.json",
+      "sha256": "1eeb6ac2580a68f352966072ef0cb0a05f852d51aab6a951429bc3137923be14",
+      "byteLength": 6608,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 1,
+      "linkedBy": [
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE_FAST_PATH_R1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+      "sha256": "b1e99cec07d0da14954a2d42d15d8474fcf636cbd43fd7f02594b3cf4919e1fe",
+      "byteLength": 16024,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_R1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+      "sha256": "1569d3e92702560b1d0a05030b46dc6314d7dff424a33c3980f25dfa4db2fcb8",
+      "byteLength": 3525,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/state/revisions/R0003/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+      "sha256": "359713e6a955ad9289a92165dd8773d8dd3c4d5ee83e8cbf232188e4d9d459ef",
+      "byteLength": 5312,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_MASTER_REUSE_MATRIX_R1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/MASTER_REUSE_MATRIX_CONSUMPTION_R1.json",
+      "sha256": "ec0f71d4e1ca449046067dbe78beded1f19712ca41f9a220ca005cf40cd387ba",
+      "byteLength": 566,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_MASTER_REUSE_MATRIX_R1.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+      "sha256": "95d9913a822b66464aecec1cc33d75680bf96fa67bcfb42926a9972e892dca86",
+      "byteLength": 12174,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/state/revisions/R0003/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+        "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json"
+      ]
+    },
+    {
+      "path": "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+      "sha256": "08282f22abb70f1c142c1b404a474d3c2b1ac7192158daac91f8ca85525a5c9b",
+      "byteLength": 2472,
+      "disposition": "HISTORICAL_LEGACY",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-HISTORICAL",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/state/revisions/R0003/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+        "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json"
+      ]
+    },
+    {
+      "path": "governance/implementation/r1-recon/authority/R1_RECON_NORMATIVE_INPUT_REGISTRY.json",
+      "sha256": "9585a0bf257016822bbf46cd0ce06cbb3c1e7cef3dcbeed2f221708cd50767a2",
+      "byteLength": 5630,
+      "disposition": "DERIVED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-IMPLEMENTATION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+      ]
+    },
+    {
+      "path": "governance/implementation/r1-recon/authority/R1_RECON_OWNER_POLICY_REGISTRY.json",
+      "sha256": "077d82cf8d976e3a185e470ceb9ca5c2442f91e8b75897ea7297abb6538ca04b",
+      "byteLength": 4151,
+      "disposition": "DERIVED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-IMPLEMENTATION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+      ]
+    },
+    {
+      "path": "governance/implementation/r1-recon/authority/R1_RECON_SEMANTIC_CLASSIFICATION_REGISTRY.json",
+      "sha256": "11cf6ace0aaa1a25522aa09a87ba2937eb88fe6404490623f79876a9cbca6dbc",
+      "byteLength": 5987,
+      "disposition": "DERIVED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-IMPLEMENTATION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+      ]
+    },
+    {
+      "path": "governance/implementation/r1-recon/authority/R1_RECON_TRANSFORMATION_REGISTRY.json",
+      "sha256": "e1f135c86a7a2978a14e29dc124fe8c8393a920d236ee87d0ace09b8f86fa467",
+      "byteLength": 29557,
+      "disposition": "DERIVED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-IMPLEMENTATION",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json"
+      ]
+    },
+    {
+      "path": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+      "sha256": "b11d5a74c5f70a7bf255dfae956ccb97ced1c28639a36f6cca6a56a49bde01ab",
+      "byteLength": 58602,
+      "disposition": "CANONICAL_INPUT",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-MASTER-INPUT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+        "governance/tools/generate-master-matrix-docs.mjs"
+      ]
+    },
+    {
+      "path": "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json",
+      "sha256": "0363568fe240658250fd8bc67afec6527cb26c506d9e19861ee919a3b3a1ce47",
+      "byteLength": 21468,
+      "disposition": "CANONICAL_INPUT",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-MASTER-INPUT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/GATE_FAST_PATH_AUTHORIZED_PATHS_R1.json",
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/MASTER_GAP_REGISTER_V1.json"
+      ]
+    },
+    {
+      "path": "governance/master-matrix/MASTER_GAP_REGISTER_V1.json",
+      "sha256": "92720534cb9b77dbf0d5e323b09748e60a888fa4c011e7e4873cd7834d085956",
+      "byteLength": 16052,
+      "disposition": "CANONICAL_INPUT",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-MASTER-INPUT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/GATE_FAST_PATH_AUTHORIZED_PATHS_R1.json",
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json",
+      "sha256": "d079c84eb25f583a4a41d183c04cc94e158342400704c08ea98a72b1284a73a7",
+      "byteLength": 40777,
+      "disposition": "CANONICAL_INPUT",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-MASTER-INPUT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/MASTER_GAP_REGISTER_V1.json"
+      ]
+    },
+    {
+      "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+      "sha256": "8c61b9f97f862869c2d0aa1ad69f202c21a26b7c05ce00a90e8b179ca8cd8020",
+      "byteLength": 119602,
+      "disposition": "CANONICAL_INPUT",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-MASTER-INPUT",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/historical-architecture/GATE_FAST_PATH_AUTHORIZED_PATHS_R1.json",
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/MASTER_GAP_REGISTER_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08",
+      "byteLength": 27692,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json",
+      "sha256": "f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e",
+      "byteLength": 5874,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson",
+        "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee",
+      "byteLength": 2998,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+        "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+        "governance/gee-v1/adapters/wheel/external-authority-policy.mjs"
+      ]
+    },
+    {
+      "path": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+      "sha256": "40d513c872348c051b888cf7e0a35a9afd22d10f487438c5bef082dfbd372f6b",
+      "byteLength": 25844,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+      "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+      "byteLength": 67534,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE00_11_INTEGRATION_SYNC_R1.json",
+      "sha256": "145d36a6b3668a07919ae8eef330bc5d5216b7900d24bde86d212ef105d16efe",
+      "byteLength": 1559,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 1,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+      "sha256": "ea968e86a7b5454062adf246db90ab5743e808c6b5f1baa8c2e39d7a419401e7",
+      "byteLength": 2511,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+        "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json",
+      "sha256": "22a43b77c14f54bdc24d606d3e15eb125fc22ac83fcbae2767683cf7cdea3aae",
+      "byteLength": 2036,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE_FAST_PATH_R1.json",
+      "sha256": "ee17b8753b85aaf3aa370fb626abb5e00f59c1093f8ebfc47e3cb0e61f14636d",
+      "byteLength": 3046,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 1,
+      "linkedBy": [
+        "governance/historical-architecture/GATE_FAST_PATH_AUTHORIZED_PATHS_R1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_R1.json",
+      "sha256": "a544f700d414410043083b416de20727a97dc13f6fe20131c31a6a39d1de4623",
+      "byteLength": 2770,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 3,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_V2_BOOTSTRAP_R1.json",
+      "sha256": "85efa7cb0acb14285ee8c588b01bfd44c174b3f44425523c416138321aee16be",
+      "byteLength": 1359,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HR_R2_R1.json",
+      "sha256": "bc5ee13e32472176e326cb49c0ff3d7d365023df17cc7507919e36cd30d8c681",
+      "byteLength": 867,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 1,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_MASTER_REUSE_MATRIX_R1.json",
+      "sha256": "22dc645693db30c90288df2d867e871cb0a29aaa02ec4d67f529aa3343d567a8",
+      "byteLength": 2530,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1.json",
+      "sha256": "78c703c4f46fd008320edb75281416aec4c209e8fad795cbfbf780bc61a7119b",
+      "byteLength": 4146,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/reconciliation/GATE01_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/reconciliation/GATE02_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/authority/reconciliation/GATE03_HISTORICAL_RECONCILIATION_R1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json",
+      "sha256": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a",
+      "byteLength": 4634,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json",
+      "sha256": "5468283684cb2e49c52f3ef22325630710b5f74dfc4dd1171c824a7f45a79e46",
+      "byteLength": 4129,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json",
+      "sha256": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10",
+      "byteLength": 2337,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json",
+      "sha256": "02fa65fbe47b9bc3cc7c1e8d8939357c25d6c7d032bb8d3a5531978f5134771e",
+      "byteLength": 3596,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+      "sha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+      "byteLength": 13982,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json",
+        "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+      "sha256": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+      "byteLength": 3436,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE13/implementation/ORACLE_COVERAGE_MATRIX.json",
+        "governance/gates/GATE13/implementation/ORACLE_REGISTRY.json",
+        "governance/gates/GATE13/implementation/REPLAY_AND_PROVENANCE_EVIDENCE.json"
+      ]
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.md",
+      "sha256": "989963053745f2c8461f3c4eef922ef936e252012a49e36ab91d68b802bed7b9",
+      "byteLength": 3481,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 2,
+      "linkedBy": [
+        "governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+      "sha256": "53929a397a6f850be7c153e802ecc3b06bcd03d40f7118b5c1d6a4ce1de1955c",
+      "byteLength": 2470,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/OPEN_DEFECTS.json",
+        "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.md",
+      "sha256": "61b5038a3a5c0384dfa3b7ecdb0854236da894d08030178d5db7c1cbe0c592fa",
+      "byteLength": 1853,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json"
+      ]
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json",
+      "sha256": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c",
+      "byteLength": 7381,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json",
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0001/OPEN_DEFECTS.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json"
+      ]
+    },
+    {
+      "path": "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.md",
+      "sha256": "5a3c7a17c74ff1a8bfd009a9024c9c7e3f532e58d065255522477593735f3daa",
+      "byteLength": 6582,
+      "disposition": "CONSUMED",
+      "dispositionSource": "DERIVED_RULE",
+      "rule": "R-SOURCE-CONSUMED",
+      "linkCount": 4,
+      "linkedBy": [
+        "governance/gates/GATE12/state/revisions/R0001/CHECKPOINT.json",
+        "governance/gates/GATE12/state/revisions/R0002/CHECKPOINT.json",
+        "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+        "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json"
+      ]
+    }
+  ]
+}

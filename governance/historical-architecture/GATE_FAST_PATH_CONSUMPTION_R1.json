@@ -1,0 +1,123 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "WHEEL_GATE_FAST_PATH_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1",
+  "manifestSha256": "1eeb6ac2580a68f352966072ef0cb0a05f852d51aab6a951429bc3137923be14",
+  "baseHead": "d96b8ace7ac2d2bf3285802e65164562dedbf0aa",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GATE_FAST_PATH_R1_COMMIT",
+  "recordedAt": "2026-08-13T22:00:00.000Z",
+  "commitMessage": "governance: integrate Gate fast path control plane",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE_FAST_PATH_CONSUMPTION_R1.json",
+    "reason": "A manifest cannot carry its own digest; writing the digest changes the bytes it digests. Its integrity comes from the commit it describes."
+  },
+  "cohortPathCount": 13,
+  "cohort": [
+    {
+      "path": "governance/tools/gate-fast-path-control-plane.mjs",
+      "sha256": "6fb0fc326ef5e586498edc2943cc13102569f7fc74f2aa629de01b8d0c8117db",
+      "byteLength": 39957,
+      "operation": "CREATE",
+      "reason": "The Gate lifecycle's consumer of GEE R1-R7. Compiles the real R2 context for the Gate being planned, builds the R3 snapshot from that exact context extended with every minimum-evidence-frontier input, evaluates R4 against that real delta, routes with that exact graph, derives the Gate workset from the resulting R5 plan, and binds each arrow so a mismatch on any edge blocks. Read-only: it plans, and never performs a transition.",
+      "artifactClass": "FAST_PATH_CONTROL_PLANE_IMPLEMENTATION"
+    },
+    {
+      "path": "governance/tools/governance-existing-work-index.mjs",
+      "sha256": "069325abee14f910af3165f8b4cce35700ee6756eebde2c4352eb9ce34cc7861",
+      "byteLength": 18246,
+      "operation": "CREATE",
+      "reason": "Answers the inverse of the preexecution reuse check: not whether every cited source resolves, but whether governed work exists that nothing cites and nobody dispositioned. Bounded to the governed decision surface; disposition is derived from bytes where a rule settles it and recorded explicitly where it does not.",
+      "artifactClass": "ANTI_AMNESIA_INDEX_IMPLEMENTATION"
+    },
+    {
+      "path": "governance/tools/regression-identity-delta.mjs",
+      "sha256": "ee07367ad02eae60e4bc80016f2e7ef92b556ffe6470e1939d837488172f90e3",
+      "byteLength": 11777,
+      "operation": "CREATE",
+      "reason": "Compares a governed regression baseline against a current run by failure IDENTITY rather than count, after establishing comparability. Deliberately does not require baseline.baseHead to equal HEAD, because a valid baseline spans later commits.",
+      "artifactClass": "REGRESSION_DELTA_IMPLEMENTATION"
+    },
+    {
+      "path": "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+      "sha256": "d1be84737d8e8a71b1955961aa792e5d7620a88027056ad396a1837a3e439843",
+      "byteLength": 93466,
+      "operation": "CREATE",
+      "reason": "The durable disposition of every relevant governed artifact, with the digests that make byte drift detectable. Self-excluded from its own rows by an explicit deterministic rule, because an index cannot carry its own digest.",
+      "artifactClass": "ANTI_AMNESIA_INDEX_CREATION"
+    },
+    {
+      "path": "governance/tests/gate-fast-path-control-plane.test.mjs",
+      "sha256": "14d2873ed2b2680c85bf2ceae527cd61fa98bdad1ab42714aed272794b1fdfaa",
+      "byteLength": 32206,
+      "operation": "CREATE",
+      "reason": "Hostile tests written against the failure modes: each arrow of the chain broken in turn, null and fabricated upstream artifacts, unclassified governed work, invented evidence identities, and the invariants this program must not break (no START, no ACTIVE_GATE movement, no R8, no history rewrite).",
+      "artifactClass": "TEST_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/context-wheel-adapter.mjs",
+      "sha256": "d0a8e9498eaf49cc22ef1c528c4dd467f8115cc9ce8a9b1073e5779dc24a6be1",
+      "byteLength": 5408,
+      "operation": "MODIFY",
+      "reason": "Repairs MGR-007. The adapter treated a not-yet-started Gate's UNANCHORED_LEGACY ledger trust as an authority conflict and refused to compile, so R2 could not produce a context for any future Gate. The pre-execution shape is now distinguished from a genuine conflict by an exact fingerprint, and is carried into the bundle as a provenance-bearing PRE_EXECUTION_TRUST_LEVEL blocker rather than swallowed.",
+      "artifactClass": "PREEXECUTION_CONTEXT_CLASSIFICATION_REPAIR"
+    },
+    {
+      "path": "governance/tools/gate-preexecution-reuse-check.mjs",
+      "sha256": "fb723b9b3af1ee40ff148ca5f60c928dd390162e01503297f94e0e5f53a60865",
+      "byteLength": 30650,
+      "operation": "MODIFY",
+      "reason": "Stops the probe from reading as a consumer, and stops two checks from passing on weaker grounds than they claimed: R4 is now probed with a REAL R3 delta instead of null, the regression baseline must be COMPARABLE rather than merely self-consistent, and UNKNOWN_PREWORK also fails on governed work that carries no disposition.",
+      "artifactClass": "ADMISSION_BOUNDARY_REFINEMENT"
+    },
+    {
+      "path": "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json",
+      "sha256": "0363568fe240658250fd8bc67afec6527cb26c506d9e19861ee919a3b3a1ce47",
+      "byteLength": 21468,
+      "operation": "MODIFY",
+      "reason": "R2-R7 are no longer LIVE_NOT_WIRED_INTO_LIFECYCLE. Each layer now records its lifecycle consumer and the specific proof of consumption.",
+      "artifactClass": "MATRIX_TRUTH_UPDATE"
+    },
+    {
+      "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+      "sha256": "8c61b9f97f862869c2d0aa1ad69f202c21a26b7c05ce00a90e8b179ca8cd8020",
+      "byteLength": 119602,
+      "operation": "MODIFY",
+      "reason": "MM-036 through MM-041 record the control plane as a live consumer and state what consumption means per layer.",
+      "artifactClass": "MATRIX_TRUTH_UPDATE"
+    },
+    {
+      "path": "governance/master-matrix/MASTER_GAP_REGISTER_V1.json",
+      "sha256": "92720534cb9b77dbf0d5e323b09748e60a888fa4c011e7e4873cd7834d085956",
+      "byteLength": 16052,
+      "operation": "MODIFY",
+      "reason": "Records MGR-007 and MGR-008 as resolved in this program, and carries MGR-002, MGR-004 and MGR-005 forward with their explicit fast-path impact.",
+      "artifactClass": "GAP_REGISTER_UPDATE"
+    },
+    {
+      "path": "governance/generated/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.md",
+      "sha256": "3a00b349ed25fdb4dec57a5698c91ffe002afb632800b24f905af23e1ffeac2e",
+      "byteLength": 26109,
+      "operation": "MODIFY",
+      "reason": "Regenerated projection of the master matrix. Derived and non-canonical; regenerated so the drift detector stays clean.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_AUTHORIZED_PATHS_R1.json",
+      "sha256": "1eeb6ac2580a68f352966072ef0cb0a05f852d51aab6a951429bc3137923be14",
+      "byteLength": 6608,
+      "operation": "CREATE",
+      "reason": "This manifest: the exact authorized path scope of the program.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE_FAST_PATH_R1.json",
+      "sha256": "ee17b8753b85aaf3aa370fb626abb5e00f59c1093f8ebfc47e3cb0e61f14636d",
+      "byteLength": 3046,
+      "operation": "CREATE",
+      "reason": "The LOCAL_EXPLICIT_AUTHORITY bounding this program to one commit, no push and no history rewrite.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

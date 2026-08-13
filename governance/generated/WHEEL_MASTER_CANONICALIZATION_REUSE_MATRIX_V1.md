@@ -1,13 +1,13 @@
 <!-- canonical=false -->
 <!-- generatedBy=governance/tools/generate-master-matrix-docs.mjs -->
 <!-- generatedFrom=governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json -->
-<!-- sourceDigest=6baf9e8567a1556af29bdce8be9434c83968a47f57a998c4b5379a90878e15b5 -->
+<!-- sourceDigest=8c61b9f97f862869c2d0aa1ad69f202c21a26b7c05ce00a90e8b179ca8cd8020 -->
 
 # Wheel master canonicalization and reuse matrix — V1
 
 Non-canonique : vue générée. L'autorité est le JSON source.
 
-- Base HEAD: `3eb0641d2193f1adf42599915531e6c033d69442`
+- Base HEAD: `d96b8ace7ac2d2bf3285802e65164562dedbf0aa`
 - Ledger events: 61
 - Capabilities inventoried: 46
 - Genuine gaps: 0
@@ -62,12 +62,12 @@ Every material governance capability in this repository, with its canonical sour
 | MM-033 | GIT_CONTAINMENT | Exact-cohort staging: authorized path manifest + final implementation cohort + consumption record | CANONICAL_LIVE | governance/tools/validate-post-freeze-maintenance-authority.mjs | NONE — the mechanism already distinguishes PREEXISTING_DIRTY from GATE_AUTHORIZED_DELTA without ever requiring unrelated work to be cleaned, stashed or reset. | P3 |
 | MM-034 | REGRESSION | Regression-by-identity baseline for the governance test suite | CANONICAL_LIVE | governance/tools/gate-preexecution-reuse-check.mjs | RESOLVED BY THIS PROGRAM. Before it existed, a future Gate faced 70 undocumented pre-existing failures with no way to tell them from its own regressions. | P1 |
 | MM-035 | GEE | GEE V1 R1 — Canonical foundation (contracts, core, adapter, Definition-of-Ready) | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE — reuse as-is. | P3 |
-| MM-036 | GEE | GEE V1 R2 — Context Compiler | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_CONTEXT_LIVE). Use governance/gee-v1/tools/context-compile.mjs --work-unit <GATE> instead of pasting canonical files into a prompt. | P2 |
-| MM-037 | GEE | GEE V1 R3 — Delta Engine | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_DELTA_LIVE). | P2 |
-| MM-038 | GEE | GEE V1 R4 — Evidence Graph and reuse | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_EVIDENCE_REUSE_LIVE). | P2 |
-| MM-039 | GEE | GEE V1 R5 — Router, cost policy, repair containment | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_MIN_FRONTIER_LIVE). The R5 route plan IS the minimum evidence frontier. | P2 |
-| MM-040 | GEE | GEE V1 R6 — Recovery, index, usage | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE for capability. Proven end-to-end against GATE14 in this program. No CLI entrypoint exists; a Gate that needs resumable execution calls createWheelRecoverySession with repoRoot, workUnitId, cas, sourceHead and missionRevisionId. | P2 |
-| MM-041 | GEE | GEE V1 R7 — Benchmark, hostile validation, program closure | CANONICAL_LIVE | governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof) | NONE inside this program. Its real-repository benchmark, eval-suite and recovery-stress fixtures are pinned to GATE13, whose seal no longer satisfies REQ-SEA-03; tracked as MGR-002. | P2 |
+| MM-036 | GEE | GEE V1 R2 — Context Compiler | CANONICAL_LIVE | governance/tools/gate-fast-path-control-plane.mjs<br>…+1 | NONE — now CONSUMED BY THE GATE LIFECYCLE via gate-fast-path-control-plane.mjs, which compiles the Gate’s own context and feeds it to R3. gate-preexecution-reuse-check.mjs remains an admission probe only. | P2 |
+| MM-037 | GEE | GEE V1 R3 — Delta Engine | CANONICAL_LIVE | governance/tools/gate-fast-path-control-plane.mjs<br>…+1 | NONE — now CONSUMED BY THE GATE LIFECYCLE: the control plane builds the snapshot from the R2 context it just compiled, extended with every minimum-evidence-frontier input, so a changed validator invalidates that validator’s reuse. | P2 |
+| MM-038 | GEE | GEE V1 R4 — Evidence Graph and reuse | CANONICAL_LIVE | governance/tools/gate-fast-path-control-plane.mjs<br>…+1 | NONE — now CONSUMED BY THE GATE LIFECYCLE against a REAL R3 delta. The earlier null-delta probe is gone; R4’s recorded r3DeltaSha256 is checked against an independently recomputed one. | P2 |
+| MM-039 | GEE | GEE V1 R5 — Router, cost policy, repair containment | CANONICAL_LIVE | governance/tools/gate-fast-path-control-plane.mjs<br>…+1 | NONE — now CONSUMED BY THE GATE LIFECYCLE: the R5 route plan determines the actual Gate workset, and work it excludes is excluded because R3 proved the sources unchanged and R4 proved the evidence reusable. | P2 |
+| MM-040 | GEE | GEE V1 R6 — Recovery, index, usage | CANONICAL_LIVE | governance/tools/gate-fast-path-control-plane.mjs<br>…+1 | NONE — now CONSUMED BY THE GATE LIFECYCLE: the control plane builds a checkpoint bound to the R2/R3/R4/R5 identities and plans recovery from it. MGR-002 still applies to the historical R7 fixtures, not to this path. | P2 |
+| MM-041 | GEE | GEE V1 R7 — Benchmark, hostile validation, program closure | CANONICAL_LIVE | governance/tools/gate-fast-path-control-plane.mjs<br>…+1 | NONE for the normal path — a lightweight quality guard now runs on every Gate. The heavy benchmark stays reserved for declared architectural triggers; its GATE13-pinned fixtures remain MGR-002. | P2 |
 | MM-042 | ROUTING | Model routing policy — work class to execution mode and reasoning depth | CANONICAL_LIVE | governance/tools/validate-model-routing-policy.mjs | NONE — reuse as-is. | P3 |
 | MM-043 | IDENTITY | Repository identity and required project markers | CANONICAL_LIVE | governance/tools/validate-repository-identity.mjs<br>…+2 | NONE — reuse as-is. | P3 |
 | MM-044 | INDEPENDENT_AUDIT | Retained external audit reports (ChatGPT GATE13 discovery, I4 final, R4 canonical adoption) | SUPERSEDED | governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/sourceAuditHashes | NONE — already consumed and superseded. Recorded so a future Gate does not reopen them looking for unactioned findings. | P3 |
@@ -79,11 +79,11 @@ Every material governance capability in this repository, with its canonical sour
 | layer | name | gap status | live proof |
 | --- | --- | --- | --- |
 | R1 | Canonical foundation: contract layer, project-agnostic core, project adapter, Definition-of-Ready | LIVE | governance-preflight.mjs returns GOVERNANCE_VERDICT=PASS, blockingFindingCount=0, resolving workUnit GATE13 via wheel-gate-authority-source at baseline HEAD. |
-| R2 | Context Compiler | LIVE_NOT_WIRED_INTO_LIFECYCLE | Executed at baseline HEAD against GATE14: reductionRatio 18.112, compiledJsonBytes 6544. |
-| R3 | Delta Engine | LIVE_NOT_WIRED_INTO_LIFECYCLE | Executed at baseline HEAD against GATE14: snapshotSha256 5d1845ee23d63cf3c87f22f886143025c94574de0bd344c1ca32b68970b915ed, 2 facts. |
-| R4 | Evidence Graph and evidence reuse | LIVE_NOT_WIRED_INTO_LIFECYCLE | Executed at baseline HEAD against GATE14: graphSha256 8e247aea05a205b4b52d60dc7bc7a1cf76b2077230697424ac92ee78c4c1ef20, 2 nodes. |
-| R5 | Router, token/cost/quality policy, repair containment | LIVE_NOT_WIRED_INTO_LIFECYCLE | Executed at baseline HEAD against GATE14: route plan produced with 2 tasks. |
-| R6 | Operational continuity: repository index, recovery checkpoints, usage ledger | LIVE_NOT_WIRED_INTO_LIFECYCLE | Executed at baseline HEAD against GATE14 with missionRevisionId GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7: session built with plan, graph, r3Delta, evidenceStates, repoIndex, authority; recovery delta reported UNCHANGED for governance/GATE_REGISTRY_00_40.json. |
+| R2 | Context Compiler | LIVE_WIRED_INTO_GATE_LIFECYCLE | Executed at baseline HEAD against GATE14: reductionRatio 18.112, compiledJsonBytes 6544. |
+| R3 | Delta Engine | LIVE_WIRED_INTO_GATE_LIFECYCLE | Executed at baseline HEAD against GATE14: snapshotSha256 5d1845ee23d63cf3c87f22f886143025c94574de0bd344c1ca32b68970b915ed, 2 facts. |
+| R4 | Evidence Graph and evidence reuse | LIVE_WIRED_INTO_GATE_LIFECYCLE | Executed at baseline HEAD against GATE14: graphSha256 8e247aea05a205b4b52d60dc7bc7a1cf76b2077230697424ac92ee78c4c1ef20, 2 nodes. |
+| R5 | Router, token/cost/quality policy, repair containment | LIVE_WIRED_INTO_GATE_LIFECYCLE | Executed at baseline HEAD against GATE14: route plan produced with 2 tasks. |
+| R6 | Operational continuity: repository index, recovery checkpoints, usage ledger | LIVE_WIRED_INTO_GATE_LIFECYCLE | Executed at baseline HEAD against GATE14 with missionRevisionId GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7: session built with plan, graph, r3Delta, evidenceStates, repoIndex, authority; recovery delta reported UNCHANGED for governance/GATE_REGISTRY_00_40.json. |
 | R7 | Benchmark, evaluation, hostile audit, program closure | PARTIALLY_LIVE_FIXTURES_PINNED_TO_A_GATE_WHOSE_SEAL_NO_LONGER_VERIFIES | gee-r7-hostile-audit.test.mjs and gee-r7-authority-and-scope.test.mjs pass at baseline HEAD. The GATE13-pinned benchmark, eval-suite and recovery-stress harnesses fail with CONFLICTING_AUTHORITY:SEAL_INVALID. |
 
 ## Source-of-truth graph
@@ -158,6 +158,8 @@ P0 open: 0 · P1 open: 0 · P2 open: 3
 | MGR-004 | P2 | OPEN | The ACTIVE_GATE succession primitive is implemented and hostile-tested but has never been called |
 | MGR-005 | P2 | OPEN | A sealed execution contract pins live registry bytes, and unlike the ledger it has no migration containment |
 | MGR-006 | P2 | RESOLVED_IN_THIS_PROGRAM | Validator CLI flags are inconsistent, so a correct invocation silently validated the wrong gate |
+| MGR-007 | P1 | RESOLVED_IN_THIS_PROGRAM | R2 could not compile a context for any future Gate, so no future Gate could enter the GEE chain at all |
+| MGR-008 | P1 | RESOLVED_IN_THIS_PROGRAM | GEE R2-R6 executed but the Gate lifecycle did not run through them |
 
 ## Standard Gate golden path
 

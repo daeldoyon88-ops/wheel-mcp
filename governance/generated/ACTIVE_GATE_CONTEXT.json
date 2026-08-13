@@ -21,7 +21,7 @@
     },
     {
       "path": "governance/GATE_REGISTRY_00_40.json",
-      "sha256": "f5963314463f49844d45575b2806a516d7d0b5aba0564408efea7fd15db82eef"
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
     },
     {
       "path": "governance/state/GATE_STATUS_LEDGER.ndjson",

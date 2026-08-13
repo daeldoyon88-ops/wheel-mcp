@@ -1,0 +1,584 @@
+{
+  "document": "GATE15_CANONICAL_MANDATE_R0",
+  "schemaVersion": 1,
+  "authorityId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-13T00:00:00.000Z",
+  "temporary": false,
+  "ratificationOnly": true,
+  "executionAuthorized": false,
+  "startAuthorized": false,
+  "statusTransitionAuthorized": false,
+  "functionalImplementationAuthorized": false,
+  "gateId": "GATE15",
+  "canonicalName": "Anti-invention validators",
+  "canonicalObjective": "Establish and validate a deterministic, fail-closed anti-invention layer that prevents governed outputs, evidence, probabilities, statuses, claims, artifacts and conclusions from being accepted when they are fabricated, unsupported, non-reproducible, circular, hardcoded, stale, contradictory or not traceable to authoritative inputs.",
+  "objective": "Establish and validate a deterministic, fail-closed anti-invention layer that prevents governed outputs, evidence, probabilities, statuses, claims, artifacts and conclusions from being accepted when they are fabricated, unsupported, non-reproducible, circular, hardcoded, stale, contradictory or not traceable to authoritative inputs.",
+  "strategicPurpose": "Protect every downstream governance decision from invented support. A governed claim may pass only when its required support is authoritative, reproducible, provenance-bound and valid for the applicable contract; absence, ambiguity or contradiction of required evidence must block the claim.",
+  "dependencies": [
+    "GATE14"
+  ],
+  "dependencyRationale": {
+    "directPredecessor": "GATE14",
+    "requiredStatus": "COMPLETE_CONFIRMED",
+    "basis": [
+      "The canonical registry declares GATE14.nextGate = GATE15.",
+      "The sealed GATE14 R0005 checkpoint identifies GATE15 readiness planning as the next exact action.",
+      "No additional predecessor or hidden prerequisite is introduced by this mandate."
+    ]
+  },
+  "entryConditions": [
+    "GATE14 is COMPLETE_CONFIRMED under the canonical ledger and sealed state lineage.",
+    "GATE15 is NOT_STARTED before the separate authorization and START mission.",
+    "R8 and all later GEE revisions are absent and unauthorized.",
+    "The canonical active-gate semantics remain unchanged; this mandate does not switch ACTIVE_GATE.",
+    "The implementation mission receives a separate exact contract, authority and path manifest."
+  ],
+  "definitions": {
+    "governedClaim": "A status, verdict, probability, confidence, evidence statement, artifact identity or derived conclusion that can influence a governed decision.",
+    "authoritativeEvidence": "Evidence whose source identity, bytes, hash, revision, provenance and applicable contract are independently resolvable.",
+    "observedEvidence": "Evidence actually obtained from an authoritative source and never synthesized from a summary or expectation.",
+    "derivedOutput": "An output computed from declared authoritative inputs by a deterministic validator with traceable dependencies.",
+    "invention": "Any unsupported, fabricated, synthetic, circular, stale, contradictory, hardcoded or untraceable value presented as a governed fact or verdict."
+  },
+  "functionalRequirements": [
+    {
+      "requirementId": "G15-FR-01",
+      "requirement": "Detect and reject fabricated evidence.",
+      "rejectionReasonCode": "FABRICATED_EVIDENCE"
+    },
+    {
+      "requirementId": "G15-FR-02",
+      "requirement": "Detect and reject unsupported PASS or status claims.",
+      "rejectionReasonCode": "UNSUPPORTED_PASS_OR_STATUS"
+    },
+    {
+      "requirementId": "G15-FR-03",
+      "requirement": "Detect and reject hardcoded validation success that is not derived from the governed inputs.",
+      "rejectionReasonCode": "HARDCODED_VALIDATION_SUCCESS"
+    },
+    {
+      "requirementId": "G15-FR-04",
+      "requirement": "Detect and reject missing authoritative sources.",
+      "rejectionReasonCode": "AUTHORITATIVE_SOURCE_MISSING"
+    },
+    {
+      "requirementId": "G15-FR-05",
+      "requirement": "Detect and reject source and evidence hash mismatches.",
+      "rejectionReasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH"
+    },
+    {
+      "requirementId": "G15-FR-06",
+      "requirement": "Detect and reject circular validation and self-attestation.",
+      "rejectionReasonCode": "CIRCULAR_VALIDATION"
+    },
+    {
+      "requirementId": "G15-FR-07",
+      "requirement": "Detect and reject synthetic evidence presented as observed evidence.",
+      "rejectionReasonCode": "SYNTHETIC_EVIDENCE_AS_OBSERVED"
+    },
+    {
+      "requirementId": "G15-FR-08",
+      "requirement": "Detect and reject invented probabilities or confidence values.",
+      "rejectionReasonCode": "INVENTED_PROBABILITY_OR_CONFIDENCE"
+    },
+    {
+      "requirementId": "G15-FR-09",
+      "requirement": "Detect and reject invented timestamps, revisions or identities.",
+      "rejectionReasonCode": "INVENTED_TIMESTAMP_REVISION_OR_IDENTITY"
+    },
+    {
+      "requirementId": "G15-FR-10",
+      "requirement": "Detect and reject derived outputs that cannot be traced to authoritative inputs.",
+      "rejectionReasonCode": "UNTRACEABLE_DERIVED_OUTPUT"
+    },
+    {
+      "requirementId": "G15-FR-11",
+      "requirement": "Detect and reject contradictory evidence without silently choosing one authority.",
+      "rejectionReasonCode": "CONTRADICTORY_EVIDENCE"
+    },
+    {
+      "requirementId": "G15-FR-12",
+      "requirement": "Detect and reject stale evidence represented as current evidence.",
+      "rejectionReasonCode": "STALE_EVIDENCE_AS_CURRENT"
+    },
+    {
+      "requirementId": "G15-FR-13",
+      "requirement": "Detect and reject missing required evidence.",
+      "rejectionReasonCode": "REQUIRED_EVIDENCE_MISSING"
+    },
+    {
+      "requirementId": "G15-FR-14",
+      "requirement": "Detect and reject evidence mutated after validation or after the evidence identity was bound.",
+      "rejectionReasonCode": "EVIDENCE_MUTATED_AFTER_VALIDATION"
+    }
+  ],
+  "deterministicRejectionReasonCodes": [
+    "FABRICATED_EVIDENCE",
+    "UNSUPPORTED_PASS_OR_STATUS",
+    "HARDCODED_VALIDATION_SUCCESS",
+    "AUTHORITATIVE_SOURCE_MISSING",
+    "SOURCE_EVIDENCE_HASH_MISMATCH",
+    "CIRCULAR_VALIDATION",
+    "SYNTHETIC_EVIDENCE_AS_OBSERVED",
+    "INVENTED_PROBABILITY_OR_CONFIDENCE",
+    "INVENTED_TIMESTAMP_REVISION_OR_IDENTITY",
+    "UNTRACEABLE_DERIVED_OUTPUT",
+    "CONTRADICTORY_EVIDENCE",
+    "STALE_EVIDENCE_AS_CURRENT",
+    "REQUIRED_EVIDENCE_MISSING",
+    "EVIDENCE_MUTATED_AFTER_VALIDATION"
+  ],
+  "requiredArtifacts": [
+    {
+      "ordinal": 1,
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_REQUIREMENTS_REGISTRY.json",
+      "role": "Canonical requirement and rejection-code registry"
+    },
+    {
+      "ordinal": 2,
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json",
+      "role": "Validator identity, input, output and provenance registry"
+    },
+    {
+      "ordinal": 3,
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json",
+      "role": "Fail-closed validation and authority policy"
+    },
+    {
+      "ordinal": 4,
+      "path": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "role": "Production validator implementation"
+    },
+    {
+      "ordinal": 5,
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json",
+      "role": "Machine-derived requirement-to-validator-to-test coverage"
+    },
+    {
+      "ordinal": 6,
+      "path": "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+      "role": "Positive, negative, counter and hostile tests"
+    },
+    {
+      "ordinal": 7,
+      "path": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "role": "Machine-derived provenance, replay and closure evidence"
+    }
+  ],
+  "validators": [
+    {
+      "validatorId": "G15-V01",
+      "name": "authoritative-source-binding-validator",
+      "purpose": "Resolve the declared authoritative source and bind its exact bytes, hash, revision and identity.",
+      "requiredVerdict": "PASS only when every required source binding is proven; otherwise BLOCKED."
+    },
+    {
+      "validatorId": "G15-V02",
+      "name": "claim-provenance-validator",
+      "purpose": "Trace each governed claim and derived output to authoritative inputs and declared transformations.",
+      "requiredVerdict": "PASS only when the complete provenance chain is present and reproducible."
+    },
+    {
+      "validatorId": "G15-V03",
+      "name": "evidence-freshness-and-identity-validator",
+      "purpose": "Reject stale, contradictory, mutated or identity-mismatched evidence.",
+      "requiredVerdict": "BLOCKED for any unresolved freshness, identity, hash or contradiction defect."
+    },
+    {
+      "validatorId": "G15-V04",
+      "name": "deterministic-verdict-validator",
+      "purpose": "Ensure the verdict and rejection reason code are derived from the same bytes on replay and in a fresh process.",
+      "requiredVerdict": "PASS only when replay bytes, verdict and reason codes are identical."
+    },
+    {
+      "validatorId": "G15-V05",
+      "name": "anti-circularity-validator",
+      "purpose": "Reject producer self-attestation, circular evidence and validator output reused as its own authority.",
+      "requiredVerdict": "BLOCKED when the authority chain is circular or self-generated."
+    },
+    {
+      "validatorId": "G15-V06",
+      "name": "anti-invention-coverage-validator",
+      "purpose": "Recompute coverage of every mandatory anti-invention class and closure condition.",
+      "requiredVerdict": "PASS only when all mandatory classes are covered by real validator executions and evidence."
+    }
+  ],
+  "positiveTests": [
+    {
+      "testId": "G15-POS-01",
+      "case": "authoritative evidence with matching bytes, hash, identity, revision and provenance",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G15-POS-02",
+      "case": "complete derived claim whose inputs and transformations are fully traceable",
+      "expected": "PASS"
+    },
+    {
+      "testId": "G15-POS-03",
+      "case": "identical replay in a fresh process with identical canonical bytes",
+      "expected": "PASS with identical verdict and evidence digest"
+    },
+    {
+      "testId": "G15-POS-04",
+      "case": "independent validator invocation over an unchanged evidence package",
+      "expected": "PASS without producer summary authority"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G15-NEG-01",
+      "requirementId": "G15-FR-01",
+      "mutation": "replace observed evidence with fabricated bytes",
+      "expected": "BLOCKED",
+      "reasonCode": "FABRICATED_EVIDENCE"
+    },
+    {
+      "testId": "G15-NEG-02",
+      "requirementId": "G15-FR-02",
+      "mutation": "claim PASS without the required validation result",
+      "expected": "BLOCKED",
+      "reasonCode": "UNSUPPORTED_PASS_OR_STATUS"
+    },
+    {
+      "testId": "G15-NEG-03",
+      "requirementId": "G15-FR-03",
+      "mutation": "hardcode a successful verdict while changing the required input",
+      "expected": "BLOCKED",
+      "reasonCode": "HARDCODED_VALIDATION_SUCCESS"
+    },
+    {
+      "testId": "G15-NEG-04",
+      "requirementId": "G15-FR-04",
+      "mutation": "remove the required authoritative source",
+      "expected": "BLOCKED",
+      "reasonCode": "AUTHORITATIVE_SOURCE_MISSING"
+    },
+    {
+      "testId": "G15-NEG-05",
+      "requirementId": "G15-FR-05",
+      "mutation": "change evidence bytes without changing the bound hash",
+      "expected": "BLOCKED",
+      "reasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH"
+    },
+    {
+      "testId": "G15-NEG-06",
+      "requirementId": "G15-FR-06",
+      "mutation": "make the validator output its own authority input",
+      "expected": "BLOCKED",
+      "reasonCode": "CIRCULAR_VALIDATION"
+    },
+    {
+      "testId": "G15-NEG-07",
+      "requirementId": "G15-FR-07",
+      "mutation": "label a synthetic fixture as observed evidence",
+      "expected": "BLOCKED",
+      "reasonCode": "SYNTHETIC_EVIDENCE_AS_OBSERVED"
+    },
+    {
+      "testId": "G15-NEG-08",
+      "requirementId": "G15-FR-08",
+      "mutation": "insert a probability or confidence value without authoritative support",
+      "expected": "BLOCKED",
+      "reasonCode": "INVENTED_PROBABILITY_OR_CONFIDENCE"
+    },
+    {
+      "testId": "G15-NEG-09",
+      "requirementId": "G15-FR-09",
+      "mutation": "invent a timestamp, revision or identity not present in authoritative evidence",
+      "expected": "BLOCKED",
+      "reasonCode": "INVENTED_TIMESTAMP_REVISION_OR_IDENTITY"
+    },
+    {
+      "testId": "G15-NEG-10",
+      "requirementId": "G15-FR-10",
+      "mutation": "remove one input edge from a derived output provenance chain",
+      "expected": "BLOCKED",
+      "reasonCode": "UNTRACEABLE_DERIVED_OUTPUT"
+    },
+    {
+      "testId": "G15-NEG-11",
+      "requirementId": "G15-FR-11",
+      "mutation": "supply contradictory authoritative evidence without a canonical resolution",
+      "expected": "BLOCKED",
+      "reasonCode": "CONTRADICTORY_EVIDENCE"
+    },
+    {
+      "testId": "G15-NEG-12",
+      "requirementId": "G15-FR-12",
+      "mutation": "present evidence older than the applicable as-of boundary as current",
+      "expected": "BLOCKED",
+      "reasonCode": "STALE_EVIDENCE_AS_CURRENT"
+    },
+    {
+      "testId": "G15-NEG-13",
+      "requirementId": "G15-FR-13",
+      "mutation": "omit one mandatory evidence member",
+      "expected": "BLOCKED",
+      "reasonCode": "REQUIRED_EVIDENCE_MISSING"
+    },
+    {
+      "testId": "G15-NEG-14",
+      "requirementId": "G15-FR-14",
+      "mutation": "modify evidence after its validation identity was bound",
+      "expected": "BLOCKED",
+      "reasonCode": "EVIDENCE_MUTATED_AFTER_VALIDATION"
+    }
+  ],
+  "countertests": [
+    {
+      "counterTestId": "G15-CT-01",
+      "target": "validator verdict",
+      "mutation": "replace a real computed result with a literal PASS",
+      "expected": "the countertest detects the hardcoded success"
+    },
+    {
+      "counterTestId": "G15-CT-02",
+      "target": "source bytes",
+      "mutation": "change one authoritative input byte and replay",
+      "expected": "the affected claim blocks with a deterministic reason code"
+    },
+    {
+      "counterTestId": "G15-CT-03",
+      "target": "provenance graph",
+      "mutation": "remove, duplicate or redirect one source edge",
+      "expected": "the graph validator blocks and reports the exact defect"
+    },
+    {
+      "counterTestId": "G15-CT-04",
+      "target": "evidence classification",
+      "mutation": "replace an observed source with a same-shape synthetic fixture",
+      "expected": "synthetic evidence is rejected as observed evidence"
+    },
+    {
+      "counterTestId": "G15-CT-05",
+      "target": "fresh-process determinism",
+      "mutation": "replay the same package in a separate process and working directory",
+      "expected": "the result is byte-identical and no ambient state changes the verdict"
+    }
+  ],
+  "hostileTests": [
+    {
+      "hostileTestId": "G15-HST-01",
+      "attack": "tamper with a sealed evidence member after validation",
+      "expected": "BLOCKED with EVIDENCE_MUTATED_AFTER_VALIDATION"
+    },
+    {
+      "hostileTestId": "G15-HST-02",
+      "attack": "tamper with a source hash while preserving a PASS field",
+      "expected": "BLOCKED with SOURCE_EVIDENCE_HASH_MISMATCH"
+    },
+    {
+      "hostileTestId": "G15-HST-03",
+      "attack": "use a producer-generated summary as the only authority",
+      "expected": "BLOCKED with CIRCULAR_VALIDATION or REQUIRED_EVIDENCE_MISSING"
+    },
+    {
+      "hostileTestId": "G15-HST-04",
+      "attack": "inject an unknown property or unsupported verdict into the evidence package",
+      "expected": "BLOCKED with UNSUPPORTED_PASS_OR_STATUS"
+    },
+    {
+      "hostileTestId": "G15-HST-05",
+      "attack": "reorder, duplicate or remove mandatory requirement identities",
+      "expected": "BLOCKED by coverage and identity validation"
+    },
+    {
+      "hostileTestId": "G15-HST-06",
+      "attack": "use future-dated evidence for an earlier as-of claim",
+      "expected": "BLOCKED with STALE_EVIDENCE_AS_CURRENT"
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "evidenceRequirementId": "G15-ER-01",
+      "requirement": "Every authoritative input is identified by exact repository or declared external identity, SHA-256 and byte length."
+    },
+    {
+      "evidenceRequirementId": "G15-ER-02",
+      "requirement": "Every governed claim has a complete source-to-output provenance chain and declared transformation."
+    },
+    {
+      "evidenceRequirementId": "G15-ER-03",
+      "requirement": "Every freshness-sensitive item has an explicit as-of boundary and ordered timestamp or revision evidence."
+    },
+    {
+      "evidenceRequirementId": "G15-ER-04",
+      "requirement": "Positive, negative, counter and hostile executions record raw inputs, raw outputs, verdict, reason code, process identity and exact artifact hashes."
+    },
+    {
+      "evidenceRequirementId": "G15-ER-05",
+      "requirement": "Closure evidence is machine-derived from real validator executions and cannot be supplied by a producer summary alone."
+    }
+  ],
+  "closureConditions": [
+    {
+      "conditionId": "G15-CLOSE-01",
+      "condition": "All mandatory anti-invention classes are covered exactly once or with an explicit non-duplicate mapping.",
+      "artifact": "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json",
+      "validator": "G15-V06",
+      "expectedResult": "mandatoryClassCount = 14 and uncoveredMandatoryClassCount = 0"
+    },
+    {
+      "conditionId": "G15-CLOSE-02",
+      "condition": "Real production validators exist and every declared validator is exercised.",
+      "artifact": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json",
+      "validator": "G15-V06",
+      "expectedResult": "declaredValidatorCount = exercisedValidatorCount and implementationBytesVerified = true"
+    },
+    {
+      "conditionId": "G15-CLOSE-03",
+      "condition": "Valid authoritative cases are accepted with complete provenance.",
+      "artifact": "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+      "validator": "G15-V02",
+      "expectedResult": "all mandatory positive tests PASS"
+    },
+    {
+      "conditionId": "G15-CLOSE-04",
+      "condition": "Negative and hostile invention cases are rejected fail-closed.",
+      "artifact": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "validator": "G15-V01",
+      "expectedResult": "all mandatory negative and hostile tests BLOCK with the declared reason code"
+    },
+    {
+      "conditionId": "G15-CLOSE-05",
+      "condition": "Countertests prove the validators are not hardcoded, circular or summary-only.",
+      "artifact": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "validator": "G15-V05",
+      "expectedResult": "all countertests PASS and no hardcoded or circular verdict survives"
+    },
+    {
+      "conditionId": "G15-CLOSE-06",
+      "condition": "Deterministic replay produces identical verdicts, reason codes and evidence digests.",
+      "artifact": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "validator": "G15-V04",
+      "expectedResult": "sameInputReplay = PASS and freshProcessReplay = PASS"
+    },
+    {
+      "conditionId": "G15-CLOSE-07",
+      "condition": "Evidence provenance and exact source identity validate independently.",
+      "artifact": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json",
+      "validator": "G15-V01",
+      "expectedResult": "provenanceFailures = 0 and hashOrIdentityFailures = 0"
+    },
+    {
+      "conditionId": "G15-CLOSE-08",
+      "condition": "No unexpected repository or governance writes occur during validation.",
+      "artifact": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "validator": "G15-V06",
+      "expectedResult": "unexpectedWriteCount = 0 and changedPaths are within the separately authorized implementation manifest"
+    },
+    {
+      "conditionId": "G15-CLOSE-09",
+      "condition": "No new unrelated regression identity is introduced.",
+      "artifact": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "validator": "G15-V06",
+      "expectedResult": "newUnrelatedFailureIdentities = 0"
+    },
+    {
+      "conditionId": "G15-CLOSE-10",
+      "condition": "GATE14 remains COMPLETE_CONFIRMED and immutable, no later gate is authorized, and R8 remains absent.",
+      "artifact": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "validator": "G15-V03",
+      "expectedResult": "predecessorStateUnchanged = true, laterGateAuthorizationCount = 0 and R8 = ABSENT"
+    }
+  ],
+  "allowedScope": [
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_REQUIREMENTS_REGISTRY.json",
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json",
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json",
+    "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json",
+    "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+    "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json"
+  ],
+  "forbiddenScope": [
+    "server.js",
+    "wheel-dashboard/src/dashboard.jsx",
+    "app/journal/wheelValidationService.js",
+    "app/journal/wheelValidationStore.js",
+    "data/wheelValidationJournal.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/active/ACTIVE_GATE.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md",
+    "governance/gates/GATE13",
+    "governance/gates/GATE14",
+    "governance/gates/GATE16",
+    "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0008.json",
+    "python_ibkr",
+    "research/directional-lab",
+    "real orders, broker writes, network calls, Git push and history rewrite"
+  ],
+  "determinismRequirements": [
+    "Run offline and locally from any working directory with no network dependency.",
+    "Use canonical JSON and exact byte hashing for all persisted identity claims.",
+    "Use stable, enumerated rejection reason codes; never derive a verdict from message wording or object order.",
+    "The same input bytes, contract and evidence identity produce the same verdict, reason code and evidence digest.",
+    "Recompute in a fresh process and preserve explicit as-of ordering; never infer currentness from wall-clock time alone.",
+    "Generated projections and producer summaries are never treated as independent authority."
+  ],
+  "failClosedRequirements": [
+    "Missing, unknown, ambiguous or contradictory mandatory evidence is BLOCKED and never PASS.",
+    "A missing source, hash, revision, identity, provenance edge or required artifact is BLOCKED.",
+    "A producer cannot validate its own output or promote a summary into canonical authority.",
+    "Synthetic fixtures are clearly classified and cannot be represented as observed evidence.",
+    "A stale or future-incompatible item cannot be represented as current.",
+    "No placeholder, hardcoded PASS or fabricated counter is admissible."
+  ],
+  "downstreamGuarantees": [
+    "A downstream gate may consume a GATE15 PASS only when each required claim is traceable to authoritative reproducible evidence.",
+    "A GATE15 PASS does not authorize START, execution, closure, external confirmation, ACTIVE_GATE switching or any later gate.",
+    "Gate16 can independently recompute the validator, provenance, mutation and replay evidence without trusting the producer summary.",
+    "No trading probability, market decision, broker action or dashboard behavior is produced by GATE15."
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "GATE_REGISTRY_00_40",
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "field": "officialName",
+      "evidence": "The canonical registry names GATE15 Anti-invention validators and places it immediately after GATE14."
+    },
+    {
+      "sourceId": "GATE14_R0005_CHECKPOINT",
+      "sourcePath": "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+      "field": "dependencies",
+      "evidence": "The sealed GATE14 checkpoint identifies GATE15 readiness planning as the next exact action after COMPLETE_CONFIRMED."
+    },
+    {
+      "sourceId": "PROJECT_CONSTITUTION_R3",
+      "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+      "field": "failClosedRequirements",
+      "evidence": "The constitutional rules require authoritative paths, no hardcoded PASS, no circular validation, no future leakage and no mandate redefinition."
+    },
+    {
+      "sourceId": "GEE_V1_R1_R7",
+      "sourcePath": "governance/gee-v1",
+      "field": "determinismRequirements",
+      "evidence": "Existing GEE primitives require canonical resolver use, deterministic local operations, hostile validation and evidence-bound readiness."
+    }
+  ],
+  "fieldBindings": [
+    {
+      "fields": [
+        "objective",
+        "canonicalObjective"
+      ],
+      "rule": "The two fields are byte-identical; canonicalObjective is the registry binding and objective is the explicit mandate field."
+    }
+  ],
+  "ratificationBoundary": {
+    "missionId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+    "scope": "CANONICAL_MANDATE_ONLY",
+    "doesNotCreate": [
+      "GATE15 execution contract",
+      "GATE15 authorization",
+      "GATE15 START",
+      "GATE15 state revision or seal",
+      "GATE15 implementation",
+      "GATE16 authorization",
+      "GEE R8"
+    ]
+  }
+}

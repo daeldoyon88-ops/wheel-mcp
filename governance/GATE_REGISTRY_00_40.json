@@ -1081,12 +1081,39 @@
     {
       "gateId": "GATE15",
       "officialName": "Anti-invention validators",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "canonicalObjective": "Establish and validate a deterministic, fail-closed anti-invention layer that prevents governed outputs, evidence, probabilities, statuses, claims, artifacts and conclusions from being accepted when they are fabricated, unsupported, non-reproducible, circular, hardcoded, stale, contradictory or not traceable to authoritative inputs.",
+      "strategicPurpose": "Protect every downstream governance decision from invented support. A governed claim may pass only when its required support is authoritative, reproducible, provenance-bound and valid for the applicable contract; absence, ambiguity or contradiction of required evidence must block the claim.",
+      "dependencies": [
+        "GATE14"
+      ],
+      "entryConditions": [
+        "GATE14 is COMPLETE_CONFIRMED under the canonical ledger and sealed state lineage.",
+        "GATE15 is NOT_STARTED before the separate authorization and START mission.",
+        "R8 and all later GEE revisions are absent and unauthorized.",
+        "The canonical active-gate semantics remain unchanged; this mandate does not switch ACTIVE_GATE.",
+        "The implementation mission receives a separate exact contract, authority and path manifest."
+      ],
+      "expectedOutputs": [
+        "governance/gates/GATE15/implementation/ANTI_INVENTION_REQUIREMENTS_REGISTRY.json",
+        "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json",
+        "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json",
+        "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+        "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json",
+        "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+        "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json"
+      ],
+      "exitConditions": [
+        "G15-CLOSE-01: all 14 mandatory anti-invention classes are covered with uncoveredMandatoryClassCount = 0",
+        "G15-CLOSE-02: every declared production validator is exercised and its implementation bytes are verified",
+        "G15-CLOSE-03: all mandatory positive tests PASS with complete provenance",
+        "G15-CLOSE-04: all mandatory negative and hostile tests BLOCK with their deterministic reason codes",
+        "G15-CLOSE-05: countertests prove that hardcoded, circular and summary-only verdicts do not survive",
+        "G15-CLOSE-06: same-input and fresh-process deterministic replay PASS",
+        "G15-CLOSE-07: provenance, source identity and exact evidence hashes PASS",
+        "G15-CLOSE-08: unexpectedWriteCount = 0 within the separately authorized implementation manifest",
+        "G15-CLOSE-09: newUnrelatedFailureIdentities = 0",
+        "G15-CLOSE-10: GATE14 remains COMPLETE_CONFIRMED and immutable, no later gate is authorized, and R8 remains ABSENT"
+      ],
       "nextGate": "GATE16",
       "sourceReferences": [
         {
@@ -1098,321 +1125,338 @@
           "evidence": "Séquence attestée",
           "field": "nextGate",
           "sourceId": "HS-ROADMAP"
+        },
+        {
+          "evidence": "Mandat ratifié par PROJECT_OWNER dans governance/sources/GATE15_CANONICAL_MANDATE_R0.json, sans autorité d'exécution ni START",
+          "field": "canonicalObjective",
+          "sourceId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json"
+        },
+        {
+          "evidence": "Section dependencyRationale du mandat ratifié : GATE14.nextGate = GATE15 et checkpoint scellé GATE14 R0005",
+          "field": "dependencies",
+          "sourceId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json"
+        },
+        {
+          "evidence": "Sections requiredArtifacts et closureConditions du mandat ratifié",
+          "field": "expectedOutputs",
+          "sourceId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json"
+        },
+        {
+          "evidence": "Sections requiredArtifacts et closureConditions du mandat ratifié ; aucune condition ne requiert GATE15 NOT_STARTED",
+          "field": "exitConditions",
+          "sourceId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json"
         }
       ],
-      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Mandat canonique ratifié par PROJECT_OWNER dans governance/sources/GATE15_CANONICAL_MANDATE_R0.json. Cette ratification définit le périmètre stratégique et le futur périmètre d'implémentation ; elle ne crée ni contrat d'exécution, ni autorité, ni START, ni transition d'état.",
       "collectiveStrategicPurposeRef": {
         "appliesToBlock": "GATE00-GATE20",
         "establishesIndividualPurpose": false,
         "sourceId": "HS-ROADMAP",
         "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
       },
-      "confidenceLevel": "LOW",
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate15* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
-        "dependencies": "Non documentées.",
-        "entryConditions": "Non documentées.",
-        "exitConditions": "Non documentées.",
-        "expectedOutputs": "Non documentés."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE15, ou les autorités finales de cette gate."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE16",
       "officialName": "Independent crosscheck",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "canonicalObjective": "Establish the canonical independent-crosscheck procedure so governed closure claims require an admissible independent reinspection, recalculated verdict, reproducible evidence bindings and separation between producer and auditor.",
+      "strategicPurpose": "Prevent a Gate from closing solely on its own authority or from accepting an external verdict whose independence or evidence binding cannot be verified.",
+      "dependencies": [
+        "GATE15"
+      ],
+      "entryConditions": [
+        "GATE15 is COMPLETE_CONFIRMED under its canonical lifecycle before GATE16 execution.",
+        "A separate GATE16 execution contract and exact authority scope exist.",
+        "The producer and independent verifier identities are distinct and resolvable.",
+        "No invalidation basis is asserted for already valid closed Gates."
+      ],
+      "expectedOutputs": [
+        "CROSSCHECK_POLICY",
+        "INDEPENDENT_VERDICT_REGISTRY",
+        "crosscheck validator",
+        "independent-crosscheck tests",
+        "CROSSCHECK_REPORT"
+      ],
+      "exitConditions": [
+        "Every mandatory closure claim has an admissible independent verifier.",
+        "The verifier recalculates the verdict from canonical inputs and does not consume the producer verdict as authority.",
+        "All evidence and hashes bind to the declared source bytes.",
+        "Circular validation and unsupported closure claims are rejected.",
+        "Independent replay produces identical verdicts and evidence digests.",
+        "No unrelated regression identity is introduced."
+      ],
       "nextGate": "GATE17",
       "sourceReferences": [
         {
-          "evidence": "Ligne « GATE16 - Independent crosscheck »",
-          "field": "officialName",
-          "sourceId": "HS-ROADMAP"
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE16",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
         },
         {
-          "evidence": "Séquence attestée",
-          "field": "nextGate",
-          "sourceId": "HS-ROADMAP"
+          "sourceId": "GATE15_CANONICAL_MANDATE_RATIFICATION_R0",
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+          "sourceLocation": "dependencies",
+          "field": "dependencies",
+          "evidence": "GATE15 downstream guarantee and registry ordering establish the anti-invention predecessor boundary."
         }
       ],
-      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
-      "collectiveStrategicPurposeRef": {
-        "appliesToBlock": "GATE00-GATE20",
-        "establishesIndividualPurpose": false,
-        "sourceId": "HS-ROADMAP",
-        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
-      },
-      "confidenceLevel": "LOW",
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate16* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
-        "dependencies": "Non documentées.",
-        "entryConditions": "Non documentées.",
-        "exitConditions": "Non documentées.",
-        "expectedOutputs": "Non documentés."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE16, ou les autorités finales de cette gate."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE17",
       "officialName": "Generated report",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": [
-        "Rapport généré (reportState demeure STALE_REGENERATE_STALE_UNTIL_GATE17)"
+      "canonicalObjective": "Generate the final non-canonical governance/foundation report reproducibly from canonical sealed authorities, with complete provenance and zero generated-file drift.",
+      "strategicPurpose": "Ensure generated reporting is a reproducible projection of authority, never authority itself.",
+      "dependencies": [
+        "GATE16"
       ],
-      "exitConditions": null,
+      "entryConditions": [
+        "GATE16 has a confirmed independent verdict available for the report scope.",
+        "Canonical sealed authorities and their identities are resolvable.",
+        "A separate GATE17 execution contract and exact output scope exist."
+      ],
+      "expectedOutputs": [
+        "FOUNDATION_REPORT.md",
+        "FOUNDATION_REPORT_PROVENANCE.json",
+        "report generator",
+        "generated-report tests"
+      ],
+      "exitConditions": [
+        "The report regenerates from canonical inputs without manual content injection.",
+        "Every report section has a complete provenance binding.",
+        "GENERATED_FILE_DRIFT equals zero.",
+        "No unsupported section is present.",
+        "reportState is not STALE and the result is reproducible."
+      ],
       "nextGate": "GATE18",
       "sourceReferences": [
         {
-          "evidence": "Ligne « GATE17 - Generated report »",
-          "field": "officialName",
-          "sourceId": "HS-ROADMAP"
-        },
-        {
-          "evidence": "Séquence attestée",
-          "field": "nextGate",
-          "sourceId": "HS-ROADMAP"
-        },
-        {
-          "evidence": "reportState=« STALE_REGENERATE_STALE_UNTIL_GATE17 » — atteste que le rapport final est produit à GATE17",
-          "field": "expectedOutputs",
-          "sourceId": "HS-CHECKPOINT-V7"
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE17",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "exitConditions"
-      ],
-      "notes": null,
-      "collectiveStrategicPurposeRef": {
-        "appliesToBlock": "GATE00-GATE20",
-        "establishesIndividualPurpose": false,
-        "sourceId": "HS-ROADMAP",
-        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
-      },
-      "confidenceLevel": "LOW",
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate17* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
-        "dependencies": "Non documentées.",
-        "entryConditions": "Non documentées.",
-        "exitConditions": "Non documentées.",
-        "expectedOutputs": "Partiellement attesté."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE17, ou les autorités finales de cette gate."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE18",
       "officialName": "Implementation prompt V3",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "canonicalObjective": "No executable objective: intentionally SUPERSEDED / NON_EXECUTABLE by explicit Project Owner disposition because the historical purpose is not recoverable and no authoritative definition survives.",
+      "strategicPurpose": "Preserve the historical identifier and provenance while preventing a fabricated implementation mandate or execution path.",
+      "dependencies": [
+        "GATE17"
+      ],
+      "entryConditions": [
+        "GATE17 is COMPLETE_CONFIRMED or has the lawful disposition required by the current lifecycle.",
+        "The owner disposition and historical source gap are recorded canonically.",
+        "No GATE18 execution contract, START authority or implementation is created."
+      ],
+      "expectedOutputs": [
+        "OWNER_DISPOSITION_SUPERSEDED_NON_EXECUTABLE",
+        "historical identifier and provenance record"
+      ],
+      "exitConditions": [
+        "The owner disposition is explicit and source-bound.",
+        "The historical identifier and official name are preserved.",
+        "No functional objective is invented.",
+        "No GATE18 contract, implementation, START or closure event is created by canonicalization.",
+        "The existing SUPERSEDED transition remains the only lawful future lifecycle path.",
+        "GATE19 dependency accepts COMPLETE_CONFIRMED or the explicit SUPERSEDED disposition."
+      ],
       "nextGate": "GATE19",
       "sourceReferences": [
         {
-          "evidence": "Ligne « GATE18 - Implementation prompt V3 »",
-          "field": "officialName",
-          "sourceId": "HS-ROADMAP"
-        },
-        {
-          "evidence": "Séquence attestée",
-          "field": "nextGate",
-          "sourceId": "HS-ROADMAP"
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE18",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
         }
       ],
-      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
-      "collectiveStrategicPurposeRef": {
-        "appliesToBlock": "GATE00-GATE20",
-        "establishesIndividualPurpose": false,
-        "sourceId": "HS-ROADMAP",
-        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
-      },
-      "confidenceLevel": "LOW",
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "OWNER_DISPOSITION=SUPERSEDED; NON_EXECUTABLE; no functional objective, contract, START or implementation is created.",
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate18* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
-        "dependencies": "Non documentées.",
-        "entryConditions": "Non documentées.",
-        "exitConditions": "Non documentées.",
-        "expectedOutputs": "Non documentés."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE18, ou les autorités finales de cette gate."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE19",
       "officialName": "Final bundle and manifest",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "canonicalObjective": "Produce the portable final foundation bundle and verifiable BUNDLE_MANIFEST from explicitly selected sealed artifacts, with package self-test and detached verification receipt, without packaging the complete repository.",
+      "strategicPurpose": "Make the completed foundation portable and independently verifiable without leaking unrelated repository content.",
+      "dependencies": [
+        "GATE18"
+      ],
+      "entryConditions": [
+        "GATE18 has COMPLETE_CONFIRMED or explicit lawful SUPERSEDED disposition.",
+        "The selected sealed artifacts and exact package prefix are declared.",
+        "A separate GATE19 execution contract and exact path scope exist."
+      ],
+      "expectedOutputs": [
+        "FOUNDATION_BUNDLE_<UTC>.zip",
+        "BUNDLE_MANIFEST.json",
+        "FINAL_ZIP_SELFTEST.json",
+        "DETACHED_TERMINAL_VERIFICATION_RECEIPT.json",
+        "bundle builder",
+        "package tests"
+      ],
+      "exitConditions": [
+        "BACKSLASH_ENTRIES equals 0.",
+        "OUTSIDE_PACKAGE_PREFIX equals 0.",
+        "UNSAFE_PATHS equals 0.",
+        "DUPLICATE_ENTRIES equals 0.",
+        "The manifest is complete and verified from actual bytes.",
+        "Package self-test is PASS.",
+        "Detached receipt is PASS.",
+        "The complete repository is not included."
+      ],
       "nextGate": "GATE20",
       "sourceReferences": [
         {
-          "evidence": "Ligne « GATE19 - Final bundle and manifest »",
-          "field": "officialName",
-          "sourceId": "HS-ROADMAP"
-        },
-        {
-          "evidence": "Séquence attestée",
-          "field": "nextGate",
-          "sourceId": "HS-ROADMAP"
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE19",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
         }
       ],
-      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
-      "collectiveStrategicPurposeRef": {
-        "appliesToBlock": "GATE00-GATE20",
-        "establishesIndividualPurpose": false,
-        "sourceId": "HS-ROADMAP",
-        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
-      },
-      "confidenceLevel": "LOW",
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate19* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
-        "dependencies": "Non documentées.",
-        "entryConditions": "Non documentées.",
-        "exitConditions": "Non documentées.",
-        "expectedOutputs": "Non documentés."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE19, ou les autorités finales de cette gate."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE20",
       "officialName": "Final git and verdict",
-      "canonicalObjective": null,
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "canonicalObjective": "Close and freeze the governance foundation with a recalculated final verdict and strictly bounded Git finalization based on exact governed state, evidence and manifests.",
+      "strategicPurpose": "Ensure the foundation is finalized only from explicit, reproducible closure verdicts and exact authorized Git scope.",
+      "dependencies": [
+        "GATE19"
+      ],
+      "entryConditions": [
+        "GATE19 has a verified bundle and detached receipt.",
+        "The current LOCAL_EXPLICIT_AUTHORITY model and governed Git containment primitives are available.",
+        "A separate GATE20 execution contract and exact authorized path scope exist.",
+        "No new Ed25519/private-key/signature architecture is introduced."
+      ],
+      "expectedOutputs": [
+        "FOUNDATION_RELEASE_REQUEST.json or current canonical equivalent",
+        "FOUNDATION_CLOSURE_VERDICT.json",
+        "FOUNDATION_FREEZE_MANIFEST.json",
+        "final-git-and-verdict tests"
+      ],
+      "exitConditions": [
+        "Every required foundation work unit has an explicit truthful disposition.",
+        "The final verdict is recalculated and never read from an asserted field.",
+        "State, manifests and digests are recomputed from actual bytes.",
+        "Unresolved blocking defects equal zero.",
+        "Git operations are exact and path-contained.",
+        "Automatic push is absent.",
+        "Independent confirmation is PASS.",
+        "GATE21 is not automatically authorized."
+      ],
       "nextGate": "GATE21",
       "sourceReferences": [
         {
-          "evidence": "Ligne « GATE20 - Final git and verdict »",
-          "field": "officialName",
-          "sourceId": "HS-ROADMAP"
-        },
-        {
-          "evidence": "Dernière gate du bloc fondation ; GATE21 ouvre le programme de marché",
-          "field": "nextGate",
-          "sourceId": "HS-ROADMAP"
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE20",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
         }
       ],
-      "definitionCompleteness": "IDENTIFIER_AND_NAME_ONLY",
-      "missingCanonicalFields": [
-        "canonicalObjective",
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
-      "collectiveStrategicPurposeRef": {
-        "appliesToBlock": "GATE00-GATE20",
-        "establishesIndividualPurpose": false,
-        "sourceId": "HS-ROADMAP",
-        "statement": "Interprétation stratégique COLLECTIVE du bloc GATE00–GATE20 (« fondation de gouvernance, d’autorité, de validation, de preuves, de couverture, de packaging et de fermeture technique requise avant GATE21–GATE40 »). Portée de bloc, non individuelle : insuffisante à elle seule pour établir la finalité propre d’une gate."
-      },
-      "confidenceLevel": "LOW",
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
+      "collectiveStrategicPurposeRef": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
-      "gapJustification": {
-        "canonicalObjective": "Recherche readonly ciblée effectuée : aucun artefact nommé gate20* dans la racine d’autorité ni dans les deux dépôts (HS-NEGATIVE-SWEEP, COUNT=0). Reconstruire un objectif à partir du seul nom serait spéculatif.",
-        "dependencies": "Non documentées.",
-        "entryConditions": "Non documentées.",
-        "exitConditions": "Non documentées.",
-        "expectedOutputs": "Non documentés."
-      },
-      "minimumSourceToClose": "Un contrat d’exécution ou un prompt d’implémentation GATE20, ou les autorités finales de cette gate."
+      "gapJustification": null,
+      "minimumSourceToClose": null
     },
     {
       "gateId": "GATE21",
       "officialName": "MARKET DATA CAUSAL FOUNDATION",
       "canonicalObjective": "Creer la fondation causale des donnees de marche.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Make market data historically reproducible, provenance-bound and safe for downstream causal features and decisions.",
+      "dependencies": [
+        "GATE20"
+      ],
+      "entryConditions": [
+        "GATE20 is COMPLETE_CONFIRMED under its current authority architecture.",
+        "The selected data sources, as-of policy and exact execution scope are declared.",
+        "No future information is available to historical feature materialization."
+      ],
+      "expectedOutputs": [
+        "causal market-data contract",
+        "source and provenance registry",
+        "historical snapshot manifest",
+        "missing-data and leakage-control report"
+      ],
+      "exitConditions": [
+        "Every required market-data source is identity- and provenance-bound.",
+        "Event date is distinct from real availability date.",
+        "Missing data is explicit and cannot silently become observed data.",
+        "Historical snapshots replay byte-identically.",
+        "Known future leakage tests are rejected.",
+        "No unrelated regression identity is introduced."
+      ],
       "nextGate": "GATE22",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE21",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE21 - MARKET DATA CAUSAL FOUNDATION",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1421,37 +1465,49 @@
       "gateId": "GATE22",
       "officialName": "BOTTOM/TOP LABEL ENGINE",
       "canonicalObjective": "Creer des labels historiques pour les zones de creux, sommets, fortes hausses, fortes baisses, reprises, capitulations, accumulations, distributions, continuations et faux signaux.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Create outcome labels that may use future data only as the target definition while preserving a future-free historical feature boundary.",
+      "dependencies": [
+        "GATE21"
+      ],
+      "entryConditions": [
+        "GATE21 causal data is COMPLETE_CONFIRMED.",
+        "Label horizons and target definitions are declared.",
+        "Feature inputs are cut off at the historical observation time."
+      ],
+      "expectedOutputs": [
+        "label definitions registry",
+        "historical label dataset",
+        "label provenance and leakage report"
+      ],
+      "exitConditions": [
+        "Future values appear only in declared target outcomes.",
+        "No feature uses information unavailable at the observation time.",
+        "Every label is reproducible from bound inputs.",
+        "Ambiguous and insufficient cases are explicitly classified.",
+        "Coverage and horizon reports are complete."
+      ],
       "nextGate": "GATE23",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE22",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE22 - BOTTOM/TOP LABEL ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1460,37 +1516,50 @@
       "gateId": "GATE23",
       "officialName": "CONFLUENCE FEATURE ENGINE",
       "canonicalObjective": "Creer un feature store causal multi-horizon.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Materialize sourceable, versioned and causally timestamped feature families for multi-horizon decisions.",
+      "dependencies": [
+        "GATE22"
+      ],
+      "entryConditions": [
+        "GATE22 label boundary is confirmed.",
+        "Feature families, horizons and as-of policy are declared.",
+        "Each feature has a source and version identity."
+      ],
+      "expectedOutputs": [
+        "causal feature registry",
+        "multi-horizon feature store",
+        "feature provenance manifest",
+        "materialization validation report"
+      ],
+      "exitConditions": [
+        "Every feature is sourceable, versioned and causally timestamped.",
+        "Materialization is invariant to future suffixes.",
+        "Missing features are explicit and fail closed where mandatory.",
+        "Feature dependencies and hashes replay identically.",
+        "No unbound feature enters the store."
+      ],
       "nextGate": "GATE24",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE23",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE23 - CONFLUENCE FEATURE ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1499,37 +1568,50 @@
       "gateId": "GATE24",
       "officialName": "MARKET REGIME ENGINE",
       "canonicalObjective": "Identifier les regimes de marche.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Classify market context deterministically so decisions and validation are conditioned on the regime actually available at the decision time.",
+      "dependencies": [
+        "GATE23"
+      ],
+      "entryConditions": [
+        "GATE23 feature identities are confirmed.",
+        "Regime taxonomy and transition semantics are declared.",
+        "The classification as-of boundary is fixed."
+      ],
+      "expectedOutputs": [
+        "regime taxonomy",
+        "regime registry",
+        "regime classifier",
+        "transition and coverage report"
+      ],
+      "exitConditions": [
+        "Every emitted regime maps to a declared taxonomy entry.",
+        "Regime transitions use only contemporaneous or prior inputs.",
+        "Unknown and insufficient regimes are explicit.",
+        "Classification replay is deterministic.",
+        "Coverage and transition evidence are complete."
+      ],
       "nextGate": "GATE25",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE24",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE24 - MARKET REGIME ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1538,37 +1620,50 @@
       "gateId": "GATE25",
       "officialName": "HISTORICAL ANALOGUE ENGINE",
       "canonicalObjective": "Comparer la situation actuelle a des configurations historiques similaires.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Produce traceable historical analogues with similarity, differences, outcomes, horizons, sample size and regime-dependent uncertainty.",
+      "dependencies": [
+        "GATE24"
+      ],
+      "entryConditions": [
+        "GATE24 regime identity is available.",
+        "Similarity dimensions, horizons and eligible history are declared.",
+        "Future outcomes are separated from selection features."
+      ],
+      "expectedOutputs": [
+        "analogue selection policy",
+        "analogue index",
+        "analogue comparison report",
+        "uncertainty and sample-size report"
+      ],
+      "exitConditions": [
+        "Every analogue has reproducible selection inputs and distance.",
+        "Outcomes are attached only after the selection boundary.",
+        "Sample size, horizon and regime dependence are explicit.",
+        "Insufficient analogue support is not promoted to confidence.",
+        "Independent replay returns the same analogue set."
+      ],
       "nextGate": "GATE26",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE25",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE25 - HISTORICAL ANALOGUE ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1577,37 +1672,50 @@
       "gateId": "GATE26",
       "officialName": "PREDICTIVE ENSEMBLE ENGINE",
       "canonicalObjective": "Combiner plusieurs modeles, regles et familles de signaux.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Combine diverse model, rule and signal families without allowing one opaque model to silently control a critical decision.",
+      "dependencies": [
+        "GATE25"
+      ],
+      "entryConditions": [
+        "Upstream feature, regime and analogue identities are confirmed.",
+        "Model and rule family roles are declared.",
+        "Combination and abstention policies are explicit."
+      ],
+      "expectedOutputs": [
+        "ensemble registry",
+        "combination policy",
+        "model and signal decision trace",
+        "ensemble validation report"
+      ],
+      "exitConditions": [
+        "Every ensemble output binds to declared model and input identities.",
+        "No single model silently controls a critical decision.",
+        "Combination and abstention are deterministic.",
+        "Unsupported or missing model evidence blocks the output.",
+        "Replay and hostile single-model mutation tests pass."
+      ],
       "nextGate": "GATE27",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE26",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE26 - PREDICTIVE ENSEMBLE ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1616,37 +1724,50 @@
       "gateId": "GATE27",
       "officialName": "PROFIT PROTECTION ENGINE",
       "canonicalObjective": "Detecter quand le risque de baisse depasse le potentiel haussier restant.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Protect profits by comparing remaining upside with downside risk and producing bounded, explainable protection decisions.",
+      "dependencies": [
+        "GATE26"
+      ],
+      "entryConditions": [
+        "Ensemble inputs and uncertainty are confirmed.",
+        "Upside, downside, horizon and invalidation definitions are declared.",
+        "Decision actions and abstention are explicit."
+      ],
+      "expectedOutputs": [
+        "profit-protection policy",
+        "protection decision output",
+        "risk/upside comparison trace",
+        "validation report"
+      ],
+      "exitConditions": [
+        "Each protection decision has explicit upside, downside, horizon and inputs.",
+        "Actions are deterministic and bounded.",
+        "Contradictory or insufficient evidence blocks rather than silently selecting an action.",
+        "Invalidation and abstention are tested.",
+        "No future outcome is used as a current decision input."
+      ],
       "nextGate": "GATE28",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE27",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE27 - PROFIT PROTECTION ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1655,37 +1776,50 @@
       "gateId": "GATE28",
       "officialName": "ENTRY ENGINE",
       "canonicalObjective": "Identifier les zones d'entree presentant une asymetrie favorable.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Identify entry opportunities with favorable asymmetry while making size, steps, invalidation, horizon and abandonment explicit.",
+      "dependencies": [
+        "GATE27"
+      ],
+      "entryConditions": [
+        "Protection context and ensemble evidence are confirmed.",
+        "Entry states, sizing, stages, horizon and abandonment criteria are declared.",
+        "No entry is emitted when mandatory data is stale or contradictory."
+      ],
+      "expectedOutputs": [
+        "entry policy",
+        "entry decision and sizing output",
+        "invalidation and abandonment rules",
+        "entry validation report"
+      ],
+      "exitConditions": [
+        "Every entry state is linked to a declared asymmetry calculation.",
+        "Size, stages, horizon and invalidation are present or the decision blocks.",
+        "Abandonment conditions are testable.",
+        "Stale, missing or contradictory inputs do not produce an entry.",
+        "Entry replay is deterministic."
+      ],
       "nextGate": "GATE29",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE28",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE28 - ENTRY ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1694,37 +1828,50 @@
       "gateId": "GATE29",
       "officialName": "ROTATION ENGINE",
       "canonicalObjective": "Comparer les occasions et recommander la meilleure utilisation du capital.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Compare opportunities under explicit capital, risk and liquidity constraints to recommend a bounded use of capital.",
+      "dependencies": [
+        "GATE28"
+      ],
+      "entryConditions": [
+        "Candidate opportunities have complete entry and risk identities.",
+        "Capital constraints, cash policy and tie-break rules are declared.",
+        "Missing candidate evidence is handled explicitly."
+      ],
+      "expectedOutputs": [
+        "rotation policy",
+        "opportunity comparison registry",
+        "capital allocation recommendation",
+        "rotation decision trace"
+      ],
+      "exitConditions": [
+        "Every ranked candidate has bound inputs and eligibility reasons.",
+        "Recommendations respect capital, cash and risk constraints.",
+        "Ties and missing data resolve deterministically or block.",
+        "Excluded candidates are traceable.",
+        "No candidate is promoted from an unsupported score."
+      ],
       "nextGate": "GATE30",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE29",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE29 - ROTATION ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1733,37 +1880,50 @@
       "gateId": "GATE30",
       "officialName": "PORTFOLIO RISK ENGINE",
       "canonicalObjective": "Mesurer et controler le risque au niveau du portefeuille.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Measure and control aggregate portfolio risk across concentration, correlation, leverage, factors, liquidity, options, assignment, cash and stress scenarios.",
+      "dependencies": [
+        "GATE29"
+      ],
+      "entryConditions": [
+        "Rotation candidates and allocations are identity-bound.",
+        "Portfolio positions, cash and instrument metadata are available.",
+        "Stress and missing-data policies are declared."
+      ],
+      "expectedOutputs": [
+        "portfolio risk model",
+        "concentration and exposure report",
+        "stress scenario report",
+        "portfolio risk decision trace"
+      ],
+      "exitConditions": [
+        "All portfolio exposures are included or explicitly excluded with reasons.",
+        "Concentration, correlation, leverage, liquidity, assignment and cash are measurable.",
+        "Stress scenarios replay deterministically.",
+        "Missing mandatory risk inputs block the verdict.",
+        "Risk outputs bind to the actual portfolio snapshot."
+      ],
       "nextGate": "GATE31",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE30",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE30 - PORTFOLIO RISK ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1772,37 +1932,50 @@
       "gateId": "GATE31",
       "officialName": "EXPLANATION ENGINE",
       "canonicalObjective": "Produire une explication structuree derivee des memes donnees que la decision.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Make each decision explainable from the same bound data, models, regimes, analogues, contradictions and invalidation conditions that produced it.",
+      "dependencies": [
+        "GATE30"
+      ],
+      "entryConditions": [
+        "Decision and risk traces are complete.",
+        "Explanation fields and unsupported-claim policy are declared.",
+        "The explanation source graph is separate from display formatting."
+      ],
+      "expectedOutputs": [
+        "explanation schema",
+        "decision-to-evidence trace",
+        "structured explanation output",
+        "explanation validation report"
+      ],
+      "exitConditions": [
+        "Every explanation claim traces to the same decision inputs.",
+        "Contradictions, uncertainty and data quality are disclosed.",
+        "No unsupported confidence or probability is added.",
+        "Explanation regeneration is deterministic.",
+        "Missing mandatory provenance blocks the explanation."
+      ],
       "nextGate": "GATE32",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE31",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE31 - EXPLANATION ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1811,37 +1984,50 @@
       "gateId": "GATE32",
       "officialName": "OUT-OF-SAMPLE WALK-FORWARD VALIDATION",
       "canonicalObjective": "Evaluer le systeme sur des periodes reellement hors echantillon.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Measure performance and robustness on genuinely unseen future periods without leakage, survivorship bias or unrealistic costs.",
+      "dependencies": [
+        "GATE31"
+      ],
+      "entryConditions": [
+        "The decision system and explanation inputs are version-bound.",
+        "Training, test, retraining and window policies are frozen before measurement.",
+        "No future test data is visible to training or feature selection."
+      ],
+      "expectedOutputs": [
+        "walk-forward protocol",
+        "window and retraining manifest",
+        "out-of-sample results",
+        "leakage and survivorship audit"
+      ],
+      "exitConditions": [
+        "Every test observation is future-unseen at training time.",
+        "Retraining occurs only under the declared policy.",
+        "Leakage and survivorship checks pass.",
+        "Results are measured by regime and horizon with realistic costs.",
+        "Window results and identities replay deterministically."
+      ],
       "nextGate": "GATE33",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE32",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE32 - OUT-OF-SAMPLE WALK-FORWARD VALIDATION",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1850,37 +2036,51 @@
       "gateId": "GATE33",
       "officialName": "PROBABILITY CALIBRATION",
       "canonicalObjective": "Calibrer les probabilites des modeles.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Make model probabilities measurable, calibrated, uncertainty-aware and stable across horizons, regimes and time.",
+      "dependencies": [
+        "GATE32"
+      ],
+      "entryConditions": [
+        "Out-of-sample predictions and outcomes are identity-bound.",
+        "Probability targets, cohorts and horizons are declared.",
+        "Calibration data is not reused as hidden training data."
+      ],
+      "expectedOutputs": [
+        "calibration policy",
+        "reliability curves",
+        "Brier and log-loss measurements",
+        "horizon/regime calibration report",
+        "uncertainty report"
+      ],
+      "exitConditions": [
+        "Every probability is linked to an out-of-sample prediction and observed outcome cohort.",
+        "Reliability, Brier and log-loss measures are reproducible.",
+        "Calibration is reported by horizon and regime where required.",
+        "Temporal instability and uncertainty are disclosed.",
+        "No probability is invented when calibration evidence is absent."
+      ],
       "nextGate": "GATE34",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE33",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE33 - PROBABILITY CALIBRATION",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1889,37 +2089,50 @@
       "gateId": "GATE34",
       "officialName": "GOLDEN HISTORICAL SCENARIOS",
       "canonicalObjective": "Creer des scenarios historiques de non-regression.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Preserve representative historical scenarios as deterministic non-regression evidence across market regimes and instrument types.",
+      "dependencies": [
+        "GATE33"
+      ],
+      "entryConditions": [
+        "Calibration identity and uncertainty are confirmed.",
+        "Scenario selection criteria and expected outputs are frozen.",
+        "Scenario fixtures are independent of implementation shortcuts."
+      ],
+      "expectedOutputs": [
+        "golden scenario registry",
+        "historical fixtures",
+        "expected-result manifest",
+        "non-regression report"
+      ],
+      "exitConditions": [
+        "Required historical scenario classes are represented.",
+        "Expected outputs are bound to the declared historical inputs.",
+        "No special rule exists only to pass a favored historical case.",
+        "Scenario replay is deterministic.",
+        "Mutated or missing fixtures fail closed."
+      ],
       "nextGate": "GATE35",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE34",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE34 - GOLDEN HISTORICAL SCENARIOS",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1928,37 +2141,50 @@
       "gateId": "GATE35",
       "officialName": "JARVISE ALERT ENGINE",
       "canonicalObjective": "Transformer les resultats en alertes utiles et actionnables.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Turn validated results into actionable, provenance-bound alerts while making stale, insufficient or contradictory data visible.",
+      "dependencies": [
+        "GATE34"
+      ],
+      "entryConditions": [
+        "Decision, calibration and scenario identities are confirmed.",
+        "Alert taxonomy, severity and deduplication policies are declared.",
+        "Data freshness and insufficiency behavior is explicit."
+      ],
+      "expectedOutputs": [
+        "alert taxonomy",
+        "alert policy",
+        "alert outputs",
+        "alert provenance and quality report"
+      ],
+      "exitConditions": [
+        "Every alert maps to a declared trigger and source evidence.",
+        "Stale or insufficient data produces an explicit data-quality outcome.",
+        "Alert identity and deduplication are deterministic.",
+        "Actionability is testable without inventing a trading outcome.",
+        "Golden scenarios exercise required alert classes."
+      ],
       "nextGate": "GATE36",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE35",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE35 - JARVISE ALERT ENGINE",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -1967,37 +2193,50 @@
       "gateId": "GATE36",
       "officialName": "PAPER TRADING",
       "canonicalObjective": "Tester les recommandations sans capital reel.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Measure recommendation behavior in a simulated environment with explicit price, slippage, liquidity, sizing, latency and error records before any real execution.",
+      "dependencies": [
+        "GATE35"
+      ],
+      "entryConditions": [
+        "Alert and decision provenance is confirmed.",
+        "Paper environment, simulation assumptions and journal schema are declared.",
+        "Real broker writes and real capital are prohibited."
+      ],
+      "expectedOutputs": [
+        "paper-trading journal",
+        "simulation assumptions",
+        "position and event records",
+        "paper-trading result and error report"
+      ],
+      "exitConditions": [
+        "Every simulated trade event has a source-bound signal and decision.",
+        "No real capital or broker order is used.",
+        "Price, slippage, liquidity, size, latency and errors are recorded.",
+        "Journal reconciliation is complete.",
+        "Simulation replay is deterministic and failures are explicit."
+      ],
       "nextGate": "GATE37",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE36",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE36 - PAPER TRADING",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -2006,37 +2245,50 @@
       "gateId": "GATE37",
       "officialName": "LIVE DECISION SUPPORT",
       "canonicalObjective": "Utiliser le systeme avec des donnees courantes comme aide a la decision.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Provide current-data decision support with freshness and governance controls while preserving final human decision authority and full recommendation logging.",
+      "dependencies": [
+        "GATE36"
+      ],
+      "entryConditions": [
+        "Paper-trading evidence is confirmed.",
+        "Current-data freshness, missing-data and governance-block policies are declared.",
+        "Human final decision and recommendation logging are mandatory."
+      ],
+      "expectedOutputs": [
+        "live freshness policy",
+        "decision-support recommendation log",
+        "data-quality and governance-block report",
+        "forecast/outcome comparison"
+      ],
+      "exitConditions": [
+        "Stale or missing current data blocks or is explicitly disclosed.",
+        "Invalid governance blocks the recommendation.",
+        "The final decision remains human and is recorded.",
+        "Every recommendation is journaled with source identity.",
+        "Forecasts are compared with later outcomes without leakage into the original decision."
+      ],
       "nextGate": "GATE38",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE37",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE37 - LIVE DECISION SUPPORT",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -2045,37 +2297,52 @@
       "gateId": "GATE38",
       "officialName": "CONTROLLED EXECUTION",
       "canonicalObjective": "Permettre une execution limitee et fortement controlee uniquement apres les validations necessaires.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "If separately authorized in the future, constrain execution through explicit limits, human confirmation, kill switch, idempotence, reconciliation and governance/freshness blocks.",
+      "dependencies": [
+        "GATE37"
+      ],
+      "entryConditions": [
+        "GATE37 live decision support is confirmed.",
+        "Execution environment, instruments, limits and human confirmation policy are explicit.",
+        "A separate future contract and authority explicitly authorize any execution; this mandate does not."
+      ],
+      "expectedOutputs": [
+        "controlled-execution policy",
+        "size/loss/instrument limits",
+        "human-confirmation record",
+        "kill-switch and reconciliation specification",
+        "execution validation report"
+      ],
+      "exitConditions": [
+        "Every execution path is bounded by declared size, loss and instrument limits.",
+        "Environment is explicit and cannot silently switch.",
+        "Human confirmation is required where mandated.",
+        "Kill switch, idempotence and reconciliation tests pass.",
+        "Stale data or invalid governance blocks execution.",
+        "No execution authority exists solely because this mandate is ratified."
+      ],
       "nextGate": "GATE39",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE38",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE38 - CONTROLLED EXECUTION",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -2084,37 +2351,51 @@
       "gateId": "GATE39",
       "officialName": "CONTINUOUS LEARNING",
       "canonicalObjective": "Permettre l'apprentissage continu sans degrader les garanties.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Allow learning and retraining only with champion/challenger comparison, out-of-sample validation, calibration, drift monitoring, versioning, approval and rollback.",
+      "dependencies": [
+        "GATE38"
+      ],
+      "entryConditions": [
+        "The governed decision and controlled-execution boundaries are explicit.",
+        "New observations and training data have provenance and as-of identities.",
+        "Approval, rollback and champion/challenger policies are declared."
+      ],
+      "expectedOutputs": [
+        "learning registry",
+        "retraining and champion/challenger report",
+        "data/performance drift report",
+        "version and rollback manifest",
+        "approval journal"
+      ],
+      "exitConditions": [
+        "Every learned version has source, training and evaluation identity.",
+        "Champion/challenger results are out-of-sample and calibrated.",
+        "Data and performance drift are measured.",
+        "Approval and rollback are reproducible.",
+        "No update degrades a frozen governance, leakage or execution guarantee without explicit authority."
+      ],
       "nextGate": "GATE40",
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE39",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE39 - CONTINUOUS LEARNING",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null
@@ -2123,37 +2404,54 @@
       "gateId": "GATE40",
       "officialName": "FINAL INTELLIGENT MARKET SYSTEM",
       "canonicalObjective": "Fermer l'integration complete de Wheel/Jarvise.",
-      "strategicPurpose": null,
-      "dependencies": null,
-      "entryConditions": null,
-      "expectedOutputs": null,
-      "exitConditions": null,
+      "strategicPurpose": "Close the complete Wheel/Jarvise integration only when causal data, models, decisions, validation, execution safeguards, learning, governance, audit and recovery are jointly proven.",
+      "dependencies": [
+        "GATE39"
+      ],
+      "entryConditions": [
+        "GATE39 learning and rollback guarantees are confirmed.",
+        "All preceding system identities, evidence and dispositions are available.",
+        "Final integration scope and independent audit boundary are explicit."
+      ],
+      "expectedOutputs": [
+        "integrated system manifest",
+        "final audit and provenance report",
+        "governance and recovery evidence",
+        "final non-regression and monitoring report"
+      ],
+      "exitConditions": [
+        "No known future leakage remains.",
+        "Probabilities are measured and calibrated.",
+        "Out-of-sample validation and golden scenarios are stable.",
+        "No circular evidence or hardcoded PASS remains.",
+        "The system is explainable and portfolio risk is controlled.",
+        "Paper trading is valid.",
+        "Real execution remains gated by explicit conditions.",
+        "Rollback, monitoring, governance, audit and recovery are evidenced independently.",
+        "All integration outputs replay deterministically."
+      ],
       "nextGate": null,
       "sourceReferences": [
         {
+          "sourceId": "GATE16_40_OWNER_RATIFICATION_AND_CANONICALIZATION_R2",
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceLocation": "/gates/GATE40",
+          "field": "canonicalObjective",
+          "evidence": "Canonical strategic mandate projection from the owner-ratified R2 source."
+        },
+        {
+          "sourceId": "OWNER_PROVIDED_WHEEL_JARVISE_MASTER_ROADMAP_00_40",
           "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
           "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
           "sourceLocation": "GATE40 - FINAL INTELLIGENT MARKET SYSTEM",
-          "field": "officialName"
-        },
-        {
-          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
-          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
-          "sourceLocation": "Objectif",
           "field": "canonicalObjective"
         }
       ],
-      "definitionCompleteness": "EXPLICIT_PARTIAL",
-      "missingCanonicalFields": [
-        "strategicPurpose",
-        "dependencies",
-        "entryConditions",
-        "expectedOutputs",
-        "exitConditions"
-      ],
-      "notes": null,
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "missingCanonicalFields": [],
+      "notes": "Owner-ratified or roadmap-reused strategic mandate; canonicalization creates no contract, START, state transition or implementation.",
       "collectiveStrategicPurposeRef": null,
-      "confidenceLevel": null,
+      "confidenceLevel": "HIGH",
       "deferredLinks": null,
       "gapJustification": null,
       "minimumSourceToClose": null

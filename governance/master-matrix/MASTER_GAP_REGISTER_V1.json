@@ -1,0 +1,129 @@
+{
+  "document": "MASTER_GAP_REGISTER",
+  "schemaVersion": 1,
+  "version": "V1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "canonical": true,
+  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "ledgerEventCount": 61,
+  "recordedAt": "2026-08-13T18:00:00.000Z",
+  "statement": "Unresolved P0, P1 and P2 findings only. P3 hygiene is recorded in the capability rows of WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json and is deliberately absent here so this register stays a decision list rather than a backlog.",
+  "severityPolicy": {
+    "P0": "Would invalidate current canonical governance. Must be resolved before the GATE15 execution lifecycle begins.",
+    "P1": "Will predictably block a future normal Gate. Must be resolved before the GATE15 execution lifecycle begins.",
+    "P2": "Canonical work exists but is not live-consumed, or causes avoidable token and rework cost. Repaired in-mission when deterministic and low risk; otherwise one bounded follow-up cohort.",
+    "P3": "Stale, duplicate or documentation hygiene only. Recorded, never allowed to derail Gate execution."
+  },
+  "openP0Count": 0,
+  "openP1Count": 0,
+  "openP2Count": 3,
+  "resolvedInThisProgramCount": 3,
+  "ownerDecisionsRequired": 1,
+  "findings": [
+    {
+      "id": "MGR-001",
+      "severity": "P1",
+      "status": "RESOLVED_IN_THIS_PROGRAM",
+      "title": "No canonical regression baseline existed, so 70 pre-existing governance-suite failures were invisible and unattributable",
+      "detail": "At baseline HEAD the governance suite runs 1095 tests with 70 failures. None had been recorded anywhere. The GATE14 independent reinspection reported newUnrelatedFailureIdentities = 0 on the basis of 'targeted independent V2 and Gate14 validation' — that basis is accurate for what it measured, but it never ran the full suite, so this state was never surfaced. A GATE15 agent running the suite would have found 70 failures with no way to separate them from its own regressions.",
+      "impactIfUnresolved": "Every Gate from GATE15 onward either wastes a mission investigating pre-existing failures, or hides a genuine regression inside the noise.",
+      "resolution": "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json records all 70 failure identities with a root-cause class, plus the 15 load-bearing checks that were recomputed PASS to justify classifying them unrelated. governance/tools/gate-preexecution-reuse-check.mjs consumes it as REGRESSION_BASELINE_KNOWN and mandates identity comparison rather than count comparison.",
+      "evidence": [
+        "node --test governance/tests/*.test.mjs governance/gee-v1/tests/*.test.mjs governance/gates/GATE13/tests/*.test.mjs -> 1095 tests, 1022 pass, 70 fail, 3 skipped",
+        "governance-preflight.mjs GOVERNANCE_VERDICT PASS with blockingFindingCount 0 at the same HEAD"
+      ],
+      "actionOwner": "GOVERNED_AGENT",
+      "requiredAction": "NONE — resolved. Future Gates diff against the baseline."
+    },
+    {
+      "id": "MGR-002",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "The GEE R2-R7 real-repository demonstrations are pinned to GATE13, whose historical seal no longer satisfies the hardened REQ-SEA-03 rule",
+      "detail": "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json binds governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json where REQ-SEA-03 (introduced later by the H3 seal-hardening program) requires the gate-local CURRENT_CONTRACT projection. GATE13 therefore resolves authorityState.sealValid = false, compileContext(GATE13) throws CONFLICTING_AUTHORITY:SEAL_INVALID, and every GEE demonstration pinned to GATE13 cascades: 19 of the 70 baseline failure identities across R2, R4, R5, R6 and R7.",
+      "impactIfUnresolved": "GEE R7 cannot produce a green real-repository benchmark, and any future reader will mistake a fixture-pinning problem for a broken engine. GATE13 itself remains COMPLETE_CONFIRMED and its closure is not in question.",
+      "whyNotRepairedHere": "Two candidate repairs exist and choosing between them is a strategic decision, not a wiring fix: (a) re-point the GEE fixtures at a work unit that verifies today, which changes frozen R7 evidence; or (b) issue a historical interpretation record for the GATE13 seal, which touches closed historical ground. This program is authorized for neither.",
+      "actionOwner": "PROJECT_OWNER",
+      "requiredAction": "One bounded follow-up cohort. Decide (a) or (b). Until then the 19 identities stay classified PREEXISTING_UNRELATED in the baseline and must not be counted against any Gate.",
+      "evidence": [
+        "validate-state-revision.mjs --gate-id GATE13 -> HISTORICAL_TARGET_PATH_MISMATCH, REQ-SEA-03",
+        "inspect-work-unit.mjs --work-unit GATE13 -> authorityState.sealValid false, reason SEAL_INVALID",
+        "gee-r7-eval-suite.test.mjs fails through gee-r7-recovery-child.mjs with CONFLICTING_AUTHORITY:SEAL_INVALID",
+        "The same chain executes cleanly against GATE14: R2 18.112x, R3 snapshot, R4 graph, R5 plan, R6 session all succeed"
+      ]
+    },
+    {
+      "id": "MGR-003",
+      "severity": "P1",
+      "status": "RESOLVED_IN_THIS_PROGRAM",
+      "title": "GEE R2-R6 had no consumer outside tests, so six closed revisions of work-reduction machinery were unreachable from any lifecycle path",
+      "detail": "Static import analysis of all 148 governance modules showed delta-engine.mjs, evidence-graph.mjs, router-engine.mjs, repair-containment.mjs, recovery-engine.mjs, repo-index.mjs, usage-ledger.mjs and content-addressed-store.mjs reachable only from test files. R2 had a CLI (context-compile.mjs) but nothing in the Gate lifecycle called it. The engines were not broken — they were unreferenced.",
+      "impactIfUnresolved": "Every future Gate pays full context and evidence cost while a closed, tested, fail-closed reduction stack sits unused. This is precisely the 'work already done but not linked' failure this program exists to end.",
+      "resolution": "governance/tools/gate-preexecution-reuse-check.mjs now executes R2, R3, R4 and R5 against a dynamically resolved reference work unit on every run, and reports the measured result. R6 was additionally proven end-to-end against GATE14 during this program and is documented in GEE_LIVE_USAGE_MATRIX_V1.json. No competing context system was created.",
+      "evidence": [
+        "gate-preexecution-reuse-check.mjs --gate GATE15: GEE_CONTEXT_LIVE PASS (161288B -> 6544B, 18.112x), GEE_DELTA_LIVE PASS, GEE_EVIDENCE_REUSE_LIVE PASS, GEE_MIN_FRONTIER_LIVE PASS",
+        "R6 createWheelRecoverySession against GATE14 returned a full session and a recovery delta"
+      ],
+      "actionOwner": "GOVERNED_AGENT",
+      "requiredAction": "NONE — resolved. Gates should also call governance/gee-v1/tools/context-compile.mjs --work-unit <GATE> instead of loading canonical files wholesale."
+    },
+    {
+      "id": "MGR-004",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "The ACTIVE_GATE succession primitive is implemented and hostile-tested but has never been called",
+      "detail": "governance/gee-v1/core/active-gate-succession.mjs implements evaluateActiveGateSuccession with exact pre-head, previous pointer, ledger prefix, activation digest and single-use authority binding. Its only importer is its test file, because no ACTIVE_GATE succession has been performed yet — the pointer still lawfully names GATE13.",
+      "impactIfUnresolved": "The first Gate that needs to move lifecycle ownership may edit governance/active/ACTIVE_GATE.json directly and bypass a fail-closed primitive that already exists.",
+      "actionOwner": "GOVERNED_AGENT",
+      "requiredAction": "When a Gate moves the pointer, build an ACTIVE_GATE_SUCCESSION_RECORD and evaluate it through evaluateActiveGateSuccession under a single-use local authority. Do not hand-edit the pointer.",
+      "evidence": [
+        "Module import graph: 1 importer, test-only",
+        "historical-architecture-h4-ledger-split.test.mjs 20 pass / 0 fail"
+      ]
+    },
+    {
+      "id": "MGR-005",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "A sealed execution contract pins live registry bytes, and unlike the ledger it has no migration containment",
+      "detail": "Every execution contract pins strategicRegistryReference.registrySha256. The registry has been lawfully amended twice: 706397af -> f5963314 -> aaa9efcd (the last by commit 3eb0641d, which canonicalized the GATE15-GATE40 mandates). Each amendment retroactively invalidates the registry pin of every previously sealed contract. For CLOSED gates this is already contained by design — validate-active-gate.mjs lines 22-27 deliberately stop re-authorizing a closed gate against a mutable registry. Ledger events have their own containment via REGISTRY_AUTHORITY_MIGRATIONS.ndjson. Sealed contracts of a gate that is still IN_PROGRESS have neither.",
+      "impactIfUnresolved": "Amending the registry while a Gate is IN_PROGRESS would invalidate that Gate's sealed contract, and validate-active-gate.mjs would return ACTIVE_GATE_NOT_AUTHORIZED / GATE_CONTRACT_INVALID until it was repaired.",
+      "actionOwner": "GOVERNED_AGENT",
+      "requiredAction": "Operational rule, no code change: amend the registry BETWEEN Gates, never during one. If a mid-Gate amendment ever becomes necessary, it requires a contract succession in the same cohort. Sequential GATE15-GATE40 execution never triggers this.",
+      "evidence": [
+        "validate-gate-contract.mjs on GATE14 R0002 -> REGISTRY_HASH_MISMATCH, pinned f5963314, live aaa9efcd",
+        "git show <commit>:governance/GATE_REGISTRY_00_40.json digests across d5b5cee6, 609cc5d1, 71074b94, 3eb0641d"
+      ]
+    },
+    {
+      "id": "MGR-006",
+      "severity": "P2",
+      "status": "RESOLVED_IN_THIS_PROGRAM",
+      "title": "Validator CLI flags are inconsistent, so a correct invocation silently validated the wrong gate",
+      "detail": "validate-state-revision.mjs takes --gate-id, validate-gate-authorization-authority.mjs takes --gate, validate-gate-contract.mjs takes --contract and --pointer with GATE13 defaults, and the GEE tools take --work-unit. An unrecognised flag is ignored rather than rejected: `validate-state-revision.mjs --gate GATE14` silently reported on GATE13 and looked like a GATE14 failure.",
+      "impactIfUnresolved": "A future Gate can conclude its own artifacts are broken while actually reading GATE13's, and burn a mission on a phantom defect.",
+      "resolution": "The exact invocation for each phase is now recorded in WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json#/minimumEvidenceFrontier and in the GATE15_40 capability matrix primitiveEvidence block, with the correct flag spelled out per validator.",
+      "actionOwner": "GOVERNED_AGENT",
+      "requiredAction": "NONE — resolved by documentation. Harmonising the flags themselves would change 21 tool signatures and is out of scope for a linkage repair.",
+      "evidence": [
+        "validate-state-revision.mjs --gate GATE14 reports gateId GATE13",
+        "validate-state-revision.mjs --gate-id GATE14 reports valid true, resolvedBy NATIVE_EVENT_PIN"
+      ]
+    }
+  ],
+  "boundedDecisionList": [
+    {
+      "decisionId": "DEC-001",
+      "severity": "P2",
+      "blocksGate15": false,
+      "question": "How should the GEE R2-R7 real-repository fixtures, currently pinned to GATE13, be re-grounded now that GATE13's historical seal no longer satisfies REQ-SEA-03?",
+      "options": [
+        "(a) Re-point the GEE fixtures and the frozen R7 benchmark at a work unit that verifies today (GATE14). Touches frozen R7 evidence.",
+        "(b) Issue a historical interpretation record for the GATE13 R0002 seal, in the same shape as LEGACY_STATE_BINDINGS, granting no permission and only declaring how the pre-hardening seal is to be read. Touches closed historical ground.",
+        "(c) Accept the 19 identities as permanently PREEXISTING_UNRELATED and leave the R7 real-repository benchmark red."
+      ],
+      "recommendation": "(b). It is the smaller change, it matches an established precedent in this repository, it grants no permission, and it leaves the R7 evidence frozen as it was closed.",
+      "consequenceOfDeferring": "None for GATE15-GATE40 execution. The 19 identities remain classified in the regression baseline and are excluded from any Gate's regression comparison."
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "paths": [
+    {
+      "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+      "operation": "CREATE",
+      "phase": "MASTER_MATRIX_CREATION",
+      "reason": "Master inventory of every material governance capability with its canonical source, authority class, live-consumer status, validator, future consumers and required action, plus the source-of-truth graph, the standard Gate golden path and the minimum evidence frontier.",
+      "artifactClass": "MASTER_MATRIX_CREATION"
+    },
+    {
+      "path": "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json",
+      "operation": "CREATE",
+      "phase": "GEE_LIVE_USAGE_MATRIX_CREATION",
+      "reason": "Per-revision GEE V1 R1-R7 live usage: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, and executed proof of liveness at this HEAD.",
+      "artifactClass": "GEE_LIVE_USAGE_MATRIX_CREATION"
+    },
+    {
+      "path": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+      "operation": "CREATE",
+      "phase": "GATE_CAPABILITY_FORECAST_CREATION",
+      "reason": "Capability and readiness forecast for GATE15 through GATE40. Creates no contract, no authority and no START; records only what already exists and what is normally absent before a Gate begins.",
+      "artifactClass": "GATE_CAPABILITY_FORECAST_CREATION"
+    },
+    {
+      "path": "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json",
+      "operation": "CREATE",
+      "phase": "REGRESSION_BASELINE_CREATION",
+      "reason": "The exact set of governance-suite failure identities already failing at this baseline HEAD, with root-cause classes and the recomputed load-bearing checks that justify classifying them unrelated, so future Gates compare identities rather than counts.",
+      "artifactClass": "REGRESSION_BASELINE_CREATION"
+    },
+    {
+      "path": "governance/master-matrix/MASTER_GAP_REGISTER_V1.json",
+      "operation": "CREATE",
+      "phase": "GAP_REGISTER_CREATION",
+      "reason": "Unresolved P0, P1 and P2 findings only, plus one bounded owner decision list. No P3 hygiene.",
+      "artifactClass": "GAP_REGISTER_CREATION"
+    },
+    {
+      "path": "governance/tools/gate-preexecution-reuse-check.mjs",
+      "operation": "CREATE",
+      "phase": "PREEXECUTION_CHECK_IMPLEMENTATION",
+      "reason": "Runnable fail-closed pre-Gate control that recomputes 23 checks from real bytes, separates GATE_LOCAL_EXPECTED from PREEXECUTION_GAP and SYSTEMIC_GAP, and serves as the live consumer for GEE R2, R3, R4 and R5 by executing them rather than asserting them.",
+      "artifactClass": "PREEXECUTION_CHECK_IMPLEMENTATION"
+    },
+    {
+      "path": "governance/tests/gate-preexecution-reuse-check.test.mjs",
+      "operation": "CREATE",
+      "phase": "TEST_INFRASTRUCTURE",
+      "reason": "Positive and hostile coverage for the pre-execution check: fail-closed on unknown gate, detection of vanished or drifted prior research, systemic classification of a missing primitive, and proof that no verdict is hardcoded and nothing is written inside the repository.",
+      "artifactClass": "TEST_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/tools/generate-master-matrix-docs.mjs",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Generator for the non-canonical human-readable projection, with a --check drift detector matching the existing generated-document convention.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/generated/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.md",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_GENERATION",
+      "reason": "Generated projection of the master matrix. Declares canonical=false and is never an authority.",
+      "artifactClass": "DERIVED_PROJECTION_GENERATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_MASTER_REUSE_MATRIX_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use local explicit authority for this program, bound to the exact pre-state and to this manifest.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "This finite exact-path manifest. A changed governed path absent from it is a BLOCK, not a warning.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/historical-architecture/MASTER_REUSE_MATRIX_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "FINAL_LOCAL_COMMIT",
+      "reason": "Single-use consumption record binding this authority, program, manifest digest, baseHead, transaction id and commit message.",
+      "artifactClass": "FINAL_LOCAL_COMMIT"
+    }
+  ]
+}

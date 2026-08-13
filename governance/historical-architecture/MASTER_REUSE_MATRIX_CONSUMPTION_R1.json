@@ -1,0 +1,12 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "WHEEL_MASTER_REUSE_MATRIX_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "manifestSha256": "359713e6a955ad9289a92165dd8773d8dd3c4d5ee83e8cbf232188e4d9d459ef",
+  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_MASTER_REUSE_MATRIX_R1_COMMIT",
+  "recordedAt": "2026-08-13T18:00:00.000Z",
+  "commitMessage": "governance: add master reuse and preexecution controls"
+}

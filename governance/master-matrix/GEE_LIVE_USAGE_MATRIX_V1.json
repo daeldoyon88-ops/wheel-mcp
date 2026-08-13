@@ -1,0 +1,366 @@
+{
+  "document": "GEE_LIVE_USAGE_MATRIX",
+  "schemaVersion": 1,
+  "version": "V1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "canonical": true,
+  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "recordedAt": "2026-08-13T18:00:00.000Z",
+  "statement": "What each GEE V1 revision actually does in this repository today, and who actually calls it. Liveness is not read from any historical PASS: every claim marked liveProof was produced by executing the layer against the real repository at this baseline HEAD.",
+  "geeRevisionSource": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+  "gapStatusVocabulary": {
+    "LIVE": "A production lifecycle path calls this layer.",
+    "LIVE_NOT_WIRED_INTO_LIFECYCLE": "The layer executes correctly against the real repository and has at least one live consumer, but the Gate lifecycle itself does not call it. Reuse is available and must be used deliberately.",
+    "PARTIALLY_LIVE_FIXTURES_PINNED_TO_A_GATE_WHOSE_SEAL_NO_LONGER_VERIFIES": "Implementation is sound; its real-repository demonstration is bound to a work unit that later stopped verifying.",
+    "GEE_LAYER_NOT_LIVE": "No consumer outside tests, and no proof it runs against the real repository. No layer is in this state."
+  },
+  "layerCount": 7,
+  "layers": [
+    {
+      "layer": "R1",
+      "name": "Canonical foundation: contract layer, project-agnostic core, project adapter, Definition-of-Ready",
+      "purpose": "Resolve which authorities and contracts exist, whether they agree, and whether a work unit may execute — without the core knowing any gate number.",
+      "canonicalImplementation": [
+        "governance/gee-v1/core/work-unit-core.mjs",
+        "governance/gee-v1/core/authoritative-state.mjs",
+        "governance/gee-v1/core/state-revision-resolver.mjs",
+        "governance/gee-v1/core/trust-policy.mjs",
+        "governance/gee-v1/core/head-witness.mjs",
+        "governance/gee-v1/core/identity-binding.mjs",
+        "governance/gee-v1/core/gate-authorization-authority.mjs",
+        "governance/gee-v1/core/gate-start-authority.mjs",
+        "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+        "governance/gee-v1/core/precontract-authority.mjs",
+        "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+        "governance/gee-v1/contracts/validate-execution-contract.mjs",
+        "governance/gee-v1/contracts/seal-execution-contract.mjs",
+        "governance/gee-v1/adapters/wheel/wheel-project-adapter.mjs",
+        "governance/gee-v1/readiness/evaluate-readiness.mjs",
+        "governance/gee-v1/readiness/build-readiness-context.mjs"
+      ],
+      "liveConsumers": [
+        "governance/tools/governance-preflight.mjs (35-module transitive closure; GOVERNANCE_VERDICT recomputed each run)",
+        "governance/tools/validate-active-gate.mjs",
+        "governance/tools/validate-state-revision.mjs",
+        "governance/tools/validate-state-seal.mjs",
+        "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs",
+        "governance/gee-v1/tools/inspect-work-unit.mjs",
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "currentEntrypoints": [
+        "node governance/tools/governance-preflight.mjs",
+        "node governance/gee-v1/tools/inspect-work-unit.mjs --work-unit <GATE>",
+        "node governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit <GATE>"
+      ],
+      "inputs": [
+        "governance/PROJECT_CONSTITUTION.json",
+        "governance/GATE_REGISTRY_00_40.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "governance/active/ACTIVE_GATE.json",
+        "governance/gates/<GATE>/contracts/*",
+        "governance/gates/<GATE>/state/*"
+      ],
+      "outputs": [
+        "work-unit view",
+        "readiness result",
+        "preflight GOVERNANCE_VERDICT",
+        "authorizedPaths"
+      ],
+      "validators": [
+        "governance/tools/validate-active-gate.mjs",
+        "governance/tools/validate-status-ledger.mjs",
+        "governance/tools/validate-state-revision.mjs",
+        "governance/tools/validate-state-seal.mjs",
+        "governance/tools/validate-gate-contract.mjs",
+        "governance/tools/validate-validator-provenance.mjs"
+      ],
+      "hostileTests": [
+        "gee-r1-architecture-countertests.test.mjs",
+        "gee-r1-repair-hostile.test.mjs",
+        "gee-r1-repair-r2-hostile.test.mjs",
+        "gee-r1-final-hardening.test.mjs",
+        "gee-release-authority-hostile.test.mjs"
+      ],
+      "usedByGateLifecycle": true,
+      "usedByCurrentPrompts": true,
+      "workReductionMechanism": "One recomputed authority resolution replaces manual re-reading of the constitution, registry, ledger, contract and seal chain per mission.",
+      "fallbackBehavior": "NONE — there is no non-authoritative fallback path.",
+      "failClosedBehavior": "Missing/ambiguous authority yields BLOCKED with explicit finding codes; WORK_UNIT_EXECUTABLE fails rather than defaulting to executable.",
+      "staleImplementations": [],
+      "liveProof": "governance-preflight.mjs returns GOVERNANCE_VERDICT=PASS, blockingFindingCount=0, resolving workUnit GATE13 via wheel-gate-authority-source at baseline HEAD.",
+      "gapStatus": "LIVE"
+    },
+    {
+      "layer": "R2",
+      "name": "Context Compiler",
+      "purpose": "Compile the minimum authoritative context a governed work unit needs, with provenance on every fact, instead of shipping whole canonical files into a prompt.",
+      "canonicalImplementation": [
+        "governance/gee-v1/context/compile-context.mjs",
+        "governance/gee-v1/context/context-provenance.mjs",
+        "governance/gee-v1/adapters/wheel/context-wheel-adapter.mjs"
+      ],
+      "liveConsumers": [
+        "governance/gee-v1/tools/context-compile.mjs (CLI)",
+        "governance/tools/gate-preexecution-reuse-check.mjs (GEE_CONTEXT_LIVE — executes it)",
+        "governance/gee-v1/adapters/wheel/router-wheel-adapter.mjs",
+        "governance/gee-v1/adapters/wheel/evidence-wheel-adapter.mjs"
+      ],
+      "currentEntrypoints": [
+        "node governance/gee-v1/tools/context-compile.mjs --work-unit <GATE> [--markdown]"
+      ],
+      "inputs": [
+        "constitution",
+        "registry",
+        "ledger",
+        "gate contract",
+        "gate state seal",
+        "git HEAD"
+      ],
+      "outputs": [
+        "context bundle JSON (schema governance/gee-v1/schemas/context-bundle.schema.json)",
+        "markdown projection",
+        "efficiency metrics"
+      ],
+      "validators": [
+        "governance/gee-v1/schemas/context-bundle.schema.json",
+        "gee-r2-determinism.test.mjs"
+      ],
+      "hostileTests": [
+        "gee-r2-context-compiler.test.mjs",
+        "gee-r2-determinism.test.mjs",
+        "gee-r1-repair-r2-hostile.test.mjs"
+      ],
+      "usedByGateLifecycle": false,
+      "usedByCurrentPrompts": false,
+      "workReductionMechanism": "Measured 18.112x on GATE14 at baseline HEAD: 161288 source bytes compiled to 6544 JSON bytes / 2361 markdown bytes, provenance preserved.",
+      "fallbackBehavior": "NONE — never emits a partial or unprovenanced context.",
+      "failClosedBehavior": "Throws CONFLICTING_AUTHORITY:<codes> rather than compiling a context from an authority it cannot verify. Demonstrated live: GATE13 throws SEAL_INVALID, GATE15 throws TRUST_LEVEL_BELOW_REQUIRED.",
+      "staleImplementations": [],
+      "liveProof": "Executed at baseline HEAD against GATE14: reductionRatio 18.112, compiledJsonBytes 6544.",
+      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+    },
+    {
+      "layer": "R3",
+      "name": "Delta Engine",
+      "purpose": "Compare a trusted prior context state against current canonical sources so work is scoped to what actually changed, rather than rescanning everything.",
+      "canonicalImplementation": [
+        "governance/gee-v1/delta/delta-engine.mjs",
+        "governance/gee-v1/adapters/wheel/delta-wheel-adapter.mjs"
+      ],
+      "liveConsumers": [
+        "governance/tools/gate-preexecution-reuse-check.mjs (GEE_DELTA_LIVE — executes it)",
+        "governance/gee-v1/router/router-engine.mjs",
+        "governance/gee-v1/evidence/evidence-graph.mjs"
+      ],
+      "currentEntrypoints": [
+        "(no dedicated CLI) — executed through gate-preexecution-reuse-check.mjs and the router/recovery adapters"
+      ],
+      "inputs": [
+        "R2 context bundle",
+        "live canonical source bytes"
+      ],
+      "outputs": [
+        "delta snapshot with snapshotSha256 and per-source UNCHANGED/CHANGED kinds"
+      ],
+      "validators": [
+        "gee-r3-delta-engine.test.mjs"
+      ],
+      "hostileTests": [
+        "gee-r3-delta-engine.test.mjs"
+      ],
+      "usedByGateLifecycle": false,
+      "usedByCurrentPrompts": false,
+      "workReductionMechanism": "Classifies each canonical source UNCHANGED vs CHANGED by byte identity, so downstream evidence and routing only touch changed inputs.",
+      "fallbackBehavior": "NONE — an unverifiable prior snapshot is not silently treated as changed or unchanged.",
+      "failClosedBehavior": "Fails closed when identity or a critical input cannot be proven.",
+      "staleImplementations": [],
+      "liveProof": "Executed at baseline HEAD against GATE14: snapshotSha256 5d1845ee23d63cf3c87f22f886143025c94574de0bd344c1ca32b68970b915ed, 2 facts.",
+      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+    },
+    {
+      "layer": "R4",
+      "name": "Evidence Graph and evidence reuse",
+      "purpose": "Give evidence a content-addressed identity and invalidate it selectively, so proof already produced is reused instead of regenerated.",
+      "canonicalImplementation": [
+        "governance/gee-v1/evidence/evidence-graph.mjs",
+        "governance/gee-v1/cas/content-addressed-store.mjs",
+        "governance/gee-v1/adapters/wheel/evidence-wheel-adapter.mjs"
+      ],
+      "liveConsumers": [
+        "governance/tools/gate-preexecution-reuse-check.mjs (GEE_EVIDENCE_REUSE_LIVE — executes it)",
+        "governance/gee-v1/router/router-engine.mjs",
+        "governance/gee-v1/recovery/recovery-engine.mjs"
+      ],
+      "currentEntrypoints": [
+        "(no dedicated CLI) — executed through gate-preexecution-reuse-check.mjs and the router/recovery adapters"
+      ],
+      "inputs": [
+        "R2 context bundle",
+        "R3 delta",
+        "content-addressed store"
+      ],
+      "outputs": [
+        "evidence graph with graphSha256 and per-node reuse state"
+      ],
+      "validators": [
+        "gee-r4-evidence-graph.test.mjs"
+      ],
+      "hostileTests": [
+        "gee-r4-evidence-graph.test.mjs (fabricated GROUNDED metadata cannot bootstrap reuse)"
+      ],
+      "usedByGateLifecycle": false,
+      "usedByCurrentPrompts": false,
+      "workReductionMechanism": "Dependency-aware selective invalidation: unchanged evidence keeps its content identity and is reused rather than recomputed.",
+      "fallbackBehavior": "NONE — evidence with no verifiable grounding is never reusable.",
+      "failClosedBehavior": "Reuse is refused unless the R3 delta proves the dependencies are unchanged; a modified context is rejected.",
+      "staleImplementations": [],
+      "liveProof": "Executed at baseline HEAD against GATE14: graphSha256 8e247aea05a205b4b52d60dc7bc7a1cf76b2077230697424ac92ee78c4c1ef20, 2 nodes.",
+      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+    },
+    {
+      "layer": "R5",
+      "name": "Router, token/cost/quality policy, repair containment",
+      "purpose": "Route only the work R2/R3/R4 prove is still required, at an explicit capability and cost class, and refuse a third incremental patch against a root cause that already survived two.",
+      "canonicalImplementation": [
+        "governance/gee-v1/router/router-engine.mjs",
+        "governance/gee-v1/router/router-policy.mjs",
+        "governance/gee-v1/router/provider-adapter.mjs",
+        "governance/gee-v1/repair/repair-containment.mjs",
+        "governance/gee-v1/adapters/wheel/router-wheel-adapter.mjs"
+      ],
+      "liveConsumers": [
+        "governance/tools/gate-preexecution-reuse-check.mjs (GEE_MIN_FRONTIER_LIVE — executes it)",
+        "governance/gee-v1/recovery/recovery-engine.mjs"
+      ],
+      "currentEntrypoints": [
+        "(no dedicated CLI) — executed through gate-preexecution-reuse-check.mjs and the recovery adapter"
+      ],
+      "inputs": [
+        "R2 context",
+        "R3 delta",
+        "R4 evidence graph",
+        "router policy",
+        "repair ledger"
+      ],
+      "outputs": [
+        "route plan: the task set that still requires work — this IS the minimum evidence frontier"
+      ],
+      "validators": [
+        "gee-r5-router.test.mjs",
+        "validateRouterPolicy in router-policy.mjs"
+      ],
+      "hostileTests": [
+        "gee-r5-router.test.mjs (fabricated route rejected; no work routed when nothing changed)"
+      ],
+      "usedByGateLifecycle": false,
+      "usedByCurrentPrompts": false,
+      "workReductionMechanism": "Emits NO_WORK_REQUIRED for tasks whose evidence R3/R4 prove unchanged, and caps repair attempts per root cause via repair-containment.",
+      "fallbackBehavior": "NONE — an unroutable task is BLOCKED or OWNER_DECISION_REQUIRED, never silently executed.",
+      "failClosedBehavior": "Routing refuses to authorize work whose evidence identity cannot be verified.",
+      "staleImplementations": [],
+      "liveProof": "Executed at baseline HEAD against GATE14: route plan produced with 2 tasks.",
+      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+    },
+    {
+      "layer": "R6",
+      "name": "Operational continuity: repository index, recovery checkpoints, usage ledger",
+      "purpose": "Resume an interrupted mission from its latest valid checkpoint without restarting unaffected completed work and without marking anything complete that no evidence supports.",
+      "canonicalImplementation": [
+        "governance/gee-v1/recovery/recovery-engine.mjs",
+        "governance/gee-v1/recovery/checkpoint-store.mjs",
+        "governance/gee-v1/index/repo-index.mjs",
+        "governance/gee-v1/usage/usage-ledger.mjs",
+        "governance/gee-v1/adapters/wheel/recovery-wheel-adapter.mjs"
+      ],
+      "liveConsumers": [
+        "governance/gee-v1/evals/gee-r7-runner.mjs",
+        "governance/gee-v1/evals/gee-r7-recovery-child.mjs"
+      ],
+      "currentEntrypoints": [
+        "(no dedicated CLI) — createWheelRecoverySession requires repoRoot, workUnitId, cas, sourceHead, missionRevisionId"
+      ],
+      "inputs": [
+        "R2 context",
+        "R3 delta",
+        "R4 evidence",
+        "R5 route plan",
+        "mission revision identity",
+        "content-addressed store"
+      ],
+      "outputs": [
+        "recovery session",
+        "immutable checkpoint",
+        "append-only usage record",
+        "repository index"
+      ],
+      "validators": [
+        "gee-r6-recovery-index-usage.test.mjs"
+      ],
+      "hostileTests": [
+        "gee-r6-recovery-index-usage.test.mjs (fabricated R5 route rejected before any recovery decision)"
+      ],
+      "usedByGateLifecycle": false,
+      "usedByCurrentPrompts": false,
+      "workReductionMechanism": "Checkpoint binds real R2/R3/R4/R5 identities, so resume reuses proven work instead of replaying it. This is the mechanical form of NO_RESTART_FROM_ZERO.",
+      "fallbackBehavior": "NONE — a checkpoint that cannot bind real upstream identities is refused.",
+      "failClosedBehavior": "Refuses to mark a task complete without execution and evidence identity.",
+      "staleImplementations": [],
+      "liveProof": "Executed at baseline HEAD against GATE14 with missionRevisionId GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7: session built with plan, graph, r3Delta, evidenceStates, repoIndex, authority; recovery delta reported UNCHANGED for governance/GATE_REGISTRY_00_40.json.",
+      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE"
+    },
+    {
+      "layer": "R7",
+      "name": "Benchmark, evaluation, hostile audit, program closure",
+      "purpose": "Prove the optimized GEE path still produces correct results, by comparing baseline-style and canonical GEE execution on the same real work unit.",
+      "canonicalImplementation": [
+        "governance/gee-v1/evals/gee-r7-runner.mjs",
+        "governance/gee-v1/evals/gee-r7-eval-suite.json",
+        "governance/gee-v1/evals/gee-r7-recovery-child.mjs",
+        "governance/gee-v1/benchmarks/gee-r7-benchmark.json",
+        "governance/gee-v1/benchmarks/gee-r7-closure.json",
+        "governance/gee-v1/benchmarks/gee-r7-hostile-audit.json",
+        "governance/gee-v1/benchmarks/gee-r7-routing.json",
+        "governance/gee-v1/benchmarks/gee-r7-recovery-stress.json"
+      ],
+      "liveConsumers": [
+        "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+        "governance/gee-v1/tests/gee-r7-eval-suite.test.mjs",
+        "governance/gee-v1/tests/gee-r7-recovery-stress.test.mjs",
+        "governance/gee-v1/tests/gee-r7-hostile-audit.test.mjs",
+        "governance/gee-v1/tests/gee-r7-authority-and-scope.test.mjs"
+      ],
+      "currentEntrypoints": [
+        "node --test governance/gee-v1/tests/gee-r7-*.test.mjs"
+      ],
+      "inputs": [
+        "a real Wheel work unit",
+        "frozen R7 benchmark and eval fixtures"
+      ],
+      "outputs": [
+        "before/after benchmark",
+        "E01-E10 eval verdicts",
+        "recovery stress result",
+        "hostile audit result"
+      ],
+      "validators": [
+        "gee-r7-benchmark.test.mjs",
+        "gee-r7-eval-suite.test.mjs",
+        "gee-r7-recovery-stress.test.mjs"
+      ],
+      "hostileTests": [
+        "gee-r7-hostile-audit.test.mjs",
+        "gee-r7-authority-and-scope.test.mjs"
+      ],
+      "usedByGateLifecycle": false,
+      "usedByCurrentPrompts": false,
+      "workReductionMechanism": "Quantifies the reduction the rest of the stack claims, so the optimization is measured rather than asserted.",
+      "fallbackBehavior": "NONE.",
+      "failClosedBehavior": "The harness propagates CONFLICTING_AUTHORITY rather than benchmarking against an unverifiable work unit — which is why it is currently red rather than silently green.",
+      "staleImplementations": [
+        "The real-repository benchmark and eval fixtures are pinned to GATE13, whose historical seal no longer satisfies REQ-SEA-03. gee-r7-benchmark, gee-r7-eval-suite and gee-r7-recovery-stress therefore fail at baseline HEAD. gee-r7-hostile-audit and gee-r7-authority-and-scope still pass."
+      ],
+      "liveProof": "gee-r7-hostile-audit.test.mjs and gee-r7-authority-and-scope.test.mjs pass at baseline HEAD. The GATE13-pinned benchmark, eval-suite and recovery-stress harnesses fail with CONFLICTING_AUTHORITY:SEAL_INVALID.",
+      "gapStatus": "PARTIALLY_LIVE_FIXTURES_PINNED_TO_A_GATE_WHOSE_SEAL_NO_LONGER_VERIFIES"
+    }
+  ]
+}

@@ -1,0 +1,1572 @@
+{
+  "document": "GATE15_40_PREEXECUTION_CAPABILITY_MATRIX",
+  "schemaVersion": 1,
+  "version": "V1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "canonical": true,
+  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "recordedAt": "2026-08-13T18:00:00.000Z",
+  "statement": "Capability and readiness forecast for every Gate from GATE15 to GATE40. This creates no contract, no authority and no START. It answers one question per Gate: would any currently-known missing infrastructure force this Gate to stop for a governance-mechanism reason that is already detectable today.",
+  "noSurpriseAnswer": "NO. Every generic lifecycle primitive GATE15-GATE40 will need already exists, is validated, and has a GATE14 precedent. The only things absent for each Gate are the Gate-local artifacts that must not exist before it starts.",
+  "issueClassVocabulary": {
+    "NONE": "Nothing missing.",
+    "GATE_LOCAL_EXPECTED": "Artifact is absent because the Gate has not started. Normal; not a gap.",
+    "PREEXECUTION_GAP": "This Gate cannot start until something outside it is fixed.",
+    "SYSTEMIC_GAP": "The generic lifecycle itself is broken."
+  },
+  "primitiveEvidence": {
+    "authorityPrimitiveAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/core/gate-authorization-authority.mjs",
+      "validator": "governance/tools/validate-gate-authorization-authority.mjs --gate <GATE>",
+      "precedent": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json"
+    },
+    "startPrimitiveAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/core/gate-start-authority.mjs",
+      "validator": "governance/tools/validate-gate-authorization-authority.mjs",
+      "precedent": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+    },
+    "stateRevisionPrimitiveAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/core/state-revision-resolver.mjs",
+      "validator": "governance/tools/validate-state-revision.mjs --gate-id <GATE>",
+      "precedent": "governance/gates/GATE14/state/revisions/R0001..R0005"
+    },
+    "contractSuccessionPrimitiveAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+      "validator": "governance/tools/validate-gate-contract-succession-authority.mjs",
+      "precedent": "governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json"
+    },
+    "evidenceModelAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/evidence/evidence-graph.mjs + governance/gee-v1/cas/content-addressed-store.mjs",
+      "validator": "gee-r4-evidence-graph.test.mjs",
+      "precedent": "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json"
+    },
+    "closurePrimitiveAvailable": {
+      "available": true,
+      "primitive": "post-freeze-maintenance-authority.mjs authorityPurpose=GATE_FINAL_CLOSURE",
+      "validator": "governance/tools/validate-post-freeze-maintenance-authority.mjs --program-id <PROGRAM>",
+      "precedent": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json"
+    },
+    "independentReinspectionAvailable": {
+      "available": true,
+      "primitive": "EXTERNAL_REINSPECTION_REPORT under SEPARATE_SESSION_REINSPECTION",
+      "validator": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "precedent": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json"
+    },
+    "externalConfirmationAvailable": {
+      "available": true,
+      "primitive": "post-freeze-maintenance-authority.mjs authorityPurpose=GATE_EXTERNAL_CONFIRMATION",
+      "validator": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "precedent": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json"
+    },
+    "gitContainmentAvailable": {
+      "available": true,
+      "primitive": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST + consumption record + exact pathspec staging",
+      "validator": "validateMaintenanceAuthorizedPathManifest",
+      "precedent": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json"
+    },
+    "geeContextAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/context/compile-context.mjs",
+      "validator": "gate-preexecution-reuse-check.mjs GEE_CONTEXT_LIVE",
+      "precedent": "GATE14 compiled live at 18.112x reduction"
+    },
+    "geeDeltaAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/delta/delta-engine.mjs",
+      "validator": "gate-preexecution-reuse-check.mjs GEE_DELTA_LIVE",
+      "precedent": "GATE14 snapshot produced live"
+    },
+    "geeEvidenceReuseAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/evidence/evidence-graph.mjs",
+      "validator": "gate-preexecution-reuse-check.mjs GEE_EVIDENCE_REUSE_LIVE",
+      "precedent": "GATE14 evidence graph produced live"
+    },
+    "geeMinimumFrontierAvailable": {
+      "available": true,
+      "primitive": "governance/gee-v1/router/router-engine.mjs",
+      "validator": "gate-preexecution-reuse-check.mjs GEE_MIN_FRONTIER_LIVE",
+      "precedent": "GATE14 route plan produced live"
+    },
+    "regressionBaselineAvailable": {
+      "available": true,
+      "primitive": "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json",
+      "validator": "gate-preexecution-reuse-check.mjs REGRESSION_BASELINE_KNOWN",
+      "precedent": "70 failure identities recorded at baseline HEAD"
+    }
+  },
+  "gateCount": 26,
+  "summary": {
+    "mandateCanonicalCount": 26,
+    "contractDerivableCount": 26,
+    "entryConditionsDefinedCount": 26,
+    "dependencyDeclaredCount": 26,
+    "readyFastPathCount": 1,
+    "preexecutionGapCount": 0,
+    "systemicGapCount": 0
+  },
+  "gates": [
+    {
+      "gateId": "GATE15",
+      "officialName": "Anti-invention validators",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+          "sourceSha256": "40d513c872348c051b888cf7e0a35a9afd22d10f487438c5bef082dfbd372f6b",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE14"
+      ],
+      "dependenciesClosedNow": true,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 5,
+      "expectedOutputCount": 7,
+      "exitConditionCount": 10,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Run governance/tools/gate-preexecution-reuse-check.mjs --gate GATE15, then the GATE readiness/contract/authorization/START mission. No prior research is required: the mandate is already canonical."
+    },
+    {
+      "gateId": "GATE16",
+      "officialName": "Independent crosscheck",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+          "sourceSha256": "40d513c872348c051b888cf7e0a35a9afd22d10f487438c5bef082dfbd372f6b",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE15"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 4,
+      "expectedOutputCount": 5,
+      "exitConditionCount": 6,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE15 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE17",
+      "officialName": "Generated report",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE16"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE16 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE18",
+      "officialName": "Implementation prompt V3",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE17"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 2,
+      "exitConditionCount": 6,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE17 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE19",
+      "officialName": "Final bundle and manifest",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE18"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 6,
+      "exitConditionCount": 8,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE18 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE20",
+      "officialName": "Final git and verdict",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE19"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 4,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 8,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE19 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE21",
+      "officialName": "MARKET DATA CAUSAL FOUNDATION",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE20"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 6,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE20 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE22",
+      "officialName": "BOTTOM/TOP LABEL ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE21"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 3,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE21 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE23",
+      "officialName": "CONFLUENCE FEATURE ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE22"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE22 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE24",
+      "officialName": "MARKET REGIME ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE23"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE23 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE25",
+      "officialName": "HISTORICAL ANALOGUE ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE24"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE24 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE26",
+      "officialName": "PREDICTIVE ENSEMBLE ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE25"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE25 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE27",
+      "officialName": "PROFIT PROTECTION ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE26"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE26 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE28",
+      "officialName": "ENTRY ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE27"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE27 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE29",
+      "officialName": "ROTATION ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE28"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE28 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE30",
+      "officialName": "PORTFOLIO RISK ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE29"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE29 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE31",
+      "officialName": "EXPLANATION ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE30"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE30 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE32",
+      "officialName": "OUT-OF-SAMPLE WALK-FORWARD VALIDATION",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE31"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE31 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE33",
+      "officialName": "PROBABILITY CALIBRATION",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE32"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 5,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE32 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE34",
+      "officialName": "GOLDEN HISTORICAL SCENARIOS",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE33"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE33 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE35",
+      "officialName": "JARVISE ALERT ENGINE",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE34"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE34 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE36",
+      "officialName": "PAPER TRADING",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE35"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE35 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE37",
+      "officialName": "LIVE DECISION SUPPORT",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE36"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE36 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE38",
+      "officialName": "CONTROLLED EXECUTION",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE37"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 5,
+      "exitConditionCount": 6,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE37 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE39",
+      "officialName": "CONTINUOUS LEARNING",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE38"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 5,
+      "exitConditionCount": 5,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE38 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    },
+    {
+      "gateId": "GATE40",
+      "officialName": "FINAL INTELLIGENT MARKET SYSTEM",
+      "ledgerStatus": "NOT_STARTED",
+      "mandateCanonical": true,
+      "mandateSource": [
+        {
+          "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sourceSha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "resolves": true
+        },
+        {
+          "sourcePath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+          "sourceSha256": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d",
+          "resolves": true
+        }
+      ],
+      "definitionCompleteness": "EXPLICIT_COMPLETE",
+      "confidenceLevel": "HIGH",
+      "missingCanonicalFields": [],
+      "dependencyDeclared": true,
+      "dependencies": [
+        "GATE39"
+      ],
+      "dependenciesClosedNow": false,
+      "entryConditionsDefined": true,
+      "entryConditionCount": 3,
+      "expectedOutputCount": 4,
+      "exitConditionCount": 9,
+      "contractDerivable": true,
+      "authorityPrimitiveAvailable": true,
+      "startPrimitiveAvailable": true,
+      "stateRevisionPrimitiveAvailable": true,
+      "contractSuccessionPrimitiveAvailable": true,
+      "evidenceModelAvailable": true,
+      "closurePrimitiveAvailable": true,
+      "independentReinspectionAvailable": true,
+      "externalConfirmationAvailable": true,
+      "gitContainmentAvailable": true,
+      "geeContextAvailable": true,
+      "geeDeltaAvailable": true,
+      "geeEvidenceReuseAvailable": true,
+      "geeMinimumFrontierAvailable": true,
+      "regressionBaselineAvailable": true,
+      "knownBlockingGap": "NONE",
+      "foreseeableIssueClass": "GATE_LOCAL_EXPECTED",
+      "gateLocalNormalMissing": [
+        "EXECUTION_CONTRACT",
+        "CURRENT_CONTRACT",
+        "STATE_REVISION",
+        "STATE_SEAL",
+        "AUTHORIZATION_RECORD",
+        "START_RECORD",
+        "CLOSURE_EVIDENCE"
+      ],
+      "nextRequiredPreparation": "Wait for GATE39 to reach COMPLETE_CONFIRMED. Nothing else is missing."
+    }
+  ]
+}

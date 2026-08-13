@@ -1,0 +1,73 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_MASTER_REUSE_MATRIX_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-13T18:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-MATRIX-FINAL",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+    "ledgerEventCount": 61,
+    "ledgerPrefixSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6",
+    "gateId": "GATE14",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0005",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/MASTER_REUSE_MATRIX_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "359713e6a955ad9289a92165dd8773d8dd3c4d5ee83e8cbf232188e4d9d459ef",
+  "authorizedOperationClasses": [
+    "MASTER_MATRIX_CREATION",
+    "GEE_LIVE_USAGE_MATRIX_CREATION",
+    "GATE_CAPABILITY_FORECAST_CREATION",
+    "REGRESSION_BASELINE_CREATION",
+    "GAP_REGISTER_CREATION",
+    "PREEXECUTION_CHECK_IMPLEMENTATION",
+    "TEST_INFRASTRUCTURE",
+    "DERIVED_PROJECTION_GENERATION",
+    "MAINTENANCE_AUTHORITY_RECORDS",
+    "FINAL_LOCAL_COMMIT"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: add master reuse and preexecution controls",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE14_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+    "sha256": "ea968e86a7b5454062adf246db90ab5743e808c6b5f1baa8c2e39d7a419401e7"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/MASTER_REUSE_MATRIX_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

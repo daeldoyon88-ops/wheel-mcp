@@ -1,0 +1,674 @@
+{
+  "document": "REGRESSION_IDENTITY_BASELINE",
+  "schemaVersion": 1,
+  "version": "V1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "canonical": true,
+  "statement": "The exact set of governance-suite test identities that already fail at this baseline HEAD, so a future Gate can compare FAILURE IDENTITIES rather than failure counts. Every identity here is PREEXISTING_UNRELATED to any future Gate: none of them is produced by, or blocks, the load-bearing governance machinery, which is proven separately by the load-bearing validator set below. A future Gate introduces a regression only when a failing identity is absent from this list.",
+  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "ledgerEventCount": 61,
+  "recordedAt": "2026-08-13T18:00:00.000Z",
+  "suiteSpec": {
+    "command": "node --test \"governance/tests/*.test.mjs\" \"governance/gee-v1/tests/*.test.mjs\" \"governance/gates/GATE13/tests/*.test.mjs\"",
+    "testFileCount": 44,
+    "totalTests": 1095,
+    "pass": 1022,
+    "fail": 70,
+    "skipped": 3
+  },
+  "comparisonRule": "COMPARE_FAILURE_IDENTITIES_NOT_COUNTS",
+  "classificationVocabulary": [
+    "PREEXISTING_UNRELATED",
+    "REPAIRED",
+    "NEW_RELATED",
+    "NEW_UNRELATED",
+    "STALE_EXPECTATION"
+  ],
+  "staleExpectationPolicy": "An identity classified POST_GATE14_CLOSURE_STALE_EXPECTATION encodes a world that the canonical ledger has lawfully left behind. It must NOT be kept failing on purpose, and it must NOT be repaired inside an unrelated Gate. It is repaired only by a bounded, separately authorized cohort.",
+  "rootCauseClasses": {
+    "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING": "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json binds governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json where REQ-SEA-03 (introduced by the H3 seal-hardening program) requires the gate-local CURRENT_CONTRACT projection. GATE13 therefore resolves sealValid=false, the R2 context compiler fails closed on it, and every GEE R2/R4/R5/R6/R7 demonstration that is pinned to GATE13 cascades. GATE13 remains COMPLETE_CONFIRMED under the ledger and its closure is not in question.",
+    "GATE13_HISTORICAL_ARTIFACT_DRIFT": "GATE13-era artifacts pin authorities that have since been lawfully amended — chiefly strategicRegistryReference.registrySha256 = 706397af (the registry as of d5b5cee6) against the live registry aaa9efcd. validate-active-gate.mjs already contains the canonical containment for this: a CLOSED gate is a historical record and is not re-authorized against a mutable registry. The tests predate that containment.",
+    "POST_GATE14_CLOSURE_STALE_EXPECTATION": "Tests written while GATE14 was IN_PROGRESS at state revision R0003 and ledger length 57/58 hardcode that world. GATE14 closed at R0005 with ledger events 60 and 61. The assertions, not the repository, are what is out of date."
+  },
+  "rootCauseCounts": {
+    "GATE13_HISTORICAL_ARTIFACT_DRIFT": 22,
+    "POST_GATE14_CLOSURE_STALE_EXPECTATION": 29,
+    "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING": 19
+  },
+  "loadBearingMachineryStatus": {
+    "statement": "Recomputed at this baseline. These are the checks a Gate lifecycle actually depends on; all pass, which is why the 70 identities above are classified unrelated.",
+    "checks": [
+      {
+        "check": "governance/tools/governance-preflight.mjs",
+        "verdict": "PASS",
+        "blockingFindingCount": 0
+      },
+      {
+        "check": "governance/tools/validate-active-gate.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-status-ledger.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-state-revision.mjs --gate-id GATE14",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-gate-registry.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-project-constitution.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-repository-identity.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-validator-provenance.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-legacy-state-binding.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-artifact-classification.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/validate-model-routing-policy.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/replay-governance-history.mjs",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/generate-status-snapshot.mjs --check",
+        "verdict": "PASS",
+        "stale": false
+      },
+      {
+        "check": "governance/tools/generate-active-gate-context.mjs --check",
+        "verdict": "PASS"
+      },
+      {
+        "check": "governance/tools/generate-governance-docs.mjs --check",
+        "verdict": "PASS"
+      }
+    ]
+  },
+  "failureIdentityCount": 70,
+  "failureIdentities": [
+    {
+      "identity": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs::G13-NEG-15: future gate authorization is not inferred from coverage PASS",
+      "file": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "testName": "G13-NEG-15: future gate authorization is not inferred from coverage PASS",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs::G13-POS-01: real canonical inputs produce a passing fail-closed calculation",
+      "file": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "testName": "G13-POS-01: real canonical inputs produce a passing fail-closed calculation",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs::G13-POS-02: all mandatory coverage items and oracle statuses are explicitly satisfied",
+      "file": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "testName": "G13-POS-02: all mandatory coverage items and oracle statuses are explicitly satisfied",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs::G13-POS-03: execution is reproducible from an unrelated working directory",
+      "file": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "testName": "G13-POS-03: execution is reproducible from an unrelated working directory",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs::G13-POS-04: matrix, report and replay evidence are emitted from the same calculation",
+      "file": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "testName": "G13-POS-04: matrix, report and replay evidence are emitted from the same calculation",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs::G13-POS-05: generated context is visible but cannot satisfy a mandatory item",
+      "file": "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs",
+      "testName": "G13-POS-05: generated context is visible but cannot satisfy a mandatory item",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-foundation-work-unit-authority.test.mjs::AUTH-16: GATE13 state, ledger closure and external confirmation are untouched",
+      "file": "governance/gee-v1/tests/gee-foundation-work-unit-authority.test.mjs",
+      "testName": "AUTH-16: GATE13 state, ledger closure and external confirmation are untouched",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs::ACT-05: GATE13 itself, now ANCHORED_APPEND_ONLY with real transitions, DOES satisfy a prerequisite check",
+      "file": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs",
+      "testName": "ACT-05: GATE13 itself, now ANCHORED_APPEND_ONLY with real transitions, DOES satisfy a prerequisite check",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs::GATE13 end-to-end: ledger -> witness -> identity binding -> authoritative state -> COMPLETE_CONFIRMED, verified, real evidence",
+      "file": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs",
+      "testName": "GATE13 end-to-end: ledger -> witness -> identity binding -> authoritative state -> COMPLETE_CONFIRMED, verified, real evidence",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs::RC-2/ACT-06: editing the non-canonical GATE_STATUS_SNAPSHOT.json never changes the adapter status",
+      "file": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs",
+      "testName": "RC-2/ACT-06: editing the non-canonical GATE_STATUS_SNAPSHOT.json never changes the adapter status",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-backward-compat.test.mjs::validate-state-seal and validate-state-revision still PASS for GATE13",
+      "file": "governance/gee-v1/tests/gee-r1-backward-compat.test.mjs",
+      "testName": "validate-state-seal and validate-state-revision still PASS for GATE13",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-core-adapter-readiness.test.mjs::future/strategic-only GATE14 returns NOT_STARTED without core knowing gate numbers",
+      "file": "governance/gee-v1/tests/gee-r1-core-adapter-readiness.test.mjs",
+      "testName": "future/strategic-only GATE14 returns NOT_STARTED without core knowing gate numbers",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false,
+      "verifiedEvidence": "asserts view.status === NOT_STARTED for GATE14, which is now COMPLETE_CONFIRMED."
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-final-closure-blocker-fix-r1.test.mjs::B18: the real GATE13 view still reports zero canonical-revision drift and structurally valid",
+      "file": "governance/gee-v1/tests/gee-r1-final-closure-blocker-fix-r1.test.mjs",
+      "testName": "B18: the real GATE13 view still reports zero canonical-revision drift and structurally valid",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-final-hardening.test.mjs::HF06: modern closure becomes final-authoritative once ANCHORED_EXTERNAL is reached",
+      "file": "governance/gee-v1/tests/gee-r1-final-hardening.test.mjs",
+      "testName": "HF06: modern closure becomes final-authoritative once ANCHORED_EXTERNAL is reached",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-final-hardening.test.mjs::HF12: ledger not complete + seal complete -> closure is not complete",
+      "file": "governance/gee-v1/tests/gee-r1-final-hardening.test.mjs",
+      "testName": "HF12: ledger not complete + seal complete -> closure is not complete",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r1-repair-r2-hostile.test.mjs::H48: STATE_SEAL valide historique GATE13 -> état réel accepté",
+      "file": "governance/gee-v1/tests/gee-r1-repair-r2-hostile.test.mjs",
+      "testName": "H48: STATE_SEAL valide historique GATE13 -> état réel accepté",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r2-context-compiler.test.mjs::R2-10 Wheel adapter compiles real GATE13",
+      "file": "governance/gee-v1/tests/gee-r2-context-compiler.test.mjs",
+      "testName": "R2-10 Wheel adapter compiles real GATE13",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false,
+      "verifiedEvidence": "compileContext(GATE13) throws CONFLICTING_AUTHORITY:SEAL_INVALID."
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r2-context-compiler.test.mjs::R2-R1 completed GATE13 does not inherit R2 execution scope",
+      "file": "governance/gee-v1/tests/gee-r2-context-compiler.test.mjs",
+      "testName": "R2-R1 completed GATE13 does not inherit R2 execution scope",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r2-determinism.test.mjs::R2-H03/H04 compiler output cannot satisfy a prerequisite or write R1",
+      "file": "governance/gee-v1/tests/gee-r2-determinism.test.mjs",
+      "testName": "R2-H03/H04 compiler output cannot satisfy a prerequisite or write R1",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs::R4-27 real compiled R2 context produces grounded Wheel evidence",
+      "file": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs",
+      "testName": "R4-27 real compiled R2 context produces grounded Wheel evidence",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs::R4-34 modified fact in a genuine R2 context is not grounded",
+      "file": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs",
+      "testName": "R4-34 modified fact in a genuine R2 context is not grounded",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs::R4-35 modified provenance in a genuine R2 context is not grounded",
+      "file": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs",
+      "testName": "R4-35 modified provenance in a genuine R2 context is not grounded",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs::R4-H19 a Wheel extra with fake GROUNDED metadata cannot bootstrap reuse",
+      "file": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs",
+      "testName": "R4-H19 a Wheel extra with fake GROUNDED metadata cannot bootstrap reuse",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs::R4-H20 a real R2 context stays accepted and reusable",
+      "file": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs",
+      "testName": "R4-H20 a real R2 context stays accepted and reusable",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs::R4-H21 a modified genuine R2 context stays rejected and unusable",
+      "file": "governance/gee-v1/tests/gee-r4-evidence-graph.test.mjs",
+      "testName": "R4-H21 a modified genuine R2 context stays rejected and unusable",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r5-router.test.mjs::R5-H13 a real Wheel work unit routes no work when R2/R3/R4 prove nothing changed",
+      "file": "governance/gee-v1/tests/gee-r5-router.test.mjs",
+      "testName": "R5-H13 a real Wheel work unit routes no work when R2/R3/R4 prove nothing changed",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r5-router.test.mjs::R5-H14 a real Wheel source change routes only the facts that depend on it",
+      "file": "governance/gee-v1/tests/gee-r5-router.test.mjs",
+      "testName": "R5-H14 a real Wheel source change routes only the facts that depend on it",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs::R6-DEMO a real Wheel work unit is interrupted and resumed in a fresh process",
+      "file": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs",
+      "testName": "R6-DEMO a real Wheel work unit is interrupted and resumed in a fresh process",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs::R6-EFF recovery reuses rather than replays, and the numbers say so",
+      "file": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs",
+      "testName": "R6-EFF recovery reuses rather than replays, and the numbers say so",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs::R6-X01..X04 a checkpoint binds the real R2, R3, R4 and R5 identities",
+      "file": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs",
+      "testName": "R6-X01..X04 a checkpoint binds the real R2, R3, R4 and R5 identities",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs::R6-X05 a fabricated R5 route is rejected before any recovery decision",
+      "file": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs",
+      "testName": "R6-X05 a fabricated R5 route is rejected before any recovery decision",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs::R6-X06 a deferred R5 task keeps its deferred state through a real checkpoint",
+      "file": "governance/gee-v1/tests/gee-r6-recovery-index-usage.test.mjs",
+      "testName": "R6-X06 a deferred R5 task keeps its deferred state through a real checkpoint",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs::R7 before-after benchmark measures unchanged, relevant, unrelated, routing and quality scenarios",
+      "file": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "testName": "R7 before-after benchmark measures unchanged, relevant, unrelated, routing and quality scenarios",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r7-eval-suite.test.mjs::R7 E01-E10 deterministic eval suite passes",
+      "file": "governance/gee-v1/tests/gee-r7-eval-suite.test.mjs",
+      "testName": "R7 E01-E10 deterministic eval suite passes",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/gee-r7-recovery-stress.test.mjs::R7 fresh-process recovery preserves completed work without zero restart",
+      "file": "governance/gee-v1/tests/gee-r7-recovery-stress.test.mjs",
+      "testName": "R7 fresh-process recovery preserves completed work without zero restart",
+      "rootCauseClass": "GATE13_HISTORICAL_SEAL_REJECTED_BY_H3_HARDENING",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/historical-architecture-h1-model-d.test.mjs::H1-16: the live CURRENT_STATE pointer has lawfully advanced and is not byte-pinned",
+      "file": "governance/gee-v1/tests/historical-architecture-h1-model-d.test.mjs",
+      "testName": "H1-16: the live CURRENT_STATE pointer has lawfully advanced and is not byte-pinned",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false,
+      "verifiedEvidence": "asserts CURRENT_STATE.stateRevision === R0003; the pointer lawfully advanced to R0005."
+    },
+    {
+      "identity": "governance/gee-v1/tests/historical-architecture-h2-revision-resolver.test.mjs::H2-18: real GATE14 resolves its head revision from the ledger with a rooted chain",
+      "file": "governance/gee-v1/tests/historical-architecture-h2-revision-resolver.test.mjs",
+      "testName": "H2-18: real GATE14 resolves its head revision from the ledger with a rooted chain",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/historical-architecture-h7-contract-succession.test.mjs::H7-07: event 59 records the succession with a native state pin",
+      "file": "governance/gee-v1/tests/historical-architecture-h7-contract-succession.test.mjs",
+      "testName": "H7-07: event 59 records the succession with a native state pin",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/historical-architecture-h7-contract-succession.test.mjs::H7-10: the canonical state is exactly what the program was authorized to produce",
+      "file": "governance/gee-v1/tests/historical-architecture-h7-contract-succession.test.mjs",
+      "testName": "H7-10: the canonical state is exactly what the program was authorized to produce",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/historical-architecture-h8-probes.test.mjs::H8-A3: GATE14 is not closed and ACTIVE_GATE was not switched",
+      "file": "governance/gee-v1/tests/historical-architecture-h8-probes.test.mjs",
+      "testName": "H8-A3: GATE14 is not closed and ACTIVE_GATE was not switched",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false,
+      "verifiedEvidence": "asserts gate14.at(-1).toStatus === IN_PROGRESS and no AGENT_CLOSURE/EXTERNAL_CONFIRMATION event; ledger events 60 and 61 made both false."
+    },
+    {
+      "identity": "governance/gee-v1/tests/historical-architecture-h8-probes.test.mjs::PROBE-5: a fabricated new head cannot legitimize a forged predecessor",
+      "file": "governance/gee-v1/tests/historical-architecture-h8-probes.test.mjs",
+      "testName": "PROBE-5: a fabricated new head cannot legitimize a forged predecessor",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/gee-v1/tests/precontract-authority.test.mjs::Wheel source resolves a real external fixture and rejects competing sources",
+      "file": "governance/gee-v1/tests/precontract-authority.test.mjs",
+      "testName": "Wheel source resolves a real external fixture and rejects competing sources",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-authority-primitive.test.mjs::H17 fake KNOWN_ZERO without valid sealed provenance resolves UNKNOWN (M2)",
+      "file": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "testName": "H17 fake KNOWN_ZERO without valid sealed provenance resolves UNKNOWN (M2)",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-authority-primitive.test.mjs::H17b OPEN_DEFECTS mutated after sealing also resolves UNKNOWN (M2)",
+      "file": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "testName": "H17b OPEN_DEFECTS mutated after sealing also resolves UNKNOWN (M2)",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-authority-primitive.test.mjs::P06 sealed OPEN_DEFECTS with defects=[] derives KNOWN_ZERO through real sealed provenance",
+      "file": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "testName": "P06 sealed OPEN_DEFECTS with defects=[] derives KNOWN_ZERO through real sealed provenance",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-authority-primitive.test.mjs::the real repository ledger remains valid, 57 events, unchanged digest",
+      "file": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "testName": "the real repository ledger remains valid, 57 events, unchanged digest",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false,
+      "verifiedEvidence": "asserts a hardcoded 57-event ledger; the ledger holds 61 events."
+    },
+    {
+      "identity": "governance/tests/gate-authorization-current-state-lineage.test.mjs::CS-H13 exact valid R0002 descendant passes",
+      "file": "governance/tests/gate-authorization-current-state-lineage.test.mjs",
+      "testName": "CS-H13 exact valid R0002 descendant passes",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-current-state-lineage.test.mjs::CS-H14 generic valid R0003 descendant passes",
+      "file": "governance/tests/gate-authorization-current-state-lineage.test.mjs",
+      "testName": "CS-H14 generic valid R0003 descendant passes",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-current-state-lineage.test.mjs::P01 future R2 is a valid descendant and CURRENT_STATE may advance",
+      "file": "governance/tests/gate-authorization-current-state-lineage.test.mjs",
+      "testName": "P01 future R2 is a valid descendant and CURRENT_STATE may advance",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-authorization-current-state-lineage.test.mjs::P02 derived views remain mutable projections, not permanent AUTHORIZATION byte pins",
+      "file": "governance/tests/gate-authorization-current-state-lineage.test.mjs",
+      "testName": "P02 derived views remain mutable projections, not permanent AUTHORIZATION byte pins",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-start-authority-primitive.test.mjs::owner tool review is unsigned and approval is test-key-only",
+      "file": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "testName": "owner tool review is unsigned and approval is test-key-only",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-start-authority-primitive.test.mjs::P01-P03 valid closed documents, digest bindings and owner signature",
+      "file": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "testName": "P01-P03 valid closed documents, digest bindings and owner signature",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-start-authority-primitive.test.mjs::P02-P09 isolated GATE14 future event 58 validates without touching the real repository",
+      "file": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "testName": "P02-P09 isolated GATE14 future event 58 validates without touching the real repository",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-start-authority-primitive.test.mjs::P10 generic GATE15 shape is accepted without GATE14 literals",
+      "file": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "testName": "P10 generic GATE15 shape is accepted without GATE14 literals",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate-start-authority-primitive.test.mjs::pre-START live GATE14 cannot execute and real state remains absent",
+      "file": "governance/tests/gate-start-authority-primitive.test.mjs",
+      "testName": "pre-START live GATE14 cannot execute and real state remains absent",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-authority-conflicts-repair.test.mjs::G13-REPAIR-08: a fully valid GATE13 candidate (real event, real contract, real sealed state, closed predecessor) is accepted",
+      "file": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "testName": "G13-REPAIR-08: a fully valid GATE13 candidate (real event, real contract, real sealed state, closed predecessor) is accepted",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-authority-conflicts-repair.test.mjs::G13-REPAIR-10 (hostile): GATE13 without any state on disk is rejected",
+      "file": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "testName": "G13-REPAIR-10 (hostile): GATE13 without any state on disk is rejected",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-authority-conflicts-repair.test.mjs::G13-REPAIR-11 (hostile): GATE13 with a tampered state seal is rejected",
+      "file": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "testName": "G13-REPAIR-11 (hostile): GATE13 with a tampered state seal is rejected",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-authority-conflicts-repair.test.mjs::G13-REPAIR-12 (hostile): GATE13 with an incomplete (not closed) predecessor is rejected",
+      "file": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "testName": "G13-REPAIR-12 (hostile): GATE13 with an incomplete (not closed) predecessor is rejected",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-authority-conflicts-repair.test.mjs::G13-REPAIR-13 (hostile): GATE14 (no authority anywhere) is rejected",
+      "file": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "testName": "G13-REPAIR-13 (hostile): GATE14 (no authority anywhere) is rejected",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-authority-conflicts-repair.test.mjs::G13-REPAIR-16: reproducible from a different working directory",
+      "file": "governance/tests/gate13-authority-conflicts-repair.test.mjs",
+      "testName": "G13-REPAIR-16: reproducible from a different working directory",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-contract-and-mandate.test.mjs::G13-POS-03: contract validates against the real validator with zero findings",
+      "file": "governance/tests/gate13-contract-and-mandate.test.mjs",
+      "testName": "G13-POS-03: contract validates against the real validator with zero findings",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false,
+      "verifiedEvidence": "validate-gate-contract reports REGISTRY_HASH_MISMATCH: GATE13 pins registry 706397af, live registry is aaa9efcd."
+    },
+    {
+      "identity": "governance/tests/gate13-contract-and-mandate.test.mjs::G13-POS-08: state revision validates against the real validator with zero findings",
+      "file": "governance/tests/gate13-contract-and-mandate.test.mjs",
+      "testName": "G13-POS-08: state revision validates against the real validator with zero findings",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/gate13-contract-and-mandate.test.mjs::G13-REPRO-01: state and contract validation is reproducible from a different working directory",
+      "file": "governance/tests/gate13-contract-and-mandate.test.mjs",
+      "testName": "G13-REPRO-01: state and contract validation is reproducible from a different working directory",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/historical-reconciliation-primitive.test.mjs::ARCH-06: the real repository ledger preserves the frozen prefix and approved reconciliation cohort",
+      "file": "governance/tests/historical-reconciliation-primitive.test.mjs",
+      "testName": "ARCH-06: the real repository ledger preserves the frozen prefix and approved reconciliation cohort",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/i4-default-source-map-activation.test.mjs::1. normal entry without --source-map activates the canonical default and passes",
+      "file": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "testName": "1. normal entry without --source-map activates the canonical default and passes",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/i4-default-source-map-activation.test.mjs::10. GATE13 is neither executable nor authorized by this mission",
+      "file": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "testName": "10. GATE13 is neither executable nor authorized by this mission",
+      "rootCauseClass": "GATE13_HISTORICAL_ARTIFACT_DRIFT",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/i4-default-source-map-activation.test.mjs::2. explicit valid override is preserved, relative and absolute",
+      "file": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "testName": "2. explicit valid override is preserved, relative and absolute",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/i4-default-source-map-activation.test.mjs::3. invalid explicit override fails closed and never falls back to the default",
+      "file": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "testName": "3. invalid explicit override fails closed and never falls back to the default",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    },
+    {
+      "identity": "governance/tests/i4-default-source-map-activation.test.mjs::8. the result is identical from any terminal working directory",
+      "file": "governance/tests/i4-default-source-map-activation.test.mjs",
+      "testName": "8. the result is identical from any terminal working directory",
+      "rootCauseClass": "POST_GATE14_CLOSURE_STALE_EXPECTATION",
+      "classification": "PREEXISTING_UNRELATED",
+      "blocksGovernanceMachinery": false
+    }
+  ]
+}

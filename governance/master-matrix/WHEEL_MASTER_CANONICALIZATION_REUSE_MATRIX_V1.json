@@ -1,0 +1,2437 @@
+{
+  "document": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX",
+  "schemaVersion": 1,
+  "version": "V1",
+  "programId": "WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1",
+  "canonical": true,
+  "baseHead": "3eb0641d2193f1adf42599915531e6c033d69442",
+  "ledgerEventCount": 61,
+  "recordedAt": "2026-08-13T18:00:00.000Z",
+  "statement": "Every material governance capability in this repository, with its canonical source, its authority class, whether anything actually consumes it, which validator recomputes it, and what a future Gate must do about it. The purpose is to make \"work already produced but forgotten, unratified or unlinked\" impossible: a future Gate reads this matrix instead of rediscovering the same ground.",
+  "liveConsumerRule": "A capability is CANONICAL_LIVE only where a real consumer was identified and, where it is executable, actually executed at this baseline HEAD. A document existing on disk is never sufficient.",
+  "statusVocabulary": {
+    "CANONICAL_LIVE": "Canonical, and something really consumes it.",
+    "CANONICAL_NOT_CONSUMED": "Canonical and correct, but no production consumer calls it yet.",
+    "PROPOSED_NOT_RATIFIED": "Awaiting an owner decision.",
+    "DERIVED_ONLY": "A generated projection; never an authority.",
+    "SUPERSEDED": "Historically valid, replaced by a later canonical source.",
+    "STALE": "Points at something that no longer holds.",
+    "DUPLICATE": "A second copy of an authority that already has a canonical home.",
+    "GENUINE_GAP": "Nothing in the repository provides this capability."
+  },
+  "companionDocuments": [
+    "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json",
+    "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+    "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json",
+    "governance/master-matrix/MASTER_GAP_REGISTER_V1.json",
+    "governance/tools/gate-preexecution-reuse-check.mjs"
+  ],
+  "sourceOfTruthGraph": {
+    "statement": "Exactly one authoritative source or resolver per governance domain. Scanned for PARALLEL_AUTHORITY, SHADOW_AUTHORITY, GENERATED_FILE_USED_AS_AUTHORITY, STALE_POINTER_AUTHORITY and UNRESOLVED_PRECEDENCE; none were found.",
+    "domains": [
+      {
+        "domain": "STRATEGIC_GATE_MANDATE",
+        "authority": "governance/GATE_REGISTRY_00_40.json",
+        "resolver": "wheel-project-adapter.mjs",
+        "upstreamRatification": [
+          "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+          "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt"
+        ],
+        "precedence": "Owner ratification documents are the upstream source; the registry is the single canonical projection consumers read. Not parallel: the registry pins each source by sourcePath and, where declared, sourceSha256."
+      },
+      {
+        "domain": "GATE_STATUS",
+        "authority": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "resolver": "governance/gee-v1/core/authoritative-state.mjs",
+        "precedence": "Append-only ledger replay only. governance/state/generated/GATE_STATUS_SNAPSHOT.json is DERIVED_ONLY and is never read for status."
+      },
+      {
+        "domain": "ACTIVE_LIFECYCLE_OWNERSHIP",
+        "authority": "governance/active/ACTIVE_GATE.json",
+        "resolver": "governance/tools/validate-active-gate.mjs",
+        "precedence": "Bound to immutable activation-event identity; deliberately does not pin the mutable projection it names."
+      },
+      {
+        "domain": "EXECUTION_CONTRACT",
+        "authority": "governance/gates/<GATE>/contracts/CURRENT_CONTRACT.json",
+        "resolver": "governance/gee-v1/adapters/wheel/map-gate-contract.mjs",
+        "precedence": "The pointer, never a fixed R0001 filename. Succession is recorded by a single-use local authority."
+      },
+      {
+        "domain": "STATE_REVISION",
+        "authority": "governance/gates/<GATE>/state/CURRENT_STATE.json + sealed revisions",
+        "resolver": "governance/gee-v1/core/state-revision-resolver.mjs",
+        "precedence": "NATIVE_EVENT_PIN from ordinal 59 onward; LEGACY_STATE_BINDINGS for ordinals 57-58 only, and those grant no permission."
+      },
+      {
+        "domain": "CLOSURE_EVIDENCE",
+        "authority": "governance/gates/<GATE>/evidence/",
+        "resolver": "the gate EXTERNAL_REINSPECTION_REPORT",
+        "precedence": "Evidence is confirmed by an independent session, never by its producer."
+      },
+      {
+        "domain": "WRITE_AUTHORITY",
+        "authority": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_*.json (schemaVersion 2)",
+        "resolver": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+        "precedence": "Discovery is by programId and must match exactly one document; AUTHORITY_NOT_UNIQUE_OR_ABSENT blocks otherwise, which is what makes a parallel authority impossible here."
+      },
+      {
+        "domain": "DEPENDENCY_STATE",
+        "authority": "governance/GATE_REGISTRY_00_40.json#/gates/*/dependencies",
+        "resolver": "governance/tools/gate-preexecution-reuse-check.mjs",
+        "precedence": "Declared dependency, resolved against ledger status."
+      },
+      {
+        "domain": "GENERATED_PROJECTION",
+        "authority": "NONE BY CONSTRUCTION",
+        "resolver": "the three --check generators",
+        "precedence": "GENERATED_FILES_NON_CANONICAL. Every generated file declares canonical=false and drift is detected by recomputation."
+      },
+      {
+        "domain": "GIT_COHORT",
+        "authority": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+        "resolver": "validateMaintenanceAuthorizedPathManifest",
+        "precedence": "Exact relative paths only; wildcards are rejected at validation time."
+      }
+    ],
+    "findings": {
+      "parallelAuthority": 0,
+      "shadowAuthority": 0,
+      "generatedFileUsedAsAuthority": 0,
+      "stalePointerAuthority": 0,
+      "unresolvedPrecedence": 0
+    }
+  },
+  "standardGateGoldenPath": {
+    "statement": "The generic three-mission Gate lifecycle, each transition mapped to the primitive that performs it and the GATE14 precedent that already exercised it. Nothing here requires a new generic mechanism.",
+    "mission1": {
+      "name": "READINESS -> CONTRACT -> AUTHORIZATION -> START",
+      "reachable": true,
+      "transitions": [
+        {
+          "step": "READINESS",
+          "primitive": "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit <GATE>",
+          "requiredAuthority": "NONE (read-only)",
+          "stateTransition": "none",
+          "ledgerTransition": "none",
+          "evidence": "readiness result",
+          "consumer": "evaluate-readiness.mjs",
+          "validator": "gee-r1-core-adapter-readiness.test.mjs",
+          "gitContainment": "n/a"
+        },
+        {
+          "step": "CONTRACT",
+          "primitive": "governance/gee-v1/contracts/seal-execution-contract.mjs + CURRENT_CONTRACT pointer",
+          "requiredAuthority": "PRECONTRACT_AUTHORITY or the authorization authority path manifest",
+          "stateTransition": "none",
+          "ledgerTransition": "none",
+          "evidence": "sealed execution contract",
+          "consumer": "validate-gate-contract.mjs",
+          "validator": "governance/tools/validate-gate-contract.mjs",
+          "gitContainment": "authorized path manifest"
+        },
+        {
+          "step": "AUTHORIZATION",
+          "primitive": "governance/gee-v1/core/gate-authorization-authority.mjs",
+          "requiredAuthority": "PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY",
+          "stateTransition": "R0001 sealed",
+          "ledgerTransition": "NOT_STARTED -> AUTHORIZED_NOT_STARTED",
+          "evidence": "GATE_AUTHORIZATION_RECORD.json",
+          "consumer": "validate-gate-authorization-authority.mjs --gate <GATE>",
+          "validator": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+          "gitContainment": "exact cohort",
+          "precedent": "ledger ordinal 57"
+        },
+        {
+          "step": "START",
+          "primitive": "governance/gee-v1/core/gate-start-authority.mjs",
+          "requiredAuthority": "PROJECT_OWNER_GATE_START_AUTHORITY",
+          "stateTransition": "R0002 sealed",
+          "ledgerTransition": "AUTHORIZED_NOT_STARTED -> IN_PROGRESS",
+          "evidence": "GATE_START_RECORD.json",
+          "consumer": "gate-start-authority-source.mjs via preflight",
+          "validator": "governance/tests/gate-start-authority-primitive.test.mjs",
+          "gitContainment": "exact cohort",
+          "precedent": "ledger ordinal 58"
+        }
+      ]
+    },
+    "mission2": {
+      "name": "IMPLEMENTATION -> TESTS -> EVIDENCE -> CLOSURE MATRIX -> AGENT_CLOSURE -> COMPLETE_AGENT",
+      "reachable": true,
+      "transitions": [
+        {
+          "step": "IMPLEMENTATION",
+          "primitive": "contract authorizedPaths",
+          "requiredAuthority": "EXECUTION_CONTRACT",
+          "stateTransition": "revision per checkpoint",
+          "ledgerTransition": "none",
+          "evidence": "implementation artifacts",
+          "consumer": "AUTHORIZED_PATHS_ONLY",
+          "validator": "validate-gate-contract.mjs",
+          "gitContainment": "contract authorizedPaths"
+        },
+        {
+          "step": "CONTRACT_SUCCESSION (optional)",
+          "primitive": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+          "requiredAuthority": "GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY",
+          "stateTransition": "successor revision",
+          "ledgerTransition": "IN_PROGRESS (native state pin)",
+          "evidence": "succession local authority",
+          "consumer": "validate-gate-contract-succession-authority.mjs",
+          "validator": "historical-architecture-h7-contract-succession.test.mjs",
+          "gitContainment": "exact cohort",
+          "precedent": "ledger ordinal 59"
+        },
+        {
+          "step": "EVIDENCE + CLOSURE MATRIX",
+          "primitive": "evidence graph + gate CLOSURE_EVIDENCE.json",
+          "requiredAuthority": "EXECUTION_CONTRACT",
+          "stateTransition": "revision sealed",
+          "ledgerTransition": "none",
+          "evidence": "CLOSURE_EVIDENCE.json, MUTATION_EXECUTION_RECORDS.json, COVERAGE_MATRIX.json",
+          "consumer": "gate hostile-self-tests.mjs",
+          "validator": "gate hostile-self-tests.mjs",
+          "gitContainment": "exact cohort"
+        },
+        {
+          "step": "AGENT_CLOSURE",
+          "primitive": "post-freeze-maintenance-authority.mjs authorityPurpose=GATE_FINAL_CLOSURE",
+          "requiredAuthority": "GATE_FINAL_CLOSURE authority (maxUse 1)",
+          "stateTransition": "closure revision sealed",
+          "ledgerTransition": "IN_PROGRESS -> COMPLETE_AGENT",
+          "evidence": "closure confirmation package + consumption record",
+          "consumer": "validate-post-freeze-maintenance-authority.mjs",
+          "validator": "gee-post-freeze-maintenance-authority.test.mjs",
+          "gitContainment": "GATE_FINAL_CLOSURE authorized path manifest",
+          "precedent": "ledger ordinal 60"
+        }
+      ]
+    },
+    "mission3": {
+      "name": "INDEPENDENT REINSPECTION -> EXTERNAL_CONFIRMATION -> COMPLETE_CONFIRMED -> FINAL COMMIT",
+      "reachable": true,
+      "transitions": [
+        {
+          "step": "INDEPENDENT REINSPECTION",
+          "primitive": "EXTERNAL_REINSPECTION_REPORT in a separate main-agent session",
+          "requiredAuthority": "NONE (read-only) under SEPARATE_SESSION_REINSPECTION + NO_CIRCULAR_VALIDATION",
+          "stateTransition": "none",
+          "ledgerTransition": "none",
+          "evidence": "reinspection report with re-derived digests and ledger replay",
+          "consumer": "the EXTERNAL_CONFIRMATION authority binds its path and digest",
+          "validator": "validate-post-freeze-maintenance-authority.mjs",
+          "gitContainment": "n/a",
+          "precedent": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json"
+        },
+        {
+          "step": "EXTERNAL_CONFIRMATION",
+          "primitive": "post-freeze-maintenance-authority.mjs authorityPurpose=GATE_EXTERNAL_CONFIRMATION",
+          "requiredAuthority": "GATE_EXTERNAL_CONFIRMATION authority (sole operation class, maxUse 1)",
+          "stateTransition": "final revision sealed",
+          "ledgerTransition": "COMPLETE_AGENT -> COMPLETE_CONFIRMED",
+          "evidence": "final complete-confirmed cohort + consumption record",
+          "consumer": "validate-post-freeze-maintenance-authority.mjs",
+          "validator": "gee-post-freeze-maintenance-authority.test.mjs",
+          "gitContainment": "EXTERNAL_CONFIRMATION authorized path manifest",
+          "precedent": "ledger ordinal 61"
+        },
+        {
+          "step": "FINAL COMMIT",
+          "primitive": "exact pathspec staging under commitPolicy.maxCommitCount = 1",
+          "requiredAuthority": "OWNER_EXPLICIT_COMMIT_APPROVAL",
+          "stateTransition": "none",
+          "ledgerTransition": "none",
+          "evidence": "consumption record naming the transaction id and commit message",
+          "consumer": "validateConsumptionRecord",
+          "validator": "validate-post-freeze-maintenance-authority.mjs --phase VERIFY_PROGRAM_CONSUMPTION",
+          "gitContainment": "GIT_ADD_PATHSPEC + GIT_COMMIT only; push FORBIDDEN_ALWAYS"
+        }
+      ]
+    },
+    "newGenericMechanismRequired": "NONE. Every transition above has an implemented primitive, a validator, and a GATE14 precedent."
+  },
+  "minimumEvidenceFrontier": {
+    "statement": "What each lifecycle phase must actually re-run. The full governance suite stays available as regression evidence but is not mandatory where a smaller sufficient frontier is proven, and it must never be run mechanically to produce a number.",
+    "phases": [
+      {
+        "phase": "READINESS",
+        "loadBearing": [
+          "governance/tools/governance-preflight.mjs",
+          "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit <GATE>",
+          "governance/tools/gate-preexecution-reuse-check.mjs --gate <GATE>"
+        ],
+        "notRequired": "the full 1095-test suite"
+      },
+      {
+        "phase": "CONTRACT",
+        "loadBearing": [
+          "governance/tools/validate-gate-contract.mjs --contract <C> --pointer <P>",
+          "governance/tools/validate-gate-registry.mjs"
+        ],
+        "notRequired": "GEE R2-R7 test files"
+      },
+      {
+        "phase": "START",
+        "loadBearing": [
+          "governance/tools/validate-gate-authorization-authority.mjs --gate <GATE>",
+          "governance/tools/validate-status-ledger.mjs",
+          "governance/tools/validate-state-revision.mjs --gate-id <GATE>",
+          "governance/tools/validate-active-gate.mjs"
+        ],
+        "notRequired": "historical-architecture test files"
+      },
+      {
+        "phase": "IMPLEMENTATION",
+        "loadBearing": [
+          "the gate-local test file",
+          "the R5 route plan, which names exactly the tasks whose evidence R3/R4 could not prove unchanged"
+        ],
+        "notRequired": "unrelated gate test files"
+      },
+      {
+        "phase": "AGENT_CLOSURE",
+        "loadBearing": [
+          "gate hostile-self-tests.mjs",
+          "governance/tools/validate-post-freeze-maintenance-authority.mjs --program-id <PROGRAM>",
+          "governance/tools/validate-state-seal.mjs",
+          "the three generator --check drift detectors"
+        ],
+        "notRequired": "full suite"
+      },
+      {
+        "phase": "EXTERNAL_CONFIRMATION",
+        "loadBearing": [
+          "ledger replay across the gate ordinals",
+          "governance/tools/validate-status-ledger.mjs",
+          "governance/tools/validate-state-revision.mjs --gate-id <GATE>",
+          "governance/tools/validate-validator-provenance.mjs",
+          "diff against governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json"
+        ],
+        "notRequired": "rerunning the full suite for a count"
+      }
+    ],
+    "unjustifiedGlobalSuiteExecutions": "NONE FOUND. No workflow in governance/ mechanically executes the whole suite as a gating step."
+  },
+  "capabilityCount": 46,
+  "statusCounts": {
+    "CANONICAL_LIVE": 37,
+    "SUPERSEDED": 4,
+    "CANONICAL_NOT_CONSUMED": 3,
+    "DERIVED_ONLY": 2
+  },
+  "priorityCounts": {
+    "P3": 35,
+    "P2": 9,
+    "P1": 2
+  },
+  "genuineGapCount": 0,
+  "capabilities": [
+    {
+      "id": "MM-001",
+      "domain": "CONSTITUTION",
+      "capability": "Blocking governance rule set (17 rules) with adapter coverage and Git operation policy",
+      "sourcePaths": [
+        "governance/PROJECT_CONSTITUTION.json"
+      ],
+      "sourceSha256": {
+        "governance/PROJECT_CONSTITUTION.json": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8"
+      },
+      "sourceAuthorityClass": "CANONICAL_RULE",
+      "canonicalAuthorityPath": "governance/PROJECT_CONSTITUTION.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "RATIFIED_R3",
+      "liveConsumerPaths": [
+        "governance/tools/governance-preflight.mjs",
+        "governance/tools/validate-project-constitution.mjs",
+        "governance/tools/validate-adapter-parity.mjs",
+        "governance/gee-v1/context/compile-context.mjs"
+      ],
+      "liveConsumerFunction": "compile-context.mjs emits applicableConstraints with ruleId + sourceSha256 into every compiled work-unit context; preflight emits gitPolicy from GIT_WRITES_FORBIDDEN_BY_DEFAULT.",
+      "validatorPaths": [
+        "governance/tools/validate-project-constitution.mjs",
+        "governance/tools/validate-adapter-parity.mjs"
+      ],
+      "projectionPaths": [
+        "governance/generated/PROJECT_CONSTITUTION.md"
+      ],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-project-constitution.mjs verdict PASS",
+        "compile-context GATE14 applicableConstraints carries sourceSha256 a26443b5…"
+      ]
+    },
+    {
+      "id": "MM-002",
+      "domain": "STRATEGIC_MANDATE",
+      "capability": "Canonical registry of all 41 Gates: objective, dependencies, entry/exit conditions, expected outputs, provenance",
+      "sourcePaths": [
+        "governance/GATE_REGISTRY_00_40.json"
+      ],
+      "sourceSha256": {
+        "governance/GATE_REGISTRY_00_40.json": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+      },
+      "sourceAuthorityClass": "CANONICAL_STRATEGIC_REGISTRY",
+      "canonicalAuthorityPath": "governance/GATE_REGISTRY_00_40.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "RATIFIED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-gate-registry.mjs",
+        "governance/tools/validate-gate-contract.mjs",
+        "governance/gee-v1/adapters/wheel/wheel-project-adapter.mjs",
+        "governance/tools/generate-active-gate-context.mjs",
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "liveConsumerFunction": "wheel-project-adapter resolves listWorkUnitIds() and each work-unit objective from the registry; validate-gate-contract recomputes CONTRACT_STRATEGY_DIVERGENCE against gate.canonicalObjective.",
+      "validatorPaths": [
+        "governance/tools/validate-gate-registry.mjs"
+      ],
+      "projectionPaths": [
+        "governance/generated/GATE_REGISTRY_00_40.md"
+      ],
+      "currentGateConsumers": [
+        "GATE13",
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-gate-registry.mjs verdict PASS",
+        "inspect-work-unit.mjs lists 41 work unit ids"
+      ]
+    },
+    {
+      "id": "MM-003",
+      "domain": "STRATEGIC_MANDATE",
+      "capability": "GATE15-GATE40 canonical mandates — objective, dependencies, entry/exit conditions, expected outputs, all EXPLICIT_COMPLETE with zero missingCanonicalFields",
+      "sourcePaths": [
+        "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+        "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+        "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt"
+      ],
+      "sourceSha256": {
+        "governance/sources/GATE15_CANONICAL_MANDATE_R0.json": "40d513c872348c051b888cf7e0a35a9afd22d10f487438c5bef082dfbd372f6b",
+        "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+        "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_RATIFICATION",
+      "canonicalAuthorityPath": "governance/GATE_REGISTRY_00_40.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "FUTURE_GATE_INPUT"
+      ],
+      "ratificationStatus": "RATIFIED_RATIFICATION_ONLY_NO_EXECUTION_AUTHORITY",
+      "liveConsumerPaths": [
+        "governance/GATE_REGISTRY_00_40.json (projection of the ratified mandates)",
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "liveConsumerFunction": "The registry carries each mandate as canonicalObjective + sourceReferences; gate-preexecution-reuse-check resolves each sourcePath back to the ratified owner document and verifies it still exists (PRIOR_RESEARCH_REUSED).",
+      "validatorPaths": [
+        "governance/tools/validate-gate-registry.mjs",
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — this is the single largest body of already-completed strategic research. GATE15 in particular carries 14 functional requirements, 6 validators, 4 positive / 14 negative / 5 counter / 6 hostile tests, 5 evidence requirements, 10 closure conditions, 7 allowed and 16 forbidden scope paths. A future Gate must reuse it and must not re-derive it.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "26/26 gates EXPLICIT_COMPLETE, HIGH confidence, 0 missingCanonicalFields",
+        "GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json summary.mandateCanonicalCount=26"
+      ]
+    },
+    {
+      "id": "MM-004",
+      "domain": "STRATEGIC_MANDATE",
+      "capability": "Owner-provided master roadmap GATE00-GATE40 (range authority for the registry)",
+      "sourcePaths": [
+        "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt"
+      ],
+      "sourceSha256": {
+        "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt": "c59c9f243581104e0486f075311da4163b27f778ea5ba176c8f86f3b74d6647d"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_SOURCE",
+      "canonicalAuthorityPath": "governance/sources/WHEEL_JARVISE_MASTER_ROADMAP_00_40.txt",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE"
+      ],
+      "ratificationStatus": "OWNER_PROVIDED",
+      "liveConsumerPaths": [
+        "governance/GATE_REGISTRY_00_40.json#/declaredGateRangeSource"
+      ],
+      "liveConsumerFunction": "declaredGateRange pins sourceSha256 c59c9f24…; the registry declares its own gate count against it.",
+      "validatorPaths": [
+        "governance/tools/validate-gate-registry.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": false,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "registry declaredGateRangeSource.sourceSha256 matches live bytes"
+      ]
+    },
+    {
+      "id": "MM-005",
+      "domain": "GATE_STATUS",
+      "capability": "Append-only canonical Gate status ledger (61 events) — the single authority for what status a Gate has",
+      "sourcePaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "sourceSha256": {
+        "governance/state/GATE_STATUS_LEDGER.ndjson": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+      },
+      "sourceAuthorityClass": "CANONICAL_STATUS_LEDGER",
+      "canonicalAuthorityPath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "APPEND_ONLY_AUTHORITY",
+      "liveConsumerPaths": [
+        "governance/tools/validate-status-ledger.mjs",
+        "governance/tools/validate-active-gate.mjs",
+        "governance/tools/replay-governance-history.mjs",
+        "governance/tools/generate-status-snapshot.mjs",
+        "governance/gee-v1/core/authoritative-state.mjs",
+        "governance/gee-v1/core/state-revision-resolver.mjs",
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "liveConsumerFunction": "authoritative-state.mjs derives every work-unit status from ledger replay; compile-context stamps CANONICAL_STATUS provenance with the ledger sha256.",
+      "validatorPaths": [
+        "governance/tools/validate-status-ledger.mjs",
+        "governance/tools/replay-governance-history.mjs"
+      ],
+      "projectionPaths": [
+        "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+      ],
+      "currentGateConsumers": [
+        "GATE12",
+        "GATE13",
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-status-ledger.mjs exit 0",
+        "replay-governance-history.mjs exit 0",
+        "61 events, GATE14 COMPLETE_CONFIRMED at ordinal 61"
+      ]
+    },
+    {
+      "id": "MM-006",
+      "domain": "STATE_LINEAGE",
+      "capability": "Sealed state revisions and seal chain per Gate (GATE14: R0001-R0005, rooted, native event pins)",
+      "sourcePaths": [
+        "governance/gates/GATE14/state/CURRENT_STATE.json",
+        "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json"
+      ],
+      "sourceSha256": {
+        "governance/gates/GATE14/state/CURRENT_STATE.json": "0b23848b89d61663021f01e15a7cb305ecb845e5d8ba5f3be0db8d8f385ce31d",
+        "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json": "0415f9bdc05224e3d2fe6394e513cf813acc5254d7a05353ea526b822e753dd5"
+      },
+      "sourceAuthorityClass": "SEALED_STATE",
+      "canonicalAuthorityPath": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED",
+      "liveConsumerPaths": [
+        "governance/gee-v1/core/state-revision-resolver.mjs",
+        "governance/tools/validate-state-revision.mjs",
+        "governance/tools/validate-state-seal.mjs",
+        "governance/gee-v1/adapters/wheel/wheel-project-adapter.mjs"
+      ],
+      "liveConsumerFunction": "resolveStateRevisionLineage resolves the head revision by NATIVE_EVENT_PIN and rejects orphan revisions; the adapter derives authorityState.sealValid from it.",
+      "validatorPaths": [
+        "governance/tools/validate-state-revision.mjs",
+        "governance/tools/validate-state-seal.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-state-revision.mjs --gate-id GATE14: valid=true, resolvedBy=NATIVE_EVENT_PIN, anchorState=LEDGER_ANCHORED, sealChain R0001..R0005, 0 orphans"
+      ]
+    },
+    {
+      "id": "MM-007",
+      "domain": "STATE_LINEAGE",
+      "capability": "GATE12/GATE13 legacy sealed state — historically closed, no longer satisfying the hardened REQ-SEA-03 seal rule",
+      "sourcePaths": [
+        "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json",
+        "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json"
+      ],
+      "sourceSha256": {
+        "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json": "4e62299926bfe611bc39cbe911bae772e70d09726420fe0976cb618133c9ac0f",
+        "governance/gates/GATE12/state/revisions/R0002/STATE_SEAL.json": "4f07a913d1a472bdea9731b495053949b99eeebaf62b4f9edc3b0b308c08ccd7"
+      },
+      "sourceAuthorityClass": "SEALED_STATE_LEGACY",
+      "canonicalAuthorityPath": "governance/gates/GATE13/state/revisions/R0002/STATE_SEAL.json",
+      "canonicalStatus": "SUPERSEDED",
+      "secondaryFlags": [
+        "HISTORICAL_LEGACY_VALID",
+        "READ_ONLY_EVIDENCE",
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "CLOSED_BY_LEDGER_UNDER_INDEPENDENT_REINSPECTION",
+      "liveConsumerPaths": [
+        "governance/tools/validate-active-gate.mjs"
+      ],
+      "liveConsumerFunction": "validate-active-gate.mjs deliberately does NOT re-authorize a CLOSED gate against a registry that has since been legitimately amended; the ledger closure is the authority (see its lines 22-27).",
+      "validatorPaths": [
+        "governance/tools/validate-state-revision.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE12",
+        "GATE13"
+      ],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [
+        "GATE13 R0002 sealedMembers[2] binds governance/gates/GATE13/contracts/EXECUTION_CONTRACT_R0001.json where REQ-SEA-03 requires CURRENT_CONTRACT.json"
+      ],
+      "blockingRisk": "NONE_FOR_LIFECYCLE_HIGH_FOR_TEST_NOISE",
+      "requiredAction": "Do not repair inside an unrelated Gate. Recorded as MGR-002; this is the root cause of 19 of the 70 baseline test-identity failures because the GEE R2-R7 real-repository demonstrations are pinned to GATE13.",
+      "actionOwner": "PROJECT_OWNER",
+      "priority": "P2",
+      "proofReferences": [
+        "validate-state-revision.mjs --gate-id GATE13 -> HISTORICAL_TARGET_PATH_MISMATCH REQ-SEA-03",
+        "inspect-work-unit GATE13 -> authorityState.sealValid=false",
+        "compile-context GATE13 -> CONFLICTING_AUTHORITY:SEAL_INVALID"
+      ]
+    },
+    {
+      "id": "MM-008",
+      "domain": "LIFECYCLE_OWNERSHIP",
+      "capability": "ACTIVE_GATE pointer — which Gate owns the lifecycle, bound only to immutable activation-event identity",
+      "sourcePaths": [
+        "governance/active/ACTIVE_GATE.json"
+      ],
+      "sourceSha256": {
+        "governance/active/ACTIVE_GATE.json": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9"
+      },
+      "sourceAuthorityClass": "LIFECYCLE_POINTER",
+      "canonicalAuthorityPath": "governance/active/ACTIVE_GATE.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "BOUND_TO_ACTIVATION_EVENT",
+      "liveConsumerPaths": [
+        "governance/tools/validate-active-gate.mjs",
+        "governance/tools/generate-active-gate-context.mjs",
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "liveConsumerFunction": "validate-active-gate.mjs re-derives authorization from ledger replay + contract + state + predecessor closure, naming no gate number.",
+      "validatorPaths": [
+        "governance/tools/validate-active-gate.mjs"
+      ],
+      "projectionPaths": [
+        "governance/generated/ACTIVE_GATE_CONTEXT.json",
+        "governance/generated/ACTIVE_GATE_CONTEXT.md"
+      ],
+      "currentGateConsumers": [
+        "GATE13"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. activeGate=GATE13 while GATE14 executed and closed is CORRECT BY DESIGN, not drift: the pointer is lifecycle OWNERSHIP, not executability. Documented at governance/gee-v1/core/active-gate-succession.mjs lines 1-38. currentStateSha256 is null by the same design, because pinning a regenerated projection would churn the pointer on every ledger append.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "active-gate-succession.mjs H4 header",
+        "validate-active-gate.mjs -> {\"valid\":true,\"findingIds\":[]}"
+      ]
+    },
+    {
+      "id": "MM-009",
+      "domain": "LIFECYCLE_OWNERSHIP",
+      "capability": "ACTIVE_GATE succession primitive — exact, single-use, finite transition of the lifecycle pointer",
+      "sourcePaths": [
+        "governance/gee-v1/core/active-gate-succession.mjs"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/active-gate-succession.mjs": "2df128ef878a39ea4c932587d48a9c03d6c2534038286d5248547241311193a1"
+      },
+      "sourceAuthorityClass": "PRIMITIVE",
+      "canonicalAuthorityPath": "governance/gee-v1/core/active-gate-succession.mjs",
+      "canonicalStatus": "CANONICAL_NOT_CONSUMED",
+      "secondaryFlags": [
+        "FUTURE_GATE_INPUT",
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "IMPLEMENTED_AND_TESTED",
+      "liveConsumerPaths": [],
+      "liveConsumerFunction": null,
+      "validatorPaths": [
+        "governance/gee-v1/tests/historical-architecture-h4-ledger-split.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE now. The primitive exists, is hostile-tested and is fail-closed, but has no production caller because no ACTIVE_GATE succession has been performed yet. The first Gate that moves the pointer must call evaluateActiveGateSuccession rather than editing ACTIVE_GATE.json by hand. Recorded as MGR-004 so this is not rediscovered.",
+      "actionOwner": "GOVERNED_AGENT",
+      "priority": "P2",
+      "proofReferences": [
+        "import graph: 1 importer, test-only",
+        "historical-architecture-h4-ledger-split.test.mjs 20 pass / 0 fail"
+      ]
+    },
+    {
+      "id": "MM-010",
+      "domain": "GENERATED_PROJECTION",
+      "capability": "ACTIVE_GATE_CONTEXT — non-canonical compact view of the owning Gate",
+      "sourcePaths": [
+        "governance/generated/ACTIVE_GATE_CONTEXT.json",
+        "governance/generated/ACTIVE_GATE_CONTEXT.md"
+      ],
+      "sourceSha256": {
+        "governance/generated/ACTIVE_GATE_CONTEXT.json": "99f12c77748cbafeba7d30b41ad9f100fd501e7baed37a088c69d2c022677846",
+        "governance/generated/ACTIVE_GATE_CONTEXT.md": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2"
+      },
+      "sourceAuthorityClass": "GENERATED",
+      "canonicalAuthorityPath": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "canonicalStatus": "DERIVED_ONLY",
+      "secondaryFlags": [
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "NON_CANONICAL_BY_DECLARATION",
+      "liveConsumerPaths": [
+        "governance/tools/generate-active-gate-context.mjs --check"
+      ],
+      "liveConsumerFunction": "Drift detector recomputes the file from ACTIVE_GATE + registry + ledger and fails on any byte difference.",
+      "validatorPaths": [
+        "governance/tools/generate-active-gate-context.mjs",
+        "governance/tools/validate-artifact-classification.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "--check exit 0, digest 99f12c77…",
+        "file declares canonical:false"
+      ]
+    },
+    {
+      "id": "MM-011",
+      "domain": "GENERATED_PROJECTION",
+      "capability": "GATE_STATUS_SNAPSHOT and the three generated markdown documents",
+      "sourcePaths": [
+        "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+        "governance/generated/GATE_REGISTRY_00_40.md",
+        "governance/generated/PROJECT_CONSTITUTION.md",
+        "governance/generated/MODEL_ROUTING_POLICY.md"
+      ],
+      "sourceSha256": {
+        "governance/state/generated/GATE_STATUS_SNAPSHOT.json": "addc1b064a4427521dc6f108813bc1cc19bcaa7cad13097df1b23628466b48f5",
+        "governance/generated/GATE_REGISTRY_00_40.md": "5fe509f31e80d1c1f2e66cf16cfe45b3497d410b27f323e4144f7351ef118b2e",
+        "governance/generated/PROJECT_CONSTITUTION.md": "f9d07cb70a3f5f1ef97caed9a5dfafd9ecb3f893c0e8a31614392d4a8fc6b3ff",
+        "governance/generated/MODEL_ROUTING_POLICY.md": "3b6140a3766cf7dbe73e21ee20d479477e8a82f0cd54aed3792072129c2aa8e4"
+      },
+      "sourceAuthorityClass": "GENERATED",
+      "canonicalAuthorityPath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "canonicalStatus": "DERIVED_ONLY",
+      "secondaryFlags": [
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "NON_CANONICAL_BY_DECLARATION",
+      "liveConsumerPaths": [
+        "governance/tools/generate-status-snapshot.mjs --check",
+        "governance/tools/generate-governance-docs.mjs --check"
+      ],
+      "liveConsumerFunction": "Both generators recompute canonical bytes and report stale/drift; each output carries canonical=false or a canonical=false header comment.",
+      "validatorPaths": [
+        "governance/tools/generate-status-snapshot.mjs",
+        "governance/tools/generate-governance-docs.mjs",
+        "governance/tools/validate-artifact-classification.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. No consumer treats any of these as authority: status resolution goes to the ledger, not the snapshot, and GENERATED_FILES_NON_CANONICAL is enforced by validate-artifact-classification.mjs.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "generate-status-snapshot --check stale=false",
+        "generate-governance-docs --check verdict PASS, 0 blocking findings"
+      ]
+    },
+    {
+      "id": "MM-012",
+      "domain": "CONTRACT_LINEAGE",
+      "capability": "Gate execution contract + CURRENT_CONTRACT pointer + sealed contract succession",
+      "sourcePaths": [
+        "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+        "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json",
+        "governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json"
+      ],
+      "sourceSha256": {
+        "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json": "27a2bed562ad4528043be82f63fc4b925e7f22f6f515c42990dd017cc1a446a2",
+        "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152",
+        "governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json": "4c67122deff9a67ceaa0fd1569d19ea7b705b4cc0609574212cbd04e8f9a24cb"
+      },
+      "sourceAuthorityClass": "EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_SUCCEEDED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-gate-contract.mjs",
+        "governance/tools/validate-active-gate.mjs",
+        "governance/gee-v1/contracts/validate-execution-contract.mjs",
+        "governance/gee-v1/adapters/wheel/map-gate-contract.mjs",
+        "governance/gee-v1/core/gate-contract-succession-authority.mjs"
+      ],
+      "liveConsumerFunction": "validate-active-gate.mjs follows the CURRENT_CONTRACT pointer (never a fixed R0001 filename) and re-validates it for any non-closed gate; readiness derives EXECUTION_CONTRACT / EXECUTION_SEAL / CLOSURE_CONDITIONS from it.",
+      "validatorPaths": [
+        "governance/tools/validate-gate-contract.mjs",
+        "governance/tools/validate-gate-contract-succession-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [
+        "GATE13 EXECUTION_CONTRACT_R0001 pins registrySha256 706397af (registry as of d5b5cee6); GATE14 EXECUTION_CONTRACT_R0002 pins f5963314 (registry as of 609cc5d1..71074b94); live registry is aaa9efcd since 3eb0641d."
+      ],
+      "blockingRisk": "NONE_WHILE_SEQUENTIAL",
+      "requiredAction": "NONE for closed gates — validate-active-gate.mjs already exempts them by design. Recorded as MGR-005: while a Gate is IN_PROGRESS its sealed contract pins the live registry bytes, so amending the registry mid-Gate would invalidate that Gate. Amend the registry between Gates, never during one.",
+      "actionOwner": "GOVERNED_AGENT",
+      "priority": "P2",
+      "proofReferences": [
+        "validate-gate-contract.mjs GATE14 R0002 -> REGISTRY_HASH_MISMATCH f5963314 vs aaa9efcd",
+        "validate-active-gate.mjs -> valid:true (closed-gate exemption)",
+        "readiness GATE14 EXECUTION_SEAL PASS"
+      ]
+    },
+    {
+      "id": "MM-013",
+      "domain": "AUTHORITY",
+      "capability": "Gate authorization authority + authorization record (NOT_STARTED -> AUTHORIZED_NOT_STARTED)",
+      "sourcePaths": [
+        "governance/gee-v1/core/gate-authorization-authority.mjs",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/gate-authorization-authority.mjs": "d52378942c4cf4a46a9715cdffc1a6820833843f011e861022894f513495cc46",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json": "bb2a70bc9c5f43aeb5029ec2e1fe1366ca7de0f612ec13ac9cdd2b1e0206f8f4",
+        "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json": "d88e628966cdc1840062996f8a16f728305ef1fc6d16a99ae72be60af68d6839"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_GATE_AUTHORITY",
+      "canonicalAuthorityPath": "governance/gee-v1/core/gate-authorization-authority.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "CONSUMED_BY_GATE14",
+      "liveConsumerPaths": [
+        "governance/tools/validate-gate-authorization-authority.mjs",
+        "governance/gee-v1/adapters/wheel/gate-authorization-authority-source.mjs"
+      ],
+      "liveConsumerFunction": "validate-gate-authorization-authority.mjs --gate <GATE> recomputes transitionAuthorized / authorizationAuthorized / startAuthorized and fails closed with GATE_ID_NOT_SUPPLIED when unparameterised.",
+      "validatorPaths": [
+        "governance/tools/validate-gate-authorization-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse the GATE14 documents as the shape template for GATE15.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "ledger event 57 GATE14_AUTHORIZATION_R0001",
+        "governance/tests/gate-authorization-authority-primitive.test.mjs"
+      ]
+    },
+    {
+      "id": "MM-014",
+      "domain": "AUTHORITY",
+      "capability": "Gate START authority + start record (AUTHORIZED_NOT_STARTED -> IN_PROGRESS)",
+      "sourcePaths": [
+        "governance/gee-v1/core/gate-start-authority.mjs",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/gate-start-authority.mjs": "94b8af3e7a52e38ea78901a872eac6fb2a35119c18b536ed1fb09308fb5cb203",
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json": "d7a8e65766f02394f1cc5ae2903d7d5ed51e8bcd1812dde222213cc16791c390",
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_GATE_AUTHORITY",
+      "canonicalAuthorityPath": "governance/gee-v1/core/gate-start-authority.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "CONSUMED_BY_GATE14",
+      "liveConsumerPaths": [
+        "governance/gee-v1/adapters/wheel/gate-start-authority-source.mjs",
+        "governance/tools/governance-preflight.mjs"
+      ],
+      "liveConsumerFunction": "preflight proof WORK_UNIT_EXECUTABLE resolves through gate-start-authority-source and reports FAILED when no modern START authority covers the requested scope.",
+      "validatorPaths": [
+        "governance/tools/validate-gate-authorization-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse the GATE14 documents as the shape template.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "ledger event 58 GATE14_START_R1",
+        "preflight proofs.WORK_UNIT_EXECUTABLE recomputed each run"
+      ]
+    },
+    {
+      "id": "MM-015",
+      "domain": "AUTHORITY",
+      "capability": "Precontract authority — bounded writes before an execution contract exists",
+      "sourcePaths": [
+        "governance/gee-v1/core/precontract-authority.mjs",
+        "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/precontract-authority.mjs": "ba363a0dfeceee52f0c5c47e844e65f785f3a385997689e03d7cc9b18869ef3a",
+        "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_PRECONTRACT_AUTHORITY",
+      "canonicalAuthorityPath": "governance/gee-v1/core/precontract-authority.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "AVAILABLE_UNCONFIGURED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-precontract-authority.mjs",
+        "governance/gee-v1/adapters/wheel/precontract-authority-source.mjs",
+        "governance/tools/governance-preflight.mjs"
+      ],
+      "liveConsumerFunction": "Preflight keeps PRECONTRACT non-executable while no authority is configured; the validator reports PRECONTRACT_SOURCE_UNCONFIGURED rather than defaulting open.",
+      "validatorPaths": [
+        "governance/tools/validate-precontract-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — unconfigured is the correct resting state; it is configured only for a mission that needs pre-contract writes.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-precontract-authority.mjs -> PRECONTRACT_VERDICT BLOCKED, PRECONTRACT_SOURCE_UNCONFIGURED",
+        "governance/gee-v1/tests/precontract-authority.test.mjs 24/25 pass"
+      ]
+    },
+    {
+      "id": "MM-016",
+      "domain": "AUTHORITY",
+      "capability": "LOCAL_EXPLICIT_AUTHORITY / Post-Freeze Maintenance Authority V1 and V2 — the mechanism that authorizes governed writes outside a Gate execution contract",
+      "sourcePaths": [
+        "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+        "governance/gee-v1/schemas/post-freeze-maintenance-authority.schema.json",
+        "governance/gee-v1/schemas/post-freeze-maintenance-authority-v2.schema.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/post-freeze-maintenance-authority.mjs": "3eb249e434f9570517c031caa67440ca3620e155de77bf928c49686afe416b37",
+        "governance/gee-v1/schemas/post-freeze-maintenance-authority.schema.json": "e1f269178f0bcffeaa626148b3dd3d22749ed8b200558438d22baf268992f023",
+        "governance/gee-v1/schemas/post-freeze-maintenance-authority-v2.schema.json": "394394292d59dc46ff6de4e7845224080796b3ef111766c3ad1e3d3a694e9a53"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+      "canonicalAuthorityPath": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "V1_AND_V2_BOTH_SUPPORTED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "liveConsumerFunction": "evaluatePostFreezeMaintenanceAuthorityV2 binds the authority to observed baseHead, ledger event count, ledger prefix digest, gate status, state revision, contract revision, ACTIVE_GATE and R8 absence — single-use, no key material accepted.",
+      "validatorPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+        "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "gee-post-freeze-maintenance-authority.test.mjs 77 pass / 0 fail",
+        "FORBIDDEN_SIGNATURE_FIELDS rejects unverified cryptographic material outright"
+      ]
+    },
+    {
+      "id": "MM-017",
+      "domain": "AUTHORITY",
+      "capability": "GATE_FINAL_CLOSURE authority purpose — the only way AGENT_CLOSURE may be claimed",
+      "sourcePaths": [
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json",
+        "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+        "governance/historical-architecture/GATE14_FINAL_CLOSURE_CONSUMPTION_R1.json"
+      ],
+      "sourceSha256": {
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json": "22a43b77c14f54bdc24d606d3e15eb125fc22ac83fcbae2767683cf7cdea3aae",
+        "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json": "2ca8d92e52fa43ff66cf99316e6863c3db6b612b22ed64827fb738f0b7851930",
+        "governance/historical-architecture/GATE14_FINAL_CLOSURE_CONSUMPTION_R1.json": "fb304f703cb0df300be966e5b6b7f2ee2e1bc44a41445c9fca1b811f2e4bdaaa"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+      "canonicalAuthorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE"
+      ],
+      "ratificationStatus": "CONSUMED_MAX_USE_1",
+      "liveConsumerPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "liveConsumerFunction": "AGENT_CLOSURE and EXTERNAL_CONFIRMATION are in REQUIRED_PROHIBITED_OPERATIONS for every authority; only authorityPurpose=GATE_FINAL_CLOSURE lifts the AGENT_CLOSURE prohibition, and only for manifest entries whose phase equals their artifactClass.",
+      "validatorPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as the GATE15 AGENT_CLOSURE template.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "ledger event 60 GATE14_AGENT_CLOSURE_R1 -> COMPLETE_AGENT",
+        "consumption record consumedUse=1"
+      ]
+    },
+    {
+      "id": "MM-018",
+      "domain": "AUTHORITY",
+      "capability": "GATE_EXTERNAL_CONFIRMATION authority purpose + EXTERNAL_REINSPECTION_REPORT — independent confirmation path",
+      "sourcePaths": [
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+        "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+        "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+        "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json"
+      ],
+      "sourceSha256": {
+        "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json": "ea968e86a7b5454062adf246db90ab5743e808c6b5f1baa8c2e39d7a419401e7",
+        "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee",
+        "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967",
+        "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json": "4701e7174ec17c6051bb30c56d2d006c1e757b6327153c50cf4e22e57df05ba1"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+      "canonicalAuthorityPath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE"
+      ],
+      "ratificationStatus": "CONSUMED_MAX_USE_1",
+      "liveConsumerPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "liveConsumerFunction": "An EXTERNAL_CONFIRMATION authority must bind an externalReinspectionReportPath + digest, that report must appear in its own manifest, and the sole authorized operation class must be EXTERNAL_CONFIRMATION. NO_CIRCULAR_VALIDATION and SEPARATE_SESSION_REINSPECTION make the session boundary a governance fact, not a mechanism.",
+      "validatorPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as the GATE15 COMPLETE_CONFIRMED template.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "ledger event 61 GATE14_EXTERNAL_CONFIRMATION_R1 -> COMPLETE_CONFIRMED",
+        "reinspection report verdict PASS, blockingFindings 0"
+      ]
+    },
+    {
+      "id": "MM-019",
+      "domain": "AUTHORITY",
+      "capability": "Release authorization (cryptographic, optional high-security mode)",
+      "sourcePaths": [
+        "governance/gee-v1/core/release-authority.mjs",
+        "governance/authority/PROJECT_OWNER_RELEASE_KEY.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/release-authority.mjs": "1a44ac9b7168959d6701b238914f18f1c36d86c7e51659c8fb6705f3d1f1c1c6",
+        "governance/authority/PROJECT_OWNER_RELEASE_KEY.json": "8ce3fc2cdfa0aa1a9f082374fc34fbf58916ab58f04e1fddc98da6190d9cab4f"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_RELEASE_AUTHORIZATION",
+      "canonicalAuthorityPath": "governance/gee-v1/core/release-authority.mjs",
+      "canonicalStatus": "CANONICAL_NOT_CONSUMED",
+      "secondaryFlags": [
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "OPTIONAL_BY_CONSTITUTION",
+      "liveConsumerPaths": [
+        "governance/tools/validate-release-authorization.mjs",
+        "governance/tools/generate-release-request.mjs"
+      ],
+      "liveConsumerFunction": "Validator recomputes against the observed HEAD and branch and blocks on REQUEST_ABSENT.",
+      "validatorPaths": [
+        "governance/tools/validate-release-authorization.mjs",
+        "governance/gee-v1/tests/gee-release-authority-hostile.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. The constitution downgraded this to OPTIONAL_HIGH_SECURITY_MODE: the normal path is OWNER_EXPLICIT_COMMIT_APPROVAL with no key, no witness and no publication document. Not consumed is the intended state.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "PROJECT_CONSTITUTION gitOperationPolicy.cryptographicReleaseAuthorization = OPTIONAL_HIGH_SECURITY_MODE",
+        "gee-release-authority-hostile.test.mjs 22 pass / 0 fail"
+      ]
+    },
+    {
+      "id": "MM-020",
+      "domain": "PREFLIGHT",
+      "capability": "Governance preflight — the single fail-closed entrypoint that recomputes whether anything may execute",
+      "sourcePaths": [
+        "governance/tools/governance-preflight.mjs"
+      ],
+      "sourceSha256": {
+        "governance/tools/governance-preflight.mjs": "e203994d7960d47a3d2212491b372ce28065071b168ef19e99a0b65e1e426567"
+      },
+      "sourceAuthorityClass": "VALIDATOR",
+      "canonicalAuthorityPath": "governance/tools/governance-preflight.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "MANDATED_BY_CLAUDE_MD_AND_AGENTS_MD",
+      "liveConsumerPaths": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        "every governed mission"
+      ],
+      "liveConsumerFunction": "Transitively consumes 35 modules: work-unit-core, authoritative-state, state-revision-resolver, trust-policy, head-witness, identity-binding, all authority primitives, the contract layer and the Wheel adapters. Emits GOVERNANCE_VERDICT, executionAuthorized, authorizedPaths, gitPolicy.",
+      "validatorPaths": [
+        "governance/tools/governance-preflight.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE13",
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "GOVERNANCE_VERDICT PASS, blockingFindingCount 0, executionAuthorized false (no Gate is running)"
+      ]
+    },
+    {
+      "id": "MM-021",
+      "domain": "READINESS",
+      "capability": "Definition-of-Ready evaluation for a work unit (strategic contract, objective, execution contract, closure conditions, invariants, artifacts, tests, verdicts, prerequisites, seal, activation anchor, authority state, open defects, preflight)",
+      "sourcePaths": [
+        "governance/gee-v1/readiness/evaluate-readiness.mjs",
+        "governance/gee-v1/readiness/build-readiness-context.mjs",
+        "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/readiness/evaluate-readiness.mjs": "6389049c1df4bd18f2dc8d96175b57de747be3285d472b53f0c9faa67c40ca07",
+        "governance/gee-v1/readiness/build-readiness-context.mjs": "8e457005c0924b0b38a58b12b2ec31997d0f34238e3df9f225c04ef402ae38d4",
+        "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs": "3f29ea8f489b3099a2b6eabc8fa076450cce4cef963e81263903d6b4fa821ba3"
+      },
+      "sourceAuthorityClass": "PRIMITIVE",
+      "canonicalAuthorityPath": "governance/gee-v1/readiness/evaluate-readiness.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "IMPLEMENTED_AND_TESTED",
+      "liveConsumerPaths": [
+        "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs"
+      ],
+      "liveConsumerFunction": "A real work unit has exactly one path — buildReadinessContext — with no caller-supplied activation/authority flags; every critical proof is derived from the canonical ledger, seal and defects state.",
+      "validatorPaths": [
+        "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs",
+        "governance/gee-v1/tests/gee-r1-core-adapter-readiness.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. The PREFLIGHT check requires the caller to supply the preflight verdict explicitly (--preflight-ok) instead of self-certifying it; that is an anti-circularity boundary, not a wiring defect. Run governance-preflight.mjs first, then pass its verdict.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "GATE14 readiness: 13 checks PASS, only PREFLIGHT_NOT_EXPLICITLY_PROVIDED outstanding",
+        "GATE15 readiness fails closed on EXECUTION_CONTRACT / AUTHORITY_STATE / OPEN_DEFECTS, which is correct for a not-yet-started Gate"
+      ]
+    },
+    {
+      "id": "MM-022",
+      "domain": "DEFECT_STATE",
+      "capability": "Open-defect knowledge with sealed provenance (KNOWN_ZERO vs UNKNOWN)",
+      "sourcePaths": [
+        "governance/gee-v1/core/defect-status.mjs",
+        "governance/gee-v1/contracts/validate-open-defects-knowledge.mjs",
+        "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/core/defect-status.mjs": "3b8481e6fadd405b2b7d930071c3f52220cab8ce6daa5e08328267983a811c17",
+        "governance/gee-v1/contracts/validate-open-defects-knowledge.mjs": "a60283e1c8abfb55b01754fc1abbd5a0296f20d1364cca728c20cdd2924e01e0",
+        "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json": "d465098cb1df4d76f84430db472d52a4956948dddbf5cffc8ad1382e0727eafc"
+      },
+      "sourceAuthorityClass": "SEALED_STATE",
+      "canonicalAuthorityPath": "governance/gee-v1/core/defect-status.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED",
+      "liveConsumerPaths": [
+        "governance/tools/governance-preflight.mjs",
+        "governance/gee-v1/readiness/build-readiness-context.mjs"
+      ],
+      "liveConsumerFunction": "An empty defect list only becomes KNOWN_ZERO when it is reachable through a valid seal; otherwise it resolves UNKNOWN and readiness blocks.",
+      "validatorPaths": [
+        "governance/gee-v1/contracts/validate-open-defects-knowledge.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "GATE14 defectsOpenCount 0, knowledge KNOWN_ZERO",
+        "GATE12/GATE13 knowledge UNKNOWN with reason DEFECTS_PROVENANCE_UNVERIFIED:SEAL_INVALID"
+      ]
+    },
+    {
+      "id": "MM-023",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "MODEL D artifact classification — what counts as proof for each artifact family; no entry verified by shape",
+      "sourcePaths": [
+        "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json",
+        "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+        "governance/gee-v1/core/artifact-classification.mjs"
+      ],
+      "sourceSha256": {
+        "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json": "445a01e57dfb931ae31aed3861f9fe7bd2857215e5433a08f73b0046f4f24b02",
+        "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json": "95d9913a822b66464aecec1cc33d75680bf96fa67bcfb42926a9972e892dca86",
+        "governance/gee-v1/core/artifact-classification.mjs": "31d74fe1a2e3d182972ea9dcba7a64f71bd67d7d3c2cf11a3327cec0ab3ebf24"
+      },
+      "sourceAuthorityClass": "HISTORICAL_ARCHITECTURE_REGISTRY",
+      "canonicalAuthorityPath": "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "RATIFIED_R1",
+      "liveConsumerPaths": [
+        "governance/tools/validate-artifact-classification.mjs"
+      ],
+      "liveConsumerFunction": "Recomputes each artifact class against real bytes; MUTABLE_PROJECTION entries must NOT carry retainedSha256, RECONSTRUCTABLE_PROJECTION entries must name a pinned generator identity.",
+      "validatorPaths": [
+        "governance/tools/validate-artifact-classification.mjs",
+        "governance/gee-v1/tests/historical-architecture-h1-model-d.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-artifact-classification.mjs exit 0",
+        "15 artifact families, 12 retained historical objects"
+      ]
+    },
+    {
+      "id": "MM-024",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "Historical replay — reconstructing every prior governance state from immutable sources plus pinned generator identity",
+      "sourcePaths": [
+        "governance/tools/replay-governance-history.mjs",
+        "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json"
+      ],
+      "sourceSha256": {
+        "governance/tools/replay-governance-history.mjs": "224b74c5bce426a36b639e96903b7056e7af27d1ddda6262aec9ad1bf41173e0",
+        "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json": "95d9913a822b66464aecec1cc33d75680bf96fa67bcfb42926a9972e892dca86"
+      },
+      "sourceAuthorityClass": "VALIDATOR",
+      "canonicalAuthorityPath": "governance/tools/replay-governance-history.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "IMPLEMENTED_AND_TESTED",
+      "liveConsumerPaths": [
+        "governance/tools/replay-governance-history.mjs"
+      ],
+      "liveConsumerFunction": "Replays the ledger prefix and reconstructs historical ACTIVE_GATE bytes without rewriting history.",
+      "validatorPaths": [
+        "governance/tools/replay-governance-history.mjs",
+        "governance/gee-v1/tests/historical-architecture-h1-model-d.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "replay-governance-history.mjs exit 0 at baseline HEAD"
+      ]
+    },
+    {
+      "id": "MM-025",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "Legacy state bindings — interpretation metadata for the two pre-native state-binding events (ordinals 57, 58)",
+      "sourcePaths": [
+        "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+        "governance/gee-v1/core/legacy-state-binding.mjs"
+      ],
+      "sourceSha256": {
+        "governance/historical-architecture/LEGACY_STATE_BINDINGS.json": "1569d3e92702560b1d0a05030b46dc6314d7dff424a33c3980f25dfa4db2fcb8",
+        "governance/gee-v1/core/legacy-state-binding.mjs": "b4d490455ed6b391e24171bb627ebc92512fe5a17b74f0fb4390b15da45c7346"
+      },
+      "sourceAuthorityClass": "HISTORICAL_INTERPRETATION",
+      "canonicalAuthorityPath": "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "HISTORICAL_LEGACY_VALID"
+      ],
+      "ratificationStatus": "GRANTS_NO_PERMISSION",
+      "liveConsumerPaths": [
+        "governance/tools/validate-legacy-state-binding.mjs",
+        "governance/tools/validate-state-revision.mjs"
+      ],
+      "liveConsumerFunction": "legacyEraMaxOrdinal 58 closes the era: from ordinal 59 onward events pin state natively and no migration record is permitted.",
+      "validatorPaths": [
+        "governance/tools/validate-legacy-state-binding.mjs",
+        "governance/gee-v1/tests/historical-architecture-h5-legacy-binding.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. Deliberately bounded to ordinals <= 58, so no future Gate can use it. grantsNoPermission is enforced, not asserted.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-legacy-state-binding.mjs valid=true, grantsNoPermission=true",
+        "h5-legacy-binding.test.mjs 26 pass / 0 fail"
+      ]
+    },
+    {
+      "id": "MM-026",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "Validator provenance — a validator IS its bytes; admission resolves by canonical path plus digest",
+      "sourcePaths": [
+        "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+        "governance/gee-v1/core/validator-provenance.mjs"
+      ],
+      "sourceSha256": {
+        "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json": "08282f22abb70f1c142c1b404a474d3c2b1ac7192158daac91f8ca85525a5c9b",
+        "governance/gee-v1/core/validator-provenance.mjs": "ed6cadcb49d683285b11145dda9c82bc6ccd6847562ffb3194b9e844685f2896"
+      },
+      "sourceAuthorityClass": "HISTORICAL_ARCHITECTURE_REGISTRY",
+      "canonicalAuthorityPath": "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "PROGRAM_SCOPED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-validator-provenance.mjs"
+      ],
+      "liveConsumerFunction": "Re-derives sha256 and byteLength of all 8 admitted validators and marks each AUTHORIZED or not; a candidate tree can never supply the code that judges it.",
+      "validatorPaths": [
+        "governance/tools/validate-validator-provenance.mjs",
+        "governance/gee-v1/tests/historical-architecture-h6-validator-provenance.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. The manifest is scoped to the historical-architecture program (\"every executable validator THIS PROGRAM admits\"), not to the whole repository; the other 13 validate-* tools are outside its scope by design, not by omission.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-validator-provenance.mjs valid=true, 8/8 AUTHORIZED, byte-exact"
+      ]
+    },
+    {
+      "id": "MM-027",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "Historical reconciliation GATE00-GATE11 — append-only status reconciliation from retained historical measurements",
+      "sourcePaths": [
+        "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json",
+        "governance/sources/HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1.json"
+      ],
+      "sourceSha256": {
+        "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json": "0f81f95120121fa3cdb45d78412cec83a08ace6cc77dc52e6cdc65088a9fdd5f",
+        "governance/sources/HISTORICAL_RECONCILIATION_OWNER_AUTHORIZATION_R1.json": "78c703c4f46fd008320edb75281416aec4c209e8fad795cbfbf780bc61a7119b"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_RECONCILIATION_AUTHORIZATION",
+      "canonicalAuthorityPath": "governance/authority/reconciliation/GATE00_HISTORICAL_RECONCILIATION_R1.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE",
+        "HISTORICAL_LEGACY_VALID"
+      ],
+      "ratificationStatus": "RATIFIED_AND_APPENDED",
+      "liveConsumerPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson (events 45-56)",
+        "governance/tools/validate-status-ledger.mjs"
+      ],
+      "liveConsumerFunction": "12 reconciliation events carry GATE00-GATE11 to COMPLETE_AGENT (GATE04 INTERRUPTED_RESUMABLE), each bound to a retained historical measurement under governance/authority/historical/.",
+      "validatorPaths": [
+        "governance/tests/historical-reconciliation-primitive.test.mjs",
+        "governance/tools/validate-status-ledger.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "ledger ordinals 45-56",
+        "12 reconciliation records + 12 retained historical measurements"
+      ]
+    },
+    {
+      "id": "MM-028",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "Registry authority migrations — lets a historical ledger event keep pointing at the registry bytes it was signed against after the registry is lawfully amended",
+      "sourcePaths": [
+        "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json"
+      ],
+      "sourceSha256": {
+        "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson": "1314c78d7bbed32e9e0f83d16a3ba8b64ba16fea61d4164c726983b139d989dd",
+        "governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json": "3b82ac1566ef359ed53dcef33e57c456f63419bfd368c2ec2eb72028498c0b6a"
+      },
+      "sourceAuthorityClass": "MIGRATION_LOG",
+      "canonicalAuthorityPath": "governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "HASH_CHAINED_APPEND_ONLY",
+      "liveConsumerPaths": [
+        "governance/tools/validate-status-ledger.mjs"
+      ],
+      "liveConsumerFunction": "resolveAuthority() looks up (authorityPath, event.authoritySha256), re-derives the snapshot digest live, and emits MIGRATED_HISTORICAL_AUTHORITY; a migration that fails live re-verification degrades to AUTHORITY_HASH_MISMATCH rather than being trusted.",
+      "validatorPaths": [
+        "governance/tools/validate-status-ledger.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE00..GATE13"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE for the ledger. Note the asymmetry recorded in MGR-005: this containment covers ledger events but there is no equivalent for a sealed execution contract, which is why validate-active-gate.mjs solves the contract case by exempting CLOSED gates instead.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "1 migration record, chain root, snapshot digest 3b82ac15 re-derived live",
+        "validate-status-ledger.mjs exit 0"
+      ]
+    },
+    {
+      "id": "MM-029",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "Genesis import source map and field provenance",
+      "sourcePaths": [
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_FIELD_PROVENANCE.json",
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json"
+      ],
+      "sourceSha256": {
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json": "a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b",
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_FIELD_PROVENANCE.json": "bd87bc283590e97522552ce484f7b31c5a5b4199590ef86a2fbadfac192294ce",
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP_DETERMINISTIC_RECONSTRUCTION_RULE.json": "1bb8e58be52d67905a4ae9952b136be14bef72613331476e9ffcbf1ddfa7cb99"
+      },
+      "sourceAuthorityClass": "PROVENANCE_MAP",
+      "canonicalAuthorityPath": "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "RATIFIED_I4",
+      "liveConsumerPaths": [
+        "governance/tools/validate-status-ledger.mjs",
+        "governance/tools/validate-genesis-import-source-map-provenance.mjs"
+      ],
+      "liveConsumerFunction": "The ledger validator resolves genesis-import event authorities through the source map; the provenance validator replays every declared transformation.",
+      "validatorPaths": [
+        "governance/tools/validate-genesis-import-source-map-provenance.mjs",
+        "governance/tests/i4-default-source-map-activation.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — the validator requires --map and fails closed with MISSING_CLI_ARGUMENT when unparameterised, which is correct.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-status-ledger.mjs resolves all 41 genesis-import events",
+        "r1-recon authority registries back the provenance replay"
+      ]
+    },
+    {
+      "id": "MM-030",
+      "domain": "HISTORICAL_ARCHITECTURE",
+      "capability": "R1-RECON canonical primitives and authority registries (normative input, transformation, semantic classification, owner policy)",
+      "sourcePaths": [
+        "governance/implementation/r1-recon/lib/R1_RECON_CANONICAL_PRIMITIVES.mjs",
+        "governance/implementation/r1-recon/authority/R1_RECON_NORMATIVE_INPUT_REGISTRY.json",
+        "governance/implementation/r1-recon/authority/R1_RECON_TRANSFORMATION_REGISTRY.json",
+        "governance/implementation/r1-recon/authority/R1_RECON_SEMANTIC_CLASSIFICATION_REGISTRY.json",
+        "governance/implementation/r1-recon/authority/R1_RECON_OWNER_POLICY_REGISTRY.json"
+      ],
+      "sourceSha256": {
+        "governance/implementation/r1-recon/lib/R1_RECON_CANONICAL_PRIMITIVES.mjs": "88afbe6447582fa812174315f9cc4b6768ca383c873f2f3ec5b8be236250370f",
+        "governance/implementation/r1-recon/authority/R1_RECON_NORMATIVE_INPUT_REGISTRY.json": "9585a0bf257016822bbf46cd0ce06cbb3c1e7cef3dcbeed2f221708cd50767a2",
+        "governance/implementation/r1-recon/authority/R1_RECON_TRANSFORMATION_REGISTRY.json": "e1f135c86a7a2978a14e29dc124fe8c8393a920d236ee87d0ace09b8f86fa467",
+        "governance/implementation/r1-recon/authority/R1_RECON_SEMANTIC_CLASSIFICATION_REGISTRY.json": "11cf6ace0aaa1a25522aa09a87ba2937eb88fe6404490623f79876a9cbca6dbc",
+        "governance/implementation/r1-recon/authority/R1_RECON_OWNER_POLICY_REGISTRY.json": "077d82cf8d976e3a185e470ceb9ca5c2442f91e8b75897ea7297abb6538ca04b"
+      },
+      "sourceAuthorityClass": "PROVENANCE_REGISTRY",
+      "canonicalAuthorityPath": "governance/implementation/r1-recon/lib/R1_RECON_CANONICAL_PRIMITIVES.mjs",
+      "canonicalStatus": "CANONICAL_NOT_CONSUMED",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE",
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "RATIFIED_I4",
+      "liveConsumerPaths": [
+        "governance/tools/validate-genesis-import-source-map-provenance.mjs (via --map invocation)"
+      ],
+      "liveConsumerFunction": "The four registries are read by the provenance validator when it is invoked with a map; R1_RECON_CANONICAL_PRIMITIVES.mjs itself has zero static importers in the module graph.",
+      "validatorPaths": [
+        "governance/tools/validate-genesis-import-source-map-provenance.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": false,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. Genesis-import reconstruction is a closed, one-time concern; no future Gate consumes it. Recorded here so it is never mistaken for a missing capability.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "module import graph: R1_RECON_CANONICAL_PRIMITIVES.mjs has 0 importers"
+      ]
+    },
+    {
+      "id": "MM-031",
+      "domain": "CLOSURE",
+      "capability": "GATE14 closure machinery — the complete, exercised Mission 1/2/3 lifecycle template",
+      "sourcePaths": [
+        "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json",
+        "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json",
+        "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json",
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+        "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+        "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+        "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json",
+        "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json",
+        "governance/gates/GATE14/tests/hostile-self-tests.mjs"
+      ],
+      "sourceSha256": {
+        "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json": "1d71e1d0edb69d785cff867363dc27cb0c443e8fdd7bdbda25bcb51e781d28b9",
+        "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json": "6e9946d72cfbc27d651927a4604622f449d47d6538c436a9f42205b5b129df60",
+        "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json": "0868da4f2baa3c937e53b81915d75cc313224386ab66998005920e992065a2e7",
+        "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json": "e443513eab281f44803021c48fa0650f88d63eacd8cd118b4fc486f51fd0314c",
+        "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json": "706650fdb3864f051728cdf46e7698a7b1e0bc6af9c105be59f558b087e7d97d",
+        "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json": "6157fe44092e5b98283d4466f7b828646b4a41dde36850611538ff24d48749b2",
+        "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json": "32f6306fd929172b39f49f9c4ac6c160fb01fe6a889f84a8533e4cf821c9a1c8",
+        "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json": "a6fbf141a55eb6ed9dd973c3efcf0897530bf2db31a019d69216b309c78898de",
+        "governance/gates/GATE14/tests/hostile-self-tests.mjs": "dcaf7853bae59c9a73b2a23720cf9adfa5ef9f111d68fb1a89c534796a36f9fa"
+      },
+      "sourceAuthorityClass": "GATE_EVIDENCE",
+      "canonicalAuthorityPath": "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE",
+        "FUTURE_GATE_INPUT"
+      ],
+      "ratificationStatus": "COMPLETE_CONFIRMED",
+      "liveConsumerPaths": [
+        "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json"
+      ],
+      "liveConsumerFunction": "The independent reinspection report re-derives the closure evidence digests and replays ledger ordinals 56-60 before confirming.",
+      "validatorPaths": [
+        "governance/gates/GATE14/tests/hostile-self-tests.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": true,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — this is the single best template for GATE15-GATE40. Every Mission 1/2/3 transition has a worked, verified example here.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "reinspection report verdict PASS, blockingFindings 0, regression.newUnrelatedFailureIdentities 0",
+        "hostile-self-tests.mjs drives 4 validators through field-and-byte mutations"
+      ]
+    },
+    {
+      "id": "MM-032",
+      "domain": "CLOSURE",
+      "capability": "GATE12 / GATE13 closure machinery (legacy era)",
+      "sourcePaths": [
+        "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+        "governance/authority/snapshots/GATE13_INDEPENDENT_AUDIT_R1_14_INDEPENDENT_VERDICT.json",
+        "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs"
+      ],
+      "sourceSha256": {
+        "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json": "8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08",
+        "governance/authority/snapshots/GATE13_INDEPENDENT_AUDIT_R1_14_INDEPENDENT_VERDICT.json": "91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352",
+        "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs": "2426a9f1e590a7cd207bd504a78cfa0a8772fe3fe79a71a6af6fae7d358322cc"
+      },
+      "sourceAuthorityClass": "GATE_EVIDENCE",
+      "canonicalAuthorityPath": "governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "canonicalStatus": "SUPERSEDED",
+      "secondaryFlags": [
+        "HISTORICAL_LEGACY_VALID",
+        "READ_ONLY_EVIDENCE",
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "COMPLETE_CONFIRMED",
+      "liveConsumerPaths": [],
+      "liveConsumerFunction": null,
+      "validatorPaths": [
+        "governance/gates/GATE13/tests/gate13-oracle-coverage.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE12",
+        "GATE13"
+      ],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": false,
+      "staleOrDuplicateSources": [
+        "governance/gates/GATE13/implementation/oracle-coverage-validator.mjs has zero importers in the module graph and is exercised only by its own test file, which currently fails on GATE13 artifact drift."
+      ],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE. Both gates are closed by the ledger under independent reinspection; their artifacts are historical record. Use GATE14, not GATE12/13, as the lifecycle template.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "ledger ordinals 13 and 44",
+        "GATE12_L3 reinspection VERDICT PASS"
+      ]
+    },
+    {
+      "id": "MM-033",
+      "domain": "GIT_CONTAINMENT",
+      "capability": "Exact-cohort staging: authorized path manifest + final implementation cohort + consumption record",
+      "sourcePaths": [
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+        "governance/historical-architecture/AUTHORITY_CONSUMPTION_R1.json"
+      ],
+      "sourceSha256": {
+        "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json": "b1e99cec07d0da14954a2d42d15d8474fcf636cbd43fd7f02594b3cf4919e1fe",
+        "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json": "df03bce64ced7d0ccdb207efaecb683c94dca1764db1baa4c0d0cba30fe96e0a",
+        "governance/historical-architecture/AUTHORITY_CONSUMPTION_R1.json": "e7e1d16fd2554f86462b13bb8a98b9f234eac245e9ccaebf4b2a8acf038e5a72"
+      },
+      "sourceAuthorityClass": "PATH_MANIFEST",
+      "canonicalAuthorityPath": "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "CONSUMED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "liveConsumerFunction": "validateMaintenanceAuthorizedPathManifest rejects any wildcard, absolute, backslash, dot or duplicate path: isExactMaintenancePath admits exact relative paths only. A changed governed path absent from the manifest is a BLOCK, not a warning.",
+      "validatorPaths": [
+        "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [
+        "GATE14"
+      ],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — the mechanism already distinguishes PREEXISTING_DIRTY from GATE_AUTHORIZED_DELTA without ever requiring unrelated work to be cleaned, stashed or reset.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "At baseline HEAD governance/ carries 0 dirty paths while the repository carries 273 unrelated dirty paths",
+        "FINAL_IMPLEMENTATION_COHORT pins 50 paths with exact bytes"
+      ]
+    },
+    {
+      "id": "MM-034",
+      "domain": "REGRESSION",
+      "capability": "Regression-by-identity baseline for the governance test suite",
+      "sourcePaths": [
+        "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json"
+      ],
+      "sourceSha256": {
+        "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json": "d079c84eb25f583a4a41d183c04cc94e158342400704c08ea98a72b1284a73a7"
+      },
+      "sourceAuthorityClass": "BASELINE_EVIDENCE",
+      "canonicalAuthorityPath": "governance/master-matrix/REGRESSION_IDENTITY_BASELINE_V1.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "FUTURE_GATE_INPUT"
+      ],
+      "ratificationStatus": "CREATED_BY_THIS_PROGRAM",
+      "liveConsumerPaths": [
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "liveConsumerFunction": "REGRESSION_BASELINE_KNOWN reads the baseline, verifies it is self-consistent, and exposes failureIdentityCount so a future Gate compares identities rather than counts.",
+      "validatorPaths": [
+        "governance/tools/gate-preexecution-reuse-check.mjs",
+        "governance/tests/gate-preexecution-reuse-check.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "WAS_P1_UNTIL_THIS_PROGRAM",
+      "requiredAction": "RESOLVED BY THIS PROGRAM. Before it existed, a future Gate faced 70 undocumented pre-existing failures with no way to tell them from its own regressions.",
+      "actionOwner": "NONE",
+      "priority": "P1",
+      "proofReferences": [
+        "70 failure identities recorded, 3 root-cause classes, 15 load-bearing checks recomputed PASS",
+        "suite totals 1095 tests / 1022 pass / 70 fail / 3 skipped"
+      ]
+    },
+    {
+      "id": "MM-035",
+      "domain": "GEE",
+      "capability": "GEE V1 R1 — Canonical foundation (contracts, core, adapter, Definition-of-Ready)",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0001.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0001.json": "5e68fc3c7a768bb24792b68c8ad404fdaf3341220f2d34417c75a691caafc95d"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R1: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r1-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R1",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R1 liveProof"
+      ]
+    },
+    {
+      "id": "MM-036",
+      "domain": "GEE",
+      "capability": "GEE V1 R2 — Context Compiler",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0002.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0002.json": "9f5cc5ba7a748a94a1699ee0f4872df53a417b9ab9ff2991a17d113478618023"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R2: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r2-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R2",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_CONTEXT_LIVE). Use governance/gee-v1/tools/context-compile.mjs --work-unit <GATE> instead of pasting canonical files into a prompt.",
+      "actionOwner": "NONE",
+      "priority": "P2",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R2 liveProof"
+      ]
+    },
+    {
+      "id": "MM-037",
+      "domain": "GEE",
+      "capability": "GEE V1 R3 — Delta Engine",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0003.json": "e07fa196c3300741ce54bc663ea11c6959f02d5edb1ed593e952e8bd3e2ff151"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R3: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r3-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R3",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_DELTA_LIVE).",
+      "actionOwner": "NONE",
+      "priority": "P2",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R3 liveProof"
+      ]
+    },
+    {
+      "id": "MM-038",
+      "domain": "GEE",
+      "capability": "GEE V1 R4 — Evidence Graph and reuse",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0004.json": "c519ce595ed772d3e7eb90f364f9d4a71e7e1522f0fc3756dc4c5d30e5ac7e35"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R4: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r4-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R4",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_EVIDENCE_REUSE_LIVE).",
+      "actionOwner": "NONE",
+      "priority": "P2",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R4 liveProof"
+      ]
+    },
+    {
+      "id": "MM-039",
+      "domain": "GEE",
+      "capability": "GEE V1 R5 — Router, cost policy, repair containment",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0005.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0005.json": "372a13d59a1fb0213739f86776419cdeb92eb3e48a627f9649f35d75a3cd5766"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R5: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r5-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R5",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — now executed by gate-preexecution-reuse-check.mjs (GEE_MIN_FRONTIER_LIVE). The R5 route plan IS the minimum evidence frontier.",
+      "actionOwner": "NONE",
+      "priority": "P2",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R5 liveProof"
+      ]
+    },
+    {
+      "id": "MM-040",
+      "domain": "GEE",
+      "capability": "GEE V1 R6 — Recovery, index, usage",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0006.json": "e410daf137f8e421da3053708d09b1245aef72928456a92374ff8cc3e8fd66d5"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R6: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r6-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R6",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE for capability. Proven end-to-end against GATE14 in this program. No CLI entrypoint exists; a Gate that needs resumable execution calls createWheelRecoverySession with repoRoot, workUnitId, cas, sourceHead and missionRevisionId.",
+      "actionOwner": "NONE",
+      "priority": "P2",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R6 liveProof"
+      ]
+    },
+    {
+      "id": "MM-041",
+      "domain": "GEE",
+      "capability": "GEE V1 R7 — Benchmark, hostile validation, program closure",
+      "sourcePaths": [
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json"
+      ],
+      "sourceSha256": {
+        "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json": "7bc8594d92743085c95981326849a683697933f42159eae1d7a2f261f691ccbb",
+        "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json": "b283f47a0356490151f91d83973d32344c22f9014d5ee85e40598296b3c45612"
+      },
+      "sourceAuthorityClass": "GEE_EXECUTION_CONTRACT",
+      "canonicalAuthorityPath": "governance/gee-v1/missions/GEE_V1_STRATEGIC_CONTRACT.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "SEALED_AND_CLOSED",
+      "liveConsumerPaths": [
+        "governance/master-matrix/GEE_LIVE_USAGE_MATRIX_V1.json (per-layer live consumers, entrypoints and executed proof)"
+      ],
+      "liveConsumerFunction": "See GEE_LIVE_USAGE_MATRIX_V1.json layer R7: purpose, canonical implementation, live consumers, entrypoints, inputs, outputs, validators, hostile tests, work-reduction mechanism, fallback and fail-closed behaviour, stale implementations, executed liveProof.",
+      "validatorPaths": [
+        "governance/gee-v1/tests/gee-r7-*.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R7",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE inside this program. Its real-repository benchmark, eval-suite and recovery-stress fixtures are pinned to GATE13, whose seal no longer satisfies REQ-SEA-03; tracked as MGR-002.",
+      "actionOwner": "PROJECT_OWNER",
+      "priority": "P2",
+      "proofReferences": [
+        "GEE_LIVE_USAGE_MATRIX_V1.json layer R7 liveProof"
+      ]
+    },
+    {
+      "id": "MM-042",
+      "domain": "ROUTING",
+      "capability": "Model routing policy — work class to execution mode and reasoning depth",
+      "sourcePaths": [
+        "governance/MODEL_ROUTING_POLICY.json"
+      ],
+      "sourceSha256": {
+        "governance/MODEL_ROUTING_POLICY.json": "1cc45e5aab7b33c1cbeec923507a919aae6352a0ca7dc8787413f8af253e9f87"
+      },
+      "sourceAuthorityClass": "CANONICAL_POLICY",
+      "canonicalAuthorityPath": "governance/MODEL_ROUTING_POLICY.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "RATIFIED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-model-routing-policy.mjs"
+      ],
+      "liveConsumerFunction": "Validator recomputes the profile set; the generated markdown is a projection only.",
+      "validatorPaths": [
+        "governance/tools/validate-model-routing-policy.mjs"
+      ],
+      "projectionPaths": [
+        "governance/generated/MODEL_ROUTING_POLICY.md"
+      ],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": false,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-model-routing-policy.mjs verdict PASS"
+      ]
+    },
+    {
+      "id": "MM-043",
+      "domain": "IDENTITY",
+      "capability": "Repository identity and required project markers",
+      "sourcePaths": [
+        "governance/schemas/repository-identity.schema.json",
+        "governance/PROJECT_CONSTITUTION.json#/governedRepository"
+      ],
+      "sourceSha256": {
+        "governance/schemas/repository-identity.schema.json": "4ac2ec9b1ac7b8d56961cf3ab6b399aea329126e7b25326d1d9d123dd72576e2",
+        "governance/PROJECT_CONSTITUTION.json#/governedRepository": null
+      },
+      "sourceAuthorityClass": "CANONICAL_RULE",
+      "canonicalAuthorityPath": "governance/schemas/repository-identity.schema.json",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [],
+      "ratificationStatus": "RATIFIED",
+      "liveConsumerPaths": [
+        "governance/tools/validate-repository-identity.mjs",
+        "governance/gee-v1/core/head-witness.mjs",
+        "governance/gee-v1/core/witness-source.mjs"
+      ],
+      "liveConsumerFunction": "headIsIdentity=false, so HEAD is a witness rather than an identity; requiredProjectMarkers are re-checked against the filesystem.",
+      "validatorPaths": [
+        "governance/tools/validate-repository-identity.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — reuse as-is.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "validate-repository-identity.mjs verdict PASS"
+      ]
+    },
+    {
+      "id": "MM-044",
+      "domain": "INDEPENDENT_AUDIT",
+      "capability": "Retained external audit reports (ChatGPT GATE13 discovery, I4 final, R4 canonical adoption)",
+      "sourcePaths": [
+        "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+        "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json",
+        "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json"
+      ],
+      "sourceSha256": {
+        "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json": "79b72f0ea8bef7d4e99b9bb292b33226a37ab32b7840a99278328140fb5425d0",
+        "governance/sources/independent-audits/CHATGPT_I4_FINAL_INDEPENDENT_AUDIT_PASS.json": "53929a397a6f850be7c153e802ecc3b06bcd03d40f7118b5c1d6a4ce1de1955c",
+        "governance/sources/independent-audits/CHATGPT_R4_CANONICAL_ADOPTION_R1_INDEPENDENT_AUDIT.json": "9dbf71fb95d28c36f9b1e706839907facdcd86f299be934177a95630895b762c"
+      },
+      "sourceAuthorityClass": "EXTERNAL_AUDIT",
+      "canonicalAuthorityPath": "governance/sources/independent-audits/CHATGPT_GATE13_DISCOVERY_R1_INDEPENDENT_AUDIT.json",
+      "canonicalStatus": "SUPERSEDED",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE",
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "CONSUMED_BY_THE_PROGRAMS_THEY_AUDITED",
+      "liveConsumerPaths": [
+        "governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json#/sourceAuditHashes"
+      ],
+      "liveConsumerFunction": "The GATE13 mandate authority pins the discovery audit digests; the audits themselves are terminal evidence, not live authorities.",
+      "validatorPaths": [],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": false,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — already consumed and superseded. Recorded so a future Gate does not reopen them looking for unactioned findings.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "GATE13 mandate sourceAuditHashes binds discoveryAuditJsonSha256 and discoveryAuditVerdict"
+      ]
+    },
+    {
+      "id": "MM-045",
+      "domain": "OWNER_DECISION",
+      "capability": "R4 canonical adoption implementation-path decision + I4 recording and bootstrap authorities",
+      "sourcePaths": [
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json",
+        "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json",
+        "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json",
+        "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json"
+      ],
+      "sourceSha256": {
+        "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json": "02fa65fbe47b9bc3cc7c1e8d8939357c25d6c7d032bb8d3a5531978f5134771e",
+        "governance/sources/I4_COMPLETE_CONFIRMED_RECORDING_AUTHORITY_R1.json": "5468283684cb2e49c52f3ef22325630710b5f74dfc4dd1171c824a7f45a79e46",
+        "governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json": "5564abe4fd002968babb62d7d81ac8615c9ed79efde206d0c39ae0118814874a",
+        "governance/sources/I4_DETACHED_TERMINAL_VERIFICATION_RECEIPT_CORRECTED.json": "723dca53771a26dd83a2713556b4e386aa29b112384e727830e83e70b39f5c10"
+      },
+      "sourceAuthorityClass": "PROJECT_OWNER_DECISION",
+      "canonicalAuthorityPath": "governance/sources/R4_CANONICAL_ADOPTION_IMPLEMENTATION_PATH_DECISION.json",
+      "canonicalStatus": "SUPERSEDED",
+      "secondaryFlags": [
+        "READ_ONLY_EVIDENCE",
+        "NONBLOCKING"
+      ],
+      "ratificationStatus": "DECIDED_AND_IMPLEMENTED",
+      "liveConsumerPaths": [
+        "governance/authority/GENESIS_IMPORT_SOURCE_MAP.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "liveConsumerFunction": "The decisions were implemented as the genesis import source map and the GATE12/GATE13 recording events; nothing here awaits action.",
+      "validatorPaths": [
+        "governance/tests/i4-default-source-map-activation.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [],
+      "geeLayer": null,
+      "replayValidated": false,
+      "failClosedValidated": false,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "NONE — closed owner decisions, retained as evidence. No open OWNER_DECISION_REQUIRED artifact exists anywhere in governance/.",
+      "actionOwner": "NONE",
+      "priority": "P3",
+      "proofReferences": [
+        "Full scan of governance/sources: 0 documents carry status PROPOSED, READY_FOR_OWNER_DECISION, READY_FOR_RATIFICATION or DRAFT"
+      ]
+    },
+    {
+      "id": "MM-046",
+      "domain": "PREEXECUTION_CONTROL",
+      "capability": "GATE_PREEXECUTION_REUSE_CHECK — runnable, fail-closed pre-Gate control that also serves as the live consumer for GEE R2-R5",
+      "sourcePaths": [
+        "governance/tools/gate-preexecution-reuse-check.mjs"
+      ],
+      "sourceSha256": {
+        "governance/tools/gate-preexecution-reuse-check.mjs": "12dd1fe7947912297b2dc86bf7d6165c40e5ba55a1230bf35c0f4aa0eaff9d57"
+      },
+      "sourceAuthorityClass": "VALIDATOR",
+      "canonicalAuthorityPath": "governance/tools/gate-preexecution-reuse-check.mjs",
+      "canonicalStatus": "CANONICAL_LIVE",
+      "secondaryFlags": [
+        "FUTURE_GATE_INPUT"
+      ],
+      "ratificationStatus": "CREATED_BY_THIS_PROGRAM",
+      "liveConsumerPaths": [
+        "governance/tests/gate-preexecution-reuse-check.test.mjs",
+        "every future Gate readiness mission"
+      ],
+      "liveConsumerFunction": "23 checks, every verdict recomputed from real bytes. Executes R2/R3/R4/R5 against a dynamically resolved reference work unit (the highest-numbered CLOSED gate whose seal actually verifies) rather than a hardcoded gate id.",
+      "validatorPaths": [
+        "governance/tests/gate-preexecution-reuse-check.test.mjs"
+      ],
+      "projectionPaths": [],
+      "currentGateConsumers": [],
+      "futureGateConsumers": [
+        "GATE15..GATE40"
+      ],
+      "geeLayer": "R2,R3,R4,R5",
+      "replayValidated": false,
+      "failClosedValidated": true,
+      "staleOrDuplicateSources": [],
+      "blockingRisk": "NONE",
+      "requiredAction": "RUN IT FIRST: node governance/tools/gate-preexecution-reuse-check.mjs --gate <GATE>. Exit 2 on BLOCKED.",
+      "actionOwner": "GOVERNED_AGENT",
+      "priority": "P1",
+      "proofReferences": [
+        "GATE15: 23 checks, 0 preexecution gaps, 0 systemic gaps, verdict READY",
+        "GEE probe resolved GATE14 and measured R2 reduction 18.112x live"
+      ]
+    }
+  ]
+}

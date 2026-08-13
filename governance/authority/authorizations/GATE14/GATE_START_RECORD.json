@@ -1,0 +1,72 @@
+{
+  "document": "GATE_START_RECORD",
+  "recordId": "GATE14_START_RECORD_R1",
+  "schemaVersion": 1,
+  "projectId": "WHEEL",
+  "gateId": "GATE14",
+  "purpose": "START_PLUS_EXECUTION_AUTHORITY",
+  "eventId": "GATE14_START_R1",
+  "transitionType": "START",
+  "fromStatus": "AUTHORIZED_NOT_STARTED",
+  "toStatus": "IN_PROGRESS",
+  "recordedAt": "2026-08-12T12:00:00.000Z",
+  "baseCommit": "d5b5cee6710dfcc4a3f7af23835180f8091ccee3",
+  "preStartLedgerSha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b",
+  "previousEventSha256": "d945c50c6d8207955db481b7ba67993b787b06f7c9672256da7b996db6f6599f",
+  "contractSha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+  "currentContractSha256": "3d6d3b4910a61ea3d01a253d80fb46ca4cf44ad711ff0d16d9fac904025afac1",
+  "preStateRevision": "R0001",
+  "preCurrentStateSha256": "1ecec9ff49f759340189831dded66355e1ae2f2acf55920b4e08678f8c8e0954",
+  "preStateSealSha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+  "readinessDigest": "75c91c2e29b6c2399b58fc39dba36ca19c1065d8b97a4c4f88901881fea80c71",
+  "dependencyProof": {
+    "gateId": "GATE13",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "WHEEL-GATE13-INDEPENDENT-VERDICT-20260808-093157",
+    "authoritySha256": "91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352"
+  },
+  "activeGatePreState": {
+    "activeGate": "GATE13",
+    "sha256": "3201b2c4a3248704236c10b9d8d162a63451ea7b45a18bc279aea1ecd20c5591",
+    "byteLength": 366
+  },
+  "authorizedStartWritePaths": [
+    "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+    "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+    "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json",
+    "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+    "governance/gates/GATE14/state/CURRENT_STATE.json",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/generated/ACTIVE_GATE_CONTEXT.md"
+  ],
+  "functionalExecutionScope": [
+    "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+    "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json",
+    "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+    "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json",
+    "governance/gates/GATE14/tests/hostile-self-tests.mjs",
+    "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json"
+  ],
+  "ownerKeyId": "WHEEL-OWNER-RELEASE-2D441D1E",
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "maxUse": 1,
+  "prohibitedOperations": [
+    "AUTHORIZATION",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "GIT_PUSH"
+  ],
+  "startAuthorized": true,
+  "executionAuthorized": true,
+  "recordDigest": "210a5517e6e428585d963033d71273c3d26b40c31137b5345210d9ad0d5e5b4b"
+}

@@ -2,7 +2,7 @@
 <!-- generatedBy=governance/tools/generate-governance-docs.mjs -->
 <!-- generatedFrom=governance/GATE_REGISTRY_00_40.json -->
 <!-- generatedAt=2026-08-01T16:00:00.000Z -->
-<!-- sourceDigest=42c1e704a3af0c2fd9a4ea9d4459f12d1add3c371ca7b32b4ff57e04d9c226d3 -->
+<!-- sourceDigest=910fb6b4c68e6c480a4f019d0ce8cf4875570d11e63fcd1bbee85d5ef410972d -->
 
 # GATE_REGISTRY_00_40
 
@@ -23,8 +23,8 @@ Non-canonique : vue générée depuis GATE_REGISTRY_00_40.json.
 | GATE10 | Independent property registry | EXPLICIT_PARTIAL |
 | GATE11 | Explicit 353 test map | EXPLICIT_PARTIAL |
 | GATE12 | Executable counter cases | EXPLICIT_PARTIAL |
-| GATE13 | Oracles and coverage | EXPLICIT_PARTIAL |
-| GATE14 | Mutations, threats and traversal | EXPLICIT_PARTIAL |
+| GATE13 | Oracles and coverage | EXPLICIT_COMPLETE |
+| GATE14 | Mutations, threats and traversal | EXPLICIT_COMPLETE |
 | GATE15 | Anti-invention validators | IDENTIFIER_AND_NAME_ONLY |
 | GATE16 | Independent crosscheck | IDENTIFIER_AND_NAME_ONLY |
 | GATE17 | Generated report | EXPLICIT_PARTIAL |

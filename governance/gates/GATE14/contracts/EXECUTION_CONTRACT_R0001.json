@@ -1,0 +1,349 @@
+{
+  "gateId": "GATE14",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "f5963314463f49844d45575b2806a516d7d0b5aba0564408efea7fd15db82eef",
+    "gateId": "GATE14",
+    "canonicalObjectiveSha256": "13f24df839a7f36230c7e6ba29d0e143dbdf6b281edaa70228fcc4e49a8a0b82"
+  },
+  "canonicalRequirements": [
+    {
+      "requirementId": "REQ-G14-01",
+      "statement": "Build and validate a deterministic mutation/traversal layer over governed authority surfaces so that critical governance validators are proven falsifiable and effective by demonstrating that governed invalid mutations are detected and rejected rather than merely returning nominal PASS states.",
+      "normativeSource": "PROJECT_OWNER_RATIFIED_GATE14_BOOTSTRAP_R1"
+    },
+    {
+      "requirementId": "REQ-G14-02",
+      "statement": "Prove that governance validators are not ceremonial or circular. A governed validator must demonstrably reject invalid states when the surfaces it claims to protect are subjected to controlled deterministic mutations.",
+      "normativeSource": "PROJECT_OWNER_RATIFIED_GATE14_BOOTSTRAP_R1"
+    },
+    {
+      "requirementId": "REQ-G14-03",
+      "statement": "GATE13 COMPLETE_CONFIRMED only; no GATE04 entry dependency; no GEE R8 dependency.",
+      "normativeSource": "PROJECT_OWNER_RATIFIED_GATE14_BOOTSTRAP_R1"
+    },
+    {
+      "requirementId": "REQ-G14-04",
+      "statement": "No fabricated PASS, summary-only validation, or synthetic detector success.",
+      "normativeSource": "NO_FABRICATED_PASS"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "path": "governance/PROJECT_CONSTITUTION.json",
+      "role": "SUPREME_AUTHORITY",
+      "mutable": false
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "role": "STRATEGIC_REGISTRY",
+      "sha256": "f5963314463f49844d45575b2806a516d7d0b5aba0564408efea7fd15db82eef",
+      "mutable": false
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "role": "CANONICAL_LEDGER",
+      "sha256": "5cd7136a49b887f9a4ecd233588ec8907c82bbef588a741652f14dcffe963879",
+      "mutable": false
+    },
+    {
+      "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json",
+      "role": "GATE13_TERMINAL_PREDECESSOR_CONTRACT",
+      "mutable": false
+    }
+  ],
+  "requiredOutputs": [
+    {
+      "path": "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+      "classification": "DETERMINISTIC_MUTATION_REGISTRY",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json",
+      "classification": "TRAVERSAL_INVENTORY",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+      "classification": "MUTATION_EXECUTION_RECORDS",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json",
+      "classification": "COVERAGE_MATRIX",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE14/tests/hostile-self-tests.mjs",
+      "classification": "HOSTILE_SELF_TESTS",
+      "action": "CREATE"
+    },
+    {
+      "path": "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json",
+      "classification": "MACHINE_DERIVED_CLOSURE_EVIDENCE",
+      "action": "CREATE"
+    }
+  ],
+  "validators": [
+    "node governance/gates/GATE14/tests/hostile-self-tests.mjs",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/governance-preflight.mjs"
+  ],
+  "positiveTests": [
+    {
+      "testId": "G14-POS-01",
+      "name": "exact bytes recompute",
+      "expected": "bindings match"
+    },
+    {
+      "testId": "G14-POS-02",
+      "name": "isolated deterministic replay",
+      "expected": "byte-identical"
+    }
+  ],
+  "negativeTests": [
+    {
+      "testId": "G14-NEG-01",
+      "domain": "authority binding",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-02",
+      "domain": "ledger/status integrity",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-03",
+      "domain": "schema invalidity",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-04",
+      "domain": "readiness fail-open",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-05",
+      "domain": "evidence binding",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-06",
+      "domain": "seal/execution binding",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-07",
+      "domain": "path confinement/traversal",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-08",
+      "domain": "exact-file vs prefix authorization",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-09",
+      "domain": "unexpected governed paths",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-10",
+      "domain": "stale/mismatched authority",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-11",
+      "domain": "malformed/open-world status",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-12",
+      "domain": "missing critical evidence",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    },
+    {
+      "testId": "G14-NEG-13",
+      "domain": "detector bypass",
+      "name": "controlled hostile mutation",
+      "expected": "rejected fail-closed"
+    }
+  ],
+  "countertests": [
+    {
+      "counterTestId": "G14-CT-01",
+      "target": "authority binding",
+      "hostileMutation": "mutate governed authority binding",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-02",
+      "target": "ledger/status integrity",
+      "hostileMutation": "mutate governed ledger/status integrity",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-03",
+      "target": "schema invalidity",
+      "hostileMutation": "mutate governed schema invalidity",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-04",
+      "target": "readiness fail-open",
+      "hostileMutation": "mutate governed readiness fail-open",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-05",
+      "target": "evidence binding",
+      "hostileMutation": "mutate governed evidence binding",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-06",
+      "target": "seal/execution binding",
+      "hostileMutation": "mutate governed seal/execution binding",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-07",
+      "target": "path confinement/traversal",
+      "hostileMutation": "mutate governed path confinement/traversal",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-08",
+      "target": "exact-file vs prefix authorization",
+      "hostileMutation": "mutate governed exact-file vs prefix authorization",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-09",
+      "target": "unexpected governed paths",
+      "hostileMutation": "mutate governed unexpected governed paths",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-10",
+      "target": "stale/mismatched authority",
+      "hostileMutation": "mutate governed stale/mismatched authority",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-11",
+      "target": "malformed/open-world status",
+      "hostileMutation": "mutate governed malformed/open-world status",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-12",
+      "target": "missing critical evidence",
+      "hostileMutation": "mutate governed missing critical evidence",
+      "falsePassWouldMean": "validator bypass"
+    },
+    {
+      "counterTestId": "G14-CT-13",
+      "target": "detector bypass",
+      "hostileMutation": "mutate governed detector bypass",
+      "falsePassWouldMean": "validator bypass"
+    }
+  ],
+  "reuseRules": [
+    "only fresh exact validated evidence with matching basis is reusable",
+    "producer PASS never bootstraps trust"
+  ],
+  "invalidationRules": [
+    "source or validator byte changes invalidate evidence",
+    "stale mismatched partial unverified evidence is non-reusable"
+  ],
+  "forbiddenReplays": [
+    "fabricated execution records or closure evidence",
+    "summary-only or circular validation",
+    "START, AGENT_CLOSURE, EXTERNAL_CONFIRMATION, COMPLETE_CONFIRMED",
+    "GATE04, GEE R8, GATE15+",
+    "ledger or Git writes, network, subagents"
+  ],
+  "packagingRequirements": [
+    "stable UTF-8",
+    "exact relative paths only"
+  ],
+  "closureConditions": [
+    "six artifact classes validated",
+    "hostile mutations reproduced and rejected",
+    "no fabricated PASS",
+    "deterministic replay",
+    "GATE14 NOT_STARTED",
+    "no ledger/status/next-gate authority"
+  ],
+  "nextGateAuthorizationConditions": [
+    "no next-gate authority",
+    "GATE15 outside the authorized execution boundary",
+    "separate owner authority required"
+  ],
+  "performanceBudget": {
+    "targetMinutes": 180,
+    "expectedMaximumMinutes": 300,
+    "closeoutStartMinutes": 270,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "milestones": [
+      "GATE14_DETERMINISTIC_MUTATION_TRAVERSAL"
+    ],
+    "checkpointRequired": true,
+    "resumeContractRequired": true,
+    "restartFromZeroForbidden": true
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+    "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json",
+    "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+    "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json",
+    "governance/gates/GATE14/tests/hostile-self-tests.mjs",
+    "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "PROJECT_OWNER_RATIFIED_GATE14_BOOTSTRAP_R1",
+      "path": "external mission attachment",
+      "sha256": null
+    },
+    {
+      "sourceId": "GATE13_PREDECESSOR",
+      "path": "governance/gates/GATE13/contracts/CURRENT_CONTRACT.json"
+    }
+  ]
+}

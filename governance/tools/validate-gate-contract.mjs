@@ -9,7 +9,7 @@ const CONTRACT_FIELDS = [
   'countertests', 'reuseRules', 'invalidationRules', 'forbiddenReplays',
   'packagingRequirements', 'closureConditions', 'nextGateAuthorizationConditions',
   'performanceBudget', 'checkpointPolicy', 'authorizedPaths', 'requiredPolicyIds',
-  'sourceReferences'
+  'sourceReferences', 'previousContractPath', 'previousContractSha256'
 ];
 const POINTER_FIELDS = [
   'schemaVersion', 'gateId', 'contractRevision', 'contractPath', 'contractSha256',
@@ -109,6 +109,19 @@ function validateContract({ root, contractPath, pointerPath, registryPath, const
     }
     if (typeof contract.contractRevision !== 'string' || !/^R[0-9]{4}$/.test(contract.contractRevision)) {
       finding(findings, 'INVALID_CONTRACT_REVISION', '/contractRevision', contract.contractRevision, 'Rxxxx', 'Contract revision is not versioned.', 'REQ-CTR-01');
+    }
+    const revisionNumber = /^R[0-9]{4}$/.test(String(contract.contractRevision || ''))
+      ? Number.parseInt(contract.contractRevision.slice(1), 10) : null;
+    if (revisionNumber !== null && revisionNumber > 1) {
+      if (!isSafeRelative(contract.previousContractPath)) finding(findings, 'SUCCESSOR_LINEAGE_PATH_INVALID', '/previousContractPath', contract.previousContractPath, 'safe predecessor contract path', 'A successor contract must identify a safe predecessor path.', 'REQ-CTR-01');
+      if (typeof contract.previousContractSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(contract.previousContractSha256)) finding(findings, 'SUCCESSOR_LINEAGE_SHA_INVALID', '/previousContractSha256', contract.previousContractSha256, 'SHA-256 of predecessor bytes', 'A successor contract must identify the exact predecessor bytes.', 'REQ-CTR-01');
+      const previousPath = resolveRepoPath(root, contract.previousContractPath, findings, '/previousContractPath', 'REQ-CTR-01');
+      if (previousPath && fs.existsSync(previousPath)) {
+        const previousSha = sha256Bytes(fs.readFileSync(previousPath));
+        if (previousSha !== contract.previousContractSha256) finding(findings, 'SUCCESSOR_LINEAGE_SHA_MISMATCH', '/previousContractSha256', contract.previousContractSha256, previousSha, 'Successor lineage hash equals predecessor bytes.', 'REQ-CTR-01');
+      }
+    } else if (Object.prototype.hasOwnProperty.call(contract, 'previousContractPath') || Object.prototype.hasOwnProperty.call(contract, 'previousContractSha256')) {
+      finding(findings, 'BOOTSTRAP_LINEAGE_FIELDS_FORBIDDEN', '/previousContractPath', contract.previousContractPath, 'absent on R0001', 'Bootstrap contracts cannot claim a predecessor.', 'REQ-CTR-01');
     }
     const strategic = contract.strategicRegistryReference;
     if (strategic) {

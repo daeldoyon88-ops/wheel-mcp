@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gate-authorization-authority-request.schema.json",
+  "title": "Agent-authored Gate authorization authority request (non-authoritative)",
+  "description": "What the agent ASKS the PROJECT_OWNER to approve: exactly one NOT_STARTED -> AUTHORIZED_NOT_STARTED transition for one Gate, over one exact artifact cohort, identified by a recomputable bindingDigest. Authoring this document grants nothing; only the owner-signed ACTIVE_GATE_AUTHORIZATION_AUTHORITY does. maxUse is fixed at 1 and executionAuthorized at false, so neither replay nor execution privilege is representable. NOTE ON ENFORCEMENT: this repository's canonical schema validator implements a draft-07 SUBSET and ignores $ref/definitions/allOf/contains/maxItems; those keywords are deliberately avoided here rather than creating false strictness. Cohort cardinality, exact per-role path templates, digest self-consistency and cross-document agreement are enforced normatively in governance/gee-v1/core/gate-authorization-authority.mjs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "documentKind", "requestId", "projectId", "gateId", "purpose",
+    "transitionType", "fromStatus", "toStatus", "baseCommit", "preLedgerSha256",
+    "previousEventSha256", "contractSha256", "currentContractSha256", "dependencyProof",
+    "stateRevision", "authorizedStateArtifacts", "authorizedDerivedArtifacts",
+    "bindingDigestAlgorithm", "bindingDigest", "prohibitedOperations", "executionAuthorized",
+    "expiresAtUtc", "maxUse", "requestDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "documentKind": { "const": "GATE_AUTHORIZATION_AUTHORITY_REQUEST" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "projectId": { "type": "string", "minLength": 1 },
+    "gateId": { "type": "string", "minLength": 1 },
+    "purpose": { "const": "GATE_NORMAL_AUTHORIZATION" },
+    "transitionType": { "const": "AUTHORIZATION" },
+    "fromStatus": { "const": "NOT_STARTED" },
+    "toStatus": { "const": "AUTHORIZED_NOT_STARTED" },
+    "baseCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "preLedgerSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "previousEventSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "contractSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "currentContractSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "dependencyProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gateId", "status", "authorityPath", "authoritySha256"],
+      "properties": {
+        "gateId": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["COMPLETE_AGENT", "COMPLETE_CONFIRMED"] },
+        "authorityPath": { "type": "string", "minLength": 1 },
+        "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "stateRevision": { "const": "R0001" },
+    "authorizedStateArtifacts": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cohortRole", "repoRelativePath", "sha256", "byteLength"],
+        "properties": {
+          "cohortRole": { "enum": ["CURRENT_STATE", "CHECKPOINT", "OPEN_DEFECTS", "STATE_SEAL"] },
+          "repoRelativePath": { "type": "string", "pattern": "^governance/gates/[^/*?\\\\]+/state/[^*?\\\\]+$" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "byteLength": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "authorizedDerivedArtifacts": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cohortRole", "repoRelativePath", "sha256", "byteLength"],
+        "properties": {
+          "cohortRole": { "enum": ["GATE_STATUS_SNAPSHOT", "ACTIVE_GATE", "ACTIVE_GATE_CONTEXT_JSON", "ACTIVE_GATE_CONTEXT_MD"] },
+          "repoRelativePath": { "enum": ["governance/state/generated/GATE_STATUS_SNAPSHOT.json", "governance/active/ACTIVE_GATE.json", "governance/generated/ACTIVE_GATE_CONTEXT.json", "governance/generated/ACTIVE_GATE_CONTEXT.md"] },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "byteLength": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "bindingDigestAlgorithm": { "const": "SHA256_CANONICAL_JSON_GATE_AUTHORIZATION_BINDING_V1" },
+    "bindingDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "prohibitedOperations": {
+      "type": "array",
+      "minItems": 11,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "START", "GATE_EXECUTION", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "COMPLETE_CONFIRMED",
+          "ARBITRARY_LEDGER_TRANSITION", "LEDGER_REWRITE", "GIT_PUSH", "ARBITRARY_GOVERNANCE_WRITE",
+          "OTHER_GATE", "GEE_REVISION_CREATION"
+        ]
+      }
+    },
+    "executionAuthorized": { "const": false },
+    "expiresAtUtc": { "type": "string", "minLength": 20 },
+    "maxUse": { "const": 1 },
+    "requestDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

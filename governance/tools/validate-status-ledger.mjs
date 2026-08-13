@@ -5,6 +5,47 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { canonicalize, sha256Canonical, sha256Bytes } from './canonical-json.mjs';
 import { validateAgainstJsonSchema } from '../gee-v1/contracts/validate-against-json-schema.mjs';
+import { validateStateRevision } from './validate-state-revision.mjs';
+import {
+  GATE_AUTHORIZATION_TRANSITION_TYPE,
+  GATE_AUTHORIZATION_RECORD_KIND,
+  GATE_AUTHORIZATION_FROM_STATUS,
+  GATE_AUTHORIZATION_TO_STATUS,
+  GATE_AUTHORIZATION_MAX_USE,
+  GATE_AUTHORIZATION_FIRST_REVISION,
+  GATE_AUTHORIZATION_RECORD_FIELDS,
+  GATE_AUTHORIZATION_BINDING_DIGEST_ALGORITHM,
+  GATE_AUTHORIZATION_BINDING_DIGEST_FIELDS,
+  GATE_AUTHORIZATION_RECORD_DERIVED_FIELDS,
+  GATE_AUTHORIZATION_BINDING_IDENTITY_FIELDS,
+  GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES,
+  computeGateAuthorizationBindingDigest,
+  gateAuthorizationRecordPath,
+  gateAuthorizationAuthoritySnapshotPath,
+  gateAuthorizationStateCohortPaths,
+  gateAuthorizationDerivedCohortPaths,
+  validateGateAuthorizationRecordShape,
+  validateGateAuthorizationAuthorityShape,
+  verifyOwnerSignature
+} from '../gee-v1/core/gate-authorization-authority.mjs';
+import {
+  GATE_START_RECORD_KIND,
+  GATE_START_AUTHORITY_KIND,
+  GATE_START_FROM_STATUS,
+  GATE_START_TO_STATUS,
+  GATE_START_TRANSITION_TYPE,
+  GATE_START_MAX_USE,
+  GATE_START_AUTHORITY_FIELDS,
+  computeGateStartReadinessDigest,
+  computeGateStartRecordDigest,
+  computeGateStartBindingDigestFromDigests,
+  gateStartRecordPath,
+  gateStartAuthorityPath,
+  isModernGateStartId,
+  validateGateStartRecordShape,
+  validateGateStartAuthorityShape,
+  verifyOwnerSignature as verifyGateStartOwnerSignature
+} from '../gee-v1/core/gate-start-authority.mjs';
 
 const STATUSES = [
   'NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'REPAIR_REQUIRED',
@@ -376,6 +417,21 @@ function loadRegistryAuthorityMigrations({ root, findings }) {
   return map;
 }
 
+/**
+ * EVERY declaration of one authority identity, in the ONE order the canonical
+ * transition-authority resolver already applies: the frozen GENESIS_IMPORT source map
+ * first, then adapter-supplied policy. Returning all matches rather than the first is
+ * what lets a caller that must fail closed on ambiguity — Gate-authorization dependency
+ * proof — observe a competing declaration instead of silently accepting one of them.
+ * `resolveAuthority` keeps taking the first match, so its behaviour is unchanged.
+ */
+function declaredExternalAuthorities(authorityIdentity, sourceMap, extraExternalAuthorities) {
+  return [
+    ...(Array.isArray(sourceMap?.externalAuthorities) ? sourceMap.externalAuthorities : []),
+    ...(Array.isArray(extraExternalAuthorities) ? extraExternalAuthorities : [])
+  ].filter((declaration) => declaration?.authorityId === authorityIdentity);
+}
+
 function resolveAuthority({ root, event, sourceMap, migrations, extraExternalAuthorities, findings, lineNumber }) {
   const authorityPath = event.authorityPath;
   if (typeof authorityPath !== 'string' || !authorityPath) {
@@ -390,8 +446,7 @@ function resolveAuthority({ root, event, sourceMap, migrations, extraExternalAut
   // separate from the frozen, untouched GENESIS_IMPORT_SOURCE_MAP.json. Both lists are consulted
   // identically; neither is trusted structurally more than the other — both require live bytes to
   // hash-match the declaration below.
-  const external = sourceMap?.externalAuthorities?.find((a) => a.authorityId === authorityPath)
-    || (Array.isArray(extraExternalAuthorities) ? extraExternalAuthorities.find((a) => a.authorityId === authorityPath) : null);
+  const external = declaredExternalAuthorities(authorityPath, sourceMap, extraExternalAuthorities)[0] || null;
   if (external) {
     declared = external;
     filePath = path.isAbsolute(external.path) ? external.path : path.resolve(root, external.path);
@@ -776,6 +831,649 @@ function validateHistoricalReconciliation({ root, event, lineNumber, priorOwnEve
   }
 }
 
+// ===========================================================================
+// GATE_AUTHORIZATION proof obligations.
+// ===========================================================================
+
+/**
+ * The normative field set of a GATE_AUTHORIZATION_RECORD, and the normative
+ * binding-digest algorithm and per-artifact projection.
+ *
+ * These are RE-EXPORTS of the single implementation in
+ * governance/gee-v1/core/gate-authorization-authority.mjs, not second copies.
+ * Two independent copies of a digest algorithm are two things that can silently
+ * drift apart, and a drifted digest would mean the pre-write decision and the
+ * permanent ledger re-verification disagree about what the owner approved — the
+ * exact failure this primitive exists to prevent. One implementation, two
+ * consumers, no drift.
+ */
+export {
+  GATE_AUTHORIZATION_RECORD_FIELDS as GATE_AUTHORIZATION_RECORD_REQUIRED_FIELDS,
+  GATE_AUTHORIZATION_BINDING_DIGEST_ALGORITHM,
+  GATE_AUTHORIZATION_BINDING_DIGEST_FIELDS,
+  computeGateAuthorizationBindingDigest
+};
+
+/** Owner PUBLIC key. In-governed-set by design: publishing it grants nothing. */
+export const GATE_AUTHORIZATION_OWNER_KEY_PATH = 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json';
+
+// Validated at runtime against the SAME schema files the schema-parity tests read, so
+// "schema-invalid" and "runtime-rejected" cannot drift apart. Resolved next to this
+// module — these are the tool's own contracts, never read from below the validated --root.
+const SCHEMA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas');
+export const GATE_AUTHORIZATION_RECORD_SCHEMA_PATH = path.join(SCHEMA_DIR, 'gate-authorization-record.schema.json');
+export const GATE_AUTHORIZATION_AUTHORITY_SCHEMA_PATH = path.join(SCHEMA_DIR, 'gate-authorization-authority.schema.json');
+export const GATE_START_RECORD_SCHEMA_PATH = path.join(SCHEMA_DIR, 'gate-start-record.schema.json');
+export const GATE_START_AUTHORITY_SCHEMA_PATH = path.join(SCHEMA_DIR, 'gate-start-authority.schema.json');
+let gateAuthorizationSchemaCache = null;
+function loadGateAuthorizationSchemas() {
+  gateAuthorizationSchemaCache ??= {
+    record: readJson(GATE_AUTHORIZATION_RECORD_SCHEMA_PATH),
+    authority: readJson(GATE_AUTHORIZATION_AUTHORITY_SCHEMA_PATH)
+  };
+  return gateAuthorizationSchemaCache;
+}
+
+function loadGateStartSchemas() {
+  return {
+    record: readJson(GATE_START_RECORD_SCHEMA_PATH),
+    authority: readJson(GATE_START_AUTHORITY_SCHEMA_PATH)
+  };
+}
+
+function readLiveArtifact(root, relativePath) {
+  if (!safeRelativePath(relativePath)) return null;
+  const abs = path.resolve(root, relativePath);
+  if (!path.resolve(abs).startsWith(path.resolve(root) + path.sep)) return null;
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return null;
+  const bytes = fs.readFileSync(abs);
+  return { bytes, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+}
+
+/**
+ * AUTHORIZATION state semantics are split deliberately:
+ *
+ *  - CHECKPOINT, OPEN_DEFECTS and STATE_SEAL under R0001 are immutable
+ *    historical members and remain byte-pinned by event 57 forever;
+ *  - CURRENT_STATE is a mutable projection which may advance to a later
+ *    revision, but only through the validated state-seal lineage rooted at
+ *    that exact R0001 seal.
+ *
+ * This is kept in the permanent ledger validator so a later CURRENT_STATE
+ * cannot be accepted merely because it looks like valid JSON. The revision
+ * validator supplies contiguous revision, seal-member, pointer-hash and
+ * previous-seal checks; the checks below bind that result to the AUTHORIZATION
+ * root and to the status replayed by the complete ledger.
+ */
+function validateAuthorizationStateLineage({ root, ledgerPath, event, lineNumber, record, findings }) {
+  const R = (detectorId, jsonPointer, actualValue, expectedRule, message) =>
+    finding(findings, detectorId, event, lineNumber, jsonPointer, actualValue, expectedRule, 'GATE_AUTHORIZATION_AUTHORITY', message, 'REQ-GAU-01');
+  const statePaths = gateAuthorizationStateCohortPaths(event.gateId);
+  const authorized = new Map((record.authorizedStateArtifacts || []).map((artifact) => [artifact.cohortRole, artifact]));
+  const rootSeal = readLiveArtifact(root, statePaths.STATE_SEAL);
+  const rootSealArtifact = authorized.get('STATE_SEAL');
+  const authorizedCurrentState = authorized.get('CURRENT_STATE');
+  if (!rootSeal || !rootSealArtifact || rootSeal.sha256 !== rootSealArtifact.sha256) {
+    R('GATE_AUTHORIZATION_STATE_LINEAGE_ROOT_MISMATCH', '/authorizedStateArtifacts/STATE_SEAL', rootSeal?.sha256 || null, rootSealArtifact?.sha256 || null, 'The current state lineage must begin at the exact R0001 STATE_SEAL authorized by event 57.');
+  }
+
+  const current = readLiveArtifact(root, statePaths.CURRENT_STATE);
+  if (!current) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_MISSING', '/authorizedStateArtifacts/CURRENT_STATE', statePaths.CURRENT_STATE, 'existing CURRENT_STATE projection', 'The mutable CURRENT_STATE projection is absent.');
+    return;
+  }
+  let currentJson;
+  try { currentJson = JSON.parse(current.bytes.toString('utf8')); }
+  catch {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_INVALID', '/authorizedStateArtifacts/CURRENT_STATE', 'malformed JSON', 'valid CURRENT_STATE JSON', 'CURRENT_STATE is not a parsable projection.');
+    return;
+  }
+  if (currentJson.gateId !== event.gateId) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_GATE_MISMATCH', '/authorizedStateArtifacts/CURRENT_STATE/gateId', currentJson.gateId, event.gateId, 'CURRENT_STATE must belong to the authorized Gate.');
+  }
+  if (!/^R[0-9]{4}$/.test(currentJson.stateRevision || '')) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_REVISION_INVALID', '/authorizedStateArtifacts/CURRENT_STATE/stateRevision', currentJson.stateRevision, 'R0001 or a later revision', 'CURRENT_STATE must identify a numbered state revision.');
+  }
+  const expectedRevisionPath = `governance/gates/${event.gateId}/state/revisions/${currentJson.stateRevision}`;
+  if (currentJson.revisionPath !== expectedRevisionPath) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_SIDEWAYS', '/authorizedStateArtifacts/CURRENT_STATE/revisionPath', currentJson.revisionPath, expectedRevisionPath, 'CURRENT_STATE may advance only within this Gate\'s revision lineage; sideways pointers are forbidden.');
+  }
+
+  const revisionReport = validateStateRevision({
+    root,
+    gateId: event.gateId,
+    currentStatePath: path.resolve(root, statePaths.CURRENT_STATE),
+    contractPath: path.resolve(root, 'governance', 'gates', event.gateId, `contracts/EXECUTION_CONTRACT_${GATE_AUTHORIZATION_FIRST_REVISION}.json`)
+  });
+  if (!revisionReport.valid) {
+    R('GATE_AUTHORIZATION_STATE_LINEAGE_INVALID', '/authorizedStateArtifacts/CURRENT_STATE', revisionReport.findings, 'valid contiguous state revisions with a verified seal chain rooted at R0001', 'CURRENT_STATE does not resolve to a valid descendant of the authorized R0001 state.');
+  }
+
+  if (currentJson.stateRevision === GATE_AUTHORIZATION_FIRST_REVISION && authorizedCurrentState && current.sha256 !== authorizedCurrentState.sha256) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_R0001_BYTES_CHANGED', '/authorizedStateArtifacts/CURRENT_STATE', authorizedCurrentState.sha256, current.sha256, 'When CURRENT_STATE still points to R0001, its bytes must remain the exact bytes authorized at event 57.');
+  }
+
+  const currentSealPath = `${currentJson.revisionPath}/STATE_SEAL.json`;
+  const currentSeal = readLiveArtifact(root, currentSealPath);
+  if (!currentSeal) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_SEAL_MISSING', '/authorizedStateArtifacts/CURRENT_STATE/stateSealSha256', currentSealPath, 'existing current revision STATE_SEAL', 'CURRENT_STATE must point to an existing seal for its current revision.');
+    return;
+  }
+  if (currentJson.stateSealSha256 !== currentSeal.sha256) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_SEAL_MISMATCH', '/authorizedStateArtifacts/CURRENT_STATE/stateSealSha256', currentJson.stateSealSha256, currentSeal.sha256, 'CURRENT_STATE.stateSealSha256 must reproduce the exact current revision seal bytes.');
+  }
+  let currentSealJson;
+  try { currentSealJson = JSON.parse(currentSeal.bytes.toString('utf8')); }
+  catch {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_SEAL_INVALID', '/authorizedStateArtifacts/CURRENT_STATE/stateSealSha256', 'malformed JSON', 'valid STATE_SEAL JSON', 'The current revision seal is not parsable.');
+    return;
+  }
+  if (currentSealJson.stateRevision !== currentJson.stateRevision || currentSealJson.gateId !== event.gateId) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_SEAL_IDENTITY_MISMATCH', '/authorizedStateArtifacts/CURRENT_STATE/stateSealSha256', currentSealJson, { gateId: event.gateId, stateRevision: currentJson.stateRevision }, 'The current seal identity must match the CURRENT_STATE projection.');
+  }
+
+  let replayedCurrentStatus = null;
+  try {
+    const events = fs.readFileSync(ledgerPath, 'utf8').trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    replayedCurrentStatus = events.filter((candidate) => candidate.gateId === event.gateId).at(-1)?.toStatus || null;
+  } catch {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_REPLAY_UNAVAILABLE', '/authorizedStateArtifacts/CURRENT_STATE', 'unreadable ledger', 'replayed current Gate status', 'CURRENT_STATE status consistency cannot be established without the complete ledger replay.');
+  }
+  const executionStatus = currentSealJson.payload?.executionStatus;
+  if (replayedCurrentStatus !== null && executionStatus !== replayedCurrentStatus) {
+    R('GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH', '/authorizedStateArtifacts/CURRENT_STATE', executionStatus, replayedCurrentStatus, 'The current revision executionStatus must equal the status replayed by the complete ledger.');
+  }
+}
+
+/**
+ * Resolves a Gate-authorization dependency proof's authorityPath to live bytes under the
+ * SAME declaration policy the canonical transition-authority resolver uses.
+ *
+ * The value is not free-form: it is whatever the dependency Gate's TERMINAL ledger event
+ * actually records, and that may legitimately be a declared EXTERNAL AUTHORITY IDENTITY
+ * (an opaque id resolved through the source map / adapter policy) rather than a governed
+ * repository-relative path. Reading it unconditionally as a path made an identity that the
+ * ledger itself already resolves for the dependency's own event unresolvable here, so a
+ * dependency proof could never simultaneously satisfy pre-write equality and permanent
+ * re-verification.
+ *
+ * Identity and resolved bytes stay separate concepts: the identity string is never
+ * rewritten into the declaration's path — the caller still compares it verbatim.
+ *
+ * Fail-closed at every branch: an unknown identity, a competing declaration, missing
+ * evidence, or a declaration whose own sha256 no longer reproduces its bytes all resolve
+ * to nothing, leaving the dependency unproven.
+ */
+function resolveDependencyAuthority({ root, identity, sourceMap, extraExternalAuthorities }) {
+  if (typeof identity !== 'string' || !identity) return { artifact: null, reason: 'DEPENDENCY_AUTHORITY_IDENTITY_ABSENT' };
+  const declarations = declaredExternalAuthorities(identity, sourceMap, extraExternalAuthorities);
+  if (declarations.length > 1) return { artifact: null, reason: 'COMPETING_EXTERNAL_AUTHORITY_DECLARATIONS' };
+  if (declarations.length === 1) {
+    const declared = declarations[0];
+    const declaredPath = typeof declared.path === 'string' ? declared.path : '';
+    if (!declaredPath) return { artifact: null, reason: 'DECLARED_EXTERNAL_AUTHORITY_PATH_INVALID' };
+    const filePath = path.isAbsolute(declaredPath) ? declaredPath : path.resolve(root, declaredPath);
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      return { artifact: null, reason: 'DECLARED_EXTERNAL_AUTHORITY_EVIDENCE_MISSING' };
+    }
+    const bytes = fs.readFileSync(filePath);
+    const artifact = { bytes, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+    // The declaration never outranks the bytes it points at.
+    if (declared.sha256 !== artifact.sha256) return { artifact: null, reason: 'DECLARED_EXTERNAL_AUTHORITY_HASH_DRIFT' };
+    return { artifact, reason: null };
+  }
+  // Undeclared: the identity must be an ordinary governed repository-relative authority,
+  // resolved exactly as before — traversal and absolute forms are refused by readLiveArtifact.
+  const artifact = readLiveArtifact(root, identity);
+  return artifact ? { artifact, reason: null } : { artifact: null, reason: 'DEPENDENCY_AUTHORITY_ABSENT' };
+}
+
+/**
+ * AUTHORIZATION proof obligations.
+ *
+ * Runs ONLY for transitionType === AUTHORIZATION. Such an event has already been
+ * rejected unless it appears in the closed I2 execution table, which admits
+ * exactly one AUTHORIZATION entry: NOT_STARTED -> AUTHORIZED_NOT_STARTED.
+ *
+ * This function then refuses the transition unless every one of the following
+ * re-verifies live, from bytes:
+ *
+ *   1. the event's authority is the Gate's GATE_AUTHORIZATION_RECORD, at the exact
+ *      deterministic governed path for this Gate, with its bytes pinned by the
+ *      event's authoritySha256 (append-only hash chain);
+ *   2. the record is schema-valid and structurally valid under the closed-world
+ *      core rules (which make START and execution privilege unrepresentable);
+ *   3. an owner-signed ACTIVE_GATE_AUTHORIZATION_AUTHORITY snapshot exists at the
+ *      exact deterministic governed path for this Gate, is schema-valid, and its
+ *      ed25519 PROJECT_OWNER signature verifies;
+ *   4. the approved binding digest RECOMPUTES from the authority's own cohort —
+ *      the owner approved a digest, never a description;
+ *   5. record and authority agree on every identity field, the dependency proof
+ *      and both artifact cohorts;
+ *   6. the transition identity in the event matches the record exactly;
+ *   7. the event chain pin (previousEventSha256) and the pre-ledger digest both
+ *      reproduce from the real append-only prefix that precedes this event;
+ *   8. the immediate dependency Gate had really reached a terminal status at this
+ *      point in the replayed ledger;
+ *   9. the Gate's contract and CURRENT_CONTRACT bytes still hash as approved;
+ *  10. the immutable R0001 STATE members reproduce the approved sha256 and
+ *      byteLength forever, while CURRENT_STATE is verified through its
+ *      validated descendant seal lineage and replayed status;
+ *  11. the DERIVED cohort is exactly the four approved generated views;
+ *  12. the authority had not expired AS OF the event's recordedAt;
+ *  13. maxUse is 1 and this is the Gate's only AUTHORIZATION event.
+ *
+ * Any failure is BLOCKING: the authorization fails closed and the Gate keeps
+ * NOT_STARTED.
+ *
+ * DERIVED-COHORT PERMANENCE, stated explicitly rather than left implicit. The
+ * four derived artifacts are whole-project generated views: GATE_STATUS_SNAPSHOT
+ * and ACTIVE_GATE_CONTEXT legitimately change every time ANY Gate's state
+ * changes. Pinning their bytes permanently would mean this Gate's authorization
+ * event turns INVALID the moment the next Gate is authorized — a self-inflicted
+ * future ledger break, and a direct contradiction of the constitutional rule
+ * GENERATED_FILES_NON_CANONICAL. So permanence is split by what is actually
+ * immutable: STATE bytes are enforced forever (10); DERIVED artifacts are
+ * enforced forever as an exact PATH cohort (11), while their approved bytes
+ * remain permanently recorded in the owner-signed authority and are verified
+ * live, at authorization time, by the pre-write source adapter. The point-in-time
+ * byte attestation is disclosed below as an INFO finding rather than silently
+ * dropped.
+ */
+function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorOwnEvents, priorEvents = [], replayedStatusByGate, authority, sourceMap, policy, findings }) {
+  const before = findings.length;
+  const R = (detectorId, jsonPointer, actualValue, expectedRule, message) =>
+    finding(findings, detectorId, event, lineNumber, jsonPointer, actualValue, expectedRule, 'GATE_AUTHORIZATION_AUTHORITY', message, 'REQ-GAU-01');
+
+  // ----- the record must be an in-repo, portable governed path at the exact template -----
+  const expectedRecordPath = gateAuthorizationRecordPath(event.gateId);
+  if (!safeRelativePath(event.authorityPath)) {
+    R('GATE_AUTHORIZATION_UNPORTABLE_AUTHORITY_IDENTITY', '/authorityPath', event.authorityPath, 'portable repository-relative authorization record path', 'A Gate authorization record must be identified by a governed relative path, not an external or absolute locator.');
+    return;
+  }
+  if (event.authorityPath !== expectedRecordPath) {
+    R('GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED', '/authorityPath', event.authorityPath, expectedRecordPath, 'Gate authorization record is not at the exact deterministic governed path for this Gate; no other location may authorize a Gate.');
+    return;
+  }
+  if (!authority) return; // resolveAuthority already reported the missing/invalid authority.
+  if (authority.actualSha !== event.authoritySha256) {
+    R('INVALID_GATE_AUTHORIZATION_RECORD', '/authoritySha256', authority.actualSha, event.authoritySha256, 'Authorization record bytes are not pinned by the event; the record is not trusted.');
+    return;
+  }
+
+  let record;
+  try {
+    record = JSON.parse(fs.readFileSync(authority.filePath, 'utf8'));
+  } catch (error) {
+    R('INVALID_GATE_AUTHORIZATION_RECORD', '/authorityPath', event.authorityPath, 'parsable Gate authorization record', `Authorization record is not parsable JSON: ${error.message}`);
+    return;
+  }
+
+  const schemas = loadGateAuthorizationSchemas();
+  const recordSchemaResult = validateAgainstJsonSchema(record, schemas.record);
+  if (!recordSchemaResult.valid) {
+    R('INVALID_GATE_AUTHORIZATION_RECORD', '/', recordSchemaResult.errors, 'valid gate-authorization-record.schema.json document', 'Authorization record is not schema-valid.');
+  }
+  const recordShape = validateGateAuthorizationRecordShape(record);
+  if (!recordShape.valid) {
+    R('INVALID_GATE_AUTHORIZATION_RECORD', '/', recordShape.findings, 'closed-world GATE_AUTHORIZATION_RECORD structure', 'Authorization record violates the closed-world authorization structure.');
+  }
+
+  // ----- the owner-signed authority snapshot, at its own exact deterministic path -----
+  const snapshotPath = gateAuthorizationAuthoritySnapshotPath(event.gateId);
+  const snapshot = readLiveArtifact(root, snapshotPath);
+  let ownerAuthority = null;
+  if (!snapshot) {
+    R('GATE_AUTHORIZATION_OWNER_AUTHORITY_MISSING', '/authorityPath', snapshotPath, 'existing owner-signed authorization snapshot', 'No byte-identical PROJECT_OWNER authorization snapshot is preserved for this Gate; the authorization is unproven.');
+  } else {
+    try { ownerAuthority = JSON.parse(snapshot.bytes.toString('utf8')); } catch { ownerAuthority = null; }
+    const authoritySchemaResult = ownerAuthority === null || typeof ownerAuthority !== 'object' || Array.isArray(ownerAuthority)
+      ? { valid: false, errors: [{ jsonPointer: '/', reason: 'NOT_A_JSON_OBJECT', message: 'owner authority is not a parsable JSON object' }] }
+      : validateAgainstJsonSchema(ownerAuthority, schemas.authority);
+    if (!authoritySchemaResult.valid) {
+      R('GATE_AUTHORIZATION_UNAUTHORIZED', '/authorityPath', authoritySchemaResult.errors, 'valid gate-authorization-authority.schema.json document', 'Preserved owner authorization snapshot is not a schema-valid PROJECT_OWNER Gate authorization authority.');
+      ownerAuthority = null;
+    } else {
+      const authorityShape = validateGateAuthorizationAuthorityShape(ownerAuthority, { recordedAt: record?.recordedAt ?? null });
+      if (!authorityShape.valid) {
+        R('GATE_AUTHORIZATION_UNAUTHORIZED', '/authorityPath', authorityShape.findings, 'closed-world ACTIVE_GATE_AUTHORIZATION_AUTHORITY structure', 'Owner authorization snapshot violates the closed-world authority structure (this includes a self-inconsistent approvedBindingDigest).');
+        ownerAuthority = null;
+      }
+    }
+  }
+
+  if (ownerAuthority) {
+    // ----- ed25519 PROJECT_OWNER signature over the authority minus its signature -----
+    const keyRelativePath = policy?.gateAuthorizationOwnerKeyPath || GATE_AUTHORIZATION_OWNER_KEY_PATH;
+    const keyArtifact = readLiveArtifact(root, keyRelativePath);
+    let ownerKey = null;
+    if (keyArtifact) {
+      try {
+        const parsed = JSON.parse(keyArtifact.bytes.toString('utf8'));
+        if (typeof parsed?.keyId === 'string' && typeof parsed?.publicKeyPem === 'string' && !/PRIVATE KEY/.test(parsed.publicKeyPem)) {
+          ownerKey = { keyId: parsed.keyId, publicKeyPem: parsed.publicKeyPem };
+        }
+      } catch { ownerKey = null; }
+    }
+    if (!ownerKey) {
+      R('GATE_AUTHORIZATION_UNAUTHORIZED', '/authorityPath', keyRelativePath, 'readable PROJECT_OWNER ed25519 public key', 'The PROJECT_OWNER public key is absent or unusable, so the owner signature can never be verified.');
+    } else {
+      const signature = verifyOwnerSignature(ownerAuthority, ownerKey);
+      if (!signature.verified) {
+        R('GATE_AUTHORIZATION_OWNER_SIGNATURE_INVALID', '/authorityPath', signature.reason, 'verified ed25519 PROJECT_OWNER signature', 'The owner signature over the Gate authorization authority does not verify; the authorization is forged, mutated or signed by an unknown key.');
+      }
+    }
+
+    // ----- the owner approved a DIGEST: recompute it, never read it -----
+    const recomputed = computeGateAuthorizationBindingDigest({
+      ...ownerAuthority,
+      recordedAt: record?.recordedAt ?? null,
+      stateArtifacts: ownerAuthority.authorizedStateArtifacts,
+      derivedArtifacts: ownerAuthority.authorizedDerivedArtifacts
+    });
+    if (recomputed.digest === null) {
+      R('GATE_AUTHORIZATION_BINDING_DIGEST_MISMATCH', '/authorityPath', recomputed.reason, `computable ${GATE_AUTHORIZATION_BINDING_DIGEST_ALGORITHM} digest`, 'The approved binding cohort cannot be projected into a canonical identity.');
+    } else if (ownerAuthority.approvedBindingDigest !== recomputed.digest) {
+      R('GATE_AUTHORIZATION_BINDING_DIGEST_MISMATCH', '/authorityPath', ownerAuthority.approvedBindingDigest, recomputed.digest, `Declared approvedBindingDigest does not reproduce the authority's own cohort under ${GATE_AUTHORIZATION_BINDING_DIGEST_ALGORITHM}; the declared digest is never trusted without recomputation.`);
+    }
+
+    // ----- record and owner authority must describe the SAME authorization -----
+    if (recordShape.valid) {
+      for (const field of [...GATE_AUTHORIZATION_BINDING_IDENTITY_FIELDS, 'executionAuthorized']) {
+        if (field === 'recordedAt') continue; // approved through the signed binding digest above
+        if (ownerAuthority[field] !== record[field]) {
+          R('GATE_AUTHORIZATION_RECORD_AUTHORITY_MISMATCH', `/${field}`, record[field], ownerAuthority[field], `Authorization record and owner authority disagree on ${field}; the owner approved a different authorization than the ledger pins.`);
+        }
+      }
+      for (const field of ['gateId', 'status', 'authorityPath', 'authoritySha256']) {
+        if (ownerAuthority.dependencyProof?.[field] !== record.dependencyProof?.[field]) {
+          R('GATE_AUTHORIZATION_RECORD_AUTHORITY_MISMATCH', `/dependencyProof/${field}`, record.dependencyProof?.[field], ownerAuthority.dependencyProof?.[field], `Authorization record and owner authority disagree on dependencyProof.${field}.`);
+        }
+      }
+      const projectCohortKey = (cohort, fields) => canonicalize(
+        (Array.isArray(cohort) ? cohort : [])
+          .map((item) => {
+            const row = {};
+            for (const field of fields) row[field] = item?.[field];
+            return canonicalize(row);
+          })
+          .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+      );
+      // STATE is compared on full bytes; DERIVED is compared on paths alone, because
+      // the record cannot carry post-authorization derived hashes (see the note above).
+      if (projectCohortKey(ownerAuthority.authorizedStateArtifacts, GATE_AUTHORIZATION_BINDING_DIGEST_FIELDS)
+        !== projectCohortKey(record.authorizedStateArtifacts, GATE_AUTHORIZATION_BINDING_DIGEST_FIELDS)) {
+        R('GATE_AUTHORIZATION_RECORD_AUTHORITY_MISMATCH', '/authorizedStateArtifacts', 'record cohort', 'owner-approved cohort', 'The sealed state cohort the ledger pins is not the cohort the owner approved; a substituted artifact is never authorized by an approval of different artifacts.');
+      }
+      if (projectCohortKey(ownerAuthority.authorizedDerivedArtifacts, GATE_AUTHORIZATION_RECORD_DERIVED_FIELDS)
+        !== projectCohortKey(record.authorizedDerivedArtifacts, GATE_AUTHORIZATION_RECORD_DERIVED_FIELDS)) {
+        R('GATE_AUTHORIZATION_RECORD_AUTHORITY_MISMATCH', '/authorizedDerivedArtifacts', 'record derived paths', 'owner-approved derived paths', 'The derived view cohort the ledger pins is not the cohort the owner approved.');
+      }
+    }
+
+    // ----- expiry is judged AS OF the event, never against the wall clock -----
+    const expiry = Date.parse(ownerAuthority.expiresAtUtc);
+    const recordedAt = Date.parse(event.recordedAt);
+    if (!Number.isNaN(expiry) && !Number.isNaN(recordedAt) && recordedAt > expiry) {
+      R('GATE_AUTHORIZATION_EXPIRED', '/recordedAt', event.recordedAt, ownerAuthority.expiresAtUtc, 'The owner authorization had already expired when this transition was recorded.');
+    }
+    if (ownerAuthority.maxUse !== GATE_AUTHORIZATION_MAX_USE) {
+      R('GATE_AUTHORIZATION_MAX_USE_INVALID', '/authorityPath', ownerAuthority.maxUse, GATE_AUTHORIZATION_MAX_USE, 'A Gate authorization authority is single-use by construction.');
+    }
+  }
+
+  if (!recordShape.valid) {
+    if (findings.length === before) R('INVALID_GATE_AUTHORIZATION_RECORD', '/', 'unusable record', 'structurally valid record', 'Authorization record is unusable.');
+    return;
+  }
+
+  // ----- transition identity: the event must be exactly what the record describes -----
+  if (record.gateId !== event.gateId) R('GATE_AUTHORIZATION_GATE_MISMATCH', '/gateId', record.gateId, event.gateId, 'Authorization record belongs to a different Gate than the event it authorizes.');
+  if (record.fromStatus !== event.fromStatus) R('GATE_AUTHORIZATION_TRANSITION_MISMATCH', '/fromStatus', record.fromStatus, event.fromStatus, 'Record fromStatus does not match the ledger event.');
+  if (record.toStatus !== event.toStatus) R('GATE_AUTHORIZATION_TRANSITION_MISMATCH', '/toStatus', record.toStatus, event.toStatus, 'Record toStatus does not match the ledger event.');
+  if (record.transitionType !== event.transitionType) R('GATE_AUTHORIZATION_TRANSITION_MISMATCH', '/transitionType', record.transitionType, event.transitionType, 'Record transitionType does not match the ledger event.');
+  if (record.recordedAt !== event.recordedAt) R('GATE_AUTHORIZATION_RECORDED_AT_MISMATCH', '/recordedAt', record.recordedAt, event.recordedAt, 'The owner-bound authorization timestamp in the record must exactly equal the ledger event recordedAt.');
+  if (event.fromStatus !== GATE_AUTHORIZATION_FROM_STATUS || event.toStatus !== GATE_AUTHORIZATION_TO_STATUS) {
+    R('GATE_AUTHORIZATION_TRANSITION_MISMATCH', '/', `${event.fromStatus}>${event.toStatus}`, `${GATE_AUTHORIZATION_FROM_STATUS}>${GATE_AUTHORIZATION_TO_STATUS}`, 'AUTHORIZATION may only carry NOT_STARTED -> AUTHORIZED_NOT_STARTED.');
+  }
+
+  // ----- exactly one AUTHORIZATION per Gate -----
+  if (priorOwnEvents.some((e) => e.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE)) {
+    R('DUPLICATE_GATE_AUTHORIZATION', '/gateId', event.gateId, 'at most one AUTHORIZATION per Gate', 'This Gate has already been authorized; a second authorization would re-grant a spent single-use authority.');
+  }
+
+  // ----- append-only chain pins: both reproduce from the REAL preceding prefix -----
+  if (record.previousEventSha256 !== event.previousEventSha256) {
+    R('GATE_AUTHORIZATION_EVENT_CHAIN_MISMATCH', '/previousEventSha256', record.previousEventSha256, event.previousEventSha256, 'The record pins a different ledger head than the event actually continues.');
+  }
+  if (Number.isInteger(event.ordinal) && event.ordinal > 1 && ledgerPath) {
+    let prefixSha = null;
+    try { prefixSha = sha256Bytes(reconstructLedgerPrefixBytes(ledgerPath, event.ordinal - 1)); } catch { prefixSha = null; }
+    if (prefixSha === null) {
+      R('GATE_AUTHORIZATION_PRE_LEDGER_MISMATCH', '/preLedgerSha256', 'unreconstructable', 'reproducible append-only prefix', 'The ledger prefix preceding this authorization cannot be reconstructed.');
+    } else if (record.preLedgerSha256 !== prefixSha) {
+      R('GATE_AUTHORIZATION_PRE_LEDGER_MISMATCH', '/preLedgerSha256', record.preLedgerSha256, prefixSha, 'The pre-ledger digest the owner approved is not the digest of the real append-only prefix this event was appended to.');
+    }
+  }
+
+  // ----- the immediate dependency really was terminal at this point in the replay -----
+  const dependency = record.dependencyProof;
+  const dependencyStatus = replayedStatusByGate?.get(dependency?.gateId);
+  if (dependency?.gateId === event.gateId) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency.gateId, 'a different Gate', 'A Gate can never be its own authorization dependency.');
+  } else if (dependencyStatus === undefined) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency?.gateId, 'dependency Gate present in the replayed ledger', 'The declared dependency Gate has no replayed status at this point in the ledger.');
+  } else if (dependencyStatus !== dependency.status) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/status', dependency.status, dependencyStatus, 'The declared dependency status is not the status the ledger actually replays for that Gate.');
+  } else if (!GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES.includes(dependencyStatus)) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_NOT_TERMINAL', '/dependencyProof/status', dependencyStatus, GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES.join(' or '), 'The dependency Gate had not reached a terminal status, so this Gate was not authorizable.');
+  }
+  const dependencyResolution = resolveDependencyAuthority({
+    root,
+    identity: dependency?.authorityPath,
+    sourceMap,
+    extraExternalAuthorities: policy?.extraExternalAuthorities
+  });
+  const dependencyAuthority = dependencyResolution.artifact;
+  if (!dependencyAuthority) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authorityPath', dependency?.authorityPath, 'dependency authority resolvable as a governed path or a declared external authority identity', `The cited dependency authority could not be resolved to trusted evidence (${dependencyResolution.reason}).`);
+  } else if (dependencyAuthority.sha256 !== dependency.authoritySha256) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authoritySha256', dependency.authoritySha256, dependencyAuthority.sha256, 'The cited dependency authority hash does not reproduce the resolved authority bytes.');
+  }
+
+  // The proof must carry the dependency Gate's ACTUAL terminal ledger representation —
+  // derived here exactly as the pre-write adapter derives it, from the replayed prefix —
+  // so a stale, substituted or merely equivalent identity is refused even when it happens
+  // to resolve to the right bytes. This is what keeps pre-write equality and permanent
+  // re-verification answering the same question about the same value.
+  const dependencyTerminalEvent = priorEvents.filter((e) => e.gateId === dependency?.gateId).at(-1) || null;
+  if (!dependencyTerminalEvent) {
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency?.gateId, 'dependency Gate with a terminal event in the replayed ledger', 'The declared dependency Gate has no terminal ledger event at this point in the ledger.');
+  } else {
+    if (dependencyTerminalEvent.authorityPath !== dependency.authorityPath) {
+      R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authorityPath', dependency.authorityPath, dependencyTerminalEvent.authorityPath, 'The dependency proof does not carry the authority identity the dependency Gate terminal event actually records.');
+    }
+    if (dependencyTerminalEvent.authoritySha256 !== dependency.authoritySha256) {
+      R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authoritySha256', dependency.authoritySha256, dependencyTerminalEvent.authoritySha256, 'The dependency proof does not carry the authority hash the dependency Gate terminal event actually records.');
+    }
+  }
+
+  // ----- a valid CURRENT_CONTRACT, hash-matched, must exist for this Gate -----
+  const contractPath = `governance/gates/${event.gateId}/contracts/EXECUTION_CONTRACT_${GATE_AUTHORIZATION_FIRST_REVISION}.json`;
+  const currentContractPath = `governance/gates/${event.gateId}/contracts/CURRENT_CONTRACT.json`;
+  const contractArtifact = readLiveArtifact(root, contractPath);
+  const currentContractArtifact = readLiveArtifact(root, currentContractPath);
+  if (!contractArtifact) {
+    R('GATE_AUTHORIZATION_CONTRACT_MISSING', '/', contractPath, 'existing Gate execution contract', 'The Gate has no execution contract, so there is nothing to authorize.');
+  } else if (contractArtifact.sha256 !== record.contractSha256) {
+    R('GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH', '/', record.contractSha256, contractArtifact.sha256, 'The approved contract hash does not reproduce the live Gate execution contract bytes.');
+  }
+  if (!currentContractArtifact) {
+    R('GATE_AUTHORIZATION_CONTRACT_MISSING', '/', currentContractPath, 'existing CURRENT_CONTRACT pointer', 'The Gate has no CURRENT_CONTRACT, so no contract revision is active.');
+  } else if (currentContractArtifact.sha256 !== record.currentContractSha256) {
+    R('GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH', '/', record.currentContractSha256, currentContractArtifact.sha256, 'The approved CURRENT_CONTRACT hash does not reproduce the live pointer bytes.');
+  }
+
+  // ----- STATE cohort: immutable R0001 members plus mutable CURRENT_STATE lineage -----
+  const expectedStatePaths = gateAuthorizationStateCohortPaths(event.gateId);
+  for (const artifact of record.authorizedStateArtifacts) {
+    const expectedPath = expectedStatePaths[artifact.cohortRole];
+    if (artifact.repoRelativePath !== expectedPath) {
+      R('GATE_AUTHORIZATION_STATE_PATH_NOT_AUTHORIZED', `/authorizedStateArtifacts/${artifact.cohortRole}`, artifact.repoRelativePath, expectedPath, 'Authorized state artifact is not at the exact R0001 path template for this Gate; an extra, cross-Gate or wildcard path is never authorized.');
+      continue;
+    }
+    const live = readLiveArtifact(root, artifact.repoRelativePath);
+    if (!live) {
+      R('GATE_AUTHORIZATION_STATE_ARTIFACT_MISSING', `/authorizedStateArtifacts/${artifact.cohortRole}`, artifact.repoRelativePath, 'existing sealed state artifact', 'An authorized sealed state artifact is absent; the authorization is unproven.');
+      continue;
+    }
+    if (artifact.cohortRole !== 'CURRENT_STATE') {
+      if (live.sha256 !== artifact.sha256) {
+        R('GATE_AUTHORIZATION_STATE_ARTIFACT_BYTES_CHANGED', `/authorizedStateArtifacts/${artifact.cohortRole}`, artifact.sha256, live.sha256, 'A sealed R0001 state artifact was changed after the owner approved it; historical revision members are immutable.');
+      }
+      if (live.byteLength !== artifact.byteLength) {
+        R('GATE_AUTHORIZATION_STATE_ARTIFACT_BYTES_CHANGED', `/authorizedStateArtifacts/${artifact.cohortRole}`, artifact.byteLength, live.byteLength, 'A sealed R0001 state artifact byte length no longer matches the approved length.');
+      }
+    }
+  }
+
+  validateAuthorizationStateLineage({ root, ledgerPath, event, lineNumber, record, findings });
+
+  // ----- DERIVED cohort: exact path cohort, permanently (see the note above) -----
+  const expectedDerivedPaths = gateAuthorizationDerivedCohortPaths();
+  for (const artifact of record.authorizedDerivedArtifacts) {
+    const expectedPath = expectedDerivedPaths[artifact.cohortRole];
+    if (artifact.repoRelativePath !== expectedPath) {
+      R('GATE_AUTHORIZATION_DERIVED_PATH_NOT_AUTHORIZED', `/authorizedDerivedArtifacts/${artifact.cohortRole}`, artifact.repoRelativePath, expectedPath, 'Authorized derived artifact is not one of the four approved generated views; no other path, and no wildcard, may ride along with an authorization.');
+    }
+  }
+
+  if (findings.length === before) {
+    finding(findings, 'GATE_AUTHORIZATION_APPLIED', event, lineNumber, '/toStatus', event.toStatus, record.authorizationId, 'owner-signed, byte-bound Gate authorization', `Gate authorized from NOT_STARTED to AUTHORIZED_NOT_STARTED under owner authority ${ownerAuthority?.authorityId ?? 'UNKNOWN'}; no execution, START or closure privilege was granted. Derived-view bytes are attested point-in-time by the owner authority, not permanently pinned, because generated views are non-canonical and legitimately regenerate.`, 'REQ-GAU-01', 'INFO');
+  }
+}
+
+/** Permanent proof for modern START events (GATE14-GATE40). */
+function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEvents = [], authority, policy = null, findings }) {
+  const before = findings.length;
+  const R = (detectorId, pointer, actual, expected, message) =>
+    finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_START_AUTHORITY', message, 'REQ-GSA-01');
+  const expectedRecordPath = gateStartRecordPath(event.gateId);
+  const expectedAuthorityPath = gateStartAuthorityPath(event.gateId);
+  if (!isModernGateStartId(event.gateId)) {
+    R('GATE_START_GATE_OUT_OF_SCOPE', '/gateId', event.gateId, 'GATE14-GATE40 modern scope', 'Modern START authority is not defined for this Gate.');
+    return;
+  }
+  if (event.authorityPath !== expectedRecordPath) {
+    R('GATE_START_RECORD_PATH_NOT_AUTHORIZED', '/authorityPath', event.authorityPath, expectedRecordPath, 'Modern START must cite the exact canonical GATE_START_RECORD path.');
+    return;
+  }
+  if (!authority || authority.actualSha !== event.authoritySha256) return;
+  let record;
+  try { record = JSON.parse(fs.readFileSync(authority.filePath, 'utf8')); }
+  catch { R('GATE_START_RECORD_MALFORMED', '/', event.authorityPath, 'JSON object', 'START record is not parsable JSON.'); return; }
+  const schemas = loadGateStartSchemas();
+  const schema = validateAgainstJsonSchema(record, schemas.record);
+  if (!schema.valid) R('GATE_START_RECORD_SCHEMA_INVALID', '/', schema.errors, 'gate-start-record.schema.json', 'START record violates its closed schema.');
+  const shape = validateGateStartRecordShape(record);
+  if (!shape.valid) R('GATE_START_RECORD_INVALID', '/', shape.findings, 'closed GATE_START_RECORD', 'START record violates the primitive shape.');
+  if (record.recordDigest !== computeGateStartRecordDigest(record)) R('GATE_START_RECORD_DIGEST_INVALID', '/recordDigest', record.recordDigest, computeGateStartRecordDigest(record), 'START record digest is not reproducible.');
+
+  const ownerSnapshot = readLiveArtifact(root, expectedAuthorityPath);
+  if (!ownerSnapshot) {
+    R('GATE_START_OWNER_AUTHORITY_MISSING', '/authorityPath', expectedAuthorityPath, 'owner authority snapshot', 'The signed owner START authority is absent.');
+    return;
+  }
+  let ownerAuthority;
+  try { ownerAuthority = JSON.parse(ownerSnapshot.bytes.toString('utf8')); }
+  catch { R('GATE_START_OWNER_AUTHORITY_MALFORMED', '/', expectedAuthorityPath, 'JSON object', 'Owner START authority is not parsable JSON.'); return; }
+  const authoritySchema = validateAgainstJsonSchema(ownerAuthority, schemas.authority);
+  if (!authoritySchema.valid) R('GATE_START_OWNER_AUTHORITY_SCHEMA_INVALID', '/', authoritySchema.errors, 'gate-start-authority.schema.json', 'Owner START authority violates its closed schema.');
+  const authorityShape = validateGateStartAuthorityShape(ownerAuthority);
+  if (!authorityShape.valid) R('GATE_START_OWNER_AUTHORITY_INVALID', '/', authorityShape.findings, 'closed PROJECT_OWNER_GATE_START_AUTHORITY', 'Owner START authority violates the primitive shape.');
+  if (ownerAuthority.recordDigest !== record.recordDigest) R('GATE_START_RECORD_AUTHORITY_MISMATCH', '/recordDigest', ownerAuthority.recordDigest, record.recordDigest, 'Owner authority does not approve the ledger-pinned START record.');
+  if (ownerAuthority.bindingDigest !== computeGateStartBindingDigestFromDigests({ requestDigest: ownerAuthority.requestDigest, recordDigest: record.recordDigest })) R('GATE_START_BINDING_DIGEST_INVALID', '/bindingDigest', ownerAuthority.bindingDigest, 'recomputed request+record binding digest', 'Owner authority binding is not reproducible.');
+  for (const field of ['projectId', 'gateId', 'purpose', 'eventId', 'transitionType', 'fromStatus', 'toStatus', 'recordedAt', 'baseCommit', 'preStartLedgerSha256', 'previousEventSha256', 'contractSha256', 'currentContractSha256', 'preStateRevision', 'preCurrentStateSha256', 'preStateSealSha256', 'readinessDigest', 'ownerKeyId', 'expiresAtUtc', 'maxUse', 'startAuthorized', 'executionAuthorized']) {
+    if (ownerAuthority[field] !== record[field]) R('GATE_START_RECORD_AUTHORITY_MISMATCH', `/${field}`, ownerAuthority[field], record[field], `Owner authority disagrees with the ledger-pinned START record on ${field}.`);
+  }
+  for (const field of ['dependencyProof', 'activeGatePreState', 'authorizedStartWritePaths', 'functionalExecutionScope', 'prohibitedOperations']) {
+    if (canonicalize(ownerAuthority[field]) !== canonicalize(record[field])) R('GATE_START_RECORD_AUTHORITY_MISMATCH', `/${field}`, ownerAuthority[field], record[field], `Owner authority disagrees with the ledger-pinned START record on ${field}.`);
+  }
+  let key;
+  try {
+    const keyPath = policy?.gateStartOwnerKeyPath || GATE_AUTHORIZATION_OWNER_KEY_PATH;
+    key = JSON.parse(fs.readFileSync(path.isAbsolute(keyPath) ? keyPath : path.resolve(root, keyPath), 'utf8'));
+  }
+  catch { key = null; }
+  const signature = verifyGateStartOwnerSignature(ownerAuthority, key);
+  if (!signature.verified) R('GATE_START_OWNER_SIGNATURE_INVALID', '/signature', signature.reason, 'verified PROJECT_OWNER Ed25519 signature', 'START authority signature is invalid.');
+
+  for (const field of ['gateId', 'eventId', 'transitionType', 'fromStatus', 'toStatus', 'recordedAt']) {
+    if (record[field] !== event[field]) R(`GATE_START_${field.toUpperCase()}_MISMATCH`, `/${field}`, record[field], event[field], `START record ${field} does not match the ledger event.`);
+  }
+  if (record.fromStatus !== GATE_START_FROM_STATUS || record.toStatus !== GATE_START_TO_STATUS || record.transitionType !== GATE_START_TRANSITION_TYPE) R('GATE_START_TRANSITION_INVALID', '/', `${record.fromStatus}>${record.toStatus}:${record.transitionType}`, 'AUTHORIZED_NOT_STARTED>IN_PROGRESS:START', 'Modern START has one fixed transition.');
+  if (record.maxUse !== GATE_START_MAX_USE) R('GATE_START_MAX_USE_INVALID', '/maxUse', record.maxUse, GATE_START_MAX_USE, 'START authority is single-use.');
+  if (Date.parse(ownerAuthority.expiresAtUtc) < Date.parse(event.recordedAt)) R('GATE_START_EXPIRED', '/expiresAtUtc', ownerAuthority.expiresAtUtc, event.recordedAt, 'START authority was expired at the ledger event time.');
+  if (priorEvents.some((item) => item.gateId === event.gateId && item.transitionType === GATE_START_TRANSITION_TYPE)) R('GATE_START_AUTHORITY_REPLAYED', '/gateId', event.gateId, 'one START per Gate', 'A second START would replay a single-use authority.');
+
+  let prefixSha = null;
+  try { prefixSha = sha256Bytes(reconstructLedgerPrefixBytes(ledgerPath, event.ordinal - 1)); } catch { /* reported below */ }
+  if (record.preStartLedgerSha256 !== prefixSha) R('GATE_START_PRE_LEDGER_MISMATCH', '/preStartLedgerSha256', record.preStartLedgerSha256, prefixSha, 'The pre-START ledger digest is not the exact append-only prefix.');
+  if (record.previousEventSha256 !== event.previousEventSha256) R('GATE_START_PREVIOUS_EVENT_MISMATCH', '/previousEventSha256', record.previousEventSha256, event.previousEventSha256, 'START record continues a different ledger head.');
+
+  const contractPath = `governance/gates/${event.gateId}/contracts/EXECUTION_CONTRACT_R0001.json`;
+  const currentContractPath = `governance/gates/${event.gateId}/contracts/CURRENT_CONTRACT.json`;
+  const contract = readLiveArtifact(root, contractPath);
+  const currentContract = readLiveArtifact(root, currentContractPath);
+  if (!contract || contract.sha256 !== record.contractSha256) R('GATE_START_CONTRACT_SHA_MISMATCH', '/contractSha256', record.contractSha256, contract?.sha256 || null, 'START authority does not bind the live execution contract.');
+  if (!currentContract || currentContract.sha256 !== record.currentContractSha256) R('GATE_START_CURRENT_CONTRACT_SHA_MISMATCH', '/currentContractSha256', record.currentContractSha256, currentContract?.sha256 || null, 'START authority does not bind the live CURRENT_CONTRACT pointer.');
+  let contractJson = null;
+  try { contractJson = JSON.parse(contract.bytes.toString('utf8')); } catch { /* hash finding above is sufficient */ }
+  if (contractJson && (!Array.isArray(record.functionalExecutionScope) || record.functionalExecutionScope.length !== contractJson.authorizedPaths?.length || [...record.functionalExecutionScope].sort().some((p, i) => p !== [...contractJson.authorizedPaths].sort()[i]))) R('GATE_START_FUNCTIONAL_SCOPE_MISMATCH', '/functionalExecutionScope', record.functionalExecutionScope, contractJson.authorizedPaths, 'Functional execution is limited to the exact current contract scope.');
+  const active = readLiveArtifact(root, 'governance/active/ACTIVE_GATE.json');
+  let activeJson = null; try { activeJson = active ? JSON.parse(active.bytes.toString('utf8')) : null; } catch { /* reported below */ }
+  if (!active || !activeJson || activeJson.activeGate !== record.activeGatePreState?.activeGate) R('GATE_START_ACTIVE_GATE_MUTATION', '/activeGatePreState', activeJson?.activeGate || null, record.activeGatePreState?.activeGate, 'START must not switch ACTIVE_GATE.');
+
+  const preSeal = readLiveArtifact(root, `governance/gates/${event.gateId}/state/revisions/${record.preStateRevision}/STATE_SEAL.json`);
+  const preDefects = readLiveArtifact(root, `governance/gates/${event.gateId}/state/revisions/${record.preStateRevision}/OPEN_DEFECTS.json`);
+  let defectsKnowledge = 'UNKNOWN';
+  try { const defects = JSON.parse(preDefects.bytes.toString('utf8')); defectsKnowledge = Array.isArray(defects.defects) ? (defects.defects.length === 0 ? 'KNOWN_ZERO' : 'KNOWN_NONZERO') : 'UNKNOWN'; } catch { /* unknown remains blocking */ }
+  const readinessVerdict = prefixSha && record.preStateRevision === 'R0001' && preSeal?.sha256 === record.preStateSealSha256 && defectsKnowledge === 'KNOWN_ZERO' && contract?.sha256 === record.contractSha256 && currentContract?.sha256 === record.currentContractSha256 && event.fromStatus === 'AUTHORIZED_NOT_STARTED' ? 'READY' : 'BLOCKED';
+  const readiness = computeGateStartReadinessDigest({
+    projectId: record.projectId, gateId: record.gateId, status: event.fromStatus,
+    preStartLedgerSha256: record.preStartLedgerSha256, previousEventSha256: record.previousEventSha256,
+    preStateRevision: record.preStateRevision, preCurrentStateSha256: record.preCurrentStateSha256,
+    preStateSealSha256: record.preStateSealSha256, openDefectsKnowledge: defectsKnowledge,
+    contractSha256: record.contractSha256, currentContractSha256: record.currentContractSha256,
+    dependencyProof: record.dependencyProof, readinessVerdict
+  });
+  if (readiness !== record.readinessDigest) R('GATE_START_READINESS_DIGEST_MISMATCH', '/readinessDigest', record.readinessDigest, readiness, 'Readiness identity does not reproduce from validated pre-START inputs.');
+  if (readinessVerdict !== 'READY') R('GATE_START_READINESS_BLOCKED', '/readinessDigest', readinessVerdict, 'READY', 'A START authority cannot be applied to a blocked or unknown readiness state.');
+  if (findings.length === before) finding(findings, 'GATE_START_APPLIED', event, lineNumber, '/toStatus', event.toStatus, 'owner-signed modern START authority', 'GATE_START_AUTHORITY', 'Modern START authority was verified and consumed.', 'REQ-GSA-01', 'INFO');
+}
+
+/**
+ * A GATE_AUTHORIZATION_RECORD authorizes exactly one transitionType. Citing one
+ * as the authority for a START, AGENT_CLOSURE, or any other transition is an
+ * attempt to spend an authorization privilege on a privilege it never granted.
+ * Detected structurally, from the cited document's own self-declared kind.
+ */
+function checkGateAuthorizationRecordNotBorrowed({ event, lineNumber, authority, findings }) {
+  if (event.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE || !authority) return;
+  let cited;
+  try { cited = JSON.parse(fs.readFileSync(authority.filePath, 'utf8')); } catch { return; }
+  if (cited?.document !== GATE_AUTHORIZATION_RECORD_KIND) return;
+  finding(findings, 'GATE_AUTHORIZATION_RECORD_TRANSITION_BORROWED', event, lineNumber, '/transitionType', event.transitionType, GATE_AUTHORIZATION_TRANSITION_TYPE, 'GATE_AUTHORIZATION_AUTHORITY', `A GATE_AUTHORIZATION_RECORD authorizes only the AUTHORIZATION transition; it can never authorize ${event.transitionType}. START and execution privilege must come from their own authority.`, 'REQ-GAU-01');
+}
+
+function checkGateStartRecordNotBorrowed({ event, lineNumber, authority, findings }) {
+  if (event.transitionType === GATE_START_TRANSITION_TYPE || !authority) return;
+  let cited;
+  try { cited = JSON.parse(fs.readFileSync(authority.filePath, 'utf8')); } catch { return; }
+  if (cited?.document !== GATE_START_RECORD_KIND) return;
+  finding(findings, 'GATE_START_RECORD_TRANSITION_BORROWED', event, lineNumber, '/transitionType', event.transitionType, GATE_START_TRANSITION_TYPE, 'GATE_START_AUTHORITY', `A GATE_START_RECORD authorizes only START; it can never authorize ${event.transitionType}.`, 'REQ-GSA-01');
+}
+
 function checkEventShape(event, findings, lineNumber) {
   const keys = Object.keys(event);
   const missing = REQUIRED_EVENT_FIELDS.filter((key) => !Object.prototype.hasOwnProperty.call(event, key));
@@ -888,6 +1586,10 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
     if (event.fromStatus === null) genesisCount.set(event.gateId, (genesisCount.get(event.gateId) || 0) + 1);
     const current = currentByGate.get(event.gateId);
     if (current !== undefined && event.fromStatus !== current) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/fromStatus', event.fromStatus, current, 'fromStatus equals replayed current status', 'fromStatus does not match the replayed gate state.', 'REQ-LED-02');
+    // Snapshot of the replay BEFORE this event is applied, so an AUTHORIZATION's dependency proof
+    // is judged against history as it actually stood at that point, never against how it ends up.
+    // Materialized only for the transition that needs it, so the common path stays allocation-free.
+    const statusBeforeEvent = event.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE ? new Map(currentByGate) : null;
     currentByGate.set(event.gateId, event.toStatus);
     const authority = resolveAuthority({ root, event, sourceMap, migrations, extraExternalAuthorities: effectivePolicy.extraExternalAuthorities, findings, lineNumber });
     if (authority?.authorityClass === 'GENERATED') finding(findings, 'GENERATED_AUTHORITY_CITED', event, lineNumber, '/authorityPath', event.authorityPath, 'non-generated authority class', 'transition authority classification', 'Generated view cannot be a canonical transition authority.', 'REQ-RNS-01');
@@ -903,6 +1605,47 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
         findings
       });
     }
+    // AUTHORIZATION is a NORMAL execution transition already admitted by exactly one entry of the
+    // closed I2 table (NOT_STARTED -> AUTHORIZED_NOT_STARTED). This adds its owner-signature and
+    // byte-binding proof obligations on top; it neither widens nor narrows the transition table.
+    // `replayedStatusByGate` is a snapshot of the replay BEFORE this event, so the dependency
+    // check reads history as it actually stood, never as it ends up.
+    if (event.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE) {
+      validateGateAuthorization({
+        root,
+        ledgerPath,
+        event,
+        lineNumber,
+        priorOwnEvents: events.slice(0, i).filter((e) => e.gateId === event.gateId),
+        priorEvents: events.slice(0, i),
+        replayedStatusByGate: statusBeforeEvent,
+        authority,
+        sourceMap,
+        policy: effectivePolicy,
+        findings
+      });
+    }
+    if (event.transitionType === GATE_START_TRANSITION_TYPE) {
+      const isExactGATE13Legacy = event.gateId === 'GATE13'
+        && event.eventId === 'GATE13_START_R1'
+        && event.ordinal === 42
+        && event.authorityPath === 'governance/sources/GATE13_CANONICAL_MANDATE_AND_EXECUTION_AUTHORITY_R1.json'
+        && event.authoritySha256 === 'f67aed86fcea61dc7c49b56ec36b461b335e55973e4be1aaffaf7e3db766442e';
+      if (!isExactGATE13Legacy && isModernGateStartId(event.gateId)) {
+        validateModernGateStart({
+          root,
+          ledgerPath,
+          event,
+          lineNumber,
+          priorEvents: events.slice(0, i),
+          authority,
+          policy: effectivePolicy,
+          findings
+        });
+      }
+    }
+    checkGateAuthorizationRecordNotBorrowed({ event, lineNumber, authority, findings });
+    checkGateStartRecordNotBorrowed({ event, lineNumber, authority, findings });
     if (event.toStatus === 'COMPLETE_CONFIRMED') {
       const completeAllowed = (event.fromStatus === null && event.transitionType === 'GENESIS_IMPORT') || (event.fromStatus === 'COMPLETE_AGENT' && event.transitionType === 'EXTERNAL_CONFIRMATION');
       if (!completeAllowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/toStatus', event.toStatus, 'GENESIS_IMPORT from null or EXTERNAL_CONFIRMATION from COMPLETE_AGENT', 'independent reinspection', 'COMPLETE_CONFIRMED is not reachable through this transition.', 'REQ-LED-02');

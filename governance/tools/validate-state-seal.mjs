@@ -46,6 +46,27 @@ function resolveMember(root, value, findings, pointer) {
   return resolved;
 }
 
+function mutableProjectionKind(gateId, memberPath) {
+  if (typeof memberPath !== 'string') return null;
+  const expectedContract = `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`;
+  const expectedState = `governance/gates/${gateId}/state/CURRENT_STATE.json`;
+  if (memberPath === expectedContract || memberPath.endsWith('/CURRENT_CONTRACT.json')) return { kind: 'CURRENT_CONTRACT', expectedPath: expectedContract };
+  if (memberPath === expectedState || memberPath.endsWith('/CURRENT_STATE.json')) return { kind: 'CURRENT_STATE', expectedPath: expectedState };
+  return null;
+}
+
+function revisionNumber(value) {
+  return /^R[0-9]{4}$/.test(String(value || '')) ? Number.parseInt(String(value).slice(1), 10) : null;
+}
+
+function maximumRevision(revisionRoot) {
+  if (!fs.existsSync(revisionRoot) || !fs.statSync(revisionRoot).isDirectory()) return null;
+  const revisions = fs.readdirSync(revisionRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^R[0-9]{4}$/.test(entry.name))
+    .map((entry) => revisionNumber(entry.name));
+  return revisions.length ? Math.max(...revisions) : null;
+}
+
 function validateStateSeal({ root, sealPath }) {
   const findings = [];
   const seal = readJson(sealPath, findings, 'REQ-SEA-01');
@@ -63,6 +84,9 @@ function validateStateSeal({ root, sealPath }) {
   const sealRelative = path.relative(rootResolved, sealPath).replaceAll('\\', '/');
   const revisionDir = path.dirname(sealPath);
   const expectedRevisionDir = path.basename(revisionDir);
+  const revision = revisionNumber(seal.stateRevision);
+  const newestRevision = maximumRevision(path.dirname(revisionDir));
+  const historicalProjection = Number.isInteger(revision) && Number.isInteger(newestRevision) && revision < newestRevision;
   const members = new Set();
   let hasCheckpoint = false;
   let hasDefects = false;
@@ -74,6 +98,10 @@ function validateStateSeal({ root, sealPath }) {
       continue;
     }
     const memberPath = member.repoRelativePath;
+    const projection = mutableProjectionKind(seal.gateId, memberPath);
+    if (projection && memberPath !== projection.expectedPath) finding(findings, 'HISTORICAL_TARGET_PATH_MISMATCH', `${pointer}/repoRelativePath`, memberPath, projection.expectedPath, 'Mutable projection path is gate-local and exact.', 'REQ-SEA-03');
+    if (typeof memberPath === 'string' && memberPath.includes(`/contracts/`) && memberPath !== `governance/gates/${seal.gateId}/contracts/CURRENT_CONTRACT.json`) finding(findings, 'HISTORICAL_TARGET_PATH_MISMATCH', `${pointer}/repoRelativePath`, memberPath, `governance/gates/${seal.gateId}/contracts/CURRENT_CONTRACT.json`, 'State seals must bind the gate-local current contract projection, not an unrelated contract artifact.', 'REQ-SEA-03');
+    if (typeof memberPath === 'string' && memberPath.startsWith('governance/gee-v1/')) finding(findings, 'GEE_R8_PATH_FORBIDDEN', `${pointer}/repoRelativePath`, memberPath, 'no GEE path in state seal', 'State seals cannot depend on GEE infrastructure.', 'REQ-SEA-03');
     if (memberPath?.endsWith('/STATE_SEAL.json') || memberPath === 'STATE_SEAL.json') finding(findings, 'SELF_HASH_RECURSION', `${pointer}/repoRelativePath`, memberPath, 'STATE_SEAL.json excluded from sealedMembers', 'STATE_SEAL cannot seal itself.', 'REQ-CJS-03');
     if (members.has(memberPath)) finding(findings, 'DUPLICATE_SEALED_MEMBER', `${pointer}/repoRelativePath`, memberPath, 'unique sealed member path', 'A sealed member is listed twice.', 'REQ-SEA-01');
     members.add(memberPath);
@@ -83,25 +111,27 @@ function validateStateSeal({ root, sealPath }) {
     const target = resolveMember(rootResolved, memberPath, findings, `${pointer}/repoRelativePath`);
     if (!target) continue;
     if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
-      finding(findings, 'STATE_SEAL_MEMBER_MISMATCH', `${pointer}/repoRelativePath`, memberPath, 'existing regular file', 'Sealed member is absent.', 'REQ-SEA-01');
+      finding(findings, historicalProjection && projection ? 'HISTORICAL_PROJECTION_BYTES_UNAVAILABLE' : 'STATE_SEAL_MEMBER_MISMATCH', `${pointer}/repoRelativePath`, memberPath, 'existing regular file', 'Sealed member is absent.', historicalProjection && projection ? 'REQ-SEA-03' : 'REQ-SEA-01');
       continue;
     }
     const bytes = fs.readFileSync(target);
     const actualSha = sha256Bytes(bytes);
-    if (actualSha !== member.sha256 || bytes.length !== member.byteLength) finding(findings, 'STATE_SEAL_MEMBER_MISMATCH', pointer, { sha256: member.sha256, byteLength: member.byteLength }, { sha256: actualSha, byteLength: bytes.length }, 'Sealed member hash and length match real bytes.', 'REQ-SEA-01');
+    if (historicalProjection && projection) {
+      if (!/^[a-f0-9]{64}$/.test(String(member.sha256 || '')) || !Number.isInteger(member.byteLength) || member.byteLength < 0) finding(findings, 'HISTORICAL_PROJECTION_BINDING_INVALID', pointer, member, 'historical SHA-256 and byteLength', 'Historical mutable projection identity is malformed.', 'REQ-SEA-03');
+    } else if (actualSha !== member.sha256 || bytes.length !== member.byteLength) finding(findings, 'STATE_SEAL_MEMBER_MISMATCH', pointer, { sha256: member.sha256, byteLength: member.byteLength }, { sha256: actualSha, byteLength: bytes.length }, 'Sealed member hash and length match real bytes.', 'REQ-SEA-01');
     const currentRevision = path.basename(path.dirname(target));
     if (memberPath?.includes('/state/revisions/') && currentRevision !== expectedRevisionDir) finding(findings, 'CROSS_REVISION_MEMBER', pointer, memberPath, `member belongs to ${expectedRevisionDir}`, 'Seal references a mutable or different revision.', 'REQ-SEA-01');
   }
   if (!hasCheckpoint) finding(findings, 'STATE_SEAL_MEMBER_MISSING', '/sealedMembers', seal.sealedMembers, 'same revision CHECKPOINT.json', 'Seal does not include CHECKPOINT.json.', 'REQ-SEA-01');
   if (!hasDefects) finding(findings, 'STATE_SEAL_MEMBER_MISSING', '/sealedMembers', seal.sealedMembers, 'same revision OPEN_DEFECTS.json', 'Seal does not include OPEN_DEFECTS.json.', 'REQ-SEA-01');
   if (!hasContract) finding(findings, 'STATE_SEAL_MEMBER_MISSING', '/sealedMembers', seal.sealedMembers, 'current contract reference', 'Seal does not include the current contract reference.', 'REQ-SEA-01');
-  const revisionNumber = Number.parseInt(seal.stateRevision?.slice(1), 10);
+  const sealRevisionNumber = Number.parseInt(seal.stateRevision?.slice(1), 10);
   const previous = seal.previousStateSealSha256;
-  if (revisionNumber === 1 && previous !== null) finding(findings, 'STATE_SEAL_CHAIN_ERROR', '/previousStateSealSha256', previous, null, 'R0001 must have no previous seal.', 'REQ-SEA-02');
-  if (revisionNumber > 1) {
+  if (sealRevisionNumber === 1 && previous !== null) finding(findings, 'STATE_SEAL_CHAIN_ERROR', '/previousStateSealSha256', previous, null, 'R0001 must have no previous seal.', 'REQ-SEA-02');
+  if (sealRevisionNumber > 1) {
     if (typeof previous !== 'string') finding(findings, 'STATE_SEAL_CHAIN_ERROR', '/previousStateSealSha256', previous, 'SHA-256 of previous STATE_SEAL.json', 'A non-bootstrap revision must link a previous seal.', 'REQ-SEA-02');
     else {
-      const previousPath = path.join(revisionDir, '..', `R${String(revisionNumber - 1).padStart(4, '0')}`, 'STATE_SEAL.json');
+      const previousPath = path.join(revisionDir, '..', `R${String(sealRevisionNumber - 1).padStart(4, '0')}`, 'STATE_SEAL.json');
       if (!fs.existsSync(previousPath)) finding(findings, 'STATE_SEAL_CHAIN_ERROR', '/previousStateSealSha256', previous, 'existing previous revision seal', 'Previous revision seal is absent.', 'REQ-SEA-02');
       else {
         const actualPrevious = sha256Bytes(fs.readFileSync(previousPath));

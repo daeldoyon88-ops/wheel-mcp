@@ -19,13 +19,15 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createWheelGateStartAuthoritySource } from './gate-start-authority-source.mjs';
+import { isModernGateStartId } from '../../core/gate-start-authority.mjs';
 
 /**
  * The exact status set the pre-repair preflight treated as executable. A gate
  * that has reached a closed status is NOT executable, which is what keeps a
  * COMPLETE_CONFIRMED gate closed without anyone having to name it.
  */
-export const EXECUTABLE_GATE_STATUSES = Object.freeze(['AUTHORIZED_NOT_STARTED', 'IN_PROGRESS']);
+export const EXECUTABLE_GATE_STATUSES = Object.freeze(['IN_PROGRESS']);
 
 export const ACTIVE_GATE_POINTER_PATH = 'governance/active/ACTIVE_GATE.json';
 const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
@@ -57,6 +59,7 @@ export function readActiveGateId(repoRoot) {
 
 export function createWheelGateAuthoritySource(repoRoot, { projectId = 'WHEEL' } = {}) {
   const root = path.resolve(repoRoot);
+  const startSource = createWheelGateStartAuthoritySource(root, { projectId });
 
   return {
     projectId,
@@ -91,12 +94,25 @@ export function createWheelGateAuthoritySource(repoRoot, { projectId = 'WHEEL' }
         }
       }
 
-      const executable = contractPresent && EXECUTABLE_GATE_STATUSES.includes(status);
+      // AUTHORIZED_NOT_STARTED is deliberately not executable.  START is a
+      // separate, owner-signed authority and its exact functional scope is
+      // checked only once the ledger has replayed IN_PROGRESS.
+      const modernStart = status === 'IN_PROGRESS' && isModernGateStartId(workUnitId)
+        ? startSource.resolveWorkUnitAuthority(workUnitId)
+        : null;
+      const executable = isModernGateStartId(workUnitId)
+        ? contractPresent && status === 'IN_PROGRESS'
+          && modernStart?.executionAuthorized === true
+          && Array.isArray(modernStart.authorizedPaths)
+          && modernStart.authorizedPaths.length > 0
+        : contractPresent && status === 'IN_PROGRESS';
+      if (status === 'IN_PROGRESS' && modernStart?.findings?.length) findings.push(...modernStart.findings);
 
       return {
         workUnitId,
         workUnitType: 'GATE',
         status,
+        executionAuthorized: executable,
         contract,
         authorizedPaths,
         findings,
@@ -118,9 +134,10 @@ export function createWheelGateAuthoritySource(repoRoot, { projectId = 'WHEEL' }
             reason: 'gate dependency closure enforced by validate-active-gate.mjs predecessor check'
           },
           WORK_UNIT_EXECUTABLE: executable
-            ? { state: 'PROVEN', reason: `ledger status ${status}` }
-            : { state: 'FAILED', reason: status === null ? 'no ledger status' : `ledger status ${status} is not executable` }
-        }
+            ? { state: 'PROVEN', reason: 'IN_PROGRESS plus valid modern START authority and exact contract scope' }
+            : { state: 'FAILED', reason: status === 'AUTHORIZED_NOT_STARTED' ? 'START authority cannot grant pre-START execution' : status === null ? 'no ledger status' : 'modern START authority or exact scope invalid' }
+        },
+        startAuthority: modernStart
       };
     }
   };

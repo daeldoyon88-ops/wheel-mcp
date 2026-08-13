@@ -11,7 +11,7 @@ import { sealExecutionContract } from '../contracts/seal-execution-contract.mjs'
 import { detectSealedMutation } from '../contracts/detect-sealed-mutation.mjs';
 import { evaluateReadiness } from '../readiness/evaluate-readiness.mjs';
 import { createWheelProjectAdapter } from '../adapters/wheel/wheel-project-adapter.mjs';
-import { canonicalize, sha256Canonical } from '../../tools/canonical-json.mjs';
+import { canonicalize, sha256Bytes, sha256Canonical } from '../../tools/canonical-json.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FIX = path.join(HERE, '..', 'fixtures');
@@ -40,6 +40,63 @@ function baseReadyInput(overrides = {}) {
     _execution: execution,
     _sealed: sealed
   };
+}
+
+function writeSealedOpenDefectsFixture(tmp, gateId, defects) {
+  const rev = 'R0001';
+  const gateRoot = path.join(tmp, 'governance', 'gates', gateId);
+  const revRel = `governance/gates/${gateId}/state/revisions/${rev}`;
+  const revDir = path.join(tmp, ...revRel.split('/'));
+  const contractsDir = path.join(gateRoot, 'contracts');
+  fs.mkdirSync(revDir, { recursive: true });
+  fs.mkdirSync(contractsDir, { recursive: true });
+
+  fs.writeFileSync(path.join(tmp, 'governance', 'GATE_REGISTRY_00_40.json'), JSON.stringify({
+    schemaVersion: 1,
+    gates: [{ gateId, canonicalObjective: `${gateId} sealed defects fixture`, dependencies: [], definitionCompleteness: 'PARTIAL' }]
+  }, null, 2));
+
+  const checkpointPath = path.join(revDir, 'CHECKPOINT.json');
+  const defectsPath = path.join(revDir, 'OPEN_DEFECTS.json');
+  const currentContractPath = path.join(contractsDir, 'CURRENT_CONTRACT.json');
+  const executionContractPath = path.join(contractsDir, 'EXECUTION_CONTRACT_R0001.json');
+  const currentStatePath = path.join(gateRoot, 'state', 'CURRENT_STATE.json');
+  const sealPath = path.join(revDir, 'STATE_SEAL.json');
+
+  fs.writeFileSync(checkpointPath, JSON.stringify({
+    gateId, stateRevision: rev, milestone: 'SEALED_OPEN_DEFECTS_FIXTURE', resumePoint: 'fixture',
+    completedTasks: [], openTasks: [], reusableEvidence: [], invalidatedEvidence: [],
+    requiredNextActions: [], protectedHashes: [], createdAt: '2026-08-08T00:00:00.000Z'
+  }, null, 2));
+  fs.writeFileSync(defectsPath, JSON.stringify({ gateId, stateRevision: rev, defects }, null, 2));
+  fs.writeFileSync(currentContractPath, JSON.stringify({
+    schemaVersion: 1, gateId, contractPath: `governance/gates/${gateId}/contracts/EXECUTION_CONTRACT_R0001.json`
+  }, null, 2));
+  fs.writeFileSync(executionContractPath, JSON.stringify({
+    gateId, contractRevision: rev, positiveTests: ['fixture'], negativeTests: ['fixture'], countertests: ['fixture'],
+    canonicalRequirements: [{ requirementId: 'SEALED_OPEN_DEFECTS' }], requiredOutputs: [],
+    closureConditions: ['fixture'], authorizedPaths: [`governance/gates/${gateId}/**`]
+  }, null, 2));
+
+  const member = (repoRelativePath, absolutePath) => {
+    const bytes = fs.readFileSync(absolutePath);
+    return { repoRelativePath, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+  };
+  const payload = { gateId, stateRevision: rev, executionStatus: 'AUTHORIZED_NOT_STARTED', purpose: 'SEALED_OPEN_DEFECTS_FIXTURE' };
+  fs.writeFileSync(sealPath, JSON.stringify({
+    schemaVersion: 1, gateId, stateRevision: rev,
+    sealedMembers: [
+      member(`${revRel}/CHECKPOINT.json`, checkpointPath),
+      member(`${revRel}/OPEN_DEFECTS.json`, defectsPath),
+      member(`governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`, currentContractPath)
+    ],
+    previousStateSealSha256: null, sealedAt: '2026-08-08T00:00:00.000Z', payload,
+    payloadSha256: sha256Canonical(payload)
+  }, null, 2));
+  fs.writeFileSync(currentStatePath, JSON.stringify({
+    schemaVersion: 1, gateId, stateRevision: rev, revisionPath: revRel,
+    stateSealSha256: sha256Bytes(fs.readFileSync(sealPath)), committedByTransactionId: `${gateId}-SEALED-FIXTURE`
+  }, null, 2));
 }
 
 test('H11: authorityState absent -> BLOCKED', () => {
@@ -235,27 +292,7 @@ test('H24: OPEN_DEFECTS absent -> UNKNOWN, never zero', () => {
 
 test('H25: OPEN_DEFECTS present empty -> KNOWN ZERO', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r1r1-h25-'));
-  const gov = path.join(tmp, 'governance');
-  const rev = 'R0001';
-  fs.mkdirSync(path.join(gov, 'gates', 'GATE51', 'state', 'revisions', rev), { recursive: true });
-  fs.writeFileSync(path.join(gov, 'GATE_REGISTRY_00_40.json'), JSON.stringify({
-    schemaVersion: 1,
-    gates: [{ gateId: 'GATE51', canonicalObjective: 'known zero', dependencies: [], definitionCompleteness: 'PARTIAL' }]
-  }, null, 2));
-  fs.writeFileSync(path.join(gov, 'gates', 'GATE51', 'state', 'CURRENT_STATE.json'), JSON.stringify({
-    schemaVersion: 1,
-    gateId: 'GATE51',
-    stateRevision: rev,
-    revisionPath: `governance/gates/GATE51/state/revisions/${rev}`
-  }, null, 2));
-  fs.writeFileSync(path.join(gov, 'gates', 'GATE51', 'state', 'revisions', rev, 'STATE_SEAL.json'), JSON.stringify({
-    schemaVersion: 1,
-    payload: { executionStatus: 'AUTHORIZED_NOT_STARTED' }
-  }, null, 2));
-  fs.writeFileSync(path.join(gov, 'gates', 'GATE51', 'state', 'revisions', rev, 'OPEN_DEFECTS.json'), JSON.stringify({
-    schemaVersion: 1,
-    defects: []
-  }, null, 2));
+  writeSealedOpenDefectsFixture(tmp, 'GATE51', []);
 
   const view = createWheelProjectAdapter(tmp).getWorkUnitView('GATE51');
   assert.equal(view.defectsOpenKnowledge, 'KNOWN_ZERO');
@@ -264,31 +301,11 @@ test('H25: OPEN_DEFECTS present empty -> KNOWN ZERO', () => {
 
 test('H26: OPEN_DEFECTS present with defects -> real count', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r1r1-h26-'));
-  const gov = path.join(tmp, 'governance');
-  const rev = 'R0001';
-  fs.mkdirSync(path.join(gov, 'gates', 'GATE52', 'state', 'revisions', rev), { recursive: true });
-  fs.writeFileSync(path.join(gov, 'GATE_REGISTRY_00_40.json'), JSON.stringify({
-    schemaVersion: 1,
-    gates: [{ gateId: 'GATE52', canonicalObjective: 'known nonzero', dependencies: [], definitionCompleteness: 'PARTIAL' }]
-  }, null, 2));
-  fs.writeFileSync(path.join(gov, 'gates', 'GATE52', 'state', 'CURRENT_STATE.json'), JSON.stringify({
-    schemaVersion: 1,
-    gateId: 'GATE52',
-    stateRevision: rev,
-    revisionPath: `governance/gates/GATE52/state/revisions/${rev}`
-  }, null, 2));
-  fs.writeFileSync(path.join(gov, 'gates', 'GATE52', 'state', 'revisions', rev, 'STATE_SEAL.json'), JSON.stringify({
-    schemaVersion: 1,
-    payload: { executionStatus: 'AUTHORIZED_NOT_STARTED' }
-  }, null, 2));
-  fs.writeFileSync(path.join(gov, 'gates', 'GATE52', 'state', 'revisions', rev, 'OPEN_DEFECTS.json'), JSON.stringify({
-    schemaVersion: 1,
-    defects: [
-      { id: 'D1', status: 'OPEN' },
-      { id: 'D2', status: 'IN_REPAIR' },
-      { id: 'D3', status: 'CLOSED' }
-    ]
-  }, null, 2));
+  writeSealedOpenDefectsFixture(tmp, 'GATE52', [
+    { id: 'D1', status: 'OPEN' },
+    { id: 'D2', status: 'IN_REPAIR' },
+    { id: 'D3', status: 'CLOSED' }
+  ]);
 
   const view = createWheelProjectAdapter(tmp).getWorkUnitView('GATE52');
   assert.equal(view.defectsOpenKnowledge, 'KNOWN_NONZERO');

@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { canonicalize, sha256Bytes } from './canonical-json.mjs';
 import { validateLedger } from './validate-status-ledger.mjs';
+import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 
 function option(name, fallback = null) {
   const i = process.argv.indexOf(name);
@@ -22,7 +23,7 @@ const ledgerPath = path.resolve(option('--ledger', path.join(root, 'governance',
 const outputPath = path.resolve(option('--output', path.join(root, 'governance', 'state', 'generated', 'GATE_STATUS_SNAPSHOT.json')));
 const sourceMapPath = option('--source-map', null) ? path.resolve(option('--source-map')) : null;
 const check = process.argv.includes('--check');
-const report = validateLedger({ root, ledgerPath, sourceMapPath });
+const report = validateLedger({ root, ledgerPath, sourceMapPath, policy: WHEEL_EXTERNAL_AUTHORITY_POLICY });
 if (!report.valid) {
   process.stdout.write(JSON.stringify({ valid: false, stale: false, findings: report.findings }, null, 2) + '\n');
   process.exitCode = 2;

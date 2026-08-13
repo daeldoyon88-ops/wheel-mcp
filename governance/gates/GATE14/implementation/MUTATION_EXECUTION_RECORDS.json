@@ -1,0 +1,3314 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE14_MUTATION_EXECUTION_RECORDS",
+  "gateId": "GATE14",
+  "executionOrder": [
+    "H01_AUTHORITY_HASH_MISMATCH",
+    "H02_AUTHORITY_IDENTITY_MISMATCH",
+    "H03_INVALID_OWNER_SIGNATURE",
+    "H04_WRONG_GATE",
+    "H05_WRONG_TRANSITION",
+    "H06_STALE_PREVIOUS_EVENT",
+    "H07_LEDGER_CHAIN_MUTATION",
+    "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+    "H09_MALFORMED_REQUIRED_FIELD",
+    "H10_STATE_SEAL_HASH_MISMATCH",
+    "H11_BROKEN_PREVIOUS_STATE_SEAL",
+    "H12_CURRENT_STATE_FOREIGN_LINEAGE",
+    "H13_OPEN_DEFECTS_INCONSISTENCY",
+    "H14_CONTRACT_SHA_MISMATCH",
+    "H15_CURRENT_CONTRACT_MISMATCH",
+    "H16_STALE_READINESS_BINDING",
+    "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+    "H18_FUNCTIONAL_SCOPE_ESCAPE",
+    "H19_AUTHORITY_REPLAY",
+    "H20_UNRELATED_GATE_AUTHORITY_BORROWING",
+    "AUX_ACTIVE_GATE_CONTEXT_HASH",
+    "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+  ],
+  "runCount": 2,
+  "records": [
+    {
+      "mutationId": "H01_AUTHORITY_HASH_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "field": "/recordDigest"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "AUTHORITY_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "AUTHORITY_HASH_MISMATCH",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "AUTHORITY_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the record digest with a fixed zero SHA without changing the ledger pin.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "09460805304afddd29d85454e59869b4f59eba6d06d43e7154f439010dab4e86"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H02_AUTHORITY_IDENTITY_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/gateId"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+          "INVALID_STATUS_TRANSITION"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "INVALID_STATUS_TRANSITION",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change the ledger-pinned START event gate identity to GATE13 and recompute only its event payload hash.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "504e6954fa7f00c16983f944907decdac3ffb73881be8355dbf7479693eaab63"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H03_INVALID_OWNER_SIGNATURE",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+        "field": "/signature"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_OWNER_SIGNATURE_INVALID"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_OWNER_SIGNATURE_INVALID",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_OWNER_SIGNATURE_INVALID"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change the first deterministic character in the signed authority signature.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json": "d7a8e65766f02394f1cc5ae2903d7d5ed51e8bcd1812dde222213cc16791c390"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json": "6cbba5c14bb087ecf253f6d36a6ffc84bdfc159212fdacc91156a0dccfeb2b64"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H04_WRONG_GATE",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+        "field": "/gateId"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "CONTRACT_GATE_MISMATCH",
+          "POINTER_TARGET_MISMATCH",
+          "POINTER_HASH_MISMATCH",
+          "CONTRACT_STRATEGY_DIVERGENCE"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "CONTRACT_GATE_MISMATCH",
+      "actualFinding": [
+        "CONTRACT_GATE_MISMATCH",
+        "POINTER_TARGET_MISMATCH",
+        "POINTER_HASH_MISMATCH",
+        "CONTRACT_STRATEGY_DIVERGENCE"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-gate-contract",
+        "script": "governance/tools/validate-gate-contract.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change the contract gate identity from GATE14 to GATE13.",
+        "baselineHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "6a920be55e38418fb9fe23e2b5373448584a59103c1505051bc402af6821066d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H05_WRONG_TRANSITION",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/transitionType"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+          "INVALID_STATUS_TRANSITION",
+          "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+          "GATE_START_RECORD_TRANSITION_BORROWED"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "INVALID_STATUS_TRANSITION",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+        "GATE_START_RECORD_TRANSITION_BORROWED"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change the final START transition to an AUTHORIZATION transition and recompute its event payload hash.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "cb7b6a817c95ca90c04018d840598886e65e022ce8b5fceaa36efa791f6cb921"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H06_STALE_PREVIOUS_EVENT",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/previousEventSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "LEDGER_CHAIN_BREAK",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_PREVIOUS_EVENT_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_PREVIOUS_EVENT_MISMATCH",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "LEDGER_CHAIN_BREAK",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the final ledger event predecessor with a fixed zero SHA and recompute its own payload hash.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "5f1a4ceea1ce952a35aca9004f25769795294b15fe8210eb457c44dc35489f73"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H07_LEDGER_CHAIN_MUTATION",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/previousEventSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "LEDGER_CHAIN_BREAK",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_PREVIOUS_EVENT_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "LEDGER_CHAIN_BREAK",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "LEDGER_CHAIN_BREAK",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change the final event chain predecessor and recompute its own payload hash, leaving the preceding event unchanged.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "5f1a4ceea1ce952a35aca9004f25769795294b15fe8210eb457c44dc35489f73"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+        "field": "/unexpected"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "actualFinding": [
+        "SCHEMA_VIOLATION"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-seal",
+        "script": "governance/tools/validate-state-seal.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Add an unknown top-level property to the sealed state document.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "6dfdaf0aae809f507353fdaea4e99644e202834891052e4b7519aa597b01c01b"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H09_MALFORMED_REQUIRED_FIELD",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+        "field": "/resumePoint"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION",
+          "EMPTY_RESUME_POINT",
+          "STATE_SEAL_MEMBER_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-revision",
+        "script": "governance/tools/validate-state-revision.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Remove a required checkpoint field.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "48c41ae01bb50bac87955bab82d2d10bc942f238bb14c13495bee0c6f3d93204"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "8e5a999300c1be664c8082d457f59bf33002b06853c1bad52459ae2c13bc4aa5"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H10_STATE_SEAL_HASH_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+        "field": "/resumePoint"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "STATE_SEAL_MEMBER_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "STATE_SEAL_MEMBER_MISMATCH",
+      "actualFinding": [
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-seal",
+        "script": "governance/tools/validate-state-seal.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change a sealed checkpoint byte without updating STATE_SEAL.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "48c41ae01bb50bac87955bab82d2d10bc942f238bb14c13495bee0c6f3d93204"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "a43ee717396444d62d1d8a7fcbf23b88e75f08d33f4afeceee35df5338c3f26f"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H11_BROKEN_PREVIOUS_STATE_SEAL",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+        "field": "/previousStateSealSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "STATE_SEAL_CHAIN_ERROR"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "STATE_SEAL_CHAIN_ERROR",
+      "actualFinding": [
+        "STATE_SEAL_CHAIN_ERROR"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-seal",
+        "script": "governance/tools/validate-state-seal.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the R0002 previous seal link with a fixed zero SHA.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "a5a9cea5f5abcb9fed6bd41488288df1f2e0f888f67f41aaa7f6943bbed59e9d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H12_CURRENT_STATE_FOREIGN_LINEAGE",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/CURRENT_STATE.json",
+        "field": "/revisionPath"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "POINTER_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "POINTER_HASH_MISMATCH",
+      "actualFinding": [
+        "POINTER_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-revision",
+        "script": "governance/tools/validate-state-revision.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Point CURRENT_STATE at the predecessor revision while retaining the R0002 state identity.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/CURRENT_STATE.json": "5370780c7859b478ae9a2156f4eb6104c5716eed864ce42d10dcc5f90145643b"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/CURRENT_STATE.json": "44ecdfed1c433a2e3e41cb789a57132fbd5448ae9c13bcab54449e738a764345"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H13_OPEN_DEFECTS_INCONSISTENCY",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json",
+        "field": "/defects/0"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION",
+          "STATE_SEAL_MEMBER_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-revision",
+        "script": "governance/tools/validate-state-revision.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Insert a malformed defect object into the open-defect document.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json": "fe67f3d8121fa66b6e8fd7c04d3598b5f99ba03ca1fbd9954315cc0d3be14e3c"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json": "304150f8a7e3a4e2e3b6a7638775b263d5ce71db0bcdf47242b7e6cc09c6a070"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H14_CONTRACT_SHA_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+        "field": "/canonicalRequirements/0/statement"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+          "GATE_START_CONTRACT_SHA_MISMATCH",
+          "GATE_START_READINESS_DIGEST_MISMATCH",
+          "GATE_START_READINESS_BLOCKED"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_CONTRACT_SHA_MISMATCH",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+        "GATE_START_CONTRACT_SHA_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "GATE_START_READINESS_BLOCKED"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change a contract byte while retaining the START authority contract hash.",
+        "baselineHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "17d35fcea8de70cb522777b17c861dcc3a32c5ecc669d2c597cbb37bdc28c53e"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H15_CURRENT_CONTRACT_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+        "field": "/contractSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "POINTER_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "POINTER_HASH_MISMATCH",
+      "actualFinding": [
+        "POINTER_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-gate-contract",
+        "script": "governance/tools/validate-gate-contract.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Change the CURRENT_CONTRACT pointer hash without changing its target.",
+        "baselineHashes": {
+          "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json": "3d6d3b4910a61ea3d01a253d80fb46ca4cf44ad711ff0d16d9fac904025afac1"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json": "40d3ed925629c55eea7c30f260e9b2beb7419e0b3ae7ac089144123c57391c9d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H16_STALE_READINESS_BINDING",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "field": "/readinessDigest"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_RECORD_INVALID",
+          "GATE_START_RECORD_DIGEST_INVALID",
+          "GATE_START_RECORD_AUTHORITY_MISMATCH",
+          "GATE_START_READINESS_DIGEST_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_READINESS_DIGEST_MISMATCH",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the readiness digest and repin only the ledger authority bytes, leaving the derived readiness value stale.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "556387391e8cd1dc1e8a0ce1417b358b10214330abd65085aebcb0752421a176",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "855c65f8ab8e449c1f5b8cc2c5ec8834eb391c41af03e026513c61055fb0896d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Remove the only GATE14 START event while leaving the R0002 execution state projection in place.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H18_FUNCTIONAL_SCOPE_ESCAPE",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "field": "/functionalExecutionScope"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_RECORD_INVALID",
+          "GATE_START_RECORD_DIGEST_INVALID",
+          "GATE_START_RECORD_AUTHORITY_MISMATCH",
+          "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_FUNCTIONAL_SCOPE_MISMATCH",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Append an unauthorized production path and repin only the ledger authority bytes.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "8ef4ee07a9d0bca160a9ac0ab49a06c2622c66b35682dd9a1a06006e3f9319c1",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "27250505c63d2a06d867b1d30bb57171740fd484bc3598e09c231ab1d5df613f"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H19_AUTHORITY_REPLAY",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/58"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED",
+          "INVALID_STATUS_TRANSITION",
+          "GATE_START_EVENTID_MISMATCH",
+          "GATE_START_RECORDEDAT_MISMATCH",
+          "GATE_START_AUTHORITY_REPLAYED",
+          "GATE_START_PRE_LEDGER_MISMATCH",
+          "GATE_START_PREVIOUS_EVENT_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_AUTHORITY_REPLAYED",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_APPLIED",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_START_EVENTID_MISMATCH",
+        "GATE_START_RECORDEDAT_MISMATCH",
+        "GATE_START_AUTHORITY_REPLAYED",
+        "GATE_START_PRE_LEDGER_MISMATCH",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Append a second deterministic START event that reuses the single-use GATE14 authority.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "5c55483b0c8262c7dd4553fce4d735836de08638f7e216b5ced6aa95a4fd8cc5"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H20_UNRELATED_GATE_AUTHORITY_BORROWING",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/authorityPath"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_RECORD_PATH_NOT_AUTHORIZED",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the GATE14 START authority path/hash with the historical GATE13 authority while preserving the ledger chain.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "edfb1134caed4dd37385fc2244abce8e7934450a29bc1f68a13ad58c9468e24b"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "AUX_ACTIVE_GATE_CONTEXT_HASH",
+      "target": {
+        "repoRelativePath": "governance/active/ACTIVE_GATE.json",
+        "field": "/currentStateSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "CURRENT_STATE_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "CURRENT_STATE_HASH_MISMATCH",
+      "actualFinding": [
+        "CURRENT_STATE_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-active-gate",
+        "script": "governance/tools/validate-active-gate.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the active pointer current-state hash with a fixed zero SHA.",
+        "baselineHashes": {
+          "governance/active/ACTIVE_GATE.json": "6283e4a6f3a49faa96e0793e1bb305bdb52131bb89a9890cd74a7848a7f4ebff"
+        },
+        "mutatedHashes": {
+          "governance/active/ACTIVE_GATE.json": "2da4ddd00902f3f32976d61b32875687a42a01397a3149d57a529cdadacf556d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H01_AUTHORITY_HASH_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "field": "/recordDigest"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "AUTHORITY_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "AUTHORITY_HASH_MISMATCH",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "AUTHORITY_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the record digest with a fixed zero SHA without changing the ledger pin.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "09460805304afddd29d85454e59869b4f59eba6d06d43e7154f439010dab4e86"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H02_AUTHORITY_IDENTITY_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/gateId"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+          "INVALID_STATUS_TRANSITION"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "INVALID_STATUS_TRANSITION",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change the ledger-pinned START event gate identity to GATE13 and recompute only its event payload hash.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "504e6954fa7f00c16983f944907decdac3ffb73881be8355dbf7479693eaab63"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H03_INVALID_OWNER_SIGNATURE",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+        "field": "/signature"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_OWNER_SIGNATURE_INVALID"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_OWNER_SIGNATURE_INVALID",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_OWNER_SIGNATURE_INVALID"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change the first deterministic character in the signed authority signature.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json": "d7a8e65766f02394f1cc5ae2903d7d5ed51e8bcd1812dde222213cc16791c390"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json": "6cbba5c14bb087ecf253f6d36a6ffc84bdfc159212fdacc91156a0dccfeb2b64"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H04_WRONG_GATE",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+        "field": "/gateId"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "CONTRACT_GATE_MISMATCH",
+          "POINTER_TARGET_MISMATCH",
+          "POINTER_HASH_MISMATCH",
+          "CONTRACT_STRATEGY_DIVERGENCE"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "CONTRACT_GATE_MISMATCH",
+      "actualFinding": [
+        "CONTRACT_GATE_MISMATCH",
+        "POINTER_TARGET_MISMATCH",
+        "POINTER_HASH_MISMATCH",
+        "CONTRACT_STRATEGY_DIVERGENCE"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-gate-contract",
+        "script": "governance/tools/validate-gate-contract.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change the contract gate identity from GATE14 to GATE13.",
+        "baselineHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "6a920be55e38418fb9fe23e2b5373448584a59103c1505051bc402af6821066d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H05_WRONG_TRANSITION",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/transitionType"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+          "INVALID_STATUS_TRANSITION",
+          "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+          "GATE_START_RECORD_TRANSITION_BORROWED"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "INVALID_STATUS_TRANSITION",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+        "GATE_START_RECORD_TRANSITION_BORROWED"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change the final START transition to an AUTHORIZATION transition and recompute its event payload hash.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "cb7b6a817c95ca90c04018d840598886e65e022ce8b5fceaa36efa791f6cb921"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H06_STALE_PREVIOUS_EVENT",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/previousEventSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "LEDGER_CHAIN_BREAK",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_PREVIOUS_EVENT_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_PREVIOUS_EVENT_MISMATCH",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "LEDGER_CHAIN_BREAK",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the final ledger event predecessor with a fixed zero SHA and recompute its own payload hash.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "5f1a4ceea1ce952a35aca9004f25769795294b15fe8210eb457c44dc35489f73"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H07_LEDGER_CHAIN_MUTATION",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/previousEventSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "LEDGER_CHAIN_BREAK",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_PREVIOUS_EVENT_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "LEDGER_CHAIN_BREAK",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "LEDGER_CHAIN_BREAK",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change the final event chain predecessor and recompute its own payload hash, leaving the preceding event unchanged.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "5f1a4ceea1ce952a35aca9004f25769795294b15fe8210eb457c44dc35489f73"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+        "field": "/unexpected"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "actualFinding": [
+        "SCHEMA_VIOLATION"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-seal",
+        "script": "governance/tools/validate-state-seal.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Add an unknown top-level property to the sealed state document.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "6dfdaf0aae809f507353fdaea4e99644e202834891052e4b7519aa597b01c01b"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H09_MALFORMED_REQUIRED_FIELD",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+        "field": "/resumePoint"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION",
+          "EMPTY_RESUME_POINT",
+          "STATE_SEAL_MEMBER_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-revision",
+        "script": "governance/tools/validate-state-revision.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Remove a required checkpoint field.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "48c41ae01bb50bac87955bab82d2d10bc942f238bb14c13495bee0c6f3d93204"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "8e5a999300c1be664c8082d457f59bf33002b06853c1bad52459ae2c13bc4aa5"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H10_STATE_SEAL_HASH_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+        "field": "/resumePoint"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "STATE_SEAL_MEMBER_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "STATE_SEAL_MEMBER_MISMATCH",
+      "actualFinding": [
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-seal",
+        "script": "governance/tools/validate-state-seal.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change a sealed checkpoint byte without updating STATE_SEAL.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "48c41ae01bb50bac87955bab82d2d10bc942f238bb14c13495bee0c6f3d93204"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json": "a43ee717396444d62d1d8a7fcbf23b88e75f08d33f4afeceee35df5338c3f26f"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H11_BROKEN_PREVIOUS_STATE_SEAL",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+        "field": "/previousStateSealSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "STATE_SEAL_CHAIN_ERROR"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "STATE_SEAL_CHAIN_ERROR",
+      "actualFinding": [
+        "STATE_SEAL_CHAIN_ERROR"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-seal",
+        "script": "governance/tools/validate-state-seal.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the R0002 previous seal link with a fixed zero SHA.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json": "a5a9cea5f5abcb9fed6bd41488288df1f2e0f888f67f41aaa7f6943bbed59e9d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H12_CURRENT_STATE_FOREIGN_LINEAGE",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/CURRENT_STATE.json",
+        "field": "/revisionPath"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "POINTER_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "POINTER_HASH_MISMATCH",
+      "actualFinding": [
+        "POINTER_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-revision",
+        "script": "governance/tools/validate-state-revision.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Point CURRENT_STATE at the predecessor revision while retaining the R0002 state identity.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/CURRENT_STATE.json": "5370780c7859b478ae9a2156f4eb6104c5716eed864ce42d10dcc5f90145643b"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/CURRENT_STATE.json": "44ecdfed1c433a2e3e41cb789a57132fbd5448ae9c13bcab54449e738a764345"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H13_OPEN_DEFECTS_INCONSISTENCY",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json",
+        "field": "/defects/0"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION",
+          "STATE_SEAL_MEMBER_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-state-revision",
+        "script": "governance/tools/validate-state-revision.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Insert a malformed defect object into the open-defect document.",
+        "baselineHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json": "fe67f3d8121fa66b6e8fd7c04d3598b5f99ba03ca1fbd9954315cc0d3be14e3c"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json": "304150f8a7e3a4e2e3b6a7638775b263d5ce71db0bcdf47242b7e6cc09c6a070"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H14_CONTRACT_SHA_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+        "field": "/canonicalRequirements/0/statement"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+          "GATE_START_CONTRACT_SHA_MISMATCH",
+          "GATE_START_READINESS_DIGEST_MISMATCH",
+          "GATE_START_READINESS_BLOCKED"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_CONTRACT_SHA_MISMATCH",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+        "GATE_START_CONTRACT_SHA_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "GATE_START_READINESS_BLOCKED"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change a contract byte while retaining the START authority contract hash.",
+        "baselineHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json": "17d35fcea8de70cb522777b17c861dcc3a32c5ecc669d2c597cbb37bdc28c53e"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H15_CURRENT_CONTRACT_MISMATCH",
+      "target": {
+        "repoRelativePath": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+        "field": "/contractSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "POINTER_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "POINTER_HASH_MISMATCH",
+      "actualFinding": [
+        "POINTER_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-gate-contract",
+        "script": "governance/tools/validate-gate-contract.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Change the CURRENT_CONTRACT pointer hash without changing its target.",
+        "baselineHashes": {
+          "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json": "3d6d3b4910a61ea3d01a253d80fb46ca4cf44ad711ff0d16d9fac904025afac1"
+        },
+        "mutatedHashes": {
+          "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json": "40d3ed925629c55eea7c30f260e9b2beb7419e0b3ae7ac089144123c57391c9d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H16_STALE_READINESS_BINDING",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "field": "/readinessDigest"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_RECORD_INVALID",
+          "GATE_START_RECORD_DIGEST_INVALID",
+          "GATE_START_RECORD_AUTHORITY_MISMATCH",
+          "GATE_START_READINESS_DIGEST_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_READINESS_DIGEST_MISMATCH",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the readiness digest and repin only the ledger authority bytes, leaving the derived readiness value stale.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "556387391e8cd1dc1e8a0ce1417b358b10214330abd65085aebcb0752421a176",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "855c65f8ab8e449c1f5b8cc2c5ec8834eb391c41af03e026513c61055fb0896d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Remove the only GATE14 START event while leaving the R0002 execution state projection in place.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H18_FUNCTIONAL_SCOPE_ESCAPE",
+      "target": {
+        "repoRelativePath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "field": "/functionalExecutionScope"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_RECORD_INVALID",
+          "GATE_START_RECORD_DIGEST_INVALID",
+          "GATE_START_RECORD_AUTHORITY_MISMATCH",
+          "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_FUNCTIONAL_SCOPE_MISMATCH",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Append an unauthorized production path and repin only the ledger authority bytes.",
+        "baselineHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/authority/authorizations/GATE14/GATE_START_RECORD.json": "8ef4ee07a9d0bca160a9ac0ab49a06c2622c66b35682dd9a1a06006e3f9319c1",
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "27250505c63d2a06d867b1d30bb57171740fd484bc3598e09c231ab1d5df613f"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H19_AUTHORITY_REPLAY",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/58"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED",
+          "INVALID_STATUS_TRANSITION",
+          "GATE_START_EVENTID_MISMATCH",
+          "GATE_START_RECORDEDAT_MISMATCH",
+          "GATE_START_AUTHORITY_REPLAYED",
+          "GATE_START_PRE_LEDGER_MISMATCH",
+          "GATE_START_PREVIOUS_EVENT_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_AUTHORITY_REPLAYED",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_APPLIED",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_START_EVENTID_MISMATCH",
+        "GATE_START_RECORDEDAT_MISMATCH",
+        "GATE_START_AUTHORITY_REPLAYED",
+        "GATE_START_PRE_LEDGER_MISMATCH",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Append a second deterministic START event that reuses the single-use GATE14 authority.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "5c55483b0c8262c7dd4553fce4d735836de08638f7e216b5ced6aa95a4fd8cc5"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "H20_UNRELATED_GATE_AUTHORITY_BORROWING",
+      "target": {
+        "repoRelativePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "field": "/57/authorityPath"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "NON_CANONICAL_EVENT",
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": [
+          "MIGRATED_HISTORICAL_AUTHORITY",
+          "HISTORICAL_RECONCILIATION_APPLIED",
+          "GATE_AUTHORIZATION_APPLIED",
+          "GATE_START_APPLIED"
+        ]
+      },
+      "expectedFinding": "GATE_START_RECORD_PATH_NOT_AUTHORIZED",
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-status-ledger",
+        "script": "governance/tools/validate-status-ledger.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the GATE14 START authority path/hash with the historical GATE13 authority while preserving the ledger chain.",
+        "baselineHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+        },
+        "mutatedHashes": {
+          "governance/state/GATE_STATUS_LEDGER.ndjson": "edfb1134caed4dd37385fc2244abce8e7934450a29bc1f68a13ad58c9468e24b"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "AUX_ACTIVE_GATE_CONTEXT_HASH",
+      "target": {
+        "repoRelativePath": "governance/active/ACTIVE_GATE.json",
+        "field": "/currentStateSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "CURRENT_STATE_HASH_MISMATCH"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "CURRENT_STATE_HASH_MISMATCH",
+      "actualFinding": [
+        "CURRENT_STATE_HASH_MISMATCH"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "validate-active-gate",
+        "script": "governance/tools/validate-active-gate.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the active pointer current-state hash with a fixed zero SHA.",
+        "baselineHashes": {
+          "governance/active/ACTIVE_GATE.json": "6283e4a6f3a49faa96e0793e1bb305bdb52131bb89a9890cd74a7848a7f4ebff"
+        },
+        "mutatedHashes": {
+          "governance/active/ACTIVE_GATE.json": "2da4ddd00902f3f32976d61b32875687a42a01397a3149d57a529cdadacf556d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS",
+      "negativeControls": {
+        "expectedFindingWrong": true,
+        "detectorInvocationSkipped": true,
+        "mutationNotApplied": true,
+        "baselineAlreadyInvalid": true,
+        "mutationRestoredBeforeDetector": true,
+        "syntheticDetectorSubstitution": true,
+        "allMethodologyFaultsRejected": true
+      }
+    },
+    {
+      "mutationId": "AUX_PREFLIGHT_ACTIVE_STATE_HASH",
+      "target": {
+        "repoRelativePath": "governance/active/ACTIVE_GATE.json",
+        "field": "/currentStateSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "CURRENT_STATE_HASH_MISMATCH",
+          "GENERATED_FILE_DRIFT"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "CURRENT_STATE_HASH_MISMATCH",
+      "actualFinding": [
+        "CURRENT_STATE_HASH_MISMATCH",
+        "GENERATED_FILE_DRIFT"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "governance-preflight",
+        "script": "governance/tools/governance-preflight.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 1,
+        "mutationTransformation": "Replace the active pointer current-state hash and invoke governance-preflight against the mutated temporary repository.",
+        "baselineHashes": {
+          "governance/active/ACTIVE_GATE.json": "6283e4a6f3a49faa96e0793e1bb305bdb52131bb89a9890cd74a7848a7f4ebff"
+        },
+        "mutatedHashes": {
+          "governance/active/ACTIVE_GATE.json": "2da4ddd00902f3f32976d61b32875687a42a01397a3149d57a529cdadacf556d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS"
+    },
+    {
+      "mutationId": "AUX_PREFLIGHT_ACTIVE_STATE_HASH",
+      "target": {
+        "repoRelativePath": "governance/active/ACTIVE_GATE.json",
+        "field": "/currentStateSha256"
+      },
+      "baselineValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "mutatedValidatorResult": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "CURRENT_STATE_HASH_MISMATCH",
+          "GENERATED_FILE_DRIFT"
+        ]
+      },
+      "restoredValidatorResult": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "expectedFinding": "CURRENT_STATE_HASH_MISMATCH",
+      "actualFinding": [
+        "CURRENT_STATE_HASH_MISMATCH",
+        "GENERATED_FILE_DRIFT"
+      ],
+      "detectorInvoked": true,
+      "detector": {
+        "validator": "governance-preflight",
+        "script": "governance/tools/governance-preflight.mjs",
+        "processExitCode": 2
+      },
+      "reproductionMetadata": {
+        "runNumber": 2,
+        "mutationTransformation": "Replace the active pointer current-state hash and invoke governance-preflight against the mutated temporary repository.",
+        "baselineHashes": {
+          "governance/active/ACTIVE_GATE.json": "6283e4a6f3a49faa96e0793e1bb305bdb52131bb89a9890cd74a7848a7f4ebff"
+        },
+        "mutatedHashes": {
+          "governance/active/ACTIVE_GATE.json": "2da4ddd00902f3f32976d61b32875687a42a01397a3149d57a529cdadacf556d"
+        },
+        "mutationApplied": true,
+        "restoredBaselineByteIdentical": true
+      },
+      "verdict": "PASS"
+    }
+  ],
+  "determinism": {
+    "sameMutationOrdering": true,
+    "sameTargets": true,
+    "sameExpectedFindings": true,
+    "sameActualFindings": true,
+    "sameVerdicts": true,
+    "volatileMetadataExcluded": [
+      "temporary clone path",
+      "process id"
+    ]
+  },
+  "negativeControls": [
+    {
+      "controlId": "NC01_WRONG_EXPECTED_FINDING",
+      "setup": "Apply H08 and invoke validate-state-seal, then compare the real finding against an intentionally wrong expected finding.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 2
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": true
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [
+        "SCHEMA_VIOLATION"
+      ],
+      "expectedMethodologyFailure": "actual finding set differs from intentionally wrong expected finding",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 1
+    },
+    {
+      "controlId": "NC02_DETECTOR_INVOCATION_SKIPPED",
+      "setup": "Apply H08 but intentionally omit the production detector invocation.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": false,
+        "detector": "validate-state-seal",
+        "processExitCode": null
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "detector invocation is required before evidence can count",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 1
+    },
+    {
+      "controlId": "NC03_MUTATION_NOT_APPLIED",
+      "setup": "Invoke validate-state-seal on the untouched valid baseline while claiming H08 was applied.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 0
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": false,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "claimed hostile state was not produced",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 1
+    },
+    {
+      "controlId": "NC04_BASELINE_ALREADY_INVALID",
+      "setup": "Apply H08 to make the baseline invalid, then apply H11 and invoke validate-state-seal.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 2
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": true
+      },
+      "actualBaselineState": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION"
+        ]
+      },
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "STATE_SEAL_CHAIN_ERROR"
+      ],
+      "expectedMethodologyFailure": "baseline prerequisite was already invalid before the claimed mutation",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 1
+    },
+    {
+      "controlId": "NC05_RESTORED_BEFORE_DETECTOR",
+      "setup": "Apply H08, restore the exact baseline bytes, then invoke validate-state-seal.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 0
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "detector observed restored baseline rather than hostile state",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 1
+    },
+    {
+      "controlId": "NC06_SYNTHETIC_FINDING_SUBSTITUTION",
+      "setup": "Apply H08, restore it before detector execution, inject the expected finding metadata, and invoke validate-state-seal on the restored baseline.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 0
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "expected finding was supplied as metadata but was absent from production detector output",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 1
+    },
+    {
+      "controlId": "NC01_WRONG_EXPECTED_FINDING",
+      "setup": "Apply H08 and invoke validate-state-seal, then compare the real finding against an intentionally wrong expected finding.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 2
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": true
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [
+        "SCHEMA_VIOLATION"
+      ],
+      "expectedMethodologyFailure": "actual finding set differs from intentionally wrong expected finding",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 2
+    },
+    {
+      "controlId": "NC02_DETECTOR_INVOCATION_SKIPPED",
+      "setup": "Apply H08 but intentionally omit the production detector invocation.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": false,
+        "detector": "validate-state-seal",
+        "processExitCode": null
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "detector invocation is required before evidence can count",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 2
+    },
+    {
+      "controlId": "NC03_MUTATION_NOT_APPLIED",
+      "setup": "Invoke validate-state-seal on the untouched valid baseline while claiming H08 was applied.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 0
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": false,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "claimed hostile state was not produced",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 2
+    },
+    {
+      "controlId": "NC04_BASELINE_ALREADY_INVALID",
+      "setup": "Apply H08 to make the baseline invalid, then apply H11 and invoke validate-state-seal.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 2
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": true
+      },
+      "actualBaselineState": {
+        "valid": false,
+        "exitCode": 2,
+        "findingCodes": [
+          "SCHEMA_VIOLATION"
+        ]
+      },
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "STATE_SEAL_CHAIN_ERROR"
+      ],
+      "expectedMethodologyFailure": "baseline prerequisite was already invalid before the claimed mutation",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 2
+    },
+    {
+      "controlId": "NC05_RESTORED_BEFORE_DETECTOR",
+      "setup": "Apply H08, restore the exact baseline bytes, then invoke validate-state-seal.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 0
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "detector observed restored baseline rather than hostile state",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 2
+    },
+    {
+      "controlId": "NC06_SYNTHETIC_FINDING_SUBSTITUTION",
+      "setup": "Apply H08, restore it before detector execution, inject the expected finding metadata, and invoke validate-state-seal on the restored baseline.",
+      "actualDetectorInvocationState": {
+        "detectorInvoked": true,
+        "detector": "validate-state-seal",
+        "processExitCode": 0
+      },
+      "actualMutationState": {
+        "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "mutationApplied": true,
+        "detectorObservedHostileState": false
+      },
+      "actualBaselineState": {
+        "valid": true,
+        "exitCode": 0,
+        "findingCodes": []
+      },
+      "actualFinding": [],
+      "expectedMethodologyFailure": "expected finding was supplied as metadata but was absent from production detector output",
+      "observedHarnessRejection": true,
+      "verdict": "PASS",
+      "runNumber": 2
+    }
+  ],
+  "negativeControlDeterminism": true
+}

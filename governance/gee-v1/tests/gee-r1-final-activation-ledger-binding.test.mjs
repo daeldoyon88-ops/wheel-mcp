@@ -122,32 +122,24 @@ function writeLedger(repoRoot, gateId, registryPath, {
 } = {}) {
   const registryAuthoritySha256 = sha256Bytes(fs.readFileSync(registryPath));
   const event1 = {
-    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'NOT_STARTED',
+    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'AUTHORIZED_NOT_STARTED',
     transitionType: 'GENESIS_IMPORT', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256: registryAuthoritySha256,
     previousEventSha256: null, recordedAt: '2026-08-08T00:00:00.000Z'
   };
   const event1Final = { ...event1, eventPayloadSha256: sha256Canonical(event1) };
   const lines = [canonicalize(event1Final)];
 
-  const event2 = {
-    schemaVersion: 1, ordinal: 2, eventId: `AUTHORIZATION_${gateId}`, gateId, fromStatus: 'NOT_STARTED', toStatus: 'AUTHORIZED_NOT_STARTED',
-    transitionType: 'AUTHORIZATION', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256: registryAuthoritySha256,
-    previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:01:00.000Z'
-  };
-  const event2Final = { ...event2, eventPayloadSha256: sha256Canonical(event2) };
-  lines.push(canonicalize(event2Final));
-
   if (includeStartEvent) {
     const activationAbs = path.join(repoRoot, activationRel);
     const realAuthoritySha256 = sha256Bytes(fs.readFileSync(activationAbs));
     const event3 = {
-      schemaVersion: 1, ordinal: 3, eventId: `${ACTIVATION_LEDGER_TRANSITION_TYPE}_${gateId}`,
+      schemaVersion: 1, ordinal: 2, eventId: `${ACTIVATION_LEDGER_TRANSITION_TYPE}_${gateId}`,
       gateId: startEventGateId || gateId,
       fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS',
       transitionType: ACTIVATION_LEDGER_TRANSITION_TYPE,
       authorityPath: startEventAuthorityPathOverride || activationRel,
       authoritySha256: startEventAuthoritySha256Override || realAuthoritySha256,
-      previousEventSha256: event2Final.eventPayloadSha256, recordedAt: '2026-08-08T00:02:00.000Z'
+      previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:02:00.000Z'
     };
     const event3Final = { ...event3, eventPayloadSha256: sha256Canonical(event3) };
     lines.push(canonicalize(event3Final));
@@ -158,8 +150,8 @@ function writeLedger(repoRoot, gateId, registryPath, {
 /**
  * Builds a fully self-contained, isolated activated work unit — registry, execution contract,
  * derived execution seal, a real sealed ACTIVATION_AUTHORITY record, STATE_SEAL/CURRENT_STATE,
- * and a ledger (GENESIS_IMPORT + AUTHORIZATION + a canonical START event) whose START event pins
- * the activation-authority artifact's exact live bytes. This is the AB01 "everything matches"
+ * and a ledger (GENESIS_IMPORT directly to AUTHORIZED_NOT_STARTED + a canonical START event)
+ * whose START event pins the activation-authority artifact's exact live bytes. This is the AB01 "everything matches"
  * baseline every other AB scenario starts from before a specific hostile mutation is applied.
  */
 function buildBoundFixture(repoRoot, { gateId, includeStartEvent = true, startEventGateId = null, startEventAuthorityPathOverride = null, startEventAuthoritySha256Override = null } = {}) {
@@ -209,7 +201,7 @@ function buildBoundFixture(repoRoot, { gateId, includeStartEvent = true, startEv
 
   resealStateSeal(repoRoot, gateId, revRel, activationRel, { executionStatus: includeStartEvent ? 'IN_PROGRESS' : 'AUTHORIZED_NOT_STARTED' });
 
-  const sourceMap = { gates: [{ gateId, importedStatus: 'NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }] };
+  const sourceMap = { gates: [{ gateId, importedStatus: 'AUTHORIZED_NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }] };
   fs.writeFileSync(path.join(repoRoot, 'governance/authority/GENESIS_IMPORT_SOURCE_MAP.json'), JSON.stringify(sourceMap, null, 2));
 
   writeLedger(repoRoot, gateId, registryPath, { includeStartEvent, startEventGateId, startEventAuthorityPathOverride, startEventAuthoritySha256Override, activationRel });

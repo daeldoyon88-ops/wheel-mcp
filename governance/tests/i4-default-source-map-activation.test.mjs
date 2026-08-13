@@ -20,7 +20,6 @@ const EXTERNAL_REPORT_REL = 'governance/sources/GATE12_L3_RECLOSURE_R1_EXTERNAL_
 const CONTRACT_REL = 'governance/gates/GATE12/contracts/EXECUTION_CONTRACT_R0001.json';
 const BOOTSTRAP_AUTHORITY_REL = 'governance/sources/I4_BOOTSTRAP_EXECUTION_AUTHORITY.json';
 
-const REPO_LEDGER_SHA_AT_START = sha256(path.join(REPO_ROOT, LEDGER_REL));
 const REPO_SOURCE_MAP_SHA_AT_START = sha256(path.join(REPO_ROOT, SOURCE_MAP_REL));
 const REPO_EXTERNAL_REPORT_SHA_AT_START = sha256(path.join(REPO_ROOT, EXTERNAL_REPORT_REL));
 
@@ -261,11 +260,25 @@ test('10. GATE13 is neither executable nor authorized by this mission', () => {
   assert.equal(contract.nextGateAuthorizationConditions.some((c) => /GATE13/.test(c) && /not authorized|non autoris/i.test(c)), true);
 });
 
-test('11. the ledger, the canonical map and the external authority stay read-only', () => {
-  assert.equal(sha256(path.join(REPO_ROOT, LEDGER_REL)), REPO_LEDGER_SHA_AT_START);
+// Replacement for the ledger portion of test 11 — GEE_V1_R1_ARCHITECTURE_REPAIR_IMPLEMENTATION_R1
+// (RC-1/RC-2): OLD_TEST_ASSUMPTION: the WHOLE ledger file's bytes never change.
+// WHY_INVALID: same root cause as G13-REPAIR-06 in gate13-authority-conflicts-repair.test.mjs — the
+// ledger is now the real authority spine and records real appended transitions (GATE13 reaching
+// COMPLETE_CONFIRMED via real independent-reinspection evidence), not a frozen genesis snapshot.
+// NEW_ARCHITECTURE_RULE / NEW_TEST: the first 41 historical lines stay byte-identical; only appended
+// lines beyond them may exist. The canonical map and external report remain fully untouched, as before.
+test('11. the canonical map and the external authority stay read-only; the ledger stays append-only', () => {
   assert.equal(sha256(path.join(REPO_ROOT, SOURCE_MAP_REL)), REPO_SOURCE_MAP_SHA_AT_START);
   assert.equal(sha256(path.join(REPO_ROOT, EXTERNAL_REPORT_REL)), REPO_EXTERNAL_REPORT_SHA_AT_START);
-  assert.equal(REPO_LEDGER_SHA_AT_START, 'a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5');
   assert.equal(REPO_SOURCE_MAP_SHA_AT_START, 'a41bf05fcc4186c83f4e7928562250a260311cc92ccbbe31c37843af6dbeb92b');
   assert.equal(REPO_EXTERNAL_REPORT_SHA_AT_START, '8d524eb4969d669ddb01d443d787c1e9f13e6e634e2f8eef0f2c4fbc1e08bd08');
+
+  const lines = fs.readFileSync(path.join(REPO_ROOT, LEDGER_REL), 'utf8').trim().split('\n');
+  assert.ok(lines.length >= 41);
+  const first41 = lines.slice(0, 41).join('\n') + '\n';
+  assert.equal(sha256Bytes(Buffer.from(first41, 'utf8')), 'a39591873658989062cedfc96f2acd9415311950b94ee98ffb0d65575e3ecec5');
 });
+
+function sha256Bytes(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex');
+}

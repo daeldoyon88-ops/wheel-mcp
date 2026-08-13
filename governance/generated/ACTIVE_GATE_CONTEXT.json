@@ -17,15 +17,15 @@
   "generatedFrom": [
     {
       "path": "governance/active/ACTIVE_GATE.json",
-      "sha256": "c1a07bcf381db6a21177667bb2bafe2d7a0150ed913eeb451e5f94fb3032cb0e"
+      "sha256": "6283e4a6f3a49faa96e0793e1bb305bdb52131bb89a9890cd74a7848a7f4ebff"
     },
     {
       "path": "governance/GATE_REGISTRY_00_40.json",
-      "sha256": "706397af2427c6c9b6311a03fc5afd3e636e68a3a04313a535ccadeb87aabd9f"
+      "sha256": "f5963314463f49844d45575b2806a516d7d0b5aba0564408efea7fd15db82eef"
     },
     {
       "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
-      "sha256": "5cd7136a49b887f9a4ecd233588ec8907c82bbef588a741652f14dcffe963879"
+      "sha256": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
     }
   ],
   "generatedAt": "2026-08-01T16:00:00.000Z",

@@ -290,7 +290,7 @@ function buildProtectedHashFixture(repoRoot, { gateId, extraFiles = {}, protecte
  * gate would have zero GENESIS_IMPORT events within any prefix that doesn't itself append one) —
  * poisoning prefixChainValid for every ordinal regardless of the protected-hash logic under test.
  * A fully self-contained registry+ledger (mirroring buildActivationFixture's approach for FC-03)
- * sidesteps that entirely: the fixture gate's own 2-event ledger is intrinsically consistent with
+ * sidesteps that entirely: the fixture gate's own 2-event ledger (GENESIS_IMPORT + START) is intrinsically consistent with
  * its own registry, so a real, chain-valid, reproducible historical prefix (ordinal 1) exists to
  * pin against. This does not reuse the well-known real-repo a39591... digest (that value is
  * already independently exercised against the live 44-event ledger by HF15/B17/B18) — it proves
@@ -304,19 +304,22 @@ function buildIsolatedProtectedLedgerFixture(repoRoot, { gateId, extraFiles = {}
     schemaVersion: 1, gates: [{ gateId, canonicalObjective: 'FC02 isolated ledger fixture', dependencies: [], definitionCompleteness: 'PARTIAL' }]
   }, null, 2));
   fs.writeFileSync(path.join(repoRoot, 'governance/authority/GENESIS_IMPORT_SOURCE_MAP.json'), JSON.stringify({
-    gates: [{ gateId, importedStatus: 'NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }]
+    gates: [{ gateId, importedStatus: 'AUTHORIZED_NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }]
   }, null, 2));
 
   const authoritySha256 = sha256Bytes(fs.readFileSync(registryPath));
   const event1 = {
-    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'NOT_STARTED',
+    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'AUTHORIZED_NOT_STARTED',
     transitionType: 'GENESIS_IMPORT', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256,
     previousEventSha256: null, recordedAt: '2026-08-08T00:00:00.000Z'
   };
   const event1Final = { ...event1, eventPayloadSha256: sha256Canonical(event1) };
+  const startAuthorityRel = 'governance/authority/FC02_START_FIXTURE.json';
+  fs.writeFileSync(path.join(repoRoot, ...startAuthorityRel.split('/')), JSON.stringify({ gateId, purpose: 'FC02 historical-prefix fixture' }, null, 2));
+  const startAuthoritySha256 = sha256Bytes(fs.readFileSync(path.join(repoRoot, ...startAuthorityRel.split('/'))));
   const event2 = {
-    schemaVersion: 1, ordinal: 2, eventId: `AUTHORIZATION_${gateId}`, gateId, fromStatus: 'NOT_STARTED', toStatus: 'AUTHORIZED_NOT_STARTED',
-    transitionType: 'AUTHORIZATION', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256,
+    schemaVersion: 1, ordinal: 2, eventId: `START_${gateId}`, gateId, fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS',
+    transitionType: 'START', authorityPath: startAuthorityRel, authoritySha256: startAuthoritySha256,
     previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:01:00.000Z'
   };
   const event2Final = { ...event2, eventPayloadSha256: sha256Canonical(event2) };
@@ -433,10 +436,10 @@ test('B18: the real GATE13 view still reports zero canonical-revision drift and 
 // =============================================================================
 
 // R1_FINAL_ACTIVATION_LEDGER_BINDING_FIX: default status is IN_PROGRESS because
-// includeAuthorizationEvent=true now also appends a real START event (see below) that pins the
+// includeStartEvent=true appends a real START event (see below) that pins the
 // activation-authority artifact — STATE_SEAL's claimed executionStatus must agree with where that
 // START event actually leaves the ledger, or authorityState.consistent goes false first.
-function buildActivationFixture(repoRoot, { gateId, includeAuthorizationEvent = true, sealExecutionStatus = 'IN_PROGRESS' }) {
+function buildActivationFixture(repoRoot, { gateId, includeStartEvent = true, sealExecutionStatus = 'IN_PROGRESS' }) {
   const revRel = `governance/gates/${gateId}/state/revisions/R0001`;
   const revDir = path.join(repoRoot, revRel);
   fs.mkdirSync(revDir, { recursive: true });
@@ -507,34 +510,26 @@ function buildActivationFixture(repoRoot, { gateId, includeAuthorizationEvent = 
   fs.mkdirSync(path.join(repoRoot, `governance/gates/${gateId}/state`), { recursive: true });
   fs.writeFileSync(path.join(repoRoot, `governance/gates/${gateId}/state/CURRENT_STATE.json`), JSON.stringify(currentState, null, 2));
 
-  const sourceMap = { gates: [{ gateId, importedStatus: 'NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }] };
+  const sourceMap = { gates: [{ gateId, importedStatus: 'AUTHORIZED_NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }] };
   fs.writeFileSync(path.join(repoRoot, 'governance/authority/GENESIS_IMPORT_SOURCE_MAP.json'), JSON.stringify(sourceMap, null, 2));
 
   const authoritySha256 = sha256Bytes(fs.readFileSync(registryPath));
   const event1 = {
-    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'NOT_STARTED',
+    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'AUTHORIZED_NOT_STARTED',
     transitionType: 'GENESIS_IMPORT', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256,
     previousEventSha256: null, recordedAt: '2026-08-08T00:00:00.000Z'
   };
   const event1Final = { ...event1, eventPayloadSha256: sha256Canonical(event1) };
   const lines = [canonicalize(event1Final)];
-  if (includeAuthorizationEvent) {
-    const event2 = {
-      schemaVersion: 1, ordinal: 2, eventId: `AUTHORIZATION_${gateId}`, gateId, fromStatus: 'NOT_STARTED', toStatus: 'AUTHORIZED_NOT_STARTED',
-      transitionType: 'AUTHORIZATION', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256,
-      previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:01:00.000Z'
-    };
-    const event2Final = { ...event2, eventPayloadSha256: sha256Canonical(event2) };
-    lines.push(canonicalize(event2Final));
-
+  if (includeStartEvent) {
     // R1_FINAL_ACTIVATION_LEDGER_BINDING_FIX: pin the canonical activation transition (START) to
     // the EXACT live bytes of the activation-authority artifact this fixture just wrote.
     const event3 = {
-      schemaVersion: 1, ordinal: 3, eventId: `${ACTIVATION_LEDGER_TRANSITION_TYPE}_${gateId}`, gateId,
+      schemaVersion: 1, ordinal: 2, eventId: `${ACTIVATION_LEDGER_TRANSITION_TYPE}_${gateId}`, gateId,
       fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS',
       transitionType: ACTIVATION_LEDGER_TRANSITION_TYPE, authorityPath: activationRel,
       authoritySha256: sha256Bytes(fs.readFileSync(path.join(repoRoot, activationRel))),
-      previousEventSha256: event2Final.eventPayloadSha256, recordedAt: '2026-08-08T00:02:00.000Z'
+      previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:02:00.000Z'
     };
     const event3Final = { ...event3, eventPayloadSha256: sha256Canonical(event3) };
     lines.push(canonicalize(event3Final));
@@ -594,7 +589,7 @@ test('FC03-B / B10: a coordinated local reseal that disagrees with the unchanged
 test('FC03-C: an activation member exists but the ledger carries no corroborating (non-genesis) authority — BLOCKED', () => {
   const tmp = mkTmp('fc03c-');
   const gateId = 'GATE101_FC03C';
-  const fixture = buildActivationFixture(tmp, { gateId, includeAuthorizationEvent: false });
+  const fixture = buildActivationFixture(tmp, { gateId, includeStartEvent: false });
   const adapter = createWheelProjectAdapter(tmp);
   const view = adapter.getWorkUnitView(gateId);
   assert.equal(view.activation.activated, true);

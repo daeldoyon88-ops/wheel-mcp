@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "registry-authority-migration.schema.json",
+  "title": "Append-only registry authority migration record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "migrationId", "recordedAt", "originalAuthorityPath", "originalAuthoritySha256", "snapshotPath", "snapshotSha256", "authorizedByPath", "authorizedBySha256", "previousMigrationSha256", "migrationPayloadSha256"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "migrationId": { "type": "string", "pattern": "^REGISTRY_AUTHORITY_MIGRATION_[0-9]{4}$" },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "originalAuthorityPath": { "type": "string", "minLength": 1 },
+    "originalAuthoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "snapshotPath": { "type": "string", "minLength": 1 },
+    "snapshotSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "authorizedByPath": { "type": "string", "minLength": 1 },
+    "authorizedBySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "previousMigrationSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "migrationPayloadSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

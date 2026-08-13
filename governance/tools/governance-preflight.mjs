@@ -32,8 +32,10 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createExecutionAuthorityRegistry, resolveExecutionAuthority } from '../gee-v1/core/work-unit-core.mjs';
 import { createWheelGateAuthoritySource, readActiveGateId } from '../gee-v1/adapters/wheel/gate-authority-source.mjs';
+import { createWheelGateStartAuthoritySource } from '../gee-v1/adapters/wheel/gate-start-authority-source.mjs';
 import { createGeeMissionAuthoritySource } from '../gee-v1/adapters/gee-mission-authority-source.mjs';
 import { createWheelProjectAdapter } from '../gee-v1/adapters/wheel/wheel-project-adapter.mjs';
+import { createWheelPrecontractAuthoritySource, PRECONTRACT_WORK_UNIT_TYPE } from '../gee-v1/adapters/wheel/precontract-authority-source.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PROJECT_ID = 'WHEEL';
@@ -84,7 +86,7 @@ function readGitPolicy() {
 
 function buildRegistry() {
   const wheelAdapter = createWheelProjectAdapter(REPO_ROOT);
-  return createExecutionAuthorityRegistry([
+  const sources = [
     createWheelGateAuthoritySource(REPO_ROOT, { projectId: PROJECT_ID }),
     createGeeMissionAuthoritySource(REPO_ROOT, {
       projectId: PROJECT_ID,
@@ -95,7 +97,17 @@ function buildRegistry() {
         'wheel-adapter-status': (prerequisite) => wheelAdapter.resolvePrerequisite(prerequisite.id, prerequisite)
       }
     })
-  ]);
+  ];
+  if (workUnitType === 'GATE_START') {
+    sources.push(createWheelGateStartAuthoritySource(REPO_ROOT, { projectId: PROJECT_ID }));
+  }
+  if (workUnitType === PRECONTRACT_WORK_UNIT_TYPE) {
+    sources.push(createWheelPrecontractAuthoritySource(REPO_ROOT, {
+      requestPath: option('--request'),
+      authorityPath: option('--authority')
+    }));
+  }
+  return createExecutionAuthorityRegistry(sources);
 }
 
 // --- requested work unit ----------------------------------------------------
@@ -108,15 +120,14 @@ const workUnitId = explicitWorkUnitId || (workUnitType === DEFAULT_WORK_UNIT_TYP
 const configurationFindings = runConfigurationValidators();
 const configurationValid = configurationFindings.length === 0;
 
-const authority = resolveExecutionAuthority({
-  projectId: PROJECT_ID,
-  workUnitType,
-  workUnitId,
-  registry: buildRegistry()
-});
+const registry = buildRegistry();
+const authority = workUnitType === PRECONTRACT_WORK_UNIT_TYPE
+  ? registry.match(PROJECT_ID, PRECONTRACT_WORK_UNIT_TYPE)[0]?.resolvePrecontractAuthority(workUnitId)
+    || { authoritySource: null, decision: 'BLOCKED', executionAuthorized: false, bootstrapAuthorized: false, authorizedPaths: [], proofs: {}, findings: [{ code: 'PRECONTRACT_AUTHORITY_SOURCE_MISSING' }] }
+  : resolveExecutionAuthority({ projectId: PROJECT_ID, workUnitType, workUnitId, registry });
 
 // Execution needs BOTH a valid configuration and an authorizing work unit.
-const executionAuthorized = configurationValid && authority.executionAuthorized;
+const executionAuthorized = configurationValid && workUnitType !== PRECONTRACT_WORK_UNIT_TYPE && authority.executionAuthorized;
 
 // Preserved verbatim from the pre-repair report so existing consumers keep
 // reading the same fields with the same meaning: these describe the ACTIVE
@@ -133,20 +144,23 @@ const activeGateExecutable = activeContractPresent && ['AUTHORIZED_NOT_STARTED',
 const gitPolicy = readGitPolicy();
 const advisoryFindings = gitPolicy.declared ? [] : ['GIT_OPERATION_POLICY_UNDECLARED'];
 
+const workUnitReport = {
+  requested: { projectId: PROJECT_ID, workUnitType, workUnitId: workUnitId ?? null },
+  resolvedBy: authority.authoritySource,
+  decision: authority.decision,
+  executionAuthorized: authority.executionAuthorized,
+  authorizedPaths: authority.authorizedPaths,
+  proofs: authority.proofs,
+  findings: authority.findings
+};
+if (workUnitType === PRECONTRACT_WORK_UNIT_TYPE) workUnitReport.bootstrapAuthorized = authority.bootstrapAuthorized === true;
+
 const report = {
   GOVERNANCE_VERDICT: configurationValid ? 'PASS' : 'BLOCKED_GOVERNANCE',
   configurationValid,
   governanceStructureValid: configurationValid,
   executionAuthorized,
-  workUnit: {
-    requested: { projectId: PROJECT_ID, workUnitType, workUnitId: workUnitId ?? null },
-    resolvedBy: authority.authoritySource,
-    decision: authority.decision,
-    executionAuthorized: authority.executionAuthorized,
-    authorizedPaths: authority.authorizedPaths,
-    proofs: authority.proofs,
-    findings: authority.findings
-  },
+  workUnit: workUnitReport,
   gitPolicy,
   activeGateExecutable,
   activeContractPresent,
@@ -158,6 +172,7 @@ const report = {
   processExitCode: configurationFindings.length ? 2 : 0,
   generatedAt: '2026-08-01T16:00:00.000Z'
 };
+if (workUnitType === PRECONTRACT_WORK_UNIT_TYPE) report.bootstrapAuthorized = configurationValid && authority.bootstrapAuthorized === true;
 
 console.log(JSON.stringify(report, null, 2));
 if (configurationFindings.length) process.exitCode = 2;

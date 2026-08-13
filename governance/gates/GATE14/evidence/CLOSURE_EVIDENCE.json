@@ -1,0 +1,987 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE14_CLOSURE_EVIDENCE",
+  "gateId": "GATE14",
+  "derivation": {
+    "inputs": [
+      "MUTATION_REGISTRY.json",
+      "TRAVERSAL_INVENTORY.json",
+      "MUTATION_EXECUTION_RECORDS.json",
+      "COVERAGE_MATRIX.json",
+      "hostile-self-tests.mjs",
+      "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json"
+    ],
+    "method": "Machine-derived after real production-validator executions and methodology-control executions; no producer summary is trusted as detector output."
+  },
+  "artifactHashes": {
+    "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json": "a6fbf141a55eb6ed9dd973c3efcf0897530bf2db31a019d69216b309c78898de",
+    "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json": "706650fdb3864f051728cdf46e7698a7b1e0bc6af9c105be59f558b087e7d97d",
+    "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json": "6157fe44092e5b98283d4466f7b828646b4a41dde36850611538ff24d48749b2",
+    "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json": "32f6306fd929172b39f49f9c4ac6c160fb01fe6a889f84a8533e4cf821c9a1c8",
+    "governance/gates/GATE14/tests/hostile-self-tests.mjs": "dcaf7853bae59c9a73b2a23720cf9adfa5ef9f111d68fb1a89c534796a36f9fa"
+  },
+  "counts": {
+    "mutations": 22,
+    "executionRecords": 44,
+    "pass": 44,
+    "block": 0,
+    "restored": 44,
+    "negativeControls": 12,
+    "negativeControlsPass": 12,
+    "uncoveredMandatorySurfaces": 0,
+    "contractNegativeTests": {
+      "total": 13,
+      "covered": 13
+    },
+    "contractCountertests": {
+      "total": 13,
+      "covered": 13
+    },
+    "contractValidators": {
+      "total": 3,
+      "executed": 3
+    }
+  },
+  "deterministicSuite": {
+    "mutationSuite": {
+      "sameMutationOrdering": true,
+      "sameTargets": true,
+      "sameExpectedFindings": true,
+      "sameActualFindings": true,
+      "sameVerdicts": true,
+      "volatileMetadataExcluded": [
+        "temporary clone path",
+        "process id"
+      ]
+    },
+    "methodologyControls": true
+  },
+  "baselineHostileRestoration": {
+    "baselinePass": 44,
+    "hostileBlock": 44,
+    "restoredPass": 44
+  },
+  "detectorProvenance": [
+    {
+      "validator": "validate-status-ledger",
+      "invoked": true,
+      "records": 24
+    },
+    {
+      "validator": "validate-gate-contract",
+      "invoked": true,
+      "records": 4
+    },
+    {
+      "validator": "validate-state-seal",
+      "invoked": true,
+      "records": 6
+    },
+    {
+      "validator": "validate-state-revision",
+      "invoked": true,
+      "records": 6
+    },
+    {
+      "validator": "validate-active-gate",
+      "invoked": true,
+      "records": 2
+    },
+    {
+      "validator": "governance-preflight",
+      "invoked": true,
+      "records": 2
+    }
+  ],
+  "contractValidatorCoverage": [
+    {
+      "validator": "node governance/gates/GATE14/tests/hostile-self-tests.mjs",
+      "validatorId": "hostile-self-tests",
+      "exercised": true,
+      "executionRecordIds": [],
+      "invocationEvidence": "current process is the contractual hostile-self-tests invocation"
+    },
+    {
+      "validator": "node governance/tools/validate-status-ledger.mjs",
+      "validatorId": "validate-status-ledger",
+      "exercised": true,
+      "executionRecordIds": [
+        "H01_AUTHORITY_HASH_MISMATCH",
+        "H02_AUTHORITY_IDENTITY_MISMATCH",
+        "H03_INVALID_OWNER_SIGNATURE",
+        "H05_WRONG_TRANSITION",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H07_LEDGER_CHAIN_MUTATION",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H16_STALE_READINESS_BINDING",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+        "H18_FUNCTIONAL_SCOPE_ESCAPE",
+        "H19_AUTHORITY_REPLAY",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING",
+        "H01_AUTHORITY_HASH_MISMATCH",
+        "H02_AUTHORITY_IDENTITY_MISMATCH",
+        "H03_INVALID_OWNER_SIGNATURE",
+        "H05_WRONG_TRANSITION",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H07_LEDGER_CHAIN_MUTATION",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H16_STALE_READINESS_BINDING",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+        "H18_FUNCTIONAL_SCOPE_ESCAPE",
+        "H19_AUTHORITY_REPLAY",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "invocationEvidence": "production detector process records"
+    },
+    {
+      "validator": "node governance/tools/governance-preflight.mjs",
+      "validatorId": "governance-preflight",
+      "exercised": true,
+      "executionRecordIds": [
+        "AUX_PREFLIGHT_ACTIVE_STATE_HASH",
+        "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+      ],
+      "invocationEvidence": "production detector process records"
+    }
+  ],
+  "contractScopeParity": {
+    "authorizedPaths": [
+      "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+      "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json",
+      "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+      "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json",
+      "governance/gates/GATE14/tests/hostile-self-tests.mjs",
+      "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json"
+    ],
+    "functionalPathCount": 6,
+    "unexpectedFunctionalPaths": []
+  },
+  "contractCoverage": [
+    {
+      "contractRequirementId": "G14-NEG-01",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "authority binding: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "authority binding",
+      "mutationIds": [
+        "H01_AUTHORITY_HASH_MISMATCH",
+        "H03_INVALID_OWNER_SIGNATURE",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H01_AUTHORITY_HASH_MISMATCH",
+        "H03_INVALID_OWNER_SIGNATURE",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "AUTHORITY_HASH_MISMATCH",
+        "GATE_START_OWNER_SIGNATURE_INVALID",
+        "NON_CANONICAL_EVENT",
+        "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-02",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "ledger/status integrity: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "ledger/status integrity",
+      "mutationIds": [
+        "H05_WRONG_TRANSITION",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H07_LEDGER_CHAIN_MUTATION",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+        "H19_AUTHORITY_REPLAY"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H05_WRONG_TRANSITION",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H07_LEDGER_CHAIN_MUTATION",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+        "H19_AUTHORITY_REPLAY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+        "GATE_START_RECORD_TRANSITION_BORROWED",
+        "LEDGER_CHAIN_BREAK",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH",
+        "GATE_START_APPLIED",
+        "GATE_START_EVENTID_MISMATCH",
+        "GATE_START_RECORDEDAT_MISMATCH",
+        "GATE_START_AUTHORITY_REPLAYED",
+        "GATE_START_PRE_LEDGER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-03",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "schema invalidity: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "schema invalidity",
+      "mutationIds": [
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "detectorIds": [
+        "validate-state-seal",
+        "validate-state-revision"
+      ],
+      "executionRecordIds": [
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-04",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "readiness fail-open: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "readiness fail-open",
+      "mutationIds": [
+        "H16_STALE_READINESS_BINDING",
+        "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+      ],
+      "detectorIds": [
+        "validate-status-ledger",
+        "governance-preflight"
+      ],
+      "executionRecordIds": [
+        "H16_STALE_READINESS_BINDING",
+        "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "CURRENT_STATE_HASH_MISMATCH",
+        "GENERATED_FILE_DRIFT"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-05",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "evidence binding: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "evidence binding",
+      "mutationIds": [
+        "H10_STATE_SEAL_HASH_MISMATCH"
+      ],
+      "detectorIds": [
+        "validate-state-seal"
+      ],
+      "executionRecordIds": [
+        "H10_STATE_SEAL_HASH_MISMATCH"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-06",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "seal/execution binding: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "seal/execution binding",
+      "mutationIds": [
+        "H11_BROKEN_PREVIOUS_STATE_SEAL",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "detectorIds": [
+        "validate-state-seal",
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H11_BROKEN_PREVIOUS_STATE_SEAL",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "STATE_SEAL_CHAIN_ERROR",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+        "GATE_START_CONTRACT_SHA_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "GATE_START_READINESS_BLOCKED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-07",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "path confinement/traversal: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "path confinement/traversal",
+      "mutationIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-08",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "exact-file vs prefix authorization: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "exact-file vs prefix authorization",
+      "mutationIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-09",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "unexpected governed paths: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "unexpected governed paths",
+      "mutationIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-10",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "stale/mismatched authority: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "stale/mismatched authority",
+      "mutationIds": [
+        "H02_AUTHORITY_IDENTITY_MISMATCH",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H15_CURRENT_CONTRACT_MISMATCH",
+        "H16_STALE_READINESS_BINDING",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "detectorIds": [
+        "validate-status-ledger",
+        "validate-gate-contract"
+      ],
+      "executionRecordIds": [
+        "H02_AUTHORITY_IDENTITY_MISMATCH",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H15_CURRENT_CONTRACT_MISMATCH",
+        "H16_STALE_READINESS_BINDING",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "LEDGER_CHAIN_BREAK",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH",
+        "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+        "GATE_START_CONTRACT_SHA_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "GATE_START_READINESS_BLOCKED",
+        "POINTER_HASH_MISMATCH",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-11",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "malformed/open-world status: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "malformed/open-world status",
+      "mutationIds": [
+        "H05_WRONG_TRANSITION",
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "detectorIds": [
+        "validate-status-ledger",
+        "validate-state-seal",
+        "validate-state-revision"
+      ],
+      "executionRecordIds": [
+        "H05_WRONG_TRANSITION",
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+        "GATE_START_RECORD_TRANSITION_BORROWED",
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-12",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "missing critical evidence: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "missing critical evidence",
+      "mutationIds": [
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "detectorIds": [
+        "validate-state-revision",
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-NEG-13",
+      "contractRequirementClass": "NEGATIVE_TEST",
+      "contractText": "detector bypass: controlled hostile mutation; expected=rejected fail-closed",
+      "governedSurfaceId": "detector bypass",
+      "mutationIds": [],
+      "detectorIds": [],
+      "executionRecordIds": [],
+      "controlIds": [
+        "NC02_DETECTOR_INVOCATION_SKIPPED",
+        "NC06_SYNTHETIC_FINDING_SUBSTITUTION"
+      ],
+      "actualFinding": [],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-01",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "authority binding: mutate governed authority binding; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "authority binding",
+      "mutationIds": [
+        "H01_AUTHORITY_HASH_MISMATCH",
+        "H03_INVALID_OWNER_SIGNATURE",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H01_AUTHORITY_HASH_MISMATCH",
+        "H03_INVALID_OWNER_SIGNATURE",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "AUTHORITY_HASH_MISMATCH",
+        "GATE_START_OWNER_SIGNATURE_INVALID",
+        "NON_CANONICAL_EVENT",
+        "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-02",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "ledger/status integrity: mutate governed ledger/status integrity; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "ledger/status integrity",
+      "mutationIds": [
+        "H05_WRONG_TRANSITION",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H07_LEDGER_CHAIN_MUTATION",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+        "H19_AUTHORITY_REPLAY"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H05_WRONG_TRANSITION",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H07_LEDGER_CHAIN_MUTATION",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+        "H19_AUTHORITY_REPLAY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+        "GATE_START_RECORD_TRANSITION_BORROWED",
+        "LEDGER_CHAIN_BREAK",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH",
+        "GATE_START_APPLIED",
+        "GATE_START_EVENTID_MISMATCH",
+        "GATE_START_RECORDEDAT_MISMATCH",
+        "GATE_START_AUTHORITY_REPLAYED",
+        "GATE_START_PRE_LEDGER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-03",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "schema invalidity: mutate governed schema invalidity; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "schema invalidity",
+      "mutationIds": [
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "detectorIds": [
+        "validate-state-seal",
+        "validate-state-revision"
+      ],
+      "executionRecordIds": [
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-04",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "readiness fail-open: mutate governed readiness fail-open; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "readiness fail-open",
+      "mutationIds": [
+        "H16_STALE_READINESS_BINDING",
+        "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+      ],
+      "detectorIds": [
+        "validate-status-ledger",
+        "governance-preflight"
+      ],
+      "executionRecordIds": [
+        "H16_STALE_READINESS_BINDING",
+        "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "CURRENT_STATE_HASH_MISMATCH",
+        "GENERATED_FILE_DRIFT"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-05",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "evidence binding: mutate governed evidence binding; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "evidence binding",
+      "mutationIds": [
+        "H10_STATE_SEAL_HASH_MISMATCH"
+      ],
+      "detectorIds": [
+        "validate-state-seal"
+      ],
+      "executionRecordIds": [
+        "H10_STATE_SEAL_HASH_MISMATCH"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-06",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "seal/execution binding: mutate governed seal/execution binding; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "seal/execution binding",
+      "mutationIds": [
+        "H11_BROKEN_PREVIOUS_STATE_SEAL",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "detectorIds": [
+        "validate-state-seal",
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H11_BROKEN_PREVIOUS_STATE_SEAL",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "STATE_SEAL_CHAIN_ERROR",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+        "GATE_START_CONTRACT_SHA_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "GATE_START_READINESS_BLOCKED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-07",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "path confinement/traversal: mutate governed path confinement/traversal; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "path confinement/traversal",
+      "mutationIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-08",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "exact-file vs prefix authorization: mutate governed exact-file vs prefix authorization; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "exact-file vs prefix authorization",
+      "mutationIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-09",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "unexpected governed paths: mutate governed unexpected governed paths; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "unexpected governed paths",
+      "mutationIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "detectorIds": [
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H18_FUNCTIONAL_SCOPE_ESCAPE"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_FUNCTIONAL_SCOPE_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-10",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "stale/mismatched authority: mutate governed stale/mismatched authority; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "stale/mismatched authority",
+      "mutationIds": [
+        "H02_AUTHORITY_IDENTITY_MISMATCH",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H15_CURRENT_CONTRACT_MISMATCH",
+        "H16_STALE_READINESS_BINDING",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "detectorIds": [
+        "validate-status-ledger",
+        "validate-gate-contract"
+      ],
+      "executionRecordIds": [
+        "H02_AUTHORITY_IDENTITY_MISMATCH",
+        "H06_STALE_PREVIOUS_EVENT",
+        "H14_CONTRACT_SHA_MISMATCH",
+        "H15_CURRENT_CONTRACT_MISMATCH",
+        "H16_STALE_READINESS_BINDING",
+        "H20_UNRELATED_GATE_AUTHORITY_BORROWING"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "LEDGER_CHAIN_BREAK",
+        "GATE_AUTHORIZATION_APPLIED",
+        "GATE_START_PREVIOUS_EVENT_MISMATCH",
+        "GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH",
+        "GATE_START_CONTRACT_SHA_MISMATCH",
+        "GATE_START_READINESS_DIGEST_MISMATCH",
+        "GATE_START_READINESS_BLOCKED",
+        "POINTER_HASH_MISMATCH",
+        "GATE_START_RECORD_INVALID",
+        "GATE_START_RECORD_DIGEST_INVALID",
+        "GATE_START_RECORD_AUTHORITY_MISMATCH",
+        "GATE_START_RECORD_PATH_NOT_AUTHORIZED"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-11",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "malformed/open-world status: mutate governed malformed/open-world status; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "malformed/open-world status",
+      "mutationIds": [
+        "H05_WRONG_TRANSITION",
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "detectorIds": [
+        "validate-status-ledger",
+        "validate-state-seal",
+        "validate-state-revision"
+      ],
+      "executionRecordIds": [
+        "H05_WRONG_TRANSITION",
+        "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H13_OPEN_DEFECTS_INCONSISTENCY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "NON_CANONICAL_EVENT",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+        "INVALID_STATUS_TRANSITION",
+        "GATE_AUTHORIZATION_RECORD_PATH_NOT_AUTHORIZED",
+        "GATE_START_RECORD_TRANSITION_BORROWED",
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-12",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "missing critical evidence: mutate governed missing critical evidence; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "missing critical evidence",
+      "mutationIds": [
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "detectorIds": [
+        "validate-state-revision",
+        "validate-status-ledger"
+      ],
+      "executionRecordIds": [
+        "H09_MALFORMED_REQUIRED_FIELD",
+        "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY"
+      ],
+      "controlIds": [],
+      "actualFinding": [
+        "SCHEMA_VIOLATION",
+        "EMPTY_RESUME_POINT",
+        "STATE_SEAL_MEMBER_MISMATCH",
+        "MIGRATED_HISTORICAL_AUTHORITY",
+        "HISTORICAL_RECONCILIATION_APPLIED",
+        "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH"
+      ],
+      "coverageStatus": "covered"
+    },
+    {
+      "contractRequirementId": "G14-CT-13",
+      "contractRequirementClass": "COUNTERTEST",
+      "contractText": "detector bypass: mutate governed detector bypass; falsePassWouldMean=validator bypass",
+      "governedSurfaceId": "detector bypass",
+      "mutationIds": [],
+      "detectorIds": [],
+      "executionRecordIds": [],
+      "controlIds": [
+        "NC02_DETECTOR_INVOCATION_SKIPPED",
+        "NC06_SYNTHETIC_FINDING_SUBSTITUTION"
+      ],
+      "actualFinding": [],
+      "coverageStatus": "covered"
+    }
+  ],
+  "coverageMatrix": {
+    "contractCoverage": {
+      "negativeTests": {
+        "total": 13,
+        "covered": 13
+      },
+      "countertests": {
+        "total": 13,
+        "covered": 13
+      },
+      "validators": {
+        "total": 3,
+        "executed": 3
+      }
+    },
+    "contractCoverageBlockers": [],
+    "validatorCoverageBlockers": []
+  },
+  "closureConditionReconciliation": {
+    "originalClosureConditions": [
+      "six artifact classes validated",
+      "hostile mutations reproduced and rejected",
+      "no fabricated PASS",
+      "deterministic replay",
+      "GATE14 NOT_STARTED",
+      "no ledger/status/next-gate authority"
+    ],
+    "staleCondition": "GATE14 NOT_STARTED",
+    "canonicalObservedState": "IN_PROGRESS",
+    "semanticDecision": "B_CLOSURE_SEMANTIC_REQUIRES_FORMAL_REVISION",
+    "basis": [
+      "The field is named closureConditions, not preconditions.",
+      "The canonical state has consumed AUTHORIZATION and START.",
+      "PRECONTRACT authority is restricted to BOOTSTRAP_CONTRACT_CANONICALIZATION and requires currentStatus=NOT_STARTED with no CURRENT_CONTRACT present.",
+      "No GATE14 successor-contract revision authority or contract revision event exists."
+    ],
+    "lawfulCorrection": null,
+    "status": "BLOCKED_CONTRACT_REVISION_AUTHORITY_REQUIRED"
+  },
+  "uncoveredMandatorySurfaces": [],
+  "closureBlockers": [
+    "CONTRACT_REVISION_AUTHORITY_REQUIRED"
+  ],
+  "verdict": "GATE14_CLOSURE_AUDIT_REPAIR_R1_BLOCKED_CONTRACT_REVISION_AUTHORITY_REQUIRED"
+}

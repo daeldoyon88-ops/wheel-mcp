@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE14_TRAVERSAL_INVENTORY",
+  "gateId": "GATE14",
+  "derivation": {
+    "method": "Validated repository structure: production validator/module and authoritative source existence checked at generation time.",
+    "sourceRoots": [
+      "governance/tools",
+      "governance/gee-v1/core",
+      "governance/authority",
+      "governance/gates/GATE14",
+      "governance/state"
+    ]
+  },
+  "traversalOrder": [
+    "ledger-transition-state-machine",
+    "authority-identity-path-hash",
+    "owner-signature-verification",
+    "contract-binding",
+    "ledger-chain-integrity",
+    "schema-closed-world",
+    "state-revision-seal-lineage",
+    "current-state-lineage",
+    "open-defects-readiness",
+    "readiness-binding",
+    "execution-authority-state-binding",
+    "execution-scope-confinement",
+    "authority-single-use",
+    "active-gate-context",
+    "status-readiness",
+    "evidence-binding",
+    "authority-replay-identity",
+    "current-state-projection",
+    "status-transition-identity",
+    "state-seal-payload"
+  ],
+  "surfaces": [
+    {
+      "surfaceId": "ledger-transition-state-machine",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "Closed transition table and replayed fromStatus/toStatus must agree.",
+      "authoritativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "mutationEligibility": "field-and-byte mutation",
+      "traversalOrder": 1
+    },
+    {
+      "surfaceId": "authority-identity-path-hash",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "Every cited authority path must resolve to the exact pinned SHA-256 bytes.",
+      "authoritativeSource": "governance/tools/validate-status-ledger.mjs",
+      "mutationEligibility": "field-and-byte mutation",
+      "traversalOrder": 2
+    },
+    {
+      "surfaceId": "owner-signature-verification",
+      "targetProductionValidator": "governance/gee-v1/core/gate-start-authority.mjs",
+      "protectedInvariant": "The owner signature must verify over the canonical authority payload.",
+      "authoritativeSource": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+      "mutationEligibility": "byte mutation",
+      "traversalOrder": 3
+    },
+    {
+      "surfaceId": "contract-binding",
+      "targetProductionValidator": "governance/tools/validate-gate-contract.mjs",
+      "protectedInvariant": "Contract identity, pointer, target bytes, and live authority binding must agree.",
+      "authoritativeSource": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "mutationEligibility": "field-and-byte mutation",
+      "traversalOrder": 4
+    },
+    {
+      "surfaceId": "ledger-chain-integrity",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "eventPayloadSha256 and previousEventSha256 form an intact append-only chain.",
+      "authoritativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "mutationEligibility": "field-and-byte mutation",
+      "traversalOrder": 5
+    },
+    {
+      "surfaceId": "schema-closed-world",
+      "targetProductionValidator": "governance/tools/validate-state-seal.mjs",
+      "protectedInvariant": "Governed JSON objects reject unknown properties and malformed required fields.",
+      "authoritativeSource": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "mutationEligibility": "schema mutation",
+      "traversalOrder": 6
+    },
+    {
+      "surfaceId": "state-revision-seal-lineage",
+      "targetProductionValidator": "governance/tools/validate-state-seal.mjs",
+      "protectedInvariant": "Sealed members and previous state seals reproduce real bytes and lineage.",
+      "authoritativeSource": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "mutationEligibility": "field-and-byte mutation",
+      "traversalOrder": 7
+    },
+    {
+      "surfaceId": "current-state-lineage",
+      "targetProductionValidator": "governance/tools/validate-state-revision.mjs",
+      "protectedInvariant": "CURRENT_STATE can point only to the current Gate revision lineage.",
+      "authoritativeSource": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "mutationEligibility": "pointer mutation",
+      "traversalOrder": 8
+    },
+    {
+      "surfaceId": "open-defects-readiness",
+      "targetProductionValidator": "governance/tools/validate-state-revision.mjs",
+      "protectedInvariant": "OPEN_DEFECTS is closed-world and cannot silently discard or malformedly alter defects.",
+      "authoritativeSource": "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json",
+      "mutationEligibility": "schema mutation",
+      "traversalOrder": 9
+    },
+    {
+      "surfaceId": "readiness-binding",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "START readiness is recomputed from pre-START state, contract, dependency, and defect inputs.",
+      "authoritativeSource": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "mutationEligibility": "field mutation",
+      "traversalOrder": 10
+    },
+    {
+      "surfaceId": "execution-authority-state-binding",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "An execution state must be supported by the ledger authority and replayed status.",
+      "authoritativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "mutationEligibility": "event removal",
+      "traversalOrder": 11
+    },
+    {
+      "surfaceId": "execution-scope-confinement",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "Functional execution remains exactly within the owner-authorized six paths.",
+      "authoritativeSource": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "mutationEligibility": "scope mutation",
+      "traversalOrder": 12
+    },
+    {
+      "surfaceId": "authority-single-use",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "A single-use START authority cannot be replayed.",
+      "authoritativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "mutationEligibility": "event append",
+      "traversalOrder": 13
+    },
+    {
+      "surfaceId": "active-gate-context",
+      "targetProductionValidator": "governance/tools/validate-active-gate.mjs",
+      "protectedInvariant": "The active gate pointer and current-state hash must bind to real canonical bytes.",
+      "authoritativeSource": "governance/active/ACTIVE_GATE.json",
+      "mutationEligibility": "pointer/hash mutation",
+      "traversalOrder": 14
+    },
+    {
+      "surfaceId": "status-readiness",
+      "targetProductionValidator": "governance/tools/validate-active-gate.mjs",
+      "protectedInvariant": "Active execution requires a valid ledger, executable contract, state, and predecessor closure.",
+      "authoritativeSource": "governance/active/ACTIVE_GATE.json",
+      "mutationEligibility": "authority mutation",
+      "traversalOrder": 15
+    },
+    {
+      "surfaceId": "evidence-binding",
+      "targetProductionValidator": "governance/tools/validate-state-seal.mjs",
+      "protectedInvariant": "Evidence-like sealed members cannot be substituted, omitted, or cross-revision.",
+      "authoritativeSource": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "mutationEligibility": "member mutation",
+      "traversalOrder": 16
+    },
+    {
+      "surfaceId": "authority-replay-identity",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "A ledger event cannot borrow a different Gate authority class/path.",
+      "authoritativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "mutationEligibility": "authority substitution",
+      "traversalOrder": 17
+    },
+    {
+      "surfaceId": "current-state-projection",
+      "targetProductionValidator": "governance/tools/validate-state-revision.mjs",
+      "protectedInvariant": "The current state projection must hash and identify its selected revision.",
+      "authoritativeSource": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "mutationEligibility": "pointer mutation",
+      "traversalOrder": 18
+    },
+    {
+      "surfaceId": "status-transition-identity",
+      "targetProductionValidator": "governance/tools/validate-status-ledger.mjs",
+      "protectedInvariant": "A transition must use the exact allowed Gate/status identity.",
+      "authoritativeSource": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "mutationEligibility": "event mutation",
+      "traversalOrder": 19
+    },
+    {
+      "surfaceId": "state-seal-payload",
+      "targetProductionValidator": "governance/tools/validate-state-seal.mjs",
+      "protectedInvariant": "The state seal payload hash must be recomputed from the real payload.",
+      "authoritativeSource": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "mutationEligibility": "payload mutation",
+      "traversalOrder": 20
+    }
+  ]
+}

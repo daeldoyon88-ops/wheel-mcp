@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE14_MUTATION_REGISTRY",
+  "gateId": "GATE14",
+  "contractPath": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+  "contractSha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+  "authorizedPaths": [
+    "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json",
+    "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json",
+    "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json",
+    "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json",
+    "governance/gates/GATE14/tests/hostile-self-tests.mjs",
+    "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json"
+  ],
+  "mutationOrder": [
+    "H01_AUTHORITY_HASH_MISMATCH",
+    "H02_AUTHORITY_IDENTITY_MISMATCH",
+    "H03_INVALID_OWNER_SIGNATURE",
+    "H04_WRONG_GATE",
+    "H05_WRONG_TRANSITION",
+    "H06_STALE_PREVIOUS_EVENT",
+    "H07_LEDGER_CHAIN_MUTATION",
+    "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+    "H09_MALFORMED_REQUIRED_FIELD",
+    "H10_STATE_SEAL_HASH_MISMATCH",
+    "H11_BROKEN_PREVIOUS_STATE_SEAL",
+    "H12_CURRENT_STATE_FOREIGN_LINEAGE",
+    "H13_OPEN_DEFECTS_INCONSISTENCY",
+    "H14_CONTRACT_SHA_MISMATCH",
+    "H15_CURRENT_CONTRACT_MISMATCH",
+    "H16_STALE_READINESS_BINDING",
+    "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+    "H18_FUNCTIONAL_SCOPE_ESCAPE",
+    "H19_AUTHORITY_REPLAY",
+    "H20_UNRELATED_GATE_AUTHORITY_BORROWING",
+    "AUX_ACTIVE_GATE_CONTEXT_HASH",
+    "AUX_PREFLIGHT_ACTIVE_STATE_HASH"
+  ],
+  "mutations": [
+    {
+      "mutationId": "H01_AUTHORITY_HASH_MISMATCH",
+      "surfaceId": "authority-identity-path-hash",
+      "target": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "field": "/recordDigest",
+      "transformation": "Replace the record digest with a fixed zero SHA without changing the ledger pin.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "AUTHORITY_HASH_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H02_AUTHORITY_IDENTITY_MISMATCH",
+      "surfaceId": "authority-identity-path-hash",
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/57/gateId",
+      "transformation": "Change the ledger-pinned START event gate identity to GATE13 and recompute only its event payload hash.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "INVALID_STATUS_TRANSITION",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H03_INVALID_OWNER_SIGNATURE",
+      "surfaceId": "owner-signature-verification",
+      "target": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json",
+      "field": "/signature",
+      "transformation": "Change the first deterministic character in the signed authority signature.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_OWNER_SIGNATURE_INVALID",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H04_WRONG_GATE",
+      "surfaceId": "contract-binding",
+      "target": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "field": "/gateId",
+      "transformation": "Change the contract gate identity from GATE14 to GATE13.",
+      "validator": "validate-gate-contract",
+      "expectedFinding": "CONTRACT_GATE_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H05_WRONG_TRANSITION",
+      "surfaceId": "ledger-transition-state-machine",
+      "relatedSurfaceIds": [
+        "status-transition-identity"
+      ],
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/57/transitionType",
+      "transformation": "Change the final START transition to an AUTHORIZATION transition and recompute its event payload hash.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "INVALID_STATUS_TRANSITION",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H06_STALE_PREVIOUS_EVENT",
+      "surfaceId": "ledger-chain-integrity",
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/57/previousEventSha256",
+      "transformation": "Replace the final ledger event predecessor with a fixed zero SHA and recompute its own payload hash.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_PREVIOUS_EVENT_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H07_LEDGER_CHAIN_MUTATION",
+      "surfaceId": "ledger-chain-integrity",
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/57/previousEventSha256",
+      "transformation": "Change the final event chain predecessor and recompute its own payload hash, leaving the preceding event unchanged.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "LEDGER_CHAIN_BREAK",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H08_UNAUTHORIZED_SCHEMA_PROPERTY",
+      "surfaceId": "schema-closed-world",
+      "target": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "field": "/unexpected",
+      "transformation": "Add an unknown top-level property to the sealed state document.",
+      "validator": "validate-state-seal",
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H09_MALFORMED_REQUIRED_FIELD",
+      "surfaceId": "schema-closed-world",
+      "target": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+      "field": "/resumePoint",
+      "transformation": "Remove a required checkpoint field.",
+      "validator": "validate-state-revision",
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H10_STATE_SEAL_HASH_MISMATCH",
+      "surfaceId": "state-revision-seal-lineage",
+      "relatedSurfaceIds": [
+        "evidence-binding"
+      ],
+      "target": "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json",
+      "field": "/resumePoint",
+      "transformation": "Change a sealed checkpoint byte without updating STATE_SEAL.",
+      "validator": "validate-state-seal",
+      "expectedFinding": "STATE_SEAL_MEMBER_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/state/revisions/R0002/CHECKPOINT.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H11_BROKEN_PREVIOUS_STATE_SEAL",
+      "surfaceId": "state-revision-seal-lineage",
+      "relatedSurfaceIds": [
+        "state-seal-payload"
+      ],
+      "target": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "field": "/previousStateSealSha256",
+      "transformation": "Replace the R0002 previous seal link with a fixed zero SHA.",
+      "validator": "validate-state-seal",
+      "expectedFinding": "STATE_SEAL_CHAIN_ERROR",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H12_CURRENT_STATE_FOREIGN_LINEAGE",
+      "surfaceId": "current-state-lineage",
+      "relatedSurfaceIds": [
+        "current-state-projection"
+      ],
+      "target": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "field": "/revisionPath",
+      "transformation": "Point CURRENT_STATE at the predecessor revision while retaining the R0002 state identity.",
+      "validator": "validate-state-revision",
+      "expectedFinding": "POINTER_HASH_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/state/CURRENT_STATE.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H13_OPEN_DEFECTS_INCONSISTENCY",
+      "surfaceId": "open-defects-readiness",
+      "target": "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json",
+      "field": "/defects/0",
+      "transformation": "Insert a malformed defect object into the open-defect document.",
+      "validator": "validate-state-revision",
+      "expectedFinding": "SCHEMA_VIOLATION",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/state/revisions/R0002/OPEN_DEFECTS.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H14_CONTRACT_SHA_MISMATCH",
+      "surfaceId": "contract-binding",
+      "target": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "field": "/canonicalRequirements/0/statement",
+      "transformation": "Change a contract byte while retaining the START authority contract hash.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_CONTRACT_SHA_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H15_CURRENT_CONTRACT_MISMATCH",
+      "surfaceId": "contract-binding",
+      "target": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "field": "/contractSha256",
+      "transformation": "Change the CURRENT_CONTRACT pointer hash without changing its target.",
+      "validator": "validate-gate-contract",
+      "expectedFinding": "POINTER_HASH_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H16_STALE_READINESS_BINDING",
+      "surfaceId": "readiness-binding",
+      "relatedSurfaceIds": [
+        "status-readiness"
+      ],
+      "target": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "field": "/readinessDigest",
+      "transformation": "Replace the readiness digest and repin only the ledger authority bytes, leaving the derived readiness value stale.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_READINESS_DIGEST_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H17_EXECUTION_WITHOUT_CURRENT_AUTHORITY",
+      "surfaceId": "execution-authority-state-binding",
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/57",
+      "transformation": "Remove the only GATE14 START event while leaving the R0002 execution state projection in place.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_AUTHORIZATION_CURRENT_STATE_STATUS_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H18_FUNCTIONAL_SCOPE_ESCAPE",
+      "surfaceId": "execution-scope-confinement",
+      "target": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "field": "/functionalExecutionScope",
+      "transformation": "Append an unauthorized production path and repin only the ledger authority bytes.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_FUNCTIONAL_SCOPE_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H19_AUTHORITY_REPLAY",
+      "surfaceId": "authority-single-use",
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/58",
+      "transformation": "Append a second deterministic START event that reuses the single-use GATE14 authority.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_AUTHORITY_REPLAYED",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "H20_UNRELATED_GATE_AUTHORITY_BORROWING",
+      "surfaceId": "authority-identity-path-hash",
+      "relatedSurfaceIds": [
+        "authority-replay-identity"
+      ],
+      "target": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "field": "/57/authorityPath",
+      "transformation": "Replace the GATE14 START authority path/hash with the historical GATE13 authority while preserving the ledger chain.",
+      "validator": "validate-status-ledger",
+      "expectedFinding": "GATE_START_RECORD_PATH_NOT_AUTHORIZED",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "AUX_ACTIVE_GATE_CONTEXT_HASH",
+      "surfaceId": "active-gate-context",
+      "target": "governance/active/ACTIVE_GATE.json",
+      "field": "/currentStateSha256",
+      "transformation": "Replace the active pointer current-state hash with a fixed zero SHA.",
+      "validator": "validate-active-gate",
+      "expectedFinding": "CURRENT_STATE_HASH_MISMATCH",
+      "coverageClass": "mandatory",
+      "exactArtifactPaths": [
+        "governance/active/ACTIVE_GATE.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    },
+    {
+      "mutationId": "AUX_PREFLIGHT_ACTIVE_STATE_HASH",
+      "surfaceId": "status-readiness",
+      "relatedSurfaceIds": [
+        "active-gate-context"
+      ],
+      "target": "governance/active/ACTIVE_GATE.json",
+      "field": "/currentStateSha256",
+      "transformation": "Replace the active pointer current-state hash and invoke governance-preflight against the mutated temporary repository.",
+      "validator": "governance-preflight",
+      "expectedFinding": "CURRENT_STATE_HASH_MISMATCH",
+      "coverageClass": "contract-validator",
+      "exactArtifactPaths": [
+        "governance/active/ACTIVE_GATE.json"
+      ],
+      "restoration": "Restore the exact pre-mutation bytes before the restored-baseline validator invocation."
+    }
+  ]
+}

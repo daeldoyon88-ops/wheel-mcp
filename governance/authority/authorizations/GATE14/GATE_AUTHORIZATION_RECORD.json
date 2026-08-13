@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE_AUTHORIZATION_RECORD",
+  "authorizationId": "GATE_AUTHORIZATION_GATE14_R1",
+  "projectId": "WHEEL",
+  "gateId": "GATE14",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "recordedAt": "2026-08-11T12:00:00.000Z",
+  "baseCommit": "d5b5cee6710dfcc4a3f7af23835180f8091ccee3",
+  "preLedgerSha256": "5cd7136a49b887f9a4ecd233588ec8907c82bbef588a741652f14dcffe963879",
+  "previousEventSha256": "9403b87c4d721021e187073c41ec0b42acb0eaee5fffe4b70a421eda68342f7a",
+  "contractSha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+  "currentContractSha256": "3d6d3b4910a61ea3d01a253d80fb46ca4cf44ad711ff0d16d9fac904025afac1",
+  "dependencyProof": {
+    "gateId": "GATE13",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "WHEEL-GATE13-INDEPENDENT-VERDICT-20260808-093157",
+    "authoritySha256": "91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352"
+  },
+  "stateRevision": "R0001",
+  "authorizedStateArtifacts": [
+    {
+      "cohortRole": "CURRENT_STATE",
+      "repoRelativePath": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "sha256": "1ecec9ff49f759340189831dded66355e1ae2f2acf55920b4e08678f8c8e0954",
+      "byteLength": 291
+    },
+    {
+      "cohortRole": "CHECKPOINT",
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "0d083f1f587288920f4a2727098a669287f5f262a89a53fad25895c0983e0605",
+      "byteLength": 380
+    },
+    {
+      "cohortRole": "OPEN_DEFECTS",
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "351f31f59e53bd2b7413ae1b9ff1d8c8389ff1075366fef1ad88e7dc690f85b4",
+      "byteLength": 70
+    },
+    {
+      "cohortRole": "STATE_SEAL",
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "byteLength": 1238
+    }
+  ],
+  "authorizedDerivedArtifacts": [
+    {
+      "cohortRole": "GATE_STATUS_SNAPSHOT",
+      "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE",
+      "repoRelativePath": "governance/active/ACTIVE_GATE.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_JSON",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_MD",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md"
+    }
+  ],
+  "prohibitedOperations": [
+    "START",
+    "GATE_EXECUTION",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION"
+  ],
+  "executionAuthorized": false,
+  "reason": "GATE13 is terminal (COMPLETE_CONFIRMED); GATE14 contract R0001 is active and hash-matched; first sealed state revision created. No START, execution or closure privilege is requested."
+}

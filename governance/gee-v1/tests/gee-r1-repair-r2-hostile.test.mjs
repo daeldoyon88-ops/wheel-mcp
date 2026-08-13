@@ -15,7 +15,7 @@ import { resolveOpenDefectsKnowledge, resolveOpenDefectsKnowledgeFromJsonText } 
 import { createActivationAuthority } from '../contracts/activation-anchor.mjs';
 import { validateActivationAnchor } from '../contracts/validate-activation-anchor.mjs';
 import { writeSyntheticStateSealAuthority } from './helpers/synthetic-state-seal-authority.mjs';
-import { sha256Canonical } from '../../tools/canonical-json.mjs';
+import { sha256Bytes, sha256Canonical } from '../../tools/canonical-json.mjs';
 import { validateStateSeal } from '../../tools/validate-state-seal.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -83,6 +83,54 @@ function writeMinimalGate(tmp, gateId, {
     fs.writeFileSync(path.join(gov, 'gates', gateId, 'state', 'revisions', rev, 'OPEN_DEFECTS.json'), body);
   }
   return { rev, gov };
+}
+
+function resealVerifiedOpenDefectsFixture(tmp, gateId) {
+  const rev = 'R0001';
+  const revRel = `governance/gates/${gateId}/state/revisions/${rev}`;
+  const revDir = path.join(tmp, ...revRel.split('/'));
+  const contractsDir = path.join(tmp, 'governance', 'gates', gateId, 'contracts');
+  fs.mkdirSync(revDir, { recursive: true });
+  fs.mkdirSync(contractsDir, { recursive: true });
+
+  const checkpointPath = path.join(revDir, 'CHECKPOINT.json');
+  const defectsPath = path.join(revDir, 'OPEN_DEFECTS.json');
+  const currentContractPath = path.join(contractsDir, 'CURRENT_CONTRACT.json');
+  const executionContractPath = path.join(contractsDir, 'EXECUTION_CONTRACT_R0001.json');
+  const sealPath = path.join(revDir, 'STATE_SEAL.json');
+  fs.writeFileSync(checkpointPath, JSON.stringify({
+    gateId, stateRevision: rev, milestone: 'SEALED_OPEN_DEFECTS_FIXTURE', resumePoint: 'fixture',
+    completedTasks: [], openTasks: [], reusableEvidence: [], invalidatedEvidence: [],
+    requiredNextActions: [], protectedHashes: [], createdAt: '2026-08-08T00:00:00.000Z'
+  }, null, 2));
+  fs.writeFileSync(currentContractPath, JSON.stringify({
+    schemaVersion: 1, gateId, contractPath: `governance/gates/${gateId}/contracts/EXECUTION_CONTRACT_R0001.json`
+  }, null, 2));
+  fs.writeFileSync(executionContractPath, JSON.stringify({
+    gateId, contractRevision: rev, positiveTests: ['fixture'], negativeTests: ['fixture'], countertests: ['fixture'],
+    canonicalRequirements: [{ requirementId: 'SEALED_OPEN_DEFECTS' }], requiredOutputs: [],
+    closureConditions: ['fixture'], authorizedPaths: [`governance/gates/${gateId}/**`]
+  }, null, 2));
+
+  const member = (repoRelativePath, absolutePath) => {
+    const bytes = fs.readFileSync(absolutePath);
+    return { repoRelativePath, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+  };
+  const payload = { executionStatus: 'AUTHORIZED_NOT_STARTED' };
+  fs.writeFileSync(sealPath, JSON.stringify({
+    schemaVersion: 1, gateId, stateRevision: rev,
+    sealedMembers: [
+      member(`${revRel}/CHECKPOINT.json`, checkpointPath),
+      member(`${revRel}/OPEN_DEFECTS.json`, defectsPath),
+      member(`governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`, currentContractPath)
+    ],
+    previousStateSealSha256: null, sealedAt: '2026-08-08T00:00:00.000Z', payload,
+    payloadSha256: sha256Canonical(payload)
+  }, null, 2));
+  fs.writeFileSync(path.join(tmp, 'governance', 'gates', gateId, 'state', 'CURRENT_STATE.json'), JSON.stringify({
+    schemaVersion: 1, gateId, stateRevision: rev, revisionPath: revRel,
+    stateSealSha256: sha256Bytes(fs.readFileSync(sealPath)), committedByTransactionId: `${gateId}-SEALED-FIXTURE`
+  }, null, 2));
 }
 
 function buildActivatedAnchor(tmp, execution, seal) {
@@ -207,11 +255,13 @@ test('H36: CLI/tool receives adapter UNKNOWN -> BLOCKED', () => {
 
 test('H37: CLI/tool receives adapter KNOWN_ZERO -> continues (not defects-blocked alone)', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-h37-'));
-  // Use real GATE13 tree copied? Too heavy. Build defects valid empty + still invalid seal => authority blocks, but OPEN_DEFECTS must PASS.
+  // Use real GATE13 tree copied? Too heavy. Build a valid sealed empty OPEN_DEFECTS state;
+  // the readiness run may still block for unrelated authority reasons, but OPEN_DEFECTS must PASS.
   writeMinimalGate(tmp, 'GATE91', {
     defects: { gateId: 'GATE91', stateRevision: 'R0001', defects: [] },
-    sealWrapper: { schemaVersion: 1, payload: { executionStatus: 'AUTHORIZED_NOT_STARTED' } }
+    skipSeal: true
   });
+  resealVerifiedOpenDefectsFixture(tmp, 'GATE91');
   const strategic = path.join(tmp, 'strategic.json');
   const execution = path.join(tmp, 'execution.json');
   fs.writeFileSync(strategic, JSON.stringify(read('valid-strategic-contract.json')));

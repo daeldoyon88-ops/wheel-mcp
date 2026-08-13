@@ -1,0 +1,15 @@
+{
+  "gateId": "GATE14",
+  "stateRevision": "R0001",
+  "milestone": "GATE14_DETERMINISTIC_MUTATION_TRAVERSAL",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "AWAIT_START_AUTHORITY"
+  ],
+  "protectedHashes": [],
+  "createdAt": "2026-08-11T12:00:00.000Z"
+}

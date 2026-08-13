@@ -260,22 +260,61 @@ function checkCanonicalRevisionStructural(repoRoot, gateId) {
 /**
  * Fail-closed open-defects resolution.
  * Absence / unreadable / structurally invalid => UNKNOWN — never silently 0.
+ *
+ * M2 (monotonic fail-closed hardening). Parsing an OPEN_DEFECTS.json that
+ * happens to sit at the right path is NOT knowledge. Before this change, a
+ * well-formed `{"defects": []}` dropped into a revision directory resolved to
+ * KNOWN_ZERO on the strength of its own bytes alone — no proof it was ever the
+ * document the gate actually sealed. "No open defects" is a load-bearing claim:
+ * readiness and closure both consume it, so an unsealed file could assert a
+ * clean gate it never earned.
+ *
+ * Defects knowledge is therefore now reachable ONLY through verified sealed
+ * provenance. ALL of the following must hold, or the answer is UNKNOWN:
+ *
+ *   1. the seal layer itself resolved SEAL_VERIFIED — a real, internally valid,
+ *      identity-bound seal for THIS gate (SEAL_INVALID, SEAL_ABSENT,
+ *      POINTER_HASH_MISMATCH and IDENTITY_BINDING_VIOLATION all fail here);
+ *   2. the EXACT OPEN_DEFECTS path is present in that seal's sealedMembers —
+ *      membership is matched on the full repo-relative path, never a suffix;
+ *   3. the sealed member's sha256 reproduces the LIVE bytes;
+ *   4. the sealed member's byteLength reproduces the LIVE byte length.
+ *
+ * Hash and length are checked against bytes read ONCE, so the document that is
+ * hashed is the same document that is parsed — no re-read window in between.
+ *
+ * There is no direct-trust label and no per-gate exception: a gate with no seal
+ * is UNKNOWN, which is exactly what "we do not know" should mean. This can only
+ * ever move an answer from KNOWN* to UNKNOWN, never the reverse.
  */
-function loadOpenDefectsState(repoRoot, gateId, stateRevision) {
-  if (!stateRevision) {
-    return { defectsOpenCount: null, defectsOpenKnowledge: 'UNKNOWN' };
-  }
+function loadOpenDefectsState(repoRoot, gateId, exec) {
+  const unknown = (reason) => ({ defectsOpenCount: null, defectsOpenKnowledge: 'UNKNOWN', defectsValidationReason: reason });
+  const stateRevision = exec?.stateRevision;
+  if (!stateRevision) return unknown('NO_STATE_REVISION');
+
+  // (1) Only a verified seal may carry defects provenance.
+  if (exec?.statusKnowledge !== 'SEAL_VERIFIED') return unknown(`DEFECTS_PROVENANCE_UNVERIFIED:${exec?.statusKnowledge || 'ABSENT'}`);
+
+  const defectsRelativePath = `governance/gates/${gateId}/state/revisions/${stateRevision}/OPEN_DEFECTS.json`;
   const defectsPath = path.join(repoRoot, 'governance', 'gates', gateId, 'state', 'revisions', stateRevision, 'OPEN_DEFECTS.json');
-  if (!existsFile(defectsPath)) {
-    return { defectsOpenCount: null, defectsOpenKnowledge: 'UNKNOWN' };
-  }
-  let text;
+  if (!existsFile(defectsPath)) return unknown('OPEN_DEFECTS_ABSENT');
+
+  // (2) Exact sealed-member match — full path, never a suffix or prefix test.
+  const members = Array.isArray(exec?.seal?.sealedMembers) ? exec.seal.sealedMembers : [];
+  const member = members.find((m) => m?.repoRelativePath === defectsRelativePath);
+  if (!member) return unknown('OPEN_DEFECTS_NOT_A_SEALED_MEMBER');
+
+  let bytes;
   try {
-    text = fs.readFileSync(defectsPath, 'utf8');
+    bytes = fs.readFileSync(defectsPath);
   } catch {
-    return { defectsOpenCount: null, defectsOpenKnowledge: 'UNKNOWN' };
+    return unknown('OPEN_DEFECTS_UNREADABLE');
   }
-  const resolved = resolveOpenDefectsKnowledgeFromJsonText(text);
+  // (3)+(4) The sealed member must pin the very bytes about to be interpreted.
+  if (member.sha256 !== sha256Bytes(bytes)) return unknown('OPEN_DEFECTS_SEALED_HASH_MISMATCH');
+  if (member.byteLength !== bytes.length) return unknown('OPEN_DEFECTS_SEALED_BYTE_LENGTH_MISMATCH');
+
+  const resolved = resolveOpenDefectsKnowledgeFromJsonText(bytes.toString('utf8'));
   return {
     defectsOpenCount: resolved.defectsOpenCount,
     defectsOpenKnowledge: resolved.defectsOpenKnowledge,
@@ -530,7 +569,9 @@ export function createWheelProjectAdapter(repoRoot) {
               nextAction: exec.sealValid && exec.sealPayload ? (exec.sealPayload.nextAction || null) : null
             }
           : null,
-        ...loadOpenDefectsState(root, workUnitId, exec.stateRevision),
+        // M2: the whole seal layer is passed, not just the revision id — defects knowledge now
+        // requires verified sealed provenance, which only `exec` can prove.
+        ...loadOpenDefectsState(root, workUnitId, exec),
         sources: {
           interpreted,
           copiedAuthority: false

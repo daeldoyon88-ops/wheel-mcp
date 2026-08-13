@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "ACTIVE_GATE_AUTHORIZATION_AUTHORITY",
+  "authorityId": "ACTIVE_GATE_AUTHORIZATION_AUTHORITY_GATE14_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-12T11:13:42.786Z",
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "projectId": "WHEEL",
+  "gateId": "GATE14",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "baseCommit": "d5b5cee6710dfcc4a3f7af23835180f8091ccee3",
+  "preLedgerSha256": "5cd7136a49b887f9a4ecd233588ec8907c82bbef588a741652f14dcffe963879",
+  "previousEventSha256": "9403b87c4d721021e187073c41ec0b42acb0eaee5fffe4b70a421eda68342f7a",
+  "contractSha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+  "currentContractSha256": "3d6d3b4910a61ea3d01a253d80fb46ca4cf44ad711ff0d16d9fac904025afac1",
+  "dependencyProof": {
+    "gateId": "GATE13",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "WHEEL-GATE13-INDEPENDENT-VERDICT-20260808-093157",
+    "authoritySha256": "91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352"
+  },
+  "stateRevision": "R0001",
+  "authorizedStateArtifacts": [
+    {
+      "cohortRole": "CURRENT_STATE",
+      "repoRelativePath": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "sha256": "1ecec9ff49f759340189831dded66355e1ae2f2acf55920b4e08678f8c8e0954",
+      "byteLength": 291
+    },
+    {
+      "cohortRole": "CHECKPOINT",
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "0d083f1f587288920f4a2727098a669287f5f262a89a53fad25895c0983e0605",
+      "byteLength": 380
+    },
+    {
+      "cohortRole": "OPEN_DEFECTS",
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "351f31f59e53bd2b7413ae1b9ff1d8c8389ff1075366fef1ad88e7dc690f85b4",
+      "byteLength": 70
+    },
+    {
+      "cohortRole": "STATE_SEAL",
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "byteLength": 1238
+    }
+  ],
+  "authorizedDerivedArtifacts": [
+    {
+      "cohortRole": "GATE_STATUS_SNAPSHOT",
+      "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "b623ab361bfe0304f2c8edffbc22996305ac76c3f75246f8f9be333f7c1e1141",
+      "byteLength": 15420
+    },
+    {
+      "cohortRole": "ACTIVE_GATE",
+      "repoRelativePath": "governance/active/ACTIVE_GATE.json",
+      "sha256": "3201b2c4a3248704236c10b9d8d162a63451ea7b45a18bc279aea1ecd20c5591",
+      "byteLength": 366
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_JSON",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "065d7be3e119eee326a925e7f81cda1c65163ac40098cc2f6b37adc094a3d533",
+      "byteLength": 1138
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_MD",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "byteLength": 126
+    }
+  ],
+  "bindingDigestAlgorithm": "SHA256_CANONICAL_JSON_GATE_AUTHORIZATION_BINDING_V1",
+  "approvedBindingDigest": "bca29c1cac4defa302bda1cd86a3d810e231ce880e844fbb34d8ff52bc8554d4",
+  "approvedRequestDigest": "9cec8ff86899be3d94a58effde649284ae7b4e7909c060f950b0e1dff7cb0650",
+  "executionAuthorized": false,
+  "maxUse": 1,
+  "ownerKeyId": "WHEEL-OWNER-RELEASE-2D441D1E",
+  "signatureAlgorithm": "ed25519",
+  "signature": "IBD1SWvYUkuxI31IQNqSga0whmjvna/ScJa5n2rc6SPvZkpFciHLJz/3z4VYTPGCkJt2SM2Y70rkoaen7L+CCA=="
+}

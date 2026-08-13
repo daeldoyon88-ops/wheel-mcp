@@ -2,7 +2,7 @@
 <!-- generatedBy=governance/tools/generate-governance-docs.mjs -->
 <!-- generatedFrom=governance/PROJECT_CONSTITUTION.json -->
 <!-- generatedAt=2026-08-01T16:00:00.000Z -->
-<!-- sourceDigest=56b09553341a043e5b3ec3d49c2b0c2fe7a1c3d373a3a3a57d2fe53b95dcff62 -->
+<!-- sourceDigest=3a87c8188dcd88cd48b3aa4aba28252b2f876f54ac0694a116484877b8a05b41 -->
 
 # PROJECT_CONSTITUTION
 

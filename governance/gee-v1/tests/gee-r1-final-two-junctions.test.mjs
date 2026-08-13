@@ -271,7 +271,7 @@ test('TJ01-K: the real production CLI with a genuinely external TEMP witness may
  * Builds a fully self-contained, isolated future work unit whose execution contract genuinely
  * validates (so sealExecutionContract actually produces a seal, exercising the real TJ-02 path
  * rather than short-circuiting on an invalid contract), with a real sealed activation authority
- * record and a ledger that corroborates it (GENESIS_IMPORT + AUTHORIZATION => ANCHORED_APPEND_ONLY,
+ * record and a ledger that corroborates it (GENESIS_IMPORT to AUTHORIZED_NOT_STARTED + START => ANCHORED_APPEND_ONLY,
  * sufficient for SATISFY_PREREQUISITE / authorityState.consistent).
  *
  * `mutateContract`/`mutateRecord` let individual tests corrupt exactly one dimension (contract
@@ -279,7 +279,7 @@ test('TJ01-K: the real production CLI with a genuinely external TEMP witness may
  */
 function buildTj02Fixture(repoRoot, {
   gateId,
-  includeAuthorizationEvent = true,
+  includeStartEvent = true,
   mutateContractBody = (c) => c,
   mutateActivationRecord = (r) => r,
   activationExpectedSealSha256 = null,
@@ -339,7 +339,7 @@ function buildTj02Fixture(repoRoot, {
   // IN_PROGRESS via a real START event (see below) that pins this exact activation-authority
   // file, so STATE_SEAL's claimed executionStatus must agree — otherwise authorityState.consistent
   // itself would (correctly) go false before the ledger-binding check is even reached.
-  const payload = { gateId, stateRevision: 'R0001', executionStatus: includeAuthorizationEvent ? 'IN_PROGRESS' : 'AUTHORIZED_NOT_STARTED', purpose: 'TJ02_FIXTURE' };
+  const payload = { gateId, stateRevision: 'R0001', executionStatus: includeStartEvent ? 'IN_PROGRESS' : 'AUTHORIZED_NOT_STARTED', purpose: 'TJ02_FIXTURE' };
   const seal = {
     schemaVersion: 1, gateId, stateRevision: 'R0001',
     sealedMembers: [
@@ -360,36 +360,28 @@ function buildTj02Fixture(repoRoot, {
   fs.mkdirSync(path.join(repoRoot, `governance/gates/${gateId}/state`), { recursive: true });
   fs.writeFileSync(path.join(repoRoot, `governance/gates/${gateId}/state/CURRENT_STATE.json`), JSON.stringify(currentState, null, 2));
 
-  const sourceMap = { gates: [{ gateId, importedStatus: 'NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }] };
+  const sourceMap = { gates: [{ gateId, importedStatus: 'AUTHORIZED_NOT_STARTED', historicalDetailCompleteness: 'PARTIAL', fabricatedTransitionCount: 0 }] };
   fs.writeFileSync(path.join(repoRoot, 'governance/authority/GENESIS_IMPORT_SOURCE_MAP.json'), JSON.stringify(sourceMap, null, 2));
 
   const authoritySha256 = sha256Bytes(fs.readFileSync(registryPath));
   const event1 = {
-    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'NOT_STARTED',
+    schemaVersion: 1, ordinal: 1, eventId: `GENESIS_IMPORT_${gateId}`, gateId, fromStatus: null, toStatus: 'AUTHORIZED_NOT_STARTED',
     transitionType: 'GENESIS_IMPORT', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256,
     previousEventSha256: null, recordedAt: '2026-08-08T00:00:00.000Z'
   };
   const event1Final = { ...event1, eventPayloadSha256: sha256Canonical(event1) };
   const lines = [canonicalize(event1Final)];
-  if (includeAuthorizationEvent) {
-    const event2 = {
-      schemaVersion: 1, ordinal: 2, eventId: `AUTHORIZATION_${gateId}`, gateId, fromStatus: 'NOT_STARTED', toStatus: 'AUTHORIZED_NOT_STARTED',
-      transitionType: 'AUTHORIZATION', authorityPath: 'governance/GATE_REGISTRY_00_40.json', authoritySha256,
-      previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:01:00.000Z'
-    };
-    const event2Final = { ...event2, eventPayloadSha256: sha256Canonical(event2) };
-    lines.push(canonicalize(event2Final));
-
+  if (includeStartEvent) {
     // R1_FINAL_ACTIVATION_LEDGER_BINDING_FIX: the canonical activation transition (START) must
     // pin the EXACT live bytes of the activation-authority artifact this fixture just wrote —
     // this is what deriveActivationLedgerBinding (core/authority-event-log.mjs) looks for.
     const activationAuthorityAbs = path.join(repoRoot, activationRel);
     const event3 = {
-      schemaVersion: 1, ordinal: 3, eventId: `${ACTIVATION_LEDGER_TRANSITION_TYPE}_${gateId}`, gateId,
+      schemaVersion: 1, ordinal: 2, eventId: `${ACTIVATION_LEDGER_TRANSITION_TYPE}_${gateId}`, gateId,
       fromStatus: 'AUTHORIZED_NOT_STARTED', toStatus: 'IN_PROGRESS',
       transitionType: ACTIVATION_LEDGER_TRANSITION_TYPE, authorityPath: activationRel,
       authoritySha256: sha256Bytes(fs.readFileSync(activationAuthorityAbs)),
-      previousEventSha256: event2Final.eventPayloadSha256, recordedAt: '2026-08-08T00:02:00.000Z'
+      previousEventSha256: event1Final.eventPayloadSha256, recordedAt: '2026-08-08T00:02:00.000Z'
     };
     const event3Final = { ...event3, eventPayloadSha256: sha256Canonical(event3) };
     lines.push(canonicalize(event3Final));
@@ -498,10 +490,10 @@ test('TJ02-G: an activation authority record identifying a foreign work unit/con
 test('TJ02-H: a coordinated local reseal (contract+seal+activation authority) without corresponding authority-spine corroboration blocks', () => {
   const tmp = mkTmp('tj02h-');
   const gateId = 'GATE208_TJ02H';
-  // No AUTHORIZATION event: the ledger stays genesis-only (UNANCHORED_LEGACY), below the trust
+  // No START event: the ledger stays genesis-only (UNANCHORED_LEGACY), below the trust
   // required to satisfy authority, even though the local seal/activation authority is internally
   // self-consistent (INTACT on its own).
-  buildTj02Fixture(tmp, { gateId, includeAuthorizationEvent: false });
+  buildTj02Fixture(tmp, { gateId, includeStartEvent: false });
   const adapter = createWheelProjectAdapter(tmp);
   const view = adapter.getWorkUnitView(gateId);
   assert.equal(view.activation.activated, true);

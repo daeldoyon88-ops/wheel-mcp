@@ -1,0 +1,38 @@
+{
+  "gateId": "GATE14",
+  "stateRevision": "R0003",
+  "milestone": "GATE14_DETERMINISTIC_MUTATION_TRAVERSAL",
+  "resumePoint": "GATE14 continues under EXECUTION_CONTRACT_R0002. Next exact step: GATE14_FINAL_GOVERNED_CLOSURE_R1.",
+  "completedTasks": [
+    "GATE14_START_R1",
+    "HISTORICAL_ARCHITECTURE_H1_H9",
+    "CONTRACT_SUCCESSION_R0001_TO_R0002"
+  ],
+  "openTasks": [
+    "GATE14_FINAL_GOVERNED_CLOSURE_R1"
+  ],
+  "reusableEvidence": [
+    "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+    "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+    "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE14_FINAL_GOVERNED_CLOSURE_R1"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd"
+    }
+  ],
+  "createdAt": "2026-08-13T00:00:00.000Z"
+}

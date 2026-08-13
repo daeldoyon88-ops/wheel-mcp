@@ -1,0 +1,171 @@
+{
+  "documentKind": "HISTORICAL_ARCHITECTURE_RETAINED_HISTORICAL_OBJECTS",
+  "schemaVersion": 1,
+  "modelDVersion": 1,
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "baseHead": "609cc5d16ce2bb176eefd149a8475f06e0ab75a4",
+  "statement": "Every historical object this program must be able to verify, and the exact ground on which its verification terminates. No entry terminates on shape. Entries that are not retained as bytes are reconstructed from immutable sources by a generator whose identity is pinned here, and the reconstruction reproduces a digest that was pinned independently by historical authority evidence.",
+  "objects": [
+    {
+      "artifactId": "GATE14_R0001_CHECKPOINT",
+      "path": "governance/gates/GATE14/state/revisions/R0001/CHECKPOINT.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "0d083f1f587288920f4a2727098a669287f5f262a89a53fad25895c0983e0605",
+      "retainedByteLength": 380,
+      "pinnedBy": "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json#/authorizedStateArtifacts/CHECKPOINT",
+      "note": "Live bytes verified byte-identical to the event 57 pin."
+    },
+    {
+      "artifactId": "GATE14_R0001_OPEN_DEFECTS",
+      "path": "governance/gates/GATE14/state/revisions/R0001/OPEN_DEFECTS.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "351f31f59e53bd2b7413ae1b9ff1d8c8389ff1075366fef1ad88e7dc690f85b4",
+      "retainedByteLength": 70,
+      "pinnedBy": "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json#/authorizedStateArtifacts/OPEN_DEFECTS",
+      "note": "Live bytes verified byte-identical to the event 57 pin."
+    },
+    {
+      "artifactId": "GATE14_R0001_STATE_SEAL",
+      "path": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "retainedByteLength": 1238,
+      "pinnedBy": "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json#/authorizedStateArtifacts/STATE_SEAL",
+      "note": "Root of the GATE14 state seal chain. Also pinned as preStateSealSha256 by the event 58 START record."
+    },
+    {
+      "artifactId": "GATE14_R0002_STATE_SEAL",
+      "path": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd",
+      "retainedByteLength": 1257,
+      "pinnedBy": "governance/gates/GATE14/state/CURRENT_STATE.json#/stateSealSha256",
+      "note": "Chains to c7004faf via previousStateSealSha256."
+    },
+    {
+      "artifactId": "GATE14_CURRENT_STATE_OBSERVED_AT_EVENT_57",
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "artifactClass": "MUTABLE_PROJECTION",
+      "verificationGround": "TARGET_LINEAGE",
+      "targetLineage": "GATE14_R0001_STATE_SEAL -> GATE14_R0002_STATE_SEAL",
+      "historicalObservation": {
+        "sha256": "1ecec9ff49f759340189831dded66355e1ae2f2acf55920b4e08678f8c8e0954",
+        "byteLength": 291,
+        "atOrdinal": 57,
+        "obligationStatus": "LAPSED_LAWFULLY_AT_ORDINAL_58",
+        "historicalInstanceRecovered": true,
+        "recoveryGround": "RETAINED_IMMUTABLE_BYTES",
+        "recoveredContent": "{\n  \"schemaVersion\": 1,\n  \"gateId\": \"GATE14\",\n  \"stateRevision\": \"R0001\",\n  \"revisionPath\": \"governance/gates/GATE14/state/revisions/R0001\",\n  \"stateSealSha256\": \"c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d\",\n  \"committedByTransactionId\": \"GATE14-R0001-AUTHORIZATION\"\n}\n",
+        "recoveryProof": "The literal bytes above hash to exactly 1ecec9ff49f759340189831dded66355e1ae2f2acf55920b4e08678f8c8e0954 at exactly 291 bytes, reproducing the digest and length pinned by event 57. A SHA-256 preimage agreeing with an independently pinned digest is conclusive: these ARE the historical bytes, not a plausible substitute.",
+        "recoveryMethod": "Every field except committedByTransactionId is fixed by immutable sources (schemaVersion and shape from the sibling R0002 pointer, gateId and stateRevision from event 57, revisionPath from the revision layout, stateSealSha256 from the event 57 STATE_SEAL pin c7004faf). Byte arithmetic fixed the remaining identifier at exactly 26 characters, and the project naming convention gateId-stateRevision-transitionType with transitionType AUTHORIZATION taken from ledger event 57 produced the matching preimage."
+      },
+      "note": "The historical instance IS retained here, as recovered literal bytes verified against the event 57 pin, so the historical model keeps it rather than dropping it. Separately, the LIVE path is a MUTABLE_PROJECTION and correctly no longer holds these bytes: event 58 advanced the pointer to R0002 through the validated seal chain, and the event 57 byte obligation is conditional on the pointer still naming R0001 — a condition the existing ledger validator already enforces. Pinning a pointer's live bytes permanently would convert a movable projection into an immutable artifact nobody could ever advance."
+    },
+    {
+      "artifactId": "GATE_STATUS_LEDGER",
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "artifactClass": "APPEND_ONLY_LOG",
+      "verificationGround": "PREFIX_IMMUTABILITY",
+      "prefixes": [
+        { "atOrdinal": 56, "sha256": "5cd7136a49b887f9a4ecd233588ec8907c82bbef588a741652f14dcffe963879", "pinnedBy": "GATE_AUTHORIZATION_RECORD.json#/preLedgerSha256" },
+        { "atOrdinal": 57, "sha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b", "byteLength": 30545, "pinnedBy": "GATE_START_RECORD.json#/preStartLedgerSha256" },
+        { "atOrdinal": 58, "sha256": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1", "byteLength": 31098, "pinnedBy": "H0_EXACT_PRESERVATION_COHORT.json" }
+      ],
+      "note": "The whole file is never the historical unit; every prefix is. Prefix 56 and 57 digests were pinned by independent historical authority records and are reproduced exactly by reconstruction."
+    },
+    {
+      "artifactId": "GATE_STATUS_SNAPSHOT_AT_ORDINAL_57",
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "b623ab361bfe0304f2c8edffbc22996305ac76c3f75246f8f9be333f7c1e1141",
+      "retainedByteLength": 15420,
+      "immutableSources": [
+        { "artifactId": "GATE_STATUS_LEDGER", "atOrdinal": 57, "sha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b" }
+      ],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-status-snapshot.mjs",
+        "sha256": "c09f9d24b9b687e3fca2b22963fb610d15734bd96bd5c33f6ee13b16447b65b4"
+      },
+      "note": "These bytes exist in no commit and on no disk: the snapshot was overwritten when event 58 landed in the same commit. It is still fully provable, because the ledger prefix through 57 is immutable and the generator is a pure function of it."
+    },
+    {
+      "artifactId": "ACTIVE_GATE_AT_ORDINAL_57",
+      "path": "governance/active/ACTIVE_GATE.json",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "3201b2c4a3248704236c10b9d8d162a63451ea7b45a18bc279aea1ecd20c5591",
+      "retainedByteLength": 366,
+      "digestForm": "CANONICAL_JSON_WITHOUT_TRAILING_NEWLINE",
+      "immutableSources": [
+        { "artifactId": "GATE_STATUS_SNAPSHOT_AT_ORDINAL_57", "sha256": "b623ab361bfe0304f2c8edffbc22996305ac76c3f75246f8f9be333f7c1e1141" },
+        { "artifactId": "GATE_STATUS_LEDGER", "atOrdinal": 57, "sha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b" }
+      ],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-status-snapshot.mjs",
+        "sha256": "c09f9d24b9b687e3fca2b22963fb610d15734bd96bd5c33f6ee13b16447b65b4"
+      },
+      "independentConfirmation": "governance/authority/authorizations/GATE14/PROJECT_OWNER_GATE_START_AUTHORITY.json#/activeGatePreState",
+      "note": "Reconstruction reproduces the exact digest and byteLength the owner-signed event 58 START authority pinned, without those bytes existing anywhere. Substituting the earlier generator (a4808b9e) yields a different digest and fails, which is what makes the generator identity evidence rather than decoration."
+    },
+    {
+      "artifactId": "ACTIVE_GATE_CONTEXT_JSON_AT_ORDINAL_57",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "eb5b36af71e0fb5e861e8ecfcbb6069960cd40644f768f480a1ff93c6aa9688f",
+      "retainedByteLength": 1138,
+      "immutableSources": [
+        { "artifactId": "ACTIVE_GATE_AT_ORDINAL_57", "sha256": "3201b2c4a3248704236c10b9d8d162a63451ea7b45a18bc279aea1ecd20c5591" },
+        { "artifactId": "GATE_STATUS_LEDGER", "atOrdinal": 57, "sha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b" },
+        { "artifactId": "GATE_REGISTRY_00_40", "path": "governance/GATE_REGISTRY_00_40.json" }
+      ],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-active-gate-context.mjs",
+        "sha256": "27affd2a738c8eb12555ed611e20bff719fe4cc90c54211cab4ac195a5767cd7"
+      },
+      "note": "Derived view; regenerated, never retained."
+    },
+    {
+      "artifactId": "ACTIVE_GATE_CONTEXT_MD_AT_ORDINAL_57",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "retainedByteLength": 126,
+      "immutableSources": [
+        { "artifactId": "ACTIVE_GATE_AT_ORDINAL_57", "sha256": "3201b2c4a3248704236c10b9d8d162a63451ea7b45a18bc279aea1ecd20c5591" },
+        { "artifactId": "GATE_STATUS_LEDGER", "atOrdinal": 57, "sha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b" }
+      ],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-active-gate-context.mjs",
+        "sha256": "27affd2a738c8eb12555ed611e20bff719fe4cc90c54211cab4ac195a5767cd7"
+      },
+      "independentConfirmation": "Reconstructed digest equals the live committed bytes at COMMIT A, because ACTIVE_GATE stayed GATE13 and GATE13's terminal status did not change between ordinals 57 and 58.",
+      "note": "Derived view; regenerated, never retained."
+    },
+    {
+      "artifactId": "PROJECT_OWNER_RELEASE_PUBLIC_KEY",
+      "path": "governance/authority/PROJECT_OWNER_RELEASE_KEY.json",
+      "artifactClass": "EXTERNAL_LEGACY_AUTHORITY",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "8ce3fc2cdfa0aa1a9f082374fc34fbf58916ab58f04e1fddc98da6190d9cab4f",
+      "retainedByteLength": 286,
+      "keyId": "WHEEL-OWNER-RELEASE-2D441D1E",
+      "note": "Retained SOLELY so historical owner-signed artifacts stay replayable. This is the public half; it grants nothing. No key lifecycle, rotation, revocation or recovery root is introduced by this program, and no new authority requires a signature."
+    },
+    {
+      "artifactId": "GENERATE_STATUS_SNAPSHOT_TOOL",
+      "path": "governance/tools/generate-status-snapshot.mjs",
+      "artifactClass": "EXECUTABLE_AUTHORITY",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "c09f9d24b9b687e3fca2b22963fb610d15734bd96bd5c33f6ee13b16447b65b4",
+      "retainedByteLength": 3416,
+      "note": "The generator whose identity every RECONSTRUCTABLE snapshot proof depends on."
+    }
+  ]
+}

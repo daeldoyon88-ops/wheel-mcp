@@ -1,0 +1,473 @@
+{
+  "documentKind": "HISTORICAL_ARCHITECTURE_FINAL_IMPLEMENTATION_COHORT",
+  "schemaVersion": 1,
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "baseHead": "609cc5d16ce2bb176eefd149a8475f06e0ab75a4",
+  "commitMessage": "governance: implement simplified historical replay and GATE14 contract succession",
+  "statement": "Every governed path changed by this program, with its exact bytes at staging time and the authority that permits it. This document excludes only itself, which cannot hash its own bytes. A changed governed path absent from both authorities is a BLOCK, not a warning.",
+  "authorities": {
+    "V2_H1_H9_MANIFEST": {
+      "path": "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+      "sha256": "b1e99cec07d0da14954a2d42d15d8474fcf636cbd43fd7f02594b3cf4919e1fe",
+      "authorizedPathCount": 47
+    },
+    "V1_BOOTSTRAP_AUTHORITY": {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_V2_BOOTSTRAP_R1.json",
+      "sha256": "85efa7cb0acb14285ee8c588b01bfd44c174b3f44425523c416138321aee16be",
+      "authorizedPathCount": 6
+    }
+  },
+  "changedPathCount": 50,
+  "paths": [
+    {
+      "path": "governance/active/ACTIVE_GATE.json",
+      "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+      "byteLength": 305,
+      "phase": "H4",
+      "operation": "MODIFY",
+      "reason": "Stop pinning mutable GATE_STATUS_SNAPSHOT bytes; bind stable activation/ledger identity. ACTIVE_GATE stays GATE13.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "sha256": "27a2bed562ad4528043be82f63fc4b925e7f22f6f515c42990dd017cc1a446a2",
+      "byteLength": 281,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "Advance the mutable contract pointer to R0002.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152",
+      "byteLength": 11767,
+      "phase": "H7",
+      "operation": "CREATE",
+      "reason": "Immutable successor contract: fix the stale impossible NOT_STARTED closure condition, replace whole-ledger SHA with eventCount plus prefixSha256, add successor lineage metadata. Nothing else changes.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "sha256": "90f4252e54c1b234db5268450b21356f59b7a2071c522913346ecb29ba56d929",
+      "byteLength": 300,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "Advance the mutable state pointer to R0003.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/CHECKPOINT.json",
+      "sha256": "ccb62c2e5e015449d11e2f5565e62493f847f65ceb51ff2c1794e55ed17cb77b",
+      "byteLength": 1366,
+      "phase": "H7",
+      "operation": "CREATE",
+      "reason": "R0003 immutable checkpoint.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/OPEN_DEFECTS.json",
+      "sha256": "43d088143fe678964e7fd371b8c1a26a55fcf102806f0c1739860cfc16306ff9",
+      "byteLength": 70,
+      "phase": "H7",
+      "operation": "CREATE",
+      "reason": "R0003 immutable open-defects record.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/STATE_SEAL.json",
+      "sha256": "80b034777b50fb56b29d6a2c1b49f5ba8a8e6ee9dca2d94a4edf5c28863a2ebb",
+      "byteLength": 1353,
+      "phase": "H7",
+      "operation": "CREATE",
+      "reason": "R0003 seal chained to the R0002 seal ca29d6ad.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "sha256": "26181ac7c47ab36ff80d14dacffef6fcf7930ae54903794514d0fbc50a1add16",
+      "byteLength": 22862,
+      "phase": "H0A_S",
+      "operation": "MODIFY",
+      "reason": "H0A-S simplification of the post-freeze maintenance authority primitive to LOCAL_EXPLICIT_AUTHORITY.",
+      "authorizedBy": "V1_BOOTSTRAP_AUTHORITY"
+    },
+    {
+      "path": "governance/gee-v1/core/active-gate-succession.mjs",
+      "sha256": "2df128ef878a39ea4c932587d48a9c03d6c2534038286d5248547241311193a1",
+      "byteLength": 6795,
+      "phase": "H4",
+      "operation": "CREATE",
+      "reason": "Generic finite ACTIVE_GATE succession primitive binding stable lifecycle/activation/ledger identity instead of mutable status-snapshot bytes.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/core/artifact-classification.mjs",
+      "sha256": "31d74fe1a2e3d182972ea9dcba7a64f71bd67d7d3c2cf11a3327cec0ab3ebf24",
+      "byteLength": 11773,
+      "phase": "H1",
+      "operation": "CREATE",
+      "reason": "MODEL D artifact classes and the rule that historical verification must terminate in retained immutable bytes or deterministic reconstruction.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/core/legacy-state-binding.mjs",
+      "sha256": "b4d490455ed6b391e24171bb627ebc92512fe5a17b74f0fb4390b15da45c7346",
+      "byteLength": 9218,
+      "phase": "H5",
+      "operation": "CREATE",
+      "reason": "Legacy 57/58 state-binding interpretation, valid only where it agrees with existing immutable historical evidence.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "sha256": "ea8e86e7881d4e3b82528268ac9df44d0dea8912622d802fed754edb16a4da83",
+      "byteLength": 20452,
+      "phase": "H0A_S",
+      "operation": "CREATE",
+      "reason": "H0A-S simplification of the post-freeze maintenance authority primitive to LOCAL_EXPLICIT_AUTHORITY.",
+      "authorizedBy": "V1_BOOTSTRAP_AUTHORITY"
+    },
+    {
+      "path": "governance/gee-v1/core/state-revision-resolver.mjs",
+      "sha256": "5635060f23c76e7742c26e052f88bbc0c385961fe5f59201883d529ebe2b53ba",
+      "byteLength": 11672,
+      "phase": "H2",
+      "operation": "CREATE",
+      "reason": "Ledger-anchored current-state lineage resolution replacing readdir, maximum-revision and filename-ordering authority.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/core/validator-provenance.mjs",
+      "sha256": "ed6cadcb49d683285b11145dda9c82bc6ccd6847562ffb3194b9e844685f2896",
+      "byteLength": 5748,
+      "phase": "H6",
+      "operation": "CREATE",
+      "reason": "Admission validators resolve by canonical repo path plus manifest-bound SHA; replay validators resolve by retained content identity.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/schemas/post-freeze-maintenance-authority-v2.schema.json",
+      "sha256": "ca6da96c02c06b7a500f62524fe01fd16153ab67ed4d22fda79f350a1794daac",
+      "byteLength": 4067,
+      "phase": "H0A_S",
+      "operation": "CREATE",
+      "reason": "H0A-S simplification of the post-freeze maintenance authority primitive to LOCAL_EXPLICIT_AUTHORITY.",
+      "authorizedBy": "V1_BOOTSTRAP_AUTHORITY"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "sha256": "8c43d278a54581d281e0fada546586951f7e45d0b1f2e955e32ee74b4355f923",
+      "byteLength": 22795,
+      "phase": "H0A_S",
+      "operation": "MODIFY",
+      "reason": "H0A-S simplification of the post-freeze maintenance authority primitive to LOCAL_EXPLICIT_AUTHORITY.",
+      "authorizedBy": "V1_BOOTSTRAP_AUTHORITY"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs",
+      "sha256": "581b9c52b467f76afc312302e812dbee7f27eb75c51ea75d2ae696974cff06fe",
+      "byteLength": 24692,
+      "phase": "H3",
+      "operation": "MODIFY",
+      "reason": "ACT-03 pinned the REASON CODE for a cross-work-unit seal spoof. H3's mandated canonical-seal-location rule rejects that spoof strictly earlier, so the code changes from IDENTITY_BINDING_VIOLATION to SEAL_INVALID. The security property is unchanged and strengthened: the spoof is still rejected, now before its bytes are interpreted. Expectation update only; no assertion is removed or weakened.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h1-model-d.test.mjs",
+      "sha256": "ba0c81ab82c955746fe7ea9fb7ff06f104358f2c7abc3c393aadf84a73a86fd5",
+      "byteLength": 13069,
+      "phase": "H1",
+      "operation": "CREATE",
+      "reason": "H1 positive and hostile coverage, including rejection of format-only historical PASS.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h2-revision-resolver.test.mjs",
+      "sha256": "d972c9adf66d58b5590e5d67b76c270bf1f99b6ade60d2aebc5d8df80334a863",
+      "byteLength": 12433,
+      "phase": "H2",
+      "operation": "CREATE",
+      "reason": "H2 coverage including R9999, rollback, fork and orphan hostiles.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h3-seal-hardening.test.mjs",
+      "sha256": "70c47af3c2c5b56ceec9efd31cbac46ef52954188c1ffc6c6496fff9b0e19359",
+      "byteLength": 12782,
+      "phase": "H3",
+      "operation": "CREATE",
+      "reason": "H3 coverage including case-variant path, relocated seal and cross-Gate seal hostiles, with R0001/R0002 byte-identity assertions.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h4-ledger-split.test.mjs",
+      "sha256": "0b51a88f661b03351789e1239eb8d03997e956bd4ece67ae2eb501a46b59348d",
+      "byteLength": 11208,
+      "phase": "H4",
+      "operation": "CREATE",
+      "reason": "H4 coverage: replay at 56/57/58/59 and proof that replay does not consult present projections.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h5-legacy-binding.test.mjs",
+      "sha256": "e23a6f54d94fbabe02dbffcc370e91f03609f557eb61691b9c3210436c28c3c6",
+      "byteLength": 9789,
+      "phase": "H5",
+      "operation": "CREATE",
+      "reason": "H5 migration hostiles: wrong event, gate, payload, revision, seal, authority hash, prefix, duplicate, conflicting and native-era binding.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h6-validator-provenance.test.mjs",
+      "sha256": "b287987a532ccbee6726ccef24cc5ba538fb07617db3896a062bca73402934e4",
+      "byteLength": 8826,
+      "phase": "H6",
+      "operation": "CREATE",
+      "reason": "H6 coverage including relative-validator-authority hostiles.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h7-contract-succession.test.mjs",
+      "sha256": "d73c0cb29f9101cf7ecf9cb24f6f82fcdeaf71dd521c1e812e8d0d8829eef5d4",
+      "byteLength": 11942,
+      "phase": "H7",
+      "operation": "CREATE",
+      "reason": "H7 coverage: local succession authority, R0002 minimal-delta proof, event59 native pin, no digest cycle.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h8-probes.test.mjs",
+      "sha256": "d8e41e6d20d13933b9c18a79ddd83ac3eba2d81e845aeea4bf08d56a5ea0c1aa",
+      "byteLength": 17773,
+      "phase": "H8",
+      "operation": "CREATE",
+      "reason": "The six original architecture probes plus rollback, fork, orphan, R9999, tamper, validator identity, legacy and native replay, and local authority hostiles.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "5f3339a2a1d7a87798d252b6bb6d06d71c1ee4197c946119a6c48b72586a5245",
+      "byteLength": 1138,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "Regenerated derived projection.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json",
+      "sha256": "445a01e57dfb931ae31aed3861f9fe7bd2857215e5433a08f73b0046f4f24b02",
+      "byteLength": 7609,
+      "phase": "H1",
+      "operation": "CREATE",
+      "reason": "Declares the MODEL D class of every governed artifact family so no artifact is verified by format alone.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/AUTHORITY_CONSUMPTION_R1.json",
+      "sha256": "e7e1d16fd2554f86462b13bb8a98b9f234eac245e9ccaebf4b2a8acf038e5a72",
+      "byteLength": 637,
+      "phase": "H9",
+      "operation": "CREATE",
+      "reason": "Deterministic single-use consumption record for the program authority.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json",
+      "sha256": "4c67122deff9a67ceaa0fd1569d19ea7b705b4cc0609574212cbd04e8f9a24cb",
+      "byteLength": 2006,
+      "phase": "H7",
+      "operation": "CREATE",
+      "reason": "The exact local succession instrument for the R0001 to R0002 contract switch.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/DL3_PATH_CORRECTION_RATIFICATION_R1.json",
+      "sha256": "880f67f4970e7bb8820b2f7eb86e52d6a1f55b0440bea21e64d1e955f8ee9b00",
+      "byteLength": 4686,
+      "phase": "DL3",
+      "operation": "CREATE",
+      "reason": "Machine-readable ratification of the six already-proven filesystem path corrections; semantic cohort stays exactly 73.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/F01_F34_CLASSIFICATION.json",
+      "sha256": "bb60f24c2f55696e39654bcb6b4fba354463da52021bd39992f869131d0525ad",
+      "byteLength": 9446,
+      "phase": "H8",
+      "operation": "CREATE",
+      "reason": "Classifies every architecture-relevant Final Audit item as PROTECTED_BY_EXISTING_INVARIANT, NEW_TEST_ADDED or NOT_APPLICABLE_WITH_REASON.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+      "sha256": "b1e99cec07d0da14954a2d42d15d8474fcf636cbd43fd7f02594b3cf4919e1fe",
+      "byteLength": 16024,
+      "phase": "H0A_S",
+      "operation": "CREATE",
+      "reason": "The finite exact path allowlist this program is bound to; contains no wildcard and no directory recursion.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+      "sha256": "1569d3e92702560b1d0a05030b46dc6314d7dff424a33c3980f25dfa4db2fcb8",
+      "byteLength": 3525,
+      "phase": "H5",
+      "operation": "CREATE",
+      "reason": "The two legacy binding records: event57 to R0001 seal c7004faf, event58 to R0002 seal ca29d6ad.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+      "sha256": "95d9913a822b66464aecec1cc33d75680bf96fa67bcfb42926a9972e892dca86",
+      "byteLength": 12174,
+      "phase": "H1",
+      "operation": "CREATE",
+      "reason": "Retained immutable bytes and reconstruction rules for CURRENT_STATE@R0001, GATE_STATUS_SNAPSHOT@57, ACTIVE_GATE@57 and the ACTIVE_GATE_CONTEXT projections.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+      "sha256": "08282f22abb70f1c142c1b404a474d3c2b1ac7192158daac91f8ca85525a5c9b",
+      "byteLength": 2472,
+      "phase": "H6",
+      "operation": "CREATE",
+      "reason": "Canonical path and SHA256 of every executable validator this program admits.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/schemas/active-gate.schema.json",
+      "sha256": "b5ab23474480ba59e10185d9c0326440dd533bb14c9a6ef9e295af33fc4a32ba",
+      "byteLength": 570,
+      "phase": "H4",
+      "operation": "MODIFY",
+      "reason": "Permit currentStateSha256 to be null so the ACTIVE_GATE pointer can stop byte-pinning a reconstructable derived projection. Required by the H4 ACTIVE_GATE pointer fix; no other field changes.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/schemas/gate-status-event.schema.json",
+      "sha256": "073d1b162f7b464595e2412648e44cc2354342458d18a8d1c72065c2ace33c88",
+      "byteLength": 3567,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "Add CONTRACT_SUCCESSION to the transitionType enum and permit the native state pin fields, keeping the schema in exact parity with the normative validator as ARCH-01 requires. The closed I2 execution table is untouched.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_R1.json",
+      "sha256": "a544f700d414410043083b416de20727a97dc13f6fe20131c31a6a39d1de4623",
+      "byteLength": 2770,
+      "phase": "H0A_S",
+      "operation": "CREATE",
+      "reason": "The single-use LOCAL_EXPLICIT_AUTHORITY program authority binding COMMIT A, ledger 58 and this manifest digest.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_V2_BOOTSTRAP_R1.json",
+      "sha256": "85efa7cb0acb14285ee8c588b01bfd44c174b3f44425523c416138321aee16be",
+      "byteLength": 1359,
+      "phase": "H0A_S",
+      "operation": "CREATE",
+      "reason": "H0A-S simplification of the post-freeze maintenance authority primitive to LOCAL_EXPLICIT_AUTHORITY.",
+      "authorizedBy": "V1_BOOTSTRAP_AUTHORITY"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "6f1ccbc20ecbb09fff7a0a9b08feb94145737949dcb59ed881b5c1dabd9dbeb0",
+      "byteLength": 31804,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "APPEND ONLY: exactly one new event at ordinal 59 natively binding stateRevision R0003 and its seal SHA. Events 1-58 stay byte-identical.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "fd495a1b7672c3ebf1de3189959a5da734c941ba23a4e8761c160b51a045cc1e",
+      "byteLength": 15423,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "Regenerated derived projection of the 59-event ledger.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "sha256": "f59e48ab36425f8046468604a2a67fe070e57aa618988712aea9e8264094eda9",
+      "byteLength": 62966,
+      "phase": "H7",
+      "operation": "MODIFY",
+      "reason": "The transition-type guard pinned TRANSITION_TYPES.length at 16. A third narrow class (CONTRACT_SUCCESSION) is added by owner mandate, so the count becomes 17. The guard is STRENGTHENED, not relaxed: it still pins the I2 table at 21, and now also asserts no new STATUS exists, that CONTRACT_SUCCESSION is absent from the normal execution class, and that its table is a single self-transition reaching no new status.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/replay-governance-history.mjs",
+      "sha256": "224b74c5bce426a36b639e96903b7056e7af27d1ddda6262aec9ad1bf41173e0",
+      "byteLength": 4834,
+      "phase": "H4",
+      "operation": "CREATE",
+      "reason": "replay --at executable for historical replay at any ordinal, integrity-only by construction.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/validate-artifact-classification.mjs",
+      "sha256": "ca107bfc6ef012ccfe033d136796e18d20156200f15ae08effca56eed9d73d04",
+      "byteLength": 6523,
+      "phase": "H1",
+      "operation": "CREATE",
+      "reason": "Executable verifier for the MODEL D registry and the retained-object set.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/validate-legacy-state-binding.mjs",
+      "sha256": "c1f0b3d93c9c061593b0e3b3d52273bcd0952fbd7e9836cc9b57bbda8f137af8",
+      "byteLength": 3612,
+      "phase": "H5",
+      "operation": "CREATE",
+      "reason": "Executable verifier binding each legacy record to event bytes, payload digest, authority hash, ledger prefix, revision and seal bytes.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "sha256": "8e7b119cd99a5f5544b3c3bfbce076af6a0a2a6e147bbd5e4a05018416e14bdc",
+      "byteLength": 5973,
+      "phase": "H0A_S",
+      "operation": "CREATE",
+      "reason": "H0A-S simplification of the post-freeze maintenance authority primitive to LOCAL_EXPLICIT_AUTHORITY.",
+      "authorizedBy": "V1_BOOTSTRAP_AUTHORITY"
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "sha256": "69a2f5395c50061625ba60afeb76aa60a7ccad0d3d426699947b31f7a7c0615e",
+      "byteLength": 15491,
+      "phase": "H2",
+      "operation": "MODIFY",
+      "reason": "Route revision lineage through the ledger-anchored resolver; block orphan, fork and rollback.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/validate-state-seal.mjs",
+      "sha256": "070994d8178acabb40345c79d9ed72a13453e462935dd09f84d09ec394f16d80",
+      "byteLength": 20161,
+      "phase": "H3",
+      "operation": "MODIFY",
+      "reason": "Canonical seal location, case-exact path validation, reparse/symlink/junction rejection, sealedMembersDigest and per-artifact-class verification; remove maximum-revision authority.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "f2826af0b39cac07f0974f05b2fb175374ab330bc417acd93931b40209f4bb87",
+      "byteLength": 151044,
+      "phase": "H4",
+      "operation": "MODIFY",
+      "reason": "Split prefix-pure LEDGER_INTEGRITY from PRESENT_CONSISTENCY so historical replay never reads current mutable projections; add native state pin from ordinal 59.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    },
+    {
+      "path": "governance/tools/validate-validator-provenance.mjs",
+      "sha256": "188ee3314a0641f8ff2d758b45b68dacb24f3c837fb153f6015ec5782a795a23",
+      "byteLength": 4940,
+      "phase": "H6",
+      "operation": "CREATE",
+      "reason": "Proves candidate cwd cannot silently determine which executable code validates.",
+      "authorizedBy": "V2_H1_H9_MANIFEST"
+    }
+  ]
+}

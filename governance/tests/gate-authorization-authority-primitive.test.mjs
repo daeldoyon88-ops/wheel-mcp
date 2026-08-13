@@ -25,7 +25,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { validateLedger, TRANSITIONS, TRANSITION_TYPES } from '../tools/validate-status-ledger.mjs';
+import { validateLedger, TRANSITIONS, TRANSITION_TYPES, STATUSES, NORMAL_EXECUTION_TRANSITION_TYPES, CONTRACT_SUCCESSION_TRANSITION_TYPE, CONTRACT_SUCCESSION_TRANSITIONS } from '../tools/validate-status-ledger.mjs';
 import { canonicalize, sha256Canonical, sha256Bytes } from '../tools/canonical-json.mjs';
 import { validateAgainstJsonSchema } from '../gee-v1/contracts/validate-against-json-schema.mjs';
 import { verifyHeadWitness } from '../gee-v1/core/head-witness.mjs';
@@ -1137,14 +1137,37 @@ test('the real repository ledger remains valid, 57 events, unchanged digest', ()
   assert.equal(report.gates.find((g) => g.gateId === 'GATE14').currentStatus, 'AUTHORIZED_NOT_STARTED');
 });
 
-test('no new status or transition type was introduced', () => {
+test('no new status was introduced, and the closed I2 execution table is untouched', () => {
+  // The closed I2 execution table is still exactly 21 transitions. Contract
+  // succession did NOT widen it: it is a third narrow class, added the same way
+  // HISTORICAL_RECONCILIATION was, with its own table and its own obligations.
   assert.equal(TRANSITIONS.length, 21);
-  assert.equal(TRANSITION_TYPES.length, 16);
+  assert.equal(NORMAL_EXECUTION_TRANSITION_TYPES.length, 15);
+  assert.equal(TRANSITION_TYPES.length, 17);
   assert.equal(TRANSITIONS.filter(([, , type]) => type === GATE_AUTHORIZATION_TRANSITION_TYPE).length, 1);
   assert.deepEqual(
     TRANSITIONS.find(([, , type]) => type === GATE_AUTHORIZATION_TRANSITION_TYPE),
     ['NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'AUTHORIZATION']
   );
+
+  // NO NEW STATUS. This is the property that actually matters: a new transition
+  // class must not create a new place a Gate can be.
+  assert.deepEqual(STATUSES, [
+    'NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'REPAIR_REQUIRED',
+    'BLOCKED_GOVERNANCE', 'INTERRUPTED_RESUMABLE', 'COMPLETE_AGENT',
+    'COMPLETE_CONFIRMED', 'SUPERSEDED', 'REOPENED_AUTHORIZED'
+  ]);
+
+  // The succession class cannot borrow execution permissions, and its single
+  // entry is a SELF-transition: it reaches no status the Gate was not already in,
+  // so it can never start, close or confirm a Gate.
+  assert.equal(NORMAL_EXECUTION_TRANSITION_TYPES.includes(CONTRACT_SUCCESSION_TRANSITION_TYPE), false);
+  assert.equal(TRANSITIONS.some(([, , type]) => type === CONTRACT_SUCCESSION_TRANSITION_TYPE), false);
+  assert.deepEqual(CONTRACT_SUCCESSION_TRANSITIONS, [['IN_PROGRESS', 'IN_PROGRESS', 'CONTRACT_SUCCESSION']]);
+  for (const [from, to] of CONTRACT_SUCCESSION_TRANSITIONS) {
+    assert.equal(from, to, 'a succession must never move a Gate to a different status');
+    assert.ok(STATUSES.includes(to));
+  }
 });
 
 // ===========================================================================

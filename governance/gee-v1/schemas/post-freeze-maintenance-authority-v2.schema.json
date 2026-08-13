@@ -1,0 +1,77 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document", "schemaVersion", "authorityId", "authorityClass", "authorityMode",
+    "issuedBy", "createdAt", "expiresAt", "targetSystem", "programId",
+    "resumePoint", "maxUse", "preState", "authorizedPathManifestPath",
+    "authorizedPathManifestSha256", "authorizedOperationClasses", "commitPolicy",
+    "pushAuthorized", "authorityPredecessor", "authorityHeadBinding",
+    "consumptionRecordPath", "prohibitedOperations"
+  ],
+  "properties": {
+    "document": { "const": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY" },
+    "schemaVersion": { "const": 2 },
+    "authorityId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "authorityClass": { "const": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY" },
+    "authorityMode": { "const": "LOCAL_EXPLICIT_AUTHORITY" },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "createdAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$" },
+    "expiresAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$" },
+    "targetSystem": { "const": "PROJECT_GOVERNANCE" },
+    "programId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "resumePoint": { "type": "string", "minLength": 1 },
+    "maxUse": { "const": 1 },
+    "preState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseHead", "ledgerEventCount", "ledgerPrefixSha256", "gateId", "gateStatus", "stateRevision", "contractRevision", "activeGate", "R8ExpectedAbsent"],
+      "properties": {
+        "baseHead": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "ledgerEventCount": { "type": "integer", "minimum": 0 },
+        "ledgerPrefixSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "gateId": { "type": ["string", "null"] },
+        "gateStatus": { "type": ["string", "null"] },
+        "stateRevision": { "type": ["string", "null"] },
+        "contractRevision": { "type": ["string", "null"] },
+        "activeGate": { "type": ["string", "null"] },
+        "R8ExpectedAbsent": { "type": "boolean" }
+      }
+    },
+    "authorizedPathManifestPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+    "authorizedPathManifestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "authorizedOperationClasses": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" } },
+    "commitPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxCommitCount", "allowedGitOperations", "commitMessage", "thirdCommitAuthorized"],
+      "properties": {
+        "maxCommitCount": { "const": 1 },
+        "allowedGitOperations": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "enum": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"] } },
+        "commitMessage": { "type": "string", "minLength": 1 },
+        "thirdCommitAuthorized": { "const": false }
+      }
+    },
+    "pushAuthorized": { "const": false },
+    "authorityPredecessor": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["authorityId", "sha256"],
+      "properties": {
+        "authorityId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "authorityHeadBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "baseHead"],
+      "properties": {
+        "mode": { "const": "BASE_HEAD" },
+        "baseHead": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+      }
+    },
+    "consumptionRecordPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+    "prohibitedOperations": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" } }
+  }
+}

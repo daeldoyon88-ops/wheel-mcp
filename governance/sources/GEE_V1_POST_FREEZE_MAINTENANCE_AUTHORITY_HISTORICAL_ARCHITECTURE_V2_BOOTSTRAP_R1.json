@@ -1,0 +1,28 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_V2_BOOTSTRAP_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-13T00:00:00.000Z",
+  "targetSystem": "GEE_V1",
+  "frozenRevision": "R7",
+  "workUnitId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_MAINTENANCE_V2_BOOTSTRAP_R1",
+  "reason": "Bootstrap only the backward-compatible V2 extension of the existing generic post-freeze maintenance authority primitive.",
+  "defects": [
+    "POST_FREEZE_MAINTENANCE_V1_PROGRAM_SCOPE_INSUFFICIENT"
+  ],
+  "authorizedPaths": [
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_V2_BOOTSTRAP_R1.json",
+    "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+    "governance/gee-v1/schemas/post-freeze-maintenance-authority-v2.schema.json",
+    "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+    "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+    "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs"
+  ],
+  "newGeeRevisionAuthorized": false,
+  "r8Authorized": false,
+  "gateExecutionAuthorized": false,
+  "successorAuthorization": false,
+  "unrelatedWritesAuthorized": false
+}

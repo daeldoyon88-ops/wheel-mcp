@@ -1,0 +1,337 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS_R1",
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "paths": [
+    {
+      "path": "governance/historical-architecture/DL3_PATH_CORRECTION_RATIFICATION_R1.json",
+      "operation": "CREATE",
+      "phase": "DL3",
+      "reason": "Machine-readable ratification of the six already-proven filesystem path corrections; semantic cohort stays exactly 73.",
+      "artifactClass": "HISTORICAL_ARTIFACT_CLASSIFICATION"
+    },
+    {
+      "path": "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+      "operation": "CREATE",
+      "phase": "H0A_S",
+      "reason": "The finite exact path allowlist this program is bound to; contains no wildcard and no directory recursion.",
+      "artifactClass": "FINAL_LOCAL_COMMIT"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_R1.json",
+      "operation": "CREATE",
+      "phase": "H0A_S",
+      "reason": "The single-use LOCAL_EXPLICIT_AUTHORITY program authority binding COMMIT A, ledger 58 and this manifest digest.",
+      "artifactClass": "FINAL_LOCAL_COMMIT"
+    },
+    {
+      "path": "governance/gee-v1/core/artifact-classification.mjs",
+      "operation": "CREATE",
+      "phase": "H1",
+      "reason": "MODEL D artifact classes and the rule that historical verification must terminate in retained immutable bytes or deterministic reconstruction.",
+      "artifactClass": "HISTORICAL_ARTIFACT_CLASSIFICATION"
+    },
+    {
+      "path": "governance/historical-architecture/ARTIFACT_CLASSIFICATION_REGISTRY.json",
+      "operation": "CREATE",
+      "phase": "H1",
+      "reason": "Declares the MODEL D class of every governed artifact family so no artifact is verified by format alone.",
+      "artifactClass": "HISTORICAL_ARTIFACT_CLASSIFICATION"
+    },
+    {
+      "path": "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+      "operation": "CREATE",
+      "phase": "H1",
+      "reason": "Retained immutable bytes and reconstruction rules for CURRENT_STATE@R0001, GATE_STATUS_SNAPSHOT@57, ACTIVE_GATE@57 and the ACTIVE_GATE_CONTEXT projections.",
+      "artifactClass": "REVISION_LOCAL_OBJECT_RETENTION"
+    },
+    {
+      "path": "governance/tools/validate-artifact-classification.mjs",
+      "operation": "CREATE",
+      "phase": "H1",
+      "reason": "Executable verifier for the MODEL D registry and the retained-object set.",
+      "artifactClass": "EXECUTABLE_VALIDATOR_PROVENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h1-model-d.test.mjs",
+      "operation": "CREATE",
+      "phase": "H1",
+      "reason": "H1 positive and hostile coverage, including rejection of format-only historical PASS.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/gee-v1/core/state-revision-resolver.mjs",
+      "operation": "CREATE",
+      "phase": "H2",
+      "reason": "Ledger-anchored current-state lineage resolution replacing readdir, maximum-revision and filename-ordering authority.",
+      "artifactClass": "REVISION_RESOLVER_IMPLEMENTATION"
+    },
+    {
+      "path": "governance/tools/validate-state-revision.mjs",
+      "operation": "MODIFY",
+      "phase": "H2",
+      "reason": "Route revision lineage through the ledger-anchored resolver; block orphan, fork and rollback.",
+      "artifactClass": "REVISION_RESOLVER_IMPLEMENTATION"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h2-revision-resolver.test.mjs",
+      "operation": "CREATE",
+      "phase": "H2",
+      "reason": "H2 coverage including R9999, rollback, fork and orphan hostiles.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/tools/validate-state-seal.mjs",
+      "operation": "MODIFY",
+      "phase": "H3",
+      "reason": "Canonical seal location, case-exact path validation, reparse/symlink/junction rejection, sealedMembersDigest and per-artifact-class verification; remove maximum-revision authority.",
+      "artifactClass": "STATE_SEAL_HARDENING"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h3-seal-hardening.test.mjs",
+      "operation": "CREATE",
+      "phase": "H3",
+      "reason": "H3 coverage including case-variant path, relocated seal and cross-Gate seal hostiles, with R0001/R0002 byte-identity assertions.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r1-architecture-countertests.test.mjs",
+      "operation": "MODIFY",
+      "phase": "H3",
+      "reason": "ACT-03 pinned the REASON CODE for a cross-work-unit seal spoof. H3's mandated canonical-seal-location rule rejects that spoof strictly earlier, so the code changes from IDENTITY_BINDING_VIOLATION to SEAL_INVALID. The security property is unchanged and strengthened: the spoof is still rejected, now before its bytes are interpreted. Expectation update only; no assertion is removed or weakened.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "phase": "H4",
+      "reason": "Split prefix-pure LEDGER_INTEGRITY from PRESENT_CONSISTENCY so historical replay never reads current mutable projections; add native state pin from ordinal 59.",
+      "artifactClass": "LEDGER_INTEGRITY_CONSISTENCY_SPLIT"
+    },
+    {
+      "path": "governance/tools/replay-governance-history.mjs",
+      "operation": "CREATE",
+      "phase": "H4",
+      "reason": "replay --at executable for historical replay at any ordinal, integrity-only by construction.",
+      "artifactClass": "LEDGER_INTEGRITY_CONSISTENCY_SPLIT"
+    },
+    {
+      "path": "governance/gee-v1/core/active-gate-succession.mjs",
+      "operation": "CREATE",
+      "phase": "H4",
+      "reason": "Generic finite ACTIVE_GATE succession primitive binding stable lifecycle/activation/ledger identity instead of mutable status-snapshot bytes.",
+      "artifactClass": "ACTIVE_GATE_SUCCESSION_PRIMITIVE"
+    },
+    {
+      "path": "governance/active/ACTIVE_GATE.json",
+      "operation": "MODIFY",
+      "phase": "H4",
+      "reason": "Stop pinning mutable GATE_STATUS_SNAPSHOT bytes; bind stable activation/ledger identity. ACTIVE_GATE stays GATE13.",
+      "artifactClass": "ACTIVE_GATE_SUCCESSION_PRIMITIVE"
+    },
+    {
+      "path": "governance/schemas/active-gate.schema.json",
+      "operation": "MODIFY",
+      "phase": "H4",
+      "reason": "Permit currentStateSha256 to be null so the ACTIVE_GATE pointer can stop byte-pinning a reconstructable derived projection. Required by the H4 ACTIVE_GATE pointer fix; no other field changes.",
+      "artifactClass": "ACTIVE_GATE_SUCCESSION_PRIMITIVE"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h4-ledger-split.test.mjs",
+      "operation": "CREATE",
+      "phase": "H4",
+      "reason": "H4 coverage: replay at 56/57/58/59 and proof that replay does not consult present projections.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/gee-v1/core/legacy-state-binding.mjs",
+      "operation": "CREATE",
+      "phase": "H5",
+      "reason": "Legacy 57/58 state-binding interpretation, valid only where it agrees with existing immutable historical evidence.",
+      "artifactClass": "LEGACY_STATE_BINDING_MIGRATION"
+    },
+    {
+      "path": "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+      "operation": "CREATE",
+      "phase": "H5",
+      "reason": "The two legacy binding records: event57 to R0001 seal c7004faf, event58 to R0002 seal ca29d6ad.",
+      "artifactClass": "LEGACY_STATE_BINDING_MIGRATION"
+    },
+    {
+      "path": "governance/tools/validate-legacy-state-binding.mjs",
+      "operation": "CREATE",
+      "phase": "H5",
+      "reason": "Executable verifier binding each legacy record to event bytes, payload digest, authority hash, ledger prefix, revision and seal bytes.",
+      "artifactClass": "LEGACY_STATE_BINDING_MIGRATION"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h5-legacy-binding.test.mjs",
+      "operation": "CREATE",
+      "phase": "H5",
+      "reason": "H5 migration hostiles: wrong event, gate, payload, revision, seal, authority hash, prefix, duplicate, conflicting and native-era binding.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/gee-v1/core/validator-provenance.mjs",
+      "operation": "CREATE",
+      "phase": "H6",
+      "reason": "Admission validators resolve by canonical repo path plus manifest-bound SHA; replay validators resolve by retained content identity.",
+      "artifactClass": "EXECUTABLE_VALIDATOR_PROVENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+      "operation": "CREATE",
+      "phase": "H6",
+      "reason": "Canonical path and SHA256 of every executable validator this program admits.",
+      "artifactClass": "EXECUTABLE_VALIDATOR_PROVENANCE"
+    },
+    {
+      "path": "governance/tools/validate-validator-provenance.mjs",
+      "operation": "CREATE",
+      "phase": "H6",
+      "reason": "Proves candidate cwd cannot silently determine which executable code validates.",
+      "artifactClass": "EXECUTABLE_VALIDATOR_PROVENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h6-validator-provenance.test.mjs",
+      "operation": "CREATE",
+      "phase": "H6",
+      "reason": "H6 coverage including relative-validator-authority hostiles.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/gee-v1/core/gate-contract-succession-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Add a LOCAL_EXPLICIT_AUTHORITY succession mode deriving authority from the single-use program authority; historical signed succession semantics unchanged.",
+      "artifactClass": "CONTRACT_SUCCESSION_INTEGRATION"
+    },
+    {
+      "path": "governance/historical-architecture/CONTRACT_SUCCESSION_R0002_LOCAL_AUTHORITY.json",
+      "operation": "CREATE",
+      "phase": "H7",
+      "reason": "The exact local succession instrument for the R0001 to R0002 contract switch.",
+      "artifactClass": "CONTRACT_SUCCESSION_INTEGRATION"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json",
+      "operation": "CREATE",
+      "phase": "H7",
+      "reason": "Immutable successor contract: fix the stale impossible NOT_STARTED closure condition, replace whole-ledger SHA with eventCount plus prefixSha256, add successor lineage metadata. Nothing else changes.",
+      "artifactClass": "CONTRACT_R0002_CREATION"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Advance the mutable contract pointer to R0002.",
+      "artifactClass": "CONTRACT_SUCCESSION_INTEGRATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "H7",
+      "reason": "R0003 immutable checkpoint.",
+      "artifactClass": "STATE_R0003_CREATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "H7",
+      "reason": "R0003 immutable open-defects record.",
+      "artifactClass": "STATE_R0003_CREATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "H7",
+      "reason": "R0003 seal chained to the R0002 seal ca29d6ad.",
+      "artifactClass": "STATE_R0003_CREATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Advance the mutable state pointer to R0003.",
+      "artifactClass": "STATE_R0003_CREATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "APPEND ONLY: exactly one new event at ordinal 59 natively binding stateRevision R0003 and its seal SHA. Events 1-58 stay byte-identical.",
+      "artifactClass": "CONTRACT_SUCCESSION_LEDGER_APPEND"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h7-contract-succession.test.mjs",
+      "operation": "CREATE",
+      "phase": "H7",
+      "reason": "H7 coverage: local succession authority, R0002 minimal-delta proof, event59 native pin, no digest cycle.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/schemas/gate-status-event.schema.json",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Add CONTRACT_SUCCESSION to the transitionType enum and permit the native state pin fields, keeping the schema in exact parity with the normative validator as ARCH-01 requires. The closed I2 execution table is untouched.",
+      "artifactClass": "CONTRACT_SUCCESSION_INTEGRATION"
+    },
+    {
+      "path": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "The transition-type guard pinned TRANSITION_TYPES.length at 16. A third narrow class (CONTRACT_SUCCESSION) is added by owner mandate, so the count becomes 17. The guard is STRENGTHENED, not relaxed: it still pins the I2 table at 21, and now also asserts no new STATUS exists, that CONTRACT_SUCCESSION is absent from the normal execution class, and that its table is a single self-transition reaching no new status.",
+      "artifactClass": "CONTRACT_SUCCESSION_INTEGRATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Regenerated derived projection of the 59-event ledger.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Regenerated derived projection.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "operation": "MODIFY",
+      "phase": "H7",
+      "reason": "Regenerated derived projection.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gee-v1/tests/historical-architecture-h8-probes.test.mjs",
+      "operation": "CREATE",
+      "phase": "H8",
+      "reason": "The six original architecture probes plus rollback, fork, orphan, R9999, tamper, validator identity, legacy and native replay, and local authority hostiles.",
+      "artifactClass": "TEST_AND_REPLAY_INFRASTRUCTURE"
+    },
+    {
+      "path": "governance/historical-architecture/F01_F34_CLASSIFICATION.json",
+      "operation": "CREATE",
+      "phase": "H8",
+      "reason": "Classifies every architecture-relevant Final Audit item as PROTECTED_BY_EXISTING_INVARIANT, NEW_TEST_ADDED or NOT_APPLICABLE_WITH_REASON.",
+      "artifactClass": "HISTORICAL_ARTIFACT_CLASSIFICATION"
+    },
+    {
+      "path": "governance/historical-architecture/AUTHORITY_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "H9",
+      "reason": "Deterministic single-use consumption record for the program authority.",
+      "artifactClass": "FINAL_LOCAL_COMMIT"
+    },
+    {
+      "path": "governance/historical-architecture/FINAL_IMPLEMENTATION_COHORT.json",
+      "operation": "CREATE",
+      "phase": "H9",
+      "reason": "Every changed path with SHA256, byteLength, phase and reason, produced before staging COMMIT B. Excludes only itself, which cannot hash its own bytes.",
+      "artifactClass": "FINAL_LOCAL_COMMIT"
+    }
+  ]
+}

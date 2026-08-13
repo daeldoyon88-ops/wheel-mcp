@@ -1,0 +1,56 @@
+{
+  "documentKind": "HISTORICAL_ARCHITECTURE_VALIDATOR_PROVENANCE_MANIFEST",
+  "schemaVersion": 1,
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "statement": "Canonical path and byte identity of every executable validator this program admits. Admission resolves validators by canonical path plus this digest; a candidate tree can never supply the code that judges it. Replay resolves validators by retained historical content identity instead. No key material is involved: a validator IS its bytes.",
+  "validators": [
+    {
+      "canonicalPath": "governance/tools/validate-status-ledger.mjs",
+      "sha256": "f2826af0b39cac07f0974f05b2fb175374ab330bc417acd93931b40209f4bb87",
+      "byteLength": 151044,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/validate-state-seal.mjs",
+      "sha256": "070994d8178acabb40345c79d9ed72a13453e462935dd09f84d09ec394f16d80",
+      "byteLength": 20161,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/validate-state-revision.mjs",
+      "sha256": "69a2f5395c50061625ba60afeb76aa60a7ccad0d3d426699947b31f7a7c0615e",
+      "byteLength": 15491,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/validate-artifact-classification.mjs",
+      "sha256": "ca107bfc6ef012ccfe033d136796e18d20156200f15ae08effca56eed9d73d04",
+      "byteLength": 6523,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/validate-legacy-state-binding.mjs",
+      "sha256": "c1f0b3d93c9c061593b0e3b3d52273bcd0952fbd7e9836cc9b57bbda8f137af8",
+      "byteLength": 3612,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "sha256": "8e7b119cd99a5f5544b3c3bfbce076af6a0a2a6e147bbd5e4a05018416e14bdc",
+      "byteLength": 5973,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/replay-governance-history.mjs",
+      "sha256": "224b74c5bce426a36b639e96903b7056e7af27d1ddda6262aec9ad1bf41173e0",
+      "byteLength": 4834,
+      "purpose": "ADMISSION_AND_REPLAY"
+    },
+    {
+      "canonicalPath": "governance/tools/validate-validator-provenance.mjs",
+      "sha256": "188ee3314a0641f8ff2d758b45b68dacb24f3c837fb153f6015ec5782a795a23",
+      "byteLength": 4940,
+      "purpose": "ADMISSION_AND_REPLAY"
+    }
+  ]
+}

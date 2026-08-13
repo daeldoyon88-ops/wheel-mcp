@@ -3,6 +3,32 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sha256Bytes } from './canonical-json.mjs';
 import { validateStateSeal } from './validate-state-seal.mjs';
+import { resolveStateRevisionLineage } from '../gee-v1/core/state-revision-resolver.mjs';
+
+export const DEFAULT_LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
+export const DEFAULT_LEGACY_BINDINGS_PATH = 'governance/historical-architecture/LEGACY_STATE_BINDINGS.json';
+
+/**
+ * Parse the ledger only. This must never call validateLedger: the ledger
+ * validator itself calls into this file, and re-entering it would be circular
+ * validation as well as unbounded recursion.
+ */
+function readLedgerEvents(ledgerPath) {
+  try {
+    return fs.readFileSync(ledgerPath, 'utf8').split(/\r?\n/).filter((line) => line.trim()).map((line) => JSON.parse(line));
+  } catch {
+    return null;
+  }
+}
+
+function readLegacyBindings(bindingsPath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(bindingsPath, 'utf8').replace(/^﻿/, ''));
+    return Array.isArray(parsed.bindings) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 const CHECKPOINT_FIELDS = ['gateId', 'stateRevision', 'milestone', 'resumePoint', 'completedTasks', 'openTasks', 'reusableEvidence', 'invalidatedEvidence', 'requiredNextActions', 'protectedHashes', 'createdAt'];
 const DEFECT_FIELDS = ['defectId', 'severity', 'status', 'description', 'affectedRequirements', 'evidence', 'detector', 'repairScope', 'blockingProgression', 'openedAt', 'closedAt', 'closureEvidence'];
@@ -80,7 +106,7 @@ function validateDefects(defects, previous, findings) {
   for (const defectId of priorOpen.keys()) if (!currentIds.has(defectId)) finding(findings, 'DEFECT_DROPPED', '/defects', defectId, 'all prior OPEN defects carried forward', 'An OPEN defect disappeared without a CLOSED transition.', 'REQ-DEF-01');
 }
 
-function validateStateRevision({ root, gateId, currentStatePath, contractPath }) {
+function validateStateRevision({ root, gateId, currentStatePath, contractPath, ledgerPath = null, legacyBindingsPath = null }) {
   const findings = [];
   const rootResolved = path.resolve(root);
   const gateRoot = path.join(rootResolved, 'governance', 'gates', gateId);
@@ -126,16 +152,74 @@ function validateStateRevision({ root, gateId, currentStatePath, contractPath })
     const currentCheckpoint = revisions[index].checkpoint;
     for (const action of prior?.requiredNextActions || []) if (!(currentCheckpoint?.completedTasks || []).includes(action)) finding(findings, 'RESTART_FROM_ZERO_DETECTED', `/${revisions[index].name}/completedTasks`, currentCheckpoint?.completedTasks, action, 'Next revision does not consume the prior checkpoint resume contract.', 'REQ-RSM-01');
   }
+  // H2 — the authoritative current revision comes from the append-only ledger,
+  // never from the highest directory name. `revisions` above is still read, but
+  // only to supply seal bytes and to notice revisions the ledger never bound.
+  const resolvedLedgerPath = ledgerPath
+    ? (path.isAbsolute(ledgerPath) ? ledgerPath : path.resolve(rootResolved, ledgerPath))
+    : path.join(rootResolved, ...DEFAULT_LEDGER_PATH.split('/'));
+  const resolvedBindingsPath = legacyBindingsPath
+    ? (path.isAbsolute(legacyBindingsPath) ? legacyBindingsPath : path.resolve(rootResolved, legacyBindingsPath))
+    : path.join(rootResolved, ...DEFAULT_LEGACY_BINDINGS_PATH.split('/'));
+  const events = readLedgerEvents(resolvedLedgerPath);
+  const legacyDocument = readLegacyBindings(resolvedBindingsPath);
+  const ledgerAvailable = Array.isArray(events);
+  let lineage = null;
+  {
+    // A gate subtree with no ledger (isolated fixtures, standalone checks) is
+    // resolved from the seal chain and REPORTED as unanchored, rather than
+    // being failed. Ledger presence and integrity are enforced by the ledger
+    // layer and by preflight; this tool validates revision structure and says
+    // honestly how strong its anchor was.
+    const seals = new Map();
+    for (const revision of revisions) {
+      const sealFile = path.join(revisionRoot, revision.name, 'STATE_SEAL.json');
+      if (!fs.existsSync(sealFile)) continue;
+      const bytes = fs.readFileSync(sealFile);
+      let sealJson;
+      try { sealJson = JSON.parse(bytes.toString('utf8')); } catch { continue; }
+      seals.set(revision.name, {
+        sha256: sha256Bytes(bytes),
+        gateId: sealJson.gateId,
+        stateRevision: sealJson.stateRevision,
+        previousStateSealSha256: sealJson.previousStateSealSha256
+      });
+    }
+    lineage = resolveStateRevisionLineage({
+      gateId,
+      events: ledgerAvailable ? events : [],
+      legacyBindings: legacyDocument?.bindings ?? [],
+      legacyEraMaxOrdinal: legacyDocument?.legacyEraMaxOrdinal ?? undefined,
+      seals,
+      presentRevisions: revisionNames
+    });
+    for (const lineageFinding of lineage.findings) {
+      finding(findings, lineageFinding.code, '/stateRevision', lineageFinding.detail ?? null, 'ledger-anchored revision lineage', 'Revision lineage is not anchored by the append-only ledger.', 'REQ-REV-02');
+    }
+  }
+
   if (current) {
     const target = resolveUnderRoot(rootResolved, current.revisionPath, findings, '/revisionPath');
-    const maxRevision = revisions.at(-1)?.number || 0;
-    const pointedRevision = Number.parseInt(current.stateRevision?.slice(1), 10);
     if (!target || !fs.existsSync(target)) finding(findings, 'POINTER_TARGET_MISSING', '/revisionPath', current.revisionPath, 'existing revision directory', 'CURRENT_STATE target is absent.', 'REQ-REV-02');
-    if (!Number.isInteger(pointedRevision) || pointedRevision < maxRevision) finding(findings, 'CHECKPOINT_ROLLBACK', '/stateRevision', current.stateRevision, `R${String(maxRevision).padStart(4, '0')}`, 'CURRENT_STATE points to an older revision.', 'REQ-REV-02');
-    if (pointedRevision > maxRevision) finding(findings, 'POINTER_TARGET_MISSING', '/stateRevision', current.stateRevision, 'existing maximum revision', 'CURRENT_STATE points beyond available revisions.', 'REQ-REV-02');
+    if (lineage?.resolved && current.stateRevision !== lineage.resolved) {
+      finding(findings, 'POINTER_NOT_LEDGER_ANCHORED', '/stateRevision', current.stateRevision, lineage.resolved, 'CURRENT_STATE must name the revision the ledger last bound.', 'REQ-REV-02');
+    }
     if (target && fs.existsSync(path.join(target, 'STATE_SEAL.json')) && sha256Bytes(fs.readFileSync(path.join(target, 'STATE_SEAL.json'))) !== current.stateSealSha256) finding(findings, 'POINTER_HASH_MISMATCH', '/stateSealSha256', current.stateSealSha256, sha256Bytes(fs.readFileSync(path.join(target, 'STATE_SEAL.json'))), 'CURRENT_STATE hash matches its seal bytes.', 'REQ-REV-02');
   }
-  return { valid: findings.length === 0, blockingCount: findings.length, findings, gateId, revisionCount: revisions.length, currentStatePath: path.relative(rootResolved, currentPath).replaceAll('\\', '/') };
+  return {
+    valid: findings.length === 0,
+    blockingCount: findings.length,
+    findings,
+    gateId,
+    revisionCount: revisions.length,
+    resolvedRevision: lineage?.resolved ?? null,
+    resolvedBy: lineage?.decidedBy ?? null,
+    anchorState: lineage?.anchorState ?? null,
+    ledgerAvailable,
+    sealChain: lineage?.sealChain ?? [],
+    orphanRevisions: lineage?.orphans ?? [],
+    currentStatePath: path.relative(rootResolved, currentPath).replaceAll('\\', '/')
+  };
 }
 
 export { validateStateRevision };

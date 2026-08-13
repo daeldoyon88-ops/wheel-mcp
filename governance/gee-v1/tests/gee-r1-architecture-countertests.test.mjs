@@ -204,7 +204,13 @@ test('ACT-03: a valid STATE_SEAL belonging to a different work unit is rejected 
 
   const view = createWheelProjectAdapter(tmp).getWorkUnitView('GATEC');
   assert.equal(view.authorityState.consistent, false);
-  assert.equal(view.authorityState.statusKnowledge, 'IDENTITY_BINDING_VIOLATION');
+  // The spoof is rejected STRICTLY EARLIER than it used to be. H3 gave the seal
+  // validator a canonical-location rule, so a seal declaring gateId GATEA while
+  // sitting in GATEC's subtree is refused as an invalid seal before its bytes
+  // are ever interpreted as state — rather than being parsed and only then
+  // caught by the identity-binding layer. Both outcomes reject the attack; this
+  // one rejects it sooner, so the reason code is now SEAL_INVALID.
+  assert.equal(view.authorityState.statusKnowledge, 'SEAL_INVALID');
 });
 
 test('core assertIdentityBinding: unit-level BOUND/VIOLATION contract', () => {

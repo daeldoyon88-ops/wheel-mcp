@@ -1,0 +1,150 @@
+{
+  "documentKind": "HISTORICAL_ARCHITECTURE_ARTIFACT_CLASSIFICATION_REGISTRY",
+  "schemaVersion": 1,
+  "modelDVersion": 1,
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "statement": "The MODEL D class of every governed artifact family this program verifies. The class decides what counts as proof; no entry may be verified by shape alone.",
+  "artifacts": [
+    {
+      "artifactId": "GATE_STATUS_LEDGER",
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "artifactClass": "APPEND_ONLY_LOG",
+      "verificationGround": "PREFIX_IMMUTABILITY",
+      "note": "Grows only at the end. Every prefix is the historical unit; the whole file never is."
+    },
+    {
+      "artifactId": "GATE14_STATE_SEAL_R0001",
+      "path": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "retainedByteLength": 1238
+    },
+    {
+      "artifactId": "GATE14_STATE_SEAL_R0002",
+      "path": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd",
+      "retainedByteLength": 1257
+    },
+    {
+      "artifactId": "GATE14_CHECKPOINT_R0001",
+      "path": "governance/gates/GATE14/state/revisions/R0001/CHECKPOINT.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "0d083f1f587288920f4a2727098a669287f5f262a89a53fad25895c0983e0605",
+      "retainedByteLength": 380
+    },
+    {
+      "artifactId": "GATE14_OPEN_DEFECTS_R0001",
+      "path": "governance/gates/GATE14/state/revisions/R0001/OPEN_DEFECTS.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "351f31f59e53bd2b7413ae1b9ff1d8c8389ff1075366fef1ad88e7dc690f85b4",
+      "retainedByteLength": 70
+    },
+    {
+      "artifactId": "GATE14_EXECUTION_CONTRACT_R0001",
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "artifactClass": "IMMUTABLE_VERSIONED_ARTIFACT",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+      "retainedByteLength": 11562
+    },
+    {
+      "artifactId": "GATE14_CURRENT_STATE_POINTER",
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "artifactClass": "MUTABLE_PROJECTION",
+      "verificationGround": "TARGET_LINEAGE",
+      "targetLineage": "GATE14_STATE_SEAL_R0001 -> GATE14_STATE_SEAL_R0002",
+      "note": "A pointer the architecture requires to move. Proved through the seal chain it names, never by a permanent byte pin. Its historical instance at ordinal 57 is retained separately in RETAINED_HISTORICAL_OBJECTS.json as recovered literal bytes verified against the event 57 pin."
+    },
+    {
+      "artifactId": "GATE14_CURRENT_CONTRACT_POINTER",
+      "path": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "artifactClass": "MUTABLE_PROJECTION",
+      "verificationGround": "TARGET_LINEAGE",
+      "targetLineage": "GATE14_EXECUTION_CONTRACT_R0001 -> GATE14_EXECUTION_CONTRACT_R0002"
+    },
+    {
+      "artifactId": "ACTIVE_GATE_POINTER",
+      "path": "governance/active/ACTIVE_GATE.json",
+      "artifactClass": "MUTABLE_PROJECTION",
+      "verificationGround": "TARGET_LINEAGE",
+      "targetLineage": "ACTIVE_GATE lifecycle activation event identity",
+      "note": "Successor-era ACTIVE_GATE binds stable activation and ledger identity, never mutable status-snapshot bytes."
+    },
+    {
+      "artifactId": "GATE_STATUS_SNAPSHOT",
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "b623ab361bfe0304f2c8edffbc22996305ac76c3f75246f8f9be333f7c1e1141",
+      "immutableSources": ["governance/state/GATE_STATUS_LEDGER.ndjson"],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-status-snapshot.mjs",
+        "sha256": "c09f9d24b9b687e3fca2b22963fb610d15734bd96bd5c33f6ee13b16447b65b4"
+      },
+      "note": "retainedSha256 is the expected reconstruction result AT ORDINAL 57, the historical instance this program must prove."
+    },
+    {
+      "artifactId": "ACTIVE_GATE_CONTEXT_JSON",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "eb5b36af71e0fb5e861e8ecfcbb6069960cd40644f768f480a1ff93c6aa9688f",
+      "immutableSources": [
+        "governance/active/ACTIVE_GATE.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "governance/GATE_REGISTRY_00_40.json"
+      ],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-active-gate-context.mjs",
+        "sha256": "27affd2a738c8eb12555ed611e20bff719fe4cc90c54211cab4ac195a5767cd7"
+      }
+    },
+    {
+      "artifactId": "ACTIVE_GATE_CONTEXT_MD",
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "artifactClass": "RECONSTRUCTABLE_PROJECTION",
+      "verificationGround": "DETERMINISTIC_RECONSTRUCTION",
+      "retainedSha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "immutableSources": [
+        "governance/active/ACTIVE_GATE.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "generatorIdentity": {
+        "path": "governance/tools/generate-active-gate-context.mjs",
+        "sha256": "27affd2a738c8eb12555ed611e20bff719fe4cc90c54211cab4ac195a5767cd7"
+      }
+    },
+    {
+      "artifactId": "PROJECT_OWNER_RELEASE_PUBLIC_KEY",
+      "path": "governance/authority/PROJECT_OWNER_RELEASE_KEY.json",
+      "artifactClass": "EXTERNAL_LEGACY_AUTHORITY",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "8ce3fc2cdfa0aa1a9f082374fc34fbf58916ab58f04e1fddc98da6190d9cab4f",
+      "retainedByteLength": 286,
+      "note": "Public half only, retained solely so historical owner-signed artifacts stay replayable. No key lifecycle is introduced."
+    },
+    {
+      "artifactId": "GATE14_HISTORICAL_EVIDENCE_GATE11",
+      "path": "governance/authority/historical/GATE11/gate11_gate_decision_v6.json",
+      "artifactClass": "OPAQUE",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "0a9142be304de3263f31a5b7aff47435f8da89cd7a6a60b817be4185b497d368",
+      "retainedByteLength": 828,
+      "note": "Historical measurement evidence whose content this layer never interprets; only its bytes are evidence."
+    },
+    {
+      "artifactId": "GENERATE_STATUS_SNAPSHOT_TOOL",
+      "path": "governance/tools/generate-status-snapshot.mjs",
+      "artifactClass": "EXECUTABLE_AUTHORITY",
+      "verificationGround": "RETAINED_IMMUTABLE_BYTES",
+      "retainedSha256": "c09f9d24b9b687e3fca2b22963fb610d15734bd96bd5c33f6ee13b16447b65b4",
+      "retainedByteLength": 3416,
+      "note": "Validators this program edits are deliberately NOT listed here. Their identity is owned by VALIDATOR_PROVENANCE_MANIFEST.json at H6, bound after the H2-H4 edits are final, so this registry can never carry a placeholder digest that invalidates itself."
+    }
+  ]
+}

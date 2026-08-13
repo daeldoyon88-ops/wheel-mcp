@@ -26,10 +26,17 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateExecutionContract } from '../contracts/validate-execution-contract.mjs';
 import { detectSealedMutation } from '../contracts/detect-sealed-mutation.mjs';
 import { validateAgainstJsonSchema } from '../contracts/validate-against-json-schema.mjs';
+import {
+  evaluatePostFreezeMaintenanceAuthorityV2,
+  isExactMaintenancePath,
+  PHASE_AUTHORIZE_PROGRAM_APPLY
+} from '../core/post-freeze-maintenance-authority.mjs';
 
 export const MISSIONS_DIR = 'governance/gee-v1/missions';
 export const MISSION_WORK_UNIT_TYPE = 'MISSION_REVISION';
@@ -38,6 +45,9 @@ export const POST_FREEZE_MAINTENANCE_AUTHORITY_FILENAME_RE =
   /^GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_[A-Za-z0-9_-]+\.json$/;
 export const POST_FREEZE_MAINTENANCE_AUTHORITY_SCHEMA_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'post-freeze-maintenance-authority.schema.json'
+);
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_V2_SCHEMA_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)), '..', 'schemas', 'post-freeze-maintenance-authority-v2.schema.json'
 );
 export const POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS = 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY';
 export const CANONICAL_GEE_REVISION_WORK_UNIT_ID_RE = /^GOVERNANCE_EXECUTION_EFFICIENCY_V1_R[0-9]+$/;
@@ -52,9 +62,11 @@ const CONTRACT_FILE_RE = /^GEE_V1_EXECUTION_CONTRACT_(R\d{4})\.json$/;
 
 function loadPostFreezeMaintenanceAuthorities(root) {
   const sourcesPath = path.join(root, ...POST_FREEZE_MAINTENANCE_AUTHORITY_RELATIVE_ROOT.split('/'));
-  let schema;
+  let v1Schema;
+  let v2Schema;
   try {
-    schema = readJson(POST_FREEZE_MAINTENANCE_AUTHORITY_SCHEMA_PATH);
+    v1Schema = readJson(POST_FREEZE_MAINTENANCE_AUTHORITY_SCHEMA_PATH);
+    v2Schema = readJson(POST_FREEZE_MAINTENANCE_AUTHORITY_V2_SCHEMA_PATH);
   } catch {
     return [{ authority: null, authorityPath: null, authorityRelativePath: null, validation: { valid: false, errors: [{ message: 'maintenance authority schema is unavailable' }] } }];
   }
@@ -76,8 +88,19 @@ function loadPostFreezeMaintenanceAuthorities(root) {
       } catch {
         return { authority: null, authorityPath, authorityRelativePath, validation: { valid: false, errors: [{ message: 'authority is not valid JSON' }] } };
       }
-      return { authority, authorityPath, authorityRelativePath, validation: validateAgainstJsonSchema(authority, schema) };
+      const schema = authority.schemaVersion === 2 ? v2Schema : v1Schema;
+      return {
+        authority,
+        authorityPath,
+        authorityRelativePath,
+        authoritySha256: crypto.createHash('sha256').update(fs.readFileSync(authorityPath)).digest('hex'),
+        validation: validateAgainstJsonSchema(authority, schema)
+      };
     });
+}
+
+function authorityWorkUnitId(authority) {
+  return authority?.schemaVersion === 2 ? authority?.programId : authority?.workUnitId;
 }
 
 function maintenanceAuthorityConflictResult(workUnitId, candidates) {
@@ -100,7 +123,104 @@ function maintenanceAuthorityConflictResult(workUnitId, candidates) {
   }
 }
 
-function maintenanceAuthorityResult(workUnitId, loaded) {
+function readJsonIfPresent(file) {
+  try { return readJson(file); } catch { return null; }
+}
+
+function resolveGovernedFile(root, relativePath) {
+  if (!isExactMaintenancePath(relativePath)) return null;
+  const resolved = path.resolve(root, ...relativePath.split('/'));
+  const relative = path.relative(root, resolved);
+  return relative && !relative.startsWith('..') && !path.isAbsolute(relative) ? resolved : null;
+}
+
+function observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorities) {
+  const ledgerPath = path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
+  const ledgerBytes = fs.readFileSync(ledgerPath);
+  const ledgerLines = ledgerBytes.toString('utf8').split(/\r?\n/).filter((line) => line.trim());
+  const ledgerEvents = ledgerLines.map((line) => JSON.parse(line));
+  const gateEvents = authority.preState.gateId === null ? [] : ledgerEvents.filter((event) => event.gateId === authority.preState.gateId);
+  const gateStateRoot = authority.preState.gateId === null ? null : path.join(root, 'governance', 'gates', authority.preState.gateId);
+  const currentState = gateStateRoot ? readJsonIfPresent(path.join(gateStateRoot, 'state', 'CURRENT_STATE.json')) : null;
+  const currentContract = gateStateRoot ? readJsonIfPresent(path.join(gateStateRoot, 'contracts', 'CURRENT_CONTRACT.json')) : null;
+  const activeGate = readJsonIfPresent(path.join(root, 'governance', 'active', 'ACTIVE_GATE.json'));
+  const manifestPath = resolveGovernedFile(root, authority.authorizedPathManifestPath);
+  const predecessor = authority.authorityPredecessor === null
+    ? null
+    : loadedAuthorities.find((candidate) => candidate.authority?.authorityId === authority.authorityPredecessor.authorityId);
+  return {
+    baseHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
+    ledgerEventCount: ledgerLines.length,
+    ledgerPrefixSha256: crypto.createHash('sha256').update(ledgerBytes).digest('hex'),
+    gateId: authority.preState.gateId,
+    gateStatus: gateEvents.at(-1)?.toStatus ?? null,
+    stateRevision: currentState?.stateRevision ?? null,
+    contractRevision: currentContract?.contractRevision ?? null,
+    activeGate: activeGate?.activeGate ?? null,
+    R8Absent: !fs.existsSync(path.join(root, 'governance', 'gee-v1', 'missions', 'GEE_V1_EXECUTION_CONTRACT_R0008.json')),
+    manifestSha256: manifestPath ? crypto.createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex') : null,
+    authorityPredecessorSha256: predecessor?.authoritySha256 ?? null,
+    requestedPaths: manifest?.paths?.map((entry) => entry.path) ?? [],
+    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? []
+  };
+}
+
+function maintenanceAuthorityV2Result(workUnitId, loaded, root, loadedAuthorities, maintenanceObservationProvider) {
+  const authority = loaded.authority;
+  const manifestPath = resolveGovernedFile(root, authority?.authorizedPathManifestPath);
+  const consumptionPath = resolveGovernedFile(root, authority?.consumptionRecordPath);
+  const manifest = manifestPath ? readJsonIfPresent(manifestPath) : null;
+  const consumptionRecord = consumptionPath ? readJsonIfPresent(consumptionPath) : null;
+  let observed = {};
+  let observationFinding = null;
+  try {
+    observed = typeof maintenanceObservationProvider === 'function'
+      ? maintenanceObservationProvider({ root, authority, manifest, loadedAuthorities })
+      : observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorities);
+  } catch (error) {
+    observationFinding = { code: 'POST_FREEZE_MAINTENANCE_OBSERVATION_FAILED', detail: error?.message || String(error) };
+  }
+  const evaluation = evaluatePostFreezeMaintenanceAuthorityV2({
+    authority,
+    manifest,
+    observed,
+    phase: PHASE_AUTHORIZE_PROGRAM_APPLY,
+    consumptionRecord
+  });
+  const findings = [
+    ...(loaded.validation.valid ? [] : [{ code: 'POST_FREEZE_MAINTENANCE_V2_SCHEMA_INVALID', detail: loaded.validation.errors }]),
+    ...(observationFinding ? [observationFinding] : []),
+    ...evaluation.findings
+  ];
+  const valid = findings.length === 0 && evaluation.programAuthorized;
+  const validationReason = valid
+    ? `schema-valid local explicit V2 maintenance authority: ${loaded.authorityRelativePath}`
+    : `invalid or inapplicable V2 maintenance authority: ${loaded.authorityRelativePath}`;
+  return {
+    workUnitId,
+    workUnitType: MISSION_WORK_UNIT_TYPE,
+    authorityKind: 'POST_FREEZE_MAINTENANCE_V2',
+    contract: null,
+    contractPath: null,
+    sealPath: null,
+    authorizedPaths: valid ? evaluation.authorizedPaths : [],
+    authorizedOperationClasses: valid ? evaluation.authorizedOperationClasses : [],
+    findings,
+    proofs: {
+      EXECUTION_CONTRACT: { state: 'NOT_APPLICABLE', reason: 'post-freeze maintenance is not a GEE revision' },
+      CONTRACT_INTEGRITY: { state: valid ? 'PROVEN' : 'FAILED', reason: validationReason },
+      PREREQUISITES: { state: 'NOT_APPLICABLE', reason: 'local explicit maintenance program has a bound pre-state instead of revision prerequisites' },
+      WORK_UNIT_EXECUTABLE: valid
+        ? { state: 'PROVEN', reason: 'single-use LOCAL_EXPLICIT_AUTHORITY V2 program authority matches the exact live pre-state and manifest' }
+        : { state: 'FAILED', reason: validationReason }
+    }
+  };
+}
+
+function maintenanceAuthorityResult(workUnitId, loaded, root, loadedAuthorities, maintenanceObservationProvider) {
+  if (loaded.authority?.schemaVersion === 2) {
+    return maintenanceAuthorityV2Result(workUnitId, loaded, root, loadedAuthorities, maintenanceObservationProvider);
+  }
   const valid = Boolean(loaded?.validation?.valid)
     && loaded.authority?.workUnitId === workUnitId
     && loaded.authority?.authorityClass === POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS
@@ -244,7 +364,7 @@ function deriveDelivered(root, revision) {
  *   file learning what the host project's work units are. An unresolvable rule
  *   is UNKNOWN, which is BLOCKED.
  */
-export function createGeeMissionAuthoritySource(repoRoot, { projectId = 'WHEEL', prerequisiteResolvers = {} } = {}) {
+export function createGeeMissionAuthoritySource(repoRoot, { projectId = 'WHEEL', prerequisiteResolvers = {}, maintenanceObservationProvider = null } = {}) {
   const root = path.resolve(repoRoot);
 
   function resolvePrerequisite(revisions, prerequisite) {
@@ -295,8 +415,9 @@ export function createGeeMissionAuthoritySource(repoRoot, { projectId = 'WHEEL',
 
     resolveWorkUnitAuthority(workUnitId) {
       const { revisions } = loadRevisions(root);
-      const maintenance = loadPostFreezeMaintenanceAuthorities(root)
-        .filter((candidate) => candidate.authority?.workUnitId === workUnitId);
+      const loadedMaintenance = loadPostFreezeMaintenanceAuthorities(root);
+      const maintenance = loadedMaintenance
+        .filter((candidate) => authorityWorkUnitId(candidate.authority) === workUnitId);
       if (maintenance.length > 0 && CANONICAL_GEE_REVISION_WORK_UNIT_ID_RE.test(workUnitId)) {
         return reservedMaintenanceWorkUnitResult(workUnitId, maintenance);
       }
@@ -304,7 +425,7 @@ export function createGeeMissionAuthoritySource(repoRoot, { projectId = 'WHEEL',
         return maintenanceAuthorityConflictResult(workUnitId, maintenance);
       }
       if (maintenance.length === 1) {
-        return maintenanceAuthorityResult(workUnitId, maintenance[0]);
+        return maintenanceAuthorityResult(workUnitId, maintenance[0], root, loadedMaintenance, maintenanceObservationProvider);
       }
       const revision = revisions.get(workUnitId);
       if (!revision) return null;

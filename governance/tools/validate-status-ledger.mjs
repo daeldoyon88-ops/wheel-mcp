@@ -47,7 +47,7 @@ import {
   verifyOwnerSignature as verifyGateStartOwnerSignature
 } from '../gee-v1/core/gate-start-authority.mjs';
 
-const STATUSES = [
+export const STATUSES = [
   'NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'REPAIR_REQUIRED',
   'BLOCKED_GOVERNANCE', 'INTERRUPTED_RESUMABLE', 'COMPLETE_AGENT',
   'COMPLETE_CONFIRMED', 'SUPERSEDED', 'REOPENED_AUTHORIZED'
@@ -100,13 +100,69 @@ export const HISTORICAL_RECONCILIATION_TRANSITIONS = [
   ['NOT_STARTED', 'INTERRUPTED_RESUMABLE', 'HISTORICAL_RECONCILIATION']
 ];
 
-export const TRANSITION_TYPES = [...NORMAL_EXECUTION_TRANSITION_TYPES, HISTORICAL_RECONCILIATION_TRANSITION_TYPE];
+export const CONTRACT_SUCCESSION_TRANSITION_TYPE = 'CONTRACT_SUCCESSION';
+
+/**
+ * CONTRACT_SUCCESSION class — a THIRD class, following the precedent this file
+ * already set when HISTORICAL_RECONCILIATION was added as "a separate class with
+ * its own, strictly narrower table".
+ *
+ * WHY IT IS SEPARATE AND NOT AN I2 ENTRY. The 21-entry NORMAL_EXECUTION table is
+ * the closed I2 set and is not widened here: not one entry is added to it,
+ * removed from it, or relaxed. Contract succession is not an execution
+ * transition — it changes which contract governs the Gate while the Gate keeps
+ * doing exactly what it was doing. Its status therefore does not move, which is
+ * precisely why it has no place in a table whose whole subject is status change.
+ *
+ * WHY IT EXISTS AT ALL. Before this, advancing CURRENT_CONTRACT left no trace in
+ * the append-only spine: the pointer moved and the ledger never knew. That made
+ * the contract lineage unauditable from history alone and, worse, meant a state
+ * revision created under a new contract had nothing in the ledger binding it.
+ *
+ * THE ONE ENTRY IS A SELF-TRANSITION, DELIBERATELY.
+ *   IN_PROGRESS -> IN_PROGRESS
+ * It cannot start a Gate, cannot close one, cannot confirm one, and cannot reach
+ * any status the Gate was not already in. A succession event that changed status
+ * would be an execution transition wearing a different name.
+ *
+ * The three tables are never consulted interchangeably, so a succession can
+ * never impersonate an execution transition or a reconciliation, and neither can
+ * borrow succession's permissions.
+ */
+export const CONTRACT_SUCCESSION_TRANSITIONS = [
+  ['IN_PROGRESS', 'IN_PROGRESS', 'CONTRACT_SUCCESSION']
+];
+
+export const TRANSITION_TYPES = [
+  ...NORMAL_EXECUTION_TRANSITION_TYPES,
+  HISTORICAL_RECONCILIATION_TRANSITION_TYPE,
+  CONTRACT_SUCCESSION_TRANSITION_TYPE
+];
 
 const REQUIRED_EVENT_FIELDS = [
   'schemaVersion', 'ordinal', 'eventId', 'gateId', 'fromStatus', 'toStatus',
   'transitionType', 'authorityPath', 'authoritySha256', 'previousEventSha256',
   'recordedAt', 'eventPayloadSha256'
 ];
+
+/**
+ * H4 — NATIVE STATE PIN.
+ *
+ * From this ordinal onward an event states, in its own bytes, which state
+ * revision it leaves the Gate in and the digest of that revision's seal. Before
+ * it, events did not, which is why ordinals 57 and 58 need explicit legacy
+ * binding records to be interpretable at all.
+ *
+ * The boundary is enforced in BOTH directions and that is deliberate:
+ *
+ *   - events at or after 59 MUST carry the pin, so there is never a native-era
+ *     event whose state binding has to be guessed, and never a reason to fall
+ *     back to a migration record;
+ *   - events before 59 must NOT carry it, so history stays byte-identical and
+ *     no one can retroactively add a state claim to an event that never made one.
+ */
+export const NATIVE_STATE_PIN_FIRST_ORDINAL = 59;
+export const NATIVE_STATE_PIN_FIELDS = Object.freeze(['stateRevision', 'stateRevisionSealSha256']);
 
 // A reconciliation event carries NO new event field: its authorityPath/authoritySha256 already pin
 // the reconciliation record byte-exactly inside the existing hash chain, and the record carries the
@@ -1080,7 +1136,23 @@ function resolveDependencyAuthority({ root, identity, sourceMap, extraExternalAu
  * byte attestation is disclosed below as an INFO finding rather than silently
  * dropped.
  */
-function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorOwnEvents, priorEvents = [], replayedStatusByGate, authority, sourceMap, policy, findings }) {
+function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorOwnEvents, priorEvents = [], replayedStatusByGate, authority, sourceMap, policy, mode = MODE_FULL, isGateHeadEvent = true, findings }) {
+  // TWO DIFFERENT QUESTIONS, TWO DIFFERENT GUARDS — conflating them is a bug in
+  // both directions.
+  //
+  //   integrityOnly   is this a historical replay? Then no present projection
+  //                   may be consulted at all.
+  //   pointerPinApplies  may this event's pin of a MUTABLE pointer still be
+  //                   compared to live bytes? Only while this event is the HEAD
+  //                   for its Gate. Once superseded, that pin is a historical
+  //                   observation, and demanding it still hold is the "mutable
+  //                   projection pinned forever" defect MODEL D forbids.
+  //
+  // The CURRENT_STATE lineage check below is present-tense but NOT a pointer
+  // pin: it proves today's state still descends from the authorized R0001 root,
+  // which stays meaningful long after this event stops being the head.
+  const integrityOnly = mode === MODE_LEDGER_INTEGRITY;
+  const pointerPinApplies = !integrityOnly && isGateHeadEvent;
   const before = findings.length;
   const R = (detectorId, jsonPointer, actualValue, expectedRule, message) =>
     finding(findings, detectorId, event, lineNumber, jsonPointer, actualValue, expectedRule, 'GATE_AUTHORIZATION_AUTHORITY', message, 'REQ-GAU-01');
@@ -1308,10 +1380,15 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
   } else if (contractArtifact.sha256 !== record.contractSha256) {
     R('GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH', '/', record.contractSha256, contractArtifact.sha256, 'The approved contract hash does not reproduce the live Gate execution contract bytes.');
   }
-  if (!currentContractArtifact) {
-    R('GATE_AUTHORIZATION_CONTRACT_MISSING', '/', currentContractPath, 'existing CURRENT_CONTRACT pointer', 'The Gate has no CURRENT_CONTRACT, so no contract revision is active.');
-  } else if (currentContractArtifact.sha256 !== record.currentContractSha256) {
-    R('GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH', '/', record.currentContractSha256, currentContractArtifact.sha256, 'The approved CURRENT_CONTRACT hash does not reproduce the live pointer bytes.');
+  // CURRENT_CONTRACT is a MUTABLE pointer. Its live bytes answer a present-tense
+  // question, so they are compared only in FULL mode; a historical replay must
+  // not require yesterday's pointer to still be today's.
+  if (pointerPinApplies) {
+    if (!currentContractArtifact) {
+      R('GATE_AUTHORIZATION_CONTRACT_MISSING', '/', currentContractPath, 'existing CURRENT_CONTRACT pointer', 'The Gate has no CURRENT_CONTRACT, so no contract revision is active.');
+    } else if (currentContractArtifact.sha256 !== record.currentContractSha256) {
+      R('GATE_AUTHORIZATION_CONTRACT_SHA_MISMATCH', '/', record.currentContractSha256, currentContractArtifact.sha256, 'The approved CURRENT_CONTRACT hash does not reproduce the live pointer bytes.');
+    }
   }
 
   // ----- STATE cohort: immutable R0001 members plus mutable CURRENT_STATE lineage -----
@@ -1337,7 +1414,13 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
     }
   }
 
-  validateAuthorizationStateLineage({ root, ledgerPath, event, lineNumber, record, findings });
+  // The whole CURRENT_STATE lineage check is PRESENT CONSISTENCY: it reads the
+  // live pointer and the live seal and compares them to the replayed head.
+  // Asking it during a historical prefix replay is what made ordinal 57
+  // unreplayable once ordinal 58 landed.
+  if (!integrityOnly) {
+    validateAuthorizationStateLineage({ root, ledgerPath, event, lineNumber, record, findings });
+  }
 
   // ----- DERIVED cohort: exact path cohort, permanently (see the note above) -----
   const expectedDerivedPaths = gateAuthorizationDerivedCohortPaths();
@@ -1354,8 +1437,12 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
 }
 
 /** Permanent proof for modern START events (GATE14-GATE40). */
-function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEvents = [], authority, policy = null, findings }) {
+function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEvents = [], authority, policy = null, mode = MODE_FULL, isGateHeadEvent = true, findings }) {
   const before = findings.length;
+  // Same split as AUTHORIZATION: a superseded START's pointer pin is history,
+  // but its immutable bindings are checked in every mode.
+  const integrityOnly = mode === MODE_LEDGER_INTEGRITY;
+  const pointerPinApplies = !integrityOnly && isGateHeadEvent;
   const R = (detectorId, pointer, actual, expected, message) =>
     finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_START_AUTHORITY', message, 'REQ-GSA-01');
   const expectedRecordPath = gateStartRecordPath(event.gateId);
@@ -1425,20 +1512,36 @@ function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEve
   const currentContractPath = `governance/gates/${event.gateId}/contracts/CURRENT_CONTRACT.json`;
   const contract = readLiveArtifact(root, contractPath);
   const currentContract = readLiveArtifact(root, currentContractPath);
+  // EXECUTION_CONTRACT_R0001 is IMMUTABLE, so its bytes are checked in both modes.
   if (!contract || contract.sha256 !== record.contractSha256) R('GATE_START_CONTRACT_SHA_MISMATCH', '/contractSha256', record.contractSha256, contract?.sha256 || null, 'START authority does not bind the live execution contract.');
-  if (!currentContract || currentContract.sha256 !== record.currentContractSha256) R('GATE_START_CURRENT_CONTRACT_SHA_MISMATCH', '/currentContractSha256', record.currentContractSha256, currentContract?.sha256 || null, 'START authority does not bind the live CURRENT_CONTRACT pointer.');
+  // CURRENT_CONTRACT is MUTABLE. Comparing it here in integrity mode is exactly
+  // what would make event 58 permanently unreplayable after a lawful contract
+  // succession advances the pointer.
+  if (pointerPinApplies && (!currentContract || currentContract.sha256 !== record.currentContractSha256)) R('GATE_START_CURRENT_CONTRACT_SHA_MISMATCH', '/currentContractSha256', record.currentContractSha256, currentContract?.sha256 || null, 'START authority does not bind the live CURRENT_CONTRACT pointer.');
   let contractJson = null;
   try { contractJson = JSON.parse(contract.bytes.toString('utf8')); } catch { /* hash finding above is sufficient */ }
   if (contractJson && (!Array.isArray(record.functionalExecutionScope) || record.functionalExecutionScope.length !== contractJson.authorizedPaths?.length || [...record.functionalExecutionScope].sort().some((p, i) => p !== [...contractJson.authorizedPaths].sort()[i]))) R('GATE_START_FUNCTIONAL_SCOPE_MISMATCH', '/functionalExecutionScope', record.functionalExecutionScope, contractJson.authorizedPaths, 'Functional execution is limited to the exact current contract scope.');
-  const active = readLiveArtifact(root, 'governance/active/ACTIVE_GATE.json');
-  let activeJson = null; try { activeJson = active ? JSON.parse(active.bytes.toString('utf8')) : null; } catch { /* reported below */ }
-  if (!active || !activeJson || activeJson.activeGate !== record.activeGatePreState?.activeGate) R('GATE_START_ACTIVE_GATE_MUTATION', '/activeGatePreState', activeJson?.activeGate || null, record.activeGatePreState?.activeGate, 'START must not switch ACTIVE_GATE.');
+  // ACTIVE_GATE is a MUTABLE lifecycle pointer. In FULL mode we assert it was
+  // not switched by this START; in integrity mode the historical claim is
+  // verified by reconstructing ACTIVE_GATE at this ordinal (see H1), not by
+  // reading whatever the pointer says today.
+  if (!integrityOnly) {
+    const active = readLiveArtifact(root, 'governance/active/ACTIVE_GATE.json');
+    let activeJson = null; try { activeJson = active ? JSON.parse(active.bytes.toString('utf8')) : null; } catch { /* reported below */ }
+    if (!active || !activeJson || activeJson.activeGate !== record.activeGatePreState?.activeGate) R('GATE_START_ACTIVE_GATE_MUTATION', '/activeGatePreState', activeJson?.activeGate || null, record.activeGatePreState?.activeGate, 'START must not switch ACTIVE_GATE.');
+  }
 
   const preSeal = readLiveArtifact(root, `governance/gates/${event.gateId}/state/revisions/${record.preStateRevision}/STATE_SEAL.json`);
   const preDefects = readLiveArtifact(root, `governance/gates/${event.gateId}/state/revisions/${record.preStateRevision}/OPEN_DEFECTS.json`);
   let defectsKnowledge = 'UNKNOWN';
   try { const defects = JSON.parse(preDefects.bytes.toString('utf8')); defectsKnowledge = Array.isArray(defects.defects) ? (defects.defects.length === 0 ? 'KNOWN_ZERO' : 'KNOWN_NONZERO') : 'UNKNOWN'; } catch { /* unknown remains blocking */ }
-  const readinessVerdict = prefixSha && record.preStateRevision === 'R0001' && preSeal?.sha256 === record.preStateSealSha256 && defectsKnowledge === 'KNOWN_ZERO' && contract?.sha256 === record.contractSha256 && currentContract?.sha256 === record.currentContractSha256 && event.fromStatus === 'AUTHORIZED_NOT_STARTED' ? 'READY' : 'BLOCKED';
+  // The readiness digest must reproduce identically in both modes, or a historical
+  // replay would report a digest mismatch for a record that was correct when
+  // written. In integrity mode the MUTABLE pointer term is taken from the
+  // record's own immutable bytes (self-consistency) rather than from the live
+  // file; every IMMUTABLE term is still checked against real bytes.
+  const currentContractTerm = pointerPinApplies ? currentContract?.sha256 : record.currentContractSha256;
+  const readinessVerdict = prefixSha && record.preStateRevision === 'R0001' && preSeal?.sha256 === record.preStateSealSha256 && defectsKnowledge === 'KNOWN_ZERO' && contract?.sha256 === record.contractSha256 && currentContractTerm === record.currentContractSha256 && event.fromStatus === 'AUTHORIZED_NOT_STARTED' ? 'READY' : 'BLOCKED';
   const readiness = computeGateStartReadinessDigest({
     projectId: record.projectId, gateId: record.gateId, status: event.fromStatus,
     preStartLedgerSha256: record.preStartLedgerSha256, previousEventSha256: record.previousEventSha256,
@@ -1458,6 +1561,94 @@ function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEve
  * attempt to spend an authorization privilege on a privilege it never granted.
  * Detected structurally, from the cited document's own self-declared kind.
  */
+/**
+ * Proof obligations for a CONTRACT_SUCCESSION event.
+ *
+ * The event is only the RECORD of a succession; the succession itself is
+ * authorized by a single-use local authority document, which this event cites
+ * by path and digest exactly as every other transition class does. Everything
+ * below is checked against real bytes:
+ *
+ *   - the cited authority is a contract succession authority for THIS Gate;
+ *   - the predecessor contract it names still hashes as it says;
+ *   - the successor contract exists, hashes as declared, and declares its own
+ *     predecessor lineage back to that same predecessor;
+ *   - the successor revision is exactly one greater than the predecessor's;
+ *   - the event's native state pin names a real, sealed revision whose seal
+ *     chains to the state that existed before the succession.
+ *
+ * NO DIGEST CYCLE: the seal the event pins is computed from the contract and the
+ * previous seal, never from the event, so the event can bind the seal without
+ * the seal needing to know the event.
+ */
+function validateContractSuccession({ root, event, lineNumber, authority, mode = MODE_FULL, findings }) {
+  const before = findings.length;
+  const R = (detectorId, pointer, actual, expected, message) =>
+    finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_CONTRACT_SUCCESSION_AUTHORITY', message, 'REQ-CSU-01');
+  if (!authority || authority.actualSha !== event.authoritySha256) {
+    R('CONTRACT_SUCCESSION_AUTHORITY_UNRESOLVED', '/authoritySha256', event.authoritySha256, 'resolvable cited authority', 'The succession authority cited by this event cannot be resolved to its exact bytes.');
+    return;
+  }
+  let record;
+  try { record = JSON.parse(fs.readFileSync(authority.filePath, 'utf8')); }
+  catch { R('CONTRACT_SUCCESSION_AUTHORITY_MALFORMED', '/', event.authorityPath, 'JSON object', 'Succession authority is not parsable JSON.'); return; }
+
+  if (record.documentKind !== 'GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY') R('CONTRACT_SUCCESSION_AUTHORITY_KIND_INVALID', '/', record.documentKind, 'GATE_CONTRACT_SUCCESSION_LOCAL_AUTHORITY', 'Cited document is not a contract succession authority.');
+  if (record.gateId !== event.gateId) R('CONTRACT_SUCCESSION_GATE_MISMATCH', '/gateId', record.gateId, event.gateId, 'Succession authority belongs to another Gate.');
+  if (record.authorityMode !== 'LOCAL_EXPLICIT_AUTHORITY') R('CONTRACT_SUCCESSION_MODE_INVALID', '/authorityMode', record.authorityMode, 'LOCAL_EXPLICIT_AUTHORITY', 'Unsupported succession authority mode.');
+  if (record.maxUse !== 1) R('CONTRACT_SUCCESSION_MAX_USE_INVALID', '/maxUse', record.maxUse, 1, 'A succession authority is single use.');
+
+  const predecessor = readLiveArtifact(root, record.predecessorContractPath);
+  const successor = readLiveArtifact(root, record.successorContractPath);
+  if (!predecessor || predecessor.sha256 !== record.predecessorContractSha256) {
+    R('CONTRACT_SUCCESSION_PREDECESSOR_MISMATCH', '/predecessorContractSha256', record.predecessorContractSha256, predecessor?.sha256 ?? null, 'The predecessor contract bytes do not reproduce the authorized digest.');
+  }
+  if (!successor || successor.sha256 !== record.successorContractSha256) {
+    R('CONTRACT_SUCCESSION_SUCCESSOR_MISMATCH', '/successorContractSha256', record.successorContractSha256, successor?.sha256 ?? null, 'The successor contract bytes do not reproduce the authorized digest.');
+  }
+  if (record.successorContractPath === record.predecessorContractPath) {
+    R('CONTRACT_SUCCESSION_PREDECESSOR_MUTATION_FORBIDDEN', '/successorContractPath', record.successorContractPath, 'a new immutable contract path', 'A succession may never overwrite its predecessor.');
+  }
+  let successorJson = null;
+  try { successorJson = successor ? JSON.parse(successor.bytes.toString('utf8')) : null; } catch { successorJson = null; }
+  if (successorJson) {
+    if (successorJson.gateId !== event.gateId) R('CONTRACT_SUCCESSION_SUCCESSOR_GATE_MISMATCH', '/gateId', successorJson.gateId, event.gateId, 'Successor contract belongs to another Gate.');
+    if (successorJson.previousContractPath !== record.predecessorContractPath || successorJson.previousContractSha256 !== record.predecessorContractSha256) {
+      R('CONTRACT_SUCCESSION_LINEAGE_MISMATCH', '/previousContractSha256', successorJson.previousContractSha256 ?? null, record.predecessorContractSha256, 'The successor contract must declare the exact predecessor it succeeds.');
+    }
+    const predecessorRevision = Number.parseInt(String(record.predecessorContractRevision || '').slice(1), 10);
+    const successorRevision = Number.parseInt(String(successorJson.contractRevision || '').slice(1), 10);
+    if (!Number.isInteger(predecessorRevision) || !Number.isInteger(successorRevision) || successorRevision !== predecessorRevision + 1) {
+      R('CONTRACT_SUCCESSION_REVISION_GAP', '/contractRevision', successorJson.contractRevision, `R${String(predecessorRevision + 1).padStart(4, '0')}`, 'Contract revisions advance by exactly one.');
+    }
+  }
+
+  // The native state pin must name a real sealed revision for this Gate.
+  const sealPath = `governance/gates/${event.gateId}/state/revisions/${event.stateRevision}/STATE_SEAL.json`;
+  const seal = readLiveArtifact(root, sealPath);
+  if (!seal || seal.sha256 !== event.stateRevisionSealSha256) {
+    R('CONTRACT_SUCCESSION_STATE_PIN_MISMATCH', '/stateRevisionSealSha256', event.stateRevisionSealSha256, seal?.sha256 ?? null, 'The native state pin does not reproduce the sealed revision it names.');
+  } else {
+    let sealJson = null;
+    try { sealJson = JSON.parse(seal.bytes.toString('utf8')); } catch { sealJson = null; }
+    if (sealJson) {
+      if (sealJson.gateId !== event.gateId || sealJson.stateRevision !== event.stateRevision) {
+        R('CONTRACT_SUCCESSION_STATE_IDENTITY_MISMATCH', '/stateRevision', sealJson.stateRevision, event.stateRevision, 'The pinned seal does not identify the pinned revision.');
+      }
+      if (sealJson.payload?.executionStatus !== event.toStatus) {
+        R('CONTRACT_SUCCESSION_STATE_STATUS_MISMATCH', '/toStatus', sealJson.payload?.executionStatus, event.toStatus, 'The new revision must record the status the Gate is actually in.');
+      }
+      if (sealJson.previousStateSealSha256 !== record.previousStateSealSha256) {
+        R('CONTRACT_SUCCESSION_STATE_CHAIN_MISMATCH', '/previousStateSealSha256', sealJson.previousStateSealSha256, record.previousStateSealSha256, 'The new revision seal must chain to the state that existed before the succession.');
+      }
+    }
+  }
+
+  if (findings.length === before) {
+    finding(findings, 'CONTRACT_SUCCESSION_APPLIED', event, lineNumber, '/toStatus', event.toStatus, 'single-use local contract succession authority', 'GATE_CONTRACT_SUCCESSION_AUTHORITY', 'Contract succession authority was verified and consumed.', 'REQ-CSU-01', 'INFO');
+  }
+}
+
 function checkGateAuthorizationRecordNotBorrowed({ event, lineNumber, authority, findings }) {
   if (event.transitionType === GATE_AUTHORIZATION_TRANSITION_TYPE || !authority) return;
   let cited;
@@ -1476,8 +1667,23 @@ function checkGateStartRecordNotBorrowed({ event, lineNumber, authority, finding
 
 function checkEventShape(event, findings, lineNumber) {
   const keys = Object.keys(event);
+  const nativeEra = Number.isInteger(event.ordinal) && event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL;
+  const allowedFields = nativeEra ? [...REQUIRED_EVENT_FIELDS, ...NATIVE_STATE_PIN_FIELDS] : REQUIRED_EVENT_FIELDS;
   const missing = REQUIRED_EVENT_FIELDS.filter((key) => !Object.prototype.hasOwnProperty.call(event, key));
-  const extra = keys.filter((key) => !REQUIRED_EVENT_FIELDS.includes(key));
+  const extra = keys.filter((key) => !allowedFields.includes(key));
+  if (nativeEra) {
+    for (const key of NATIVE_STATE_PIN_FIELDS) {
+      if (!Object.prototype.hasOwnProperty.call(event, key)) {
+        finding(findings, 'NATIVE_STATE_PIN_MISSING', event, lineNumber, `/${key}`, undefined, `required from ordinal ${NATIVE_STATE_PIN_FIRST_ORDINAL}`, 'event schema', `Native-era events must pin their resulting state revision; ${key} is missing.`, 'REQ-LED-01');
+      }
+    }
+    if (Object.hasOwn(event, 'stateRevision') && !/^R[0-9]{4}$/.test(String(event.stateRevision))) {
+      finding(findings, 'NATIVE_STATE_PIN_INVALID', event, lineNumber, '/stateRevision', event.stateRevision, 'Rxxxx', 'event schema', 'Native state pin revision is malformed.', 'REQ-LED-01');
+    }
+    if (Object.hasOwn(event, 'stateRevisionSealSha256') && !/^[a-f0-9]{64}$/.test(String(event.stateRevisionSealSha256))) {
+      finding(findings, 'NATIVE_STATE_PIN_INVALID', event, lineNumber, '/stateRevisionSealSha256', event.stateRevisionSealSha256, 'SHA-256 hex', 'event schema', 'Native state pin seal digest is malformed.', 'REQ-LED-01');
+    }
+  }
   for (const key of missing) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/', undefined, `required field ${key}`, 'event schema', `Required event field ${key} is missing.`, 'REQ-LED-01');
   for (const key of extra) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, `/${key}`, event[key], 'additionalProperties=false', 'event schema', `Unknown event field ${key} is forbidden.`, 'REQ-LED-01');
   if (event.schemaVersion !== 1) finding(findings, 'SCHEMA_VIOLATION', event, lineNumber, '/schemaVersion', event.schemaVersion, 'const 1', 'event schema', 'Unsupported event schema version.', 'REQ-LED-01');
@@ -1515,7 +1721,39 @@ const DEFAULT_POLICY = Object.freeze({
   }
 });
 
-export function validateLedger({ root, ledgerPath, sourceMapPath = null, registryPath = null, policy = null }) {
+/**
+ * H4 — LEDGER INTEGRITY and PRESENT CONSISTENCY are two different questions.
+ *
+ *   LEDGER_INTEGRITY  "was this history validly written?"  Answered from the
+ *                     event bytes, the chain, the authorities and the IMMUTABLE
+ *                     artifacts those events pinned. Must be answerable about
+ *                     ordinal N using only what existed at ordinal N.
+ *
+ *   PRESENT_CONSISTENCY  "do today's mutable projections agree with the ledger
+ *                     HEAD?" Answered from CURRENT_STATE, CURRENT_CONTRACT and
+ *                     ACTIVE_GATE as they are right now.
+ *
+ * They were fused, and that fusion was a real defect with two consequences:
+ *
+ *   1. Replaying ordinal 57 compared the status replayed at 57
+ *      (AUTHORIZED_NOT_STARTED) against the CURRENT seal (IN_PROGRESS, R0002)
+ *      and blocked. History could not be replayed once history moved on.
+ *
+ *   2. Worse and still latent: event 58 pins currentContractSha256, the bytes of
+ *      a MUTABLE pointer. The moment a contract succession advances that
+ *      pointer, the pin can never hold again and event 58 would become
+ *      permanently unreplayable. Fusing the two questions makes lawful forward
+ *      progress destroy verifiable history.
+ *
+ * In LEDGER_INTEGRITY mode, claims a record makes about mutable projections are
+ * verified for SELF-CONSISTENCY against the record's own immutable bytes, not
+ * against today's files. The immutable artifacts stay fully byte-checked in both
+ * modes — nothing is relaxed except the question being asked.
+ */
+export const MODE_LEDGER_INTEGRITY = 'LEDGER_INTEGRITY';
+export const MODE_FULL = 'FULL';
+
+export function validateLedger({ root, ledgerPath, sourceMapPath = null, registryPath = null, policy = null, mode = MODE_FULL }) {
   const effectivePolicy = { ...DEFAULT_POLICY, ...(policy || {}) };
   const findings = [];
   const sourceMapResolution = resolveSourceMapPath({ root, sourceMapPath });
@@ -1580,9 +1818,15 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
     // table. Neither class can borrow the other's permissions, so normal execution semantics are
     // exactly what they were before reconciliation existed.
     const isHistoricalReconciliation = event.transitionType === HISTORICAL_RECONCILIATION_TRANSITION_TYPE;
-    const table = isHistoricalReconciliation ? HISTORICAL_RECONCILIATION_TRANSITIONS : TRANSITIONS;
+    const isContractSuccession = event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE;
+    const table = isHistoricalReconciliation ? HISTORICAL_RECONCILIATION_TRANSITIONS
+      : isContractSuccession ? CONTRACT_SUCCESSION_TRANSITIONS
+      : TRANSITIONS;
+    const tableName = isHistoricalReconciliation ? 'transition in the narrow historical reconciliation table'
+      : isContractSuccession ? 'transition in the single-entry contract succession table'
+      : 'transition in closed I2 table';
     const allowed = table.some(([from, to, type]) => `${from ?? 'null'}>${to}:${type}` === key);
-    if (!allowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/', key, isHistoricalReconciliation ? 'transition in the narrow historical reconciliation table' : 'transition in closed I2 table', 'transition table', isHistoricalReconciliation ? 'Transition is not an authorized historical reconciliation.' : 'Transition is not present in the closed state machine.', 'REQ-LED-02');
+    if (!allowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/', key, tableName, 'transition table', isHistoricalReconciliation ? 'Transition is not an authorized historical reconciliation.' : isContractSuccession ? 'Transition is not an authorized contract succession.' : 'Transition is not present in the closed state machine.', 'REQ-LED-02');
     if (event.fromStatus === null) genesisCount.set(event.gateId, (genesisCount.get(event.gateId) || 0) + 1);
     const current = currentByGate.get(event.gateId);
     if (current !== undefined && event.fromStatus !== current) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/fromStatus', event.fromStatus, current, 'fromStatus equals replayed current status', 'fromStatus does not match the replayed gate state.', 'REQ-LED-02');
@@ -1622,6 +1866,8 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
         authority,
         sourceMap,
         policy: effectivePolicy,
+        mode,
+        isGateHeadEvent: !events.slice(i + 1).some((later) => later.gateId === event.gateId),
         findings
       });
     }
@@ -1640,9 +1886,14 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
           priorEvents: events.slice(0, i),
           authority,
           policy: effectivePolicy,
+          mode,
+          isGateHeadEvent: !events.slice(i + 1).some((later) => later.gateId === event.gateId),
           findings
         });
       }
+    }
+    if (event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE) {
+      validateContractSuccession({ root, event, lineNumber, authority, mode, findings });
     }
     checkGateAuthorizationRecordNotBorrowed({ event, lineNumber, authority, findings });
     checkGateStartRecordNotBorrowed({ event, lineNumber, authority, findings });
@@ -1716,7 +1967,7 @@ export function reconstructLedgerPrefixBytes(ledgerPath, throughOrdinal) {
  * This is intentionally a pure ADDITION: it never changes what `validateLedger`
  * itself accepts, rejects, or returns for the live ledger.
  */
-export function validateLedgerPrefix({ root, ledgerPath, throughOrdinal, expectedPrefixSha256 = null, sourceMapPath = null, registryPath = null, policy = null }) {
+export function validateLedgerPrefix({ root, ledgerPath, throughOrdinal, expectedPrefixSha256 = null, sourceMapPath = null, registryPath = null, policy = null, mode = MODE_LEDGER_INTEGRITY }) {
   const prefixBytes = reconstructLedgerPrefixBytes(ledgerPath, throughOrdinal);
   const prefixSha256 = sha256Bytes(prefixBytes);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-ledger-prefix-'));
@@ -1724,18 +1975,45 @@ export function validateLedgerPrefix({ root, ledgerPath, throughOrdinal, expecte
   let prefixReport;
   try {
     fs.writeFileSync(tmpLedgerPath, prefixBytes);
-    prefixReport = validateLedger({ root, ledgerPath: tmpLedgerPath, sourceMapPath, registryPath, policy });
+    // Historical replay defaults to LEDGER_INTEGRITY: asking a past ordinal to
+    // agree with today's mutable projections is the defect, not the check.
+    prefixReport = validateLedger({ root, ledgerPath: tmpLedgerPath, sourceMapPath, registryPath, policy, mode });
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
   return {
     throughOrdinal,
+    mode,
     prefixSha256,
     expectedPrefixSha256,
     matchesExpectedHistoricalDigest: expectedPrefixSha256 === null ? null : prefixSha256 === expectedPrefixSha256,
     prefixChainValid: prefixReport.valid,
     prefixFindings: prefixReport.findings,
     liveLedgerPath: path.relative(path.resolve(root), path.resolve(ledgerPath)).replaceAll('\\', '/')
+  };
+}
+
+/**
+ * PRESENT CONSISTENCY — the other half of the split.
+ *
+ * Asks only whether today's mutable projections agree with the ledger HEAD.
+ * This is deliberately a separate entry point: it is meaningful only at the
+ * head, and it must never be mistaken for, or mixed into, a claim about history.
+ */
+export function validatePresentConsistency({ root, ledgerPath, sourceMapPath = null, registryPath = null, policy = null }) {
+  const full = validateLedger({ root, ledgerPath, sourceMapPath, registryPath, policy, mode: MODE_FULL });
+  const integrity = validateLedger({ root, ledgerPath, sourceMapPath, registryPath, policy, mode: MODE_LEDGER_INTEGRITY });
+  const integrityCodes = new Set(integrity.findings.map((f) => `${f.detectorId}:${f.lineNumber}`));
+  // Whatever FULL reports that INTEGRITY does not is, by construction, a
+  // present-tense disagreement rather than a defect in the written history.
+  const presentFindings = full.findings.filter((f) => !integrityCodes.has(`${f.detectorId}:${f.lineNumber}`));
+  return {
+    ledgerIntegrityValid: integrity.valid,
+    presentConsistent: presentFindings.filter((f) => f.severity === 'BLOCKING').length === 0,
+    eventCount: full.events.length,
+    ledgerSha256: full.ledgerSha256,
+    integrityFindings: integrity.findings,
+    presentFindings
   };
 }
 

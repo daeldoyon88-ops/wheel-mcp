@@ -1,0 +1,90 @@
+{
+  "document": "HISTORICAL_ARCHITECTURE_DL3_PATH_CORRECTION_RATIFICATION",
+  "schemaVersion": 1,
+  "recordId": "DL3_PATH_CORRECTION_RATIFICATION_R1",
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "recordedAt": "2026-08-13T00:00:00.000Z",
+  "baseHead": "609cc5d16ce2bb176eefd149a8475f06e0ab75a4",
+  "reason": "PATH_LOCATION_CORRECTION_ONLY",
+  "semanticExpansion": false,
+  "cohortSemanticSize": 73,
+  "cohortSemanticSizeBefore": 73,
+  "cohortSemanticSizeAfter": 73,
+  "statement": "Six entries of the GATE14 historical evidence preservation cohort were originally written under the prefix governance/tests/. Those files have never existed at that location; their real and only location is governance/gee-v1/tests/. This record ratifies the six filesystem path corrections that were already proven during H0 discovery and already carried at their corrected locations by H0_EXACT_PRESERVATION_COHORT.json. No file was added to the cohort, none removed, and no artifact changed meaning: the cohort is exactly 73 members before and after.",
+  "incorrectPathPrefix": "governance/tests/",
+  "correctPathPrefix": "governance/gee-v1/tests/",
+  "corrections": [
+    {
+      "fileName": "precontract-authority.test.mjs",
+      "incorrectPath": "governance/tests/precontract-authority.test.mjs",
+      "correctPath": "governance/gee-v1/tests/precontract-authority.test.mjs",
+      "incorrectPathExists": false,
+      "correctPathExists": true,
+      "sha256": "ec55e897f8ad6a3a05c2f776dbc5a014a7e10404443b1192759e8a4b8cd5a55d",
+      "byteLength": 10474,
+      "classification": "H0_DEPENDENCY"
+    },
+    {
+      "fileName": "gee-r1-final-activation-ledger-binding.test.mjs",
+      "incorrectPath": "governance/tests/gee-r1-final-activation-ledger-binding.test.mjs",
+      "correctPath": "governance/gee-v1/tests/gee-r1-final-activation-ledger-binding.test.mjs",
+      "incorrectPathExists": false,
+      "correctPathExists": true,
+      "sha256": "5ed088cad50709ea5245a51b989f709628d8576dccf771e0236d0a9ea4d67ee5",
+      "byteLength": 36785,
+      "classification": "H0_DEPENDENCY"
+    },
+    {
+      "fileName": "gee-r1-final-closure-blocker-fix-r1.test.mjs",
+      "incorrectPath": "governance/tests/gee-r1-final-closure-blocker-fix-r1.test.mjs",
+      "correctPath": "governance/gee-v1/tests/gee-r1-final-closure-blocker-fix-r1.test.mjs",
+      "incorrectPathExists": false,
+      "correctPathExists": true,
+      "sha256": "6ed395c6977c215b700e9bfd2e5e913acb2abb20b03c3459c23d65b014b82a94",
+      "byteLength": 41303,
+      "classification": "H0_DEPENDENCY"
+    },
+    {
+      "fileName": "gee-r1-final-two-junctions.test.mjs",
+      "incorrectPath": "governance/tests/gee-r1-final-two-junctions.test.mjs",
+      "correctPath": "governance/gee-v1/tests/gee-r1-final-two-junctions.test.mjs",
+      "incorrectPathExists": false,
+      "correctPathExists": true,
+      "sha256": "64389fd8a393dc2cd77fdb296204da9778ebd4f75453e1677bdc47e7d1499bdc",
+      "byteLength": 32553,
+      "classification": "H0_DEPENDENCY"
+    },
+    {
+      "fileName": "gee-r1-repair-hostile.test.mjs",
+      "incorrectPath": "governance/tests/gee-r1-repair-hostile.test.mjs",
+      "correctPath": "governance/gee-v1/tests/gee-r1-repair-hostile.test.mjs",
+      "incorrectPathExists": false,
+      "correctPathExists": true,
+      "sha256": "95fee5ca48c28b876253c3f337c5b3487f7c4c90952e783556d0933d72a49d77",
+      "byteLength": 16514,
+      "classification": "H0_DEPENDENCY"
+    },
+    {
+      "fileName": "gee-r1-repair-r2-hostile.test.mjs",
+      "incorrectPath": "governance/tests/gee-r1-repair-r2-hostile.test.mjs",
+      "correctPath": "governance/gee-v1/tests/gee-r1-repair-r2-hostile.test.mjs",
+      "incorrectPathExists": false,
+      "correctPathExists": true,
+      "sha256": "bc604da0b257819ee91166de486dc39030c3c555b8dbd525d986396bef78bbad",
+      "byteLength": 26771,
+      "classification": "H0_DEPENDENCY"
+    }
+  ],
+  "authorityForRatification": {
+    "kind": "PROJECT_OWNER_MISSION_DIRECTIVE",
+    "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+    "note": "This record interprets already-immutable evidence. It grants no write, transition, or execution permission of any kind."
+  },
+  "grantsNoPermission": true,
+  "priorEvidence": {
+    "cohortRecord": "H0_EXACT_PRESERVATION_COHORT.json",
+    "cohortCheckpoint": "CP-H0-PRE",
+    "cohortSummary": { "unique": 73, "existing": 73, "missing": 0, "unexpected": 0, "wildcards": 0 },
+    "agreement": "All six SHA256 and byteLength values in this record reproduce the values already recorded by the H0 cohort at the corrected locations, and reproduce the live bytes at COMMIT A."
+  }
+}

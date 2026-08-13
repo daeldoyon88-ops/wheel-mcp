@@ -17,7 +17,7 @@
   "generatedFrom": [
     {
       "path": "governance/active/ACTIVE_GATE.json",
-      "sha256": "6283e4a6f3a49faa96e0793e1bb305bdb52131bb89a9890cd74a7848a7f4ebff"
+      "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9"
     },
     {
       "path": "governance/GATE_REGISTRY_00_40.json",
@@ -25,7 +25,7 @@
     },
     {
       "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
-      "sha256": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1"
+      "sha256": "6f1ccbc20ecbb09fff7a0a9b08feb94145737949dcb59ed881b5c1dabd9dbeb0"
     }
   ],
   "generatedAt": "2026-08-01T16:00:00.000Z",

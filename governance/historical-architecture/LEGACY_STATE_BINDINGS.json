@@ -1,0 +1,59 @@
+{
+  "documentKind": "HISTORICAL_ARCHITECTURE_LEGACY_STATE_BINDINGS",
+  "schemaVersion": 1,
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "legacyEraMaxOrdinal": 58,
+  "statement": "Interpretation metadata for the two pre-native state-binding events. These records grant NO transition permission whatsoever. Each is valid only where it agrees with evidence that was already immutable before this program existed: the event bytes, the event payload digest, the original authority path and digest, the ledger prefix, the state revision, and the state seal bytes. From ordinal 59 onward, events pin state natively and no migration record is permitted.",
+  "bindings": [
+    {
+      "eventOrdinal": 57,
+      "eventId": "GATE14_AUTHORIZATION_R0001",
+      "gateId": "GATE14",
+      "transitionType": "AUTHORIZATION",
+      "toStatus": "AUTHORIZED_NOT_STARTED",
+      "eventPayloadSha256": "d945c50c6d8207955db481b7ba67993b787b06f7c9672256da7b996db6f6599f",
+      "originalAuthorityPath": "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json",
+      "originalAuthoritySha256": "d88e628966cdc1840062996f8a16f728305ef1fc6d16a99ae72be60af68d6839",
+      "ledgerPrefixSha256": "c4dfefd7790cfc30f3f13a5159362b03b9902273ac6b3d7db8ab5dba6ba6ab6b",
+      "stateRevision": "R0001",
+      "stateRevisionSealPath": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "stateRevisionSealSha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "stateRevisionSealByteLength": 1238,
+      "previousStateSealSha256": null,
+      "agreementRules": [
+        "SEAL_GATE_MATCHES_EVENT_GATE",
+        "SEAL_REVISION_MATCHES_BINDING",
+        "SEAL_PAYLOAD_STATUS_MATCHES_EVENT_TO_STATUS",
+        "AUTHORITY_DIGEST_MATCHES_LIVE_AUTHORITY_BYTES",
+        "SEAL_IS_CHAIN_ROOT"
+      ],
+      "sealPayloadExecutionStatus": "AUTHORIZED_NOT_STARTED",
+      "derivedFrom": "governance/authority/authorizations/GATE14/GATE_AUTHORIZATION_RECORD.json#/stateRevision and #/authorizedStateArtifacts/STATE_SEAL"
+    },
+    {
+      "eventOrdinal": 58,
+      "eventId": "GATE14_START_R1",
+      "gateId": "GATE14",
+      "transitionType": "START",
+      "toStatus": "IN_PROGRESS",
+      "eventPayloadSha256": "a5d69c01d39c6b88291ab8769c4d002f58a374e13beef139387db68b59de2481",
+      "originalAuthorityPath": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json",
+      "originalAuthoritySha256": "45524552fdff05b1d4d4d5f55bd9b47b84e928f9c9a94138a29a714a1774f197",
+      "ledgerPrefixSha256": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1",
+      "stateRevision": "R0002",
+      "stateRevisionSealPath": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "stateRevisionSealSha256": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd",
+      "stateRevisionSealByteLength": 1257,
+      "previousStateSealSha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d",
+      "agreementRules": [
+        "SEAL_GATE_MATCHES_EVENT_GATE",
+        "SEAL_REVISION_MATCHES_BINDING",
+        "SEAL_PAYLOAD_STATUS_MATCHES_EVENT_TO_STATUS",
+        "AUTHORITY_DIGEST_MATCHES_LIVE_AUTHORITY_BYTES",
+        "SEAL_CHAINS_TO_PREDECESSOR_BINDING"
+      ],
+      "sealPayloadExecutionStatus": "IN_PROGRESS",
+      "derivedFrom": "governance/authority/authorizations/GATE14/GATE_START_RECORD.json#/preStateRevision and #/preStateSealSha256 plus the R0002 seal previousStateSealSha256 link"
+    }
+  ]
+}

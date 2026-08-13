@@ -1,0 +1,77 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-13T00:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "resumePoint": "CP-H0A-S",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "609cc5d16ce2bb176eefd149a8475f06e0ab75a4",
+    "ledgerEventCount": 58,
+    "ledgerPrefixSha256": "7289f3ef93823a2cc7a5494bb25f7d0a144e6481d3674aaaba7a7e5736a58bc1",
+    "gateId": "GATE14",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0002",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/HISTORICAL_ARCHITECTURE_H1_H9_AUTHORIZED_PATHS.json",
+  "authorizedPathManifestSha256": "b1e99cec07d0da14954a2d42d15d8474fcf636cbd43fd7f02594b3cf4919e1fe",
+  "authorizedOperationClasses": [
+    "HISTORICAL_ARTIFACT_CLASSIFICATION",
+    "REVISION_LOCAL_OBJECT_RETENTION",
+    "REVISION_RESOLVER_IMPLEMENTATION",
+    "STATE_SEAL_HARDENING",
+    "LEDGER_INTEGRITY_CONSISTENCY_SPLIT",
+    "LEGACY_STATE_BINDING_MIGRATION",
+    "EXECUTABLE_VALIDATOR_PROVENANCE",
+    "ACTIVE_GATE_SUCCESSION_PRIMITIVE",
+    "CONTRACT_SUCCESSION_INTEGRATION",
+    "CONTRACT_R0002_CREATION",
+    "STATE_R0003_CREATION",
+    "CONTRACT_SUCCESSION_LEDGER_APPEND",
+    "DERIVED_PROJECTION_REGENERATION",
+    "TEST_AND_REPLAY_INFRASTRUCTURE",
+    "FINAL_LOCAL_COMMIT"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: implement simplified historical replay and GATE14 contract succession",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HISTORICAL_ARCHITECTURE_V2_BOOTSTRAP_R1",
+    "sha256": "85efa7cb0acb14285ee8c588b01bfd44c174b3f44425523c416138321aee16be"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "609cc5d16ce2bb176eefd149a8475f06e0ab75a4"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/AUTHORITY_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

@@ -1,0 +1,303 @@
+/**
+ * GEE V1 core — post-freeze maintenance authority, schema V2.
+ *
+ * V2 exists because V1 authorizes a FILE LIST and nothing else: it cannot bind
+ * the repository state a program was authorized against, cannot be single-use,
+ * and cannot separate "which paths" from "which kind of operation". A multi-phase
+ * governance implementation program needs all three.
+ *
+ * AUTHORITY MODE — LOCAL_EXPLICIT_AUTHORITY.
+ *
+ * V2 is deliberately NOT an owner-signed document. The Project Owner fixed the
+ * policy for new maintenance/program authority: this project does not operate a
+ * PKI, so requiring an Ed25519 signature bought no real protection while adding
+ * a private key, an external signer, key rotation and a recovery root to the
+ * governed surface. A signature proves WHO wrote a document; it proves nothing
+ * about WHAT state that document is valid against, which is the property that
+ * actually matters here.
+ *
+ * The protection V2 relies on instead is exhaustive pre-state binding, and every
+ * one of these must match the live repository before anything is authorized:
+ *
+ *   exact Git base HEAD          — moves the moment a commit lands, so an
+ *                                  authority cannot survive its own program
+ *   exact ledger event count     — no appended event goes unnoticed
+ *   exact ledger prefix digest   — no rewritten event goes unnoticed
+ *   exact Gate/status/state/contract/ACTIVE_GATE pre-state
+ *   exact R8 expectation
+ *   exact authorized-path manifest digest
+ *   literal finite path allowlist, no wildcards, no directory recursion
+ *   literal operation-class allowlist
+ *   maxUse = 1, pushAuthorized = false
+ *
+ * That is strictly MORE binding than a signature was: a signed V2 authority with
+ * a stale HEAD was already BLOCKED, and an unsigned V2 authority with an exact
+ * HEAD is authorized against exactly one repository state, once.
+ *
+ * NO SIGNATURE FALLBACK. There is no "signature missing → BLOCK" branch left for
+ * schemaVersion 2. Signature material is not merely optional here, it is
+ * REJECTED (SIGNATURE_MATERIAL_NOT_PERMITTED), so a forged document cannot claim
+ * authority by carrying a key id and a signature this mode never checks.
+ *
+ * HISTORICAL SEMANTICS ARE UNCHANGED. V1 maintenance authorities keep their
+ * original validation (see gee-mission-authority-source.mjs), and the separately
+ * owner-signed historical artifacts — release authorizations, gate
+ * authorizations — keep verifying against their retained public key material via
+ * release-authority.mjs. Nothing historical is weakened, rewritten, or re-signed.
+ *
+ * Fail-closed everywhere: absence, malformation, unknown fields and drift all
+ * produce BLOCKED. Nothing is ever upgraded by absence.
+ */
+
+import { sha256Hex } from './release-authority.mjs';
+
+export const POST_FREEZE_MAINTENANCE_V2_SCHEMA_VERSION = 2;
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS = 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY';
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_MODE = 'LOCAL_EXPLICIT_AUTHORITY';
+export const POST_FREEZE_MAINTENANCE_DOCUMENT = 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY';
+export const POST_FREEZE_MAINTENANCE_MANIFEST_KIND = 'POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST';
+export const POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND = 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION';
+export const PHASE_AUTHORIZE_PROGRAM_APPLY = 'AUTHORIZE_PROGRAM_APPLY';
+export const PHASE_VERIFY_PROGRAM_CONSUMPTION = 'VERIFY_PROGRAM_CONSUMPTION';
+
+export const REQUIRED_PROHIBITED_OPERATIONS = Object.freeze([
+  'START', 'SECOND_START', 'AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION',
+  'COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'ACTIVE_GATE_SWITCH', 'GEE_R8',
+  'GIT_PUSH', 'HISTORY_REWRITE', 'THIRD_COMMIT', 'UNRELATED_WRITE'
+]);
+
+/**
+ * Fields a LOCAL_EXPLICIT_AUTHORITY may never carry. Rejecting them — rather
+ * than ignoring them — is what makes the absence of signature checking safe: a
+ * document cannot present unverified cryptographic material as if it mattered.
+ */
+export const FORBIDDEN_SIGNATURE_FIELDS = Object.freeze([
+  'ownerKeyId', 'signatureAlgorithm', 'signature', 'privateKeyPath',
+  'externalSigner', 'ownerKeyHistory', 'recoveryRoot', 'keyRotation'
+]);
+
+const AUTHORITY_FIELDS = Object.freeze([
+  'document', 'schemaVersion', 'authorityId', 'authorityClass', 'authorityMode',
+  'issuedBy', 'createdAt', 'expiresAt', 'targetSystem', 'programId',
+  'resumePoint', 'maxUse', 'preState', 'authorizedPathManifestPath',
+  'authorizedPathManifestSha256', 'authorizedOperationClasses', 'commitPolicy',
+  'pushAuthorized', 'authorityPredecessor', 'authorityHeadBinding',
+  'consumptionRecordPath', 'prohibitedOperations'
+]);
+
+const PRE_STATE_FIELDS = Object.freeze([
+  'baseHead', 'ledgerEventCount', 'ledgerPrefixSha256', 'gateId', 'gateStatus',
+  'stateRevision', 'contractRevision', 'activeGate', 'R8ExpectedAbsent'
+]);
+
+const COMMIT_POLICY_FIELDS = Object.freeze([
+  'maxCommitCount', 'allowedGitOperations', 'commitMessage', 'thirdCommitAuthorized'
+]);
+
+const MANIFEST_FIELDS = Object.freeze(['documentKind', 'schemaVersion', 'manifestId', 'programId', 'paths']);
+const MANIFEST_PATH_FIELDS = Object.freeze(['path', 'operation', 'phase', 'reason', 'artifactClass']);
+const CONSUMPTION_FIELDS = Object.freeze([
+  'documentKind', 'schemaVersion', 'authorityId', 'programId', 'manifestSha256',
+  'baseHead', 'consumedUse', 'transactionId', 'recordedAt', 'commitMessage'
+]);
+
+const SHA256_RE = /^[a-f0-9]{64}$/;
+const COMMIT_RE = /^[a-f0-9]{40}$/;
+const TOKEN_RE = /^[A-Z][A-Z0-9_-]*$/;
+const ISO_UTC_RE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{3})?Z$/;
+
+function finding(findings, code, detail) {
+  findings.push(detail === undefined ? { code } : { code, detail });
+}
+
+function unknownFields(findings, value, allowed, code) {
+  for (const key of Object.keys(value || {})) if (!allowed.includes(key)) finding(findings, code, key);
+}
+
+function sameStringSet(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  return left.length === right.length
+    && new Set(left).size === left.length
+    && [...left].sort().every((value, index) => value === [...right].sort()[index]);
+}
+
+export function isExactMaintenancePath(value) {
+  if (typeof value !== 'string' || !value || value.startsWith('/') || value.includes('\\') || value.includes(':')) return false;
+  if (value.includes('*') || value.includes('?') || value.includes('\0')) return false;
+  const segments = value.split('/');
+  return segments.every((segment) => segment !== '' && segment !== '.' && segment !== '..');
+}
+
+export function validatePostFreezeMaintenanceAuthorityV2Shape(authority) {
+  const findings = [];
+  if (!authority || typeof authority !== 'object' || Array.isArray(authority)) {
+    finding(findings, 'AUTHORITY_ABSENT');
+    return { valid: false, findings };
+  }
+  unknownFields(findings, authority, AUTHORITY_FIELDS, 'AUTHORITY_UNKNOWN_FIELD');
+  for (const field of FORBIDDEN_SIGNATURE_FIELDS) {
+    if (Object.hasOwn(authority, field)) finding(findings, 'SIGNATURE_MATERIAL_NOT_PERMITTED', field);
+  }
+  if (authority.document !== POST_FREEZE_MAINTENANCE_DOCUMENT) finding(findings, 'DOCUMENT_INVALID');
+  if (authority.schemaVersion !== POST_FREEZE_MAINTENANCE_V2_SCHEMA_VERSION) finding(findings, 'SCHEMA_VERSION_UNSUPPORTED');
+  if (authority.authorityClass !== POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS) finding(findings, 'AUTHORITY_CLASS_INVALID');
+  if (authority.authorityMode !== POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) finding(findings, 'AUTHORITY_MODE_INVALID', authority.authorityMode);
+  if (authority.issuedBy !== 'PROJECT_OWNER') finding(findings, 'ISSUER_INVALID');
+  if (!TOKEN_RE.test(authority.authorityId || '')) finding(findings, 'AUTHORITY_ID_INVALID');
+  if (!TOKEN_RE.test(authority.programId || '')) finding(findings, 'PROGRAM_ID_INVALID');
+  if (typeof authority.resumePoint !== 'string' || !authority.resumePoint) finding(findings, 'RESUME_POINT_INVALID');
+  for (const field of ['createdAt', 'expiresAt']) if (!ISO_UTC_RE.test(authority[field] || '')) finding(findings, 'TIMESTAMP_INVALID', field);
+  if (authority.targetSystem !== 'PROJECT_GOVERNANCE') finding(findings, 'TARGET_SYSTEM_INVALID');
+  if (authority.maxUse !== 1) finding(findings, 'MAX_USE_INVALID');
+  if (!authority.preState || typeof authority.preState !== 'object' || Array.isArray(authority.preState)) {
+    finding(findings, 'PRE_STATE_INVALID');
+  } else {
+    unknownFields(findings, authority.preState, PRE_STATE_FIELDS, 'PRE_STATE_UNKNOWN_FIELD');
+    for (const field of PRE_STATE_FIELDS) if (!Object.hasOwn(authority.preState, field)) finding(findings, 'PRE_STATE_FIELD_MISSING', field);
+    if (!COMMIT_RE.test(authority.preState.baseHead || '')) finding(findings, 'BASE_HEAD_INVALID');
+    if (!Number.isInteger(authority.preState.ledgerEventCount) || authority.preState.ledgerEventCount < 0) finding(findings, 'LEDGER_EVENT_COUNT_INVALID');
+    if (!SHA256_RE.test(authority.preState.ledgerPrefixSha256 || '')) finding(findings, 'LEDGER_PREFIX_INVALID');
+    for (const field of ['gateId', 'gateStatus', 'stateRevision', 'contractRevision', 'activeGate']) {
+      if (authority.preState[field] !== null && (typeof authority.preState[field] !== 'string' || !authority.preState[field])) finding(findings, 'PRE_STATE_FIELD_INVALID', field);
+    }
+    if (typeof authority.preState.R8ExpectedAbsent !== 'boolean') finding(findings, 'R8_EXPECTATION_INVALID');
+  }
+  if (!isExactMaintenancePath(authority.authorizedPathManifestPath)) finding(findings, 'AUTHORIZED_MANIFEST_PATH_INVALID');
+  if (!SHA256_RE.test(authority.authorizedPathManifestSha256 || '')) finding(findings, 'AUTHORIZED_MANIFEST_SHA_INVALID');
+  if (!Array.isArray(authority.authorizedOperationClasses) || authority.authorizedOperationClasses.length === 0
+      || new Set(authority.authorizedOperationClasses).size !== authority.authorizedOperationClasses.length
+      || authority.authorizedOperationClasses.some((value) => !TOKEN_RE.test(value))) finding(findings, 'AUTHORIZED_OPERATION_CLASSES_INVALID');
+  for (const operationClass of Array.isArray(authority.authorizedOperationClasses) ? authority.authorizedOperationClasses : []) {
+    if (REQUIRED_PROHIBITED_OPERATIONS.includes(operationClass)) finding(findings, 'PROHIBITED_OPERATION_CLASS_CLAIMED', operationClass);
+  }
+  if (!authority.commitPolicy || typeof authority.commitPolicy !== 'object' || Array.isArray(authority.commitPolicy)) {
+    finding(findings, 'COMMIT_POLICY_INVALID');
+  } else {
+    unknownFields(findings, authority.commitPolicy, COMMIT_POLICY_FIELDS, 'COMMIT_POLICY_UNKNOWN_FIELD');
+    if (authority.commitPolicy.maxCommitCount !== 1) finding(findings, 'COMMIT_COUNT_INVALID');
+    if (!sameStringSet(authority.commitPolicy.allowedGitOperations, ['GIT_ADD_PATHSPEC', 'GIT_COMMIT'])) finding(findings, 'COMMIT_OPERATIONS_INVALID');
+    if (typeof authority.commitPolicy.commitMessage !== 'string' || !authority.commitPolicy.commitMessage) finding(findings, 'COMMIT_MESSAGE_INVALID');
+    if (authority.commitPolicy.thirdCommitAuthorized !== false) finding(findings, 'THIRD_COMMIT_NOT_FORBIDDEN');
+  }
+  if (authority.pushAuthorized !== false) finding(findings, 'PUSH_NOT_FORBIDDEN');
+  if (authority.authorityPredecessor !== null) {
+    if (!authority.authorityPredecessor || typeof authority.authorityPredecessor !== 'object' || Array.isArray(authority.authorityPredecessor)
+        || !TOKEN_RE.test(authority.authorityPredecessor.authorityId || '')
+        || !SHA256_RE.test(authority.authorityPredecessor.sha256 || '')
+        || Object.keys(authority.authorityPredecessor).some((key) => !['authorityId', 'sha256'].includes(key))) finding(findings, 'AUTHORITY_PREDECESSOR_INVALID');
+  }
+  if (!authority.authorityHeadBinding || authority.authorityHeadBinding.mode !== 'BASE_HEAD'
+      || authority.authorityHeadBinding.baseHead !== authority.preState?.baseHead
+      || Object.keys(authority.authorityHeadBinding || {}).some((key) => !['mode', 'baseHead'].includes(key))) finding(findings, 'AUTHORITY_HEAD_BINDING_INVALID');
+  if (!isExactMaintenancePath(authority.consumptionRecordPath)) finding(findings, 'CONSUMPTION_RECORD_PATH_INVALID');
+  if (!sameStringSet(authority.prohibitedOperations, REQUIRED_PROHIBITED_OPERATIONS)) finding(findings, 'PROHIBITED_OPERATIONS_INVALID');
+  return { valid: findings.length === 0, findings };
+}
+
+export function validateMaintenanceAuthorizedPathManifest(manifest, programId) {
+  const findings = [];
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    finding(findings, 'MANIFEST_ABSENT');
+    return { valid: false, findings, authorizedPaths: [], operationClasses: [] };
+  }
+  unknownFields(findings, manifest, MANIFEST_FIELDS, 'MANIFEST_UNKNOWN_FIELD');
+  if (manifest.documentKind !== POST_FREEZE_MAINTENANCE_MANIFEST_KIND) finding(findings, 'MANIFEST_KIND_INVALID');
+  if (manifest.schemaVersion !== 1) finding(findings, 'MANIFEST_SCHEMA_VERSION_INVALID');
+  if (!TOKEN_RE.test(manifest.manifestId || '')) finding(findings, 'MANIFEST_ID_INVALID');
+  if (manifest.programId !== programId) finding(findings, 'MANIFEST_PROGRAM_MISMATCH');
+  if (!Array.isArray(manifest.paths) || manifest.paths.length === 0) finding(findings, 'MANIFEST_PATHS_INVALID');
+  const paths = [];
+  const operationClasses = [];
+  for (const entry of Array.isArray(manifest.paths) ? manifest.paths : []) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { finding(findings, 'MANIFEST_ENTRY_INVALID'); continue; }
+    unknownFields(findings, entry, MANIFEST_PATH_FIELDS, 'MANIFEST_ENTRY_UNKNOWN_FIELD');
+    if (!isExactMaintenancePath(entry.path)) finding(findings, 'MANIFEST_PATH_INVALID', entry.path);
+    else if (paths.includes(entry.path)) finding(findings, 'MANIFEST_PATH_DUPLICATE', entry.path);
+    else paths.push(entry.path);
+    if (!['CREATE', 'MODIFY'].includes(entry.operation)) finding(findings, 'MANIFEST_OPERATION_INVALID', entry.path);
+    if (!TOKEN_RE.test(entry.phase || '')) finding(findings, 'MANIFEST_PHASE_INVALID', entry.path);
+    if (typeof entry.reason !== 'string' || !entry.reason) finding(findings, 'MANIFEST_REASON_INVALID', entry.path);
+    if (!TOKEN_RE.test(entry.artifactClass || '')) finding(findings, 'MANIFEST_ARTIFACT_CLASS_INVALID', entry.path);
+    else operationClasses.push(entry.artifactClass);
+  }
+  return { valid: findings.length === 0, findings, authorizedPaths: paths, operationClasses: [...new Set(operationClasses)] };
+}
+
+function validateConsumptionRecord(record, authority, findings) {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) { finding(findings, 'CONSUMPTION_RECORD_MISSING'); return; }
+  unknownFields(findings, record, CONSUMPTION_FIELDS, 'CONSUMPTION_UNKNOWN_FIELD');
+  if (record.documentKind !== POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND || record.schemaVersion !== 1) finding(findings, 'CONSUMPTION_RECORD_INVALID');
+  if (record.authorityId !== authority.authorityId || record.programId !== authority.programId) finding(findings, 'CONSUMPTION_AUTHORITY_MISMATCH');
+  if (record.manifestSha256 !== authority.authorizedPathManifestSha256) finding(findings, 'CONSUMPTION_MANIFEST_MISMATCH');
+  if (record.baseHead !== authority.preState.baseHead) finding(findings, 'CONSUMPTION_BASE_HEAD_MISMATCH');
+  if (record.consumedUse !== 1) finding(findings, 'CONSUMPTION_USE_INVALID');
+  if (typeof record.transactionId !== 'string' || !record.transactionId) finding(findings, 'CONSUMPTION_TRANSACTION_INVALID');
+  if (!ISO_UTC_RE.test(record.recordedAt || '')) finding(findings, 'CONSUMPTION_RECORDED_AT_INVALID');
+  if (record.commitMessage !== authority.commitPolicy.commitMessage) finding(findings, 'CONSUMPTION_COMMIT_MESSAGE_MISMATCH');
+}
+
+/**
+ * The single V2 decision function. No key material is accepted and none is
+ * consulted: authority is the exact agreement between this document and the
+ * live repository, nothing else.
+ */
+export function evaluatePostFreezeMaintenanceAuthorityV2({
+  authority = null,
+  manifest = null,
+  observed = {},
+  phase = PHASE_AUTHORIZE_PROGRAM_APPLY,
+  now = new Date(),
+  consumptionRecord = null
+} = {}) {
+  const shape = validatePostFreezeMaintenanceAuthorityV2Shape(authority);
+  const manifestResult = validateMaintenanceAuthorizedPathManifest(manifest, authority?.programId);
+  const findings = [...shape.findings, ...manifestResult.findings];
+  if (phase !== PHASE_AUTHORIZE_PROGRAM_APPLY && phase !== PHASE_VERIFY_PROGRAM_CONSUMPTION) finding(findings, 'PHASE_INVALID', phase);
+  if (shape.valid) {
+    const created = Date.parse(authority.createdAt), expires = Date.parse(authority.expiresAt);
+    if (Number.isNaN(created) || Number.isNaN(expires) || created > expires) finding(findings, 'AUTHORITY_TIME_ORDER_INVALID');
+    else if (now.getTime() > expires) finding(findings, 'AUTHORITY_EXPIRED');
+  }
+  if (observed.manifestSha256 !== authority?.authorizedPathManifestSha256) finding(findings, 'AUTHORIZED_MANIFEST_SHA_MISMATCH', observed.manifestSha256 ?? 'ABSENT');
+  // PRE-STATE DRIFT IS ONLY A QUESTION AT AUTHORIZE TIME.
+  //
+  // The pre-state binding is what makes this authority single-use: it names the
+  // exact repository state it may act on, so once the program has applied, HEAD
+  // has moved, the ledger has grown and the bound state no longer exists. That
+  // is the authority being SPENT, not the authority being invalid.
+  //
+  // Re-asserting the pre-state during consumption verification would therefore
+  // be incoherent — it would demand the program had never run. Consumption is
+  // verified against the consumption record instead, which binds the authority,
+  // the program, the manifest digest and the baseHead it was consumed at.
+  if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY) {
+    if (observed.baseHead !== authority?.preState?.baseHead) finding(findings, 'BASE_HEAD_MISMATCH', observed.baseHead ?? 'ABSENT');
+    if (observed.ledgerEventCount !== authority?.preState?.ledgerEventCount) finding(findings, 'LEDGER_EVENT_COUNT_MISMATCH');
+    if (observed.ledgerPrefixSha256 !== authority?.preState?.ledgerPrefixSha256) finding(findings, 'LEDGER_PREFIX_MISMATCH');
+    for (const field of ['gateId', 'gateStatus', 'stateRevision', 'contractRevision', 'activeGate']) {
+      if (authority?.preState?.[field] !== null && observed[field] !== authority?.preState?.[field]) finding(findings, 'PRE_STATE_MISMATCH', field);
+    }
+  }
+  // R8 must be absent in BOTH phases: it is a prohibition, not a pre-state.
+  if (authority?.preState?.R8ExpectedAbsent === true && observed.R8Absent !== true) finding(findings, 'R8_PRESENT_OR_UNKNOWN');
+  if (authority?.authorityPredecessor !== null && observed.authorityPredecessorSha256 !== authority?.authorityPredecessor?.sha256) finding(findings, 'AUTHORITY_PREDECESSOR_MISMATCH');
+  const requestedPaths = Array.isArray(observed.requestedPaths) ? observed.requestedPaths : manifestResult.authorizedPaths;
+  for (const path of requestedPaths) if (!manifestResult.authorizedPaths.includes(path)) finding(findings, 'PATH_NOT_AUTHORIZED', path);
+  const requestedClasses = Array.isArray(observed.requestedOperationClasses) ? observed.requestedOperationClasses : manifestResult.operationClasses;
+  for (const operationClass of requestedClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
+  for (const operationClass of manifestResult.operationClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'MANIFEST_OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
+  if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY && consumptionRecord) finding(findings, 'AUTHORITY_ALREADY_CONSUMED');
+  if (phase === PHASE_VERIFY_PROGRAM_CONSUMPTION) validateConsumptionRecord(consumptionRecord, authority, findings);
+  const decision = findings.length === 0 ? 'AUTHORIZED' : 'BLOCKED';
+  return {
+    decision,
+    authorityMode: POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
+    programAuthorized: decision === 'AUTHORIZED' && phase === PHASE_AUTHORIZE_PROGRAM_APPLY,
+    consumed: decision === 'AUTHORIZED' && phase === PHASE_VERIFY_PROGRAM_CONSUMPTION,
+    authorizedPaths: decision === 'AUTHORIZED' ? [...manifestResult.authorizedPaths] : [],
+    authorizedOperationClasses: decision === 'AUTHORIZED' ? [...authority.authorizedOperationClasses] : [],
+    findings
+  };
+}
+
+export { sha256Hex };

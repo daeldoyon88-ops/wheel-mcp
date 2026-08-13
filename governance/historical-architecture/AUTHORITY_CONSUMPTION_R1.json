@@ -1,0 +1,12 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_AUTHORITY_R1",
+  "programId": "GOVERNANCE_HISTORICAL_ARCHITECTURE_IMPLEMENTATION_PROGRAM_R1",
+  "manifestSha256": "b1e99cec07d0da14954a2d42d15d8474fcf636cbd43fd7f02594b3cf4919e1fe",
+  "baseHead": "609cc5d16ce2bb176eefd149a8475f06e0ab75a4",
+  "consumedUse": 1,
+  "transactionId": "GOVERNANCE-HISTORICAL-ARCHITECTURE-R1-COMMIT-B",
+  "recordedAt": "2026-08-13T12:00:00.000Z",
+  "commitMessage": "governance: implement simplified historical replay and GATE14 contract succession"
+}

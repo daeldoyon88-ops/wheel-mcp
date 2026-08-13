@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1",
+  "programId": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Canonical independent external reinspection report bound to the exact COMPLETE_AGENT pre-state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Registers the exact Gate14 reinspection report and binds its PASS verdict to Gate14 and the independent program.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Single-use local authority limited to the external confirmation operation.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Finite exact-file manifest for the independent confirmation transition and its projections.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Single-use consumption record binding the confirmation authority and manifest.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Append exactly one native EXTERNAL_CONFIRMATION event after the verified COMPLETE_AGENT state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Successor checkpoint for the independently confirmed Gate14 state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Confirmed revision defect projection with no open defects.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Native R0005 seal chained from R0004 and bound by event61.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Advance the canonical Gate14 state pointer to R0005.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Regenerate the derived status snapshot from the 61-event ledger.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Refresh the derived active-gate context binding after event61 while ACTIVE_GATE remains GATE13.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Machine-readable exact final closure cohort for one lawful local commit.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

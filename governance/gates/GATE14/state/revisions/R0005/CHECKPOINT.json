@@ -1,0 +1,62 @@
+{
+  "gateId": "GATE14",
+  "stateRevision": "R0005",
+  "createdAt": "2026-08-13T14:00:00.000Z",
+  "milestone": "GATE14_DETERMINISTIC_MUTATION_TRAVERSAL",
+  "resumePoint": "GATE14 is COMPLETE_CONFIRMED after one independently verified EXTERNAL_CONFIRMATION. Next exact action is governed GATE15 readiness planning; do not reopen GATE14.",
+  "completedTasks": [
+    "GATE14_START_R1",
+    "HISTORICAL_ARCHITECTURE_H1_H9",
+    "CONTRACT_SUCCESSION_R0001_TO_R0002",
+    "GATE14_FINAL_GOVERNED_CLOSURE_R1",
+    "INDEPENDENT_EXTERNAL_CONFIRMATION",
+    "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1"
+  ],
+  "openTasks": [
+    "GATE15_READINESS / GOVERNED GATE15 PLANNING"
+  ],
+  "reusableEvidence": [
+    "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+    "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+    "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+    {
+      "path": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee",
+      "validUntilCondition": "valid while the 61-event ledger, R0005 seal and final closure cohort remain byte-identical"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE15_READINESS / GOVERNED GATE15 PLANNING"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "sha256": "27a2bed562ad4528043be82f63fc4b925e7f22f6f515c42990dd017cc1a446a2"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "152f325a6484bd16749c7e5cf027b4292186fc47822a2fd47c29ee961a90e9c8"
+    },
+    {
+      "path": "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json",
+      "sha256": "6e9946d72cfbc27d651927a4604622f449d47d6538c436a9f42205b5b129df60"
+    },
+    {
+      "path": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967"
+    }
+  ]
+}

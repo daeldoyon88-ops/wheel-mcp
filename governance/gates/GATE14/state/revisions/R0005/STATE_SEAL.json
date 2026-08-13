@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE14",
+  "stateRevision": "R0005",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+      "sha256": "644172e89c8bd7bbbca35271d29a1dfd6f9a517b40a9760ff95fa28285d7a1e2",
+      "byteLength": 2715
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json",
+      "sha256": "d465098cb1df4d76f84430db472d52a4956948dddbf5cffc8ad1382e0727eafc",
+      "byteLength": 70
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "sha256": "27a2bed562ad4528043be82f63fc4b925e7f22f6f515c42990dd017cc1a446a2",
+      "byteLength": 281
+    },
+    {
+      "repoRelativePath": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee",
+      "byteLength": 2998
+    },
+    {
+      "repoRelativePath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+      "sha256": "ea968e86a7b5454062adf246db90ab5743e808c6b5f1baa8c2e39d7a419401e7",
+      "byteLength": 2511
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json",
+      "sha256": "0868da4f2baa3c937e53b81915d75cc313224386ab66998005920e992065a2e7",
+      "byteLength": 1546
+    },
+    {
+      "repoRelativePath": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967",
+      "byteLength": 4313
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json",
+      "sha256": "6e9946d72cfbc27d651927a4604622f449d47d6538c436a9f42205b5b129df60",
+      "byteLength": 5099
+    }
+  ],
+  "previousStateSealSha256": "152f325a6484bd16749c7e5cf027b4292186fc47822a2fd47c29ee961a90e9c8",
+  "sealedAt": "2026-08-13T14:00:00.000Z",
+  "payload": {
+    "gateId": "GATE14",
+    "stateRevision": "R0005",
+    "executionStatus": "COMPLETE_CONFIRMED",
+    "contractSha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152",
+    "previousStateSealSha256": "152f325a6484bd16749c7e5cf027b4292186fc47822a2fd47c29ee961a90e9c8",
+    "sealedMembersDigest": "a9cb79ee0ea73a28f28ac38eb5f4de09123c7d32426ebd37f0edb7433132a10e"
+  },
+  "payloadSha256": "56b23a601924799c3c73dc441acee86dbe1efe219e7f1197542ebc6085de8e8c"
+}

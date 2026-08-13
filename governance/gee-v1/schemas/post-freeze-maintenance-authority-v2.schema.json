@@ -9,6 +9,17 @@
     "pushAuthorized", "authorityPredecessor", "authorityHeadBinding",
     "consumptionRecordPath", "prohibitedOperations"
   ],
+  "allOf": [
+    {
+      "if": {
+        "required": ["authorityPurpose"],
+        "properties": { "authorityPurpose": { "const": "GATE_EXTERNAL_CONFIRMATION" } }
+      },
+      "then": {
+        "required": ["externalReinspectionReportPath", "externalReinspectionReportSha256"]
+      }
+    }
+  ],
   "properties": {
     "document": { "const": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY" },
     "schemaVersion": { "const": 2 },
@@ -20,6 +31,7 @@
     "expiresAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$" },
     "targetSystem": { "const": "PROJECT_GOVERNANCE" },
     "programId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" },
+    "authorityPurpose": { "enum": ["NORMAL_MAINTENANCE", "GATE_FINAL_CLOSURE", "GATE_EXTERNAL_CONFIRMATION"] },
     "resumePoint": { "type": "string", "minLength": 1 },
     "maxUse": { "const": 1 },
     "preState": {
@@ -40,6 +52,8 @@
     },
     "authorizedPathManifestPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
     "authorizedPathManifestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "externalReinspectionReportPath": { "type": "string", "pattern": "^(?!.*:)(?!.*\\\\)(?![\\/])(?!.*[*?])(?!.*(?:^|[\\/])\\.\\.(?:[\\/]|$))[^\\u0000]+$" },
+    "externalReinspectionReportSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "authorizedOperationClasses": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$" } },
     "commitPolicy": {
       "type": "object",

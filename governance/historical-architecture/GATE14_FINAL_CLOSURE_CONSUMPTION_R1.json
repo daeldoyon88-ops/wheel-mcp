@@ -1,0 +1,12 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "GATE14_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "GATE14_FINAL_GOVERNED_CLOSURE_R1",
+  "manifestSha256": "2ca8d92e52fa43ff66cf99316e6863c3db6b612b22ed64827fb738f0b7851930",
+  "baseHead": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd",
+  "consumedUse": 1,
+  "transactionId": "GATE14_FINAL_CLOSURE_R1_AGENT_CLOSURE_TRANSACTION",
+  "recordedAt": "2026-08-13T13:00:00.000Z",
+  "commitMessage": "governance: close GATE14 under final closure authority"
+}

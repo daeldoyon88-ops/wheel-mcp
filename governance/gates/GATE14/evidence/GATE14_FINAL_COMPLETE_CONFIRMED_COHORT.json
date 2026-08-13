@@ -1,0 +1,257 @@
+{
+  "documentKind": "GATE14_FINAL_COMPLETE_CONFIRMED_COHORT",
+  "schemaVersion": 1,
+  "cohortId": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1",
+  "baseHead": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd",
+  "commitMessage": "governance: close GATE14 with independent confirmation",
+  "statement": "Exact final GATE14 closure cohort relative to COMMIT B. Every governance worktree change in scope is classified as FINAL_GATE14_CLOSURE_COHORT; pre-existing unrelated dirty files remain outside this cohort and are not staged. No wildcard or directory path is used.",
+  "cohortPathCount": 24,
+  "hashedPathCount": 23,
+  "classificationCounts": {
+    "FINAL_GATE14_CLOSURE_COHORT": 24,
+    "PREEXISTING_UNRELATED_DIRTY": 0,
+    "UNAUTHORIZED": 0
+  },
+  "manifestPath": "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+  "manifestSelfHash": {
+    "excluded": true,
+    "reason": "A manifest cannot contain a byte-for-byte SHA-256 of its own final bytes. The manifest path is nevertheless included in cohortPathCount, classificationCounts, cohortPaths, and the exact staging allowlist.",
+    "classification": "FINAL_GATE14_CLOSURE_COHORT",
+    "phase": "EXTERNAL_CONFIRMATION"
+  },
+  "cohortPaths": [
+    "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json",
+    "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json",
+    "governance/gates/GATE14/evidence/GATE14_FINAL_COMPLETE_CONFIRMED_COHORT.json",
+    "governance/gates/GATE14/state/CURRENT_STATE.json",
+    "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+    "governance/gates/GATE14/state/revisions/R0004/OPEN_DEFECTS.json",
+    "governance/gates/GATE14/state/revisions/R0004/STATE_SEAL.json",
+    "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+    "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json",
+    "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+    "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+    "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+    "governance/gee-v1/schemas/post-freeze-maintenance-authority-v2.schema.json",
+    "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+    "governance/generated/ACTIVE_GATE_CONTEXT.json",
+    "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+    "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+    "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+    "governance/historical-architecture/GATE14_FINAL_CLOSURE_CONSUMPTION_R1.json",
+    "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+    "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+  ],
+  "paths": [
+    {
+      "path": "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json",
+      "sha256": "6e9946d72cfbc27d651927a4604622f449d47d6538c436a9f42205b5b129df60",
+      "byteLength": 5099,
+      "reason": "R0002 closure revalidation evidence proving the corrected authority context and the preserved 56-60 prefix.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json",
+      "sha256": "0868da4f2baa3c937e53b81915d75cc313224386ab66998005920e992065a2e7",
+      "byteLength": 1546,
+      "reason": "Previously validated GATE14 final closure package bound to the agent-closure authority.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/CURRENT_STATE.json",
+      "sha256": "0b23848b89d61663021f01e15a7cb305ecb845e5d8ba5f3be0db8d8f385ce31d",
+      "byteLength": 326,
+      "reason": "Mutable GATE14 state pointer advanced to R0005 COMPLETE_CONFIRMED after event61.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/CHECKPOINT.json",
+      "sha256": "c3ddbbdd2483c207209ffa9b673c030c7119731a5b01022ec9ac2e55be8cb0a1",
+      "byteLength": 2398,
+      "reason": "Immutable R0004 checkpoint for the pre-confirmation COMPLETE_AGENT state.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/OPEN_DEFECTS.json",
+      "sha256": "866797b47079f17f79a452ee5d6f0dc296e4f012b5b94565cc9062f17155247a",
+      "byteLength": 70,
+      "reason": "Immutable R0004 open-defects record.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "152f325a6484bd16749c7e5cf027b4292186fc47822a2fd47c29ee961a90e9c8",
+      "byteLength": 1590,
+      "reason": "Immutable R0004 state seal.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/CHECKPOINT.json",
+      "sha256": "644172e89c8bd7bbbca35271d29a1dfd6f9a517b40a9760ff95fa28285d7a1e2",
+      "byteLength": 2715,
+      "reason": "Immutable R0005 checkpoint recording COMPLETE_CONFIRMED and independent external confirmation.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/OPEN_DEFECTS.json",
+      "sha256": "d465098cb1df4d76f84430db472d52a4956948dddbf5cffc8ad1382e0727eafc",
+      "byteLength": 70,
+      "reason": "Immutable R0005 open-defects record.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0005/STATE_SEAL.json",
+      "sha256": "0415f9bdc05224e3d2fe6394e513cf813acc5254d7a05353ea526b822e753dd5",
+      "byteLength": 2577,
+      "reason": "Immutable R0005 state seal binding the final confirmation artifacts and R0002 revalidation.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "sha256": "ed8f38480ea20397516c24df049b8982051e0deb9072d554162c6b4e32e86578",
+      "byteLength": 3457,
+      "reason": "V2 external-confirmation authority policy registering the independent PASS report and its exact bindings.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "sha256": "3eb249e434f9570517c031caa67440ca3620e155de77bf928c49686afe416b37",
+      "byteLength": 24686,
+      "reason": "V2 post-freeze maintenance authority implementation and fail-closed confirmation validation.",
+      "phase": "V2_IMPLEMENTATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gee-v1/schemas/post-freeze-maintenance-authority-v2.schema.json",
+      "sha256": "394394292d59dc46ff6de4e7845224080796b3ef111766c3ad1e3d3a694e9a53",
+      "byteLength": 4726,
+      "reason": "V2 authority schema independently re-read and byte-verified before final staging.",
+      "phase": "V2_IMPLEMENTATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "sha256": "fd82036127cf45d8695fd8339401ec1b12332d299140adfb64392bb0629f1a9f",
+      "byteLength": 32523,
+      "reason": "V2 implementation, schema, hostile countertest, and external-confirmation test coverage; 77/77 PASS.",
+      "phase": "V2_IMPLEMENTATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "f1739b2c752600e05d5c52faff03bdbc0ae0e51fd06b23c61f405876148dbeb1",
+      "byteLength": 1138,
+      "reason": "Required derived active-gate projection after event61; ACTIVE_GATE remains GATE13.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967",
+      "byteLength": 4313,
+      "reason": "Exact external-confirmation authority path allowlist with no wildcard.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+      "sha256": "4701e7174ec17c6051bb30c56d2d006c1e757b6327153c50cf4e22e57df05ba1",
+      "byteLength": 599,
+      "reason": "Single-use external-confirmation authority consumption record for the final transaction.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+      "sha256": "2ca8d92e52fa43ff66cf99316e6863c3db6b612b22ed64827fb738f0b7851930",
+      "byteLength": 4701,
+      "reason": "Previously validated exact final agent-closure authority path allowlist.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/historical-architecture/GATE14_FINAL_CLOSURE_CONSUMPTION_R1.json",
+      "sha256": "fb304f703cb0df300be966e5b6b7f2ee2e1bc44a41445c9fca1b811f2e4bdaaa",
+      "byteLength": 562,
+      "reason": "Previously validated single-use final agent-closure authority consumption record.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee",
+      "byteLength": 2998,
+      "reason": "Independent external reinspection report with PASS verdict and exact event61 bindings.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_EXTERNAL_CONFIRMATION_FINAL_R1.json",
+      "sha256": "ea968e86a7b5454062adf246db90ab5743e808c6b5f1baa8c2e39d7a419401e7",
+      "byteLength": 2511,
+      "reason": "Local single-use authority binding COMMIT B, the independent report, exact manifest, and EXTERNAL_CONFIRMATION.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE14_FINAL_CLOSURE_R1.json",
+      "sha256": "22a43b77c14f54bdc24d606d3e15eb125fc22ac83fcbae2767683cf7cdea3aae",
+      "byteLength": 2036,
+      "reason": "Previously validated local authority for the agent-closure predecessor cohort.",
+      "phase": "AGENT_CLOSURE",
+      "operation": "CREATE",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6",
+      "byteLength": 33219,
+      "reason": "Canonical ledger with event61 EXTERNAL_CONFIRMATION and 61 total events.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "addc1b064a4427521dc6f108813bc1cc19bcaa7cad13097df1b23628466b48f5",
+      "byteLength": 15426,
+      "reason": "Required derived status projection after event61 and R0005.",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "operation": "MODIFY",
+      "classification": "FINAL_GATE14_CLOSURE_COHORT"
+    }
+  ]
+}

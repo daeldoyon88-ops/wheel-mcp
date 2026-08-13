@@ -57,6 +57,11 @@ export const POST_FREEZE_MAINTENANCE_AUTHORITY_MODE = 'LOCAL_EXPLICIT_AUTHORITY'
 export const POST_FREEZE_MAINTENANCE_DOCUMENT = 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY';
 export const POST_FREEZE_MAINTENANCE_MANIFEST_KIND = 'POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST';
 export const POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND = 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION';
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_NORMAL = 'NORMAL_MAINTENANCE';
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_FINAL_CLOSURE = 'GATE_FINAL_CLOSURE';
+export const POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION = 'GATE_EXTERNAL_CONFIRMATION';
+export const FINAL_CLOSURE_OPERATION_CLASSES = Object.freeze(['AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION']);
+export const EXTERNAL_CONFIRMATION_OPERATION_CLASSES = Object.freeze(['EXTERNAL_CONFIRMATION']);
 export const PHASE_AUTHORIZE_PROGRAM_APPLY = 'AUTHORIZE_PROGRAM_APPLY';
 export const PHASE_VERIFY_PROGRAM_CONSUMPTION = 'VERIFY_PROGRAM_CONSUMPTION';
 
@@ -78,11 +83,12 @@ export const FORBIDDEN_SIGNATURE_FIELDS = Object.freeze([
 
 const AUTHORITY_FIELDS = Object.freeze([
   'document', 'schemaVersion', 'authorityId', 'authorityClass', 'authorityMode',
-  'issuedBy', 'createdAt', 'expiresAt', 'targetSystem', 'programId',
+  'issuedBy', 'createdAt', 'expiresAt', 'targetSystem', 'programId', 'authorityPurpose',
   'resumePoint', 'maxUse', 'preState', 'authorizedPathManifestPath',
   'authorizedPathManifestSha256', 'authorizedOperationClasses', 'commitPolicy',
   'pushAuthorized', 'authorityPredecessor', 'authorityHeadBinding',
-  'consumptionRecordPath', 'prohibitedOperations'
+  'consumptionRecordPath', 'prohibitedOperations', 'externalReinspectionReportPath',
+  'externalReinspectionReportSha256'
 ]);
 
 const PRE_STATE_FIELDS = Object.freeze([
@@ -148,6 +154,10 @@ export function validatePostFreezeMaintenanceAuthorityV2Shape(authority) {
   if (typeof authority.resumePoint !== 'string' || !authority.resumePoint) finding(findings, 'RESUME_POINT_INVALID');
   for (const field of ['createdAt', 'expiresAt']) if (!ISO_UTC_RE.test(authority[field] || '')) finding(findings, 'TIMESTAMP_INVALID', field);
   if (authority.targetSystem !== 'PROJECT_GOVERNANCE') finding(findings, 'TARGET_SYSTEM_INVALID');
+  const authorityPurpose = authority.authorityPurpose ?? POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_NORMAL;
+  if (![POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_NORMAL, POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_FINAL_CLOSURE, POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION].includes(authorityPurpose)) {
+    finding(findings, 'AUTHORITY_PURPOSE_INVALID', authorityPurpose);
+  }
   if (authority.maxUse !== 1) finding(findings, 'MAX_USE_INVALID');
   if (!authority.preState || typeof authority.preState !== 'object' || Array.isArray(authority.preState)) {
     finding(findings, 'PRE_STATE_INVALID');
@@ -164,11 +174,27 @@ export function validatePostFreezeMaintenanceAuthorityV2Shape(authority) {
   }
   if (!isExactMaintenancePath(authority.authorizedPathManifestPath)) finding(findings, 'AUTHORIZED_MANIFEST_PATH_INVALID');
   if (!SHA256_RE.test(authority.authorizedPathManifestSha256 || '')) finding(findings, 'AUTHORIZED_MANIFEST_SHA_INVALID');
+  if (authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION) {
+    if (!isExactMaintenancePath(authority.externalReinspectionReportPath)) finding(findings, 'EXTERNAL_REINSPECTION_REPORT_PATH_REQUIRED');
+    if (!SHA256_RE.test(authority.externalReinspectionReportSha256 || '')) finding(findings, 'EXTERNAL_REINSPECTION_REPORT_SHA_REQUIRED');
+  } else if (Object.hasOwn(authority, 'externalReinspectionReportPath') || Object.hasOwn(authority, 'externalReinspectionReportSha256')) {
+    finding(findings, 'EXTERNAL_REINSPECTION_REPORT_BINDING_NOT_PERMITTED');
+  }
   if (!Array.isArray(authority.authorizedOperationClasses) || authority.authorizedOperationClasses.length === 0
       || new Set(authority.authorizedOperationClasses).size !== authority.authorizedOperationClasses.length
       || authority.authorizedOperationClasses.some((value) => !TOKEN_RE.test(value))) finding(findings, 'AUTHORIZED_OPERATION_CLASSES_INVALID');
   for (const operationClass of Array.isArray(authority.authorizedOperationClasses) ? authority.authorizedOperationClasses : []) {
-    if (REQUIRED_PROHIBITED_OPERATIONS.includes(operationClass)) finding(findings, 'PROHIBITED_OPERATION_CLASS_CLAIMED', operationClass);
+    const closureException = authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_FINAL_CLOSURE
+      ? FINAL_CLOSURE_OPERATION_CLASSES.includes(operationClass)
+      : authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION
+        && EXTERNAL_CONFIRMATION_OPERATION_CLASSES.includes(operationClass);
+    if (REQUIRED_PROHIBITED_OPERATIONS.includes(operationClass) && !closureException) finding(findings, 'PROHIBITED_OPERATION_CLASS_CLAIMED', operationClass);
+  }
+  if (authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_FINAL_CLOSURE
+      && !authority.authorizedOperationClasses?.includes('AGENT_CLOSURE')) finding(findings, 'FINAL_CLOSURE_AGENT_OPERATION_REQUIRED');
+  if (authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION
+      && (authority.authorizedOperationClasses?.length !== 1 || authority.authorizedOperationClasses[0] !== 'EXTERNAL_CONFIRMATION')) {
+    finding(findings, 'EXTERNAL_CONFIRMATION_OPERATION_REQUIRED');
   }
   if (!authority.commitPolicy || typeof authority.commitPolicy !== 'object' || Array.isArray(authority.commitPolicy)) {
     finding(findings, 'COMMIT_POLICY_INVALID');
@@ -194,7 +220,7 @@ export function validatePostFreezeMaintenanceAuthorityV2Shape(authority) {
   return { valid: findings.length === 0, findings };
 }
 
-export function validateMaintenanceAuthorizedPathManifest(manifest, programId) {
+export function validateMaintenanceAuthorizedPathManifest(manifest, programId, authorityPurpose = POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_NORMAL) {
   const findings = [];
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
     finding(findings, 'MANIFEST_ABSENT');
@@ -219,6 +245,16 @@ export function validateMaintenanceAuthorizedPathManifest(manifest, programId) {
     if (typeof entry.reason !== 'string' || !entry.reason) finding(findings, 'MANIFEST_REASON_INVALID', entry.path);
     if (!TOKEN_RE.test(entry.artifactClass || '')) finding(findings, 'MANIFEST_ARTIFACT_CLASS_INVALID', entry.path);
     else operationClasses.push(entry.artifactClass);
+    if ([POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_FINAL_CLOSURE, POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION].includes(authorityPurpose)) {
+      if (!FINAL_CLOSURE_OPERATION_CLASSES.includes(entry.phase)) finding(findings, 'FINAL_CLOSURE_PHASE_INVALID', entry.path);
+      if (entry.phase !== entry.artifactClass) finding(findings, 'FINAL_CLOSURE_PHASE_CLASS_MISMATCH', entry.path);
+      if (authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION
+          && (entry.phase !== 'EXTERNAL_CONFIRMATION' || entry.artifactClass !== 'EXTERNAL_CONFIRMATION')) {
+        finding(findings, 'EXTERNAL_CONFIRMATION_PHASE_CLASS_REQUIRED', entry.path);
+      }
+    } else if (FINAL_CLOSURE_OPERATION_CLASSES.includes(entry.phase) || FINAL_CLOSURE_OPERATION_CLASSES.includes(entry.artifactClass)) {
+      finding(findings, 'FINAL_CLOSURE_OPERATION_OUTSIDE_PURPOSE', entry.path);
+    }
   }
   return { valid: findings.length === 0, findings, authorizedPaths: paths, operationClasses: [...new Set(operationClasses)] };
 }
@@ -250,7 +286,11 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
   consumptionRecord = null
 } = {}) {
   const shape = validatePostFreezeMaintenanceAuthorityV2Shape(authority);
-  const manifestResult = validateMaintenanceAuthorizedPathManifest(manifest, authority?.programId);
+  const manifestResult = validateMaintenanceAuthorizedPathManifest(
+    manifest,
+    authority?.programId,
+    authority?.authorityPurpose ?? POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_NORMAL
+  );
   const findings = [...shape.findings, ...manifestResult.findings];
   if (phase !== PHASE_AUTHORIZE_PROGRAM_APPLY && phase !== PHASE_VERIFY_PROGRAM_CONSUMPTION) finding(findings, 'PHASE_INVALID', phase);
   if (shape.valid) {
@@ -259,6 +299,11 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
     else if (now.getTime() > expires) finding(findings, 'AUTHORITY_EXPIRED');
   }
   if (observed.manifestSha256 !== authority?.authorizedPathManifestSha256) finding(findings, 'AUTHORIZED_MANIFEST_SHA_MISMATCH', observed.manifestSha256 ?? 'ABSENT');
+  if (authority?.authorityPurpose === POST_FREEZE_MAINTENANCE_AUTHORITY_PURPOSE_EXTERNAL_CONFIRMATION) {
+    if (!manifestResult.authorizedPaths.includes(authority.externalReinspectionReportPath)) finding(findings, 'EXTERNAL_REINSPECTION_REPORT_NOT_IN_MANIFEST');
+    if (observed.externalReinspectionReportPath !== authority.externalReinspectionReportPath) finding(findings, 'EXTERNAL_REINSPECTION_REPORT_PATH_MISMATCH', observed.externalReinspectionReportPath ?? 'ABSENT');
+    if (observed.externalReinspectionReportSha256 !== authority.externalReinspectionReportSha256) finding(findings, 'EXTERNAL_REINSPECTION_REPORT_SHA_MISMATCH', observed.externalReinspectionReportSha256 ?? 'ABSENT');
+  }
   // PRE-STATE DRIFT IS ONLY A QUESTION AT AUTHORIZE TIME.
   //
   // The pre-state binding is what makes this authority single-use: it names the

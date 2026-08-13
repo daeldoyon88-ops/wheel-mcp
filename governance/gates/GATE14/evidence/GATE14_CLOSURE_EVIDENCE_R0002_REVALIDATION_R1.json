@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION",
+  "revalidationId": "GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1",
+  "gateId": "GATE14",
+  "sourceContractRevision": "R0001",
+  "sourceContractSha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d",
+  "targetContractRevision": "R0002",
+  "targetContractSha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152",
+  "sourceClosureEvidencePath": "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json",
+  "sourceClosureEvidenceSha256": "1d71e1d0edb69d785cff867363dc27cb0c443e8fdd7bdbda25bcb51e781d28b9",
+  "sourceClosureEvidenceUnchanged": true,
+  "R0001_to_R0002_delta": {
+    "functionalMandateChanged": false,
+    "closureSemanticCorrection": true,
+    "appendOnlyLedgerBindingCorrection": true,
+    "functionalSectionsReusedExactly": [
+      "requiredOutputs",
+      "validators",
+      "positiveTests",
+      "negativeTests",
+      "countertests",
+      "reuseRules",
+      "invalidationRules",
+      "forbiddenReplays",
+      "packagingRequirements",
+      "authorizedPaths",
+      "requiredPolicyIds"
+    ],
+    "governanceOnlyChanges": [
+      "contractRevision R0001 -> R0002",
+      "ledger input gains exact event-count binding while retaining the R0001 prefix basis",
+      "stale closure condition GATE14 NOT_STARTED is removed",
+      "previous-contract succession binding is declared"
+    ]
+  },
+  "functionalEvidenceRevalidation": {
+    "basis": "Existing functional artifacts were re-read and their R0002 functional sections were compared against the target contract; the production harness was executed to recompute the counts. Its only remaining blocker is the stale R0001 closure-condition reconciliation, recorded separately and not treated as a functional failure.",
+    "artifactHashesRevalidated": {
+      "governance/gates/GATE14/implementation/TRAVERSAL_INVENTORY.json": "a6fbf141a55eb6ed9dd973c3efcf0897530bf2db31a019d69216b309c78898de",
+      "governance/gates/GATE14/implementation/MUTATION_REGISTRY.json": "706650fdb3864f051728cdf46e7698a7b1e0bc6af9c105be59f558b087e7d97d",
+      "governance/gates/GATE14/implementation/MUTATION_EXECUTION_RECORDS.json": "6157fe44092e5b98283d4466f7b828646b4a41dde36850611538ff24d48749b2",
+      "governance/gates/GATE14/implementation/COVERAGE_MATRIX.json": "32f6306fd929172b39f49f9c4ac6c160fb01fe6a889f84a8533e4cf821c9a1c8",
+      "governance/gates/GATE14/tests/hostile-self-tests.mjs": "dcaf7853bae59c9a73b2a23720cf9adfa5ef9f111d68fb1a89c534796a36f9fa"
+    },
+    "recomputedCounts": {
+      "mutations": { "observed": 22, "expected": 22, "status": "PASS" },
+      "executions": { "observed": 44, "expected": 44, "status": "PASS" },
+      "methodologyControls": { "observed": 12, "passed": 12, "expected": "12/12", "status": "PASS" },
+      "negativeTests": { "covered": 13, "total": 13, "expected": "13/13", "status": "PASS" },
+      "countertests": { "covered": 13, "total": 13, "expected": "13/13", "status": "PASS" },
+      "validators": { "executed": 3, "total": 3, "expected": "3/3", "status": "PASS" }
+    },
+    "mandatoryRequirementMapping": [
+      { "requirement": "six artifact classes validated", "classification": "REVALIDATED_AGAINST_R0002", "status": "PASS" },
+      { "requirement": "hostile mutations reproduced and rejected", "classification": "REVALIDATED_AGAINST_R0002", "status": "PASS" },
+      { "requirement": "no fabricated PASS", "classification": "REVALIDATED_AGAINST_R0002", "status": "PASS" },
+      { "requirement": "deterministic replay", "classification": "REVALIDATED_AGAINST_R0002", "status": "PASS" },
+      { "requirement": "no ledger/status/next-gate authority", "classification": "REVALIDATED_AGAINST_R0002", "status": "PASS" },
+      { "requirement": "stale GATE14 NOT_STARTED closure condition removed", "classification": "NEW_R0002_GOVERNANCE_ONLY", "status": "PASS" }
+    ],
+    "blockedRequirementCount": 0,
+    "functionalVerdict": "VALID"
+  },
+  "event60TimingCheck": {
+    "status": "PASS",
+    "ruleBasis": "R0002 closure conditions require validated underlying evidence and do not require an R0002-specific revalidation artifact to predate AGENT_CLOSURE.",
+    "interpretation": "This additive artifact re-attests already-existing functional evidence against R0002; it does not claim that the immutable R0001 evidence was authored for R0002.",
+    "agentClosureEvidenceTimingContradiction": false
+  },
+  "closureDecisions": {
+    "R0002ClosureEvidence": "VALID",
+    "D01": "CLOSED",
+    "D02": "CLOSED",
+    "CONTRACT_REVISION_AUTHORITY_REQUIRED": "RESOLVED_ADDITIVELY"
+  },
+  "canonicalStateAtRevalidation": {
+    "head": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd",
+    "ledgerEventCount": 60,
+    "ledgerSha256": "ecb870c2ad3f567ab9655d4248fb87115badc0eec4facae811d89e2316dcbb5f",
+    "gateId": "GATE14",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "externalConfirmationCount": 0,
+    "event61Present": false,
+    "gate14R0005Present": false,
+    "R8Present": false
+  }
+}

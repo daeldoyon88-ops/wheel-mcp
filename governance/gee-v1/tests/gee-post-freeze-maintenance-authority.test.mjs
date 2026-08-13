@@ -270,6 +270,173 @@ function makeV2Fixture() {
   return { authority, manifest, observed, now: new Date('2026-08-13T00:02:00.000Z') };
 }
 
+function makeFinalClosureFixture() {
+  const fixture = makeV2Fixture();
+  fixture.authority = {
+    ...fixture.authority,
+    authorityPurpose: 'GATE_FINAL_CLOSURE',
+    authorizedOperationClasses: ['AGENT_CLOSURE']
+  };
+  fixture.manifest = {
+    ...fixture.manifest,
+    paths: fixture.manifest.paths.map((entry) => ({
+      ...entry,
+      phase: 'AGENT_CLOSURE',
+      artifactClass: 'AGENT_CLOSURE'
+    }))
+  };
+  fixture.authority.authorizedPathManifestSha256 = sha256Hex(Buffer.from(JSON.stringify(fixture.manifest), 'utf8'));
+  fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
+  fixture.observed.requestedOperationClasses = ['AGENT_CLOSURE'];
+  return fixture;
+}
+
+function makeExternalConfirmationFixture() {
+  const fixture = makeV2Fixture();
+  fixture.authority.preState = {
+    ...fixture.authority.preState,
+    baseHead: '2d7df54ac3e270c76b0681884a3c2a158b02dbfd',
+    ledgerEventCount: 60,
+    ledgerPrefixSha256: 'ecb870c2ad3f567ab9655d4248fb87115badc0eec4facae811d89e2316dcbb5f',
+    gateId: 'GATE14',
+    gateStatus: 'COMPLETE_AGENT',
+    stateRevision: 'R0004',
+    contractRevision: 'R0002',
+    activeGate: 'GATE13'
+  };
+  fixture.authority.authorityHeadBinding = { mode: 'BASE_HEAD', baseHead: fixture.authority.preState.baseHead };
+  const reportPath = 'synthetic/independent/EXTERNAL_REINSPECTION_REPORT.json';
+  const reportSha256 = 'a'.repeat(64);
+  fixture.authority = {
+    ...fixture.authority,
+    authorityPurpose: 'GATE_EXTERNAL_CONFIRMATION',
+    externalReinspectionReportPath: reportPath,
+    externalReinspectionReportSha256: reportSha256,
+    authorizedOperationClasses: ['EXTERNAL_CONFIRMATION']
+  };
+  fixture.manifest = {
+    ...fixture.manifest,
+    paths: [
+      { path: reportPath, operation: 'CREATE', phase: 'EXTERNAL_CONFIRMATION', reason: 'independent report', artifactClass: 'EXTERNAL_CONFIRMATION' },
+      { path: 'synthetic/independent/CLOSURE_RECORD.json', operation: 'CREATE', phase: 'EXTERNAL_CONFIRMATION', reason: 'confirmation record', artifactClass: 'EXTERNAL_CONFIRMATION' }
+    ]
+  };
+  fixture.authority.authorizedPathManifestSha256 = sha256Hex(Buffer.from(JSON.stringify(fixture.manifest), 'utf8'));
+  fixture.observed.baseHead = fixture.authority.preState.baseHead;
+  fixture.observed.ledgerEventCount = fixture.authority.preState.ledgerEventCount;
+  fixture.observed.ledgerPrefixSha256 = fixture.authority.preState.ledgerPrefixSha256;
+  fixture.observed.gateId = fixture.authority.preState.gateId;
+  fixture.observed.gateStatus = fixture.authority.preState.gateStatus;
+  fixture.observed.stateRevision = fixture.authority.preState.stateRevision;
+  fixture.observed.contractRevision = fixture.authority.preState.contractRevision;
+  fixture.observed.activeGate = fixture.authority.preState.activeGate;
+  fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
+  fixture.observed.requestedPaths = fixture.manifest.paths.map((entry) => entry.path);
+  fixture.observed.externalReinspectionReportPath = reportPath;
+  fixture.observed.externalReinspectionReportSha256 = reportSha256;
+  fixture.observed.requestedOperationClasses = ['EXTERNAL_CONFIRMATION'];
+  return fixture;
+}
+
+test('LA-FC01: final-closure purpose permits only the exact AGENT_CLOSURE class', () => {
+  const fixture = makeFinalClosureFixture();
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'AUTHORIZED');
+  assert.deepEqual(result.authorizedOperationClasses, ['AGENT_CLOSURE']);
+});
+
+test('LA-FC02: normal maintenance cannot claim AGENT_CLOSURE', () => {
+  const fixture = makeV2Fixture();
+  fixture.authority.authorizedOperationClasses = ['AGENT_CLOSURE'];
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'PROHIBITED_OPERATION_CLASS_CLAIMED'));
+});
+
+test('LA-FC03: final-closure manifests require phase and artifact class parity', () => {
+  const fixture = makeFinalClosureFixture();
+  fixture.manifest.paths[0].phase = 'EXTERNAL_CONFIRMATION';
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'FINAL_CLOSURE_PHASE_CLASS_MISMATCH'));
+});
+
+test('LA-FC04: final-closure purpose still requires AGENT_CLOSURE', () => {
+  const fixture = makeFinalClosureFixture();
+  fixture.authority.authorizedOperationClasses = ['EXTERNAL_CONFIRMATION'];
+  fixture.manifest.paths = fixture.manifest.paths.map((entry) => ({ ...entry, artifactClass: 'EXTERNAL_CONFIRMATION' }));
+  fixture.authority.authorizedPathManifestSha256 = sha256Hex(Buffer.from(JSON.stringify(fixture.manifest), 'utf8'));
+  fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
+  fixture.observed.requestedOperationClasses = ['EXTERNAL_CONFIRMATION'];
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'FINAL_CLOSURE_AGENT_OPERATION_REQUIRED'));
+});
+
+test('EC04/EC05/EC06: external-confirmation-only authority binds the exact report and pre-state', () => {
+  const fixture = makeExternalConfirmationFixture();
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'AUTHORIZED');
+  assert.deepEqual(result.authorizedOperationClasses, ['EXTERNAL_CONFIRMATION']);
+  assert.deepEqual(result.authorizedPaths, fixture.manifest.paths.map((entry) => entry.path));
+});
+
+test('ECH12/ECH13: independent report binding is mandatory and digest drift blocks', () => {
+  const missing = makeExternalConfirmationFixture();
+  delete missing.authority.externalReinspectionReportPath;
+  delete missing.authority.externalReinspectionReportSha256;
+  delete missing.observed.externalReinspectionReportPath;
+  delete missing.observed.externalReinspectionReportSha256;
+  const missingResult = evaluatePostFreezeMaintenanceAuthorityV2({ ...missing, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(missingResult.decision, 'BLOCKED');
+  assert.ok(missingResult.findings.some((finding) => finding.code === 'EXTERNAL_REINSPECTION_REPORT_PATH_REQUIRED'));
+
+  const altered = makeExternalConfirmationFixture();
+  altered.observed.externalReinspectionReportSha256 = 'b'.repeat(64);
+  const alteredResult = evaluatePostFreezeMaintenanceAuthorityV2({ ...altered, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(alteredResult.decision, 'BLOCKED');
+  assert.ok(alteredResult.findings.some((finding) => finding.code === 'EXTERNAL_REINSPECTION_REPORT_SHA_MISMATCH'));
+});
+
+test('ECH18/ECH19: authority reuse and old final-closure authority cannot authorize confirmation', () => {
+  const reused = makeExternalConfirmationFixture();
+  reused.consumptionRecord = { consumedUse: 1 };
+  assert.equal(evaluatePostFreezeMaintenanceAuthorityV2({ ...reused, phase: PHASE_AUTHORIZE_PROGRAM_APPLY }).decision, 'BLOCKED');
+
+  const oldClosure = makeFinalClosureFixture();
+  oldClosure.authority.authorityPurpose = 'GATE_EXTERNAL_CONFIRMATION';
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...oldClosure, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'EXTERNAL_REINSPECTION_REPORT_PATH_REQUIRED'));
+});
+
+for (const [name, mutate] of [
+  ['ECH01 AGENT_CLOSURE', (f) => { f.authority.authorizedOperationClasses.push('AGENT_CLOSURE'); f.observed.requestedOperationClasses.push('AGENT_CLOSURE'); }],
+  ['ECH02 START', (f) => { f.authority.authorizedOperationClasses.push('START'); f.observed.requestedOperationClasses.push('START'); }],
+  ['ECH03 AUTHORIZATION', (f) => { f.authority.authorizedOperationClasses.push('AUTHORIZATION'); f.observed.requestedOperationClasses.push('AUTHORIZATION'); }],
+  ['ECH04 CONTRACT_SUCCESSION', (f) => { f.authority.authorizedOperationClasses.push('CONTRACT_SUCCESSION'); f.observed.requestedOperationClasses.push('CONTRACT_SUCCESSION'); }],
+  ['ECH05 wrong Gate', (f) => { f.observed.gateId = 'GATE13'; }],
+  ['ECH06 wrong status', (f) => { f.observed.gateStatus = 'IN_PROGRESS'; }],
+  ['ECH07 wrong R0004', (f) => { f.observed.stateRevision = 'R0003'; }],
+  ['ECH08 wrong R0002', (f) => { f.observed.contractRevision = 'R0001'; }],
+  ['ECH09 wrong ledger60', (f) => { f.observed.ledgerEventCount = 59; }],
+  ['ECH10 wrong HEAD', (f) => { f.observed.baseHead = '9'.repeat(40); }],
+  ['ECH11 wrong ACTIVE_GATE', (f) => { f.observed.activeGate = 'GATE12'; }],
+  ['ECH14 wildcard', (f) => { f.manifest.paths[0].path = 'synthetic/**'; f.authority.authorizedPathManifestSha256 = sha256Hex(Buffer.from(JSON.stringify(f.manifest), 'utf8')); f.observed.manifestSha256 = f.authority.authorizedPathManifestSha256; }],
+  ['ECH15 unexpected path', (f) => { f.observed.requestedPaths.push('synthetic/unexpected.json'); }],
+  ['ECH16 R8', (f) => { f.observed.R8Absent = false; }],
+  ['ECH17 push', (f) => { f.authority.pushAuthorized = true; }]
+]) {
+  test(`${name} is blocked fail-closed`, () => {
+    const fixture = makeExternalConfirmationFixture();
+    mutate(fixture);
+    const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+    assert.equal(result.decision, 'BLOCKED');
+    assert.deepEqual(result.authorizedPaths, []);
+    assert.deepEqual(result.authorizedOperationClasses, []);
+  });
+}
+
 test('LA01: a valid local V2 authority carries no key material and still authorizes', () => {
   const fixture = makeV2Fixture();
   for (const field of ['ownerKeyId', 'signatureAlgorithm', 'signature', 'privateKeyPath', 'externalSigner']) {

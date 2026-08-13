@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE14",
+  "programId": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1",
+  "independentSession": true,
+  "ledgerEventCount": 60,
+  "ledgerSha256": "ecb870c2ad3f567ab9655d4248fb87115badc0eec4facae811d89e2316dcbb5f",
+  "agentClosureOrdinal": 60,
+  "agentClosureEventId": "GATE14_AGENT_CLOSURE_R1",
+  "agentClosureStateRevision": "R0004",
+  "agentClosureStateSealSha256": "152f325a6484bd16749c7e5cf027b4292186fc47822a2fd47c29ee961a90e9c8",
+  "contractRevision": "R0002",
+  "contractSha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152",
+  "R0002RevalidationPath": "governance/gates/GATE14/evidence/GATE14_CLOSURE_EVIDENCE_R0002_REVALIDATION_R1.json",
+  "R0002RevalidationSha256": "6e9946d72cfbc27d651927a4604622f449d47d6538c436a9f42205b5b129df60",
+  "sourceClosureEvidencePath": "governance/gates/GATE14/evidence/CLOSURE_EVIDENCE.json",
+  "sourceClosureEvidenceSha256": "1d71e1d0edb69d785cff867363dc27cb0c443e8fdd7bdbda25bcb51e781d28b9",
+  "sourceClosureEvidenceUnchanged": true,
+  "functionalEvidence": {
+    "mutations": 22,
+    "executions": 44,
+    "methodologyControls": "12/12",
+    "negativeTests": "13/13",
+    "countertests": "13/13",
+    "validators": "3/3",
+    "D01": "CLOSED",
+    "D02": "CLOSED",
+    "R0002FunctionalMandateChanged": false,
+    "revalidationClassification": "HONEST_REQUIREMENT_BY_REQUIREMENT"
+  },
+  "timing": {
+    "event60EvidenceTiming": "PASS",
+    "underlyingFunctionalEvidencePreExistedEvent60": true,
+    "R0002RevalidationArtifactPredateEvent60Required": false,
+    "newEvidenceFabricatedForEvent60": false
+  },
+  "historicalReplay": {
+    "56": "PASS",
+    "57": "PASS",
+    "58": "PASS",
+    "59": "PASS",
+    "60": "PASS",
+    "ledgerIntegrity": "PASS",
+    "presentConsistency": "PASS",
+    "stateLineage": "PASS",
+    "R0004Seal": "PASS",
+    "R0002Contract": "PASS",
+    "R0001ToR0002Succession": "PASS",
+    "event59NativeStatePin": "PASS",
+    "event60NativeStatePin": "PASS",
+    "legacy5758Binding": "PASS",
+    "validatorProvenance": "PASS",
+    "activeGate": "PASS",
+    "R8": "ABSENT"
+  },
+  "v2ExternalConfirmationCapability": {
+    "purpose": "GATE_EXTERNAL_CONFIRMATION",
+    "tests": "77/77 PASS",
+    "onlyExternalConfirmationAuthorized": true,
+    "historicalV1SemanticsUnchanged": true,
+    "ordinaryV2MaintenanceSemanticsUnchanged": true,
+    "finalClosureSemanticsUnchanged": true,
+    "consumedAuthorityReuseRejected": true,
+    "oldAuthorityConfirmationPrivilegeRejected": true
+  },
+  "regression": {
+    "newUnrelatedFailureIdentities": 0,
+    "basis": "Targeted independent V2 and Gate14 validation; unrelated pre-existing dirty work was excluded from the governed scope."
+  },
+  "scope": {
+    "unauthorizedGovernancePaths": 0,
+    "unrelatedUserWorkIncorporated": 0,
+    "wildcard": false,
+    "classification": "AGENT_CLOSURE_FINAL_UNBLOCK_AND_DERIVED_PROJECTIONS_ONLY"
+  },
+  "blockingFindings": [],
+  "verdict": "PASS"
+}

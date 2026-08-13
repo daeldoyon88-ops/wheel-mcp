@@ -1,0 +1,66 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE14_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-13T14:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "CP-G14-INDEPENDENT-EXTERNAL-CONFIRMATION",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd",
+    "ledgerEventCount": 60,
+    "ledgerPrefixSha256": "ecb870c2ad3f567ab9655d4248fb87115badc0eec4facae811d89e2316dcbb5f",
+    "gateId": "GATE14",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0004",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967",
+  "authorizedOperationClasses": [
+    "EXTERNAL_CONFIRMATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: close GATE14 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE14_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "22a43b77c14f54bdc24d606d3e15eb125fc22ac83fcbae2767683cf7cdea3aae"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE14_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ],
+  "externalReinspectionReportPath": "governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee"
+}

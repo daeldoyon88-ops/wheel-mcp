@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE",
+  "gateId": "GATE14",
+  "programId": "GATE14_FINAL_GOVERNED_CLOSURE_R1",
+  "authorityId": "GATE14_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "authoritySha256": "22a43b77c14f54bdc24d606d3e15eb125fc22ac83fcbae2767683cf7cdea3aae",
+  "manifestPath": "governance/historical-architecture/GATE14_FINAL_CLOSURE_AUTHORIZED_PATHS.json",
+  "manifestSha256": "2ca8d92e52fa43ff66cf99316e6863c3db6b612b22ed64827fb738f0b7851930",
+  "closurePhase": "AGENT_CLOSURE",
+  "resultingStatus": "COMPLETE_AGENT",
+  "stateRevision": "R0004",
+  "expectedAgentClosureEvent": {
+    "ordinal": 60,
+    "eventId": "GATE14_AGENT_CLOSURE_R1",
+    "transitionType": "AGENT_CLOSURE"
+  },
+  "independentConfirmation": {
+    "required": true,
+    "transitionType": "EXTERNAL_CONFIRMATION",
+    "requiredAuthorityClass": "EXTERNAL_REINSPECTION_REPORT",
+    "sameMissionMayConfirm": false,
+    "reason": "COMPLETE_CONFIRMED requires an independent EXTERNAL_REINSPECTION_REPORT; the local closure authority cannot substitute for that class."
+  },
+  "preState": {
+    "baseHead": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd",
+    "ledgerEventCount": 59,
+    "ledgerPrefixSha256": "6f1ccbc20ecbb09fff7a0a9b08feb94145737949dcb59ed881b5c1dabd9dbeb0",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0003",
+    "contractRevision": "R0002",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "requiredNextAction": "INDEPENDENT_EXTERNAL_CONFIRMATION",
+  "createdAt": "2026-08-13T13:00:00.000Z"
+}

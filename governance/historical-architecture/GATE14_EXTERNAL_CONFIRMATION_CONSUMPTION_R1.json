@@ -1,0 +1,12 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "GATE14_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1",
+  "manifestSha256": "169e702a96ba4f03af30cc1f393ba866d78c29853331bcaecad07d1206248967",
+  "baseHead": "2d7df54ac3e270c76b0681884a3c2a158b02dbfd",
+  "consumedUse": 1,
+  "transactionId": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_TRANSACTION",
+  "recordedAt": "2026-08-13T14:00:00.000Z",
+  "commitMessage": "governance: close GATE14 with independent confirmation"
+}

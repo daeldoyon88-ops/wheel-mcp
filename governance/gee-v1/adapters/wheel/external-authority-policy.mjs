@@ -32,6 +32,12 @@ export const WHEEL_EXTERNAL_AUTHORITY_POLICY = Object.freeze({
       classification: 'EXTERNAL_REINSPECTION_REPORT',
       path: 'governance/authority/snapshots/GATE13_INDEPENDENT_AUDIT_R1_14_INDEPENDENT_VERDICT.json',
       sha256: '91b397803b51d72dbe57c7ba804336bf3a3b6ac7a477909217d8ef79351ee352'
+    },
+    {
+      authorityId: 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT',
+      classification: 'EXTERNAL_REINSPECTION_REPORT',
+      path: 'governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json',
+      sha256: '3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee'
     }
   ],
   assertExternalReinspectionVerdict({ event, report, authorityId }) {
@@ -43,6 +49,12 @@ export const WHEEL_EXTERNAL_AUTHORITY_POLICY = Object.freeze({
     // document — bound explicitly to GATE13 and never inferred from event.gateId alone.
     if (authorityId === 'WHEEL-GATE13-INDEPENDENT-VERDICT-20260808-093157') {
       return event?.gateId === 'GATE13' && report?.INDEPENDENT_AUDIT === 'PASS' && report?.PHASE_B_AUTHORIZED === true;
+    }
+    if (authorityId === 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT') {
+      return event?.gateId === 'GATE14'
+        && report?.verdict === 'PASS'
+        && report?.independentSession === true
+        && report?.programId === 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1';
     }
     return false;
   }

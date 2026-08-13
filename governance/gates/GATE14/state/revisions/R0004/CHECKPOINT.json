@@ -1,0 +1,56 @@
+{
+  "gateId": "GATE14",
+  "stateRevision": "R0004",
+  "milestone": "GATE14_DETERMINISTIC_MUTATION_TRAVERSAL",
+  "resumePoint": "GATE14 is COMPLETE_AGENT after the exact AGENT_CLOSURE transition. A separate independent EXTERNAL_CONFIRMATION is required; do not self-confirm.",
+  "completedTasks": [
+    "GATE14_START_R1",
+    "HISTORICAL_ARCHITECTURE_H1_H9",
+    "CONTRACT_SUCCESSION_R0001_TO_R0002",
+    "GATE14_FINAL_GOVERNED_CLOSURE_R1"
+  ],
+  "openTasks": [
+    "Independent EXTERNAL_CONFIRMATION under a separate independent session and EXTERNAL_REINSPECTION_REPORT authority."
+  ],
+  "reusableEvidence": [
+    "governance/historical-architecture/RETAINED_HISTORICAL_OBJECTS.json",
+    "governance/historical-architecture/LEGACY_STATE_BINDINGS.json",
+    "governance/historical-architecture/VALIDATOR_PROVENANCE_MANIFEST.json",
+    {
+      "path": "governance/gates/GATE14/evidence/GATE14_FINAL_CLOSURE_CONFIRMATION_PACKAGE_R1.json",
+      "sha256": "0868da4f2baa3c937e53b81915d75cc313224386ab66998005920e992065a2e7",
+      "validUntilCondition": "valid while the GATE14 closure authority, manifest, R0004 state and canonical ledger prefix remain byte-identical"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "INDEPENDENT_EXTERNAL_CONFIRMATION"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "be2b6c3abae20e59791587529567b534935d161144ff3aa9d05748b516a0262d"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/EXECUTION_CONTRACT_R0002.json",
+      "sha256": "cf9281f8e957908dc8a5d9c46369e9b5f3795148fd41f84cf349818de7bb4152"
+    },
+    {
+      "path": "governance/gates/GATE14/contracts/CURRENT_CONTRACT.json",
+      "sha256": "27a2bed562ad4528043be82f63fc4b925e7f22f6f515c42990dd017cc1a446a2"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "c7004faf6368c46a96ec44a230cf594c4f7a4b09ad0f0901c15638071ca9c38d"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "ca29d6ade22c0de9a9eeb18b9d2dfa4d48b202996951a4223e3fc13d3f04c5dd"
+    },
+    {
+      "path": "governance/gates/GATE14/state/revisions/R0003/STATE_SEAL.json",
+      "sha256": "80b034777b50fb56b29d6a2c1b49f5ba8a8e6ee9dca2d94a4edf5c28863a2ebb"
+    }
+  ],
+  "createdAt": "2026-08-13T13:00:00.000Z"
+}

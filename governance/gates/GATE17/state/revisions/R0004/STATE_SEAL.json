@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE17",
+  "stateRevision": "R0004",
+  "sealedMembers": [
+    { "repoRelativePath": "governance/gates/GATE17/contracts/CURRENT_CONTRACT.json", "sha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148", "byteLength": 281 },
+    { "repoRelativePath": "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json", "sha256": "b6c376e43e8902c67ee0534d2fb762f6498dd15c6b3066e9275d1d19c58184f1", "byteLength": 2257 },
+    { "repoRelativePath": "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json", "sha256": "91eecb68b076435aa99d0ee60262bf2c17c5ebb783a3450760153b4fd109105a", "byteLength": 2162 },
+    { "repoRelativePath": "governance/gates/GATE17/state/revisions/R0004/CHECKPOINT.json", "sha256": "b6137238469c241c292f8f478dbb75c85508e86975df2bcbe53164bad9e7b71a", "byteLength": 2356 },
+    { "repoRelativePath": "governance/gates/GATE17/state/revisions/R0004/OPEN_DEFECTS.json", "sha256": "d18d5744ae4be93eaf83ae0f451b45b8cba83a06da259722117a9cb09e8995c4", "byteLength": 70 },
+    { "repoRelativePath": "governance/historical-architecture/GATE17_B_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json", "sha256": "4b4df4f9c7d6f702ae4ce6856df833eed0a2cefcb9526b42baa4a59c89f86464", "byteLength": 5971 },
+    { "repoRelativePath": "governance/sources/GATE17_B_INDEPENDENT_FINAL_REPLAY_EXTERNAL_CONFIRMATION_EXTERNAL_REINSPECTION_REPORT.json", "sha256": "05ae7e5524d624d2be6db7aa258554164014044ec2e02182b206cf9ee3bcf46f", "byteLength": 3532 },
+    { "repoRelativePath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE17_B_EXTERNAL_CONFIRMATION_R1.json", "sha256": "e8a9745d262cdb604ed5b120e483a46c3ce77fe7e33b465a5d09643e330f7fac", "byteLength": 2468 }
+  ],
+  "previousStateSealSha256": "b2198ed06648a71a8b3b82dd7799a8ba9c5c460b4cfe1fca2106d96c8e3f5489",
+  "sealedAt": "2026-08-14T20:18:00.000Z",
+  "payload": {
+    "gateId": "GATE17",
+    "stateRevision": "R0004",
+    "executionStatus": "COMPLETE_CONFIRMED",
+    "contractSha256": "870fbfba014987e4a03cb5aa2d133b14b0faadfb4921ef8cc83693713a6eb0a9",
+    "previousStateSealSha256": "b2198ed06648a71a8b3b82dd7799a8ba9c5c460b4cfe1fca2106d96c8e3f5489",
+    "sealedMembersDigest": "649ef4bf8e06a53216f8e66a6ab2983b592de320ee3580eca49e2c8b0586ea96"
+  },
+  "payloadSha256": "8b325266438da5a4492c20ffcf62ea22705b14200ddcd949c80da3eace9efedf"
+}

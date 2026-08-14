@@ -1,0 +1,85 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE17_B_INDEPENDENT_FINAL_REPLAY_EXTERNAL_CONFIRMATION_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE17",
+  "programId": "GATE17_B_INDEPENDENT_FINAL_REPLAY_EXTERNAL_CONFIRMATION",
+  "verifierId": "GATE17_B_INDEPENDENT_FINAL_REPLAY_R1",
+  "independentSession": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Canonical repository bytes at the GATE17 COMPLETE_AGENT checkpoint; Mission-A claims and generated projections were not used as authority.",
+  "preState": {
+    "baseHead": "00e5b82311c7fc108c7c4cdb96631f4644c0109b",
+    "ledgerEventCount": 72,
+    "ledgerPrefixSha256": "def915046f7b9a453fba75f78bae066cc7075192266d3294c90495cae92f927c",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "checkId": "G17-B-01",
+      "subject": "canonical contract and final COMPLETE_AGENT state",
+      "result": "PASS",
+      "evidence": [
+        { "path": "governance/gates/GATE17/contracts/CURRENT_CONTRACT.json", "sha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148" },
+        { "path": "governance/gates/GATE17/state/revisions/R0003/STATE_SEAL.json", "sha256": "b2198ed06648a71a8b3b82dd7799a8ba9c5c460b4cfe1fca2106d96c8e3f5489" }
+      ]
+    },
+    {
+      "checkId": "G17-B-02",
+      "subject": "focused functional and generated-report evidence",
+      "result": "PASS",
+      "focusedTests": { "expected": 11, "passed": 11, "verdict": "PASS" },
+      "generatedFileDrift": 0,
+      "reportState": "CURRENT",
+      "evidence": [
+        { "path": "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json", "sha256": "b6c376e43e8902c67ee0534d2fb762f6498dd15c6b3066e9275d1d19c58184f1" },
+        { "path": "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json", "sha256": "91eecb68b076435aa99d0ee60262bf2c17c5ebb783a3450760153b4fd109105a" }
+      ]
+    },
+    {
+      "checkId": "G17-B-03",
+      "subject": "canonical ledger replay and lifecycle counts",
+      "result": "PASS",
+      "ledgerReplay": { "eventCount": 72, "replayedOrdinal": 72, "verdict": "PASS" },
+      "counts": { "authorization": 1, "start": 1, "agentClosure": 1, "externalConfirmation": 0 },
+      "ledgerSha256": "def915046f7b9a453fba75f78bae066cc7075192266d3294c90495cae92f927c"
+    },
+    {
+      "checkId": "G17-B-04",
+      "subject": "GEE R2 to R7 live canonical fast path",
+      "result": "PASS",
+      "missionRevisionId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7",
+      "r7": { "verdict": "PASS", "mode": "LIGHTWEIGHT", "heavyBenchmarkRequired": false },
+      "triggerReasons": []
+    },
+    {
+      "checkId": "G17-B-05",
+      "subject": "future-gate, active-gate and R8 containment",
+      "result": "PASS",
+      "activeGate": "GATE13",
+      "futureGateStatuses": "GATE18-GATE40=NOT_STARTED",
+      "R8": "ABSENT",
+      "activeGateSemanticsChanged": false
+    },
+    {
+      "checkId": "G17-B-06",
+      "subject": "independent identity and authority boundary",
+      "result": "PASS",
+      "producerOrSelfConfirmationUsed": false,
+      "newPrivateKeyOrSignature": false,
+      "networkAccess": false,
+      "push": false
+    }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE18PlusRemainNotStarted": true
+  },
+  "createdAt": "2026-08-14T20:15:00.000Z"
+}

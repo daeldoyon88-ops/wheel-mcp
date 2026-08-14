@@ -446,13 +446,28 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
   const requestedClasses = Array.isArray(observed.requestedOperationClasses) ? observed.requestedOperationClasses : manifestResult.operationClasses;
   for (const operationClass of requestedClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
   for (const operationClass of manifestResult.operationClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'MANIFEST_OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
-  if (!Array.isArray(observed.closedStateSealMembers) || !Array.isArray(observed.closedStateSealFindings)) {
+  const currentSealedMembers = observed.closedStateSealMembers;
+  const currentSealFindings = observed.closedStateSealFindings;
+  const preStateSealedMembers = observed.preStateClosedStateSealMembers;
+  const preStateSealFindings = observed.preStateClosedStateSealFindings;
+  if (!Array.isArray(currentSealedMembers) || !Array.isArray(currentSealFindings)) {
     finding(findings, 'SEALED_EVIDENCE_IMMUTABILITY_OBSERVATION_MISSING', CLOSED_REVISION_STATUSES.join('|'));
   } else {
-    for (const inventoryFinding of observed.closedStateSealFindings) finding(findings, 'SEALED_EVIDENCE_IMMUTABILITY_INVENTORY_INVALID', inventoryFinding);
-    const sealedPaths = new Set(observed.closedStateSealMembers.map((member) => member?.repoRelativePath).filter((value) => typeof value === 'string'));
-    for (const requestedPath of new Set([...manifestResult.authorizedPaths, ...requestedPaths])) {
-      if (sealedPaths.has(requestedPath)) finding(findings, SEALED_EVIDENCE_IMMUTABILITY_FINDING, requestedPath);
+    for (const inventoryFinding of currentSealFindings) finding(findings, 'SEALED_EVIDENCE_IMMUTABILITY_INVENTORY_INVALID', inventoryFinding);
+    if (!Array.isArray(preStateSealedMembers) || !Array.isArray(preStateSealFindings)) {
+      finding(findings, 'PRESTATE_SEALED_EVIDENCE_OBSERVATION_MISSING', CLOSED_REVISION_STATUSES.join('|'));
+    } else {
+      for (const inventoryFinding of preStateSealFindings) finding(findings, 'PRESTATE_SEALED_EVIDENCE_INVENTORY_INVALID', inventoryFinding);
+      // Only members present in the authority's immutable pre-state are
+      // protected from mutation here. A member that appears solely in the
+      // successor inventory is a transaction product and is verified by the
+      // exact consumption cohort instead of being misclassified as pre-state.
+      const preStateSealedPaths = new Set(preStateSealedMembers
+        .map((member) => member?.repoRelativePath)
+        .filter((value) => typeof value === 'string'));
+      for (const requestedPath of new Set([...manifestResult.authorizedPaths, ...requestedPaths])) {
+        if (preStateSealedPaths.has(requestedPath)) finding(findings, SEALED_EVIDENCE_IMMUTABILITY_FINDING, requestedPath);
+      }
     }
   }
   if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY && consumptionRecord) finding(findings, 'AUTHORITY_ALREADY_CONSUMED');

@@ -10,7 +10,7 @@ import {
   PHASE_AUTHORIZE_PROGRAM_APPLY,
   PHASE_VERIFY_PROGRAM_CONSUMPTION
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
-import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
+import { collectClosedStateSealMembers, collectClosedStateSealMembersAtCommit } from '../gee-v1/core/sealed-state-evidence.mjs';
 
 const args = process.argv.slice(2);
 const option = (name, fallback = null) => {
@@ -76,6 +76,13 @@ try {
   const currentContract = gateRoot ? readJson(path.join(gateRoot, 'contracts', 'CURRENT_CONTRACT.json')) : null;
   const activeGate = readJson(path.join(root, 'governance', 'active', 'ACTIVE_GATE.json'));
   const closedStateSealInventory = collectClosedStateSealMembers(root);
+  const preStateClosedStateSealInventory = collectClosedStateSealMembersAtCommit(root, authority.preState?.baseHead);
+  const externalReportFile = authority.externalReinspectionReportPath
+    ? resolveInsideRoot(authority.externalReinspectionReportPath)
+    : null;
+  const externalReportBytes = externalReportFile && fs.existsSync(externalReportFile)
+    ? fs.readFileSync(externalReportFile)
+    : null;
   let authorityPredecessorSha256 = null;
   if (authority.authorityPredecessor !== null) {
     const sourceRoot = path.join(root, 'governance', 'sources');
@@ -97,10 +104,14 @@ try {
     R8Absent: !fs.existsSync(path.join(root, 'governance', 'gee-v1', 'missions', 'GEE_V1_EXECUTION_CONTRACT_R0008.json')),
     manifestSha256: sha256(manifestBytes),
     authorityPredecessorSha256,
+    externalReinspectionReportPath: externalReportBytes ? authority.externalReinspectionReportPath : null,
+    externalReinspectionReportSha256: externalReportBytes ? sha256(externalReportBytes) : null,
     requestedPaths: manifest.paths.map((entry) => entry.path),
     requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass),
     closedStateSealMembers: closedStateSealInventory.members,
     closedStateSealFindings: closedStateSealInventory.findings,
+    preStateClosedStateSealMembers: preStateClosedStateSealInventory.members,
+    preStateClosedStateSealFindings: preStateClosedStateSealInventory.findings,
     consumptionCohort: manifest.paths
       .filter((entry) => entry.path !== authority.consumptionRecordPath)
       .map((entry) => {

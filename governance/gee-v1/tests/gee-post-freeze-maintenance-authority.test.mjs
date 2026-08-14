@@ -249,23 +249,24 @@ function ledgerSha256(bytes) {
 
 test('MA21: canonical prestate prefix accepts the real suffix and a future N+k identity', () => {
   const currentBytes = fs.readFileSync(LEDGER_PATH);
+  const currentEventCount = ledgerLines().length;
   const prefix = resolveCanonicalLedgerPrefix({
     ledgerPath: LEDGER_PATH,
     eventCount: GATE16_PREFIX_EVENT_COUNT,
     expectedSha256: GATE16_PREFIX_SHA256
   });
   assert.equal(prefix.valid, true, JSON.stringify(prefix.findings));
-  assert.equal(prefix.availableEventCount, 69);
+  assert.equal(prefix.availableEventCount, currentEventCount);
   assert.equal(prefix.prefixSha256, GATE16_PREFIX_SHA256);
   assert.equal(prefix.prefixBytes.length < currentBytes.length, true);
 
   const future = resolveCanonicalLedgerPrefix({
     ledgerPath: LEDGER_PATH,
-    eventCount: 69,
+    eventCount: currentEventCount,
     expectedSha256: ledgerSha256(currentBytes)
   });
   assert.equal(future.valid, true, JSON.stringify(future.findings));
-  assert.equal(future.availableEventCount, 69);
+  assert.equal(future.availableEventCount, currentEventCount);
   assert.equal(future.prefixBytes.equals(currentBytes), true);
 });
 
@@ -390,7 +391,9 @@ function makeV2Fixture() {
     requestedPaths: manifest.paths.map((entry) => entry.path),
     requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass),
     closedStateSealMembers: [],
-    closedStateSealFindings: []
+    closedStateSealFindings: [],
+    preStateClosedStateSealMembers: [],
+    preStateClosedStateSealFindings: []
   };
   return { authority, manifest, observed, now: new Date('2026-08-13T00:02:00.000Z') };
 }
@@ -452,6 +455,7 @@ test('MA26: a sealed member path is blocked generically before maintenance apply
   fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
   fixture.observed.requestedPaths = fixture.manifest.paths.map((entry) => entry.path);
   fixture.observed.closedStateSealMembers = [{ repoRelativePath: sealedPath, sha256: 'a'.repeat(64), byteLength: 1 }];
+  fixture.observed.preStateClosedStateSealMembers = [{ repoRelativePath: sealedPath, sha256: 'a'.repeat(64), byteLength: 1 }];
   const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
   assert.equal(result.decision, 'BLOCKED');
   assert.ok(result.findings.some((finding) => finding.code === 'POST_FREEZE_MAINTENANCE_SEALED_MEMBER_MUTATION'));
@@ -483,9 +487,13 @@ test('MA28: an invalid closed-seal inventory blocks maintenance fail-closed', ()
 
 test('LA-C01: schema V2 consumption binds the exact authorized cohort bytes with deterministic self-exclusion', () => {
   const fixture = makeV2ConsumptionFixture();
+  fixture.observed.closedStateSealMembers = [{ repoRelativePath: fixture.manifest.paths[0].path, sha256: 'd'.repeat(64), byteLength: 1 }];
+  fixture.observed.preStateClosedStateSealMembers = [];
   const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION });
   assert.equal(result.decision, 'AUTHORIZED');
   assert.equal(result.consumed, true);
+  const repeated = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION });
+  assert.deepEqual(repeated, result);
 });
 
 for (const [name, mutate, expectedCode] of [
@@ -639,6 +647,12 @@ test('ECH12/ECH13: independent report binding is mandatory and digest drift bloc
   const alteredResult = evaluatePostFreezeMaintenanceAuthorityV2({ ...altered, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
   assert.equal(alteredResult.decision, 'BLOCKED');
   assert.ok(alteredResult.findings.some((finding) => finding.code === 'EXTERNAL_REINSPECTION_REPORT_SHA_MISMATCH'));
+
+  const wrongPath = makeExternalConfirmationFixture();
+  wrongPath.observed.externalReinspectionReportPath = 'synthetic/independent/WRONG_REPORT.json';
+  const wrongPathResult = evaluatePostFreezeMaintenanceAuthorityV2({ ...wrongPath, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(wrongPathResult.decision, 'BLOCKED');
+  assert.ok(wrongPathResult.findings.some((finding) => finding.code === 'EXTERNAL_REINSPECTION_REPORT_PATH_MISMATCH'));
 });
 
 test('ECH18/ECH19: authority reuse and old final-closure authority cannot authorize confirmation', () => {

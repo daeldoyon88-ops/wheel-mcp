@@ -237,6 +237,41 @@ export function evaluateExactSealedByteRestoration({
  * Invalid closed seal member data is returned as a blocking finding so an
  * authority cannot proceed while the immutability boundary is unknowable.
  */
+function addClosedSealMembers(members, findings, seal, gateId, stateRevision, sealPath) {
+  const sealId = `${gateId}/${stateRevision}`;
+  if (!Array.isArray(seal?.sealedMembers)) {
+    findings.push(finding('CLOSED_STATE_SEAL_MEMBERS_INVALID', sealId));
+    return;
+  }
+  for (const [index, member] of seal.sealedMembers.entries()) {
+    const memberPath = member?.repoRelativePath;
+    if (!safeRelativePath(memberPath) || !/^[a-f0-9]{64}$/.test(String(member?.sha256 || '')) || !Number.isInteger(member?.byteLength) || member.byteLength < 0) {
+      findings.push(finding('CLOSED_STATE_SEAL_MEMBER_INVALID', `${sealId}/sealedMembers/${index}`));
+      continue;
+    }
+    members.push({
+      repoRelativePath: memberPath,
+      sha256: member.sha256,
+      byteLength: member.byteLength,
+      gateId,
+      stateRevision,
+      sealPath
+    });
+  }
+}
+
+function finalizeClosedSealInventory(members, findings) {
+  const byPath = new Map();
+  for (const member of members) {
+    const prior = byPath.get(member.repoRelativePath);
+    if (prior && (prior.sha256 !== member.sha256 || prior.byteLength !== member.byteLength)) {
+      findings.push(finding('CLOSED_STATE_SEAL_MEMBER_CONFLICT', member.repoRelativePath));
+    }
+    if (!prior) byPath.set(member.repoRelativePath, member);
+  }
+  return { members, findings };
+}
+
 export function collectClosedStateSealMembers(root) {
   const members = [];
   const findings = [];
@@ -262,38 +297,63 @@ export function collectClosedStateSealMembers(root) {
       if (!fs.existsSync(sealPath)) continue;
       const seal = readJson(sealPath);
       if (!seal || !hasClosedStatus(seal.payload)) continue;
-      const sealId = `${gate.name}/${revision.name}`;
       if (!Array.isArray(seal.sealedMembers)) {
-        findings.push(finding('CLOSED_STATE_SEAL_MEMBERS_INVALID', sealId));
+        findings.push(finding('CLOSED_STATE_SEAL_MEMBERS_INVALID', `${gate.name}/${revision.name}`));
         continue;
       }
-      for (const [index, member] of seal.sealedMembers.entries()) {
-        const memberPath = member?.repoRelativePath;
-        if (!safeRelativePath(memberPath) || !/^[a-f0-9]{64}$/.test(String(member?.sha256 || '')) || !Number.isInteger(member?.byteLength) || member.byteLength < 0) {
-          findings.push(finding('CLOSED_STATE_SEAL_MEMBER_INVALID', `${sealId}/sealedMembers/${index}`));
-          continue;
-        }
-        members.push({
-          repoRelativePath: memberPath,
-          sha256: member.sha256,
-          byteLength: member.byteLength,
-          gateId: seal.gateId,
-          stateRevision: seal.stateRevision,
-          sealPath: path.relative(root, sealPath).replaceAll('\\', '/')
-        });
-      }
+      addClosedSealMembers(
+        members,
+        findings,
+        seal,
+        seal.gateId,
+        seal.stateRevision,
+        path.relative(root, sealPath).replaceAll('\\', '/')
+      );
     }
   }
+  return finalizeClosedSealInventory(members, findings);
+}
 
-  const byPath = new Map();
-  for (const member of members) {
-    const prior = byPath.get(member.repoRelativePath);
-    if (prior && (prior.sha256 !== member.sha256 || prior.byteLength !== member.byteLength)) {
-      findings.push(finding('CLOSED_STATE_SEAL_MEMBER_CONFLICT', member.repoRelativePath));
-    }
-    if (!prior) byPath.set(member.repoRelativePath, member);
+/**
+ * Enumerate the closed seal inventory at an immutable Git pre-state. This is
+ * intentionally separate from the live-tree inventory: a successor revision
+ * may seal artifacts produced by the authorized transaction, and those bytes
+ * must not be mistaken for pre-existing sealed members during consumption.
+ */
+export function collectClosedStateSealMembersAtCommit(root, commit) {
+  const members = [];
+  const findings = [];
+  if (typeof commit !== 'string' || !/^[a-f0-9]{40}$/.test(commit)) {
+    return { members, findings: [finding('CLOSED_STATE_PRESTATE_COMMIT_INVALID', commit)] };
   }
-  return { members, findings };
+  let sealPaths;
+  try {
+    sealPaths = execFileSync('git', ['ls-tree', '-r', '--name-only', commit, '--', 'governance/gates'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).split(/\r?\n/).filter((entry) => /^governance\/gates\/[^/]+\/state\/revisions\/R[0-9]{4}\/STATE_SEAL\.json$/.test(entry));
+  } catch (error) {
+    return { members, findings: [finding('CLOSED_STATE_PRESTATE_INVENTORY_UNAVAILABLE', error?.message || String(error))] };
+  }
+  for (const sealPath of sealPaths) {
+    const match = sealPath.match(/^governance\/gates\/([^/]+)\/state\/revisions\/(R[0-9]{4})\/STATE_SEAL\.json$/);
+    if (!match) continue;
+    let seal;
+    try {
+      seal = JSON.parse(execFileSync('git', ['show', `${commit}:${sealPath}`], {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
+      }).replace(/^\uFEFF/, ''));
+    } catch (error) {
+      findings.push(finding('CLOSED_STATE_PRESTATE_SEAL_UNREADABLE', `${sealPath}:${error?.message || String(error)}`));
+      continue;
+    }
+    if (!hasClosedStatus(seal.payload)) continue;
+    addClosedSealMembers(members, findings, seal, match[1], match[2], sealPath);
+  }
+  return finalizeClosedSealInventory(members, findings);
 }
 
 export function findClosedStateSealMember(root, repoRelativePath) {

@@ -1,0 +1,38 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE17_B_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE17_B_INDEPENDENT_FINAL_REPLAY_EXTERNAL_CONFIRMATION",
+  "manifestSha256": "4b4df4f9c7d6f702ae4ce6856df833eed0a2cefcb9526b42baa4a59c89f86464",
+  "baseHead": "00e5b82311c7fc108c7c4cdb96631f4644c0109b",
+  "consumedUse": 1,
+  "transactionId": "GATE17_B_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T20:22:00.000Z",
+  "commitMessage": "governance: confirm GATE17 with independent confirmation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE17_B_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot contain a byte-for-byte hash of itself; it is authorized and counted in the manifest but excluded from its own cohort receipt."
+  },
+  "cohortPathCount": 20,
+  "cohort": [
+    { "path": "governance/sources/GATE17_B_INDEPENDENT_FINAL_REPLAY_EXTERNAL_CONFIRMATION_EXTERNAL_REINSPECTION_REPORT.json", "sha256": "05ae7e5524d624d2be6db7aa258554164014044ec2e02182b206cf9ee3bcf46f", "byteLength": 3532, "operation": "CREATE", "reason": "Independent external reinspection report bound to the GATE17 COMPLETE_AGENT pre-state and final-byte replay.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/generated/FOUNDATION_REPORT.md", "sha256": "798a8e9762225fad2ee061d0ed7122473fd81293660daeef5af4abd5f726dc7b", "byteLength": 5538, "operation": "MODIFY", "reason": "Regenerates the non-canonical Foundation report invalidated by the confirmed ledger event.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json", "sha256": "72accf7f9342525516ddd828c5accb88f81731afe0c12a94e43202f2fe376960", "byteLength": 6140, "operation": "MODIFY", "reason": "Regenerates the report provenance projection invalidated by the confirmed ledger event.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs", "sha256": "1fcec6dd8e44530051d62e69cffd46051db10b19d199452d63d7e787e3d98564", "byteLength": 5550, "operation": "MODIFY", "reason": "Registers the existing generic standard external-reinspection declaration for GATE17.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs", "sha256": "030efdc46e0cf484b0d91dd8e3784a4f03787b9448c895f6b70916cecd93a4d7", "byteLength": 32991, "operation": "MODIFY", "reason": "Distinguishes pre-state sealed members from successor transaction products during generic consumption verification.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gee-v1/core/sealed-state-evidence.mjs", "sha256": "f254d80633557b4f99cd7f420679c11002ee5089757b1404758554b4f15dc0bb", "byteLength": 14848, "operation": "MODIFY", "reason": "Adds immutable Git-prestate sealed-member inventory for generic fail-closed provenance checks.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs", "sha256": "4c9c97f6865152b0182d5b37d4566b26759a1b735d2f6882d77de108c4677607", "byteLength": 24564, "operation": "MODIFY", "reason": "Observes the exact external report bytes and both live and authority-prestate seal inventories.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs", "sha256": "7bc053b657fd22529625d20f74ecc1357e4ed374ad515670a90f09849628ae31", "byteLength": 7502, "operation": "MODIFY", "reason": "Binds external report bytes and immutable prestate evidence in the canonical final-consumption validator.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs", "sha256": "0d7dc7fb6069b785b3ebac0bb2ab04c53c65ce75b8822e0edaa4848b600cc034", "byteLength": 46801, "operation": "MODIFY", "reason": "Repairs generic current-ledger N+k derivation and covers the prestate evidence observation contract.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE17_B_EXTERNAL_CONFIRMATION_R1.json", "sha256": "e8a9745d262cdb604ed5b120e483a46c3ce77fe7e33b465a5d09643e330f7fac", "byteLength": 2468, "operation": "CREATE", "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE17 COMPLETE_AGENT pre-state.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/historical-architecture/GATE17_B_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json", "sha256": "4b4df4f9c7d6f702ae4ce6856df833eed0a2cefcb9526b42baa4a59c89f86464", "byteLength": 5971, "operation": "CREATE", "reason": "Finite exact-file confirmation cohort with no wildcard, directory blanket or unrelated user work.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE17/state/revisions/R0004/CHECKPOINT.json", "sha256": "b6137238469c241c292f8f478dbb75c85508e86975df2bcbe53164bad9e7b71a", "byteLength": 2356, "operation": "CREATE", "reason": "Immutable successor checkpoint consuming the R0003 COMPLETE_AGENT handoff.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE17/state/revisions/R0004/OPEN_DEFECTS.json", "sha256": "d18d5744ae4be93eaf83ae0f451b45b8cba83a06da259722117a9cb09e8995c4", "byteLength": 70, "operation": "CREATE", "reason": "Closed-world R0004 defect projection for the independently confirmed terminal state.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json", "sha256": "4914ac16a794ed1847bfe5a9aa4cf40d4974a0c59daa275354814715b8f72f55", "byteLength": 2355, "operation": "CREATE", "reason": "Native R0004 state seal chained from R0003 and pinned by the confirmation event.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE17/state/CURRENT_STATE.json", "sha256": "b1fae408dbc74af29e411dd5bf65bec4793a22416bd1b7c21f5dd878cafa2616", "byteLength": 310, "operation": "MODIFY", "reason": "Advances the canonical GATE17 state pointer to COMPLETE_CONFIRMED R0004.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "sha256": "547f68c13ddd242c2ce80d76a8dfa866b63b9cf79e0702440d9ed1101c92bfac", "byteLength": 41564, "operation": "MODIFY", "reason": "Appends exactly one GATE17 EXTERNAL_CONFIRMATION event after the immutable 72-event prefix.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json", "sha256": "b79d7a38d53bb50e942002a419c094700512c8533e55c40c4e8387c73ac7f2fc", "byteLength": 15614, "operation": "MODIFY", "reason": "Regenerates the derived status projection from the confirmed canonical ledger.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/generated/ACTIVE_GATE_CONTEXT.json", "sha256": "6117d786331127f10d6ba81cea60b1f9f1858f9e41f100039291c0a8ef41d263", "byteLength": 1138, "operation": "MODIFY", "reason": "Refreshes the derived context while preserving ACTIVE_GATE semantics and active GATE13.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/generated/ACTIVE_GATE_CONTEXT.md", "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2", "byteLength": 126, "operation": "MODIFY", "reason": "Runs the existing derived context generator for the exact confirmation cohort.", "artifactClass": "EXTERNAL_CONFIRMATION" }
+  ]
+}

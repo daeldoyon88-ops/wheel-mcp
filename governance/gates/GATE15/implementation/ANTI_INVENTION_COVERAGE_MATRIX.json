@@ -1,0 +1,207 @@
+{
+  "document": "GATE15_ANTI_INVENTION_COVERAGE_MATRIX",
+  "schemaVersion": 1,
+  "gateId": "GATE15",
+  "derivation": {
+    "source": "governance/gates/GATE15/contracts/EXECUTION_CONTRACT_R0001.json",
+    "method": "Machine-derived by enumerating canonical functional requirements and joining exact real validator execution records."
+  },
+  "rows": [
+    {
+      "requirementId": "G15-FR-01",
+      "rejectionReasonCode": "FABRICATED_EVIDENCE",
+      "validatorIds": [
+        "G15-V01"
+      ],
+      "testIds": [
+        "G15-NEG-01",
+        "G15-POS-01"
+      ],
+      "observedRunCount": 2,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-02",
+      "rejectionReasonCode": "UNSUPPORTED_PASS_OR_STATUS",
+      "validatorIds": [
+        "G15-V02"
+      ],
+      "testIds": [
+        "G15-NEG-02",
+        "G15-POS-02"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-03",
+      "rejectionReasonCode": "HARDCODED_VALIDATION_SUCCESS",
+      "validatorIds": [
+        "G15-V03"
+      ],
+      "testIds": [
+        "G15-NEG-03",
+        "G15-POS-03"
+      ],
+      "observedRunCount": 2,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-04",
+      "rejectionReasonCode": "AUTHORITATIVE_SOURCE_MISSING",
+      "validatorIds": [
+        "G15-V04"
+      ],
+      "testIds": [
+        "G15-NEG-04",
+        "G15-POS-04"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-05",
+      "rejectionReasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+      "validatorIds": [
+        "G15-V05"
+      ],
+      "testIds": [
+        "G15-NEG-05",
+        "G15-POS-01"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-06",
+      "rejectionReasonCode": "CIRCULAR_VALIDATION",
+      "validatorIds": [
+        "G15-V06"
+      ],
+      "testIds": [
+        "G15-NEG-06",
+        "G15-POS-02"
+      ],
+      "observedRunCount": 2,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-07",
+      "rejectionReasonCode": "SYNTHETIC_EVIDENCE_AS_OBSERVED",
+      "validatorIds": [
+        "G15-V01"
+      ],
+      "testIds": [
+        "G15-NEG-07",
+        "G15-POS-03"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-08",
+      "rejectionReasonCode": "INVENTED_PROBABILITY_OR_CONFIDENCE",
+      "validatorIds": [
+        "G15-V02"
+      ],
+      "testIds": [
+        "G15-NEG-08",
+        "G15-POS-04"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-09",
+      "rejectionReasonCode": "INVENTED_TIMESTAMP_REVISION_OR_IDENTITY",
+      "validatorIds": [
+        "G15-V03"
+      ],
+      "testIds": [
+        "G15-NEG-09",
+        "G15-POS-01"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-10",
+      "rejectionReasonCode": "UNTRACEABLE_DERIVED_OUTPUT",
+      "validatorIds": [
+        "G15-V04"
+      ],
+      "testIds": [
+        "G15-NEG-10",
+        "G15-POS-02"
+      ],
+      "observedRunCount": 2,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-11",
+      "rejectionReasonCode": "CONTRADICTORY_EVIDENCE",
+      "validatorIds": [
+        "G15-V05"
+      ],
+      "testIds": [
+        "G15-NEG-11",
+        "G15-POS-03"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-12",
+      "rejectionReasonCode": "STALE_EVIDENCE_AS_CURRENT",
+      "validatorIds": [
+        "G15-V06"
+      ],
+      "testIds": [
+        "G15-NEG-12",
+        "G15-POS-04"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-13",
+      "rejectionReasonCode": "REQUIRED_EVIDENCE_MISSING",
+      "validatorIds": [
+        "G15-V01"
+      ],
+      "testIds": [
+        "G15-NEG-13",
+        "G15-POS-01"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    },
+    {
+      "requirementId": "G15-FR-14",
+      "rejectionReasonCode": "EVIDENCE_MUTATED_AFTER_VALIDATION",
+      "validatorIds": [
+        "G15-V02"
+      ],
+      "testIds": [
+        "G15-NEG-14",
+        "G15-POS-02"
+      ],
+      "observedRunCount": 1,
+      "result": "COVERED"
+    }
+  ],
+  "mandatoryClassCount": 14,
+  "uncoveredMandatoryClassCount": 0,
+  "declaredValidatorCount": 6,
+  "exercisedValidatorCount": 6,
+  "exercisedValidatorIds": [
+    "G15-V01",
+    "G15-V02",
+    "G15-V03",
+    "G15-V04",
+    "G15-V05",
+    "G15-V06"
+  ],
+  "evidenceExecutionCount": 29,
+  "verdict": "PASS"
+}

@@ -1,0 +1,141 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE15_AGENT_CLOSURE_AUTHORIZED_PATHS_R1",
+  "programId": "GATE15_FINAL_GOVERNED_CLOSURE_R1",
+  "paths": [
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_REQUIREMENTS_REGISTRY.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 requirement registry in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 validator registry in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 fail-closed policy in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 production validator in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 coverage matrix in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 test suite in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE15 M2 machine-derived evidence in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE15_AGENT_CLOSURE_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE15 post-freeze closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE15_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Finite exact-file GATE15 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE15_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use consumption record binding the GATE15 authority, manifest and transaction.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/evidence/GATE15_AGENT_CLOSURE_HANDOFF_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Durable GATE15 COMPLETE_AGENT handoff preserving M2 evidence identity, the exact thirtieth test and the independent M3 next action.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0003/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "New GATE15 closure state revision checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0003/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Derived GATE15 closure revision defect projection preserving the zero-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0003/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Native GATE15 state seal chained from R0002 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Advance the canonical GATE15 state pointer to R0003 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Append exactly one canonical GATE15 AGENT_CLOSURE event; events 1-63 remain byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Refresh the derived active-gate context ledger binding while ACTIVE_GATE remains GATE13.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Refresh the existing derived active-gate context projection as part of the exact closure cohort.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE15",
+  "stateRevision": "R0003",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0003/CHECKPOINT.json",
+      "sha256": "bb73b97c4c35c600d04000803a004349ebf27c762769387b9951a7be6f76fec4",
+      "byteLength": 1829
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0003/OPEN_DEFECTS.json",
+      "sha256": "385d46a6de7244521a52c15bef65c650c879792c46d3d33a29bae22541aab99a",
+      "byteLength": 70
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE15/contracts/CURRENT_CONTRACT.json",
+      "sha256": "07dbcc6a156e5c3f3e29c310ea3f186e393723a006f6fbad9048ef1590d221a5",
+      "byteLength": 281
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE15/evidence/GATE15_AGENT_CLOSURE_HANDOFF_R1.json",
+      "sha256": "ec8f596a5d0b5a4cf0eab1032da3603b4161729318ecb5ba01ab2764f3a5c344",
+      "byteLength": 3632
+    }
+  ],
+  "previousStateSealSha256": "4c798d38ccfb32cb8552fd6f3f584cb25711eb5fbdca49d10c6c780147ce45da",
+  "sealedAt": "2026-08-14T11:32:29.000Z",
+  "payload": {
+    "gateId": "GATE15",
+    "stateRevision": "R0003",
+    "executionStatus": "COMPLETE_AGENT",
+    "contractSha256": "228f10465391700f37acc723d5878a4f8bc592c9e9833b06d68845546a776039",
+    "previousStateSealSha256": "4c798d38ccfb32cb8552fd6f3f584cb25711eb5fbdca49d10c6c780147ce45da",
+    "sealedMembersDigest": "c40e8e515e7788934cf9988d8e8582cf177ad822f4de7642a77cbb3880887587"
+  },
+  "payloadSha256": "bba82e990d1810eb217336aed9707a38b4bef02415ff4cd9d83412705d86b55b"
+}

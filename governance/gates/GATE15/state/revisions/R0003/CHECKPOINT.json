@@ -1,0 +1,44 @@
+{
+  "gateId": "GATE15",
+  "stateRevision": "R0003",
+  "milestone": "GATE15_ANTI_INVENTION_VALIDATORS",
+  "resumePoint": "GATE15 is COMPLETE_AGENT after the exact AGENT_CLOSURE transition. A separate independent EXTERNAL_CONFIRMATION is required; do not self-confirm.",
+  "completedTasks": [
+    "AWAIT_START_AUTHORITY",
+    "GATE15_M1_READINESS_CONTRACT_AUTHORIZATION_START",
+    "GATE15_M2_IMPLEMENTATION_TESTS_EVIDENCE_AGENT_CLOSURE"
+  ],
+  "openTasks": [
+    "Independent EXTERNAL_CONFIRMATION under a separate independent session and EXTERNAL_REINSPECTION_REPORT authority."
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "sha256": "9e4a8ac6bebb75177b15a51919e14a3cf330984b05831998df6ec5c35a286a5d",
+      "validUntilCondition": "valid while the GATE15 M2 artifact bytes and the canonical contract remain byte-identical"
+    },
+    {
+      "path": "governance/gates/GATE15/evidence/GATE15_AGENT_CLOSURE_HANDOFF_R1.json",
+      "validUntilCondition": "valid while the GATE15 R0003 state seal and canonical ledger prefix remain byte-identical"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE15/contracts/CURRENT_CONTRACT.json",
+      "sha256": "07dbcc6a156e5c3f3e29c310ea3f186e393723a006f6fbad9048ef1590d221a5"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "4c798d38ccfb32cb8552fd6f3f584cb25711eb5fbdca49d10c6c780147ce45da"
+    }
+  ],
+  "createdAt": "2026-08-14T11:32:29.000Z"
+}

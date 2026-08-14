@@ -1,0 +1,62 @@
+{
+  "document": "GATE15_ANTI_INVENTION_VALIDATION_POLICY",
+  "schemaVersion": 1,
+  "gateId": "GATE15",
+  "policyId": "GATE15_FAIL_CLOSED_ANTI_INVENTION_POLICY_R1",
+  "authority": {
+    "contract": "governance/gates/GATE15/contracts/EXECUTION_CONTRACT_R0001.json",
+    "mandate": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+    "generatedSummariesAreNonAuthoritative": true
+  },
+  "verdicts": [
+    "PASS",
+    "BLOCKED"
+  ],
+  "observedEvidence": {
+    "allowedClassification": "OBSERVED",
+    "allowedAuthorityClass": "CANONICAL_REPOSITORY",
+    "syntheticAsObserved": "BLOCKED"
+  },
+  "failClosed": {
+    "missingEvidence": "BLOCKED",
+    "unknownEvidence": "BLOCKED",
+    "ambiguousEvidence": "BLOCKED",
+    "contradictoryEvidence": "BLOCKED",
+    "staleEvidence": "BLOCKED",
+    "mutatedEvidence": "BLOCKED",
+    "hardcodedSuccess": "BLOCKED",
+    "circularEvidence": "BLOCKED"
+  },
+  "rejectionReasonCodes": [
+    "FABRICATED_EVIDENCE",
+    "UNSUPPORTED_PASS_OR_STATUS",
+    "HARDCODED_VALIDATION_SUCCESS",
+    "AUTHORITATIVE_SOURCE_MISSING",
+    "SOURCE_EVIDENCE_HASH_MISMATCH",
+    "CIRCULAR_VALIDATION",
+    "SYNTHETIC_EVIDENCE_AS_OBSERVED",
+    "INVENTED_PROBABILITY_OR_CONFIDENCE",
+    "INVENTED_TIMESTAMP_REVISION_OR_IDENTITY",
+    "UNTRACEABLE_DERIVED_OUTPUT",
+    "CONTRADICTORY_EVIDENCE",
+    "STALE_EVIDENCE_AS_CURRENT",
+    "REQUIRED_EVIDENCE_MISSING",
+    "EVIDENCE_MUTATED_AFTER_VALIDATION"
+  ],
+  "identity": {
+    "algorithm": "SHA256",
+    "packageBinding": "SHA256_CANONICAL_JSON_EXCLUDING_BOUND_BODY_HASH_V1",
+    "sourceBindingIncludes": [
+      "sourcePath",
+      "sha256",
+      "byteLength",
+      "contractRevision"
+    ]
+  },
+  "determinism": {
+    "canonicalJson": true,
+    "freshProcessRequired": true,
+    "wallClockVerdictDependency": false,
+    "networkDependency": false
+  }
+}

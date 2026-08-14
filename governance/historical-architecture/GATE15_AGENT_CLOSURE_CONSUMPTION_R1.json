@@ -1,0 +1,163 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE15_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "GATE15_FINAL_GOVERNED_CLOSURE_R1",
+  "manifestSha256": "94b7192fb55917cb6354bbf960d74432c33d783ee7b40c534b16847701bd0b8b",
+  "baseHead": "61c8fb583bebee65a4c23304165d7218d7b66200",
+  "consumedUse": 1,
+  "transactionId": "GATE15_AGENT_CLOSURE_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T11:32:29.000Z",
+  "commitMessage": "governance: close GATE15 under final closure authority",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE15_AGENT_CLOSURE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 19,
+  "cohort": [
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_REQUIREMENTS_REGISTRY.json",
+      "sha256": "7fe981913b7181116c2cbe9026664093a359c6e25ea5e8ccbc8e9187dcf9bc61",
+      "byteLength": 2963,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 requirement registry in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json",
+      "sha256": "19204d6ac8a7dfefb60aa4095bf60a05d8385a1dcd5427349c433341959d5f70",
+      "byteLength": 2367,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 validator registry in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json",
+      "sha256": "f7fd74f62eeec3dd375e6c8b56465b10648ea4315ce347ecd5359c2c45b78cd6",
+      "byteLength": 1825,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 fail-closed policy in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "sha256": "53b3a6d8c9795ea01e18088aa16f21120f08a51b90b23ad0380f28ce6cc048e7",
+      "byteLength": 37654,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 production validator in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json",
+      "sha256": "a89bd2deacee27181ae91e9aba836d501ea638c1a677b647f44f22fcbe658748",
+      "byteLength": 4669,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 coverage matrix in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+      "sha256": "dc69d20e5cce74b365e976b640508476f6effc82a2c4805a87697c75a421688c",
+      "byteLength": 18040,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 test suite in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+      "sha256": "9e4a8ac6bebb75177b15a51919e14a3cf330984b05831998df6ec5c35a286a5d",
+      "byteLength": 8425309,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE15 M2 machine-derived evidence in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE15_AGENT_CLOSURE_R1.json",
+      "sha256": "70c88cc6fbd1283908e521489085cbfc129ae51aa7fe3692d32d66c9a03ab359",
+      "byteLength": 2039,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE15 post-freeze closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE15_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "94b7192fb55917cb6354bbf960d74432c33d783ee7b40c534b16847701bd0b8b",
+      "byteLength": 6209,
+      "operation": "CREATE",
+      "reason": "Finite exact-file GATE15 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/evidence/GATE15_AGENT_CLOSURE_HANDOFF_R1.json",
+      "sha256": "ec8f596a5d0b5a4cf0eab1032da3603b4161729318ecb5ba01ab2764f3a5c344",
+      "byteLength": 3632,
+      "operation": "CREATE",
+      "reason": "Durable GATE15 COMPLETE_AGENT handoff preserving M2 evidence identity, the exact thirtieth test and the independent M3 next action.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0003/CHECKPOINT.json",
+      "sha256": "bb73b97c4c35c600d04000803a004349ebf27c762769387b9951a7be6f76fec4",
+      "byteLength": 1829,
+      "operation": "CREATE",
+      "reason": "New GATE15 closure state revision checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0003/OPEN_DEFECTS.json",
+      "sha256": "385d46a6de7244521a52c15bef65c650c879792c46d3d33a29bae22541aab99a",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Derived GATE15 closure revision defect projection preserving the zero-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0003/STATE_SEAL.json",
+      "sha256": "2db3be2092bd279add89d7316dd20aa96beb0bdb9d643ad8d2527087db0bc9c6",
+      "byteLength": 1577,
+      "operation": "CREATE",
+      "reason": "Native GATE15 state seal chained from R0002 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE15/state/CURRENT_STATE.json",
+      "sha256": "3d2a05a3b7092a0c0b34c80205cf00e6917e5f820a83036a3880e462591c3064",
+      "byteLength": 300,
+      "operation": "MODIFY",
+      "reason": "Advance the canonical GATE15 state pointer to R0003 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "7302dc2e0949cec678345503185b359b70fcdc3620154deb89921bce068c906d",
+      "byteLength": 35284,
+      "operation": "MODIFY",
+      "reason": "Append exactly one canonical GATE15 AGENT_CLOSURE event; events 1-63 remain byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "dce3f6d387e6bacaf20183dd49331394ce76836b57558aad32b510115039514c",
+      "byteLength": 15484,
+      "operation": "MODIFY",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "7a299b1013659e5225cb78061ebca498f245301c16dcf197ae7488e45716091a",
+      "byteLength": 1138,
+      "operation": "MODIFY",
+      "reason": "Refresh the derived active-gate context ledger binding while ACTIVE_GATE remains GATE13.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "byteLength": 126,
+      "operation": "MODIFY",
+      "reason": "Refresh the existing derived active-gate context projection as part of the exact closure cohort.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

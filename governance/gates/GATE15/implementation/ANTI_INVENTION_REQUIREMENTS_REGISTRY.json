@@ -1,0 +1,79 @@
+{
+  "document": "GATE15_ANTI_INVENTION_REQUIREMENTS_REGISTRY",
+  "schemaVersion": 1,
+  "gateId": "GATE15",
+  "source": "governance/sources/GATE15_CANONICAL_MANDATE_R0.json",
+  "requirementCount": 14,
+  "requirements": [
+    {
+      "requirementId": "G15-FR-01",
+      "rejectionReasonCode": "FABRICATED_EVIDENCE",
+      "statement": "Detect and reject fabricated evidence."
+    },
+    {
+      "requirementId": "G15-FR-02",
+      "rejectionReasonCode": "UNSUPPORTED_PASS_OR_STATUS",
+      "statement": "Detect and reject unsupported PASS or status claims."
+    },
+    {
+      "requirementId": "G15-FR-03",
+      "rejectionReasonCode": "HARDCODED_VALIDATION_SUCCESS",
+      "statement": "Detect and reject hardcoded validation success that is not derived from the governed inputs."
+    },
+    {
+      "requirementId": "G15-FR-04",
+      "rejectionReasonCode": "AUTHORITATIVE_SOURCE_MISSING",
+      "statement": "Detect and reject missing authoritative sources."
+    },
+    {
+      "requirementId": "G15-FR-05",
+      "rejectionReasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+      "statement": "Detect and reject source and evidence hash mismatches."
+    },
+    {
+      "requirementId": "G15-FR-06",
+      "rejectionReasonCode": "CIRCULAR_VALIDATION",
+      "statement": "Detect and reject circular validation and self-attestation."
+    },
+    {
+      "requirementId": "G15-FR-07",
+      "rejectionReasonCode": "SYNTHETIC_EVIDENCE_AS_OBSERVED",
+      "statement": "Detect and reject synthetic evidence presented as observed evidence."
+    },
+    {
+      "requirementId": "G15-FR-08",
+      "rejectionReasonCode": "INVENTED_PROBABILITY_OR_CONFIDENCE",
+      "statement": "Detect and reject invented probabilities or confidence values."
+    },
+    {
+      "requirementId": "G15-FR-09",
+      "rejectionReasonCode": "INVENTED_TIMESTAMP_REVISION_OR_IDENTITY",
+      "statement": "Detect and reject invented timestamps, revisions or identities."
+    },
+    {
+      "requirementId": "G15-FR-10",
+      "rejectionReasonCode": "UNTRACEABLE_DERIVED_OUTPUT",
+      "statement": "Detect and reject derived outputs that cannot be traced to authoritative inputs."
+    },
+    {
+      "requirementId": "G15-FR-11",
+      "rejectionReasonCode": "CONTRADICTORY_EVIDENCE",
+      "statement": "Detect and reject contradictory evidence without silently choosing one authority."
+    },
+    {
+      "requirementId": "G15-FR-12",
+      "rejectionReasonCode": "STALE_EVIDENCE_AS_CURRENT",
+      "statement": "Detect and reject stale evidence represented as current evidence."
+    },
+    {
+      "requirementId": "G15-FR-13",
+      "rejectionReasonCode": "REQUIRED_EVIDENCE_MISSING",
+      "statement": "Detect and reject missing required evidence."
+    },
+    {
+      "requirementId": "G15-FR-14",
+      "rejectionReasonCode": "EVIDENCE_MUTATED_AFTER_VALIDATION",
+      "statement": "Detect and reject evidence mutated after validation or after the evidence identity was bound."
+    }
+  ]
+}

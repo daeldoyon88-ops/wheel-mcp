@@ -1,0 +1,55 @@
+{
+  "document": "GATE15_ANTI_INVENTION_VALIDATOR_REGISTRY",
+  "schemaVersion": 1,
+  "gateId": "GATE15",
+  "validators": [
+    {
+      "validatorId": "G15-V01",
+      "name": "authoritative-source-binding-validator",
+      "implementation": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "input": "evidencePackage.sources and contract.requiredInputs",
+      "output": "PASS or BLOCKED with deterministic reason codes",
+      "provenance": "exact source bytes, SHA-256 and byte length"
+    },
+    {
+      "validatorId": "G15-V02",
+      "name": "claim-provenance-validator",
+      "implementation": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "input": "evidencePackage.claims and provenanceEdges",
+      "output": "traceable claim verdict",
+      "provenance": "source-to-claim edges and transformations"
+    },
+    {
+      "validatorId": "G15-V03",
+      "name": "evidence-freshness-and-identity-validator",
+      "implementation": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "input": "source metadata and as-of claims",
+      "output": "freshness and identity verdict",
+      "provenance": "authoritative pointers, revisions and ordered timestamps"
+    },
+    {
+      "validatorId": "G15-V04",
+      "name": "deterministic-verdict-validator",
+      "implementation": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "input": "identical evidence package bytes",
+      "output": "identical verdict, reason codes and digest",
+      "provenance": "canonical JSON replay and fresh-process replay"
+    },
+    {
+      "validatorId": "G15-V05",
+      "name": "anti-circularity-validator",
+      "implementation": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "input": "authority classes and provenance graph",
+      "output": "circularity verdict",
+      "provenance": "producer output cannot be an authoritative input"
+    },
+    {
+      "validatorId": "G15-V06",
+      "name": "anti-invention-coverage-validator",
+      "implementation": "governance/gates/GATE15/implementation/anti-invention-validator.mjs",
+      "input": "canonical requirements, test executions and coverage matrix",
+      "output": "complete mandatory coverage verdict",
+      "provenance": "machine-derived rows from real executions"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE15_AGENT_CLOSURE_HANDOFF",
+  "gateId": "GATE15",
+  "programId": "GATE15_FINAL_GOVERNED_CLOSURE_R1",
+  "authorityId": "GATE15_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "closurePhase": "AGENT_CLOSURE",
+  "resultingStatus": "COMPLETE_AGENT",
+  "stateRevision": "R0003",
+  "expectedAgentClosureEvent": {
+    "ordinal": 64,
+    "eventId": "GATE15_AGENT_CLOSURE_R1",
+    "transitionType": "AGENT_CLOSURE"
+  },
+  "m2Evidence": {
+    "path": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+    "sha256": "9e4a8ac6bebb75177b15a51919e14a3cf330984b05831998df6ec5c35a286a5d",
+    "byteLength": 8425309,
+    "verdict": "PASS",
+    "reportedTestCount": 30,
+    "validatorExecutionCount": 29,
+    "testInventory": {
+      "positive": 4,
+      "negative": 14,
+      "counter": 5,
+      "hostile": 6,
+      "artifactValidation": 1
+    },
+    "exactThirtiethTest": {
+      "testId": "G15-V06",
+      "name": "G15-V06 canonical coverage, evidence and registry artifacts pass independently",
+      "sourcePath": "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs",
+      "sourceLine": 211,
+      "role": "The independent canonical artifact validation after the 29 real positive, negative, counter and hostile executions."
+    }
+  },
+  "m2ArtifactHashes": {
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_REQUIREMENTS_REGISTRY.json": "7fe981913b7181116c2cbe9026664093a359c6e25ea5e8ccbc8e9187dcf9bc61",
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATOR_REGISTRY.json": "19204d6ac8a7dfefb60aa4095bf60a05d8385a1dcd5427349c433341959d5f70",
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_VALIDATION_POLICY.json": "f7fd74f62eeec3dd375e6c8b56465b10648ea4315ce347ecd5359c2c45b78cd6",
+    "governance/gates/GATE15/implementation/anti-invention-validator.mjs": "53b3a6d8c9795ea01e18088aa16f21120f08a51b90b23ad0380f28ce6cc048e7",
+    "governance/gates/GATE15/implementation/ANTI_INVENTION_COVERAGE_MATRIX.json": "a89bd2deacee27181ae91e9aba836d501ea638c1a677b647f44f22fcbe658748",
+    "governance/gates/GATE15/tests/gate15-anti-invention.test.mjs": "dc69d20e5cce74b365e976b640508476f6effc82a2c4805a87697c75a421688c"
+  },
+  "closureConditions": {
+    "G15-CLOSE-01": true,
+    "G15-CLOSE-02": true,
+    "G15-CLOSE-03": true,
+    "G15-CLOSE-04": true,
+    "G15-CLOSE-05": true,
+    "G15-CLOSE-06": true,
+    "G15-CLOSE-07": true,
+    "G15-CLOSE-08": true,
+    "G15-CLOSE-09": true,
+    "G15-CLOSE-10": true
+  },
+  "preState": {
+    "baseHead": "61c8fb583bebee65a4c23304165d7218d7b66200",
+    "ledgerEventCount": 63,
+    "ledgerPrefixSha256": "0128f23f3cdbacf5b41e55595cb56db08c17d48ddc3c489ed5fec89e9e3b980d",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0002",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "invariants": {
+    "m1AuthorizationAndStartUnchanged": true,
+    "gate14Status": "COMPLETE_CONFIRMED",
+    "gate16ThroughGate40Status": "NOT_STARTED",
+    "activeGate": "GATE13",
+    "r8": "ABSENT",
+    "externalConfirmationEmitted": false,
+    "agentClosureEventCount": 1
+  },
+  "independentConfirmation": {
+    "required": true,
+    "transitionType": "EXTERNAL_CONFIRMATION",
+    "requiredAuthorityClass": "EXTERNAL_REINSPECTION_REPORT",
+    "sameMissionMayConfirm": false,
+    "reason": "GATE15 COMPLETE_CONFIRMED requires a separate independent EXTERNAL_REINSPECTION_REPORT; this local closure authority cannot substitute for that class."
+  },
+  "requiredNextAction": "GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "createdAt": "2026-08-14T11:32:29.000Z"
+}

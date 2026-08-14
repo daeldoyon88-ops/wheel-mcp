@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE17",
+  "stateRevision": "R0001",
+  "sealedMembers": [
+    { "repoRelativePath": "governance/gates/GATE17/state/revisions/R0001/CHECKPOINT.json", "sha256": "2a7eec5295b332ceb78dc3f84edd29a572256bae0489b0e709908f5309cb995f", "byteLength": 678 },
+    { "repoRelativePath": "governance/gates/GATE17/state/revisions/R0001/OPEN_DEFECTS.json", "sha256": "def7e63cad95c98ecf77be08008d236cb488e90a00f2db6ddafa63b547dd87b8", "byteLength": 70 },
+    { "repoRelativePath": "governance/gates/GATE17/contracts/CURRENT_CONTRACT.json", "sha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148", "byteLength": 281 }
+  ],
+  "previousStateSealSha256": null,
+  "sealedAt": "2026-08-14T18:40:00.000Z",
+  "payload": {
+    "gateId": "GATE17",
+    "stateRevision": "R0001",
+    "executionStatus": "AUTHORIZED_NOT_STARTED",
+    "contractSha256": "870fbfba014987e4a03cb5aa2d133b14b0faadfb4921ef8cc83693713a6eb0a9",
+    "ledgerMutated": true,
+    "sealedAt": "2026-08-14T18:40:00.000Z"
+  },
+  "payloadSha256": "49db4bf6f40134acbf4b660e56a6b0551195e26ed21f460428ef165250f24b78"
+}

@@ -1,0 +1,53 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE17_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-14T19:35:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE17_FINAL_GOVERNED_CLOSURE_R1",
+  "authorityPurpose": "GATE_FINAL_CLOSURE",
+  "resumePoint": "GATE17_FINAL_STATE_SELF_AUDIT",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "90abb16c8435512eb2d53ea9f4cde84ceb2201b8",
+    "ledgerEventCount": 71,
+    "ledgerPrefixSha256": "595a1f7cb202a3278498a04b853e3872ddb6dff2eaa9d7c166c51309cd653bca",
+    "gateId": "GATE17",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0002",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE17_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "ba957536877e6cf4139a327bd92dee8aac6c73f0f2d8ef1742ad7508c7b5525f",
+  "authorizedOperationClasses": ["AGENT_CLOSURE"],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"],
+    "commitMessage": "governance: close GATE17 under final closure authority",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": { "mode": "BASE_HEAD", "baseHead": "90abb16c8435512eb2d53ea9f4cde84ceb2201b8" },
+  "consumptionRecordPath": "governance/historical-architecture/GATE17_AGENT_CLOSURE_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

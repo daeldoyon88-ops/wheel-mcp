@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "document": "GATE_AUTHORIZATION_RECORD",
+  "authorizationId": "GATE_AUTHORIZATION_GATE17_R1",
+  "projectId": "WHEEL",
+  "gateId": "GATE17",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "recordedAt": "2026-08-14T18:45:00.000Z",
+  "baseCommit": "90abb16c8435512eb2d53ea9f4cde84ceb2201b8",
+  "preLedgerSha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb",
+  "previousEventSha256": "5d5cfaf65db1ed4120f19fcb903d348ff65ad3ffc58683e73ea7b64ca8eb2e81",
+  "contractSha256": "870fbfba014987e4a03cb5aa2d133b14b0faadfb4921ef8cc83693713a6eb0a9",
+  "currentContractSha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148",
+  "dependencyProof": { "gateId": "GATE16", "status": "COMPLETE_CONFIRMED", "authorityPath": "GATE16_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT", "authoritySha256": "774202ab4ed6124b333cf4e25a64130c4f9ad3cd49d998640a5a37421012d74d" },
+  "stateRevision": "R0001",
+  "authorizedStateArtifacts": [
+    { "cohortRole": "CURRENT_STATE", "repoRelativePath": "governance/gates/GATE17/state/CURRENT_STATE.json", "sha256": "7783586715d9c84ce35e467e0298865c2d24684805babedf79b3d20ae794da0e", "byteLength": 300 },
+    { "cohortRole": "CHECKPOINT", "repoRelativePath": "governance/gates/GATE17/state/revisions/R0001/CHECKPOINT.json", "sha256": "2a7eec5295b332ceb78dc3f84edd29a572256bae0489b0e709908f5309cb995f", "byteLength": 678 },
+    { "cohortRole": "OPEN_DEFECTS", "repoRelativePath": "governance/gates/GATE17/state/revisions/R0001/OPEN_DEFECTS.json", "sha256": "def7e63cad95c98ecf77be08008d236cb488e90a00f2db6ddafa63b547dd87b8", "byteLength": 70 },
+    { "cohortRole": "STATE_SEAL", "repoRelativePath": "governance/gates/GATE17/state/revisions/R0001/STATE_SEAL.json", "sha256": "24ca0aee7ed97ddd0c02a891a807f99234083b873bdf825ed04ba41bc1e8577b", "byteLength": 1112 }
+  ],
+  "authorizedDerivedArtifacts": [
+    { "cohortRole": "GATE_STATUS_SNAPSHOT", "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json" },
+    { "cohortRole": "ACTIVE_GATE", "repoRelativePath": "governance/active/ACTIVE_GATE.json" },
+    { "cohortRole": "ACTIVE_GATE_CONTEXT_JSON", "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json" },
+    { "cohortRole": "ACTIVE_GATE_CONTEXT_MD", "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md" }
+  ],
+  "prohibitedOperations": ["START", "GATE_EXECUTION", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "COMPLETE_CONFIRMED", "ARBITRARY_LEDGER_TRANSITION", "LEDGER_REWRITE", "GIT_PUSH", "ARBITRARY_GOVERNANCE_WRITE", "OTHER_GATE", "GEE_REVISION_CREATION"],
+  "executionAuthorized": false,
+  "reason": "Canonical GATE17 is ready after GATE16 COMPLETE_CONFIRMED; this record authorizes only the single NOT_STARTED to AUTHORIZED_NOT_STARTED transition and first sealed state revision."
+}

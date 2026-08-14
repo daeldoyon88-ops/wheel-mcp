@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE17",
+  "stateRevision": "R0003",
+  "revisionPath": "governance/gates/GATE17/state/revisions/R0003",
+  "stateSealSha256": "b2198ed06648a71a8b3b82dd7799a8ba9c5c460b4cfe1fca2106d96c8e3f5489",
+  "committedByTransactionId": "GATE17_AGENT_CLOSURE_R1_TRANSACTION"
+}

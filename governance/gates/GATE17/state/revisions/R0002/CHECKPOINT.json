@@ -1,0 +1,28 @@
+{
+  "gateId": "GATE17",
+  "stateRevision": "R0002",
+  "milestone": "GATE17_REPORT_GENERATED",
+  "resumePoint": "IN_PROGRESS",
+  "completedTasks": [
+    "AWAIT_START_AUTHORITY",
+    "GATE17_READINESS_CONTRACT_AUTHORIZATION_START",
+    "GATE17_REPORT_GENERATED"
+  ],
+  "openTasks": [
+    "GATE17_TESTS_EVIDENCE_AGENT_CLOSURE"
+  ],
+  "reusableEvidence": [
+    "GATE17_READINESS_GEE_R2_R7_READY",
+    "GATE17_REPORT_GENERATED"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE17_TESTS_EVIDENCE_AGENT_CLOSURE"
+  ],
+  "protectedHashes": [
+    { "path": "governance/gates/GATE17/contracts/CURRENT_CONTRACT.json", "sha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148" },
+    { "path": "governance/GATE_REGISTRY_00_40.json", "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7" },
+    { "path": "governance/gates/GATE17/state/revisions/R0001/STATE_SEAL.json", "sha256": "24ca0aee7ed97ddd0c02a891a807f99234083b873bdf825ed04ba41bc1e8577b" }
+  ],
+  "createdAt": "2026-08-14T19:00:00.000Z"
+}

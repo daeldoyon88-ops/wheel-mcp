@@ -1,0 +1,29 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE17_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "GATE17_FINAL_GOVERNED_CLOSURE_R1",
+  "manifestSha256": "ba957536877e6cf4139a327bd92dee8aac6c73f0f2d8ef1742ad7508c7b5525f",
+  "baseHead": "90abb16c8435512eb2d53ea9f4cde84ceb2201b8",
+  "consumedUse": 1,
+  "transactionId": "GATE17_AGENT_CLOSURE_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T19:35:00.000Z",
+  "commitMessage": "governance: close GATE17 under final closure authority",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE17_AGENT_CLOSURE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    { "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE17_AGENT_CLOSURE_R1.json", "sha256": "3a95c45af45fc12ffa80196882ed5c86cd79e15f8b9d16cb81d8ef8c6798feba", "byteLength": 2012, "operation": "CREATE", "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE17 closure pre-state.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/historical-architecture/GATE17_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json", "sha256": "ba957536877e6cf4139a327bd92dee8aac6c73f0f2d8ef1742ad7508c7b5525f", "byteLength": 3060, "operation": "CREATE", "reason": "Finite exact-file GATE17 closure cohort with no wildcard or directory blanket.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE17/state/revisions/R0003/CHECKPOINT.json", "sha256": "35b518909aac970ebd6af80e49e74cfa6789b25528cc0562636ffa4ecb1edbba", "byteLength": 1334, "operation": "CREATE", "reason": "New GATE17 closure checkpoint after the exact AGENT_CLOSURE transition.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE17/state/revisions/R0003/OPEN_DEFECTS.json", "sha256": "aba9d60752e0b5cb5a9826481ab1832bd6aecd505f083c4e24c00f05631c4dd5", "byteLength": 70, "operation": "CREATE", "reason": "Derived GATE17 closure defect projection preserving the zero-defect state.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE17/state/revisions/R0003/STATE_SEAL.json", "sha256": "b2198ed06648a71a8b3b82dd7799a8ba9c5c460b4cfe1fca2106d96c8e3f5489", "byteLength": 1290, "operation": "CREATE", "reason": "Native GATE17 state seal chained from R0002 and pinned by the AGENT_CLOSURE event.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/gates/GATE17/state/CURRENT_STATE.json", "sha256": "d5ba124f8f6197c625316d6fc341578a79e4cc4f94f8e49944a56487d2043225", "byteLength": 300, "operation": "MODIFY", "reason": "Advance the canonical GATE17 state pointer to R0003 COMPLETE_AGENT.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "sha256": "def915046f7b9a453fba75f78bae066cc7075192266d3294c90495cae92f927c", "byteLength": 40842, "operation": "MODIFY", "reason": "Append exactly one canonical GATE17 AGENT_CLOSURE event; events 1-71 remain byte-identical.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json", "sha256": "b0521d7d88a8934fe36264a907177e7e7f032fc07beed85d4df873a41819eecb", "byteLength": 15604, "operation": "MODIFY", "reason": "Regenerate the derived status projection from the post-closure canonical ledger.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/generated/ACTIVE_GATE_CONTEXT.json", "sha256": "7024ad5d340d362fe8755bd708a6e7abdfb8e520b2d64e51aa7240349dd2655e", "byteLength": 1138, "operation": "MODIFY", "reason": "Refresh the derived active-gate context ledger binding while ACTIVE_GATE remains GATE13.", "artifactClass": "AGENT_CLOSURE" },
+    { "path": "governance/generated/ACTIVE_GATE_CONTEXT.md", "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2", "byteLength": 126, "operation": "MODIFY", "reason": "Refresh the existing derived active-gate context projection as part of the exact closure cohort.", "artifactClass": "AGENT_CLOSURE" }
+  ]
+}

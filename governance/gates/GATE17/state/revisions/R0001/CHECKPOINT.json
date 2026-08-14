@@ -1,0 +1,16 @@
+{
+  "gateId": "GATE17",
+  "stateRevision": "R0001",
+  "milestone": "GATE17_REPORT_GENERATED",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": ["GATE17_READINESS_GEE_R2_R7_READY"],
+  "invalidatedEvidence": [],
+  "requiredNextActions": ["AWAIT_START_AUTHORITY"],
+  "protectedHashes": [
+    { "path": "governance/gates/GATE17/contracts/CURRENT_CONTRACT.json", "sha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148" },
+    { "path": "governance/GATE_REGISTRY_00_40.json", "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7" }
+  ],
+  "createdAt": "2026-08-14T18:40:00.000Z"
+}

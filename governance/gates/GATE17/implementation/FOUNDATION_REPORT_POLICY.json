@@ -1,0 +1,14 @@
+{
+  "document": "GATE17_FOUNDATION_REPORT_POLICY",
+  "schemaVersion": 1,
+  "gateId": "GATE17",
+  "canonical": true,
+  "reportStateRule": "CURRENT only when GATE16 is COMPLETE_CONFIRMED and all declared sources are present.",
+  "supportedSections": [
+    { "sectionId": "G17-SCOPE", "title": "Canonical scope", "sourceBindings": [{ "path": "governance/GATE_REGISTRY_00_40.json", "pointers": ["/gates/17"] }, { "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "pointers": ["/gates/1"] }] },
+    { "sectionId": "G17-AUTHORITY", "title": "Authority graph", "sourceBindings": [{ "path": "governance/PROJECT_CONSTITUTION.json", "pointers": ["/rules"] }, { "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json", "pointers": ["/sourceOfTruthGraph"] }] },
+    { "sectionId": "G17-PREDECESSOR", "title": "Confirmed predecessor", "sourceBindings": [{ "path": "governance/gates/GATE16/state/CURRENT_STATE.json", "pointers": ["/"] }, { "path": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json", "pointers": ["/payload"] }, { "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json", "pointers": ["/verdict", "/reportId"] }] },
+    { "sectionId": "G17-LIFECYCLE", "title": "Lifecycle status", "sourceBindings": [{ "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "pointers": ["/events"] }, { "path": "governance/active/ACTIVE_GATE.json", "pointers": ["/"] }] },
+    { "sectionId": "G17-PROJECTIONS", "title": "Generated projections", "sourceBindings": [{ "path": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json", "pointers": ["/gates/2"] }, { "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json", "pointers": ["/standardGateGoldenPath", "/statusVocabulary"] }] }
+  ]
+}

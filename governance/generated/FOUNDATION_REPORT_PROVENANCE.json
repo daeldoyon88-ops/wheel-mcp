@@ -1,0 +1,183 @@
+{
+  "document": "FOUNDATION_REPORT_PROVENANCE",
+  "schemaVersion": 1,
+  "canonical": false,
+  "gateId": "GATE17",
+  "reportState": "CURRENT",
+  "report": {
+    "path": "governance/generated/FOUNDATION_REPORT.md",
+    "sha256": "4b23e49a5730793e91ba7ab23bd3d0a8391b6884455a70f4b350b7dde1c981ad",
+    "byteLength": 5534
+  },
+  "generator": {
+    "path": "governance/tools/generate-foundation-report.mjs",
+    "sha256": "6106156998c470f2dab43a8512b2f405549a41ed6ea8aabb8a01cd374f21cb83",
+    "byteLength": 8667
+  },
+  "policy": {
+    "path": "governance/gates/GATE17/implementation/FOUNDATION_REPORT_POLICY.json",
+    "sha256": "24ff9a44beb867865c54dbd8377a720063fa9862cdcd94812b67c326a53aa5b5",
+    "byteLength": 1793
+  },
+  "sections": [
+    {
+      "sectionId": "G17-SCOPE",
+      "sourceBindings": [
+        {
+          "path": "governance/GATE_REGISTRY_00_40.json",
+          "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+          "byteLength": 113118,
+          "pointers": [
+            {
+              "pointer": "/gates/17",
+              "valueSha256": "eddac11f0200a41afde4e8ef3feb8c11cfacdb9e5c30876c0dfcafcc9bd49d5b"
+            }
+          ]
+        },
+        {
+          "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+          "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc",
+          "byteLength": 67534,
+          "pointers": [
+            {
+              "pointer": "/gates/1",
+              "valueSha256": "491c2e46e474196965de524cb06006f8afc5f9466d15a7c40b72539ad8ea1c98"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sectionId": "G17-AUTHORITY",
+      "sourceBindings": [
+        {
+          "path": "governance/PROJECT_CONSTITUTION.json",
+          "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
+          "byteLength": 16370,
+          "pointers": [
+            {
+              "pointer": "/rules",
+              "valueSha256": "c80d7658e9ac817b84cc6309e460d8e7ac7a622037b030a082c08fd5faeb6fdb"
+            }
+          ]
+        },
+        {
+          "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+          "sha256": "8c61b9f97f862869c2d0aa1ad69f202c21a26b7c05ce00a90e8b179ca8cd8020",
+          "byteLength": 119602,
+          "pointers": [
+            {
+              "pointer": "/sourceOfTruthGraph",
+              "valueSha256": "873bf4f6e326a69c12a77b961491cd624f63c194c1c2875163dea39ea6a1df35"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sectionId": "G17-PREDECESSOR",
+      "sourceBindings": [
+        {
+          "path": "governance/gates/GATE16/state/CURRENT_STATE.json",
+          "sha256": "8b0531f0f8e816caa4dcccd2eb370b35ff885da10f12a32083f12fb13d8b820b",
+          "byteLength": 311,
+          "pointers": [
+            {
+              "pointer": "/",
+              "valueSha256": "74b0fb9422e23a26d700719f3aec88fd63073334a9b4d5d3f363e6d21d447544"
+            }
+          ]
+        },
+        {
+          "path": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json",
+          "sha256": "7b21c404c0938abc815a620e193d8c939d7f00b905a6ecd9bc59b659e542d0f5",
+          "byteLength": 2534,
+          "pointers": [
+            {
+              "pointer": "/payload",
+              "valueSha256": "f65d68a93bbb1a96b19a407596260a23452c6f36aa089813f5ecee350461b81e"
+            }
+          ]
+        },
+        {
+          "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+          "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+          "byteLength": 64884,
+          "pointers": [
+            {
+              "pointer": "/verdict",
+              "valueSha256": "727e9bd17b077ba162e13ba877135cc6fbc6b30f83da0b34b3e20233f1cc885f"
+            },
+            {
+              "pointer": "/reportId",
+              "valueSha256": "ed1ea9b49b5929575e43564e83a12d09e1b51622e354a48a06fe3f5a91751f97"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sectionId": "G17-LIFECYCLE",
+      "sourceBindings": [
+        {
+          "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "sha256": "def915046f7b9a453fba75f78bae066cc7075192266d3294c90495cae92f927c",
+          "byteLength": 40842,
+          "pointers": [
+            {
+              "pointer": "/events",
+              "valueSha256": "bf419209a2f513839612710ca8c87ef350f875f987b6662367e51657161beb70"
+            }
+          ]
+        },
+        {
+          "path": "governance/active/ACTIVE_GATE.json",
+          "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+          "byteLength": 305,
+          "pointers": [
+            {
+              "pointer": "/",
+              "valueSha256": "b74f6963538c6beeeb6377f42e49c02a0fee2ee70f72b0b5c947fe6b0b33dc33"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sectionId": "G17-PROJECTIONS",
+      "sourceBindings": [
+        {
+          "path": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json",
+          "sha256": "b11d5a74c5f70a7bf255dfae956ccb97ced1c28639a36f6cca6a56a49bde01ab",
+          "byteLength": 58602,
+          "pointers": [
+            {
+              "pointer": "/gates/2",
+              "valueSha256": "18e81aa9612bc70e54194c7c783c236e0e2b8c10cd553069c81c12b654da1685"
+            }
+          ]
+        },
+        {
+          "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json",
+          "sha256": "8c61b9f97f862869c2d0aa1ad69f202c21a26b7c05ce00a90e8b179ca8cd8020",
+          "byteLength": 119602,
+          "pointers": [
+            {
+              "pointer": "/standardGateGoldenPath",
+              "valueSha256": "dee26230339af04f5f4f516301738f6723ea3997d26568adcb68789e0c813e9d"
+            },
+            {
+              "pointer": "/statusVocabulary",
+              "valueSha256": "6525aed68829c3564c4c5ec235997716114e4fd77ccf213ab5a2cd2b1b4bd002"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "regeneration": {
+    "method": "fresh-process",
+    "deterministic": true,
+    "comparedOutputs": 2
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "gateId": "GATE17",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+    "gateId": "GATE17",
+    "canonicalObjectiveSha256": "dd7f22cfcb3aa2b1a08b1135d765aee2aa241b275a2cfb4add5f9eb6e623bea8"
+  },
+  "canonicalRequirements": [
+    { "requirementId": "G17-REPORT-01", "statement": "Project the report only from canonical sealed authorities and declared source bindings.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/1/canonicalObjective" },
+    { "requirementId": "G17-REPORT-02", "statement": "Bind every report section to recomputed source identities, pointers and byte hashes.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/1/evidenceRequirements/2" },
+    { "requirementId": "G17-REPORT-03", "statement": "Detect generated-file drift by byte comparison against fresh canonical regeneration.", "normativeSource": "governance/GATE_REGISTRY_00_40.json#/gates/17/exitConditions/2" },
+    { "requirementId": "G17-REPORT-04", "statement": "Reject unsupported sections and any source binding that is absent or unverifiable.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/1/validationClasses/3" },
+    { "requirementId": "G17-REPORT-05", "statement": "Produce identical report and provenance bytes across independent regenerations.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/1/evidenceRequirements/4" }
+  ],
+  "requiredInputs": [
+    { "path": "governance/PROJECT_CONSTITUTION.json", "role": "SUPREME_AUTHORITY", "mutable": false },
+    { "path": "governance/GATE_REGISTRY_00_40.json", "role": "STRATEGIC_REGISTRY", "mutable": false },
+    { "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "role": "CANONICAL_MANDATE", "mutable": false },
+    { "path": "governance/gates/GATE16/state/CURRENT_STATE.json", "role": "CONFIRMED_PREDECESSOR_STATE", "mutable": false },
+    { "path": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json", "role": "CONFIRMED_PREDECESSOR_SEAL", "mutable": false },
+    { "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json", "role": "INDEPENDENT_PREDECESSOR_EVIDENCE", "mutable": false },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "role": "CANONICAL_STATUS_LEDGER", "mutable": false },
+    { "path": "governance/active/ACTIVE_GATE.json", "role": "ACTIVE_GATE_PRESTATE", "mutable": false },
+    { "path": "governance/master-matrix/WHEEL_MASTER_CANONICALIZATION_REUSE_MATRIX_V1.json", "role": "CANONICAL_SOURCE_OF_TRUTH_GRAPH", "mutable": false },
+    { "path": "governance/master-matrix/GATE15_40_PREEXECUTION_CAPABILITY_MATRIX_V1.json", "role": "CANONICAL_GATE_CAPABILITY_MATRIX", "mutable": false }
+  ],
+  "requiredOutputs": [
+    { "ordinal": 1, "path": "governance/gates/GATE17/implementation/FOUNDATION_REPORT_POLICY.json", "role": "Canonical supported-section and source-binding policy" },
+    { "ordinal": 2, "path": "governance/tools/generate-foundation-report.mjs", "role": "Production deterministic report generator" },
+    { "ordinal": 3, "path": "governance/gates/GATE17/tests/gate17-generated-report.test.mjs", "role": "Positive, negative, counter and hostile generated-report tests" },
+    { "ordinal": 4, "path": "governance/generated/FOUNDATION_REPORT.md", "role": "Non-canonical generated foundation report" },
+    { "ordinal": 5, "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json", "role": "Section-level provenance binding" },
+    { "ordinal": 6, "path": "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json", "role": "Machine-derived replay and closure evidence" },
+    { "ordinal": 7, "path": "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json", "role": "Closure-condition matrix" }
+  ],
+  "validators": [
+    "node governance/tools/gate-preexecution-reuse-check.mjs --gate GATE17",
+    "node governance/tools/gate-fast-path-control-plane.mjs --gate GATE17 --phase READINESS",
+    "node governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit GATE17",
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE17/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE17/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-gate-registry.mjs",
+    "node governance/tools/validate-gate-authorization-authority.mjs --gate-id GATE17",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE17",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE17/state/revisions/R0001/STATE_SEAL.json",
+    "node governance/tools/validate-active-gate.mjs",
+    "node governance/tools/generate-foundation-report.mjs --check",
+    "node governance/gates/GATE17/tests/gate17-generated-report.test.mjs",
+    "node governance/tools/replay-governance-history.mjs",
+    "node governance/tools/validate-post-freeze-maintenance-authority.mjs"
+  ],
+  "positiveTests": [
+    { "testId": "G17-POS-01", "requirementId": "G17-REPORT-01", "case": "canonical input projection", "expected": "PASS" },
+    { "testId": "G17-POS-02", "requirementId": "G17-REPORT-02", "case": "complete section provenance", "expected": "PASS" },
+    { "testId": "G17-POS-03", "requirementId": "G17-REPORT-03", "case": "zero generated-file drift", "expected": "PASS" },
+    { "testId": "G17-POS-04", "requirementId": "G17-REPORT-05", "case": "two fresh-process regenerations are identical", "expected": "PASS" }
+  ],
+  "negativeTests": [
+    { "testId": "G17-NEG-01", "requirementId": "G17-REPORT-01", "mutation": "remove a canonical source", "expected": "BLOCKED", "reasonCode": "SOURCE_MISSING" },
+    { "testId": "G17-NEG-02", "requirementId": "G17-REPORT-02", "mutation": "tamper with provenance output", "expected": "BLOCKED", "reasonCode": "GENERATED_FILE_DRIFT" },
+    { "testId": "G17-NEG-03", "requirementId": "G17-REPORT-03", "mutation": "manually edit report bytes", "expected": "BLOCKED", "reasonCode": "GENERATED_FILE_DRIFT" },
+    { "testId": "G17-NEG-04", "requirementId": "G17-REPORT-04", "mutation": "add an unsupported policy section", "expected": "BLOCKED", "reasonCode": "UNSUPPORTED_SECTION" },
+    { "testId": "G17-NEG-05", "requirementId": "G17-REPORT-05", "mutation": "break predecessor confirmed status", "expected": "BLOCKED", "reasonCode": "PREDECESSOR_NOT_CONFIRMED" }
+  ],
+  "countertests": [
+    { "counterTestId": "G17-CT-01", "target": "source binding", "mutation": "change a source byte without changing declared policy", "expected": "binding or drift rejection" },
+    { "counterTestId": "G17-CT-02", "target": "section scope", "mutation": "inject an unbound report heading", "expected": "unsupported-section rejection" },
+    { "counterTestId": "G17-CT-03", "target": "fresh process", "mutation": "change one input between regenerations", "expected": "identity mismatch" },
+    { "counterTestId": "G17-CT-04", "target": "status freshness", "mutation": "replace confirmed predecessor with stale status", "expected": "freshness rejection" }
+  ],
+  "reuseRules": [
+    "Reuse only GEE R4 evidence whose exact identities remain unchanged.",
+    "Reuse the sealed GATE16 COMPLETE_CONFIRMED state and evidence without re-executing GATE16.",
+    "Generated projections are outputs, never canonical authority."
+  ],
+  "invalidationRules": [
+    "Any change to a declared canonical input invalidates the affected report identity.",
+    "Missing, stale, contradictory or unverifiable source evidence blocks report generation.",
+    "Any unsupported section or unbound manual edit invalidates the report."
+  ],
+  "forbiddenReplays": [
+    "Re-executing GATE16 without an invalidation basis.",
+    "Treating FOUNDATION_REPORT.md or its provenance as authority.",
+    "Any future Gate START or closure authority, ledger rewrite, network call or GEE R8 creation."
+  ],
+  "packagingRequirements": [
+    "Stable UTF-8 bytes and slash-separated repository-relative paths.",
+    "Every source identity is recomputed from actual bytes.",
+    "The report is a generated projection and declares canonical=false."
+  ],
+  "closureConditions": [
+    "The report regenerates from canonical inputs without manual content injection.",
+    "Every report section has a complete provenance binding.",
+    "GENERATED_FILE_DRIFT equals zero.",
+    "No unsupported section is present.",
+    "reportState is not STALE and the result is reproducible."
+  ],
+  "nextGateAuthorizationConditions": [
+    "GATE17 must reach COMPLETE_CONFIRMED through a separate independent replay before GATE18 may be considered.",
+    "Generated report bytes never become authority.",
+    "GATE18 remains NOT_STARTED and non-executable in this mission."
+  ],
+  "performanceBudget": { "targetMinutes": 120, "expectedMaximumMinutes": 240, "closeoutStartMinutes": 210, "absoluteMaximumMinutes": 360 },
+  "checkpointPolicy": { "milestones": ["GATE17_REPORT_GENERATED", "GATE17_FINAL_STATE_SELF_AUDIT"], "checkpointRequired": true, "resumeContractRequired": true, "restartFromZeroForbidden": true },
+  "authorizedPaths": [
+    "governance/gates/GATE17/implementation/FOUNDATION_REPORT_POLICY.json",
+    "governance/tools/generate-foundation-report.mjs",
+    "governance/gates/GATE17/tests/gate17-generated-report.test.mjs",
+    "governance/generated/FOUNDATION_REPORT.md",
+    "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+    "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json",
+    "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json"
+  ],
+  "requiredPolicyIds": ["MAIN_AGENT_ONLY", "SUBAGENTS_FORBIDDEN_BY_DEFAULT", "NETWORK_FORBIDDEN_BY_DEFAULT", "GIT_WRITES_FORBIDDEN_BY_DEFAULT", "DANGEROUS_GIT_COMMANDS_FORBIDDEN", "AUTHORIZED_PATHS_ONLY", "NO_RESTART_FROM_ZERO", "RESUME_FROM_CHECKPOINT", "NO_HARDCODED_PASS", "NO_CIRCULAR_VALIDATION", "NO_FUTURE_LEAKAGE", "NO_GATE_MANDATE_REDEFINITION", "BLOCK_ON_AUTHORITY_CONFLICT", "DETERMINISTIC_OPERATIONS_LOCAL", "SEPARATE_SESSION_REINSPECTION", "GENERATED_FILES_NON_CANONICAL", "HISTORICAL_REJECTED_NOT_ACTIVE"],
+  "sourceReferences": [
+    { "sourceId": "GATE16_40_OWNER_RATIFICATION_R2", "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc", "evidence": "Canonical GATE17 objective, inputs, outputs and closure conditions." },
+    { "sourceId": "GATE_REGISTRY_00_40", "path": "governance/GATE_REGISTRY_00_40.json", "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7", "evidence": "Canonical GATE17 identity and dependency projection." },
+    { "sourceId": "GATE16_COMPLETE_CONFIRMED", "path": "governance/gates/GATE16/state/CURRENT_STATE.json", "sha256": null, "evidence": "Closed predecessor consumed without re-execution." },
+    { "sourceId": "PROJECT_CONSTITUTION", "path": "governance/PROJECT_CONSTITUTION.json", "sha256": null, "evidence": "Fail-closed governance and generated-file rules." },
+    { "sourceId": "GEE_V1_R2_R7", "path": "governance/gee-v1", "sha256": null, "evidence": "Canonical GEE fast path and recovery machinery." }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "document": "GATE17_CLOSURE_MATRIX",
+  "schemaVersion": 1,
+  "gateId": "GATE17",
+  "matrixId": "GATE17_CLOSURE_MATRIX_R1",
+  "verdict": "PASS",
+  "conditions": [
+    { "conditionId": "G17-CLOSE-01", "statement": "Report regenerates from canonical inputs without manual injection.", "result": "PASS", "evidence": "GENERATED_REPORT_EVIDENCE.freshProcessReplay" },
+    { "conditionId": "G17-CLOSE-02", "statement": "Every supported report section has complete provenance binding.", "result": "PASS", "evidence": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json" },
+    { "conditionId": "G17-CLOSE-03", "statement": "GENERATED_FILE_DRIFT equals zero.", "result": "PASS", "value": 0, "evidence": "GENERATED_REPORT_EVIDENCE.generatedFileDrift" },
+    { "conditionId": "G17-CLOSE-04", "statement": "No unsupported section is present.", "result": "PASS", "value": 0, "evidence": "GENERATED_REPORT_EVIDENCE.unsupportedSectionCount" },
+    { "conditionId": "G17-CLOSE-05", "statement": "Report state is current and reproducible.", "result": "PASS", "evidence": "GENERATED_REPORT_EVIDENCE.reportState" },
+    { "conditionId": "G17-CLOSE-06", "statement": "Canonical focused tests pass.", "result": "PASS", "value": "11/11", "evidence": "GENERATED_REPORT_EVIDENCE.tests" },
+    { "conditionId": "G17-CLOSE-07", "statement": "GATE18-GATE40 remain NOT_STARTED and R8 is absent.", "result": "PASS", "evidence": "GENERATED_REPORT_EVIDENCE.externalConfirmationEmitted/r8Present" }
+  ],
+  "finalStateSelfAudit": {
+    "status": "PASS",
+    "preClosureLedgerEventCount": 71,
+    "preClosureLedgerSha256": "595a1f7cb202a3278498a04b853e3872ddb6dff2eaa9d7c166c51309cd653bca",
+    "preClosureStateRevision": "R0002",
+    "preClosureStateSealSha256": "9f9f4cf466a7b0be18919dfe72c9fb4c9babe5d9efe150c866dc7f0eab914c52",
+    "gate16Preserved": true,
+    "gate17AuthorizationCount": 1,
+    "gate17StartCount": 1,
+    "gate17AgentClosureCount": 0,
+    "externalConfirmationCount": 0,
+    "gate18PlusNotStarted": true,
+    "r8Absent": true,
+    "temporaryDependency": false,
+    "genericFallbackUsed": false
+  },
+  "canonical": false,
+  "externalConfirmationRequiredNext": true
+}

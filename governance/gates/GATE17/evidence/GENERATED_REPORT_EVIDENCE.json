@@ -1,0 +1,43 @@
+{
+  "document": "GATE17_GENERATED_REPORT_EVIDENCE",
+  "schemaVersion": 1,
+  "gateId": "GATE17",
+  "evidenceId": "GATE17_GENERATED_REPORT_EVIDENCE_R1",
+  "canonical": false,
+  "verdict": "PASS",
+  "reportState": "CURRENT",
+  "generatedFileDrift": 0,
+  "unsupportedSectionCount": 0,
+  "freshProcessReplay": {
+    "identical": true,
+    "reportSha256": "fb4ec217682bec57a5edb955842c0e99b455800deec470109af2ef5489801008",
+    "provenanceSha256": "69f502ef2f007c4aa127e4d22b834b45257f100563595fb0165b2b5fe603b17c"
+  },
+  "tests": {
+    "command": "node --test --test-concurrency=1 governance/gates/GATE17/tests/gate17-generated-report.test.mjs",
+    "positive": 4,
+    "negative": 5,
+    "counter": 2,
+    "passed": 11,
+    "failed": 0,
+    "verdict": "PASS"
+  },
+  "artifactHashes": [
+    { "path": "governance/gates/GATE17/implementation/FOUNDATION_REPORT_POLICY.json", "sha256": "24ff9a44beb867865c54dbd8377a720063fa9862cdcd94812b67c326a53aa5b5", "byteLength": 1793 },
+    { "path": "governance/tools/generate-foundation-report.mjs", "sha256": "6106156998c470f2dab43a8512b2f405549a41ed6ea8aabb8a01cd374f21cb83", "byteLength": 8667 },
+    { "path": "governance/gates/GATE17/tests/gate17-generated-report.test.mjs", "sha256": "7bdf6208fcdcc8839f6811ea34dbbd4f0b136fb65bf1302704e69e2f56e3a3b1", "byteLength": 7487 },
+    { "path": "governance/generated/FOUNDATION_REPORT.md", "sha256": "fb4ec217682bec57a5edb955842c0e99b455800deec470109af2ef5489801008", "byteLength": 5531 },
+    { "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json", "sha256": "69f502ef2f007c4aa127e4d22b834b45257f100563595fb0165b2b5fe603b17c", "byteLength": 6140 }
+  ],
+  "governanceBinding": {
+    "ledgerEventCount": 71,
+    "ledgerSha256": "595a1f7cb202a3278498a04b853e3872ddb6dff2eaa9d7c166c51309cd653bca",
+    "stateRevision": "R0002",
+    "currentStateSha256": "d6727706cf3411f4d2b4f5bb3f9f983697b542a7d565fe68a38f3741bf61a9f0",
+    "stateSealSha256": "9f9f4cf466a7b0be18919dfe72c9fb4c9babe5d9efe150c866dc7f0eab914c52",
+    "contractSha256": "870fbfba014987e4a03cb5aa2d133b14b0faadfb4921ef8cc83693713a6eb0a9",
+    "currentContractSha256": "26c951b2d31949eead2caada42bb683e37be92ad02cc56813f6820fbdd617148"
+  },
+  "externalConfirmationEmitted": false,
+  "r8Present": false
+}

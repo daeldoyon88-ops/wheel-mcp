@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -25,10 +26,11 @@ import { createWheelRecoverySession, recordWheelTaskExecution, buildWheelCheckpo
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 export const HEAD = '7a9936c91768e9a2a5c886c6a6da9564905c6a6c';
-export const WORK_UNIT_ID = 'GATE13';
+export const WORK_UNIT_ID = 'GATE15';
 export const R7_MISSION = 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7';
 export const R7_CONTRACT_PATH = 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json';
 export const R7_SEAL_PATH = 'governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007_SEAL.json';
+export const R7_BENCHMARK_CONTEXT_PATH = 'governance/gee-v1/fixtures/gee-r7-benchmark-context.json';
 export const R7_AUTHORIZED_PATHS = [
   'governance/gee-v1/evals/gee-r7-',
   'governance/gee-v1/benchmarks/gee-r7-',
@@ -37,6 +39,17 @@ export const R7_AUTHORIZED_PATHS = [
 ];
 
 const PASS = Object.freeze({ validator: 'R7_TEST_PRODUCING_VALIDATOR', result: 'PASS' });
+const VALIDATED_R7_BENCHMARK_CONTEXT = Symbol('VALIDATED_R7_BENCHMARK_CONTEXT');
+const BENCHMARK_CONTEXT_FIELDS = Object.freeze([
+  'document', 'schemaVersion', 'fixtureId', 'contextKind', 'workUnitId', 'sourceHead',
+  'missionRevisionId', 'provenance', 'requiredState', 'contextIdentitySha256'
+]);
+const BENCHMARK_CONTEXT_PROVENANCE_FIELDS = Object.freeze([
+  'authorityClass', 'purpose', 'generatedProjectionAuthority'
+]);
+const BENCHMARK_CONTEXT_STATE_FIELDS = Object.freeze(['path', 'sha256', 'role']);
+const HEX64 = /^[a-f0-9]{64}$/;
+const HEX40 = /^[a-f0-9]{40}$/;
 const SYNTHETIC_WORK_UNIT = 'SYNTH_01';
 const SOURCE_PATHS = ['fixtures/canonical.json', 'src/a.json', 'src/b.json'];
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -135,6 +148,123 @@ function cloneGovernanceRepo(prefix = 'gee-r7-wheel-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
   return root;
+}
+
+function sha256Bytes(bytes) {
+  return crypto.createHash('sha256').update(bytes).digest('hex');
+}
+
+function exactFields(value, expected) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).length === expected.length
+    && Object.keys(value).every((key) => expected.includes(key));
+}
+
+function safeFixturePath(value) {
+  return typeof value === 'string' && value.length > 0
+    && !path.posix.isAbsolute(value)
+    && path.posix.normalize(value) === value
+    && !value.startsWith('../')
+    && !value.includes('/../')
+    && !value.includes('/generated/');
+}
+
+function benchmarkContextBody(context) {
+  return Object.fromEntries(Object.entries(context).filter(([key]) => key !== 'contextIdentitySha256'));
+}
+
+/**
+ * Validate the benchmark input before any R7 measurement. The manifest is not
+ * Gate authority: it binds a deterministic copy of existing canonical bytes
+ * solely as benchmark input. A hidden runtime marker prevents callers from
+ * bypassing this validation by constructing a look-alike object.
+ */
+export function validateR7BenchmarkContext({ repoRoot = REPO_ROOT, fixture = null } = {}) {
+  const root = path.resolve(repoRoot);
+  const findings = [];
+  let context = fixture;
+  let fixtureBytes = null;
+  const fixturePath = path.join(root, ...R7_BENCHMARK_CONTEXT_PATH.split('/'));
+  if (context === null) {
+    try {
+      fixtureBytes = fs.readFileSync(fixturePath);
+      context = JSON.parse(fixtureBytes.toString('utf8'));
+    } catch {
+      findings.push('BENCHMARK_CONTEXT_MISSING_OR_INVALID_JSON');
+    }
+  }
+  if (!exactFields(context, BENCHMARK_CONTEXT_FIELDS)) findings.push('BENCHMARK_CONTEXT_FIELDS_INVALID');
+  if (context?.document !== 'GEE_V1_R7_BENCHMARK_CONTEXT' || context?.schemaVersion !== 1
+    || context?.fixtureId !== 'GEE_V1_R7_WHEEL_GATE15_CONTEXT_R1'
+    || context?.contextKind !== 'DETERMINISTIC_CANONICAL_WHEEL_STATE') findings.push('BENCHMARK_CONTEXT_IDENTITY_INVALID');
+  if (context?.workUnitId !== WORK_UNIT_ID || context?.missionRevisionId !== R7_MISSION
+    || !HEX40.test(context?.sourceHead || '')) findings.push('BENCHMARK_CONTEXT_PROVENANCE_MISMATCH');
+  if (!exactFields(context?.provenance, BENCHMARK_CONTEXT_PROVENANCE_FIELDS)
+    || context?.provenance?.authorityClass !== 'CANONICAL_REPOSITORY_BYTES'
+    || context?.provenance?.purpose !== 'R7_BENCHMARK_INPUT_ONLY'
+    || context?.provenance?.generatedProjectionAuthority !== false) findings.push('BENCHMARK_CONTEXT_PROVENANCE_MISMATCH');
+  if (!HEX64.test(context?.contextIdentitySha256 || '')
+    || context?.contextIdentitySha256 !== sha256Canonical(benchmarkContextBody(context || {}))) findings.push('BENCHMARK_CONTEXT_DIGEST_MISMATCH');
+
+  const expectedState = new Map([
+    ['governance/GATE_REGISTRY_00_40.json', 'CANONICAL_WORK_UNIT_REGISTRY'],
+    [R7_CONTRACT_PATH, 'CHECKPOINT_AUTHORITY_IDENTITY'],
+    ['governance/state/GATE_STATUS_LEDGER.ndjson', 'CANONICAL_STATUS_AUTHORITY']
+  ]);
+  if (!Array.isArray(context?.requiredState) || context.requiredState.length !== expectedState.size) {
+    findings.push('BENCHMARK_CONTEXT_REQUIRED_STATE_INVALID');
+  } else {
+    const paths = context.requiredState.map((entry) => entry?.path);
+    if (new Set(paths).size !== paths.length || [...paths].sort().some((entry, index) => entry !== paths[index])) findings.push('BENCHMARK_CONTEXT_REQUIRED_STATE_ORDER_INVALID');
+    for (const entry of context.requiredState) {
+      if (!exactFields(entry, BENCHMARK_CONTEXT_STATE_FIELDS) || !safeFixturePath(entry?.path)
+        || expectedState.get(entry?.path) !== entry?.role || !HEX64.test(entry?.sha256 || '')) {
+        findings.push(`BENCHMARK_CONTEXT_STATE_DECLARATION_INVALID:${entry?.path ?? 'UNKNOWN'}`);
+        continue;
+      }
+      const absolute = path.join(root, ...entry.path.split('/'));
+      let actual = null;
+      try { actual = sha256Bytes(fs.readFileSync(absolute)); } catch { /* reported below */ }
+      if (actual === null) findings.push(`BENCHMARK_CONTEXT_REQUIRED_STATE_MISSING:${entry.path}`);
+      else if (actual !== entry.sha256) findings.push(`BENCHMARK_CONTEXT_STATE_SHA256_MISMATCH:${entry.path}`);
+    }
+  }
+
+  let compiled = null;
+  if (findings.length === 0) {
+    try {
+      compiled = compileContext({
+        repoRoot: root,
+        adapter: createWheelContextAdapter(root),
+        workUnitId: context.workUnitId,
+        sourceHead: context.sourceHead
+      }).json;
+      const observedSources = compiled.relevantSources.map((entry) => entry.path).sort();
+      const expectedSources = ['governance/GATE_REGISTRY_00_40.json', 'governance/state/GATE_STATUS_LEDGER.ndjson'];
+      if (sha256Canonical(observedSources) !== sha256Canonical(expectedSources)) findings.push('BENCHMARK_CONTEXT_COMPILED_SOURCE_SET_MISMATCH');
+      if (compiled.identity.workUnitId !== context.workUnitId || compiled.identity.sourceHead !== context.sourceHead) {
+        findings.push('BENCHMARK_CONTEXT_COMPILED_IDENTITY_MISMATCH');
+      }
+    } catch (error) {
+      findings.push(`BENCHMARK_CONTEXT_COMPILE_FAILED:${error.message}`);
+    }
+  }
+
+  const valid = findings.length === 0;
+  const validated = valid ? {
+    repoRoot: root,
+    fixture: context,
+    fixtureSha256: fixtureBytes === null ? sha256Bytes(Buffer.from(`${JSON.stringify(context)}\n`)) : sha256Bytes(fixtureBytes),
+    compiled
+  } : null;
+  if (validated) Object.defineProperty(validated, VALIDATED_R7_BENCHMARK_CONTEXT, { value: true, enumerable: false });
+  return { valid, findings, context: validated };
+}
+
+export function assertR7BenchmarkContext(options = {}) {
+  const result = validateR7BenchmarkContext(options);
+  if (!result.valid) throw new Error(`R7_BENCHMARK_CONTEXT_INVALID:${result.findings.join(',')}`);
+  return result.context;
 }
 
 function writeJson(relativePath, value, outputRoot = REPO_ROOT) {
@@ -421,13 +551,14 @@ export function runEvalSuite({ outputRoot = null } = {}) {
   return artifact;
 }
 
-function runWheelMode({ repoRoot = REPO_ROOT, previousSnapshot = null, previousGraph = null, previousRepoIndex = null, cas }) {
+function runWheelMode({ context, previousSnapshot = null, previousGraph = null, previousRepoIndex = null, cas }) {
+  if (!context?.[VALIDATED_R7_BENCHMARK_CONTEXT]) throw new Error('R7_BENCHMARK_CONTEXT_NOT_VALIDATED');
   return createWheelRecoverySession({
-    repoRoot,
-    workUnitId: WORK_UNIT_ID,
+    repoRoot: context.repoRoot,
+    workUnitId: context.fixture.workUnitId,
     cas,
-    sourceHead: HEAD,
-    missionRevisionId: R7_MISSION,
+    sourceHead: context.fixture.sourceHead,
+    missionRevisionId: context.fixture.missionRevisionId,
     previousSnapshot,
     previousGraph,
     previousRepoIndex
@@ -447,10 +578,12 @@ function withCanonicalBenchmarkEnvironment(callback) {
 }
 
 function runBenchmarkInternal({ outputRoot = null } = {}) {
+  const benchmarkRoot = cloneGovernanceRepo('gee-r7-benchmark-wheel-');
+  const benchmarkContext = assertR7BenchmarkContext({ repoRoot: benchmarkRoot });
   const casRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-benchmark-cas-')); const cas = createContentAddressedStore(path.join(casRoot, 'cas'));
-  const empty = createSnapshot({ repoRoot: REPO_ROOT, sources: [] });
-  const baseline = runWheelMode({ cas, previousSnapshot: empty });
-  const gee = runWheelMode({ cas, previousSnapshot: baseline.currentSnapshot, previousGraph: baseline.evaluated.graph, previousRepoIndex: baseline.repoIndex });
+  const empty = createSnapshot({ repoRoot: benchmarkRoot, sources: [] });
+  const baseline = runWheelMode({ context: benchmarkContext, cas, previousSnapshot: empty });
+  const gee = runWheelMode({ context: benchmarkContext, cas, previousSnapshot: baseline.currentSnapshot, previousGraph: baseline.evaluated.graph, previousRepoIndex: baseline.repoIndex });
   const baselineMeasurement = measureExecutedTasks(baseline);
   const geeMeasurement = measureExecutedTasks(gee);
   const baselineTasksExecuted = baselineMeasurement.aggregate.recordCount;
@@ -486,13 +619,14 @@ function runBenchmarkInternal({ outputRoot = null } = {}) {
   };
 
   const relevantRoot = cloneGovernanceRepo('gee-r7-b2-');
-  const relevantCas = createContentAddressedStore(path.join(relevantRoot, 'cas')); const relevantFirst = runWheelMode({ repoRoot: relevantRoot, cas: relevantCas, previousSnapshot: createSnapshot({ repoRoot: relevantRoot, sources: [] }) });
+  const relevantContext = assertR7BenchmarkContext({ repoRoot: relevantRoot });
+  const relevantCas = createContentAddressedStore(path.join(relevantRoot, 'cas')); const relevantFirst = runWheelMode({ context: relevantContext, cas: relevantCas, previousSnapshot: createSnapshot({ repoRoot: relevantRoot, sources: [] }) });
   const relevantSource = path.join(relevantRoot, 'governance', 'GATE_REGISTRY_00_40.json'); fs.appendFileSync(relevantSource, '\n');
-  const relevantSecond = runWheelMode({ repoRoot: relevantRoot, cas: relevantCas, previousSnapshot: relevantFirst.currentSnapshot, previousGraph: relevantFirst.evaluated.graph, previousRepoIndex: relevantFirst.repoIndex });
+  const relevantSecond = runWheelMode({ context: relevantContext, cas: relevantCas, previousSnapshot: relevantFirst.currentSnapshot, previousGraph: relevantFirst.evaluated.graph, previousRepoIndex: relevantFirst.repoIndex });
   assert.ok(relevantSecond.plan.metrics.R3_CHANGED_BYTES > 0);
   assert.ok(relevantSecond.plan.metrics.R5_TASKS_AVOIDED_BY_UPSTREAM_REUSE > 0);
 
-  const unrelatedRoot = cloneGovernanceRepo('gee-r7-b3-'); const unrelatedCas = createContentAddressedStore(path.join(unrelatedRoot, 'cas')); const unrelatedFirst = runWheelMode({ repoRoot: unrelatedRoot, cas: unrelatedCas, previousSnapshot: createSnapshot({ repoRoot: unrelatedRoot, sources: [] }) }); fs.writeFileSync(path.join(unrelatedRoot, 'unrelated-root-file.txt'), 'irrelevant'); const unrelatedSecond = runWheelMode({ repoRoot: unrelatedRoot, cas: unrelatedCas, previousSnapshot: unrelatedFirst.currentSnapshot, previousGraph: unrelatedFirst.evaluated.graph, previousRepoIndex: unrelatedFirst.repoIndex }); assert.equal(unrelatedSecond.plan.routeDecision, 'NO_WORK_REQUIRED');
+  const unrelatedRoot = cloneGovernanceRepo('gee-r7-b3-'); const unrelatedContext = assertR7BenchmarkContext({ repoRoot: unrelatedRoot }); const unrelatedCas = createContentAddressedStore(path.join(unrelatedRoot, 'cas')); const unrelatedFirst = runWheelMode({ context: unrelatedContext, cas: unrelatedCas, previousSnapshot: createSnapshot({ repoRoot: unrelatedRoot, sources: [] }) }); fs.writeFileSync(path.join(unrelatedRoot, 'unrelated-root-file.txt'), 'irrelevant'); const unrelatedSecond = runWheelMode({ context: unrelatedContext, cas: unrelatedCas, previousSnapshot: unrelatedFirst.currentSnapshot, previousGraph: unrelatedFirst.evaluated.graph, previousRepoIndex: unrelatedFirst.repoIndex }); assert.equal(unrelatedSecond.plan.routeDecision, 'NO_WORK_REQUIRED');
 
   const standardRoot = tempRoot('gee-r7-b5-'); const standardCas = casFor(standardRoot); const standardBase = syntheticBaseline(standardRoot, standardCas); const baseDelta = { previousSnapshot: standardBase.currentSnapshot, currentSnapshot: standardBase.currentSnapshot }; const routePlans = [
     routeWorkUnit({ workUnitId: SYNTHETIC_WORK_UNIT, tasks: [{ taskId: 't:no', intent: 'DETERMINISTIC', sources: ['src/a.json'], produces: ['e:a'], requiredEvidenceIds: ['e:a'] }], r2Context: syntheticContext(standardRoot), r3Delta: baseDelta, r4Evidence: { graph: standardBase.graph }, cas: standardCas }),
@@ -507,9 +641,19 @@ function runBenchmarkInternal({ outputRoot = null } = {}) {
 
   const benchmark = {
     benchmark: 'GEE_V1_R7_BEFORE_AFTER',
-    workUnit: 'WHEEL:GATE13',
+    workUnit: `WHEEL:${benchmarkContext.fixture.workUnitId}`,
     sourceHead: HEAD,
-    benchmarkEnvironment: { headWitnessSource: 'NEUTRALIZED_FOR_CANONICAL_BENCHMARK' },
+    benchmarkEnvironment: {
+      headWitnessSource: 'NEUTRALIZED_FOR_CANONICAL_BENCHMARK',
+      context: {
+        fixtureId: benchmarkContext.fixture.fixtureId,
+        contextIdentitySha256: benchmarkContext.fixture.contextIdentitySha256,
+        fixtureSha256: benchmarkContext.fixtureSha256,
+        sourceHead: benchmarkContext.fixture.sourceHead,
+        provenance: benchmarkContext.fixture.provenance,
+        requiredState: benchmarkContext.fixture.requiredState
+      }
+    },
     scenarios: {
       B1_UNCHANGED_REPLAY: { route: gee.plan.routeDecision, tasksAvoided: gee.plan.avoidedTasks.length, sourceBytesAvoided: gee.plan.metrics.R3_AVOIDED_REPROCESS_BYTES },
       B2_SMALL_RELEVANT_MUTATION: { changedBytes: relevantSecond.plan.metrics.R3_CHANGED_BYTES, tasksExecuted: relevantSecond.plan.metrics.R5_TASKS_TOTAL - relevantSecond.plan.metrics.R5_TASKS_AVOIDED_BY_UPSTREAM_REUSE, tasksAvoided: relevantSecond.plan.metrics.R5_TASKS_AVOIDED_BY_UPSTREAM_REUSE },

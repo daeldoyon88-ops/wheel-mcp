@@ -16,15 +16,17 @@
  * baseline.baseHead === currentHead would invalidate a perfectly good baseline
  * on the very next commit, which is how baselines get regenerated mechanically
  * until they mean nothing. What must be established instead is COMPARABILITY:
- * the same suite specification, and every file a baseline identity names still
- * present. Comparability is proven, and if it cannot be proven this fails closed
- * rather than reporting a delta computed against an unknown world.
+ * the same suite specification plus independently resolved baseline/current test
+ * manifests. Traceable suite evolution is explicit; an unresolved universe
+ * fails closed rather than comparing two failure-only shadows.
  *
  * Local, offline, deterministic. Reads only; writes nothing inside the
  * repository.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { sha256Canonical } from './canonical-json.mjs';
 
@@ -87,13 +89,99 @@ export function parseTapFailureIdentities({ tapText, repoRoot } = {}) {
 }
 
 /** Suite identity: what was run, not what it produced. */
-export function suiteIdentity({ command, testFiles }) {
-  return sha256Canonical({ command, testFiles: [...new Set(testFiles)].sort() });
+export function suiteIdentity({ command, testFiles = [], testManifest = null, runner = null }) {
+  return sha256Canonical(testManifest
+    ? { command, runner, testManifest }
+    : { command, testFiles: [...new Set(testFiles)].sort() });
 }
 
-function exists(root, relativePath) {
-  const resolved = path.resolve(root, ...relativePath.split('/'));
-  return fs.existsSync(resolved) && fs.statSync(resolved).isFile();
+function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
+
+function commandTokens(command) {
+  return [...String(command || '').matchAll(/"([^"]+)"|'([^']+)'|([^\s]+)/g)]
+    .map((match) => match[1] ?? match[2] ?? match[3]);
+}
+
+export function testPatternsFromCommand(command) {
+  return commandTokens(command)
+    .filter((token) => token.includes('.test.mjs'))
+    .map((token) => token.split('\\').join('/'));
+}
+
+function globRegex(pattern) {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*/g, '\u0000')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\u0000/g, '.*');
+  return new RegExp(`^${escaped}$`);
+}
+
+function walkFiles(root, relative = '', out = []) {
+  const directory = relative ? path.resolve(root, ...relative.split('/')) : root;
+  let entries = [];
+  try { entries = fs.readdirSync(directory, { withFileTypes: true }); } catch { return out; }
+  for (const entry of entries) {
+    const child = relative ? `${relative}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) walkFiles(root, child, out);
+    else if (entry.isFile()) out.push(child);
+  }
+  return out;
+}
+
+function commitFileBytes(root, commit, relativePath) {
+  return execFileSync('git', ['show', `${commit}:${relativePath}`], { cwd: root, encoding: 'buffer', stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function listCommitFiles(root, commit) {
+  return execFileSync('git', ['ls-tree', '-r', '--name-only', commit], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    .split(/\r?\n/).filter(Boolean).map((entry) => entry.split('\\').join('/'));
+}
+
+/** Deterministic identity of the resolved test universe, independent of failures. */
+export function resolveSuiteManifest({ root, command, commit = null } = {}) {
+  if (typeof root !== 'string' || !root) throw new Error('SUITE_ROOT_REQUIRED');
+  const patterns = testPatternsFromCommand(command);
+  if (!patterns.length) throw new Error('SUITE_TEST_PATTERNS_ABSENT');
+  const matchers = patterns.map(globRegex);
+  const candidates = commit
+    ? listCommitFiles(root, commit)
+    : [...new Set(patterns.flatMap((pattern) => {
+      const wildcard = pattern.search(/[?*]/);
+      const prefix = wildcard < 0 ? path.posix.dirname(pattern) : pattern.slice(0, wildcard);
+      const directory = (prefix.endsWith('/') ? prefix.slice(0, -1) : path.posix.dirname(prefix)) || '.';
+      return walkFiles(root, directory === '.' ? '' : directory);
+    }))];
+  const resolved = [...new Set(candidates.filter((file) => matchers.some((matcher) => matcher.test(file))))].sort();
+  if (!resolved.length) throw new Error('RESOLVED_TEST_UNIVERSE_EMPTY');
+  const testManifest = resolved.map((relativePath) => {
+    const bytes = commit
+      ? commitFileBytes(root, commit, relativePath)
+      : fs.readFileSync(path.resolve(root, ...relativePath.split('/')));
+    return { path: relativePath, sha256: sha256(bytes), byteLength: bytes.length };
+  });
+  const runner = { executable: 'node', mode: '--test', reporter: 'tap' };
+  return {
+    command,
+    runner,
+    provenance: { mode: commit ? 'GIT_COMMIT' : 'WORKTREE_TESTED_BYTES', commit },
+    patterns,
+    resolvedTestPathCount: testManifest.length,
+    testManifest,
+    suiteIdentity: suiteIdentity({ command, runner, testManifest })
+  };
+}
+
+function suiteEvolution(baselineManifest, currentManifest) {
+  const before = new Map(baselineManifest.testManifest.map((entry) => [entry.path, entry]));
+  const after = new Map(currentManifest.testManifest.map((entry) => [entry.path, entry]));
+  const added = [...after.keys()].filter((entry) => !before.has(entry)).sort();
+  const removed = [...before.keys()].filter((entry) => !after.has(entry)).sort();
+  const changed = [...before.keys()].filter((entry) => after.has(entry) && before.get(entry).sha256 !== after.get(entry).sha256).sort();
+  return {
+    relation: added.length || removed.length || changed.length ? 'EVOLVED_TRACEABLE' : 'IDENTICAL',
+    added, removed, changed,
+    identical: added.length === 0 && removed.length === 0 && changed.length === 0
+  };
 }
 
 /**
@@ -117,14 +205,30 @@ export function establishComparability({ baseline, current, root } = {}) {
   if (!baselineIdentities) reasons.push('BASELINE_IDENTITIES_ABSENT');
   if (baselineIdentities && baselineIdentities.length !== baseline.failureIdentityCount) reasons.push('BASELINE_SELF_INCONSISTENT');
 
-  const unresolvableBaselineFiles = (baselineIdentities || [])
-    .map((entry) => entry.file)
+  let baselineSuiteManifest = baseline?.suiteManifest ?? null;
+  let currentSuiteManifest = current?.suiteManifest ?? null;
+  try {
+    if (!baselineSuiteManifest) baselineSuiteManifest = resolveSuiteManifest({ root, command: baselineCommand, commit: baseline?.baseHead });
+  } catch (error) { reasons.push(`BASELINE_SUITE_UNRESOLVED:${error.message}`); }
+  try {
+    if (!currentSuiteManifest) currentSuiteManifest = resolveSuiteManifest({ root, command: currentCommand });
+  } catch (error) { reasons.push(`CURRENT_SUITE_UNRESOLVED:${error.message}`); }
+
+  const baselinePaths = new Set((baselineSuiteManifest?.testManifest || []).map((entry) => entry.path));
+  const currentPaths = new Set((currentSuiteManifest?.testManifest || []).map((entry) => entry.path));
+  const unresolvableBaselineFiles = (baselineIdentities || []).map((entry) => entry.file)
     .filter((file, index, all) => typeof file === 'string' && all.indexOf(file) === index)
-    .filter((file) => !exists(root, file));
-  if (unresolvableBaselineFiles.length) reasons.push('BASELINE_TEST_FILE_ABSENT');
+    .filter((file) => !baselinePaths.has(file));
+  if (unresolvableBaselineFiles.length) reasons.push('BASELINE_FAILURE_OUTSIDE_RESOLVED_SUITE');
 
   const unresolvedCurrent = (current?.failureIdentities || []).filter((entry) => entry.locationResolved === false);
   if (unresolvedCurrent.length) reasons.push('CURRENT_FAILURE_LOCATION_UNRESOLVED');
+  const currentFailuresOutsideSuite = (current?.failureIdentities || []).filter((entry) => entry.file && !currentPaths.has(entry.file));
+  if (currentFailuresOutsideSuite.length) reasons.push('CURRENT_FAILURE_OUTSIDE_RESOLVED_SUITE');
+
+  const evolution = baselineSuiteManifest && currentSuiteManifest
+    ? suiteEvolution(baselineSuiteManifest, currentSuiteManifest)
+    : { relation: 'UNPROVEN', added: [], removed: [], changed: [], identical: false };
 
   return {
     comparable: reasons.length === 0,
@@ -135,8 +239,12 @@ export function establishComparability({ baseline, current, root } = {}) {
     currentHead: current?.head ?? null,
     // Stated explicitly so nobody reintroduces an equality requirement here.
     headEqualityRequired: false,
-    baselineSuiteIdentity: baselineCommand ? suiteIdentity({ command: baselineCommand, testFiles: (baselineIdentities || []).map((entry) => entry.file).filter(Boolean) }) : null,
-    currentSuiteIdentity: currentCommand ? suiteIdentity({ command: currentCommand, testFiles: (current?.failureIdentities || []).map((entry) => entry.file).filter(Boolean) }) : null
+    baselineSuiteIdentity: baselineSuiteManifest?.suiteIdentity ?? null,
+    currentSuiteIdentity: currentSuiteManifest?.suiteIdentity ?? null,
+    baselineSuiteManifest,
+    currentSuiteManifest,
+    suiteRelation: evolution.relation,
+    suiteEvolution: evolution
   };
 }
 
@@ -155,6 +263,10 @@ export function compareRegressionIdentities({ baseline, current, root, cohortPat
   const baselineById = new Map(baselineEntries.map((entry) => [entry.identity, entry]));
   const currentIds = new Set(currentEntries.map((entry) => entry.identity));
   const cohort = new Set(cohortPaths);
+  const evolvedTestPaths = new Set([
+    ...(comparability.suiteEvolution?.removed || []),
+    ...(comparability.suiteEvolution?.changed || [])
+  ]);
 
   const classified = [];
   for (const entry of baselineEntries) {
@@ -163,6 +275,13 @@ export function compareRegressionIdentities({ baseline, current, root, cohortPat
         identity: entry.identity,
         file: entry.file ?? null,
         classification: entry.rootCauseClass === STALE_ROOT_CAUSE ? STALE_EXPECTATION : PREEXISTING_UNRELATED,
+        rootCauseClass: entry.rootCauseClass ?? null
+      });
+    } else if (entry.rootCauseClass === STALE_ROOT_CAUSE || evolvedTestPaths.has(entry.file)) {
+      classified.push({
+        identity: entry.identity,
+        file: entry.file ?? null,
+        classification: STALE_EXPECTATION,
         rootCauseClass: entry.rootCauseClass ?? null
       });
     } else {
@@ -215,7 +334,8 @@ export function runRegressionIdentityDelta({ root, tapPath, baselinePath, comman
   const current = {
     head: currentHead ?? null,
     suiteSpec: { command: command ?? baseline?.suiteSpec?.command ?? null },
-    failureIdentities
+    failureIdentities,
+    suiteManifest: resolveSuiteManifest({ root, command: command ?? baseline?.suiteSpec?.command ?? null })
   };
   return compareRegressionIdentities({ baseline, current, root, cohortPaths });
 }

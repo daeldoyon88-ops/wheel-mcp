@@ -1,0 +1,12 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 1,
+  "authorityId": "WHEEL_GATE_FAST_PATH_FINAL_BLOCKER_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1_FINAL_BLOCKER_CLOSURE_R1",
+  "manifestSha256": "4c9317ec9bc198706a68a341186c8b366d63bc6428c63789b650ae421200a9c8",
+  "baseHead": "fbd5f5122569dc5729b5c66f800c270c802089fe",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GATE_FAST_PATH_FINAL_BLOCKER_CLOSURE_PASS_COHORT10_SHA256_ae321babe808cf1c406ba792b1d6f8bf41c579b47449e2f77bab2588fd983258",
+  "recordedAt": "2026-08-14T01:10:00.000Z",
+  "commitMessage": "governance: close Gate fast path integration blockers"
+}

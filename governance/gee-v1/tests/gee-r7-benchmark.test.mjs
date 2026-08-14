@@ -8,7 +8,9 @@ import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
 import { createWheelContextAdapter } from '../adapters/wheel/context-wheel-adapter.mjs';
-import { REPO_ROOT, runAll, runBenchmark } from '../evals/gee-r7-runner.mjs';
+import {
+  REPO_ROOT, R7_BENCHMARK_CONTEXT_PATH, runAll, runBenchmark, validateR7BenchmarkContext
+} from '../evals/gee-r7-runner.mjs';
 
 const canonicalBenchmarkPath = path.join(REPO_ROOT, 'governance', 'gee-v1', 'benchmarks', 'gee-r7-benchmark.json');
 const ledgerPath = path.join(REPO_ROOT, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
@@ -16,6 +18,7 @@ const hashFile = (file) => crypto.createHash('sha256').update(fs.readFileSync(fi
 const tempOutputRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-benchmark-test-'));
 const benchmarkPath = (root) => path.join(root, 'governance', 'gee-v1', 'benchmarks', 'gee-r7-benchmark.json');
 const jsonValue = (value) => JSON.parse(JSON.stringify(value));
+const clone = (value) => JSON.parse(JSON.stringify(value));
 const writeWitness = (root, pinnedLedgerSha256, ref) => {
   const witnessPath = path.join(root, `${ref}.json`);
   fs.writeFileSync(witnessPath, JSON.stringify({ witnesses: [{ kind: 'PROJECT_OWNER_DOCUMENT', verified: true, pinnedLedgerSha256, ref }] }, null, 2));
@@ -41,6 +44,49 @@ const stableBenchmarkOutcomes = (value) => ({
       successConditions: value.quality?.gee?.successConditions,
       qualityRequirements: value.quality?.gee?.qualityRequirements
     }
+  }
+});
+
+test('R7 benchmark context is deterministic and hostile invalid contexts fail closed', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-context-hostile-'));
+  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  const fixturePath = path.join(root, ...R7_BENCHMARK_CONTEXT_PATH.split('/'));
+  const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+  const registryPath = path.join(root, 'governance', 'GATE_REGISTRY_00_40.json');
+  const ledgerPathInFixture = path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
+  try {
+    const valid = validateR7BenchmarkContext({ repoRoot: root });
+    assert.equal(valid.valid, true, JSON.stringify(valid.findings));
+    assert.equal(valid.context.fixture.workUnitId, 'GATE15');
+    assert.ok(valid.context.compiled.activeDefectsOrBlockers.some((entry) => entry.code === 'PRE_EXECUTION_TRUST_LEVEL'));
+
+    const registryBytes = fs.readFileSync(registryPath);
+    fs.appendFileSync(registryPath, '\n');
+    const mutatedBytes = validateR7BenchmarkContext({ repoRoot: root });
+    assert.equal(mutatedBytes.valid, false);
+    assert.ok(mutatedBytes.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_STATE_SHA256_MISMATCH:')));
+    fs.writeFileSync(registryPath, registryBytes);
+
+    const provenanceMismatch = clone(fixture);
+    provenanceMismatch.provenance.authorityClass = 'GENERATED_PROJECTION';
+    assert.equal(validateR7BenchmarkContext({ repoRoot: root, fixture: provenanceMismatch }).valid, false);
+
+    const identityMismatch = clone(fixture);
+    identityMismatch.contextIdentitySha256 = '0'.repeat(64);
+    assert.equal(validateR7BenchmarkContext({ repoRoot: root, fixture: identityMismatch }).valid, false);
+
+    const ledgerBytes = fs.readFileSync(ledgerPathInFixture);
+    fs.rmSync(ledgerPathInFixture);
+    const missingState = validateR7BenchmarkContext({ repoRoot: root });
+    assert.equal(missingState.valid, false);
+    assert.ok(missingState.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_REQUIRED_STATE_MISSING:')));
+    fs.writeFileSync(ledgerPathInFixture, ledgerBytes);
+
+    const generatedSubstitution = clone(fixture);
+    generatedSubstitution.requiredState[0].path = 'governance/generated/GATE_REGISTRY_00_40.json';
+    assert.equal(validateR7BenchmarkContext({ repoRoot: root, fixture: generatedSubstitution }).valid, false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 

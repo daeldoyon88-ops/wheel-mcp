@@ -1,0 +1,32 @@
+{
+  "document": "GEE_V1_R7_BENCHMARK_CONTEXT",
+  "schemaVersion": 1,
+  "fixtureId": "GEE_V1_R7_WHEEL_GATE15_CONTEXT_R1",
+  "contextKind": "DETERMINISTIC_CANONICAL_WHEEL_STATE",
+  "workUnitId": "GATE15",
+  "sourceHead": "fbd5f5122569dc5729b5c66f800c270c802089fe",
+  "missionRevisionId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7",
+  "provenance": {
+    "authorityClass": "CANONICAL_REPOSITORY_BYTES",
+    "purpose": "R7_BENCHMARK_INPUT_ONLY",
+    "generatedProjectionAuthority": false
+  },
+  "requiredState": [
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+      "role": "CANONICAL_WORK_UNIT_REGISTRY"
+    },
+    {
+      "path": "governance/gee-v1/missions/GEE_V1_EXECUTION_CONTRACT_R0007.json",
+      "sha256": "b283f47a0356490151f91d83973d32344c22f9014d5ee85e40598296b3c45612",
+      "role": "CHECKPOINT_AUTHORITY_IDENTITY"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6",
+      "role": "CANONICAL_STATUS_AUTHORITY"
+    }
+  ],
+  "contextIdentitySha256": "f6e11f9811a606cae4aadbc7b4f0f782cf639f636ce9d83a294cbce975450e5e"
+}

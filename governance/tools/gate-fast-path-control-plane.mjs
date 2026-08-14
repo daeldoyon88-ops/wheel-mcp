@@ -42,7 +42,7 @@ import { fileURLToPath } from 'node:url';
 import { sha256Canonical } from './canonical-json.mjs';
 import { runPreexecutionReuseCheck } from './gate-preexecution-reuse-check.mjs';
 import { checkExistingWorkIndex } from './governance-existing-work-index.mjs';
-import { establishComparability } from './regression-identity-delta.mjs';
+import { establishComparability, resolveSuiteManifest } from './regression-identity-delta.mjs';
 
 import { compileContext } from '../gee-v1/context/compile-context.mjs';
 import { createWheelContextAdapter } from '../gee-v1/adapters/wheel/context-wheel-adapter.mjs';
@@ -53,13 +53,17 @@ import { routeWorkUnit } from '../gee-v1/router/router-engine.mjs';
 import { createContentAddressedStore } from '../gee-v1/cas/content-addressed-store.mjs';
 import { buildRepoIndex } from '../gee-v1/index/repo-index.mjs';
 import {
-  checkpointTasksFromRoutePlan, createCheckpoint, planRecovery, recoveryStateFor
+  checkpointTasksFromRoutePlan, checkpointTasksFromRecovery, createCheckpoint, planRecovery, recoveryStateFor
 } from '../gee-v1/recovery/recovery-engine.mjs';
+import { createCheckpointStore } from '../gee-v1/recovery/checkpoint-store.mjs';
 import { createUsageLedger } from '../gee-v1/usage/usage-ledger.mjs';
 import { wheelAuthorityIdentity } from '../gee-v1/adapters/wheel/recovery-wheel-adapter.mjs';
 
 export const CONTROL_PLANE_DOCUMENT = 'GATE_FAST_PATH_CONTROL_PLANE';
 export const CONTROL_PLANE_VERSION = 'R1';
+export const LIFECYCLE_STATE_DOCUMENT = 'GATE_FAST_PATH_LIFECYCLE_STATE';
+export const LIFECYCLE_STATE_FILE = 'fast-path-lifecycle-state.json';
+const VALIDATED_DURABLE_LIFECYCLE_STATE = Symbol('VALIDATED_DURABLE_LIFECYCLE_STATE');
 
 const GATE_RE = /^GATE[0-9]{2}$/;
 
@@ -270,7 +274,10 @@ export function frontierEvidenceId(phase, tool) {
  * canonical adapter produced it, because R4's grounding check recompiles it and
  * any embellishment here would silently destroy every reuse claim.
  */
-export function compileFastPathChain({ root, gateId, phase, cas, sourceHead }) {
+export function compileFastPathChain({ root, gateId, phase, cas, sourceHead, previousLifecycleState = null }) {
+  if (previousLifecycleState && previousLifecycleState[VALIDATED_DURABLE_LIFECYCLE_STATE] !== true) {
+    throw new Error('PREVIOUS_SNAPSHOT_NOT_FROM_VALIDATED_DURABLE_STATE');
+  }
   const frontier = MINIMUM_EVIDENCE_FRONTIER[phase];
 
   // ---- R2 -----------------------------------------------------------------
@@ -291,23 +298,39 @@ export function compileFastPathChain({ root, gateId, phase, cas, sourceHead }) {
   const snapshotFacts = context.facts.map((fact) => ({ id: fact.id, value: fact.value, dependencies: [fact.provenance.sourcePath], provenance: fact.provenance }));
   const currentSnapshot = createSnapshot({ repoRoot: root, sources: snapshotSources, facts: snapshotFacts });
 
-  // An unchanged replay is modelled honestly: the previous snapshot is the
-  // snapshot taken now, so R3 reports UNCHANGED because the bytes really are
-  // identical, never because a comparison was skipped.
-  const previousSnapshot = currentSnapshot;
-  const r3Delta = { previousSnapshot, currentSnapshot };
-  const verifiedDelta = compareSnapshots({ previous: previousSnapshot, current: currentSnapshot });
+  // A first run has no previous snapshot. R3 still needs a structurally valid
+  // comparison basis for the frozen R4/R5 interfaces, so it compares against an
+  // explicit empty INITIAL basis: every current source is ADDED and nothing can
+  // be reused. Only a snapshot loaded from a validated durable R6 lifecycle
+  // state is exposed as the semantic previous snapshot.
+  const previousSnapshot = previousLifecycleState?.currentSnapshot ?? null;
+  const comparisonPreviousSnapshot = previousSnapshot ?? createSnapshot({ repoRoot: root, sources: [], facts: [] });
+  const previousGraph = previousLifecycleState?.currentGraph ?? null;
+  const r3Delta = { previousSnapshot: comparisonPreviousSnapshot, currentSnapshot };
+  const verifiedDelta = compareSnapshots({ previous: comparisonPreviousSnapshot, current: currentSnapshot });
   const r3DeltaSha256 = sha256Canonical({
-    previousSnapshotSha256: previousSnapshot.snapshotSha256,
+    previousSnapshotSha256: comparisonPreviousSnapshot.snapshotSha256,
     currentSnapshotSha256: currentSnapshot.snapshotSha256,
     deltas: verifiedDelta.deltas
   });
+  const r3Record = {
+    document: 'GATE_FAST_PATH_R3_RECORD',
+    gateId,
+    phase,
+    currentSnapshotSha256: currentSnapshot.snapshotSha256,
+    previousSnapshotSha256: previousSnapshot?.snapshotSha256 ?? null,
+    previousSnapshotProvenance: previousLifecycleState?.provenance ?? { kind: 'NONE', reason: 'NO_PRIOR_PROVEN_SNAPSHOT' },
+    comparisonBasis: previousSnapshot ? 'PRIOR_PROVEN_SNAPSHOT' : 'EMPTY_INITIAL_BASELINE',
+    consumedR2ContextSha256: r2ContextSha256,
+    deltaSha256: r3DeltaSha256,
+    semantics: verifiedDelta.deltas.map((delta) => ({ path: delta.path, kind: delta.kind }))
+  };
 
   // ---- R4 -----------------------------------------------------------------
   // The graph is built AND evaluated against the real R3 delta above. A null
   // delta is structurally impossible on this path.
   const graph = createWheelEvidenceGraph({ cas, context, repoRoot: root, r3Delta });
-  const evaluated = evaluateWheelEvidenceGraph({ cas, currentGraph: graph, previousGraph: null, r3Delta });
+  const evaluated = evaluateWheelEvidenceGraph({ cas, currentGraph: graph, previousGraph, r3Delta });
   const r4EvidenceGraphSha256 = evaluated.graph.graphSha256;
   // R4 records the delta identity it actually consumed, in its own basis form.
   const r4ConsumedDeltaSha256 = evaluated.graph.evaluation.r3DeltaSha256;
@@ -332,8 +355,8 @@ export function compileFastPathChain({ root, gateId, phase, cas, sourceHead }) {
   return {
     compiled, context, r2ContextSha256, contextSourcePaths,
     frontier, frontierPaths,
-    currentSnapshot, previousSnapshot, r3Delta, verifiedDelta, r3DeltaSha256,
-    graph, evaluated, r4EvidenceGraphSha256, r4ConsumedDeltaSha256, expectedR4ConsumedDeltaSha256,
+    currentSnapshot, previousSnapshot, comparisonPreviousSnapshot, r3Record, r3Delta, verifiedDelta, r3DeltaSha256,
+    graph, previousGraph, evaluated, r4EvidenceGraphSha256, r4ConsumedDeltaSha256, expectedR4ConsumedDeltaSha256,
     tasks, plan
   };
 }
@@ -351,11 +374,8 @@ export function chainBindings(chain) {
       edge: 'R2_TO_R3',
       upstreamField: 'r2ContextSha256',
       upstream: chain.r2ContextSha256,
-      downstreamField: 'r3ConsumedContextSha256',
-      // R3's snapshot is a pure function of the R2 context, so recomputing the
-      // snapshot from the context is the binding: if the context moved, the
-      // recomputed snapshot digest moves with it.
-      downstream: chain.plan.provenance.r2ContextSha256
+      downstreamField: 'r3.consumedR2ContextSha256',
+      downstream: chain.r3Record.consumedR2ContextSha256
     },
     {
       edge: 'R3_TO_R4',
@@ -461,11 +481,12 @@ export function deriveWorkset(chain, { gateId, phase }) {
 /**
  * R6, bound to the identities the rest of the chain just produced.
  *
- * The checkpoint is built in memory and, when `proveResume` is set, written to a
- * temp store and resumed from, so "resume reuses proven work" is demonstrated
- * rather than described. GATE state is never touched.
+ * The checkpoint is built from the current chain. A caller-supplied lifecycle
+ * store uses the existing R6 checkpoint store plus an R3/R4 companion bound to
+ * its identities; without that durable store no resume is claimed. GATE state
+ * is never touched.
  */
-export function buildRecoveryPlan({ root, gateId, chain, sourceHead, proveResume = false }) {
+function buildRecoveryBundle({ root, gateId, chain, sourceHead, previousCheckpoint = null, usageLedger = null }) {
   const authority = wheelAuthorityIdentity(root, ORCHESTRATED_MISSION_REVISION);
   const repoIndex = buildRepoIndex({ repoRoot: root });
   const inputs = {
@@ -475,39 +496,32 @@ export function buildRecoveryPlan({ root, gateId, chain, sourceHead, proveResume
     routeSha256: chain.plan.routeSha256,
     repoIndexSha256: repoIndex.indexSha256
   };
-  const tasks = checkpointTasksFromRoutePlan(chain.plan);
+  const priorLedger = usageLedger ?? createUsageLedger();
+  let recoveryPlan = null;
+  if (previousCheckpoint) {
+    recoveryPlan = planRecovery({
+      workUnitId: gateId,
+      checkpoint: previousCheckpoint,
+      routePlan: chain.plan,
+      evidenceStates: chain.evaluated.graph.nodes,
+      r3Delta: { deltas: chain.evaluated.graph.evaluation.r3DeltaBasis.deltas, metrics: { AVOIDED_REPROCESS_BYTES: chain.plan.metrics.R3_AVOIDED_REPROCESS_BYTES } },
+      usageLedger: priorLedger,
+      repoIndex,
+      authority,
+      currentHead: sourceHead
+    });
+  }
+  const tasks = recoveryPlan ? checkpointTasksFromRecovery(recoveryPlan) : checkpointTasksFromRoutePlan(chain.plan);
   const checkpoint = createCheckpoint({
     workUnitId: gateId,
     authority,
     baseline: { head: sourceHead, headSource: 'R2_CONTEXT_SOURCE_HEAD' },
     inputs,
     tasks,
-    recoveryState: recoveryStateFor(tasks, { interrupted: false })
+    recoveryState: recoveryStateFor(tasks, { interrupted: false }),
+    previousCheckpoint
   });
-
-  let resume = null;
-  if (proveResume) {
-    const recovery = planRecovery({
-      workUnitId: gateId,
-      checkpoint,
-      routePlan: chain.plan,
-      evidenceStates: chain.evaluated.graph.nodes,
-      r3Delta: { deltas: chain.evaluated.graph.evaluation.r3DeltaBasis.deltas, metrics: { AVOIDED_REPROCESS_BYTES: chain.plan.metrics.R3_AVOIDED_REPROCESS_BYTES } },
-      usageLedger: createUsageLedger(),
-      repoIndex,
-      authority,
-      currentHead: sourceHead
-    });
-    resume = {
-      decision: recovery.decision,
-      blockers: recovery.blockers,
-      reuseCounts: recovery.tasks
-        ? recovery.tasks.reduce((counts, task) => ({ ...counts, [task.disposition]: (counts[task.disposition] || 0) + 1 }), {})
-        : null
-    };
-  }
-
-  return {
+  const summary = {
     engine: 'GEE_V1_RECOVERY_R6',
     missionRevisionId: authority.missionRevisionId,
     authorityContractSha256: authority.contractSha256,
@@ -517,8 +531,106 @@ export function buildRecoveryPlan({ root, gateId, chain, sourceHead, proveResume
     boundIdentities: inputs,
     taskStates: tasks.reduce((counts, task) => ({ ...counts, [task.state]: (counts[task.state] || 0) + 1 }), {}),
     repoIndexEntryCount: repoIndex.entries.length,
-    resume
+    durablePreviousCheckpoint: previousCheckpoint ? {
+      revision: previousCheckpoint.revision,
+      checkpointSha256: previousCheckpoint.checkpointSha256
+    } : null,
+    resume: recoveryPlan ? {
+      decision: recoveryPlan.decision,
+      reasonCodes: recoveryPlan.reasonCodes,
+      reuseCounts: recoveryPlan.tasks.reduce((counts, task) => ({ ...counts, [task.disposition]: (counts[task.disposition] || 0) + 1 }), {}),
+      resumedTaskIds: recoveryPlan.resumedTaskIds,
+      pendingTaskIds: recoveryPlan.pendingTaskIds,
+      restartedFromZero: recoveryPlan.metrics.RESTARTED_FROM_ZERO
+    } : null
   };
+  return { summary, checkpoint, repoIndex, usageLedger: priorLedger, recoveryPlan };
+}
+
+export function buildRecoveryPlan(options) {
+  return buildRecoveryBundle(options).summary;
+}
+
+function lifecycleScope(lifecycleStoreRoot, gateId, phase) {
+  return path.resolve(lifecycleStoreRoot, `${gateId}-${phase}`);
+}
+
+function lifecycleStateBody(state) {
+  return Object.fromEntries(Object.entries(state).filter(([key]) => key !== 'stateSha256'));
+}
+
+export function loadFastPathLifecycleState({ lifecycleStoreRoot, gateId, phase, sourceHead }) {
+  const scope = lifecycleScope(lifecycleStoreRoot, gateId, phase);
+  const store = createCheckpointStore(path.join(scope, 'r6-checkpoints'));
+  const loaded = store.loadLatestValid(gateId);
+  if (!loaded.checkpoint && !loaded.recoveryRequired) {
+    return { status: 'NONE', reasons: ['NO_DURABLE_CHECKPOINT'], scope, store, checkpoint: null, usageLedger: createUsageLedger(), state: null };
+  }
+  if (!loaded.checkpoint) {
+    return { status: 'BLOCKED', reasons: loaded.reasonCodes, scope, store, checkpoint: null, usageLedger: null, state: null };
+  }
+  const checkpoint = loaded.checkpoint;
+  const statePath = path.join(store.directoryFor(gateId), checkpoint.revision, LIFECYCLE_STATE_FILE);
+  const reasons = [];
+  let state = null;
+  try { state = JSON.parse(fs.readFileSync(statePath, 'utf8')); } catch { reasons.push('LIFECYCLE_STATE_MISSING_OR_INVALID'); }
+  if (state) {
+    if (state.document !== LIFECYCLE_STATE_DOCUMENT || state.version !== 'R1') reasons.push('LIFECYCLE_STATE_IDENTITY_INVALID');
+    if (state.gateId !== gateId) reasons.push('LIFECYCLE_GATE_MISMATCH');
+    if (state.phase !== phase) reasons.push('LIFECYCLE_PHASE_MISMATCH');
+    if (state.sourceHead !== sourceHead || checkpoint.baseline.head !== sourceHead) reasons.push('LIFECYCLE_HEAD_MISMATCH');
+    if (state.checkpointSha256 !== checkpoint.checkpointSha256) reasons.push('LIFECYCLE_CHECKPOINT_BINDING_MISMATCH');
+    if (state.stateSha256 !== sha256Canonical(lifecycleStateBody(state))) reasons.push('LIFECYCLE_STATE_DIGEST_MISMATCH');
+    if (state.r3Record?.consumedR2ContextSha256 !== checkpoint.inputs.r2ContextSha256) reasons.push('LIFECYCLE_R2_BINDING_MISMATCH');
+    if (state.r3Record?.deltaSha256 !== checkpoint.inputs.r3DeltaSha256) reasons.push('LIFECYCLE_R3_BINDING_MISMATCH');
+    if (state.currentGraph?.graphSha256 !== checkpoint.inputs.r4GraphSha256) reasons.push('LIFECYCLE_R4_BINDING_MISMATCH');
+    if (state.routePlanSha256 !== checkpoint.inputs.routeSha256) reasons.push('LIFECYCLE_R5_BINDING_MISMATCH');
+    if (state.r3Record?.currentSnapshotSha256 !== state.currentSnapshot?.snapshotSha256) reasons.push('LIFECYCLE_SNAPSHOT_BINDING_MISMATCH');
+    try { compareSnapshots({ previous: state.currentSnapshot, current: state.currentSnapshot }); } catch { reasons.push('LIFECYCLE_SNAPSHOT_INVALID'); }
+  }
+  let usageLedger = null;
+  try { usageLedger = store.readUsageLedger(gateId) ?? createUsageLedger(); } catch { reasons.push('LIFECYCLE_USAGE_LEDGER_INVALID'); }
+  if (reasons.length) return { status: 'BLOCKED', reasons, scope, store, checkpoint, usageLedger, state };
+  const validatedState = {
+    ...state,
+    provenance: {
+      kind: 'R6_DURABLE_CHECKPOINT',
+      checkpointRevision: checkpoint.revision,
+      checkpointSha256: checkpoint.checkpointSha256,
+      lifecycleStateSha256: state.stateSha256
+    }
+  };
+  Object.defineProperty(validatedState, VALIDATED_DURABLE_LIFECYCLE_STATE, { value: true, enumerable: false });
+  return {
+    status: 'LOADED', reasons: [], scope, store, checkpoint, usageLedger,
+    state: validatedState
+  };
+}
+
+export function persistFastPathLifecycleState({ durable, gateId, phase, sourceHead, chain, recoveryBundle, guardIdentities }) {
+  const { store } = durable;
+  const checkpoint = recoveryBundle.checkpoint;
+  const revisionDirectory = path.join(store.directoryFor(gateId), checkpoint.revision);
+  const statePath = path.join(revisionDirectory, LIFECYCLE_STATE_FILE);
+  const body = {
+    document: LIFECYCLE_STATE_DOCUMENT,
+    version: 'R1',
+    gateId,
+    phase,
+    sourceHead,
+    checkpointSha256: checkpoint.checkpointSha256,
+    r3Record: chain.r3Record,
+    currentSnapshot: chain.currentSnapshot,
+    currentGraph: chain.evaluated.graph,
+    routePlanSha256: chain.plan.routeSha256,
+    guardIdentities
+  };
+  const state = { ...body, stateSha256: sha256Canonical(body) };
+  store.writeUsageLedger(gateId, recoveryBundle.usageLedger);
+  fs.mkdirSync(revisionDirectory, { recursive: true });
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, { flag: 'wx' });
+  const written = store.writeCheckpoint(checkpoint);
+  return { statePath, stateSha256: state.stateSha256, checkpoint: written };
 }
 
 /**
@@ -530,18 +642,90 @@ export function buildRecoveryPlan({ root, gateId, chain, sourceHead, proveResume
  * the cost this stack removes, so the heavy path is reserved for the listed
  * architectural triggers.
  */
-export function r7LightweightGuard({ chain, bindings, evidence }) {
+const R7_ENGINE_IDENTITY_PATHS = Object.freeze([
+  'governance/gee-v1/context/compile-context.mjs',
+  'governance/gee-v1/delta/delta-engine.mjs',
+  'governance/gee-v1/evidence/evidence-graph.mjs',
+  'governance/gee-v1/router/router-engine.mjs',
+  'governance/gee-v1/recovery/recovery-engine.mjs'
+]);
+const R7_ROUTING_IDENTITY_PATHS = Object.freeze([
+  'governance/gee-v1/router/router-engine.mjs',
+  'governance/tools/gate-fast-path-control-plane.mjs'
+]);
+const R7_RECOVERY_IDENTITY_PATHS = Object.freeze([
+  'governance/gee-v1/recovery/recovery-engine.mjs',
+  'governance/gee-v1/recovery/checkpoint-store.mjs',
+  'governance/tools/gate-fast-path-control-plane.mjs'
+]);
+
+function identityForPaths(root, paths, commit = null) {
+  return sha256Canonical(paths.map((relativePath) => {
+    const bytes = commit
+      ? execFileSync('git', ['show', `${commit}:${relativePath}`], { cwd: root, encoding: 'buffer', stdio: ['ignore', 'pipe', 'pipe'] })
+      : readBytes(root, relativePath);
+    return { path: relativePath, sha256: sha256(bytes), byteLength: bytes.length };
+  }));
+}
+
+export function deriveR7TriggerState({ root, historyRoot = root, baselineCommit, previousGuardIdentities = null, explicitArchitectureAuditRequired = false } = {}) {
+  const current = {
+    geeEngineArchitectureSha256: identityForPaths(root, R7_ENGINE_IDENTITY_PATHS),
+    routingBehaviorSha256: identityForPaths(root, R7_ROUTING_IDENTITY_PATHS),
+    recoveryGuaranteesSha256: identityForPaths(root, R7_RECOVERY_IDENTITY_PATHS)
+  };
+  let previous = previousGuardIdentities;
+  if (!previous && baselineCommit) {
+    try {
+      previous = {
+        geeEngineArchitectureSha256: identityForPaths(historyRoot, R7_ENGINE_IDENTITY_PATHS, baselineCommit),
+        routingBehaviorSha256: identityForPaths(historyRoot, R7_ROUTING_IDENTITY_PATHS, baselineCommit),
+        recoveryGuaranteesSha256: identityForPaths(historyRoot, R7_RECOVERY_IDENTITY_PATHS, baselineCommit)
+      };
+    } catch { previous = null; }
+  }
+  return { current, previous, explicitArchitectureAuditRequired };
+}
+
+export function r7LightweightGuard({ chain, bindings, evidence, triggerState = {} }) {
+  const firstRun = chain.r3Record.previousSnapshotSha256 === null;
+  const temporalSemanticsValid = firstRun
+    ? chain.verifiedDelta.deltas.every((delta) => delta.kind === 'ADDED')
+    : chain.comparisonPreviousSnapshot.snapshotSha256 === chain.r3Record.previousSnapshotSha256;
   const checks = [
     { id: 'CHAIN_BINDINGS_AGREE', pass: bindings.valid, detail: bindings.bindings.filter((binding) => !binding.agrees).map((binding) => binding.edge) },
     { id: 'NO_UNKNOWN_PROVENANCE_EVIDENCE', pass: evidence.unknownProvenanceCount === 0, detail: evidence.UNKNOWN_PROVENANCE.map((node) => node.evidenceId) },
     { id: 'ROUTE_PLAN_DIGEST_SELF_CONSISTENT', pass: chain.plan.routeSha256 === sha256Canonical(Object.fromEntries(Object.entries(chain.plan).filter(([key]) => key !== 'routeSha256'))), detail: null },
-    { id: 'R3_DELTA_IS_REAL_NOT_NULL', pass: Boolean(chain.r3Delta?.previousSnapshot && chain.r3Delta?.currentSnapshot), detail: null },
+    { id: 'R3_TEMPORAL_SEMANTICS_VALID', pass: temporalSemanticsValid, detail: chain.r3Record.previousSnapshotProvenance },
     { id: 'EVIDENCE_EVALUATED_AGAINST_R3', pass: chain.evaluated.graph.evaluation?.evaluationKind === 'R4_EVALUATED_GRAPH', detail: chain.evaluated.graph.evaluation?.evaluationKind ?? null },
     { id: 'NO_QUALITY_FLOOR_VIOLATION', pass: chain.plan.blockedTasks.length === 0, detail: chain.plan.blockedTasks }
   ].map((check) => ({ ...check, status: check.pass ? 'PASS' : 'FAIL' }));
+  const current = triggerState.current ?? {};
+  const previous = triggerState.previous ?? {};
+  const triggerReasons = [];
+  if (current.geeEngineArchitectureSha256 && previous.geeEngineArchitectureSha256
+      && current.geeEngineArchitectureSha256 !== previous.geeEngineArchitectureSha256) {
+    triggerReasons.push('GEE_ENGINE_ARCHITECTURE_CHANGED_MATERIALLY');
+  }
+  if (checks.some((check) => !check.pass) || triggerState.qualityParityGuardPassed === false) {
+    triggerReasons.push('QUALITY_PARITY_GUARD_FAILED');
+  }
+  if (current.routingBehaviorSha256 && previous.routingBehaviorSha256
+      && current.routingBehaviorSha256 !== previous.routingBehaviorSha256) {
+    triggerReasons.push('ROUTING_BEHAVIOR_CHANGED_MATERIALLY');
+  }
+  if (current.recoveryGuaranteesSha256 && previous.recoveryGuaranteesSha256
+      && current.recoveryGuaranteesSha256 !== previous.recoveryGuaranteesSha256) {
+    triggerReasons.push('RECOVERY_GUARANTEES_CHANGED_MATERIALLY');
+  }
+  if (triggerState.explicitArchitectureAuditRequired === true) {
+    triggerReasons.push('EXPLICIT_ARCHITECTURE_AUDIT_REQUIRES_IT');
+  }
   return {
     mode: 'LIGHTWEIGHT',
-    heavyBenchmarkRequired: false,
+    heavyBenchmarkRequired: triggerReasons.length > 0,
+    triggerReasons,
+    triggerState: { current, previous: triggerState.previous ?? null, explicitArchitectureAuditRequired: triggerState.explicitArchitectureAuditRequired === true },
     heavyBenchmarkTriggers: [...R7_HEAVY_BENCHMARK_TRIGGERS],
     checks,
     verdict: checks.every((check) => check.pass) ? 'PASS' : 'FAIL'
@@ -589,7 +773,8 @@ export function checkFreshness({ root, currentHead, ledgerEventCount }) {
 }
 
 export async function runFastPathControlPlane({
-  root, gateId, phase = 'READINESS', now = new Date(), proveResume = false, head = null
+  root, gateId, phase = 'READINESS', now = new Date(), proveResume = false, head = null,
+  lifecycleStoreRoot = null, explicitArchitectureAuditRequired = false, gitHistoryRoot = root
 } = {}) {
   const blockingFacts = [];
   const gateLocalExpected = [];
@@ -627,16 +812,31 @@ export async function runFastPathControlPlane({
   }
 
   // ---- chain --------------------------------------------------------------
-  const casRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-fast-path-cas-'));
+  const durable = lifecycleStoreRoot
+    ? loadFastPathLifecycleState({ lifecycleStoreRoot, gateId, phase, sourceHead: currentHead })
+    : { status: 'NONE', reasons: ['LIFECYCLE_STORE_NOT_REQUESTED'], checkpoint: null, usageLedger: createUsageLedger(), state: null, scope: null, store: null };
+  if (durable.status === 'BLOCKED') {
+    blockingFacts.push({ code: 'R6_DURABLE_CHECKPOINT_INCOMPATIBLE', detail: durable.reasons });
+  }
+  const casRoot = lifecycleStoreRoot
+    ? path.join(durable.scope, 'r4-cas')
+    : fs.mkdtempSync(path.join(os.tmpdir(), 'gate-fast-path-cas-'));
+  fs.mkdirSync(casRoot, { recursive: true });
   let chain = null;
   let bindings = null;
   let evidence = null;
   let workset = null;
   let recovery = null;
+  let recoveryBundle = null;
   let guard = null;
+  let triggerState = null;
+  let lifecyclePersistence = null;
   try {
     const cas = createContentAddressedStore(casRoot);
-    chain = compileFastPathChain({ root, gateId, phase, cas, sourceHead: currentHead });
+    chain = compileFastPathChain({
+      root, gateId, phase, cas, sourceHead: currentHead,
+      previousLifecycleState: durable.status === 'LOADED' ? durable.state : null
+    });
     chain.root = root;
     bindings = chainBindings(chain);
     if (!bindings.valid) {
@@ -650,13 +850,28 @@ export async function runFastPathControlPlane({
     if (!workset.gateLocalTestsPresent) {
       gateLocalExpected.push({ code: 'GATE_LOCAL_TESTS_ABSENT', detail: `governance/gates/${gateId}/tests`, classification: 'GATE_LOCAL_EXPECTED' });
     }
-    recovery = buildRecoveryPlan({ root, gateId, chain, sourceHead: currentHead, proveResume });
-    guard = r7LightweightGuard({ chain, bindings, evidence });
+    recoveryBundle = buildRecoveryBundle({
+      root, gateId, chain, sourceHead: currentHead,
+      previousCheckpoint: durable.status === 'LOADED' ? durable.checkpoint : null,
+      usageLedger: durable.usageLedger
+    });
+    recovery = recoveryBundle.summary;
+    triggerState = deriveR7TriggerState({
+      root,
+      historyRoot: gitHistoryRoot,
+      baselineCommit: currentHead,
+      previousGuardIdentities: durable.status === 'LOADED' ? durable.state.guardIdentities : null,
+      explicitArchitectureAuditRequired
+    });
+    guard = r7LightweightGuard({ chain, bindings, evidence, triggerState });
     if (guard.verdict !== 'PASS') {
       blockingFacts.push({ code: 'R7_LIGHTWEIGHT_GUARD_FAILED', detail: guard.checks.filter((check) => !check.pass).map((check) => check.id) });
     }
+    if (proveResume && !lifecycleStoreRoot) {
+      recovery.resumeProof = 'NOT_RUN_NO_DURABLE_STORE';
+    }
   } finally {
-    fs.rmSync(casRoot, { recursive: true, force: true });
+    if (!lifecycleStoreRoot) fs.rmSync(casRoot, { recursive: true, force: true });
   }
 
   // ---- anti-amnesia -------------------------------------------------------
@@ -671,9 +886,11 @@ export async function runFastPathControlPlane({
   let regression = { comparabilityEstablished: false, reasons: ['BASELINE_UNREADABLE'] };
   try {
     const baseline = readJson(root, REGRESSION_BASELINE_PATH);
+    const baselineSuiteManifest = resolveSuiteManifest({ root: gitHistoryRoot, command: baseline?.suiteSpec?.command, commit: baseline?.baseHead });
+    const currentSuiteManifest = resolveSuiteManifest({ root, command: baseline?.suiteSpec?.command });
     const comparability = establishComparability({
-      baseline,
-      current: { head: currentHead, suiteSpec: { command: baseline?.suiteSpec?.command ?? null }, failureIdentities: [] },
+      baseline: { ...baseline, suiteManifest: baselineSuiteManifest },
+      current: { head: currentHead, suiteSpec: { command: baseline?.suiteSpec?.command ?? null }, failureIdentities: [], suiteManifest: currentSuiteManifest },
       root
     });
     regression = {
@@ -682,6 +899,11 @@ export async function runFastPathControlPlane({
       baselineHead: comparability.baselineHead,
       currentHead,
       baselineSuiteIdentity: comparability.baselineSuiteIdentity,
+      currentSuiteIdentity: comparability.currentSuiteIdentity,
+      suiteRelation: comparability.suiteRelation,
+      suiteEvolution: comparability.suiteEvolution,
+      baselineResolvedTestPathCount: baselineSuiteManifest.resolvedTestPathCount,
+      currentResolvedTestPathCount: currentSuiteManifest.resolvedTestPathCount,
       baselineFailureIdentityCount: baseline.failureIdentityCount ?? null,
       deltaTool: 'governance/tools/regression-identity-delta.mjs',
       note: 'Run the suite with --test-reporter=tap and feed it to the delta tool for an identity comparison.'
@@ -696,6 +918,17 @@ export async function runFastPathControlPlane({
   const freshness = checkFreshness({ root, currentHead, ledgerEventCount });
   if (freshness.absentArtifacts.length) {
     blockingFacts.push({ code: 'CONTROL_ARTIFACT_ABSENT', detail: freshness.absentArtifacts });
+  }
+
+  if (lifecycleStoreRoot && durable.status !== 'BLOCKED' && blockingFacts.length === 0) {
+    lifecyclePersistence = persistFastPathLifecycleState({
+      durable, gateId, phase, sourceHead: currentHead, chain, recoveryBundle,
+      guardIdentities: triggerState.current
+    });
+    recovery.persistence = lifecyclePersistence;
+  } else if (lifecycleStoreRoot) {
+    recovery.persistence = null;
+    recovery.persistenceBlockedBy = blockingFacts.map((entry) => entry.code);
   }
 
   // ---- verdict ------------------------------------------------------------
@@ -745,9 +978,14 @@ export async function runFastPathControlPlane({
       },
       r3: {
         snapshotSha256: chain.currentSnapshot.snapshotSha256,
+        previousSnapshotSha256: chain.r3Record.previousSnapshotSha256,
+        previousSnapshotProvenance: chain.r3Record.previousSnapshotProvenance,
+        comparisonBasis: chain.r3Record.comparisonBasis,
+        consumedR2ContextSha256: chain.r3Record.consumedR2ContextSha256,
         deltaSha256: chain.r3DeltaSha256,
         trackedSourceCount: chain.currentSnapshot.sources.length,
         frontierTrackedPaths: chain.frontierPaths,
+        semantics: chain.r3Record.semantics,
         unchangedBytes: chain.verifiedDelta.metrics.UNCHANGED_BYTES,
         changedBytes: chain.verifiedDelta.metrics.CHANGED_BYTES
       },
@@ -808,7 +1046,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     root,
     gateId: option('--gate'),
     phase: option('--phase', 'READINESS'),
-    proveResume: process.argv.includes('--prove-resume')
+    head: option('--head'),
+    proveResume: process.argv.includes('--prove-resume'),
+    lifecycleStoreRoot: option('--lifecycle-store'),
+    explicitArchitectureAuditRequired: process.argv.includes('--explicit-architecture-audit'),
+    gitHistoryRoot: option('--git-history-root', root)
   });
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   process.exitCode = report.verdict === 'FAST_PATH_BLOCKED' ? 2 : 0;

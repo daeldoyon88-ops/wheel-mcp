@@ -81,7 +81,13 @@ const GATE_RELEVANT_SEGMENTS = Object.freeze(['/contracts/', '/state/']);
  * artifacts have a fixed point; see buildExistingWorkIndex.
  */
 export const MUTUALLY_RECURSIVE_EXCLUSIONS = Object.freeze([
-  'governance/historical-architecture/GATE_FAST_PATH_CONSUMPTION_R1.json'
+  'governance/historical-architecture/GATE_FAST_PATH_CONSUMPTION_R1.json',
+  'governance/historical-architecture/GATE_FAST_PATH_REPAIR_CONSUMPTION_R1.json'
+]);
+
+export const RELATION_TYPES = Object.freeze([
+  'STRUCTURED_JSON_REFERENCE',
+  'EXECUTABLE_IMPORT'
 ]);
 
 function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
@@ -138,15 +144,59 @@ export function enumerateRelevantArtifacts(root) {
  * Read once and held in memory for the run, so N artifacts cost one pass over
  * the surface rather than N passes. Nothing outside governance/ is read.
  */
+function collectStructuredPaths(value, pointer = '', out = []) {
+  if (typeof value === 'string') {
+    if (/^governance\/[A-Za-z0-9._/-]+$/.test(value)) out.push({ targetPath: value, pointer: pointer || '/' });
+    return out;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => collectStructuredPaths(entry, `${pointer}/${index}`, out));
+    return out;
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, entry] of Object.entries(value)) {
+      collectStructuredPaths(entry, `${pointer}/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`, out);
+    }
+  }
+  return out;
+}
+
+function executableImports(file, text) {
+  const imports = [];
+  const specifiers = [
+    ...text.matchAll(/(?:import|export)\s+(?:[^'";]+?\s+from\s+)?['"]([^'"]+)['"]/g),
+    ...text.matchAll(/(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)/g)
+  ].map((match) => match[1]);
+  for (const specifier of specifiers) {
+    if (!specifier.startsWith('.')) continue;
+    const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
+    if (resolved.startsWith('governance/')) imports.push(resolved);
+  }
+  return [...new Set(imports)].sort();
+}
+
 function buildLinkCorpus(root) {
   const files = walk(root, 'governance', [])
     .filter((file) => /\.(json|mjs|md|ndjson|txt)$/.test(file))
     .filter((file) => !file.includes('/tests/') && !file.endsWith('.test.mjs'))
-    .filter((file) => !file.includes('/generated/'));
+    .filter((file) => !file.includes('/generated/'))
+    .filter((file) => file !== INDEX_PATH);
   const corpus = new Map();
   for (const file of files) {
     try {
-      corpus.set(file, fs.readFileSync(path.resolve(root, ...file.split('/')), 'utf8'));
+      const text = fs.readFileSync(path.resolve(root, ...file.split('/')), 'utf8');
+      const structuredPaths = [];
+      if (file.endsWith('.json')) {
+        collectStructuredPaths(JSON.parse(text.replace(/^ï»¿/, '')), '', structuredPaths);
+      } else if (file.endsWith('.ndjson')) {
+        text.split(/\r?\n/).filter((line) => line.trim()).forEach((line, index) => {
+          collectStructuredPaths(JSON.parse(line), `/${index}`, structuredPaths);
+        });
+      }
+      corpus.set(file, {
+        structuredPaths,
+        executableImports: file.endsWith('.mjs') ? executableImports(file, text) : []
+      });
     } catch { /* an unreadable file simply provides no links */ }
   }
   return corpus;
@@ -160,17 +210,18 @@ function buildLinkCorpus(root) {
  * would look abandoned and the signal would be noise.
  */
 function linkedBy(relativePath, corpus) {
-  const basename = relativePath.split('/').pop();
   const viaContract = /_SEAL\.json$/.test(relativePath) ? relativePath.replace(/_SEAL\.json$/, '.json') : null;
-  const viaContractBase = viaContract ? viaContract.split('/').pop() : null;
   const links = [];
-  for (const [file, text] of corpus) {
+  for (const [file, evidence] of corpus) {
     if (file === relativePath) continue;
-    if (text.includes(relativePath) || text.includes(basename)
-      || (viaContract && (text.includes(viaContract) || text.includes(viaContractBase)))) {
-      links.push(file);
-      if (links.length >= 4) break;
+    const structured = evidence.structuredPaths.find((entry) => entry.targetPath === relativePath || (viaContract && entry.targetPath === viaContract));
+    if (structured) {
+      links.push({ consumerPath: file, targetPath: relativePath, relationType: 'STRUCTURED_JSON_REFERENCE', pointer: structured.pointer });
     }
+    if (evidence.executableImports.includes(relativePath) || (viaContract && evidence.executableImports.includes(viaContract))) {
+      links.push({ consumerPath: file, targetPath: relativePath, relationType: 'EXECUTABLE_IMPORT' });
+    }
+    if (links.length >= 4) break;
   }
   return links;
 }
@@ -179,7 +230,7 @@ function linkedBy(relativePath, corpus) {
  * Rule-based disposition. Order matters: the first matching rule wins, and every
  * rule states the ground it decides on.
  */
-export function deriveDisposition(relativePath, links) {
+export function deriveDisposition(relativePath, links, document = null) {
   if (RELEVANT_ROOT_FILES.includes(relativePath) || relativePath.startsWith('governance/active/')) {
     return { disposition: 'CANONICAL', rule: 'R-CANONICAL-ROOT' };
   }
@@ -190,6 +241,12 @@ export function deriveDisposition(relativePath, links) {
   if (relativePath.startsWith('governance/historical-architecture/')) return { disposition: 'HISTORICAL_LEGACY', rule: 'R-HISTORICAL' };
   if (relativePath.startsWith('governance/implementation/')) return { disposition: 'DERIVED', rule: 'R-IMPLEMENTATION' };
   if (relativePath.startsWith('governance/sources/')) {
+    if (links.length === 0
+        && document?.document === 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY'
+        && document?.schemaVersion === 1
+        && document?.successorAuthorization === false) {
+      return { disposition: 'HISTORICAL_LEGACY', rule: 'R-SOURCE-LEGACY-MAINTENANCE-AUTHORITY' };
+    }
     // A source nothing links to is precisely the amnesia shape this index
     // exists to surface, so it is never derived — it needs an explicit answer.
     return links.length
@@ -238,8 +295,12 @@ export function buildExistingWorkIndex({ root, explicitDispositions = {}, selfPa
   const rows = [];
   for (const relativePath of artifacts) {
     const bytes = fs.readFileSync(path.resolve(root, ...relativePath.split('/')));
-    const links = linkedBy(relativePath, corpus);
-    const derived = deriveDisposition(relativePath, links);
+    const relationships = linkedBy(relativePath, corpus);
+    let document = null;
+    if (relativePath.endsWith('.json')) {
+      try { document = JSON.parse(bytes.toString('utf8').replace(/^ï»¿/, '')); } catch { /* not a JSON decision document */ }
+    }
+    const derived = deriveDisposition(relativePath, relationships, document);
     const explicit = explicitDispositions[relativePath];
     const explicitValid = explicit && DISPOSITIONS.includes(explicit.disposition);
     const row = {
@@ -249,8 +310,9 @@ export function buildExistingWorkIndex({ root, explicitDispositions = {}, selfPa
       disposition: explicitValid ? explicit.disposition : derived.disposition,
       dispositionSource: explicitValid ? 'EXPLICIT' : derived.disposition ? 'DERIVED_RULE' : 'NONE',
       rule: derived.rule,
-      linkCount: links.length,
-      linkedBy: links
+      linkCount: relationships.length,
+      linkedBy: [...new Set(relationships.map((entry) => entry.consumerPath))],
+      relationshipEvidence: relationships
     };
     if (explicitValid && explicit.reason) row.reason = explicit.reason;
     if (explicitValid && explicit.supersededBy) row.supersededBy = explicit.supersededBy;

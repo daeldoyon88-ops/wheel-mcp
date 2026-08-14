@@ -102,9 +102,16 @@ const COMMIT_POLICY_FIELDS = Object.freeze([
 
 const MANIFEST_FIELDS = Object.freeze(['documentKind', 'schemaVersion', 'manifestId', 'programId', 'paths']);
 const MANIFEST_PATH_FIELDS = Object.freeze(['path', 'operation', 'phase', 'reason', 'artifactClass']);
-const CONSUMPTION_FIELDS = Object.freeze([
+const CONSUMPTION_V1_FIELDS = Object.freeze([
   'documentKind', 'schemaVersion', 'authorityId', 'programId', 'manifestSha256',
   'baseHead', 'consumedUse', 'transactionId', 'recordedAt', 'commitMessage'
+]);
+const CONSUMPTION_V2_FIELDS = Object.freeze([
+  ...CONSUMPTION_V1_FIELDS, 'cohortSelfExclusion', 'cohortPathCount', 'cohort'
+]);
+const CONSUMPTION_SELF_EXCLUSION_FIELDS = Object.freeze(['path', 'reason']);
+const CONSUMPTION_COHORT_FIELDS = Object.freeze([
+  'path', 'sha256', 'byteLength', 'operation', 'reason', 'artifactClass'
 ]);
 
 const SHA256_RE = /^[a-f0-9]{64}$/;
@@ -259,10 +266,11 @@ export function validateMaintenanceAuthorizedPathManifest(manifest, programId, a
   return { valid: findings.length === 0, findings, authorizedPaths: paths, operationClasses: [...new Set(operationClasses)] };
 }
 
-function validateConsumptionRecord(record, authority, findings) {
+function validateConsumptionRecord(record, authority, manifest, observed, findings) {
   if (!record || typeof record !== 'object' || Array.isArray(record)) { finding(findings, 'CONSUMPTION_RECORD_MISSING'); return; }
-  unknownFields(findings, record, CONSUMPTION_FIELDS, 'CONSUMPTION_UNKNOWN_FIELD');
-  if (record.documentKind !== POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND || record.schemaVersion !== 1) finding(findings, 'CONSUMPTION_RECORD_INVALID');
+  const consumptionFields = record.schemaVersion === 2 ? CONSUMPTION_V2_FIELDS : CONSUMPTION_V1_FIELDS;
+  unknownFields(findings, record, consumptionFields, 'CONSUMPTION_UNKNOWN_FIELD');
+  if (record.documentKind !== POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND || ![1, 2].includes(record.schemaVersion)) finding(findings, 'CONSUMPTION_RECORD_INVALID');
   if (record.authorityId !== authority.authorityId || record.programId !== authority.programId) finding(findings, 'CONSUMPTION_AUTHORITY_MISMATCH');
   if (record.manifestSha256 !== authority.authorizedPathManifestSha256) finding(findings, 'CONSUMPTION_MANIFEST_MISMATCH');
   if (record.baseHead !== authority.preState.baseHead) finding(findings, 'CONSUMPTION_BASE_HEAD_MISMATCH');
@@ -270,6 +278,70 @@ function validateConsumptionRecord(record, authority, findings) {
   if (typeof record.transactionId !== 'string' || !record.transactionId) finding(findings, 'CONSUMPTION_TRANSACTION_INVALID');
   if (!ISO_UTC_RE.test(record.recordedAt || '')) finding(findings, 'CONSUMPTION_RECORDED_AT_INVALID');
   if (record.commitMessage !== authority.commitPolicy.commitMessage) finding(findings, 'CONSUMPTION_COMMIT_MESSAGE_MISMATCH');
+  if (record.schemaVersion !== 2) return;
+
+  const manifestEntries = Array.isArray(manifest?.paths) ? manifest.paths : [];
+  const manifestByPath = new Map(manifestEntries.map((entry) => [entry.path, entry]));
+  const selfPath = authority.consumptionRecordPath;
+  if (!record.cohortSelfExclusion || typeof record.cohortSelfExclusion !== 'object' || Array.isArray(record.cohortSelfExclusion)) {
+    finding(findings, 'CONSUMPTION_SELF_EXCLUSION_INVALID');
+  } else {
+    unknownFields(findings, record.cohortSelfExclusion, CONSUMPTION_SELF_EXCLUSION_FIELDS, 'CONSUMPTION_SELF_EXCLUSION_UNKNOWN_FIELD');
+    if (record.cohortSelfExclusion.path !== selfPath || typeof record.cohortSelfExclusion.reason !== 'string' || !record.cohortSelfExclusion.reason) {
+      finding(findings, 'CONSUMPTION_SELF_EXCLUSION_INVALID');
+    }
+  }
+  if (!manifestByPath.has(selfPath)) finding(findings, 'CONSUMPTION_SELF_PATH_NOT_AUTHORIZED', selfPath);
+  if (record.cohortPathCount !== manifestEntries.length) finding(findings, 'CONSUMPTION_COHORT_COUNT_MISMATCH');
+  if (!Array.isArray(record.cohort)) {
+    finding(findings, 'CONSUMPTION_COHORT_INVALID');
+    return;
+  }
+
+  const expectedPaths = manifestEntries.map((entry) => entry.path).filter((entryPath) => entryPath !== selfPath);
+  const receiptPaths = [];
+  for (const entry of record.cohort) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { finding(findings, 'CONSUMPTION_COHORT_ENTRY_INVALID'); continue; }
+    unknownFields(findings, entry, CONSUMPTION_COHORT_FIELDS, 'CONSUMPTION_COHORT_ENTRY_UNKNOWN_FIELD');
+    if (!isExactMaintenancePath(entry.path)) finding(findings, 'CONSUMPTION_COHORT_PATH_INVALID', entry.path);
+    else if (receiptPaths.includes(entry.path)) finding(findings, 'CONSUMPTION_COHORT_PATH_DUPLICATE', entry.path);
+    else receiptPaths.push(entry.path);
+    const authorized = manifestByPath.get(entry.path);
+    if (!authorized || entry.path === selfPath) {
+      finding(findings, 'CONSUMPTION_COHORT_UNEXPECTED_PATH', entry.path);
+      continue;
+    }
+    if (!SHA256_RE.test(entry.sha256 || '')) finding(findings, 'CONSUMPTION_COHORT_SHA_INVALID', entry.path);
+    if (!Number.isInteger(entry.byteLength) || entry.byteLength < 0) finding(findings, 'CONSUMPTION_COHORT_BYTE_LENGTH_INVALID', entry.path);
+    for (const field of ['operation', 'reason', 'artifactClass']) {
+      if (entry[field] !== authorized[field]) finding(findings, 'CONSUMPTION_COHORT_METADATA_MISMATCH', `${entry.path}:${field}`);
+    }
+  }
+  for (const expectedPath of expectedPaths) {
+    if (!receiptPaths.includes(expectedPath)) finding(findings, 'CONSUMPTION_COHORT_PATH_MISSING', expectedPath);
+  }
+  if (record.cohort.length !== expectedPaths.length) finding(findings, 'CONSUMPTION_COHORT_ENTRY_COUNT_MISMATCH');
+
+  const observedCohort = Array.isArray(observed.consumptionCohort) ? observed.consumptionCohort : [];
+  const observedByPath = new Map();
+  for (const entry of observedCohort) {
+    if (!entry || typeof entry !== 'object' || typeof entry.path !== 'string') { finding(findings, 'CONSUMPTION_OBSERVED_COHORT_INVALID'); continue; }
+    if (observedByPath.has(entry.path)) finding(findings, 'CONSUMPTION_OBSERVED_COHORT_DUPLICATE', entry.path);
+    observedByPath.set(entry.path, entry);
+  }
+  for (const expectedPath of expectedPaths) {
+    const receiptEntry = record.cohort.find((entry) => entry?.path === expectedPath);
+    const observedEntry = observedByPath.get(expectedPath);
+    if (!observedEntry) {
+      finding(findings, 'CONSUMPTION_OBSERVED_PATH_MISSING', expectedPath);
+      continue;
+    }
+    if (receiptEntry?.sha256 !== observedEntry.sha256) finding(findings, 'CONSUMPTION_COHORT_SHA_MISMATCH', expectedPath);
+    if (receiptEntry?.byteLength !== observedEntry.byteLength) finding(findings, 'CONSUMPTION_COHORT_BYTE_LENGTH_MISMATCH', expectedPath);
+  }
+  for (const observedPath of observedByPath.keys()) {
+    if (!expectedPaths.includes(observedPath)) finding(findings, 'CONSUMPTION_OBSERVED_UNEXPECTED_PATH', observedPath);
+  }
 }
 
 /**
@@ -332,7 +404,7 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
   for (const operationClass of requestedClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
   for (const operationClass of manifestResult.operationClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'MANIFEST_OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
   if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY && consumptionRecord) finding(findings, 'AUTHORITY_ALREADY_CONSUMED');
-  if (phase === PHASE_VERIFY_PROGRAM_CONSUMPTION) validateConsumptionRecord(consumptionRecord, authority, findings);
+  if (phase === PHASE_VERIFY_PROGRAM_CONSUMPTION) validateConsumptionRecord(consumptionRecord, authority, manifest, observed, findings);
   const decision = findings.length === 0 ? 'AUTHORIZED' : 'BLOCKED';
   return {
     decision,

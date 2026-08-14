@@ -96,7 +96,15 @@ try {
     manifestSha256: sha256(manifestBytes),
     authorityPredecessorSha256,
     requestedPaths: manifest.paths.map((entry) => entry.path),
-    requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass)
+    requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass),
+    consumptionCohort: manifest.paths
+      .filter((entry) => entry.path !== authority.consumptionRecordPath)
+      .map((entry) => {
+        const file = resolveInsideRoot(entry.path);
+        if (!file || !fs.existsSync(file)) throw new Error(`CONSUMPTION_COHORT_PATH_ABSENT:${entry.path}`);
+        const bytes = fs.readFileSync(file);
+        return { path: entry.path, sha256: sha256(bytes), byteLength: bytes.length };
+      })
   };
 } catch (error) {
   findings.push({ code: error?.message || String(error) });
@@ -126,4 +134,3 @@ console.log(JSON.stringify({
   findings: allFindings
 }, null, 2));
 process.exitCode = authorized ? 0 : 2;
-

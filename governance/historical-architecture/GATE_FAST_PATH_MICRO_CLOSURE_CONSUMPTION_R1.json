@@ -1,0 +1,67 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_GATE_FAST_PATH_MICRO_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1_MICRO_CLOSURE_R1",
+  "manifestSha256": "b5d6b1037e82b9164190d0b65c74372b039207cf7f840efa05b3c9f311ccde6f",
+  "baseHead": "e9db5aff32b8e93f63214a07fe0cf8d9a458fc39",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GATE_FAST_PATH_MICRO_CLOSURE_COHORT6_SHA256_060f9ef2a0aca1d76df2429b54d513c596403a44427725713450a26544b62e37",
+  "recordedAt": "2026-08-14T02:10:00.000Z",
+  "commitMessage": "governance: bind fast path repair consumption bytes",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE_FAST_PATH_MICRO_CLOSURE_CONSUMPTION_R1.json",
+    "reason": "The receipt cannot carry its own digest because writing that digest changes the bytes being digested; the enclosing commit binds the receipt itself."
+  },
+  "cohortPathCount": 7,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "sha256": "c7bcc5da142deb14055bbff3301392845361d1eedf030d117c0bd5341e1f66c7",
+      "byteLength": 29212,
+      "operation": "MODIFY",
+      "reason": "Validate schema V2 consumption receipts against the exact authorized cohort, deterministic receipt self-exclusion and observed bytes while preserving historical schema V1 receipts.",
+      "artifactClass": "RECEIPT_EXACT_BYTE_VALIDATION"
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "sha256": "a6a0270a52febba53dfb4f92a89eea47779b4f934b665211555ea8e01cda5365",
+      "byteLength": 6408,
+      "operation": "MODIFY",
+      "reason": "Observe SHA-256 and byte length for every non-self-excluded authorized cohort path so consumption verification is bound to real local bytes.",
+      "artifactClass": "RECEIPT_EXACT_BYTE_OBSERVATION"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "sha256": "75998a8572fb9de64d91d7a18bd98d492e286a68b0bc208231fb39fc7f2b630d",
+      "byteLength": 36746,
+      "operation": "MODIFY",
+      "reason": "Cover valid exact-byte consumption plus hostile hash, length, path, authority, baseHead, self-exclusion and single-use cases.",
+      "artifactClass": "TARGETED_RECEIPT_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_REPAIR_CONSUMPTION_R1.json",
+      "sha256": "03ecc762e289fa815ec850021e23276cb3ec269369e26e5642ff6b7ba475d897",
+      "byteLength": 5523,
+      "operation": "MODIFY",
+      "reason": "Bind the final blocker closure receipt to all eleven authorized repair paths, with the receipt itself deterministically self-excluded and every other path byte-exact.",
+      "artifactClass": "REPAIR_RECEIPT_BYTE_BINDING"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_MICRO_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "b5d6b1037e82b9164190d0b65c74372b039207cf7f840efa05b3c9f311ccde6f",
+      "byteLength": 2966,
+      "operation": "CREATE",
+      "reason": "Exact seven-path cohort for the one micro-closure successor transaction.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE_FAST_PATH_MICRO_CLOSURE_R1.json",
+      "sha256": "3b78e0d5927163744e3a420c7e2d5e49d4f83fb557af4a26967c708c7a496421",
+      "byteLength": 2424,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to e9db5aff for the receipt-only micro-closure, without push, history rewrite, Gate transition or GEE revision.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

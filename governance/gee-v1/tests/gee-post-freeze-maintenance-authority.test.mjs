@@ -13,7 +13,8 @@ import {
   POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
   REQUIRED_PROHIBITED_OPERATIONS,
   sha256Hex,
-  PHASE_AUTHORIZE_PROGRAM_APPLY
+  PHASE_AUTHORIZE_PROGRAM_APPLY,
+  PHASE_VERIFY_PROGRAM_CONSUMPTION
 } from '../core/post-freeze-maintenance-authority.mjs';
 import { verifyOwnerSignature } from '../core/release-authority.mjs';
 
@@ -269,6 +270,83 @@ function makeV2Fixture() {
   };
   return { authority, manifest, observed, now: new Date('2026-08-13T00:02:00.000Z') };
 }
+
+function makeV2ConsumptionFixture() {
+  const fixture = makeV2Fixture();
+  fixture.manifest.paths.push({
+    path: fixture.authority.consumptionRecordPath,
+    operation: 'CREATE',
+    phase: 'H3',
+    reason: 'single-use receipt',
+    artifactClass: 'TEST_AND_REPLAY_INFRASTRUCTURE'
+  });
+  fixture.authority.authorizedPathManifestSha256 = sha256Hex(Buffer.from(JSON.stringify(fixture.manifest), 'utf8'));
+  fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
+  fixture.observed.requestedPaths = fixture.manifest.paths.map((entry) => entry.path);
+  fixture.observed.requestedOperationClasses = fixture.manifest.paths.map((entry) => entry.artifactClass);
+  const hashes = ['a'.repeat(64), 'b'.repeat(64)];
+  const byteLengths = [101, 202];
+  const cohort = fixture.manifest.paths.slice(0, 2).map((entry, index) => ({
+    path: entry.path,
+    sha256: hashes[index],
+    byteLength: byteLengths[index],
+    operation: entry.operation,
+    reason: entry.reason,
+    artifactClass: entry.artifactClass
+  }));
+  fixture.observed.consumptionCohort = cohort.map(({ path: cohortPath, sha256, byteLength }) => ({ path: cohortPath, sha256, byteLength }));
+  fixture.consumptionRecord = {
+    documentKind: 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION',
+    schemaVersion: 2,
+    authorityId: fixture.authority.authorityId,
+    programId: fixture.authority.programId,
+    manifestSha256: fixture.authority.authorizedPathManifestSha256,
+    baseHead: fixture.authority.preState.baseHead,
+    consumedUse: 1,
+    transactionId: 'SYNTHETIC_EXACT_COHORT_TRANSACTION_R1',
+    recordedAt: '2026-08-13T00:01:00.000Z',
+    commitMessage: fixture.authority.commitPolicy.commitMessage,
+    cohortSelfExclusion: {
+      path: fixture.authority.consumptionRecordPath,
+      reason: 'The receipt cannot digest its own bytes; the enclosing commit binds it.'
+    },
+    cohortPathCount: fixture.manifest.paths.length,
+    cohort
+  };
+  return fixture;
+}
+
+test('LA-C01: schema V2 consumption binds the exact authorized cohort bytes with deterministic self-exclusion', () => {
+  const fixture = makeV2ConsumptionFixture();
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION });
+  assert.equal(result.decision, 'AUTHORIZED');
+  assert.equal(result.consumed, true);
+});
+
+for (const [name, mutate, expectedCode] of [
+  ['LA-C02 mutated hash', (f) => { f.consumptionRecord.cohort[0].sha256 = 'c'.repeat(64); }, 'CONSUMPTION_COHORT_SHA_MISMATCH'],
+  ['LA-C03 wrong byteLength', (f) => { f.consumptionRecord.cohort[0].byteLength += 1; }, 'CONSUMPTION_COHORT_BYTE_LENGTH_MISMATCH'],
+  ['LA-C04 missing path', (f) => { f.consumptionRecord.cohort.pop(); }, 'CONSUMPTION_COHORT_PATH_MISSING'],
+  ['LA-C05 unexpected path', (f) => { f.consumptionRecord.cohort.push({ ...f.consumptionRecord.cohort[0], path: 'synthetic/unexpected.json' }); }, 'CONSUMPTION_COHORT_UNEXPECTED_PATH'],
+  ['LA-C06 wrong authority', (f) => { f.consumptionRecord.authorityId = 'OTHER_AUTHORITY_R1'; }, 'CONSUMPTION_AUTHORITY_MISMATCH'],
+  ['LA-C07 wrong baseHead', (f) => { f.consumptionRecord.baseHead = '9'.repeat(40); }, 'CONSUMPTION_BASE_HEAD_MISMATCH'],
+  ['LA-C08 non-deterministic self-exclusion', (f) => { f.consumptionRecord.cohortSelfExclusion.path = f.consumptionRecord.cohort[0].path; }, 'CONSUMPTION_SELF_EXCLUSION_INVALID']
+]) {
+  test(`${name} blocks exact-byte consumption`, () => {
+    const fixture = makeV2ConsumptionFixture();
+    mutate(fixture);
+    const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION });
+    assert.equal(result.decision, 'BLOCKED');
+    assert.ok(result.findings.some((finding) => finding.code === expectedCode), JSON.stringify(result.findings));
+  });
+}
+
+test('LA-C09: a present V2 receipt makes the single-use authority unavailable for apply', () => {
+  const fixture = makeV2ConsumptionFixture();
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'AUTHORITY_ALREADY_CONSUMED'));
+});
 
 function makeFinalClosureFixture() {
   const fixture = makeV2Fixture();

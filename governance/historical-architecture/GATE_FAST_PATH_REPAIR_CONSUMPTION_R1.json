@@ -1,6 +1,6 @@
 {
   "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "authorityId": "WHEEL_GATE_FAST_PATH_FINAL_BLOCKER_CLOSURE_LOCAL_AUTHORITY_R1",
   "programId": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1_FINAL_BLOCKER_CLOSURE_R1",
   "manifestSha256": "4c9317ec9bc198706a68a341186c8b366d63bc6428c63789b650ae421200a9c8",
@@ -8,5 +8,92 @@
   "consumedUse": 1,
   "transactionId": "WHEEL_GATE_FAST_PATH_FINAL_BLOCKER_CLOSURE_PASS_COHORT10_SHA256_ae321babe808cf1c406ba792b1d6f8bf41c579b47449e2f77bab2588fd983258",
   "recordedAt": "2026-08-14T01:10:00.000Z",
-  "commitMessage": "governance: close Gate fast path integration blockers"
+  "commitMessage": "governance: close Gate fast path integration blockers",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE_FAST_PATH_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The receipt cannot carry its own digest because writing that digest changes the bytes being digested; the enclosing commit binds the receipt itself."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/tools/gate-fast-path-control-plane.mjs",
+      "sha256": "d9df678c98515d0d51c683ad4e38485aff57cc133fe6371e91b3e206fa846d91",
+      "byteLength": 53473,
+      "operation": "MODIFY",
+      "reason": "Repair real temporal R3, explicit R2 to R3 binding, durable R6 lifecycle reload and executable R7 trigger decisions without modifying the frozen R1-R7 engines.",
+      "artifactClass": "FAST_PATH_TARGETED_INTEGRATION_REPAIR"
+    },
+    {
+      "path": "governance/tools/regression-identity-delta.mjs",
+      "sha256": "0b8202620efa925fb104dfcebb032ff5a4f318a1526e86c5fe88b2e8ecb3d5cd",
+      "byteLength": 17541,
+      "operation": "MODIFY",
+      "reason": "Derive baseline and current suite identities from the resolved test universe and deterministic test-file content manifests rather than failure files.",
+      "artifactClass": "REGRESSION_SUITE_IDENTITY_HARDENING"
+    },
+    {
+      "path": "governance/tools/governance-existing-work-index.mjs",
+      "sha256": "c4bb8532b8616156d804641bc33208ca7000e8ecce1a85a71498ac7cde4be020",
+      "byteLength": 21102,
+      "operation": "MODIFY",
+      "reason": "Require structured exact-path JSON or executable import relationships; prose and comments cannot establish consumption.",
+      "artifactClass": "ANTI_AMNESIA_RELATIONSHIP_HARDENING"
+    },
+    {
+      "path": "governance/tests/gate-fast-path-control-plane.test.mjs",
+      "sha256": "91bb426e63a35c7769b87bbb33b64a499fd70ddafcbcbf326a979022dba16bc7",
+      "byteLength": 42325,
+      "operation": "MODIFY",
+      "reason": "Add the bounded temporal, process-boundary, binding, suite-identity, trigger and anti-amnesia hostile countertests required by the mission.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "sha256": "f1aecd0b8d7c1de16aeab98c4c3139dedd35edb8221769ec46e0c63f13aba911",
+      "byteLength": 78291,
+      "operation": "MODIFY",
+      "reason": "Remove the accidental historical GATE13 benchmark prerequisite by validating and using a deterministic real Wheel GATE15 benchmark context without changing the frozen R7 algorithm.",
+      "artifactClass": "R7_BENCHMARK_CONTEXT_DECOUPLING"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "sha256": "36e90d88e0593ddffaabc044d01debf5e494bc9a522bc1c1ca3603d932f783f8",
+      "byteLength": 9742,
+      "operation": "MODIFY",
+      "reason": "Prove that the deterministic benchmark context executes while mutated bytes, provenance, identity, missing state and generated-authority substitution fail closed.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/gee-v1/fixtures/gee-r7-benchmark-context.json",
+      "sha256": "6ceaf3c9e92f12bd80a752a831fc8c1b4c9f603126b460d8a7a0525303383da8",
+      "byteLength": 1226,
+      "operation": "CREATE",
+      "reason": "Bind the R7 benchmark to deterministic canonical GATE15 registry and ledger bytes with explicit source-head provenance and a self-verifying context identity.",
+      "artifactClass": "R7_BENCHMARK_CONTEXT_DECOUPLING"
+    },
+    {
+      "path": "governance/master-matrix/GOVERNANCE_EXISTING_WORK_INDEX_V1.json",
+      "sha256": "b6670bea3ddfe4992bb5892614bc1cbab638a83ed3f11a4b268b5ad14bbb6689",
+      "byteLength": 208255,
+      "operation": "MODIFY",
+      "reason": "Refresh the single existing anti-amnesia index with typed machine-readable relationship evidence after the hardened derivation passes.",
+      "artifactClass": "ANTI_AMNESIA_INDEX_REFRESH"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "4c9317ec9bc198706a68a341186c8b366d63bc6428c63789b650ae421200a9c8",
+      "byteLength": 4475,
+      "operation": "CREATE",
+      "reason": "Exact eleven-path cohort for the single final-blocker-closure successor transaction.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE_FAST_PATH_REPAIR_R1.json",
+      "sha256": "f6ca16efdc7be57c519f3dbb5aa0be0129f65e3487e43b2e9b762fb7cde560ff",
+      "byteLength": 2528,
+      "operation": "CREATE",
+      "reason": "Replacement single-use LOCAL_EXPLICIT_AUTHORITY bound to fbd5f512 for the unconsumed repair plus final-blocker closure, with no push, history rewrite, Gate transition or R8.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
 }

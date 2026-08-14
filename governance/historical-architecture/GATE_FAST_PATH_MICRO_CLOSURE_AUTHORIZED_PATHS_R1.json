@@ -1,0 +1,57 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE_FAST_PATH_MICRO_CLOSURE_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_GATE_FAST_PATH_CONTROL_PLANE_R1_MICRO_CLOSURE_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "RECEIPT_EXACT_BYTE_VALIDATION",
+      "reason": "Validate schema V2 consumption receipts against the exact authorized cohort, deterministic receipt self-exclusion and observed bytes while preserving historical schema V1 receipts.",
+      "artifactClass": "RECEIPT_EXACT_BYTE_VALIDATION"
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "RECEIPT_EXACT_BYTE_OBSERVATION",
+      "reason": "Observe SHA-256 and byte length for every non-self-excluded authorized cohort path so consumption verification is bound to real local bytes.",
+      "artifactClass": "RECEIPT_EXACT_BYTE_OBSERVATION"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_RECEIPT_TESTS",
+      "reason": "Cover valid exact-byte consumption plus hostile hash, length, path, authority, baseHead, self-exclusion and single-use cases.",
+      "artifactClass": "TARGETED_RECEIPT_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_REPAIR_CONSUMPTION_R1.json",
+      "operation": "MODIFY",
+      "phase": "REPAIR_RECEIPT_BYTE_BINDING",
+      "reason": "Bind the final blocker closure receipt to all eleven authorized repair paths, with the receipt itself deterministically self-excluded and every other path byte-exact.",
+      "artifactClass": "REPAIR_RECEIPT_BYTE_BINDING"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_MICRO_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact seven-path cohort for the one micro-closure successor transaction.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE_FAST_PATH_MICRO_CLOSURE_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to e9db5aff for the receipt-only micro-closure, without push, history rewrite, Gate transition or GEE revision.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/historical-architecture/GATE_FAST_PATH_MICRO_CLOSURE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Schema V2 single-use consumption receipt for the exact micro-closure cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE16_M3_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-14T15:27:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE16_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "CP-GATE16-M3-INDEPENDENT-EXTERNAL-CONFIRMATION",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "d94e35e1102326fd090d8126c3c3ff2dc7833a44",
+    "ledgerEventCount": 68,
+    "ledgerPrefixSha256": "3194dadf149c37280f45b456ed2bc9a3ec3e3daa99559519ef63664d798eea56",
+    "gateId": "GATE16",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE16_M3_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "e597748794aa11a41d69182ce05cfab34999cc7e946496c24ca17e4ed3e9572c",
+  "authorizedOperationClasses": ["EXTERNAL_CONFIRMATION"],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"],
+    "commitMessage": "governance: confirm GATE16 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE16_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "e3fb5739eef64ec396a4715abe5f52969b1aa5652ace4177b6eb12ab9e49a0fe"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "d94e35e1102326fd090d8126c3c3ff2dc7833a44"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE16_M3_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ],
+  "externalReinspectionReportPath": "governance/sources/GATE16_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "774202ab4ed6124b333cf4e25a64130c4f9ad3cd49d998640a5a37421012d74d"
+}

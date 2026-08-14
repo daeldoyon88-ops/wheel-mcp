@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "gateId": "GATE16",
-  "stateRevision": "R0003",
-  "revisionPath": "governance/gates/GATE16/state/revisions/R0003",
-  "stateSealSha256": "5e033964467265b48a302cbbced12d2658c2453b09e5b4d614fe4606b7edcdd8",
-  "committedByTransactionId": "GATE16_AGENT_CLOSURE_R1_TRANSACTION"
+  "stateRevision": "R0004",
+  "revisionPath": "governance/gates/GATE16/state/revisions/R0004",
+  "stateSealSha256": "7b21c404c0938abc815a620e193d8c939d7f00b905a6ecd9bc59b659e542d0f5",
+  "committedByTransactionId": "GATE16_M3_EXTERNAL_CONFIRMATION_R1_TRANSACTION"
 }

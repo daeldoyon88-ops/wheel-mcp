@@ -1,0 +1,88 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE16_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE16",
+  "programId": "GATE16_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "verifierId": "GATE16_M3_INDEPENDENT_REINSPECTION_R1",
+  "independentSession": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Canonical repository bytes at the COMPLETE_AGENT checkpoint; producer prose and generated projections were not used as authority.",
+  "preState": {
+    "baseHead": "d94e35e1102326fd090d8126c3c3ff2dc7833a44",
+    "ledgerEventCount": 68,
+    "ledgerPrefixSha256": "3194dadf149c37280f45b456ed2bc9a3ec3e3daa99559519ef63664d798eea56",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    {
+      "checkId": "G16-M3-01",
+      "subject": "canonical mandate and M1/M2 scope",
+      "result": "PASS",
+      "evidence": [
+        { "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc" },
+        { "path": "governance/gates/GATE16/contracts/CURRENT_CONTRACT.json", "sha256": "c1b9ba5dbbd97adeaa9ffa4c98b7a45e0bacfe70238a04a4ce6c8c61d15e0f96" }
+      ]
+    },
+    {
+      "checkId": "G16-M3-02",
+      "subject": "M2 independent crosscheck",
+      "result": "PASS",
+      "verifier": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+      "reportedTests": 22,
+      "passedTests": 22,
+      "coverage": { "mandatoryRequirementCount": 10, "uncoveredMandatoryClassCount": 0 },
+      "freshProcessReplay": { "verdict": "PASS", "identical": true },
+      "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+      "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5"
+    },
+    {
+      "checkId": "G16-M3-03",
+      "subject": "canonical ledger replay and state closure",
+      "result": "PASS",
+      "ledgerReplay": { "eventCount": 68, "replayedOrdinal": 68, "verdict": "PASS" },
+      "stateRevision": { "resolved": "R0003", "sealChain": ["R0001", "R0002", "R0003"], "verdict": "PASS" },
+      "counts": { "authorization": 1, "start": 1, "agentClosure": 1, "externalConfirmation": 0 }
+    },
+    {
+      "checkId": "G16-M3-04",
+      "subject": "GEE R2 to R7 live canonical fast path",
+      "result": "PASS",
+      "missionRevisionId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7",
+      "admission": { "verdict": "READY", "pass": 24, "fail": 0 },
+      "workset": { "routeDecision": "LOCAL_DETERMINISTIC", "blocked": 0, "requiredTests": ["governance/gates/GATE16/tests"] },
+      "r6": { "decision": "RESUME", "checkpointRevision": "R0002", "previousCheckpointRevision": "R0001", "restartedFromZero": false },
+      "r7": { "verdict": "PASS", "mode": "LIGHTWEIGHT", "heavyBenchmarkRequired": false },
+      "efficiencyReceiptSha256": "fe467777058159f3b23d4152b211203985ec62512912e3bae5d9d67a35137fb4"
+    },
+    {
+      "checkId": "G16-M3-05",
+      "subject": "future-gate and active-gate containment",
+      "result": "PASS",
+      "activeGate": "GATE13",
+      "futureGateStatuses": "GATE17-GATE40=NOT_STARTED",
+      "R8": "ABSENT",
+      "activeGateSemanticsChanged": false
+    },
+    {
+      "checkId": "G16-M3-06",
+      "subject": "independent identity and authority boundary",
+      "result": "PASS",
+      "producerOrSelfConfirmationUsed": false,
+      "newPrivateKeyOrSignature": false,
+      "networkAccess": false,
+      "push": false
+    }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE17PlusRemainNotStarted": true
+  },
+  "createdAt": "2026-08-14T15:26:00.000Z"
+}

@@ -1,0 +1,54 @@
+{
+  "gateId": "GATE16",
+  "stateRevision": "R0004",
+  "milestone": "GATE16_INDEPENDENT_CROSSCHECK",
+  "resumePoint": "GATE16 is COMPLETE_CONFIRMED after exactly one independent EXTERNAL_CONFIRMATION. Do not reopen GATE16, reissue AUTHORIZATION, START or AGENT_CLOSURE, switch ACTIVE_GATE, or create R8.",
+  "completedTasks": [
+    "AWAIT_START_AUTHORITY",
+    "GATE16_M1_READINESS_CONTRACT_AUTHORIZATION_START",
+    "GATE16_M2_IMPLEMENTATION_TESTS_EVIDENCE_AGENT_CLOSURE",
+    "GATE16_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION"
+  ],
+  "openTasks": [],
+  "reusableEvidence": [
+    {
+      "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+      "validUntilCondition": "valid while the GATE16 M2 artifact bytes and canonical contract remain byte-identical"
+    },
+    {
+      "path": "governance/sources/GATE16_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "774202ab4ed6124b333cf4e25a64130c4f9ad3cd49d998640a5a37421012d74d",
+      "validUntilCondition": "valid while the GATE16 R0004 state seal and confirmed ledger event remain byte-identical"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE16/contracts/CURRENT_CONTRACT.json",
+      "sha256": "c1b9ba5dbbd97adeaa9ffa4c98b7a45e0bacfe70238a04a4ce6c8c61d15e0f96"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/STATE_SEAL.json",
+      "sha256": "5e033964467265b48a302cbbced12d2658c2453b09e5b4d614fe4606b7edcdd8"
+    },
+    {
+      "path": "governance/sources/GATE16_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "774202ab4ed6124b333cf4e25a64130c4f9ad3cd49d998640a5a37421012d74d"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE16_M3_EXTERNAL_CONFIRMATION_R1.json",
+      "sha256": "4a2a43e35aee824111e0320941376a2f565996b0a42b89221d182115bded9ee2"
+    },
+    {
+      "path": "governance/historical-architecture/GATE16_M3_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "e597748794aa11a41d69182ce05cfab34999cc7e946496c24ca17e4ed3e9572c"
+    }
+  ],
+  "createdAt": "2026-08-14T15:27:30.000Z"
+}

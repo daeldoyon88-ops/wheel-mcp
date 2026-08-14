@@ -1,0 +1,31 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE16_M3_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "programId": "GATE16_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "manifestSha256": "e597748794aa11a41d69182ce05cfab34999cc7e946496c24ca17e4ed3e9572c",
+  "baseHead": "d94e35e1102326fd090d8126c3c3ff2dc7833a44",
+  "consumedUse": 1,
+  "transactionId": "GATE16_M3_EXTERNAL_CONFIRMATION_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T15:29:00.000Z",
+  "commitMessage": "governance: confirm GATE16 with independent confirmation",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE16_M3_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot contain a byte-for-byte hash of itself; it is authorized and counted in the manifest but excluded from its own cohort receipt."
+  },
+  "cohortPathCount": 13,
+  "cohort": [
+    { "path": "governance/sources/GATE16_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json", "sha256": "774202ab4ed6124b333cf4e25a64130c4f9ad3cd49d998640a5a37421012d74d", "byteLength": 3855, "operation": "CREATE", "reason": "Independent external reinspection report bound to the GATE16 COMPLETE_AGENT pre-state and independently verified M2 evidence.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs", "sha256": "9a668b720eca97a6e3fdc7bb4cd02eb0153e75b8770f27c8e518e06e2c3bd0c1", "byteLength": 5013, "operation": "MODIFY", "reason": "Registers the generic standard external-reinspection declaration for GATE16 without adding a Gate-specific lifecycle branch.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE16_M3_EXTERNAL_CONFIRMATION_R1.json", "sha256": "4a2a43e35aee824111e0320941376a2f565996b0a42b89221d182115bded9ee2", "byteLength": 2506, "operation": "CREATE", "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE16 COMPLETE_AGENT pre-state.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/historical-architecture/GATE16_M3_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json", "sha256": "e597748794aa11a41d69182ce05cfab34999cc7e946496c24ca17e4ed3e9572c", "byteLength": 4444, "operation": "CREATE", "reason": "Finite exact-file M3 cohort with no wildcard, directory blanket or unrelated user work.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE16/state/revisions/R0004/CHECKPOINT.json", "sha256": "0bc90f6809180db3f574dd79434496e0d6c59abaa0079c163eeeb5bb8e2bacae", "byteLength": 2462, "operation": "CREATE", "reason": "Immutable successor checkpoint consuming the R0003 COMPLETE_AGENT handoff.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE16/state/revisions/R0004/OPEN_DEFECTS.json", "sha256": "5ca9ae53f561a41de6ab5c8c9c4e0001724756b2ef71ae178a4b0273bc3e9a92", "byteLength": 70, "operation": "CREATE", "reason": "Closed-world R0004 defect projection for the independently confirmed terminal state.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json", "sha256": "7b21c404c0938abc815a620e193d8c939d7f00b905a6ecd9bc59b659e542d0f5", "byteLength": 2534, "operation": "CREATE", "reason": "Native R0004 state seal chained from R0003 and pinned by the confirmation event.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/gates/GATE16/state/CURRENT_STATE.json", "sha256": "8b0531f0f8e816caa4dcccd2eb370b35ff885da10f12a32083f12fb13d8b820b", "byteLength": 311, "operation": "MODIFY", "reason": "Advances the canonical GATE16 state pointer to COMPLETE_CONFIRMED R0004.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "sha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb", "byteLength": 38777, "operation": "MODIFY", "reason": "Appends exactly one GATE16 EXTERNAL_CONFIRMATION event after the immutable 68-event prefix.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json", "sha256": "e02933ebaf850b2f144d75ace584af52caaf69eb719b81d103b6284053750528", "byteLength": 15546, "operation": "MODIFY", "reason": "Regenerates the derived status projection from the confirmed canonical ledger.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/generated/ACTIVE_GATE_CONTEXT.json", "sha256": "90a409e648d727ff04421902b6437e4b638af3a8b7dcf80a52290855c37f2653", "byteLength": 1138, "operation": "MODIFY", "reason": "Refreshes the derived context while preserving ACTIVE_GATE semantics and active GATE13.", "artifactClass": "EXTERNAL_CONFIRMATION" },
+    { "path": "governance/generated/ACTIVE_GATE_CONTEXT.md", "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2", "byteLength": 126, "operation": "MODIFY", "reason": "Runs the existing derived context generator for the exact M3 projection cohort.", "artifactClass": "EXTERNAL_CONFIRMATION" }
+  ]
+}

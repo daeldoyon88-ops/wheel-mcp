@@ -1,0 +1,26 @@
+{
+  "gateId": "GATE16",
+  "stateRevision": "R0001",
+  "milestone": "GATE16_INDEPENDENT_CROSSCHECK",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [
+    "GATE16_M1_FAST_PATH_R2_R7_READY"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "AWAIT_START_AUTHORITY"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE16/contracts/CURRENT_CONTRACT.json",
+      "sha256": "c1b9ba5dbbd97adeaa9ffa4c98b7a45e0bacfe70238a04a4ce6c8c61d15e0f96"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+    }
+  ],
+  "createdAt": "2026-08-14T13:53:54.831Z"
+}

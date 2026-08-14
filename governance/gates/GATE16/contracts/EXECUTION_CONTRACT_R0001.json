@@ -1,0 +1,149 @@
+{
+  "gateId": "GATE16",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+    "gateId": "GATE16",
+    "canonicalObjectiveSha256": "eca3f7fa23e544a9413c3c65620ef3f0eeeadd455c66a40fcd2eb7edf1c95c07"
+  },
+  "canonicalRequirements": [
+    { "requirementId": "G16-ENTRY-01", "statement": "GATE15 is COMPLETE_CONFIRMED under its canonical lifecycle before GATE16 execution.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/entryConditions/0" },
+    { "requirementId": "G16-ENTRY-02", "statement": "A separate GATE16 execution contract and exact authority scope exist.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/entryConditions/1" },
+    { "requirementId": "G16-ENTRY-03", "statement": "The producer and independent verifier identities are distinct and resolvable.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/entryConditions/2" },
+    { "requirementId": "G16-ENTRY-04", "statement": "No invalidation basis is asserted for already valid closed Gates.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/entryConditions/3" },
+    { "requirementId": "G16-CROSSCHECK-01", "statement": "Every mandatory closure claim has an admissible independent verifier.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/closureConditions/0" },
+    { "requirementId": "G16-CROSSCHECK-02", "statement": "The verifier recalculates the verdict from canonical inputs without treating the producer verdict as authority.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/closureConditions/1" },
+    { "requirementId": "G16-CROSSCHECK-03", "statement": "All evidence and hashes bind to the declared source bytes.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/closureConditions/2" },
+    { "requirementId": "G16-CROSSCHECK-04", "statement": "Circular validation and unsupported closure claims are rejected.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/closureConditions/3" },
+    { "requirementId": "G16-CROSSCHECK-05", "statement": "Independent replay produces identical verdicts and evidence digests.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/closureConditions/4" },
+    { "requirementId": "G16-CROSSCHECK-06", "statement": "No unrelated regression identity is introduced.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/0/closureConditions/5" }
+  ],
+  "requiredInputs": [
+    { "path": "governance/PROJECT_CONSTITUTION.json", "role": "SUPREME_AUTHORITY", "mutable": false, "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8" },
+    { "path": "governance/GATE_REGISTRY_00_40.json", "role": "STRATEGIC_REGISTRY", "mutable": false, "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7" },
+    { "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "role": "CANONICAL_MANDATE", "mutable": false, "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc" },
+    { "path": "governance/gates/GATE15/state/CURRENT_STATE.json", "role": "TERMINAL_DEPENDENCY_STATE", "mutable": false, "sha256": "01f95fecff2f94e5f0dc49f4ffe10b64728c2a66f450af123edbb6e2fa985975" },
+    { "path": "governance/state/GATE_STATUS_LEDGER.ndjson", "role": "CANONICAL_PRESTATE_LEDGER", "mutable": false, "sha256": "0607f8a0725f20406013905904f3a8ea1c1772f59c034af395a066dc4afa5f41", "eventCount": 65, "lastEventSha256": "327ff488d04dfa9729e8b73305e6ba95287547ad38c0d62a78843c06c68479b0" },
+    { "path": "governance/active/ACTIVE_GATE.json", "role": "ACTIVE_GATE_PRESTATE", "mutable": false, "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9" }
+  ],
+  "requiredOutputs": [
+    { "ordinal": 1, "path": "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json", "role": "Canonical independent-crosscheck policy" },
+    { "ordinal": 2, "path": "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json", "role": "Independent verifier and verdict registry" },
+    { "ordinal": 3, "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs", "role": "Production independent-crosscheck validator" },
+    { "ordinal": 4, "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs", "role": "Positive, negative, counter and hostile tests" },
+    { "ordinal": 5, "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json", "role": "Recalculated crosscheck report with evidence bindings" }
+  ],
+  "validators": [
+    "node governance/tools/gate-preexecution-reuse-check.mjs --gate GATE16",
+    "node governance/tools/gate-fast-path-control-plane.mjs --gate GATE16 --phase READINESS",
+    "node governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit GATE16",
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE16/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE16/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-gate-registry.mjs",
+    "node governance/tools/validate-gate-authorization-authority.mjs --gate-id GATE16",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE16",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE16/state/revisions/R0001/STATE_SEAL.json",
+    "node governance/tools/validate-active-gate.mjs"
+  ],
+  "positiveTests": [
+    { "testId": "G16-POS-01", "requirementId": "G16-CROSSCHECK-01", "case": "distinct producer and independent verifier identities with admissible authority", "expected": "PASS" },
+    { "testId": "G16-POS-02", "requirementId": "G16-CROSSCHECK-02", "case": "verdict recalculated from canonical inputs without consuming producer PASS as authority", "expected": "PASS" },
+    { "testId": "G16-POS-03", "requirementId": "G16-CROSSCHECK-03", "case": "source and evidence bytes reproduce every declared hash", "expected": "PASS" },
+    { "testId": "G16-POS-04", "requirementId": "G16-CROSSCHECK-05", "case": "fresh-process replay returns identical verdict and evidence digest", "expected": "PASS" }
+  ],
+  "negativeTests": [
+    { "testId": "G16-NEG-01", "requirementId": "G16-CROSSCHECK-01", "mutation": "use the producer as the independent verifier", "expected": "BLOCKED", "reasonCode": "PRODUCER_AUDITOR_NOT_DISTINCT" },
+    { "testId": "G16-NEG-02", "requirementId": "G16-CROSSCHECK-02", "mutation": "replace recalculation with the producer PASS field", "expected": "BLOCKED", "reasonCode": "PRODUCER_VERDICT_USED_AS_AUTHORITY" },
+    { "testId": "G16-NEG-03", "requirementId": "G16-CROSSCHECK-03", "mutation": "change a bound source byte without changing its hash", "expected": "BLOCKED", "reasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH" },
+    { "testId": "G16-NEG-04", "requirementId": "G16-CROSSCHECK-04", "mutation": "remove an evidence edge or assert an unsupported closure", "expected": "BLOCKED", "reasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE" },
+    { "testId": "G16-NEG-05", "requirementId": "G16-CROSSCHECK-05", "mutation": "alter replay inputs between independent processes", "expected": "BLOCKED", "reasonCode": "NON_DETERMINISTIC_REPLAY" }
+  ],
+  "countertests": [
+    { "counterTestId": "G16-CT-01", "target": "verifier identity", "mutation": "make producer and verifier identities equal", "expected": "independence rejection" },
+    { "counterTestId": "G16-CT-02", "target": "verdict calculation", "mutation": "hardcode PASS while changing canonical input", "expected": "recalculation rejection" },
+    { "counterTestId": "G16-CT-03", "target": "evidence graph", "mutation": "remove or redirect a source edge", "expected": "binding rejection" },
+    { "counterTestId": "G16-CT-04", "target": "fresh-process replay", "mutation": "change one replay input byte", "expected": "deterministic identity mismatch" },
+    { "counterTestId": "G16-CT-05", "target": "closure scope", "mutation": "introduce an unrelated regression identity", "expected": "scope rejection" }
+  ],
+  "reuseRules": [
+    "Reuse only fast-path R4 evidence whose exact source bytes and identities remain unchanged.",
+    "Producer PASS, generated projections and summaries never bootstrap independent authority.",
+    "The sealed GATE15 COMPLETE_CONFIRMED state is reusable while its ledger-bound cohort remains byte-identical."
+  ],
+  "invalidationRules": [
+    "Any change to the registry, mandate, dependency state, ledger or validator bytes invalidates the affected identity.",
+    "Unknown, stale, contradictory or unverified evidence is non-reusable and blocks closed claims.",
+    "Any producer-auditor identity collision, source-hash mismatch or replay drift invalidates the crosscheck."
+  ],
+  "forbiddenReplays": [
+    "Re-executing valid closed Gates without an admissible invalidation basis.",
+    "Using a producer summary, self-attested PASS or generated projection as independent authority.",
+    "Any network call, broker write, Git push, history rewrite, ACTIVE_GATE switch or GEE R8 creation.",
+    "Hardcoded PASS, fabricated evidence, future leakage, parallel authority or circular validation.",
+    "Implementation or closure of GATE17 or any later Gate in this mission."
+  ],
+  "packagingRequirements": [
+    "Stable UTF-8 JSON and exact slash-separated repository-relative paths.",
+    "All identities use recomputed SHA-256 over the actual bytes.",
+    "Generated views are projections and never canonical authority."
+  ],
+  "closureConditions": [
+    "Every mandatory closure claim has an admissible independent verifier.",
+    "The verifier recalculates the verdict from canonical inputs and does not consume the producer verdict as authority.",
+    "All evidence and hashes bind to the declared source bytes.",
+    "Circular validation and unsupported closure claims are rejected.",
+    "Independent replay produces identical verdicts and evidence digests.",
+    "No unrelated regression identity is introduced."
+  ],
+  "nextGateAuthorizationConditions": [
+    "GATE16 must reach COMPLETE_CONFIRMED through its own independent-crosscheck lifecycle before GATE17 can be considered.",
+    "GATE17 requires a separate execution contract and exact authority scope.",
+    "GATE16 PASS does not authorize GATE17 execution or any later Gate."
+  ],
+  "performanceBudget": {
+    "targetMinutes": 180,
+    "expectedMaximumMinutes": 300,
+    "closeoutStartMinutes": 270,
+    "absoluteMaximumMinutes": 480
+  },
+  "checkpointPolicy": {
+    "milestones": ["GATE16_INDEPENDENT_CROSSCHECK"],
+    "checkpointRequired": true,
+    "resumeContractRequired": true,
+    "restartFromZeroForbidden": true
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+    "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+    "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+    "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+    "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json"
+  ],
+  "requiredPolicyIds": [
+    "MAIN_AGENT_ONLY",
+    "SUBAGENTS_FORBIDDEN_BY_DEFAULT",
+    "NETWORK_FORBIDDEN_BY_DEFAULT",
+    "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+    "DANGEROUS_GIT_COMMANDS_FORBIDDEN",
+    "AUTHORIZED_PATHS_ONLY",
+    "NO_RESTART_FROM_ZERO",
+    "RESUME_FROM_CHECKPOINT",
+    "NO_HARDCODED_PASS",
+    "NO_CIRCULAR_VALIDATION",
+    "NO_FUTURE_LEAKAGE",
+    "NO_GATE_MANDATE_REDEFINITION",
+    "BLOCK_ON_AUTHORITY_CONFLICT",
+    "DETERMINISTIC_OPERATIONS_LOCAL",
+    "SEPARATE_SESSION_REINSPECTION",
+    "GENERATED_FILES_NON_CANONICAL",
+    "HISTORICAL_REJECTED_NOT_ACTIVE"
+  ],
+  "sourceReferences": [
+    { "sourceId": "GATE16_40_OWNER_RATIFICATION_R2", "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "sha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc", "evidence": "Canonical GATE16 mandate, entry conditions, outputs and closure conditions." },
+    { "sourceId": "GATE_REGISTRY_00_40", "path": "governance/GATE_REGISTRY_00_40.json", "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7", "evidence": "Canonical GATE16 identity, objective and dependency projection." },
+    { "sourceId": "GATE15_COMPLETE_CONFIRMED_STATE", "path": "governance/gates/GATE15/state/CURRENT_STATE.json", "sha256": "01f95fecff2f94e5f0dc49f4ffe10b64728c2a66f450af123edbb6e2fa985975", "evidence": "Closed predecessor state consumed without re-execution." },
+    { "sourceId": "PROJECT_CONSTITUTION_R3", "path": "governance/PROJECT_CONSTITUTION.json", "sha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8", "evidence": "Fail-closed governance and Git containment rules." },
+    { "sourceId": "GEE_V1_R1_R7", "path": "governance/gee-v1", "evidence": "Canonical GEE fast-path and recovery machinery." }
+  ]
+}

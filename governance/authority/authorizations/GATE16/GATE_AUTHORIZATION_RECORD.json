@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "document": "GATE_AUTHORIZATION_RECORD",
+  "authorizationId": "GATE_AUTHORIZATION_GATE16_R1",
+  "projectId": "WHEEL",
+  "gateId": "GATE16",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "recordedAt": "2026-08-14T13:53:54.831Z",
+  "baseCommit": "02decf0eec116ba55b757c5f700eea8493653a5a",
+  "preLedgerSha256": "0607f8a0725f20406013905904f3a8ea1c1772f59c034af395a066dc4afa5f41",
+  "previousEventSha256": "327ff488d04dfa9729e8b73305e6ba95287547ad38c0d62a78843c06c68479b0",
+  "contractSha256": "0f14e3d96d609588a6d25d792bb3c78f2bf50eded752887d656235ef6a85929b",
+  "currentContractSha256": "c1b9ba5dbbd97adeaa9ffa4c98b7a45e0bacfe70238a04a4ce6c8c61d15e0f96",
+  "dependencyProof": {
+    "gateId": "GATE15",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "2d94b9ca982ed9d3752e84b38ecfbb9ae5eb5c6267969acbaff2fa838b329c9f"
+  },
+  "stateRevision": "R0001",
+  "authorizedStateArtifacts": [
+    { "cohortRole": "CURRENT_STATE", "repoRelativePath": "governance/gates/GATE16/state/CURRENT_STATE.json", "sha256": "7bea08209c3d7486751e4107d9241e2144e39d6483c93f220e5cc42124891ff2", "byteLength": 300 },
+    { "cohortRole": "CHECKPOINT", "repoRelativePath": "governance/gates/GATE16/state/revisions/R0001/CHECKPOINT.json", "sha256": "a601fc4444bfbf5b1da930c535ca68129c5e0601da8c1f327f314b7565d11367", "byteLength": 731 },
+    { "cohortRole": "OPEN_DEFECTS", "repoRelativePath": "governance/gates/GATE16/state/revisions/R0001/OPEN_DEFECTS.json", "sha256": "84d2d1dbb7c7cd7f8f43a9c962410f4839a3049592c7fd2bf07d3091f6c46ead", "byteLength": 70 },
+    { "cohortRole": "STATE_SEAL", "repoRelativePath": "governance/gates/GATE16/state/revisions/R0001/STATE_SEAL.json", "sha256": "6df9c5962053d9c74296c4653bfa3b517852e4697c0aa12bbfd54e02a350653e", "byteLength": 1178 }
+  ],
+  "authorizedDerivedArtifacts": [
+    { "cohortRole": "GATE_STATUS_SNAPSHOT", "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json" },
+    { "cohortRole": "ACTIVE_GATE", "repoRelativePath": "governance/active/ACTIVE_GATE.json" },
+    { "cohortRole": "ACTIVE_GATE_CONTEXT_JSON", "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json" },
+    { "cohortRole": "ACTIVE_GATE_CONTEXT_MD", "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md" }
+  ],
+  "prohibitedOperations": [
+    "START",
+    "GATE_EXECUTION",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION"
+  ],
+  "executionAuthorized": false,
+  "reason": "GATE15 is COMPLETE_CONFIRMED; GATE16 R0001 contract and first sealed state are present and hash-bound. This record authorizes only the single NOT_STARTED to AUTHORIZED_NOT_STARTED transition; START and execution remain separately authorized."
+}

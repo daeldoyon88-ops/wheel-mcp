@@ -1,0 +1,35 @@
+{
+  "gateId": "GATE16",
+  "stateRevision": "R0002",
+  "milestone": "GATE16_INDEPENDENT_CROSSCHECK",
+  "resumePoint": "IN_PROGRESS",
+  "completedTasks": [
+    "AWAIT_START_AUTHORITY",
+    "GATE16_M1_READINESS_CONTRACT_AUTHORIZATION_START"
+  ],
+  "openTasks": [
+    "GATE16_M2_IMPLEMENTATION_TESTS_EVIDENCE_AGENT_CLOSURE"
+  ],
+  "reusableEvidence": [
+    "GATE16_M1_FAST_PATH_R2_R7_READY"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE16_M2_IMPLEMENTATION_TESTS_EVIDENCE_AGENT_CLOSURE"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE16/contracts/CURRENT_CONTRACT.json",
+      "sha256": "c1b9ba5dbbd97adeaa9ffa4c98b7a45e0bacfe70238a04a4ce6c8c61d15e0f96"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "6df9c5962053d9c74296c4653bfa3b517852e4697c0aa12bbfd54e02a350653e"
+    }
+  ],
+  "createdAt": "2026-08-14T14:05:00.000Z"
+}

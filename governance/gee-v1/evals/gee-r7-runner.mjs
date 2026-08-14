@@ -71,8 +71,64 @@ const SYNTHETIC_TASKS = Object.freeze([
   { taskId: 't:c', intent: 'DETERMINISTIC', sources: ['fixtures/canonical.json'], produces: ['e:c'], requiredEvidenceIds: ['e:c'], mandatory: false }
 ]);
 
-function tempRoot(prefix = 'gee-r7-') {
+/**
+ * Ephemeral execution scratch owned by this runner.
+ *
+ * Every temporary root this file allocates is disposable per-run scratch: it is
+ * never the durable R4 CAS or R6 lifecycle/checkpoint store, both of which live
+ * under their own governed directories and are untouched here. Each runner
+ * entry point opens a scope; every allocation registers into the innermost open
+ * scope; the scope removes exactly the roots it allocated on the way out, on
+ * success and on throw alike.
+ *
+ * Removal is bounded to an exact owned path: a direct child of the process temp
+ * directory whose name carries the runner prefix. Nothing wildcard, nothing
+ * age-based, nothing at the parent level. A failed removal is swallowed rather
+ * than retried against a broader target.
+ */
+export const EPHEMERAL_ROOT_PREFIX = 'gee-r7-';
+const ephemeralScopes = [];
+
+export function isRunnerOwnedEphemeralRoot(candidate) {
+  if (typeof candidate !== 'string' || candidate.length === 0) return false;
+  const resolved = path.resolve(candidate);
+  const parent = path.resolve(os.tmpdir());
+  if (resolved === parent) return false;
+  if (path.dirname(resolved) !== parent) return false;
+  return path.basename(resolved).startsWith(EPHEMERAL_ROOT_PREFIX);
+}
+
+export function allocateEphemeralRoot(prefix = EPHEMERAL_ROOT_PREFIX) {
+  if (!String(prefix).startsWith(EPHEMERAL_ROOT_PREFIX)) throw new Error(`R7_EPHEMERAL_ROOT_PREFIX_INVALID:${prefix}`);
+  if (ephemeralScopes.length === 0) throw new Error(`R7_EPHEMERAL_ROOT_ALLOCATED_OUTSIDE_SCOPE:${prefix}`);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  ephemeralScopes[ephemeralScopes.length - 1].push(root);
+  return root;
+}
+
+function removeEphemeralRoot(root) {
+  if (!isRunnerOwnedEphemeralRoot(root)) return false;
+  try {
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 25 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function withEphemeralRootScope(callback) {
+  const scope = [];
+  ephemeralScopes.push(scope);
+  try {
+    return callback();
+  } finally {
+    ephemeralScopes.pop();
+    for (let index = scope.length - 1; index >= 0; index -= 1) removeEphemeralRoot(scope[index]);
+  }
+}
+
+function tempRoot(prefix = EPHEMERAL_ROOT_PREFIX) {
+  const root = allocateEphemeralRoot(prefix);
   fs.mkdirSync(path.join(root, 'src'), { recursive: true });
   fs.mkdirSync(path.join(root, 'fixtures'), { recursive: true });
   fs.writeFileSync(path.join(root, 'src', 'a.json'), '{"a":1}\n');
@@ -145,7 +201,7 @@ function syntheticPlan(root, cas, { mutate = null, tasks = null, repairLedger = 
 }
 
 function cloneGovernanceRepo(prefix = 'gee-r7-wheel-') {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const root = allocateEphemeralRoot(prefix);
   fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
   return root;
 }
@@ -447,7 +503,7 @@ function routeCapabilitySummary(plans) {
   return counts;
 }
 
-export function runAuthorityAndScope({ outputRoot = null } = {}) {
+function runAuthorityAndScopeInternal({ outputRoot = null } = {}) {
   const contract = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, R7_CONTRACT_PATH), 'utf8'));
   const positive = [
     'governance/gee-v1/evals/gee-r7-eval-suite.json',
@@ -472,7 +528,11 @@ export function runAuthorityAndScope({ outputRoot = null } = {}) {
   return result;
 }
 
-export function runEvalSuite({ outputRoot = null } = {}) {
+export function runAuthorityAndScope(options = {}) {
+  return withEphemeralRootScope(() => runAuthorityAndScopeInternal(options));
+}
+
+function runEvalSuiteInternal({ outputRoot = null } = {}) {
   const results = [];
   function record(id, objective, expectedRoute, observed, quality, usage) {
     const evaluation = evaluateRouteExpectation({
@@ -522,7 +582,7 @@ export function runEvalSuite({ outputRoot = null } = {}) {
 
   {
     const root = cloneGovernanceRepo('gee-r7-e07-');
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-e07-state-'));
+    const stateDir = allocateEphemeralRoot('gee-r7-e07-state-');
     const started = JSON.parse(execFileSync(process.execPath, [CHILD, 'interrupt', root, stateDir], { encoding: 'utf8' }));
     fs.appendFileSync(path.join(root, 'governance', 'GATE_REGISTRY_00_40.json'), '\n');
     fs.writeFileSync(path.join(root, 'unrelated-root-file.txt'), 'irrelevant mutation');
@@ -549,6 +609,10 @@ export function runEvalSuite({ outputRoot = null } = {}) {
   const artifact = { suite: 'GEE_V1_R7_EVAL_SUITE', version: 1, total: results.length, pass: results.filter((entry) => entry.verdict === 'PASS').length, fail: results.filter((entry) => entry.verdict !== 'PASS').length, evals: results };
   if (outputRoot !== null) writeJson('governance/gee-v1/evals/gee-r7-eval-suite.json', artifact, outputRoot);
   return artifact;
+}
+
+export function runEvalSuite(options = {}) {
+  return withEphemeralRootScope(() => runEvalSuiteInternal(options));
 }
 
 function runWheelMode({ context, previousSnapshot = null, previousGraph = null, previousRepoIndex = null, cas }) {
@@ -580,7 +644,7 @@ function withCanonicalBenchmarkEnvironment(callback) {
 function runBenchmarkInternal({ outputRoot = null } = {}) {
   const benchmarkRoot = cloneGovernanceRepo('gee-r7-benchmark-wheel-');
   const benchmarkContext = assertR7BenchmarkContext({ repoRoot: benchmarkRoot });
-  const casRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-benchmark-cas-')); const cas = createContentAddressedStore(path.join(casRoot, 'cas'));
+  const casRoot = allocateEphemeralRoot('gee-r7-benchmark-cas-'); const cas = createContentAddressedStore(path.join(casRoot, 'cas'));
   const empty = createSnapshot({ repoRoot: benchmarkRoot, sources: [] });
   const baseline = runWheelMode({ context: benchmarkContext, cas, previousSnapshot: empty });
   const gee = runWheelMode({ context: benchmarkContext, cas, previousSnapshot: baseline.currentSnapshot, previousGraph: baseline.evaluated.graph, previousRepoIndex: baseline.repoIndex });
@@ -689,11 +753,11 @@ function runBenchmarkInternal({ outputRoot = null } = {}) {
 }
 
 export function runBenchmark(options = {}) {
-  return withCanonicalBenchmarkEnvironment(() => runBenchmarkInternal(options));
+  return withEphemeralRootScope(() => withCanonicalBenchmarkEnvironment(() => runBenchmarkInternal(options)));
 }
 
-export function runRecoveryStress({ outputRoot = null } = {}) {
-  const root = cloneGovernanceRepo('gee-r7-recovery-'); const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-recovery-state-'));
+function runRecoveryStressInternal({ outputRoot = null } = {}) {
+  const root = cloneGovernanceRepo('gee-r7-recovery-'); const stateDir = allocateEphemeralRoot('gee-r7-recovery-state-');
   const interrupted = JSON.parse(execFileSync(process.execPath, [CHILD, 'interrupt', root, stateDir], { encoding: 'utf8' }));
   fs.appendFileSync(path.join(root, 'governance', 'GATE_REGISTRY_00_40.json'), '\n');
   fs.writeFileSync(path.join(root, 'unrelated-root-file.txt'), 'irrelevant mutation');
@@ -710,7 +774,11 @@ export function runRecoveryStress({ outputRoot = null } = {}) {
   return result;
 }
 
-export function runHostileAudit({ outputRoot = null } = {}) {
+export function runRecoveryStress(options = {}) {
+  return withEphemeralRootScope(() => runRecoveryStressInternal(options));
+}
+
+function runHostileAuditInternal({ outputRoot = null } = {}) {
   const attacks = [];
   function attack(id, expected, observed, invariantPreserved, reason = null) {
     const reasonMatches = reason === null ? true : reason.matches === true;
@@ -823,6 +891,10 @@ export function runHostileAudit({ outputRoot = null } = {}) {
   const result = { audit: 'GEE_V1_R7_HOSTILE_AUDIT', total: attacks.length, pass: attacks.filter((entry) => entry.verdict === 'PASS').length, fail: failed.length, invalid: invalid.length, materialDefects: [...new Set([...failed.map((entry) => `${entry.id}:HOSTILE_FAILURE`), ...invalid.map((entry) => `${entry.id}:INVALID_TARGET_REASON`)])], reasonValidation: { requiresInvariantAndReason: true, invalidTargetReasonCount: invalid.length }, attacks };
   if (outputRoot !== null) writeJson('governance/gee-v1/benchmarks/gee-r7-hostile-audit.json', result, outputRoot);
   return result;
+}
+
+export function runHostileAudit(options = {}) {
+  return withEphemeralRootScope(() => runHostileAuditInternal(options));
 }
 
 function readR7Artifacts({ outputRoot = REPO_ROOT, sourceRoot = REPO_ROOT } = {}) {

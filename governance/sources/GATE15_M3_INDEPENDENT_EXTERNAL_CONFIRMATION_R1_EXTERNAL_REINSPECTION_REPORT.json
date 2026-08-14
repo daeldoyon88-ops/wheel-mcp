@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE15",
+  "programId": "GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "independentSession": true,
+  "reinspectionCompletedAt": "2026-08-14T12:10:09.625Z",
+  "ledgerEventCount": 64,
+  "ledgerSha256": "7302dc2e0949cec678345503185b359b70fcdc3620154deb89921bce068c906d",
+  "agentClosureOrdinal": 64,
+  "agentClosureEventId": "GATE15_AGENT_CLOSURE_R1",
+  "agentClosureStateRevision": "R0003",
+  "agentClosureStateSealSha256": "2db3be2092bd279add89d7316dd20aa96beb0bdb9d643ad8d2527087db0bc9c6",
+  "contractRevision": "R0001",
+  "contractSha256": "228f10465391700f37acc723d5878a4f8bc592c9e9833b06d68845546a776039",
+  "sourceAgentClosureHandoffPath": "governance/gates/GATE15/evidence/GATE15_AGENT_CLOSURE_HANDOFF_R1.json",
+  "sourceAgentClosureHandoffSha256": "ec8f596a5d0b5a4cf0eab1032da3603b4161729318ecb5ba01ab2764f3a5c344",
+  "sourceM2EvidencePath": "governance/gates/GATE15/evidence/ANTI_INVENTION_VALIDATION_EVIDENCE.json",
+  "sourceM2EvidenceSha256": "9e4a8ac6bebb75177b15a51919e14a3cf330984b05831998df6ec5c35a286a5d",
+  "sourceM2EvidenceUnchanged": true,
+  "functionalEvidence": {
+    "m2Tests": "30/30 PASS",
+    "mandatoryClasses": 14,
+    "declaredValidators": 6,
+    "exercisedValidators": 6,
+    "closureConditions": "G15-CLOSE-01..10 PASS",
+    "antiInventionValidatorOutputDigest": "88a60e7bc8106790d5bb98fb3f360f7c19dec66214f742f3689c8183680b6dac",
+    "coverageValidatorOutputDigest": "6dd46d07ba9fb3f08ca8cff6fe6478d2ac1a4504f0b0e548c32b9fa9760c3309",
+    "m2EvidenceVerdict": "PASS"
+  },
+  "geeFastPath": {
+    "executionContract": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7",
+    "r2ContextSha256": "504dfa8c41a3bd1f9457c048e1365f3eaa11a165602b9e1c516b66f1467e5815",
+    "r3SnapshotSha256": "1004b23f4e373b2fe51e4cd48efc2e7dfe9523c7644b7b50d8c6268a242f9123",
+    "r4EvidenceGraphSha256": "1c999709829900f31f8e8e9a4860f97b4ff0be8d934ded0faf19cff7778631d6",
+    "r5RoutePlanSha256": "46716e36b10d65460a2cd5eca9ec12c106b9bf61494b00e2b4bb3927173aa379",
+    "r5TaskCount": 7,
+    "r6ResumeDecision": "RESUME",
+    "r6ResumeReason": "CHECKPOINT_HAS_NO_COMPLETED_WORK_TO_REUSE",
+    "r6DurableCheckpointRevision": "R0002",
+    "r6ReusedTaskCount": 2,
+    "r6PendingTaskCount": 5,
+    "r7LightweightVerdict": "PASS",
+    "r7HeavyBenchmarkRequired": false,
+    "r7BlockingFacts": []
+  },
+  "genericLifecycle": {
+    "postFreezeAuthorityTests": "86/86 PASS",
+    "localExplicitAuthorityTests": "3/3 PASS",
+    "purpose": "GATE_EXTERNAL_CONFIRMATION",
+    "onlyExternalConfirmationAuthorized": true,
+    "historicalSemanticsUnchanged": true,
+    "ordinaryMaintenanceSemanticsUnchanged": true,
+    "agentClosureAuthorityNotReused": true,
+    "newKeySignatureOrPki": false,
+    "genericReusableJunction": true
+  },
+  "historicalReplay": {
+    "ledgerIntegrity": "PASS",
+    "stateLineageR0001ToR0003": "PASS",
+    "currentState": "GATE15 COMPLETE_AGENT R0003",
+    "activeGate": "GATE13",
+    "gate16ToGate40": "NOT_STARTED",
+    "R8": "ABSENT",
+    "externalConfirmationBeforeM3": 0,
+    "agentClosureEvents": 1,
+    "authorizationAndStartReissued": false
+  },
+  "timing": {
+    "m2EvidencePreExistedThisReinspection": true,
+    "agentClosureEvidencePreExistedThisReinspection": true,
+    "newEvidenceFabricatedOrResealed": false,
+    "reportIsIndependentOfM2Producer": true
+  },
+  "regression": {
+    "newUnrelatedFailureIdentities": 0,
+    "basis": "Independent GATE15 reinspection against the frozen R0003 checkpoint; unrelated dirty user work remained outside the governed scope."
+  },
+  "scope": {
+    "unauthorizedGovernancePaths": 0,
+    "unrelatedUserWorkIncorporated": 0,
+    "wildcard": false,
+    "classification": "GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION_ONLY"
+  },
+  "advisoryFindings": [
+    {
+      "code": "VALIDATOR_PROVENANCE_MANIFEST_DRIFT_PREEXISTING",
+      "detail": "The tracked validator-provenance manifest declares older bytes for validate-status-ledger.mjs and validate-post-freeze-maintenance-authority.mjs; current clean HEAD bytes were not modified in M3."
+    },
+    {
+      "code": "GEE_HISTORICAL_TEST_FIXTURE_DRIFT_PREEXISTING",
+      "detail": "The broad gate-fast-path-control-plane suite is 27/31 because four historical fixture expectations target prior state assumptions; the live GATE15 path and current GEE post-freeze suite remain independently validated."
+    }
+  ],
+  "blockingFindings": [],
+  "verdict": "PASS"
+}

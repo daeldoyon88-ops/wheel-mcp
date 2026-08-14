@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE15_M3_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1",
+  "programId": "GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "paths": [
+    {
+      "path": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Independent external reinspection report bound to the GATE15 COMPLETE_AGENT pre-state and standard reusable report shape.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/external-authority-policy.mjs",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Registers the generic standard external-reinspection declaration without adding a Gate-specific validator branch.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE15_M3_EXTERNAL_CONFIRMATION_R1.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE15 COMPLETE_AGENT R0003 pre-state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE15_M3_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Finite exact-file M3 cohort with no wildcard, directory blanket, or unrelated user work.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/historical-architecture/GATE15_M3_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Single-use consumption receipt binding the distinct authority, manifest and exact final cohort.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0004/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Immutable successor checkpoint consuming the R0003 AGENT_CLOSURE resume contract.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0004/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Closed-world R0004 defect projection for the confirmed terminal state.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE15/state/revisions/R0004/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Native R0004 state seal chained from R0003 and pinned by the confirmation event.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/gates/GATE15/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Advances the canonical GATE15 state pointer to COMPLETE_CONFIRMED R0004.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Appends exactly one GATE15 EXTERNAL_CONFIRMATION event after the immutable 64-event prefix.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Regenerates the derived status projection from the confirmed canonical ledger.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Refreshes the derived context while preserving ACTIVE_GATE semantics and active GATE13.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_CONFIRMATION",
+      "reason": "Runs the existing derived context generator for the exact M3 projection cohort.",
+      "artifactClass": "EXTERNAL_CONFIRMATION"
+    }
+  ]
+}

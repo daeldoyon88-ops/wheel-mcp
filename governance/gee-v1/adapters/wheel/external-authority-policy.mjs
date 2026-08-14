@@ -25,8 +25,9 @@
  * evidence the seal already cites usable by the ledger's transition-authority resolver.
  */
 
-export const WHEEL_EXTERNAL_AUTHORITY_POLICY = Object.freeze({
-  extraExternalAuthorities: [
+const STANDARD_EXTERNAL_REINSPECTION_REPORT = 'STANDARD_EXTERNAL_REINSPECTION_REPORT';
+
+const EXTERNAL_REINSPECTION_DECLARATIONS = Object.freeze([
     {
       authorityId: 'WHEEL-GATE13-INDEPENDENT-VERDICT-20260808-093157',
       classification: 'EXTERNAL_REINSPECTION_REPORT',
@@ -37,9 +38,24 @@ export const WHEEL_EXTERNAL_AUTHORITY_POLICY = Object.freeze({
       authorityId: 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT',
       classification: 'EXTERNAL_REINSPECTION_REPORT',
       path: 'governance/sources/GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT.json',
-      sha256: '3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee'
+      sha256: '3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee',
+      gateId: 'GATE14',
+      programId: 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1',
+      reportShape: STANDARD_EXTERNAL_REINSPECTION_REPORT
+    },
+    {
+      authorityId: 'GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT',
+      classification: 'EXTERNAL_REINSPECTION_REPORT',
+      path: 'governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json',
+      sha256: '2d94b9ca982ed9d3752e84b38ecfbb9ae5eb5c6267969acbaff2fa838b329c9f',
+      gateId: 'GATE15',
+      programId: 'GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION',
+      reportShape: STANDARD_EXTERNAL_REINSPECTION_REPORT
     }
-  ],
+  ]);
+
+export const WHEEL_EXTERNAL_AUTHORITY_POLICY = Object.freeze({
+  extraExternalAuthorities: EXTERNAL_REINSPECTION_DECLARATIONS,
   assertExternalReinspectionVerdict({ event, report, authorityId }) {
     // Legacy shape, preserved exactly: GATE12's own genesis-imported reinspection report.
     if (authorityId === 'SRC-R1-EXTERNAL-PASS') {
@@ -50,11 +66,14 @@ export const WHEEL_EXTERNAL_AUTHORITY_POLICY = Object.freeze({
     if (authorityId === 'WHEEL-GATE13-INDEPENDENT-VERDICT-20260808-093157') {
       return event?.gateId === 'GATE13' && report?.INDEPENDENT_AUDIT === 'PASS' && report?.PHASE_B_AUTHORIZED === true;
     }
-    if (authorityId === 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT') {
-      return event?.gateId === 'GATE14'
+    const declaration = EXTERNAL_REINSPECTION_DECLARATIONS.find((candidate) => candidate.authorityId === authorityId);
+    if (declaration?.reportShape === STANDARD_EXTERNAL_REINSPECTION_REPORT) {
+      return event?.gateId === declaration.gateId
+        && report?.document === 'EXTERNAL_REINSPECTION_REPORT'
+        && report?.gateId === declaration.gateId
         && report?.verdict === 'PASS'
         && report?.independentSession === true
-        && report?.programId === 'GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1';
+        && report?.programId === declaration.programId;
     }
     return false;
   }

@@ -1,0 +1,66 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE15_M3_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-14T12:10:09.625Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE15_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "CP-G15-M3-INDEPENDENT-EXTERNAL-CONFIRMATION",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "34d31e65e099d26c2b2be1ee5c552be82e74c834",
+    "ledgerEventCount": 64,
+    "ledgerPrefixSha256": "7302dc2e0949cec678345503185b359b70fcdc3620154deb89921bce068c906d",
+    "gateId": "GATE15",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE15_M3_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "27c9e18ba5bbc56c9a11df2b29c57eac42c5cbc5531ede8c38a4c67a774d19f3",
+  "authorizedOperationClasses": [
+    "EXTERNAL_CONFIRMATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: confirm GATE15 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE15_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "70c88cc6fbd1283908e521489085cbfc129ae51aa7fe3692d32d66c9a03ab359"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "34d31e65e099d26c2b2be1ee5c552be82e74c834"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE15_M3_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ],
+  "externalReinspectionReportPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "2d94b9ca982ed9d3752e84b38ecfbb9ae5eb5c6267969acbaff2fa838b329c9f"
+}

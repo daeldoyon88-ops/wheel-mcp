@@ -60,13 +60,13 @@
     },
     {
       "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
-      "sha256": "91eb8b3d9b634a6915ad8635dd5d88bdda5fc2411a2a544d7e0e9886e46a64aa",
-      "byteLength": 23555
+      "sha256": "d1d5c565532a77b67b9e071022717ab4c57f78be0d6d97c4e2b7a6c24704e7ec",
+      "byteLength": 23891
     },
     {
       "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
-      "sha256": "98cfc8a848b5f9ee6675f4ca906fbefc17894b86d56189590d1c8ac279a96d45",
-      "byteLength": 17469
+      "sha256": "ceec4886b2b41d2097ce6d34e748e2246d1d282709bff021c1d931238b326f5c",
+      "byteLength": 16759
     }
   ],
   "artifactSelfExclusion": {

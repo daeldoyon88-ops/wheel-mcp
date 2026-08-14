@@ -50,6 +50,7 @@
  */
 
 import { sha256Hex } from './release-authority.mjs';
+import { CLOSED_REVISION_STATUSES } from './sealed-state-evidence.mjs';
 
 export const POST_FREEZE_MAINTENANCE_V2_SCHEMA_VERSION = 2;
 export const POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS = 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY';
@@ -70,6 +71,7 @@ export const FINAL_CLOSURE_OPERATION_CLASSES = Object.freeze(['AGENT_CLOSURE', '
 export const EXTERNAL_CONFIRMATION_OPERATION_CLASSES = Object.freeze(['EXTERNAL_CONFIRMATION']);
 export const PHASE_AUTHORIZE_PROGRAM_APPLY = 'AUTHORIZE_PROGRAM_APPLY';
 export const PHASE_VERIFY_PROGRAM_CONSUMPTION = 'VERIFY_PROGRAM_CONSUMPTION';
+export const SEALED_EVIDENCE_IMMUTABILITY_FINDING = 'POST_FREEZE_MAINTENANCE_SEALED_MEMBER_MUTATION';
 
 export const REQUIRED_PROHIBITED_OPERATIONS = Object.freeze([
   'START', 'SECOND_START', 'AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION',
@@ -444,6 +446,15 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
   const requestedClasses = Array.isArray(observed.requestedOperationClasses) ? observed.requestedOperationClasses : manifestResult.operationClasses;
   for (const operationClass of requestedClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
   for (const operationClass of manifestResult.operationClasses) if (!authority?.authorizedOperationClasses?.includes(operationClass)) finding(findings, 'MANIFEST_OPERATION_CLASS_NOT_AUTHORIZED', operationClass);
+  if (!Array.isArray(observed.closedStateSealMembers) || !Array.isArray(observed.closedStateSealFindings)) {
+    finding(findings, 'SEALED_EVIDENCE_IMMUTABILITY_OBSERVATION_MISSING', CLOSED_REVISION_STATUSES.join('|'));
+  } else {
+    for (const inventoryFinding of observed.closedStateSealFindings) finding(findings, 'SEALED_EVIDENCE_IMMUTABILITY_INVENTORY_INVALID', inventoryFinding);
+    const sealedPaths = new Set(observed.closedStateSealMembers.map((member) => member?.repoRelativePath).filter((value) => typeof value === 'string'));
+    for (const requestedPath of new Set([...manifestResult.authorizedPaths, ...requestedPaths])) {
+      if (sealedPaths.has(requestedPath)) finding(findings, SEALED_EVIDENCE_IMMUTABILITY_FINDING, requestedPath);
+    }
+  }
   if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY && consumptionRecord) finding(findings, 'AUTHORITY_ALREADY_CONSUMED');
   if (phase === PHASE_VERIFY_PROGRAM_CONSUMPTION) validateConsumptionRecord(consumptionRecord, authority, manifest, observed, findings);
   const decision = findings.length === 0 ? 'AUTHORIZED' : 'BLOCKED';

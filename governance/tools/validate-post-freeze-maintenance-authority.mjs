@@ -10,6 +10,7 @@ import {
   PHASE_AUTHORIZE_PROGRAM_APPLY,
   PHASE_VERIFY_PROGRAM_CONSUMPTION
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
+import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
 
 const args = process.argv.slice(2);
 const option = (name, fallback = null) => {
@@ -74,6 +75,7 @@ try {
   const currentState = gateRoot ? readJson(path.join(gateRoot, 'state', 'CURRENT_STATE.json')) : null;
   const currentContract = gateRoot ? readJson(path.join(gateRoot, 'contracts', 'CURRENT_CONTRACT.json')) : null;
   const activeGate = readJson(path.join(root, 'governance', 'active', 'ACTIVE_GATE.json'));
+  const closedStateSealInventory = collectClosedStateSealMembers(root);
   let authorityPredecessorSha256 = null;
   if (authority.authorityPredecessor !== null) {
     const sourceRoot = path.join(root, 'governance', 'sources');
@@ -97,6 +99,8 @@ try {
     authorityPredecessorSha256,
     requestedPaths: manifest.paths.map((entry) => entry.path),
     requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass),
+    closedStateSealMembers: closedStateSealInventory.members,
+    closedStateSealFindings: closedStateSealInventory.findings,
     consumptionCohort: manifest.paths
       .filter((entry) => entry.path !== authority.consumptionRecordPath)
       .map((entry) => {

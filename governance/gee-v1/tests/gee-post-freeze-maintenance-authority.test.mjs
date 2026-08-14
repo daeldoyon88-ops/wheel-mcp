@@ -17,6 +17,7 @@ import {
   PHASE_AUTHORIZE_PROGRAM_APPLY,
   PHASE_VERIFY_PROGRAM_CONSUMPTION
 } from '../core/post-freeze-maintenance-authority.mjs';
+import { collectClosedStateSealMembers } from '../core/sealed-state-evidence.mjs';
 import { verifyOwnerSignature } from '../core/release-authority.mjs';
 import { resolveCanonicalLedgerPrefix } from '../../tools/validate-status-ledger.mjs';
 
@@ -387,7 +388,9 @@ function makeV2Fixture() {
     manifestSha256,
     authorityPredecessorSha256: null,
     requestedPaths: manifest.paths.map((entry) => entry.path),
-    requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass)
+    requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass),
+    closedStateSealMembers: [],
+    closedStateSealFindings: []
   };
   return { authority, manifest, observed, now: new Date('2026-08-13T00:02:00.000Z') };
 }
@@ -436,6 +439,47 @@ function makeV2ConsumptionFixture() {
   };
   return fixture;
 }
+
+test('MA26: a sealed member path is blocked generically before maintenance apply', () => {
+  const fixture = makeV2Fixture();
+  const sealedPath = 'governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json';
+  fixture.manifest.paths[0] = {
+    ...fixture.manifest.paths[0],
+    path: sealedPath,
+    operation: 'MODIFY'
+  };
+  fixture.authority.authorizedPathManifestSha256 = sha256Hex(Buffer.from(JSON.stringify(fixture.manifest), 'utf8'));
+  fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
+  fixture.observed.requestedPaths = fixture.manifest.paths.map((entry) => entry.path);
+  fixture.observed.closedStateSealMembers = [{ repoRelativePath: sealedPath, sha256: 'a'.repeat(64), byteLength: 1 }];
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'POST_FREEZE_MAINTENANCE_SEALED_MEMBER_MUTATION'));
+});
+
+test('MA27: the generic closed-seal inventory discovers closed revision members without a gate allowlist', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-closed-seal-inventory-'));
+  const sealPath = path.join(root, 'governance', 'gates', 'SYNTHETIC_GATE', 'state', 'revisions', 'R0001', 'STATE_SEAL.json');
+  fs.mkdirSync(path.dirname(sealPath), { recursive: true });
+  fs.writeFileSync(sealPath, JSON.stringify({
+    gateId: 'SYNTHETIC_GATE',
+    stateRevision: 'R0001',
+    sealedMembers: [{ repoRelativePath: 'synthetic/closed-evidence.json', sha256: 'b'.repeat(64), byteLength: 2 }],
+    payload: { executionStatus: 'COMPLETE_CONFIRMED' }
+  }));
+  const inventory = collectClosedStateSealMembers(root);
+  assert.deepEqual(inventory.findings, []);
+  assert.deepEqual(inventory.members.map((member) => member.repoRelativePath), ['synthetic/closed-evidence.json']);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('MA28: an invalid closed-seal inventory blocks maintenance fail-closed', () => {
+  const fixture = makeV2Fixture();
+  fixture.observed.closedStateSealFindings = [{ code: 'CLOSED_STATE_SEAL_MEMBER_INVALID', detail: 'synthetic' }];
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({ ...fixture, phase: PHASE_AUTHORIZE_PROGRAM_APPLY });
+  assert.equal(result.decision, 'BLOCKED');
+  assert.ok(result.findings.some((finding) => finding.code === 'SEALED_EVIDENCE_IMMUTABILITY_INVENTORY_INVALID'));
+});
 
 test('LA-C01: schema V2 consumption binds the exact authorized cohort bytes with deterministic self-exclusion', () => {
   const fixture = makeV2ConsumptionFixture();

@@ -1,0 +1,85 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "operation": "CREATE",
+      "phase": "R2",
+      "reason": "Generic read-only inventory of closed STATE_SEAL members for pre-apply maintenance immutability enforcement.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "R2",
+      "reason": "Fail closed when a maintenance manifest overlaps an existing member of a closed revision STATE_SEAL.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "R3",
+      "reason": "Feed the generic closed-seal member inventory through the live GEE maintenance authority observation path.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "R3",
+      "reason": "Keep the executable GEE maintenance validator aligned with the live closed-seal immutability observation.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "phase": "R4",
+      "reason": "Prove generic sealed-member mutation and malformed inventory hostile cases block before apply.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "operation": "MODIFY",
+      "phase": "R5",
+      "reason": "Separate closure-time STATE_SEAL-bound evidence consumption from current post-closure maintenance evidence consumption.",
+      "artifactClass": "POST_CLOSURE_EVIDENCE_CONSUMER"
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "operation": "MODIFY",
+      "phase": "R5",
+      "reason": "Consume both evidence classes while preserving the 22-test independent GATE16 package and generic prefix proof.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_EVIDENCE.json",
+      "operation": "CREATE",
+      "phase": "R6",
+      "reason": "Canonical post-closure maintenance artifact binds current replay, suffix preservation, current artifact bytes and hostile immutability proof separately from closure-time sealed evidence.",
+      "artifactClass": "POST_CLOSURE_MAINTENANCE_EVIDENCE"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_AUTHORIZED_PATHS.json",
+      "operation": "CREATE",
+      "phase": "R6",
+      "reason": "Finite exact-path manifest for this owner-authorized post-closure sealed-evidence maintenance cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "R6",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact pre-maintenance HEAD, ledger and immutable-member-safe cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "R7",
+      "reason": "Exact-byte consumption receipt for the bounded maintenance cohort with deterministic self-exclusion.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

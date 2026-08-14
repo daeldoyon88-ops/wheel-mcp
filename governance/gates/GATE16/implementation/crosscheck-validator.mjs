@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { sha256Canonical } from '../../../tools/canonical-json.mjs';
 import { resolveCanonicalLedgerPrefix } from '../../../tools/validate-status-ledger.mjs';
+import { findClosedStateSealMember } from '../../../gee-v1/core/sealed-state-evidence.mjs';
 
 export { sha256Canonical };
 
@@ -17,6 +18,9 @@ export const POLICY_PATH = 'governance/gates/GATE16/implementation/CROSSCHECK_PO
 export const VERDICT_REGISTRY_PATH = 'governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json';
 export const TEST_PATH = 'governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs';
 export const EVIDENCE_PATH = 'governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json';
+export const POST_CLOSURE_MAINTENANCE_EVIDENCE_PATH = 'governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_EVIDENCE.json';
+export const CLOSURE_TIME_SEALED_EVIDENCE = 'CLOSURE_TIME_SEALED_EVIDENCE';
+export const POST_CLOSURE_MAINTENANCE_EVIDENCE = 'POST_CLOSURE_MAINTENANCE_EVIDENCE';
 export const PRODUCER_OUTPUT_PATH = 'governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json';
 export const VERIFIER_ID = 'GATE16_M2_INDEPENDENT_VERIFIER_R1';
 export const PRODUCER_ID = 'GATE15_M3_EXTERNAL_CONFIRMATION_R1';
@@ -460,23 +464,25 @@ function evidenceFinding(reasonCode, detail, sourcePath = null) {
   return { reasonCode, sourcePath, detail };
 }
 
-export function validateEvidenceArtifact(report, { root = REPO_ROOT } = {}) {
-  const findings = [];
+function validateReportShape(report, findings) {
   if (!report || report.document !== 'GATE16_CROSSCHECK_REPORT' || report.gateId !== GATE_ID) {
     findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Evidence document identity is invalid.'));
   }
-  const canonical = validateCrosscheck(buildCanonicalInput(root), { root });
-  if (canonical.verdict !== 'PASS') findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Current canonical input no longer independently validates.', canonical.outputDigest));
-  if (report?.canonicalCrosscheck?.outputDigest !== canonical.outputDigest || report?.canonicalCrosscheck?.evidenceDigest !== canonical.evidenceDigest) {
-    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Report does not bind the recomputed canonical crosscheck result.'));
+  if (report?.canonicalCrosscheck?.verdict !== 'PASS'
+      || typeof report?.canonicalCrosscheck?.outputDigest !== 'string'
+      || typeof report?.canonicalCrosscheck?.evidenceDigest !== 'string') {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Closure-time canonical crosscheck result is absent or non-PASS.'));
   }
-  const expectedArtifacts = canonicalArtifactIdentities(root);
   const actualArtifacts = Array.isArray(report?.artifactHashes) ? report.artifactHashes : [];
-  for (const expected of expectedArtifacts) {
-    const observed = actualArtifacts.find((item) => item.path === expected.path);
-    if (!observed || observed.sha256 !== expected.sha256 || observed.byteLength !== expected.byteLength) {
-      findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Artifact hash or byte length is not bound to current bytes.', expected.path));
+  const expectedPaths = FUNCTIONAL_PATHS.filter((relativePath) => relativePath !== EVIDENCE_PATH);
+  for (const expectedPath of expectedPaths) {
+    const observed = actualArtifacts.find((item) => item?.path === expectedPath);
+    if (!observed || !/^[a-f0-9]{64}$/.test(String(observed.sha256 || '')) || !Number.isInteger(observed.byteLength) || observed.byteLength < 0) {
+      findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Closure-time artifact identity is malformed.', expectedPath));
     }
+  }
+  if (actualArtifacts.some((item) => !expectedPaths.includes(item?.path))) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Closure-time artifact set contains an unexpected path.'));
   }
   const rows = Array.isArray(report?.coverage?.rows) ? report.coverage.rows : [];
   if (rows.length !== 10 || rows.some((row) => row.result !== 'COVERED')) findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Canonical requirement coverage is incomplete.'));
@@ -485,15 +491,93 @@ export function validateEvidenceArtifact(report, { root = REPO_ROOT } = {}) {
   const closures = report?.closureConditions;
   if (!closures || Object.keys(closures).length !== 6 || Object.values(closures).some((value) => value !== true)) findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'One or more GATE16 closure conditions are false.'));
   if (report?.freshProcessReplay?.verdict !== 'PASS' || report?.freshProcessReplay?.identical !== true) findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Fresh-process replay evidence is absent or non-identical.'));
+  return { actualArtifacts, closures };
+}
+
+function validateSealedClosureBinding(report, root, findings) {
+  const inventory = findClosedStateSealMember(root, EVIDENCE_PATH);
+  for (const inventoryFinding of inventory.findings) findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', `Closed STATE_SEAL inventory is invalid: ${inventoryFinding.code}.`));
+  const member = inventory.matches[0];
+  const bytes = readBytes(root, EVIDENCE_PATH);
+  if (!member || !bytes) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Closure-time evidence is not a member of a valid closed STATE_SEAL.', EVIDENCE_PATH));
+    return;
+  }
+  if (sha256Bytes(bytes) !== member.sha256 || bytes.length !== member.byteLength) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Closure-time evidence bytes do not match the closed STATE_SEAL member.', EVIDENCE_PATH));
+  }
+  if (!stableBytes(report).equals(bytes)) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'The supplied closure-time evidence object is not the sealed report bytes.', EVIDENCE_PATH));
+  }
+}
+
+export function validateClosureTimeSealedEvidence(report, { root = REPO_ROOT } = {}) {
+  const findings = [];
+  const { actualArtifacts, closures } = validateReportShape(report, findings);
+  validateSealedClosureBinding(report, root, findings);
   return {
     document: 'GATE16_EVIDENCE_VALIDATION_RESULT',
     gateId: GATE_ID,
+    evidenceClass: CLOSURE_TIME_SEALED_EVIDENCE,
+    verdict: findings.length === 0 ? 'PASS' : 'BLOCKED',
+    reasonCodes: unique(findings.map((item) => item.reasonCode)),
+    findings,
+    canonicalOutputDigest: report?.canonicalCrosscheck?.outputDigest ?? null,
+    evidenceDigest: sha256Canonical({ canonicalOutputDigest: report?.canonicalCrosscheck?.outputDigest ?? null, artifactHashes: actualArtifacts, coverage: report?.coverage || null, closureConditions: closures || null })
+  };
+}
+
+export function validatePostClosureMaintenanceEvidenceArtifact(evidence, { root = REPO_ROOT } = {}) {
+  const findings = [];
+  if (!evidence || evidence.document !== POST_CLOSURE_MAINTENANCE_EVIDENCE || evidence.evidenceClass !== POST_CLOSURE_MAINTENANCE_EVIDENCE || evidence.gateId !== GATE_ID) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Post-closure maintenance evidence identity is invalid.', POST_CLOSURE_MAINTENANCE_EVIDENCE_PATH));
+  }
+  const closure = evidence?.closureTimeSealedEvidence;
+  const inventory = findClosedStateSealMember(root, EVIDENCE_PATH);
+  const sealedMember = inventory.matches[0];
+  if (!closure || closure.evidenceClass !== CLOSURE_TIME_SEALED_EVIDENCE || closure.path !== EVIDENCE_PATH || !sealedMember || closure.sha256 !== sealedMember.sha256) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Post-closure evidence does not bind the closure-time sealed report.', EVIDENCE_PATH));
+  }
+  const canonical = validateCrosscheck(buildCanonicalInput(root), { root });
+  if (canonical.verdict !== 'PASS') findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Current canonical input no longer independently validates.', canonical.outputDigest));
+  if (evidence?.currentReplay?.canonicalOutputDigest !== canonical.outputDigest || evidence?.currentReplay?.canonicalEvidenceDigest !== canonical.evidenceDigest) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Maintenance evidence does not bind the current canonical replay result.'));
+  }
+  const expectedArtifacts = canonicalArtifactIdentities(root);
+  const actualArtifacts = Array.isArray(evidence?.currentArtifactHashes) ? evidence.currentArtifactHashes : [];
+  for (const expected of expectedArtifacts) {
+    const observed = actualArtifacts.find((item) => item?.path === expected.path);
+    if (!observed || observed.sha256 !== expected.sha256 || observed.byteLength !== expected.byteLength) {
+      findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Maintenance artifact hash or byte length is not bound to current bytes.', expected.path));
+    }
+  }
+  const replay = evidence?.currentReplay;
+  if (!Number.isInteger(replay?.availableEventCount) || !Number.isInteger(replay?.canonicalEventCount) || replay.availableEventCount < replay.canonicalEventCount || replay.suffixStartOrdinal !== replay.canonicalEventCount + 1) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Maintenance replay count/suffix binding is invalid.'));
+  }
+  if (evidence?.gate16FinalPackage?.tests !== 22 || evidence?.gate16FinalPackage?.pass !== 22 || evidence?.gate16FinalPackage?.fail !== 0) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Final GATE16 package total is not 22/22 PASS.'));
+  }
+  if (!Number.isInteger(evidence?.geeMaintenanceSuite?.tests) || evidence.geeMaintenanceSuite.tests <= 0 || evidence.geeMaintenanceSuite.pass !== evidence.geeMaintenanceSuite.tests || evidence.geeMaintenanceSuite.fail !== 0) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'GEE maintenance suite total is not a zero-failure PASS.'));
+  }
+  if (evidence?.hostileSealedMemberMutation?.verdict !== 'BLOCKED' || evidence?.noGateSpecificBypass !== true) {
+    findings.push(evidenceFinding('EVIDENCE_ARTIFACT_INVALID', 'Generic sealed-member hostile proof or no-bypass assertion is absent.'));
+  }
+  return {
+    document: 'GATE16_EVIDENCE_VALIDATION_RESULT',
+    gateId: GATE_ID,
+    evidenceClass: POST_CLOSURE_MAINTENANCE_EVIDENCE,
     verdict: findings.length === 0 ? 'PASS' : 'BLOCKED',
     reasonCodes: unique(findings.map((item) => item.reasonCode)),
     findings,
     canonicalOutputDigest: canonical.outputDigest,
-    evidenceDigest: sha256Canonical({ canonicalOutputDigest: canonical.outputDigest, artifactHashes: actualArtifacts, coverage: report?.coverage || null, closureConditions: closures || null })
+    evidenceDigest: sha256Canonical(evidence || null)
   };
+}
+
+export function validateEvidenceArtifact(report, options = {}) {
+  return validateClosureTimeSealedEvidence(report, options);
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));

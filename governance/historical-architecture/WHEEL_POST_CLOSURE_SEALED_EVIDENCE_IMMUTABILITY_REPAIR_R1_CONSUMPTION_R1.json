@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_AUTHORITY_R1",
+  "programId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1",
+  "manifestSha256": "4d61d76dc07fa46311559ffb02222fff0484f1a6c1a54c950187ec14e81c20d5",
+  "baseHead": "8d7653a8d7143faec9f40ae39d978421157c2b1e",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T18:20:00.000Z",
+  "commitMessage": "governance: preserve sealed evidence across maintenance",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_CONSUMPTION_R1.json",
+    "reason": "The receipt cannot digest its own bytes; the enclosing governed commit binds the receipt itself."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "sha256": "520f37ab3d3e2e8e8f25acad7731f81a810eef23258a5ecb75b9dee7d1703615",
+      "byteLength": 4316,
+      "operation": "CREATE",
+      "reason": "Generic read-only inventory of closed STATE_SEAL members for pre-apply maintenance immutability enforcement.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "sha256": "dd6738b29f32b1fb5b10f1b2cd037fe1ddbb578222dfb364a27eb96b58a67fb5",
+      "byteLength": 32059,
+      "operation": "MODIFY",
+      "reason": "Fail closed when a maintenance manifest overlaps an existing member of a closed revision STATE_SEAL.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "sha256": "3b137e246975b76f7840edee7f0f46bf48b0b56639e960febc5683f5e4846353",
+      "byteLength": 23696,
+      "operation": "MODIFY",
+      "reason": "Feed the generic closed-seal member inventory through the live GEE maintenance authority observation path.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "sha256": "2df6e5bc03616acecc938a734582efebd37234d4eab8023d90cd7cab78976354",
+      "byteLength": 6696,
+      "operation": "MODIFY",
+      "reason": "Keep the executable GEE maintenance validator aligned with the live closed-seal immutability observation.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "sha256": "ab8b1af8a1d5d744097865ad63290c9597955fd742e74bb3623a99b4e06e54bb",
+      "byteLength": 45697,
+      "operation": "MODIFY",
+      "reason": "Prove generic sealed-member mutation and malformed inventory hostile cases block before apply.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "sha256": "4d9f99e1c2a24a67ac4693cecb410a05220a5f95cd0a40f4f48504a924ae0985",
+      "byteLength": 29291,
+      "operation": "MODIFY",
+      "reason": "Separate closure-time STATE_SEAL-bound evidence consumption from current post-closure maintenance evidence consumption.",
+      "artifactClass": "POST_CLOSURE_EVIDENCE_CONSUMER"
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "sha256": "90ca4f0fce14c1e9e03621ea5ea3df54223dbdf6b03dcdc170115957a7808c88",
+      "byteLength": 18389,
+      "operation": "MODIFY",
+      "reason": "Consume both evidence classes while preserving the 22-test independent GATE16 package and generic prefix proof.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_EVIDENCE.json",
+      "sha256": "1787bb90eae65101055e8a5666d35deb8cfc136eaeb95d89eeb918e15ece94cb",
+      "byteLength": 3693,
+      "operation": "CREATE",
+      "reason": "Canonical post-closure maintenance artifact binds current replay, suffix preservation, current artifact bytes and hostile immutability proof separately from closure-time sealed evidence.",
+      "artifactClass": "POST_CLOSURE_MAINTENANCE_EVIDENCE"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_AUTHORIZED_PATHS.json",
+      "sha256": "4d61d76dc07fa46311559ffb02222fff0484f1a6c1a54c950187ec14e81c20d5",
+      "byteLength": 4117,
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for this owner-authorized post-closure sealed-evidence maintenance cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1.json",
+      "sha256": "d8026a94416e041caea30325d87db01815daf20e0fb448f42c17688b1301bba9",
+      "byteLength": 2372,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact pre-maintenance HEAD, ledger and immutable-member-safe cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

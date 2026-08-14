@@ -38,6 +38,7 @@ import {
   POST_FREEZE_MAINTENANCE_WORK_UNIT_CLASS,
   PHASE_AUTHORIZE_PROGRAM_APPLY
 } from '../core/post-freeze-maintenance-authority.mjs';
+import { collectClosedStateSealMembers } from '../core/sealed-state-evidence.mjs';
 
 export const MISSIONS_DIR = 'governance/gee-v1/missions';
 export const MISSION_WORK_UNIT_TYPE = 'MISSION_REVISION';
@@ -150,6 +151,7 @@ function observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorit
   const predecessor = authority.authorityPredecessor === null
     ? null
     : loadedAuthorities.find((candidate) => candidate.authority?.authorityId === authority.authorityPredecessor.authorityId);
+  const closedStateSealInventory = collectClosedStateSealMembers(root);
   return {
     baseHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
     ledgerEventCount: ledgerLines.length,
@@ -163,7 +165,9 @@ function observeV2MaintenanceAuthority(root, authority, manifest, loadedAuthorit
     manifestSha256: manifestPath ? crypto.createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex') : null,
     authorityPredecessorSha256: predecessor?.authoritySha256 ?? null,
     requestedPaths: manifest?.paths?.map((entry) => entry.path) ?? [],
-    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? []
+    requestedOperationClasses: manifest?.paths?.map((entry) => entry.artifactClass) ?? [],
+    closedStateSealMembers: closedStateSealInventory.members,
+    closedStateSealFindings: closedStateSealInventory.findings
   };
 }
 

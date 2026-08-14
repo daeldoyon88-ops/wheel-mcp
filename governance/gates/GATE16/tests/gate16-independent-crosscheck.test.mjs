@@ -14,13 +14,17 @@ import {
   VERDICT_REGISTRY_PATH,
   TEST_PATH,
   EVIDENCE_PATH,
+  POST_CLOSURE_MAINTENANCE_EVIDENCE_PATH,
+  CLOSURE_TIME_SEALED_EVIDENCE,
+  POST_CLOSURE_MAINTENANCE_EVIDENCE,
   PRODUCER_ID,
   VERIFIER_ID,
   FUNCTIONAL_PATHS,
   buildCanonicalInput,
   bindReplayIdentity,
   validateCrosscheck,
-  validateEvidenceArtifact,
+  validateClosureTimeSealedEvidence,
+  validatePostClosureMaintenanceEvidenceArtifact,
   canonicalArtifactIdentities,
   stableBytes,
   sha256Canonical
@@ -30,6 +34,7 @@ import { resolveCanonicalLedgerPrefix } from '../../../tools/validate-status-led
 const ROOT = REPO_ROOT;
 const VALIDATOR_CLI = path.join(ROOT, VALIDATOR_MODULE_PATH.replaceAll('/', path.sep));
 const EVIDENCE_FILE = path.join(ROOT, EVIDENCE_PATH.replaceAll('/', path.sep));
+const POST_CLOSURE_MAINTENANCE_EVIDENCE_FILE = path.join(ROOT, POST_CLOSURE_MAINTENANCE_EVIDENCE_PATH.replaceAll('/', path.sep));
 const GENERATE = process.argv.includes('--generate') || process.env.GATE16_GENERATE === '1';
 
 function clone(value) {
@@ -316,8 +321,14 @@ test('G16 canonical policy, registry and exact functional scope are consistent',
 test('G16 evidence report is independently bound and complete', () => {
   assert.ok(fs.existsSync(EVIDENCE_FILE), 'run with --generate before validating the canonical report');
   const report = JSON.parse(fs.readFileSync(EVIDENCE_FILE, 'utf8'));
-  const validation = validateEvidenceArtifact(report, { root: ROOT });
+  const validation = validateClosureTimeSealedEvidence(report, { root: ROOT });
   assert.equal(validation.verdict, 'PASS', JSON.stringify(validation));
+  assert.equal(validation.evidenceClass, CLOSURE_TIME_SEALED_EVIDENCE);
+  assert.ok(fs.existsSync(POST_CLOSURE_MAINTENANCE_EVIDENCE_FILE), 'post-closure maintenance evidence must be a distinct artifact');
+  const maintenanceEvidence = JSON.parse(fs.readFileSync(POST_CLOSURE_MAINTENANCE_EVIDENCE_FILE, 'utf8'));
+  const maintenanceValidation = validatePostClosureMaintenanceEvidenceArtifact(maintenanceEvidence, { root: ROOT });
+  assert.equal(maintenanceValidation.verdict, 'PASS', JSON.stringify(maintenanceValidation));
+  assert.equal(maintenanceValidation.evidenceClass, POST_CLOSURE_MAINTENANCE_EVIDENCE);
   const contract = JSON.parse(fs.readFileSync(path.join(ROOT, CONTRACT_PATH.replaceAll('/', path.sep)), 'utf8'));
   const ledgerInput = contract.requiredInputs.find((item) => item.path === 'governance/state/GATE_STATUS_LEDGER.ndjson');
   const prefix = resolveCanonicalLedgerPrefix({

@@ -1,0 +1,103 @@
+{
+  "document": "POST_CLOSURE_MAINTENANCE_EVIDENCE",
+  "schemaVersion": 1,
+  "evidenceClass": "POST_CLOSURE_MAINTENANCE_EVIDENCE",
+  "programId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1",
+  "authorityId": "WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_AUTHORITY_R1",
+  "gateId": "GATE16",
+  "baseHead": "8d7653a8d7143faec9f40ae39d978421157c2b1e",
+  "closureTimeSealedEvidence": {
+    "evidenceClass": "CLOSURE_TIME_SEALED_EVIDENCE",
+    "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+    "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+    "byteLength": 64884,
+    "stateSealPath": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json",
+    "stateRevision": "R0004",
+    "stateSealSha256": "7b21c404c0938abc815a620e193d8c939d7f00b905a6ecd9bc59b659e542d0f5"
+  },
+  "currentReplay": {
+    "canonicalEventCount": 65,
+    "canonicalPrefixSha256": "0607f8a0725f20406013905904f3a8ea1c1772f59c034af395a066dc4afa5f41",
+    "availableEventCount": 69,
+    "suffixStartOrdinal": 66,
+    "suffixOrdinals": [66, 67, 68, 69],
+    "suffixEventIds": [
+      "GATE16_AUTHORIZATION_R1",
+      "GATE16_START_R1",
+      "GATE16_AGENT_CLOSURE_R1",
+      "GATE16_M3_EXTERNAL_CONFIRMATION_R1"
+    ],
+    "fullLedgerSha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb",
+    "canonicalOutputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+    "canonicalEvidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+    "futureNkReplay": {
+      "eventCount": 69,
+      "expectedSha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb",
+      "verdict": "PASS"
+    }
+  },
+  "currentArtifactHashes": [
+    {
+      "path": "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+      "sha256": "6fc24a2c38327104b8a0b8f8a452af4a730f27b25e6e0cc3791d50679c714a29",
+      "byteLength": 3124
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+      "sha256": "e8d6dcf512add25aac15f2f1642d15b76e7ff1c6a6c5fcf66b511d320b12c909",
+      "byteLength": 1934
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "sha256": "4d9f99e1c2a24a67ac4693cecb410a05220a5f95cd0a40f4f48504a924ae0985",
+      "byteLength": 29291
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "sha256": "90ca4f0fce14c1e9e03621ea5ea3df54223dbdf6b03dcdc170115957a7808c88",
+      "byteLength": 18389
+    }
+  ],
+  "gate16FinalPackage": {
+    "tests": 22,
+    "pass": 22,
+    "fail": 0,
+    "verdict": "PASS"
+  },
+  "geeMaintenanceSuite": {
+    "tests": 95,
+    "pass": 95,
+    "fail": 0,
+    "verdict": "PASS"
+  },
+  "stateSealValidation": {
+    "path": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json",
+    "stateRevision": "R0004",
+    "verdict": "PASS",
+    "blockingCount": 0
+  },
+  "stateRevisionValidation": {
+    "gateId": "GATE16",
+    "resolvedRevision": "R0004",
+    "sealChain": ["R0001", "R0002", "R0003", "R0004"],
+    "verdict": "PASS",
+    "blockingCount": 0
+  },
+  "hostileSealedMemberMutation": {
+    "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+    "verdict": "BLOCKED",
+    "finding": "POST_FREEZE_MAINTENANCE_SEALED_MEMBER_MUTATION"
+  },
+  "noGateSpecificBypass": true,
+  "preservedStatuses": {
+    "GATE16": "COMPLETE_CONFIRMED",
+    "AUTHORIZATION": 1,
+    "START": 1,
+    "AGENT_CLOSURE": 1,
+    "EXTERNAL_CONFIRMATION": 1,
+    "GATE17_GATES40": "NOT_STARTED",
+    "ACTIVE_GATE": "GATE13",
+    "R8": "ABSENT"
+  },
+  "createdAt": "2026-08-14T18:00:00.000Z"
+}

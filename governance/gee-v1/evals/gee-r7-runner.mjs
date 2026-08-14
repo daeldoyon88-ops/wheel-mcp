@@ -23,6 +23,7 @@ import { createExecutionAuthorityRegistry, isPathAuthorized, resolveExecutionAut
 import { createGeeMissionAuthoritySource, MISSION_WORK_UNIT_TYPE } from '../adapters/gee-mission-authority-source.mjs';
 import { createWheelContextAdapter } from '../adapters/wheel/context-wheel-adapter.mjs';
 import { createWheelRecoverySession, recordWheelTaskExecution, buildWheelCheckpoint, resumeWheelWorkUnit } from '../adapters/wheel/recovery-wheel-adapter.mjs';
+import { RUN_STATE_COMPLETED, allocateRunRoot, releaseRunRoot } from '../runtime/run-root-lifecycle.mjs';
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 export const HEAD = '7a9936c91768e9a2a5c886c6a6da9564905c6a6c';
@@ -81,39 +82,55 @@ const SYNTHETIC_TASKS = Object.freeze([
  * scope; the scope removes exactly the roots it allocated on the way out, on
  * success and on throw alike.
  *
- * Removal is bounded to an exact owned path: a direct child of the process temp
- * directory whose name carries the runner prefix. Nothing wildcard, nothing
- * age-based, nothing at the parent level. A failed removal is swallowed rather
- * than retried against a broader target.
+ * Allocation and removal now go through the canonical run-root lifecycle, which
+ * replaces this file's former ownership test. The old test was "a direct child
+ * of %TEMP% whose name starts with `gee-r7-`" — true of every root any earlier
+ * run ever left behind, so the predicate itself could point at an unmanifested
+ * historical directory even though the scope list never did. Ownership is now
+ * a manifest naming this repository and this run, and removal is bounded to one
+ * exact manifested path inside %TEMP%/wheel-gee/runs. Nothing wildcard, nothing
+ * prefix-matched, nothing age-based, nothing at the parent level.
+ *
+ * The path handed back is a `work` subdirectory of the run root, so the
+ * manifest never appears inside a tree the harness treats as a repository.
  */
 export const EPHEMERAL_ROOT_PREFIX = 'gee-r7-';
+const EPHEMERAL_WORK_SEGMENT = 'work';
 const ephemeralScopes = [];
+/** Run roots this process allocated, keyed by the work directory handed out. */
+const ownedEphemeralRuns = new Map();
 
 export function isRunnerOwnedEphemeralRoot(candidate) {
   if (typeof candidate !== 'string' || candidate.length === 0) return false;
-  const resolved = path.resolve(candidate);
-  const parent = path.resolve(os.tmpdir());
-  if (resolved === parent) return false;
-  if (path.dirname(resolved) !== parent) return false;
-  return path.basename(resolved).startsWith(EPHEMERAL_ROOT_PREFIX);
+  return ownedEphemeralRuns.has(path.resolve(candidate));
 }
 
 export function allocateEphemeralRoot(prefix = EPHEMERAL_ROOT_PREFIX) {
   if (!String(prefix).startsWith(EPHEMERAL_ROOT_PREFIX)) throw new Error(`R7_EPHEMERAL_ROOT_PREFIX_INVALID:${prefix}`);
   if (ephemeralScopes.length === 0) throw new Error(`R7_EPHEMERAL_ROOT_ALLOCATED_OUTSIDE_SCOPE:${prefix}`);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  ephemeralScopes[ephemeralScopes.length - 1].push(root);
-  return root;
+  // DISCARD: this runner's scratch is regenerated from fixtures on every call,
+  // so a failed eval has nothing in it worth keeping. Declared at allocation.
+  const run = allocateRunRoot({
+    repoRoot: REPO_ROOT,
+    workUnitId: WORK_UNIT_ID,
+    phase: String(prefix).replace(/-+$/, ''),
+    purpose: 'R7_EVAL_SCRATCH',
+    consumer: 'governance/gee-v1/evals/gee-r7-runner.mjs',
+    missionRevisionId: R7_MISSION,
+    failurePolicy: 'DISCARD'
+  });
+  const work = run.scratch(EPHEMERAL_WORK_SEGMENT);
+  ownedEphemeralRuns.set(path.resolve(work), run);
+  ephemeralScopes[ephemeralScopes.length - 1].push(work);
+  return work;
 }
 
-function removeEphemeralRoot(root) {
-  if (!isRunnerOwnedEphemeralRoot(root)) return false;
-  try {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 25 });
-    return true;
-  } catch {
-    return false;
-  }
+function removeEphemeralRoot(work) {
+  const run = ownedEphemeralRuns.get(path.resolve(work));
+  if (!run) return false;
+  ownedEphemeralRuns.delete(path.resolve(work));
+  const release = releaseRunRoot(run, { state: RUN_STATE_COMPLETED, reason: 'R7_SCOPE_CLOSED', repoRoot: REPO_ROOT });
+  return release.removed || release.alreadyAbsent;
 }
 
 export function withEphemeralRootScope(callback) {

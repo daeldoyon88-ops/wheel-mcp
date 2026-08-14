@@ -38,13 +38,13 @@
  * Local, offline, deterministic. Reads the repository; writes nothing inside it.
  */
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkExistingWorkIndex } from './governance-existing-work-index.mjs';
 import { establishComparability } from './regression-identity-delta.mjs';
+import { RUN_STATE_COMPLETED, allocateRunRoot, releaseRunRoot } from '../gee-v1/runtime/run-root-lifecycle.mjs';
 
 export const CHECK_DOCUMENT = 'GATE_PREEXECUTION_REUSE_CHECK';
 export const CHECK_VERSION = 'V1';
@@ -540,7 +540,18 @@ async function probeGeeLiveness({ root }) {
     out.r3 = { ok: false, reason: error.message };
   }
 
-  const casRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-preexec-cas-'));
+  // Ephemeral probe scratch, in the canonical run-root namespace with an
+  // ownership manifest, rather than an anonymous mkdtemp nobody can attribute.
+  // DISCARD: a probe's throwaway CAS carries no diagnostic value on failure.
+  const run = allocateRunRoot({
+    repoRoot: root,
+    workUnitId,
+    phase: 'PREEXECUTION_PROBE',
+    purpose: 'GEE_LIVENESS_PROBE',
+    consumer: 'governance/tools/gate-preexecution-reuse-check.mjs',
+    failurePolicy: 'DISCARD'
+  });
+  const casRoot = path.join(run.scratch('r4-cas-ephemeral'), 'cas');
   try {
     const cas = createContentAddressedStore(casRoot);
     try {
@@ -567,7 +578,7 @@ async function probeGeeLiveness({ root }) {
       out.r5 = { ok: false, reason: error.message };
     }
   } finally {
-    fs.rmSync(casRoot, { recursive: true, force: true });
+    out.ephemeralRunRootRelease = releaseRunRoot(run, { state: RUN_STATE_COMPLETED, reason: 'PROBE_COMPLETED', repoRoot: root });
   }
   return out;
 }

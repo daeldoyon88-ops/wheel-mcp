@@ -16,6 +16,87 @@
     "LIVE_WIRED_INTO_GATE_LIFECYCLE": "The Gate lifecycle itself calls this layer through the fast-path control plane, consuming the previous layer’s real output."
   },
   "layerCount": 7,
+  "runtimeCapabilities": [
+    {
+      "capability": "RUN_ROOT_LIFECYCLE",
+      "name": "Canonical ephemeral RUN_ROOT and durable lifecycle root",
+      "purpose": "Separate disposable per-run execution scratch from durable R4 CAS and R6 lifecycle state, so scratch is always cleaned and durable state can never be cleaned.",
+      "canonicalImplementation": [
+        "governance/gee-v1/runtime/run-root-lifecycle.mjs"
+      ],
+      "ephemeralNamespace": "%TEMP%/wheel-gee/runs/<run-id>",
+      "durableLifecycleRoot": "resolveDurableLifecycleRoot(): EXPLICIT_ARGUMENT, then ENV:WHEEL_GEE_LIFECYCLE_ROOT, then %LOCALAPPDATA%/wheel-gee/lifecycle (win32) or $XDG_STATE_HOME//~/.local/state/wheel-gee/lifecycle (posix). A system-chosen root inside %TEMP% throws.",
+      "runIdentity": "<workUnitId>-<phase>-<repositoryIdentity12>-<pid>-<mkdtemp nonce>; reuses existing gate/work-unit/repository identity and adds only the attempt nonce.",
+      "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (allocates one run root per governed execution; the ephemeral R4 CAS lives inside it; released on every exit path)",
+        "governance/tools/gate-preexecution-reuse-check.mjs (probe CAS scratch)",
+        "governance/gee-v1/evals/gee-r7-runner.mjs (R7 eval scratch)",
+        "governance/gee-v1/tests/gee-r7-benchmark.test.mjs (benchmark output roots)"
+      ],
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "runFastPathControlPlane allocates the run root before planFastPath and releases it after, on success and on throw; report.runtime.r4CasRoot is inside report.runtime.ephemeralRunRoot.path whenever no durable store is configured, and report.runtime.ephemeralRunRootRelease reports removed=true.",
+      "states": {
+        "cleanupEligible": ["COMPLETED", "FAILED_DISCARDED"],
+        "cleanupProtected": ["ACTIVE", "PAUSED", "RESUMABLE", "FAILED_RETAINED"]
+      },
+      "failClosedBehavior": "removeRunRoot deletes one exact manifested path that is a direct child of the runs namespace. It refuses %TEMP%, the wheel-gee parent, the runs namespace, a drive root, the repository, any non-child path, literal traversal segments, symlink/junction/reparse escape, a foreign repository identity, an unexpected run identity, a missing or malformed manifest, and every protected state. No glob, no prefix sweep, no age-based collection, no enumeration of removal candidates.",
+      "hostileTests": [
+        "gee-runtime-run-root-lifecycle.test.mjs (RR01-RR23)",
+        "gee-r7-temp-leak-containment.test.mjs"
+      ],
+      "usedByGateLifecycle": true,
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "liveProof": "GATE16 READINESS at baseline HEAD: run root allocated under %TEMP%/wheel-gee/runs, consumed as the ephemeral R4 CAS, released COMPLETED and removed; listOwnedRunRoots returns to its prior count. GATE13 throws CONFLICTING_AUTHORITY:SEAL_INVALID and still releases FAILED_DISCARDED with removed=true."
+    },
+    {
+      "capability": "EXECUTION_EFFICIENCY_RECEIPT",
+      "name": "Automatic GEE execution efficiency accounting",
+      "purpose": "Report what one governed execution actually cost — context, delta, evidence reuse, routed work, recovery, files, process calls, wall time, tokens — from numbers the fast path already computed.",
+      "canonicalImplementation": [
+        "governance/gee-v1/runtime/execution-efficiency-receipt.mjs"
+      ],
+      "document": "GEE_EXECUTION_EFFICIENCY_RECEIPT",
+      "liveConsumers": [
+        "governance/tools/gate-fast-path-control-plane.mjs (emits report.efficiency on every successful governed execution)",
+        "governance/gee-v1/benchmarks/gee-efficiency-ab-benchmark.mjs (consumes both passes' receipts as its instrumentation)"
+      ],
+      "lifecycleConsumer": "governance/tools/gate-fast-path-control-plane.mjs",
+      "lifecycleConsumerProof": "runFastPathControlPlane writes report.efficiency exactly once and never reads it back; the A/B benchmark verifies each pass's receipt digest before comparing them.",
+      "observationalOnly": true,
+      "observationalProof": "No routing, authority, closure or quality surface imports this module, and the control plane's verdict, blockingFacts and route are computed before the receipt exists.",
+      "tokenRule": {
+        "EXACT": "a real runtime counter was read; measurementSource names it",
+        "ESTIMATED": "no counter exists, but a declared deterministic estimationMethod does",
+        "UNAVAILABLE": "neither; every count is null and unavailableReason states why",
+        "enforcement": "A count without a source, a source without a count, or UNAVAILABLE carrying a number all throw. Token availability never blocks the rest of the receipt.",
+        "usageLedgerMapping": "EXACT↔MEASURED, ESTIMATED↔ESTIMATED, UNAVAILABLE↔TOKEN_COUNT_UNAVAILABLE (governance/gee-v1/usage/usage-ledger.mjs)"
+      },
+      "hostileTests": [
+        "gee-runtime-efficiency-receipt.test.mjs (ER01-ER12)"
+      ],
+      "usedByGateLifecycle": true,
+      "gapStatus": "LIVE_WIRED_INTO_GATE_LIFECYCLE",
+      "liveProof": "GATE16 READINESS at baseline HEAD: receipt emitted automatically, digest verifies, contextReductionRatio 24.877544 (149116→5994 bytes), filesConsidered 438 vs filesConsumed 7, tokenSource UNAVAILABLE, measurement overhead ~1ms against a ~6s plan."
+    },
+    {
+      "capability": "EFFICIENCY_AB_BENCHMARK",
+      "name": "Controlled A/B efficiency benchmark with mandatory quality parity",
+      "purpose": "Establish once, on a real work unit, that GEE reduces work, context and time without reducing quality — so ordinary missions can rely on the lightweight receipt instead of re-running a heavy benchmark.",
+      "canonicalImplementation": [
+        "governance/gee-v1/benchmarks/gee-efficiency-ab-benchmark.mjs",
+        "governance/gee-v1/benchmarks/gee-efficiency-ab-benchmark.json"
+      ],
+      "method": "Same program, same immutable snapshot, same work unit and phase, same durable store, separate processes. REFERENCE runs with no prior proven evidence; GEE runs against the durable R4/R6 state REFERENCE left behind. The context axis compares R2's own source-bytes and compiled-bytes measurements from the same run.",
+      "liveConsumers": [
+        "governance/gee-v1/tests/gee-efficiency-ab-benchmark.test.mjs (AB01-AB10)"
+      ],
+      "qualityParity": "MANDATORY — 14 checks on the RESULT, not the workset. A resource reduction bought with a weaker verdict, weaker bindings, a failed guard, moved evidence identities, dropped work without proven reuse, or a restart from zero is verdict FAIL.",
+      "scope": "BASELINE_BENCHMARK_NOT_PER_GATE",
+      "usedByGateLifecycle": false,
+      "gapStatus": "LIVE_NOT_WIRED_INTO_LIFECYCLE",
+      "liveProof": "GATE16 READINESS at baseline HEAD 5766c03185b91f3fa168f3f30dd2704f06ccfdad: verdict PASS, quality parity PASS with 0 failed checks. contextBytes 149116→5994 (95.98%), filesConsumed 438→7 (98.402%), evidenceRecomputed 2→0 (100%), workUnitsExecuted 5→3 (40%), sourceReprocessBytes 248893→0 (100%). Tokens UNAVAILABLE — no model is invoked by either pass."
+    }
+  ],
   "layers": [
     {
       "layer": "R1",

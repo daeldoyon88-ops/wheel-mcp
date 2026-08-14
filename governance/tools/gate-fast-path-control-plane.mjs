@@ -33,7 +33,6 @@
  * Nothing here can manufacture a reuse claim, a PASS, or an R3 delta.
  */
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -58,6 +57,13 @@ import {
 import { createCheckpointStore } from '../gee-v1/recovery/checkpoint-store.mjs';
 import { createUsageLedger } from '../gee-v1/usage/usage-ledger.mjs';
 import { wheelAuthorityIdentity } from '../gee-v1/adapters/wheel/recovery-wheel-adapter.mjs';
+import {
+  RUN_STATE_COMPLETED, RUN_STATE_FAILED_DISCARDED,
+  allocateRunRoot, releaseRunRoot, resolveDurableLifecycleRoot
+} from '../gee-v1/runtime/run-root-lifecycle.mjs';
+import {
+  buildExecutionEfficiencyReceipt, createProcessCallCounter
+} from '../gee-v1/runtime/execution-efficiency-receipt.mjs';
 
 export const CONTROL_PLANE_DOCUMENT = 'GATE_FAST_PATH_CONTROL_PLANE';
 export const CONTROL_PLANE_VERSION = 'R1';
@@ -659,16 +665,20 @@ const R7_RECOVERY_IDENTITY_PATHS = Object.freeze([
   'governance/tools/gate-fast-path-control-plane.mjs'
 ]);
 
-function identityForPaths(root, paths, commit = null) {
+function identityForPaths(root, paths, commit = null, processCalls = null) {
   return sha256Canonical(paths.map((relativePath) => {
-    const bytes = commit
-      ? execFileSync('git', ['show', `${commit}:${relativePath}`], { cwd: root, encoding: 'buffer', stdio: ['ignore', 'pipe', 'pipe'] })
-      : readBytes(root, relativePath);
+    let bytes;
+    if (commit) {
+      processCalls?.record();
+      bytes = execFileSync('git', ['show', `${commit}:${relativePath}`], { cwd: root, encoding: 'buffer', stdio: ['ignore', 'pipe', 'pipe'] });
+    } else {
+      bytes = readBytes(root, relativePath);
+    }
     return { path: relativePath, sha256: sha256(bytes), byteLength: bytes.length };
   }));
 }
 
-export function deriveR7TriggerState({ root, historyRoot = root, baselineCommit, previousGuardIdentities = null, explicitArchitectureAuditRequired = false } = {}) {
+export function deriveR7TriggerState({ root, historyRoot = root, baselineCommit, previousGuardIdentities = null, explicitArchitectureAuditRequired = false, processCalls = null } = {}) {
   const current = {
     geeEngineArchitectureSha256: identityForPaths(root, R7_ENGINE_IDENTITY_PATHS),
     routingBehaviorSha256: identityForPaths(root, R7_ROUTING_IDENTITY_PATHS),
@@ -678,9 +688,9 @@ export function deriveR7TriggerState({ root, historyRoot = root, baselineCommit,
   if (!previous && baselineCommit) {
     try {
       previous = {
-        geeEngineArchitectureSha256: identityForPaths(historyRoot, R7_ENGINE_IDENTITY_PATHS, baselineCommit),
-        routingBehaviorSha256: identityForPaths(historyRoot, R7_ROUTING_IDENTITY_PATHS, baselineCommit),
-        recoveryGuaranteesSha256: identityForPaths(historyRoot, R7_RECOVERY_IDENTITY_PATHS, baselineCommit)
+        geeEngineArchitectureSha256: identityForPaths(historyRoot, R7_ENGINE_IDENTITY_PATHS, baselineCommit, processCalls),
+        routingBehaviorSha256: identityForPaths(historyRoot, R7_ROUTING_IDENTITY_PATHS, baselineCommit, processCalls),
+        recoveryGuaranteesSha256: identityForPaths(historyRoot, R7_RECOVERY_IDENTITY_PATHS, baselineCommit, processCalls)
       };
     } catch { previous = null; }
   }
@@ -772,19 +782,24 @@ export function checkFreshness({ root, currentHead, ledgerEventCount }) {
   };
 }
 
-export async function runFastPathControlPlane({
+/**
+ * The plan itself. Runs INSIDE an allocated ephemeral run root, which it uses
+ * for scratch and never has to clean up: allocation and release are owned by
+ * runFastPathControlPlane, so no exit path from here can leak one.
+ */
+async function planFastPath({
   root, gateId, phase = 'READINESS', now = new Date(), proveResume = false, head = null,
-  lifecycleStoreRoot = null, explicitArchitectureAuditRequired = false, gitHistoryRoot = root
-} = {}) {
+  lifecycleStoreRoot = null, useCanonicalDurableLifecycleRoot = false,
+  explicitArchitectureAuditRequired = false, gitHistoryRoot = root,
+  runRoot, processCalls
+}) {
   const blockingFacts = [];
   const gateLocalExpected = [];
-
-  if (!GATE_RE.test(gateId || '')) throw new Error('GATE_ID_INVALID');
-  if (!LIFECYCLE_PHASES.includes(phase)) throw new Error(`UNKNOWN_LIFECYCLE_PHASE:${phase}`);
 
   // `head` is supplied only where git is not the source of truth for it — a
   // scratch tree in a test. It never changes what is checked, only where the
   // baseline identity is read from.
+  if (!head) processCalls.record();
   const currentHead = head ?? execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const ledgerBytes = readBytes(root, LEDGER_PATH);
   const ledgerEvents = ledgerBytes.toString('utf8').trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
@@ -811,16 +826,29 @@ export async function runFastPathControlPlane({
     gateLocalExpected.push({ code: 'DEPENDENCY_NOT_CLOSED', detail: unsatisfiedDependencies, classification: 'GATE_LOCAL_EXPECTED' });
   }
 
+  // ---- durable lifecycle root --------------------------------------------
+  // Durable R4 CAS and R6 checkpoint state are resolved through the canonical
+  // resolver rather than assembled here, so "where does lifecycle state live"
+  // has exactly one answer and it is never %TEMP% by default.
+  const durableResolution = (lifecycleStoreRoot || useCanonicalDurableLifecycleRoot)
+    ? resolveDurableLifecycleRoot({ explicitRoot: lifecycleStoreRoot })
+    : null;
+  const resolvedLifecycleStoreRoot = durableResolution?.root ?? null;
+
   // ---- chain --------------------------------------------------------------
-  const durable = lifecycleStoreRoot
-    ? loadFastPathLifecycleState({ lifecycleStoreRoot, gateId, phase, sourceHead: currentHead })
+  const durable = resolvedLifecycleStoreRoot
+    ? loadFastPathLifecycleState({ lifecycleStoreRoot: resolvedLifecycleStoreRoot, gateId, phase, sourceHead: currentHead })
     : { status: 'NONE', reasons: ['LIFECYCLE_STORE_NOT_REQUESTED'], checkpoint: null, usageLedger: createUsageLedger(), state: null, scope: null, store: null };
   if (durable.status === 'BLOCKED') {
     blockingFacts.push({ code: 'R6_DURABLE_CHECKPOINT_INCOMPATIBLE', detail: durable.reasons });
   }
-  const casRoot = lifecycleStoreRoot
+  // With a durable store the CAS is durable and lives outside the run root, so
+  // releasing the run root can never reach it. Without one the CAS is genuine
+  // per-run scratch and lives inside the run root, which is what makes the run
+  // root a live consumer rather than an empty ceremony.
+  const casRoot = resolvedLifecycleStoreRoot
     ? path.join(durable.scope, 'r4-cas')
-    : fs.mkdtempSync(path.join(os.tmpdir(), 'gate-fast-path-cas-'));
+    : path.join(runRoot.scratch('r4-cas-ephemeral'), 'cas');
   fs.mkdirSync(casRoot, { recursive: true });
   let chain = null;
   let bindings = null;
@@ -861,17 +889,19 @@ export async function runFastPathControlPlane({
       historyRoot: gitHistoryRoot,
       baselineCommit: currentHead,
       previousGuardIdentities: durable.status === 'LOADED' ? durable.state.guardIdentities : null,
-      explicitArchitectureAuditRequired
+      explicitArchitectureAuditRequired,
+      processCalls
     });
     guard = r7LightweightGuard({ chain, bindings, evidence, triggerState });
     if (guard.verdict !== 'PASS') {
       blockingFacts.push({ code: 'R7_LIGHTWEIGHT_GUARD_FAILED', detail: guard.checks.filter((check) => !check.pass).map((check) => check.id) });
     }
-    if (proveResume && !lifecycleStoreRoot) {
+    if (proveResume && !resolvedLifecycleStoreRoot) {
       recovery.resumeProof = 'NOT_RUN_NO_DURABLE_STORE';
     }
   } finally {
-    if (!lifecycleStoreRoot) fs.rmSync(casRoot, { recursive: true, force: true });
+    // Nothing to unwind here: the ephemeral CAS lives inside the run root, and
+    // the run root is released by the caller on every exit path.
   }
 
   // ---- anti-amnesia -------------------------------------------------------
@@ -926,7 +956,7 @@ export async function runFastPathControlPlane({
       guardIdentities: triggerState.current
     });
     recovery.persistence = lifecyclePersistence;
-  } else if (lifecycleStoreRoot) {
+  } else if (resolvedLifecycleStoreRoot) {
     recovery.persistence = null;
     recovery.persistenceBlockedBy = blockingFacts.map((entry) => entry.code);
   }
@@ -1028,11 +1058,157 @@ export async function runFastPathControlPlane({
     },
     regression,
     freshness,
+    runtime: {
+      ephemeralRunRoot: { runId: runRoot.runId, path: runRoot.path, namespace: runRoot.runsRoot, class: 'EPHEMERAL' },
+      durableLifecycleRoot: durableResolution
+        ? { path: durableResolution.root, source: durableResolution.source, insideEphemeralTemp: durableResolution.ephemeral, reasonCodes: durableResolution.reasonCodes }
+        : null,
+      r4CasRoot: casRoot,
+      r4CasClass: resolvedLifecycleStoreRoot ? 'DURABLE' : 'EPHEMERAL',
+      r6CheckpointStoreRoot: durable.store?.root ?? null,
+      durableStateInsideEphemeralRunRoot: false
+    },
     git: GIT_CONTROL_RULE,
     gateLocalExpected,
     blockingFacts,
-    nextAllowedTransition
+    nextAllowedTransition,
+    // Filled in by runFastPathControlPlane once the run root has been released,
+    // so the receipt can report what actually happened to the scratch.
+    efficiency: null,
+    efficiencyInputs: {
+      contextSourceBytes: chain.compiled.metrics.sourceBytes,
+      compiledJsonBytes: chain.compiled.metrics.compiledJsonBytes,
+      filesConsidered: recoveryBundle.repoIndex.entries.length,
+      filesConsumed: chain.context.relevantSources.length + chain.frontierPaths.length,
+      changedBytes: chain.verifiedDelta.metrics.CHANGED_BYTES,
+      unchangedBytes: chain.verifiedDelta.metrics.UNCHANGED_BYTES,
+      avoidedReprocessBytes: chain.plan.metrics.R3_AVOIDED_REPROCESS_BYTES,
+      avoidedEvidenceBytes: chain.plan.metrics.R4_AVOIDED_EVIDENCE_BYTES,
+      comparisonBasis: chain.r3Record.comparisonBasis,
+      missionRevisionId: ORCHESTRATED_MISSION_REVISION,
+      toolProcessCalls: processCalls.count,
+      toolProcessCallScope: processCalls.scope
+    }
   };
+}
+
+/**
+ * The entry point. Owns the ephemeral run root's whole lifetime and emits the
+ * efficiency receipt.
+ *
+ * Allocation happens before the plan and release happens after it on EVERY exit
+ * path, including a throw, which is what makes "the fast path leaks no scratch"
+ * a property of this function rather than a discipline every future edit inside
+ * planFastPath has to remember. The receipt is built last, from numbers the
+ * plan already produced plus the real release result — never from a prediction
+ * of what cleanup would have done.
+ */
+export async function runFastPathControlPlane(options = {}) {
+  const { root, gateId, phase = 'READINESS', now = new Date() } = options;
+  if (!GATE_RE.test(gateId || '')) throw new Error('GATE_ID_INVALID');
+  if (!LIFECYCLE_PHASES.includes(phase)) throw new Error(`UNKNOWN_LIFECYCLE_PHASE:${phase}`);
+
+  const startedAtMs = Date.now();
+  const processCalls = createProcessCallCounter(CONTROL_PLANE_DOCUMENT);
+  // DISCARD is declared HERE, before anything runs: removing the scratch of a
+  // failed plan is a recorded policy, not a decision the failure gets to make.
+  const runRoot = allocateRunRoot({
+    repoRoot: root,
+    workUnitId: gateId,
+    phase,
+    purpose: 'GATE_FAST_PATH_PLAN',
+    consumer: 'governance/tools/gate-fast-path-control-plane.mjs',
+    missionRevisionId: ORCHESTRATED_MISSION_REVISION,
+    failurePolicy: 'DISCARD',
+    now
+  });
+
+  let report = null;
+  let failure = null;
+  try {
+    report = await planFastPath({ ...options, phase, now, runRoot, processCalls });
+  } catch (error) {
+    failure = error;
+  }
+
+  const release = releaseRunRoot(runRoot, {
+    state: failure ? RUN_STATE_FAILED_DISCARDED : RUN_STATE_COMPLETED,
+    reason: failure ? `CONTROL_PLANE_THREW:${failure?.message ?? 'UNKNOWN'}` : 'CONTROL_PLANE_PLAN_COMPLETED',
+    repoRoot: root,
+    now: new Date()
+  });
+  if (failure) {
+    failure.runRootRelease = release;
+    throw failure;
+  }
+
+  const receiptStartedMs = Date.now();
+  const inputs = report.efficiencyInputs;
+  report.efficiency = buildExecutionEfficiencyReceipt({
+    identity: {
+      workUnitId: gateId,
+      missionId: options.missionId ?? null,
+      phase,
+      baselineHead: report.baseline.currentHead,
+      geeExecutionId: runRoot.runId,
+      missionRevisionId: inputs.missionRevisionId,
+      consumer: 'governance/tools/gate-fast-path-control-plane.mjs'
+    },
+    context: {
+      originalConsideredBytes: inputs.contextSourceBytes,
+      compiledContextBytes: inputs.compiledJsonBytes
+    },
+    delta: {
+      classification: report.chain.r3.semantics.reduce((counts, entry) => ({ ...counts, [entry.kind]: (counts[entry.kind] || 0) + 1 }), {}),
+      comparisonBasis: inputs.comparisonBasis,
+      changedBytes: inputs.changedBytes,
+      unchangedBytes: inputs.unchangedBytes,
+      avoidedReprocessBytes: inputs.avoidedReprocessBytes
+    },
+    reuse: {
+      evidenceAvailable: report.chain.r4.nodeCount,
+      evidenceReused: report.evidence.reusedCount,
+      evidenceRecomputed: report.evidence.REQUIRED_RECOMPUTATION.length,
+      avoidedEvidenceBytes: inputs.avoidedEvidenceBytes
+    },
+    work: {
+      candidateWorkUnits: report.chain.r5.taskCount,
+      executedWorkUnits: report.workset.requiredWorkset.length,
+      avoidedWorkUnits: report.workset.excludedByProvenReuse.length,
+      deferredWorkUnits: report.workset.deferredByCost.length,
+      blockedWorkUnits: report.workset.blocked.length,
+      routeDecision: report.chain.r5.routeDecision
+    },
+    recovery: {
+      resumed: Boolean(report.r6?.resume),
+      restartedFromZero: report.r6?.resume?.restartedFromZero === true,
+      checkpointRevision: report.r6?.checkpointRevision ?? null,
+      durableStateRoot: report.runtime.durableLifecycleRoot?.path ?? null,
+      durableStateRootSource: report.runtime.durableLifecycleRoot?.source ?? null
+    },
+    execution: {
+      filesConsidered: inputs.filesConsidered,
+      filesConsumed: inputs.filesConsumed,
+      toolProcessCalls: inputs.toolProcessCalls,
+      toolProcessCallScope: inputs.toolProcessCallScope,
+      wallTimeMs: Date.now() - startedAtMs,
+      r7Mode: report.r7.heavyBenchmarkRequired ? 'HEAVY' : 'LIGHT',
+      r7HeavyBenchmarkRequired: report.r7.heavyBenchmarkRequired,
+      qualityParity: report.r7.verdict === 'PASS' ? 'R7_LIGHTWEIGHT_GUARD_PASS' : 'R7_LIGHTWEIGHT_GUARD_FAIL',
+      ephemeralRunRoot: runRoot.path,
+      ephemeralRunRootReleased: { state: release.state, removed: release.removed, retained: release.retained, reasonCodes: release.reasonCodes }
+    },
+    // Deterministic local Node execution exposes no model/tool token counter.
+    // UNAVAILABLE is the measurement, not a placeholder for one.
+    tokens: { tokenSource: 'UNAVAILABLE', unavailableReason: 'DETERMINISTIC_LOCAL_EXECUTION_EXPOSES_NO_TOKEN_COUNTER' },
+    now: new Date()
+  });
+  // Reported BESIDE the receipt, never inside it: the receipt's digest is
+  // computed over its body, and a field written after sealing would break it.
+  report.runtime.efficiencyReceiptOverheadMs = Date.now() - receiptStartedMs;
+  report.runtime.ephemeralRunRootRelease = release;
+  delete report.efficiencyInputs;
+  return report;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
@@ -1049,6 +1225,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     head: option('--head'),
     proveResume: process.argv.includes('--prove-resume'),
     lifecycleStoreRoot: option('--lifecycle-store'),
+    useCanonicalDurableLifecycleRoot: process.argv.includes('--durable-lifecycle'),
     explicitArchitectureAuditRequired: process.argv.includes('--explicit-architecture-audit'),
     gitHistoryRoot: option('--git-history-root', root)
   });

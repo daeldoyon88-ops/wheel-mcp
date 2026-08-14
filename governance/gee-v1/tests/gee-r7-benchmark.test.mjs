@@ -11,11 +11,40 @@ import { createWheelContextAdapter } from '../adapters/wheel/context-wheel-adapt
 import {
   REPO_ROOT, R7_BENCHMARK_CONTEXT_PATH, runAll, runBenchmark, validateR7BenchmarkContext
 } from '../evals/gee-r7-runner.mjs';
+import { RUN_STATE_COMPLETED, allocateRunRoot, releaseRunRoot } from '../runtime/run-root-lifecycle.mjs';
 
 const canonicalBenchmarkPath = path.join(REPO_ROOT, 'governance', 'gee-v1', 'benchmarks', 'gee-r7-benchmark.json');
 const ledgerPath = path.join(REPO_ROOT, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
 const hashFile = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-const tempOutputRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-benchmark-test-'));
+
+/**
+ * Output roots for this test.
+ *
+ * Each `runBenchmark({ outputRoot })` below needs its own writable tree, and
+ * nine of them were previously allocated with a bare `mkdtemp` and never
+ * removed — a leak adjacent to the runner's own, and invisible because the
+ * assertions only ever read back what had just been written. They now go
+ * through the canonical run-root lifecycle and are released together in the
+ * test's `finally`, so a failing assertion cannot skip the cleanup either.
+ */
+const allocatedOutputRuns = [];
+const tempOutputRoot = () => {
+  const run = allocateRunRoot({
+    repoRoot: REPO_ROOT,
+    workUnitId: 'GATE15',
+    phase: 'R7_BENCHMARK_TEST',
+    purpose: 'R7_BENCHMARK_TEST_OUTPUT',
+    consumer: 'governance/gee-v1/tests/gee-r7-benchmark.test.mjs',
+    failurePolicy: 'DISCARD'
+  });
+  allocatedOutputRuns.push(run);
+  return run.scratch('work');
+};
+const releaseOutputRoots = () => {
+  while (allocatedOutputRuns.length) {
+    releaseRunRoot(allocatedOutputRuns.pop(), { state: RUN_STATE_COMPLETED, reason: 'BENCHMARK_TEST_COMPLETED', repoRoot: REPO_ROOT });
+  }
+};
 const benchmarkPath = (root) => path.join(root, 'governance', 'gee-v1', 'benchmarks', 'gee-r7-benchmark.json');
 const jsonValue = (value) => JSON.parse(JSON.stringify(value));
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -169,5 +198,6 @@ test('R7 before-after benchmark measures unchanged, relevant, unrelated, routing
     else delete process.env.GEE_HEAD_WITNESS_SOURCE;
     assertEnvState(originalEnv);
     fs.rmSync(witnessRoot, { recursive: true, force: true });
+    releaseOutputRoots();
   }
 });

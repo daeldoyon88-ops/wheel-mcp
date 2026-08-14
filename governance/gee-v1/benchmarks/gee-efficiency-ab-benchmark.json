@@ -1,0 +1,316 @@
+{
+  "document": "GEE_EFFICIENCY_AB_BENCHMARK",
+  "schemaVersion": 1,
+  "engine": "GEE_V1_EFFICIENCY_AB_BENCHMARK_R1",
+  "generatedAt": "2026-08-14T13:35:36.437Z",
+  "verdict": "PASS",
+  "question": "DOES_GEE_REDUCE_WORK_CONTEXT_TOKENS_TIME_WITHOUT_REDUCING_QUALITY",
+  "scope": "BASELINE_BENCHMARK_NOT_PER_GATE",
+  "controls": {
+    "sameRepositorySnapshot": true,
+    "snapshot": {
+      "head": "5766c03185b91f3fa168f3f30dd2704f06ccfdad",
+      "ledgerSha256": "0607f8a0725f20406013905904f3a8ea1c1772f59c034af395a066dc4afa5f41",
+      "ledgerEventCount": 65,
+      "registrySha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+      "controlPlaneSha256": "fa822464d45fe6224f44c34ee1c93b558918f837b4c2c3ace36f1fbb853a6b19"
+    },
+    "snapshotUnchangedAfterRun": true,
+    "sameTask": "GATE16/READINESS minimum-evidence-frontier plan",
+    "sameProgram": "governance/tools/gate-fast-path-control-plane.mjs",
+    "sameDurableStore": "<durableLifecycleRoot>/ab-benchmark/GATE16-READINESS-5766c03185b9",
+    "durableStoreSource": "DEFAULT:LOCALAPPDATA",
+    "durableStoreSegment": "GATE16-READINESS-5766c03185b9",
+    "durableStoreOutsideRepository": true,
+    "separateProcesses": true,
+    "referenceLegitimacy": "REFERENCE_IS_THE_SAME_PROGRAM_WITH_NO_PRIOR_PROVEN_EVIDENCE_NOTHING_DISABLED_OR_ADDED"
+  },
+  "passes": {
+    "REFERENCE": {
+      "geeExecutionId": "GATE16-READINESS-0ddd1dc62783-18500-S6ceLk",
+      "comparisonBasis": "EMPTY_INITIAL_BASELINE",
+      "resumed": false,
+      "checkpointRevision": "R0001",
+      "receiptSha256": "16e8918da88c0df1870ff9a5ec3c255c1b929843b221f84b59ab03f314dd8255"
+    },
+    "GEE": {
+      "geeExecutionId": "GATE16-READINESS-0ddd1dc62783-10600-PPCxDn",
+      "comparisonBasis": "PRIOR_PROVEN_SNAPSHOT",
+      "resumed": true,
+      "restartedFromZero": false,
+      "checkpointRevision": "R0002",
+      "receiptSha256": "71ae21ad169116fe270e1b5783e59189f7642a59cf2d8fa48c2e9c579f10ebd5"
+    }
+  },
+  "metrics": [
+    {
+      "metric": "contextBytes",
+      "unit": "bytes",
+      "basis": "R2_COMPILE_METRICS_SOURCE_BYTES_VS_COMPILED_BYTES",
+      "stability": "DETERMINISTIC",
+      "note": null,
+      "REFERENCE": 149116,
+      "GEE": 5994,
+      "ABSOLUTE_DELTA": 143122,
+      "PERCENT_REDUCTION": 95.98,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "filesConsumed",
+      "unit": "files",
+      "basis": "R6_REPO_INDEX_ENTRIES_VS_R2_R3_CONSUMED_PATHS",
+      "stability": "DETERMINISTIC",
+      "note": null,
+      "REFERENCE": 440,
+      "GEE": 7,
+      "ABSOLUTE_DELTA": 433,
+      "PERCENT_REDUCTION": 98.409,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "evidenceRecomputed",
+      "unit": "nodes",
+      "basis": "REFERENCE_PRODUCES_ALL_EVIDENCE_VS_GEE_REVALIDATION_SET",
+      "stability": "DETERMINISTIC",
+      "note": null,
+      "REFERENCE": 2,
+      "GEE": 0,
+      "ABSOLUTE_DELTA": 2,
+      "PERCENT_REDUCTION": 100,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "workUnitsExecuted",
+      "unit": "tasks",
+      "basis": "R5_ROUTE_PLAN_REQUIRED_WORKSET",
+      "stability": "DETERMINISTIC",
+      "note": null,
+      "REFERENCE": 5,
+      "GEE": 3,
+      "ABSOLUTE_DELTA": 2,
+      "PERCENT_REDUCTION": 40,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "sourceReprocessBytes",
+      "unit": "bytes",
+      "basis": "R3_DELTA_CHANGED_BYTES",
+      "stability": "DETERMINISTIC",
+      "note": null,
+      "REFERENCE": 248893,
+      "GEE": 0,
+      "ABSOLUTE_DELTA": 248893,
+      "PERCENT_REDUCTION": 100,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "planWallTimeMs",
+      "unit": "ms",
+      "basis": "CONTROL_PLANE_MEASURED_PLAN_DURATION",
+      "stability": "WALL_CLOCK_SINGLE_SAMPLE",
+      "note": "Dominated by fixed per-process cost. The saving from avoiding 2 of 5 tasks is inside this measurement’s run-to-run variance, so its sign is not a claim.",
+      "REFERENCE": 7438,
+      "GEE": 6200,
+      "ABSOLUTE_DELTA": 1238,
+      "PERCENT_REDUCTION": 16.644,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "processWallTimeMs",
+      "unit": "ms",
+      "basis": "PARENT_MEASURED_CHILD_PROCESS_DURATION",
+      "stability": "WALL_CLOCK_SINGLE_SAMPLE",
+      "note": "Includes node startup on both sides. Reported for completeness, not relied on.",
+      "REFERENCE": 7559,
+      "GEE": 6323,
+      "ABSOLUTE_DELTA": 1236,
+      "PERCENT_REDUCTION": 16.351,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": true
+    },
+    {
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "basis": "NO_RUNTIME_TOKEN_COUNTER_EXPOSED",
+      "stability": "DETERMINISTIC",
+      "note": null,
+      "REFERENCE": null,
+      "GEE": null,
+      "ABSOLUTE_DELTA": null,
+      "PERCENT_REDUCTION": null,
+      "direction": "LOWER_IS_BETTER",
+      "measurable": false
+    }
+  ],
+  "reducedMetrics": [
+    "contextBytes",
+    "filesConsumed",
+    "evidenceRecomputed",
+    "workUnitsExecuted",
+    "sourceReprocessBytes",
+    "planWallTimeMs",
+    "processWallTimeMs"
+  ],
+  "regressedMetrics": [],
+  "deterministicReductions": [
+    "contextBytes",
+    "filesConsumed",
+    "evidenceRecomputed",
+    "workUnitsExecuted",
+    "sourceReprocessBytes"
+  ],
+  "deterministicRegressions": [],
+  "claimBasis": "THE VERDICT RESTS ON THE DETERMINISTIC AXES ONLY. Wall-clock rows are single samples dominated by fixed per-process cost and are reported without being relied on.",
+  "tokens": {
+    "tokenSource": "UNAVAILABLE",
+    "unavailableReason": "DETERMINISTIC_LOCAL_EXECUTION_EXPOSES_NO_TOKEN_COUNTER",
+    "referenceTokens": null,
+    "geeTokens": null,
+    "note": "Neither pass invokes a model. No counter was fabricated or estimated; every other metric is reported regardless."
+  },
+  "quality": {
+    "parity": "PASS",
+    "checks": [
+      {
+        "id": "SAME_VERDICT",
+        "pass": true,
+        "detail": {
+          "reference": "FAST_PATH_READY",
+          "gee": "FAST_PATH_READY"
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "SAME_R2_CONTEXT_IDENTITY",
+        "pass": true,
+        "detail": {
+          "reference": "45b0e35af2b16afb79696c3b3aa96413d3d08e040e8ae8ca8969965721be6590",
+          "gee": "45b0e35af2b16afb79696c3b3aa96413d3d08e040e8ae8ca8969965721be6590"
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "CHAIN_BINDINGS_VALID_BOTH_SIDES",
+        "pass": true,
+        "detail": {
+          "reference": true,
+          "gee": true
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "R7_GUARD_PASS_BOTH_SIDES",
+        "pass": true,
+        "detail": {
+          "reference": "PASS",
+          "gee": "PASS"
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "NO_UNKNOWN_PROVENANCE_EITHER_SIDE",
+        "pass": true,
+        "detail": {
+          "reference": 0,
+          "gee": 0
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "NO_BLOCKED_WORK_EITHER_SIDE",
+        "pass": true,
+        "detail": {
+          "reference": 0,
+          "gee": 0
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "EVIDENCE_IDENTITIES_UNCHANGED",
+        "pass": true,
+        "detail": {
+          "reference": {
+            "wheel:active-status": "eddb09f13441dfd7af5e0c57ca9bb513af5ff9044a7dcd2072b7bb27ccd5d32b",
+            "wheel:mission-objective": "dbb2316e23e5d218d4999bb10ac2b990101e199bdc7655345d420e1087a50743"
+          },
+          "gee": {
+            "wheel:active-status": "eddb09f13441dfd7af5e0c57ca9bb513af5ff9044a7dcd2072b7bb27ccd5d32b",
+            "wheel:mission-objective": "dbb2316e23e5d218d4999bb10ac2b990101e199bdc7655345d420e1087a50743"
+          }
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "NO_WORK_DROPPED_WITHOUT_PROVEN_REUSE",
+        "pass": true,
+        "detail": [],
+        "status": "PASS"
+      },
+      {
+        "id": "SAME_VALIDATOR_UNIVERSE",
+        "pass": true,
+        "detail": {
+          "reference": [
+            "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs",
+            "governance/tools/gate-preexecution-reuse-check.mjs",
+            "governance/tools/governance-preflight.mjs"
+          ],
+          "gee": [
+            "governance/gee-v1/tools/evaluate-work-unit-readiness.mjs",
+            "governance/tools/gate-preexecution-reuse-check.mjs",
+            "governance/tools/governance-preflight.mjs"
+          ]
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "SAME_MINIMUM_EVIDENCE_FRONTIER",
+        "pass": true,
+        "detail": null,
+        "status": "PASS"
+      },
+      {
+        "id": "SAME_ANTI_AMNESIA_RESULT",
+        "pass": true,
+        "detail": null,
+        "status": "PASS"
+      },
+      {
+        "id": "SAME_REGRESSION_COMPARABILITY",
+        "pass": true,
+        "detail": {
+          "reference": true,
+          "gee": true
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "SAME_BLOCKING_FACTS",
+        "pass": true,
+        "detail": {
+          "reference": [],
+          "gee": []
+        },
+        "status": "PASS"
+      },
+      {
+        "id": "GEE_DID_NOT_RESTART_FROM_ZERO",
+        "pass": true,
+        "detail": {
+          "resumed": true,
+          "restartedFromZero": false,
+          "checkpointRevision": "R0002"
+        },
+        "status": "PASS"
+      }
+    ],
+    "failedCheckIds": []
+  },
+  "reproduction": "node governance/gee-v1/benchmarks/gee-efficiency-ab-benchmark.mjs --gate GATE16 --phase READINESS"
+}

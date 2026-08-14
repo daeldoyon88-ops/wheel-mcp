@@ -1,0 +1,59 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_AUTHORITY_R1",
+  "programId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1",
+  "manifestSha256": "2603b1e23691ad5a1c557e0a7c1e8ccd63fbed5a1b6a13cccd499a342998cb4d",
+  "baseHead": "55dcf426b99d7d6afe5cb993ec0891fc5e15e123",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T19:20:00.000Z",
+  "commitMessage": "governance: bind exact sealed-byte restoration provenance",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_CONSUMPTION_R1.json",
+    "reason": "The receipt cannot digest its own bytes; the enclosing governed commit binds the receipt itself."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "sha256": "7c04d7b137342fc024a9ca90dd454bb499b3ce3cf56623cbadf3c139ac723d44",
+      "byteLength": 12582,
+      "operation": "MODIFY",
+      "reason": "Extend the existing generic closed-seal evidence primitive with read-only exact restoration provenance binding.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-exact-sealed-byte-restoration.test.mjs",
+      "sha256": "7606f93e0c2b9c95ae02efc87960b3bdfad6bd35c4270a89e0cc5ff26f028fb1",
+      "byteLength": 4988,
+      "operation": "CREATE",
+      "reason": "Prove exact sealed restoration authorization, hostile mutation blocking and repeated idempotent verification.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1.json",
+      "sha256": "66028814a6a24ebf26878c19a82cae2ba779469dcda2a104f06c7f1ab5479bf1",
+      "byteLength": 7410,
+      "operation": "CREATE",
+      "reason": "Bind the exact prior 12-path restoration cohort, sealed member identity and actual six-path current delta.",
+      "artifactClass": "POST_CLOSURE_MAINTENANCE_EVIDENCE"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_AUTHORIZED_PATHS.json",
+      "sha256": "2603b1e23691ad5a1c557e0a7c1e8ccd63fbed5a1b6a13cccd499a342998cb4d",
+      "byteLength": 2338,
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for the owner-authorized generic restoration-binding repair cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1.json",
+      "sha256": "e34991e3b1e1d38434c4e524e6af925864ec114b6bd74eee440a12e39430ee44",
+      "byteLength": 2281,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact 55dc pre-state and this six-path cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

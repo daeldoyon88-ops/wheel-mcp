@@ -1,0 +1,163 @@
+{
+  "document": "EXACT_SEALED_BYTE_RESTORATION_BINDING",
+  "schemaVersion": 1,
+  "bindingId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1",
+  "semantic": "EXACT_SEALED_BYTE_RESTORATION",
+  "programId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "ownerApproval": {
+    "mode": "LOCAL_EXPLICIT_AUTHORITY",
+    "ownerApproved": true,
+    "scope": "Bind the exact prior sealed-byte restoration provenance and add the generic read-only verifier and hostile regression proof."
+  },
+  "restoration": {
+    "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+    "parentCommit": "8d7653a8d7143faec9f40ae39d978421157c2b1e",
+    "restorationCommit": "55dcf426b99d7d6afe5cb993ec0891fc5e15e123",
+    "before": {
+      "sha256": "69ffb7591be6e0cbb5caada0c96414852aaaac76cbd4a4f128aa08d5d5234890",
+      "byteLength": 64884
+    },
+    "restored": {
+      "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+      "byteLength": 64884
+    },
+    "targetSealedMember": {
+      "repoRelativePath": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+      "byteLength": 64884,
+      "gateId": "GATE16",
+      "stateRevision": "R0004",
+      "sealPath": "governance/gates/GATE16/state/revisions/R0004/STATE_SEAL.json",
+      "sealSha256": "7b21c404c0938abc815a620e193d8c939d7f00b905a6ecd9bc59b659e542d0f5"
+    },
+    "semanticBytesIntroduced": false,
+    "resealAttempt": false,
+    "ledgerRewriteAttempt": false,
+    "historyRewriteAttempt": false
+  },
+  "authorizedRestorationCohort": {
+    "sourceCommit": "55dcf426b99d7d6afe5cb993ec0891fc5e15e123",
+    "sourceParentCommit": "8d7653a8d7143faec9f40ae39d978421157c2b1e",
+    "pathCount": 12,
+    "paths": [
+      {
+        "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+        "operation": "EXACT_SEALED_BYTE_RESTORATION",
+        "beforeSha256": "69ffb7591be6e0cbb5caada0c96414852aaaac76cbd4a4f128aa08d5d5234890",
+        "beforeByteLength": 64884,
+        "restoredSha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+        "restoredByteLength": 64884
+      },
+      {
+        "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "4d9f99e1c2a24a67ac4693cecb410a05220a5f95cd0a40f4f48504a924ae0985",
+        "finalByteLength": 29291
+      },
+      {
+        "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "90ca4f0fce14c1e9e03621ea5ea3df54223dbdf6b03dcdc170115957a7808c88",
+        "finalByteLength": 18389
+      },
+      {
+        "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "3b137e246975b76f7840edee7f0f46bf48b0b56639e960febc5683f5e4846353",
+        "finalByteLength": 23696
+      },
+      {
+        "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "dd6738b29f32b1fb5b10f1b2cd037fe1ddbb578222dfb364a27eb96b58a67fb5",
+        "finalByteLength": 32059
+      },
+      {
+        "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "520f37ab3d3e2e8e8f25acad7731f81a810eef23258a5ecb75b9dee7d1703615",
+        "finalByteLength": 4316
+      },
+      {
+        "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "ab8b1af8a1d5d744097865ad63290c9597955fd742e74bb3623a99b4e06e54bb",
+        "finalByteLength": 45697
+      },
+      {
+        "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_AUTHORIZED_PATHS.json",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "4d61d76dc07fa46311559ffb02222fff0484f1a6c1a54c950187ec14e81c20d5",
+        "finalByteLength": 4117
+      },
+      {
+        "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_CONSUMPTION_R1.json",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "7677c43c303853c820f26fffad81fdc68af70dad0a9d7ac88f425b550e25cce7",
+        "finalByteLength": 5314
+      },
+      {
+        "path": "governance/historical-architecture/WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1_EVIDENCE.json",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "1787bb90eae65101055e8a5666d35deb8cfc136eaeb95d89eeb918e15ece94cb",
+        "finalByteLength": 3693
+      },
+      {
+        "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_POST_CLOSURE_SEALED_EVIDENCE_IMMUTABILITY_REPAIR_R1.json",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "d8026a94416e041caea30325d87db01815daf20e0fb448f42c17688b1301bba9",
+        "finalByteLength": 2372
+      },
+      {
+        "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+        "operation": "PRESERVED_PRIOR_MAINTENANCE_ARTIFACT",
+        "finalSha256": "2df6e5bc03616acecc938a734582efebd37234d4eab8023d90cd7cab78976354",
+        "finalByteLength": 6696
+      }
+    ]
+  },
+  "actualGitDeltaThisCommit": {
+    "pathCount": 6,
+    "paths": [
+      "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "governance/gee-v1/tests/gee-exact-sealed-byte-restoration.test.mjs",
+      "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1.json",
+      "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_AUTHORIZED_PATHS.json",
+      "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1.json",
+      "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_CONSUMPTION_R1.json"
+    ],
+    "reportPathIncluded": false,
+    "ledgerPathIncluded": false,
+    "stateSealPathIncluded": false
+  },
+  "verification": {
+    "exactOperation": "AUTHORIZED",
+    "arbitraryMutation": "BLOCKED",
+    "correctHashWrongLength": "BLOCKED",
+    "wrongSealedPath": "BLOCKED",
+    "unsealedPath": "BLOCKED",
+    "resealAttempt": "BLOCKED",
+    "ledgerRewriteAttempt": "BLOCKED",
+    "historyRewriteAttempt": "BLOCKED",
+    "repeatedCorrectVerification": "AUTHORIZED_IDEMPOTENT",
+    "noGateSpecificBypass": true,
+    "reportSha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+    "r0004StateSealSha256": "7b21c404c0938abc815a620e193d8c939d7f00b905a6ecd9bc59b659e542d0f5",
+    "ledgerEventCount": 69,
+    "ledgerSha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb",
+    "gate16Status": "COMPLETE_CONFIRMED",
+    "gate16StateRevision": "R0004",
+    "gate16TestTotal": 22,
+    "geeMaintenanceTestTotalBeforeThisRepair": 95
+  },
+  "prohibitions": {
+    "reseal": true,
+    "ledgerRewrite": true,
+    "historyRewrite": true,
+    "reportRewriteInThisCommit": true,
+    "gateStatusChange": true,
+    "gate13HistoricalDebtRepair": true,
+    "push": true
+  }
+}

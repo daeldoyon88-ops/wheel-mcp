@@ -1,0 +1,50 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/core/sealed-state-evidence.mjs",
+      "operation": "MODIFY",
+      "phase": "R2",
+      "reason": "Extend the existing generic closed-seal evidence primitive with read-only exact restoration provenance binding.",
+      "artifactClass": "SEALED_EVIDENCE_IMMUTABILITY"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-exact-sealed-byte-restoration.test.mjs",
+      "operation": "CREATE",
+      "phase": "R4",
+      "reason": "Prove exact sealed restoration authorization, hostile mutation blocking and repeated idempotent verification.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1.json",
+      "operation": "CREATE",
+      "phase": "R6",
+      "reason": "Bind the exact prior 12-path restoration cohort, sealed member identity and actual six-path current delta.",
+      "artifactClass": "POST_CLOSURE_MAINTENANCE_EVIDENCE"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_AUTHORIZED_PATHS.json",
+      "operation": "CREATE",
+      "phase": "R6",
+      "reason": "Finite exact-path manifest for the owner-authorized generic restoration-binding repair cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1.json",
+      "operation": "CREATE",
+      "phase": "R6",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact 55dc pre-state and this six-path cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "R7",
+      "reason": "Exact-byte consumption receipt for the bounded generic restoration-binding cohort with deterministic self-exclusion.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

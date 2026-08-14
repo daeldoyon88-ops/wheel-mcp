@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-14T19:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-WHEEL-EXACT-SEALED-BYTE-RESTORATION-BINDING-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "55dcf426b99d7d6afe5cb993ec0891fc5e15e123",
+    "ledgerEventCount": 69,
+    "ledgerPrefixSha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb",
+    "gateId": "GATE16",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0004",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_AUTHORIZED_PATHS.json",
+  "authorizedPathManifestSha256": "2603b1e23691ad5a1c557e0a7c1e8ccd63fbed5a1b6a13cccd499a342998cb4d",
+  "authorizedOperationClasses": [
+    "SEALED_EVIDENCE_IMMUTABILITY",
+    "TARGETED_HOSTILE_TESTS",
+    "POST_CLOSURE_MAINTENANCE_EVIDENCE",
+    "MAINTENANCE_AUTHORITY_RECORDS"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: bind exact sealed-byte restoration provenance",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "55dcf426b99d7d6afe5cb993ec0891fc5e15e123"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/WHEEL_EXACT_SEALED_BYTE_RESTORATION_BINDING_R1_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

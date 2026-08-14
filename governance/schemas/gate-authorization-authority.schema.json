@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "gate-authorization-authority.schema.json",
-  "title": "Owner-signed active Gate authorization authority",
+  "title": "Gate authorization authority (legacy signed or local explicit)",
   "description": "The ONLY document that grants a Gate authorization. Signed with an ed25519 PROJECT_OWNER key whose private half never enters the governed set, so forgery requires the key rather than a text editor. It authorizes exactly one NOT_STARTED -> AUTHORIZED_NOT_STARTED ledger transition plus the Gate's first sealed R0001 state revision, over one exact artifact cohort identified by approvedBindingDigest. It can never authorize START, execution, closure or a second use: transitionType, fromStatus, toStatus and purpose are const, executionAuthorized is const false, and maxUse is const 1. NOTE ON ENFORCEMENT: this repository's canonical schema validator implements a draft-07 SUBSET and ignores $ref/definitions/allOf/contains/maxItems; those keywords are deliberately avoided here rather than creating false strictness. Signature verification, digest recomputation, cohort cardinality and exact path templates are enforced normatively in governance/gee-v1/core/gate-authorization-authority.mjs and permanently re-enforced in governance/tools/validate-status-ledger.mjs.",
   "type": "object",
   "additionalProperties": false,
@@ -12,10 +12,11 @@
     "currentContractSha256", "dependencyProof", "stateRevision",
     "authorizedStateArtifacts", "authorizedDerivedArtifacts",
     "bindingDigestAlgorithm", "approvedBindingDigest", "approvedRequestDigest",
-    "executionAuthorized", "maxUse", "ownerKeyId", "signatureAlgorithm", "signature"
+    "executionAuthorized", "maxUse"
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
+    "authorityMode": { "enum": ["LEGACY_SIGNED_AUTHORITY", "LOCAL_EXPLICIT_AUTHORITY"] },
     "documentKind": { "const": "ACTIVE_GATE_AUTHORIZATION_AUTHORITY" },
     "authorityId": { "type": "string", "minLength": 1 },
     "issuedBy": { "const": "PROJECT_OWNER" },

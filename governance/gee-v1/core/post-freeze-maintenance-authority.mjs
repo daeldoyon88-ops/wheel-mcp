@@ -54,6 +54,11 @@ import { sha256Hex } from './release-authority.mjs';
 export const POST_FREEZE_MAINTENANCE_V2_SCHEMA_VERSION = 2;
 export const POST_FREEZE_MAINTENANCE_AUTHORITY_CLASS = 'PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY';
 export const POST_FREEZE_MAINTENANCE_AUTHORITY_MODE = 'LOCAL_EXPLICIT_AUTHORITY';
+export const LEGACY_SIGNED_AUTHORITY_MODE = 'LEGACY_SIGNED_AUTHORITY';
+export const AUTHORITY_MODES = Object.freeze([
+  LEGACY_SIGNED_AUTHORITY_MODE,
+  POST_FREEZE_MAINTENANCE_AUTHORITY_MODE
+]);
 export const POST_FREEZE_MAINTENANCE_DOCUMENT = 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY';
 export const POST_FREEZE_MAINTENANCE_MANIFEST_KIND = 'POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST';
 export const POST_FREEZE_MAINTENANCE_CONSUMPTION_KIND = 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION';
@@ -80,6 +85,41 @@ export const FORBIDDEN_SIGNATURE_FIELDS = Object.freeze([
   'ownerKeyId', 'signatureAlgorithm', 'signature', 'privateKeyPath',
   'externalSigner', 'ownerKeyHistory', 'recoveryRoot', 'keyRotation'
 ]);
+
+/**
+ * New authority documents must name one of the two mutually exclusive modes.
+ * Historical signed documents predate this field and therefore resolve to the
+ * legacy branch only when the caller allows the compatibility default.
+ */
+export function resolveAuthorityMode(value, { defaultLegacy = true } = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (Object.hasOwn(value, 'authorityMode')) return value.authorityMode;
+  return defaultLegacy ? LEGACY_SIGNED_AUTHORITY_MODE : null;
+}
+
+export function validateAuthorityMode(value, {
+  requireLegacySignature = false,
+  defaultLegacy = true
+} = {}) {
+  const findings = [];
+  const mode = resolveAuthorityMode(value, { defaultLegacy });
+  if (!AUTHORITY_MODES.includes(mode)) {
+    findings.push({ code: Object.hasOwn(value || {}, 'authorityMode') ? 'AUTHORITY_MODE_INVALID' : 'AUTHORITY_MODE_MISSING' });
+    return { mode, valid: false, findings };
+  }
+  const signatureMaterial = FORBIDDEN_SIGNATURE_FIELDS.filter((field) => Object.hasOwn(value, field));
+  if (mode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE && signatureMaterial.length > 0) {
+    findings.push({ code: 'SIGNATURE_MATERIAL_NOT_PERMITTED', detail: signatureMaterial });
+  }
+  if (mode === LEGACY_SIGNED_AUTHORITY_MODE && requireLegacySignature) {
+    for (const field of ['ownerKeyId', 'signatureAlgorithm', 'signature']) {
+      if (!Object.hasOwn(value, field) || typeof value[field] !== 'string' || !value[field]) {
+        findings.push({ code: 'LEGACY_SIGNATURE_FIELD_MISSING', detail: field });
+      }
+    }
+  }
+  return { mode, valid: findings.length === 0, findings };
+}
 
 const AUTHORITY_FIELDS = Object.freeze([
   'document', 'schemaVersion', 'authorityId', 'authorityClass', 'authorityMode',

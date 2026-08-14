@@ -39,6 +39,12 @@
  */
 
 import { canonicalize, sha256Hex, verifyOwnerSignature, authorizationSigningPayload } from './release-authority.mjs';
+import {
+  LEGACY_SIGNED_AUTHORITY_MODE,
+  POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
+  resolveAuthorityMode,
+  validateAuthorityMode
+} from './post-freeze-maintenance-authority.mjs';
 
 export { canonicalize, sha256Hex, verifyOwnerSignature, authorizationSigningPayload };
 
@@ -58,6 +64,7 @@ export const GATE_AUTHORIZATION_TO_STATUS = 'AUTHORIZED_NOT_STARTED';
 
 export const GATE_AUTHORIZATION_MAX_USE = 1;
 export const GATE_AUTHORIZATION_SIGNATURE_ALGORITHM = 'ed25519';
+export const GATE_AUTHORIZATION_LOCAL_REQUEST_DIGEST_ALGORITHM = 'SHA256_CANONICAL_JSON_GATE_AUTHORIZATION_LOCAL_REQUEST_V1';
 
 /** The Gate's FIRST sealed canonical revision. An authorization never creates R0002+. */
 export const GATE_AUTHORIZATION_FIRST_REVISION = 'R0001';
@@ -144,7 +151,7 @@ export function gateAuthorizationAuthoritySnapshotPath(gateId) {
 // --------------------------------------------------------------------------
 
 export const GATE_AUTHORIZATION_RECORD_FIELDS = Object.freeze([
-  'schemaVersion', 'document', 'authorizationId', 'projectId', 'gateId', 'purpose',
+  'schemaVersion', 'authorityMode', 'document', 'authorizationId', 'projectId', 'gateId', 'purpose',
   'transitionType', 'fromStatus', 'toStatus', 'recordedAt', 'baseCommit',
   'preLedgerSha256', 'previousEventSha256', 'contractSha256', 'currentContractSha256',
   'dependencyProof', 'stateRevision', 'authorizedStateArtifacts', 'authorizedDerivedArtifacts',
@@ -152,7 +159,7 @@ export const GATE_AUTHORIZATION_RECORD_FIELDS = Object.freeze([
 ]);
 
 export const GATE_AUTHORIZATION_REQUEST_FIELDS = Object.freeze([
-  'schemaVersion', 'documentKind', 'requestId', 'projectId', 'gateId', 'purpose',
+  'schemaVersion', 'authorityMode', 'documentKind', 'requestId', 'projectId', 'gateId', 'purpose',
   'transitionType', 'fromStatus', 'toStatus', 'baseCommit', 'preLedgerSha256',
   'previousEventSha256', 'contractSha256', 'currentContractSha256', 'dependencyProof',
   'stateRevision', 'authorizedStateArtifacts', 'authorizedDerivedArtifacts',
@@ -161,7 +168,7 @@ export const GATE_AUTHORIZATION_REQUEST_FIELDS = Object.freeze([
 ]);
 
 export const GATE_AUTHORIZATION_AUTHORITY_FIELDS = Object.freeze([
-  'schemaVersion', 'documentKind', 'authorityId', 'issuedBy', 'issuedAtUtc', 'expiresAtUtc',
+  'schemaVersion', 'authorityMode', 'documentKind', 'authorityId', 'issuedBy', 'issuedAtUtc', 'expiresAtUtc',
   'projectId', 'gateId', 'purpose', 'transitionType', 'fromStatus', 'toStatus',
   'baseCommit', 'preLedgerSha256', 'previousEventSha256', 'contractSha256',
   'currentContractSha256', 'dependencyProof', 'stateRevision',
@@ -296,6 +303,12 @@ export function computeGateAuthorizationBindingDigest(binding) {
     if (!isNonEmptyString(value)) return { digest: null, reason: `MALFORMED_IDENTITY_FIELD:${field}` };
     identity[field] = value;
   }
+  if (Object.hasOwn(binding, 'authorityMode')) {
+    if (![LEGACY_SIGNED_AUTHORITY_MODE, POST_FREEZE_MAINTENANCE_AUTHORITY_MODE].includes(binding.authorityMode)) {
+      return { digest: null, reason: 'MALFORMED_AUTHORITY_MODE' };
+    }
+    identity.authorityMode = binding.authorityMode;
+  }
   const proof = binding.dependencyProof;
   if (proof === null || typeof proof !== 'object' || Array.isArray(proof)) {
     return { digest: null, reason: 'MALFORMED_DEPENDENCY_PROOF' };
@@ -401,6 +414,9 @@ function validateSharedBinding(document, findings, { requireGateId = true, deriv
   if (document.fromStatus !== GATE_AUTHORIZATION_FROM_STATUS) finding(findings, 'FROM_STATUS_INVALID', document.fromStatus);
   if (document.toStatus !== GATE_AUTHORIZATION_TO_STATUS) finding(findings, 'TO_STATUS_INVALID', document.toStatus);
   if (document.executionAuthorized !== false) finding(findings, 'EXECUTION_PRIVILEGE_CLAIMED', document.executionAuthorized);
+  if (Object.hasOwn(document, 'authorityMode') && ![LEGACY_SIGNED_AUTHORITY_MODE, POST_FREEZE_MAINTENANCE_AUTHORITY_MODE].includes(document.authorityMode)) {
+    finding(findings, 'AUTHORITY_MODE_INVALID', document.authorityMode);
+  }
   if (document.stateRevision !== GATE_AUTHORIZATION_FIRST_REVISION) finding(findings, 'STATE_REVISION_INVALID', document.stateRevision);
   if (!isNonEmptyString(document.baseCommit) || !COMMIT_RE.test(document.baseCommit)) finding(findings, 'BASE_COMMIT_INVALID', document.baseCommit);
   if (!isNonEmptyString(document.preLedgerSha256) || !SHA256_RE.test(document.preLedgerSha256)) finding(findings, 'PRE_LEDGER_SHA_INVALID');
@@ -422,9 +438,11 @@ export function validateGateAuthorizationRecordShape(record) {
   }
   unknownFields(record, GATE_AUTHORIZATION_RECORD_FIELDS, findings, 'RECORD_UNKNOWN_FIELD');
   for (const field of GATE_AUTHORIZATION_RECORD_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(record, field)) finding(findings, 'RECORD_FIELD_MISSING', field);
+    if (field !== 'authorityMode' && !Object.prototype.hasOwnProperty.call(record, field)) finding(findings, 'RECORD_FIELD_MISSING', field);
   }
   if (record.document !== GATE_AUTHORIZATION_RECORD_KIND) finding(findings, 'RECORD_KIND_INVALID', record.document);
+  const modeResult = validateAuthorityMode(record);
+  findings.push(...modeResult.findings);
   if (!isNonEmptyString(record.authorizationId) || !/^GATE_AUTHORIZATION_[A-Z0-9_]{3,64}$/.test(record.authorizationId)) finding(findings, 'AUTHORIZATION_ID_INVALID', record.authorizationId);
   if (!isNonEmptyString(record.recordedAt) || Number.isNaN(Date.parse(record.recordedAt))) finding(findings, 'RECORDED_AT_INVALID', record.recordedAt);
   if (!isNonEmptyString(record.reason) || !record.reason.trim()) finding(findings, 'REASON_INVALID');
@@ -443,9 +461,11 @@ export function validateGateAuthorizationRequestShape(request, { recordedAt = nu
   }
   unknownFields(request, GATE_AUTHORIZATION_REQUEST_FIELDS, findings, 'REQUEST_UNKNOWN_FIELD');
   for (const field of GATE_AUTHORIZATION_REQUEST_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(request, field)) finding(findings, 'REQUEST_FIELD_MISSING', field);
+    if (field !== 'authorityMode' && !Object.prototype.hasOwnProperty.call(request, field)) finding(findings, 'REQUEST_FIELD_MISSING', field);
   }
   if (request.documentKind !== GATE_AUTHORIZATION_REQUEST_KIND) finding(findings, 'REQUEST_KIND_INVALID', request.documentKind);
+  const modeResult = validateAuthorityMode(request);
+  findings.push(...modeResult.findings);
   if (!isNonEmptyString(request.requestId)) finding(findings, 'REQUEST_ID_INVALID', request.requestId);
   if (request.bindingDigestAlgorithm !== GATE_AUTHORIZATION_BINDING_DIGEST_ALGORITHM) finding(findings, 'BINDING_DIGEST_ALGORITHM_INVALID', request.bindingDigestAlgorithm);
   if (!isNonEmptyString(request.expiresAtUtc) || Number.isNaN(Date.parse(request.expiresAtUtc))) finding(findings, 'EXPIRY_INVALID', request.expiresAtUtc);
@@ -478,9 +498,15 @@ export function validateGateAuthorizationAuthorityShape(authority, { recordedAt 
   }
   unknownFields(authority, GATE_AUTHORIZATION_AUTHORITY_FIELDS, findings, 'AUTHORITY_UNKNOWN_FIELD');
   for (const field of GATE_AUTHORIZATION_AUTHORITY_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(authority, field)) finding(findings, 'AUTHORITY_FIELD_MISSING', field);
+    if (!['authorityMode', 'ownerKeyId', 'signatureAlgorithm', 'signature'].includes(field)
+        && !Object.prototype.hasOwnProperty.call(authority, field)) finding(findings, 'AUTHORITY_FIELD_MISSING', field);
   }
   if (authority.documentKind !== GATE_AUTHORIZATION_AUTHORITY_KIND) finding(findings, 'AUTHORITY_KIND_INVALID', authority.documentKind);
+  const modeResult = validateAuthorityMode(authority, {
+    requireLegacySignature: true,
+    defaultLegacy: true
+  });
+  findings.push(...modeResult.findings);
   if (!isNonEmptyString(authority.authorityId)) finding(findings, 'AUTHORITY_ID_INVALID', authority.authorityId);
   if (authority.issuedBy !== 'PROJECT_OWNER') finding(findings, 'AUTHORITY_ISSUER_INVALID', authority.issuedBy);
   if (!isNonEmptyString(authority.issuedAtUtc) || Number.isNaN(Date.parse(authority.issuedAtUtc))) finding(findings, 'ISSUED_AT_INVALID', authority.issuedAtUtc);
@@ -489,9 +515,11 @@ export function validateGateAuthorizationAuthorityShape(authority, { recordedAt 
   if (!isNonEmptyString(authority.approvedBindingDigest) || !SHA256_RE.test(authority.approvedBindingDigest)) finding(findings, 'APPROVED_BINDING_DIGEST_INVALID');
   if (!isNonEmptyString(authority.approvedRequestDigest) || !SHA256_RE.test(authority.approvedRequestDigest)) finding(findings, 'APPROVED_REQUEST_DIGEST_INVALID');
   if (authority.maxUse !== GATE_AUTHORIZATION_MAX_USE) finding(findings, 'MAX_USE_INVALID', authority.maxUse);
-  if (!isNonEmptyString(authority.ownerKeyId)) finding(findings, 'OWNER_KEY_ID_INVALID', authority.ownerKeyId);
-  if (authority.signatureAlgorithm !== GATE_AUTHORIZATION_SIGNATURE_ALGORITHM) finding(findings, 'SIGNATURE_ALGORITHM_UNSUPPORTED', authority.signatureAlgorithm);
-  if (!isNonEmptyString(authority.signature)) finding(findings, 'OWNER_SIGNATURE_MISSING');
+  if (modeResult.mode === LEGACY_SIGNED_AUTHORITY_MODE) {
+    if (!isNonEmptyString(authority.ownerKeyId)) finding(findings, 'OWNER_KEY_ID_INVALID', authority.ownerKeyId);
+    if (authority.signatureAlgorithm !== GATE_AUTHORIZATION_SIGNATURE_ALGORITHM) finding(findings, 'SIGNATURE_ALGORITHM_UNSUPPORTED', authority.signatureAlgorithm);
+    if (!isNonEmptyString(authority.signature)) finding(findings, 'OWNER_SIGNATURE_MISSING');
+  }
   validateSharedBinding(authority, findings);
 
   // The owner signed a digest, not a description: it must reproduce the cohort
@@ -504,7 +532,25 @@ export function validateGateAuthorizationAuthorityShape(authority, { recordedAt 
   });
   if (recomputed.digest === null) finding(findings, 'BINDING_DIGEST_NOT_COMPUTABLE', recomputed.reason);
   else if (authority.approvedBindingDigest !== recomputed.digest) finding(findings, 'APPROVED_BINDING_DIGEST_SELF_INCONSISTENT', recomputed.digest);
+  if (modeResult.mode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE
+      && authority.approvedRequestDigest !== computeGateAuthorizationLocalRequestDigest(authority)) {
+    finding(findings, 'LOCAL_REQUEST_DIGEST_SELF_INCONSISTENT');
+  }
   return { valid: findings.length === 0, findings };
+}
+
+/** Digest of the exact local authority projection; no external request or key is needed. */
+export function computeGateAuthorizationLocalRequestDigest(authority) {
+  if (!authority || typeof authority !== 'object' || Array.isArray(authority)) return null;
+  const fields = [
+    'projectId', 'gateId', 'purpose', 'transitionType', 'fromStatus', 'toStatus',
+    'baseCommit', 'preLedgerSha256', 'previousEventSha256', 'contractSha256',
+    'currentContractSha256', 'dependencyProof', 'stateRevision',
+    'authorizedStateArtifacts', 'authorizedDerivedArtifacts', 'executionAuthorized', 'maxUse'
+  ];
+  const projection = { algorithm: GATE_AUTHORIZATION_LOCAL_REQUEST_DIGEST_ALGORITHM, authorityMode: authority.authorityMode };
+  for (const field of fields) projection[field] = authority[field];
+  return sha256Hex(canonicalize(projection));
 }
 
 // --------------------------------------------------------------------------
@@ -553,6 +599,7 @@ function sameCohort(left, right, fields = ARTIFACT_FIELDS) {
  *   cannot carry post-authorization derived hashes (see RECORD_DERIVED_ARTIFACT_FIELDS).
  */
 function compareDocuments(left, right, findings, code, { derivedFields = ARTIFACT_FIELDS } = {}) {
+  if (resolveAuthorityMode(left) !== resolveAuthorityMode(right)) finding(findings, code, 'authorityMode');
   for (const field of CROSS_DOCUMENT_FIELDS) {
     if (left[field] !== right[field]) finding(findings, code, field);
   }
@@ -598,20 +645,27 @@ export function evaluateGateAuthorizationAuthority({
 
   const recordResult = validateGateAuthorizationRecordShape(record);
   const bindingContext = { recordedAt: record?.recordedAt ?? null };
-  const requestResult = validateGateAuthorizationRequestShape(request, bindingContext);
+  const authorityMode = resolveAuthorityMode(authority, { defaultLegacy: false });
+  const requestResult = authorityMode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE && request === null
+    ? { valid: true, findings: [] }
+    : validateGateAuthorizationRequestShape(request, bindingContext);
   const authorityResult = validateGateAuthorizationAuthorityShape(authority, bindingContext);
   findings.push(...recordResult.findings, ...requestResult.findings, ...authorityResult.findings);
 
   if (authorityResult.valid) {
-    const signature = verifyOwnerSignature(authority, ownerKey);
-    if (!signature.verified) finding(findings, signature.reason);
+    if (authorityMode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE && request !== null) {
+      finding(findings, 'LOCAL_AUTHORITY_REQUEST_NOT_PERMITTED');
+    } else if (authorityMode !== POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) {
+      const signature = verifyOwnerSignature(authority, ownerKey);
+      if (!signature.verified) finding(findings, signature.reason);
+    }
     // Wall-clock expiry applies to the pre-write decision only. Permanent ledger
     // re-verification compares expiry against the event's recordedAt instead, so
     // a correctly-issued historical authorization does not rot.
     if (now.getTime() > Date.parse(authority.expiresAtUtc)) finding(findings, 'AUTHORITY_EXPIRED', authority.expiresAtUtc);
   }
 
-  if (requestResult.valid && authorityResult.valid) {
+  if (requestResult.valid && authorityResult.valid && authorityMode !== POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) {
     if (authority.approvedRequestDigest !== computeGateAuthorizationRequestDigest(request)) finding(findings, 'REQUEST_DIGEST_MISMATCH');
     if (authority.approvedBindingDigest !== request.bindingDigest) finding(findings, 'BINDING_DIGEST_MISMATCH');
     if (authority.expiresAtUtc !== request.expiresAtUtc) finding(findings, 'AUTHORITY_REQUEST_BINDING_MISMATCH', 'expiresAtUtc');

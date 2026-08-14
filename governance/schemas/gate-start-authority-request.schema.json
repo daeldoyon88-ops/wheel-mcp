@@ -4,9 +4,10 @@
   "title": "Closed GATE_START_AUTHORITY request",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "documentKind", "requestId", "projectId", "gateId", "purpose", "eventId", "transitionType", "fromStatus", "toStatus", "recordedAt", "baseCommit", "preStartLedgerSha256", "previousEventSha256", "contractSha256", "currentContractSha256", "preStateRevision", "preCurrentStateSha256", "preStateSealSha256", "readinessDigest", "dependencyProof", "activeGatePreState", "authorizedStartWritePaths", "functionalExecutionScope", "ownerKeyId", "expiresAtUtc", "maxUse", "prohibitedOperations", "startAuthorized", "executionAuthorized", "bindingDigestAlgorithm", "bindingDigest", "requestDigest"],
+  "required": ["schemaVersion", "documentKind", "requestId", "projectId", "gateId", "purpose", "eventId", "transitionType", "fromStatus", "toStatus", "recordedAt", "baseCommit", "preStartLedgerSha256", "previousEventSha256", "contractSha256", "currentContractSha256", "preStateRevision", "preCurrentStateSha256", "preStateSealSha256", "readinessDigest", "dependencyProof", "activeGatePreState", "authorizedStartWritePaths", "functionalExecutionScope", "expiresAtUtc", "maxUse", "prohibitedOperations", "startAuthorized", "executionAuthorized", "bindingDigestAlgorithm", "bindingDigest", "requestDigest"],
   "properties": {
     "schemaVersion": { "const": 1 },
+    "authorityMode": { "enum": ["LEGACY_SIGNED_AUTHORITY", "LOCAL_EXPLICIT_AUTHORITY"] },
     "documentKind": { "const": "GATE_START_AUTHORITY_REQUEST" },
     "requestId": { "type": "string", "minLength": 1 },
     "projectId": { "type": "string", "minLength": 1 },

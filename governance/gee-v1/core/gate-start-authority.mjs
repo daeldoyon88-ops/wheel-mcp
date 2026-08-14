@@ -7,6 +7,12 @@
  */
 
 import { canonicalize, sha256Hex, verifyOwnerSignature, authorizationSigningPayload } from './release-authority.mjs';
+import {
+  LEGACY_SIGNED_AUTHORITY_MODE,
+  POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
+  resolveAuthorityMode,
+  validateAuthorityMode
+} from './post-freeze-maintenance-authority.mjs';
 
 export const GATE_START_SCHEMA_VERSION = 1;
 export const GATE_START_PURPOSE = 'START_PLUS_EXECUTION_AUTHORITY';
@@ -16,6 +22,7 @@ export const GATE_START_TO_STATUS = 'IN_PROGRESS';
 export const GATE_START_MAX_USE = 1;
 export const GATE_START_SIGNATURE_ALGORITHM = 'ed25519';
 export const GATE_START_BINDING_DIGEST_ALGORITHM = 'SHA256_CANONICAL_JSON_GATE_START_BINDING_V1';
+export const GATE_START_LOCAL_REQUEST_DIGEST_ALGORITHM = 'SHA256_CANONICAL_JSON_GATE_START_LOCAL_REQUEST_V1';
 export const GATE_START_READINESS_DIGEST_ALGORITHM = 'SHA256_CANONICAL_JSON_GATE_START_READINESS_V1';
 export const GATE_START_RECORD_KIND = 'GATE_START_RECORD';
 export const GATE_START_REQUEST_KIND = 'GATE_START_AUTHORITY_REQUEST';
@@ -28,7 +35,7 @@ export const GATE_START_PROHIBITED_OPERATIONS = Object.freeze([
 ]);
 
 export const GATE_START_SHARED_FIELDS = Object.freeze([
-  'schemaVersion', 'projectId', 'gateId', 'purpose', 'eventId', 'transitionType',
+  'schemaVersion', 'authorityMode', 'projectId', 'gateId', 'purpose', 'eventId', 'transitionType',
   'fromStatus', 'toStatus', 'recordedAt', 'baseCommit', 'preStartLedgerSha256',
   'previousEventSha256', 'contractSha256', 'currentContractSha256', 'preStateRevision',
   'preCurrentStateSha256', 'preStateSealSha256', 'readinessDigest', 'dependencyProof',
@@ -114,6 +121,9 @@ function validateDependencyProof(value, findings) {
 }
 
 function validateCommon(document, findings) {
+  const modeResult = validateAuthorityMode(document);
+  findings.push(...modeResult.findings);
+  const authorityMode = modeResult.mode;
   if (document.schemaVersion !== GATE_START_SCHEMA_VERSION) findings.push({ code: 'SCHEMA_VERSION_INVALID' });
   if (!isString(document.projectId)) findings.push({ code: 'PROJECT_ID_INVALID' });
   if (!isModernGateStartId(document.gateId)) findings.push({ code: 'GATE_ID_OUT_OF_SCOPE' });
@@ -140,8 +150,9 @@ function validateCommon(document, findings) {
     findings.push({ code: 'START_WRITE_COHORT_NOT_EXACT' });
   }
   if (!exactPathList(document.functionalExecutionScope)) findings.push({ code: 'FUNCTIONAL_SCOPE_INVALID' });
-  if (document.functionalExecutionScope.some((p) => p.includes('/GEE') || p.includes('/R8') || p.includes('/../'))) findings.push({ code: 'FUNCTIONAL_SCOPE_FORBIDDEN_PATH' });
-  if (!isString(document.ownerKeyId)) findings.push({ code: 'OWNER_KEY_ID_INVALID' });
+  if (Array.isArray(document.functionalExecutionScope)
+      && document.functionalExecutionScope.some((p) => p.includes('/GEE') || p.includes('/R8') || p.includes('/../'))) findings.push({ code: 'FUNCTIONAL_SCOPE_FORBIDDEN_PATH' });
+  if (authorityMode === LEGACY_SIGNED_AUTHORITY_MODE && !isString(document.ownerKeyId)) findings.push({ code: 'OWNER_KEY_ID_INVALID' });
   if (!isString(document.expiresAtUtc) || Number.isNaN(Date.parse(document.expiresAtUtc))) findings.push({ code: 'EXPIRY_INVALID' });
   if (document.maxUse !== GATE_START_MAX_USE) findings.push({ code: 'MAX_USE_INVALID' });
   if (!Array.isArray(document.prohibitedOperations) || document.prohibitedOperations.length !== GATE_START_PROHIBITED_OPERATIONS.length
@@ -155,7 +166,7 @@ export function validateGateStartRequestShape(request) {
   const findings = [];
   if (!isObject(request)) return { valid: false, findings: [{ code: 'REQUEST_ABSENT' }] };
   unknownFields(request, ['schemaVersion', ...GATE_START_REQUEST_FIELDS], findings, 'REQUEST_UNKNOWN_FIELD');
-  missingFields(request, ['schemaVersion', ...GATE_START_REQUEST_FIELDS], findings, 'REQUEST_FIELD_MISSING');
+  missingFields(request, ['schemaVersion', ...GATE_START_REQUEST_FIELDS].filter((field) => !['authorityMode', 'ownerKeyId'].includes(field)), findings, 'REQUEST_FIELD_MISSING');
   if (request.documentKind !== GATE_START_REQUEST_KIND) findings.push({ code: 'REQUEST_KIND_INVALID' });
   if (!isString(request.requestId)) findings.push({ code: 'REQUEST_ID_INVALID' });
   if (request.bindingDigestAlgorithm !== GATE_START_BINDING_DIGEST_ALGORITHM) findings.push({ code: 'BINDING_ALGORITHM_INVALID' });
@@ -173,7 +184,7 @@ export function validateGateStartRecordShape(record) {
   const findings = [];
   if (!isObject(record)) return { valid: false, findings: [{ code: 'RECORD_ABSENT' }] };
   unknownFields(record, ['schemaVersion', ...GATE_START_RECORD_FIELDS], findings, 'RECORD_UNKNOWN_FIELD');
-  missingFields(record, ['schemaVersion', ...GATE_START_RECORD_FIELDS], findings, 'RECORD_FIELD_MISSING');
+  missingFields(record, ['schemaVersion', ...GATE_START_RECORD_FIELDS].filter((field) => !['authorityMode', 'ownerKeyId'].includes(field)), findings, 'RECORD_FIELD_MISSING');
   if (record.document !== GATE_START_RECORD_KIND) findings.push({ code: 'RECORD_KIND_INVALID' });
   if (!isString(record.recordId)) findings.push({ code: 'RECORD_ID_INVALID' });
   validateCommon(record, findings);
@@ -186,13 +197,18 @@ export function validateGateStartAuthorityShape(authority) {
   const findings = [];
   if (!isObject(authority)) return { valid: false, findings: [{ code: 'AUTHORITY_ABSENT' }] };
   unknownFields(authority, GATE_START_AUTHORITY_FIELDS, findings, 'AUTHORITY_UNKNOWN_FIELD');
-  missingFields(authority, GATE_START_AUTHORITY_FIELDS, findings, 'AUTHORITY_FIELD_MISSING');
+  missingFields(authority, GATE_START_AUTHORITY_FIELDS.filter((field) => !['authorityMode', 'ownerKeyId', 'signatureAlgorithm', 'signature'].includes(field)), findings, 'AUTHORITY_FIELD_MISSING');
   if (authority.schemaVersion !== GATE_START_SCHEMA_VERSION) findings.push({ code: 'SCHEMA_VERSION_INVALID' });
   if (authority.documentKind !== GATE_START_AUTHORITY_KIND) findings.push({ code: 'AUTHORITY_KIND_INVALID' });
   if (!isString(authority.authorityId)) findings.push({ code: 'AUTHORITY_ID_INVALID' });
   if (authority.issuedBy !== 'PROJECT_OWNER') findings.push({ code: 'ISSUER_INVALID' });
   if (!isString(authority.issuedAtUtc) || Number.isNaN(Date.parse(authority.issuedAtUtc))) findings.push({ code: 'ISSUED_AT_INVALID' });
-  if (authority.signatureAlgorithm !== GATE_START_SIGNATURE_ALGORITHM || !isString(authority.signature)) findings.push({ code: 'SIGNATURE_INVALID' });
+  const modeResult = validateAuthorityMode(authority, { requireLegacySignature: true });
+  findings.push(...modeResult.findings);
+  if (modeResult.mode === LEGACY_SIGNED_AUTHORITY_MODE
+      && (authority.signatureAlgorithm !== GATE_START_SIGNATURE_ALGORITHM || !isString(authority.signature))) {
+    findings.push({ code: 'SIGNATURE_INVALID' });
+  }
   if (!isSha(authority.requestDigest) || !isSha(authority.recordDigest) || !isSha(authority.bindingDigest)) findings.push({ code: 'APPROVED_DIGEST_INVALID' });
   validateCommon(authority, findings);
   return { valid: findings.length === 0, findings };
@@ -220,6 +236,19 @@ export function computeGateStartBindingDigestFromDigests({ requestDigest, record
   }));
 }
 
+/** Digest replacing the absent external request in LOCAL_EXPLICIT_AUTHORITY mode. */
+export function computeGateStartLocalRequestDigest(input) {
+  if (!isObject(input)) return null;
+  const recordDigest = isSha(input.recordDigest) ? input.recordDigest : computeGateStartRecordDigest(input);
+  const authorityMode = input.authorityMode;
+  if (!isSha(recordDigest) || authorityMode !== POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) return null;
+  return sha256Hex(canonicalize({
+    algorithm: GATE_START_LOCAL_REQUEST_DIGEST_ALGORITHM,
+    authorityMode,
+    recordDigest
+  }));
+}
+
 export function computeGateStartReadinessDigest(input) {
   const required = ['projectId', 'gateId', 'status', 'preStartLedgerSha256', 'previousEventSha256', 'preStateRevision', 'preCurrentStateSha256', 'preStateSealSha256', 'openDefectsKnowledge', 'contractSha256', 'currentContractSha256', 'dependencyProof', 'readinessVerdict'];
   if (!isObject(input) || required.some((key) => input[key] === undefined)) return null;
@@ -236,20 +265,43 @@ export function computeGateStartReadinessDigest(input) {
 
 export function evaluateGateStartAuthority({ request, record, authority, ownerKey, now = new Date(), expectedEvent = null } = {}) {
   const findings = [];
-  const requestShape = validateGateStartRequestShape(request);
+  const authorityMode = resolveAuthorityMode(authority, { defaultLegacy: false });
+  const localWithoutRequest = authorityMode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE && request === null;
+  const requestShape = localWithoutRequest
+    ? { valid: true, findings: [] }
+    : validateGateStartRequestShape(request);
   const recordShape = validateGateStartRecordShape(record);
   const authorityShape = validateGateStartAuthorityShape(authority);
   findings.push(...requestShape.findings, ...recordShape.findings, ...authorityShape.findings);
   if (requestShape.valid && recordShape.valid && authorityShape.valid) {
-    const requestDigest = computeGateStartRequestDigest(request);
+    const requestDigest = localWithoutRequest
+      ? computeGateStartLocalRequestDigest(authority)
+      : computeGateStartRequestDigest(request);
     const recordDigest = computeGateStartRecordDigest(record);
-    const bindingDigest = computeGateStartBindingDigest({ request, record });
+    const bindingDigest = computeGateStartBindingDigestFromDigests({ requestDigest, recordDigest });
     if (authority.requestDigest !== requestDigest) findings.push({ code: 'REQUEST_DIGEST_MISMATCH' });
     if (authority.recordDigest !== recordDigest) findings.push({ code: 'RECORD_DIGEST_MISMATCH' });
     if (authority.bindingDigest !== bindingDigest) findings.push({ code: 'BINDING_DIGEST_MISMATCH' });
-    for (const field of GATE_START_SHARED_FIELDS) if (request[field] !== record[field] || record[field] !== authority[field]) findings.push({ code: 'AUTHORITY_BINDING_MISMATCH', detail: field });
-    const signature = verifyOwnerSignature(authority, ownerKey);
-    if (!signature.verified) findings.push({ code: 'OWNER_SIGNATURE_INVALID', detail: signature.reason });
+    if (localWithoutRequest) {
+      for (const field of GATE_START_SHARED_FIELDS) {
+        const same = record[field] !== null && typeof record[field] === 'object'
+          ? canonicalize(record[field]) === canonicalize(authority[field])
+          : record[field] === authority[field];
+        if (!same) findings.push({ code: 'AUTHORITY_BINDING_MISMATCH', detail: field });
+      }
+    } else {
+      for (const field of GATE_START_SHARED_FIELDS) {
+        const sameRequest = request[field] !== null && typeof request[field] === 'object'
+          ? canonicalize(request[field]) === canonicalize(record[field])
+          : request[field] === record[field];
+        const sameAuthority = record[field] !== null && typeof record[field] === 'object'
+          ? canonicalize(record[field]) === canonicalize(authority[field])
+          : record[field] === authority[field];
+        if (!sameRequest || !sameAuthority) findings.push({ code: 'AUTHORITY_BINDING_MISMATCH', detail: field });
+      }
+      const signature = verifyOwnerSignature(authority, ownerKey);
+      if (!signature.verified) findings.push({ code: 'OWNER_SIGNATURE_INVALID', detail: signature.reason });
+    }
     const expiry = Date.parse(authority.expiresAtUtc);
     if (Number.isNaN(expiry) || now.getTime() > expiry) findings.push({ code: 'AUTHORITY_EXPIRED' });
     if (expectedEvent) {

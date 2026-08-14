@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "document": "GATE_AUTHORIZATION_RECORD",
+  "authorizationId": "GATE_AUTHORIZATION_GATE15_R1",
+  "projectId": "WHEEL",
+  "gateId": "GATE15",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "recordedAt": "2026-08-14T02:06:00.000Z",
+  "baseCommit": "1a2244f1d94f93e0bb1320bd74245e80916f73d1",
+  "preLedgerSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6",
+  "previousEventSha256": "cf0104f48652a552317946435f536fbbd2a855bd299f93c757c6d1a8b171d8d3",
+  "contractSha256": "228f10465391700f37acc723d5878a4f8bc592c9e9833b06d68845546a776039",
+  "currentContractSha256": "07dbcc6a156e5c3f3e29c310ea3f186e393723a006f6fbad9048ef1590d221a5",
+  "dependencyProof": {
+    "gateId": "GATE14",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee"
+  },
+  "stateRevision": "R0001",
+  "authorizedStateArtifacts": [
+    {
+      "cohortRole": "CURRENT_STATE",
+      "repoRelativePath": "governance/gates/GATE15/state/CURRENT_STATE.json",
+      "sha256": "045f456d8ac6cfc0df0017dcfcfb13f9562093b58b63f303dc71e02c0d5a72b7",
+      "byteLength": 303
+    },
+    {
+      "cohortRole": "CHECKPOINT",
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "031017472d10f4434e94ebe98d6ee4df22ff053d091f0a81170906916064961f",
+      "byteLength": 734
+    },
+    {
+      "cohortRole": "OPEN_DEFECTS",
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "4e496ea0c9f5ee582ce61db7b85c75dd2dd5eb2e39b181d171da3e10a854d091",
+      "byteLength": 70
+    },
+    {
+      "cohortRole": "STATE_SEAL",
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "a6051caadee760c89d4cc17fe38a68fbe799dfed05b3fceb3dfe4dd2f86c89ca",
+      "byteLength": 1178
+    }
+  ],
+  "authorizedDerivedArtifacts": [
+    {
+      "cohortRole": "GATE_STATUS_SNAPSHOT",
+      "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE",
+      "repoRelativePath": "governance/active/ACTIVE_GATE.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_JSON",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json"
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_MD",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md"
+    }
+  ],
+  "prohibitedOperations": [
+    "START",
+    "GATE_EXECUTION",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "LEDGER_REWRITE",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION"
+  ],
+  "executionAuthorized": false,
+  "reason": "GATE14 is COMPLETE_CONFIRMED; GATE15 R0001 contract and first sealed state are present and hash-bound. This record authorizes only the single NOT_STARTED to AUTHORIZED_NOT_STARTED transition; START and execution remain separately authorized."
+}

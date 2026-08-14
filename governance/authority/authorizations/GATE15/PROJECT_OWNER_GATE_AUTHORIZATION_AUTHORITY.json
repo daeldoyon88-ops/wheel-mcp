@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "documentKind": "ACTIVE_GATE_AUTHORIZATION_AUTHORITY",
+  "authorityId": "ACTIVE_GATE_AUTHORIZATION_AUTHORITY_GATE15_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-14T02:19:40.178Z",
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "projectId": "WHEEL",
+  "gateId": "GATE15",
+  "purpose": "GATE_NORMAL_AUTHORIZATION",
+  "transitionType": "AUTHORIZATION",
+  "fromStatus": "NOT_STARTED",
+  "toStatus": "AUTHORIZED_NOT_STARTED",
+  "baseCommit": "1a2244f1d94f93e0bb1320bd74245e80916f73d1",
+  "preLedgerSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6",
+  "previousEventSha256": "cf0104f48652a552317946435f536fbbd2a855bd299f93c757c6d1a8b171d8d3",
+  "contractSha256": "228f10465391700f37acc723d5878a4f8bc592c9e9833b06d68845546a776039",
+  "currentContractSha256": "07dbcc6a156e5c3f3e29c310ea3f186e393723a006f6fbad9048ef1590d221a5",
+  "dependencyProof": {
+    "gateId": "GATE14",
+    "status": "COMPLETE_CONFIRMED",
+    "authorityPath": "GATE14_INDEPENDENT_EXTERNAL_CONFIRMATION_FINAL_R1_EXTERNAL_REINSPECTION_REPORT",
+    "authoritySha256": "3ad09d730d319641b685a95ec385f510edf6e4b4ad8df40bdd31460faf88a4ee"
+  },
+  "stateRevision": "R0001",
+  "authorizedStateArtifacts": [
+    {
+      "cohortRole": "CURRENT_STATE",
+      "repoRelativePath": "governance/gates/GATE15/state/CURRENT_STATE.json",
+      "sha256": "045f456d8ac6cfc0df0017dcfcfb13f9562093b58b63f303dc71e02c0d5a72b7",
+      "byteLength": 303
+    },
+    {
+      "cohortRole": "CHECKPOINT",
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0001/CHECKPOINT.json",
+      "sha256": "031017472d10f4434e94ebe98d6ee4df22ff053d091f0a81170906916064961f",
+      "byteLength": 734
+    },
+    {
+      "cohortRole": "OPEN_DEFECTS",
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0001/OPEN_DEFECTS.json",
+      "sha256": "4e496ea0c9f5ee582ce61db7b85c75dd2dd5eb2e39b181d171da3e10a854d091",
+      "byteLength": 70
+    },
+    {
+      "cohortRole": "STATE_SEAL",
+      "repoRelativePath": "governance/gates/GATE15/state/revisions/R0001/STATE_SEAL.json",
+      "sha256": "a6051caadee760c89d4cc17fe38a68fbe799dfed05b3fceb3dfe4dd2f86c89ca",
+      "byteLength": 1178
+    }
+  ],
+  "authorizedDerivedArtifacts": [
+    {
+      "cohortRole": "GATE_STATUS_SNAPSHOT",
+      "repoRelativePath": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "027cef7271b9c239108d4cf36956c095a534cc849a6f3f7b57735b7aba3e8054",
+      "byteLength": 15450
+    },
+    {
+      "cohortRole": "ACTIVE_GATE",
+      "repoRelativePath": "governance/active/ACTIVE_GATE.json",
+      "sha256": "34fcbfd9bb068cf2adfd973a73db4c4da297e9300242c1d04c08571968a417b9",
+      "byteLength": 305
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_JSON",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "2cb9fe221cd3d8d30954f3a99116fe918549346db7aa7e1522d9388c7fda3547",
+      "byteLength": 1138
+    },
+    {
+      "cohortRole": "ACTIVE_GATE_CONTEXT_MD",
+      "repoRelativePath": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "byteLength": 126
+    }
+  ],
+  "bindingDigestAlgorithm": "SHA256_CANONICAL_JSON_GATE_AUTHORIZATION_BINDING_V1",
+  "approvedBindingDigest": "a2c2adc3f324c0f371ffde84959ede259a24b3ddce46bf77d9765e2e988a84ca",
+  "approvedRequestDigest": "9cc45338986948a37727395119d70573764bbf8c7c9c11e371d79aa9cac1879e",
+  "executionAuthorized": false,
+  "maxUse": 1
+}

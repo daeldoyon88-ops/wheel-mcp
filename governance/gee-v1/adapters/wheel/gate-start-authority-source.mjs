@@ -7,9 +7,15 @@ import {
   gateStartRecordPath, gateStartAuthorityPath, gateStartWriteCohortPaths,
   validateGateStartRecordShape, validateGateStartAuthorityShape,
   verifyOwnerSignature, computeGateStartRecordDigest,
-  computeGateStartBindingDigestFromDigests, GATE_START_SHARED_FIELDS,
+  computeGateStartBindingDigestFromDigests, computeGateStartLocalRequestDigest,
+  GATE_START_SHARED_FIELDS,
   canonicalize
 } from '../../core/gate-start-authority.mjs';
+import {
+  LEGACY_SIGNED_AUTHORITY_MODE,
+  POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
+  resolveAuthorityMode
+} from '../../core/post-freeze-maintenance-authority.mjs';
 import { reconstructLedgerPrefixBytes } from '../../../tools/validate-status-ledger.mjs';
 import { sha256Bytes } from '../../../tools/canonical-json.mjs';
 
@@ -37,6 +43,18 @@ function contractView(root, gateId) {
   const contract = fileInfo(root, pointerJson.contractPath);
   if (!contract) return null;
   return { pointer, pointerJson, contract, contractJson: JSON.parse(contract.bytes.toString('utf8')) };
+}
+
+function predecessorGateId(root, gateId) {
+  try {
+    const registry = readJson(path.join(root, 'governance/GATE_REGISTRY_00_40.json'));
+    const entry = Array.isArray(registry.gates) ? registry.gates.find((item) => item?.gateId === gateId) : null;
+    return Array.isArray(entry?.dependencies) && entry.dependencies.length > 0
+      ? entry.dependencies.at(-1)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function exactSamePaths(a, b) {
@@ -100,7 +118,8 @@ export function deriveGateStartReadinessFacts(root, gateId) {
   const gateEvents = events.filter((event) => event.gateId === gateId);
   const previous = gateEvents.at(-1) || null;
   const ledgerHead = events.at(-1) || null;
-  const predecessor = events.filter((event) => event.gateId === 'GATE13').at(-1) || null;
+  const predecessorId = predecessorGateId(root, gateId);
+  const predecessor = predecessorId ? events.filter((event) => event.gateId === predecessorId).at(-1) || null : null;
   const ledger = fileInfo(root, LEDGER_RELATIVE_PATH);
   const currentState = fileInfo(root, `governance/gates/${gateId}/state/CURRENT_STATE.json`);
   const seal = fileInfo(root, `governance/gates/${gateId}/state/revisions/R0001/STATE_SEAL.json`);
@@ -115,9 +134,9 @@ export function deriveGateStartReadinessFacts(root, gateId) {
     && predecessor?.toStatus === 'COMPLETE_CONFIRMED'
     && knowledge !== 'UNKNOWN' ? 'READY' : 'BLOCKED';
   const dependencyProof = predecessor ? {
-    gateId: 'GATE13', status: predecessor.toStatus,
+    gateId: predecessorId, status: predecessor.toStatus,
     authorityPath: predecessor.authorityPath, authoritySha256: predecessor.authoritySha256
-  } : { gateId: 'GATE13', status: 'UNKNOWN', authorityPath: '', authoritySha256: '0'.repeat(64) };
+  } : { gateId: predecessorId || '', status: 'UNKNOWN', authorityPath: '', authoritySha256: '0'.repeat(64) };
   return {
     projectId: 'WHEEL', gateId, status: previous?.toStatus || null,
     preStartLedgerSha256: ledger?.sha256 || null,
@@ -151,12 +170,19 @@ function loadModernAuthority(root, gateId) {
   for (const field of GATE_START_SHARED_FIELDS) {
     if (canonicalize(result.authority[field]) !== canonicalize(result.record[field])) result.findings.push({ code: 'START_AUTHORITY_RECORD_FIELD_MISMATCH', detail: field });
   }
-  let ownerKey;
-  try { ownerKey = readJson(path.join(root, ...OWNER_KEY_RELATIVE_PATH.split('/'))); }
-  catch { result.findings.push({ code: 'START_OWNER_KEY_ABSENT' }); }
-  if (ownerKey) {
-    const signature = verifyOwnerSignature(result.authority, ownerKey);
-    if (!signature.verified) result.findings.push({ code: 'START_OWNER_SIGNATURE_INVALID', detail: signature.reason });
+  const authorityMode = resolveAuthorityMode(result.authority, { defaultLegacy: false });
+  if (authorityMode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) {
+    if (result.authority.requestDigest !== computeGateStartLocalRequestDigest(result.authority)) {
+      result.findings.push({ code: 'START_LOCAL_REQUEST_DIGEST_MISMATCH' });
+    }
+  } else if (authorityMode === LEGACY_SIGNED_AUTHORITY_MODE) {
+    let ownerKey;
+    try { ownerKey = readJson(path.join(root, ...OWNER_KEY_RELATIVE_PATH.split('/'))); }
+    catch { result.findings.push({ code: 'START_OWNER_KEY_ABSENT' }); }
+    if (ownerKey) {
+      const signature = verifyOwnerSignature(result.authority, ownerKey);
+      if (!signature.verified) result.findings.push({ code: 'START_OWNER_SIGNATURE_INVALID', detail: signature.reason });
+    }
   }
   result.valid = result.findings.length === 0;
   return result;
@@ -201,7 +227,7 @@ export function createWheelGateStartAuthoritySource(repoRoot, { projectId = 'WHE
         proofs: {
           EXECUTION_CONTRACT: facts.contractJson ? { state: 'PROVEN', reason: 'CURRENT_CONTRACT and contract present' } : { state: 'FAILED', reason: 'contract absent' },
           CONTRACT_INTEGRITY: facts.contractJson ? { state: 'PROVEN', reason: 'contract-derived exact scope' } : { state: 'FAILED', reason: 'contract absent' },
-          PREREQUISITES: facts.dependencyProof.status === 'COMPLETE_CONFIRMED' ? { state: 'PROVEN', reason: 'GATE13 terminal dependency' } : { state: 'FAILED', reason: 'dependency not terminal' },
+          PREREQUISITES: facts.dependencyProof.status === 'COMPLETE_CONFIRMED' ? { state: 'PROVEN', reason: `${facts.dependencyProof.gateId} terminal dependency` } : { state: 'FAILED', reason: 'dependency not terminal' },
           WORK_UNIT_EXECUTABLE: postStartExecutable ? { state: 'PROVEN', reason: 'IN_PROGRESS plus valid modern START authority and exact scope' } : { state: 'FAILED', reason: facts.status === 'AUTHORIZED_NOT_STARTED' ? 'START authority cannot grant pre-START execution' : 'modern START authority or exact scope invalid' }
         }
       };

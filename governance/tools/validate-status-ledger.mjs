@@ -26,8 +26,13 @@ import {
   gateAuthorizationDerivedCohortPaths,
   validateGateAuthorizationRecordShape,
   validateGateAuthorizationAuthorityShape,
+  computeGateAuthorizationLocalRequestDigest,
   verifyOwnerSignature
 } from '../gee-v1/core/gate-authorization-authority.mjs';
+import {
+  POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
+  resolveAuthorityMode
+} from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import {
   GATE_START_RECORD_KIND,
   GATE_START_AUTHORITY_KIND,
@@ -39,6 +44,7 @@ import {
   computeGateStartReadinessDigest,
   computeGateStartRecordDigest,
   computeGateStartBindingDigestFromDigests,
+  computeGateStartLocalRequestDigest,
   gateStartRecordPath,
   gateStartAuthorityPath,
   isModernGateStartId,
@@ -1215,24 +1221,32 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
   }
 
   if (ownerAuthority) {
-    // ----- ed25519 PROJECT_OWNER signature over the authority minus its signature -----
-    const keyRelativePath = policy?.gateAuthorizationOwnerKeyPath || GATE_AUTHORIZATION_OWNER_KEY_PATH;
-    const keyArtifact = readLiveArtifact(root, keyRelativePath);
-    let ownerKey = null;
-    if (keyArtifact) {
-      try {
-        const parsed = JSON.parse(keyArtifact.bytes.toString('utf8'));
-        if (typeof parsed?.keyId === 'string' && typeof parsed?.publicKeyPem === 'string' && !/PRIVATE KEY/.test(parsed.publicKeyPem)) {
-          ownerKey = { keyId: parsed.keyId, publicKeyPem: parsed.publicKeyPem };
-        }
-      } catch { ownerKey = null; }
-    }
-    if (!ownerKey) {
-      R('GATE_AUTHORIZATION_UNAUTHORIZED', '/authorityPath', keyRelativePath, 'readable PROJECT_OWNER ed25519 public key', 'The PROJECT_OWNER public key is absent or unusable, so the owner signature can never be verified.');
+    const authorityMode = resolveAuthorityMode(ownerAuthority, { defaultLegacy: false });
+    if (authorityMode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) {
+      const localRequestDigest = computeGateAuthorizationLocalRequestDigest(ownerAuthority);
+      if (ownerAuthority.approvedRequestDigest !== localRequestDigest) {
+        R('GATE_AUTHORIZATION_LOCAL_REQUEST_DIGEST_INVALID', '/approvedRequestDigest', ownerAuthority.approvedRequestDigest, localRequestDigest, 'LOCAL_EXPLICIT_AUTHORITY must bind its exact local authority projection; no external request is accepted.');
+      }
     } else {
-      const signature = verifyOwnerSignature(ownerAuthority, ownerKey);
-      if (!signature.verified) {
-        R('GATE_AUTHORIZATION_OWNER_SIGNATURE_INVALID', '/authorityPath', signature.reason, 'verified ed25519 PROJECT_OWNER signature', 'The owner signature over the Gate authorization authority does not verify; the authorization is forged, mutated or signed by an unknown key.');
+      // ----- ed25519 PROJECT_OWNER signature over the authority minus its signature -----
+      const keyRelativePath = policy?.gateAuthorizationOwnerKeyPath || GATE_AUTHORIZATION_OWNER_KEY_PATH;
+      const keyArtifact = readLiveArtifact(root, keyRelativePath);
+      let ownerKey = null;
+      if (keyArtifact) {
+        try {
+          const parsed = JSON.parse(keyArtifact.bytes.toString('utf8'));
+          if (typeof parsed?.keyId === 'string' && typeof parsed?.publicKeyPem === 'string' && !/PRIVATE KEY/.test(parsed.publicKeyPem)) {
+            ownerKey = { keyId: parsed.keyId, publicKeyPem: parsed.publicKeyPem };
+          }
+        } catch { ownerKey = null; }
+      }
+      if (!ownerKey) {
+        R('GATE_AUTHORIZATION_UNAUTHORIZED', '/authorityPath', keyRelativePath, 'readable PROJECT_OWNER ed25519 public key', 'The PROJECT_OWNER public key is absent or unusable, so the owner signature can never be verified.');
+      } else {
+        const signature = verifyOwnerSignature(ownerAuthority, ownerKey);
+        if (!signature.verified) {
+          R('GATE_AUTHORIZATION_OWNER_SIGNATURE_INVALID', '/authorityPath', signature.reason, 'verified ed25519 PROJECT_OWNER signature', 'The owner signature over the Gate authorization authority does not verify; the authorization is forged, mutated or signed by an unknown key.');
+        }
       }
     }
 
@@ -1256,6 +1270,9 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
         if (ownerAuthority[field] !== record[field]) {
           R('GATE_AUTHORIZATION_RECORD_AUTHORITY_MISMATCH', `/${field}`, record[field], ownerAuthority[field], `Authorization record and owner authority disagree on ${field}; the owner approved a different authorization than the ledger pins.`);
         }
+      }
+      if (resolveAuthorityMode(ownerAuthority) !== resolveAuthorityMode(record)) {
+        R('GATE_AUTHORIZATION_RECORD_AUTHORITY_MISMATCH', '/authorityMode', record.authorityMode, ownerAuthority.authorityMode, 'Authorization record and authority must select the same mutually exclusive authority mode.');
       }
       for (const field of ['gateId', 'status', 'authorityPath', 'authoritySha256']) {
         if (ownerAuthority.dependencyProof?.[field] !== record.dependencyProof?.[field]) {
@@ -1478,22 +1495,28 @@ function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEve
   if (!authoritySchema.valid) R('GATE_START_OWNER_AUTHORITY_SCHEMA_INVALID', '/', authoritySchema.errors, 'gate-start-authority.schema.json', 'Owner START authority violates its closed schema.');
   const authorityShape = validateGateStartAuthorityShape(ownerAuthority);
   if (!authorityShape.valid) R('GATE_START_OWNER_AUTHORITY_INVALID', '/', authorityShape.findings, 'closed PROJECT_OWNER_GATE_START_AUTHORITY', 'Owner START authority violates the primitive shape.');
+  const authorityMode = resolveAuthorityMode(ownerAuthority, { defaultLegacy: false });
   if (ownerAuthority.recordDigest !== record.recordDigest) R('GATE_START_RECORD_AUTHORITY_MISMATCH', '/recordDigest', ownerAuthority.recordDigest, record.recordDigest, 'Owner authority does not approve the ledger-pinned START record.');
   if (ownerAuthority.bindingDigest !== computeGateStartBindingDigestFromDigests({ requestDigest: ownerAuthority.requestDigest, recordDigest: record.recordDigest })) R('GATE_START_BINDING_DIGEST_INVALID', '/bindingDigest', ownerAuthority.bindingDigest, 'recomputed request+record binding digest', 'Owner authority binding is not reproducible.');
-  for (const field of ['projectId', 'gateId', 'purpose', 'eventId', 'transitionType', 'fromStatus', 'toStatus', 'recordedAt', 'baseCommit', 'preStartLedgerSha256', 'previousEventSha256', 'contractSha256', 'currentContractSha256', 'preStateRevision', 'preCurrentStateSha256', 'preStateSealSha256', 'readinessDigest', 'ownerKeyId', 'expiresAtUtc', 'maxUse', 'startAuthorized', 'executionAuthorized']) {
+  for (const field of ['authorityMode', 'projectId', 'gateId', 'purpose', 'eventId', 'transitionType', 'fromStatus', 'toStatus', 'recordedAt', 'baseCommit', 'preStartLedgerSha256', 'previousEventSha256', 'contractSha256', 'currentContractSha256', 'preStateRevision', 'preCurrentStateSha256', 'preStateSealSha256', 'readinessDigest', 'ownerKeyId', 'expiresAtUtc', 'maxUse', 'startAuthorized', 'executionAuthorized']) {
     if (ownerAuthority[field] !== record[field]) R('GATE_START_RECORD_AUTHORITY_MISMATCH', `/${field}`, ownerAuthority[field], record[field], `Owner authority disagrees with the ledger-pinned START record on ${field}.`);
   }
   for (const field of ['dependencyProof', 'activeGatePreState', 'authorizedStartWritePaths', 'functionalExecutionScope', 'prohibitedOperations']) {
     if (canonicalize(ownerAuthority[field]) !== canonicalize(record[field])) R('GATE_START_RECORD_AUTHORITY_MISMATCH', `/${field}`, ownerAuthority[field], record[field], `Owner authority disagrees with the ledger-pinned START record on ${field}.`);
   }
-  let key;
-  try {
-    const keyPath = policy?.gateStartOwnerKeyPath || GATE_AUTHORIZATION_OWNER_KEY_PATH;
-    key = JSON.parse(fs.readFileSync(path.isAbsolute(keyPath) ? keyPath : path.resolve(root, keyPath), 'utf8'));
+  if (authorityMode === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) {
+    const localRequestDigest = computeGateStartLocalRequestDigest(ownerAuthority);
+    if (ownerAuthority.requestDigest !== localRequestDigest) R('GATE_START_LOCAL_REQUEST_DIGEST_INVALID', '/requestDigest', ownerAuthority.requestDigest, localRequestDigest, 'LOCAL_EXPLICIT_AUTHORITY must bind the exact START record without an external request.');
+  } else {
+    let key;
+    try {
+      const keyPath = policy?.gateStartOwnerKeyPath || GATE_AUTHORIZATION_OWNER_KEY_PATH;
+      key = JSON.parse(fs.readFileSync(path.isAbsolute(keyPath) ? keyPath : path.resolve(root, keyPath), 'utf8'));
+    }
+    catch { key = null; }
+    const signature = verifyGateStartOwnerSignature(ownerAuthority, key);
+    if (!signature.verified) R('GATE_START_OWNER_SIGNATURE_INVALID', '/signature', signature.reason, 'verified PROJECT_OWNER Ed25519 signature', 'START authority signature is invalid.');
   }
-  catch { key = null; }
-  const signature = verifyGateStartOwnerSignature(ownerAuthority, key);
-  if (!signature.verified) R('GATE_START_OWNER_SIGNATURE_INVALID', '/signature', signature.reason, 'verified PROJECT_OWNER Ed25519 signature', 'START authority signature is invalid.');
 
   for (const field of ['gateId', 'eventId', 'transitionType', 'fromStatus', 'toStatus', 'recordedAt']) {
     if (record[field] !== event[field]) R(`GATE_START_${field.toUpperCase()}_MISMATCH`, `/${field}`, record[field], event[field], `START record ${field} does not match the ledger event.`);

@@ -1,0 +1,26 @@
+{
+  "gateId": "GATE15",
+  "stateRevision": "R0001",
+  "milestone": "GATE15_ANTI_INVENTION_VALIDATORS",
+  "resumePoint": "AUTHORIZED_NOT_STARTED",
+  "completedTasks": [],
+  "openTasks": [],
+  "reusableEvidence": [
+    "GATE15_M1_FAST_PATH_R2_R7_READY"
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "AWAIT_START_AUTHORITY"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE15/contracts/CURRENT_CONTRACT.json",
+      "sha256": "07dbcc6a156e5c3f3e29c310ea3f186e393723a006f6fbad9048ef1590d221a5"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+    }
+  ],
+  "createdAt": "2026-08-14T02:06:00.000Z"
+}

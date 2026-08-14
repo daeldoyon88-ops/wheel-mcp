@@ -36,6 +36,10 @@ import {
   GATE_AUTHORIZATION_FIRST_REVISION,
   PHASE_AUTHORIZE_APPLY
 } from '../../core/gate-authorization-authority.mjs';
+import {
+  POST_FREEZE_MAINTENANCE_AUTHORITY_MODE,
+  resolveAuthorityMode
+} from '../../core/post-freeze-maintenance-authority.mjs';
 import { loadOwnerReleaseKey, loadReleaseAuthorization } from '../../core/release-authorization-source.mjs';
 import { validateAgainstJsonSchema } from '../../contracts/validate-against-json-schema.mjs';
 
@@ -151,17 +155,35 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
   function resolveGateAuthorizationAuthority(workUnitId) {
     const findings = [];
 
+    const recordRelativePath = gateAuthorizationRecordPath(workUnitId);
+    const authoritySnapshotRelativePath = gateAuthorizationAuthoritySnapshotPath(workUnitId);
+    let localAuthority = null;
+    try {
+      const candidate = readJson(path.join(root, ...authoritySnapshotRelativePath.split('/')));
+      if (resolveAuthorityMode(candidate, { defaultLegacy: false }) === POST_FREEZE_MAINTENANCE_AUTHORITY_MODE) {
+        localAuthority = candidate;
+      }
+    } catch {
+      // Legacy mode continues through its configured external source below.
+    }
+
+    if (localAuthority && (authorities.length > 0 || requests.length > 0)) {
+      return { ...blocked([{ code: 'COMPETING_GATE_AUTHORIZATION_AUTHORITIES', detail: 'local authority with external source configured' }]), workUnitId, workUnitType: GATE_AUTHORIZATION_WORK_UNIT_TYPE };
+    }
+
     // Competing authorities are refused rather than arbitrated. Picking one of two
     // owner documents would be the validator choosing its own permission.
     if (authorities.length > 1 || requests.length > 1) {
       return { ...blocked([{ code: 'COMPETING_GATE_AUTHORIZATION_AUTHORITIES', detail: `${authorities.length} authorities / ${requests.length} requests` }]), workUnitId, workUnitType: GATE_AUTHORIZATION_WORK_UNIT_TYPE };
     }
-    if (!workUnitId || authorities.length !== 1 || requests.length !== 1) {
+    if (!workUnitId || (!localAuthority && (authorities.length !== 1 || requests.length !== 1))) {
       return { ...blocked([{ code: 'GATE_AUTHORIZATION_SOURCE_UNCONFIGURED' }]), workUnitId, workUnitType: GATE_AUTHORIZATION_WORK_UNIT_TYPE };
     }
 
-    const loadedRequest = loadExternal(requests[0], root);
-    const loadedAuthority = loadExternal(authorities[0], root);
+    const loadedRequest = localAuthority ? { value: null, finding: null } : loadExternal(requests[0], root);
+    const loadedAuthority = localAuthority
+      ? { value: localAuthority, finding: null }
+      : loadExternal(authorities[0], root);
     if (loadedRequest.finding) findings.push({ code: loadedRequest.finding, detail: 'request' });
     if (loadedAuthority.finding) findings.push({ code: loadedAuthority.finding, detail: 'authority' });
     const request = loadedRequest.value;
@@ -169,7 +191,6 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
 
     // The in-repo record is the document the ledger event will pin. It is read from
     // its exact deterministic governed path — never from a caller-supplied location.
-    const recordRelativePath = gateAuthorizationRecordPath(workUnitId);
     let record = null;
     try {
       record = readJson(path.join(root, ...recordRelativePath.split('/')));
@@ -181,7 +202,7 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
       const requestSchema = readJson(path.join(root, 'governance/schemas/gate-authorization-authority-request.schema.json'));
       const authoritySchema = readJson(path.join(root, 'governance/schemas/gate-authorization-authority.schema.json'));
       const recordSchema = readJson(path.join(root, 'governance/schemas/gate-authorization-record.schema.json'));
-      if (!validateAgainstJsonSchema(request, requestSchema).valid) findings.push({ code: 'REQUEST_SCHEMA_INVALID' });
+      if (!localAuthority && !validateAgainstJsonSchema(request, requestSchema).valid) findings.push({ code: 'REQUEST_SCHEMA_INVALID' });
       if (!validateAgainstJsonSchema(authority, authoritySchema).valid) findings.push({ code: 'AUTHORITY_SCHEMA_INVALID' });
       if (!validateAgainstJsonSchema(record, recordSchema).valid) findings.push({ code: 'RECORD_SCHEMA_INVALID' });
     } catch {
@@ -240,12 +261,12 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
         : null,
       artifactSha256,
       artifactByteLength,
-      competingAuthorityCount: authorities.length,
+      competingAuthorityCount: localAuthority ? 1 : authorities.length,
       existingAuthorizationEventCount,
       consumed: existingAuthorizationEventCount > 0
     };
 
-    const ownerKey = loadOwnerReleaseKey(keyPath).ownerKey;
+    const ownerKey = localAuthority ? null : loadOwnerReleaseKey(keyPath).ownerKey;
     const result = evaluateGateAuthorizationAuthority({ record, request, authority, ownerKey, observed, phase, now });
     findings.push(...result.findings);
 
@@ -259,7 +280,7 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
       startAuthorized: false,
       authorizedPaths: authorized ? result.authorizedPaths : [],
       findings,
-      ownerAuthoritySnapshotPath: gateAuthorizationAuthoritySnapshotPath(workUnitId),
+      ownerAuthoritySnapshotPath: authoritySnapshotRelativePath,
       recordPath: recordRelativePath,
       proofs: {
         EXECUTION_CONTRACT: { state: observed.currentContractPresent ? 'PROVEN' : 'FAILED', reason: 'CURRENT_CONTRACT presence and hash' },

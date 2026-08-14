@@ -56,11 +56,12 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalize, sha256Bytes, sha256Canonical } from './canonical-json.mjs';
 import {
-  MODE_FULL, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL, validateLedger
+  MODE_FULL, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL, resolveDeclaredAuthorityIdentity, validateLedger
 } from './validate-status-ledger.mjs';
 import { computeSealedMembersDigest, validateStateSeal } from './validate-state-seal.mjs';
 import { validateStateRevision } from './validate-state-revision.mjs';
@@ -69,6 +70,7 @@ import {
   evaluatePostFreezeMaintenanceAuthorityV2
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
+import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 
 export const ORCHESTRATOR_DOCUMENT = 'GATE_LIFECYCLE_ORCHESTRATOR';
 export const ORCHESTRATOR_VERSION = 'R1';
@@ -197,7 +199,8 @@ export function deriveCandidateTransition({
   sealedMemberOrder = null,
   checkpoint = {},
   openDefects = [],
-  missionId = null
+  missionId = null,
+  policy = WHEEL_EXTERNAL_AUTHORITY_POLICY
 }) {
   const findings = [];
   const fail = (defectClass, detail) => { findings.push({ defectClass, ...detail }); };
@@ -272,13 +275,16 @@ export function deriveCandidateTransition({
   // literal file is hashed from its bytes; a logical id is resolved by the
   // ledger validator during candidate validation, and its digest must be
   // supplied by the caller because this file will not invent one.
-  const authorityBytes = readBytesOrNull(root, authorityPath);
-  const authoritySha256 = authorityBytes ? sha256Bytes(authorityBytes) : null;
+  const directAuthorityBytes = readBytesOrNull(root, authorityPath);
+  const authorityResolution = directAuthorityBytes
+    ? { artifact: { bytes: directAuthorityBytes }, reason: null }
+    : resolveDeclaredAuthorityIdentity({ root, identity: authorityPath, policy });
+  const authoritySha256 = authorityResolution.artifact ? sha256Bytes(authorityResolution.artifact.bytes) : null;
   if (!authoritySha256) {
     fail('AUTHORITY_BYTES_UNRESOLVABLE', {
       path: authorityPath,
       expected: 'existing authority document whose bytes can be hashed',
-      actual: 'ABSENT'
+      actual: authorityResolution.reason ?? 'ABSENT'
     });
     return { status: 'BLOCKED', findings, candidate: null };
   }
@@ -546,11 +552,12 @@ function findingKey(item) {
  * WHAT DID THIS TRANSITION INTRODUCE? Pre-existing findings are carried as a
  * baseline and subtracted. Nothing is suppressed — the baseline is reported.
  */
-export function collectBaselineIntegrity(root) {
+export function collectBaselineIntegrity(root, policy = WHEEL_EXTERNAL_AUTHORITY_POLICY) {
   const ledgerReport = validateLedger({
     root,
     ledgerPath: repoPath(root, LEDGER_PATH),
-    mode: MODE_FULL
+    mode: MODE_FULL,
+    policy
   });
   const sealValidity = new Map();
   const gatesRoot = repoPath(root, 'governance/gates');
@@ -576,6 +583,68 @@ export function collectBaselineIntegrity(root) {
   };
 }
 
+function isGovernedRelativePath(value) {
+  return typeof value === 'string' && value.startsWith('governance/')
+    && !value.includes('\\') && !value.split('/').some((part) => !part || part === '.' || part === '..');
+}
+
+function replaceCandidateWrite(candidate, relativePath, bytes) {
+  const write = { path: relativePath, sha256: sha256Bytes(bytes), byteLength: bytes.length, bytes };
+  const index = candidate.writes.findIndex((entry) => entry.path === relativePath);
+  if (index >= 0) candidate.writes[index] = write;
+  else candidate.writes.push(write);
+  candidate.writes.sort((a, b) => a.path.localeCompare(b.path, 'en'));
+  return write;
+}
+
+/**
+ * Projection selection is contract-driven: every lifecycle transition refreshes
+ * the global status snapshot, plus the deterministic generators declared by
+ * the target Gate's current contract.  Generators operate only on staging.
+ */
+function refreshCandidateProjections({ stagingRoot, candidate, fail, projectionPolicyModulePath = null }) {
+  const generatedOutputs = new Set(['governance/state/generated/GATE_STATUS_SNAPSHOT.json']);
+  const run = (generatorPath) => {
+    try {
+      const args = [path.join(stagingRoot, ...generatorPath.split('/')), '--root', stagingRoot];
+      if (generatorPath === 'governance/tools/generate-status-snapshot.mjs' && projectionPolicyModulePath) {
+        args.push('--policy-module', projectionPolicyModulePath);
+      }
+      execFileSync(process.execPath, args, {
+        cwd: stagingRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']
+      });
+    } catch (error) {
+      fail('CANDIDATE_PROJECTION_REGENERATION_FAILED', {
+        path: generatorPath,
+        expected: 'existing deterministic generator completes against the candidate staging root',
+        actual: error.stderr?.toString('utf8') || error.message
+      });
+    }
+  };
+
+  run('governance/tools/generate-status-snapshot.mjs');
+  const currentContract = readJsonOrNull(stagingRoot, `governance/gates/${candidate.gateId}/contracts/CURRENT_CONTRACT.json`);
+  const contractPath = currentContract?.contractPath;
+  if (isGovernedRelativePath(contractPath)) {
+    const contract = readJsonOrNull(stagingRoot, contractPath);
+    for (const output of Array.isArray(contract?.requiredOutputs) ? contract.requiredOutputs : []) {
+      if (isGovernedRelativePath(output?.path) && output.path.startsWith('governance/generated/')) generatedOutputs.add(output.path);
+      if (isGovernedRelativePath(output?.path) && output.path.endsWith('.mjs') && /deterministic.*generator/i.test(output.role ?? '')) run(output.path);
+    }
+  }
+
+  const writes = [];
+  for (const relativePath of [...generatedOutputs].sort()) {
+    const bytes = readBytesOrNull(stagingRoot, relativePath);
+    if (!bytes) {
+      fail('CANDIDATE_PROJECTION_ABSENT', { path: relativePath, expected: 'generator-produced output', actual: 'ABSENT' });
+      continue;
+    }
+    writes.push(replaceCandidateWrite(candidate, relativePath, bytes));
+  }
+  return writes;
+}
+
 /**
  * Materializes the candidate into a disposable full copy of `governance/` and
  * validates it with the same tools that guard the real tree.
@@ -586,7 +655,7 @@ export function collectBaselineIntegrity(root) {
  * Validating a candidate against anything less than a materialized tree would
  * prove something about a model of the transition rather than the transition.
  */
-export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, baseline = null, now = new Date() }) {
+export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, baseline = null, now = new Date(), policy = WHEEL_EXTERNAL_AUTHORITY_POLICY, projectionPolicyModulePath = null }) {
   const findings = [];
   const fail = (defectClass, detail) => { findings.push({ defectClass, ...detail }); };
 
@@ -600,16 +669,21 @@ export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, b
     fs.writeFileSync(target, write.bytes);
   }
 
+  const projectionWrites = refreshCandidateProjections({ stagingRoot, candidate, fail, projectionPolicyModulePath });
+
   // ---- ledger, in full, DIFFERENTIALLY ------------------------------------
-  const effectiveBaseline = baseline ?? collectBaselineIntegrity(root);
+  const effectiveBaseline = baseline ?? collectBaselineIntegrity(root, policy);
   const ledgerReport = validateLedger({
     root: stagingRoot,
     ledgerPath: path.join(stagingRoot, ...LEDGER_PATH.split('/')),
-    mode: MODE_FULL
+    mode: MODE_FULL,
+    policy
   });
   const introducedLedgerFindings = ledgerReport.findings
     .filter((item) => !effectiveBaseline.ledgerFindingKeys.has(findingKey(item)));
-  for (const item of introducedLedgerFindings) {
+  const introducedBlockingLedgerFindings = introducedLedgerFindings.filter((item) => item.severity !== 'INFO');
+  const introducedInformationalLedgerFindings = introducedLedgerFindings.filter((item) => item.severity === 'INFO');
+  for (const item of introducedBlockingLedgerFindings) {
     fail('CANDIDATE_LEDGER_INVALID', {
       path: LEDGER_PATH,
       detectorId: item.detectorId,
@@ -733,6 +807,9 @@ export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, b
       baselineLedgerFindingCount: effectiveBaseline.ledgerFindingCount,
       candidateLedgerFindingCount: ledgerReport.findings.length,
       introducedLedgerFindingCount: introducedLedgerFindings.length,
+      introducedBlockingLedgerFindingCount: introducedBlockingLedgerFindings.length,
+      introducedInformationalLedgerFindingCount: introducedInformationalLedgerFindings.length,
+      projectionWriteCount: projectionWrites.length,
       sealValid: sealReport.valid,
       revisionValid: revisionReport?.valid ?? null,
       otherSealsChecked: otherSeals.length,
@@ -805,15 +882,44 @@ export function evaluateTransitionAuthority({ root, candidate, authorityDocument
  * validated clean, so this function contains no validation, no repair and no
  * fallback: by the time control arrives here the decision has already been made.
  */
-export function applyCandidate({ root, candidate }) {
-  const written = [];
-  for (const write of candidate.writes) {
+export function applyCandidate({ root, candidate, writeFile = fs.writeFileSync }) {
+  const before = candidate.writes.map((write) => {
     const target = repoPath(root, write.path);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, write.bytes);
-    written.push({ path: write.path, sha256: write.sha256, byteLength: write.byteLength });
+    const existed = fs.existsSync(target);
+    return { write, target, existed, bytes: existed ? fs.readFileSync(target) : null };
+  });
+  const written = [];
+  try {
+    for (const entry of before) {
+      fs.mkdirSync(path.dirname(entry.target), { recursive: true });
+      writeFile(entry.target, entry.write.bytes);
+      written.push({ path: entry.write.path, sha256: entry.write.sha256, byteLength: entry.write.byteLength });
+    }
+    return written;
+  } catch (cause) {
+    // Restore bytes and path presence before returning control.  This is not a
+    // second transaction scheme: it is the local rollback required to make the
+    // already-validated publication boundary failure-atomic.
+    for (const entry of [...before].reverse()) {
+      try {
+        if (entry.existed) {
+          fs.mkdirSync(path.dirname(entry.target), { recursive: true });
+          fs.writeFileSync(entry.target, entry.bytes);
+        } else {
+          fs.rmSync(entry.target, { force: true });
+        }
+      } catch { /* retain the original publication failure below */ }
+    }
+    const revisionDirectory = candidate.paths?.revisionDirectory && repoPath(root, candidate.paths.revisionDirectory);
+    if (revisionDirectory && !fs.existsSync(revisionDirectory)) {
+      // Nothing to remove; keeping this branch documents the expected normal case.
+    } else if (revisionDirectory && !before.some((entry) => entry.target.startsWith(revisionDirectory) && entry.existed)) {
+      try { fs.rmSync(revisionDirectory, { recursive: true, force: true }); } catch { /* original failure wins */ }
+    }
+    const error = new Error(`CANDIDATE_APPLY_FAILED_ROLLED_BACK:${cause.message}`);
+    error.cause = cause;
+    throw error;
   }
-  return written;
 }
 
 /**
@@ -831,10 +937,13 @@ export function runLifecycleTransition({
   now = new Date(),
   authorityDocumentPath = null,
   baseline = null,
+  writeFile = fs.writeFileSync,
+  policy = WHEEL_EXTERNAL_AUTHORITY_POLICY,
+  projectionPolicyModulePath = null,
   ...request
 }) {
   const startedMs = Date.now();
-  const derivation = deriveCandidateTransition({ root, ...request });
+  const derivation = deriveCandidateTransition({ root, policy, ...request });
   const deriveMs = Date.now() - startedMs;
 
   if (derivation.status === 'ALREADY_SATISFIED') {
@@ -869,7 +978,7 @@ export function runLifecycleTransition({
   let validation;
   let authority;
   try {
-    validation = validateCandidateInStagingRoot({ root, candidate, stagingRoot: staging, baseline, now });
+    validation = validateCandidateInStagingRoot({ root, candidate, stagingRoot: staging, baseline, now, policy, projectionPolicyModulePath });
     authority = evaluateTransitionAuthority({ root, candidate, authorityDocumentPath, now });
   } finally {
     if (!stagingRoot) fs.rmSync(staging, { recursive: true, force: true });
@@ -899,7 +1008,25 @@ export function runLifecycleTransition({
   }
 
   const applyStartedMs = Date.now();
-  const applied = applyCandidate({ root, candidate });
+  let applied;
+  try {
+    applied = applyCandidate({ root, candidate, writeFile });
+  } catch (error) {
+    return {
+      document: ORCHESTRATOR_DOCUMENT,
+      version: ORCHESTRATOR_VERSION,
+      result: 'BLOCKED',
+      gateId: candidate.gateId,
+      transitionType: candidate.transitionType,
+      candidateSummary: summarizeCandidate(candidate),
+      authority: { applicable: authority.applicable, decision: authority.decision },
+      validationReports: validation.reports,
+      findings: [{ defectClass: 'CANDIDATE_APPLY_FAILED_ROLLED_BACK', path: null, actual: error.message }],
+      applied: [],
+      canonicalBytesUnchanged: true,
+      timings: { deriveMs, validateMs, applyMs: Date.now() - applyStartedMs, totalMs: Date.now() - startedMs }
+    };
+  }
   const applyMs = Date.now() - applyStartedMs;
 
   return {

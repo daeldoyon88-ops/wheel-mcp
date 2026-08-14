@@ -90,7 +90,7 @@ function readJsonOrNull(root, relativePath) {
 }
 
 function git(root, args) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 /**
@@ -124,6 +124,28 @@ export function actualIdentity(root, relativePath) {
   const bytes = readBytesOrNull(root, relativePath);
   if (!bytes) return { path: relativePath, present: false, sha256: null, byteLength: null };
   return { path: relativePath, present: true, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+}
+
+function contractProjectionGenerators(root, gateId) {
+  const current = readJsonOrNull(root, `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`);
+  const contractPath = current?.contractPath;
+  if (typeof contractPath !== 'string' || !contractPath.startsWith('governance/') || contractPath.includes('..')) return [];
+  const contract = readJsonOrNull(root, contractPath);
+  return (Array.isArray(contract?.requiredOutputs) ? contract.requiredOutputs : [])
+    .filter((output) => typeof output?.path === 'string' && output.path.startsWith('governance/')
+      && output.path.endsWith('.mjs') && /deterministic.*generator/i.test(output.role ?? ''))
+    .map((output) => output.path);
+}
+
+function checkProjectionGenerator(root, generatorPath) {
+  try {
+    const stdout = execFileSync(process.execPath, [repoPath(root, generatorPath), '--root', root, '--check'], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']
+    });
+    return { generatorPath, valid: true, report: stdout.trim() || null };
+  } catch (error) {
+    return { generatorPath, valid: false, detail: error.stdout?.toString('utf8') || error.stderr?.toString('utf8') || error.message };
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -637,7 +659,7 @@ export function auditFinalGateIntegrity({
   /* ---- GENERATED: projections must reflect the final ledger ------------- */
   ran('GENERATED');
   const snapshot = readJsonOrNull(root, STATUS_SNAPSHOT_PATH);
-  const generatedAudit = { snapshotPresent: snapshot !== null, declaredLedgerEventCount: null, actualLedgerEventCount: events.length };
+  const generatedAudit = { snapshotPresent: snapshot !== null, declaredLedgerEventCount: null, actualLedgerEventCount: events.length, generatorChecks: [] };
   if (snapshot) {
     const declaredCount = snapshot.ledgerEventCount ?? snapshot.eventCount ?? null;
     generatedAudit.declaredLedgerEventCount = declaredCount;
@@ -656,18 +678,31 @@ export function auditFinalGateIntegrity({
       });
     }
   }
+  const projectionGenerators = ['governance/tools/generate-status-snapshot.mjs', ...contractProjectionGenerators(root, gateId)];
+  for (const generatorPath of [...new Set(projectionGenerators)]) {
+    const check = checkProjectionGenerator(root, generatorPath);
+    generatedAudit.generatorChecks.push(check);
+    if (!check.valid) {
+      blocking('GENERATED', 'GENERATED_PROJECTION_DRIFT', {
+        path: generatorPath,
+        expected: 'deterministic generator --check returns current output bytes',
+        actual: check.detail,
+        affectedFrontier: 'GENERATED'
+      });
+    }
+  }
 
   /* ---- GIT / COHORT ----------------------------------------------------- */
   ran('GIT_COHORT');
   const gitAudit = { headResolved: false, head: null, cohortComparisonRequested: authorizedCohort !== null };
   try {
-    gitAudit.head = git(root, ['rev-parse', 'HEAD']);
+    gitAudit.head = git(root, ['rev-parse', 'HEAD']).trim();
     gitAudit.headResolved = true;
     gitAudit.status = git(root, ['status', '--porcelain'])
-      .split('\n').filter(Boolean)
-      .map((line) => ({ code: line.slice(0, 2).trim(), path: line.slice(3).trim() }));
+      .split(/\r?\n/).filter(Boolean)
+      .map((line) => ({ code: line.slice(0, 2), path: line.slice(3) }));
     if (baselineCommit) {
-      const delta = git(root, ['diff', '--name-only', `${baselineCommit}..HEAD`]).split('\n').filter(Boolean);
+      const delta = git(root, ['diff', '--name-only', `${baselineCommit}..HEAD`]).split(/\r?\n/).filter(Boolean);
       gitAudit.committedDelta = delta;
     }
   } catch (error) {
@@ -677,7 +712,7 @@ export function auditFinalGateIntegrity({
   if (authorizedCohort && gitAudit.headResolved) {
     const tracked = new Set(gitAudit.status.filter((entry) => entry.code !== '??').map((entry) => entry.path));
     const untracked = new Set(gitAudit.status.filter((entry) => entry.code === '??').map((entry) => entry.path));
-    const actuallyChanged = new Set([...tracked, ...untracked]);
+    const actuallyChanged = new Set([...tracked, ...untracked, ...(gitAudit.committedDelta ?? [])]);
     const byteIdenticalAuthorized = [];
     const missing = [];
     for (const relativePath of authorizedCohort) {
@@ -696,8 +731,17 @@ export function auditFinalGateIntegrity({
       });
     }
     gitAudit.authorizedCount = authorizedCohort.length;
+    gitAudit.actualChanged = [...actuallyChanged].sort();
     gitAudit.byteIdenticalAuthorized = byteIdenticalAuthorized;
     gitAudit.cohortIdentities = authorizedCohort.map((relativePath) => actualIdentity(root, relativePath));
+    for (const relativePath of [...actuallyChanged].filter((entry) => !authorizedCohort.includes(entry)).sort()) {
+      blocking('GIT_COHORT', 'UNEXPECTED_GIT_DELTA', {
+        path: relativePath,
+        expected: 'path listed in the authorized cohort',
+        actual: 'changed outside authorized cohort',
+        affectedFrontier: 'GIT_COHORT'
+      });
+    }
   }
 
   /* ---- TEMP: no durable dependency on ephemeral run roots --------------- */

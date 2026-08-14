@@ -1,0 +1,31 @@
+{
+  "checkpointId": "CP-GFG-F-OWNER-DECISION-LEGACY-FUTURE",
+  "recordedAt": "2026-08-14T19:06:33.0717242-04:00",
+  "decision": "LEGACY_SIGNED_BYTES_IMMUTABLE_FUTURE_LOCAL_EXPLICIT_AUTHORITY",
+  "scope": "WHEEL_GENERIC_FAST_GATE_EXECUTION_AND_FINAL_AUDIT_R1_INDEPENDENT_AUDIT_REPAIR_R1",
+  "head": "03b3ca3ebdba5c6494b6f21e9aec722a9cb92608",
+  "modifiedRepairPaths": [
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tools/final-gate-integrity-auditor.mjs",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/validate-status-ledger.mjs"
+  ],
+  "greenTests": [
+    "node --check governance/tools/validate-status-ledger.mjs",
+    "node --check governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs existing coverage 20/20",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs apply-boundary rollback 8/8",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs historical GATE17 EXTERNAL_CONFIRMATION positive",
+    "governance/tests/final-gate-integrity-auditor.test.mjs 28/28",
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs 25/25"
+  ],
+  "failingTest": "governance/tests/gate-lifecycle-orchestrator.test.mjs historical GATE17 AUTHORIZATION and START candidates validate with informational ledger findings; semantic reconstruction cannot reproduce legacy signature-bound R0001/R0002 bytes",
+  "ownerConstraints": [
+    "Historical GATE16/GATE17 signed artifacts remain byte-immutable legacy evidence.",
+    "Historical AUTHORIZATION and START positives must consume exact existing repository bytes as pre-materialized transaction inputs.",
+    "Future AUTHORIZATION and START must extend existing generic LOCAL_EXPLICIT_AUTHORITY semantics without new authority classes, keys, signatures, PKI, or Gate-specific runtime logic.",
+    "Preserve P1-1 through P1-6 and all unrelated dirty work."
+  ],
+  "nextExactAction": "Replace the failing semantic historical AUTHORIZATION/START reconstruction test with exact-byte fixture candidates, then inspect and minimally extend the existing LOCAL_EXPLICIT_AUTHORITY path for a scratch-only synthetic future Gate through AUTHORIZATION, START, AGENT_CLOSURE, and EXTERNAL_CONFIRMATION."
+}

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { canonicalize, sha256Bytes } from './canonical-json.mjs';
 import { validateLedger } from './validate-status-ledger.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
@@ -22,8 +22,18 @@ const root = path.resolve(option('--root', path.resolve(toolsDir, '..', '..')));
 const ledgerPath = path.resolve(option('--ledger', path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson')));
 const outputPath = path.resolve(option('--output', path.join(root, 'governance', 'state', 'generated', 'GATE_STATUS_SNAPSHOT.json')));
 const sourceMapPath = option('--source-map', null) ? path.resolve(option('--source-map')) : null;
+const policyModulePath = option('--policy-module', null);
 const check = process.argv.includes('--check');
-const report = validateLedger({ root, ledgerPath, sourceMapPath, policy: WHEEL_EXTERNAL_AUTHORITY_POLICY });
+let policy = WHEEL_EXTERNAL_AUTHORITY_POLICY;
+if (policyModulePath) {
+  const candidate = path.resolve(root, policyModulePath);
+  const governanceRoot = path.resolve(root, 'governance') + path.sep;
+  if (!candidate.startsWith(governanceRoot)) throw new Error('POLICY_MODULE_OUTSIDE_GOVERNANCE');
+  const loaded = await import(`${pathToFileURL(candidate).href}?snapshotPolicy=${encodeURIComponent(sha256Bytes(fs.readFileSync(candidate)))}`);
+  policy = loaded.default ?? loaded.policy;
+  if (!policy || typeof policy !== 'object') throw new Error('POLICY_MODULE_INVALID');
+}
+const report = validateLedger({ root, ledgerPath, sourceMapPath, policy });
 if (!report.valid) {
   process.stdout.write(JSON.stringify({ valid: false, stale: false, findings: report.findings }, null, 2) + '\n');
   process.exitCode = 2;

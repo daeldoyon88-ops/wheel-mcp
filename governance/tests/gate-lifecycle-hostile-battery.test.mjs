@@ -35,6 +35,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -61,6 +62,12 @@ function readText(root, relative) { return fs.readFileSync(path.join(root, ...re
 function writeText(root, relative, text) { fs.writeFileSync(path.join(root, ...relative.split('/')), text); }
 function readJson(root, relative) { return JSON.parse(readText(root, relative)); }
 function writeJson(root, relative, value) { writeText(root, relative, `${JSON.stringify(value, null, 2)}\n`); }
+function initializeGitRepository(root) {
+  const run = (args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+  run(['init', '--quiet']);
+  run(['add', 'governance']);
+  run(['-c', 'user.name=hostile', '-c', 'user.email=hostile@example.invalid', 'commit', '--quiet', '-m', 'fixture baseline']);
+}
 
 /** Canonical bytes of the governed spine, for before/after comparison. */
 function spineDigest(root) {
@@ -307,17 +314,14 @@ test('H5 (mirror): historical evidence marked invalidated must not be rewritten 
 test('H6: a generated projection left stale after the final ledger mutation is detected', () => {
   const root = scratchRoot('h6');
   try {
-    const snapshotPath = 'governance/state/generated/GATE_STATUS_SNAPSHOT.json';
-    const snapshot = readJson(root, snapshotPath);
-    snapshot.ledgerEventCount = 72;
-    writeJson(root, snapshotPath, snapshot);
+    const reportPath = 'governance/generated/FOUNDATION_REPORT.md';
+    writeText(root, reportPath, `${readText(root, reportPath)}\n<!-- hostile stale projection -->\n`);
 
     const report = auditFinalGateIntegrity({ root, gateId: 'GATE17' });
     assert.equal(report.FINAL_GATE_INTEGRITY, 'FAIL');
-    assert.ok(auditClasses(report).has('GENERATED_PROJECTION_STALE'));
-    const finding = report.findings.find((item) => item.defectClass === 'GENERATED_PROJECTION_STALE');
-    assert.equal(finding.expected, 73, 'expectation is the RECOUNTED ledger, not a declared number');
-    assert.equal(finding.actual, 72);
+    assert.ok(auditClasses(report).has('GENERATED_PROJECTION_DRIFT'));
+    const finding = report.findings.find((item) => item.defectClass === 'GENERATED_PROJECTION_DRIFT');
+    assert.equal(finding.path, 'governance/tools/generate-foundation-report.mjs');
     assert.equal(finding.affectedFrontier, 'GENERATED');
   } finally { discard(root); }
 });
@@ -334,18 +338,20 @@ test('H7: an authorized path that is byte-identical to HEAD produces no Git delt
     'governance/gates/GATE17/evidence/CLOSURE_MATRIX.json',
     'governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json'
   ];
-  const report = auditFinalGateIntegrity({
-    root: REPO_ROOT, gateId: 'GATE17', authorizedCohort: unchangedButAuthorized
-  });
-  assert.equal(report.FINAL_GATE_INTEGRITY, 'PASS', JSON.stringify(report.findings, null, 1));
-  assert.deepEqual([...report.observations.git.byteIdenticalAuthorized].sort(), [...unchangedButAuthorized].sort());
-  assert.equal(report.observations.git.authorizedCount, 2);
-  // Each is reported with a real identity, so "byte-identical" is a measured
-  // claim rather than an excuse.
-  for (const identity of report.observations.git.cohortIdentities) {
-    assert.equal(identity.present, true);
-    assert.match(identity.sha256, /^[a-f0-9]{64}$/);
-  }
+  const root = scratchRoot('h7');
+  try {
+    initializeGitRepository(root);
+    const report = auditFinalGateIntegrity({ root, gateId: 'GATE17', authorizedCohort: unchangedButAuthorized });
+    assert.equal(report.FINAL_GATE_INTEGRITY, 'PASS', JSON.stringify(report.findings, null, 1));
+    assert.deepEqual([...report.observations.git.byteIdenticalAuthorized].sort(), [...unchangedButAuthorized].sort());
+    assert.equal(report.observations.git.authorizedCount, 2);
+    // Each is reported with a real identity, so "byte-identical" is a measured
+    // claim rather than an excuse.
+    for (const identity of report.observations.git.cohortIdentities) {
+      assert.equal(identity.present, true);
+      assert.match(identity.sha256, /^[a-f0-9]{64}$/);
+    }
+  } finally { discard(root); }
 });
 
 test('H7 (contrast): an authorized path that does not exist at all IS blocked', () => {

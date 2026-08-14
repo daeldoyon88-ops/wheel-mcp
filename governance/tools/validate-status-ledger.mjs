@@ -1091,6 +1091,25 @@ function resolveDependencyAuthority({ root, identity, sourceMap, extraExternalAu
 }
 
 /**
+ * Resolves a transition-authority identity through the exact same source-map and
+ * adapter-policy mechanism used by permanent ledger validation.  Callers retain
+ * the logical identity in the event; only the bytes used to compute its digest
+ * are resolved here.
+ */
+export function resolveDeclaredAuthorityIdentity({ root, identity, sourceMapPath = null, policy = null }) {
+  const findings = [];
+  const sourceMapResolution = resolveSourceMapPath({ root, sourceMapPath });
+  const sourceMap = loadSourceMap(sourceMapResolution, findings);
+  if (!sourceMap) return { artifact: null, reason: findings[0]?.detectorId ?? 'SOURCE_MAP_UNRESOLVABLE' };
+  return resolveDependencyAuthority({
+    root,
+    identity,
+    sourceMap,
+    extraExternalAuthorities: policy?.extraExternalAuthorities
+  });
+}
+
+/**
  * AUTHORIZATION proof obligations.
  *
  * Runs ONLY for transitionType === AUTHORIZATION. Such an event has already been

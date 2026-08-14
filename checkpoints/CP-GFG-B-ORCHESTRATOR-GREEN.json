@@ -1,0 +1,70 @@
+{
+  "checkpoint": "CP-GFG-B-ORCHESTRATOR-GREEN",
+  "mission": "WHEEL_GENERIC_FAST_GATE_EXECUTION_AND_FINAL_AUDIT_R1",
+  "recordedAt": "2026-08-14T21:59:13.139Z",
+  "phase": "B_LIFECYCLE_ORCHESTRATOR_FIRST_GREEN",
+  "baselineHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "currentHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 0",
+  "noPush": true,
+  "pendingCanonicalMutations": "NONE — orchestrator was exercised only against scratch copies under the OS temp directory",
+  "completedWork": {
+    "componentA": "governance/tools/gate-lifecycle-orchestrator.mjs IMPLEMENTED",
+    "componentATests": "governance/tests/gate-lifecycle-orchestrator.test.mjs — 20/20 PASS in 6.9s"
+  },
+  "missionCohortSoFar": [
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "checkpoints/CP-GFG-A-BASELINE-PLAN-FROZEN.json",
+    "checkpoints/CP-GFG-B-ORCHESTRATOR-GREEN.json"
+  ],
+  "artifactIdentities": {
+    "governance/tools/gate-lifecycle-orchestrator.mjs": {
+      "sha256": "9748bdf38bd6f6e650c7274785434af645439261d6b3f56f81dab013af3c966b",
+      "byteLength": 41911
+    },
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs": {
+      "sha256": "d702e25ac35400b2843f19f0df43b3a392bef971cc14db99b13b9ee564c83f02",
+      "byteLength": 25086
+    }
+  },
+  "testsExecuted": [
+    {
+      "command": "node --test governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "result": "20/20 PASS",
+      "durationMs": 6769
+    }
+  ],
+  "measuredPerformance": {
+    "deriveCandidateMs": 11,
+    "validateCandidateInStagingRootMs": 1024,
+    "governanceStagingCopyMs": 537,
+    "fastPathControlPlaneSeconds": 7.2,
+    "focusedTestSuiteMs": 6769
+  },
+  "keyDesignDecisionsDoNotRerediscover": {
+    "differentialValidation": "CRITICAL. validateLedger MODE_FULL reports 69-71 findings against the CANONICAL ledger at HEAD (MIGRATED_HISTORICAL_AUTHORITY 39, COMPLETE_CONFIRMED_WITHOUT_INDEPENDENT_REINSPECTION 6, MISSING_TRANSITION_AUTHORITY 5, HISTORICAL_RECONCILIATION_APPLIED 12, GATE_AUTHORIZATION_DEPENDENCY_MISMATCH 4, GATE_START_APPLIED 4, CONTRACT_SUCCESSION_APPLIED 1). It is NOT a pass/fail gate. Candidate validation is therefore DIFFERENTIAL via collectBaselineIntegrity(root): only findings the candidate INTRODUCES are defects. Same for seals (a seal already invalid at baseline is not blamed on the transition).",
+    "atomicity": "Full copy of governance/ into a staging root costs ~0.54s, which makes derive->stage->validate->apply affordable as the DEFAULT. A failed candidate never wrote a canonical byte, so there is nothing to roll back.",
+    "sealedMemberOrder": "Historical seals are INCONSISTENT about sealedMembers order (GATE17 R0003 ends with CURRENT_CONTRACT, R0004 begins with it). Order is therefore caller data via sealedMemberOrder with symbolic tokens CHECKPOINT/OPEN_DEFECTS/CURRENT_CONTRACT. Hashes are never caller data.",
+    "byteIdentityLimit": "Exact byte reproduction of hand-built historical artifacts is NOT achievable: the historical CHECKPOINT.json files use ad-hoc compact array-of-object formatting that JSON.stringify(v,null,2) does not reproduce. The orchestrator proves SEMANTIC equivalence (ordinal, chain link, fromStatus/toStatus, authoritySha256, stateRevision, previousStateSealSha256, contractSha256, sealed member path order and untouched-member identities). Proving the HISTORICAL bytes is Component B (the auditor) job.",
+    "gate18": "GATE18 is registered SUPERSEDED / NON_EXECUTABLE with no executable objective and NO CURRENT_CONTRACT. It therefore CANNOT serve as the normal-Gate performance benchmark named in the mission NEXT section. GATE18-GATE40 each carry exactly one GENESIS_IMPORT event at NOT_STARTED.",
+    "idempotenceProof": "Verified against the REAL ledger: GATE17_AGENT_CLOSURE_R1 replay -> ALREADY_SATISFIED (ordinal 72); new event id for same transition -> DUPLICATE_TRANSITION_FOR_GATE; event id reused for a different transition -> EVENT_ID_ALREADY_USED_FOR_DIFFERENT_TRANSITION."
+  },
+  "openDefects": [],
+  "remainingWork": [
+    "Component B FINAL_GATE_INTEGRITY_AUDITOR",
+    "H1-H14 hostile battery",
+    "GATE17 read-only benchmark",
+    "final validation",
+    "exact staging + one local commit"
+  ],
+  "nextExactAction": "Implement governance/tools/final-gate-integrity-auditor.mjs",
+  "doNotRepeat": [
+    "baseline verification",
+    "primitive discovery",
+    "Component A implementation",
+    "Component A focused tests"
+  ],
+  "ownerAuthorizationBoundary": "unchanged from CP-GFG-A"
+}

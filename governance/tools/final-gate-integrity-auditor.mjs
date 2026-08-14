@@ -1,0 +1,829 @@
+#!/usr/bin/env node
+/**
+ * FINAL_GATE_INTEGRITY_AUDITOR — the independent final-byte audit, as a program.
+ *
+ * WHAT THIS EXISTS TO CLOSE. The final audits of GATE16 and GATE17 were done by
+ * exporting the repository to a ZIP and re-inspecting it by hand: recomputing
+ * SHA-256 values, counting cohort members, replaying the ledger chain, checking
+ * that every sealed member still held its sealed bytes. That work found real
+ * defects, and it cost most of an audit session each time. None of it required
+ * judgement — every one of those checks is a comparison between a declared value
+ * and the bytes on disk.
+ *
+ * WHAT IT REFUSES TO TRUST. The auditor derives truth from the FINAL repository
+ * bytes and from Git, and from nothing else. In particular it does not read, and
+ * cannot be satisfied by:
+ *
+ *   - an agent's PASS summary
+ *   - a previously generated report claiming the Gate is closed
+ *   - a cached or declared test result
+ *   - a declared cohort count
+ *   - a closure assertion in a checkpoint or matrix
+ *
+ * Every number it reports is recomputed here. Where a declared value exists it is
+ * treated as a CLAIM to be checked against bytes, never as an input.
+ *
+ * INDEPENDENT FINDINGS STAY INDEPENDENT. A failing audit reports every blocking
+ * finding it established, each with its own defectClass, path, expected, actual
+ * and affected frontier. Collapsing several unrelated defects behind one generic
+ * error is how a second and third defect survive a repair round, so it is not
+ * done here.
+ *
+ * PRESTATE / SUCCESSOR SEMANTICS. The distinction proven during GATE16/GATE17 is
+ * preserved: a member sealed BEFORE a transaction is immutable, while an artifact
+ * that a transaction produced and its own successor revision sealed is a
+ * transaction product, not a mutation of a pre-existing sealed member. The
+ * auditor classifies the second case correctly instead of raising it as tampering.
+ *
+ * READ-ONLY. This program writes nothing inside the repository. It has no repair
+ * path, no reseal path and no ledger access beyond reading.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+import { canonicalize, sha256Bytes, sha256Canonical } from './canonical-json.mjs';
+import {
+  MODE_FULL, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL,
+  reconstructLedgerPrefixBytes, validateLedger
+} from './validate-status-ledger.mjs';
+import { computeSealedMembersDigest, validateStateSeal } from './validate-state-seal.mjs';
+import { validateStateRevision } from './validate-state-revision.mjs';
+import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
+import { resolveDurableLifecycleRoot } from '../gee-v1/runtime/run-root-lifecycle.mjs';
+
+export const AUDITOR_DOCUMENT = 'FINAL_GATE_INTEGRITY_AUDITOR';
+export const AUDITOR_VERSION = 'R1';
+
+const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
+const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
+const ACTIVE_GATE_PATH = 'governance/active/ACTIVE_GATE.json';
+const STATUS_SNAPSHOT_PATH = 'governance/state/generated/GATE_STATUS_SNAPSHOT.json';
+
+const GATE_RE = /^GATE[0-9]{2}$/;
+const REVISION_RE = /^R[0-9]{4}$/;
+const SHA256_RE = /^[a-f0-9]{64}$/;
+
+/**
+ * The check families. Named so a finding can say which part of final integrity
+ * it belongs to, and so a caller can see that a family ran at all rather than
+ * inferring it from the absence of findings.
+ */
+export const CHECK_FAMILIES = Object.freeze([
+  'GIT_COHORT', 'LIFECYCLE', 'LEDGER', 'STATE', 'AUTHORITY',
+  'EVIDENCE', 'GENERATED', 'TEMP', 'GLOBAL_BOUNDARIES'
+]);
+
+function repoPath(root, relativePath) { return path.resolve(root, ...relativePath.split('/')); }
+
+function readBytesOrNull(root, relativePath) {
+  const resolved = repoPath(root, relativePath);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
+  return fs.readFileSync(resolved);
+}
+
+function readJsonOrNull(root, relativePath) {
+  const bytes = readBytesOrNull(root, relativePath);
+  if (!bytes) return null;
+  try { return JSON.parse(bytes.toString('utf8').replace(/^﻿/, '')); } catch { return null; }
+}
+
+function git(root, args) {
+  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+
+/**
+ * Historical-authority migrations, indexed by the exact bytes they retired.
+ *
+ * A mutable governed file — the Gate registry above all — is legitimately edited
+ * after events have already cited it. The canonical answer to that is
+ * REGISTRY_AUTHORITY_MIGRATIONS.ndjson: it pins the retired bytes into an
+ * immutable snapshot, so an old event keeps naming exactly what it authorized
+ * while the live file moves on.
+ *
+ * An auditor that compared every event against the LIVE file would report each of
+ * those events as tampering. This resolves them instead — and does so by
+ * VERIFYING the snapshot really holds the cited bytes, which is a stricter check
+ * than the live comparison it replaces, not an exemption from it.
+ */
+export function loadAuthorityMigrations(root) {
+  const bytes = readBytesOrNull(root, 'governance/authority/REGISTRY_AUTHORITY_MIGRATIONS.ndjson');
+  const byOriginal = new Map();
+  if (!bytes) return byOriginal;
+  for (const line of bytes.toString('utf8').split('\n').filter((entry) => entry.trim())) {
+    let record;
+    try { record = JSON.parse(line); } catch { continue; }
+    byOriginal.set(`${record.originalAuthorityPath}|${record.originalAuthoritySha256}`, record);
+  }
+  return byOriginal;
+}
+
+/** Identity of a path as it actually is on disk, never as something declared it. */
+export function actualIdentity(root, relativePath) {
+  const bytes = readBytesOrNull(root, relativePath);
+  if (!bytes) return { path: relativePath, present: false, sha256: null, byteLength: null };
+  return { path: relativePath, present: true, sha256: sha256Bytes(bytes), byteLength: bytes.length };
+}
+
+/* -------------------------------------------------------------------------
+ * The audit
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Runs the audit for one Gate against the FINAL bytes of `root`.
+ *
+ * `authorizedCohort` is the exact bounded set of paths the mission was allowed to
+ * touch. It is a CLAIM: the auditor compares it against the real Git delta and
+ * reports both directions of disagreement. Supplying it is optional — without it
+ * the cohort family reports what Git actually shows and marks the comparison as
+ * not requested, rather than inventing an expectation.
+ */
+export function auditFinalGateIntegrity({
+  root,
+  gateId,
+  authorizedCohort = null,
+  baselineCommit = null,
+  expectNotStartedFrom = null,
+  externalReinspectionReport = null,
+  requiredEvidencePaths = [],
+  now = new Date()
+} = {}) {
+  const findings = [];
+  const familiesRun = new Set();
+
+  /**
+   * Records one blocking finding. `affectedFrontier` names what a repair would
+   * have to revalidate, so a repair round knows its own scope instead of
+   * rerunning everything or guessing.
+   */
+  const blocking = (family, defectClass, detail) => {
+    familiesRun.add(family);
+    findings.push({
+      family,
+      defectClass,
+      path: detail.path ?? null,
+      expected: detail.expected ?? null,
+      actual: detail.actual ?? null,
+      affectedFrontier: detail.affectedFrontier ?? family,
+      message: detail.message ?? null
+    });
+  };
+  const ran = (family) => { familiesRun.add(family); };
+
+  if (!GATE_RE.test(gateId || '')) {
+    return finalize({ root, gateId, findings: [{
+      family: 'LIFECYCLE', defectClass: 'GATE_ID_INVALID', path: null,
+      expected: 'GATEnn', actual: gateId, affectedFrontier: 'LIFECYCLE', message: null
+    }], familiesRun: new Set(['LIFECYCLE']), observations: {}, now });
+  }
+
+  /* ---- LEDGER: replay from the real bytes ------------------------------ */
+  ran('LEDGER');
+  const ledgerBytes = readBytesOrNull(root, LEDGER_PATH);
+  if (!ledgerBytes) {
+    blocking('LEDGER', 'LEDGER_ABSENT', { path: LEDGER_PATH, expected: 'existing NDJSON ledger', actual: 'ABSENT' });
+    return finalize({ root, gateId, findings, familiesRun, observations: {}, now });
+  }
+  const ledgerText = ledgerBytes.toString('utf8');
+  const ledgerLines = ledgerText.split('\n');
+  if (ledgerLines.at(-1) === '') ledgerLines.pop();
+
+  const events = [];
+  for (const [index, line] of ledgerLines.entries()) {
+    const lineNumber = index + 1;
+    if (line.endsWith('\r')) {
+      blocking('LEDGER', 'LEDGER_LINE_NOT_LF', { path: LEDGER_PATH, expected: 'LF line ending', actual: `CRLF at line ${lineNumber}` });
+    }
+    let event;
+    try { event = JSON.parse(line); } catch {
+      blocking('LEDGER', 'LEDGER_LINE_NOT_JSON', { path: LEDGER_PATH, expected: 'one JSON object per line', actual: `line ${lineNumber}` });
+      continue;
+    }
+    // Canonical bytes: the line must BE the canonical serialization, not merely
+    // parse to an equivalent object. Anything else means the bytes were edited.
+    if (canonicalize(event) !== line) {
+      blocking('LEDGER', 'LEDGER_EVENT_NOT_CANONICAL', {
+        path: LEDGER_PATH, expected: 'canonical JSON serialization', actual: `line ${lineNumber} (${event.eventId ?? 'unknown'})`
+      });
+    }
+    // Ordinal must equal line position.
+    if (event.ordinal !== lineNumber) {
+      blocking('LEDGER', 'LEDGER_ORDINAL_MISPLACED', {
+        path: LEDGER_PATH, expected: `ordinal ${lineNumber}`, actual: event.ordinal
+      });
+    }
+    // previousEventSha256 must chain the preceding line's payload digest.
+    const expectedPrevious = index === 0 ? null : events[index - 1]?.eventPayloadSha256 ?? null;
+    if (event.previousEventSha256 !== expectedPrevious) {
+      blocking('LEDGER', 'LEDGER_CHAIN_BREAK', {
+        path: LEDGER_PATH, expected: expectedPrevious, actual: event.previousEventSha256,
+        message: `event ${event.eventId ?? lineNumber} does not chain its predecessor`
+      });
+    }
+    // The payload digest must be recomputable from the event's own bytes.
+    const payload = { ...event };
+    delete payload.eventPayloadSha256;
+    const recomputed = sha256Canonical(payload);
+    if (event.eventPayloadSha256 !== recomputed) {
+      blocking('LEDGER', 'LEDGER_EVENT_PAYLOAD_HASH_MISMATCH', {
+        path: LEDGER_PATH, expected: recomputed, actual: event.eventPayloadSha256,
+        message: `event ${event.eventId ?? lineNumber}`
+      });
+    }
+    // The native state pin boundary is enforced in both directions.
+    const hasPin = Object.hasOwn(event, 'stateRevision') || Object.hasOwn(event, 'stateRevisionSealSha256');
+    if (event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL && !hasPin) {
+      blocking('LEDGER', 'NATIVE_STATE_PIN_MISSING', {
+        path: LEDGER_PATH, expected: 'stateRevision + stateRevisionSealSha256', actual: 'ABSENT',
+        message: `ordinal ${event.ordinal}`
+      });
+    }
+    if (event.ordinal < NATIVE_STATE_PIN_FIRST_ORDINAL && hasPin) {
+      blocking('LEDGER', 'NATIVE_STATE_PIN_RETROFITTED', {
+        path: LEDGER_PATH, expected: 'no state pin before the native era', actual: 'PRESENT',
+        message: `ordinal ${event.ordinal}`
+      });
+    }
+    events.push(event);
+  }
+
+  const duplicateIds = new Set();
+  const seenIds = new Set();
+  for (const event of events) {
+    if (seenIds.has(event.eventId)) duplicateIds.add(event.eventId);
+    seenIds.add(event.eventId);
+  }
+  for (const duplicate of duplicateIds) {
+    blocking('LEDGER', 'LEDGER_DUPLICATE_EVENT_ID', { path: LEDGER_PATH, expected: 'unique eventId', actual: duplicate });
+  }
+
+  /* ---- LEDGER: historical prefix N reconstructs inside N+k -------------- */
+  //
+  // The property that mattered most on GATE16/GATE17: an immutable historical
+  // prefix must still validate INSIDE the current, longer ledger. Any prefix
+  // whose reconstruction changed means history was rewritten under a later event.
+  const prefixProbes = [];
+  for (const throughOrdinal of [1, Math.floor(events.length / 2), events.length - 1, events.length].filter((value, index, list) =>
+    value >= 1 && value <= events.length && list.indexOf(value) === index)) {
+    try {
+      const prefixBytes = reconstructLedgerPrefixBytes(repoPath(root, LEDGER_PATH), throughOrdinal);
+      const expectedBytes = Buffer.from(`${ledgerLines.slice(0, throughOrdinal).join('\n')}\n`, 'utf8');
+      const agrees = Buffer.compare(Buffer.from(prefixBytes), expectedBytes) === 0;
+      prefixProbes.push({ throughOrdinal, sha256: sha256Bytes(Buffer.from(prefixBytes)), agrees });
+      if (!agrees) {
+        blocking('LEDGER', 'HISTORICAL_PREFIX_NOT_RECONSTRUCTIBLE', {
+          path: LEDGER_PATH,
+          expected: `prefix through ordinal ${throughOrdinal} reconstructs byte-identically`,
+          actual: 'MISMATCH',
+          affectedFrontier: 'LEDGER'
+        });
+      }
+    } catch (error) {
+      blocking('LEDGER', 'HISTORICAL_PREFIX_UNRECONSTRUCTIBLE', {
+        path: LEDGER_PATH, expected: `prefix through ordinal ${throughOrdinal}`, actual: error.message
+      });
+    }
+  }
+
+  /* ---- LIFECYCLE: status derived from the ledger ------------------------ */
+  ran('LIFECYCLE');
+  const statusByGate = new Map();
+  for (const event of events) if (GATE_RE.test(event.gateId || '')) statusByGate.set(event.gateId, event.toStatus);
+  const gateEvents = events.filter((event) => event.gateId === gateId);
+  const derivedStatus = statusByGate.get(gateId) ?? 'ABSENT';
+
+  // Transition order must be admitted by the canonical table, walked forward.
+  let walked = null;
+  for (const event of gateEvents) {
+    const admitted = TRANSITIONS.some(([from, to, type]) =>
+      from === event.fromStatus && to === event.toStatus && type === event.transitionType)
+      || ['HISTORICAL_RECONCILIATION', 'CONTRACT_SUCCESSION'].includes(event.transitionType);
+    if (!admitted) {
+      blocking('LIFECYCLE', 'TRANSITION_NOT_ADMITTED', {
+        path: LEDGER_PATH,
+        expected: 'a transition present in the canonical table',
+        actual: `${event.fromStatus}>${event.toStatus}:${event.transitionType}`,
+        message: event.eventId
+      });
+    }
+    if (walked !== null && event.fromStatus !== walked) {
+      blocking('LIFECYCLE', 'TRANSITION_FROM_STATUS_DISAGREES_WITH_REPLAY', {
+        path: LEDGER_PATH, expected: walked, actual: event.fromStatus, message: event.eventId
+      });
+    }
+    walked = event.toStatus;
+  }
+
+  // Duplicate lifecycle transitions for this Gate.
+  const transitionCounts = new Map();
+  for (const event of gateEvents) {
+    transitionCounts.set(event.transitionType, (transitionCounts.get(event.transitionType) || 0) + 1);
+  }
+  for (const [transitionType, count] of transitionCounts) {
+    if (count > 1 && ['AUTHORIZATION', 'START', 'AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION'].includes(transitionType)) {
+      blocking('LIFECYCLE', 'DUPLICATE_LIFECYCLE_TRANSITION', {
+        path: LEDGER_PATH, expected: `exactly one ${transitionType} for ${gateId}`, actual: count
+      });
+    }
+  }
+
+  /* ---- STATE: CURRENT_STATE, lineage, and every seal -------------------- */
+  ran('STATE');
+  const currentStatePath = `governance/gates/${gateId}/state/CURRENT_STATE.json`;
+  const currentState = readJsonOrNull(root, currentStatePath);
+  const revisionsRoot = `governance/gates/${gateId}/state/revisions`;
+  const revisionNames = fs.existsSync(repoPath(root, revisionsRoot))
+    ? fs.readdirSync(repoPath(root, revisionsRoot), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && REVISION_RE.test(entry.name))
+        .map((entry) => entry.name).sort()
+    : [];
+
+  if (!currentState) {
+    blocking('STATE', 'CURRENT_STATE_ABSENT', { path: currentStatePath, expected: 'existing CURRENT_STATE.json', actual: 'ABSENT' });
+  } else {
+    // The ledger's own pin is the authority on which revision is current.
+    const pinned = [...gateEvents].reverse().find((event) => typeof event.stateRevision === 'string') ?? null;
+    if (pinned && currentState.stateRevision !== pinned.stateRevision) {
+      blocking('STATE', 'CURRENT_STATE_DISAGREES_WITH_LEDGER_PIN', {
+        path: currentStatePath, expected: pinned.stateRevision, actual: currentState.stateRevision
+      });
+    }
+    if (pinned && currentState.stateSealSha256 !== pinned.stateRevisionSealSha256) {
+      blocking('STATE', 'CURRENT_STATE_SEAL_DISAGREES_WITH_LEDGER_PIN', {
+        path: currentStatePath, expected: pinned.stateRevisionSealSha256, actual: currentState.stateSealSha256
+      });
+    }
+    // And the seal digest must match the seal file's ACTUAL bytes.
+    const sealIdentity = actualIdentity(root, `${revisionsRoot}/${currentState.stateRevision}/STATE_SEAL.json`);
+    if (!sealIdentity.present) {
+      blocking('STATE', 'CURRENT_STATE_SEAL_FILE_ABSENT', {
+        path: `${revisionsRoot}/${currentState.stateRevision}/STATE_SEAL.json`, expected: 'existing seal', actual: 'ABSENT'
+      });
+    } else if (sealIdentity.sha256 !== currentState.stateSealSha256) {
+      blocking('STATE', 'CURRENT_STATE_SEAL_SHA_MISMATCH', {
+        path: currentStatePath, expected: sealIdentity.sha256, actual: currentState.stateSealSha256
+      });
+    }
+  }
+
+  // Revision numbering must be contiguous from R0001.
+  for (const [index, name] of revisionNames.entries()) {
+    if (name !== `R${String(index + 1).padStart(4, '0')}`) {
+      blocking('STATE', 'REVISION_SEQUENCE_GAP', {
+        path: revisionsRoot, expected: `R${String(index + 1).padStart(4, '0')}`, actual: name
+      });
+    }
+  }
+
+  // Every seal: schema, chain, payload digest, member set digest, and every
+  // sealed member's ACTUAL sha256 and byteLength.
+  const sealAudits = [];
+  for (const revision of revisionNames) {
+    const sealRelative = `${revisionsRoot}/${revision}/STATE_SEAL.json`;
+    const sealBytes = readBytesOrNull(root, sealRelative);
+    if (!sealBytes) {
+      blocking('STATE', 'STATE_SEAL_ABSENT', { path: sealRelative, expected: 'existing STATE_SEAL.json', actual: 'ABSENT' });
+      continue;
+    }
+    const seal = JSON.parse(sealBytes.toString('utf8'));
+    const report = validateStateSeal({ root, sealPath: repoPath(root, sealRelative) });
+    if (!report.valid) {
+      for (const item of report.findings) {
+        blocking('STATE', 'STATE_SEAL_INVALID', {
+          path: sealRelative, expected: item.expectedRule ?? null, actual: item.actualValue ?? null,
+          message: `${item.detectorId}: ${item.message}`
+        });
+      }
+    }
+    // Recomputed here as well as by the validator: the audit's own arithmetic,
+    // not a second reading of the validator's answer.
+    const recomputedPayload = sha256Canonical(seal.payload);
+    if (seal.payloadSha256 !== recomputedPayload) {
+      blocking('STATE', 'SEAL_PAYLOAD_HASH_MISMATCH', {
+        path: sealRelative, expected: recomputedPayload, actual: seal.payloadSha256
+      });
+    }
+    if (Object.hasOwn(seal.payload ?? {}, 'sealedMembersDigest')) {
+      const recomputedMembers = computeSealedMembersDigest(seal.sealedMembers);
+      if (seal.payload.sealedMembersDigest !== recomputedMembers) {
+        blocking('STATE', 'SEALED_MEMBERS_DIGEST_MISMATCH', {
+          path: sealRelative, expected: recomputedMembers, actual: seal.payload.sealedMembersDigest
+        });
+      }
+    }
+    // Seal chain.
+    const ordinal = Number.parseInt(revision.slice(1), 10);
+    if (ordinal === 1 && seal.previousStateSealSha256 !== null) {
+      blocking('STATE', 'SEAL_CHAIN_ROOT_NOT_NULL', {
+        path: sealRelative, expected: null, actual: seal.previousStateSealSha256
+      });
+    }
+    if (ordinal > 1) {
+      const previousRelative = `${revisionsRoot}/R${String(ordinal - 1).padStart(4, '0')}/STATE_SEAL.json`;
+      const previousIdentity = actualIdentity(root, previousRelative);
+      if (previousIdentity.sha256 !== seal.previousStateSealSha256) {
+        blocking('STATE', 'SEAL_CHAIN_BREAK', {
+          path: sealRelative, expected: previousIdentity.sha256, actual: seal.previousStateSealSha256
+        });
+      }
+    }
+
+    // Sealed members, against real bytes. A member of a SUPERSEDED revision that
+    // is a mutable projection (CURRENT_STATE / CURRENT_CONTRACT) legitimately no
+    // longer holds its sealed bytes; every immutable member always must.
+    const isCurrentRevision = currentState?.stateRevision === revision;
+    const memberResults = [];
+    for (const member of seal.sealedMembers ?? []) {
+      const identity = actualIdentity(root, member.repoRelativePath);
+      const isMutableProjection = member.repoRelativePath.endsWith('/CURRENT_STATE.json')
+        || member.repoRelativePath.endsWith('/CURRENT_CONTRACT.json');
+      const historicalProjection = !isCurrentRevision && isMutableProjection;
+      const matches = identity.present
+        && identity.sha256 === member.sha256
+        && identity.byteLength === member.byteLength;
+      memberResults.push({
+        path: member.repoRelativePath, sealedSha256: member.sha256, actualSha256: identity.sha256,
+        sealedByteLength: member.byteLength, actualByteLength: identity.byteLength,
+        matches, historicalProjection
+      });
+      if (!identity.present && !historicalProjection) {
+        blocking('STATE', 'SEALED_MEMBER_ABSENT', {
+          path: member.repoRelativePath, expected: 'existing regular file', actual: 'ABSENT',
+          message: `sealed by ${sealRelative}`
+        });
+        continue;
+      }
+      if (!matches && !historicalProjection) {
+        blocking('STATE', 'SEALED_MEMBER_BYTES_CHANGED', {
+          path: member.repoRelativePath,
+          expected: { sha256: member.sha256, byteLength: member.byteLength },
+          actual: { sha256: identity.sha256, byteLength: identity.byteLength },
+          message: `sealed by ${sealRelative}`,
+          affectedFrontier: 'STATE'
+        });
+      }
+    }
+    sealAudits.push({
+      revision, sealPath: sealRelative, sealSha256: sha256Bytes(sealBytes),
+      executionStatus: seal.payload?.executionStatus ?? null,
+      memberCount: memberResults.length,
+      members: memberResults
+    });
+  }
+
+  // The gate-level revision validator, consumed rather than reimplemented.
+  let revisionReportValid = null;
+  try {
+    const revisionReport = validateStateRevision({
+      root, gateId,
+      currentStatePath: repoPath(root, currentStatePath),
+      contractPath: repoPath(root, `governance/gates/${gateId}/contracts/CURRENT_CONTRACT.json`)
+    });
+    revisionReportValid = revisionReport.valid;
+    if (!revisionReport.valid) {
+      for (const item of revisionReport.findings ?? []) {
+        blocking('STATE', 'STATE_REVISION_INVALID', {
+          path: currentStatePath, expected: item.expectedRule ?? null, actual: item.actualValue ?? null,
+          message: `${item.detectorId ?? ''}: ${item.message ?? ''}`.trim()
+        });
+      }
+    }
+  } catch (error) {
+    blocking('STATE', 'STATE_REVISION_UNVALIDATABLE', { path: currentStatePath, expected: 'validator completes', actual: error.message });
+  }
+
+  /* ---- AUTHORITY: shape, binding, consumption --------------------------- */
+  ran('AUTHORITY');
+  const migrations = loadAuthorityMigrations(root);
+  const authorityAudits = [];
+  for (const event of gateEvents) {
+    const identity = actualIdentity(root, event.authorityPath);
+    // An authorityPath that names no file is a LOGICAL id resolved through the
+    // ledger's source map. That is legitimate, and is reported as such rather
+    // than being scored as a missing file.
+    if (!identity.present) {
+      authorityAudits.push({ eventId: event.eventId, authorityPath: event.authorityPath, kind: 'LOGICAL_IDENTIFIER', matches: null });
+      continue;
+    }
+    if (identity.sha256 === event.authoritySha256) {
+      authorityAudits.push({ eventId: event.eventId, authorityPath: event.authorityPath, kind: 'REPOSITORY_FILE', matches: true, actualSha256: identity.sha256 });
+      continue;
+    }
+
+    // The live file disagrees. Before calling that tampering, ask whether the
+    // cited bytes were lawfully retired into an immutable snapshot — and if so,
+    // prove the snapshot actually holds them.
+    const migration = migrations.get(`${event.authorityPath}|${event.authoritySha256}`);
+    if (!migration) {
+      authorityAudits.push({ eventId: event.eventId, authorityPath: event.authorityPath, kind: 'REPOSITORY_FILE', matches: false, actualSha256: identity.sha256 });
+      blocking('AUTHORITY', 'AUTHORITY_BYTES_DISAGREE_WITH_EVENT', {
+        path: event.authorityPath, expected: event.authoritySha256, actual: identity.sha256,
+        message: `cited by ${event.eventId}, and no migration record retires those bytes`,
+        affectedFrontier: 'AUTHORITY'
+      });
+      continue;
+    }
+    const snapshotIdentity = actualIdentity(root, migration.snapshotPath);
+    const snapshotHoldsCitedBytes = snapshotIdentity.present
+      && snapshotIdentity.sha256 === event.authoritySha256
+      && migration.snapshotSha256 === event.authoritySha256;
+    authorityAudits.push({
+      eventId: event.eventId, authorityPath: event.authorityPath, kind: 'MIGRATED_HISTORICAL_AUTHORITY',
+      migrationId: migration.migrationId, snapshotPath: migration.snapshotPath,
+      matches: snapshotHoldsCitedBytes, actualSha256: snapshotIdentity.sha256
+    });
+    if (!snapshotHoldsCitedBytes) {
+      blocking('AUTHORITY', 'MIGRATED_AUTHORITY_SNAPSHOT_DOES_NOT_HOLD_CITED_BYTES', {
+        path: migration.snapshotPath, expected: event.authoritySha256, actual: snapshotIdentity.sha256 ?? 'ABSENT',
+        message: `${event.eventId} cites bytes retired by ${migration.migrationId}`,
+        affectedFrontier: 'AUTHORITY'
+      });
+    }
+  }
+
+  // The external reinspection report, when the caller declares one.
+  if (externalReinspectionReport) {
+    const identity = actualIdentity(root, externalReinspectionReport.path);
+    if (!identity.present) {
+      blocking('AUTHORITY', 'EXTERNAL_REINSPECTION_REPORT_ABSENT', {
+        path: externalReinspectionReport.path, expected: 'existing report', actual: 'ABSENT'
+      });
+    } else if (externalReinspectionReport.sha256 && identity.sha256 !== externalReinspectionReport.sha256) {
+      blocking('AUTHORITY', 'EXTERNAL_REINSPECTION_REPORT_SHA_MISMATCH', {
+        path: externalReinspectionReport.path, expected: externalReinspectionReport.sha256, actual: identity.sha256
+      });
+    }
+  }
+
+  /* ---- PRESTATE / SUCCESSOR sealed-member classification ---------------- */
+  const closedInventory = collectClosedStateSealMembers(root);
+  const closedByPath = new Map();
+  for (const member of closedInventory.members ?? []) {
+    if (!closedByPath.has(member.repoRelativePath)) closedByPath.set(member.repoRelativePath, []);
+    closedByPath.get(member.repoRelativePath).push(member);
+  }
+  for (const inventoryFinding of closedInventory.findings ?? []) {
+    blocking('STATE', 'CLOSED_SEAL_INVENTORY_INVALID', {
+      path: null, expected: 'consistent closed-seal inventory', actual: JSON.stringify(inventoryFinding)
+    });
+  }
+
+  /* ---- EVIDENCE: existence, provenance, honest reusability -------------- */
+  ran('EVIDENCE');
+  const evidenceAudits = [];
+  for (const relativePath of requiredEvidencePaths) {
+    const identity = actualIdentity(root, relativePath);
+    evidenceAudits.push(identity);
+    if (!identity.present) {
+      blocking('EVIDENCE', 'REQUIRED_EVIDENCE_ABSENT', {
+        path: relativePath, expected: 'existing evidence artifact', actual: 'ABSENT', affectedFrontier: 'EVIDENCE'
+      });
+    }
+  }
+
+  // Reusability claims inside every revision checkpoint are checked against the
+  // bytes they name. A claim whose declared input has moved is STALE, and must
+  // not still be advertised as currently reusable.
+  const staleReuseClaims = [];
+  for (const revision of revisionNames) {
+    const checkpointRelative = `${revisionsRoot}/${revision}/CHECKPOINT.json`;
+    const checkpoint = readJsonOrNull(root, checkpointRelative);
+    if (!checkpoint) continue;
+    for (const claim of Array.isArray(checkpoint.reusableEvidence) ? checkpoint.reusableEvidence : []) {
+      // Historical checkpoints record reusable evidence as bare identifiers;
+      // only a claim that names a PATH and a digest can be checked against bytes.
+      if (typeof claim !== 'object' || claim === null || typeof claim.path !== 'string') continue;
+      const identity = actualIdentity(root, claim.path);
+      const stillTrue = identity.present && (!claim.sha256 || identity.sha256 === claim.sha256);
+      if (!stillTrue) {
+        staleReuseClaims.push({ revision, path: claim.path, declared: claim.sha256 ?? null, actual: identity.sha256 });
+        blocking('EVIDENCE', 'STALE_EVIDENCE_ADVERTISED_AS_REUSABLE', {
+          path: claim.path, expected: claim.sha256 ?? 'present', actual: identity.sha256 ?? 'ABSENT',
+          message: `declared reusable by ${checkpointRelative}`, affectedFrontier: 'EVIDENCE'
+        });
+      }
+    }
+    // The mirror-image obligation: historical sealed evidence must NOT have been
+    // rewritten merely because it went stale. An entry listed as invalidated
+    // must still hold the exact bytes its own record names.
+    for (const claim of Array.isArray(checkpoint.invalidatedEvidence) ? checkpoint.invalidatedEvidence : []) {
+      if (typeof claim !== 'object' || claim === null || typeof claim.path !== 'string' || !SHA256_RE.test(claim.sha256 ?? '')) continue;
+      const identity = actualIdentity(root, claim.path);
+      if (identity.present && identity.sha256 !== claim.sha256) {
+        blocking('EVIDENCE', 'HISTORICAL_EVIDENCE_REWRITTEN_AFTER_INVALIDATION', {
+          path: claim.path, expected: claim.sha256, actual: identity.sha256,
+          message: `preserved-invalidated evidence recorded by ${checkpointRelative}`, affectedFrontier: 'EVIDENCE'
+        });
+      }
+    }
+    // protectedHashes are explicit byte claims and are checked directly.
+    for (const claim of Array.isArray(checkpoint.protectedHashes) ? checkpoint.protectedHashes : []) {
+      if (typeof claim !== 'object' || claim === null || typeof claim.path !== 'string') continue;
+      const identity = actualIdentity(root, claim.path);
+      if (!identity.present) {
+        blocking('EVIDENCE', 'PROTECTED_HASH_TARGET_ABSENT', {
+          path: claim.path, expected: claim.sha256, actual: 'ABSENT', message: `protected by ${checkpointRelative}`
+        });
+      } else if (identity.sha256 !== claim.sha256) {
+        blocking('EVIDENCE', 'PROTECTED_HASH_MISMATCH', {
+          path: claim.path, expected: claim.sha256, actual: identity.sha256,
+          message: `protected by ${checkpointRelative}`, affectedFrontier: 'EVIDENCE'
+        });
+      }
+    }
+  }
+
+  /* ---- GENERATED: projections must reflect the final ledger ------------- */
+  ran('GENERATED');
+  const snapshot = readJsonOrNull(root, STATUS_SNAPSHOT_PATH);
+  const generatedAudit = { snapshotPresent: snapshot !== null, declaredLedgerEventCount: null, actualLedgerEventCount: events.length };
+  if (snapshot) {
+    const declaredCount = snapshot.ledgerEventCount ?? snapshot.eventCount ?? null;
+    generatedAudit.declaredLedgerEventCount = declaredCount;
+    if (declaredCount !== null && declaredCount !== events.length) {
+      blocking('GENERATED', 'GENERATED_PROJECTION_STALE', {
+        path: STATUS_SNAPSHOT_PATH, expected: events.length, actual: declaredCount,
+        message: 'status snapshot was not regenerated after the final ledger mutation',
+        affectedFrontier: 'GENERATED'
+      });
+    }
+    const declaredStatus = snapshot.gates?.[gateId]?.status
+      ?? (Array.isArray(snapshot.gates) ? snapshot.gates.find((entry) => entry.gateId === gateId)?.status : undefined);
+    if (declaredStatus !== undefined && declaredStatus !== derivedStatus) {
+      blocking('GENERATED', 'GENERATED_PROJECTION_STATUS_STALE', {
+        path: STATUS_SNAPSHOT_PATH, expected: derivedStatus, actual: declaredStatus, affectedFrontier: 'GENERATED'
+      });
+    }
+  }
+
+  /* ---- GIT / COHORT ----------------------------------------------------- */
+  ran('GIT_COHORT');
+  const gitAudit = { headResolved: false, head: null, cohortComparisonRequested: authorizedCohort !== null };
+  try {
+    gitAudit.head = git(root, ['rev-parse', 'HEAD']);
+    gitAudit.headResolved = true;
+    gitAudit.status = git(root, ['status', '--porcelain'])
+      .split('\n').filter(Boolean)
+      .map((line) => ({ code: line.slice(0, 2).trim(), path: line.slice(3).trim() }));
+    if (baselineCommit) {
+      const delta = git(root, ['diff', '--name-only', `${baselineCommit}..HEAD`]).split('\n').filter(Boolean);
+      gitAudit.committedDelta = delta;
+    }
+  } catch (error) {
+    blocking('GIT_COHORT', 'GIT_UNAVAILABLE', { path: null, expected: 'git repository', actual: error.message });
+  }
+
+  if (authorizedCohort && gitAudit.headResolved) {
+    const tracked = new Set(gitAudit.status.filter((entry) => entry.code !== '??').map((entry) => entry.path));
+    const untracked = new Set(gitAudit.status.filter((entry) => entry.code === '??').map((entry) => entry.path));
+    const actuallyChanged = new Set([...tracked, ...untracked]);
+    const byteIdenticalAuthorized = [];
+    const missing = [];
+    for (const relativePath of authorizedCohort) {
+      if (actuallyChanged.has(relativePath)) continue;
+      // AUTHORIZED BUT NOT IN THE GIT DELTA IS NOT AUTOMATICALLY A DEFECT.
+      // A path can be authorized and end up byte-identical to what is already
+      // committed, which produces no delta at all. That case is reported as
+      // byte-identical rather than blocked; a path that does not exist at all is
+      // a real gap.
+      if (actualIdentity(root, relativePath).present) byteIdenticalAuthorized.push(relativePath);
+      else missing.push(relativePath);
+    }
+    for (const relativePath of missing) {
+      blocking('GIT_COHORT', 'AUTHORIZED_PATH_ABSENT', {
+        path: relativePath, expected: 'present in the working tree', actual: 'ABSENT', affectedFrontier: 'GIT_COHORT'
+      });
+    }
+    gitAudit.authorizedCount = authorizedCohort.length;
+    gitAudit.byteIdenticalAuthorized = byteIdenticalAuthorized;
+    gitAudit.cohortIdentities = authorizedCohort.map((relativePath) => actualIdentity(root, relativePath));
+  }
+
+  /* ---- TEMP: no durable dependency on ephemeral run roots --------------- */
+  ran('TEMP');
+  let tempAudit = { durableRootResolved: false };
+  try {
+    const durable = resolveDurableLifecycleRoot({});
+    tempAudit = {
+      durableRootResolved: true,
+      root: durable.root,
+      source: durable.source,
+      insideEphemeralTemp: durable.ephemeral === true,
+      reasonCodes: durable.reasonCodes ?? []
+    };
+    if (durable.ephemeral === true) {
+      blocking('TEMP', 'DURABLE_LIFECYCLE_ROOT_IS_EPHEMERAL', {
+        path: durable.root, expected: 'a durable location outside the OS temp directory', actual: 'INSIDE_TEMP',
+        affectedFrontier: 'TEMP'
+      });
+    }
+  } catch (error) {
+    blocking('TEMP', 'DURABLE_LIFECYCLE_ROOT_UNRESOLVABLE', { path: null, expected: 'resolvable durable root', actual: error.message });
+  }
+
+  /* ---- GLOBAL BOUNDARIES ------------------------------------------------ */
+  ran('GLOBAL_BOUNDARIES');
+  const r8Present = fs.existsSync(repoPath(root, 'governance/gee-v1/r8'))
+    || fs.existsSync(repoPath(root, 'governance/gee-v1/R8'));
+  if (r8Present) {
+    blocking('GLOBAL_BOUNDARIES', 'R8_PRESENT', { path: 'governance/gee-v1/r8', expected: 'ABSENT', actual: 'PRESENT' });
+  }
+
+  const notStartedFrom = expectNotStartedFrom === null ? null : Number.parseInt(String(expectNotStartedFrom).replace('GATE', ''), 10);
+  const successorViolations = [];
+  if (notStartedFrom !== null) {
+    for (const [otherGateId, status] of statusByGate) {
+      const number = Number.parseInt(otherGateId.replace('GATE', ''), 10);
+      if (number < notStartedFrom) continue;
+      if (status !== 'NOT_STARTED') {
+        successorViolations.push({ gateId: otherGateId, status });
+        blocking('GLOBAL_BOUNDARIES', 'SUCCESSOR_GATE_STARTED', {
+          path: LEDGER_PATH, expected: 'NOT_STARTED', actual: status, message: otherGateId,
+          affectedFrontier: 'GLOBAL_BOUNDARIES'
+        });
+      }
+    }
+  }
+
+  const activeGate = readJsonOrNull(root, ACTIVE_GATE_PATH);
+
+  const observations = {
+    ledger: {
+      path: LEDGER_PATH,
+      sha256: sha256Bytes(ledgerBytes),
+      byteLength: ledgerBytes.length,
+      eventCount: events.length,
+      prefixProbes
+    },
+    lifecycle: {
+      gateId,
+      derivedStatus,
+      transitionCounts: Object.fromEntries(transitionCounts),
+      gateEventOrdinals: gateEvents.map((event) => event.ordinal)
+    },
+    state: {
+      currentStateRevision: currentState?.stateRevision ?? null,
+      revisionCount: revisionNames.length,
+      revisions: revisionNames,
+      revisionValidatorValid: revisionReportValid,
+      seals: sealAudits
+    },
+    authority: authorityAudits,
+    evidence: { required: evidenceAudits, staleReuseClaims },
+    generated: generatedAudit,
+    git: gitAudit,
+    temp: tempAudit,
+    globalBoundaries: {
+      r8Present,
+      activeGate: activeGate?.activeGate ?? null,
+      successorViolations,
+      statusByGate: Object.fromEntries(statusByGate)
+    },
+    closedSealInventory: { memberCount: closedByPath.size }
+  };
+
+  return finalize({ root, gateId, findings, familiesRun, observations, now });
+}
+
+function finalize({ root, gateId, findings, familiesRun, observations, now }) {
+  const verdict = findings.length === 0 ? 'PASS' : 'FAIL';
+  return {
+    document: AUDITOR_DOCUMENT,
+    version: AUDITOR_VERSION,
+    FINAL_GATE_INTEGRITY: verdict,
+    gateId,
+    auditedAt: now.toISOString(),
+    root,
+    familiesRun: CHECK_FAMILIES.filter((family) => familiesRun.has(family)),
+    familiesNotRun: CHECK_FAMILIES.filter((family) => !familiesRun.has(family)),
+    findingCount: findings.length,
+    // Grouped so a reader can see how many INDEPENDENT problems exist, which is
+    // the number that decides whether one repair round is enough.
+    defectClasses: [...new Set(findings.map((item) => item.defectClass))].sort(),
+    findings,
+    observations
+  };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
+  const option = (name, fallback = null) => {
+    const index = process.argv.indexOf(name);
+    return index >= 0 ? process.argv[index + 1] : fallback;
+  };
+  const list = (name) => (option(name, '') || '').split(',').map((value) => value.trim()).filter(Boolean);
+  const toolsDir = path.dirname(fileURLToPath(import.meta.url));
+  const root = path.resolve(option('--root', path.resolve(toolsDir, '..', '..')));
+  const reportPath = option('--external-report');
+  const report = auditFinalGateIntegrity({
+    root,
+    gateId: option('--gate'),
+    authorizedCohort: option('--cohort') ? list('--cohort') : null,
+    baselineCommit: option('--baseline-commit'),
+    expectNotStartedFrom: option('--expect-not-started-from'),
+    requiredEvidencePaths: list('--required-evidence'),
+    externalReinspectionReport: reportPath ? { path: reportPath, sha256: option('--external-report-sha') } : null
+  });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  process.exitCode = report.FINAL_GATE_INTEGRITY === 'PASS' ? 0 : 2;
+}

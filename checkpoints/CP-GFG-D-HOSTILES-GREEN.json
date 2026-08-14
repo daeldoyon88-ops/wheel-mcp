@@ -1,0 +1,70 @@
+{
+  "checkpoint": "CP-GFG-D-HOSTILES-GREEN",
+  "mission": "WHEEL_GENERIC_FAST_GATE_EXECUTION_AND_FINAL_AUDIT_R1",
+  "recordedAt": "2026-08-14T18:29:03.5004167-04:00",
+  "phase": "D_HOSTILES_GREEN",
+  "baselineHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "currentHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 0",
+  "exactCurrentMissionChangedPaths": [
+    "checkpoints/CP-GFG-A-BASELINE-PLAN-FROZEN.json",
+    "checkpoints/CP-GFG-B-ORCHESTRATOR-GREEN.json",
+    "checkpoints/CP-GFG-C-AUDITOR-GREEN.json",
+    "checkpoints/CP-GFG-D-HOSTILES-GREEN.json",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/final-gate-integrity-auditor.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tests/final-gate-integrity-auditor.test.mjs",
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs"
+  ],
+  "hostileResults": {
+    "command": "node --test --test-concurrency=1 governance/tests/gate-lifecycle-hostile-battery.test.mjs",
+    "testCount": 25,
+    "passCount": 25,
+    "failCount": 0,
+    "durationMs": 16741.4165,
+    "H1": "PASS — malformed candidate event blocked before canonical write",
+    "H2": "PASS — bad seal SHA256/byteLength blocked; audit detects byte mismatch",
+    "H3": "PASS — prestate-sealed GATE16 CROSSCHECK_REPORT mutation blocked",
+    "H4": "PASS — successor-sealed transaction product allowed",
+    "H5": "PASS — stale reusable evidence detected; historical invalidation remains immutable",
+    "H6": "PASS — stale generated projection detected",
+    "H7": "PASS — authorized byte-identical path distinguished; missing path blocked",
+    "H8": "PASS — historical prefix N reconstructs in N+k; rewrite detected",
+    "H9": "PASS — duplicate lifecycle attempts idempotent or blocked",
+    "H10": "PASS — bad external reinspection path/digest blocked",
+    "H11": "PASS — missing, out-of-cohort, and duplicate cohort paths detected",
+    "H12": "PASS — construction and staging failures preserve canonical bytes",
+    "H13": "PASS — revision collision, historical rewrite, and prestate reseal blocked",
+    "H14": "PASS — no gate-specific bypass; generic path applies to every closed Gate"
+  },
+  "repair": {
+    "affectedFile": "governance/tests/gate-lifecycle-hostile-battery.test.mjs",
+    "change": "H3 fixture path CLOSURE_MATRIX.json -> CROSSCHECK_REPORT.json",
+    "reason": "CLOSURE_MATRIX.json is absent at the canonical baseline; CROSSCHECK_REPORT.json is a real GATE16 R0004 prestate-sealed member.",
+    "affectedRetest": "H3 PASS (1/1) in 1714.7074ms",
+    "productionCodeChanged": false
+  },
+  "focusedTestResults": [
+    "gate-lifecycle-orchestrator.test.mjs: 20/20 PASS (checkpoint C)",
+    "final-gate-integrity-auditor.test.mjs: 28/28 PASS (checkpoint C)",
+    "gate-lifecycle-hostile-battery.test.mjs: 25/25 PASS"
+  ],
+  "importantArtifactHashes": {
+    "governance/tools/gate-lifecycle-orchestrator.mjs": "9748bdf38bd6f6e650c7274785434af645439261d6b3f56f81dab013af3c966b",
+    "governance/tools/final-gate-integrity-auditor.mjs": "6eef8798b980033ed37c09d02aea04553fc896352448261135d7ef28c19275cf",
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs": "4888a97c6f122f37f4ebd609c51f008460b12b8b9dc20bec2e25a08ee819f1cc"
+  },
+  "lastKnownGoodOrchestratorState": "20/20 focused PASS; atomic staged validation and idempotence covered by H1/H4/H9/H12/H13",
+  "lastKnownGoodAuditorState": "28/28 focused PASS; 9 families; H2/H5/H6/H8/H10/H11/H13/H14 hostile coverage",
+  "openDefects": [],
+  "noPush": true,
+  "nextExactAction": "Measure final fast-path, lifecycle, auditor, and focused-frontier performance; then run final focused validation.",
+  "doNotRepeat": [
+    "discovery",
+    "Component A implementation",
+    "Component B implementation",
+    "H1-H14 implementation"
+  ]
+}

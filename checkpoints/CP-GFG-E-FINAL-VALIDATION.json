@@ -1,0 +1,99 @@
+{
+  "checkpoint": "CP-GFG-E-FINAL-VALIDATION",
+  "mission": "WHEEL_GENERIC_FAST_GATE_EXECUTION_AND_FINAL_AUDIT_R1",
+  "recordedAt": "2026-08-14T18:38:00.000-04:00",
+  "phase": "E_FINAL_VALIDATION_GREEN",
+  "baselineHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "currentHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 0",
+  "preStagingVerdict": "PASS",
+  "syntaxValidation": {
+    "files": [
+      "governance/tools/gate-lifecycle-orchestrator.mjs",
+      "governance/tools/final-gate-integrity-auditor.mjs",
+      "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "governance/tests/final-gate-integrity-auditor.test.mjs",
+      "governance/tests/gate-lifecycle-hostile-battery.test.mjs"
+    ],
+    "result": "5/5 PASS"
+  },
+  "focusedTestTotals": {
+    "orchestrator": { "pass": 20, "fail": 0, "durationMs": 7799.2815 },
+    "auditor": { "pass": 28, "fail": 0, "durationMs": 11002.88 },
+    "hostiles": { "pass": 25, "fail": 0, "durationMs": 16347.0927 },
+    "total": { "pass": 73, "fail": 0, "wallTimeMs": 38500 }
+  },
+  "hostileH1toH14": "PASS — all classes proven; see CP-GFG-D-HOSTILES-GREEN",
+  "performance": {
+    "fastPathReadiness": {
+      "gateId": "GATE18",
+      "wallTimeMs": 10729,
+      "verdict": "FAST_PATH_READY",
+      "r7Verdict": "PASS",
+      "r7HeavyBenchmarkRequired": false,
+      "canonicalMutation": false
+    },
+    "lifecycleMechanical": {
+      "fixture": "GATE17 historical AGENT_CLOSURE scratch replay",
+      "finalIntegratedH4Ms": 1370.0932,
+      "derivationStatus": "DERIVED",
+      "stagedValidation": "PASS",
+      "note": "The final total is the H4 timing, which exercises real derive plus staged validation against a scratch governance copy. A separate timing-only harness exceeded the command window and is excluded rather than treated as evidence."
+    },
+    "auditor": {
+      "GATE17Ms": 438,
+      "GATE16Ms": 427,
+      "GATE17Verdict": "PASS",
+      "GATE16Verdict": "PASS",
+      "focusedSuiteMs": 11002.88
+    },
+    "focusedFrontierWallTimeMs": 38500
+  },
+  "r7": {
+    "mode": "LIGHTWEIGHT",
+    "heavyTrigger": null,
+    "reason": "No architecture, contract, scope, or generic-finding trigger arose; all work stayed within the targeted lifecycle/auditor frontier."
+  },
+  "canonicalState": {
+    "GATE16": "COMPLETE_CONFIRMED",
+    "GATE17": "COMPLETE_CONFIRMED",
+    "GATE18to40": "NOT_STARTED",
+    "ledgerEventCount": 73,
+    "ledgerSha256": "547f68c13ddd242c2ce80d76a8dfa866b63b9cf79e0702440d9ed1101c92bfac",
+    "r8": "ABSENT"
+  },
+  "requiredSemantics": {
+    "noGateSpecificBypass": "PASS",
+    "atomicity": "PASS",
+    "idempotence": "PASS",
+    "prestateSuccessorSemantics": "PASS",
+    "historicalNInsideNkReplay": "PASS",
+    "staleEvidenceDetection": "PASS",
+    "generatedStaleProjectionDetection": "PASS",
+    "boundedCohort": "PASS"
+  },
+  "exactProposedMissionCohort": [
+    "checkpoints/CP-GFG-A-BASELINE-PLAN-FROZEN.json",
+    "checkpoints/CP-GFG-B-ORCHESTRATOR-GREEN.json",
+    "checkpoints/CP-GFG-C-AUDITOR-GREEN.json",
+    "checkpoints/CP-GFG-D-HOSTILES-GREEN.json",
+    "checkpoints/CP-GFG-E-FINAL-VALIDATION.json",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/final-gate-integrity-auditor.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tests/final-gate-integrity-auditor.test.mjs",
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs"
+  ],
+  "openDefects": [],
+  "nextAction": "Stage only the exactProposedMissionCohort literal paths, verify the staged cohort, and create at most one authorized local commit.",
+  "noPush": true,
+  "unrelatedWorkPreserved": true,
+  "doNotRepeat": [
+    "discovery",
+    "Component A implementation",
+    "Component B implementation",
+    "H1-H14 implementation",
+    "final focused validation"
+  ]
+}

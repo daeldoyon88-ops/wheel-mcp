@@ -1,0 +1,110 @@
+{
+  "checkpoint": "CP-GFG-C-AUDITOR-GREEN",
+  "mission": "WHEEL_GENERIC_FAST_GATE_EXECUTION_AND_FINAL_AUDIT_R1",
+  "recordedAt": "2026-08-14T22:10:27.284Z",
+  "phase": "C_FINAL_GATE_INTEGRITY_AUDITOR_FIRST_GREEN",
+  "baselineHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "currentHead": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 0",
+  "noPush": true,
+  "pendingCanonicalMutations": "NONE — all hostile fixtures are full copies under the OS temp directory",
+  "completedWork": {
+    "componentA": "governance/tools/gate-lifecycle-orchestrator.mjs — 20/20 PASS",
+    "componentB": "governance/tools/final-gate-integrity-auditor.mjs — 28/28 PASS",
+    "gate17Benchmark": "FINAL_GATE_INTEGRITY = PASS, 0 findings, all 9 families run, 0.41s CLI",
+    "gate16Benchmark": "FINAL_GATE_INTEGRITY = PASS, 0 findings"
+  },
+  "artifactIdentities": {
+    "governance/tools/gate-lifecycle-orchestrator.mjs": {
+      "sha256": "9748bdf38bd6f6e650c7274785434af645439261d6b3f56f81dab013af3c966b",
+      "byteLength": 41911
+    },
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs": {
+      "sha256": "d702e25ac35400b2843f19f0df43b3a392bef971cc14db99b13b9ee564c83f02",
+      "byteLength": 25086
+    },
+    "governance/tools/final-gate-integrity-auditor.mjs": {
+      "sha256": "6eef8798b980033ed37c09d02aea04553fc896352448261135d7ef28c19275cf",
+      "byteLength": 39217
+    },
+    "governance/tests/final-gate-integrity-auditor.test.mjs": {
+      "sha256": "4c74f5a18c8b226f5fecd344d22ab397f17e4c594ae9ab475bfaa674800b3b0e",
+      "byteLength": 22662
+    }
+  },
+  "testsExecuted": [
+    {
+      "command": "node --test governance/tests/gate-lifecycle-orchestrator.test.mjs",
+      "result": "20/20 PASS",
+      "durationMs": 6769
+    },
+    {
+      "command": "node --test governance/tests/final-gate-integrity-auditor.test.mjs",
+      "result": "28/28 PASS",
+      "durationMs": 8942
+    }
+  ],
+  "measuredPerformance": {
+    "auditorCliSeconds": 0.41,
+    "auditorInProcessMs": 130,
+    "orchestratorDeriveMs": 11,
+    "orchestratorValidateMs": 1024,
+    "stagingCopyMs": 537,
+    "fastPathControlPlaneSeconds": 7.2
+  },
+  "autoRepairsApplied": [
+    {
+      "defect": "AUTHORITY_BYTES_DISAGREE_WITH_EVENT false positive on GATE17",
+      "rootCause": "GENESIS_IMPORT_GATE17 (ordinal 18) cites governance/GATE_REGISTRY_00_40.json at sha 3b82ac15..., which was lawfully retired into governance/authority/snapshots/GATE_REGISTRY_00_40.GENESIS_R1_SNAPSHOT.json by REGISTRY_AUTHORITY_MIGRATION_0001. The live registry is now aaa9efcd... The auditor compared against the LIVE file.",
+      "repair": "Added loadAuthorityMigrations(root); migrated citations resolve through the migration record and the SNAPSHOT bytes are verified to hold exactly the cited digest. Strictly stronger than the live comparison it replaced, not an exemption. Hostile test MIGRATED_AUTHORITY_SNAPSHOT_DOES_NOT_HOLD_CITED_BYTES proves it can still fail."
+    }
+  ],
+  "auditorCheckFamilies": [
+    "GIT_COHORT",
+    "LIFECYCLE",
+    "LEDGER",
+    "STATE",
+    "AUTHORITY",
+    "EVIDENCE",
+    "GENERATED",
+    "TEMP",
+    "GLOBAL_BOUNDARIES"
+  ],
+  "gate17ProvenInvariants": {
+    "status": "COMPLETE_CONFIRMED",
+    "revisions": [
+      "R0001",
+      "R0002",
+      "R0003",
+      "R0004"
+    ],
+    "transitionCounts": {
+      "GENESIS_IMPORT": 1,
+      "AUTHORIZATION": 1,
+      "START": 1,
+      "AGENT_CLOSURE": 1,
+      "EXTERNAL_CONFIRMATION": 1
+    },
+    "ledgerEventCount": 73,
+    "sealedMemberChecks": 17,
+    "r8": "ABSENT",
+    "gate18to40": "NOT_STARTED"
+  },
+  "openDefects": [],
+  "remainingWork": [
+    "H1-H14 hostile battery",
+    "performance measurement writeup",
+    "final validation",
+    "exact staging + one local commit"
+  ],
+  "nextExactAction": "Write governance/tests/gate-lifecycle-hostile-battery.test.mjs covering H1-H14",
+  "doNotRepeat": [
+    "baseline verification",
+    "primitive discovery",
+    "Component A",
+    "Component B",
+    "migration-resolution repair"
+  ],
+  "ownerAuthorizationBoundary": "unchanged from CP-GFG-A"
+}

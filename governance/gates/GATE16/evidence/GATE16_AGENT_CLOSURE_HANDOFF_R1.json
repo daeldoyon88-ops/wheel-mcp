@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "document": "GATE16_AGENT_CLOSURE_HANDOFF",
+  "gateId": "GATE16",
+  "programId": "GATE16_FINAL_GOVERNED_CLOSURE_R1",
+  "authorityId": "GATE16_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "closurePhase": "AGENT_CLOSURE",
+  "resultingStatus": "COMPLETE_AGENT",
+  "stateRevision": "R0003",
+  "expectedAgentClosureEvent": {
+    "ordinal": 68,
+    "eventId": "GATE16_AGENT_CLOSURE_R1",
+    "transitionType": "AGENT_CLOSURE"
+  },
+  "m2Evidence": {
+    "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+    "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+    "byteLength": 64884,
+    "verdict": "PASS",
+    "reportedTestCount": 22,
+    "validatorExecutionCount": 20,
+    "testInventory": {
+      "positive": 4,
+      "negative": 5,
+      "counter": 5,
+      "hostile": 6,
+      "artifactValidation": 1,
+      "replay": 1
+    },
+    "coverage": {
+      "mandatoryRequirementCount": 10,
+      "uncoveredMandatoryClassCount": 0,
+      "verdict": "PASS"
+    },
+    "freshProcessReplay": {
+      "verdict": "PASS",
+      "identical": true
+    }
+  },
+  "m2ArtifactHashes": {
+    "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json": "6fc24a2c38327104b8a0b8f8a452af4a730f27b25e6e0cc3791d50679c714a29",
+    "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json": "e8d6dcf512add25aac15f2f1642d15b76e7ff1c6a6c5fcf66b511d320b12c909",
+    "governance/gates/GATE16/implementation/crosscheck-validator.mjs": "d1d5c565532a77b67b9e071022717ab4c57f78be0d6d97c4e2b7a6c24704e7ec",
+    "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs": "ceec4886b2b41d2097ce6d34e748e2246d1d282709bff021c1d931238b326f5c"
+  },
+  "closureConditions": {
+    "G16-CROSSCHECK-01": true,
+    "G16-CROSSCHECK-02": true,
+    "G16-CROSSCHECK-03": true,
+    "G16-CROSSCHECK-04": true,
+    "G16-CROSSCHECK-05": true,
+    "G16-CROSSCHECK-06": true
+  },
+  "preState": {
+    "baseHead": "c0facacae94f9142fb736dddc2ecfe0d3344dc9c",
+    "ledgerEventCount": 67,
+    "ledgerPrefixSha256": "83e4a6e45460f1d8b98e44ebf7c27df7a9d4d3c30e18fa216fa169444ed31d48",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0002",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "invariants": {
+    "m1AuthorizationAndStartUnchanged": true,
+    "gate14Status": "COMPLETE_CONFIRMED",
+    "gate17ThroughGate40Status": "NOT_STARTED",
+    "activeGate": "GATE13",
+    "r8": "ABSENT",
+    "externalConfirmationEmitted": false,
+    "agentClosureEventCount": 1
+  },
+  "independentConfirmation": {
+    "required": true,
+    "transitionType": "EXTERNAL_CONFIRMATION",
+    "requiredAuthorityClass": "EXTERNAL_REINSPECTION_REPORT",
+    "sameMissionMayConfirm": false,
+    "reason": "GATE16 COMPLETE_CONFIRMED requires a separate independent EXTERNAL_REINSPECTION_REPORT; this local closure authority cannot substitute for that class."
+  },
+  "requiredNextAction": "GATE16_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION",
+  "createdAt": "2026-08-14T15:02:20.694Z"
+}

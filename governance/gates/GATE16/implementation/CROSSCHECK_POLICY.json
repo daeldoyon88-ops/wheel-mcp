@@ -1,0 +1,63 @@
+{
+  "document": "GATE16_CROSSCHECK_POLICY",
+  "schemaVersion": 1,
+  "gateId": "GATE16",
+  "policyId": "GATE16_INDEPENDENT_CROSSCHECK_FAIL_CLOSED_R1",
+  "authority": {
+    "contract": "governance/gates/GATE16/contracts/EXECUTION_CONTRACT_R0001.json",
+    "mandate": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+    "generatedSummariesAreNonAuthoritative": true
+  },
+  "roles": {
+    "producer": {
+      "identity": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+      "authorityClass": "PRODUCER_OUTPUT_NON_AUTHORITATIVE",
+      "maySupplyAuthority": false,
+      "output": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json"
+    },
+    "verifier": {
+      "identity": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+      "authorityClass": "CANONICAL_INDEPENDENT_VERIFIER",
+      "implementation": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "mustDifferFromProducer": true
+    }
+  },
+  "canonicalInputs": [
+    "governance/PROJECT_CONSTITUTION.json",
+    "governance/GATE_REGISTRY_00_40.json",
+    "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+    "governance/gates/GATE15/state/CURRENT_STATE.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/active/ACTIVE_GATE.json"
+  ],
+  "rules": {
+    "recalculation": "The verifier derives the predecessor status and closure disposition from the current canonical input bytes; producer verdict fields are comparison-only.",
+    "evidenceBinding": "Every declared source path is slash-separated, exact, present, SHA-256 and byte-length bound to observed repository bytes.",
+    "independence": "Producer and verifier identities must be distinct and the producer output cannot be a canonical input or verifier artifact.",
+    "replay": "The input identity is recomputed in a fresh process from the same canonical package bytes.",
+    "scope": "Only GATE16 claims are admissible; unrelated regression identities and future Gate claims are rejected."
+  },
+  "failClosed": {
+    "missingEvidence": "BLOCKED",
+    "unknownEvidence": "BLOCKED",
+    "hashMismatch": "BLOCKED",
+    "producerVerifierCollision": "BLOCKED",
+    "producerVerdictAsAuthority": "BLOCKED",
+    "circularEvidence": "BLOCKED",
+    "unsupportedClosure": "BLOCKED",
+    "replayDrift": "BLOCKED",
+    "unrelatedRegression": "BLOCKED"
+  },
+  "closureBindings": [
+    { "requirementId": "G16-CROSSCHECK-01", "validatorRule": "DISTINCT_ADMISSIBLE_IDENTITIES" },
+    { "requirementId": "G16-CROSSCHECK-02", "validatorRule": "CANONICAL_RECALCULATION_NOT_PRODUCER_VERDICT" },
+    { "requirementId": "G16-CROSSCHECK-03", "validatorRule": "EXACT_SOURCE_EVIDENCE_HASH_BINDING" },
+    { "requirementId": "G16-CROSSCHECK-04", "validatorRule": "NO_CIRCULAR_OR_UNSUPPORTED_CLAIM" },
+    { "requirementId": "G16-CROSSCHECK-05", "validatorRule": "DETERMINISTIC_REPLAY_BINDING" },
+    { "requirementId": "G16-CROSSCHECK-06", "validatorRule": "NO_UNRELATED_REGRESSION_IDENTITY" }
+  ],
+  "verdicts": ["PASS", "BLOCKED"],
+  "networkAccess": "FORBIDDEN",
+  "brokerWrites": "FORBIDDEN",
+  "gitWrites": "FORBIDDEN_DURING_VALIDATION"
+}

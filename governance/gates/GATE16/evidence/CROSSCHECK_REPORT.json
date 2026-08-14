@@ -1,0 +1,1594 @@
+{
+  "document": "GATE16_CROSSCHECK_REPORT",
+  "schemaVersion": 1,
+  "gateId": "GATE16",
+  "reportId": "GATE16_CROSSCHECK_REPORT_R1",
+  "derivation": {
+    "contract": "governance/gates/GATE16/contracts/EXECUTION_CONTRACT_R0001.json",
+    "mandate": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+    "method": "Machine-derived from canonical source bytes, production validator executions and an independent fresh-process replay; producer PASS is comparison-only."
+  },
+  "independentVerifier": {
+    "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+    "implementationPath": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+    "authorityClass": "CANONICAL_INDEPENDENT_VERIFIER"
+  },
+  "producerComparison": {
+    "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+    "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+    "producerGateId": "GATE15",
+    "comparedFields": [
+      "gateId",
+      "programId"
+    ],
+    "producerVerdictObserved": "PASS",
+    "producerVerdictUsedAsAuthority": false,
+    "canonicalStatus": "COMPLETE_CONFIRMED",
+    "statusAgrees": true
+  },
+  "canonicalCrosscheck": {
+    "verdict": "PASS",
+    "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+    "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+    "recalculated": {
+      "claimId": "G16-CLAIM-01",
+      "subject": "GATE15_PREDECESSOR_STATUS",
+      "observedValue": "COMPLETE_CONFIRMED",
+      "stateRevision": "R0004",
+      "source": "CANONICAL_INPUT_RECALCULATION",
+      "producerVerdictConsumed": false,
+      "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+      "ledgerEventOrdinal": 65
+    },
+    "replay": {
+      "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+      "declaredInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+      "recomputedInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+      "identical": true
+    }
+  },
+  "artifactHashes": [
+    {
+      "path": "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+      "sha256": "6fc24a2c38327104b8a0b8f8a452af4a730f27b25e6e0cc3791d50679c714a29",
+      "byteLength": 3124
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+      "sha256": "e8d6dcf512add25aac15f2f1642d15b76e7ff1c6a6c5fcf66b511d320b12c909",
+      "byteLength": 1934
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "sha256": "d1d5c565532a77b67b9e071022717ab4c57f78be0d6d97c4e2b7a6c24704e7ec",
+      "byteLength": 23891
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "sha256": "ceec4886b2b41d2097ce6d34e748e2246d1d282709bff021c1d931238b326f5c",
+      "byteLength": 16759
+    }
+  ],
+  "artifactSelfExclusion": {
+    "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+    "reason": "The report cannot hash its own final bytes; the enclosing governed cohort binds the report bytes."
+  },
+  "executions": [
+    {
+      "executionId": "execution:G16-POS-01",
+      "testId": "G16-POS-01",
+      "category": "POSITIVE",
+      "requirementId": "G16-CROSSCHECK-01",
+      "target": null,
+      "expectedVerdict": "PASS",
+      "expectedReasonCode": null,
+      "inputDigest": "67acd9084d0c54944fbcf647eaf41c488d96e645711f180706be077de718167f",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "PASS",
+        "reasonCodes": [],
+        "findings": [],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "recomputedInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "identical": true
+        }
+      },
+      "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-POS-02",
+      "testId": "G16-POS-02",
+      "category": "POSITIVE",
+      "requirementId": "G16-CROSSCHECK-02",
+      "target": null,
+      "expectedVerdict": "PASS",
+      "expectedReasonCode": null,
+      "inputDigest": "67acd9084d0c54944fbcf647eaf41c488d96e645711f180706be077de718167f",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "PASS",
+        "reasonCodes": [],
+        "findings": [],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "recomputedInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "identical": true
+        }
+      },
+      "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-POS-03",
+      "testId": "G16-POS-03",
+      "category": "POSITIVE",
+      "requirementId": "G16-CROSSCHECK-03",
+      "target": null,
+      "expectedVerdict": "PASS",
+      "expectedReasonCode": null,
+      "inputDigest": "67acd9084d0c54944fbcf647eaf41c488d96e645711f180706be077de718167f",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "PASS",
+        "reasonCodes": [],
+        "findings": [],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "recomputedInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "identical": true
+        }
+      },
+      "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-POS-04",
+      "testId": "G16-POS-04",
+      "category": "POSITIVE",
+      "requirementId": "G16-CROSSCHECK-05",
+      "target": null,
+      "expectedVerdict": "PASS",
+      "expectedReasonCode": null,
+      "inputDigest": "67acd9084d0c54944fbcf647eaf41c488d96e645711f180706be077de718167f",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "PASS",
+        "reasonCodes": [],
+        "findings": [],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "recomputedInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "identical": true
+        }
+      },
+      "outputDigest": "35d6a1d735e85f435cc2bd0fad00d7d185aedd1e154f83ee0fa07699ec9b18e5",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-NEG-01",
+      "testId": "G16-NEG-01",
+      "category": "NEGATIVE",
+      "requirementId": "G16-CROSSCHECK-01",
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "PRODUCER_AUDITOR_NOT_DISTINCT",
+      "inputDigest": "84eeec3270f74519a7bc61b6dd0335afcf84118556d8f74a12f3e70cfc435a23",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "VERIFIER_IDENTITY_UNRESOLVABLE",
+          "PRODUCER_AUDITOR_NOT_DISTINCT"
+        ],
+        "findings": [
+          {
+            "reasonCode": "VERIFIER_IDENTITY_UNRESOLVABLE",
+            "sourcePath": null,
+            "detail": "Verifier identity is not the canonical GATE16 production validator."
+          },
+          {
+            "reasonCode": "PRODUCER_AUDITOR_NOT_DISTINCT",
+            "sourcePath": null,
+            "detail": "Producer and verifier identities must remain distinct."
+          }
+        ],
+        "evidenceDigest": "7ce8829adf6468062c336bfc8559f7248e3de7e1daa87cc5571eb3947694890b",
+        "outputDigest": "f7ec64fa0939d61d453c36694b5f1fc2f10746646f5cad8cdc9cfc517151b327",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "639c8d3a6d77a1842363b9b076b1791bc38061ab2990b2a7034d3a19470831d4",
+          "recomputedInputDigest": "639c8d3a6d77a1842363b9b076b1791bc38061ab2990b2a7034d3a19470831d4",
+          "identical": true
+        }
+      },
+      "outputDigest": "f7ec64fa0939d61d453c36694b5f1fc2f10746646f5cad8cdc9cfc517151b327",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-NEG-02",
+      "testId": "G16-NEG-02",
+      "category": "NEGATIVE",
+      "requirementId": "G16-CROSSCHECK-02",
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "PRODUCER_VERDICT_USED_AS_AUTHORITY",
+      "inputDigest": "1becf54764f33faa430ea08c1a4d6dd52edf6685dcefc63572181dbd6323d2e7",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "PRODUCER_VERDICT_USED_AS_AUTHORITY"
+        ],
+        "findings": [
+          {
+            "reasonCode": "PRODUCER_VERDICT_USED_AS_AUTHORITY",
+            "sourcePath": null,
+            "detail": "The verdict derivation must explicitly exclude the producer verdict."
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "0887665cc90b6ce5eb5c7ab591aa057be13df742d385eef9dc2c43aef8da122b",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "146360452f66166e8ec3411bf3fff5ce9c2a967f1c6efe4b9e11f1096e49fa25",
+          "recomputedInputDigest": "146360452f66166e8ec3411bf3fff5ce9c2a967f1c6efe4b9e11f1096e49fa25",
+          "identical": true
+        }
+      },
+      "outputDigest": "0887665cc90b6ce5eb5c7ab591aa057be13df742d385eef9dc2c43aef8da122b",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-NEG-03",
+      "testId": "G16-NEG-03",
+      "category": "NEGATIVE",
+      "requirementId": "G16-CROSSCHECK-03",
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+      "inputDigest": "d6b4417bd85e8380fb6bfb7adbac6811137f265a3de77c457530d73e4ffc02f1",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CANONICAL_INPUT_HASH_MISMATCH",
+          "SOURCE_EVIDENCE_HASH_MISMATCH"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CANONICAL_INPUT_HASH_MISMATCH",
+            "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+            "detail": "Input hash differs from the sealed GATE16 contract."
+          },
+          {
+            "reasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+            "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+            "detail": {
+              "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+              "observedSha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
+              "declaredObservedSha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8",
+              "expectedByteLength": 16370,
+              "observedByteLength": 16370,
+              "declaredObservedByteLength": 16370
+            }
+          }
+        ],
+        "evidenceDigest": "77531fcc27f15afdb5dbb0738072d25ce16468ca9176bd5bdf1ce2b359c2794d",
+        "outputDigest": "7a6b39503a9d82e9cc9decf05471eba298359771dfd6440cabe370a857da557d",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "ec22ecf1bd2aac644d5dbc012efbafc118e9f02ea22f0a8cc5c2d502ee9e6c28",
+          "recomputedInputDigest": "ec22ecf1bd2aac644d5dbc012efbafc118e9f02ea22f0a8cc5c2d502ee9e6c28",
+          "identical": true
+        }
+      },
+      "outputDigest": "7a6b39503a9d82e9cc9decf05471eba298359771dfd6440cabe370a857da557d",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-NEG-04",
+      "testId": "G16-NEG-04",
+      "category": "NEGATIVE",
+      "requirementId": "G16-CROSSCHECK-04",
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+      "inputDigest": "6b45fe982fdd1a1dddcafc0b1598adf6a808e7e632d64e018e1f172ba07b4ec4",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CIRCULAR_OR_UNSUPPORTED_CLOSURE"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+            "sourcePath": "G16-CLAIM-01",
+            "detail": "Closure claim is unsupported or lacks a canonical evidence edge."
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "38e4b8a9f6ad6136ad033717a2afe6244cae7495e5e0ec3344b3243bfa0b240e",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "edc20cbd7484743e5a1bf6abba43e23c48da42f4bab18b15db7d14f6b61d9627",
+          "recomputedInputDigest": "edc20cbd7484743e5a1bf6abba43e23c48da42f4bab18b15db7d14f6b61d9627",
+          "identical": true
+        }
+      },
+      "outputDigest": "38e4b8a9f6ad6136ad033717a2afe6244cae7495e5e0ec3344b3243bfa0b240e",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-NEG-05",
+      "testId": "G16-NEG-05",
+      "category": "NEGATIVE",
+      "requirementId": "G16-CROSSCHECK-05",
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "NON_DETERMINISTIC_REPLAY",
+      "inputDigest": "9f3ec06ad194bd84b40b6af759849073a4271e2cced178c4fb0f48d5eba43080",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "NON_DETERMINISTIC_REPLAY"
+        ],
+        "findings": [
+          {
+            "reasonCode": "NON_DETERMINISTIC_REPLAY",
+            "sourcePath": null,
+            "detail": {
+              "expected": "0000000000000000000000000000000000000000000000000000000000000000",
+              "recomputed": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9"
+            }
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "e04572df244ee568e0eed71a656c77b24fa8cbab1a0fade541ecb7b1978e71e4",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+          "recomputedInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "identical": false
+        }
+      },
+      "outputDigest": "e04572df244ee568e0eed71a656c77b24fa8cbab1a0fade541ecb7b1978e71e4",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-CT-01",
+      "testId": "G16-CT-01",
+      "category": "COUNTER",
+      "requirementId": null,
+      "target": "verifier identity",
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "PRODUCER_AUDITOR_NOT_DISTINCT",
+      "inputDigest": "84eeec3270f74519a7bc61b6dd0335afcf84118556d8f74a12f3e70cfc435a23",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "VERIFIER_IDENTITY_UNRESOLVABLE",
+          "PRODUCER_AUDITOR_NOT_DISTINCT"
+        ],
+        "findings": [
+          {
+            "reasonCode": "VERIFIER_IDENTITY_UNRESOLVABLE",
+            "sourcePath": null,
+            "detail": "Verifier identity is not the canonical GATE16 production validator."
+          },
+          {
+            "reasonCode": "PRODUCER_AUDITOR_NOT_DISTINCT",
+            "sourcePath": null,
+            "detail": "Producer and verifier identities must remain distinct."
+          }
+        ],
+        "evidenceDigest": "7ce8829adf6468062c336bfc8559f7248e3de7e1daa87cc5571eb3947694890b",
+        "outputDigest": "f7ec64fa0939d61d453c36694b5f1fc2f10746646f5cad8cdc9cfc517151b327",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "639c8d3a6d77a1842363b9b076b1791bc38061ab2990b2a7034d3a19470831d4",
+          "recomputedInputDigest": "639c8d3a6d77a1842363b9b076b1791bc38061ab2990b2a7034d3a19470831d4",
+          "identical": true
+        }
+      },
+      "outputDigest": "f7ec64fa0939d61d453c36694b5f1fc2f10746646f5cad8cdc9cfc517151b327",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-CT-02",
+      "testId": "G16-CT-02",
+      "category": "COUNTER",
+      "requirementId": null,
+      "target": "verdict calculation",
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+      "inputDigest": "d6ddb35745637b5901dae1a0f4f1c68a1ea3d91ad9289cf5f04c7b6f3a6de302",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CANONICAL_INPUT_HASH_MISMATCH",
+          "SOURCE_EVIDENCE_HASH_MISMATCH"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CANONICAL_INPUT_HASH_MISMATCH",
+            "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+            "detail": "Input hash differs from the sealed GATE16 contract."
+          },
+          {
+            "reasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+            "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+            "detail": {
+              "expectedSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "observedSha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+              "declaredObservedSha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+              "expectedByteLength": 113118,
+              "observedByteLength": 113118,
+              "declaredObservedByteLength": 113118
+            }
+          }
+        ],
+        "evidenceDigest": "daef339fc9fae84edc351866f92c607a3b7c96463d2104c5a25acf5249535401",
+        "outputDigest": "8e05f87471ffe13aa0f6159708ea43612951bfc1971d06adc9fae71cbec07706",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "95dcb516736d4a7af03e360a4dcf5c1ae3878371e345311b5d2e9c19befded33",
+          "recomputedInputDigest": "95dcb516736d4a7af03e360a4dcf5c1ae3878371e345311b5d2e9c19befded33",
+          "identical": true
+        }
+      },
+      "outputDigest": "8e05f87471ffe13aa0f6159708ea43612951bfc1971d06adc9fae71cbec07706",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-CT-03",
+      "testId": "G16-CT-03",
+      "category": "COUNTER",
+      "requirementId": null,
+      "target": "evidence graph",
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+      "inputDigest": "433d1e9c1bd8fbbb8034cf9547a3b99bb8410d8072920cb3c5313ec910bbd6c6",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CIRCULAR_OR_UNSUPPORTED_CLOSURE"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+            "sourcePath": null,
+            "detail": "At least one supported closure claim is required."
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "290fd1b6c13e4bebf73dadcc749cf29a6da9b105d5a1714efefd2f51cfa98a4b",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "efa6c0898eb8b8f9e7350dd5f00a10fbdff17bd71b393c5fdd8fa31747b8bf62",
+          "recomputedInputDigest": "efa6c0898eb8b8f9e7350dd5f00a10fbdff17bd71b393c5fdd8fa31747b8bf62",
+          "identical": true
+        }
+      },
+      "outputDigest": "290fd1b6c13e4bebf73dadcc749cf29a6da9b105d5a1714efefd2f51cfa98a4b",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-CT-04",
+      "testId": "G16-CT-04",
+      "category": "COUNTER",
+      "requirementId": null,
+      "target": "fresh-process replay",
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "NON_DETERMINISTIC_REPLAY",
+      "inputDigest": "eba44850820c1cee233e264829be636c430ddb3e699d8245968ffeff42c68ca5",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+          "NON_DETERMINISTIC_REPLAY"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+            "sourcePath": null,
+            "detail": "Crosscheck scope must be GATE16."
+          },
+          {
+            "reasonCode": "NON_DETERMINISTIC_REPLAY",
+            "sourcePath": null,
+            "detail": {
+              "expected": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+              "recomputed": "9744f0cc3b8446d991d7904a7a3111f17a054456a567c9f4bae04f16cacca829"
+            }
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "caebd30cd95fe7b99397b4c7a654493935ceeb54b47faddecd2908be30b474ec",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "7b627e3a314427f878a9cb4565d58578919d41d3cdf2950dc131f283a07a23d9",
+          "recomputedInputDigest": "9744f0cc3b8446d991d7904a7a3111f17a054456a567c9f4bae04f16cacca829",
+          "identical": false
+        }
+      },
+      "outputDigest": "caebd30cd95fe7b99397b4c7a654493935ceeb54b47faddecd2908be30b474ec",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-CT-05",
+      "testId": "G16-CT-05",
+      "category": "COUNTER",
+      "requirementId": null,
+      "target": "closure scope",
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "UNRELATED_REGRESSION_IDENTITY",
+      "inputDigest": "ed81aba7884b7860701fddd1a5df3c930096e168829e690ffab2322167879d07",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "UNRELATED_REGRESSION_IDENTITY"
+        ],
+        "findings": [
+          {
+            "reasonCode": "UNRELATED_REGRESSION_IDENTITY",
+            "sourcePath": null,
+            "detail": [
+              "unrelated-suite-v1"
+            ]
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "0f7d06c4ffcc8c39fba5a24775e18282648bf6f35c2dc12e353e15407a535faa",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "510244747d665f9cf005dcb467623f9049f7c33c49fd02362a0ee81ad7e71d7d",
+          "recomputedInputDigest": "510244747d665f9cf005dcb467623f9049f7c33c49fd02362a0ee81ad7e71d7d",
+          "identical": true
+        }
+      },
+      "outputDigest": "0f7d06c4ffcc8c39fba5a24775e18282648bf6f35c2dc12e353e15407a535faa",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-HST-01",
+      "testId": "G16-HST-01",
+      "category": "HOSTILE",
+      "requirementId": null,
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+      "inputDigest": "f74baec1e1e5680a097312292f05d31dcd5202bd953b5ecca75a90c996e78ea7",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "SOURCE_EVIDENCE_HASH_MISMATCH"
+        ],
+        "findings": [
+          {
+            "reasonCode": "SOURCE_EVIDENCE_HASH_MISMATCH",
+            "sourcePath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+            "detail": "Producer output bytes do not match its declared binding."
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "2b3ef0363ad6ab85dd9dbbf7b945e9773fc0bf81aa09a0ac40b0d239870c5fb6",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "d7eb6bfe567295df9582a58c58d04734bdae8dcb656d8aa5658dbfd076d7caee",
+          "recomputedInputDigest": "d7eb6bfe567295df9582a58c58d04734bdae8dcb656d8aa5658dbfd076d7caee",
+          "identical": true
+        }
+      },
+      "outputDigest": "2b3ef0363ad6ab85dd9dbbf7b945e9773fc0bf81aa09a0ac40b0d239870c5fb6",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-HST-02",
+      "testId": "G16-HST-02",
+      "category": "HOSTILE",
+      "requirementId": null,
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+      "inputDigest": "fb572d7f06a2a1ed2c65d415f080998757026960952e16569209bbb9c5d992e3",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+          "PRODUCER_OUTPUT_MISMATCH"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+            "sourcePath": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+            "detail": "Producer output cannot be consumed as verifier evidence."
+          },
+          {
+            "reasonCode": "PRODUCER_OUTPUT_MISMATCH",
+            "sourcePath": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+            "detail": "Producer identity, authority class or output path is not canonical."
+          }
+        ],
+        "evidenceDigest": "652c1dcc586d2d7ce80b1fda75efb88ee1849efce26dd7dc55761e10d282f0c0",
+        "outputDigest": "76702f606dfce46ed68953268de7ba1e129c6ee9beab54620ea14e5a319480b9",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "e5c3d773be2028f6c1ce39140013033e1475c60b583dd26b071a0c45012ec99f",
+          "recomputedInputDigest": "e5c3d773be2028f6c1ce39140013033e1475c60b583dd26b071a0c45012ec99f",
+          "identical": true
+        }
+      },
+      "outputDigest": "76702f606dfce46ed68953268de7ba1e129c6ee9beab54620ea14e5a319480b9",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-HST-03",
+      "testId": "G16-HST-03",
+      "category": "HOSTILE",
+      "requirementId": null,
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "VERIFIER_IDENTITY_UNRESOLVABLE",
+      "inputDigest": "050d6ff542c2fe031cc25b20c0d1840f131e1aaf57e9118a48f5a811c130217b",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "VERIFIER_IDENTITY_UNRESOLVABLE",
+          "PRODUCER_AUDITOR_NOT_DISTINCT"
+        ],
+        "findings": [
+          {
+            "reasonCode": "VERIFIER_IDENTITY_UNRESOLVABLE",
+            "sourcePath": null,
+            "detail": "Verifier identity is not the canonical GATE16 production validator."
+          },
+          {
+            "reasonCode": "PRODUCER_AUDITOR_NOT_DISTINCT",
+            "sourcePath": null,
+            "detail": "Producer and verifier identities must remain distinct."
+          }
+        ],
+        "evidenceDigest": "6c2d08b02a3155c5c9b3bb09fe368e70435549d944f9281b0582aa0f33be2e57",
+        "outputDigest": "be929ab8aaa29245f73f27be312b91861c0e60d612e6312e307d69702fc2ded6",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "456f95e4c688ebb573d442a6f32c86e92be866f4304cedc47b3122972e2fd394",
+          "recomputedInputDigest": "456f95e4c688ebb573d442a6f32c86e92be866f4304cedc47b3122972e2fd394",
+          "identical": true
+        }
+      },
+      "outputDigest": "be929ab8aaa29245f73f27be312b91861c0e60d612e6312e307d69702fc2ded6",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-HST-04",
+      "testId": "G16-HST-04",
+      "category": "HOSTILE",
+      "requirementId": null,
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+      "inputDigest": "e8e0caceee9a1c0f12a6b2deea037aa093e854bd48e2daa465f579dcc56de4ad",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CIRCULAR_OR_UNSUPPORTED_CLOSURE"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CIRCULAR_OR_UNSUPPORTED_CLOSURE",
+            "sourcePath": "G16-FUTURE-CLAIM",
+            "detail": "Closure claim is unsupported or lacks a canonical evidence edge."
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "5e5693347ec27874f044ce346c751dae3895a1ac3e57459613ee82d42d159763",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "66077e27a6fbbf11b7dbb95d1f7182a1861cfa15356c1ada33528f206807ec8e",
+          "recomputedInputDigest": "66077e27a6fbbf11b7dbb95d1f7182a1861cfa15356c1ada33528f206807ec8e",
+          "identical": true
+        }
+      },
+      "outputDigest": "5e5693347ec27874f044ce346c751dae3895a1ac3e57459613ee82d42d159763",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-HST-05",
+      "testId": "G16-HST-05",
+      "category": "HOSTILE",
+      "requirementId": null,
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "CANONICAL_INPUT_SET_MISMATCH",
+      "inputDigest": "38961b1c2c6b98eb0318fac5ecf07ee8829165b1449aacdeb3ebf4f42a6689bd",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "CANONICAL_INPUT_SET_MISMATCH"
+        ],
+        "findings": [
+          {
+            "reasonCode": "CANONICAL_INPUT_SET_MISMATCH",
+            "sourcePath": null,
+            "detail": {
+              "expectedPaths": [
+                "governance/PROJECT_CONSTITUTION.json",
+                "governance/GATE_REGISTRY_00_40.json",
+                "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+                "governance/gates/GATE15/state/CURRENT_STATE.json",
+                "governance/state/GATE_STATUS_LEDGER.ndjson",
+                "governance/active/ACTIVE_GATE.json"
+              ],
+              "actualPaths": [
+                "governance/PROJECT_CONSTITUTION.json",
+                "governance/GATE_REGISTRY_00_40.json",
+                "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+                "governance/gates/GATE15/state/CURRENT_STATE.json",
+                "governance/state/GATE_STATUS_LEDGER.ndjson"
+              ]
+            }
+          },
+          {
+            "reasonCode": "CANONICAL_INPUT_SET_MISMATCH",
+            "sourcePath": null,
+            "detail": "Canonical inputs do not exactly match the contract."
+          }
+        ],
+        "evidenceDigest": "ec2ebe4b8bb64d47b45d754d9bbca369f642b38eb3aa01b534b226579ea076f2",
+        "outputDigest": "2fe95e4b3f322a2e208ec2e1aa7ef461c0fa6d932a297173fd257290e3abb3e1",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "e8743d45a1f7a9927655c4b7c1bb56aa292858617917ffc37c37d2f4b08c6b51",
+          "recomputedInputDigest": "e8743d45a1f7a9927655c4b7c1bb56aa292858617917ffc37c37d2f4b08c6b51",
+          "identical": true
+        }
+      },
+      "outputDigest": "2fe95e4b3f322a2e208ec2e1aa7ef461c0fa6d932a297173fd257290e3abb3e1",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    },
+    {
+      "executionId": "execution:G16-HST-06",
+      "testId": "G16-HST-06",
+      "category": "HOSTILE",
+      "requirementId": null,
+      "target": null,
+      "expectedVerdict": "BLOCKED",
+      "expectedReasonCode": "FUTURE_GATE_CLAIM",
+      "inputDigest": "a3250896e01b00505aed6f58a7fcc6aff72e58776770405236fb45ff2b94b3f3",
+      "rawOutput": {
+        "document": "GATE16_INDEPENDENT_CROSSCHECK_RESULT",
+        "gateId": "GATE16",
+        "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+        "verdict": "BLOCKED",
+        "reasonCodes": [
+          "FUTURE_GATE_CLAIM"
+        ],
+        "findings": [
+          {
+            "reasonCode": "FUTURE_GATE_CLAIM",
+            "sourcePath": null,
+            "detail": [
+              "GATE17"
+            ]
+          }
+        ],
+        "evidenceDigest": "bafdeda73d5fc2ce3c60e50f343f97054d2acee96b273bd2369165d1ae5ad435",
+        "outputDigest": "023d0726a5171d7e78eb503e897d62477899cc029c2503385b1f48317713d54c",
+        "recalculated": {
+          "claimId": "G16-CLAIM-01",
+          "subject": "GATE15_PREDECESSOR_STATUS",
+          "observedValue": "COMPLETE_CONFIRMED",
+          "stateRevision": "R0004",
+          "source": "CANONICAL_INPUT_RECALCULATION",
+          "producerVerdictConsumed": false,
+          "ledgerEventId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "ledgerEventOrdinal": 65
+        },
+        "producerComparison": {
+          "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+          "producerOutputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+          "producerGateId": "GATE15",
+          "comparedFields": [
+            "gateId",
+            "programId"
+          ],
+          "producerVerdictObserved": "PASS",
+          "producerVerdictUsedAsAuthority": false,
+          "canonicalStatus": "COMPLETE_CONFIRMED",
+          "statusAgrees": true
+        },
+        "replay": {
+          "algorithm": "SHA256_CANONICAL_JSON_EXCLUDING_REPLAY_BINDING_V1",
+          "declaredInputDigest": "e8ab11daa55bb67e826df191827d1cc531910dbff688ddf0dd62cf303e92584c",
+          "recomputedInputDigest": "e8ab11daa55bb67e826df191827d1cc531910dbff688ddf0dd62cf303e92584c",
+          "identical": true
+        }
+      },
+      "outputDigest": "023d0726a5171d7e78eb503e897d62477899cc029c2503385b1f48317713d54c",
+      "processIdentity": {
+        "runtime": "node",
+        "nodeMajor": 25,
+        "validatorModule": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+        "executionClass": "PRODUCTION_VALIDATOR"
+      },
+      "executionPass": true
+    }
+  ],
+  "coverage": {
+    "rows": [
+      {
+        "requirementId": "G16-ENTRY-01",
+        "statement": "GATE15 is COMPLETE_CONFIRMED under its canonical lifecycle before GATE16 execution.",
+        "validatorRule": "ENTRY_CANONICAL_AUTHORITY",
+        "testIds": [
+          "G16-POS-01"
+        ],
+        "observedRunCount": 1,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-ENTRY-02",
+        "statement": "A separate GATE16 execution contract and exact authority scope exist.",
+        "validatorRule": "ENTRY_CANONICAL_AUTHORITY",
+        "testIds": [
+          "G16-POS-03"
+        ],
+        "observedRunCount": 1,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-ENTRY-03",
+        "statement": "The producer and independent verifier identities are distinct and resolvable.",
+        "validatorRule": "ENTRY_CANONICAL_AUTHORITY",
+        "testIds": [
+          "G16-POS-01",
+          "G16-NEG-01"
+        ],
+        "observedRunCount": 2,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-ENTRY-04",
+        "statement": "No invalidation basis is asserted for already valid closed Gates.",
+        "validatorRule": "ENTRY_CANONICAL_AUTHORITY",
+        "testIds": [
+          "G16-POS-02"
+        ],
+        "observedRunCount": 1,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-CROSSCHECK-01",
+        "statement": "Every mandatory closure claim has an admissible independent verifier.",
+        "validatorRule": "G16-CROSSCHECK-01",
+        "testIds": [
+          "G16-POS-01",
+          "G16-NEG-01",
+          "G16-CT-01"
+        ],
+        "observedRunCount": 3,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-CROSSCHECK-02",
+        "statement": "The verifier recalculates the verdict from canonical inputs without treating the producer verdict as authority.",
+        "validatorRule": "G16-CROSSCHECK-02",
+        "testIds": [
+          "G16-POS-02",
+          "G16-NEG-02",
+          "G16-CT-02"
+        ],
+        "observedRunCount": 3,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-CROSSCHECK-03",
+        "statement": "All evidence and hashes bind to the declared source bytes.",
+        "validatorRule": "G16-CROSSCHECK-03",
+        "testIds": [
+          "G16-POS-03",
+          "G16-NEG-03",
+          "G16-HST-01"
+        ],
+        "observedRunCount": 3,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-CROSSCHECK-04",
+        "statement": "Circular validation and unsupported closure claims are rejected.",
+        "validatorRule": "G16-CROSSCHECK-04",
+        "testIds": [
+          "G16-POS-03",
+          "G16-NEG-04",
+          "G16-CT-03"
+        ],
+        "observedRunCount": 3,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-CROSSCHECK-05",
+        "statement": "Independent replay produces identical verdicts and evidence digests.",
+        "validatorRule": "G16-CROSSCHECK-05",
+        "testIds": [
+          "G16-POS-04",
+          "G16-NEG-05",
+          "G16-CT-04"
+        ],
+        "observedRunCount": 3,
+        "result": "COVERED"
+      },
+      {
+        "requirementId": "G16-CROSSCHECK-06",
+        "statement": "No unrelated regression identity is introduced.",
+        "validatorRule": "G16-CROSSCHECK-06",
+        "testIds": [
+          "G16-POS-03",
+          "G16-CT-05",
+          "G16-HST-05"
+        ],
+        "observedRunCount": 3,
+        "result": "COVERED"
+      }
+    ],
+    "mandatoryRequirementCount": 10,
+    "uncoveredMandatoryClassCount": 0,
+    "verdict": "PASS"
+  },
+  "freshProcessReplay": {
+    "verdict": "PASS",
+    "identical": true,
+    "comparedFields": [
+      "verdict",
+      "reasonCodes",
+      "evidenceDigest",
+      "outputDigest"
+    ]
+  },
+  "closureConditions": {
+    "G16-CROSSCHECK-01": true,
+    "G16-CROSSCHECK-02": true,
+    "G16-CROSSCHECK-03": true,
+    "G16-CROSSCHECK-04": true,
+    "G16-CROSSCHECK-05": true,
+    "G16-CROSSCHECK-06": true
+  },
+  "scope": {
+    "authorizedFunctionalPaths": [
+      "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+      "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+      "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json"
+    ],
+    "unexpectedWriteCount": 0,
+    "unrelatedRegressionIdentities": [],
+    "futureGateClaims": [],
+    "externalConfirmationEmitted": false,
+    "gate17Authorized": false,
+    "r8Present": false
+  },
+  "counts": {
+    "positive": 4,
+    "negative": 5,
+    "counter": 5,
+    "hostile": 6,
+    "total": 20
+  },
+  "verdict": "PASS"
+}

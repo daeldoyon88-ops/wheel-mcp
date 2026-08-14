@@ -1,0 +1,127 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "GATE16_AGENT_CLOSURE_AUTHORIZED_PATHS_R1",
+  "programId": "GATE16_FINAL_GOVERNED_CLOSURE_R1",
+  "paths": [
+    {
+      "path": "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE16 M2 crosscheck policy in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE16 M2 independent verdict registry in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE16 M2 independent production validator in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE16 M2 independent test suite in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Persist the already-validated GATE16 M2 machine-derived crosscheck evidence in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE16_AGENT_CLOSURE_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE16 post-freeze closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE16_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Finite exact-file GATE16 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE16_AGENT_CLOSURE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Single-use consumption record binding the GATE16 authority, manifest and transaction.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/GATE16_AGENT_CLOSURE_HANDOFF_R1.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Durable GATE16 COMPLETE_AGENT handoff preserving M2 evidence identity and the independent M3 next action.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/CHECKPOINT.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "New GATE16 closure state revision checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/OPEN_DEFECTS.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Derived GATE16 closure revision defect projection preserving the zero-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/STATE_SEAL.json",
+      "operation": "CREATE",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Native GATE16 state seal chained from R0002 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/CURRENT_STATE.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Advance the canonical GATE16 state pointer to R0003 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Append exactly one canonical GATE16 AGENT_CLOSURE event; events 1-67 remain byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Refresh the derived active-gate context ledger binding while ACTIVE_GATE remains GATE13.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "operation": "MODIFY",
+      "phase": "AGENT_CLOSURE",
+      "reason": "Refresh the existing derived active-gate context projection as part of the exact closure cohort.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

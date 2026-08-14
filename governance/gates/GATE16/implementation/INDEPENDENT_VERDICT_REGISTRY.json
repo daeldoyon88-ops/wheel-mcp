@@ -1,0 +1,52 @@
+{
+  "document": "GATE16_INDEPENDENT_VERDICT_REGISTRY",
+  "schemaVersion": 1,
+  "gateId": "GATE16",
+  "registryId": "GATE16_INDEPENDENT_VERDICT_REGISTRY_R1",
+  "producerRegistry": [
+    {
+      "producerId": "GATE15_M3_EXTERNAL_CONFIRMATION_R1",
+      "authorityClass": "PRODUCER_OUTPUT_NON_AUTHORITATIVE",
+      "outputPath": "governance/sources/GATE15_M3_INDEPENDENT_EXTERNAL_CONFIRMATION_R1_EXTERNAL_REINSPECTION_REPORT.json",
+      "verdictUsage": "COMPARE_ONLY",
+      "mayAuthorizeGATE16": false
+    }
+  ],
+  "verifierRegistry": [
+    {
+      "verifierId": "GATE16_M2_INDEPENDENT_VERIFIER_R1",
+      "authorityClass": "CANONICAL_INDEPENDENT_VERIFIER",
+      "implementationPath": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "inputAuthority": "GATE16 canonical contract inputs",
+      "recalculationRequired": true,
+      "freshProcessReplayRequired": true,
+      "distinctFromProducer": true
+    }
+  ],
+  "claimRegistry": [
+    {
+      "claimId": "G16-CLAIM-01",
+      "subject": "GATE15_PREDECESSOR_STATUS",
+      "canonicalSources": [
+        "governance/gates/GATE15/state/CURRENT_STATE.json",
+        "governance/state/GATE_STATUS_LEDGER.ndjson"
+      ],
+      "recalculation": "last canonical GATE15 ledger transition and its state revision",
+      "producerVerdictAuthority": false
+    }
+  ],
+  "admissibleVerdicts": ["PASS", "BLOCKED"],
+  "unsupportedVerdictSources": [
+    "producer claimedVerdict",
+    "generated projection",
+    "self-attested closure summary",
+    "future Gate status"
+  ],
+  "authorizedFunctionalPaths": [
+    "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+    "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+    "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+    "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+    "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json"
+  ]
+}

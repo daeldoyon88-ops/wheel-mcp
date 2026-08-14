@@ -1,0 +1,45 @@
+{
+  "gateId": "GATE16",
+  "stateRevision": "R0003",
+  "milestone": "GATE16_INDEPENDENT_CROSSCHECK",
+  "resumePoint": "GATE16 is COMPLETE_AGENT after the exact AGENT_CLOSURE transition. A separate independent EXTERNAL_CONFIRMATION is required; do not self-confirm.",
+  "completedTasks": [
+    "AWAIT_START_AUTHORITY",
+    "GATE16_M1_READINESS_CONTRACT_AUTHORIZATION_START",
+    "GATE16_M2_IMPLEMENTATION_TESTS_EVIDENCE_AGENT_CLOSURE"
+  ],
+  "openTasks": [
+    "Independent EXTERNAL_CONFIRMATION under a separate independent session and EXTERNAL_REINSPECTION_REPORT authority."
+  ],
+  "reusableEvidence": [
+    {
+      "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+      "validUntilCondition": "valid while the GATE16 M2 artifact bytes and the canonical contract remain byte-identical"
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/GATE16_AGENT_CLOSURE_HANDOFF_R1.json",
+      "sha256": "2972060018abd3240bced4a8ab6715a24613d2af2032bd792325072e0c71c627",
+      "validUntilCondition": "valid while the GATE16 R0003 state seal and canonical ledger prefix remain byte-identical"
+    }
+  ],
+  "invalidatedEvidence": [],
+  "requiredNextActions": [
+    "GATE16_M3_INDEPENDENT_REINSPECTION_EXTERNAL_CONFIRMATION"
+  ],
+  "protectedHashes": [
+    {
+      "path": "governance/gates/GATE16/contracts/CURRENT_CONTRACT.json",
+      "sha256": "c1b9ba5dbbd97adeaa9ffa4c98b7a45e0bacfe70238a04a4ce6c8c61d15e0f96"
+    },
+    {
+      "path": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0002/STATE_SEAL.json",
+      "sha256": "8d12711c944ad9009e9a8c4e1ef521186d75e1654dbac4e2776c9ea9835af947"
+    }
+  ],
+  "createdAt": "2026-08-14T15:02:20.694Z"
+}

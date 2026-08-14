@@ -1,0 +1,147 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "GATE16_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "programId": "GATE16_FINAL_GOVERNED_CLOSURE_R1",
+  "manifestSha256": "1d15144576230d4a9383903c3eaf80fb67fe2cf1ab8932103a5a106bb72173ad",
+  "baseHead": "c0facacae94f9142fb736dddc2ecfe0d3344dc9c",
+  "consumedUse": 1,
+  "transactionId": "GATE16_AGENT_CLOSURE_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T15:02:20.694Z",
+  "commitMessage": "governance: close GATE16 under final closure authority",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/GATE16_AGENT_CLOSURE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 17,
+  "cohort": [
+    {
+      "path": "governance/gates/GATE16/implementation/CROSSCHECK_POLICY.json",
+      "sha256": "6fc24a2c38327104b8a0b8f8a452af4a730f27b25e6e0cc3791d50679c714a29",
+      "byteLength": 3124,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE16 M2 crosscheck policy in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/INDEPENDENT_VERDICT_REGISTRY.json",
+      "sha256": "e8d6dcf512add25aac15f2f1642d15b76e7ff1c6a6c5fcf66b511d320b12c909",
+      "byteLength": 1934,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE16 M2 independent verdict registry in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "sha256": "d1d5c565532a77b67b9e071022717ab4c57f78be0d6d97c4e2b7a6c24704e7ec",
+      "byteLength": 23891,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE16 M2 independent production validator in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "sha256": "ceec4886b2b41d2097ce6d34e748e2246d1d282709bff021c1d931238b326f5c",
+      "byteLength": 16759,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE16 M2 independent test suite in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "sha256": "d5e4c719d7ed3979a33805349c809dd873220ed2fcea845441ad6b10511562d8",
+      "byteLength": 64884,
+      "operation": "CREATE",
+      "reason": "Persist the already-validated GATE16 M2 machine-derived crosscheck evidence in the exact closure cohort; no regeneration is authorized.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE16_AGENT_CLOSURE_R1.json",
+      "sha256": "e3fb5739eef64ec396a4715abe5f52969b1aa5652ace4177b6eb12ab9e49a0fe",
+      "byteLength": 2042,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact GATE16 post-freeze closure pre-state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/historical-architecture/GATE16_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "1d15144576230d4a9383903c3eaf80fb67fe2cf1ab8932103a5a106bb72173ad",
+      "byteLength": 5503,
+      "operation": "CREATE",
+      "reason": "Finite exact-file GATE16 closure cohort with no wildcard or directory blanket.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/GATE16_AGENT_CLOSURE_HANDOFF_R1.json",
+      "sha256": "2972060018abd3240bced4a8ab6715a24613d2af2032bd792325072e0c71c627",
+      "byteLength": 3049,
+      "operation": "CREATE",
+      "reason": "Durable GATE16 COMPLETE_AGENT handoff preserving M2 evidence identity and the independent M3 next action.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/CHECKPOINT.json",
+      "sha256": "0509eaa56ca9301d5a6870ca22a7214b2a39e3308352755125003caf0a3b9d33",
+      "byteLength": 1893,
+      "operation": "CREATE",
+      "reason": "New GATE16 closure state revision checkpoint after the exact AGENT_CLOSURE transition.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/OPEN_DEFECTS.json",
+      "sha256": "e3b5a8690882e42752c63678431a7140007b98776581e047ac2b95087e2e9cda",
+      "byteLength": 70,
+      "operation": "CREATE",
+      "reason": "Derived GATE16 closure revision defect projection preserving the zero-defect state.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/revisions/R0003/STATE_SEAL.json",
+      "sha256": "5e033964467265b48a302cbbced12d2658c2453b09e5b4d614fe4606b7edcdd8",
+      "byteLength": 1577,
+      "operation": "CREATE",
+      "reason": "Native GATE16 state seal chained from R0002 and pinned by the AGENT_CLOSURE event.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/gates/GATE16/state/CURRENT_STATE.json",
+      "sha256": "fcdd9319db27802696c90947199fc37d571dc743d2ef3f573d161d2647ca466c",
+      "byteLength": 300,
+      "operation": "MODIFY",
+      "reason": "Advance the canonical GATE16 state pointer to R0003 COMPLETE_AGENT.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+      "sha256": "3194dadf149c37280f45b456ed2bc9a3ec3e3daa99559519ef63664d798eea56",
+      "byteLength": 38063,
+      "operation": "MODIFY",
+      "reason": "Append exactly one canonical GATE16 AGENT_CLOSURE event; events 1-67 remain byte-identical.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "295abb9b5a0c3abe7d7fb8b0ca3a73afd572900487b0610063c70765eb2b69df",
+      "byteLength": 15544,
+      "operation": "MODIFY",
+      "reason": "Regenerate the derived status projection from the post-closure canonical ledger.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "79e40e7aa62b6690a2922fe923429230566de0812c72ff42604eb6f6835ce48d",
+      "byteLength": 1138,
+      "operation": "MODIFY",
+      "reason": "Refresh the derived active-gate context ledger binding while ACTIVE_GATE remains GATE13.",
+      "artifactClass": "AGENT_CLOSURE"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "byteLength": 126,
+      "operation": "MODIFY",
+      "reason": "Refresh the existing derived active-gate context projection as part of the exact closure cohort.",
+      "artifactClass": "AGENT_CLOSURE"
+    }
+  ]
+}

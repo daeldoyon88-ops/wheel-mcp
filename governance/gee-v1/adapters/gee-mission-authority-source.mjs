@@ -35,6 +35,7 @@ import { validateAgainstJsonSchema } from '../contracts/validate-against-json-sc
 import {
   evaluatePostFreezeMaintenanceAuthorityV2,
   isExactMaintenancePath,
+  POST_FREEZE_MAINTENANCE_WORK_UNIT_CLASS,
   PHASE_AUTHORIZE_PROGRAM_APPLY
 } from '../core/post-freeze-maintenance-authority.mjs';
 
@@ -108,6 +109,7 @@ function maintenanceAuthorityConflictResult(workUnitId, candidates) {
   return {
     workUnitId,
     workUnitType: MISSION_WORK_UNIT_TYPE,
+    workUnitClass: POST_FREEZE_MAINTENANCE_WORK_UNIT_CLASS,
     authorityKind: 'POST_FREEZE_MAINTENANCE',
     contract: null,
     contractPath: null,
@@ -199,6 +201,7 @@ function maintenanceAuthorityV2Result(workUnitId, loaded, root, loadedAuthoritie
   return {
     workUnitId,
     workUnitType: MISSION_WORK_UNIT_TYPE,
+    workUnitClass: POST_FREEZE_MAINTENANCE_WORK_UNIT_CLASS,
     authorityKind: 'POST_FREEZE_MAINTENANCE_V2',
     contract: null,
     contractPath: null,
@@ -238,6 +241,7 @@ function maintenanceAuthorityResult(workUnitId, loaded, root, loadedAuthorities,
   return {
     workUnitId,
     workUnitType: MISSION_WORK_UNIT_TYPE,
+    workUnitClass: POST_FREEZE_MAINTENANCE_WORK_UNIT_CLASS,
     authorityKind: 'POST_FREEZE_MAINTENANCE',
     contract: null,
     contractPath: null,
@@ -260,6 +264,7 @@ function reservedMaintenanceWorkUnitResult(workUnitId, candidates) {
   return {
     workUnitId,
     workUnitType: MISSION_WORK_UNIT_TYPE,
+    workUnitClass: POST_FREEZE_MAINTENANCE_WORK_UNIT_CLASS,
     authorityKind: 'POST_FREEZE_MAINTENANCE',
     contract: null,
     contractPath: null,
@@ -410,7 +415,11 @@ export function createGeeMissionAuthoritySource(repoRoot, { projectId = 'WHEEL',
     sourceId: 'gee-mission-authority-source',
 
     listWorkUnitIds() {
-      return [...loadRevisions(root).revisions.keys()];
+      const { revisions } = loadRevisions(root);
+      const maintenanceIds = loadPostFreezeMaintenanceAuthorities(root)
+        .map((candidate) => authorityWorkUnitId(candidate.authority))
+        .filter((id) => typeof id === 'string' && id.length > 0);
+      return [...new Set([...revisions.keys(), ...maintenanceIds])];
     },
 
     resolveWorkUnitAuthority(workUnitId) {

@@ -25,6 +25,7 @@ import {
   stableBytes,
   sha256Canonical
 } from '../implementation/crosscheck-validator.mjs';
+import { resolveCanonicalLedgerPrefix } from '../../../tools/validate-status-ledger.mjs';
 
 const ROOT = REPO_ROOT;
 const VALIDATOR_CLI = path.join(ROOT, VALIDATOR_MODULE_PATH.replaceAll('/', path.sep));
@@ -317,4 +318,14 @@ test('G16 evidence report is independently bound and complete', () => {
   const report = JSON.parse(fs.readFileSync(EVIDENCE_FILE, 'utf8'));
   const validation = validateEvidenceArtifact(report, { root: ROOT });
   assert.equal(validation.verdict, 'PASS', JSON.stringify(validation));
+  const contract = JSON.parse(fs.readFileSync(path.join(ROOT, CONTRACT_PATH.replaceAll('/', path.sep)), 'utf8'));
+  const ledgerInput = contract.requiredInputs.find((item) => item.path === 'governance/state/GATE_STATUS_LEDGER.ndjson');
+  const prefix = resolveCanonicalLedgerPrefix({
+    ledgerPath: path.join(ROOT, ledgerInput.path.replaceAll('/', path.sep)),
+    eventCount: ledgerInput.eventCount,
+    expectedSha256: ledgerInput.sha256
+  });
+  assert.equal(prefix.valid, true, JSON.stringify(prefix.findings));
+  assert.equal(prefix.availableEventCount, 69);
+  assert.equal(prefix.prefixSha256, ledgerInput.sha256);
 });

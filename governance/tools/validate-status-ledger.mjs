@@ -1975,6 +1975,66 @@ export function reconstructLedgerPrefixBytes(ledgerPath, throughOrdinal) {
 }
 
 /**
+ * Resolve a canonical historical pre-state directly from the live append-only
+ * ledger. The returned prefix bytes are an exact slice of the current file;
+ * no temporary ledger is created and no canonical bytes are rewritten.
+ */
+export function resolveCanonicalLedgerPrefix({ ledgerPath, eventCount, expectedSha256 }) {
+  const findings = [];
+  let bytes = null;
+  try { bytes = fs.readFileSync(ledgerPath); } catch (error) {
+    findings.push({ code: 'LEDGER_UNREADABLE', detail: error?.message || String(error) });
+  }
+  if (!Number.isInteger(eventCount) || eventCount < 1) findings.push({ code: 'PRESTATE_EVENT_COUNT_INVALID' });
+  if (typeof expectedSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expectedSha256)) findings.push({ code: 'PRESTATE_EXPECTED_SHA_INVALID' });
+  if (!bytes || findings.length) return { valid: false, findings, availableEventCount: null, prefixBytes: null, prefixSha256: null };
+
+  const lineEnds = [];
+  for (let index = 0; index < bytes.length; index += 1) if (bytes[index] === 0x0a) lineEnds.push(index + 1);
+  const lastCompleteEnd = lineEnds.at(-1) ?? 0;
+  if (lastCompleteEnd < bytes.length) lineEnds.push(bytes.length);
+  const availableEventCount = lineEnds.length;
+  if (availableEventCount < eventCount) findings.push({ code: 'PRESTATE_LEDGER_TOO_SHORT', detail: { eventCount, availableEventCount } });
+
+  const prefixEnd = availableEventCount >= eventCount ? lineEnds[eventCount - 1] : null;
+  const prefixBytes = prefixEnd === null ? null : Buffer.from(bytes.subarray(0, prefixEnd));
+  let prefixSha256 = prefixBytes ? sha256Bytes(prefixBytes) : null;
+  if (prefixBytes && prefixSha256 !== expectedSha256) findings.push({ code: 'PRESTATE_PREFIX_SHA_MISMATCH', detail: { expectedSha256, prefixSha256 } });
+
+  if (prefixBytes) {
+    const lines = prefixBytes.toString('utf8').split(/\r?\n/);
+    if (lines.at(-1) === '') lines.pop();
+    let previousEventPayloadSha256 = null;
+    for (let index = 0; index < lines.length; index += 1) {
+      let event;
+      try { event = JSON.parse(lines[index]); } catch (error) {
+        findings.push({ code: 'PRESTATE_EVENT_JSON_INVALID', detail: { ordinal: index + 1, error: error?.message || String(error) } });
+        continue;
+      }
+      if (event.ordinal !== index + 1) findings.push({ code: 'PRESTATE_ORDINAL_INVALID', detail: { expected: index + 1, actual: event.ordinal } });
+      if (event.previousEventSha256 !== previousEventPayloadSha256) {
+        findings.push({ code: 'PRESTATE_PREVIOUS_EVENT_CHAIN_INVALID', detail: { ordinal: index + 1, expected: previousEventPayloadSha256, actual: event.previousEventSha256 } });
+      }
+      const { eventPayloadSha256, ...eventPayload } = event;
+      const recomputedEventPayloadSha256 = sha256Canonical(eventPayload);
+      if (eventPayloadSha256 !== recomputedEventPayloadSha256) {
+        findings.push({ code: 'PRESTATE_EVENT_PAYLOAD_HASH_INVALID', detail: { ordinal: index + 1, expected: recomputedEventPayloadSha256, actual: eventPayloadSha256 } });
+      }
+      previousEventPayloadSha256 = eventPayloadSha256 ?? null;
+    }
+  }
+  return {
+    valid: findings.length === 0,
+    findings,
+    availableEventCount,
+    prefixBytes,
+    prefixSha256,
+    eventCount,
+    expectedSha256
+  };
+}
+
+/**
  * FINAL-08: validate a HISTORICAL PREFIX of the ledger independently of the
  * live full-file hash. An append-only ledger legitimately grows over time; a
  * historical proof pinned "as of ordinal N" must stay reproducible without

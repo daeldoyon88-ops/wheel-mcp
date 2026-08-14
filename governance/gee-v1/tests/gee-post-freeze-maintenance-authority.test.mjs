@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -17,6 +18,7 @@ import {
   PHASE_VERIFY_PROGRAM_CONSUMPTION
 } from '../core/post-freeze-maintenance-authority.mjs';
 import { verifyOwnerSignature } from '../core/release-authority.mjs';
+import { resolveCanonicalLedgerPrefix } from '../../tools/validate-status-ledger.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const R7_ID = 'GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7';
@@ -26,6 +28,10 @@ const HR_R2_ID = 'HISTORICAL_RECONCILIATION_PRIMITIVE_REPAIR_R2';
 const HR_R2_FILE = 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_HR_R2_R1.json';
 const INTEGRATION_ID = 'GATE00_11_POST_RECONCILIATION_INTEGRATION_SYNC_R1';
 const INTEGRATION_FILE = 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE00_11_INTEGRATION_SYNC_R1.json';
+const GENERIC_MAINTENANCE_ID = 'WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1';
+const LEDGER_PATH = path.join(REPO_ROOT, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
+const GATE16_PREFIX_EVENT_COUNT = 65;
+const GATE16_PREFIX_SHA256 = '0607f8a0725f20406013905904f3a8ea1c1772f59c034af395a066dc4afa5f41';
 const AUTHORITY_ROOT = 'governance/sources';
 const EXPECTED_PATHS = [
   'governance/tools/validate-status-ledger.mjs',
@@ -192,6 +198,121 @@ test('MA19: integration authority authorizes only exact cohort files', () => {
     assert.equal(isPathAuthorized(authority.authorizedPaths, `${authorizedPath}.evil`), false, `${authorizedPath}.evil`);
   }
   assert.equal(isPathAuthorized(authority.authorizedPaths, 'governance/state/generated-evidence/GATE_STATUS_SNAPSHOT.json'), false);
+});
+
+test('MA20: arbitrary maintenance mission identity is discovered without an allowlist entry', () => {
+  const fixture = makeV2Fixture();
+  fixture.manifest.programId = GENERIC_MAINTENANCE_ID;
+  fixture.authority = {
+    ...fixture.authority,
+    authorityId: `${GENERIC_MAINTENANCE_ID}_AUTHORITY_R1`,
+    programId: GENERIC_MAINTENANCE_ID,
+    authorizedPathManifestSha256: sha256Hex(Buffer.from(JSON.stringify(fixture.manifest), 'utf8'))
+  };
+  fixture.observed.manifestSha256 = fixture.authority.authorizedPathManifestSha256;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-arbitrary-maintenance-'));
+  const authorityDir = path.join(root, AUTHORITY_ROOT);
+  const manifestPath = path.join(root, 'synthetic', 'governance', 'AUTHORIZED_PATHS.json');
+  fs.mkdirSync(authorityDir, { recursive: true });
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify(fixture.manifest, null, 2));
+  fs.writeFileSync(path.join(authorityDir, 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GENERIC_R1.json'), JSON.stringify(fixture.authority, null, 2));
+  const source = createGeeMissionAuthoritySource(root, { maintenanceObservationProvider: () => fixture.observed });
+  assert.equal(source.listWorkUnitIds().includes(GENERIC_MAINTENANCE_ID), true);
+  const result = source.resolveWorkUnitAuthority(GENERIC_MAINTENANCE_ID);
+  assert.equal(result.workUnitClass, 'MAINTENANCE');
+  assert.equal(result.authorityKind, 'POST_FREEZE_MAINTENANCE_V2');
+  assert.equal(result.proofs.WORK_UNIT_EXECUTABLE.state, 'PROVEN');
+  assert.deepEqual(result.findings, []);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+function withTemporaryLedger(bytes, callback) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-ledger-prefix-'));
+  const ledgerPath = path.join(root, 'GATE_STATUS_LEDGER.ndjson');
+  fs.writeFileSync(ledgerPath, bytes);
+  try {
+    return callback(ledgerPath);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
+function ledgerLines() {
+  return fs.readFileSync(LEDGER_PATH, 'utf8').trimEnd().split('\n');
+}
+
+function ledgerSha256(bytes) {
+  return crypto.createHash('sha256').update(bytes).digest('hex');
+}
+
+test('MA21: canonical prestate prefix accepts the real suffix and a future N+k identity', () => {
+  const currentBytes = fs.readFileSync(LEDGER_PATH);
+  const prefix = resolveCanonicalLedgerPrefix({
+    ledgerPath: LEDGER_PATH,
+    eventCount: GATE16_PREFIX_EVENT_COUNT,
+    expectedSha256: GATE16_PREFIX_SHA256
+  });
+  assert.equal(prefix.valid, true, JSON.stringify(prefix.findings));
+  assert.equal(prefix.availableEventCount, 69);
+  assert.equal(prefix.prefixSha256, GATE16_PREFIX_SHA256);
+  assert.equal(prefix.prefixBytes.length < currentBytes.length, true);
+
+  const future = resolveCanonicalLedgerPrefix({
+    ledgerPath: LEDGER_PATH,
+    eventCount: 69,
+    expectedSha256: ledgerSha256(currentBytes)
+  });
+  assert.equal(future.valid, true, JSON.stringify(future.findings));
+  assert.equal(future.availableEventCount, 69);
+  assert.equal(future.prefixBytes.equals(currentBytes), true);
+});
+
+test('MA22: mutated historical prefix blocks on prefix identity mismatch', () => {
+  const mutated = Buffer.from(fs.readFileSync(LEDGER_PATH, 'utf8').replace('GENESIS_IMPORT_GATE00', 'GENESIS_IMPORT_GATE0X'), 'utf8');
+  withTemporaryLedger(mutated, (ledgerPath) => {
+    const result = resolveCanonicalLedgerPrefix({ ledgerPath, eventCount: GATE16_PREFIX_EVENT_COUNT, expectedSha256: GATE16_PREFIX_SHA256 });
+    assert.equal(result.valid, false);
+    assert.ok(result.findings.some((finding) => finding.code === 'PRESTATE_PREFIX_SHA_MISMATCH'));
+  });
+});
+
+test('MA23: shortened history blocks when the requested prefix is unavailable', () => {
+  const shortened = Buffer.from(`${ledgerLines().slice(0, 64).join('\n')}\n`, 'utf8');
+  withTemporaryLedger(shortened, (ledgerPath) => {
+    const result = resolveCanonicalLedgerPrefix({ ledgerPath, eventCount: GATE16_PREFIX_EVENT_COUNT, expectedSha256: GATE16_PREFIX_SHA256 });
+    assert.equal(result.valid, false);
+    assert.ok(result.findings.some((finding) => finding.code === 'PRESTATE_LEDGER_TOO_SHORT'));
+    assert.equal(result.prefixBytes, null);
+  });
+});
+
+test('MA24: malformed ordinal and previous-event chain block inside the prefix', () => {
+  const lines = ledgerLines();
+  const ordinalMutation = JSON.parse(lines[1]);
+  ordinalMutation.ordinal = 999;
+  const ordinalBytes = Buffer.from(`${[lines[0], JSON.stringify(ordinalMutation), ...lines.slice(2)].join('\n')}\n`, 'utf8');
+  withTemporaryLedger(ordinalBytes, (ledgerPath) => {
+    const result = resolveCanonicalLedgerPrefix({ ledgerPath, eventCount: GATE16_PREFIX_EVENT_COUNT, expectedSha256: GATE16_PREFIX_SHA256 });
+    assert.equal(result.valid, false);
+    assert.ok(result.findings.some((finding) => finding.code === 'PRESTATE_ORDINAL_INVALID'));
+  });
+
+  const chainMutation = JSON.parse(lines[1]);
+  chainMutation.previousEventSha256 = '0'.repeat(64);
+  const chainBytes = Buffer.from(`${[lines[0], JSON.stringify(chainMutation), ...lines.slice(2)].join('\n')}\n`, 'utf8');
+  withTemporaryLedger(chainBytes, (ledgerPath) => {
+    const result = resolveCanonicalLedgerPrefix({ ledgerPath, eventCount: GATE16_PREFIX_EVENT_COUNT, expectedSha256: GATE16_PREFIX_SHA256 });
+    assert.equal(result.valid, false);
+    assert.ok(result.findings.some((finding) => finding.code === 'PRESTATE_PREVIOUS_EVENT_CHAIN_INVALID'));
+  });
+});
+
+test('MA25: malformed canonical prestate identity blocks closed', () => {
+  const result = resolveCanonicalLedgerPrefix({ ledgerPath: LEDGER_PATH, eventCount: 0, expectedSha256: 'A'.repeat(64) });
+  assert.equal(result.valid, false);
+  assert.ok(result.findings.some((finding) => finding.code === 'PRESTATE_EVENT_COUNT_INVALID'));
+  assert.ok(result.findings.some((finding) => finding.code === 'PRESTATE_EXPECTED_SHA_INVALID'));
 });
 
 // ---------------------------------------------------------------------------

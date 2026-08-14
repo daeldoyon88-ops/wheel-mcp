@@ -1,0 +1,91 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_AUTHORITY_R1",
+  "programId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1",
+  "manifestSha256": "303dd9249e79e1c15a11461025b4bbc56fc745704183fbfb83271df0ccf061f4",
+  "baseHead": "db71c84a86b2d2b88181b5dbafb3f4212fff0c12",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_TRANSACTION",
+  "recordedAt": "2026-08-14T17:00:00.000Z",
+  "commitMessage": "governance: fix generic maintenance admission and prestate replay",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_CONSUMPTION_R1.json",
+    "reason": "The receipt cannot digest its own bytes; the enclosing commit binds it."
+  },
+  "cohortPathCount": 10,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "operation": "MODIFY",
+      "reason": "Resolve arbitrary bounded maintenance mission identities through the existing LOCAL_EXPLICIT_AUTHORITY model and expose the proven maintenance work-unit class.",
+      "artifactClass": "GENERIC_MAINTENANCE_ADMISSION",
+      "sha256": "e909810029799b3f14528abd96686a3b55bd32b441ad39589611196d18c9246c",
+      "byteLength": 23415
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "reason": "Require and expose the generic MAINTENANCE work-unit class without introducing a new authority class or signature mechanism.",
+      "artifactClass": "GENERIC_MAINTENANCE_ADMISSION",
+      "sha256": "c3423615681d52d7a25f842cb232342b8f84aac3318f3bcd3f239d660e0f9d4c",
+      "byteLength": 31122
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "reason": "Prove arbitrary maintenance mission names are admitted only through exact valid authority and remain fail-closed under hostile mutations.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS",
+      "sha256": "d425a2c91338639a768f2fa5ff1d9f27ed0d71b5d5ca1e6841a0b7768984d551",
+      "byteLength": 43085
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "reason": "Provide the generic exact-byte append-only prefix resolver with count, ordinal, previous-event chain and expected SHA checks.",
+      "artifactClass": "PRESTATE_LEDGER_PREFIX_REPLAY",
+      "sha256": "ca7fa53b54cd19a4b5b2c0cec080e0ab72b380f22c5fc034476cbe800e5959d5",
+      "byteLength": 156022
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "operation": "MODIFY",
+      "reason": "Consume the generic canonical prestate prefix resolver instead of the former GATE16-specific Git fallback.",
+      "artifactClass": "PRESTATE_LEDGER_PREFIX_REPLAY",
+      "sha256": "91eb8b3d9b634a6915ad8635dd5d88bdda5fc2411a2a544d7e0e9886e46a64aa",
+      "byteLength": 23555
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "operation": "MODIFY",
+      "reason": "Refresh the derived GATE16 evidence binding to the repaired validator bytes while preserving the canonical replay verdict and historical signed confirmation evidence.",
+      "artifactClass": "PRESTATE_LEDGER_PREFIX_REPLAY",
+      "sha256": "69ffb7591be6e0cbb5caada0c96414852aaaac76cbd4a4f128aa08d5d5234890",
+      "byteLength": 64884
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "operation": "MODIFY",
+      "reason": "Prove real 69-event suffix preservation, generic future N+k replay and fail-closed mutated, shortened and malformed prefix cases.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS",
+      "sha256": "98cfc8a848b5f9ee6675f4ca906fbefc17894b86d56189590d1c8ac279a96d45",
+      "byteLength": 17469
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_AUTHORIZED_PATHS.json",
+      "operation": "CREATE",
+      "reason": "Finite exact-path manifest for this owner-authorized generic maintenance cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS",
+      "sha256": "303dd9249e79e1c15a11461025b4bbc56fc745704183fbfb83271df0ccf061f4",
+      "byteLength": 4103
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1.json",
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact current HEAD, 69-event ledger and bounded repair cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS",
+      "sha256": "826a898e4dadc3e650cf0475a0cf3b70ae1ede9c6b5d407d542ff5d1739eb9c2",
+      "byteLength": 2342
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_AUTHORIZED_PATHS",
+  "programId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1",
+  "paths": [
+    {
+      "path": "governance/gee-v1/adapters/gee-mission-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "GENERIC_MAINTENANCE_ADMISSION",
+      "reason": "Resolve arbitrary bounded maintenance mission identities through the existing LOCAL_EXPLICIT_AUTHORITY model and expose the proven maintenance work-unit class.",
+      "artifactClass": "GENERIC_MAINTENANCE_ADMISSION"
+    },
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "GENERIC_MAINTENANCE_ADMISSION",
+      "reason": "Require and expose the generic MAINTENANCE work-unit class without introducing a new authority class or signature mechanism.",
+      "artifactClass": "GENERIC_MAINTENANCE_ADMISSION"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-post-freeze-maintenance-authority.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "Prove arbitrary maintenance mission names are admitted only through exact valid authority and remain fail-closed under hostile mutations.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "phase": "PRESTATE_LEDGER_PREFIX_REPLAY",
+      "reason": "Provide the generic exact-byte append-only prefix resolver with count, ordinal, previous-event chain and expected SHA checks.",
+      "artifactClass": "PRESTATE_LEDGER_PREFIX_REPLAY"
+    },
+    {
+      "path": "governance/gates/GATE16/implementation/crosscheck-validator.mjs",
+      "operation": "MODIFY",
+      "phase": "PRESTATE_LEDGER_PREFIX_REPLAY",
+      "reason": "Consume the generic canonical prestate prefix resolver instead of the former GATE16-specific Git fallback.",
+      "artifactClass": "PRESTATE_LEDGER_PREFIX_REPLAY"
+    },
+    {
+      "path": "governance/gates/GATE16/evidence/CROSSCHECK_REPORT.json",
+      "operation": "MODIFY",
+      "phase": "PRESTATE_LEDGER_PREFIX_REPLAY",
+      "reason": "Refresh the derived GATE16 evidence binding to the repaired validator bytes while preserving the canonical replay verdict and historical signed confirmation evidence.",
+      "artifactClass": "PRESTATE_LEDGER_PREFIX_REPLAY"
+    },
+    {
+      "path": "governance/gates/GATE16/tests/gate16-independent-crosscheck.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "Prove real 69-event suffix preservation, generic future N+k replay and fail-closed mutated, shortened and malformed prefix cases.",
+      "artifactClass": "TARGETED_HOSTILE_TESTS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_AUTHORIZED_PATHS.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Finite exact-path manifest for this owner-authorized generic maintenance cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact current HEAD, 69-event ledger and bounded repair cohort.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    },
+    {
+      "path": "governance/historical-architecture/WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use exact-byte consumption receipt for the resolved maintenance cohort; self-excludes deterministically.",
+      "artifactClass": "MAINTENANCE_AUTHORITY_RECORDS"
+    }
+  ]
+}

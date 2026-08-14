@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-14T16:30:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-WHEEL-GENERIC-MAINTENANCE-ADMISSION-PRESTATE-REPLAY-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "db71c84a86b2d2b88181b5dbafb3f4212fff0c12",
+    "ledgerEventCount": 69,
+    "ledgerPrefixSha256": "b5d17a183d6c81e96f563caa5643ad6819d68f69475ec2c2127727ffe0f442fb",
+    "gateId": "GATE16",
+    "gateStatus": "COMPLETE_CONFIRMED",
+    "stateRevision": "R0004",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_AUTHORIZED_PATHS.json",
+  "authorizedPathManifestSha256": "303dd9249e79e1c15a11461025b4bbc56fc745704183fbfb83271df0ccf061f4",
+  "authorizedOperationClasses": [
+    "GENERIC_MAINTENANCE_ADMISSION",
+    "PRESTATE_LEDGER_PREFIX_REPLAY",
+    "TARGETED_HOSTILE_TESTS",
+    "MAINTENANCE_AUTHORITY_RECORDS"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: fix generic maintenance admission and prestate replay",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "db71c84a86b2d2b88181b5dbafb3f4212fff0c12"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/WHEEL_GENERIC_MAINTENANCE_ADMISSION_AND_PRESTATE_REPLAY_R1_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

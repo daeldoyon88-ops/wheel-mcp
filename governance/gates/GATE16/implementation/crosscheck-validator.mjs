@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { sha256Canonical } from '../../../tools/canonical-json.mjs';
+import { resolveCanonicalLedgerPrefix } from '../../../tools/validate-status-ledger.mjs';
 
 export { sha256Canonical };
 
@@ -21,7 +21,6 @@ export const PRODUCER_OUTPUT_PATH = 'governance/sources/GATE15_M3_INDEPENDENT_EX
 export const VERIFIER_ID = 'GATE16_M2_INDEPENDENT_VERIFIER_R1';
 export const PRODUCER_ID = 'GATE15_M3_EXTERNAL_CONFIRMATION_R1';
 const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
-const START_RECORD_PATH = 'governance/authority/authorizations/GATE16/GATE_START_RECORD.json';
 
 export const REASON_CODES = Object.freeze([
   'REQUIRED_SOURCE_MISSING',
@@ -143,24 +142,21 @@ export function bindReplayIdentity(input) {
   return output;
 }
 
-function preStateBytes(root, relativePath, expectedSha256) {
-  if (relativePath !== LEDGER_PATH || typeof expectedSha256 !== 'string') return null;
-  const startRecord = readJson(root, START_RECORD_PATH);
-  const baseCommit = startRecord?.baseCommit;
-  if (typeof baseCommit !== 'string' || !/^[0-9a-f]{40}$/.test(baseCommit)) return null;
-  const result = spawnSync('git', ['show', `${baseCommit}:${relativePath}`], {
-    cwd: root,
-    encoding: 'buffer',
-    stdio: ['ignore', 'pipe', 'ignore']
-  });
-  if (result.status !== 0 || !Buffer.isBuffer(result.stdout) || sha256Bytes(result.stdout) !== expectedSha256) return null;
-  return result.stdout;
-}
-
 function boundBytes(root, item) {
+  if (item.path === LEDGER_PATH) {
+    const contract = readJson(root, CONTRACT_PATH);
+    const contractItem = contract?.requiredInputs?.find((candidate) => candidate.path === LEDGER_PATH);
+    const ledgerPath = resolveUnderRoot(root, LEDGER_PATH);
+    if (!ledgerPath || !Number.isInteger(contractItem?.eventCount)) return null;
+    const resolved = resolveCanonicalLedgerPrefix({
+      ledgerPath,
+      eventCount: contractItem.eventCount,
+      expectedSha256: contractItem.sha256
+    });
+    return resolved.prefixBytes;
+  }
   const current = readBytes(root, item.path);
-  if (current && (!item.expectedSha256 || sha256Bytes(current) === item.expectedSha256)) return current;
-  return preStateBytes(root, item.path, item.expectedSha256) || current;
+  return current;
 }
 
 function actualBinding(root, item) {

@@ -35,6 +35,7 @@ import {
 } from '../tools/gate-lifecycle-orchestrator.mjs';
 import { sha256Bytes } from '../tools/canonical-json.mjs';
 import { collectPostFreezeMaintenanceObservation } from '../tools/post-freeze-maintenance-observation.mjs';
+import { validateLifecycleTransactionProvenance } from '../tools/transaction-provenance.mjs';
 import { computeSealedMembersDigest } from '../tools/validate-state-seal.mjs';
 import {
   computeGateAuthorizationBindingDigest,
@@ -308,6 +309,18 @@ function enterSyntheticFutureGate(root, staging, gateId = 'GATE18') {
     authorityPath: start.recordPath, recordedAt: '2026-08-15T10:05:00.000Z'
   });
   assert.equal(started.result, 'APPLIED', JSON.stringify(started.findings));
+}
+
+function syntheticAuthorizedClosure(root, staging, gateId = 'GATE18') {
+  enterSyntheticFutureGate(root, staging, gateId);
+  const closure = futureMaintenanceInputs(root, gateId, 'AGENT_CLOSURE', `${gateId}_SYNTHETIC_AGENT_CLOSURE_R1`, '2026-08-15T10:10:00.000Z');
+  const derived = deriveCandidateTransition({ root, gateId, transitionType: 'AGENT_CLOSURE', eventId: `${gateId}_SYNTHETIC_AGENT_CLOSURE_R1`, authorityPath: closure.authorityPath, recordedAt: '2026-08-15T10:10:00.000Z' });
+  assert.equal(derived.status, 'DERIVED', JSON.stringify(derived.findings));
+  assert.equal(validateCandidateInStagingRoot({ root, candidate: derived.candidate, stagingRoot: staging }).valid, true);
+  const authority = evaluateTransitionAuthority({ root, candidate: derived.candidate, authorityDocumentPath: closure.authorityPath });
+  assert.equal(authority.decision, 'AUTHORIZED', JSON.stringify(authority.findings));
+  const request = { gateId, transitionType: 'AGENT_CLOSURE', eventId: `${gateId}_SYNTHETIC_AGENT_CLOSURE_R1`, authorityPath: closure.authorityPath, authorityDocumentPath: closure.authorityPath, recordedAt: '2026-08-15T10:10:00.000Z' };
+  return { candidate: derived.candidate, authority, request };
 }
 
 /**
@@ -639,21 +652,17 @@ test('B1: a rollback restoration failure is RECOVERY_REQUIRED, never falsely rep
   const root = scratchRoot('rollback-restoration-failure');
   const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
   try {
-    const checkpoint = readJson(REPO_ROOT, 'governance/gates/GATE17/state/revisions/R0003/CHECKPOINT.json');
-    rewindGate17ToPostStart(root);
-    const derived = deriveCandidateTransition({ root, ...gate17ClosureRequest(checkpoint) });
-    assert.equal(derived.status, 'DERIVED');
-    assert.equal(validateCandidateInStagingRoot({ root, candidate: derived.candidate, stagingRoot: staging }).valid, true);
+    const { candidate, authority, request } = syntheticAuthorizedClosure(root, staging);
     let forwardWrites = 0;
     assert.throws(() => applyCandidate({
-      root, candidate: derived.candidate,
+      root, candidate, authorityDocumentPath: request.authorityDocumentPath, authority,
       writeFile(target, bytes) { forwardWrites += 1; if (forwardWrites === 3) throw new Error('FORWARD_FAILURE'); fs.writeFileSync(target, bytes); },
       rollbackWriteFile(target, bytes) { if (target.endsWith('CURRENT_STATE.json')) throw new Error('RESTORATION_FAILURE'); fs.writeFileSync(target, bytes); }
     }), (error) => error.recovered === false && /RECOVERY_REQUIRED/.test(error.message));
-    const resumed = runLifecycleTransition({ root, stagingRoot: staging, ...gate17ClosureRequest(checkpoint) });
+    const resumed = runLifecycleTransition({ root, stagingRoot: staging, ...request });
     assert.equal(resumed.result, 'ALREADY_SATISFIED', JSON.stringify(resumed.findings));
-    assert.equal(readLedgerEvents(root).length, 72, 'recovery must publish exactly one event');
-    assert.equal(readJson(root, 'governance/gates/GATE17/state/CURRENT_STATE.json').stateRevision, 'R0003');
+    assert.equal(readLedgerEvents(root).filter((event) => event.eventId === request.eventId).length, 1, 'recovery must publish exactly one event');
+    assert.equal(readJson(root, 'governance/gates/GATE18/state/CURRENT_STATE.json').stateRevision, 'R0003');
   } finally { discard(root); discard(staging); }
 });
 
@@ -661,21 +670,78 @@ test('R3: a rollback deletion failure for a newly-created member requires durabl
   const root = scratchRoot('rollback-delete-failure');
   const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
   try {
-    const checkpoint = readJson(REPO_ROOT, 'governance/gates/GATE17/state/revisions/R0003/CHECKPOINT.json');
-    rewindGate17ToPostStart(root);
-    const derived = deriveCandidateTransition({ root, ...gate17ClosureRequest(checkpoint) });
-    assert.equal(validateCandidateInStagingRoot({ root, candidate: derived.candidate, stagingRoot: staging }).valid, true);
+    const { candidate, authority, request } = syntheticAuthorizedClosure(root, staging);
     let writes = 0;
-    const createdCheckpoint = derived.candidate.paths.checkpoint;
+    const createdCheckpoint = candidate.paths.checkpoint;
     assert.throws(() => applyCandidate({
-      root, candidate: derived.candidate,
+      root, candidate, authorityDocumentPath: request.authorityDocumentPath, authority,
       writeFile(target, bytes) { writes += 1; if (writes === 4) throw new Error('FORWARD_FAILURE'); fs.writeFileSync(target, bytes); },
-      rollbackRemoveFile(target, options) { if (target.endsWith('R0003\\CHECKPOINT.json')) throw new Error('DELETE_FAILURE'); fs.rmSync(target, options); }
+      rollbackRemoveFile(target, options) { if (path.normalize(target).endsWith(path.normalize(createdCheckpoint))) throw new Error('DELETE_FAILURE'); fs.rmSync(target, options); }
     }), (error) => error.recovered === false && error.rollbackFailures.some((item) => item.path === createdCheckpoint));
-    const resumed = runLifecycleTransition({ root, stagingRoot: staging, ...gate17ClosureRequest(checkpoint) });
+    const resumed = runLifecycleTransition({ root, stagingRoot: staging, ...request });
     assert.equal(resumed.result, 'ALREADY_SATISFIED', JSON.stringify(resumed.findings));
-    assert.equal(readLedgerEvents(root).length, 72);
+    assert.equal(readLedgerEvents(root).filter((event) => event.eventId === request.eventId).length, 1);
   } finally { discard(root); discard(staging); }
+});
+
+function createAuthorizedPendingTransaction(root, staging) {
+  const { candidate, authority, request } = syntheticAuthorizedClosure(root, staging);
+  let writes = 0;
+  assert.throws(() => applyCandidate({
+    root, candidate, authorityDocumentPath: request.authorityDocumentPath, authority,
+    writeFile(target, bytes) { writes += 1; if (writes === 3) throw new Error('FORWARD_FAILURE'); fs.writeFileSync(target, bytes); },
+    rollbackWriteFile(target, bytes) { if (target.endsWith('CURRENT_STATE.json')) throw new Error('RESTORATION_FAILURE'); fs.writeFileSync(target, bytes); }
+  }), (error) => error.recovered === false);
+  const relative = `governance/transactions/TXN_${request.eventId}/TRANSACTION.json`;
+  return { request, transactionPath: relative, transaction: readJson(root, relative) };
+}
+
+test('P1-P12: recovery rejects unproven or altered pending transactions and retains forensic evidence', () => {
+  const cases = [
+    ['P1', (root) => {
+      const target = 'governance/generated/MODEL_ROUTING_POLICY.md';
+      const directory = 'governance/transactions/TXN_FORGED_PREPARED';
+      const source = `${directory}/staged/000.bin`;
+      const malicious = Buffer.from('malicious scratch bytes\n');
+      const before = readBytes(root, target);
+      const sourceFile = path.join(root, ...source.split('/')); fs.mkdirSync(path.dirname(sourceFile), { recursive: true }); fs.writeFileSync(sourceFile, malicious);
+      writeJson(root, `${directory}/TRANSACTION.json`, {
+        schemaVersion: 1, transactionId: 'FORGED_PREPARED_TRANSACTION', transactionState: 'PREPARED', caseType: 'STATUS_TRANSITION', gateId: 'GATE17',
+        stagedArtifacts: [{ sourcePath: source, targetPath: target, sha256: sha256Bytes(malicious), byteLength: malicious.length }], expectedHashes: [{ targetPath: target, sha256: sha256Bytes(malicious), byteLength: malicious.length }], oldPointers: [], newPointers: [], commitOrder: [target], rollbackPlan: [], recoveryPlan: { mode: 'ROLL_FORWARD_FROM_STAGED_ARTIFACTS' }, idempotencyKeys: [], ledgerEvent: { gateId: 'GATE17', transitionType: 'AGENT_CLOSURE', eventId: 'FORGED_EVENT' }, provenance: null
+      });
+      return { request: { gateId: 'GATE17', transitionType: 'AGENT_CLOSURE', eventId: 'FORGED_EVENT', authorityPath: GATE17_AGENT_CLOSURE_AUTHORITY, recordedAt: '2026-08-15T10:10:00.000Z' }, target, before, transactionPath: `${directory}/TRANSACTION.json` };
+    }],
+    ['P2', (_root, transaction) => { transaction.provenance.authority.documentPath = 'governance/sources/DOES_NOT_EXIST.json'; }],
+    ['P3', (_root, transaction) => { transaction.provenance.authority.documentSha256 = '0'.repeat(64); }],
+    ['P4', (_root, transaction) => { transaction.provenance.candidateManifestSha256 = '1'.repeat(64); }],
+    ['P5', (_root, transaction) => { transaction.provenance.candidateCohort.pop(); }],
+    ['P6', (root, transaction) => { fs.writeFileSync(path.join(root, ...transaction.stagedArtifacts[0].sourcePath.split('/')), 'altered staged candidate\n'); }],
+    ['P7', (_root, transaction) => { transaction.expectedHashes.push({ targetPath: 'governance/generated/MODEL_ROUTING_POLICY.md', sha256: '2'.repeat(64), byteLength: 1 }); }],
+    ['P8', (_root, transaction) => { transaction.provenance.requestedOperationClasses = ['START']; }],
+    ['P9', (_root, transaction) => { transaction.gateId = 'GATE17'; }],
+    ['P10', (_root, transaction) => { transaction.provenance.preState.ledgerPrefixSha256 = '3'.repeat(64); }],
+    ['P11', (_root, transaction) => { transaction.provenance.external = { logicalAuthorityId: 'WRONG_EXTERNAL', reportPath: 'governance/sources/MISSING_EXTERNAL.json', reportSha256: '4'.repeat(64), authorityPredecessor: null }; }],
+    ['P12', (_root, transaction) => { delete transaction.provenance; }]
+  ];
+  for (const [label, mutate] of cases) {
+    const root = scratchRoot(`provenance-${label}`);
+    const staging = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'gate-lifecycle-stage-'));
+    try {
+      const fixture = label === 'P1' ? mutate(root) : createAuthorizedPendingTransaction(root, staging);
+      if (label !== 'P1') {
+        mutate(root, fixture.transaction);
+        writeJson(root, fixture.transactionPath, fixture.transaction);
+      }
+      const transaction = readJson(root, fixture.transactionPath);
+      const preflight = validateLifecycleTransactionProvenance({ root, transaction });
+      assert.equal(preflight.valid, false, `${label} must fail provenance`);
+      const result = runLifecycleTransition({ root, stagingRoot: staging, ...fixture.request });
+      assert.equal(result.result, 'BLOCKED', `${label} runner verdict`);
+      assert.equal(result.findings[0].defectClass, 'PENDING_TRANSACTION_PROVENANCE_INVALID');
+      assert.ok(fs.existsSync(path.join(root, ...fixture.transactionPath.split('/'))), `${label} forensic transaction retained`);
+      if (fixture.target) assert.ok(readBytes(root, fixture.target).equals(fixture.before), `${label} target bytes unchanged`);
+    } finally { discard(root); discard(staging); }
+  }
 });
 
 test('A3/A4/A6: exact closure and confirmation authority cover the complete projected cohort', () => {

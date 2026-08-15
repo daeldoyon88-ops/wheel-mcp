@@ -73,6 +73,7 @@ import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evide
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
 import { collectPostFreezeMaintenanceObservation } from './post-freeze-maintenance-observation.mjs';
 import { recoverTransaction } from './recover-governance-transaction.mjs';
+import { createLifecycleTransactionProvenance } from './transaction-provenance.mjs';
 
 export const ORCHESTRATOR_DOCUMENT = 'GATE_LIFECYCLE_ORCHESTRATOR';
 export const ORCHESTRATOR_VERSION = 'R1';
@@ -108,7 +109,7 @@ function transactionDirectory(candidate) { return `${TRANSACTION_ROOT}/TXN_${can
 function transactionFile(candidate) { return `${transactionDirectory(candidate)}/TRANSACTION.json`; }
 function writeTransaction(root, relative, value) { const target = repoPath(root, relative); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, governedBytes(value)); }
 
-function prepareLifecycleTransaction({ root, candidate }) {
+function prepareLifecycleTransaction({ root, candidate, before, provenance }) {
   const transactionId = transactionIdFor(candidate);
   const directory = transactionDirectory(candidate);
   const stagedArtifacts = candidate.writes.map((write, index) => {
@@ -121,7 +122,7 @@ function prepareLifecycleTransaction({ root, candidate }) {
     stagedArtifacts, expectedHashes: candidate.writes.map((write) => ({ targetPath: write.path, sha256: write.sha256, byteLength: write.byteLength })),
     oldPointers: [], newPointers: [], commitOrder: candidate.writes.map((write) => write.path),
     rollbackPlan: candidate.writes.map((write) => ({ targetPath: write.path })), recoveryPlan: { mode: 'ROLL_FORWARD_FROM_STAGED_ARTIFACTS' },
-    idempotencyKeys: [candidate.eventId], ledgerEvent: candidate.event, preparedAt: new Date().toISOString()
+    idempotencyKeys: [candidate.eventId], ledgerEvent: candidate.event, provenance, preparedAt: new Date().toISOString()
   };
   writeTransaction(root, transactionFile(candidate), transaction);
   fs.writeFileSync(repoPath(root, `${directory}/PREPARED`), '');
@@ -923,14 +924,15 @@ export function evaluateTransitionAuthority({ root, candidate, authorityDocument
  * validated clean, so this function contains no validation, no repair and no
  * fallback: by the time control arrives here the decision has already been made.
  */
-export function applyCandidate({ root, candidate, writeFile = fs.writeFileSync, rollbackWriteFile = fs.writeFileSync, rollbackRemoveFile = fs.rmSync }) {
-  const prepared = prepareLifecycleTransaction({ root, candidate });
-  let transaction = prepared.transaction;
+export function applyCandidate({ root, candidate, authorityDocumentPath = null, authority = null, writeFile = fs.writeFileSync, rollbackWriteFile = fs.writeFileSync, rollbackRemoveFile = fs.rmSync }) {
   const before = candidate.writes.map((write) => {
     const target = repoPath(root, write.path);
     const existed = fs.existsSync(target);
     return { write, target, existed, bytes: existed ? fs.readFileSync(target) : null };
   });
+  const provenance = createLifecycleTransactionProvenance({ root, candidate, before, authorityDocumentPath, authority });
+  const prepared = prepareLifecycleTransaction({ root, candidate, before, provenance });
+  let transaction = prepared.transaction;
   const written = [];
   try {
     transaction = setTransactionState(root, candidate, transaction, 'COMMITTING');
@@ -1003,7 +1005,7 @@ export function runLifecycleTransition({
 }) {
   const startedMs = Date.now();
   const recovery = recoverPendingLifecycleTransactions(root);
-  if (recovery.blocked) return { document: ORCHESTRATOR_DOCUMENT, version: ORCHESTRATOR_VERSION, result: 'BLOCKED', gateId: request.gateId, transitionType: request.transitionType, findings: [{ defectClass: 'RECOVERY_REQUIRED', actual: recovery.blocked }], applied: [], canonicalBytesUnchanged: false, timings: { deriveMs: 0, validateMs: 0, applyMs: 0, totalMs: Date.now() - startedMs } };
+  if (recovery.blocked) return { document: ORCHESTRATOR_DOCUMENT, version: ORCHESTRATOR_VERSION, result: 'BLOCKED', gateId: request.gateId, transitionType: request.transitionType, findings: [{ defectClass: recovery.blocked.recoveryAction === 'PENDING_TRANSACTION_PROVENANCE_INVALID' ? 'PENDING_TRANSACTION_PROVENANCE_INVALID' : 'RECOVERY_REQUIRED', actual: recovery.blocked }], applied: [], canonicalBytesUnchanged: false, timings: { deriveMs: 0, validateMs: 0, applyMs: 0, totalMs: Date.now() - startedMs } };
   const derivation = deriveCandidateTransition({ root, policy, ...request });
   const deriveMs = Date.now() - startedMs;
 
@@ -1071,7 +1073,7 @@ export function runLifecycleTransition({
   const applyStartedMs = Date.now();
   let applied;
   try {
-    applied = applyCandidate({ root, candidate, writeFile, rollbackWriteFile, rollbackRemoveFile });
+    applied = applyCandidate({ root, candidate, authorityDocumentPath, authority, writeFile, rollbackWriteFile, rollbackRemoveFile });
   } catch (error) {
     const recoveryRequired = error.recovered === false;
     return {

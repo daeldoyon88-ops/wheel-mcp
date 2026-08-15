@@ -1,0 +1,40 @@
+{
+  "checkpointId": "CP-GFG-R3-FINAL-VALIDATION",
+  "headBeforeCommit": "68d53f5ecc87d9173f3b65122d8257663819904d",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergenceBeforeCommit": "0 3",
+  "focusedSuites": {
+    "orchestrator": "31/31 PASS",
+    "finalGateIntegrityAuditor": "28/28 PASS",
+    "hostileBattery": "25/25 PASS",
+    "geeMaintenanceAuthority": "95/95 PASS"
+  },
+  "provenanceHostiles": "P1-P12 PASS",
+  "validRecovery": "V1-V7 PASS; restoration write/delete recovery PASS; unique event and idempotence PASS.",
+  "authority": "A1-A7 retained PASS.",
+  "generated": "status snapshot, Foundation report and Foundation provenance drift = 0.",
+  "gitCohort": "H7/H11 focused controls PASS; unrelated Directional Lab baseline preserved.",
+  "portability": "PASS: deletion fixture uses path.normalize rather than Windows separator literal.",
+  "r7Mode": "LIGHTWEIGHT; no heavy trigger.",
+  "canonical": {
+    "GATE16": "COMPLETE_CONFIRMED",
+    "GATE17": "COMPLETE_CONFIRMED",
+    "GATE18ToGATE40": "NOT_STARTED",
+    "ledgerEventCount": 73,
+    "ledgerSha256": "547f68c13ddd242c2ce80d76a8dfa866b63b9cf79e0702440d9ed1101c92bfac",
+    "R8": "ABSENT"
+  },
+  "proposedRepairCohort": [
+    "checkpoints/CP-GFG-R3-FINAL-VALIDATION.json",
+    "checkpoints/CP-GFG-R3-TRANSACTION-PROVENANCE-GREEN.json",
+    "governance/schemas/governance-transaction.schema.json",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/recover-governance-transaction.mjs",
+    "governance/tools/transaction-provenance.mjs",
+    "governance/tools/validate-transaction.mjs"
+  ],
+  "openDefects": [],
+  "nextExactAction": "stage exact cohort + commit",
+  "push": "NO"
+}

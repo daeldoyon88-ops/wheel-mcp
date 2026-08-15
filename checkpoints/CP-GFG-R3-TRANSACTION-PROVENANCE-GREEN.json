@@ -1,0 +1,30 @@
+{
+  "checkpointId": "CP-GFG-R3-TRANSACTION-PROVENANCE-GREEN",
+  "head": "68d53f5ecc87d9173f3b65122d8257663819904d",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 3",
+  "changedPaths": [
+    "governance/schemas/governance-transaction.schema.json",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/recover-governance-transaction.mjs",
+    "governance/tools/transaction-provenance.mjs",
+    "governance/tools/validate-transaction.mjs"
+  ],
+  "provenanceBinding": [
+    "transaction identity and lifecycle transition",
+    "prestate HEAD, ledger, gate state, revision, contract and active gate",
+    "canonical candidate manifest and complete projected cohort",
+    "expected presence, SHA256 and byte length for every write",
+    "authority path, SHA256, manifest SHA, predecessor and shared observation",
+    "external report logical identity, path, SHA256 and predecessor when applicable"
+  ],
+  "P1ToP12": "PASS: no-provenance exploit, fabricated authority, digest/cohort/staged-byte/operation/gate/prestate/external mutations all block; forensic transaction remains; normal call cannot continue.",
+  "V1ToV7": "PASS: real authorized synthetic closure persists provenance before publication; write and delete restoration failures reach RECOVERY_REQUIRED; next invocation revalidates and roll-forwards exactly once; repeated invocation is idempotent; final auditor suite remains PASS.",
+  "restorationWrite": "PASS",
+  "restorationDelete": "PASS",
+  "exploitMutation": "BLOCKED; MODEL_ROUTING_POLICY scratch target byte-identical.",
+  "openDefects": [],
+  "nextExactAction": "FINAL FOCUSED VALIDATION",
+  "push": "NO"
+}

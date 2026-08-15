@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { sha256Bytes } from './canonical-json.mjs';
 
 const REQUIRED_FIELDS = ['schemaVersion', 'transactionId', 'transactionState', 'caseType', 'gateId', 'stagedArtifacts', 'expectedHashes', 'oldPointers', 'newPointers', 'commitOrder', 'rollbackPlan', 'recoveryPlan', 'idempotencyKeys'];
-const ALLOWED_FIELDS = [...REQUIRED_FIELDS, 'ledgerEvent', 'preparedAt', 'committedAt'];
+const ALLOWED_FIELDS = [...REQUIRED_FIELDS, 'ledgerEvent', 'provenance', 'preparedAt', 'committedAt'];
 
 function option(name, fallback = null) {
   const index = process.argv.indexOf(name);

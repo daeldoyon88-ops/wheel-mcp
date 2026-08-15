@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sha256Bytes, canonicalize } from './canonical-json.mjs';
 import { validateTransaction } from './validate-transaction.mjs';
+import { validateLifecycleTransactionProvenance } from './transaction-provenance.mjs';
 
 function option(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -73,6 +74,8 @@ function recoverTransaction({ root, transactionPath, apply = false }) {
   const committedMarker = path.join(transactionDir, 'COMMITTED');
   if (transaction.transactionState === 'COMMITTED' && fs.existsSync(committedMarker)) return { valid: true, recoveryAction: 'NONE', transactionId: transaction.transactionId, applied: false };
   const before = validateTransaction({ root: rootResolved, transactionsPath: path.dirname(transactionDir) });
+  const provenance = validateLifecycleTransactionProvenance({ root: rootResolved, transaction });
+  if (!provenance.valid) return { valid: false, recoveryAction: 'PENDING_TRANSACTION_PROVENANCE_INVALID', transactionId: transaction.transactionId, applied: false, findings: provenance.findings, preflight: before };
   if (!apply) return { valid: false, recoveryAction: 'REPLAY_OR_ABORT', transactionId: transaction.transactionId, applied: false, preflight: before };
   try {
     updateTransactionState(transactionPath, transaction, 'COMMITTING');

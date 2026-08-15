@@ -1,0 +1,28 @@
+{
+  "checkpointId": "CP-GFG-R2-RECOVERY-ROLLFORWARD-PROVEN",
+  "head": "f3b9b4e717b80a6b22bd42a2339a1bda753f43e1",
+  "status": "IN_PROGRESS_NOT_COMMITTABLE",
+  "newGreen": [
+    "Lifecycle publication persists a PREPARED transaction with exact staged candidate bytes before writes.",
+    "A restoration failure returns RECOVERY_REQUIRED rather than ROLLED_BACK.",
+    "Next lifecycle invocation discovers the unfinished transaction and uses recover-governance-transaction for deterministic roll-forward.",
+    "Recovered GATE17 scratch state reaches R0003 with exactly one ordinal-72 event and idempotent resume."
+  ],
+  "modifiedR2Paths": [
+    "checkpoints/CP-GFG-R2-PARTIAL-RECOVERY-BOUNDARY.json",
+    "checkpoints/CP-GFG-R2-RECOVERY-ROLLFORWARD-PROVEN.json",
+    "governance/tools/post-freeze-maintenance-observation.mjs",
+    "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/recover-governance-transaction.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs"
+  ],
+  "remaining": [
+    "R3 deletion restoration failure, transaction detection coverage, and final integrity recovery proof.",
+    "Complete final-cohort maintenance authority A2-A7 and update prior bypass-dependent positive tests.",
+    "Run focused suites and commit only after all gates pass."
+  ],
+  "nextExactAction": "Add the deletion-failure recovery test against the prepared transaction path, then build exact-manifest A2-A7 fixtures using the shared observation helper.",
+  "noPush": true
+}

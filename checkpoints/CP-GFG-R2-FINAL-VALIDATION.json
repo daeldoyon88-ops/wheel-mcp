@@ -1,0 +1,43 @@
+{
+  "checkpointId": "CP-GFG-R2-FINAL-VALIDATION",
+  "headBeforeCommit": "f3b9b4e717b80a6b22bd42a2339a1bda753f43e1",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergenceBeforeCommit": "0 2",
+  "focusedSuites": {
+    "orchestrator": "30/30 PASS",
+    "finalGateIntegrityAuditor": "28/28 PASS",
+    "hostileBattery": "25/25 PASS",
+    "geeMaintenanceAuthority": "95/95 PASS"
+  },
+  "syntax": "PASS: all changed governance .mjs files",
+  "recovery": "PASS: normal write-boundary rollback, restoration-write and restoration-delete RECOVERY_REQUIRED, deterministic roll-forward, unique event, idempotent resume.",
+  "authority": "PASS: A1-A7, shared observation parity, exact post-projection closure and confirmation cohorts.",
+  "lifecyclePositives": "PASS: legacy AUTHORIZATION and START exact bytes; future LOCAL_EXPLICIT AUTHORIZATION, START, AGENT_CLOSURE, and EXTERNAL_CONFIRMATION.",
+  "generated": "PASS: auditor detected no status snapshot, FOUNDATION_REPORT, or FOUNDATION_REPORT_PROVENANCE drift.",
+  "gitCohort": "PASS: hostile H7/H11 covers authorized identical bytes, tracked, staged, untracked, baseline, porcelain parsing, and Directional Lab isolation.",
+  "r7Mode": "LIGHTWEIGHT; no heavy trigger observed.",
+  "canonical": {
+    "GATE16": "COMPLETE_CONFIRMED",
+    "GATE17": "COMPLETE_CONFIRMED",
+    "GATE18ToGATE40": "NOT_STARTED",
+    "ledgerEventCount": 73,
+    "ledgerSha256": "547f68c13ddd242c2ce80d76a8dfa866b63b9cf79e0702440d9ed1101c92bfac",
+    "R8": "ABSENT"
+  },
+  "proposedRepairCohort": [
+    "checkpoints/CP-GFG-R2-AUTHORITY-GREEN.json",
+    "checkpoints/CP-GFG-R2-DURABLE-RECOVERY-GREEN.json",
+    "checkpoints/CP-GFG-R2-FINAL-VALIDATION.json",
+    "checkpoints/CP-GFG-R2-PARTIAL-RECOVERY-BOUNDARY.json",
+    "checkpoints/CP-GFG-R2-RECOVERY-ROLLFORWARD-PROVEN.json",
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/post-freeze-maintenance-observation.mjs",
+    "governance/tools/recover-governance-transaction.mjs",
+    "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+  ],
+  "openDefects": [],
+  "nextExactAction": "stage exact cohort and commit",
+  "push": "NO"
+}

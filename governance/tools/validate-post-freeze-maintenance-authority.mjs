@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   evaluatePostFreezeMaintenanceAuthorityV2,
-  isExactMaintenancePath,
   PHASE_AUTHORIZE_PROGRAM_APPLY,
   PHASE_VERIFY_PROGRAM_CONSUMPTION
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
-import { collectClosedStateSealMembers, collectClosedStateSealMembersAtCommit } from '../gee-v1/core/sealed-state-evidence.mjs';
+import { collectPostFreezeMaintenanceObservation, resolveMaintenancePath } from './post-freeze-maintenance-observation.mjs';
 
 const args = process.argv.slice(2);
 const option = (name, fallback = null) => {
@@ -24,17 +21,6 @@ const phase = option('--phase', PHASE_AUTHORIZE_PROGRAM_APPLY);
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^Ã¯Â»Â¿/, ''));
-}
-
-function resolveInsideRoot(relativePath) {
-  if (!isExactMaintenancePath(relativePath)) return null;
-  const resolved = path.resolve(root, ...relativePath.split('/'));
-  const relative = path.relative(root, resolved);
-  return relative && !relative.startsWith('..') && !path.isAbsolute(relative) ? resolved : null;
-}
-
-function sha256(bytes) {
-  return crypto.createHash('sha256').update(bytes).digest('hex');
 }
 
 function findAuthority() {
@@ -60,71 +46,15 @@ const authorityPath = findAuthority();
 try {
   if (!authorityPath) throw new Error('AUTHORITY_NOT_UNIQUE_OR_ABSENT');
   authority = readJson(authorityPath);
-  const manifestPath = resolveInsideRoot(authority.authorizedPathManifestPath);
-  if (!manifestPath) throw new Error('MANIFEST_PATH_INVALID');
-  const manifestBytes = fs.readFileSync(manifestPath);
-  manifest = JSON.parse(manifestBytes.toString('utf8'));
-  const consumptionPath = resolveInsideRoot(authority.consumptionRecordPath);
+  const canonicalObservation = collectPostFreezeMaintenanceObservation({ root, authority });
+  findings.push(...canonicalObservation.findings);
+  manifest = canonicalObservation.manifest;
+  observed = canonicalObservation.observed;
+  const consumptionPath = resolveMaintenancePath(root, authority.consumptionRecordPath);
   if (consumptionPath && fs.existsSync(consumptionPath)) consumptionRecord = readJson(consumptionPath);
-  const ledgerPath = path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
-  const ledgerBytes = fs.readFileSync(ledgerPath);
-  const ledgerLines = ledgerBytes.toString('utf8').split(/\r?\n/).filter((line) => line.trim());
-  const events = ledgerLines.map((line) => JSON.parse(line));
-  const gateEvents = authority.preState.gateId === null ? [] : events.filter((event) => event.gateId === authority.preState.gateId);
-  const gateRoot = authority.preState.gateId === null ? null : path.join(root, 'governance', 'gates', authority.preState.gateId);
-  const currentState = gateRoot ? readJson(path.join(gateRoot, 'state', 'CURRENT_STATE.json')) : null;
-  const currentContract = gateRoot ? readJson(path.join(gateRoot, 'contracts', 'CURRENT_CONTRACT.json')) : null;
-  const activeGate = readJson(path.join(root, 'governance', 'active', 'ACTIVE_GATE.json'));
-  const closedStateSealInventory = collectClosedStateSealMembers(root);
-  const preStateClosedStateSealInventory = collectClosedStateSealMembersAtCommit(root, authority.preState?.baseHead);
-  const externalReportFile = authority.externalReinspectionReportPath
-    ? resolveInsideRoot(authority.externalReinspectionReportPath)
-    : null;
-  const externalReportBytes = externalReportFile && fs.existsSync(externalReportFile)
-    ? fs.readFileSync(externalReportFile)
-    : null;
-  let authorityPredecessorSha256 = null;
-  if (authority.authorityPredecessor !== null) {
-    const sourceRoot = path.join(root, 'governance', 'sources');
-    const predecessorFiles = fs.readdirSync(sourceRoot)
-      .filter((entry) => /^GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_[A-Za-z0-9_-]+\.json$/.test(entry))
-      .map((entry) => path.join(sourceRoot, entry))
-      .filter((file) => { try { return readJson(file).authorityId === authority.authorityPredecessor.authorityId; } catch { return false; } });
-    if (predecessorFiles.length === 1) authorityPredecessorSha256 = sha256(fs.readFileSync(predecessorFiles[0]));
-  }
-  observed = {
-    baseHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
-    ledgerEventCount: ledgerLines.length,
-    ledgerPrefixSha256: sha256(ledgerBytes),
-    gateId: authority.preState.gateId,
-    gateStatus: gateEvents.at(-1)?.toStatus ?? null,
-    stateRevision: currentState?.stateRevision ?? null,
-    contractRevision: currentContract?.contractRevision ?? null,
-    activeGate: activeGate?.activeGate ?? null,
-    R8Absent: !fs.existsSync(path.join(root, 'governance', 'gee-v1', 'missions', 'GEE_V1_EXECUTION_CONTRACT_R0008.json')),
-    manifestSha256: sha256(manifestBytes),
-    authorityPredecessorSha256,
-    externalReinspectionReportPath: externalReportBytes ? authority.externalReinspectionReportPath : null,
-    externalReinspectionReportSha256: externalReportBytes ? sha256(externalReportBytes) : null,
-    requestedPaths: manifest.paths.map((entry) => entry.path),
-    requestedOperationClasses: manifest.paths.map((entry) => entry.artifactClass),
-    closedStateSealMembers: closedStateSealInventory.members,
-    closedStateSealFindings: closedStateSealInventory.findings,
-    preStateClosedStateSealMembers: preStateClosedStateSealInventory.members,
-    preStateClosedStateSealFindings: preStateClosedStateSealInventory.findings,
-    consumptionCohort: manifest.paths
-      .filter((entry) => entry.path !== authority.consumptionRecordPath)
-      .map((entry) => {
-        const file = resolveInsideRoot(entry.path);
-        if (!file || !fs.existsSync(file)) throw new Error(`CONSUMPTION_COHORT_PATH_ABSENT:${entry.path}`);
-        const bytes = fs.readFileSync(file);
-        return { path: entry.path, sha256: sha256(bytes), byteLength: bytes.length };
-      })
-  };
 } catch (error) {
   findings.push({ code: error?.message || String(error) });
 }
-
 const evaluation = evaluatePostFreezeMaintenanceAuthorityV2({
   authority,
   manifest,

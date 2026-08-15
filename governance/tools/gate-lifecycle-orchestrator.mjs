@@ -71,6 +71,8 @@ import {
 } from '../gee-v1/core/post-freeze-maintenance-authority.mjs';
 import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
+import { collectPostFreezeMaintenanceObservation } from './post-freeze-maintenance-observation.mjs';
+import { recoverTransaction } from './recover-governance-transaction.mjs';
 
 export const ORCHESTRATOR_DOCUMENT = 'GATE_LIFECYCLE_ORCHESTRATOR';
 export const ORCHESTRATOR_VERSION = 'R1';
@@ -89,6 +91,7 @@ export const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
 export const ORCHESTRATED_TRANSITIONS = Object.freeze([
   'AUTHORIZATION', 'START', 'AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION'
 ]);
+const MAINTENANCE_AUTHORITY_TRANSITIONS = new Set(['AGENT_CLOSURE', 'EXTERNAL_CONFIRMATION']);
 
 const GATE_RE = /^GATE[0-9]{2}$/;
 const REVISION_RE = /^R[0-9]{4}$/;
@@ -98,6 +101,63 @@ function revisionLabel(ordinal) { return `R${String(ordinal).padStart(4, '0')}`;
 function revisionOrdinal(label) { return REVISION_RE.test(label || '') ? Number.parseInt(label.slice(1), 10) : null; }
 
 function repoPath(root, relativePath) { return path.resolve(root, ...relativePath.split('/')); }
+
+const TRANSACTION_ROOT = 'governance/transactions';
+function transactionIdFor(candidate) { return `${candidate.eventId}_TRANSACTION`; }
+function transactionDirectory(candidate) { return `${TRANSACTION_ROOT}/TXN_${candidate.eventId}`; }
+function transactionFile(candidate) { return `${transactionDirectory(candidate)}/TRANSACTION.json`; }
+function writeTransaction(root, relative, value) { const target = repoPath(root, relative); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, governedBytes(value)); }
+
+function prepareLifecycleTransaction({ root, candidate }) {
+  const transactionId = transactionIdFor(candidate);
+  const directory = transactionDirectory(candidate);
+  const stagedArtifacts = candidate.writes.map((write, index) => {
+    const sourcePath = `${directory}/staged/${String(index).padStart(3, '0')}.bin`;
+    const source = repoPath(root, sourcePath); fs.mkdirSync(path.dirname(source), { recursive: true }); fs.writeFileSync(source, write.bytes);
+    return { sourcePath, targetPath: write.path, sha256: write.sha256, byteLength: write.byteLength };
+  });
+  const transaction = {
+    schemaVersion: 1, transactionId, transactionState: 'PREPARED', caseType: 'STATUS_TRANSITION', gateId: candidate.gateId,
+    stagedArtifacts, expectedHashes: candidate.writes.map((write) => ({ targetPath: write.path, sha256: write.sha256, byteLength: write.byteLength })),
+    oldPointers: [], newPointers: [], commitOrder: candidate.writes.map((write) => write.path),
+    rollbackPlan: candidate.writes.map((write) => ({ targetPath: write.path })), recoveryPlan: { mode: 'ROLL_FORWARD_FROM_STAGED_ARTIFACTS' },
+    idempotencyKeys: [candidate.eventId], ledgerEvent: candidate.event, preparedAt: new Date().toISOString()
+  };
+  writeTransaction(root, transactionFile(candidate), transaction);
+  fs.writeFileSync(repoPath(root, `${directory}/PREPARED`), '');
+  return { transaction, directory };
+}
+
+function setTransactionState(root, candidate, transaction, state) {
+  const next = { ...transaction, transactionState: state };
+  if (state === 'COMMITTED') next.committedAt = new Date().toISOString();
+  writeTransaction(root, transactionFile(candidate), next);
+  if (state === 'COMMITTED') fs.writeFileSync(repoPath(root, `${transactionDirectory(candidate)}/COMMITTED`), '');
+  if (state === 'ABORTED') fs.rmSync(repoPath(root, `${transactionDirectory(candidate)}/PREPARED`), { force: true });
+  return next;
+}
+
+function discardTerminalTransaction(root, directory) {
+  fs.rmSync(repoPath(root, directory), { recursive: true, force: true });
+  const base = repoPath(root, TRANSACTION_ROOT);
+  if (fs.existsSync(base) && fs.readdirSync(base).length === 0) fs.rmdirSync(base);
+}
+
+function recoverPendingLifecycleTransactions(root) {
+  const base = repoPath(root, TRANSACTION_ROOT);
+  if (!fs.existsSync(base)) return { recovered: [] };
+  const recovered = [];
+  for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith('TXN_')) continue;
+    const transactionPath = path.join(base, entry.name, 'TRANSACTION.json');
+    if (!fs.existsSync(transactionPath) || fs.existsSync(path.join(base, entry.name, 'COMMITTED'))) continue;
+    const result = recoverTransaction({ root, transactionPath, apply: true });
+    if (!result.valid) return { recovered, blocked: result };
+    discardTerminalTransaction(root, `${TRANSACTION_ROOT}/${entry.name}`);
+    recovered.push(result.transactionId);
+  }
+  return { recovered };
+}
 
 function readBytesOrNull(root, relativePath) {
   const resolved = repoPath(root, relativePath);
@@ -830,6 +890,9 @@ export function validateCandidateInStagingRoot({ root, candidate, stagingRoot, b
  */
 export function evaluateTransitionAuthority({ root, candidate, authorityDocumentPath = null, now = new Date() }) {
   if (!authorityDocumentPath) {
+    if (MAINTENANCE_AUTHORITY_TRANSITIONS.has(candidate.transitionType)) {
+      return { applicable: true, decision: 'BLOCKED', reason: 'MAINTENANCE_AUTHORITY_REQUIRED', findings: [{ code: 'MAINTENANCE_AUTHORITY_REQUIRED', detail: candidate.transitionType }] };
+    }
     return { applicable: false, decision: 'NOT_APPLICABLE', findings: [], reason: 'NO_MAINTENANCE_AUTHORITY_DECLARED' };
   }
   const authority = readJsonOrNull(root, authorityDocumentPath);
@@ -839,38 +902,16 @@ export function evaluateTransitionAuthority({ root, candidate, authorityDocument
       findings: [{ code: 'AUTHORITY_ABSENT', detail: authorityDocumentPath }]
     };
   }
-  const manifestPath = authority.authorizedPathManifestPath;
-  const manifestBytes = manifestPath ? readBytesOrNull(root, manifestPath) : null;
-  const manifest = manifestBytes ? JSON.parse(manifestBytes.toString('utf8')) : null;
-
-  const events = readLedgerEvents(root);
-  const ledgerBytes = readBytesOrNull(root, LEDGER_PATH) ?? Buffer.alloc(0);
-  const currentState = readJsonOrNull(root, `governance/gates/${candidate.gateId}/state/CURRENT_STATE.json`);
-  const contract = readJsonOrNull(root, `governance/gates/${candidate.gateId}/contracts/CURRENT_CONTRACT.json`);
-  const activeGate = readJsonOrNull(root, 'governance/active/ACTIVE_GATE.json');
-  const preStateSealed = collectClosedStateSealMembers(root);
-
-  const observed = {
-    baseHead: authority.preState?.baseHead ?? null,
-    ledgerEventCount: events.length,
-    ledgerPrefixSha256: sha256Bytes(ledgerBytes),
-    gateId: candidate.gateId,
-    gateStatus: candidate.fromStatus,
-    stateRevision: currentState?.stateRevision ?? null,
-    contractRevision: contract?.contractRevision ?? null,
-    activeGate: activeGate?.activeGate ?? null,
-    R8Absent: !fs.existsSync(repoPath(root, 'governance/gee-v1/r8')),
-    manifestSha256: manifestBytes ? sha256Bytes(manifestBytes) : null,
+  const observation = collectPostFreezeMaintenanceObservation({
+    root, authority,
     requestedPaths: candidate.writes.map((write) => write.path),
-    closedStateSealMembers: preStateSealed.members ?? [],
-    closedStateSealFindings: preStateSealed.findings ?? [],
-    preStateClosedStateSealMembers: preStateSealed.members ?? [],
-    preStateClosedStateSealFindings: preStateSealed.findings ?? []
-  };
-  const result = evaluatePostFreezeMaintenanceAuthorityV2({
-    authority, manifest, observed, phase: PHASE_AUTHORIZE_PROGRAM_APPLY, now
+    requestedOperationClasses: [candidate.transitionType],
+    candidateWrites: candidate.writes
   });
-  return { applicable: true, decision: result.decision, findings: result.findings, authorizedPaths: result.authorizedPaths, observed };
+  const result = evaluatePostFreezeMaintenanceAuthorityV2({
+    authority, manifest: observation.manifest, observed: observation.observed, phase: PHASE_AUTHORIZE_PROGRAM_APPLY, now
+  });
+  return { applicable: true, decision: observation.valid ? result.decision : 'BLOCKED', findings: [...observation.findings, ...result.findings], authorizedPaths: result.authorizedPaths, observed: observation.observed };
 }
 
 /* -------------------------------------------------------------------------
@@ -882,7 +923,9 @@ export function evaluateTransitionAuthority({ root, candidate, authorityDocument
  * validated clean, so this function contains no validation, no repair and no
  * fallback: by the time control arrives here the decision has already been made.
  */
-export function applyCandidate({ root, candidate, writeFile = fs.writeFileSync }) {
+export function applyCandidate({ root, candidate, writeFile = fs.writeFileSync, rollbackWriteFile = fs.writeFileSync, rollbackRemoveFile = fs.rmSync }) {
+  const prepared = prepareLifecycleTransaction({ root, candidate });
+  let transaction = prepared.transaction;
   const before = candidate.writes.map((write) => {
     const target = repoPath(root, write.path);
     const existed = fs.existsSync(target);
@@ -890,34 +933,48 @@ export function applyCandidate({ root, candidate, writeFile = fs.writeFileSync }
   });
   const written = [];
   try {
+    transaction = setTransactionState(root, candidate, transaction, 'COMMITTING');
     for (const entry of before) {
       fs.mkdirSync(path.dirname(entry.target), { recursive: true });
       writeFile(entry.target, entry.write.bytes);
       written.push({ path: entry.write.path, sha256: entry.write.sha256, byteLength: entry.write.byteLength });
     }
+    setTransactionState(root, candidate, transaction, 'COMMITTED');
+    discardTerminalTransaction(root, prepared.directory);
     return written;
   } catch (cause) {
     // Restore bytes and path presence before returning control.  This is not a
     // second transaction scheme: it is the local rollback required to make the
     // already-validated publication boundary failure-atomic.
+    const rollbackFailures = [];
     for (const entry of [...before].reverse()) {
       try {
         if (entry.existed) {
           fs.mkdirSync(path.dirname(entry.target), { recursive: true });
-          fs.writeFileSync(entry.target, entry.bytes);
+          rollbackWriteFile(entry.target, entry.bytes);
         } else {
-          fs.rmSync(entry.target, { force: true });
+          rollbackRemoveFile(entry.target, { force: true });
         }
-      } catch { /* retain the original publication failure below */ }
+      } catch (rollbackError) { rollbackFailures.push({ path: entry.write.path, error: rollbackError.message }); }
     }
     const revisionDirectory = candidate.paths?.revisionDirectory && repoPath(root, candidate.paths.revisionDirectory);
     if (revisionDirectory && !fs.existsSync(revisionDirectory)) {
       // Nothing to remove; keeping this branch documents the expected normal case.
     } else if (revisionDirectory && !before.some((entry) => entry.target.startsWith(revisionDirectory) && entry.existed)) {
-      try { fs.rmSync(revisionDirectory, { recursive: true, force: true }); } catch { /* original failure wins */ }
+      try { fs.rmSync(revisionDirectory, { recursive: true, force: true }); } catch (rollbackError) { rollbackFailures.push({ path: candidate.paths.revisionDirectory, error: rollbackError.message }); }
     }
-    const error = new Error(`CANDIDATE_APPLY_FAILED_ROLLED_BACK:${cause.message}`);
+    const verificationFailures = before.filter((entry) => {
+      const present = fs.existsSync(entry.target);
+      if (present !== entry.existed) return true;
+      return present && !fs.readFileSync(entry.target).equals(entry.bytes);
+    }).map((entry) => entry.write.path);
+    const recovered = rollbackFailures.length === 0 && verificationFailures.length === 0;
+    setTransactionState(root, candidate, transaction, recovered ? 'ABORTED' : 'RECOVERY_REQUIRED');
+    const error = new Error(`${recovered ? 'CANDIDATE_APPLY_FAILED_ROLLED_BACK' : 'CANDIDATE_APPLY_RECOVERY_REQUIRED'}:${cause.message}`);
     error.cause = cause;
+    error.recovered = recovered;
+    error.rollbackFailures = rollbackFailures;
+    error.verificationFailures = verificationFailures;
     throw error;
   }
 }
@@ -938,11 +995,15 @@ export function runLifecycleTransition({
   authorityDocumentPath = null,
   baseline = null,
   writeFile = fs.writeFileSync,
+  rollbackWriteFile = fs.writeFileSync,
+  rollbackRemoveFile = fs.rmSync,
   policy = WHEEL_EXTERNAL_AUTHORITY_POLICY,
   projectionPolicyModulePath = null,
   ...request
 }) {
   const startedMs = Date.now();
+  const recovery = recoverPendingLifecycleTransactions(root);
+  if (recovery.blocked) return { document: ORCHESTRATOR_DOCUMENT, version: ORCHESTRATOR_VERSION, result: 'BLOCKED', gateId: request.gateId, transitionType: request.transitionType, findings: [{ defectClass: 'RECOVERY_REQUIRED', actual: recovery.blocked }], applied: [], canonicalBytesUnchanged: false, timings: { deriveMs: 0, validateMs: 0, applyMs: 0, totalMs: Date.now() - startedMs } };
   const derivation = deriveCandidateTransition({ root, policy, ...request });
   const deriveMs = Date.now() - startedMs;
 
@@ -985,7 +1046,7 @@ export function runLifecycleTransition({
   }
   const validateMs = Date.now() - validateStartedMs;
 
-  const authorityFindings = authority.decision === 'BLOCKED'
+  const authorityFindings = !dryRun && authority.decision === 'BLOCKED'
     ? authority.findings.map((item) => ({ defectClass: 'TRANSITION_AUTHORITY_BLOCKED', code: item.code, detail: item.detail ?? null }))
     : [];
   const findings = [...validation.findings, ...authorityFindings];
@@ -1010,8 +1071,9 @@ export function runLifecycleTransition({
   const applyStartedMs = Date.now();
   let applied;
   try {
-    applied = applyCandidate({ root, candidate, writeFile });
+    applied = applyCandidate({ root, candidate, writeFile, rollbackWriteFile, rollbackRemoveFile });
   } catch (error) {
+    const recoveryRequired = error.recovered === false;
     return {
       document: ORCHESTRATOR_DOCUMENT,
       version: ORCHESTRATOR_VERSION,
@@ -1021,9 +1083,9 @@ export function runLifecycleTransition({
       candidateSummary: summarizeCandidate(candidate),
       authority: { applicable: authority.applicable, decision: authority.decision },
       validationReports: validation.reports,
-      findings: [{ defectClass: 'CANDIDATE_APPLY_FAILED_ROLLED_BACK', path: null, actual: error.message }],
+      findings: [{ defectClass: recoveryRequired ? 'CANDIDATE_APPLY_RECOVERY_REQUIRED' : 'CANDIDATE_APPLY_FAILED_ROLLED_BACK', path: null, actual: error.message, rollbackFailures: error.rollbackFailures ?? [], verificationFailures: error.verificationFailures ?? [] }],
       applied: [],
-      canonicalBytesUnchanged: true,
+      canonicalBytesUnchanged: recoveryRequired ? false : true,
       timings: { deriveMs, validateMs, applyMs: Date.now() - applyStartedMs, totalMs: Date.now() - startedMs }
     };
   }

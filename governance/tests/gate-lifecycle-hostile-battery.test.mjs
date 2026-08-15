@@ -488,16 +488,22 @@ test('H11: a sealed cohort member that does not exist is blocked at derivation',
   } finally { discard(root); }
 });
 
-test('H11 (audit side): a path outside the authorized bounded cohort is visible in the Git status the audit reports', () => {
-  const report = auditFinalGateIntegrity({
-    root: REPO_ROOT, gateId: 'GATE17',
-    authorizedCohort: ['governance/tools/final-gate-integrity-auditor.mjs']
-  });
-  // The audit reports the REAL working-tree status, so an unexpected path
-  // cannot hide behind a declared cohort of one.
-  assert.ok(Array.isArray(report.observations.git.status));
-  const reportedPaths = new Set(report.observations.git.status.map((entry) => entry.path));
-  assert.ok(reportedPaths.size > 1, 'the audit must show the real working tree, not the declared cohort');
+test('H11 (audit side): isolated tracked and untracked deltas outside the cohort are blocked', () => {
+  const root = scratchRoot('h11-git');
+  try {
+    initializeGitRepository(root);
+    const authorized = 'governance/tools/final-gate-integrity-auditor.mjs';
+    fs.appendFileSync(path.join(root, ...authorized.split('/')), '');
+    const tracked = 'governance/tools/validate-status-ledger.mjs';
+    fs.appendFileSync(path.join(root, ...tracked.split('/')), '\n// H11 scratch tracked delta\n');
+    const untracked = 'governance/sources/H11_UNTRACKED_DELTA.json';
+    fs.writeFileSync(path.join(root, ...untracked.split('/')), '{}\n');
+    const report = auditFinalGateIntegrity({ root, gateId: 'GATE17', authorizedCohort: [authorized] });
+    assert.equal(report.FINAL_GATE_INTEGRITY, 'FAIL');
+    const unexpected = report.findings.filter((finding) => finding.defectClass === 'UNEXPECTED_GIT_DELTA').map((finding) => finding.path);
+    assert.ok(unexpected.includes(tracked));
+    assert.ok(unexpected.includes(untracked));
+  } finally { discard(root); }
 });
 
 test('H11 (duplicate member): the same path listed twice in a cohort is blocked', () => {

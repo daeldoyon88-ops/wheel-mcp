@@ -81,7 +81,10 @@ function recoverTransaction({ root, transactionPath, apply = false }) {
     fs.writeFileSync(committedMarker, '', 'utf8');
     updateTransactionState(transactionPath, transaction, 'COMMITTED');
     const after = validateTransaction({ root: rootResolved, transactionsPath: path.dirname(transactionDir) });
-    if (!after.valid) return { valid: false, recoveryAction: 'RECOVERY_REQUIRED', transactionId: transaction.transactionId, applied: true, preflight: after };
+    const findingKey = (finding) => `${finding.detectorId}|${finding.jsonPointer}|${JSON.stringify(finding.actualValue)}`;
+    const baseline = new Set(before.findings.map(findingKey));
+    const introduced = after.findings.filter((finding) => !baseline.has(findingKey(finding)));
+    if (introduced.length) return { valid: false, recoveryAction: 'RECOVERY_REQUIRED', transactionId: transaction.transactionId, applied: true, preflight: after, introducedFindings: introduced };
     return { valid: true, recoveryAction: 'ROLL_FORWARD_COMPLETE', transactionId: transaction.transactionId, applied: true, preflight: after };
   } catch (error) {
     try { updateTransactionState(transactionPath, transaction, 'RECOVERY_REQUIRED'); } catch { /* preserve original recovery error */ }

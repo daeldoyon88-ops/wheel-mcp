@@ -1,0 +1,18 @@
+{
+  "checkpointId": "CP-GFG-R2-DURABLE-RECOVERY-GREEN",
+  "head": "f3b9b4e717b80a6b22bd42a2339a1bda753f43e1",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 2",
+  "recovery": {
+    "forwardWriteFailureRollbackSuccess": "existing 8-boundary coverage retained",
+    "restorationWriteFailure": "RECOVERY_REQUIRED then deterministic recover-governance-transaction roll-forward and idempotent single event",
+    "restorationDeleteFailure": "RECOVERY_REQUIRED then deterministic recover-governance-transaction roll-forward and idempotent single event",
+    "transactionIdentity": "${eventId}_TRANSACTION with PREPARED, COMMITTING, RECOVERY_REQUIRED, ABORTED, COMMITTED states",
+    "mechanism": "governance/tools/validate-transaction.mjs plus governance/tools/recover-governance-transaction.mjs"
+  },
+  "openDefects": [
+    "A2-A7 exact maintenance-authority coverage and final projected cohort test fixtures remain."
+  ],
+  "nextExactAction": "Finish the shared observation assertions and construct A2-A7 fixtures for exact final projected cohorts.",
+  "noPush": true
+}

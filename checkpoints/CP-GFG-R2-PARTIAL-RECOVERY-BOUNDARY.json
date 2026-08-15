@@ -1,0 +1,29 @@
+{
+  "checkpointId": "CP-GFG-R2-PARTIAL-RECOVERY-BOUNDARY",
+  "head": "f3b9b4e717b80a6b22bd42a2339a1bda753f43e1",
+  "scope": "WHEEL_GENERIC_FAST_GATE_EXECUTION_AND_FINAL_AUDIT_R1_REAUDIT_REPAIR_R2",
+  "status": "IN_PROGRESS_NOT_COMMITTABLE",
+  "completed": [
+    "Shared post-freeze observation projection introduced and consumed by the lifecycle authority evaluator.",
+    "AGENT_CLOSURE and EXTERNAL_CONFIRMATION omission now produces MAINTENANCE_AUTHORITY_REQUIRED before apply.",
+    "Rollback verification distinguishes verified rollback from RECOVERY_REQUIRED.",
+    "H11 now creates isolated tracked and untracked Git deltas."
+  ],
+  "targetedGreen": [
+    "A1 maintenance-authority omission BLOCK with zero ledger change",
+    "B1 rollback restoration failure reports RECOVERY_REQUIRED",
+    "H11 isolated tracked and untracked delta BLOCK"
+  ],
+  "remaining": [
+    "Integrate durable lifecycle transaction intent with validate-transaction and recover-governance-transaction.",
+    "Require deterministic recovery before a subsequent lifecycle attempt.",
+    "Add A2-A7 exact maintenance authority tests using the final projected cohort.",
+    "Update old lifecycle apply tests that intentionally relied on the now-removed maintenance-authority bypass.",
+    "Run all mandatory suites and create at most one local commit only when green."
+  ],
+  "doNot": [
+    "Do not amend or push.",
+    "Do not alter historical GATE16/GATE17 signed authority bytes.",
+    "Do not stage or commit the current partial work."
+  ]
+}

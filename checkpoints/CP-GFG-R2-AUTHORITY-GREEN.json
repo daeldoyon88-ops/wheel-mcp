@@ -1,0 +1,43 @@
+{
+  "checkpointId": "CP-GFG-R2-AUTHORITY-GREEN",
+  "head": "f3b9b4e717b80a6b22bd42a2339a1bda753f43e1",
+  "originMain": "bca0bc0e2eacf9f39355c6f2fe36aa74842d748c",
+  "divergence": "0 2",
+  "changedPaths": [
+    "governance/tests/gate-lifecycle-hostile-battery.test.mjs",
+    "governance/tests/gate-lifecycle-orchestrator.test.mjs",
+    "governance/tools/gate-lifecycle-orchestrator.mjs",
+    "governance/tools/post-freeze-maintenance-observation.mjs",
+    "governance/tools/recover-governance-transaction.mjs",
+    "governance/tools/validate-post-freeze-maintenance-authority.mjs"
+  ],
+  "authority": {
+    "A1": "PASS: AGENT_CLOSURE without maintenance authority blocks before publication.",
+    "A2": "PASS: partial closure manifest blocks against the final projected cohort.",
+    "A3": "PASS: exact closure authority authorizes the post-projection candidate and applies in scratch.",
+    "A4": "PASS: EXTERNAL_CONFIRMATION without maintenance authority blocks before publication.",
+    "A5": "PASS: partial confirmation manifest blocks before publication.",
+    "A6": "PASS: exact external confirmation binds report path, report SHA, predecessor SHA, operation class, and projected cohort.",
+    "A7": "PASS: CLI validator and lifecycle orchestrator import the same canonical observation helper; hostile report-SHA drift blocks the lifecycle evaluator."
+  },
+  "closureProjectedCohort": [
+    "governance/gates/GATE18/state/CURRENT_STATE.json",
+    "governance/gates/GATE18/state/revisions/R0003/CHECKPOINT.json",
+    "governance/gates/GATE18/state/revisions/R0003/OPEN_DEFECTS.json",
+    "governance/gates/GATE18/state/revisions/R0003/STATE_SEAL.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+  ],
+  "confirmationProjectedCohort": [
+    "governance/gates/GATE18/state/CURRENT_STATE.json",
+    "governance/gates/GATE18/state/revisions/R0004/CHECKPOINT.json",
+    "governance/gates/GATE18/state/revisions/R0004/OPEN_DEFECTS.json",
+    "governance/gates/GATE18/state/revisions/R0004/STATE_SEAL.json",
+    "governance/state/GATE_STATUS_LEDGER.ndjson",
+    "governance/state/generated/GATE_STATUS_SNAPSHOT.json"
+  ],
+  "sharedObservation": "post-freeze-maintenance-observation.mjs supplies ledger identity, gate/state/contract facts, manifest identity, projected requested cohort, report binding, predecessor SHA, and prestate seal inventory to both consumers.",
+  "openDefects": [],
+  "nextExactAction": "FINAL FOCUSED VALIDATION",
+  "noPush": true
+}

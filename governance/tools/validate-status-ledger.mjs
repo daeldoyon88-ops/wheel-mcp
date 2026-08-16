@@ -52,6 +52,8 @@ import {
   validateGateStartAuthorityShape,
   verifyOwnerSignature as verifyGateStartOwnerSignature
 } from '../gee-v1/core/gate-start-authority.mjs';
+import { evaluatePrecontractConsumptionAnchorBinding } from '../gee-v1/core/precontract-authority.mjs';
+import { resolveGateDependencyProofFromEvents } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
 
 export const STATUSES = [
   'NOT_STARTED', 'AUTHORIZED_NOT_STARTED', 'IN_PROGRESS', 'REPAIR_REQUIRED',
@@ -139,10 +141,75 @@ export const CONTRACT_SUCCESSION_TRANSITIONS = [
   ['IN_PROGRESS', 'IN_PROGRESS', 'CONTRACT_SUCCESSION']
 ];
 
+export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE = 'PRECONTRACT_CONSUMPTION_ANCHOR';
+
+/**
+ * PRECONTRACT_CONSUMPTION_ANCHOR class — a FOURTH class, for exactly the reason
+ * CONTRACT_SUCCESSION became the third.
+ *
+ * WHY IT EXISTS. A precontract bootstrap writes a single-use consumption receipt,
+ * and until now nothing outside that receipt recorded what it said. Its own
+ * identity digest lives in the same file it protects, so anybody able to edit the
+ * receipt could edit the digest with it: a self-contained checksum, not an
+ * authenticity anchor. The append-only spine is the project's only structure that
+ * a later edit cannot quietly rewrite, so the receipt's exact bytes belong in it —
+ * exactly as contract succession had to stop being invisible to history.
+ *
+ * WHY IT IS SEPARATE AND NOT AN I2 ENTRY. The 21-entry NORMAL_EXECUTION table is
+ * the closed I2 set and is not widened here: not one entry is added to it,
+ * removed from it, or relaxed. Anchoring evidence is not an execution transition —
+ * it records a fact about a bootstrap that already happened, and the Gate goes on
+ * being whatever it already was.
+ *
+ * THE ENTRIES ARE SELF-TRANSITIONS, DELIBERATELY.
+ *   NOT_STARTED   -> NOT_STARTED     the normal case: anchored immediately after
+ *                                    consumption, before AUTHORIZATION.
+ *   COMPLETE_AGENT -> COMPLETE_AGENT  a Gate whose bootstrap predates this
+ *                                    mechanism, anchored retroactively without
+ *                                    touching one historical event.
+ * No entry can start a Gate, close one, confirm one, or reach any status the Gate
+ * was not already in. In particular there is no path to COMPLETE_CONFIRMED, so an
+ * anchor can never impersonate EXTERNAL_CONFIRMATION.
+ *
+ * The four tables are never consulted interchangeably.
+ */
+export const PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS = [
+  ['NOT_STARTED', 'NOT_STARTED', 'PRECONTRACT_CONSUMPTION_ANCHOR'],
+  ['COMPLETE_AGENT', 'COMPLETE_AGENT', 'PRECONTRACT_CONSUMPTION_ANCHOR']
+];
+export const PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_KIND = 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_LOCAL_AUTHORITY';
+
+/**
+ * The shared anchor-binding clauses, mapped onto the detector ids this validator
+ * has always emitted. The vocabulary is the core's; the reporting is this file's.
+ * `AUTHORITY_BYTES_MISMATCH` is the one clause without a pre-existing id: the
+ * anchor branch never re-checked the cited digest against the resolved bytes the
+ * way the START and AUTHORIZATION branches do, and that omission is what the
+ * consumption side was able to walk through.
+ */
+const ANCHOR_BINDING_DETECTORS = Object.freeze({
+  AUTHORITY_UNRESOLVED: ['PRECONTRACT_ANCHOR_AUTHORITY_UNRESOLVED', '/authoritySha256', 'The anchor authority cited by this event cannot be resolved to its exact bytes.'],
+  AUTHORITY_BYTES_MISMATCH: ['PRECONTRACT_ANCHOR_AUTHORITY_BYTES_MISMATCH', '/authoritySha256', 'Anchor authority bytes are not the bytes this event pinned.'],
+  AUTHORITY_MALFORMED: ['PRECONTRACT_ANCHOR_AUTHORITY_MALFORMED', '/', 'Anchor authority is not parsable JSON.'],
+  AUTHORITY_KIND_INVALID: ['PRECONTRACT_ANCHOR_AUTHORITY_KIND_INVALID', '/documentKind', 'Cited document is not a precontract consumption anchor authority.'],
+  AUTHORITY_GATE_MISMATCH: ['PRECONTRACT_ANCHOR_GATE_MISMATCH', '/gateId', 'Anchor authority belongs to another Gate.'],
+  AUTHORITY_MODE_INVALID: ['PRECONTRACT_ANCHOR_MODE_INVALID', '/authorityMode', 'Unsupported anchor authority mode.'],
+  AUTHORITY_MAX_USE_INVALID: ['PRECONTRACT_ANCHOR_MAX_USE_INVALID', '/maxUse', 'An anchor authority is single use.'],
+  BINDING_ABSENT: ['PRECONTRACT_ANCHOR_BINDING_ABSENT', '/precontractConsumption', 'The anchor event states no receipt identity.'],
+  RECORD_PATH_MISMATCH: ['PRECONTRACT_ANCHOR_PATH_MISMATCH', '/precontractConsumption/path', 'The event anchors a different receipt than its authority permits.'],
+  RECORD_DIGEST_MISMATCH: ['PRECONTRACT_ANCHOR_DIGEST_MISMATCH', '/precontractConsumption/sha256', 'The event anchors a different digest than its authority permits.'],
+  SOURCE_GATE_MISMATCH: ['PRECONTRACT_ANCHOR_SOURCE_GATE_MISMATCH', '/gateId', 'The referenced precontract authority belongs to another Gate.'],
+  SOURCE_PATH_MISMATCH: ['PRECONTRACT_ANCHOR_SOURCE_PATH_MISMATCH', '/consumptionRecordPath', 'The anchored receipt is not the one the precontract authority designated.'],
+  SOURCE_AUTHORITY_MISMATCH: ['PRECONTRACT_ANCHOR_SOURCE_AUTHORITY_MISMATCH', '/authorityId', 'The anchor names a different precontract authority than the one it resolves.']
+});
+/** The one extra field an anchor event carries, and only an anchor event. */
+export const PRECONTRACT_CONSUMPTION_ANCHOR_EVENT_FIELDS = Object.freeze(['precontractConsumption']);
+
 export const TRANSITION_TYPES = [
   ...NORMAL_EXECUTION_TRANSITION_TYPES,
   HISTORICAL_RECONCILIATION_TRANSITION_TYPE,
-  CONTRACT_SUCCESSION_TRANSITION_TYPE
+  CONTRACT_SUCCESSION_TRANSITION_TYPE,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE
 ];
 
 const REQUIRED_EVENT_FIELDS = [
@@ -1367,24 +1434,34 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
   // ----- the immediate dependency really was terminal at this point in the replay -----
   const dependency = record.dependencyProof;
   const dependencyStatus = replayedStatusByGate?.get(dependency?.gateId);
+  // Scoped to the replay, never to the live ledger: the question is whether the
+  // dependency was lawfully disposed AT THIS POINT, and that answer must not
+  // change when the ledger later grows past this event.
+  const canonicalDispositionDependency = dependency?.gateId
+    ? resolveGateDependencyProofFromEvents({ root, gateId: dependency.gateId, events: priorEvents })
+    : null;
   if (dependency?.gateId === event.gateId) {
     R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency.gateId, 'a different Gate', 'A Gate can never be its own authorization dependency.');
   } else if (dependencyStatus === undefined) {
     R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency?.gateId, 'dependency Gate present in the replayed ledger', 'The declared dependency Gate has no replayed status at this point in the ledger.');
+  } else if (canonicalDispositionDependency?.satisfied && canonicalDispositionDependency.disposition) {
+    if (dependency.status !== canonicalDispositionDependency.status) {
+      R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/status', dependency.status, canonicalDispositionDependency.status, 'The explicit canonical disposition must be carried as the dependency proof status.');
+    }
   } else if (dependencyStatus !== dependency.status) {
     R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/status', dependency.status, dependencyStatus, 'The declared dependency status is not the status the ledger actually replays for that Gate.');
   } else if (!GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES.includes(dependencyStatus)) {
     R('GATE_AUTHORIZATION_DEPENDENCY_NOT_TERMINAL', '/dependencyProof/status', dependencyStatus, GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES.join(' or '), 'The dependency Gate had not reached a terminal status, so this Gate was not authorizable.');
   }
-  const dependencyResolution = resolveDependencyAuthority({
+  const dependencyAuthorityResolution = resolveDependencyAuthority({
     root,
     identity: dependency?.authorityPath,
     sourceMap,
     extraExternalAuthorities: policy?.extraExternalAuthorities
   });
-  const dependencyAuthority = dependencyResolution.artifact;
+  const dependencyAuthority = dependencyAuthorityResolution.artifact;
   if (!dependencyAuthority) {
-    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authorityPath', dependency?.authorityPath, 'dependency authority resolvable as a governed path or a declared external authority identity', `The cited dependency authority could not be resolved to trusted evidence (${dependencyResolution.reason}).`);
+    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authorityPath', dependency?.authorityPath, 'dependency authority resolvable as a governed path or a declared external authority identity', `The cited dependency authority could not be resolved to trusted evidence (${dependencyAuthorityResolution.reason}).`);
   } else if (dependencyAuthority.sha256 !== dependency.authoritySha256) {
     R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authoritySha256', dependency.authoritySha256, dependencyAuthority.sha256, 'The cited dependency authority hash does not reproduce the resolved authority bytes.');
   }
@@ -1394,15 +1471,17 @@ function validateGateAuthorization({ root, ledgerPath, event, lineNumber, priorO
   // so a stale, substituted or merely equivalent identity is refused even when it happens
   // to resolve to the right bytes. This is what keeps pre-write equality and permanent
   // re-verification answering the same question about the same value.
-  const dependencyTerminalEvent = priorEvents.filter((e) => e.gateId === dependency?.gateId).at(-1) || null;
-  if (!dependencyTerminalEvent) {
-    R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency?.gateId, 'dependency Gate with a terminal event in the replayed ledger', 'The declared dependency Gate has no terminal ledger event at this point in the ledger.');
-  } else {
-    if (dependencyTerminalEvent.authorityPath !== dependency.authorityPath) {
-      R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authorityPath', dependency.authorityPath, dependencyTerminalEvent.authorityPath, 'The dependency proof does not carry the authority identity the dependency Gate terminal event actually records.');
-    }
-    if (dependencyTerminalEvent.authoritySha256 !== dependency.authoritySha256) {
-      R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authoritySha256', dependency.authoritySha256, dependencyTerminalEvent.authoritySha256, 'The dependency proof does not carry the authority hash the dependency Gate terminal event actually records.');
+  if (!(canonicalDispositionDependency?.satisfied && canonicalDispositionDependency.disposition)) {
+    const dependencyTerminalEvent = priorEvents.filter((e) => e.gateId === dependency?.gateId).at(-1) || null;
+    if (!dependencyTerminalEvent) {
+      R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/gateId', dependency?.gateId, 'dependency Gate with a terminal event in the replayed ledger', 'The declared dependency Gate has no terminal ledger event at this point in the ledger.');
+    } else {
+      if (dependencyTerminalEvent.authorityPath !== dependency.authorityPath) {
+        R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authorityPath', dependency.authorityPath, dependencyTerminalEvent.authorityPath, 'The dependency proof does not carry the authority identity the dependency Gate terminal event actually records.');
+      }
+      if (dependencyTerminalEvent.authoritySha256 !== dependency.authoritySha256) {
+        R('GATE_AUTHORIZATION_DEPENDENCY_MISMATCH', '/dependencyProof/authoritySha256', dependency.authoritySha256, dependencyTerminalEvent.authoritySha256, 'The dependency proof does not carry the authority hash the dependency Gate terminal event actually records.');
+      }
     }
   }
 
@@ -1604,6 +1683,151 @@ function validateModernGateStart({ root, ledgerPath, event, lineNumber, priorEve
  * Detected structurally, from the cited document's own self-declared kind.
  */
 /**
+ * Proof obligations for a PRECONTRACT_CONSUMPTION_ANCHOR event.
+ *
+ * The event's whole purpose is to state, in the append-only spine, the exact
+ * bytes of one precontract consumption receipt. So the obligations are about
+ * identity and exactness, not about status: the cited authority must be a local
+ * single-use anchor authority for this Gate, it must name the receipt that the
+ * Gate's own precontract authority designated, and the digest it anchors must
+ * reproduce the receipt's bytes as they stand.
+ *
+ * Exactly one anchor per Gate. A second would let a later, more convenient
+ * version of the receipt be introduced alongside the first.
+ */
+/**
+ * The native state pin obligation for a PRECONTRACT_CONSUMPTION_ANCHOR.
+ *
+ * WHY THIS IS NOT THE GENERIC RULE. Every other native-era event MINTS the revision
+ * it pins, so "the pin is present" is the whole obligation. An anchor mints nothing —
+ * it is a self-transition that records a fact about a bootstrap that already
+ * happened — so presence is the wrong question twice over:
+ *
+ *   - a present pin is not enough. An anchor carrying SOME well-formed revision
+ *     would satisfy the generic rule while quietly restating the Gate's state as
+ *     something it never was. So the pin must be the Gate's LATEST prior pin
+ *     exactly, seal included: not an older one, not a neighbouring revision.
+ *
+ *   - absence is not always wrong. A Gate anchored at the canonical moment — right
+ *     after its bootstrap, before its first lifecycle event — has no pin anywhere in
+ *     its history, because nothing has minted a revision yet. Demanding one there
+ *     forces the anchor to fabricate a revision no seal backs.
+ *
+ * So absence is admissible in exactly one pre-state, and every clause below must
+ * hold for it: the Gate has never been pinned, it has no lifecycle history beyond
+ * its import, it is standing still at NOT_STARTED, and the anchor neither introduces
+ * nor advances a revision. Anything else BLOCKS.
+ *
+ * TIME-INVARIANT BY CONSTRUCTION. Every clause is read from the Gate's own prior
+ * events, never from today's tree. That is the same H4 discipline the rest of this
+ * validator follows, and here it is load-bearing: judging a bootstrap-era anchor
+ * against the state directory as it stands TODAY would re-block it the instant the
+ * Gate lawfully advanced and minted R0001 — the precise "receipt whose validity
+ * decays as history moves forward" defect the anchor exists to end.
+ */
+function validatePrecontractConsumptionAnchorStatePin({ event, lineNumber, priorEvents, findings }) {
+  const R = (detectorId, pointer, actual, expected, message) =>
+    finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY', message, 'REQ-PCA-01');
+
+  const ownPrior = priorEvents.filter((prior) => prior.gateId === event.gateId);
+  const isPin = (candidate) => /^R[0-9]{4}$/.test(String(candidate?.stateRevision))
+    && /^[a-f0-9]{64}$/.test(String(candidate?.stateRevisionSealSha256));
+  const latest = [...ownPrior].reverse().find(isPin) ?? null;
+  const carries = NATIVE_STATE_PIN_FIELDS.some((key) => Object.prototype.hasOwnProperty.call(event, key));
+
+  // CASE 1 — the Gate has been pinned. The anchor must repeat that exact pin.
+  if (latest) {
+    if (!carries) {
+      R('PRECONTRACT_ANCHOR_STATE_PIN_MISSING', '/stateRevision', null, latest.stateRevision, 'This Gate already carries a state pin, so its anchor must restate that pin rather than omit it.');
+      return;
+    }
+    if (event.stateRevision !== latest.stateRevision) {
+      R('PRECONTRACT_ANCHOR_STATE_PIN_MISMATCH', '/stateRevision', event.stateRevision ?? null, latest.stateRevision, 'An anchor restates the Gate\'s latest state revision; it can neither advance it nor reach back to an older one.');
+    }
+    if (event.stateRevisionSealSha256 !== latest.stateRevisionSealSha256) {
+      R('PRECONTRACT_ANCHOR_STATE_PIN_MISMATCH', '/stateRevisionSealSha256', event.stateRevisionSealSha256 ?? null, latest.stateRevisionSealSha256, 'The anchored state seal is not the seal of the Gate\'s latest pinned revision.');
+    }
+    return;
+  }
+
+  // CASE 2 — the Gate has never been pinned. Absence is admissible only from the
+  // bootstrap pre-state, and only if the anchor claims no revision of its own.
+  if (carries) {
+    R('PRECONTRACT_ANCHOR_STATE_PIN_FABRICATED', '/stateRevision', event.stateRevision ?? event.stateRevisionSealSha256 ?? null, 'no state pin', 'This Gate has never been pinned to a state revision, so an anchor cannot introduce one: no sealed revision backs it.');
+    return;
+  }
+  if (ownPrior.some((prior) => prior.transitionType !== 'GENESIS_IMPORT')) {
+    R('PRECONTRACT_ANCHOR_STATE_PIN_UNRESOLVED', '/stateRevision', ownPrior.at(-1)?.transitionType ?? null, 'no lifecycle history beyond GENESIS_IMPORT', 'This Gate has already run lifecycle transitions, which mint state, so an unpinned anchor contradicts its own history.');
+    return;
+  }
+  if (event.fromStatus !== 'NOT_STARTED' || event.toStatus !== 'NOT_STARTED') {
+    R('PRECONTRACT_ANCHOR_STATE_PIN_UNRESOLVED', '/fromStatus', `${event.fromStatus}>${event.toStatus}`, 'NOT_STARTED>NOT_STARTED', 'An anchor may omit its state pin only as a strict self-transition in the bootstrap pre-state.');
+    return;
+  }
+  const priorStatus = ownPrior.at(-1)?.toStatus ?? null;
+  if (priorStatus !== 'NOT_STARTED') {
+    R('PRECONTRACT_ANCHOR_STATE_PIN_UNRESOLVED', '/fromStatus', priorStatus, 'NOT_STARTED', 'An unpinned anchor is admissible only while the Gate is genuinely still in its bootstrap pre-state.');
+  }
+}
+
+function validatePrecontractConsumptionAnchor({ root, event, lineNumber, authority, priorEvents, findings }) {
+  const R = (detectorId, pointer, actual, expected, message) =>
+    finding(findings, detectorId, event, lineNumber, pointer, actual, expected, 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY', message, 'REQ-PCA-01');
+
+  // First, and before any early return below, so an anchor can never reach the end
+  // of this function with its state binding unexamined.
+  validatePrecontractConsumptionAnchorStatePin({ event, lineNumber, priorEvents, findings });
+
+  if (priorEvents.some((prior) => prior.gateId === event.gateId && prior.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE)) {
+    R('PRECONTRACT_ANCHOR_DUPLICATE', '/transitionType', event.transitionType, 'exactly one anchor per Gate', 'This Gate already anchored its precontract consumption receipt.');
+  }
+  // The anchored identity must agree in three places at once: the event, the
+  // authority that permitted it, and the bytes on disk. The first two are decided
+  // by the SHARED core primitive, which VERIFY_CONSUMPTION also consumes, so the
+  // two validators cannot drift into opposite verdicts on the same bytes. Only the
+  // resolution is done here — reading bytes is what a ledger walk does differently
+  // from a consumption check — and every clause is mapped back onto the detector
+  // ids this validator has always emitted.
+  let record = null;
+  if (authority?.filePath) {
+    try { record = JSON.parse(fs.readFileSync(authority.filePath, 'utf8')); } catch { record = null; }
+  }
+  const anchored = event.precontractConsumption;
+  // The source authority is resolved before the decision so the primitive judges
+  // the whole chain in one pass; an unreadable one keeps its own existing code.
+  const precontractPath = record?.precontractAuthorityPath;
+  const precontractArtifact = precontractPath ? readLiveArtifact(root, precontractPath) : null;
+  let precontract = null;
+  try { precontract = precontractArtifact ? JSON.parse(precontractArtifact.bytes.toString('utf8')) : null; } catch { precontract = null; }
+
+  const binding = evaluatePrecontractConsumptionAnchorBinding({
+    event,
+    anchorAuthority: authority?.filePath
+      ? { present: true, sha256: authority.actualSha, record }
+      : { present: false, sha256: null, record: null },
+    precontractAuthority: precontract
+  });
+  const emit = (item) => {
+    const [detectorId, pointer, message] = ANCHOR_BINDING_DETECTORS[item.clause];
+    R(detectorId, pointer, item.actual, item.expected, message);
+  };
+  for (const item of binding.authority) emit(item);
+  if (binding.terminal) return;
+
+  const live = readLiveArtifact(root, anchored.path);
+  if (!live) R('PRECONTRACT_ANCHOR_RECEIPT_ABSENT', '/precontractConsumption/path', anchored.path, 'a readable receipt inside the governed tree', 'The anchored receipt cannot be read.');
+  else if (live.sha256 !== anchored.sha256) R('PRECONTRACT_ANCHOR_RECEIPT_MUTATED', '/precontractConsumption/sha256', live.sha256, anchored.sha256, 'The receipt bytes no longer reproduce the anchored digest.');
+
+  // The receipt must be the one the Gate's own precontract authority designated,
+  // so an anchor cannot legitimise a receipt at an unrelated path.
+  if (!precontract) R('PRECONTRACT_ANCHOR_SOURCE_AUTHORITY_UNRESOLVED', '/precontractAuthorityPath', precontractPath ?? null, 'a readable precontract authority', 'The precontract authority this anchor refers to cannot be read.');
+  else for (const item of binding.source) emit(item);
+  if (findings.filter((item) => item.detectorId?.startsWith('PRECONTRACT_ANCHOR_') && item.lineNumber === lineNumber).length === 0) {
+    finding(findings, 'PRECONTRACT_ANCHOR_APPLIED', event, lineNumber, '/precontractConsumption/sha256', anchored.sha256, 'single-use local anchor authority', 'GATE_PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY', 'Precontract consumption receipt anchored in the append-only ledger.', 'REQ-PCA-01', 'INFO');
+  }
+}
+
+/**
  * Proof obligations for a CONTRACT_SUCCESSION event.
  *
  * The event is only the RECORD of a succession; the succession itself is
@@ -1710,13 +1934,28 @@ function checkGateStartRecordNotBorrowed({ event, lineNumber, authority, finding
 function checkEventShape(event, findings, lineNumber) {
   const keys = Object.keys(event);
   const nativeEra = Number.isInteger(event.ordinal) && event.ordinal >= NATIVE_STATE_PIN_FIRST_ORDINAL;
-  const allowedFields = nativeEra ? [...REQUIRED_EVENT_FIELDS, ...NATIVE_STATE_PIN_FIELDS] : REQUIRED_EVENT_FIELDS;
+  // The anchor binding is admissible ONLY on an anchor event, so no other
+  // transition type can smuggle a receipt claim into the spine.
+  const anchorFields = event.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE
+    ? PRECONTRACT_CONSUMPTION_ANCHOR_EVENT_FIELDS : [];
+  const allowedFields = nativeEra
+    ? [...REQUIRED_EVENT_FIELDS, ...NATIVE_STATE_PIN_FIELDS, ...anchorFields]
+    : [...REQUIRED_EVENT_FIELDS, ...anchorFields];
   const missing = REQUIRED_EVENT_FIELDS.filter((key) => !Object.prototype.hasOwnProperty.call(event, key));
   const extra = keys.filter((key) => !allowedFields.includes(key));
   if (nativeEra) {
-    for (const key of NATIVE_STATE_PIN_FIELDS) {
-      if (!Object.prototype.hasOwnProperty.call(event, key)) {
-        finding(findings, 'NATIVE_STATE_PIN_MISSING', event, lineNumber, `/${key}`, undefined, `required from ordinal ${NATIVE_STATE_PIN_FIRST_ORDINAL}`, 'event schema', `Native-era events must pin their resulting state revision; ${key} is missing.`, 'REQ-LED-01');
+    // A PRECONTRACT_CONSUMPTION_ANCHOR's pin obligation is not "present", it is
+    // "exactly the Gate's latest prior pin — or, for a Gate that has never had one,
+    // absent". That question is unanswerable from this event's bytes alone, so it is
+    // answered by validatePrecontractConsumptionAnchorStatePin, which sees the Gate's
+    // own prior events. Nothing is relaxed and the exemption is not general: the
+    // anchor rule below is strictly STRONGER than presence, and it BLOCKS the absence
+    // admitted here for every anchor except the one legitimate bootstrap pre-state.
+    if (!anchorFields.length) {
+      for (const key of NATIVE_STATE_PIN_FIELDS) {
+        if (!Object.prototype.hasOwnProperty.call(event, key)) {
+          finding(findings, 'NATIVE_STATE_PIN_MISSING', event, lineNumber, `/${key}`, undefined, `required from ordinal ${NATIVE_STATE_PIN_FIRST_ORDINAL}`, 'event schema', `Native-era events must pin their resulting state revision; ${key} is missing.`, 'REQ-LED-01');
+        }
       }
     }
     if (Object.hasOwn(event, 'stateRevision') && !/^R[0-9]{4}$/.test(String(event.stateRevision))) {
@@ -1861,14 +2100,17 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
     // exactly what they were before reconciliation existed.
     const isHistoricalReconciliation = event.transitionType === HISTORICAL_RECONCILIATION_TRANSITION_TYPE;
     const isContractSuccession = event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE;
+    const isConsumptionAnchor = event.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE;
     const table = isHistoricalReconciliation ? HISTORICAL_RECONCILIATION_TRANSITIONS
       : isContractSuccession ? CONTRACT_SUCCESSION_TRANSITIONS
+      : isConsumptionAnchor ? PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS
       : TRANSITIONS;
     const tableName = isHistoricalReconciliation ? 'transition in the narrow historical reconciliation table'
       : isContractSuccession ? 'transition in the single-entry contract succession table'
+      : isConsumptionAnchor ? 'transition in the two-entry precontract consumption anchor table'
       : 'transition in closed I2 table';
     const allowed = table.some(([from, to, type]) => `${from ?? 'null'}>${to}:${type}` === key);
-    if (!allowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/', key, tableName, 'transition table', isHistoricalReconciliation ? 'Transition is not an authorized historical reconciliation.' : isContractSuccession ? 'Transition is not an authorized contract succession.' : 'Transition is not present in the closed state machine.', 'REQ-LED-02');
+    if (!allowed) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/', key, tableName, 'transition table', isHistoricalReconciliation ? 'Transition is not an authorized historical reconciliation.' : isContractSuccession ? 'Transition is not an authorized contract succession.' : isConsumptionAnchor ? 'Transition is not an authorized precontract consumption anchor.' : 'Transition is not present in the closed state machine.', 'REQ-LED-02');
     if (event.fromStatus === null) genesisCount.set(event.gateId, (genesisCount.get(event.gateId) || 0) + 1);
     const current = currentByGate.get(event.gateId);
     if (current !== undefined && event.fromStatus !== current) finding(findings, 'INVALID_STATUS_TRANSITION', event, lineNumber, '/fromStatus', event.fromStatus, current, 'fromStatus equals replayed current status', 'fromStatus does not match the replayed gate state.', 'REQ-LED-02');
@@ -1936,6 +2178,9 @@ export function validateLedger({ root, ledgerPath, sourceMapPath = null, registr
     }
     if (event.transitionType === CONTRACT_SUCCESSION_TRANSITION_TYPE) {
       validateContractSuccession({ root, event, lineNumber, authority, mode, findings });
+    }
+    if (event.transitionType === PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE) {
+      validatePrecontractConsumptionAnchor({ root, event, lineNumber, authority, priorEvents: events.slice(0, i), findings });
     }
     checkGateAuthorizationRecordNotBorrowed({ event, lineNumber, authority, findings });
     checkGateStartRecordNotBorrowed({ event, lineNumber, authority, findings });

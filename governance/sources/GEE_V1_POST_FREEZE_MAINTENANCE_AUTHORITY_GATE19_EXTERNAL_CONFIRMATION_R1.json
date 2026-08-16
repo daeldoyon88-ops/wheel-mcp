@@ -1,0 +1,48 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-16T09:07:11.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION",
+  "authorityPurpose": "GATE_EXTERNAL_CONFIRMATION",
+  "resumePoint": "GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 77,
+    "ledgerPrefixSha256": "40eccdbb2e561a11bd3bda0a898575f2944cbd03c4c1ce2251b26a50952af5b0",
+    "gateId": "GATE19",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE19_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "3f0dd5bf19143b163b3a20d9bb94d955dce220677d2fb3478cc5dde5185e75f1",
+  "authorizedOperationClasses": ["EXTERNAL_CONFIRMATION"],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": ["GIT_ADD_PATHSPEC", "GIT_COMMIT"],
+    "commitMessage": "governance: confirm GATE19 with independent confirmation",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE19_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "99093c0208d119dc9e62dc4677d6f1af8c033127d54ac6663baf24fb85b98a4b"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE19_EXTERNAL_CONFIRMATION_CONSUMPTION_R1.json",
+  "prohibitedOperations": ["START", "SECOND_START", "AGENT_CLOSURE", "EXTERNAL_CONFIRMATION", "COMPLETE_AGENT", "COMPLETE_CONFIRMED", "ACTIVE_GATE_SWITCH", "GEE_R8", "GIT_PUSH", "HISTORY_REWRITE", "THIRD_COMMIT", "UNRELATED_WRITE"],
+  "externalReinspectionReportPath": "governance/sources/GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION_EXTERNAL_REINSPECTION_REPORT.json",
+  "externalReinspectionReportSha256": "6d6f329f1d6bd4ee81b98a8664be34e84961cac893b398d461745f71b635d6a1"
+}

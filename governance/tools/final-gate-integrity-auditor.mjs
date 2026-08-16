@@ -46,11 +46,46 @@ import { fileURLToPath } from 'node:url';
 import { canonicalize, sha256Bytes, sha256Canonical } from './canonical-json.mjs';
 import {
   MODE_FULL, TRANSITIONS, NATIVE_STATE_PIN_FIRST_ORDINAL,
+  HISTORICAL_RECONCILIATION_TRANSITIONS, CONTRACT_SUCCESSION_TRANSITIONS,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS,
   reconstructLedgerPrefixBytes, validateLedger
 } from './validate-status-ledger.mjs';
+
+/**
+ * Every table a Gate transition may be admitted by: the closed I2 execution table
+ * plus the narrow classes, each with its own table.
+ *
+ * WHY THIS REPLACED A NAME LIST. Narrow-class transitions used to be admitted by
+ * TYPE NAME alone — `['HISTORICAL_RECONCILIATION', 'CONTRACT_SUCCESSION']
+ * .includes(event.transitionType)` — which admitted ANY from/to pair carrying one of
+ * those names. A reconciliation claiming NOT_STARTED -> COMPLETE_CONFIRMED was
+ * admitted here on the strength of its type, even though the ledger validator's own
+ * table would refuse it. Admission is now the same exact tuple test the execution
+ * table already used, applied to every class: fromStatus, toStatus AND
+ * transitionType must all match one declared entry.
+ *
+ * SCOPE OF THE CLAIM. This closes the type-only bypass for the classes named below,
+ * which are all the classes that exist. It is NOT automatic discovery: a future
+ * narrow class must be added to this list, exactly as it must be added to
+ * TRANSITION_TYPES. That is deliberate — a class nobody declared here is refused
+ * rather than silently admitted, so the failure mode of forgetting is fail-closed.
+ */
+const ADMISSION_TABLES = [
+  TRANSITIONS,
+  HISTORICAL_RECONCILIATION_TRANSITIONS,
+  CONTRACT_SUCCESSION_TRANSITIONS,
+  PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS
+];
+
+/** True only when some declared table holds this exact from/to/type tuple. */
+function isAdmittedTransition(event) {
+  return ADMISSION_TABLES.some((table) => table.some(([from, to, type]) =>
+    from === event.fromStatus && to === event.toStatus && type === event.transitionType));
+}
 import { computeSealedMembersDigest, validateStateSeal } from './validate-state-seal.mjs';
 import { validateStateRevision } from './validate-state-revision.mjs';
 import { collectClosedStateSealMembers } from '../gee-v1/core/sealed-state-evidence.mjs';
+import { deriveCanonicalAuthorizedCohort } from '../gee-v1/core/canonical-authorized-cohort.mjs';
 import { resolveDurableLifecycleRoot } from '../gee-v1/runtime/run-root-lifecycle.mjs';
 
 export const AUDITOR_DOCUMENT = 'FINAL_GATE_INTEGRITY_AUDITOR';
@@ -155,11 +190,22 @@ function checkProjectionGenerator(root, generatorPath) {
 /**
  * Runs the audit for one Gate against the FINAL bytes of `root`.
  *
- * `authorizedCohort` is the exact bounded set of paths the mission was allowed to
- * touch. It is a CLAIM: the auditor compares it against the real Git delta and
- * reports both directions of disagreement. Supplying it is optional — without it
- * the cohort family reports what Git actually shows and marks the comparison as
- * not requested, rather than inventing an expectation.
+ * THE COHORT IS DERIVED HERE, NEVER SUPPLIED.
+ *
+ * This used to take `authorizedCohort` as an argument. That made a PASS
+ * meaningless: a caller could pass the observed Git delta and "delta minus
+ * cohort is empty" became true by construction. The historical GATE19 PASS was
+ * produced exactly that way, and it could not have failed.
+ *
+ * The cohort is now derived from canonical authority documents — authority to
+ * manifest to consumption record — by `deriveCanonicalAuthorizedCohort`, which
+ * cannot read Git at all. There is no fallback, no union with the observed
+ * delta, and no way to top up a thin cohort from what happens to be on disk.
+ *
+ * `authorizedCohort` survives only as a CROSS-CHECK. When supplied it must equal
+ * the derived cohort exactly; any disagreement is blocking, in both directions.
+ * Setting it equal to the Git delta therefore no longer manufactures a PASS — it
+ * manufactures a mismatch against the derivation.
  */
 export function auditFinalGateIntegrity({
   root,
@@ -315,16 +361,15 @@ export function auditFinalGateIntegrity({
   const gateEvents = events.filter((event) => event.gateId === gateId);
   const derivedStatus = statusByGate.get(gateId) ?? 'ABSENT';
 
-  // Transition order must be admitted by the canonical table, walked forward.
+  // Transition order must be admitted by a canonical table, walked forward. Every
+  // class is judged on the full tuple; no transition type is admitted by name.
   let walked = null;
   for (const event of gateEvents) {
-    const admitted = TRANSITIONS.some(([from, to, type]) =>
-      from === event.fromStatus && to === event.toStatus && type === event.transitionType)
-      || ['HISTORICAL_RECONCILIATION', 'CONTRACT_SUCCESSION'].includes(event.transitionType);
+    const admitted = isAdmittedTransition(event);
     if (!admitted) {
       blocking('LIFECYCLE', 'TRANSITION_NOT_ADMITTED', {
         path: LEDGER_PATH,
-        expected: 'a transition present in the canonical table',
+        expected: 'an exact from/to/type tuple present in a canonical transition table',
         actual: `${event.fromStatus}>${event.toStatus}:${event.transitionType}`,
         message: event.eventId
       });
@@ -694,11 +739,65 @@ export function auditFinalGateIntegrity({
 
   /* ---- GIT / COHORT ----------------------------------------------------- */
   ran('GIT_COHORT');
-  const gitAudit = { headResolved: false, head: null, cohortComparisonRequested: authorizedCohort !== null };
+  // The cohort, derived from authority documents before Git is consulted at all.
+  const derivedCohort = deriveCanonicalAuthorizedCohort({ root, gateId });
+  const canonicalCohort = derivedCohort.cohort;
+  if (!derivedCohort.valid) {
+    for (const item of derivedCohort.findings) {
+      blocking('GIT_COHORT', 'CANONICAL_COHORT_DERIVATION_INVALID', {
+        path: null, expected: 'every authority source resolves to a valid manifest and consumption record',
+        actual: item.detail ?? item.code, affectedFrontier: 'GIT_COHORT'
+      });
+    }
+  }
+  if (canonicalCohort.length === 0) {
+    blocking('GIT_COHORT', 'CANONICAL_COHORT_EMPTY', {
+      path: null, expected: 'a non-empty authority-derived cohort', actual: 0, affectedFrontier: 'GIT_COHORT'
+    });
+  }
+  // The supplied list is a claim about the derivation, not a source of authority.
+  if (authorizedCohort) {
+    const supplied = [...new Set(authorizedCohort)].sort();
+    const derivedSet = new Set(canonicalCohort);
+    const suppliedSet = new Set(supplied);
+    for (const relativePath of supplied.filter((entry) => !derivedSet.has(entry))) {
+      blocking('GIT_COHORT', 'SUPPLIED_COHORT_PATH_NOT_CANONICALLY_AUTHORIZED', {
+        path: relativePath, expected: 'present in the authority-derived cohort',
+        actual: 'supplied by caller only', affectedFrontier: 'GIT_COHORT'
+      });
+    }
+    for (const relativePath of canonicalCohort.filter((entry) => !suppliedSet.has(entry))) {
+      blocking('GIT_COHORT', 'SUPPLIED_COHORT_OMITS_CANONICAL_PATH', {
+        path: relativePath, expected: 'present in the supplied cohort',
+        actual: 'ABSENT', affectedFrontier: 'GIT_COHORT'
+      });
+    }
+  }
+
+  const gitAudit = {
+    headResolved: false, head: null,
+    cohortSource: 'CANONICAL_AUTHORITY_DERIVATION',
+    cohortCrossCheckRequested: authorizedCohort !== null,
+    canonicalCohort: {
+      algorithmVersion: derivedCohort.algorithmVersion,
+      digest: derivedCohort.cohortDigest,
+      pathCount: canonicalCohort.length,
+      refusedSources: derivedCohort.refusedSources,
+      sources: derivedCohort.sources
+    }
+  };
   try {
     gitAudit.head = git(root, ['rev-parse', 'HEAD']).trim();
     gitAudit.headResolved = true;
-    gitAudit.status = git(root, ['status', '--porcelain'])
+    // -uall, not the default. Plain `--porcelain` collapses an untracked
+    // directory into a single trailing-slash entry, so a cohort that names the
+    // files inside a NEW directory can never be compared file by file: each
+    // authorized file reads as absent from the delta while the directory reads
+    // as one unauthorized path. That reduces the exact-cohort proof to
+    // directory granularity in exactly the place a Gate's own new artifacts
+    // live. Listing every untracked file makes the comparison exact, and it can
+    // only ever report MORE paths than before, never fewer.
+    gitAudit.status = git(root, ['status', '--porcelain', '-uall'])
       .split(/\r?\n/).filter(Boolean)
       .map((line) => ({ code: line.slice(0, 2), path: line.slice(3) }));
     if (baselineCommit) {
@@ -709,13 +808,16 @@ export function auditFinalGateIntegrity({
     blocking('GIT_COHORT', 'GIT_UNAVAILABLE', { path: null, expected: 'git repository', actual: error.message });
   }
 
-  if (authorizedCohort && gitAudit.headResolved) {
+  // The comparison runs unconditionally now. It used to be gated on a supplied
+  // cohort, so omitting `--cohort` silently skipped the exact-cohort proof
+  // entirely; the derivation is always available, so there is nothing to skip.
+  if (gitAudit.headResolved) {
     const tracked = new Set(gitAudit.status.filter((entry) => entry.code !== '??').map((entry) => entry.path));
     const untracked = new Set(gitAudit.status.filter((entry) => entry.code === '??').map((entry) => entry.path));
     const actuallyChanged = new Set([...tracked, ...untracked, ...(gitAudit.committedDelta ?? [])]);
     const byteIdenticalAuthorized = [];
     const missing = [];
-    for (const relativePath of authorizedCohort) {
+    for (const relativePath of canonicalCohort) {
       if (actuallyChanged.has(relativePath)) continue;
       // AUTHORIZED BUT NOT IN THE GIT DELTA IS NOT AUTOMATICALLY A DEFECT.
       // A path can be authorized and end up byte-identical to what is already
@@ -730,11 +832,11 @@ export function auditFinalGateIntegrity({
         path: relativePath, expected: 'present in the working tree', actual: 'ABSENT', affectedFrontier: 'GIT_COHORT'
       });
     }
-    gitAudit.authorizedCount = authorizedCohort.length;
+    gitAudit.authorizedCount = canonicalCohort.length;
     gitAudit.actualChanged = [...actuallyChanged].sort();
     gitAudit.byteIdenticalAuthorized = byteIdenticalAuthorized;
-    gitAudit.cohortIdentities = authorizedCohort.map((relativePath) => actualIdentity(root, relativePath));
-    for (const relativePath of [...actuallyChanged].filter((entry) => !authorizedCohort.includes(entry)).sort()) {
+    gitAudit.cohortIdentities = canonicalCohort.map((relativePath) => actualIdentity(root, relativePath));
+    for (const relativePath of [...actuallyChanged].filter((entry) => !canonicalCohort.includes(entry)).sort()) {
       blocking('GIT_COHORT', 'UNEXPECTED_GIT_DELTA', {
         path: relativePath,
         expected: 'path listed in the authorized cohort',

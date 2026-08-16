@@ -1,0 +1,83 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "WHEEL_PATH_PRESTATE_BINDING_LOCAL_AUTHORITY_R1",
+  "programId": "WHEEL_PATH_PRESTATE_BINDING_R1",
+  "manifestSha256": "c7be1abd9d9b33e11b075c69800cb8eea9bb415bb5a687882591bc053d51ab1b",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "WHEEL_PATH_PRESTATE_BINDING_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T03:59:04.986Z",
+  "commitMessage": "governance: bind authorized-path pre-state into maintenance authority",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/PATH_PRESTATE_BINDING_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 9,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "sha256": "26356b8aeb4736b34bc344cbfdaf5ec84def3be9137989567ad3ac4a954de0b4",
+      "byteLength": 45640,
+      "operation": "MODIFY",
+      "reason": "Add schemaVersion-2 authorized-path pre-state binding and bounded bootstrap self-exclusion.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/post-freeze-maintenance-observation.mjs",
+      "sha256": "84867906a00f70d535dfb5665e583c29467f78a666d9b7e58a2b44f9484eb64c",
+      "byteLength": 9473,
+      "operation": "MODIFY",
+      "reason": "Observe each authorized path pre-state and its canonical predecessors.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "sha256": "cbcf612249da49af5df5bdde2c02e1ba3932649628d72ca98040ace068662875",
+      "byteLength": 3635,
+      "operation": "MODIFY",
+      "reason": "Report the loaded authority document path so a self-exclusion can be checked.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/tools/apply-path-prestate-program.mjs",
+      "sha256": "832dc34efc844097d37aad1d77563b575a6b8088189326e248aeee2358c7f88d",
+      "byteLength": 12532,
+      "operation": "CREATE",
+      "reason": "R6 publisher: prestate verification, transactional publication, rollback, consumption.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/core/canonical-authorized-cohort.mjs",
+      "sha256": "518ff045820342367d5399aad1126ceabc4030458467aecbd8e7e4137f9bb27f",
+      "byteLength": 9040,
+      "operation": "CREATE",
+      "reason": "Derive a Gate cohort from authority, manifest and consumption records only.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-path-prestate-binding.test.mjs",
+      "sha256": "7149079a0a3c144b58963d9f425a5f6a342682aac5763dd4ea91d99f5fdc6b44",
+      "byteLength": 21096,
+      "operation": "CREATE",
+      "reason": "Anti-ratification hostile battery for the pre-state binding.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PATH_PRESTATE_BINDING_R1.json",
+      "sha256": "3af6a4ea4e77d0bd68324149122fa09305292d3b745ce72b5b7dabaac41a1fa5",
+      "byteLength": 2075,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact pre-state of every path it authorizes.",
+      "artifactClass": "MAINTENANCE"
+    },
+    {
+      "path": "governance/historical-architecture/PATH_PRESTATE_BINDING_AUTHORIZED_PATHS_R1.json",
+      "sha256": "c7be1abd9d9b33e11b075c69800cb8eea9bb415bb5a687882591bc053d51ab1b",
+      "byteLength": 4337,
+      "operation": "CREATE",
+      "reason": "Exact finite authorized-path cohort with declared pre-state per path.",
+      "artifactClass": "MAINTENANCE"
+    }
+  ]
+}

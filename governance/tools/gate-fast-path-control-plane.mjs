@@ -64,6 +64,7 @@ import {
 import {
   buildExecutionEfficiencyReceipt, createProcessCallCounter
 } from '../gee-v1/runtime/execution-efficiency-receipt.mjs';
+import { resolveGateDependencyProof } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
 
 export const CONTROL_PLANE_DOCUMENT = 'GATE_FAST_PATH_CONTROL_PLANE';
 export const CONTROL_PLANE_VERSION = 'R1';
@@ -820,8 +821,9 @@ async function planFastPath({
 
   const dependencies = Array.isArray(gate.dependencies) ? gate.dependencies : [];
   const unsatisfiedDependencies = dependencies
-    .filter((dependency) => !['COMPLETE_CONFIRMED', 'SUPERSEDED'].includes(statusByGate.get(dependency)))
-    .map((dependency) => ({ gateId: dependency, status: statusByGate.get(dependency) ?? 'ABSENT' }));
+    .map((dependency) => ({ dependency, proof: resolveGateDependencyProof({ root, gateId: dependency }) }))
+    .filter(({ proof }) => !proof.satisfied)
+    .map(({ dependency, proof }) => ({ gateId: dependency, status: proof.observedStatus ?? 'ABSENT', reason: proof.reason }));
   if (unsatisfiedDependencies.length) {
     gateLocalExpected.push({ code: 'DEPENDENCY_NOT_CLOSED', detail: unsatisfiedDependencies, classification: 'GATE_LOCAL_EXPECTED' });
   }

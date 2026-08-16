@@ -1,0 +1,16 @@
+{
+  "document": "FINAL_ZIP_SELFTEST",
+  "schemaVersion": 1,
+  "gateId": "GATE19",
+  "verdict": "PASS",
+  "checks": {
+    "BACKSLASH_ENTRIES": 0,
+    "OUTSIDE_PACKAGE_PREFIX": 0,
+    "UNSAFE_PATHS": 0,
+    "DUPLICATE_ENTRIES": 0,
+    "MANIFEST_BYTES": 0,
+    "REPOSITORY_EXCLUDED": 0
+  },
+  "archiveSha256": "db0740d9c6ec57b85323bcdcbd1c1775d63e0033d7e1552bb809a86fd9287db3",
+  "entryCount": 6
+}

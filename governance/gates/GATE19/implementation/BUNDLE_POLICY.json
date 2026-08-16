@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "policyId": "GATE19_BOUNDED_FOUNDATION_BUNDLE_V1",
+  "gateId": "GATE19",
+  "packagePrefix": "foundation/",
+  "archivePath": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+  "archiveTimestampUtc": "2026-08-15T12:00:00.000Z",
+  "selectedArtifacts": [
+    { "sourcePath": "governance/GATE_REGISTRY_00_40.json", "packagePath": "foundation/governance/GATE_REGISTRY_00_40.json" },
+    { "sourcePath": "governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json", "packagePath": "foundation/governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json" },
+    { "sourcePath": "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json", "packagePath": "foundation/governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json" },
+    { "sourcePath": "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json", "packagePath": "foundation/governance/gates/GATE17/evidence/CLOSURE_MATRIX.json" },
+    { "sourcePath": "governance/generated/FOUNDATION_REPORT.md", "packagePath": "foundation/governance/generated/FOUNDATION_REPORT.md" },
+    { "sourcePath": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json", "packagePath": "foundation/governance/generated/FOUNDATION_REPORT_PROVENANCE.json" }
+  ],
+  "forbidden": ["complete repository", "GATE18 implementation", "GATE18 START", "R8", "ledger mutation", "unsafe archive path"],
+  "requiredChecks": ["BACKSLASH_ENTRIES", "OUTSIDE_PACKAGE_PREFIX", "UNSAFE_PATHS", "DUPLICATE_ENTRIES", "MANIFEST_BYTES", "REPOSITORY_EXCLUDED"]
+}

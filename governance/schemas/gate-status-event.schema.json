@@ -90,7 +90,8 @@
         "RESUME_AFTER_REOPEN",
         "SUPERSESSION",
         "HISTORICAL_RECONCILIATION",
-        "CONTRACT_SUCCESSION"
+        "CONTRACT_SUCCESSION",
+        "PRECONTRACT_CONSUMPTION_ANCHOR"
       ],
       "description": "The first fifteen values are NORMAL_EXECUTION_TRANSITION types, governed by the closed I2 transition table. HISTORICAL_RECONCILIATION is a distinct, strictly narrower transition class: it corrects a documented UNRESOLVED_STATUS_FALLBACK genesis status from recovered historical authority without implying authorization, start, execution or completion. Its authorityPath/authoritySha256 must pin a historical-reconciliation.schema.json record, which in turn binds the superseded genesis event, the fallback basis, a PROJECT_OWNER authorization and a byte-verified evidence cohort. The two classes never share a transition table; see governance/tools/validate-status-ledger.mjs."
     },
@@ -128,6 +129,16 @@
     "stateRevisionSealSha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
+    },
+    "precontractConsumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "description": "Present only on a PRECONTRACT_CONSUMPTION_ANCHOR event. It states, in the append-only spine, the exact bytes of one precontract consumption receipt, so that a later rewrite of that receipt is detectable from history rather than from the receipt's own self-description. See validatePrecontractConsumptionAnchor in governance/tools/validate-status-ledger.mjs.",
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
     }
   }
 }

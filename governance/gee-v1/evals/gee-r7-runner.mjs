@@ -20,6 +20,8 @@ import { createCheckpointStore } from '../recovery/checkpoint-store.mjs';
 import { createCheckpoint, planRecovery, checkpointTasksFromRoutePlan } from '../recovery/recovery-engine.mjs';
 import { createUsageLedger, aggregateUsage, appendUsageRecord } from '../usage/usage-ledger.mjs';
 import { createExecutionAuthorityRegistry, isPathAuthorized, resolveExecutionAuthority } from '../core/work-unit-core.mjs';
+import { evaluatePostFreezeMaintenanceAuthorityV2, PHASE_VERIFY_PROGRAM_CONSUMPTION } from '../core/post-freeze-maintenance-authority.mjs';
+import { collectPostFreezeMaintenanceObservation, resolveMaintenancePath } from '../../tools/post-freeze-maintenance-observation.mjs';
 import { createGeeMissionAuthoritySource, MISSION_WORK_UNIT_TYPE } from '../adapters/gee-mission-authority-source.mjs';
 import { createWheelContextAdapter } from '../adapters/wheel/context-wheel-adapter.mjs';
 import { createWheelRecoverySession, recordWheelTaskExecution, buildWheelCheckpoint, resumeWheelWorkUnit } from '../adapters/wheel/recovery-wheel-adapter.mjs';
@@ -43,10 +45,11 @@ const PASS = Object.freeze({ validator: 'R7_TEST_PRODUCING_VALIDATOR', result: '
 const VALIDATED_R7_BENCHMARK_CONTEXT = Symbol('VALIDATED_R7_BENCHMARK_CONTEXT');
 const BENCHMARK_CONTEXT_FIELDS = Object.freeze([
   'document', 'schemaVersion', 'fixtureId', 'contextKind', 'workUnitId', 'sourceHead',
-  'missionRevisionId', 'provenance', 'requiredState', 'contextIdentitySha256'
+  'missionRevisionId', 'provenance', 'historicalState', 'historicalContext',
+  'historicalContextSha256', 'contextIdentitySha256'
 ]);
 const BENCHMARK_CONTEXT_PROVENANCE_FIELDS = Object.freeze([
-  'authorityClass', 'purpose', 'generatedProjectionAuthority'
+  'authorityClass', 'purpose', 'generatedProjectionAuthority', 'derivedAtCommit', 'compilerVersion'
 ]);
 const BENCHMARK_CONTEXT_STATE_FIELDS = Object.freeze(['path', 'sha256', 'role']);
 const HEX64 = /^[a-f0-9]{64}$/;
@@ -247,12 +250,145 @@ function benchmarkContextBody(context) {
 }
 
 /**
- * Validate the benchmark input before any R7 measurement. The manifest is not
- * Gate authority: it binds a deterministic copy of existing canonical bytes
- * solely as benchmark input. A hidden runtime marker prevents callers from
- * bypassing this validation by constructing a look-alike object.
+ * THE HISTORICAL / CURRENT FRONTIER.
+ *
+ * This fixture certifies a scenario — Wheel GATE15 as it stood at sourceHead
+ * fbd5f512, before the gate had a directory, a contract, a state or a seal, and
+ * while its ledger-derived trust level was still PRE_EXECUTION. That scenario is
+ * finished history: ledger events 62-65 later carried GATE15 to
+ * COMPLETE_CONFIRMED, and no future state can restore it.
+ *
+ * The original validator rebuilt the scenario by compiling the LIVE canonical
+ * tree and asserting the result still looked like fbd5f512. That made a frozen
+ * historical benchmark a hostage of every future Gate: each new ledger event,
+ * each new gate file, each status advance broke a measurement that had already
+ * been taken correctly. The failure surfaced as
+ * BENCHMARK_CONTEXT_STATE_SHA256_MISMATCH, but re-pinning only exposed the next
+ * live coupling underneath it.
+ *
+ * The frontier is now explicit, and the two lanes never borrow each other's
+ * authority:
+ *
+ *   HISTORICAL — validateR7HistoricalBenchmarkContext. The certified context is
+ *   carried IN the fixture, compiled once at creation time. Validation reads the
+ *   fixture and nothing else: no ledger, no registry, no gate directory, no
+ *   HEAD. It is therefore permanent by construction. What keeps it honest is
+ *   internal binding, not trust: the frozen context carries the digest of every
+ *   source it was compiled from, and those must agree with the fixture's own
+ *   historicalState declaration, so a forged context cannot claim historical
+ *   provenance it never had.
+ *
+ *   CURRENT — validateR7CurrentStateBinding. Unchanged in spirit and still
+ *   fail-closed, it verifies live canonical bytes against an expectation the
+ *   CALLER supplies. It takes no expectation from the historical fixture, so it
+ *   can never be satisfied by history, and history can never be broken by it.
+ *
+ * A hidden runtime marker still prevents callers from bypassing validation by
+ * constructing a look-alike object.
  */
-export function validateR7BenchmarkContext({ repoRoot = REPO_ROOT, fixture = null } = {}) {
+const EXPECTED_HISTORICAL_STATE = new Map([
+  ['governance/GATE_REGISTRY_00_40.json', 'CANONICAL_WORK_UNIT_REGISTRY'],
+  [R7_CONTRACT_PATH, 'CHECKPOINT_AUTHORITY_IDENTITY'],
+  ['governance/state/GATE_STATUS_LEDGER.ndjson', 'CANONICAL_STATUS_AUTHORITY']
+]);
+const EXPECTED_HISTORICAL_SOURCES = Object.freeze([
+  'governance/GATE_REGISTRY_00_40.json',
+  'governance/state/GATE_STATUS_LEDGER.ndjson'
+]);
+const MAINTENANCE_AUTHORITY_DOCUMENT = 'GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY';
+
+/**
+ * SELF-HASH IS NOT AUTHENTICITY, AND A PARTIAL CHECK IS NOT VALIDITY.
+ *
+ * Every digest inside the fixture is computed BY the fixture over itself, so an
+ * attacker who edits the certified scenario and then recomputes
+ * historicalContextSha256 and contextIdentitySha256 produces a document that is
+ * perfectly self-consistent and completely forged. Internal binding proves the
+ * fixture did not rot; only a digest recorded OUTSIDE the fixture can prove the
+ * fixture is the one that was authorized.
+ *
+ * The first version of this function checked that external record by hand:
+ * manifest digest, manifest structure, and the consumption record's binding
+ * fields. That subset looked complete and was not. It never checked the
+ * authority's predecessor binding, so falsifying authorityPredecessor.sha256,
+ * recomputing the authority's own digest, and updating the cohort entry that
+ * names it produced a fixture this consumer ACCEPTED while the canonical
+ * validator REJECTED it with AUTHORITY_PREDECESSOR_MISMATCH. Two canonical
+ * consumers disagreeing about the same bytes is the defect; re-deriving a
+ * validator's conclusions locally is how it happened.
+ *
+ * So this no longer re-implements anything. A candidate authority may bind the
+ * fixture only if the canonical evaluator, in its own consumption phase, over
+ * the canonical observation, returns consumed with zero findings — the identical
+ * composition validate-post-freeze-maintenance-authority.mjs performs. Only then
+ * is the cohort consulted for this exact path and digest.
+ *
+ * Note which checks that phase deliberately does NOT apply: baseHead, ledger
+ * count, ledger prefix and the path pre-state gate are AUTHORIZE-time bindings,
+ * because re-asserting them after publication would demand the program had never
+ * run. That is precisely why binding the historical fixture to canonical
+ * consumption validity does not re-couple it to current canonical state: a
+ * future HEAD and a future ledger leave this verdict untouched.
+ */
+function authenticateHistoricalFixtureBytes({ root, fixtureSha256 }) {
+  const findings = [];
+  let names = [];
+  try {
+    names = fs.readdirSync(path.join(root, 'governance', 'sources')).filter((name) => name.endsWith('.json')).sort();
+  } catch { /* no sources directory: reported as an absent binding below */ }
+
+  for (const name of names) {
+    const authorityDocumentPath = `governance/sources/${name}`;
+    let authority = null;
+    try { authority = JSON.parse(fs.readFileSync(path.join(root, 'governance', 'sources', name), 'utf8')); } catch { continue; }
+    if (authority?.document !== MAINTENANCE_AUTHORITY_DOCUMENT || authority?.schemaVersion !== 2) continue;
+
+    // Cheap claim test first. An authority whose consumption never names this
+    // fixture cannot bind it whatever else is true of it, and the canonical
+    // observation below walks the tree and shells out to git — far too costly to
+    // run for every unrelated program in governance/sources.
+    let consumptionRecord = null;
+    try {
+      const consumptionPath = resolveMaintenancePath(root, authority.consumptionRecordPath);
+      if (consumptionPath && fs.existsSync(consumptionPath)) consumptionRecord = JSON.parse(fs.readFileSync(consumptionPath, 'utf8'));
+    } catch { /* unreadable consumption is handled as a non-claim below */ }
+    const recorded = (Array.isArray(consumptionRecord?.cohort) ? consumptionRecord.cohort : [])
+      .find((entry) => entry?.path === R7_BENCHMARK_CONTEXT_PATH);
+    if (!recorded || !HEX64.test(recorded.sha256 || '')) continue;
+
+    // The canonical composition, not a local approximation of it.
+    let manifest = null;
+    let observed = {};
+    const observationFindings = [];
+    try {
+      const observation = collectPostFreezeMaintenanceObservation({ root, authority, authorityDocumentPath });
+      observationFindings.push(...observation.findings);
+      manifest = observation.manifest;
+      observed = observation.observed;
+    } catch (error) {
+      observationFindings.push({ code: error?.message || String(error) });
+    }
+    const evaluation = evaluatePostFreezeMaintenanceAuthorityV2({
+      authority, manifest, observed, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION, consumptionRecord
+    });
+    const authorized = observationFindings.length === 0 && evaluation.findings.length === 0 && evaluation.consumed === true;
+
+    if (!authorized) {
+      findings.push(`BENCHMARK_CONTEXT_EXTERNAL_AUTHORITY_NOT_CANONICALLY_VALID:${authority.authorityId ?? name}`);
+      continue;
+    }
+    if (recorded.sha256 !== fixtureSha256) {
+      findings.push(`BENCHMARK_CONTEXT_EXTERNAL_BINDING_SHA256_MISMATCH:${authority.authorityId}`);
+      continue;
+    }
+    return { valid: true, findings: [], authorityId: authority.authorityId };
+  }
+
+  if (findings.length === 0) findings.push('BENCHMARK_CONTEXT_EXTERNAL_BINDING_ABSENT');
+  return { valid: false, findings, authorityId: null };
+}
+
+export function validateR7HistoricalBenchmarkContext({ repoRoot = REPO_ROOT, fixture = null } = {}) {
   const root = path.resolve(repoRoot);
   const findings = [];
   let context = fixture;
@@ -266,41 +402,104 @@ export function validateR7BenchmarkContext({ repoRoot = REPO_ROOT, fixture = nul
       findings.push('BENCHMARK_CONTEXT_MISSING_OR_INVALID_JSON');
     }
   }
+
+  // Authenticate the BYTES before believing anything they claim about
+  // themselves. A caller-supplied object is serialized exactly as the fixture is
+  // written on disk, so the genuine document round-trips to its authorized
+  // digest and any edited one cannot.
+  const candidateSha256 = fixtureBytes === null
+    ? sha256Bytes(Buffer.from(`${JSON.stringify(context, null, 2)}\n`))
+    : sha256Bytes(fixtureBytes);
+  const external = authenticateHistoricalFixtureBytes({ root, fixtureSha256: candidateSha256 });
+  if (!external.valid) findings.push(...external.findings);
+
   if (!exactFields(context, BENCHMARK_CONTEXT_FIELDS)) findings.push('BENCHMARK_CONTEXT_FIELDS_INVALID');
-  if (context?.document !== 'GEE_V1_R7_BENCHMARK_CONTEXT' || context?.schemaVersion !== 1
+  if (context?.document !== 'GEE_V1_R7_BENCHMARK_CONTEXT' || context?.schemaVersion !== 2
     || context?.fixtureId !== 'GEE_V1_R7_WHEEL_GATE15_CONTEXT_R1'
-    || context?.contextKind !== 'DETERMINISTIC_CANONICAL_WHEEL_STATE') findings.push('BENCHMARK_CONTEXT_IDENTITY_INVALID');
+    || context?.contextKind !== 'DETERMINISTIC_HISTORICAL_WHEEL_STATE') findings.push('BENCHMARK_CONTEXT_IDENTITY_INVALID');
   if (context?.workUnitId !== WORK_UNIT_ID || context?.missionRevisionId !== R7_MISSION
     || !HEX40.test(context?.sourceHead || '')) findings.push('BENCHMARK_CONTEXT_PROVENANCE_MISMATCH');
   if (!exactFields(context?.provenance, BENCHMARK_CONTEXT_PROVENANCE_FIELDS)
-    || context?.provenance?.authorityClass !== 'CANONICAL_REPOSITORY_BYTES'
+    || context?.provenance?.authorityClass !== 'HISTORICAL_REPOSITORY_BYTES'
     || context?.provenance?.purpose !== 'R7_BENCHMARK_INPUT_ONLY'
-    || context?.provenance?.generatedProjectionAuthority !== false) findings.push('BENCHMARK_CONTEXT_PROVENANCE_MISMATCH');
+    || context?.provenance?.generatedProjectionAuthority !== false
+    || typeof context?.provenance?.derivedAtCommit !== 'string'
+    || context?.provenance?.compilerVersion !== 'GEE_V1_CONTEXT_COMPILER_R2') findings.push('BENCHMARK_CONTEXT_PROVENANCE_MISMATCH');
   if (!HEX64.test(context?.contextIdentitySha256 || '')
     || context?.contextIdentitySha256 !== sha256Canonical(benchmarkContextBody(context || {}))) findings.push('BENCHMARK_CONTEXT_DIGEST_MISMATCH');
 
-  const expectedState = new Map([
-    ['governance/GATE_REGISTRY_00_40.json', 'CANONICAL_WORK_UNIT_REGISTRY'],
-    [R7_CONTRACT_PATH, 'CHECKPOINT_AUTHORITY_IDENTITY'],
-    ['governance/state/GATE_STATUS_LEDGER.ndjson', 'CANONICAL_STATUS_AUTHORITY']
-  ]);
-  if (!Array.isArray(context?.requiredState) || context.requiredState.length !== expectedState.size) {
-    findings.push('BENCHMARK_CONTEXT_REQUIRED_STATE_INVALID');
+  const declaredState = new Map();
+  if (!Array.isArray(context?.historicalState) || context.historicalState.length !== EXPECTED_HISTORICAL_STATE.size) {
+    findings.push('BENCHMARK_CONTEXT_HISTORICAL_STATE_INVALID');
   } else {
-    const paths = context.requiredState.map((entry) => entry?.path);
-    if (new Set(paths).size !== paths.length || [...paths].sort().some((entry, index) => entry !== paths[index])) findings.push('BENCHMARK_CONTEXT_REQUIRED_STATE_ORDER_INVALID');
-    for (const entry of context.requiredState) {
+    const paths = context.historicalState.map((entry) => entry?.path);
+    if (new Set(paths).size !== paths.length || [...paths].sort().some((entry, index) => entry !== paths[index])) findings.push('BENCHMARK_CONTEXT_HISTORICAL_STATE_ORDER_INVALID');
+    for (const entry of context.historicalState) {
       if (!exactFields(entry, BENCHMARK_CONTEXT_STATE_FIELDS) || !safeFixturePath(entry?.path)
-        || expectedState.get(entry?.path) !== entry?.role || !HEX64.test(entry?.sha256 || '')) {
+        || EXPECTED_HISTORICAL_STATE.get(entry?.path) !== entry?.role || !HEX64.test(entry?.sha256 || '')) {
         findings.push(`BENCHMARK_CONTEXT_STATE_DECLARATION_INVALID:${entry?.path ?? 'UNKNOWN'}`);
         continue;
       }
-      const absolute = path.join(root, ...entry.path.split('/'));
-      let actual = null;
-      try { actual = sha256Bytes(fs.readFileSync(absolute)); } catch { /* reported below */ }
-      if (actual === null) findings.push(`BENCHMARK_CONTEXT_REQUIRED_STATE_MISSING:${entry.path}`);
-      else if (actual !== entry.sha256) findings.push(`BENCHMARK_CONTEXT_STATE_SHA256_MISMATCH:${entry.path}`);
+      declaredState.set(entry.path, entry.sha256);
     }
+  }
+
+  // The frozen context is only worth as much as its binding to the bytes it was
+  // compiled from. Everything below is arithmetic over the fixture itself.
+  const compiled = context?.historicalContext ?? null;
+  if (!compiled || typeof compiled !== 'object' || Array.isArray(compiled)) {
+    findings.push('BENCHMARK_CONTEXT_HISTORICAL_CONTEXT_INVALID');
+  } else {
+    if (!HEX64.test(context?.historicalContextSha256 || '')
+      || context.historicalContextSha256 !== sha256Canonical(compiled)) findings.push('BENCHMARK_CONTEXT_HISTORICAL_CONTEXT_DIGEST_MISMATCH');
+    if (compiled.identity?.workUnitId !== context?.workUnitId
+      || compiled.identity?.sourceHead !== context?.sourceHead
+      || compiled.identity?.compilerVersion !== context?.provenance?.compilerVersion) {
+      findings.push('BENCHMARK_CONTEXT_COMPILED_IDENTITY_MISMATCH');
+    }
+    if (!Array.isArray(compiled.relevantSources)) findings.push('BENCHMARK_CONTEXT_COMPILED_SOURCE_SET_MISMATCH');
+    else {
+      const observedSources = compiled.relevantSources.map((entry) => entry?.path).sort();
+      if (sha256Canonical(observedSources) !== sha256Canonical([...EXPECTED_HISTORICAL_SOURCES])) findings.push('BENCHMARK_CONTEXT_COMPILED_SOURCE_SET_MISMATCH');
+      for (const source of compiled.relevantSources) {
+        if (declaredState.get(source?.path) !== source?.sha256) findings.push(`BENCHMARK_CONTEXT_COMPILED_SOURCE_UNBOUND:${source?.path ?? 'UNKNOWN'}`);
+      }
+    }
+  }
+
+  const valid = findings.length === 0;
+  const validated = valid ? {
+    repoRoot: root,
+    fixture: context,
+    fixtureSha256: candidateSha256,
+    boundAuthorityId: external.authorityId,
+    compiled
+  } : null;
+  if (validated) Object.defineProperty(validated, VALIDATED_R7_BENCHMARK_CONTEXT, { value: true, enumerable: false });
+  return { valid, findings, context: validated };
+}
+
+/**
+ * Current-state binding: does the live canonical tree still hold the exact bytes
+ * the CALLER expects, and does it still compile? The expectation is a parameter
+ * precisely so that this lane can never be answered from the historical fixture.
+ */
+export function validateR7CurrentStateBinding({ repoRoot = REPO_ROOT, expected = null } = {}) {
+  const root = path.resolve(repoRoot);
+  const findings = [];
+  if (!Array.isArray(expected) || expected.length === 0) {
+    return { valid: false, findings: ['CURRENT_STATE_EXPECTATION_REQUIRED'], compiled: null };
+  }
+  for (const entry of expected) {
+    if (!exactFields(entry, BENCHMARK_CONTEXT_STATE_FIELDS) || !safeFixturePath(entry?.path) || !HEX64.test(entry?.sha256 || '')) {
+      findings.push(`CURRENT_STATE_DECLARATION_INVALID:${entry?.path ?? 'UNKNOWN'}`);
+      continue;
+    }
+    const absolute = path.join(root, ...entry.path.split('/'));
+    let actual = null;
+    try { actual = sha256Bytes(fs.readFileSync(absolute)); } catch { /* reported below */ }
+    if (actual === null) findings.push(`CURRENT_STATE_MISSING:${entry.path}`);
+    else if (actual !== entry.sha256) findings.push(`CURRENT_STATE_SHA256_MISMATCH:${entry.path}`);
   }
 
   let compiled = null;
@@ -309,35 +508,39 @@ export function validateR7BenchmarkContext({ repoRoot = REPO_ROOT, fixture = nul
       compiled = compileContext({
         repoRoot: root,
         adapter: createWheelContextAdapter(root),
-        workUnitId: context.workUnitId,
-        sourceHead: context.sourceHead
+        workUnitId: WORK_UNIT_ID,
+        sourceHead: HEAD
       }).json;
-      const observedSources = compiled.relevantSources.map((entry) => entry.path).sort();
-      const expectedSources = ['governance/GATE_REGISTRY_00_40.json', 'governance/state/GATE_STATUS_LEDGER.ndjson'];
-      if (sha256Canonical(observedSources) !== sha256Canonical(expectedSources)) findings.push('BENCHMARK_CONTEXT_COMPILED_SOURCE_SET_MISMATCH');
-      if (compiled.identity.workUnitId !== context.workUnitId || compiled.identity.sourceHead !== context.sourceHead) {
-        findings.push('BENCHMARK_CONTEXT_COMPILED_IDENTITY_MISMATCH');
-      }
     } catch (error) {
-      findings.push(`BENCHMARK_CONTEXT_COMPILE_FAILED:${error.message}`);
+      findings.push(`CURRENT_STATE_COMPILE_FAILED:${error.message}`);
     }
   }
-
-  const valid = findings.length === 0;
-  const validated = valid ? {
-    repoRoot: root,
-    fixture: context,
-    fixtureSha256: fixtureBytes === null ? sha256Bytes(Buffer.from(`${JSON.stringify(context)}\n`)) : sha256Bytes(fixtureBytes),
-    compiled
-  } : null;
-  if (validated) Object.defineProperty(validated, VALIDATED_R7_BENCHMARK_CONTEXT, { value: true, enumerable: false });
-  return { valid, findings, context: validated };
+  return { valid: findings.length === 0, findings, compiled };
 }
 
 export function assertR7BenchmarkContext(options = {}) {
-  const result = validateR7BenchmarkContext(options);
+  const result = validateR7HistoricalBenchmarkContext(options);
   if (!result.valid) throw new Error(`R7_BENCHMARK_CONTEXT_INVALID:${result.findings.join(',')}`);
   return result.context;
+}
+
+/**
+ * Point an ALREADY VALIDATED context at a scratch measurement root.
+ *
+ * The benchmark measures over disposable copies of the governance tree. Those
+ * copies are not repositories: they carry no git directory, so the canonical
+ * consumption observation cannot run in them, and re-authenticating there would
+ * ask a scratch directory to prove something only the repository can prove.
+ *
+ * Authorization is a property of the repository the fixture came from, and it
+ * has already been established — by the full canonical check — before this is
+ * called. What changes here is only where the measurement reads its bytes.
+ */
+function rebindValidatedContext(context, root) {
+  if (!context?.[VALIDATED_R7_BENCHMARK_CONTEXT]) throw new Error('R7_BENCHMARK_CONTEXT_NOT_VALIDATED');
+  const rebound = { ...context, repoRoot: path.resolve(root) };
+  Object.defineProperty(rebound, VALIDATED_R7_BENCHMARK_CONTEXT, { value: true, enumerable: false });
+  return rebound;
 }
 
 function writeJson(relativePath, value, outputRoot = REPO_ROOT) {
@@ -660,7 +863,8 @@ function withCanonicalBenchmarkEnvironment(callback) {
 
 function runBenchmarkInternal({ outputRoot = null } = {}) {
   const benchmarkRoot = cloneGovernanceRepo('gee-r7-benchmark-wheel-');
-  const benchmarkContext = assertR7BenchmarkContext({ repoRoot: benchmarkRoot });
+  const authorizedContext = assertR7BenchmarkContext();
+  const benchmarkContext = rebindValidatedContext(authorizedContext, benchmarkRoot);
   const casRoot = allocateEphemeralRoot('gee-r7-benchmark-cas-'); const cas = createContentAddressedStore(path.join(casRoot, 'cas'));
   const empty = createSnapshot({ repoRoot: benchmarkRoot, sources: [] });
   const baseline = runWheelMode({ context: benchmarkContext, cas, previousSnapshot: empty });
@@ -700,14 +904,14 @@ function runBenchmarkInternal({ outputRoot = null } = {}) {
   };
 
   const relevantRoot = cloneGovernanceRepo('gee-r7-b2-');
-  const relevantContext = assertR7BenchmarkContext({ repoRoot: relevantRoot });
+  const relevantContext = rebindValidatedContext(authorizedContext, relevantRoot);
   const relevantCas = createContentAddressedStore(path.join(relevantRoot, 'cas')); const relevantFirst = runWheelMode({ context: relevantContext, cas: relevantCas, previousSnapshot: createSnapshot({ repoRoot: relevantRoot, sources: [] }) });
   const relevantSource = path.join(relevantRoot, 'governance', 'GATE_REGISTRY_00_40.json'); fs.appendFileSync(relevantSource, '\n');
   const relevantSecond = runWheelMode({ context: relevantContext, cas: relevantCas, previousSnapshot: relevantFirst.currentSnapshot, previousGraph: relevantFirst.evaluated.graph, previousRepoIndex: relevantFirst.repoIndex });
   assert.ok(relevantSecond.plan.metrics.R3_CHANGED_BYTES > 0);
   assert.ok(relevantSecond.plan.metrics.R5_TASKS_AVOIDED_BY_UPSTREAM_REUSE > 0);
 
-  const unrelatedRoot = cloneGovernanceRepo('gee-r7-b3-'); const unrelatedContext = assertR7BenchmarkContext({ repoRoot: unrelatedRoot }); const unrelatedCas = createContentAddressedStore(path.join(unrelatedRoot, 'cas')); const unrelatedFirst = runWheelMode({ context: unrelatedContext, cas: unrelatedCas, previousSnapshot: createSnapshot({ repoRoot: unrelatedRoot, sources: [] }) }); fs.writeFileSync(path.join(unrelatedRoot, 'unrelated-root-file.txt'), 'irrelevant'); const unrelatedSecond = runWheelMode({ context: unrelatedContext, cas: unrelatedCas, previousSnapshot: unrelatedFirst.currentSnapshot, previousGraph: unrelatedFirst.evaluated.graph, previousRepoIndex: unrelatedFirst.repoIndex }); assert.equal(unrelatedSecond.plan.routeDecision, 'NO_WORK_REQUIRED');
+  const unrelatedRoot = cloneGovernanceRepo('gee-r7-b3-'); const unrelatedContext = rebindValidatedContext(authorizedContext, unrelatedRoot); const unrelatedCas = createContentAddressedStore(path.join(unrelatedRoot, 'cas')); const unrelatedFirst = runWheelMode({ context: unrelatedContext, cas: unrelatedCas, previousSnapshot: createSnapshot({ repoRoot: unrelatedRoot, sources: [] }) }); fs.writeFileSync(path.join(unrelatedRoot, 'unrelated-root-file.txt'), 'irrelevant'); const unrelatedSecond = runWheelMode({ context: unrelatedContext, cas: unrelatedCas, previousSnapshot: unrelatedFirst.currentSnapshot, previousGraph: unrelatedFirst.evaluated.graph, previousRepoIndex: unrelatedFirst.repoIndex }); assert.equal(unrelatedSecond.plan.routeDecision, 'NO_WORK_REQUIRED');
 
   const standardRoot = tempRoot('gee-r7-b5-'); const standardCas = casFor(standardRoot); const standardBase = syntheticBaseline(standardRoot, standardCas); const baseDelta = { previousSnapshot: standardBase.currentSnapshot, currentSnapshot: standardBase.currentSnapshot }; const routePlans = [
     routeWorkUnit({ workUnitId: SYNTHETIC_WORK_UNIT, tasks: [{ taskId: 't:no', intent: 'DETERMINISTIC', sources: ['src/a.json'], produces: ['e:a'], requiredEvidenceIds: ['e:a'] }], r2Context: syntheticContext(standardRoot), r3Delta: baseDelta, r4Evidence: { graph: standardBase.graph }, cas: standardCas }),

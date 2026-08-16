@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "gateId": "GATE19",
+  "stateRevision": "R0004",
+  "sealedMembers": [
+    {
+      "repoRelativePath": "governance/gates/GATE19/contracts/CURRENT_CONTRACT.json",
+      "sha256": "73e6fc5542e43add33132bd09db3904df26d46c9d84c6df62e09e1eba884c2ea",
+      "byteLength": 281
+    },
+    {
+      "repoRelativePath": "governance/sources/GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION_EXTERNAL_REINSPECTION_REPORT.json",
+      "sha256": "6d6f329f1d6bd4ee81b98a8664be34e84961cac893b398d461745f71b635d6a1",
+      "byteLength": 1773
+    },
+    {
+      "repoRelativePath": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE19_EXTERNAL_CONFIRMATION_R1.json",
+      "sha256": "8e70fe70b1885e9fb90faeee83aa0adf64922c79c881660cf235d01bb5c4458f",
+      "byteLength": 2485
+    },
+    {
+      "repoRelativePath": "governance/historical-architecture/GATE19_EXTERNAL_CONFIRMATION_AUTHORIZED_PATHS_R1.json",
+      "sha256": "3f0dd5bf19143b163b3a20d9bb94d955dce220677d2fb3478cc5dde5185e75f1",
+      "byteLength": 4491
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE19/state/revisions/R0004/CHECKPOINT.json",
+      "sha256": "20c904e33113cb65266829dce6760a1c355c83553fd05733ab21fae837d183b8",
+      "byteLength": 334
+    },
+    {
+      "repoRelativePath": "governance/gates/GATE19/state/revisions/R0004/OPEN_DEFECTS.json",
+      "sha256": "e08f567952868e12c54bd9e58eb80a1e1b87eae3152860ebf94d37f70278fa88",
+      "byteLength": 70
+    }
+  ],
+  "previousStateSealSha256": "76607157b429568d2d27c22bf68209e2dd00260610bec9372ec6a4135eac6b38",
+  "sealedAt": "2026-08-16T09:07:11.000Z",
+  "payload": {
+    "gateId": "GATE19",
+    "stateRevision": "R0004",
+    "executionStatus": "COMPLETE_CONFIRMED",
+    "contractSha256": "1bbe25f192426cedcf25385e48440d424feb424cccc395bd5e2595ad036a6627",
+    "previousStateSealSha256": "76607157b429568d2d27c22bf68209e2dd00260610bec9372ec6a4135eac6b38",
+    "sealedMembersDigest": "38c3cafc26b82811b2a701224b40e89e6597cfc26a10f47d314ce587772a565e"
+  },
+  "payloadSha256": "b15044e1ac1a232d2ef0e436a58afb067f20306cdb3c3876a92680cbb767c077"
+}

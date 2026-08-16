@@ -1,0 +1,13 @@
+{
+  "document": "DETACHED_TERMINAL_VERIFICATION_RECEIPT",
+  "schemaVersion": 1,
+  "gateId": "GATE19",
+  "verdict": "PASS",
+  "archivePath": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+  "manifestPath": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+  "selfTestPath": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+  "archiveSha256": "db0740d9c6ec57b85323bcdcbd1c1775d63e0033d7e1552bb809a86fd9287db3",
+  "manifestSha256": "65f02559a7fe4cfe16a112c46ff5f801b437a63670d26226b2bd120e9e4d8565",
+  "selfTestSha256": "a06774377f0e4a0dcc4a8041b15f1abcdc3348c0d213b900289ba1d4182b13cd",
+  "evidenceMode": "DETACHED_BYTE_VERIFICATION"
+}

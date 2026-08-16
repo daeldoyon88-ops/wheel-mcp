@@ -16,6 +16,7 @@ import { activationIdOf } from '../../contracts/activation-anchor.mjs';
 import { sealExecutionContract } from '../../contracts/seal-execution-contract.mjs';
 import { sha256Bytes } from '../../../tools/canonical-json.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from './external-authority-policy.mjs';
+import { resolveGateDependencyProof } from './gate-dependency-resolution.mjs';
 
 const LEDGER_RELATIVE_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 
@@ -594,6 +595,10 @@ export function createWheelProjectAdapter(repoRoot) {
       // No numeric GATE00->GATE40 bound — future gates (GATE41+) work when registered.
       const registered = gates.some((g) => g.gateId === id);
       if (registered) {
+        const dependencyProof = resolveGateDependencyProof({ root, gateId: id });
+        if (dependencyProof.satisfied && dependencyProof.disposition) {
+          return { id, status: 'SATISFIED', observedStatus: dependencyProof.observedStatus, reason: dependencyProof.reason, proof: dependencyProof.proof };
+        }
         const view = this.getWorkUnitView(id);
         const requireResult = requireVerifiedState(view.state, { allow: ['COMPLETE_CONFIRMED', 'SUPERSEDED'], minTrustLevel: minTrustLevelFor('SATISFY_PREREQUISITE') });
         return { id, status: requireResult.satisfied ? 'SATISFIED' : 'UNSATISFIED', observedStatus: view.status, reason: requireResult.reason };

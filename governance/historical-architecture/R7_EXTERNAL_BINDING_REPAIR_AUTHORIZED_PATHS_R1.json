@@ -1,0 +1,74 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R7_EXTERNAL_BINDING_REPAIR_AUTHORIZED_PATHS_R1",
+  "programId": "GEE_R7_EXTERNAL_BINDING_REPAIR_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_EXTERNAL_BINDING_REPAIR_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "operation": "MODIFY",
+      "phase": "EXTERNAL_BINDING_REPAIR",
+      "reason": "Authenticate the historical fixture bytes against the existing POST_FREEZE_MAINTENANCE consumption, manifest and LOCAL_EXPLICIT_AUTHORITY chain before accepting them. Self-computed digests proved only self-consistency, so a fully re-sealed forgery was accepted. No new trust primitive is introduced and the frozen R7 measurement algorithm is unchanged.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "e8a4a2872681cb3d27f24a1d9471a5c1fbcea016fd0d77dc98a31c559e7506d6",
+        "byteLength": 86124
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "Prove the ten independent-audit hostiles, including that a semantic forgery with every self-hash correctly recomputed, and a source-digest forgery re-bound coherently across historicalState and relevantSources, are both refused by the EXTERNAL binding rather than by an internal accident.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "fcdc4041911d8fa963aaf1cc005bb57e1b593f621349bc0a6871a7c61c38cf59",
+        "byteLength": 18055
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_EXTERNAL_BINDING_REPAIR_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY for the independent-audit findings repair; the predecessor authority is single-use and already consumed and is not reused.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

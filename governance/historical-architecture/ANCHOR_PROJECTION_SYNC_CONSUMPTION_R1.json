@@ -1,0 +1,107 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "ANCHOR_PROJECTION_SYNC_LOCAL_AUTHORITY_R1",
+  "programId": "GATE19_PRECONTRACT_ANCHOR_PROJECTION_SYNC_R1",
+  "manifestSha256": "e7f2b72d5e3c5012410755cc1a2ab2362e6b22e3a5feca5c5b5aabce65160f00",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "ANCHOR_PROJECTION_SYNC_R1_TRANSACTION",
+  "recordedAt": "2026-08-15T15:45:00.000Z",
+  "commitMessage": "governance: resynchronize derived projections after the precontract consumption anchor",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/ANCHOR_PROJECTION_SYNC_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 12,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_ANCHOR_PROJECTION_SYNC_R1.json",
+      "sha256": "6b42e053b59f95bd15282bed7bcfe57295612a231ad38e138a78d14c1930de43",
+      "byteLength": 2278,
+      "operation": "CREATE",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY bound to the post-anchor prestate.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/ANCHOR_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+      "sha256": "e7f2b72d5e3c5012410755cc1a2ab2362e6b22e3a5feca5c5b5aabce65160f00",
+      "byteLength": 3863,
+      "operation": "CREATE",
+      "reason": "Finite exact-file regeneration cohort; no wildcard.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/state/generated/GATE_STATUS_SNAPSHOT.json",
+      "sha256": "916b97b0406e39cd3c09b95d93042b52375bbc8fd221c467caff416f78754d5d",
+      "byteLength": 15689,
+      "operation": "MODIFY",
+      "reason": "Canonical projection of the ledger, which the anchor event advanced.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT.md",
+      "sha256": "eaff792aa2a74704b500f71904200276a889d714aa2a1c3f462008463e6f246e",
+      "byteLength": 5541,
+      "operation": "MODIFY",
+      "reason": "Canonical generator output, stale only because the ledger advanced.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "sha256": "5972f461c134ac2a7629e78876b77086097710c3a96aed0f32a368cac7336286",
+      "byteLength": 6140,
+      "operation": "MODIFY",
+      "reason": "Provenance emitted atomically with the report.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "f1e30a39001fba2974c1a49e5f048a675bd5d35908b1819f2f26ef24f07a6602",
+      "byteLength": 1138,
+      "operation": "MODIFY",
+      "reason": "Pins the ledger digest, which the anchor advanced.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "byteLength": 126,
+      "operation": "MODIFY",
+      "reason": "Second atomic output of the same generator.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+      "sha256": "db0740d9c6ec57b85323bcdcbd1c1775d63e0033d7e1552bb809a86fd9287db3",
+      "byteLength": 132795,
+      "operation": "MODIFY",
+      "reason": "Deterministic rebuild; the bundle packages the regenerated report bytes.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+      "sha256": "65f02559a7fe4cfe16a112c46ff5f801b437a63670d26226b2bd120e9e4d8565",
+      "byteLength": 2049,
+      "operation": "MODIFY",
+      "reason": "Recomputed from the rebuilt archive.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+      "sha256": "a06774377f0e4a0dcc4a8041b15f1abcdc3348c0d213b900289ba1d4182b13cd",
+      "byteLength": 395,
+      "operation": "MODIFY",
+      "reason": "Recomputed package self-test.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json",
+      "sha256": "47b864ad7f549d1cd6a4fb7f39a164a68f2e95b97fabfb141607deb9d5bc6cbb",
+      "byteLength": 680,
+      "operation": "MODIFY",
+      "reason": "Detached receipt recomputed from the rebuilt archive.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "document": "EXTERNAL_REINSPECTION_REPORT",
+  "schemaVersion": 1,
+  "reportId": "GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION_EXTERNAL_REINSPECTION_REPORT",
+  "gateId": "GATE19",
+  "programId": "GATE19_FINAL_INDEPENDENT_REAUDIT_EXTERNAL_CONFIRMATION",
+  "verifierId": "GATE19_FINAL_INDEPENDENT_REAUDIT_R1",
+  "independentSession": true,
+  "verdict": "PASS",
+  "reinspectionBasis": "Independent final re-audit supplied by PROJECT_OWNER and bound to the GATE19 COMPLETE_AGENT pre-state. Final bytes artifact: GATE19_FINAL_BYTES_POST_CANONICAL_AUTH_BINDING_20260816_090711.zip, SHA256 71c3ed12b3dac6ac8730e82433fe0346cb011cc10db891a762544265e5c2d515.",
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 77,
+    "ledgerPrefixSha256": "40eccdbb2e561a11bd3bda0a898575f2944cbd03c4c1ce2251b26a50952af5b0",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "independentChecks": [
+    { "check": "INDEPENDENT_REAUDIT_VERDICT", "result": "INDEPENDENT_REAUDIT_PASS" },
+    { "check": "GATE19_READINESS", "result": "GATE19_READY_FOR_EXTERNAL_CONFIRMATION" },
+    { "check": "R7_REGRESSION", "total": 22, "passed": 19, "historicalFailures": 3, "realRegression": 0 },
+    { "check": "FINAL_GATE_INTEGRITY", "result": "PASS", "findingCount": 0, "validatedChecks": 9 },
+    { "check": "DELTA_COHORT", "actualDelta": 102, "authorizedCohort": 104, "unexpectedDelta": 0 }
+  ],
+  "closureDisposition": {
+    "requiredTransition": "EXTERNAL_CONFIRMATION",
+    "resultingStatus": "COMPLETE_CONFIRMED",
+    "exactlyOneEvent": true,
+    "GATE20PlusRemainNotStarted": true
+  },
+  "createdAt": "2026-08-16T09:07:11.000Z"
+}

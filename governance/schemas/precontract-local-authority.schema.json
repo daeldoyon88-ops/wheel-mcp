@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "precontract-local-authority.schema.json",
+  "title": "Local explicit active precontract authority (unsigned, exhaustively pre-state bound)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "documentKind", "authorityMode", "authorityId", "issuedBy", "issuedAtUtc", "localRequestDigestAlgorithm", "approvedRequestDigest", "projectId", "gateId", "purpose", "operation", "preState", "dependencyProof", "authorizedPaths", "artifactBindings", "consumptionRecordPath", "prohibitedOperations", "expiresAtUtc", "maxUse"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "documentKind": { "const": "ACTIVE_PRECONTRACT_AUTHORITY" },
+    "authorityMode": { "const": "LOCAL_EXPLICIT_AUTHORITY" },
+    "authorityId": { "type": "string", "minLength": 1 },
+    "issuedBy": { "const": "PROJECT_OWNER" },
+    "issuedAtUtc": { "type": "string", "format": "date-time" },
+    "localRequestDigestAlgorithm": { "const": "SHA256_CANONICAL_JSON_PRECONTRACT_LOCAL_REQUEST_V1" },
+    "approvedRequestDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "projectId": { "type": "string", "minLength": 1 },
+    "gateId": { "type": "string", "pattern": "^GATE(0[0-9]|[1-3][0-9]|40)$" },
+    "purpose": { "const": "BOOTSTRAP_CONTRACT_CANONICALIZATION" },
+    "operation": { "const": "BOOTSTRAP_CONTRACT_CANONICALIZATION" },
+    "preState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseCommit", "baseTree", "ledgerSha256", "ledgerEventCount", "currentStatus", "currentContractPresent"],
+      "properties": {
+        "baseCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "baseTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "ledgerSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "ledgerEventCount": { "type": "integer", "minimum": 0 },
+        "currentStatus": { "const": "NOT_STARTED" },
+        "currentContractPresent": { "const": false }
+      }
+    },
+    "dependencyProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gateId", "status", "authorityPath", "authoritySha256"],
+      "properties": {
+        "gateId": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["COMPLETE_AGENT", "COMPLETE_CONFIRMED", "SUPERSEDED"] },
+        "authorityPath": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" },
+        "authoritySha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "authorizedPaths": {
+      "type": "array", "minItems": 2, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" }
+    },
+    "artifactBindings": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "consumptionRecordPath": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/*?]+(?:/[^\\\\/*?]+)*$" },
+    "prohibitedOperations": {
+      "type": "array", "minItems": 10, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "expiresAtUtc": { "type": "string", "format": "date-time" },
+    "maxUse": { "const": 1 }
+  }
+}

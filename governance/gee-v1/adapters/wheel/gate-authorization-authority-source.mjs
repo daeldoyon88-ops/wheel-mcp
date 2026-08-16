@@ -42,6 +42,7 @@ import {
 } from '../../core/post-freeze-maintenance-authority.mjs';
 import { loadOwnerReleaseKey, loadReleaseAuthorization } from '../../core/release-authorization-source.mjs';
 import { validateAgainstJsonSchema } from '../../contracts/validate-against-json-schema.mjs';
+import { resolveGateDependencyProof } from './gate-dependency-resolution.mjs';
 
 export const GATE_AUTHORIZATION_WORK_UNIT_TYPE = 'GATE_AUTHORIZATION';
 export const GATE_AUTHORIZATION_AUTHORITY_ENV_VAR = 'WHEEL_GATE_AUTHORIZATION_AUTHORITY_SOURCE';
@@ -225,8 +226,7 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
     const ownEvents = events.filter((event) => event.gateId === workUnitId);
     const currentStatus = ownEvents.at(-1)?.toStatus ?? null;
     const dependency = record?.dependencyProof;
-    const dependencyEvents = dependency ? events.filter((event) => event.gateId === dependency.gateId) : [];
-    const dependencyEvent = dependencyEvents.at(-1) || null;
+    const dependencyResolution = dependency ? resolveGateDependencyProof({ root, gateId: dependency.gateId }) : null;
 
     const contractRelativePath = `governance/gates/${workUnitId}/contracts/EXECUTION_CONTRACT_${GATE_AUTHORIZATION_FIRST_REVISION}.json`;
     const currentContractRelativePath = `governance/gates/${workUnitId}/contracts/CURRENT_CONTRACT.json`;
@@ -251,14 +251,7 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
       contractSha256: liveSha(root, contractRelativePath),
       currentContractSha256: liveSha(root, currentContractRelativePath),
       currentContractPresent: fs.existsSync(currentContractAbsolute),
-      dependencyProof: dependencyEvent
-        ? {
-            gateId: dependencyEvent.gateId,
-            status: dependencyEvent.toStatus,
-            authorityPath: dependencyEvent.authorityPath,
-            authoritySha256: dependencyEvent.authoritySha256
-          }
-        : null,
+      dependencyProof: dependencyResolution?.proof || null,
       artifactSha256,
       artifactByteLength,
       competingAuthorityCount: localAuthority ? 1 : authorities.length,
@@ -285,7 +278,7 @@ export function createWheelGateAuthorizationAuthoritySource(repoRoot, {
       proofs: {
         EXECUTION_CONTRACT: { state: observed.currentContractPresent ? 'PROVEN' : 'FAILED', reason: 'CURRENT_CONTRACT presence and hash' },
         CONTRACT_INTEGRITY: { state: observed.contractSha256 === record?.contractSha256 ? 'PROVEN' : 'FAILED', reason: 'approved contract hash reproduces live bytes' },
-        PREREQUISITES: { state: dependencyEvent && dependencyEvent.toStatus === dependency?.status ? 'PROVEN' : 'FAILED', reason: 'immediate predecessor terminal proof' },
+        PREREQUISITES: { state: dependencyResolution?.satisfied && dependencyResolution.status === dependency?.status ? 'PROVEN' : 'FAILED', reason: dependencyResolution?.reason || 'immediate predecessor terminal proof' },
         WORK_UNIT_EXECUTABLE: { state: 'FAILED', reason: 'GATE_AUTHORIZATION is non-execution authority; START remains unauthorized' }
       },
       workUnitId,

@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE19_CONTROL_PLANE_REPLAY_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-15T23:30:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE19_CONTROL_PLANE_GOVERNED_REPLAY_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GATE19-CONTROL-PLANE-GOVERNED-REPLAY-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 77,
+    "ledgerPrefixSha256": "40eccdbb2e561a11bd3bda0a898575f2944cbd03c4c1ce2251b26a50952af5b0",
+    "gateId": "GATE19",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE19_CONTROL_PLANE_REPLAY_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "81b5b876d1ca88a7c6488c5f7e69b1587da3de8647c5b29d4e9f78de4d60fc77",
+  "authorizedOperationClasses": [
+    "MAINTENANCE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: replay GATE19 control-plane paths under prestate-bound authority",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE19_CONTROL_PLANE_REPLAY_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

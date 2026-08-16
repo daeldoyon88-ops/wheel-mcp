@@ -1,0 +1,51 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "R7_CONSUMPTION_COHERENCE_LOCAL_AUTHORITY_R1",
+  "programId": "GEE_R7_CONSUMPTION_COHERENCE_R1",
+  "manifestSha256": "288d2119e49e7bda9db01ba48e0122a94d9533e49f0a7d46a128746724670400",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "GEE_R7_CONSUMPTION_COHERENCE_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T12:56:41.906Z",
+  "commitMessage": "governance: restore consumption coherence across the R7 maintenance programs",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/R7_CONSUMPTION_COHERENCE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_CONSUMPTION_R1.json",
+      "sha256": "1d40031b86f073d123f1359a59489ce98c663b64e633099cc2ec0c1e0a2707d0",
+      "byteLength": 3027,
+      "operation": "CREATE",
+      "reason": "Re-issue so this record certifies the final bytes of its own cohort. Its runner and test entries were certified before the canonical-authority-binding program lawfully rewrote those two files, which left the record describing bytes that no longer exist. A consumption record has no canonical predecessor and cannot be edited in place, so it is withdrawn and re-issued; it was never committed, so no history is rewritten.",
+      "artifactClass": "CONSUMPTION_COHERENCE"
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_CONSUMPTION_R1.json",
+      "sha256": "fbf092f3c5d88eed82c1497b6440070f1ad7d714d0d69fed5d69ad3a217c8908",
+      "byteLength": 2664,
+      "operation": "CREATE",
+      "reason": "Re-issue for the same reason one level up: this record certifies the R7 historical permanence consumption record, which the canonical-authority-binding program lawfully re-issued. Nothing certifies this record in turn, so the chain closes here.",
+      "artifactClass": "CONSUMPTION_COHERENCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CONSUMPTION_COHERENCE_R1.json",
+      "sha256": "aba034f2cc0b4928f314435c9fff5d00b4c45452082fdacb49508ea2fc0908e2",
+      "byteLength": 2251,
+      "operation": "CREATE",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY closing the consumption-coherence chain; no already-consumed authority is reused.",
+      "artifactClass": "CONSUMPTION_COHERENCE"
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_COHERENCE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "288d2119e49e7bda9db01ba48e0122a94d9533e49f0a7d46a128746724670400",
+      "byteLength": 3499,
+      "operation": "CREATE",
+      "reason": "Exact finite five-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "CONSUMPTION_COHERENCE"
+    }
+  ]
+}

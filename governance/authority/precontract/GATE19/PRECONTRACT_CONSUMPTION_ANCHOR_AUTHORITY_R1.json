@@ -1,0 +1,28 @@
+{
+  "documentKind": "GATE_PRECONTRACT_CONSUMPTION_ANCHOR_LOCAL_AUTHORITY",
+  "schemaVersion": 1,
+  "authorityId": "PRECONTRACT_CONSUMPTION_ANCHOR_GATE19_LOCAL_R1",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-15T15:30:00.000Z",
+  "projectId": "WHEEL",
+  "gateId": "GATE19",
+  "precontractAuthorityPath": "governance/authority/precontract/GATE19/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+  "precontractAuthorityId": "PRECONTRACT_BOOTSTRAP_GATE19_LOCAL_R1",
+  "consumptionRecordPath": "governance/gates/GATE19/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+  "consumptionRecordSha256": "6473a0491bb8beee902a65ba642e35be9b1bfce9a71e41a912a59c286f590f28",
+  "maxUse": 1,
+  "reason": "Anchor the exact bytes of an already-consumed precontract receipt in the append-only ledger. The bootstrap predates the anchor mechanism, so the anchor is appended rather than carried by the first lifecycle event; no historical event is edited.",
+  "prohibitedOperations": [
+    "START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "STATUS_CHANGE",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "OTHER_GATE",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "ARBITRARY_GOVERNANCE_WRITE"
+  ]
+}

@@ -6,8 +6,8 @@
   "reportState": "CURRENT",
   "report": {
     "path": "governance/generated/FOUNDATION_REPORT.md",
-    "sha256": "798a8e9762225fad2ee061d0ed7122473fd81293660daeef5af4abd5f726dc7b",
-    "byteLength": 5538
+    "sha256": "d93792c33404b607632b13d544686791b88fd00fe11754ecf52baa3f4128463f",
+    "byteLength": 5545
   },
   "generator": {
     "path": "governance/tools/generate-foundation-report.mjs",
@@ -121,12 +121,12 @@
       "sourceBindings": [
         {
           "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
-          "sha256": "547f68c13ddd242c2ce80d76a8dfa866b63b9cf79e0702440d9ed1101c92bfac",
-          "byteLength": 41564,
+          "sha256": "4d316478fd5803e7d451cef213a1f31a7d627ff80c6dbdecd8a9ad4992a8a988",
+          "byteLength": 45274,
           "pointers": [
             {
               "pointer": "/events",
-              "valueSha256": "28befee41f257951fa3c981117f004cc50bcc8407fad1b799dcf6b06b24aa95d"
+              "valueSha256": "dc1ebba1883a37ae96468c4592f138b1589d8204810ba5130229b9184eef0002"
             }
           ]
         },

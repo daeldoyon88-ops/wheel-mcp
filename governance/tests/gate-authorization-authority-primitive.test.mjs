@@ -25,7 +25,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { validateLedger, TRANSITIONS, TRANSITION_TYPES, STATUSES, NORMAL_EXECUTION_TRANSITION_TYPES, CONTRACT_SUCCESSION_TRANSITION_TYPE, CONTRACT_SUCCESSION_TRANSITIONS } from '../tools/validate-status-ledger.mjs';
+import { validateLedger, TRANSITIONS, TRANSITION_TYPES, STATUSES, NORMAL_EXECUTION_TRANSITION_TYPES, CONTRACT_SUCCESSION_TRANSITION_TYPE, CONTRACT_SUCCESSION_TRANSITIONS, HISTORICAL_RECONCILIATION_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE, PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS } from '../tools/validate-status-ledger.mjs';
 import { canonicalize, sha256Canonical, sha256Bytes } from '../tools/canonical-json.mjs';
 import { validateAgainstJsonSchema } from '../gee-v1/contracts/validate-against-json-schema.mjs';
 import { verifyHeadWitness } from '../gee-v1/core/head-witness.mjs';
@@ -1143,7 +1143,28 @@ test('no new status was introduced, and the closed I2 execution table is untouch
   // HISTORICAL_RECONCILIATION was, with its own table and its own obligations.
   assert.equal(TRANSITIONS.length, 21);
   assert.equal(NORMAL_EXECUTION_TRANSITION_TYPES.length, 15);
-  assert.equal(TRANSITION_TYPES.length, 17);
+
+  // TRANSITION_TYPES is the I2 execution set PLUS exactly one entry per narrow
+  // class. This used to be asserted as a bare count, which proved nothing about
+  // WHAT the extra entries are and went stale the moment a lawful narrow class was
+  // added — the count changed, the invariant did not. The structural statement is
+  // both stronger and stable: the set is exactly the execution types followed by
+  // the declared narrow classes, with nothing else and nothing duplicated.
+  const NARROW_TRANSITION_CLASSES = [
+    HISTORICAL_RECONCILIATION_TRANSITION_TYPE,
+    CONTRACT_SUCCESSION_TRANSITION_TYPE,
+    PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITION_TYPE
+  ];
+  assert.deepEqual(TRANSITION_TYPES, [...NORMAL_EXECUTION_TRANSITION_TYPES, ...NARROW_TRANSITION_CLASSES]);
+  assert.equal(new Set(TRANSITION_TYPES).size, TRANSITION_TYPES.length);
+
+  // Every narrow class stays OUTSIDE the closed execution table: it can neither
+  // borrow an execution permission nor be reached through one.
+  for (const narrow of NARROW_TRANSITION_CLASSES) {
+    assert.equal(NORMAL_EXECUTION_TRANSITION_TYPES.includes(narrow), false);
+    assert.equal(TRANSITIONS.some(([, , type]) => type === narrow), false);
+  }
+
   assert.equal(TRANSITIONS.filter(([, , type]) => type === GATE_AUTHORIZATION_TRANSITION_TYPE).length, 1);
   assert.deepEqual(
     TRANSITIONS.find(([, , type]) => type === GATE_AUTHORIZATION_TRANSITION_TYPE),
@@ -1168,6 +1189,25 @@ test('no new status was introduced, and the closed I2 execution table is untouch
     assert.equal(from, to, 'a succession must never move a Gate to a different status');
     assert.ok(STATUSES.includes(to));
   }
+
+  // The anchor class is held to exactly the same bar, stated here rather than
+  // merely tolerated by a count: two entries, both SELF-transitions into statuses
+  // that already exist, so anchoring evidence can never start, close, supersede or
+  // confirm a Gate. In particular COMPLETE_CONFIRMED is unreachable, so an anchor
+  // can never impersonate EXTERNAL_CONFIRMATION.
+  assert.deepEqual(PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS, [
+    ['NOT_STARTED', 'NOT_STARTED', 'PRECONTRACT_CONSUMPTION_ANCHOR'],
+    ['COMPLETE_AGENT', 'COMPLETE_AGENT', 'PRECONTRACT_CONSUMPTION_ANCHOR']
+  ]);
+  for (const [from, to] of PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS) {
+    assert.equal(from, to, 'an anchor must never move a Gate to a different status');
+    assert.ok(STATUSES.includes(to));
+  }
+  assert.equal(
+    PRECONTRACT_CONSUMPTION_ANCHOR_TRANSITIONS.some(([, to]) => to === 'COMPLETE_CONFIRMED'),
+    false,
+    'no anchor entry may reach COMPLETE_CONFIRMED'
+  );
 });
 
 // ===========================================================================

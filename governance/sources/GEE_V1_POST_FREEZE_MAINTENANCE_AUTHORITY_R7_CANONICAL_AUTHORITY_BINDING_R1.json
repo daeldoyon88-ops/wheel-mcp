@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "R7_CANONICAL_AUTHORITY_BINDING_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-16T05:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GEE_R7_CANONICAL_AUTHORITY_BINDING_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GEE-R7-CANONICAL-AUTHORITY-BINDING-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 77,
+    "ledgerPrefixSha256": "40eccdbb2e561a11bd3bda0a898575f2944cbd03c4c1ce2251b26a50952af5b0",
+    "gateId": "GATE19",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "1b522f3b170501f945c35cc14b907bebf052d425ae5db195a99d2294cf5dd416",
+  "authorizedOperationClasses": [
+    "CANONICAL_AUTHORITY_BINDING"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: bind the R7 historical fixture to canonical maintenance authority validity",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "R7_CONSUMPTION_REISSUE_LOCAL_AUTHORITY_R1",
+    "sha256": "217035468230b1a835acc4da7d4516638b45c4cec1f4b826d6105d859dba148d"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

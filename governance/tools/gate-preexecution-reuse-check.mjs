@@ -45,18 +45,18 @@ import { fileURLToPath } from 'node:url';
 import { checkExistingWorkIndex } from './governance-existing-work-index.mjs';
 import { establishComparability } from './regression-identity-delta.mjs';
 import { RUN_STATE_COMPLETED, allocateRunRoot, releaseRunRoot } from '../gee-v1/runtime/run-root-lifecycle.mjs';
+import { CLOSED_LEDGER_STATUSES, resolveGateDependencyProof } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
 
 export const CHECK_DOCUMENT = 'GATE_PREEXECUTION_REUSE_CHECK';
 export const CHECK_VERSION = 'V1';
 
 const GATE_RE = /^GATE[0-9]{2}$/;
 const SHA256_RE = /^[a-f0-9]{64}$/;
-const CLOSED_STATUSES = new Set(['COMPLETE_CONFIRMED', 'SUPERSEDED']);
-
 const NONE = 'NONE';
 const GATE_LOCAL_EXPECTED = 'GATE_LOCAL_EXPECTED';
 const PREEXECUTION_GAP = 'PREEXECUTION_GAP';
 const SYSTEMIC_GAP = 'SYSTEMIC_GAP';
+const CLOSED_STATUSES = CLOSED_LEDGER_STATUSES;
 
 const REGISTRY_PATH = 'governance/GATE_REGISTRY_00_40.json';
 const LEDGER_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
@@ -218,13 +218,6 @@ export async function runPreexecutionReuseCheck({ root, gateId, now = new Date()
   ));
 
   // ---- 3. DEPENDENCIES -----------------------------------------------------
-  let ledgerStatuses = new Map();
-  try {
-    const events = readText(root, LEDGER_PATH).trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
-    for (const event of events) if (GATE_RE.test(event.gateId || '')) ledgerStatuses.set(event.gateId, event.toStatus);
-  } catch (error) {
-    errors.push(`LEDGER_UNREADABLE:${error.message}`);
-  }
   const dependencies = Array.isArray(gate?.dependencies) ? gate.dependencies : [];
   const isGenesisGate = gateId === 'GATE00';
   const declaredOk = isGenesisGate || dependencies.length > 0;
@@ -232,14 +225,15 @@ export async function runPreexecutionReuseCheck({ root, gateId, now = new Date()
     'DEPENDENCIES_DECLARED', declaredOk ? 'PASS' : 'FAIL', declaredOk ? NONE : PREEXECUTION_GAP,
     declaredOk ? 'Dependencies are declared.' : 'No dependency is declared.', { dependencies }
   ));
-  const unsatisfied = dependencies.filter((dependency) => !CLOSED_STATUSES.has(ledgerStatuses.get(dependency)));
+  const dependencyProofs = new Map(dependencies.map((dependency) => [dependency, resolveGateDependencyProof({ root, gateId: dependency })]));
+  const unsatisfied = dependencies.filter((dependency) => !dependencyProofs.get(dependency)?.satisfied);
   const satisfiable = unsatisfied.length === 0;
   checks.push(check(
     'DEPENDENCIES_SATISFIABLE', satisfiable ? 'PASS' : 'FAIL',
     satisfiable ? NONE : GATE_LOCAL_EXPECTED,
-    satisfiable ? 'Every dependency is closed in the canonical ledger.'
+    satisfiable ? 'Every dependency is closed by canonical lifecycle status or explicit disposition.'
       : 'A dependency is not yet closed; this Gate is not next in sequence.',
-    { unsatisfied: unsatisfied.map((dependency) => ({ gateId: dependency, status: ledgerStatuses.get(dependency) ?? 'ABSENT' })) }
+    { unsatisfied: unsatisfied.map((dependency) => ({ gateId: dependency, status: dependencyProofs.get(dependency)?.observedStatus ?? 'ABSENT', reason: dependencyProofs.get(dependency)?.reason })) }
   ));
 
   // ---- 4. ENTRY_CONDITIONS_DEFINED ----------------------------------------

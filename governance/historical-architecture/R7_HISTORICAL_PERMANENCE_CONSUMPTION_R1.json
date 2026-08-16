@@ -1,0 +1,59 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "R7_HISTORICAL_PERMANENCE_LOCAL_AUTHORITY_R1",
+  "programId": "GEE_R7_HISTORICAL_BENCHMARK_PERMANENCE_R1",
+  "manifestSha256": "ed17860976a6d0e29984f4a1cc956332632a04da019ed363337bd12ab987afc7",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "GEE_R7_HISTORICAL_BENCHMARK_PERMANENCE_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T00:00:00.000Z",
+  "commitMessage": "governance: make the R7 historical benchmark permanent against future canonical state",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/fixtures/gee-r7-benchmark-context.json",
+      "sha256": "b320390af2714433bf1a2d8b63cc6b6c8e64e24d773f502043b6ee802c90b585",
+      "byteLength": 9210,
+      "operation": "MODIFY",
+      "reason": "Carry the creation-time compiled GATE15 context inside the fixture, bound to the historical source digests it was compiled from, so the certified scenario replays without reading live canonical state.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE"
+    },
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "sha256": "ef735a539a8b863403de75c462e0787f9707d08d7bafab88182c62f1cac55a16",
+      "byteLength": 93002,
+      "operation": "MODIFY",
+      "reason": "Separate the historical lane from the current-state lane: the historical benchmark context is validated from frozen fixture bytes alone, while current-state binding remains an independent caller-parameterised fail-closed detector. The frozen R7 measurement algorithm is unchanged.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "sha256": "ae4d817cf895dfe83a183cd545d39b029d4f694f1cb81786ffcc2b0d0721f6e1",
+      "byteLength": 24444,
+      "operation": "MODIFY",
+      "reason": "Prove permanence against future ledger, future gates and future HEAD, and prove that altered fixtures, altered digests, unbound historical sources and substituted current state all fail closed. The pre-existing before-after failure is deliberately left unsuppressed.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_HISTORICAL_PERMANENCE_R1.json",
+      "sha256": "fe5b05a1d8c6188849bccf2851e857fdc434ff0b22678fcecd137efea09dfc59",
+      "byteLength": 2287,
+      "operation": "CREATE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact post-GATE19 prestate for the owner-authorized R7 historical benchmark permanence repair.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE"
+    },
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "ed17860976a6d0e29984f4a1cc956332632a04da019ed363337bd12ab987afc7",
+      "byteLength": 4174,
+      "operation": "CREATE",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE"
+    }
+  ]
+}

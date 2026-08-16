@@ -18,6 +18,7 @@ import {
 } from '../../core/post-freeze-maintenance-authority.mjs';
 import { reconstructLedgerPrefixBytes } from '../../../tools/validate-status-ledger.mjs';
 import { sha256Bytes } from '../../../tools/canonical-json.mjs';
+import { resolveGateDependencyProof } from './gate-dependency-resolution.mjs';
 
 const LEDGER_RELATIVE_PATH = 'governance/state/GATE_STATUS_LEDGER.ndjson';
 const OWNER_KEY_RELATIVE_PATH = 'governance/authority/PROJECT_OWNER_RELEASE_KEY.json';
@@ -120,6 +121,7 @@ export function deriveGateStartReadinessFacts(root, gateId) {
   const ledgerHead = events.at(-1) || null;
   const predecessorId = predecessorGateId(root, gateId);
   const predecessor = predecessorId ? events.filter((event) => event.gateId === predecessorId).at(-1) || null : null;
+  const predecessorProof = predecessorId ? resolveGateDependencyProof({ root, gateId: predecessorId }) : null;
   const ledger = fileInfo(root, LEDGER_RELATIVE_PATH);
   const currentState = fileInfo(root, `governance/gates/${gateId}/state/CURRENT_STATE.json`);
   const seal = fileInfo(root, `governance/gates/${gateId}/state/revisions/R0001/STATE_SEAL.json`);
@@ -131,12 +133,9 @@ export function deriveGateStartReadinessFacts(root, gateId) {
   const readinessVerdict = previous?.toStatus === 'AUTHORIZED_NOT_STARTED'
     && currentState && seal && openDefects && contract && activeGate
     && JSON.parse(currentState.bytes.toString('utf8')).stateRevision === 'R0001'
-    && predecessor?.toStatus === 'COMPLETE_CONFIRMED'
+    && predecessorProof?.satisfied === true
     && knowledge !== 'UNKNOWN' ? 'READY' : 'BLOCKED';
-  const dependencyProof = predecessor ? {
-    gateId: predecessorId, status: predecessor.toStatus,
-    authorityPath: predecessor.authorityPath, authoritySha256: predecessor.authoritySha256
-  } : { gateId: predecessorId || '', status: 'UNKNOWN', authorityPath: '', authoritySha256: '0'.repeat(64) };
+  const dependencyProof = predecessorProof?.proof || { gateId: predecessorId || '', status: 'UNKNOWN', authorityPath: '', authoritySha256: '0'.repeat(64) };
   return {
     projectId: 'WHEEL', gateId, status: previous?.toStatus || null,
     preStartLedgerSha256: ledger?.sha256 || null,
@@ -196,6 +195,7 @@ export function createWheelGateStartAuthoritySource(repoRoot, { projectId = 'WHE
     sourceId: 'wheel-gate-start-authority-source',
     resolveWorkUnitAuthority(workUnitId) {
       const facts = deriveGateStartReadinessFacts(root, workUnitId);
+      const predecessorProof = facts.dependencyProof?.gateId ? resolveGateDependencyProof({ root, gateId: facts.dependencyProof.gateId }) : null;
       if (!facts.status && !facts.contractJson) return null;
       const authority = loadModernAuthority(root, workUnitId);
       const appliedStart = facts.status === 'IN_PROGRESS' ? findAppliedModernStart(root, workUnitId) : { event: null, findings: [] };
@@ -227,7 +227,7 @@ export function createWheelGateStartAuthoritySource(repoRoot, { projectId = 'WHE
         proofs: {
           EXECUTION_CONTRACT: facts.contractJson ? { state: 'PROVEN', reason: 'CURRENT_CONTRACT and contract present' } : { state: 'FAILED', reason: 'contract absent' },
           CONTRACT_INTEGRITY: facts.contractJson ? { state: 'PROVEN', reason: 'contract-derived exact scope' } : { state: 'FAILED', reason: 'contract absent' },
-          PREREQUISITES: facts.dependencyProof.status === 'COMPLETE_CONFIRMED' ? { state: 'PROVEN', reason: `${facts.dependencyProof.gateId} terminal dependency` } : { state: 'FAILED', reason: 'dependency not terminal' },
+          PREREQUISITES: predecessorProof?.satisfied ? { state: 'PROVEN', reason: predecessorProof.reason } : { state: 'FAILED', reason: predecessorProof?.reason || 'dependency not terminal' },
           WORK_UNIT_EXECUTABLE: postStartExecutable ? { state: 'PROVEN', reason: 'IN_PROGRESS plus valid modern START authority and exact scope' } : { state: 'FAILED', reason: facts.status === 'AUTHORIZED_NOT_STARTED' ? 'START authority cannot grant pre-START execution' : 'modern START authority or exact scope invalid' }
         }
       };

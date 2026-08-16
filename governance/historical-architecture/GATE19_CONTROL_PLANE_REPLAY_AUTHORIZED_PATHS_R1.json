@@ -1,0 +1,450 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "GATE19_CONTROL_PLANE_REPLAY_AUTHORIZED_PATHS_R1",
+  "programId": "GATE19_CONTROL_PLANE_GOVERNED_REPLAY_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE19_CONTROL_PLANE_REPLAY_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/GATE19_CONTROL_PLANE_REPLAY_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/authority/authorizations/GATE19/GATE_AUTHORIZATION_RECORD.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/authority/authorizations/GATE19/PROJECT_OWNER_GATE_AUTHORIZATION_AUTHORITY.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/authority/precontract/GATE19/PRECONTRACT_CONSUMPTION_ANCHOR_AUTHORITY_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/authority/precontract/GATE19/PROJECT_OWNER_LOCAL_PRECONTRACT_AUTHORITY.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-authorization-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "57b84eb4628bcfc352379b0cb54f141e44d7c023eec99eb11a3255d07a9d0434",
+        "byteLength": 14526
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-dependency-resolution.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/gate-start-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "c1d8eba670563a289ec77ae78b458c1a3ad76caa250bb63dcb0e15063c92a622",
+        "byteLength": 14498
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/precontract-authority-source.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "af9b6af5fdae41e81e11aa68e8b79d30f607a35e6fb6d516b27cc5b6bfb9f5fd",
+        "byteLength": 7342
+      }
+    },
+    {
+      "path": "governance/gee-v1/adapters/wheel/wheel-project-adapter.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "1bfcc7bea68faaee1233a6215d62eab74562237f9f4d703d7c6e7f08793cb4d8",
+        "byteLength": 31837
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/gate-authorization-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "3bc04f4a0318e1cf28a4b2ea52ed9f525efeef4ee6f8ab09ce73e49efff8252b",
+        "byteLength": 41157
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/gate-start-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "e11a783e72b32b2c10ca347df8e1331b5cd993f989fa4f64f80b3aee141907dd",
+        "byteLength": 19624
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/precontract-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "ba363a0dfeceee52f0c5c47e844e65f785f3a385997689e03d7cc9b18869ef3a",
+        "byteLength": 12669
+      }
+    },
+    {
+      "path": "governance/schemas/gate-authorization-authority.schema.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "b7df12a3a656e7cfda7108a109762768decadc50ec74335a8af96b504754bd6d",
+        "byteLength": 5460
+      }
+    },
+    {
+      "path": "governance/schemas/gate-authorization-record.schema.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "3aec78918202553a975390349f78faee4fae23d8f2a025a95ac39a46c2196578",
+        "byteLength": 5699
+      }
+    },
+    {
+      "path": "governance/schemas/gate-start-authority.schema.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "97814bb390a2053caa7cc02113e11135c6e0e692496fc66ba2193fd2437a2de4",
+        "byteLength": 4189
+      }
+    },
+    {
+      "path": "governance/schemas/gate-start-record.schema.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "1fff35240392d057ed5b19d3c94e0a968e145895d6ff46b16e45ead38e40df7f",
+        "byteLength": 3754
+      }
+    },
+    {
+      "path": "governance/schemas/gate-status-event.schema.json",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "073d1b162f7b464595e2412648e44cc2354342458d18a8d1c72065c2ace33c88",
+        "byteLength": 3567
+      }
+    },
+    {
+      "path": "governance/schemas/precontract-authority-consumption.schema.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/schemas/precontract-consumption-anchor-authority.schema.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/schemas/precontract-local-authority.schema.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/gate-authorization-authority-primitive.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "f59e48ab36425f8046468604a2a67fe070e57aa618988712aea9e8264094eda9",
+        "byteLength": 62966
+      }
+    },
+    {
+      "path": "governance/tests/precontract-anchor-authority-binding.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/precontract-consumption-permanence.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tests/precontract-local-bootstrap-chain.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/anchor-precontract-consumption.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/apply-precontract-bootstrap.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/build-gate-lifecycle-records.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/final-gate-integrity-auditor.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "DELIBERATE INTEGRATION CHANGE: derive the authorized cohort from canonical authorities instead of accepting a caller --cohort claim.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "8d650642391d14aac788bbe791c9bd228e0dff35e7e9abd03cb63782db3e37af",
+        "byteLength": 41467
+      }
+    },
+    {
+      "path": "governance/tools/gate-fast-path-control-plane.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "fa822464d45fe6224f44c34ee1c93b558918f837b4c2c3ace36f1fbb853a6b19",
+        "byteLength": 61841
+      }
+    },
+    {
+      "path": "governance/tools/gate-preexecution-reuse-check.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "eee8add84cbb15d17606bc808c7cf1583b5a9a94ad055ffcb2c77fda4835054f",
+        "byteLength": 31270
+      }
+    },
+    {
+      "path": "governance/tools/issue-precontract-authority.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Publish the GATE19 control-plane candidate under governed authority; git has never held this path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/tools/validate-active-gate.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "64a409bde2c785d8902c8873599c9c67a6fe81e0a62a372a6a4cce373c85fc11",
+        "byteLength": 7548
+      }
+    },
+    {
+      "path": "governance/tools/validate-precontract-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "66256a2559dfe3876da12c0f9e962c8883b6ef4aaf50f707c4493bf76a1a97e0",
+        "byteLength": 2447
+      }
+    },
+    {
+      "path": "governance/tools/validate-status-ledger.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Replay the GATE19 control-plane candidate under governed authority, from its committed predecessor.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "4b778cad5f5b4ed48fa22c8ef9282fde940724cf8e524a6b98cb4c6b1250d4a6",
+        "byteLength": 156825
+      }
+    },
+    {
+      "path": "governance/tests/gate-lifecycle-hostile-battery.test.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "DELIBERATE INTEGRATION CHANGE: H7, H7-contrast, H8 and H10 asserted the superseded caller-supplied-cohort semantics; each now asserts its own property against the derived cohort.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "e38d39f2dfe56dfd58fa838063bba6a6d7836373c1764bd478120fcff98fb578",
+        "byteLength": 35861
+      }
+    },
+    {
+      "path": "governance/tests/fgi-canonical-cohort.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Canonical cohort derivation hostile battery for FINAL_GATE_INTEGRITY.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_GATE19_CONTROL_PLANE_REPLAY_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact pre-state of every replayed path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE19_CONTROL_PLANE_REPLAY_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact finite replay cohort with declared per-path pre-state.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/GATE19_CONTROL_PLANE_REPLAY_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use consumption record binding authority, manifest and transaction.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

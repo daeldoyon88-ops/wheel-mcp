@@ -1,17 +1,19 @@
 {
   "document": "GEE_V1_R7_BENCHMARK_CONTEXT",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "fixtureId": "GEE_V1_R7_WHEEL_GATE15_CONTEXT_R1",
-  "contextKind": "DETERMINISTIC_CANONICAL_WHEEL_STATE",
+  "contextKind": "DETERMINISTIC_HISTORICAL_WHEEL_STATE",
   "workUnitId": "GATE15",
   "sourceHead": "fbd5f5122569dc5729b5c66f800c270c802089fe",
   "missionRevisionId": "GOVERNANCE_EXECUTION_EFFICIENCY_V1_R7",
   "provenance": {
-    "authorityClass": "CANONICAL_REPOSITORY_BYTES",
+    "authorityClass": "HISTORICAL_REPOSITORY_BYTES",
     "purpose": "R7_BENCHMARK_INPUT_ONLY",
-    "generatedProjectionAuthority": false
+    "generatedProjectionAuthority": false,
+    "derivedAtCommit": "e9db5aff",
+    "compilerVersion": "GEE_V1_CONTEXT_COMPILER_R2"
   },
-  "requiredState": [
+  "historicalState": [
     {
       "path": "governance/GATE_REGISTRY_00_40.json",
       "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
@@ -28,5 +30,175 @@
       "role": "CANONICAL_STATUS_AUTHORITY"
     }
   ],
-  "contextIdentitySha256": "f6e11f9811a606cae4aadbc7b4f0f782cf639f636ce9d83a294cbce975450e5e"
+  "historicalContext": {
+    "activeDefectsOrBlockers": [
+      {
+        "code": "DEFECTS_UNKNOWN",
+        "detail": "Open defects state is not proven.",
+        "provenance": {
+          "authorityClass": "CANONICAL_STATUS",
+          "selectionReason": "active blocker selected from canonical work-unit state",
+          "sourceField": "defectsOpenKnowledge",
+          "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "sourceSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+        }
+      },
+      {
+        "code": "PRE_EXECUTION_TRUST_LEVEL",
+        "detail": "TRUST_LEVEL_BELOW_REQUIRED:UNANCHORED_LEGACY<ANCHORED_APPEND_ONLY",
+        "provenance": {
+          "authorityClass": "CANONICAL_STATUS",
+          "selectionReason": "work unit carries only its genesis import, so it cannot satisfy a prerequisite yet",
+          "sourceField": "toStatus",
+          "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "sourceSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+        }
+      }
+    ],
+    "activeState": {
+      "blockers": [
+        {
+          "code": "DEFECTS_UNKNOWN",
+          "detail": "Open defects state is not proven.",
+          "provenance": {
+            "authorityClass": "CANONICAL_STATUS",
+            "selectionReason": "active blocker selected from canonical work-unit state",
+            "sourceField": "defectsOpenKnowledge",
+            "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+            "sourceSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+          }
+        },
+        {
+          "code": "PRE_EXECUTION_TRUST_LEVEL",
+          "detail": "TRUST_LEVEL_BELOW_REQUIRED:UNANCHORED_LEGACY<ANCHORED_APPEND_ONLY",
+          "provenance": {
+            "authorityClass": "CANONICAL_STATUS",
+            "selectionReason": "work unit carries only its genesis import, so it cannot satisfy a prerequisite yet",
+            "sourceField": "toStatus",
+            "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+            "sourceSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+          }
+        }
+      ],
+      "canonicalStatus": "NOT_STARTED",
+      "closure": {
+        "executionStatus": "NOT_STARTED",
+        "finalClosureTrustLevel": "UNANCHORED_LEGACY",
+        "gateCompleteConfirmed": false,
+        "nextAction": null
+      },
+      "prerequisites": [],
+      "provenance": {
+        "authorityClass": "CANONICAL_STATUS",
+        "selectionReason": "status must come from verified bound state",
+        "sourceField": "status",
+        "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "sourceSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+      }
+    },
+    "applicableConstraints": [
+      {
+        "authorityClass": "CANONICAL_RULE",
+        "provenance": {
+          "authorityClass": "CANONICAL_RULE",
+          "selectionReason": "applies to autonomous execution",
+          "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+          "sourceSha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8"
+        },
+        "ruleId": "GIT_WRITES_FORBIDDEN_BY_DEFAULT",
+        "selectionReason": "applies to autonomous execution",
+        "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+        "statement": "Do not stage, commit, push, or otherwise write Git state."
+      },
+      {
+        "authorityClass": "CANONICAL_RULE",
+        "provenance": {
+          "authorityClass": "CANONICAL_RULE",
+          "selectionReason": "applies to all governed deterministic work",
+          "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+          "sourceSha256": "a26443b54c7168b2927e42e2b70bc480eba3aee8abdca10a56852d576d3d62c8"
+        },
+        "ruleId": "NO_FUTURE_LEAKAGE",
+        "selectionReason": "applies to all governed deterministic work",
+        "sourcePath": "governance/PROJECT_CONSTITUTION.json",
+        "statement": "Do not use future or look-ahead information."
+      }
+    ],
+    "authorityDeclaration": "DERIVED / NON_AUTHORITATIVE",
+    "bundleKind": "GEE_CONTEXT_BUNDLE",
+    "facts": [
+      {
+        "id": "active-status",
+        "provenance": {
+          "authorityClass": "CANONICAL_STATUS",
+          "selectionReason": "status must come from verified bound state",
+          "sourceField": "status",
+          "sourcePath": "governance/state/GATE_STATUS_LEDGER.ndjson",
+          "sourceSha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+        },
+        "value": "NOT_STARTED"
+      },
+      {
+        "id": "mission-objective",
+        "provenance": {
+          "authorityClass": "CANONICAL_OBJECTIVE",
+          "selectionReason": "mission objective selected by adapter",
+          "sourceField": "canonicalObjective",
+          "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+          "sourceSha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+        },
+        "value": "Establish and validate a deterministic, fail-closed anti-invention layer that prevents governed outputs, evidence, probabilities, statuses, claims, artifacts and conclusions from being accepted when they are fabricated, unsupported, non-reproducible, circular, hardcoded, stale, contradictory or not traceable to authoritative inputs."
+      }
+    ],
+    "identity": {
+      "compilerVersion": "GEE_V1_CONTEXT_COMPILER_R2",
+      "mission": "WHEEL:GATE15",
+      "project": "WHEEL",
+      "sourceHead": "fbd5f5122569dc5729b5c66f800c270c802089fe",
+      "workUnitId": "GATE15",
+      "workUnitType": "GATE"
+    },
+    "nextAction": "Proceed with the next authorized implementation step.",
+    "objective": {
+      "expectedOutcome": "Operate on GATE15 using its canonical state and contract.",
+      "missionObjective": "Establish and validate a deterministic, fail-closed anti-invention layer that prevents governed outputs, evidence, probabilities, statuses, claims, artifacts and conclusions from being accepted when they are fabricated, unsupported, non-reproducible, circular, hardcoded, stale, contradictory or not traceable to authoritative inputs.",
+      "provenance": {
+        "authorityClass": "CANONICAL_OBJECTIVE",
+        "selectionReason": "mission objective selected by adapter",
+        "sourceField": "canonicalObjective",
+        "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+        "sourceSha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+      }
+    },
+    "prohibitedActions": [
+      "Do not claim capabilities not implemented by this revision.",
+      "Do not mutate canonical status, contracts, seals, or witnesses.",
+      "Do not treat this compiled context as authority."
+    ],
+    "relevantSources": [
+      {
+        "authorityClass": "CANONICAL",
+        "path": "governance/GATE_REGISTRY_00_40.json",
+        "relevanceReason": "required to reconstruct the selected Wheel gate context",
+        "role": "canonical work-unit source",
+        "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7"
+      },
+      {
+        "authorityClass": "CANONICAL_STATUS",
+        "path": "governance/state/GATE_STATUS_LEDGER.ndjson",
+        "relevanceReason": "required to reconstruct the selected Wheel gate context",
+        "role": "status authority",
+        "sha256": "9c1990a9d6b5879840993749bfc8ac4b46d571e3822e86ba2abdccd7c082d1e6"
+      }
+    ],
+    "reusableEvidenceReferences": [],
+    "schemaVersion": 1,
+    "successConditions": [
+      "Canonical status remains verified and unchanged.",
+      "Every selected fact retains provenance.",
+      "No executable write scope is inferred for this non-executable work unit."
+    ]
+  },
+  "historicalContextSha256": "d1911f969bd6d2538d61760d022bc9df3b20ad381b38227c3b0e545344d00dfb",
+  "contextIdentitySha256": "9ca6268445b5db30708cbd440bf378eb1bf69d50cd1936d877463c9caee35095"
 }

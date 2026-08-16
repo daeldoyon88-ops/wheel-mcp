@@ -145,6 +145,116 @@ const COMMIT_POLICY_FIELDS = Object.freeze([
 
 const MANIFEST_FIELDS = Object.freeze(['documentKind', 'schemaVersion', 'manifestId', 'programId', 'paths']);
 const MANIFEST_PATH_FIELDS = Object.freeze(['path', 'operation', 'phase', 'reason', 'artifactClass']);
+
+/**
+ * MANIFEST SCHEMA V2 — EXACT AUTHORIZED-PATH PRE-STATE BINDING.
+ *
+ * WHAT V1 COULD NOT SAY. A V1 authority binds the repository: base HEAD, ledger
+ * count, ledger prefix digest, gate/state/contract/ACTIVE_GATE. It says nothing
+ * about the bytes of the paths it authorizes. That gap is not cosmetic — it is
+ * the difference between a governed replay and a ratification:
+ *
+ *   authority issued -> paths written        (a governed write)
+ *   paths written    -> authority issued     (a ratification)
+ *
+ * Both produce byte-identical authority and consumption records under V1,
+ * because nothing in V1 ever looked at what the paths held BEFORE the program
+ * ran. An auditor could not tell the two apart, so "authorized" degraded to
+ * "someone later wrote a document saying so".
+ *
+ * WHAT V2 ADDS. Exactly one field per manifest entry: `prestate`. It declares
+ * the state each authorized path MUST be in before publication begins.
+ *
+ *   { "state": "ABSENT" }
+ *   { "state": "PRESENT", "sha256": "<64 hex>", "byteLength": <int> }
+ *
+ * The evaluator refuses to authorize unless EVERY declared path matches its
+ * declared pre-state on disk. One mismatch blocks the whole program; no path is
+ * silently skipped, and an unobserved path is a blocking finding rather than a
+ * pass.
+ *
+ * WHY A DECLARED HASH IS NOT ENOUGH BY ITSELF. If `prestate.sha256` could be any
+ * value, a ratifier would simply declare the digest of the bytes already sitting
+ * on disk and sail through. So a PRESENT pre-state must additionally be a
+ * CANONICAL PREDECESSOR of that path: either the committed HEAD blob, or bytes
+ * a prior valid consumption record already certified for it. Current working-tree
+ * bytes that no canonical record ever certified are exactly what a ratification
+ * would name, and they are refused.
+ *
+ * OPERATION COHERENCE. CREATE must declare ABSENT; MODIFY must declare PRESENT.
+ * A CREATE whose path is already tracked in HEAD is refused as mislabelled.
+ *
+ * V1 IS UNTOUCHED. Manifests at schemaVersion 1 keep their exact original
+ * validation, so every historical program stays valid and re-verifiable. V2 is
+ * required only where a program elects to bind pre-state.
+ */
+export const MANIFEST_SCHEMA_VERSIONS = Object.freeze([1, 2]);
+export const MANIFEST_FIELDS_V2 = Object.freeze([...MANIFEST_FIELDS, 'prestateSelfExclusion']);
+export const MANIFEST_PATH_FIELDS_V2 = Object.freeze([...MANIFEST_PATH_FIELDS, 'prestate']);
+
+/**
+ * BOOTSTRAP SELF-EXCLUSION — the two documents that must already exist to be read.
+ *
+ * A program's authority document and its authorized-path manifest are themselves
+ * governed artifacts, so they belong in the manifest — that is how the existing
+ * primitive already works, and dropping them would leave two governed files
+ * outside every cohort. But they are also the two files the evaluator must READ
+ * in order to run at all, so at AUTHORIZE time they are unavoidably PRESENT
+ * while their operation is CREATE. Under V1 that tension was invisible because
+ * nothing checked pre-state; under V2 it would deadlock every program.
+ *
+ * The exception is therefore declared, never inferred, and it is deliberately
+ * the narrowest one that unblocks the deadlock:
+ *
+ *   - only two roles exist, AUTHORITY_DOCUMENT and AUTHORIZED_PATH_MANIFEST
+ *   - at most one entry per role
+ *   - the manifest entry must BE `authority.authorizedPathManifestPath`
+ *   - the authority entry must BE the authority document actually loaded
+ *   - each excluded path must still appear in `paths`
+ *   - each entry must carry a human reason
+ *
+ * What the exception does NOT do: it does not make authority files
+ * self-authorizing. An excluded path skips the PRE-STATE gate only. It is still
+ * bound by the manifest digest the authority pins, still inside the authorized
+ * path set, and still verified byte-for-byte in the consumption cohort. The
+ * consumption record itself needs no exemption — it genuinely does not exist at
+ * authorize time, because an already-present one raises AUTHORITY_ALREADY_CONSUMED.
+ *
+ * Anything else named here is refused, so widening the hole requires editing this
+ * table rather than writing a clever manifest.
+ */
+export const PRESTATE_SELF_EXCLUSION_ROLES = Object.freeze(['AUTHORITY_DOCUMENT', 'AUTHORIZED_PATH_MANIFEST']);
+const PRESTATE_SELF_EXCLUSION_FIELDS = Object.freeze(['path', 'role', 'reason']);
+export const PRESTATE_PRESENT = 'PRESENT';
+export const PRESTATE_ABSENT = 'ABSENT';
+export const PRESTATE_STATES = Object.freeze([PRESTATE_PRESENT, PRESTATE_ABSENT]);
+const PRESTATE_PRESENT_FIELDS = Object.freeze(['state', 'sha256', 'byteLength']);
+const PRESTATE_ABSENT_FIELDS = Object.freeze(['state']);
+
+/** Shape-only validation of one `prestate` declaration. */
+export function validatePathPrestateDeclaration(prestate, operation, findings, pathName) {
+  if (!prestate || typeof prestate !== 'object' || Array.isArray(prestate)) {
+    finding(findings, 'MANIFEST_PATH_PRESTATE_MISSING', pathName);
+    return null;
+  }
+  if (!PRESTATE_STATES.includes(prestate.state)) {
+    finding(findings, 'MANIFEST_PATH_PRESTATE_STATE_INVALID', pathName);
+    return null;
+  }
+  const allowed = prestate.state === PRESTATE_PRESENT ? PRESTATE_PRESENT_FIELDS : PRESTATE_ABSENT_FIELDS;
+  for (const key of Object.keys(prestate)) {
+    if (!allowed.includes(key)) finding(findings, 'MANIFEST_PATH_PRESTATE_UNKNOWN_FIELD', `${pathName}:${key}`);
+  }
+  if (prestate.state === PRESTATE_PRESENT) {
+    if (!SHA256_RE.test(prestate.sha256 || '')) finding(findings, 'MANIFEST_PATH_PRESTATE_SHA_INVALID', pathName);
+    if (!Number.isInteger(prestate.byteLength) || prestate.byteLength < 0) finding(findings, 'MANIFEST_PATH_PRESTATE_BYTE_LENGTH_INVALID', pathName);
+  }
+  // CREATE means the path is not there yet; MODIFY means it is. A manifest that
+  // disagrees with itself is refused rather than resolved in either direction.
+  if (operation === 'CREATE' && prestate.state !== PRESTATE_ABSENT) finding(findings, 'MANIFEST_PATH_PRESTATE_OPERATION_INCOHERENT', pathName);
+  if (operation === 'MODIFY' && prestate.state !== PRESTATE_PRESENT) finding(findings, 'MANIFEST_PATH_PRESTATE_OPERATION_INCOHERENT', pathName);
+  return prestate;
+}
 const CONSUMPTION_V1_FIELDS = Object.freeze([
   'documentKind', 'schemaVersion', 'authorityId', 'programId', 'manifestSha256',
   'baseHead', 'consumedUse', 'transactionId', 'recordedAt', 'commitMessage'
@@ -276,17 +386,23 @@ export function validateMaintenanceAuthorizedPathManifest(manifest, programId, a
     finding(findings, 'MANIFEST_ABSENT');
     return { valid: false, findings, authorizedPaths: [], operationClasses: [] };
   }
-  unknownFields(findings, manifest, MANIFEST_FIELDS, 'MANIFEST_UNKNOWN_FIELD');
+  const bindsPrestate = manifest.schemaVersion === 2;
+  unknownFields(findings, manifest, bindsPrestate ? MANIFEST_FIELDS_V2 : MANIFEST_FIELDS, 'MANIFEST_UNKNOWN_FIELD');
   if (manifest.documentKind !== POST_FREEZE_MAINTENANCE_MANIFEST_KIND) finding(findings, 'MANIFEST_KIND_INVALID');
-  if (manifest.schemaVersion !== 1) finding(findings, 'MANIFEST_SCHEMA_VERSION_INVALID');
+  if (!MANIFEST_SCHEMA_VERSIONS.includes(manifest.schemaVersion)) finding(findings, 'MANIFEST_SCHEMA_VERSION_INVALID');
   if (!TOKEN_RE.test(manifest.manifestId || '')) finding(findings, 'MANIFEST_ID_INVALID');
   if (manifest.programId !== programId) finding(findings, 'MANIFEST_PROGRAM_MISMATCH');
   if (!Array.isArray(manifest.paths) || manifest.paths.length === 0) finding(findings, 'MANIFEST_PATHS_INVALID');
   const paths = [];
   const operationClasses = [];
+  const prestateByPath = new Map();
   for (const entry of Array.isArray(manifest.paths) ? manifest.paths : []) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { finding(findings, 'MANIFEST_ENTRY_INVALID'); continue; }
-    unknownFields(findings, entry, MANIFEST_PATH_FIELDS, 'MANIFEST_ENTRY_UNKNOWN_FIELD');
+    unknownFields(findings, entry, bindsPrestate ? MANIFEST_PATH_FIELDS_V2 : MANIFEST_PATH_FIELDS, 'MANIFEST_ENTRY_UNKNOWN_FIELD');
+    if (bindsPrestate) {
+      const declared = validatePathPrestateDeclaration(entry.prestate, entry.operation, findings, entry.path);
+      if (declared && isExactMaintenancePath(entry.path)) prestateByPath.set(entry.path, declared);
+    }
     if (!isExactMaintenancePath(entry.path)) finding(findings, 'MANIFEST_PATH_INVALID', entry.path);
     else if (paths.includes(entry.path)) finding(findings, 'MANIFEST_PATH_DUPLICATE', entry.path);
     else paths.push(entry.path);
@@ -306,7 +422,113 @@ export function validateMaintenanceAuthorizedPathManifest(manifest, programId, a
       finding(findings, 'FINAL_CLOSURE_OPERATION_OUTSIDE_PURPOSE', entry.path);
     }
   }
-  return { valid: findings.length === 0, findings, authorizedPaths: paths, operationClasses: [...new Set(operationClasses)] };
+  // Bootstrap self-exclusion: shape and bounds. Membership in `paths` and the
+  // identity of each excluded document are settled here; agreement with the
+  // authority actually loaded is settled in the evaluator, which is the only
+  // place that knows it.
+  const prestateSelfExcluded = new Map();
+  if (bindsPrestate && Object.hasOwn(manifest, 'prestateSelfExclusion')) {
+    if (!Array.isArray(manifest.prestateSelfExclusion)) {
+      finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_INVALID');
+    } else {
+      for (const entry of manifest.prestateSelfExclusion) {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_ENTRY_INVALID'); continue; }
+        unknownFields(findings, entry, PRESTATE_SELF_EXCLUSION_FIELDS, 'MANIFEST_PRESTATE_SELF_EXCLUSION_UNKNOWN_FIELD');
+        if (!PRESTATE_SELF_EXCLUSION_ROLES.includes(entry.role)) { finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_ROLE_INVALID', entry.path); continue; }
+        if (!isExactMaintenancePath(entry.path)) { finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_PATH_INVALID', entry.path); continue; }
+        if (typeof entry.reason !== 'string' || !entry.reason) finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_REASON_INVALID', entry.path);
+        if (!paths.includes(entry.path)) finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_PATH_NOT_AUTHORIZED', entry.path);
+        if ([...prestateSelfExcluded.values()].some((existing) => existing.role === entry.role)) {
+          finding(findings, 'MANIFEST_PRESTATE_SELF_EXCLUSION_ROLE_DUPLICATE', entry.role);
+          continue;
+        }
+        prestateSelfExcluded.set(entry.path, entry);
+      }
+    }
+  }
+  return {
+    valid: findings.length === 0,
+    findings,
+    authorizedPaths: paths,
+    operationClasses: [...new Set(operationClasses)],
+    bindsPrestate,
+    prestateByPath,
+    prestateSelfExcluded
+  };
+}
+
+/**
+ * The pre-state gate. Runs only at AUTHORIZE time and only for a V2 manifest,
+ * and is deliberately exhaustive: every declared path must be observed, every
+ * observation must match, and any observed path nobody declared is a finding.
+ *
+ * `observed.pathPrestates` is a path-keyed map of what the repository actually
+ * holds right now:
+ *
+ *   { state, sha256, byteLength, canonicalPredecessors: [ ...sha256 ] }
+ *
+ * `canonicalPredecessors` is what makes this more than a self-consistent claim.
+ * It is assembled by the observer from sources a program cannot author: the
+ * committed HEAD blob for the path, plus every digest a prior VALID consumption
+ * record already certified for it. A PRESENT pre-state must name one of those.
+ * Declaring the digest of bytes that are merely sitting in the working tree —
+ * which is exactly what an after-the-fact ratification would declare — matches
+ * no canonical predecessor and is refused.
+ */
+export function evaluatePathPrestateBinding({ manifestResult, authority, observed, findings }) {
+  if (!manifestResult.bindsPrestate) return;
+  const observedPrestates = observed?.pathPrestates;
+  if (!observedPrestates || typeof observedPrestates !== 'object' || Array.isArray(observedPrestates)) {
+    finding(findings, 'PATH_PRESTATE_OBSERVATION_MISSING');
+    return;
+  }
+  // Each self-exclusion must name the document it claims to be. The manifest
+  // role is checked against the digest-pinned manifest path; the authority role
+  // against the document the caller actually loaded. An exclusion that names
+  // some other file is refused rather than honoured.
+  const excluded = new Set();
+  for (const [pathName, entry] of manifestResult.prestateSelfExcluded ?? new Map()) {
+    if (entry.role === 'AUTHORIZED_PATH_MANIFEST') {
+      if (pathName !== authority?.authorizedPathManifestPath) { finding(findings, 'PRESTATE_SELF_EXCLUSION_MANIFEST_PATH_MISMATCH', pathName); continue; }
+    } else if (entry.role === 'AUTHORITY_DOCUMENT') {
+      if (typeof observed.authorityDocumentPath !== 'string' || !observed.authorityDocumentPath) { finding(findings, 'PRESTATE_SELF_EXCLUSION_AUTHORITY_PATH_UNOBSERVED', pathName); continue; }
+      if (pathName !== observed.authorityDocumentPath) { finding(findings, 'PRESTATE_SELF_EXCLUSION_AUTHORITY_PATH_MISMATCH', pathName); continue; }
+    }
+    excluded.add(pathName);
+  }
+  const declaredPaths = new Set(manifestResult.prestateByPath.keys());
+  for (const [pathName, declared] of manifestResult.prestateByPath) {
+    if (excluded.has(pathName)) continue;
+    const actual = observedPrestates[pathName];
+    if (!actual || typeof actual !== 'object') {
+      finding(findings, 'PATH_PRESTATE_ENTRY_NOT_OBSERVED', pathName);
+      continue;
+    }
+    if (actual.state !== declared.state) {
+      finding(findings, 'PATH_PRESTATE_STATE_MISMATCH', `${pathName}:expected=${declared.state}:actual=${actual.state}`);
+      continue;
+    }
+    if (declared.state !== PRESTATE_PRESENT) continue;
+    if (actual.sha256 !== declared.sha256) {
+      finding(findings, 'PATH_PRESTATE_SHA_MISMATCH', pathName);
+      continue;
+    }
+    if (actual.byteLength !== declared.byteLength) {
+      finding(findings, 'PATH_PRESTATE_BYTE_LENGTH_MISMATCH', pathName);
+      continue;
+    }
+    const predecessors = Array.isArray(actual.canonicalPredecessors) ? actual.canonicalPredecessors : null;
+    if (!predecessors) {
+      finding(findings, 'PATH_PRESTATE_CANONICAL_PREDECESSORS_UNOBSERVED', pathName);
+      continue;
+    }
+    if (!predecessors.includes(declared.sha256)) {
+      finding(findings, 'PATH_PRESTATE_NOT_A_CANONICAL_PREDECESSOR', pathName);
+    }
+  }
+  for (const pathName of Object.keys(observedPrestates)) {
+    if (!declaredPaths.has(pathName)) finding(findings, 'PATH_PRESTATE_OBSERVED_UNDECLARED_PATH', pathName);
+  }
 }
 
 function validateConsumptionRecord(record, authority, manifest, observed, findings) {
@@ -431,6 +653,11 @@ export function evaluatePostFreezeMaintenanceAuthorityV2({
   // verified against the consumption record instead, which binds the authority,
   // the program, the manifest digest and the baseHead it was consumed at.
   if (phase === PHASE_AUTHORIZE_PROGRAM_APPLY) {
+    // The authorized-path pre-state gate. Placed with the other AUTHORIZE-time
+    // bindings for the same reason they are: it describes the state the program
+    // may act ON, so re-asserting it after publication would demand the program
+    // had never run.
+    evaluatePathPrestateBinding({ manifestResult, authority, observed, findings });
     if (observed.baseHead !== authority?.preState?.baseHead) finding(findings, 'BASE_HEAD_MISMATCH', observed.baseHead ?? 'ABSENT');
     if (observed.ledgerEventCount !== authority?.preState?.ledgerEventCount) finding(findings, 'LEDGER_EVENT_COUNT_MISMATCH');
     if (observed.ledgerPrefixSha256 !== authority?.preState?.ledgerPrefixSha256) finding(findings, 'LEDGER_PREFIX_MISMATCH');

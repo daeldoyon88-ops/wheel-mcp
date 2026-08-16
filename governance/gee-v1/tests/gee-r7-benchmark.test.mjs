@@ -9,9 +9,13 @@ import { pathToFileURL } from 'node:url';
 
 import { createWheelContextAdapter } from '../adapters/wheel/context-wheel-adapter.mjs';
 import {
-  REPO_ROOT, R7_BENCHMARK_CONTEXT_PATH, runAll, runBenchmark, validateR7BenchmarkContext
+  REPO_ROOT, R7_BENCHMARK_CONTEXT_PATH, runAll, runBenchmark,
+  validateR7HistoricalBenchmarkContext, validateR7CurrentStateBinding
 } from '../evals/gee-r7-runner.mjs';
 import { RUN_STATE_COMPLETED, allocateRunRoot, releaseRunRoot } from '../runtime/run-root-lifecycle.mjs';
+import { sha256Canonical } from '../../tools/canonical-json.mjs';
+import { evaluatePostFreezeMaintenanceAuthorityV2, PHASE_VERIFY_PROGRAM_CONSUMPTION } from '../core/post-freeze-maintenance-authority.mjs';
+import { collectPostFreezeMaintenanceObservation, resolveMaintenancePath } from '../../tools/post-freeze-maintenance-observation.mjs';
 
 const canonicalBenchmarkPath = path.join(REPO_ROOT, 'governance', 'gee-v1', 'benchmarks', 'gee-r7-benchmark.json');
 const ledgerPath = path.join(REPO_ROOT, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
@@ -76,46 +80,237 @@ const stableBenchmarkOutcomes = (value) => ({
   }
 });
 
-test('R7 benchmark context is deterministic and hostile invalid contexts fail closed', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-context-hostile-'));
-  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
-  const fixturePath = path.join(root, ...R7_BENCHMARK_CONTEXT_PATH.split('/'));
-  const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
-  const registryPath = path.join(root, 'governance', 'GATE_REGISTRY_00_40.json');
-  const ledgerPathInFixture = path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
+const fixtureBytes = () => fs.readFileSync(path.join(REPO_ROOT, ...R7_BENCHMARK_CONTEXT_PATH.split('/')));
+const canonicalFixture = () => JSON.parse(fixtureBytes().toString('utf8'));
+const findings = (result) => result.findings.join(',');
+const AUTHORITY_DIR = path.join(REPO_ROOT, 'governance', 'sources');
+const HISTORY_DIR = 'governance/historical-architecture';
+const BINDING_AUTHORITY = 'governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_HISTORICAL_PERMANENCE_R1.json';
+
+/**
+ * Re-seal a tampered fixture the way a competent attacker would: recompute the
+ * inner digest over the edited context, then the outer identity digest over the
+ * whole body. The result is perfectly self-consistent — which is exactly why
+ * self-consistency cannot be the test.
+ */
+const reseal = (value) => {
+  value.historicalContextSha256 = sha256Canonical(value.historicalContext);
+  value.contextIdentitySha256 = sha256Canonical(Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'contextIdentitySha256')));
+  return value;
+};
+
+/**
+ * The canonical consumption verdict for one authority, composed exactly as
+ * validate-post-freeze-maintenance-authority.mjs composes it. The contradiction
+ * test below compares this against the historical consumer, so it must be the
+ * canonical primitive and not a second opinion.
+ */
+const canonicalConsumption = (root, authorityDocumentPath) => {
+  const authority = JSON.parse(fs.readFileSync(path.join(root, ...authorityDocumentPath.split('/')), 'utf8'));
+  const collected = [];
+  let manifest = null;
+  let observed = {};
+  let consumptionRecord = null;
   try {
-    const valid = validateR7BenchmarkContext({ repoRoot: root });
-    assert.equal(valid.valid, true, JSON.stringify(valid.findings));
-    assert.equal(valid.context.fixture.workUnitId, 'GATE15');
-    assert.ok(valid.context.compiled.activeDefectsOrBlockers.some((entry) => entry.code === 'PRE_EXECUTION_TRUST_LEVEL'));
+    const observation = collectPostFreezeMaintenanceObservation({ root, authority, authorityDocumentPath });
+    collected.push(...observation.findings);
+    manifest = observation.manifest;
+    observed = observation.observed;
+    const consumptionPath = resolveMaintenancePath(root, authority.consumptionRecordPath);
+    if (consumptionPath && fs.existsSync(consumptionPath)) consumptionRecord = JSON.parse(fs.readFileSync(consumptionPath, 'utf8'));
+  } catch (error) {
+    collected.push({ code: error?.message || String(error) });
+  }
+  const evaluation = evaluatePostFreezeMaintenanceAuthorityV2({
+    authority, manifest, observed, phase: PHASE_VERIFY_PROGRAM_CONSUMPTION, consumptionRecord
+  });
+  const all = [...collected, ...evaluation.findings];
+  return { authorized: all.length === 0 && evaluation.consumed === true, findings: all };
+};
 
-    const registryBytes = fs.readFileSync(registryPath);
-    fs.appendFileSync(registryPath, '\n');
-    const mutatedBytes = validateR7BenchmarkContext({ repoRoot: root });
-    assert.equal(mutatedBytes.valid, false);
-    assert.ok(mutatedBytes.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_STATE_SHA256_MISMATCH:')));
-    fs.writeFileSync(registryPath, registryBytes);
+/**
+ * A root carrying the whole governance tree plus a git directory whose object
+ * store is the real one by `alternates`, so the canonical observation can read
+ * the base commit without a 45MB copy. HEAD deliberately points at a DIFFERENT
+ * commit than the authority's baseHead: consumption verification is a
+ * post-publication question, so a moved HEAD must not disturb it.
+ */
+const bindingRoot = ({ head = null, futureLedger = false } = {}) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gee-r7-binding-'));
+  fs.cpSync(path.join(REPO_ROOT, 'governance'), path.join(root, 'governance'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.git', 'objects', 'info'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.git', 'refs', 'heads'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.git', 'config'), '[core]\n\trepositoryformatversion = 0\n');
+  fs.writeFileSync(path.join(root, '.git', 'HEAD'), 'ref: refs/heads/main\n');
+  fs.writeFileSync(path.join(root, '.git', 'refs', 'heads', 'main'), `${head ?? execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim()}\n`);
+  fs.writeFileSync(path.join(root, '.git', 'objects', 'info', 'alternates'), `${path.join(REPO_ROOT, '.git', 'objects')}\n`);
+  if (futureLedger) {
+    const target = path.join(root, 'governance', 'state', 'GATE_STATUS_LEDGER.ndjson');
+    fs.writeFileSync(target, `${fs.readFileSync(target, 'utf8').trimEnd()}\n{"eventId":"SYNTHETIC_FUTURE_EVENT","gateId":"GATE41","toStatus":"NOT_STARTED"}\n`);
+  }
+  return root;
+};
 
-    const provenanceMismatch = clone(fixture);
-    provenanceMismatch.provenance.authorityClass = 'GENERATED_PROJECTION';
-    assert.equal(validateR7BenchmarkContext({ repoRoot: root, fixture: provenanceMismatch }).valid, false);
+const consumptionRecordsIn = (root) => {
+  const dir = path.join(root, ...HISTORY_DIR.split('/'));
+  return fs.readdirSync(dir).filter((name) => name.endsWith('.json'))
+    .map((name) => ({ file: path.join(dir, name), value: JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8')) }))
+    .filter((entry) => entry.value?.documentKind === 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION');
+};
 
-    const identityMismatch = clone(fixture);
-    identityMismatch.contextIdentitySha256 = '0'.repeat(64);
-    assert.equal(validateR7BenchmarkContext({ repoRoot: root, fixture: identityMismatch }).valid, false);
+const rewriteJson = (file, mutate) => {
+  const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+  mutate(value);
+  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+};
 
-    const ledgerBytes = fs.readFileSync(ledgerPathInFixture);
-    fs.rmSync(ledgerPathInFixture);
-    const missingState = validateR7BenchmarkContext({ repoRoot: root });
-    assert.equal(missingState.valid, false);
-    assert.ok(missingState.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_REQUIRED_STATE_MISSING:')));
-    fs.writeFileSync(ledgerPathInFixture, ledgerBytes);
+test('R7 historical fixture binds only to a canonically valid maintenance authority', () => {
+  const roots = [];
+  const track = (root) => { roots.push(root); return root; };
+  try {
+    /* A — the original final bytes validate, replay the certified scenario, and
+       name the authority that bound them. */
+    const original = validateR7HistoricalBenchmarkContext({ repoRoot: REPO_ROOT });
+    assert.equal(original.valid, true, findings(original));
+    assert.equal(original.context.fixtureSha256, crypto.createHash('sha256').update(fixtureBytes()).digest('hex'));
+    assert.equal(original.context.boundAuthorityId, 'R7_HISTORICAL_PERMANENCE_LOCAL_AUTHORITY_R1');
+    assert.equal(original.context.compiled.activeState.canonicalStatus, 'NOT_STARTED');
+    assert.ok(original.context.compiled.activeDefectsOrBlockers.some((entry) => entry.code === 'PRE_EXECUTION_TRUST_LEVEL'));
+    assert.deepEqual(
+      original.context.compiled.relevantSources.map((entry) => entry.path).sort(),
+      ['governance/GATE_REGISTRY_00_40.json', 'governance/state/GATE_STATUS_LEDGER.ndjson']
+    );
 
-    const generatedSubstitution = clone(fixture);
-    generatedSubstitution.requiredState[0].path = 'governance/generated/GATE_REGISTRY_00_40.json';
-    assert.equal(validateR7BenchmarkContext({ repoRoot: root, fixture: generatedSubstitution }).valid, false);
+    /* THE CONTRADICTION TEST. Acceptance by the historical consumer must imply
+       the canonical validator's own AUTHORIZED verdict for the very authority
+       that did the binding. These two must never disagree about the same bytes. */
+    const bindingVerdict = canonicalConsumption(REPO_ROOT, BINDING_AUTHORITY);
+    assert.equal(bindingVerdict.authorized, true, JSON.stringify(bindingVerdict.findings));
+
+    /* B — semantic forgery, every self-hash correctly recomputed. */
+    const forgedStatus = clone(canonicalFixture());
+    forgedStatus.historicalContext.activeState.canonicalStatus = 'COMPLETE_CONFIRMED';
+    const statusFact = forgedStatus.historicalContext.facts.find((entry) => entry.id === 'active-status');
+    assert.ok(statusFact, 'the certified context must carry an active-status fact for this forgery to be meaningful');
+    statusFact.value = 'COMPLETE_CONFIRMED';
+    reseal(forgedStatus);
+    assert.equal(forgedStatus.historicalContextSha256, sha256Canonical(forgedStatus.historicalContext));
+    const forgedStatusResult = validateR7HistoricalBenchmarkContext({ repoRoot: REPO_ROOT, fixture: forgedStatus });
+    assert.equal(forgedStatusResult.valid, false);
+    assert.ok(forgedStatusResult.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_EXTERNAL_BINDING_SHA256_MISMATCH:')), findings(forgedStatusResult));
+
+    /* C — source digest forgery, re-bound coherently across historicalState and
+       relevantSources so the internal binding agrees with itself. */
+    const forgedSource = clone(canonicalFixture());
+    const forgedDigest = 'c'.repeat(64);
+    forgedSource.historicalState.find((entry) => entry.path === 'governance/state/GATE_STATUS_LEDGER.ndjson').sha256 = forgedDigest;
+    forgedSource.historicalContext.relevantSources.find((entry) => entry.path === 'governance/state/GATE_STATUS_LEDGER.ndjson').sha256 = forgedDigest;
+    reseal(forgedSource);
+    const forgedSourceResult = validateR7HistoricalBenchmarkContext({ repoRoot: REPO_ROOT, fixture: forgedSource });
+    assert.equal(forgedSourceResult.valid, false);
+    assert.ok(forgedSourceResult.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_EXTERNAL_BINDING_SHA256_MISMATCH:')), findings(forgedSourceResult));
+    assert.ok(!forgedSourceResult.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_COMPILED_SOURCE_UNBOUND:')),
+      'the internal binding is deliberately satisfied here, so the block must come from outside');
+
+    /* D — the authority's predecessor digest falsified and nothing else. The
+       authority's own bytes now disagree with the digest its consumption
+       certified, so the authority is not canonically valid. */
+    const predecessorOnly = track(bindingRoot());
+    rewriteJson(path.join(predecessorOnly, ...BINDING_AUTHORITY.split('/')), (value) => { value.authorityPredecessor.sha256 = 'a'.repeat(64); });
+    const predecessorOnlyResult = validateR7HistoricalBenchmarkContext({ repoRoot: predecessorOnly });
+    assert.equal(predecessorOnlyResult.valid, false);
+    assert.ok(predecessorOnlyResult.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_EXTERNAL_AUTHORITY_NOT_CANONICALLY_VALID:')), findings(predecessorOnlyResult));
+
+    /* E — THE P1 CASE. Predecessor falsified, the authority's own digest
+       recomputed, AND the cohort entry that names it updated to match, so every
+       digest in the chain is self-consistent. The partial reimplementation this
+       repair removed accepted exactly this. It must now be refused, and the
+       canonical validator must independently agree, naming the predecessor. */
+    const resealedAuthority = track(bindingRoot());
+    const forgedAuthoritySha = rewriteJson(path.join(resealedAuthority, ...BINDING_AUTHORITY.split('/')), (value) => { value.authorityPredecessor.sha256 = 'a'.repeat(64); });
+    const forgedAuthorityBytes = fs.statSync(path.join(resealedAuthority, ...BINDING_AUTHORITY.split('/'))).size;
+    let rebound = false;
+    for (const record of consumptionRecordsIn(resealedAuthority)) {
+      const entry = (record.value.cohort || []).find((item) => item?.path === BINDING_AUTHORITY);
+      if (!entry) continue;
+      rewriteJson(record.file, (value) => {
+        const target = value.cohort.find((item) => item.path === BINDING_AUTHORITY);
+        target.sha256 = forgedAuthoritySha;
+        target.byteLength = forgedAuthorityBytes;
+      });
+      rebound = true;
+    }
+    assert.ok(rebound, 'the forgery must actually re-bind the cohort entry, otherwise it is only case D again');
+    const resealedResult = validateR7HistoricalBenchmarkContext({ repoRoot: resealedAuthority });
+    assert.equal(resealedResult.valid, false, 'a fully re-sealed authority forgery must not be accepted');
+    assert.ok(resealedResult.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_EXTERNAL_AUTHORITY_NOT_CANONICALLY_VALID:')), findings(resealedResult));
+    const resealedCanonical = canonicalConsumption(resealedAuthority, BINDING_AUTHORITY);
+    assert.equal(resealedCanonical.authorized, false);
+    assert.ok(resealedCanonical.findings.some((entry) => entry.code === 'AUTHORITY_PREDECESSOR_MISMATCH'),
+      `the block must originate in canonical authority validity: ${JSON.stringify(resealedCanonical.findings)}`);
+
+    /* F — authority bytes modified while the consumption cohort stays stale. */
+    const staleCohort = track(bindingRoot());
+    rewriteJson(path.join(staleCohort, ...BINDING_AUTHORITY.split('/')), (value) => { value.resumePoint = `${value.resumePoint}-TAMPERED`; });
+    const staleCohortResult = validateR7HistoricalBenchmarkContext({ repoRoot: staleCohort });
+    assert.equal(staleCohortResult.valid, false);
+    assert.ok(staleCohortResult.findings.some((entry) => entry.startsWith('BENCHMARK_CONTEXT_EXTERNAL_AUTHORITY_NOT_CANONICALLY_VALID:')), findings(staleCohortResult));
+
+    /* G — no authority at all. Authorization does not travel inside the fixture. */
+    const noAuthority = track(bindingRoot());
+    fs.rmSync(path.join(noAuthority, 'governance', 'sources'), { recursive: true, force: true });
+    const noAuthorityResult = validateR7HistoricalBenchmarkContext({ repoRoot: noAuthority });
+    assert.equal(noAuthorityResult.valid, false);
+    assert.ok(noAuthorityResult.findings.includes('BENCHMARK_CONTEXT_EXTERNAL_BINDING_ABSENT'));
+
+    /* H — consumption removed. An authority never consumed describes work that
+       did not happen. */
+    const noConsumption = track(bindingRoot());
+    for (const record of consumptionRecordsIn(noConsumption)) fs.rmSync(record.file, { force: true });
+    const noConsumptionResult = validateR7HistoricalBenchmarkContext({ repoRoot: noConsumption });
+    assert.equal(noConsumptionResult.valid, false);
+    assert.ok(noConsumptionResult.findings.includes('BENCHMARK_CONTEXT_EXTERNAL_BINDING_ABSENT'));
+
+    /* I — only the superseded Fast-Path authority remains. It authorized this
+       path once and certified the ORIGINAL v1 digest, so it must never
+       fail-open onto today's fixture. */
+    const fastPathOnly = track(bindingRoot());
+    for (const name of fs.readdirSync(path.join(fastPathOnly, 'governance', 'sources'))) {
+      if (name.includes('R7_HISTORICAL_PERMANENCE') || name.includes('R7_EXTERNAL_BINDING_REPAIR') || name.includes('R7_CONSUMPTION_REISSUE')) {
+        fs.rmSync(path.join(fastPathOnly, 'governance', 'sources', name), { force: true });
+      }
+    }
+    const fastPathResult = validateR7HistoricalBenchmarkContext({ repoRoot: fastPathOnly });
+    assert.equal(fastPathResult.valid, false, 'the superseded Fast-Path authority must never bind the current fixture');
+    assert.ok(fastPathResult.findings.length > 0);
+
+    /* J — future ledger and a HEAD that is NOT the authority's baseHead, with
+       the fixture and its binding untouched. Consumption verification is a
+       post-publication question, so both must leave the verdict alone. */
+    const priorHead = execFileSync('git', ['rev-parse', 'HEAD~1'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+    const future = track(bindingRoot({ head: priorHead, futureLedger: true }));
+    assert.notEqual(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: future, encoding: 'utf8' }).trim(), execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim());
+    const futureResult = validateR7HistoricalBenchmarkContext({ repoRoot: future });
+    assert.equal(futureResult.valid, true, findings(futureResult));
+    assert.deepEqual(jsonValue(futureResult.context.compiled), jsonValue(original.context.compiled));
+    // and the contradiction test still holds under the moved HEAD and grown ledger
+    assert.equal(canonicalConsumption(future, BINDING_AUTHORITY).authorized, true);
+
+    /* The current-state lane remains an independent, caller-parameterised,
+       fail-closed detector. */
+    const liveExpectation = canonicalFixture().historicalState
+      .map((entry) => ({ ...entry, sha256: hashFile(path.join(REPO_ROOT, ...entry.path.split('/'))) }));
+    assert.equal(validateR7CurrentStateBinding({ repoRoot: REPO_ROOT, expected: liveExpectation }).valid, true);
+    const staleExpectation = clone(liveExpectation);
+    staleExpectation.find((entry) => entry.path === 'governance/state/GATE_STATUS_LEDGER.ndjson').sha256 = 'b'.repeat(64);
+    const staleCurrent = validateR7CurrentStateBinding({ repoRoot: REPO_ROOT, expected: staleExpectation });
+    assert.equal(staleCurrent.valid, false);
+    assert.ok(staleCurrent.findings.includes('CURRENT_STATE_SHA256_MISMATCH:governance/state/GATE_STATUS_LEDGER.ndjson'));
+    assert.equal(validateR7CurrentStateBinding({ repoRoot: REPO_ROOT }).valid, false);
+    assert.equal(validateR7CurrentStateBinding({ repoRoot: REPO_ROOT, expected: [] }).valid, false);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    for (const root of roots) fs.rmSync(root, { recursive: true, force: true });
   }
 });
 

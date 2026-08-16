@@ -1,0 +1,85 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 1,
+  "manifestId": "DERIVED_PROJECTION_SYNC_AUTHORIZED_PATHS_R1",
+  "programId": "GATE19_POST_MISSION_DERIVED_PROJECTION_SYNC_R1",
+  "paths": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DERIVED_PROJECTION_SYNC_R1.json",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY bound to the exact post-GATE19 prestate.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/DERIVED_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Finite exact-file regeneration cohort with no wildcard and no directory blanket.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/DERIVED_PROJECTION_SYNC_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT.md",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Canonical generator output; stale only because the GATE19 events advanced the ledger it projects.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Provenance output emitted atomically with the report by the same canonical generator.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Canonical generator output pinning the ledger digest, which the GATE19 events advanced.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Second atomic output of the same generator; authorized because the generator writes both or neither.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Deterministic rebuild by the GATE19 canonical builder; the bundle packages the two regenerated report bytes.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Recomputed from the actual rebuilt archive bytes by the same canonical builder.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Recomputed package self-test over the rebuilt archive.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json",
+      "operation": "MODIFY",
+      "phase": "DERIVED_PROJECTION_REGENERATION",
+      "reason": "Detached receipt recomputed from the rebuilt archive, manifest and self-test bytes.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    }
+  ]
+}

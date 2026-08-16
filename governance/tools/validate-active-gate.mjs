@@ -5,6 +5,7 @@ import { validateLedger } from './validate-status-ledger.mjs';
 import { validateContract } from './validate-gate-contract.mjs';
 import { validateStateRevision } from './validate-state-revision.mjs';
 import { WHEEL_EXTERNAL_AUTHORITY_POLICY } from '../gee-v1/adapters/wheel/external-authority-policy.mjs';
+import { resolveGateDependencyProof } from '../gee-v1/adapters/wheel/gate-dependency-resolution.mjs';
 
 const root = process.cwd();
 const j = (p) => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8').replace(/^﻿/, ''));
@@ -86,7 +87,8 @@ function isGateAuthorizedAndExecutable(activeGate) {
   if (ordinal !== null && ordinal > 0) {
     const predecessorId = `GATE${String(ordinal - 1).padStart(2, '0')}`;
     const predecessorStatus = ledgerReport.gates.find((g) => g.gateId === predecessorId);
-    if (!predecessorStatus || !closedStatuses.has(predecessorStatus.currentStatus)) {
+    const predecessorProof = resolveGateDependencyProof({ root, gateId: predecessorId });
+    if ((!predecessorStatus || !closedStatuses.has(predecessorStatus.currentStatus)) && !predecessorProof.satisfied) {
       reasons.push('PREDECESSOR_NOT_CLOSED');
       return { ok: false, reasons };
     }

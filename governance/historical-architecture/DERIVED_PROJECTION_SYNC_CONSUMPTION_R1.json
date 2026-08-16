@@ -1,0 +1,99 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "DERIVED_PROJECTION_SYNC_LOCAL_AUTHORITY_R1",
+  "programId": "GATE19_POST_MISSION_DERIVED_PROJECTION_SYNC_R1",
+  "manifestSha256": "83f449f39ac591337226207d175c66f57b4bbf4f29faecf9b873a30ad2930b6b",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "DERIVED_PROJECTION_SYNC_R1_TRANSACTION",
+  "recordedAt": "2026-08-15T15:00:00.000Z",
+  "commitMessage": "governance: resynchronize derived projections after the GATE19 ledger advance",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/DERIVED_PROJECTION_SYNC_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 11,
+  "cohort": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_DERIVED_PROJECTION_SYNC_R1.json",
+      "sha256": "ba87e7cbde8cede0ae420c00e782d658e21ae088accf213936e8e0ac8a92e0b1",
+      "byteLength": 2273,
+      "operation": "CREATE",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY bound to the exact post-GATE19 prestate.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/historical-architecture/DERIVED_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+      "sha256": "83f449f39ac591337226207d175c66f57b4bbf4f29faecf9b873a30ad2930b6b",
+      "byteLength": 3934,
+      "operation": "CREATE",
+      "reason": "Finite exact-file regeneration cohort with no wildcard and no directory blanket.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT.md",
+      "sha256": "18a2e0c2ae47ecea9b54a9d96b3e5b69cbcd29c855933ec49a4796b5802dc885",
+      "byteLength": 5541,
+      "operation": "MODIFY",
+      "reason": "Canonical generator output; stale only because the GATE19 events advanced the ledger it projects.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "sha256": "60c59b384b2d23ed28921ed4e851c7a200aeb86e3b03597a58f7b28c6f6588aa",
+      "byteLength": 6140,
+      "operation": "MODIFY",
+      "reason": "Provenance output emitted atomically with the report by the same canonical generator.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.json",
+      "sha256": "ff795e82d0e8df661a37e22effcb7066085ea31484d480f823017068547ca1a0",
+      "byteLength": 1138,
+      "operation": "MODIFY",
+      "reason": "Canonical generator output pinning the ledger digest, which the GATE19 events advanced.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/generated/ACTIVE_GATE_CONTEXT.md",
+      "sha256": "0f242c2e52e522c4717b664b7e2afdeca41fd23612298f56d640e1082e5588f2",
+      "byteLength": 126,
+      "operation": "MODIFY",
+      "reason": "Second atomic output of the same generator; authorized because the generator writes both or neither.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+      "sha256": "e26f4835e8532fe930fe65b3ec45276c90a697fe58b758001a04867e6c62d491",
+      "byteLength": 132795,
+      "operation": "MODIFY",
+      "reason": "Deterministic rebuild by the GATE19 canonical builder; the bundle packages the two regenerated report bytes.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+      "sha256": "bef69a25265f05d134cc3b63528b985b50816a7116791516d84a78c24910b7d5",
+      "byteLength": 2049,
+      "operation": "MODIFY",
+      "reason": "Recomputed from the actual rebuilt archive bytes by the same canonical builder.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+      "sha256": "0bb1927960e2683928f6bb452ac830323efbdc2003800105c1be9e3bb1af4c92",
+      "byteLength": 395,
+      "operation": "MODIFY",
+      "reason": "Recomputed package self-test over the rebuilt archive.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    },
+    {
+      "path": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json",
+      "sha256": "4bfc0875863bdbc9ecb730bb7eafd34eaa9f2c99fad8f6e82987b7d57d55c071",
+      "byteLength": 680,
+      "operation": "MODIFY",
+      "reason": "Detached receipt recomputed from the rebuilt archive, manifest and self-test bytes.",
+      "artifactClass": "DERIVED_PROJECTION_REGENERATION"
+    }
+  ]
+}

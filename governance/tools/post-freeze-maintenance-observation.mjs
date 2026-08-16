@@ -8,6 +8,76 @@ import { isExactMaintenancePath } from '../gee-v1/core/post-freeze-maintenance-a
 function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
 function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); }
 
+/**
+ * Every digest a path may LAWFULLY be holding before a program runs.
+ *
+ * Two sources, neither of which the running program can author:
+ *
+ *   - the committed HEAD blob for that path
+ *   - any digest a prior consumption record already certified for it
+ *
+ * The second source matters because a path can be advanced several times inside
+ * one uncommitted session: GATE_STATUS_SNAPSHOT.json is written by a closure
+ * program and again by a projection-sync program, so the second program's lawful
+ * pre-state is the first program's certified output, not HEAD.
+ *
+ * A consumption record is counted only when it still binds its own authority —
+ * the authority file exists and the record cites that authority's manifest
+ * digest. A record whose authority has drifted certifies nothing here.
+ */
+export function collectCanonicalPredecessors(root, relativePaths) {
+  const byPath = new Map(relativePaths.map((p) => [p, new Set()]));
+  for (const relativePath of relativePaths) {
+    try {
+      const bytes = execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: root, maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] });
+      byPath.get(relativePath).add(sha256(bytes));
+    } catch { /* not tracked at HEAD: no committed predecessor */ }
+  }
+  const authoritiesById = new Map();
+  const sourcesDir = path.join(root, 'governance', 'sources');
+  if (fs.existsSync(sourcesDir)) {
+    for (const entry of fs.readdirSync(sourcesDir).filter((name) => name.endsWith('.json'))) {
+      try {
+        const authority = readJson(path.join(sourcesDir, entry));
+        if (authority?.authorityId) authoritiesById.set(authority.authorityId, authority);
+      } catch { /* unreadable source is simply not an authority here */ }
+    }
+  }
+  const historyDir = path.join(root, 'governance', 'historical-architecture');
+  if (fs.existsSync(historyDir)) {
+    for (const entry of fs.readdirSync(historyDir).filter((name) => name.endsWith('.json'))) {
+      let record;
+      try { record = readJson(path.join(historyDir, entry)); } catch { continue; }
+      if (record?.documentKind !== 'POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION' || !Array.isArray(record.cohort)) continue;
+      const authority = authoritiesById.get(record.authorityId);
+      if (!authority || authority.authorizedPathManifestSha256 !== record.manifestSha256) continue;
+      for (const cohortEntry of record.cohort) {
+        if (byPath.has(cohortEntry?.path) && typeof cohortEntry.sha256 === 'string') byPath.get(cohortEntry.path).add(cohortEntry.sha256);
+      }
+    }
+  }
+  return Object.fromEntries([...byPath].map(([p, set]) => [p, [...set].sort()]));
+}
+
+/** What each authorized path actually holds right now, for the pre-state gate. */
+export function collectPathPrestates(root, relativePaths) {
+  const predecessors = collectCanonicalPredecessors(root, relativePaths);
+  const prestates = {};
+  for (const relativePath of relativePaths) {
+    const file = resolveMaintenancePath(root, relativePath);
+    if (!file || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      prestates[relativePath] = { state: 'ABSENT', sha256: null, byteLength: null, canonicalPredecessors: predecessors[relativePath] ?? [] };
+      continue;
+    }
+    const bytes = fs.readFileSync(file);
+    prestates[relativePath] = {
+      state: 'PRESENT', sha256: sha256(bytes), byteLength: bytes.length,
+      canonicalPredecessors: predecessors[relativePath] ?? []
+    };
+  }
+  return prestates;
+}
+
 export function resolveMaintenancePath(root, relativePath) {
   if (!isExactMaintenancePath(relativePath)) return null;
   const resolved = path.resolve(root, ...relativePath.split('/'));
@@ -16,7 +86,7 @@ export function resolveMaintenancePath(root, relativePath) {
 }
 
 /** The one canonical observation projection used by both the CLI validator and lifecycle apply. */
-export function collectPostFreezeMaintenanceObservation({ root, authority, requestedPaths = null, requestedOperationClasses = null, candidateWrites = null }) {
+export function collectPostFreezeMaintenanceObservation({ root, authority, authorityDocumentPath = null, requestedPaths = null, requestedOperationClasses = null, candidateWrites = null }) {
   const findings = [];
   try {
     if (!authority || typeof authority !== 'object') throw new Error('AUTHORITY_ABSENT');
@@ -63,6 +133,13 @@ export function collectPostFreezeMaintenanceObservation({ root, authority, reque
         manifestSha256: sha256(manifestBytes), authorityPredecessorSha256,
         externalReinspectionReportPath: externalReportBytes ? authority.externalReinspectionReportPath : null,
         externalReinspectionReportSha256: externalReportBytes ? sha256(externalReportBytes) : null,
+        // Only a V2 manifest binds pre-state; observing it for V1 would invent an
+        // expectation the manifest never made, and every V1 path would then read
+        // as an undeclared observation.
+        pathPrestates: manifest.schemaVersion === 2
+          ? collectPathPrestates(root, manifest.paths.map((entry) => entry.path))
+          : undefined,
+        authorityDocumentPath,
         requestedPaths: requestedPaths ?? manifest.paths.map((entry) => entry.path),
         requestedOperationClasses: requestedOperationClasses ?? manifest.paths.map((entry) => entry.artifactClass),
         closedStateSealMembers: collectClosedStateSealMembers(root).members,

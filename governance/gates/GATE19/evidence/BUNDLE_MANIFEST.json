@@ -1,0 +1,47 @@
+{
+  "document": "BUNDLE_MANIFEST",
+  "schemaVersion": 1,
+  "gateId": "GATE19",
+  "packagePrefix": "foundation/",
+  "archivePath": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+  "archiveSha256": "db0740d9c6ec57b85323bcdcbd1c1775d63e0033d7e1552bb809a86fd9287db3",
+  "archiveByteLength": 132795,
+  "entries": [
+    {
+      "packagePath": "foundation/governance/GATE_REGISTRY_00_40.json",
+      "sourcePath": "governance/GATE_REGISTRY_00_40.json",
+      "sha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+      "byteLength": 113118
+    },
+    {
+      "packagePath": "foundation/governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json",
+      "sourcePath": "governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json",
+      "sha256": "4914ac16a794ed1847bfe5a9aa4cf40d4974a0c59daa275354814715b8f72f55",
+      "byteLength": 2355
+    },
+    {
+      "packagePath": "foundation/governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json",
+      "sourcePath": "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json",
+      "sha256": "b6c376e43e8902c67ee0534d2fb762f6498dd15c6b3066e9275d1d19c58184f1",
+      "byteLength": 2257
+    },
+    {
+      "packagePath": "foundation/governance/gates/GATE17/evidence/CLOSURE_MATRIX.json",
+      "sourcePath": "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json",
+      "sha256": "91eecb68b076435aa99d0ee60262bf2c17c5ebb783a3450760153b4fd109105a",
+      "byteLength": 2162
+    },
+    {
+      "packagePath": "foundation/governance/generated/FOUNDATION_REPORT.md",
+      "sourcePath": "governance/generated/FOUNDATION_REPORT.md",
+      "sha256": "eaff792aa2a74704b500f71904200276a889d714aa2a1c3f462008463e6f246e",
+      "byteLength": 5541
+    },
+    {
+      "packagePath": "foundation/governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "sourcePath": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json",
+      "sha256": "5972f461c134ac2a7629e78876b77086097710c3a96aed0f32a368cac7336286",
+      "byteLength": 6140
+    }
+  ]
+}

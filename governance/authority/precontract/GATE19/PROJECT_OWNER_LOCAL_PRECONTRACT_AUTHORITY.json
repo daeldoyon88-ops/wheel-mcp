@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "ACTIVE_PRECONTRACT_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "authorityId": "PRECONTRACT_BOOTSTRAP_GATE19_LOCAL_R1",
+  "issuedBy": "PROJECT_OWNER",
+  "issuedAtUtc": "2026-08-15T14:00:00.000Z",
+  "localRequestDigestAlgorithm": "SHA256_CANONICAL_JSON_PRECONTRACT_LOCAL_REQUEST_V1",
+  "approvedRequestDigest": "25a3ed1d04c522448c4f7334c694f226543703e5901720e47709a1051adec538",
+  "projectId": "WHEEL",
+  "gateId": "GATE19",
+  "purpose": "BOOTSTRAP_CONTRACT_CANONICALIZATION",
+  "operation": "BOOTSTRAP_CONTRACT_CANONICALIZATION",
+  "preState": {
+    "baseCommit": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "baseTree": "0dd1eaf9df63be4dee447ce5bb6450b7c22f24d0",
+    "ledgerSha256": "547f68c13ddd242c2ce80d76a8dfa866b63b9cf79e0702440d9ed1101c92bfac",
+    "ledgerEventCount": 73,
+    "currentStatus": "NOT_STARTED",
+    "currentContractPresent": false
+  },
+  "dependencyProof": {
+    "gateId": "GATE18",
+    "status": "SUPERSEDED",
+    "authorityPath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json",
+    "authoritySha256": "bf7859ef8d0992c2ea0169af48d7762c11ee5f5a8490922588026150a92031cc"
+  },
+  "authorizedPaths": [
+    "governance/gates/GATE19/contracts/EXECUTION_CONTRACT_R0001.json",
+    "governance/gates/GATE19/contracts/CURRENT_CONTRACT.json",
+    "governance/gates/GATE19/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json"
+  ],
+  "artifactBindings": [
+    {
+      "path": "governance/gates/GATE19/contracts/EXECUTION_CONTRACT_R0001.json",
+      "sha256": "1bbe25f192426cedcf25385e48440d424feb424cccc395bd5e2595ad036a6627"
+    },
+    {
+      "path": "governance/gates/GATE19/contracts/CURRENT_CONTRACT.json",
+      "sha256": "73e6fc5542e43add33132bd09db3904df26d46c9d84c6df62e09e1eba884c2ea"
+    }
+  ],
+  "consumptionRecordPath": "governance/gates/GATE19/contracts/PRECONTRACT_AUTHORITY_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_CONFIRMED",
+    "ARBITRARY_LEDGER_TRANSITION",
+    "GIT_PUSH",
+    "ARBITRARY_GOVERNANCE_WRITE",
+    "OTHER_GATE",
+    "GEE_REVISION_CREATION",
+    "FUNCTIONAL_GATE_EXECUTION"
+  ],
+  "expiresAtUtc": "2026-12-31T23:59:59.000Z",
+  "maxUse": 1
+}

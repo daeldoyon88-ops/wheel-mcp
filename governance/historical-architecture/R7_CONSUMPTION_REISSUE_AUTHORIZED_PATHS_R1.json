@@ -1,0 +1,60 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R7_CONSUMPTION_REISSUE_AUTHORIZED_PATHS_R1",
+  "programId": "GEE_R7_CONSUMPTION_REISSUE_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CONSUMPTION_REISSUE_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "CONSUMPTION_REISSUE",
+      "reason": "Re-issue the R7_HISTORICAL_PERMANENCE consumption record, which was malformed at birth and failed VERIFY_PROGRAM_CONSUMPTION with CONSUMPTION_COHORT_COUNT_MISMATCH: cohortPathCount must equal its manifest path count of six, while the cohort array legitimately carries five entries because the record is self-excluded. A consumption record is named by no other cohort and therefore has no canonical predecessor, so it cannot be edited in place; it is withdrawn and re-issued. It was never committed, so no history is rewritten. The re-issued record describes the same transaction and certifies the final bytes of that cohort.",
+      "artifactClass": "CONSUMPTION_REISSUE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CONSUMPTION_REISSUE_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY for the consumption re-issue; no already-consumed authority is reused.",
+      "artifactClass": "CONSUMPTION_REISSUE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite four-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "CONSUMPTION_REISSUE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "CONSUMPTION_REISSUE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

@@ -115,7 +115,7 @@ function validateDependencyProof(value, findings) {
   unknownFields(value, fields, findings, 'DEPENDENCY_PROOF_UNKNOWN_FIELD');
   missingFields(value, fields, findings, 'DEPENDENCY_PROOF_FIELD_MISSING');
   if (!isString(value.gateId)) findings.push({ code: 'DEPENDENCY_GATE_INVALID' });
-  if (!['COMPLETE_AGENT', 'COMPLETE_CONFIRMED'].includes(value.status)) findings.push({ code: 'DEPENDENCY_STATUS_NON_TERMINAL' });
+  if (!['COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'SUPERSEDED'].includes(value.status)) findings.push({ code: 'DEPENDENCY_STATUS_NON_TERMINAL' });
   if (!exactPath(value.authorityPath) && !isString(value.authorityPath)) findings.push({ code: 'DEPENDENCY_AUTHORITY_INVALID' });
   if (!isSha(value.authoritySha256)) findings.push({ code: 'DEPENDENCY_AUTHORITY_SHA_INVALID' });
 }

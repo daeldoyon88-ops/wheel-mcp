@@ -90,7 +90,7 @@ export const GATE_AUTHORIZATION_REQUIRED_PROHIBITIONS = Object.freeze([
 ]);
 
 /** Terminal predecessor statuses that may satisfy an immediate dependency. */
-export const GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES = Object.freeze(['COMPLETE_AGENT', 'COMPLETE_CONFIRMED']);
+export const GATE_AUTHORIZATION_TERMINAL_DEPENDENCY_STATUSES = Object.freeze(['COMPLETE_AGENT', 'COMPLETE_CONFIRMED', 'SUPERSEDED']);
 
 // --------------------------------------------------------------------------
 // Canonical cohorts. Generic over gateId; no Gate literal anywhere.

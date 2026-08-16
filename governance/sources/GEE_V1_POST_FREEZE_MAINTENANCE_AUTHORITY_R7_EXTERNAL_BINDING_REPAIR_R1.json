@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "R7_EXTERNAL_BINDING_REPAIR_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-16T02:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GEE_R7_EXTERNAL_BINDING_REPAIR_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "CP-GEE-R7-EXTERNAL-BINDING-REPAIR-R1",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 77,
+    "ledgerPrefixSha256": "40eccdbb2e561a11bd3bda0a898575f2944cbd03c4c1ce2251b26a50952af5b0",
+    "gateId": "GATE19",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "ee1951863f4f0bef1b49a829d0d4be667b7d2ce0d9870437fcc647d2c86f50bd",
+  "authorizedOperationClasses": [
+    "EXTERNAL_BINDING_REPAIR"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: bind the R7 historical fixture to its governed maintenance chain",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "R7_HISTORICAL_PERMANENCE_LOCAL_AUTHORITY_R1",
+    "sha256": "fe5b05a1d8c6188849bccf2851e857fdc434ff0b22678fcecd137efea09dfc59"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

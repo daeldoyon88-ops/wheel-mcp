@@ -1,0 +1,84 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R7_CANONICAL_AUTHORITY_BINDING_AUTHORIZED_PATHS_R1",
+  "programId": "GEE_R7_CANONICAL_AUTHORITY_BINDING_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CANONICAL_AUTHORITY_BINDING_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "operation": "MODIFY",
+      "phase": "CANONICAL_AUTHORITY_BINDING",
+      "reason": "Stop re-deriving maintenance-authority validity locally. A candidate authority may bind the historical fixture only when the canonical evaluator, in its own consumption phase over the canonical observation, returns consumed with zero findings. The previous partial reimplementation omitted the predecessor binding, so a re-sealed authority forgery was accepted here while the canonical validator rejected it. Also authenticate once against the repository and rebind the validated context onto scratch measurement roots, which are copies rather than repositories.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "bd5e245895f10148dfa7abdaee654f75d20a4e9fa17a75417a7ec6bd73af0ac1",
+        "byteLength": 90740
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "Prove hostiles A through J against the final bytes, including the re-sealed authority forgery, and assert the contradiction property directly: acceptance by the historical consumer implies the canonical validator's own AUTHORIZED verdict for the binding authority, under a moved HEAD and a grown ledger.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "b642d24752de5834a6501d08c619692df17cd308619dc9c1d8fc2548424dfdf1",
+        "byteLength": 21247
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "CANONICAL_AUTHORITY_BINDING",
+      "reason": "Re-issue the binding authority's consumption record so it certifies the final bytes of its own cohort. Requiring canonical consumption validity for the binder means the binder's cohort digests must describe what is actually on disk; a consumption record has no canonical predecessor and cannot be edited in place, so it is withdrawn and re-issued. It was never committed, so no history is rewritten.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CANONICAL_AUTHORITY_BINDING_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY for the canonical authority binding repair; no already-consumed authority is reused.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

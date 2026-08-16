@@ -1,0 +1,61 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "GATE19_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-15T14:30:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE19_FINAL_GOVERNED_CLOSURE_R1",
+  "authorityPurpose": "GATE_FINAL_CLOSURE",
+  "resumePoint": "GATE19_FINAL_STATE_SELF_AUDIT",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 75,
+    "ledgerPrefixSha256": "dd731ea52362412bbbc4152dee69076da2ec18ca4169f717963be01c96305fdd",
+    "gateId": "GATE19",
+    "gateStatus": "IN_PROGRESS",
+    "stateRevision": "R0002",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/GATE19_AGENT_CLOSURE_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "71e7c2d63dcb65729bfb2c85fbc75c7e0424af6a012a1b35ad06633f19c910ba",
+  "authorizedOperationClasses": [
+    "AGENT_CLOSURE"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: close GATE19 under final closure authority",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": null,
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/GATE19_AGENT_CLOSURE_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

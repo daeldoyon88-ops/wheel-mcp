@@ -1,0 +1,51 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "R7_EXTERNAL_BINDING_REPAIR_LOCAL_AUTHORITY_R1",
+  "programId": "GEE_R7_EXTERNAL_BINDING_REPAIR_R1",
+  "manifestSha256": "ee1951863f4f0bef1b49a829d0d4be667b7d2ce0d9870437fcc647d2c86f50bd",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "GEE_R7_EXTERNAL_BINDING_REPAIR_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T12:23:19.622Z",
+  "commitMessage": "governance: bind the R7 historical fixture to its governed maintenance chain",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 5,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "sha256": "ef735a539a8b863403de75c462e0787f9707d08d7bafab88182c62f1cac55a16",
+      "byteLength": 93002,
+      "operation": "MODIFY",
+      "reason": "Authenticate the historical fixture bytes against the existing POST_FREEZE_MAINTENANCE consumption, manifest and LOCAL_EXPLICIT_AUTHORITY chain before accepting them. Self-computed digests proved only self-consistency, so a fully re-sealed forgery was accepted. No new trust primitive is introduced and the frozen R7 measurement algorithm is unchanged.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "sha256": "ae4d817cf895dfe83a183cd545d39b029d4f694f1cb81786ffcc2b0d0721f6e1",
+      "byteLength": 24444,
+      "operation": "MODIFY",
+      "reason": "Prove the ten independent-audit hostiles, including that a semantic forgery with every self-hash correctly recomputed, and a source-digest forgery re-bound coherently across historicalState and relevantSources, are both refused by the EXTERNAL binding rather than by an internal accident.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_EXTERNAL_BINDING_REPAIR_R1.json",
+      "sha256": "c00ab5c76ff36b7fc37fda3380514d503d8107af962d7507bbd7b5462323230a",
+      "byteLength": 2257,
+      "operation": "CREATE",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY for the independent-audit findings repair; the predecessor authority is single-use and already consumed and is not reused.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    },
+    {
+      "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_AUTHORIZED_PATHS_R1.json",
+      "sha256": "ee1951863f4f0bef1b49a829d0d4be667b7d2ce0d9870437fcc647d2c86f50bd",
+      "byteLength": 3636,
+      "operation": "CREATE",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "EXTERNAL_BINDING_REPAIR"
+    }
+  ]
+}

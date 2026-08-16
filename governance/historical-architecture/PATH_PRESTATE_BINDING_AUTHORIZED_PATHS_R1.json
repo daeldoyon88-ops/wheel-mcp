@@ -1,0 +1,116 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "PATH_PRESTATE_BINDING_AUTHORIZED_PATHS_R1",
+  "programId": "WHEEL_PATH_PRESTATE_BINDING_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PATH_PRESTATE_BINDING_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/PATH_PRESTATE_BINDING_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/core/post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Add schemaVersion-2 authorized-path pre-state binding and bounded bootstrap self-exclusion.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "030efdc46e0cf484b0d91dd8e3784a4f03787b9448c895f6b70916cecd93a4d7",
+        "byteLength": 32991
+      }
+    },
+    {
+      "path": "governance/tools/post-freeze-maintenance-observation.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Observe each authorized path pre-state and its canonical predecessors.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "485180982d25b65859ac2b3e1c2d521e0513b815b41418759beeca6dd103dfa6",
+        "byteLength": 5580
+      }
+    },
+    {
+      "path": "governance/tools/validate-post-freeze-maintenance-authority.mjs",
+      "operation": "MODIFY",
+      "phase": "MAINTENANCE",
+      "reason": "Report the loaded authority document path so a self-exclusion can be checked.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "fc447f6a8960cb62505b1089a1ecd7c8e8b5bf62feb6251e30f13abcd5235044",
+        "byteLength": 3252
+      }
+    },
+    {
+      "path": "governance/tools/apply-path-prestate-program.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "R6 publisher: prestate verification, transactional publication, rollback, consumption.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/core/canonical-authorized-cohort.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Derive a Gate cohort from authority, manifest and consumption records only.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-path-prestate-binding.test.mjs",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Anti-ratification hostile battery for the pre-state binding.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_PATH_PRESTATE_BINDING_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact pre-state of every path it authorizes.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/PATH_PRESTATE_BINDING_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Exact finite authorized-path cohort with declared pre-state per path.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/PATH_PRESTATE_BINDING_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE",
+      "reason": "Single-use consumption record binding authority, manifest and transaction.",
+      "artifactClass": "MAINTENANCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

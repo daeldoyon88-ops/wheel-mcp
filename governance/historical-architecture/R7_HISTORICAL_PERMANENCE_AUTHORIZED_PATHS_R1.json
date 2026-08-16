@@ -1,0 +1,86 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R7_HISTORICAL_PERMANENCE_AUTHORIZED_PATHS_R1",
+  "programId": "GEE_R7_HISTORICAL_BENCHMARK_PERMANENCE_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_HISTORICAL_PERMANENCE_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/gee-v1/fixtures/gee-r7-benchmark-context.json",
+      "operation": "MODIFY",
+      "phase": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "reason": "Carry the creation-time compiled GATE15 context inside the fixture, bound to the historical source digests it was compiled from, so the certified scenario replays without reading live canonical state.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "6ceaf3c9e92f12bd80a752a831fc8c1b4c9f603126b460d8a7a0525303383da8",
+        "byteLength": 1226
+      }
+    },
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "operation": "MODIFY",
+      "phase": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "reason": "Separate the historical lane from the current-state lane: the historical benchmark context is validated from frozen fixture bytes alone, while current-state binding remains an independent caller-parameterised fail-closed detector. The frozen R7 measurement algorithm is unchanged.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "44ac17d5361460cee3801973e798a971dc8bfa8621d30e78d5b2fb0bbeac1446",
+        "byteLength": 82123
+      }
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "operation": "MODIFY",
+      "phase": "TARGETED_HOSTILE_TESTS",
+      "reason": "Prove permanence against future ledger, future gates and future HEAD, and prove that altered fixtures, altered digests, unbound historical sources and substituted current state all fail closed. The pre-existing before-after failure is deliberately left unsuppressed.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "prestate": {
+        "state": "PRESENT",
+        "sha256": "9b05d7670a5ae0a6098446ad96c3e10e25d1cfcd638962964adb0c458d4e92cd",
+        "byteLength": 10883
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_HISTORICAL_PERMANENCE_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use LOCAL_EXPLICIT_AUTHORITY bound to the exact post-GATE19 prestate for the owner-authorized R7 historical benchmark permanence repair.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction.",
+      "artifactClass": "HISTORICAL_BENCHMARK_PERMANENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

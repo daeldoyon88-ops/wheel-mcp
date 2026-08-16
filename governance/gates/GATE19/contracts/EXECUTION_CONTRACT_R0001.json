@@ -1,0 +1,108 @@
+{
+  "gateId": "GATE19",
+  "contractRevision": "R0001",
+  "strategicRegistryReference": {
+    "registryPath": "governance/GATE_REGISTRY_00_40.json",
+    "registrySha256": "aaa9efcded9c58ccb0f26578bc67ba8b50143e6a94426965772d8731fcada9c7",
+    "gateId": "GATE19",
+    "canonicalObjectiveSha256": "6ad35a9a57f8dea819476e48b9e48fc9f366adff8dccc1f6e05e1ef86b31766b"
+  },
+  "canonicalRequirements": [
+    { "requirementId": "G19-BUNDLE-01", "statement": "Package only explicitly selected sealed artifacts under the declared foundation/ prefix.", "normativeSource": "governance/GATE_REGISTRY_00_40.json#/gates/19/canonicalObjective" },
+    { "requirementId": "G19-BUNDLE-02", "statement": "Derive the manifest and verification results from actual archive bytes.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/2/evidenceRequirements" },
+    { "requirementId": "G19-BUNDLE-03", "statement": "Reject backslash, outside-prefix, unsafe and duplicate archive entries.", "normativeSource": "governance/GATE_REGISTRY_00_40.json#/gates/19/exitConditions" },
+    { "requirementId": "G19-BUNDLE-04", "statement": "Do not package the complete repository or perform ledger mutation as functional work.", "normativeSource": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json#/gates/2/forbiddenScope" }
+  ],
+  "requiredInputs": [
+    { "path": "governance/GATE_REGISTRY_00_40.json", "role": "STRATEGIC_REGISTRY" },
+    { "path": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "role": "CANONICAL_MANDATE" },
+    { "path": "governance/gates/GATE17/state/revisions/R0004/STATE_SEAL.json", "role": "SEALED_PREDECESSOR_ARTIFACT" },
+    { "path": "governance/gates/GATE17/evidence/GENERATED_REPORT_EVIDENCE.json", "role": "PREDECESSOR_EVIDENCE" },
+    { "path": "governance/gates/GATE17/evidence/CLOSURE_MATRIX.json", "role": "PREDECESSOR_CLOSURE" },
+    { "path": "governance/generated/FOUNDATION_REPORT.md", "role": "FOUNDATION_REPORT" },
+    { "path": "governance/generated/FOUNDATION_REPORT_PROVENANCE.json", "role": "FOUNDATION_REPORT_PROVENANCE" }
+  ],
+  "requiredOutputs": [
+    { "ordinal": 1, "path": "governance/gates/GATE19/implementation/BUNDLE_POLICY.json", "role": "Exact selected-artifact and package-prefix policy" },
+    { "ordinal": 2, "path": "governance/gates/GATE19/implementation/build-foundation-bundle.mjs", "role": "Deterministic bundle builder and verifier" },
+    { "ordinal": 3, "path": "governance/gates/GATE19/tests/gate19-bundle.test.mjs", "role": "Positive, negative, counter and hostile package tests" },
+    { "ordinal": 4, "path": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip", "role": "Portable bounded foundation bundle" },
+    { "ordinal": 5, "path": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json", "role": "Manifest derived from actual archive bytes" },
+    { "ordinal": 6, "path": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json", "role": "Archive containment and integrity self-test" },
+    { "ordinal": 7, "path": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json", "role": "Detached terminal verification receipt" }
+  ],
+  "validators": [
+    "node governance/tools/gate-preexecution-reuse-check.mjs --gate GATE19",
+    "node governance/tools/gate-fast-path-control-plane.mjs --gate GATE19 --phase READINESS",
+    "node governance/gee-v1/tools/evaluate-work-unit-readiness.mjs --work-unit GATE19",
+    "node governance/tools/validate-gate-contract.mjs --contract governance/gates/GATE19/contracts/EXECUTION_CONTRACT_R0001.json --pointer governance/gates/GATE19/contracts/CURRENT_CONTRACT.json",
+    "node governance/tools/validate-gate-registry.mjs",
+    "node governance/tools/validate-gate-authorization-authority.mjs --gate-id GATE19",
+    "node governance/tools/validate-status-ledger.mjs",
+    "node governance/tools/validate-state-revision.mjs --gate-id GATE19",
+    "node governance/tools/validate-state-seal.mjs --seal governance/gates/GATE19/state/revisions/R0001/STATE_SEAL.json",
+    "node governance/tools/validate-active-gate.mjs",
+    "node governance/gates/GATE19/implementation/build-foundation-bundle.mjs --check",
+    "node governance/gates/GATE19/tests/gate19-bundle.test.mjs"
+  ],
+  "positiveTests": [
+    { "testId": "G19-POS-01", "case": "bounded deterministic bundle", "expected": "PASS" },
+    { "testId": "G19-POS-02", "case": "manifest recomputation from archive bytes", "expected": "PASS" },
+    { "testId": "G19-POS-03", "case": "repeat build byte identity", "expected": "PASS" }
+  ],
+  "negativeTests": [
+    { "testId": "G19-NEG-01", "case": "outside package prefix", "expected": "BLOCKED" },
+    { "testId": "G19-NEG-02", "case": "duplicate archive entry", "expected": "BLOCKED" },
+    { "testId": "G19-NEG-03", "case": "backslash or unsafe path", "expected": "BLOCKED" }
+  ],
+  "countertests": [
+    { "testId": "G19-CTR-01", "case": "tampered manifest", "expected": "BLOCKED" },
+    { "testId": "G19-CTR-02", "case": "complete repository omission", "expected": "PASS" }
+  ],
+  "reuseRules": [
+    "Reuse sealed GATE17 report, evidence and closure artifacts by exact byte identity.",
+    "Reuse canonical registry and owner-ratified source; do not research GATE18 purpose.",
+    "Reuse Generic Fast Gate R2-R7 checkpoint and only recompute the changed R7 boundary."
+  ],
+  "invalidationRules": [
+    "Any selected source byte change invalidates the manifest and receipt.",
+    "Any archive path outside foundation/ invalidates the package.",
+    "Any archive byte or manifest mismatch invalidates the receipt."
+  ],
+  "forbiddenReplays": ["GATE18 reconstruction", "GATE18 START", "R8", "history rewrite", "GATE20 commit or push"],
+  "packagingRequirements": {
+    "packagePrefix": "foundation/",
+    "archiveTimestampUtc": "2026-08-15T12:00:00.000Z",
+    "archivePath": "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+    "manifestPath": "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+    "selfTestPath": "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+    "receiptPath": "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json"
+  },
+  "closureConditions": [
+    "BACKSLASH_ENTRIES equals 0.",
+    "OUTSIDE_PACKAGE_PREFIX equals 0.",
+    "UNSAFE_PATHS equals 0.",
+    "DUPLICATE_ENTRIES equals 0.",
+    "The manifest is complete and verified from actual bytes.",
+    "Package self-test is PASS.",
+    "Detached receipt is PASS.",
+    "The complete repository is not included."
+  ],
+  "nextGateAuthorizationConditions": ["GATE19 bundle and detached receipt are independently verifiable."],
+  "performanceBudget": { "maxSeconds": 30, "network": "FORBIDDEN", "r8": "FORBIDDEN" },
+  "checkpointPolicy": { "resume": "R6 durable checkpoint", "reuse": "R2-R7 checkpoint unless invalidated" },
+  "authorizedPaths": [
+    "governance/gates/GATE19/implementation/BUNDLE_POLICY.json",
+    "governance/gates/GATE19/implementation/build-foundation-bundle.mjs",
+    "governance/gates/GATE19/tests/gate19-bundle.test.mjs",
+    "governance/gates/GATE19/evidence/FOUNDATION_BUNDLE_20260815T120000Z.zip",
+    "governance/gates/GATE19/evidence/BUNDLE_MANIFEST.json",
+    "governance/gates/GATE19/evidence/FINAL_ZIP_SELFTEST.json",
+    "governance/gates/GATE19/evidence/DETACHED_TERMINAL_VERIFICATION_RECEIPT.json"
+  ],
+  "requiredPolicyIds": ["AUTHORIZED_PATHS_ONLY", "NO_CIRCULAR_VALIDATION", "DETERMINISTIC_OPERATIONS_LOCAL", "NO_FUTURE_LEAKAGE", "GIT_WRITES_FORBIDDEN_BY_DEFAULT"],
+  "sourceReferences": [
+    { "sourcePath": "governance/GATE_REGISTRY_00_40.json", "sourceLocation": "/gates/19", "field": "canonicalObjective" },
+    { "sourcePath": "governance/sources/GATE16_40_OWNER_RATIFICATION_R2.json", "sourceLocation": "/gates/GATE19", "field": "requiredOutputs" }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "R7_CONSUMPTION_REISSUE_LOCAL_AUTHORITY_R1",
+  "programId": "GEE_R7_CONSUMPTION_REISSUE_R1",
+  "manifestSha256": "d19c768b19495cf1dbbbe2e80819d1996f8ea6a34ab0bc26f7ddf0ddfff1e626",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "GEE_R7_CONSUMPTION_REISSUE_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T12:24:37.381Z",
+  "commitMessage": "governance: re-issue the R7 historical permanence consumption record",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 4,
+  "cohort": [
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_CONSUMPTION_R1.json",
+      "sha256": "67d755bff981ca5030f4267aea350902c7063e1621592fb69a0e93b155a76b9d",
+      "byteLength": 3460,
+      "operation": "CREATE",
+      "reason": "Re-issue the R7_HISTORICAL_PERMANENCE consumption record, which was malformed at birth and failed VERIFY_PROGRAM_CONSUMPTION with CONSUMPTION_COHORT_COUNT_MISMATCH: cohortPathCount must equal its manifest path count of six, while the cohort array legitimately carries five entries because the record is self-excluded. A consumption record is named by no other cohort and therefore has no canonical predecessor, so it cannot be edited in place; it is withdrawn and re-issued. It was never committed, so no history is rewritten. The re-issued record describes the same transaction and certifies the final bytes of that cohort.",
+      "artifactClass": "CONSUMPTION_REISSUE"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CONSUMPTION_REISSUE_R1.json",
+      "sha256": "217035468230b1a835acc4da7d4516638b45c4cec1f4b826d6105d859dba148d",
+      "byteLength": 2227,
+      "operation": "CREATE",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY for the consumption re-issue; no already-consumed authority is reused.",
+      "artifactClass": "CONSUMPTION_REISSUE"
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_AUTHORIZED_PATHS_R1.json",
+      "sha256": "d19c768b19495cf1dbbbe2e80819d1996f8ea6a34ab0bc26f7ddf0ddfff1e626",
+      "byteLength": 3053,
+      "operation": "CREATE",
+      "reason": "Exact finite four-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "CONSUMPTION_REISSUE"
+    }
+  ]
+}

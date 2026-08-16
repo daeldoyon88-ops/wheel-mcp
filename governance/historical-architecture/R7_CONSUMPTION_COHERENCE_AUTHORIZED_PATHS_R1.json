@@ -1,0 +1,70 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORIZED_PATH_MANIFEST",
+  "schemaVersion": 2,
+  "manifestId": "R7_CONSUMPTION_COHERENCE_AUTHORIZED_PATHS_R1",
+  "programId": "GEE_R7_CONSUMPTION_COHERENCE_R1",
+  "prestateSelfExclusion": [
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CONSUMPTION_COHERENCE_R1.json",
+      "role": "AUTHORITY_DOCUMENT",
+      "reason": "The authority document must already exist for its own evaluator to read it; it stays inside the cohort and is verified byte-for-byte at consumption."
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_COHERENCE_AUTHORIZED_PATHS_R1.json",
+      "role": "AUTHORIZED_PATH_MANIFEST",
+      "reason": "The manifest must already exist to be digest-pinned by the authority; it stays inside the cohort and is verified byte-for-byte at consumption."
+    }
+  ],
+  "paths": [
+    {
+      "path": "governance/historical-architecture/R7_EXTERNAL_BINDING_REPAIR_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "CONSUMPTION_COHERENCE",
+      "reason": "Re-issue so this record certifies the final bytes of its own cohort. Its runner and test entries were certified before the canonical-authority-binding program lawfully rewrote those two files, which left the record describing bytes that no longer exist. A consumption record has no canonical predecessor and cannot be edited in place, so it is withdrawn and re-issued; it was never committed, so no history is rewritten.",
+      "artifactClass": "CONSUMPTION_COHERENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_REISSUE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "CONSUMPTION_COHERENCE",
+      "reason": "Re-issue for the same reason one level up: this record certifies the R7 historical permanence consumption record, which the canonical-authority-binding program lawfully re-issued. Nothing certifies this record in turn, so the chain closes here.",
+      "artifactClass": "CONSUMPTION_COHERENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CONSUMPTION_COHERENCE_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY closing the consumption-coherence chain; no already-consumed authority is reused.",
+      "artifactClass": "CONSUMPTION_COHERENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_COHERENCE_AUTHORIZED_PATHS_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Exact finite five-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "CONSUMPTION_COHERENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    },
+    {
+      "path": "governance/historical-architecture/R7_CONSUMPTION_COHERENCE_CONSUMPTION_R1.json",
+      "operation": "CREATE",
+      "phase": "MAINTENANCE_AUTHORITY_RECORDS",
+      "reason": "Single-use consumption record binding this authority, its manifest and its transaction. No other record certifies it, so the coherence chain terminates here.",
+      "artifactClass": "CONSUMPTION_COHERENCE",
+      "prestate": {
+        "state": "ABSENT"
+      }
+    }
+  ]
+}

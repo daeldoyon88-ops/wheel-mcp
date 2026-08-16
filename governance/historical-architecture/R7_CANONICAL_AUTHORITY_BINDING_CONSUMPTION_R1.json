@@ -1,0 +1,59 @@
+{
+  "documentKind": "POST_FREEZE_MAINTENANCE_AUTHORITY_CONSUMPTION",
+  "schemaVersion": 2,
+  "authorityId": "R7_CANONICAL_AUTHORITY_BINDING_LOCAL_AUTHORITY_R1",
+  "programId": "GEE_R7_CANONICAL_AUTHORITY_BINDING_R1",
+  "manifestSha256": "1b522f3b170501f945c35cc14b907bebf052d425ae5db195a99d2294cf5dd416",
+  "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+  "consumedUse": 1,
+  "transactionId": "GEE_R7_CANONICAL_AUTHORITY_BINDING_R1_TRANSACTION",
+  "recordedAt": "2026-08-16T12:55:08.790Z",
+  "commitMessage": "governance: bind the R7 historical fixture to canonical maintenance authority validity",
+  "cohortSelfExclusion": {
+    "path": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_CONSUMPTION_R1.json",
+    "reason": "The consumption record cannot hash its own final bytes; its identity is bound by the authority and manifest instead."
+  },
+  "cohortPathCount": 6,
+  "cohort": [
+    {
+      "path": "governance/gee-v1/evals/gee-r7-runner.mjs",
+      "sha256": "ef735a539a8b863403de75c462e0787f9707d08d7bafab88182c62f1cac55a16",
+      "byteLength": 93002,
+      "operation": "MODIFY",
+      "reason": "Stop re-deriving maintenance-authority validity locally. A candidate authority may bind the historical fixture only when the canonical evaluator, in its own consumption phase over the canonical observation, returns consumed with zero findings. The previous partial reimplementation omitted the predecessor binding, so a re-sealed authority forgery was accepted here while the canonical validator rejected it. Also authenticate once against the repository and rebind the validated context onto scratch measurement roots, which are copies rather than repositories.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING"
+    },
+    {
+      "path": "governance/gee-v1/tests/gee-r7-benchmark.test.mjs",
+      "sha256": "ae4d817cf895dfe83a183cd545d39b029d4f694f1cb81786ffcc2b0d0721f6e1",
+      "byteLength": 24444,
+      "operation": "MODIFY",
+      "reason": "Prove hostiles A through J against the final bytes, including the re-sealed authority forgery, and assert the contradiction property directly: acceptance by the historical consumer implies the canonical validator's own AUTHORIZED verdict for the binding authority, under a moved HEAD and a grown ledger.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING"
+    },
+    {
+      "path": "governance/historical-architecture/R7_HISTORICAL_PERMANENCE_CONSUMPTION_R1.json",
+      "sha256": "67d755bff981ca5030f4267aea350902c7063e1621592fb69a0e93b155a76b9d",
+      "byteLength": 3460,
+      "operation": "CREATE",
+      "reason": "Re-issue the binding authority's consumption record so it certifies the final bytes of its own cohort. Requiring canonical consumption validity for the binder means the binder's cohort digests must describe what is actually on disk; a consumption record has no canonical predecessor and cannot be edited in place, so it is withdrawn and re-issued. It was never committed, so no history is rewritten.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING"
+    },
+    {
+      "path": "governance/sources/GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY_R7_CANONICAL_AUTHORITY_BINDING_R1.json",
+      "sha256": "4336d1bfd62b2f7e30b9b4b5eadde72cee4140b8c1aa8b89ede27f6abc78886f",
+      "byteLength": 2289,
+      "operation": "CREATE",
+      "reason": "Single-use successor LOCAL_EXPLICIT_AUTHORITY for the canonical authority binding repair; no already-consumed authority is reused.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING"
+    },
+    {
+      "path": "governance/historical-architecture/R7_CANONICAL_AUTHORITY_BINDING_AUTHORIZED_PATHS_R1.json",
+      "sha256": "1b522f3b170501f945c35cc14b907bebf052d425ae5db195a99d2294cf5dd416",
+      "byteLength": 4587,
+      "operation": "CREATE",
+      "reason": "Exact finite six-path cohort with declared per-path pre-state; no wildcard and no directory blanket.",
+      "artifactClass": "CANONICAL_AUTHORITY_BINDING"
+    }
+  ]
+}

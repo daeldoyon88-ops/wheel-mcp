@@ -1,0 +1,64 @@
+{
+  "document": "GEE_V1_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "schemaVersion": 2,
+  "authorityId": "DERIVED_PROJECTION_SYNC_LOCAL_AUTHORITY_R1",
+  "authorityClass": "PROJECT_OWNER_POST_FREEZE_MAINTENANCE_AUTHORITY",
+  "authorityMode": "LOCAL_EXPLICIT_AUTHORITY",
+  "issuedBy": "PROJECT_OWNER",
+  "createdAt": "2026-08-15T15:00:00.000Z",
+  "expiresAt": "2026-12-31T23:59:59.000Z",
+  "targetSystem": "PROJECT_GOVERNANCE",
+  "programId": "GATE19_POST_MISSION_DERIVED_PROJECTION_SYNC_R1",
+  "authorityPurpose": "NORMAL_MAINTENANCE",
+  "resumePoint": "GATE19_POST_MISSION_DERIVED_PROJECTION_SYNC",
+  "maxUse": 1,
+  "preState": {
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f",
+    "ledgerEventCount": 76,
+    "ledgerPrefixSha256": "93dcfc7215c26e7975d023aeae1c7d71d35299aea0a3095126809a9a5e467eca",
+    "gateId": "GATE19",
+    "gateStatus": "COMPLETE_AGENT",
+    "stateRevision": "R0003",
+    "contractRevision": "R0001",
+    "activeGate": "GATE13",
+    "R8ExpectedAbsent": true
+  },
+  "authorizedPathManifestPath": "governance/historical-architecture/DERIVED_PROJECTION_SYNC_AUTHORIZED_PATHS_R1.json",
+  "authorizedPathManifestSha256": "83f449f39ac591337226207d175c66f57b4bbf4f29faecf9b873a30ad2930b6b",
+  "authorizedOperationClasses": [
+    "DERIVED_PROJECTION_REGENERATION"
+  ],
+  "commitPolicy": {
+    "maxCommitCount": 1,
+    "allowedGitOperations": [
+      "GIT_ADD_PATHSPEC",
+      "GIT_COMMIT"
+    ],
+    "commitMessage": "governance: resynchronize derived projections after the GATE19 ledger advance",
+    "thirdCommitAuthorized": false
+  },
+  "pushAuthorized": false,
+  "authorityPredecessor": {
+    "authorityId": "GATE19_FINAL_CLOSURE_LOCAL_AUTHORITY_R1",
+    "sha256": "99093c0208d119dc9e62dc4677d6f1af8c033127d54ac6663baf24fb85b98a4b"
+  },
+  "authorityHeadBinding": {
+    "mode": "BASE_HEAD",
+    "baseHead": "eedfdade96ce00f910e4d24f8a6e934368e7986f"
+  },
+  "consumptionRecordPath": "governance/historical-architecture/DERIVED_PROJECTION_SYNC_CONSUMPTION_R1.json",
+  "prohibitedOperations": [
+    "START",
+    "SECOND_START",
+    "AGENT_CLOSURE",
+    "EXTERNAL_CONFIRMATION",
+    "COMPLETE_AGENT",
+    "COMPLETE_CONFIRMED",
+    "ACTIVE_GATE_SWITCH",
+    "GEE_R8",
+    "GIT_PUSH",
+    "HISTORY_REWRITE",
+    "THIRD_COMMIT",
+    "UNRELATED_WRITE"
+  ]
+}

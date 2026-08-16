@@ -46,7 +46,14 @@ const authorityPath = findAuthority();
 try {
   if (!authorityPath) throw new Error('AUTHORITY_NOT_UNIQUE_OR_ABSENT');
   authority = readJson(authorityPath);
-  const canonicalObservation = collectPostFreezeMaintenanceObservation({ root, authority });
+  // A V2 manifest may self-exclude the authority document from the pre-state
+  // gate, and the evaluator refuses that exclusion unless it can see which
+  // document was actually loaded. Reported repo-relative, POSIX-style, so it
+  // compares against manifest paths on every platform.
+  const canonicalObservation = collectPostFreezeMaintenanceObservation({
+    root, authority,
+    authorityDocumentPath: path.relative(root, authorityPath).split(path.sep).join('/')
+  });
   findings.push(...canonicalObservation.findings);
   manifest = canonicalObservation.manifest;
   observed = canonicalObservation.observed;
